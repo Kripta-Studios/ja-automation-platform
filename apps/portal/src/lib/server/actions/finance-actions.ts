@@ -31,7 +31,7 @@ const canonicalLegalEntityRevisionForm = z.object({
   effectiveFrom: z.iso.date(),
   effectiveTo: z.union([z.literal(''), z.iso.date()]).transform((value) => value || undefined),
   legalName: z.string().trim().min(1).max(300),
-  taxIdentifier: z.string().trim().min(1).max(100),
+  taxIdentifier: z.string().trim().max(100),
   registrationIdentifier: z
     .string()
     .trim()
@@ -97,7 +97,83 @@ const assignmentExpensePolicyForm = z.object({
   reason: z.string().trim().min(3).max(2000),
 });
 
+const reimbursementModeForm = z.enum(['inherit', 'at_cost', 'none']);
+const projectReimbursementForm = z.object({
+  projectId: z.string().trim().min(1).max(200),
+  expectedVersion: z.coerce.number().int().positive(),
+  mode: reimbursementModeForm,
+  reason: z.string().trim().min(3).max(2000),
+});
+const workerReimbursementForm = z.object({
+  projectMemberId: z.string().trim().min(1).max(200),
+  expectedVersion: z.coerce.number().int().positive(),
+  mode: reimbursementModeForm,
+  reason: z.string().trim().min(3).max(2000),
+});
+
 export const financeActions = {
+  setProjectReimbursementDefault: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = projectReimbursementForm.safeParse(await formObject(request));
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.projectReimbursement',
+        {},
+        'Check project reimbursement fields',
+        {
+          fields: parsed.error.flatten().fieldErrors,
+        },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      new AssignmentExpensePolicyRepository(context.sqlite).setProjectReimbursementDefault(
+        context.principal,
+        { ...parsed.data, mode: parsed.data.mode === 'inherit' ? null : parsed.data.mode },
+      );
+      return actionSuccess(
+        'action.finance.projectReimbursementSaved',
+        {},
+        'Project reimbursement default saved',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  setWorkerReimbursementOverride: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = workerReimbursementForm.safeParse(await formObject(request));
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.validation.workerReimbursement',
+        {},
+        'Check worker reimbursement fields',
+        {
+          fields: parsed.error.flatten().fieldErrors,
+        },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      new AssignmentExpensePolicyRepository(context.sqlite).setWorkerReimbursementOverride(
+        context.principal,
+        { ...parsed.data, mode: parsed.data.mode === 'inherit' ? null : parsed.data.mode },
+      );
+      return actionSuccess(
+        'action.finance.workerReimbursementSaved',
+        {},
+        'Worker reimbursement override saved',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
   createAssignmentExpensePolicy: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'finance')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');

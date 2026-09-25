@@ -1014,7 +1014,12 @@
         </div>
         {#each expenses as item}<article>
             <div>
-              <strong>{display(item.date)} · {display(item.vendor)}</strong><small
+              <strong
+                >{display(item.date)} · {display(
+                  item.vendor,
+                  display(item.description, controlled('expenseCategory', item.category)),
+                )}</strong
+              ><small
                 >{controlled('expenseCategory', item.category)} · {controlled(
                   'billingStream',
                   item.treatment,

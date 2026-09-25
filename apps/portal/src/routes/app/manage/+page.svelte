@@ -185,7 +185,13 @@
             <header>
               <strong
                 >{String(
-                  row.vendor ?? row.summary ?? row.system_name ?? row.activity_summary ?? row.id,
+                  row.vendor ||
+                    row.description ||
+                    row.category ||
+                    row.summary ||
+                    row.system_name ||
+                    row.activity_summary ||
+                    row.id,
                 )}</strong
               ><StatusBadge text={controlled('status', row.approval_state)} />
             </header>

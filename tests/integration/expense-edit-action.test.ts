@@ -67,4 +67,10 @@ describe('expense edit action input', () => {
     expect(result.data.occurredTimeLocal).toBeNull();
     expect(result.data.timeEntryId).toBeNull();
   });
+
+  it('accepts an empty vendor as an explicit draft edit', () => {
+    const result = parseExpenseUpdateForm({ ...baseForm, vendor: '' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.vendor).toBe('');
+  });
 });

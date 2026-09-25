@@ -564,6 +564,20 @@ describe('localized report PDF renderers', () => {
     expect(containsPdfCopy(text, expected.noExpenses)).toBe(true);
   });
 
+  it('uses the expense category when a worker reimbursement has no vendor', () => {
+    const snapshot = workerStatementSnapshot('en');
+    const pdf = workerStatementPdf({
+      ...snapshot,
+      expenses: snapshot.expenses.map((expense) => ({ ...expense, vendor: '' })),
+    });
+    expectPdf(pdf);
+    const text = textFromPdf(pdf, '-raw');
+    expect(containsPdfCopy(text, 'Expense / vendor')).toBe(true);
+    expect(containsPdfCopy(text, 'Reimbursement amount')).toBe(true);
+    expect(containsPdfCopy(text, 'travel')).toBe(true);
+    expect(containsPdfCopy(text, 'None')).toBe(false);
+  });
+
   it.each(locales)('renders a long multipage Worker Statement in %s', (locale) => {
     const pdf = workerStatementPdf(workerStatementSnapshot(locale, 'long'));
     expect(pageCount(pdf)).toBeGreaterThan(1);
@@ -684,6 +698,45 @@ describe('localized report PDF renderers', () => {
     expect(containsPdfCopy(text, 'Alex Rivera')).toBe(true);
     expect(containsPdfCopy(text, 'C-0001-P-001')).toBe(true);
     expect(containsPdfCopy(text, 'legalEntityId')).toBe(false);
+  });
+
+  it('explains recorded expense, company cost, and client billing separately in the Accounting Pack PDF', () => {
+    const pdf = accountingPackPdf({
+      ...packSnapshot('en'),
+      expenseRegister: [
+        {
+          date: '2026-08-12',
+          worker: 'Alex Rivera',
+          project: 'C-0001-P-001',
+          category: 'meals',
+          vendor: '',
+          currency: 'EUR',
+          projectCurrency: 'USD',
+          amountMinor: '10000',
+          taxMinor: '2000',
+          companyCostMinor: '0',
+          billingAmountMinor: '15000',
+          reimbursementAmountMinor: '5000',
+          reimbursedAmountMinor: null,
+        },
+      ],
+    });
+    expectPdf(pdf);
+    const text = textFromPdf(pdf, '-raw').replace(/\s+/g, ' ').trim();
+    for (const label of [
+      'Recorded expense (incl. tax)',
+      'Company expense cost',
+      'Client billable expense',
+      'Expense / vendor',
+      'Worker reimbursement (eligible / paid)',
+    ])
+      expect(containsPdfCopy(text, label)).toBe(true);
+    expect(containsPdfCopy(text, '€120.00')).toBe(true);
+    expect(containsPdfCopy(text, '$0.00')).toBe(true);
+    expect(containsPdfCopy(text, '$150.00')).toBe(true);
+    expect(containsPdfCopy(text, '€50.00 / —')).toBe(true);
+    expect(containsPdfCopy(text, '0.00 is an actual zero')).toBe(true);
+    expect(containsPdfCopy(text, 'None')).toBe(false);
   });
 
   it('renders signed collection rows from the stored Accounting Pack field names', () => {

@@ -977,10 +977,10 @@ const renderExpensesDetailed = (
   const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
   const totalAmountText =
     totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
-  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.vendor)}</h2>${table(
+  return `<h2>${escape(localized.invoiceDetail)} · ${escape(localized.expensesDetailedInvoice)}</h2>${table(
     [
       {
-        label: `${localized.description} / ${localized.vendor}`,
+        label: localized.description,
         render: (line) => {
           const desc = lineDisplayValue(line, 'description', 'detail');
           const vendor = lineDisplayValue(line, 'vendor', 'merchant', 'supplier');

@@ -1,6 +1,9 @@
 <script lang="ts">
+  import { enhance } from '$app/forms';
+  import { goto } from '$app/navigation';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
+  import type { SubmitFunction } from '@sveltejs/kit';
   import { onMount, tick } from 'svelte';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
@@ -58,6 +61,7 @@
 
   onMount(() => {
     const saved = readOperationalRegisterState<{
+      activeTab?: Tab;
       search?: string;
       order?: OperationalOrder;
       queuePage?: number;
@@ -67,6 +71,8 @@
       financeSearch?: string;
       financePage?: number;
     }>(registerStateKey());
+    if (!$page.url.searchParams.has('tab') && saved?.activeTab && tabs.includes(saved.activeTab))
+      activeTab = saved.activeTab;
     if (!$page.url.searchParams.has('q') && typeof saved?.search === 'string')
       search = saved.search;
     if (
@@ -87,6 +93,7 @@
   $effect(() => {
     if (registerStateHydrated)
       writeOperationalRegisterState(registerStateKey(), {
+        activeTab,
         search,
         order,
         queuePage,
@@ -312,6 +319,40 @@
     void tick().then(() => document.getElementById(tabId(tab))?.focus());
   }
 
+  /** Keep the current tab and scroll position while the server refreshes the queue. */
+  const submitApproval: SubmitFunction = () => {
+    const scrollTop = window.scrollY;
+    return async ({ result, update }) => {
+      await update({ reset: false });
+      if (result.type === 'success' || result.type === 'failure') {
+        await tick();
+        window.scrollTo({ top: scrollTop, behavior: 'instant' });
+      }
+    };
+  };
+
+  function applyFilters(event: SubmitEvent): void {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const params = new URLSearchParams();
+    for (const [name, value] of new FormData(form)) {
+      if (typeof value === 'string' && value) params.set(name, value);
+    }
+    void goto(`${base}/app/approvals?${params.toString()}`, {
+      noScroll: true,
+      keepFocus: true,
+    });
+  }
+
+  function clearFilters(event: MouseEvent): void {
+    event.preventDefault();
+    resetApprovalPages();
+    void goto(`${base}/app/approvals?tab=${activeTab}&q=&stage=&order=priority`, {
+      noScroll: true,
+      keepFocus: true,
+    });
+  }
+
   function approvalHref(overrides: Record<string, string>): string {
     const params = new URLSearchParams();
     const tab = overrides.tab ?? activeTab;
@@ -479,6 +520,7 @@
     aria-label={translate('Filter approvals')}
     method="GET"
     action={`${base}/app/approvals`}
+    onsubmit={applyFilters}
   >
     <input type="hidden" name="tab" value={activeTab} />
     <label>
@@ -573,7 +615,7 @@
     <a
       class="secondary-button"
       href={`${base}/app/approvals?tab=${activeTab}&q=&stage=&order=priority`}
-      onclick={resetApprovalPages}>{translate('Clear filters')}</a
+      onclick={clearFilters}>{translate('Clear filters')}</a
     >
   </form>
 
@@ -624,7 +666,7 @@
                 {#if isAuditor}
                   <span class="approval-read-only">{translate('Read-only review')}</span>
                 {:else if value(row, 'review_stage') === 'report'}
-                  <form method="POST" action="?/reviewReport">
+                  <form method="POST" action="?/reviewReport" use:enhance={submitApproval}>
                     <input type="hidden" name="type" value={value(row, 'type')} />
                     <input type="hidden" name="id" value={value(row, 'id')} />
                     <input type="hidden" name="decision" value="approved" />
@@ -632,7 +674,7 @@
                   </form>
                   <details class="approval-action-menu">
                     <summary>{translate('Review actions')}</summary>
-                    <form method="POST" action="?/reviewReport">
+                    <form method="POST" action="?/reviewReport" use:enhance={submitApproval}>
                       <input type="hidden" name="type" value={value(row, 'type')} />
                       <input type="hidden" name="id" value={value(row, 'id')} />
                       <input type="hidden" name="decision" value="needs_changes" />
@@ -658,7 +700,7 @@
                     >
                   {/if}
                 {:else}
-                  <form method="POST" action="?/approveRecord">
+                  <form method="POST" action="?/approveRecord" use:enhance={submitApproval}>
                     <input type="hidden" name="type" value={rowType(row)} />
                     <input type="hidden" name="id" value={value(row, 'id')} />
                     <input type="hidden" name="decision" value="approved" />
@@ -666,7 +708,7 @@
                   </form>
                   <details class="approval-action-menu">
                     <summary>{translate('Review actions')}</summary>
-                    <form method="POST" action="?/approveRecord">
+                    <form method="POST" action="?/approveRecord" use:enhance={submitApproval}>
                       <input type="hidden" name="type" value={rowType(row)} />
                       <input type="hidden" name="id" value={value(row, 'id')} />
                       <input type="hidden" name="decision" value="needs_changes" />
@@ -678,7 +720,7 @@
                         {translate('Needs changes')}
                       </button>
                     </form>
-                    <form method="POST" action="?/approveRecord">
+                    <form method="POST" action="?/approveRecord" use:enhance={submitApproval}>
                       <input type="hidden" name="type" value={rowType(row)} />
                       <input type="hidden" name="id" value={value(row, 'id')} />
                       <input type="hidden" name="decision" value="rejected" />
@@ -812,14 +854,14 @@
               <span class="approval-read-only">{translate('Read-only review')}</span>
             {:else}
               <div class="approval-row-actions">
-                <form method="POST" action="?/reviewMilestone">
+                <form method="POST" action="?/reviewMilestone" use:enhance={submitApproval}>
                   <input type="hidden" name="id" value={value(milestone, 'id')} />
                   <input type="hidden" name="decision" value="approved" />
                   <button type="submit">{translate('Approve')}</button>
                 </form>
                 <details class="approval-action-menu">
                   <summary>{translate('Review actions')}</summary>
-                  <form method="POST" action="?/reviewMilestone">
+                  <form method="POST" action="?/reviewMilestone" use:enhance={submitApproval}>
                     <input type="hidden" name="id" value={value(milestone, 'id')} />
                     <input type="hidden" name="decision" value="rejected" />
                     <label>
@@ -904,7 +946,12 @@
               {:else if isAuditor}
                 <span class="approval-read-only">{translate('Read-only review')}</span>
               {:else}
-                <form method="POST" action="?/financeApprove" class="finance-review-form">
+                <form
+                  method="POST"
+                  action="?/financeApprove"
+                  class="finance-review-form"
+                  use:enhance={submitApproval}
+                >
                   <input type="hidden" name="type" value={rowType(row)} />
                   <input type="hidden" name="id" value={value(row, 'id')} />
                   {#if value(row, 'type') === 'time'}

@@ -32,20 +32,32 @@ describe('draft delete controls', () => {
 
   it('routes returned time to a reasoned correction draft instead of deletion', () => {
     const time = read('apps/portal/src/lib/portal/sections/TimeSection.svelte');
+    const detail = read('apps/portal/src/routes/app/time/[id]/+page.svelte');
+    const action = read('apps/portal/src/routes/app/time/[id]/+page.server.ts');
+    const correctionForm = read('apps/portal/src/lib/portal/ui/CorrectionDraftForm.svelte');
     expect(time).toContain("row.approval_state === 'needs_changes'");
-    expect(time).toContain('action="?/createCorrectionDraft"');
-    expect(time).toContain('name="reason"');
+    expect(time).toContain('#time-correction-title');
+    expect(detail).toContain('recordType="time_entry"');
+    expect(action).toContain('createCorrectionDraft: async');
+    expect(correctionForm).toContain('action="?/createCorrectionDraft"');
+    expect(correctionForm).toContain('name="reason"');
     expect(time).toContain('Create corrected draft');
   });
 
   it('keeps returned and approved expenses append-only and routes them to a reasoned correction', () => {
     const expense = read('apps/portal/src/lib/portal/sections/ExpenseSection.svelte');
+    const detail = read('apps/portal/src/routes/app/expenses/[id]/+page.svelte');
+    const detailAction = read('apps/portal/src/routes/app/expenses/[id]/+page.server.ts');
+    const correctionForm = read('apps/portal/src/lib/portal/ui/CorrectionDraftForm.svelte');
     const actions = read('apps/portal/src/lib/server/actions/expense-actions.ts');
     expect(expense).toContain("row.approval_state === 'needs_changes'");
     expect(expense).toContain("row.approval_state === 'approved'");
-    expect(expense).toContain('action="?/createCorrectionDraft"');
-    expect(expense).toContain('name="recordType" value="expense"');
-    expect(expense).toContain('name="reason"');
+    expect(expense).toContain('#expense-correction-title');
+    expect(detail).toContain('recordType="expense"');
+    expect(detailAction).toContain('createCorrectionDraft: async');
+    expect(correctionForm).toContain('action="?/createCorrectionDraft"');
+    expect(correctionForm).toContain('name="recordType" value={recordType}');
+    expect(correctionForm).toContain('name="reason"');
     expect(expense).not.toContain('action="?/deleteExpense"');
     expect(actions).toContain('deleteExpense: async');
     expect(actions).toContain("'Expense draft deleted'");

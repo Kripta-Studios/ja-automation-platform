@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { supplierRouteAllowed } from '../../apps/portal/src/lib/server/supplier-route-access';
-import { supplierCsvCell, supplierCsv } from '../../apps/portal/src/lib/server/supplier-csv';
+import {
+  supplierCsvCell,
+  supplierCsv,
+  supplierHoursFromMinutes,
+} from '../../apps/portal/src/lib/server/supplier-csv';
 import { portalNavigationForRole } from '../../apps/portal/src/lib/portal-navigation';
 
 describe('supplier operational surface', () => {
@@ -78,5 +82,8 @@ describe('supplier operational surface', () => {
         ['José', 60],
       ]),
     ).toBe('\uFEFF"Técnico","Minutos"\r\n"José","60"\r\n');
+    expect(supplierHoursFromMinutes(75)).toBe('1.25');
+    expect(supplierHoursFromMinutes(30)).toBe('0.50');
+    expect(supplierHoursFromMinutes(-1)).toBe('');
   });
 });

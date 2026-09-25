@@ -139,7 +139,6 @@ describe('invoice lifecycle coverage', () => {
       legalEntityId: entity.id,
       streamType: 'labor',
       cadenceType: 'custom',
-      taxProfileId: tax.id,
       currency: 'USD',
       effectiveFrom: '2026-01-01',
     });
@@ -149,6 +148,9 @@ describe('invoice lifecycle coverage', () => {
       '2026-08-01',
       '2026-08-31',
     );
+    expect(sqlite.prepare('SELECT tax_minor FROM invoice WHERE id=?').get(original.id)).toEqual({
+      tax_minor: 0,
+    });
     expect(
       (
         repository.invoicePreview(finance, original.id).invoice as {
@@ -180,6 +182,15 @@ describe('invoice lifecycle coverage', () => {
     const issued = repository.issueInvoice(finance, original.id, 'es');
     expect(issued.issued).toBe(true);
     expect(issued.invoiceNumber).toMatch(/^LIFE-/);
+    expect(
+      JSON.parse(
+        (
+          sqlite.prepare('SELECT snapshot_json FROM invoice WHERE id=?').get(original.id) as {
+            snapshot_json: string;
+          }
+        ).snapshot_json,
+      ).taxProfile,
+    ).toBeNull();
     expect(
       JSON.parse(
         (

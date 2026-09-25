@@ -130,7 +130,7 @@ describe('readable generated PDF examples', () => {
       'Category:',
       'Payer:',
       'Status:',
-      'Reimbursement:',
+      'Reimbursement status:',
       'Description:',
     ]) {
       expect(raw.split(label)).toHaveLength(9);

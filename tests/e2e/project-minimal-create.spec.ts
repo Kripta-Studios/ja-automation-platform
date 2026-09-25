@@ -6,7 +6,8 @@ import { readE2EFixturePointer } from './environment.js';
 test('owner creates a project without budgets or planned end', async ({ page }, testInfo) => {
   test.skip(!['phone-360', 'phone-390', 'tablet-768', 'desktop'].includes(testInfo.project.name));
   const name = `Optional project fields ${testInfo.project.name}`;
-  const costCenter = `QA-${testInfo.project.name}`;
+  const costCenter =
+    testInfo.project.name === 'desktop' ? 'QA-9876' : `QA-${testInfo.project.name}`;
   const db = new DatabaseSync(readE2EFixturePointer().databasePath);
   try {
     await signIn(page, 'owner');
@@ -36,7 +37,7 @@ test('owner creates a project without budgets or planned end', async ({ page }, 
       .toBeTruthy();
     const created = db
       .prepare(
-        'SELECT id,cost_center_code,planned_end_date,revenue_budget_minor,po_cap_minor,labor_budget_minutes,travel_budget_minor FROM project WHERE name=?',
+        'SELECT id,project_number,cost_center_code,planned_end_date,revenue_budget_minor,po_cap_minor,labor_budget_minutes,travel_budget_minor FROM project WHERE name=?',
       )
       .get(name) as Record<string, unknown>;
     expect(created).toMatchObject({
@@ -47,6 +48,8 @@ test('owner creates a project without budgets or planned end', async ({ page }, 
       labor_budget_minutes: null,
       travel_budget_minor: null,
     });
+    if (testInfo.project.name === 'desktop')
+      expect(String(created.project_number)).toMatch(/-P-9876$/);
     const continuation = page.locator('[data-project-setup-next]');
     await expect(continuation).toBeVisible();
     await expect(
@@ -81,9 +84,8 @@ test('owner creates a project without budgets or planned end', async ({ page }, 
       .click();
     await expect(page).toHaveURL(new RegExp(`/time\\?project=${created.id}`));
     await page.getByRole('button', { name: 'Log time', exact: true }).click();
-    await expect(page.locator('form[action="?/createTime"] [name="projectId"]')).toHaveValue(
-      String(created.id),
-    );
+    await expect(page.locator('form[action="?/createTime"] [name="projectId"]')).toHaveValue('');
+    await expect(page.locator('form[action="?/createTime"]')).toContainText('Select worker');
     await page.goBack();
     await page
       .locator('.attention-grid')

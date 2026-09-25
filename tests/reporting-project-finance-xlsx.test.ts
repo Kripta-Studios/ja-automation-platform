@@ -119,13 +119,13 @@ describe('project finance XLSX export', () => {
       ),
     );
     expect(cellByHeader(files, 1, 'Date')).toMatch(/s="1"><v>\d+<\/v>/);
-    expect(cellByHeader(files, 1, 'Amount')).toContain('s="2"><v>125.5</v>');
-    expect(cellByHeader(files, 1, 'Amount', 3)).toContain('t="inlineStr"');
-    expect(cellByHeader(files, 1, 'Amount', 3)).toContain('90071992547409.93');
+    expect(cellByHeader(files, 1, 'Recorded amount')).toContain('s="2"><v>125.5</v>');
+    expect(cellByHeader(files, 1, 'Recorded amount', 3)).toContain('t="inlineStr"');
+    expect(cellByHeader(files, 1, 'Recorded amount', 3)).toContain('90071992547409.93');
     expect(cellByHeader(files, 1, 'Vendor')).toContain('t="inlineStr"');
     expect(files.get('xl/worksheets/sheet1.xml')).not.toContain('<f>');
     const ordinary = unzip(expenseRegisterExport([record], 'xlsx', '2026-09'));
-    expect(cellByHeader(ordinary, 2, 'Amount')).toContain('s="2"><v>125.5</v>');
+    expect(cellByHeader(ordinary, 2, 'Recorded total')).toContain('s="2"><v>125.5</v>');
   });
 
   it('omits reimbursement status until an expense is approved', () => {
@@ -135,19 +135,60 @@ describe('project finance XLSX export', () => {
         currency: 'EUR',
         amount_minor: '100',
         vendor: `QA ${approval_state}`,
+        who_paid: 'worker',
         approval_state,
         reimbursement_state: 'pending',
+        reimbursement_amount_minor: '80',
       }),
     );
     const rows = expenseRegisterRows(records);
-    expect(rows.map((row) => row.Reimbursement)).toEqual(['', '', '', '', 'pending']);
+    expect(rows.map((row) => row['Reimbursement status'])).toEqual(['', '', '', '', 'pending']);
+    expect(rows.map((row) => row['Reimbursement amount'])).toEqual(['', '', '', '', '0.80']);
+    expect(rows.map((row) => row['Reimbursed amount'])).toEqual(['', '', '', '', '']);
     const csv = new TextDecoder().decode(expenseRegisterExport(records, 'csv', '2026-09'));
     expect(csv).toContain('QA draft');
-    expect(csv).not.toContain('draft,pending');
-    expect(csv).toContain('approved,pending');
+    expect(csv).not.toContain('draft,0.80');
+    expect(csv).toContain("approved,'0.80,,pending");
     const workbook = unzip(expenseRegisterExport(records, 'xlsx', '2026-09'));
-    expect(cellByHeader(workbook, 1, 'Reimbursement', 2)).not.toContain('pending');
-    expect(cellByHeader(workbook, 1, 'Reimbursement', 6)).toContain('pending');
+    expect(cellByHeader(workbook, 1, 'Reimbursement status', 2)).not.toContain('pending');
+    expect(cellByHeader(workbook, 1, 'Reimbursement status', 6)).toContain('pending');
+    expect(cellByHeader(workbook, 1, 'Reimbursement amount', 6)).toContain('<v>0.8</v>');
+  });
+
+  it('keeps optional vendor blank and only labels a completed worker reimbursement as paid', () => {
+    const ownPaid = {
+      spent_on: '2026-09-24',
+      currency: 'USD',
+      amount_minor: '15000',
+      reimbursement_amount_minor: '12500',
+      vendor: '',
+      category: 'per_diem',
+      description: 'Perdiem',
+      who_paid: 'worker',
+      approval_state: 'approved',
+      reimbursement_state: 'reimbursed',
+    };
+    const delegated = {
+      spent_on: ownPaid.spent_on,
+      currency: ownPaid.currency,
+      amount_minor: ownPaid.amount_minor,
+      vendor: ownPaid.vendor,
+      category: ownPaid.category,
+      description: ownPaid.description,
+      who_paid: ownPaid.who_paid,
+      approval_state: ownPaid.approval_state,
+    };
+    const rows = expenseRegisterRows([ownPaid, delegated]);
+    expect(rows[0]).toMatchObject({
+      Vendor: '',
+      'Recorded amount': '150.00',
+      'Reimbursement amount': '125.00',
+      'Reimbursed amount': '125.00',
+    });
+    expect(rows[1]).not.toHaveProperty('Reimbursed amount');
+    const csv = new TextDecoder().decode(expenseRegisterExport([ownPaid], 'csv', '2026-09'));
+    expect(csv).toContain('Recorded amount');
+    expect(csv).toContain('Reimbursed amount');
   });
 
   it('preserves values exceeding spreadsheet precision as literal text', () => {
@@ -229,6 +270,9 @@ describe('project finance XLSX export', () => {
           expenseId: 'expense-001',
           currency: 'EUR',
           amountMinor: '2500',
+          reimbursementAmountMinor: '2500',
+          reimbursedAmountMinor: null,
+          companyCostMinor: '2500',
           taxMinor: '500',
           grossMinor: '3000',
           projectCurrency: 'EUR',
@@ -249,20 +293,32 @@ describe('project finance XLSX export', () => {
     });
     const files = unzip(bytes);
 
-    expect(cellByHeader(files, 1, 'net')).toContain('<v>1234.56</v>');
-    expect(cellByHeader(files, 1, 'netMinor')).toContain('<is><t>123456</t></is>');
-    expect(cellByHeader(files, 1, 'net', 3)).toContain('t="inlineStr"');
-    expect(cellByHeader(files, 1, 'netMinor', 3)).toContain('9007199254740993');
-    expect(cellByHeader(files, 2, 'amountCollectedInMonth')).toContain('<v>-12</v>');
-    expect(cellByHeader(files, 3, 'approvedCompensation')).toContain('<v>720</v>');
-    expect(cellByHeader(files, 4, 'amount')).toContain('<v>25</v>');
-    for (const header of ['amount', 'tax', 'gross', 'projectCurrencyAmount'])
+    expect(cellByHeader(files, 1, 'Client invoiced before tax')).toContain('<v>1234.56</v>');
+    expect(cellByHeader(files, 1, 'Invoiced before tax (minor units)')).toContain(
+      '<is><t>123456</t></is>',
+    );
+    expect(cellByHeader(files, 1, 'Client invoiced before tax', 3)).toContain('t="inlineStr"');
+    expect(cellByHeader(files, 1, 'Invoiced before tax (minor units)', 3)).toContain(
+      '9007199254740993',
+    );
+    expect(cellByHeader(files, 2, 'Payments collected in this period')).toContain('<v>-12</v>');
+    expect(cellByHeader(files, 3, 'Calculated worker compensation')).toContain('<v>720</v>');
+    expect(cellByHeader(files, 4, 'Amount entered from receipt')).toContain('<v>25</v>');
+    expect(cellByHeader(files, 4, 'Calculated worker reimbursement')).toContain('<v>25</v>');
+    expect(cellByHeader(files, 4, 'Amount actually reimbursed')).toContain('<t></t>');
+    expect(cellByHeader(files, 4, 'Approved company cost')).toContain('<v>25</v>');
+    for (const header of [
+      'Amount entered from receipt',
+      'Recorded tax amount',
+      'Receipt amount including tax',
+      'Receipt amount in project currency',
+    ])
       expect(cellByHeader(files, 4, header, 3)).toContain('<is><t></t></is>');
-    expect(cellByHeader(files, 4, 'billingAmount', 3)).toContain('<v>0</v>');
-    expect(cellByHeader(files, 4, 'amountMinor', 3)).toContain('<is><t></t></is>');
-    expect(cellByHeader(files, 4, 'taxMinor', 3)).toContain('<is><t></t></is>');
-    expect(cellByHeader(files, 4, 'grossMinor', 3)).toContain('<is><t></t></is>');
-    expect(cellByHeader(files, 4, 'projectCurrencyAmountMinor', 3)).toContain(
+    expect(cellByHeader(files, 4, 'Calculated amount to charge client', 3)).toContain('<v>0</v>');
+    expect(cellByHeader(files, 4, 'Receipt amount (minor units)', 3)).toContain('<is><t></t></is>');
+    expect(cellByHeader(files, 4, 'Recorded tax (minor units)', 3)).toContain('<is><t></t></is>');
+    expect(cellByHeader(files, 4, 'Receipt gross (minor units)', 3)).toContain('<is><t></t></is>');
+    expect(cellByHeader(files, 4, 'Project-currency receipt (minor units)', 3)).toContain(
       '<is><t>malformed</t></is>',
     );
   });
@@ -346,6 +402,12 @@ describe('project finance XLSX export', () => {
           spentOn: '2026-08-13',
           category: 'hotel',
           paidBy: 'worker',
+          recordedCurrency: 'EUR',
+          recordedAmountMinor: '2500',
+          classificationState: 'classified',
+          reimbursementAmountMinor: '2500',
+          reimbursedAmountMinor: null,
+          reimbursementState: 'pending',
           treatment: 'reimbursable',
           costMinor: '2500',
           actualCostMinor: '2500',
@@ -360,6 +422,11 @@ describe('project finance XLSX export', () => {
           spentOn: '2026-08-14',
           category: 'misc',
           paidBy: 'worker',
+          recordedCurrency: 'EUR',
+          recordedAmountMinor: '163296',
+          classificationState: 'unclassified',
+          reimbursementAmountMinor: null,
+          reimbursedAmountMinor: null,
           treatment: 'reimbursable',
           costMinor: null,
           actualCostMinor: undefined,
@@ -372,6 +439,7 @@ describe('project finance XLSX export', () => {
       ],
       invoices: [
         {
+          id: 'invoice-1',
           invoice_number: 'JA-INV-000001',
           stream_type: 'labor',
           state: 'issued',
@@ -382,6 +450,17 @@ describe('project finance XLSX export', () => {
           paid_minor: '40000',
           issued_at: '2026-08-20T00:00:00.000Z',
           due_at: '2026-09-19T00:00:00.000Z',
+        },
+      ],
+      invoiceExpenseLines: [
+        {
+          invoice_id: 'invoice-1',
+          invoice_number: 'JA-INV-000001',
+          invoice_state: 'issued',
+          expense_id: 'expense-1',
+          description: '2026-08-15 · Meal · meals',
+          currency: 'EUR',
+          amount_minor: '1234',
         },
       ],
       milestones: [
@@ -404,12 +483,13 @@ describe('project finance XLSX export', () => {
       'Unbilled WIP',
       'Daily minimum',
       'Invoices',
+      'Invoice expenses',
       'Milestones',
       'Alerts',
     ]);
 
     const summary = files.get('xl/worksheets/sheet1.xml') ?? '';
-    expect(summary).toContain('Labor revenue');
+    expect(summary).toContain('Potential labor charges to client');
     expect(summary).toContain('EUR');
     expect(summary).toContain('1,234.56');
     expect(summary).toContain('123456');
@@ -423,10 +503,12 @@ describe('project finance XLSX export', () => {
     expect(expenseBudgetRow?.[2]).toContain('<v>950.5</v>');
     expect(expenseBudgetUsedRow?.[2]).toContain('25.75%');
     expect(summary).not.toContain('laborRevenueMinor');
-    expect(cellByHeader(files, 1, 'amount', 11)).toContain('<v>1234.56</v>');
-    expect(cellByHeader(files, 1, 'exactMinorUnits', 11)).toContain('<is><t>123456</t></is>');
-    expect(cellByHeader(files, 1, 'hours', 22)).toContain('<v>1.5</v>');
-    expect(cellByHeader(files, 1, 'percentage', 21)).toContain('<v>37.8</v>');
+    expect(cellByHeader(files, 1, 'Amount in project currency', 11)).toContain('<v>1234.56</v>');
+    expect(cellByHeader(files, 1, 'Exact amount in minor units', 11)).toContain(
+      '<is><t>123456</t></is>',
+    );
+    expect(cellByHeader(files, 1, 'Hours', 22)).toContain('<v>1.5</v>');
+    expect(cellByHeader(files, 1, 'Percent', 21)).toContain('<v>37.8</v>');
     expect(summary).toMatch(/<col min="4" max="4"[^>]* style="2"\/>/u);
     expect(files.get('xl/styles.xml')).toContain('numFmtId="165"');
 
@@ -435,34 +517,59 @@ describe('project finance XLSX export', () => {
     expect(labor).toContain('<c r="D2"><v>1.5</v></c>');
     expect(labor).toContain('<c r="H2" s="2"><v>1234.56</v></c>');
     expect(labor).toContain('123456');
-    expect(cellByHeader(files, 2, 'clientRevenue')).toContain('<v>1234.56</v>');
-    expect(cellByHeader(files, 2, 'internalCost')).toContain('<v>800</v>');
-    expect(cellByHeader(files, 2, 'workerCompensation')).toContain('<v>720</v>');
+    expect(cellByHeader(files, 2, 'Potential amount to charge client')).toContain('<v>1234.56</v>');
+    expect(cellByHeader(files, 2, 'Calculated internal labor cost')).toContain('<v>800</v>');
+    expect(cellByHeader(files, 2, 'Calculated worker compensation')).toContain('<v>720</v>');
 
-    expect(cellByHeader(files, 3, 'cost')).toContain('<v>25</v>');
-    expect(cellByHeader(files, 3, 'actualCost')).toContain('<v>25</v>');
-    expect(cellByHeader(files, 3, 'revenue')).toContain('<v>100</v>');
-    expect(cellByHeader(files, 3, 'pendingFinanceRevenue')).toContain('<v>0</v>');
-    for (const header of ['cost', 'actualCost', 'revenue', 'pendingFinanceRevenue'])
+    expect(cellByHeader(files, 3, 'Approved company cost')).toContain('<v>25</v>');
+    expect(cellByHeader(files, 3, 'Currency of receipt')).toContain('EUR');
+    expect(cellByHeader(files, 3, 'Amount entered from receipt')).toContain('<v>25</v>');
+    expect(cellByHeader(files, 3, 'Calculated worker reimbursement')).toContain('<v>25</v>');
+    expect(cellByHeader(files, 3, 'Amount actually reimbursed')).toContain('<t></t>');
+    expect(cellByHeader(files, 3, 'Receipt amount (minor units)')).toContain('<t>2500</t>');
+    expect(cellByHeader(files, 3, 'Finance classification status')).toContain('classified');
+    expect(cellByHeader(files, 3, 'Amount entered from receipt', 3)).toContain('<v>1632.96</v>');
+    expect(cellByHeader(files, 3, 'Calculated worker reimbursement', 3)).toContain('<t></t>');
+    expect(cellByHeader(files, 3, 'Calculated company cost')).toContain('<v>25</v>');
+    expect(cellByHeader(files, 3, 'Finance-approved client charge')).toContain('<v>100</v>');
+    expect(cellByHeader(files, 3, 'Client charge awaiting finance approval')).toContain('<v>0</v>');
+    for (const header of [
+      'Approved company cost',
+      'Calculated company cost',
+      'Finance-approved client charge',
+      'Client charge awaiting finance approval',
+    ])
       expect(cellByHeader(files, 3, header, 3)).toContain('<is><t></t></is>');
-    expect(cellByHeader(files, 3, 'costExactMinor', 3)).toContain('<is><t></t></is>');
-    expect(cellByHeader(files, 3, 'actualCostExactMinor', 3)).toContain('<is><t></t></is>');
-    expect(cellByHeader(files, 3, 'revenueExactMinor', 3)).toContain('<is><t></t></is>');
-    expect(cellByHeader(files, 3, 'pendingFinanceRevenueExactMinor', 3)).toContain(
+    expect(cellByHeader(files, 3, 'Approved company cost (minor units)', 3)).toContain(
+      '<is><t></t></is>',
+    );
+    expect(cellByHeader(files, 3, 'Calculated company cost (minor units)', 3)).toContain(
+      '<is><t></t></is>',
+    );
+    expect(cellByHeader(files, 3, 'Finance-approved client charge (minor units)', 3)).toContain(
+      '<is><t></t></is>',
+    );
+    expect(cellByHeader(files, 3, 'Pending client charge (minor units)', 3)).toContain(
       '<is><t>malformed</t></is>',
     );
-    expect(cellByHeader(files, 4, 'amount')).toContain('<v>334.56</v>');
-    expect(cellByHeader(files, 5, 'revenue')).toContain('<v>25</v>');
+    expect(cellByHeader(files, 4, 'Approved amount not yet invoiced')).toContain('<v>334.56</v>');
+    expect(cellByHeader(files, 5, 'Potential client charge from daily minimum')).toContain(
+      '<v>25</v>',
+    );
 
     const invoices = files.get('xl/worksheets/sheet6.xml') ?? '';
     expect(invoices).toContain('JA-INV-000001');
     expect(invoices).toContain('<c r="G2" s="2"><v>1210</v></c>');
-    expect(invoices).toContain('<c r="H2" s="2"><v>400</v></c>');
-    expect(cellByHeader(files, 6, 'total')).toContain('<v>1210</v>');
-    expect(cellByHeader(files, 6, 'collected')).toContain('<v>400</v>');
-    expect(cellByHeader(files, 7, 'amount')).toContain('<v>500</v>');
+    expect(cellByHeader(files, 6, 'Expense lines on invoice')).toContain('<v>1</v>');
+    expect(cellByHeader(files, 6, 'Expense lines charged to client')).toContain('<v>12.34</v>');
+    expect(cellByHeader(files, 6, 'Invoiced expense lines (minor units)')).toContain('<t>1234</t>');
+    expect(cellByHeader(files, 6, 'Invoice total including tax')).toContain('<v>1210</v>');
+    expect(cellByHeader(files, 6, 'Payments collected')).toContain('<v>400</v>');
+    expect(cellByHeader(files, 7, 'Source expense ID')).toContain('expense-1');
+    expect(cellByHeader(files, 7, 'Expense amount on invoice')).toContain('<v>12.34</v>');
+    expect(cellByHeader(files, 8, 'Milestone amount to charge client')).toContain('<v>500</v>');
 
-    const alerts = files.get('xl/worksheets/sheet8.xml') ?? '';
+    const alerts = files.get('xl/worksheets/sheet9.xml') ?? '';
     expect(alerts).toContain('MISSING_RATE');
     expect(alerts).toContain('missing_client_rate');
     expect(alerts).toContain('time-1');
@@ -486,6 +593,6 @@ describe('project finance XLSX export', () => {
     expect(sheetNames(files)).toContain('Resumen');
     expect(sheetNames(files)).toContain('Mano de obra');
     expect(sheetNames(files)).toContain('Facturas');
-    expect(files.get('xl/worksheets/sheet2.xml')).toContain('actualHours');
+    expect(files.get('xl/worksheets/sheet2.xml')).toContain('Hours recorded');
   });
 });

@@ -4139,6 +4139,69 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'Políticas de gastos por persona',
     'Políticas de despesas por pessoa',
   ],
+  'Worker reimbursement follows the project default unless this person has an override. Customer billing is a separate expense policy. “Do not bill customer” excludes the expense from the invoice; it does not cancel worker reimbursement.':
+    [
+      'El reembolso al trabajador sigue el valor predeterminado del proyecto, salvo que esta persona tenga una excepción. La facturación al cliente se configura por separado. «No facturar al cliente» excluye el gasto de la factura, pero no cancela el reembolso al trabajador.',
+      'O reembolso ao trabalhador segue o padrão do projeto, salvo se esta pessoa tiver uma exceção. A cobrança ao cliente é configurada separadamente. “Não faturar ao cliente” exclui a despesa da fatura, mas não cancela o reembolso ao trabalhador.',
+    ],
+  'Project worker reimbursement default': [
+    'Reembolso predeterminado a trabajadores del proyecto',
+    'Reembolso padrão aos trabalhadores do projeto',
+  ],
+  'Use existing person policies': [
+    'Usar las políticas existentes por persona',
+    'Usar as políticas existentes por pessoa',
+  ],
+  'Reimburse worker at cost': [
+    'Reembolsar al trabajador al coste',
+    'Reembolsar o trabalhador pelo custo',
+  ],
+  'Do not reimburse worker': ['No reembolsar al trabajador', 'Não reembolsar o trabalhador'],
+  'Save project reimbursement default': [
+    'Guardar reembolso predeterminado del proyecto',
+    'Salvar reembolso padrão do projeto',
+  ],
+  'Worker reimbursement overrides': [
+    'Excepciones de reembolso por trabajador',
+    'Exceções de reembolso por trabalhador',
+  ],
+  'Worker reimbursement override': [
+    'Excepción de reembolso del trabajador',
+    'Exceção de reembolso do trabalhador',
+  ],
+  'Use project default': ['Usar el valor predeterminado del proyecto', 'Usar o padrão do projeto'],
+  'Reimburse this worker at cost': [
+    'Reembolsar a este trabajador al coste',
+    'Reembolsar este trabalhador pelo custo',
+  ],
+  'Do not reimburse this worker': [
+    'No reembolsar a este trabajador',
+    'Não reembolsar este trabalhador',
+  ],
+  'Save worker override': ['Guardar excepción del trabajador', 'Salvar exceção do trabalhador'],
+  'Worker reimbursement if no project default': [
+    'Reembolso al trabajador si el proyecto no tiene valor predeterminado',
+    'Reembolso ao trabalhador se o projeto não tiver padrão',
+  ],
+  'Do not bill customer (worker may still be reimbursed)': [
+    'No facturar al cliente (el trabajador aún puede recibir reembolso)',
+    'Não faturar ao cliente (o trabalhador ainda pode ser reembolsado)',
+  ],
+  'Set who pays expenses and how the customer is charged. Worker reimbursement follows the project default unless Finance sets a person override.':
+    [
+      'Define quién paga los gastos y cómo se cobran al cliente. El reembolso al trabajador sigue el valor predeterminado del proyecto, salvo que Finanzas configure una excepción por persona.',
+      'Defina quem paga as despesas e como são cobradas ao cliente. O reembolso ao trabalhador segue o padrão do projeto, salvo se Finanças configurar uma exceção por pessoa.',
+    ],
+  'Choose how approved hours and customer-chargeable expenses become invoices. Worker reimbursement follows the project default unless a person override is set in Finance; customer expense charges remain separate.':
+    [
+      'Elige cómo se facturan las horas aprobadas y los gastos cobrables al cliente. El reembolso al trabajador sigue el valor predeterminado del proyecto, salvo que Finanzas configure una excepción por persona; los cargos al cliente se mantienen por separado.',
+      'Escolha como as horas aprovadas e as despesas cobráveis ao cliente entram nas faturas. O reembolso ao trabalhador segue o padrão do projeto, salvo se Finanças configurar uma exceção por pessoa; os encargos ao cliente permanecem separados.',
+    ],
+  'To stop reimbursing worker-paid claims, set the project default or a person override in Finance.':
+    [
+      'Para dejar de reembolsar gastos pagados por un trabajador, configura el valor predeterminado del proyecto o una excepción por persona en Finanzas.',
+      'Para deixar de reembolsar despesas pagas por um trabalhador, configure o padrão do projeto ou uma exceção por pessoa em Finanças.',
+    ],
   'Choose separately whether the worker is reimbursed and whether the customer pays. Rules apply by person, payer, category, and expense date.':
     [
       'Elige por separado si se reembolsa al trabajador y si paga el cliente. Las reglas se aplican por persona, pagador, categoría y fecha del gasto.',

@@ -18,7 +18,7 @@
 
   const setupActions: ReadonlyArray<{ id: BillingSetupAction; label: string }> = [
     { id: 'stream', label: 'New billing stream' },
-    { id: 'entity', label: 'New legal entity' },
+    { id: 'entity', label: 'New invoice issuer' },
     { id: 'tax', label: 'New tax profile' },
     { id: 'numbering', label: 'Invoice numbering policy' },
   ];
@@ -71,6 +71,14 @@
     excludedSourceCount: number;
     hasPositiveFixedFee: boolean;
     hasPositiveDraftAmount: boolean;
+    includedExpenseRows: Array<{
+      id: string;
+      spentOn: string;
+      category: string;
+      description: string;
+      amountMinor: string;
+    }>;
+    includedExpenseSubtotalMinor: string;
     reasons: Array<{ code?: string; sourceId?: string }>;
     existingInvoiceId?: string | null;
     existingInvoiceState?: string | null;
@@ -238,7 +246,13 @@
   );
   $effect(() => {
     setupCurrency = rowValue(setupProject, 'currency');
-    setupLegalEntityId = '';
+    setupLegalEntityId = rowValue(
+      (data.legalEntities ?? []).find(
+        (entity) =>
+          rowValue(entity, 'code') === 'JA-USA' && rowValue(entity, 'currency') === setupCurrency,
+      ),
+      'id',
+    );
     setupTaxProfileId = '';
     setupContactId = '';
   });
@@ -877,7 +891,7 @@
                 <dt>{translate('Tax profile')}</dt>
                 <dd>
                   {rowValue(wizardRule, 'tax_profile_name', 'taxProfileName') ||
-                    translate('Missing')}
+                    translate('No tax profile configured')}
                 </dd>
               </div>
             </dl>
@@ -1005,6 +1019,40 @@
               {#if wizardHasNoBillableSources}<p role="alert">
                   {translate(wizardEmptySourcesMessage)}
                 </p>{/if}
+              {#if wizardReadiness.includedExpenseRows?.length}
+                <h4>{translate('Eligible expenses')}</h4>
+                <table class="billing-section__table">
+                  <thead
+                    ><tr
+                      ><th>{translate('Date')}</th><th>{translate('Category')}</th><th
+                        >{translate('Description')}</th
+                      ><th>{translate('Customer amount')}</th></tr
+                    ></thead
+                  >
+                  <tbody
+                    >{#each wizardReadiness.includedExpenseRows as expense}<tr>
+                        <td>{expense.spentOn}</td><td
+                          >{controlledValue('expenseCategory', expense.category)}</td
+                        >
+                        <td>{expense.description}</td><td
+                          >{formatMoney(expense.amountMinor, rowValue(wizardRule, 'currency'))}</td
+                        >
+                      </tr>{/each}</tbody
+                  >
+                  <tfoot
+                    ><tr
+                      ><th colspan="3"
+                        >{translate('Eligible expense subtotal before caps and adjustments')}</th
+                      ><td
+                        >{formatMoney(
+                          wizardReadiness.includedExpenseSubtotalMinor,
+                          rowValue(wizardRule, 'currency'),
+                        )}</td
+                      ></tr
+                    ></tfoot
+                  >
+                </table>
+              {/if}
             {:else}
               <button type="button" class="secondary-button" onclick={checkWizardPeriod}
                 >{translate('Check selected period')}</button
@@ -1051,7 +1099,7 @@
             <h3>{translate('Taxes')}</h3>
             <p>
               {translate(
-                'Taxes come from the explicit tax profile assigned to this stream, not from assumptions about labor or expenses.',
+                'A selected tax profile calculates tax. Without one, the draft adds no tax.',
               )}
             </p>
             <dl>
@@ -1059,7 +1107,7 @@
                 <dt>{translate('Tax profile')}</dt>
                 <dd>
                   {rowValue(wizardRule, 'tax_profile_name', 'taxProfileName') ||
-                    translate('Missing')}
+                    translate('No tax profile configured')}
                 </dd>
               </div>
               <div>
@@ -1073,14 +1121,25 @@
             <h3>{translate('Invoice data')}</h3>
             <p>
               {translate(
-                'The draft uses the stream’s legal entity, tax profile, recipient, payment terms and banking details. Edit the stream before creating the draft when those facts are incomplete.',
+                'The invoice issuer is your company. The customer legal name comes from the client used to create this project.',
               )}
             </p>
             <dl>
               <div>
-                <dt>{translate('Legal entity')}</dt>
+                <dt>{translate('Invoice issuer')}</dt>
                 <dd>
                   {rowValue(wizardRule, 'legal_entity_code', 'legalEntityCode') ||
+                    translate('Missing')}
+                </dd>
+              </div>
+              <div>
+                <dt>{translate('Customer legal entity')}</dt>
+                <dd>{rowValue(wizardRule, 'client_legal_name', 'clientLegalName')}</dd>
+              </div>
+              <div>
+                <dt>{translate('Customer billing address')}</dt>
+                <dd>
+                  {rowValue(wizardRule, 'client_billing_address', 'clientBillingAddress') ||
                     translate('Missing')}
                 </dd>
               </div>
@@ -1102,7 +1161,7 @@
             <h3>{translate('Banking / payment')}</h3>
             <p>
               {translate(
-                'Bank details come from the selected issuing entity and payment terms come from the billing stream. Configure them before creating the draft if they are missing.',
+                'Payment terms come from the billing stream. Review payment instructions on the draft before issuing.',
               )}
             </p>
             <dl>
@@ -1138,8 +1197,8 @@
             <h3>{translate('Preview')}</h3>
             <dl>
               <div>
-                <dt>{translate('Client')}</dt>
-                <dd>{rowValue(wizardRule, 'client_name', 'clientName')}</dd>
+                <dt>{translate('Customer legal entity')}</dt>
+                <dd>{rowValue(wizardRule, 'client_legal_name', 'clientLegalName')}</dd>
               </div>
               <div>
                 <dt>{translate('Project')}</dt>
@@ -1154,6 +1213,36 @@
                 </dd>
               </div>
             </dl>
+            {#if wizardReadiness?.includedExpenseRows?.length}
+              <h4>{translate('Eligible expenses')}</h4>
+              <table class="billing-section__table">
+                <thead
+                  ><tr
+                    ><th>{translate('Date')}</th><th>{translate('Description')}</th><th
+                      >{translate('Customer amount')}</th
+                    ></tr
+                  ></thead
+                >
+                <tbody
+                  >{#each wizardReadiness.includedExpenseRows as expense}<tr>
+                      <td>{expense.spentOn}</td><td>{expense.description}</td>
+                      <td>{formatMoney(expense.amountMinor, rowValue(wizardRule, 'currency'))}</td>
+                    </tr>{/each}</tbody
+                >
+                <tfoot
+                  ><tr
+                    ><th colspan="2"
+                      >{translate('Eligible expense subtotal before caps and adjustments')}</th
+                    ><td
+                      >{formatMoney(
+                        wizardReadiness.includedExpenseSubtotalMinor,
+                        rowValue(wizardRule, 'currency'),
+                      )}</td
+                    ></tr
+                  ></tfoot
+                >
+              </table>
+            {/if}
             <p>
               {translate(
                 'Save draft builds a reviewable snapshot. It does not issue, number, send or collect the invoice.',
@@ -1401,7 +1490,7 @@
         <div class="billing-section__directories">
           <details class="billing-reference-directory" use:disclosure>
             <summary
-              >{translate('Legal entities')}
+              >{translate('Invoice issuers (J&A Automation)')}
               <span class="disclosure-count">{data.legalEntities?.length ?? 0}</span></summary
             >
             <table class="billing-section__table">
@@ -1410,6 +1499,7 @@
                   <th scope="col">{translate('Code')}</th>
                   <th scope="col">{translate('Legal name')}</th>
                   <th scope="col">{translate('Currency')}</th>
+                  {#if canManageIssuerAndNumbering}<th scope="col">{translate('Edit')}</th>{/if}
                 </tr>
               </thead>
               <tbody>
@@ -1418,9 +1508,62 @@
                     <td>{rowValue(entity, 'code')}</td>
                     <td>{rowValue(entity, 'legal_name', 'legalName')}</td>
                     <td>{rowValue(entity, 'currency')}</td>
+                    {#if canManageIssuerAndNumbering}<td>
+                        <details>
+                          <summary>{translate('Edit issuer')}</summary>
+                          <form
+                            method="POST"
+                            action="?/updateLegalEntity"
+                            class="billing-section__config-form"
+                          >
+                            <input
+                              type="hidden"
+                              name="legalEntityId"
+                              value={rowValue(entity, 'id')}
+                            />
+                            <label
+                              ><span>{translate('Legal name')}</span><input
+                                name="legalName"
+                                value={rowValue(entity, 'legal_name', 'legalName')}
+                                required
+                              /></label
+                            >
+                            <label
+                              ><span>{translate('Currency')}</span><input
+                                name="currency"
+                                value={rowValue(entity, 'currency')}
+                                readonly
+                              /></label
+                            >
+                            <label
+                              ><span>{translate('Issuer address and phone')}</span><textarea
+                                name="billingAddress"
+                                rows="3"
+                                required
+                                >{rowValue(entity, 'billing_address', 'billingAddress')}</textarea
+                              ></label
+                            >
+                            <label
+                              ><span>{translate('Tax or registration identifier (optional)')}</span
+                              ><textarea name="companyIdentifiers" rows="2"
+                                >{rowValue(
+                                  entity,
+                                  'company_identifiers',
+                                  'companyIdentifiers',
+                                )}</textarea
+                              ></label
+                            >
+                            <button type="submit">{translate('Save issuer')}</button>
+                          </form>
+                        </details>
+                      </td>{/if}
                   </tr>
                 {:else}
-                  <tr><td colspan="3">{translate('No legal entities recorded.')}</td></tr>
+                  <tr
+                    ><td colspan={canManageIssuerAndNumbering ? '4' : '3'}
+                      >{translate('No invoice issuers recorded.')}</td
+                    ></tr
+                  >
                 {/each}
               </tbody>
             </table>
@@ -1498,7 +1641,7 @@
               <input name="anchorDate" type="date" />
             </label>
             <label>
-              <span>{translate('Legal entity')}</span>
+              <span>{translate('Invoice issuer (J&A Automation)')}</span>
               <select name="legalEntityId" bind:value={setupLegalEntityId} required>
                 <option value="">{translate('Select legal entity')}</option>
                 {#each (data.legalEntities ?? []).filter((entity) => setupProjectId && rowValue(entity, 'currency') === setupCurrency && rowValue(entity, 'status') === 'active') as entity}
@@ -1510,8 +1653,8 @@
             </label>
             <label>
               <span>{translate('Tax profile')}</span>
-              <select name="taxProfileId" bind:value={setupTaxProfileId} required>
-                <option value="">{translate('Select tax profile')}</option>
+              <select name="taxProfileId" bind:value={setupTaxProfileId}>
+                <option value="">{translate('No tax profile configured')}</option>
                 {#each (data.taxProfiles ?? []).filter((profile) => setupLegalEntityId && rowValue(profile, 'currency') === setupCurrency && rowValue(profile, 'status') === 'active' && (!rowValue(profile, 'legal_entity_id', 'legalEntityId') || rowValue(profile, 'legal_entity_id', 'legalEntityId') === setupLegalEntityId)) as profile}
                   <option value={rowValue(profile, 'id')}>
                     {rowValue(profile, 'name')} ({rowValue(profile, 'currency')})
@@ -1585,7 +1728,7 @@
         <div class="billing-section__config-compact-grid">
           {#if setupAction === 'entity' && canManageIssuerAndNumbering}
             <form method="POST" action="?/createLegalEntity" class="billing-section__config-form">
-              <h4>{translate('New legal entity')}</h4>
+              <h4>{translate('New invoice issuer')}</h4>
               <label><span>{translate('Code')}</span><input name="code" required /></label>
               <label
                 ><span>{translate('Legal name')}</span><input name="legalName" required /></label
@@ -1597,17 +1740,16 @@
                 >
               </label>
               <label
-                ><span>{translate('Billing address')}</span><textarea
+                ><span>{translate('Issuer address and phone')}</span><textarea
                   name="billingAddress"
                   rows="3"
                   required
                 ></textarea></label
               >
               <label
-                ><span>{translate('Company identifiers')}</span><textarea
+                ><span>{translate('Tax or registration identifier (optional)')}</span><textarea
                   name="companyIdentifiers"
                   rows="2"
-                  required
                 ></textarea></label
               >
               <button type="submit">{translate('Save legal entity')}</button>

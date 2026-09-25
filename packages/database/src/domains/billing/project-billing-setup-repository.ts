@@ -30,8 +30,8 @@ export type ProjectBillingSetupInput = Readonly<{
   mode: ProjectBillingArrangement;
   effectiveFrom: string;
   legalEntityId: string;
-  laborTaxProfileId: string;
-  expenseTaxProfileId: string;
+  laborTaxProfileId?: string;
+  expenseTaxProfileId?: string;
   cadenceType: 'weekly' | 'every_14_days' | 'semi_monthly' | 'monthly' | 'manual';
   expenseCadenceType: 'weekly' | 'every_14_days' | 'semi_monthly' | 'monthly' | 'manual';
   anchorDate?: string;
@@ -116,6 +116,7 @@ type TemplateRow = Readonly<{
 
 const dayPattern = /^\d{4}-\d{2}-\d{2}$/;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const storedBillingIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/;
 const previousDay = (date: string): string =>
   new Date(Date.parse(`${date}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
 export function projectCalendarDate(timezone: string, instant = new Date()): string {
@@ -142,13 +143,11 @@ function validate(input: ProjectBillingSetupInput): void {
     throw new ValidationError('Choose one or two invoices');
   if (!dayPattern.test(input.effectiveFrom) || Number.isNaN(Date.parse(input.effectiveFrom)))
     throw new ValidationError('Effective date is invalid');
-  for (const value of [
-    input.legalEntityId,
-    input.laborTaxProfileId,
-    ...(input.mode === 'separate' ? [input.expenseTaxProfileId] : []),
-  ])
-    if (!uuidPattern.test(value))
-      throw new ValidationError('Select a legal entity and tax profile');
+  if (!storedBillingIdPattern.test(input.legalEntityId))
+    throw new ValidationError('Select an invoice issuer');
+  for (const value of [input.laborTaxProfileId, input.expenseTaxProfileId])
+    if (value && !storedBillingIdPattern.test(value))
+      throw new ValidationError('Tax profile selection is invalid');
   for (const cadence of [input.cadenceType, input.expenseCadenceType])
     if (!['weekly', 'every_14_days', 'semi_monthly', 'monthly', 'manual'].includes(cadence))
       throw new ValidationError('Unsupported billing cadence');
@@ -294,7 +293,7 @@ export class ProjectBillingSetupRepository {
       )
       .get(legalEntityId, projectCalendarDate('UTC'), projectCalendarDate('UTC'));
     if (!numberPolicy) issues.push('missing_accountant_approved_number_policy');
-    for (const taxId of new Set(taxProfileIds)) {
+    for (const taxId of new Set(taxProfileIds.filter(Boolean))) {
       const tax = this.sqlite
         .prepare(
           `SELECT 1 FROM tax_profile WHERE id=? AND status='active'
@@ -332,9 +331,12 @@ export class ProjectBillingSetupRepository {
     issues: string[];
   }> {
     this.assertReadable(principal);
+    const reimbursementProject = this.sqlite
+      .prepare('SELECT worker_expense_reimbursement_default mode FROM project WHERE id=?')
+      .get(projectId) as { mode: WorkerReimbursementMode | null } | undefined;
     const rows = this.sqlite
       .prepare(
-        `SELECT pm.id,pm.user_id,pm.starts_on,u.name FROM project_member pm JOIN user u ON u.id=pm.user_id
+        `SELECT pm.id,pm.user_id,pm.starts_on,pm.worker_expense_reimbursement_override,u.name FROM project_member pm JOIN user u ON u.id=pm.user_id
        WHERE pm.project_id=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
          AND pm.status='active' AND u.status='active'
        ORDER BY u.name,CASE WHEN pm.starts_on<=? THEN 0 ELSE 1 END,pm.starts_on`,
@@ -343,6 +345,7 @@ export class ProjectBillingSetupRepository {
       id: string;
       user_id: string;
       starts_on: string;
+      worker_expense_reimbursement_override: WorkerReimbursementMode | null;
       name: string;
     }>;
     const seen = new Set<string>();
@@ -429,7 +432,11 @@ export class ProjectBillingSetupRepository {
           expenseConfigured: Boolean(policy),
           activeExpensePayers,
           expensePayer: policy?.payer ?? 'worker',
-          workerReimbursement: policy?.worker_reimbursement ?? 'at_cost',
+          workerReimbursement:
+            row.worker_expense_reimbursement_override ??
+            reimbursementProject?.mode ??
+            policy?.worker_reimbursement ??
+            'at_cost',
           clientRecovery: policy?.client_recovery ?? 'at_cost',
           markupPercent: decimalFromHundredths(policy?.markup_bps),
           assignmentId: row.id,
@@ -445,7 +452,7 @@ export class ProjectBillingSetupRepository {
     this.assertReadable(principal);
     const member = this.sqlite
       .prepare(
-        'SELECT id,version,starts_on,ends_on,status,client_bill_rule_id,worker_compensation_rule_id FROM project_member WHERE project_id=? AND user_id=? ORDER BY starts_on DESC,id DESC',
+        'SELECT id,version,starts_on,ends_on,status,client_bill_rule_id,worker_compensation_rule_id,worker_expense_reimbursement_override FROM project_member WHERE project_id=? AND user_id=? ORDER BY starts_on DESC,id DESC',
       )
       .all(projectId, workerId);
     const client = this.sqlite
@@ -468,8 +475,11 @@ export class ProjectBillingSetupRepository {
         `SELECT o.id,o.version,o.effective_from,o.effective_to,o.client_labor_rate_id,o.compensation_rule_id,o.priority FROM assignment_rate_override o JOIN project_member pm ON pm.id=o.project_member_id WHERE pm.project_id=? AND pm.user_id=? ORDER BY o.id`,
       )
       .all(projectId, workerId);
+    const reimbursementProject = this.sqlite
+      .prepare('SELECT version,worker_expense_reimbursement_default FROM project WHERE id=?')
+      .get(projectId);
     return createHash('sha256')
-      .update(JSON.stringify({ member, client, pay, policies, overrides }))
+      .update(JSON.stringify({ member, client, pay, policies, overrides, reimbursementProject }))
       .digest('hex');
   }
 
@@ -498,14 +508,25 @@ export class ProjectBillingSetupRepository {
       )
         throw new ConflictError('Person commercial terms changed. Reload before saving.');
       const project = this.sqlite
-        .prepare('SELECT currency FROM project WHERE id=?')
-        .get(input.projectId) as { currency: Currency } | undefined;
+        .prepare('SELECT currency,worker_expense_reimbursement_default FROM project WHERE id=?')
+        .get(input.projectId) as
+        | {
+            currency: Currency;
+            worker_expense_reimbursement_default: WorkerReimbursementMode | null;
+          }
+        | undefined;
       const member = this.sqlite
         .prepare(
-          `SELECT id,starts_on,ends_on,status FROM project_member WHERE id=? AND project_id=? AND user_id=?`,
+          `SELECT id,starts_on,ends_on,status,worker_expense_reimbursement_override FROM project_member WHERE id=? AND project_id=? AND user_id=?`,
         )
         .get(input.projectMemberId, input.projectId, input.workerId) as
-        | { id: string; starts_on: string; ends_on: string | null; status: string }
+        | {
+            id: string;
+            starts_on: string;
+            ends_on: string | null;
+            status: string;
+            worker_expense_reimbursement_override: WorkerReimbursementMode | null;
+          }
         | undefined;
       if (
         !project ||
@@ -626,9 +647,29 @@ export class ProjectBillingSetupRepository {
         | undefined;
       const policyChanged =
         !policy ||
-        policy.worker_reimbursement !== input.workerReimbursement ||
+        (project.worker_expense_reimbursement_default === null &&
+          policy.worker_reimbursement !== input.workerReimbursement) ||
         policy.client_recovery !== input.clientRecovery ||
         policy.markup_bps !== markupBps;
+      const wantedOverride =
+        project.worker_expense_reimbursement_default && input.expensePayer === 'worker'
+          ? input.workerReimbursement === project.worker_expense_reimbursement_default
+            ? null
+            : input.workerReimbursement
+          : member.worker_expense_reimbursement_override;
+      const reimbursementOverrideChanged =
+        wantedOverride !== member.worker_expense_reimbursement_override;
+      if (reimbursementOverrideChanged) {
+        this.sqlite
+          .prepare(
+            `UPDATE project_member SET worker_expense_reimbursement_override=?,updated_at=?,version=version+1 WHERE id=?`,
+          )
+          .run(wantedOverride, stamp(), member.id);
+        recordAuditEvent(this.sqlite, principal, 'assignment.update', 'project_member', member.id, {
+          workerExpenseReimbursementOverride: wantedOverride,
+          reason: 'Project billing setup per-person reimbursement',
+        });
+      }
       if (policyChanged) {
         if (policy?.effective_from === input.effectiveFrom)
           throw new ConflictError(
@@ -645,7 +686,9 @@ export class ProjectBillingSetupRepository {
           reason: 'Project billing setup per-person terms',
         });
       }
-      return { changed: clientChanged || payChanged || policyChanged };
+      return {
+        changed: clientChanged || payChanged || policyChanged || reimbursementOverrideChanged,
+      };
     });
   }
 
@@ -800,9 +843,10 @@ export class ProjectBillingSetupRepository {
         throw new ValidationError(
           'The client and issuing entity must be active and use the project currency',
         );
-      for (const taxId of input.mode === 'combined'
+      for (const taxId of (input.mode === 'combined'
         ? [input.laborTaxProfileId]
-        : [input.laborTaxProfileId, input.expenseTaxProfileId]) {
+        : [input.laborTaxProfileId, input.expenseTaxProfileId]
+      ).filter(Boolean) as string[]) {
         const tax = this.sqlite
           .prepare('SELECT currency,status,legal_entity_id FROM tax_profile WHERE id=?')
           .get(taxId) as
@@ -966,7 +1010,7 @@ export class ProjectBillingSetupRepository {
         )
         .run(
           input.legalEntityId,
-          taxProfileId,
+          taxProfileId || null,
           cadenceType,
           anchorDate || null,
           input.billingContactId || null,

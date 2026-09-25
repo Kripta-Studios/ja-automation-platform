@@ -32,6 +32,36 @@ function projectInput(value: B5LifecycleSecurityFixture, name: string) {
 }
 
 describe('people selected during project creation', () => {
+  it('matches project number suffixes to numeric cost centers and rejects duplicates', () => {
+    const value = fixture();
+    const numeric = value.repository.createProject(value.owner, {
+      ...projectInput(value, 'Numeric center'),
+      costCenterCode: '004',
+    });
+    expect(numeric.projectNumber).toBe(`${value.client.clientNumber}-P-004`);
+
+    const prefixed = value.repository.createProject(value.owner, {
+      ...projectInput(value, 'Prefixed center'),
+      costCenterCode: 'QA-9876',
+    });
+    expect(prefixed.projectNumber).toBe(`${value.client.clientNumber}-P-9876`);
+
+    value.repository.updateProject(value.owner, {
+      projectId: numeric.id,
+      costCenterCode: '005',
+    });
+    expect(
+      value.sqlite.prepare('SELECT project_number FROM project WHERE id=?').get(numeric.id),
+    ).toEqual({ project_number: `${value.client.clientNumber}-P-005` });
+
+    expect(() =>
+      value.repository.createProject(value.owner, {
+        ...projectInput(value, 'Duplicate center'),
+        costCenterCode: 'QA-9876',
+      }),
+    ).toThrow(/Cost center code is already used/);
+  });
+
   it('requires a cost center for every new project, including direct repository writes', () => {
     const value = fixture();
     for (const costCenterCode of [undefined, '', '   ']) {

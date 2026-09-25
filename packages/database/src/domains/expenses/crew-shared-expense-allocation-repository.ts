@@ -26,12 +26,15 @@ type Receipt = {
   whoPaid: string;
   vendor: string | null;
   description: string | null;
+  category: string;
 };
 
 export type SharedReceiptAllocationView = Readonly<{
   id: string;
   expenseId: string;
   vendor: string | null;
+  description: string | null;
+  category: string;
   totalMinor: number;
   currency: string;
   whoPaid: string;
@@ -61,7 +64,7 @@ export class CrewSharedExpenseAllocationRepository {
       .prepare(
         `SELECT e.id,e.project_id projectId,e.worker_id workerId,e.spent_on spentOn,
                 e.time_entry_id timeEntryId,e.amount_minor amountMinor,e.currency,
-                e.who_paid whoPaid,e.vendor,e.description
+                e.who_paid whoPaid,e.vendor,e.description,e.category
          FROM expense e JOIN crew_expense_recorder rec ON rec.expense_id=e.id
          JOIN document d ON d.id=e.receipt_document_id
          WHERE e.project_id=? AND e.spent_on=? AND rec.recorded_by_user_id=?
@@ -90,7 +93,7 @@ export class CrewSharedExpenseAllocationRepository {
     this.crew.assignedWorkers(principal, projectId, workDate);
     const groups = this.sqlite
       .prepare(
-        `SELECT g.id,g.expense_id expenseId,e.vendor,g.total_minor totalMinor,
+        `SELECT g.id,g.expense_id expenseId,e.vendor,e.description,e.category,g.total_minor totalMinor,
                 e.currency,e.who_paid whoPaid
          FROM crew_shared_expense_allocation_group g
          JOIN expense e ON e.id=g.expense_id

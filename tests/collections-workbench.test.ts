@@ -137,13 +137,31 @@ describe('Collection planning from canonical remaining balances', () => {
       collectionsWorkbenchCsv([{ ...row, clientName: '=HYPERLINK("evil")' }], asOf, 'customers'),
     );
     expect(csv).toContain('grossReceivablesMinor');
+    expect(csv).toContain('Gross receivables (currency units)');
+    expect(csv).toContain(',75.00,');
     expect(csv).toContain('7500');
     expect(csv).toContain("'=HYPERLINK");
+    expect(csv.split('\r\n')[0]?.split(',').slice(0, 7)).toEqual([
+      'balanceAsOf',
+      'clientId',
+      'clientNumber',
+      'clientName',
+      'currency',
+      'openDocuments',
+      'grossReceivablesMinor',
+    ]);
     for (const report of ['customers', 'forecast', 'priorities'] as const) {
       expect(new TextDecoder().decode(collectionsWorkbenchCsv([], asOf, report))).toContain(
         'balanceAsOf',
       );
     }
+    const forecast = new TextDecoder().decode(collectionsWorkbenchCsv([row], asOf, 'forecast'));
+    expect(forecast).toContain('Today through 7 days (currency units)');
+    expect(forecast).toContain('grossReceivablesMinor');
+    const priorities = new TextDecoder().decode(collectionsWorkbenchCsv([row], asOf, 'priorities'));
+    expect(priorities).toContain('Outstanding (currency units)');
+    expect(priorities).toContain(',75.00');
+    expect(priorities).toContain('outstandingMinor');
     expect(translate('es', 'Customer balances')).toBe('Saldos por cliente');
     expect(translate('pt', 'Collection forecast')).toBe('Previsão de recebimentos');
     expect(translate('es', 'Pagination')).toBe('Paginación');

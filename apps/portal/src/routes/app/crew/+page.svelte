@@ -360,7 +360,9 @@
               <option value="">{t('Choose a saved receipt')}</option>
               {#each data.receipts as receipt}
                 <option value={receipt.id}>
-                  {receipt.vendor || t('Receipt')} · {(receipt.amountMinor / 100).toFixed(2)}
+                  {receipt.vendor || receipt.description || receipt.category || t('Receipt')} · {(
+                    receipt.amountMinor / 100
+                  ).toFixed(2)}
                   {receipt.currency} ·
                   {data.assigned.find(
                     (person: { id: string; name: string }) => person.id === receipt.workerId,
@@ -426,7 +428,13 @@
           {#each data.allocatedReceipts as receipt}
             <li>
               <div>
-                <strong>{receipt.vendor || t('Receipt')}</strong> ·
+                <strong
+                  >{receipt.vendor ||
+                    receipt.description ||
+                    receipt.category ||
+                    t('Receipt')}</strong
+                >
+                ·
                 {(receipt.totalMinor / 100).toFixed(2)}
                 {receipt.currency}
                 {t('· one expense')}

@@ -6,7 +6,7 @@ import {
   supplierPeriod,
   supplierReadFailure,
 } from '$lib/server/supplier-context';
-import { supplierCsv } from '$lib/server/supplier-csv';
+import { supplierCsv, supplierHoursFromMinutes } from '$lib/server/supplier-csv';
 import { supplierCopy, supplierStateLabel, supplierCategoryLabel } from '../copy';
 export const GET: RequestHandler = ({ locals, url, cookies }) => {
   const ctx = openSupplierContext(locals);
@@ -36,6 +36,7 @@ export const GET: RequestHandler = ({ locals, url, cookies }) => {
         c.summary,
         c.state,
         c.recordedBy,
+        c.durationHours,
       ],
       ...report.rows.map((row) => [
         report.project.name,
@@ -55,6 +56,7 @@ export const GET: RequestHandler = ({ locals, url, cookies }) => {
           ? `${supplierStateLabel(locale, row.state)} (${c.superseded})`
           : supplierStateLabel(locale, row.state),
         row.recordedByName,
+        supplierHoursFromMinutes(row.minutes),
       ]),
     ]);
     return new Response(body, {

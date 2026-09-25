@@ -4,7 +4,7 @@
   import { normalizePortalLocale } from '../../portal-i18n';
   import { localToday } from '../ui/time-entry-clock';
   import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { base } from '$app/paths';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import { ResponsiveSheet, SectionCard, StatusBadge } from '../ui';
@@ -52,6 +52,10 @@
   let saving = $state(false);
   let createDate = $state('');
   let createProject = $state('');
+  let createCurrency = $state('USD');
+  let createDescription = $state('');
+  let createDescriptionEdited = $state(false);
+  let suggestedDescriptionScope = '';
   const createProjectCurrency = $derived(
     String(
       availableProjects.find((project) => String(project.id) === createProject)?.currency ?? 'USD',
@@ -294,6 +298,34 @@
       });
     return () => controller.abort();
   });
+  $effect(() => {
+    if (surface !== 'create' || !createProject || !createDate || !createWorker) return;
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      projectId: createProject,
+      workerId: createWorker,
+      date: createDate,
+    });
+    const scope = params.toString();
+    if (scope !== suggestedDescriptionScope) {
+      suggestedDescriptionScope = scope;
+      if (!untrack(() => createDescriptionEdited)) createDescription = '';
+    }
+    void fetch(`${base}/app/api/expenses/description-default?${params}`, {
+      signal: controller.signal,
+      credentials: 'same-origin',
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Expense description suggestion unavailable');
+        return (await response.json()) as { description?: string };
+      })
+      .then((payload) => {
+        if (!controller.signal.aborted && !createDescriptionEdited)
+          createDescription = translate(payload.description ?? '');
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  });
   const visibleRecords = $derived.by(() => {
     return operationalSort(
       records.filter((row) => {
@@ -509,6 +541,10 @@
           ? requestedWorker
           : '';
     createRequestId = crypto.randomUUID();
+    createCurrency = 'USD';
+    createDescription = '';
+    createDescriptionEdited = false;
+    suggestedDescriptionScope = '';
     createTimeEntryId = $page.url.searchParams.get('timeEntry')?.trim() ?? '';
     surface = 'create';
     editExpenseId = null;
@@ -970,7 +1006,7 @@
           <article class="expense-record" data-expense-record={String(row.id)}>
             <a class="record-card-link" href={`${base}/app/expenses/${String(row.id)}`}>
               <div class="expense-record-main">
-                <strong>{row.vendor || translate('Expense')}</strong>
+                <strong>{row.vendor || row.description || translate('Expense')}</strong>
                 <span class="expense-record-amount"
                   >{money(row.amount_minor, String(row.currency))}</span
                 >
@@ -1267,8 +1303,8 @@
           </label>
         </div>
         <label>
-          <span>{translate('Vendor')}</span>
-          <input name="vendor" required maxlength="200" />
+          <span>{translate('Vendor (optional)')}</span>
+          <input name="vendor" maxlength="200" />
         </label>
         <div class="expense-form-grid">
           <label>
@@ -1283,7 +1319,7 @@
           </label>
           <label>
             <span>{translate('Currency')}</span>
-            <select name="currency" value={createProjectCurrency} required>
+            <select name="currency" bind:value={createCurrency} required>
               {#if !['USD', 'BRL', 'EUR'].includes(createProjectCurrency)}
                 <option value={createProjectCurrency}>{createProjectCurrency}</option>
               {/if}
@@ -1305,7 +1341,14 @@
         </label>
         <label>
           <span>{translate('Description')}</span>
-          <textarea name="description" minlength="3" maxlength="5000" required></textarea>
+          <textarea
+            name="description"
+            minlength="3"
+            maxlength="5000"
+            required
+            bind:value={createDescription}
+            oninput={() => (createDescriptionEdited = true)}
+          ></textarea>
         </label>
         <label>
           <span>{translate('Payment method')}</span>
@@ -1398,8 +1441,8 @@
           </label>
         </div>
         <label>
-          <span>{translate('Vendor')}</span>
-          <input name="vendor" value={rowText(editRow, 'vendor')} required maxlength="200" />
+          <span>{translate('Vendor (optional)')}</span>
+          <input name="vendor" value={rowText(editRow, 'vendor')} maxlength="200" />
         </label>
         <div class="expense-form-grid">
           <label>

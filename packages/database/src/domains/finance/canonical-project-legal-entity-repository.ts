@@ -238,7 +238,7 @@ export class CanonicalProjectLegalEntityRepository {
       effectiveFrom,
       effectiveTo,
       legalName: this.assertText(input.legalName, 'Legal name'),
-      taxIdentifier: this.assertText(input.taxIdentifier, 'Tax identifier'),
+      taxIdentifier: this.optionalText(input.taxIdentifier, 'Tax identifier') ?? '',
       registrationIdentifier:
         this.optionalText(input.registrationIdentifier, 'Registration identifier') ?? undefined,
       addressLine1: this.assertText(input.addressLine1, 'Address line 1'),

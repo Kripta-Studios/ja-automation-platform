@@ -2,8 +2,9 @@
   import { SectionCard } from '../ui';
   import { page } from '$app/stores';
   import { enhance } from '$app/forms';
+  import type { SubmitFunction } from '@sveltejs/kit';
   import { base } from '$app/paths';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { ResponsiveSheet } from '../ui';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
@@ -13,8 +14,16 @@
   import DatePresets from '../ui/DatePresets.svelte';
   import { localToday } from '../ui/time-entry-clock';
   import { normalizePortalLocale } from '../../portal-i18n';
+  import { standaloneActionMessage } from '../../../routes/app/standalone-locale';
   import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
   import { canDeleteTimeDraft } from './time-entry-actions';
+  import {
+    decimalHoursToMinutes,
+    formatDecimalHours,
+    monthCalendarDates,
+    nextIsoDate,
+    weekDates,
+  } from './time-entry-actions';
   import {
     operationalMatches,
     operationalPage,
@@ -74,7 +83,19 @@
     setError: (value) => {
       surfaceError = value;
     },
-    onSuccess: closeSurface,
+    onSuccess: () => {
+      if (surface === 'create' && createDate) {
+        try {
+          localStorage.setItem(
+            `ja-time-next-day:${data.user.id}`,
+            JSON.stringify({ date: nextIsoDate(createDate), workerId: selectedCreateWorker }),
+          );
+        } catch {
+          // A private browser may disable storage; the saved record remains authoritative.
+        }
+      }
+      closeSurface();
+    },
     offlineHandled: () => data.offlineEnabled !== false,
   });
   let editTimeId = $state<string | null>(null);
@@ -84,6 +105,18 @@
   let createWorker = $state('');
   let createExpenseEnabled = $state(false);
   let createRequestId = $state('');
+  let batchWorker = $state('');
+  let batchProject = $state('');
+  let batchError = $state('');
+  let batchSaving = $state(false);
+  let weekSubmitWorker = $state('');
+  let weekSubmitError = $state('');
+  let weekSubmitting = $state(false);
+  let deleteError = $state('');
+  let calendarWorker = $state('');
+  let calendarMonth = $state('');
+  let calendarDay = $state('');
+  let dateDeepLinkConsumed = false;
   let editCategory = $state('regular');
   let search = $state('');
   let clientFilter = $state('');
@@ -94,6 +127,8 @@
   const registerStateKey = (): string => `ja-operational-register:time:${data.user.id}`;
 
   onMount(() => {
+    calendarMonth = localToday().slice(0, 7);
+    calendarDay = localToday();
     const saved = readOperationalRegisterState<{
       search?: string;
       order?: OperationalOrder;
@@ -118,6 +153,48 @@
   });
 
   const records = $derived(data.records ?? []);
+  const calendarRecords = $derived(data.calendarRecords ?? records);
+  const ownerMode = $derived(data.user.role === 'owner_admin');
+  const batchDates = $derived(weekDates(data.weekStart ?? ''));
+  const calendarDates = $derived(monthCalendarDates(calendarMonth));
+  const calendarDayRecords = $derived(
+    calendarRecords.filter(
+      (row) =>
+        String(row.work_date) === calendarDay &&
+        String(row.worker_id) === calendarWorker &&
+        !['rejected', 'void'].includes(String(row.approval_state)),
+    ),
+  );
+  const batchProjects = $derived(
+    availableProjects.filter((project) =>
+      (data.timeAssignments ?? []).some(
+        (assignment) =>
+          String(assignment.project_id) === String(project.id) &&
+          String(assignment.worker_id) === batchWorker &&
+          batchDates.some(
+            (date) =>
+              String(assignment.starts_on ?? '') <= date &&
+              (!assignment.ends_on || String(assignment.ends_on) >= date),
+          ),
+      ),
+    ),
+  );
+  $effect(() => {
+    if (batchProject && !batchProjects.some((project) => String(project.id) === batchProject))
+      batchProject = '';
+  });
+  const weekWorkerId = $derived(ownerMode ? weekSubmitWorker : String(data.user.id));
+  const weekDrafts = $derived(
+    (data.weekDraftRecords ?? records)
+      .filter(
+        (row) =>
+          String(row.worker_id) === weekWorkerId &&
+          String(row.approval_state) === 'draft' &&
+          String(row.work_date) >= String(data.weekStart ?? '') &&
+          String(row.work_date) <= String(data.weekEnd ?? ''),
+      )
+      .map((row) => ({ id: String(row.id), version: Number(row.version) })),
+  );
   const selectedCreateWorker = $derived(
     ['owner_admin', 'project_manager'].includes(String(data.user.role))
       ? createWorker
@@ -316,16 +393,129 @@
     return `${base}/app/time${query ? `?${query}` : ''}#time-records`;
   }
 
-  function openCreate(): void {
+  const submitBatch: SubmitFunction = ({ formData, cancel }) => {
+    const workerId = String(formData.get('workerId') ?? '');
+    const projectId = String(formData.get('projectId') ?? '');
+    const entries: Array<Record<string, string | number>> = [];
+    for (const [index, date] of batchDates.entries()) {
+      const enteredHours = String(formData.get(`hours_${index}`) ?? '').trim();
+      if (!enteredHours) continue;
+      const minutes = decimalHoursToMinutes(enteredHours);
+      const summary = String(formData.get(`summary_${index}`) ?? '').trim();
+      if (minutes === null || !summary || !workerId || !projectId) {
+        batchError = translate(
+          'Enter a worker, assigned project, valid decimal hours and activity for every filled day.',
+        );
+        cancel();
+        return;
+      }
+      entries.push({
+        projectId,
+        workDate: date,
+        category: String(formData.get(`category_${index}`) ?? 'regular'),
+        minutes,
+        summary,
+      });
+    }
+    if (entries.length === 0) {
+      batchError = translate('Enter hours and activity for at least one day.');
+      cancel();
+      return;
+    }
+    formData.set('entries', JSON.stringify(entries));
+    batchError = '';
+    batchSaving = true;
+    return async ({ result, update }) => {
+      try {
+        await update({ reset: false });
+        if (result.type === 'success') {
+          try {
+            localStorage.setItem(
+              `ja-time-next-day:${data.user.id}`,
+              JSON.stringify({
+                date: nextIsoDate(String(entries.at(-1)?.workDate ?? '')),
+                workerId,
+              }),
+            );
+          } catch {
+            // The batch is already saved even if browser storage is unavailable.
+          }
+        } else if (result.type === 'failure')
+          batchError = standaloneActionMessage(
+            normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
+            result.data,
+          );
+        else if (result.type === 'error')
+          batchError = translate('The daily entries could not be saved. Try again.');
+      } finally {
+        batchSaving = false;
+      }
+    };
+  };
+
+  const submitWeek: SubmitFunction = () => {
+    weekSubmitError = '';
+    weekSubmitting = true;
+    return async ({ result, update }) => {
+      try {
+        await update({ reset: false });
+        if (result.type === 'failure')
+          weekSubmitError = standaloneActionMessage(
+            normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
+            result.data,
+          );
+        else if (result.type === 'error')
+          weekSubmitError = translate('The week could not be submitted. Refresh and try again.');
+      } finally {
+        weekSubmitting = false;
+      }
+    };
+  };
+
+  const deleteDraft: SubmitFunction = () => {
+    const scrollTop = window.scrollY;
+    deleteError = '';
+    return async ({ result, update }) => {
+      await update({ reset: false });
+      if (result.type === 'failure')
+        deleteError = standaloneActionMessage(
+          normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
+          result.data,
+        );
+      else if (result.type === 'error')
+        deleteError = translate('The draft could not be deleted. Refresh and try again.');
+      await tick();
+      window.scrollTo({ top: scrollTop, behavior: 'instant' });
+    };
+  };
+
+  function openCreate(dateOverride?: string, workerOverride?: string): void {
     surfaceError = '';
     const requestedDate = $page.url.searchParams.get('date')?.trim() ?? '';
-    createDate = /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate) ? requestedDate : localToday();
+    const useDeepLinkDate = !dateDeepLinkConsumed && /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate);
+    if (useDeepLinkDate) dateDeepLinkConsumed = true;
+    let remembered: { date?: string; workerId?: string } = {};
+    try {
+      remembered = JSON.parse(localStorage.getItem(`ja-time-next-day:${data.user.id}`) ?? '{}');
+    } catch {
+      // Browser storage is optional.
+    }
+    createDate =
+      dateOverride ??
+      (useDeepLinkDate
+        ? requestedDate
+        : /^\d{4}-\d{2}-\d{2}$/u.test(remembered.date ?? '')
+          ? remembered.date!
+          : localToday());
     const filteredProjectId = String(data.timeFilter?.projectId ?? '');
     createWorker =
-      data.user.role === 'project_manager' &&
-      (data.workers ?? []).some((worker) => String(worker.id) === String(data.user.id))
-        ? String(data.user.id)
-        : '';
+      workerOverride ??
+      ((data.workers ?? []).some((worker) => String(worker.id) === remembered.workerId)
+        ? remembered.workerId!
+        : data.user.role === 'project_manager' &&
+            (data.workers ?? []).some((worker) => String(worker.id) === String(data.user.id))
+          ? String(data.user.id)
+          : '');
     createProject = (data.timeAssignments ?? []).some(
       (assignment) =>
         String(assignment.project_id) === filteredProjectId &&
@@ -359,6 +549,7 @@
   }
 
   function canDelete(row: Row): boolean {
+    if (data.user.role === 'owner_admin') return canDeleteTimeDraft(row, data.user.id, true);
     return canDeleteTimeDraft(row, data.user.id);
   }
 </script>
@@ -378,7 +569,12 @@
 
   {#if !isAuditor}
     <div class="time-primary-action-wrap time-primary-action-top">
-      <button type="button" class="time-primary-action" data-time-primary-cta onclick={openCreate}>
+      <button
+        type="button"
+        class="time-primary-action"
+        data-time-primary-cta
+        onclick={() => openCreate()}
+      >
         {translate('Log time')}
       </button>
     </div>
@@ -392,8 +588,8 @@
   <div class="time-status-strip" aria-label={translate('Time attention summary')}>
     <a class="time-status-card" href={filterHref({ status: '' })}>
       <span>{translate('Actual recorded')}</span>
-      <strong>{totalActualMinutes} {translate('min')}</strong>
-      <small>{translate('Minutes you really recorded.')}</small>
+      <strong>{formatDecimalHours(totalActualMinutes)}</strong>
+      <small>{translate('Hours you really recorded.')}</small>
     </a>
     <a class="time-status-card" href={filterHref({ status: 'attention' })}>
       <span>{translate('Needs attention')}</span>
@@ -409,6 +605,233 @@
 
   {#if data.timesheet}
     <TimesheetPanel {data} {isAuditor} {translate} {controlledValue} />
+  {/if}
+
+  {#if !isAuditor}
+    <section class="time-week-submit" aria-labelledby="time-week-submit-title">
+      <div>
+        <h3 id="time-week-submit-title">{translate('Submit this week')}</h3>
+        <p>
+          {translate(
+            'Submit all draft hours for one worker in the displayed week, together with meals added in Log time. Submitted records enter review.',
+          )}
+        </p>
+      </div>
+      <form method="POST" action="?/submitTimeWeek" use:enhance={submitWeek}>
+        {#if ownerMode}
+          <label>
+            <span>{translate('Worker')}</span>
+            <select name="workerId" required bind:value={weekSubmitWorker}>
+              <option value="">{translate('Select worker')}</option>
+              {#each data.workers ?? [] as worker}
+                <option value={String(worker.id)}>{worker.name}</option>
+              {/each}
+            </select>
+          </label>
+        {:else}
+          <input type="hidden" name="workerId" value={data.user.id} />
+        {/if}
+        <input type="hidden" name="weekStart" value={data.weekStart ?? ''} />
+        <input type="hidden" name="entries" value={JSON.stringify(weekDrafts)} />
+        <p>
+          {weekDrafts.length}
+          {translate('draft entries ready')} · {data.weekStart} → {data.weekEnd}
+        </p>
+        {#if weekSubmitError}<p role="alert">{weekSubmitError}</p>{/if}
+        <button type="submit" disabled={weekSubmitting || weekDrafts.length === 0}>
+          {translate(weekSubmitting ? 'Submitting…' : 'Submit all week drafts')}
+        </button>
+      </form>
+    </section>
+  {/if}
+
+  {#if ownerMode && !isAuditor}
+    <section class="time-owner-calendar" aria-labelledby="time-calendar-title">
+      {#if deleteError}<p role="alert">{deleteError}</p>{/if}
+      <div class="time-owner-heading">
+        <div>
+          <h3 id="time-calendar-title">{translate('Time calendar')}</h3>
+          <p>{translate('Choose a worker and a day to add time or manage editable drafts.')}</p>
+        </div>
+        <div class="time-calendar-controls">
+          <label
+            ><span>{translate('Worker')}</span>
+            <select bind:value={calendarWorker}>
+              <option value="">{translate('Select worker')}</option>
+              {#each data.workers ?? [] as worker}
+                <option value={String(worker.id)}>{worker.name}</option>
+              {/each}
+            </select>
+          </label>
+          <label
+            ><span>{translate('Month')}</span><input
+              type="month"
+              bind:value={calendarMonth}
+              onchange={(event) => (calendarDay = `${event.currentTarget.value}-01`)}
+            /></label
+          >
+        </div>
+      </div>
+      <div class="time-calendar-grid" aria-label={translate('Time calendar')}>
+        {#each ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as weekday}
+          <strong class="time-calendar-weekday">{translate(weekday)}</strong>
+        {/each}
+        {#each calendarDates as date}
+          {@const dayRows = calendarRecords.filter(
+            (row) =>
+              String(row.worker_id) === calendarWorker &&
+              String(row.work_date) === date &&
+              !['rejected', 'void'].includes(String(row.approval_state)),
+          )}
+          <button
+            type="button"
+            class:time-calendar-outside={date.slice(0, 7) !== calendarMonth}
+            class:time-calendar-selected={date === calendarDay}
+            aria-pressed={date === calendarDay}
+            aria-label={`${date}: ${dayRows.length} ${translate('time entries')}`}
+            onclick={() => {
+              calendarDay = date;
+              calendarMonth = date.slice(0, 7);
+            }}
+          >
+            <span>{Number(date.slice(-2))}</span>
+            {#if dayRows.length}<small
+                >{formatDecimalHours(
+                  dayRows.reduce((sum, row) => sum + Number(row.minutes ?? 0), 0),
+                )}</small
+              >{/if}
+          </button>
+        {/each}
+      </div>
+      <div class="time-calendar-day">
+        <div class="time-owner-heading">
+          <h4>{calendarDay}</h4>
+          <button
+            type="button"
+            disabled={!calendarWorker}
+            onclick={() => openCreate(calendarDay, calendarWorker)}
+          >
+            {translate('Log time on this day')}
+          </button>
+        </div>
+        {#if !calendarWorker}
+          <p>{translate('Select a worker to review this day.')}</p>
+        {:else if calendarDayRecords.length === 0}
+          <p>{translate('No time recorded for this day.')}</p>
+        {:else}
+          <ul>
+            {#each calendarDayRecords as row}
+              <li>
+                <span
+                  ><strong>{row.project_number}</strong> · {formatDecimalHours(row.minutes)} · {controlledValue(
+                    'status',
+                    row.approval_state,
+                  )}</span
+                >
+                <span class="time-calendar-row-actions">
+                  {#if row.approval_state === 'draft' && Number(row.correction_linked ?? 0) !== 1}
+                    <button type="button" class="secondary-button" onclick={() => openEdit(row)}
+                      >{translate('Edit draft')}</button
+                    >
+                    {#if canDelete(row)}
+                      <form
+                        method="POST"
+                        action="?/deleteDraft"
+                        use:enhance={deleteDraft}
+                        data-action="deleteDraft"
+                        data-record-type="time_entry"
+                        data-record-id={String(row.id)}
+                      >
+                        <input type="hidden" name="recordType" value="time_entry" />
+                        <input type="hidden" name="recordId" value={row.id} />
+                        <input type="hidden" name="version" value={row.version} />
+                        <button type="submit" class="destructive-button"
+                          >{translate('Delete draft')}</button
+                        >
+                      </form>
+                    {/if}
+                  {:else}
+                    <a href={`${base}/app/time/${String(row.id)}`}>{translate('Open record')}</a>
+                  {/if}
+                </span>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+    </section>
+
+    <details class="time-owner-batch">
+      <summary>{translate('Enter a week in a table')}</summary>
+      <div class="time-owner-batch-body">
+        <p>
+          {translate(
+            'Add daily hours for one assigned worker and project. Blank days are skipped. The whole batch saves as drafts or nothing saves.',
+          )}
+        </p>
+        <form method="POST" action="?/createTimeBatch" use:enhance={submitBatch}>
+          <div class="time-batch-top-controls">
+            <label
+              ><span>{translate('Worker')}</span>
+              <select name="workerId" required bind:value={batchWorker}>
+                <option value="">{translate('Select worker')}</option>
+                {#each data.workers ?? [] as worker}
+                  <option value={String(worker.id)}>{worker.name}</option>
+                {/each}
+              </select>
+            </label>
+            <label
+              ><span>{translate('Assigned project')}</span>
+              <select name="projectId" required bind:value={batchProject}>
+                <option value="">{translate('Select assignment')}</option>
+                {#each batchProjects as project}
+                  <option value={String(project.id)}
+                    >{project.project_number} — {project.name}</option
+                  >
+                {/each}
+              </select>
+            </label>
+          </div>
+          <div class="time-batch-rows">
+            {#each batchDates as date, index}
+              <div class="time-batch-row">
+                <strong>{date}</strong>
+                <label
+                  ><span>{translate('Hours')}</span><input
+                    name={`hours_${index}`}
+                    type="number"
+                    min="0.01"
+                    max="24"
+                    step="0.01"
+                    inputmode="decimal"
+                    placeholder="7.5"
+                  /></label
+                >
+                <label
+                  ><span>{translate('Category')}</span>
+                  <select name={`category_${index}`}>
+                    {#each filterCategories as category}<option value={category.value}
+                        >{translate(category.label)}</option
+                      >{/each}
+                  </select>
+                </label>
+                <label
+                  ><span>{translate('Activity summary')}</span><input
+                    name={`summary_${index}`}
+                    maxlength="5000"
+                    placeholder={translate('Work completed')}
+                  /></label
+                >
+              </div>
+            {/each}
+          </div>
+          {#if batchError}<p role="alert">{batchError}</p>{/if}
+          <button type="submit" disabled={batchSaving}
+            >{translate(batchSaving ? 'Saving…' : 'Save daily drafts')}</button
+          >
+        </form>
+      </div>
+    </details>
   {/if}
 
   <form
@@ -566,7 +989,10 @@
             <small
               >{controlledValue('category', row.category)} · {#if row.start_time && row.end_time}{row.start_time}
                 – {row.end_time} ·
-              {/if}{row.minutes} min · {controlledValue('status', row.approval_state)}</small
+              {/if}{formatDecimalHours(row.minutes)} · {controlledValue(
+                'status',
+                row.approval_state,
+              )}</small
             >
             <span class="time-record-summary">{row.activity_summary}</span>
             <span>{translate('Open record →')}</span>
@@ -603,6 +1029,7 @@
               <form
                 method="POST"
                 action="?/deleteDraft"
+                use:enhance={deleteDraft}
                 data-action="deleteDraft"
                 data-record-type="time_entry"
                 data-record-id={String(row.id)}
@@ -717,8 +1144,18 @@
             <option value={String(project.id)}>{project.project_number} — {project.name}</option>
           {/each}
         </select>
-        {#if selectedCreateWorker && assignedCreateProjects.length === 0}
-          <small>{translate('No matching records.')}</small>
+        {#if ['owner_admin', 'project_manager'].includes(String(data.user.role)) && !createWorker}
+          <small>{translate('Select worker')}</small>
+        {:else if assignedCreateProjects.length === 0}
+          <small>
+            {translate('No matching records.')}
+            {#if data.user.role === 'owner_admin' && data.timeFilter?.projectId}
+              <a
+                href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(data.timeFilter.projectId)}`}
+                >{translate('Assign workers by expertise')} →</a
+              >
+            {/if}
+          </small>
         {/if}
       </label>
       <label>
@@ -755,7 +1192,7 @@
       </label>
       <label class="time-expense-toggle">
         <input type="checkbox" name="withExpense" bind:checked={createExpenseEnabled} />
-        <span>{translate('Add an expense with these hours')}</span>
+        <span>{translate('Add a meal expense with these hours')}</span>
       </label>
       {#if createExpenseEnabled}
         <input type="hidden" name="requestId" value={createRequestId} />
@@ -769,27 +1206,13 @@
         </div>
         <label>
           <span>{translate('Vendor')}</span>
-          <input name="expenseVendor" required maxlength="200" />
+          <input name="expenseVendor" maxlength="200" />
         </label>
         <div class="expense-form-grid">
           <label>
             <span>{translate('Category')}</span>
             <select name="expenseCategory" required>
-              <option value="parking">{translate('Parking')}</option>
-              <option value="fuel">{translate('Fuel')}</option>
-              <option value="tolls">{translate('Tolls')}</option>
               <option value="meals">{translate('Meals')}</option>
-              <option value="hotel">{translate('Hotel')}</option>
-              <option value="rental_car">{translate('Rental car')}</option>
-              <option value="airfare">{translate('Airfare')}</option>
-              <option value="ground_transport">{translate('Ground transport')}</option>
-              <option value="per_diem">{translate('Per diem')}</option>
-              <option value="materials">{translate('Materials')}</option>
-              <option value="tools">{translate('Tools')}</option>
-              <option value="shipping">{translate('Shipping')}</option>
-              <option value="phone_data">{translate('Phone/data')}</option>
-              <option value="visa_permit">{translate('Visa/permit')}</option>
-              <option value="other">{translate('Other')}</option>
             </select>
           </label>
           <label>
@@ -809,8 +1232,7 @@
           </label>
           <label>
             <span>{translate('Currency')}</span>
-            <select name="expenseCurrency" required>
-              <option value="">{translate('Select currency')}</option>
+            <select name="expenseCurrency" required value="USD">
               <option value="EUR">EUR</option>
               <option value="USD">USD</option>
               <option value="BRL">BRL</option>
@@ -944,6 +1366,177 @@
     border-color: var(--ja-teal, #706e66);
     outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 25%, transparent);
     outline-offset: 2px;
+  }
+  .time-week-submit,
+  .time-owner-calendar,
+  .time-owner-batch {
+    margin-top: 1.25rem;
+    border: 1px solid var(--ja-control-border, #d7d8d2);
+    border-radius: 0.9rem;
+    background: white;
+    padding: 1.25rem;
+  }
+  .time-week-submit,
+  .time-owner-heading,
+  .time-batch-top-controls,
+  .time-calendar-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 1rem;
+    justify-content: space-between;
+  }
+  .time-week-submit h3,
+  .time-owner-calendar h3,
+  .time-owner-calendar h4 {
+    margin: 0;
+  }
+  .time-week-submit p,
+  .time-owner-calendar p,
+  .time-owner-batch p {
+    margin: 0.35rem 0 0.75rem;
+    color: var(--ja-steel, #77756d);
+  }
+  .time-week-submit form,
+  .time-owner-batch form {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .time-week-submit label,
+  .time-calendar-controls label,
+  .time-batch-top-controls label,
+  .time-batch-row label {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+  .time-week-submit form button {
+    justify-self: start;
+  }
+  .time-calendar-controls label {
+    min-width: 10rem;
+  }
+  .time-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.3rem;
+    margin-top: 1rem;
+  }
+  .time-calendar-weekday {
+    text-align: center;
+    font-size: 0.8rem;
+  }
+  .time-calendar-grid button {
+    min-height: 4rem;
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 0.15rem;
+    padding: 0.4rem;
+    border: 1px solid var(--ja-control-border, #d7d8d2);
+    border-radius: 0.45rem;
+    background: white;
+    color: inherit;
+  }
+  .time-calendar-grid button small {
+    font-size: 0.72rem;
+    color: var(--ja-steel, #77756d);
+  }
+  .time-calendar-grid button.time-calendar-outside {
+    opacity: 0.45;
+  }
+  .time-calendar-grid button.time-calendar-selected {
+    border: 2px solid var(--ja-accent, #2349b5);
+    background: var(--ja-canvas, #f6f6f1);
+  }
+  .time-calendar-grid button:focus-visible {
+    outline: 3px solid var(--ja-accent, #2349b5);
+  }
+  .time-calendar-day {
+    margin-top: 1rem;
+    border-top: 1px solid var(--ja-control-border, #d7d8d2);
+    padding-top: 1rem;
+  }
+  .time-calendar-day ul {
+    list-style: none;
+    padding: 0;
+    margin: 0.75rem 0 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .time-calendar-day li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border: 1px solid var(--ja-control-border, #d7d8d2);
+    border-radius: 0.5rem;
+    padding: 0.65rem;
+  }
+  .time-calendar-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .time-owner-batch > summary {
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .time-owner-batch-body {
+    margin-top: 1rem;
+  }
+  .time-batch-top-controls {
+    justify-content: flex-start;
+  }
+  .time-batch-top-controls label {
+    flex: 1 1 15rem;
+  }
+  .time-batch-rows {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .time-batch-row {
+    display: grid;
+    grid-template-columns: 8rem minmax(5rem, 0.6fr) minmax(8rem, 1fr) minmax(12rem, 2fr);
+    align-items: end;
+    gap: 0.5rem;
+    border-top: 1px solid var(--ja-control-border, #d7d8d2);
+    padding-top: 0.5rem;
+  }
+  .time-batch-row > strong {
+    align-self: center;
+  }
+  .time-batch-row input,
+  .time-batch-row select,
+  .time-calendar-controls input,
+  .time-calendar-controls select {
+    width: 100%;
+    min-height: 2.75rem;
+  }
+  @media (max-width: 650px) {
+    .time-week-submit,
+    .time-owner-calendar,
+    .time-owner-batch {
+      padding: 0.8rem;
+    }
+    .time-calendar-grid button {
+      min-height: 3.1rem;
+      padding: 0.2rem;
+    }
+    .time-calendar-grid button small {
+      font-size: 0.62rem;
+    }
+    .time-batch-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .time-batch-row > strong {
+      grid-column: 1 / -1;
+    }
+    .time-batch-row label:last-child {
+      grid-column: 1 / -1;
+    }
   }
   .operational-pagination {
     align-items: center;

@@ -377,9 +377,15 @@ export const actions: Actions = {
         selectedTemplateId: z.union([z.literal(''), z.uuid()]).optional(),
         mode: z.enum(['combined', 'separate']),
         effectiveFrom: z.iso.date(),
-        legalEntityId: z.uuid(),
-        laborTaxProfileId: z.uuid(),
-        expenseTaxProfileId: z.union([z.literal(''), z.uuid()]),
+        legalEntityId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/),
+        laborTaxProfileId: z.union([
+          z.literal(''),
+          z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/),
+        ]),
+        expenseTaxProfileId: z.union([
+          z.literal(''),
+          z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/),
+        ]),
         cadenceType: z.enum(['weekly', 'every_14_days', 'semi_monthly', 'monthly', 'manual']),
         expenseCadenceType: z.enum([
           'weekly',

@@ -4,6 +4,7 @@ import {
   createB5LifecycleSecurityFixture,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
+import { expenseInputSchema } from '@ja/schemas';
 
 const fixtures: B5LifecycleSecurityFixture[] = [];
 afterEach(() => {
@@ -29,6 +30,36 @@ const expenseInput = (projectId: string) => ({
 });
 
 describe('expense occurrence time and linked hours', () => {
+  it('accepts a future expense with no vendor and preserves an explicitly blank vendor on edit', () => {
+    const value = fixture();
+    const parsed = expenseInputSchema.parse({
+      ...expenseInput(value.project.id),
+      spentOn: '2026-10-04',
+      vendor: undefined,
+      amountMinor: '1250',
+    });
+    expect(parsed.vendor).toBe('');
+    const created = value.repository.createExpense(value.worker, parsed);
+    expect(value.repository.expenseDetail(value.worker, created.id)).toMatchObject({
+      spent_on: '2026-10-04',
+      vendor: '',
+    });
+    const edited = value.repository.updateExpense(value.worker, {
+      id: created.id,
+      version: created.version,
+      vendor: 'Temporary supplier',
+    });
+    const cleared = value.repository.updateExpense(value.worker, {
+      id: created.id,
+      version: edited.version,
+      vendor: '',
+    });
+    expect(value.repository.expenseDetail(value.worker, created.id)).toMatchObject({
+      vendor: '',
+      version: cleared.version,
+    });
+  });
+
   it('saves a new shift and its expense together with one scope and no partial success', () => {
     const value = fixture();
     const time = {

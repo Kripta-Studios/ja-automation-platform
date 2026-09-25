@@ -62,6 +62,10 @@ export const GET: RequestHandler = ({ locals, params, url }) => {
       invoices: context.repository
         .listInvoices(context.principal)
         .filter((invoice) => String(invoice.project_number) === String(project.project_number)),
+      invoiceExpenseLines: context.repository.listProjectInvoiceExpenseLines(
+        context.principal,
+        projectId,
+      ),
       milestones: Array.isArray(overview.milestones)
         ? (overview.milestones as unknown as Record<string, unknown>[])
         : [],

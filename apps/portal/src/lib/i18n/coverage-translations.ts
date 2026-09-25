@@ -103,6 +103,14 @@ const exact: Record<string, readonly [string, string]> = {
     'Política de gastos de la asignación guardada.',
     'Política de despesas da atribuição salva.',
   ],
+  'action.finance.projectReimbursementSaved': [
+    'Reembolso predeterminado del proyecto guardado.',
+    'Reembolso padrão do projeto salvo.',
+  ],
+  'action.finance.workerReimbursementSaved': [
+    'Excepción de reembolso del trabajador guardada.',
+    'Exceção de reembolso do trabalhador salva.',
+  ],
   'action.finance.canonicalLegalEntityRevisionCreated': [
     'Revisión de la entidad emisora guardada.',
     'Revisão da entidade emissora salva.',
@@ -118,6 +126,14 @@ const exact: Record<string, readonly [string, string]> = {
   'action.validation.assignmentExpensePolicy': [
     'Revisa la política de gastos de la asignación.',
     'Revise a política de despesas da atribuição.',
+  ],
+  'action.validation.projectReimbursement': [
+    'Revisa los datos de reembolso del proyecto.',
+    'Revise os dados de reembolso do projeto.',
+  ],
+  'action.validation.workerReimbursement': [
+    'Revisa los datos de reembolso del trabajador.',
+    'Revise os dados de reembolso do trabalhador.',
   ],
   'action.validation.canonicalLegalEntityRevision': [
     'Revisa la revisión de la entidad emisora.',
@@ -1614,6 +1630,8 @@ const extraExact: Record<string, readonly [string, string]> = {
   PREVIEW: ['VISTA PREVIA', 'PRÉ-VISUALIZAÇÃO'],
   Passkeys: ['Claves de acceso', 'Chaves de acesso'],
   'Per diem': ['Dieta', 'Diária'],
+  Perdiem: ['Dieta', 'Diária'],
+  'Vendor (optional)': ['Proveedor (opcional)', 'Fornecedor (opcional)'],
   Portuguese: ['Portugués', 'Português'],
   QTY: ['CANT.', 'QTD.'],
   'REIMB.': ['REEMB.', 'REEMBOLSO'],
@@ -2871,10 +2889,14 @@ function englishActionMessage(key: string): string {
     'action.finance.assignmentCommercialFallbackSaved': 'Assignment rule preference saved.',
     'action.finance.assignmentCommercialReferencesSaved': 'Assignment commercial rules saved.',
     'action.finance.assignmentExpensePolicyCreated': 'Assignment expense policy saved.',
+    'action.finance.projectReimbursementSaved': 'Project reimbursement default saved.',
+    'action.finance.workerReimbursementSaved': 'Worker reimbursement override saved.',
     'action.finance.canonicalLegalEntityRevisionCreated': 'Issuing authority revision saved.',
     'action.validation.assignmentCommercialFallback': 'Check assignment rule preference.',
     'action.validation.assignmentCommercialReferences': 'Check assignment commercial rules.',
     'action.validation.assignmentExpensePolicy': 'Check assignment expense policy.',
+    'action.validation.projectReimbursement': 'Check project reimbursement fields.',
+    'action.validation.workerReimbursement': 'Check worker reimbursement fields.',
     'action.validation.canonicalLegalEntityRevision': 'Check issuing authority revision.',
     'action.validation.assignmentOverride': 'Invalid assignment override.',
     'action.finance.assignmentRateOverrideSaved': 'Assignment rate override saved.',

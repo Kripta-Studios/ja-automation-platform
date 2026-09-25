@@ -111,6 +111,16 @@ export type ReportCopy = Readonly<{
   hours: string;
   vendor: string;
   invoiceNumber: string;
+  invoiceTotalWithTax: string;
+  invoicePeriodOrDate: string;
+  approvedWorkerCompensation: string;
+  expenseOrVendor: string;
+  recordedExpenseWithTax: string;
+  companyExpenseCost: string;
+  clientBillableExpense: string;
+  workerReimbursementEligiblePaid: string;
+  unavailableAmountNote: string;
+  collectedThisPeriod: string;
   system: string;
   systemType: string;
   plcPlatform: string;
@@ -174,11 +184,11 @@ const en: ReportCopy = {
   actualHours: 'Actual hours',
   approvedHours: 'Approved hours',
   billableHours: 'Billable hours',
-  candidateSubtotal: 'Calculated bill candidate',
-  operationalCandidate: 'Operational value',
-  invoiced: 'Already invoiced',
-  paid: 'Paid',
-  receivable: 'Receivable',
+  candidateSubtotal: 'Estimated client bill (project terms)',
+  operationalCandidate: 'Approved work value (labor, expenses, milestones)',
+  invoiced: 'Invoiced to client (before tax)',
+  paid: 'Collected from client',
+  receivable: 'Outstanding client balance (incl. tax)',
   directCost: 'Direct cost',
   contribution: 'Contribution',
   contributionMargin: 'Contribution margin',
@@ -218,6 +228,16 @@ const en: ReportCopy = {
   hours: 'Hours',
   vendor: 'Vendor',
   invoiceNumber: 'Invoice',
+  invoiceTotalWithTax: 'Invoice total (incl. tax)',
+  invoicePeriodOrDate: 'Service period / issue date',
+  approvedWorkerCompensation: 'Approved worker compensation',
+  expenseOrVendor: 'Expense / vendor',
+  recordedExpenseWithTax: 'Recorded expense (incl. tax)',
+  companyExpenseCost: 'Company expense cost',
+  clientBillableExpense: 'Client billable expense',
+  workerReimbursementEligiblePaid: 'Worker reimbursement (eligible / paid)',
+  unavailableAmountNote: '— means no value is available; 0.00 is an actual zero.',
+  collectedThisPeriod: 'Collected this period',
   system: 'System',
   systemType: 'System type',
   plcPlatform: 'PLC platform',
@@ -281,11 +301,11 @@ const pt: ReportCopy = {
   actualHours: 'Horas reais',
   approvedHours: 'Horas aprovadas',
   billableHours: 'Horas faturáveis',
-  candidateSubtotal: 'Candidato de faturamento calculado',
-  operationalCandidate: 'Valor operacional',
-  invoiced: 'Já faturado',
-  paid: 'Recebido',
-  receivable: 'A receber',
+  candidateSubtotal: 'Fatura estimada ao cliente (termos do projeto)',
+  operationalCandidate: 'Valor do trabalho aprovado (mão de obra, despesas, marcos)',
+  invoiced: 'Faturado ao cliente (sem impostos)',
+  paid: 'Recebido do cliente',
+  receivable: 'Saldo em aberto do cliente (com impostos)',
   directCost: 'Custo direto',
   contribution: 'Contribuição',
   contributionMargin: 'Margem de contribuição',
@@ -325,6 +345,16 @@ const pt: ReportCopy = {
   hours: 'Horas',
   vendor: 'Fornecedor',
   invoiceNumber: 'Fatura',
+  invoiceTotalWithTax: 'Total da fatura (com impostos)',
+  invoicePeriodOrDate: 'Período do serviço / emissão',
+  approvedWorkerCompensation: 'Remuneração aprovada do trabalhador',
+  expenseOrVendor: 'Despesa / fornecedor',
+  recordedExpenseWithTax: 'Despesa registrada (com impostos)',
+  companyExpenseCost: 'Custo da despesa para a empresa',
+  clientBillableExpense: 'Despesa faturável ao cliente',
+  workerReimbursementEligiblePaid: 'Reembolso ao trabalhador (elegível / pago)',
+  unavailableAmountNote: '— indica valor indisponível; 0,00 é um zero real.',
+  collectedThisPeriod: 'Recebido neste período',
   system: 'Sistema',
   systemType: 'Tipo de sistema',
   plcPlatform: 'Plataforma PLC',
@@ -388,11 +418,11 @@ const es: ReportCopy = {
   actualHours: 'Horas reales',
   approvedHours: 'Horas aprobadas',
   billableHours: 'Horas facturables',
-  candidateSubtotal: 'Candidato de facturación calculado',
-  operationalCandidate: 'Valor operativo',
-  invoiced: 'Ya facturado',
-  paid: 'Cobrado',
-  receivable: 'Pendiente de cobro',
+  candidateSubtotal: 'Factura estimada al cliente (términos del proyecto)',
+  operationalCandidate: 'Valor del trabajo aprobado (mano de obra, gastos, hitos)',
+  invoiced: 'Facturado al cliente (sin impuestos)',
+  paid: 'Cobrado del cliente',
+  receivable: 'Saldo pendiente del cliente (con impuestos)',
   directCost: 'Coste directo',
   contribution: 'Contribución',
   contributionMargin: 'Margen de contribución',
@@ -432,6 +462,16 @@ const es: ReportCopy = {
   hours: 'Horas',
   vendor: 'Proveedor',
   invoiceNumber: 'Factura',
+  invoiceTotalWithTax: 'Total de la factura (con impuestos)',
+  invoicePeriodOrDate: 'Período del servicio / emisión',
+  approvedWorkerCompensation: 'Compensación aprobada del trabajador',
+  expenseOrVendor: 'Gasto / proveedor',
+  recordedExpenseWithTax: 'Gasto registrado (con impuestos)',
+  companyExpenseCost: 'Coste del gasto para la empresa',
+  clientBillableExpense: 'Gasto facturable al cliente',
+  workerReimbursementEligiblePaid: 'Reembolso al trabajador (elegible / pagado)',
+  unavailableAmountNote: '— indica un valor no disponible; 0,00 es un cero real.',
+  collectedThisPeriod: 'Cobrado en este período',
   system: 'Sistema',
   systemType: 'Tipo de sistema',
   plcPlatform: 'Plataforma PLC',
@@ -488,6 +528,7 @@ export type WorkerStatementCopy = Readonly<{
   paymentStatus: string;
   expectedReimbursement: string;
   reimbursed: string;
+  reimbursementAmount: string;
   noReimbursableExpenses: string;
 }>;
 
@@ -515,7 +556,8 @@ const workerStatements: Record<ReportLocale, WorkerStatementCopy> = {
     ownReimbursableExpenses: 'Own reimbursable expenses',
     paymentStatus: 'Payment status',
     expectedReimbursement: 'Expected reimbursement',
-    reimbursed: 'Reimbursed',
+    reimbursed: 'Reimbursed on',
+    reimbursementAmount: 'Reimbursement amount',
     noReimbursableExpenses: 'No reimbursable expenses in this period.',
   },
   pt: {
@@ -542,6 +584,7 @@ const workerStatements: Record<ReportLocale, WorkerStatementCopy> = {
     paymentStatus: 'Status do pagamento',
     expectedReimbursement: 'Reembolso previsto',
     reimbursed: 'Reembolsado em',
+    reimbursementAmount: 'Valor do reembolso',
     noReimbursableExpenses: 'Nenhuma despesa reembolsável neste período.',
   },
   es: {
@@ -568,6 +611,7 @@ const workerStatements: Record<ReportLocale, WorkerStatementCopy> = {
     paymentStatus: 'Estado del pago',
     expectedReimbursement: 'Reembolso previsto',
     reimbursed: 'Reembolsado el',
+    reimbursementAmount: 'Importe del reembolso',
     noReimbursableExpenses: 'No hay gastos reembolsables en este período.',
   },
 };

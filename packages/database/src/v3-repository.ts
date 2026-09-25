@@ -2893,8 +2893,9 @@ export class V3Repository {
     this.assertOwnerWorkerPayAccess(principal);
     requireOrderedDateRange(periodStart, periodEnd);
     this.assertWorkerPayTarget(workerId);
-    const activities = this.sqlite.prepare(
-      `SELECT t.id,t.work_date date,t.category,t.activity_summary activitySummary,
+    const activities = this.sqlite
+      .prepare(
+        `SELECT t.id,t.work_date date,t.category,t.activity_summary activitySummary,
               t.minutes actualMinutes,t.start_time startTime,t.end_time endTime,
               t.break_minutes breakMinutes,t.approval_state approvalState,
               p.project_number projectNumber,p.name projectName
@@ -2915,9 +2916,11 @@ export class V3Repository {
               AND (pm.ends_on IS NULL OR pm.ends_on>=t.work_date)
           )
         ORDER BY t.work_date DESC,t.created_at DESC,t.id`,
-    ).all(workerId, periodStart, periodEnd);
-    const expenses = this.sqlite.prepare(
-      `SELECT e.id,e.spent_on spentOn,e.vendor,e.category,
+      )
+      .all(workerId, periodStart, periodEnd);
+    const expenses = this.sqlite
+      .prepare(
+        `SELECT e.id,e.spent_on spentOn,e.vendor,e.category,
               CAST(CASE WHEN e.expense_policy_required=1
                 THEN COALESCE(e.reimbursement_amount_minor,e.amount_minor)
                 ELSE e.amount_minor END AS TEXT) reimbursementAmountMinor,
@@ -2945,7 +2948,8 @@ export class V3Repository {
               AND (pm.ends_on IS NULL OR pm.ends_on>=e.spent_on)
           )
         ORDER BY e.spent_on DESC,e.created_at DESC,e.id`,
-    ).all(workerId, periodStart, periodEnd);
+      )
+      .all(workerId, periodStart, periodEnd);
     return { activities, expenses };
   }
 
@@ -4270,14 +4274,14 @@ export class V3Repository {
     }
     const expenses = this.sqlite
       .prepare(
-        `SELECT e.id,e.spent_on,e.worker_id,e.category,e.currency,
+        `SELECT e.id,e.spent_on,e.worker_id,e.description,e.category,e.currency,
                 CAST(e.amount_minor AS TEXT) amount_minor,
                 CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor,
                 CAST(e.reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,
                 e.expense_policy_required,
                 e.who_paid,e.client_treatment,e.billing_treatment,
                 CAST(e.billing_amount_minor AS TEXT) billing_amount_minor,
-                e.approval_state,e.finance_approved_at,e.invoice_id,e.version,
+                e.approval_state,e.finance_approved_at,e.invoice_id,e.version,e.reimbursement_state,
                 e.commercial_classification_state,u.name worker_name
          FROM expense e JOIN user u ON u.id=e.worker_id
          WHERE e.project_id=? AND e.spent_on BETWEEN ? AND ?
@@ -4296,10 +4300,12 @@ export class V3Repository {
       spent_on: string;
       worker_id: string;
       category: string;
+      description: string;
       currency: string;
       amount_minor: string;
       project_currency_amount_minor: string | null;
       reimbursement_amount_minor: string | null;
+      reimbursement_state: string;
       expense_policy_required: number;
       who_paid: string;
       client_treatment: string;
@@ -4325,15 +4331,25 @@ export class V3Repository {
       const isDirect = expense.who_paid === 'client' || treatment === 'client_direct';
       const isBillable =
         !isDirect && (treatment.startsWith('reimbursable') || treatment === 'allowance_per_diem');
-      const foreignProjectionMissing =
+      const foreignCostProjectionMissing =
+        expense.currency !== project.currency && expense.project_currency_amount_minor === null;
+      const foreignBillingProjectionMissing =
+        expense.currency !== project.currency && expense.billing_amount_minor === null;
+      const foreignReimbursementProjectionMissing =
+        expense.who_paid === 'worker' &&
+        expense.expense_policy_required === 1 &&
         expense.currency !== project.currency &&
-        (expense.project_currency_amount_minor === null || expense.billing_amount_minor === null);
-      const projectionMissing =
-        foreignProjectionMissing ||
-        (!isDirect &&
-          isClassified &&
-          (expense.project_currency_amount_minor === null ||
-            (isBillable && expense.billing_amount_minor === null)));
+        expense.reimbursement_amount_minor !== null &&
+        (expense.project_currency_amount_minor === null ||
+          expense.reimbursement_amount_minor !== expense.amount_minor);
+      const costProjectionMissing =
+        foreignCostProjectionMissing ||
+        foreignReimbursementProjectionMissing ||
+        (!isDirect && isClassified && expense.project_currency_amount_minor === null);
+      const billingProjectionMissing =
+        foreignBillingProjectionMissing ||
+        (!isDirect && isClassified && isBillable && expense.billing_amount_minor === null);
+      const projectionMissing = costProjectionMissing || billingProjectionMissing;
       if (projectionMissing)
         expenseFinanceReasons.push({
           code:
@@ -4344,16 +4360,20 @@ export class V3Repository {
         });
       const incurredCost =
         expense.who_paid === 'worker' && expense.expense_policy_required === 1
-          ? expense.reimbursement_amount_minor
+          ? expense.currency === project.currency
+            ? expense.reimbursement_amount_minor
+            : expense.reimbursement_amount_minor === expense.amount_minor
+              ? expense.project_currency_amount_minor
+              : null
           : isClassified
             ? expense.project_currency_amount_minor
             : expense.currency === project.currency
               ? expense.amount_minor
               : expense.project_currency_amount_minor;
-      const actualCost = projectionMissing || isDirect ? 0n : BigInt(incurredCost ?? 0);
-      const directCost = !isDirect && !projectionMissing ? actualCost : 0n;
+      const actualCost = costProjectionMissing || isDirect ? 0n : BigInt(incurredCost ?? 0);
+      const directCost = !isDirect && !costProjectionMissing ? actualCost : 0n;
       const revenue =
-        isBillable && !projectionMissing
+        isBillable && !billingProjectionMissing
           ? BigInt(
               isClassified
                 ? (expense.billing_amount_minor ?? 0)
@@ -4368,14 +4388,25 @@ export class V3Repository {
         if (isPendingApproval(expense.approval_state)) unapprovedExpenseWip += revenue;
         expenseEconomics.push({
           id: expense.id,
+          description: expense.description,
+          invoiceId: expense.invoice_id,
           workerId: expense.worker_id,
           workerName: expense.worker_name,
           spentOn: expense.spent_on,
           category: expense.category,
+          recordedCurrency: expense.currency,
+          recordedAmountMinor: expense.amount_minor,
+          classificationState: expense.commercial_classification_state,
+          reimbursementAmountMinor: expense.reimbursement_amount_minor,
+          reimbursedAmountMinor:
+            expense.reimbursement_state === 'reimbursed'
+              ? expense.reimbursement_amount_minor
+              : null,
+          reimbursementState: expense.reimbursement_state,
           approvalState: expense.approval_state,
           financeApprovalState: 'not_ready',
           costMinor: '0',
-          actualCostMinor: actualCost.toString(),
+          actualCostMinor: costProjectionMissing && !isDirect ? null : actualCost.toString(),
           financeProjectionState: projectionMissing ? 'incomplete' : 'ready',
           revenueMinor: '0',
           pendingApprovalRevenueMinor: revenue.toString(),
@@ -4413,14 +4444,23 @@ export class V3Repository {
       else otherDirectCost += directCost;
       expenseEconomics.push({
         id: expense.id,
+        description: expense.description,
+        invoiceId: expense.invoice_id,
         workerId: expense.worker_id,
         workerName: expense.worker_name,
         spentOn: expense.spent_on,
         category: expense.category,
+        recordedCurrency: expense.currency,
+        recordedAmountMinor: expense.amount_minor,
+        classificationState: expense.commercial_classification_state,
+        reimbursementAmountMinor: expense.reimbursement_amount_minor,
+        reimbursedAmountMinor:
+          expense.reimbursement_state === 'reimbursed' ? expense.reimbursement_amount_minor : null,
+        reimbursementState: expense.reimbursement_state,
         approvalState: expense.approval_state,
         financeApprovalState: financeApproved ? 'approved' : 'pending',
-        costMinor: directCost.toString(),
-        actualCostMinor: actualCost.toString(),
+        costMinor: costProjectionMissing && !isDirect ? null : directCost.toString(),
+        actualCostMinor: costProjectionMissing && !isDirect ? null : actualCost.toString(),
         financeProjectionState: projectionMissing ? 'incomplete' : 'ready',
         revenueMinor: financeApproved ? revenue.toString() : '0',
         pendingFinanceRevenueMinor: financeApproved ? '0' : revenue.toString(),
@@ -6456,7 +6496,6 @@ export class V3Repository {
         throw new V3ValidationError('Billing period does not match the configured cadence');
     }
     const reasons: Array<{ code: string; sourceId?: string }> = [];
-    if (!rule.tax_profile_id) reasons.push({ code: 'missing_tax_profile' });
     if (!rule.legal_entity_id) reasons.push({ code: 'missing_legal_entity' });
     if (rule.stream_type === 'labor') {
       const activeCorrections = this.sqlite
@@ -8675,7 +8714,7 @@ export class V3Repository {
       );
       const expenseRows = this.sqlite
         .prepare(
-          `SELECT e.id,e.spent_on,e.worker_id,e.project_id,e.vendor,e.category,e.who_paid,
+          `SELECT e.id,e.spent_on,e.worker_id,e.project_id,e.vendor,e.description,e.category,e.who_paid,
                 COALESCE(e.billing_treatment,e.client_treatment) treatment,e.client_treatment,
                 e.currency,CAST(e.amount_minor AS TEXT) amount_minor,
                 CAST(e.tax_amount_minor AS TEXT) tax_amount_minor,
@@ -8683,7 +8722,7 @@ export class V3Repository {
                 CAST(e.reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,
                 e.expense_policy_required,
                 CAST(e.billing_amount_minor AS TEXT) billing_amount_minor,
-                e.reimbursement_state,e.receipt_document_id,e.billing_state,e.version,
+                e.reimbursement_state,e.commercial_classification_state,e.receipt_document_id,e.billing_state,e.version,
                 e.invoice_id,p.project_number,p.currency project_currency,u.name worker_name
          FROM expense e JOIN project p ON p.id=e.project_id JOIN user u ON u.id=e.worker_id
          WHERE e.spent_on BETWEEN ? AND ? AND e.approval_state IN ('approved','locked')
@@ -8703,6 +8742,7 @@ export class V3Repository {
         worker_id: string;
         project_id: string;
         vendor: string;
+        description: string;
         category: string;
         who_paid: string;
         treatment: string;
@@ -8715,6 +8755,7 @@ export class V3Repository {
         expense_policy_required: number;
         billing_amount_minor: string | null;
         reimbursement_state: string;
+        commercial_classification_state: string;
         receipt_document_id: string | null;
         billing_state: string;
         version: number;
@@ -8745,6 +8786,16 @@ export class V3Repository {
           throw new V3ConflictError(
             `Expense ${expense.id} is missing its authoritative project-currency projection`,
           );
+        if (
+          expense.who_paid === 'worker' &&
+          expense.expense_policy_required === 1 &&
+          expense.reimbursement_amount_minor !== null &&
+          expense.currency !== expense.project_currency &&
+          expense.reimbursement_amount_minor !== expense.amount_minor
+        )
+          throw new V3ConflictError(
+            `Expense ${expense.id} needs an exact project-currency reimbursement projection`,
+          );
         const netProjectMinor = BigInt(
           expense.project_currency_amount_minor ?? expense.amount_minor,
         );
@@ -8752,7 +8803,11 @@ export class V3Repository {
           expense.who_paid === 'client' || expense.treatment === 'client_direct'
             ? 0n
             : expense.who_paid === 'worker' && expense.expense_policy_required === 1
-              ? BigInt(expense.reimbursement_amount_minor ?? '0')
+              ? expense.currency === expense.project_currency
+                ? BigInt(expense.reimbursement_amount_minor ?? '0')
+                : expense.reimbursement_amount_minor === null
+                  ? 0n
+                  : netProjectMinor
               : netProjectMinor;
         const taxMinor = BigInt(expense.tax_amount_minor ?? 0);
         if (companyCostMinor > 0n) {
@@ -8773,6 +8828,7 @@ export class V3Repository {
           legalEntityId: projectLegalEntityAt(expense.project_id, expense.spent_on),
           project: expense.project_number,
           vendor: expense.vendor,
+          description: expense.description,
           category: expense.category,
           whoPaid: expense.who_paid,
           clientTreatment: expense.client_treatment,
@@ -8784,6 +8840,12 @@ export class V3Repository {
           projectCurrency: expense.project_currency,
           projectCurrencyAmountMinor: netProjectMinor.toString(),
           companyCostMinor: companyCostMinor.toString(),
+          reimbursementAmountMinor: expense.reimbursement_amount_minor,
+          reimbursedAmountMinor:
+            expense.reimbursement_state === 'reimbursed'
+              ? expense.reimbursement_amount_minor
+              : null,
+          commercialClassificationState: expense.commercial_classification_state,
           billingAmountMinor:
             expense.billing_amount_minor === null ? null : String(expense.billing_amount_minor),
           reimbursementStatus: expense.reimbursement_state,

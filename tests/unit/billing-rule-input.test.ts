@@ -12,6 +12,18 @@ const input = {
 };
 
 describe('billing-rule combined expense input', () => {
+  it('accepts no tax profile and a legacy selected issuer', () => {
+    expect(
+      billingRuleInputSchema.parse({ ...input, taxProfileId: '' }).taxProfileId,
+    ).toBeUndefined();
+    expect(
+      billingRuleInputSchema.parse({ ...input, taxProfileId: undefined }).taxProfileId,
+    ).toBeUndefined();
+    expect(
+      billingRuleInputSchema.parse({ ...input, legalEntityId: 'legal-entity-ja-usa' })
+        .legalEntityId,
+    ).toBe('legal-entity-ja-usa');
+  });
   it('defaults to separate billing and distinguishes false from a checked box', () => {
     expect(billingRuleInputSchema.parse(input).includeExpenses).toBe(false);
     expect(

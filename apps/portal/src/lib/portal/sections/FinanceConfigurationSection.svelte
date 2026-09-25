@@ -469,10 +469,111 @@
       id="person-expense-policies"
       title={translate('Person expense policies')}
       description={translate(
-        'Choose separately whether the worker is reimbursed and whether the customer pays. Rules apply by person, payer, category, and expense date.',
+        'Worker reimbursement follows the project default unless this person has an override. Customer billing is a separate expense policy. “Do not bill customer” excludes the expense from the invoice; it does not cancel worker reimbursement.',
       )}
       data-assignment-expense-policies
     >
+      {#if canWritePolicy && data.selectedProjectId && data.projectExpenseReimbursement}
+        <form
+          method="POST"
+          action={`?/setProjectReimbursementDefault&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId))}#person-expense-policies`}
+          class="admin-form-grid"
+          data-project-reimbursement-form
+          use:formValidation
+        >
+          <input type="hidden" name="projectId" value={data.selectedProjectId} />
+          <input
+            type="hidden"
+            name="expectedVersion"
+            value={rowValue(data.projectExpenseReimbursement, 'version')}
+          />
+          <Field
+            id="project-reimbursement-default"
+            label={translate('Project worker reimbursement default')}
+            required
+          >
+            <select
+              id="project-reimbursement-default"
+              name="mode"
+              value={rowValue(data.projectExpenseReimbursement, 'mode') || 'inherit'}
+              required
+            >
+              <option value="inherit">{translate('Use existing person policies')}</option>
+              <option value="at_cost">{translate('Reimburse worker at cost')}</option>
+              <option value="none">{translate('Do not reimburse worker')}</option>
+            </select>
+          </Field>
+          <Field id="project-reimbursement-reason" label={translate('Reason')} required>
+            <input
+              id="project-reimbursement-reason"
+              name="reason"
+              minlength="3"
+              maxlength="2000"
+              required
+            />
+          </Field>
+          <div class="form-actions">
+            <button type="submit">{translate('Save project reimbursement default')}</button>
+          </div>
+        </form>
+      {/if}
+      {#if canWritePolicy && data.selectedProjectId && data.commercialTermsSummary?.length}
+        <div class="record-list" aria-label={translate('Worker reimbursement overrides')}>
+          {#each data.commercialTermsSummary as person}
+            <form
+              method="POST"
+              action={`?/setWorkerReimbursementOverride&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId))}#person-expense-policies`}
+              class="admin-form-grid"
+              data-worker-reimbursement-form
+              use:formValidation
+            >
+              <strong>{rowValue(person, 'workerName')}</strong>
+              <input
+                type="hidden"
+                name="projectMemberId"
+                value={rowValue(person, 'assignmentId')}
+              />
+              <input
+                type="hidden"
+                name="expectedVersion"
+                value={rowValue(person, 'assignmentVersion')}
+              />
+              <Field
+                id={`worker-reimbursement-${rowValue(person, 'assignmentId')}`}
+                label={translate('Worker reimbursement override')}
+                required
+              >
+                <select
+                  id={`worker-reimbursement-${rowValue(person, 'assignmentId')}`}
+                  name="mode"
+                  value={rowValue(person, 'workerExpenseReimbursementOverride') || 'inherit'}
+                  required
+                >
+                  <option value="inherit">{translate('Use project default')}</option>
+                  <option value="at_cost">{translate('Reimburse this worker at cost')}</option>
+                  <option value="none">{translate('Do not reimburse this worker')}</option>
+                </select>
+              </Field>
+              <Field
+                id={`worker-reimbursement-reason-${rowValue(person, 'assignmentId')}`}
+                label={translate('Reason')}
+                required
+              >
+                <input
+                  id={`worker-reimbursement-reason-${rowValue(person, 'assignmentId')}`}
+                  name="reason"
+                  minlength="3"
+                  maxlength="2000"
+                  required
+                />
+              </Field>
+              <div class="form-actions">
+                <button type="submit">{translate('Save worker override')}</button>
+              </div>
+            </form>
+          {/each}
+        </div>
+      {/if}
       {#if canWritePolicy && data.selectedProjectId && data.commercialTermsSummary?.length}
         <form
           method="POST"
@@ -532,7 +633,11 @@
             <Field id="expense-policy-to" label={translate('Effective to')}>
               <input id="expense-policy-to" name="effectiveTo" type="date" />
             </Field>
-            <Field id="expense-policy-worker" label={translate('Worker reimbursement')} required>
+            <Field
+              id="expense-policy-worker"
+              label={translate('Worker reimbursement if no project default')}
+              required
+            >
               <select
                 id="expense-policy-worker"
                 name="workerReimbursement"
@@ -562,7 +667,9 @@
                 <option value="at_cost">{translate('Bill at cost')}</option>
                 <option value="markup">{translate('Bill with markup')}</option>
                 <option value="included">{translate('Included in labor price')}</option>
-                <option value="non_billable">{translate('Do not bill customer')}</option>
+                <option value="non_billable"
+                  >{translate('Do not bill customer (worker may still be reimbursed)')}</option
+                >
                 <option value="client_direct">{translate('Customer paid directly')}</option>
               </select>
               {#if expensePolicyPayer === 'client'}
@@ -717,15 +824,9 @@
               <Field
                 id="authority-tax-identifier"
                 label={translate('Tax identifier')}
-                required
                 data-field="taxIdentifier"
               >
-                <input
-                  id="authority-tax-identifier"
-                  name="taxIdentifier"
-                  required
-                  maxlength="100"
-                />
+                <input id="authority-tax-identifier" name="taxIdentifier" maxlength="100" />
               </Field>
               <Field
                 id="authority-registration-identifier"

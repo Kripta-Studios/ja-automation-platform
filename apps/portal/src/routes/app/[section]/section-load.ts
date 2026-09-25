@@ -198,6 +198,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               to,
             })
             .filter((row) => !workerId || String(row.worker_id) === workerId),
+          calendarRecords:
+            context.principal.role === 'owner_admin'
+              ? context.repository.listTimeForScope(context.principal)
+              : undefined,
+          weekDraftRecords: week.rows,
           timeFilter: {
             category: category ?? '',
             projectId: projectId ?? '',
@@ -300,6 +305,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               projectNumber: row.projectNumber,
               spentOn: row.spentOn,
               vendor: row.vendor,
+              description: row.description,
               category: row.category,
               reimbursementAmountMinor: row.reimbursementAmountMinor,
               currency: row.currency,
@@ -635,7 +641,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                           pm.client_bill_rule_id,pm.worker_compensation_rule_id,
                           pm.internal_cost_rule_id,
                           pm.allow_global_compensation_fallback,
-                          pm.allow_global_internal_cost_fallback
+                          pm.allow_global_internal_cost_fallback,
+                          pm.worker_expense_reimbursement_override
                      FROM project_member pm
                      JOIN user u ON u.id=pm.user_id
                      JOIN project p ON p.id=pm.project_id
@@ -656,6 +663,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 internal_cost_rule_id: string | null;
                 allow_global_compensation_fallback: number;
                 allow_global_internal_cost_fallback: number;
+                worker_expense_reimbursement_override: string | null;
               }>
             ).map((member) => {
               const terms = context.v3.resolveAssignmentCommercialTerms(
@@ -678,6 +686,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 internalCostRuleId: member.internal_cost_rule_id,
                 allowGlobalCompensation: member.allow_global_compensation_fallback === 1,
                 allowGlobalInternalCost: member.allow_global_internal_cost_fallback === 1,
+                workerExpenseReimbursementOverride: member.worker_expense_reimbursement_override,
                 clientRateMinor: terms.clientLaborRate?.hourlyRateMinor ?? null,
                 clientCurrency: terms.clientLaborRate?.currency ?? null,
                 clientSource: terms.clientLaborRate?.provenance.source ?? null,
@@ -701,6 +710,13 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               ? listProjectSettlementWorkers(context.sqlite, selected, financeToday)
               : [],
           selectedProjectId: selected,
+          projectExpenseReimbursement: selected
+            ? context.sqlite
+                .prepare(
+                  'SELECT version,worker_expense_reimbursement_default mode FROM project WHERE id=?',
+                )
+                .get(selected)
+            : null,
           finance: selected ? context.v3.projectFinance(context.principal, selected) : null,
           // Finance receives the complete, server-authorized expense source set for the
           // selected project. Worker and PM loaders never expose this projection; the

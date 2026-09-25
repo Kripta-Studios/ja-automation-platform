@@ -5,7 +5,8 @@
   import { base } from '$app/paths';
   import { TableRegion } from '../ui';
   import type { TableCardRow } from '../ui';
-  import { categorySummary, hours, money, shiftWeek } from '../portal-format';
+  import { money, shiftWeek } from '../portal-format';
+  import { formatDecimalHours } from './time-entry-actions';
   import type { PortalData } from '../portal-data';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
 
@@ -36,7 +37,7 @@
     return `${base}/app/time?${params}#weekly-timesheet-title`;
   }
   const displayMinutes = (value: number | null | undefined): string =>
-    value === null || value === undefined ? '—' : hours(value);
+    value === null || value === undefined ? '—' : formatDecimalHours(value);
   const expectedTotal = (
     days: ReadonlyArray<{ expectedMinutes: number | null }> | undefined,
   ): number | null => {
@@ -52,13 +53,16 @@
   };
 
   const differenceLabel = (value: number | null): string =>
-    value === null ? '—' : `${value > 0 ? '+' : ''}${hours(value)}`;
+    value === null ? '—' : `${value > 0 ? '+' : ''}${formatDecimalHours(value)}`;
 
   const categoryLabel = (category: string): string =>
     controlledValue('timeCategory', category) || translate(category.replaceAll('_', ' '));
 
   const summarizeCategories = (categories: Record<string, number>): string =>
-    categorySummary(categories, categoryLabel);
+    Object.entries(categories)
+      .filter(([, minutes]) => minutes > 0)
+      .map(([category, minutes]) => `${categoryLabel(category)} ${formatDecimalHours(minutes)}`)
+      .join(' · ');
 
   const timesheetCardRows = $derived.by((): TableCardRow[] =>
     (data.timesheet?.days ?? []).map((day) => ({
@@ -68,7 +72,7 @@
       linkAriaLabel: `${translate('Open time entries for')} ${day.label} ${day.date}`,
       cells: [
         { label: translate('Day'), value: `${day.label} · ${day.date}` },
-        { label: translate('Actual'), value: hours(day.actualMinutes) },
+        { label: translate('Actual'), value: formatDecimalHours(day.actualMinutes) },
         { label: translate('Expected'), value: displayMinutes(day.expectedMinutes) },
         { label: translate('Difference'), value: differenceLabel(day.differenceMinutes) },
         {
@@ -111,7 +115,7 @@
   </nav>
   <div class="timesheet-guide" aria-label={translate('How to read this timesheet')}>
     <div>
-      <strong>{translate('Actual')}</strong><span>{translate('Minutes you really recorded.')}</span>
+      <strong>{translate('Actual')}</strong><span>{translate('Hours you really recorded.')}</span>
     </div>
     <div>
       <strong>{translate('Expected')}</strong><span
@@ -164,7 +168,7 @@
                 >{day.label}<small>{day.date}</small></a
               ></th
             >
-            <td>{hours(day.actualMinutes)}</td>
+            <td>{formatDecimalHours(day.actualMinutes)}</td>
             <td>{displayMinutes(day.expectedMinutes)}</td>
             <td
               class:positive={day.differenceMinutes !== null && day.differenceMinutes > 0}
@@ -185,19 +189,23 @@
         <tr>
           <th scope="row">{translate('Actual')}</th>
           <td
-            >{hours(data.timesheet?.days.reduce((sum, day) => sum + day.actualMinutes, 0) ?? 0)}</td
+            >{formatDecimalHours(
+              data.timesheet?.days.reduce((sum, day) => sum + day.actualMinutes, 0) ?? 0,
+            )}</td
           >
           <td>{displayMinutes(expectedTotal(data.timesheet?.days))}</td>
           <td
             >{(() => {
               const difference = differenceTotal(data.timesheet?.days);
-              return difference === null ? '—' : `${difference > 0 ? '+' : ''}${hours(difference)}`;
+              return difference === null
+                ? '—'
+                : `${difference > 0 ? '+' : ''}${formatDecimalHours(difference)}`;
             })()}</td
           >
           <td colspan="2">
             {#if data.weeklyPay}
-              {hours(data.weeklyPay.approvedMinutes)}
-              {translate('approved')} · {hours(data.weeklyPay.pendingMinutes)}
+              {formatDecimalHours(data.weeklyPay.approvedMinutes)}
+              {translate('approved')} · {formatDecimalHours(data.weeklyPay.pendingMinutes)}
               {translate('pending')}
               {#each data.weeklyPay.currencyBreakdown ?? [data.weeklyPay] as amount}
                 · {money(amount.estimatedApprovedMinor, amount.currency)}
@@ -217,7 +225,7 @@
       <div class="timesheet-copy-body">
         <p>
           {translate(
-            'Copies projects, categories and activity labels into zero-minute drafts. It never copies time values.',
+            'Copies projects, categories and activity labels into zero-hour drafts. It never copies time values.',
           )}
         </p>
         <form method="POST" action="?/copyTimeLayout">

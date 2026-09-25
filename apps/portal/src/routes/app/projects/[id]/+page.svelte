@@ -4,6 +4,7 @@
   import ProjectBudgetInput from '$lib/portal/sections/ProjectBudgetInput.svelte';
   import ProjectBillingSetup from '$lib/portal/sections/ProjectBillingSetup.svelte';
   import { base } from '$app/paths';
+  import { replaceState } from '$app/navigation';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
   import { ResponsiveSheet, ToastRegion, type ToastItem } from '$lib/portal/ui';
@@ -80,7 +81,14 @@
     periodEnd?: string;
   };
   let localeOverride = $state<PortalLocale | null>(null);
-  let activeTab = $derived(resolveTabFromUrl($page.url.searchParams.get('tab'), data.user?.role));
+  let restoredTab = $state<{ projectId: string; tab: TabId } | null>(null);
+  let activeTab = $derived(
+    resolveTabFromUrl(
+      $page.url.searchParams.get('tab') ??
+        (restoredTab?.projectId === String(data.overview.project.id) ? restoredTab.tab : null),
+      data.user?.role,
+    ),
+  );
   let editOpen = $state(false);
   let invoiceOpen = $state(false);
   let saving = $state(false);
@@ -279,6 +287,17 @@
     dismissedActionToastKey = actionFeedbackKey;
   }
 
+  const tabStateKey = (): string =>
+    `ja-project-tab:${String(data.overview.project.id)}:${String(data.user.id)}`;
+
+  function selectTab(tab: TabId): void {
+    restoredTab = { projectId: String(data.overview.project.id), tab };
+    sessionStorage.setItem(tabStateKey(), tab);
+    const url = new URL($page.url);
+    url.searchParams.set('tab', tab);
+    replaceState(url, $page.state);
+  }
+
   async function handleTabKeydown(event: KeyboardEvent, current: TabId): Promise<void> {
     const index = tabs.findIndex((tab) => tab.id === current);
     if (index < 0) return;
@@ -291,7 +310,7 @@
     event.preventDefault();
     const next = tabs[nextIndex];
     if (!next) return;
-    activeTab = next.id;
+    selectTab(next.id);
     await tick();
     tabButtons[next.id]?.focus();
   }
@@ -304,6 +323,14 @@
 
   onMount(() => {
     mounted = true;
+    if (!$page.url.searchParams.has('tab')) {
+      const savedTab = sessionStorage.getItem(tabStateKey());
+      if (savedTab && allowedTabIds.includes(savedTab as TabId))
+        restoredTab = {
+          projectId: String(data.overview.project.id),
+          tab: resolveTabFromUrl(savedTab, data.user?.role),
+        };
+    }
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
     persistStandaloneLocale(locale);
     applyStandaloneDocumentLocale(locale);
@@ -433,7 +460,7 @@
         bind:this={tabButtons[tab.id]}
         class:active={activeTab === tab.id}
         onkeydown={(event) => handleTabKeydown(event, tab.id)}
-        onclick={() => (activeTab = tab.id)}>{tab.label}</button
+        onclick={() => selectTab(tab.id)}>{tab.label}</button
       >
     {/each}
   </div>
@@ -532,7 +559,15 @@
                 >
                   <span class="record-mark" aria-hidden="true">E</span>
                   <span class="record-copy"
-                    ><strong>{display(expense.vendor, t('Expense'))}</strong><small
+                    ><strong
+                      >{display(
+                        expense.vendor,
+                        display(
+                          expense.description,
+                          controlled('expenseCategory', expense.category),
+                        ),
+                      )}</strong
+                    ><small
                       >{display(expense.spent_on)} · {controlled(
                         'expenseCategory',
                         expense.category,

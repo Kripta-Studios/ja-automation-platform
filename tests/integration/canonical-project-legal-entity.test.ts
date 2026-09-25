@@ -217,7 +217,6 @@ describe('Client Essential canonical project legal-entity authority', () => {
     }
     const invalidCases: Array<Partial<CanonicalLegalEntityInput>> = [
       { legalName: '' },
-      { taxIdentifier: '' },
       { addressLine1: '   ' },
       { locality: '' },
       { postalCode: '' },
@@ -252,6 +251,20 @@ describe('Client Essential canonical project legal-entity authority', () => {
     ).toEqual({
       count: 0,
     });
+  });
+
+  it('allows an issuer revision with a blank optional tax identifier', () => {
+    const value = fixture();
+    const owner = steppedUp(value, value.owner, 'optional-tax-id');
+    const result = createRevision(value, owner, {
+      taxIdentifier: '',
+      idempotencyKey: 'wp03:canonical:optional-tax-id',
+    });
+    expect(
+      value.sqlite
+        .prepare('SELECT tax_identifier FROM legal_entity_revision WHERE revision_id=?')
+        .get(revisionId(result)),
+    ).toEqual({ tax_identifier: '' });
   });
 
   it('creates an immutable canonical revision with exact fields, hash, finance command and evidence', () => {

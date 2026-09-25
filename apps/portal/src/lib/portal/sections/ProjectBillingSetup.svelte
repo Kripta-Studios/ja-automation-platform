@@ -175,6 +175,9 @@
     );
     const firstEntityId = String(
       labor?.legal_entity_id ??
+        legalEntities.find(
+          (item) => String(item.currency) === currency && String(item.code) === 'JA-USA',
+        )?.id ??
         legalEntities.find((item) => String(item.currency) === currency)?.id ??
         '',
     );
@@ -190,18 +193,10 @@
           : projectDate(),
       ),
       legalEntityId: saved('legalEntityId', firstEntityId),
-      laborTaxProfileId: saved(
-        'laborTaxProfileId',
-        String(labor?.tax_profile_id ?? matchingTax(firstEntityId)[0]?.id ?? ''),
-      ),
+      laborTaxProfileId: saved('laborTaxProfileId', String(labor?.tax_profile_id ?? '')),
       expenseTaxProfileId: saved(
         'expenseTaxProfileId',
-        String(
-          expense?.tax_profile_id ??
-            labor?.tax_profile_id ??
-            matchingTax(firstEntityId)[0]?.id ??
-            '',
-        ),
+        String(expense?.tax_profile_id ?? labor?.tax_profile_id ?? ''),
       ),
       cadenceType: saved('cadenceType', String(labor?.cadence_type ?? 'monthly')),
       expenseCadenceType: saved(
@@ -381,7 +376,7 @@
     if (!person.expenseConfigured)
       problems.push(
         t(
-          'Set who pays expenses, whether the worker is reimbursed, and how the customer is charged.',
+          'Set who pays expenses and how the customer is charged. Worker reimbursement follows the project default unless Finance sets a person override.',
         ),
       );
     if (person.issues.includes('missing_internal_cost_rule'))
@@ -476,7 +471,7 @@
       <h3>{t('Configure this project’s invoices')}</h3>
       <p>
         {t(
-          'Choose how approved hours and recoverable expenses become customer invoices. Each person’s rates and expense agreement stay separate.',
+          'Choose how approved hours and customer-chargeable expenses become invoices. Worker reimbursement follows the project default unless a person override is set in Finance; customer expense charges remain separate.',
         )}
       </p>
     </div>
@@ -626,7 +621,7 @@
           <legend>{t('2. Billing details')}</legend>
           <div class="field-grid">
             <label
-              >{t('Issuing legal entity')}
+              >{t('Invoice issuer (J&A Automation)')}
               <select
                 bind:value={legalEntityId}
                 required
@@ -664,13 +659,12 @@
               <select
                 aria-label={t('Labor tax profile')}
                 bind:value={laborTaxProfileId}
-                required
                 aria-invalid={Boolean(fieldError('laborTaxProfileId'))}
                 aria-describedby={fieldError('laborTaxProfileId')
                   ? errorId('laborTaxProfileId')
                   : undefined}
               >
-                <option value="">{t('Select tax profile')}</option>
+                <option value="">{t('No tax profile configured')}</option>
                 {#each availableTaxes as tax}<option value={tax.id}>{tax.name}</option>{/each}
               </select>
             </label>
@@ -715,13 +709,12 @@
                 <select
                   aria-label={t('Expense tax profile')}
                   bind:value={expenseTaxProfileId}
-                  required
                   aria-invalid={Boolean(fieldError('expenseTaxProfileId'))}
                   aria-describedby={fieldError('expenseTaxProfileId')
                     ? errorId('expenseTaxProfileId')
                     : undefined}
                 >
-                  <option value="">{t('Select tax profile')}</option>
+                  <option value="">{t('No tax profile configured')}</option>
                   {#each availableTaxes as tax}<option value={tax.id}>{tax.name}</option>{/each}
                 </select>
               </label>
@@ -1073,7 +1066,7 @@
                         {t('Other active expense payer policies')}: {person.activeExpensePayers
                           .filter((payer) => payer !== draft.expensePayer)
                           .join(', ')}. {t(
-                          'To stop reimbursing worker-paid claims, select Worker and No reimbursement.',
+                          'To stop reimbursing worker-paid claims, set the project default or a person override in Finance.',
                         )}
                       </p>
                     {/if}

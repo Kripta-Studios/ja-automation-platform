@@ -183,6 +183,9 @@ describe('Client Essential report-family serializers', () => {
     expect(csv).toContain('settled');
     expect(csv).toContain('reimbursed');
     expect(csv).toContain('Commissioned own equipment');
+    expect(csv).toContain('amountMeaning,amount,amountMinor,actualHours');
+    expect(csv).toContain('Calculated worker expense reimbursement');
+    expect(csv).toContain('Allocated estimated worker compensation');
     expect(csv).toContain('2026-09-01');
     expect(csv).toContain('2026-09-02T12:00:00.000Z');
     expect(csv).toContain("'=unsafe-vendor");

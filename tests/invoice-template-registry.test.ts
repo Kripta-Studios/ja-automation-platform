@@ -74,7 +74,7 @@ describe('controlled invoice template registry', () => {
     const expectedBlocks: Readonly<Record<string, string>> = {
       'labor-detailed': 'Worker',
       'labor-summary': 'Summary quantity',
-      'expenses-detailed': 'Vendor',
+      'expenses-detailed': 'Expenses Detailed Invoice',
       'fixed-milestone': 'Milestone',
       'credit-adjustment': 'Original invoice',
     };
@@ -91,6 +91,16 @@ describe('controlled invoice template registry', () => {
       return text;
     });
     expect(new Set(texts).size).toBe(5);
+  });
+
+  it('identifies an invoiced expense by description when no vendor was supplied', () => {
+    const body = renderInvoiceTemplate({
+      ...baseSnapshot('expenses-detailed'),
+      lines: [{ description: 'Perdiem for site work', vendor: '', subtotal_minor: '123456' }],
+    }).body;
+    expect(body).toContain('Perdiem for site work');
+    expect(body).toContain('Expenses Detailed Invoice');
+    expect(body).not.toContain('Description / Vendor');
   });
 
   it('renders exact labor and expense sections on one combined invoice', () => {

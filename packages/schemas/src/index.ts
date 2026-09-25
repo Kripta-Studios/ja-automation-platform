@@ -413,7 +413,7 @@ export const expenseInputSchema = z
       .union([z.literal(''), uuidSchema])
       .optional()
       .transform((value) => value || undefined),
-    vendor: z.string().trim().min(1).max(200),
+    vendor: z.string().trim().max(200).default(''),
     category: z.enum([
       'hotel',
       'rental_car',
@@ -611,7 +611,7 @@ export const invoicePeriodSchema = z.object({
 
 export const billingRuleInputSchema = z.object({
   projectId: uuidSchema,
-  legalEntityId: uuidSchema,
+  legalEntityId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/),
   streamType: z.enum(['labor', 'expense', 'milestone', 'other']),
   includeExpenses: z
     .union([z.boolean(), z.enum(['true', 'false', 'on', '1', '0'])])
@@ -627,7 +627,10 @@ export const billingRuleInputSchema = z.object({
     'manual',
   ]),
   anchorDate: z.union([z.literal(''), isoDateSchema]).optional(),
-  taxProfileId: uuidSchema,
+  taxProfileId: z
+    .union([z.literal(''), uuidSchema])
+    .optional()
+    .transform((value) => value || undefined),
   currency: currencySchema,
   templateId: z.string().trim().min(1).max(100).default('default'),
   recipientEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
@@ -792,7 +795,7 @@ export const legalEntityInputSchema = z.object({
   legalName: z.string().trim().min(2).max(300),
   currency: currencySchema,
   billingAddress: z.string().trim().min(5).max(2000),
-  companyIdentifiers: z.string().trim().min(2).max(1000),
+  companyIdentifiers: z.string().trim().max(1000).default(''),
 });
 
 export const invoiceNumberPolicyInputSchema = z.object({

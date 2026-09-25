@@ -38,6 +38,7 @@ export type PortalData = {
   clientLaborRates?: PortalRow[];
   internalCostRules?: PortalRow[];
   assignmentExpensePolicies?: PortalRow[];
+  projectExpenseReimbursement?: PortalRow | null;
   commercialPolicies?: PortalRow[];
   commercialTermsSummary?: PortalRow[];
   commercialAsOf?: string;
@@ -71,6 +72,8 @@ export type PortalData = {
   periodEnd?: string;
   weekStart?: string;
   weekEnd?: string;
+  calendarRecords?: PortalRow[];
+  weekDraftRecords?: PortalRow[];
   timeFilter?: {
     category: string;
     projectId: string;

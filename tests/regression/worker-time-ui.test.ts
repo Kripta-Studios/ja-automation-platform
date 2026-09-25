@@ -69,7 +69,7 @@ describe('Worker time UI vertical slice', () => {
     expect(timesheet).toContain('Planning target only; it never creates time.');
     expect(timesheet).toContain('day.expectedMinutes');
     expect(timesheet).toContain(
-      'Copies projects, categories and activity labels into zero-minute drafts',
+      'Copies projects, categories and activity labels into zero-hour drafts',
     );
   });
 });

@@ -55,6 +55,8 @@ export type ExpensePolicyResolution = Readonly<{
   issue: ExpensePolicyIssue | null;
 }>;
 
+export type ReimbursementPreference = WorkerReimbursementMode | null;
+
 export type ExpensePolicyPreview = Readonly<{
   expenseId: string;
   policy: AssignmentExpensePolicy | null;
@@ -148,6 +150,72 @@ export class AssignmentExpensePolicyRepository {
       !['owner_admin', 'finance_admin'].includes(current.role)
     )
       throw new AccessDeniedError('Finance role required');
+  }
+
+  /** A project default applies to future classifications; null keeps legacy person policy behavior. */
+  setProjectReimbursementDefault(
+    principal: Principal,
+    input: {
+      projectId: string;
+      expectedVersion: number;
+      mode: ReimbursementPreference;
+      reason: string;
+    },
+  ): void {
+    this.assertFinance(principal);
+    if (input.mode !== null && !['at_cost', 'none'].includes(input.mode))
+      throw new ValidationError('Project reimbursement default is invalid');
+    if (input.reason.trim().length < 3 || input.reason.trim().length > 2000)
+      throw new ValidationError('Reason must be 3 to 2000 characters');
+    runImmediateTransaction(this.sqlite, 'project-expense-reimbursement', () => {
+      const changed = this.sqlite
+        .prepare(
+          `UPDATE project SET worker_expense_reimbursement_default=?,updated_at=?,version=version+1
+                  WHERE id=? AND version=?`,
+        )
+        .run(input.mode, now(), input.projectId, input.expectedVersion);
+      if (changed.changes !== 1)
+        throw new ConflictError('Project changed. Reload its reimbursement policy');
+      recordAuditEvent(this.sqlite, principal, 'project.update', 'project', input.projectId, {
+        workerExpenseReimbursementDefault: input.mode,
+        reason: input.reason.trim(),
+      });
+    });
+  }
+
+  /** An assignment override affects only worker reimbursement, never customer billing. */
+  setWorkerReimbursementOverride(
+    principal: Principal,
+    input: {
+      projectMemberId: string;
+      expectedVersion: number;
+      mode: ReimbursementPreference;
+      reason: string;
+    },
+  ): void {
+    this.assertFinance(principal);
+    if (input.mode !== null && !['at_cost', 'none'].includes(input.mode))
+      throw new ValidationError('Worker reimbursement override is invalid');
+    if (input.reason.trim().length < 3 || input.reason.trim().length > 2000)
+      throw new ValidationError('Reason must be 3 to 2000 characters');
+    runImmediateTransaction(this.sqlite, 'worker-expense-reimbursement', () => {
+      const changed = this.sqlite
+        .prepare(
+          `UPDATE project_member SET worker_expense_reimbursement_override=?,updated_at=?,version=version+1
+                  WHERE id=? AND status='active' AND version=?`,
+        )
+        .run(input.mode, now(), input.projectMemberId, input.expectedVersion);
+      if (changed.changes !== 1)
+        throw new ConflictError('Assignment changed. Reload its reimbursement policy');
+      recordAuditEvent(
+        this.sqlite,
+        principal,
+        'assignment.update',
+        'project_member',
+        input.projectMemberId,
+        { workerExpenseReimbursementOverride: input.mode, reason: input.reason.trim() },
+      );
+    });
   }
 
   create(principal: Principal, input: AssignmentExpensePolicyInput): AssignmentExpensePolicy {
@@ -353,9 +421,28 @@ export class AssignmentExpensePolicyRepository {
         context.spentOn,
         context.category,
       ) as PolicyRow[];
-    return policies[0]
-      ? { policy: projectPolicy(policies[0]), issue: null }
-      : { policy: null, issue: 'missing_policy' };
+    if (!policies[0]) return { policy: null, issue: 'missing_policy' };
+    const effective = this.sqlite
+      .prepare(
+        `SELECT pm.worker_expense_reimbursement_override worker_override,
+                       p.worker_expense_reimbursement_default project_default
+                  FROM project_member pm JOIN project p ON p.id=pm.project_id WHERE pm.id=?`,
+      )
+      .get(assignments[0]!.id) as {
+      worker_override: ReimbursementPreference;
+      project_default: ReimbursementPreference;
+    };
+    const policy = projectPolicy(policies[0]);
+    return {
+      policy: {
+        ...policy,
+        workerReimbursement:
+          normalizedPayer === 'worker'
+            ? (effective.worker_override ?? effective.project_default ?? policy.workerReimbursement)
+            : 'none',
+      },
+      issue: null,
+    };
   }
 
   preview(principal: Principal, expenseId: string): ExpensePolicyPreview {

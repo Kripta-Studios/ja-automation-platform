@@ -2133,7 +2133,7 @@
                   <td>{String(expense.spentOn ?? '—')}</td>
                   <td>{String(expense.projectNumber ?? '—')}</td>
                   <td
-                    >{String(expense.vendor ?? '—')} · {controlledValue(
+                    >{String(expense.vendor || expense.description || 'Expense')} · {controlledValue(
                       'expenseCategory',
                       expense.category,
                     )}</td

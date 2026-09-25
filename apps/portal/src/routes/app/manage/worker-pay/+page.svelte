@@ -176,7 +176,7 @@
             {#each data.expenses as row}
               <tr
                 ><td>{String(row.spentOn)}</td><td>{String(row.projectNumber)}</td><td
-                  >{String(row.vendor ?? '')} · {String(row.category)}</td
+                  >{row.vendor ? `${String(row.vendor)} · ` : ''}{String(row.category)}</td
                 ><td>{String(row.approvalState)}</td><td>{String(row.reimbursementState)}</td><td
                   >{String(row.expectedReimbursementOn ?? '—')}</td
                 ><td>{String(row.reimbursedAt ?? '—')}</td><td

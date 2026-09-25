@@ -8,6 +8,42 @@ export const parseTimeUpdateForm = (input: Record<string, unknown>) =>
   timeInputSchema.and(versionedRecordSchema).safeParse(input);
 
 export const timeActions = {
+  createTimeBatch: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'time')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const workerId = String(object.workerId ?? '');
+    let rawEntries: unknown;
+    try {
+      rawEntries = JSON.parse(String(object.entries ?? ''));
+    } catch {
+      return actionFail(400, 'action.validation.timeFields', {}, 'Check batch time fields');
+    }
+    if (!Array.isArray(rawEntries) || rawEntries.length < 1 || rawEntries.length > 31)
+      return actionFail(400, 'action.validation.timeFields', {}, 'Choose 1 to 31 daily entries');
+    const parsed = rawEntries.map((entry) => timeInputSchema.safeParse(entry));
+    if (parsed.some((entry) => !entry.success))
+      return actionFail(400, 'action.validation.timeFields', {}, 'Check batch time fields');
+    const context = openPortalRepository(locals);
+    try {
+      if (context.principal.role !== 'owner_admin')
+        return actionFail(403, 'action.access.denied', {}, 'Owner access required');
+      const result = context.repository.createTimeBatch(
+        context.principal,
+        workerId,
+        parsed.map((entry) => entry.data!),
+      );
+      return actionSuccess(
+        'action.time.batchDraftsSaved',
+        { count: result.created.length },
+        `${result.created.length} daily time drafts saved`,
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
   createTime: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'time')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
@@ -30,9 +66,16 @@ export const timeActions = {
       paymentMethod: object.expensePaymentMethod,
     };
     for (const key of [
-      'expenseVendor', 'expenseCategory', 'expenseDescription', 'expenseCurrency',
-      'expenseAmount', 'expenseWhoPaid', 'expenseOccurredTimeLocal', 'expensePaymentMethod',
-    ]) delete object[key];
+      'expenseVendor',
+      'expenseCategory',
+      'expenseDescription',
+      'expenseCurrency',
+      'expenseAmount',
+      'expenseWhoPaid',
+      'expenseOccurredTimeLocal',
+      'expensePaymentMethod',
+    ])
+      delete object[key];
     const parsed = timeInputSchema.safeParse(object);
     if (!parsed.success)
       return actionFail(400, 'action.validation.timeFields', {}, 'Check time fields', {
@@ -47,6 +90,13 @@ export const timeActions = {
           paymentMethod: expenseFields.paymentMethod || undefined,
         })
       : null;
+    if (withExpense && expenseFields.category !== 'meals')
+      return actionFail(
+        400,
+        'action.validation.expenseFields',
+        {},
+        'Only meals can be added in Log time',
+      );
     if (withExpense && !/^[a-zA-Z0-9_-]{16,200}$/u.test(requestId))
       return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
         fields: { requestId: ['Refresh the form and try again'] },
@@ -109,7 +159,7 @@ export const timeActions = {
       return actionSuccess(
         'action.time.layoutCopied',
         { created: result.created, targetWeekStart },
-        `${result.created} layout draft${result.created === 1 ? '' : 's'} added for ${targetWeekStart}; minutes remain 0.`,
+        `${result.created} layout draft${result.created === 1 ? '' : 's'} added for ${targetWeekStart}; hours remain 0.`,
       );
     } catch (error) {
       return actionFailure(error);
@@ -162,6 +212,51 @@ export const timeActions = {
     try {
       context.repository.submitTime(context.principal, parsed.data.id, parsed.data.version);
       return actionSuccess('action.time.submitted', {}, 'Time submitted');
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  submitTimeWeek: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'time')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const workerId = String(object.workerId ?? '');
+    const weekStart = String(object.weekStart ?? '');
+    let expected: unknown;
+    try {
+      expected = JSON.parse(String(object.entries ?? ''));
+    } catch {
+      return actionFail(400, 'action.validation.timeRecord', {}, 'Refresh the week and try again');
+    }
+    if (
+      !Array.isArray(expected) ||
+      expected.length < 1 ||
+      expected.length > 200 ||
+      expected.some(
+        (row) =>
+          !row ||
+          typeof row !== 'object' ||
+          typeof row.id !== 'string' ||
+          !Number.isInteger(row.version) ||
+          row.version < 1,
+      )
+    )
+      return actionFail(400, 'action.validation.timeRecord', {}, 'Refresh the week and try again');
+    const context = openPortalRepository(locals);
+    try {
+      const result = context.repository.submitTimeWeek(
+        context.principal,
+        workerId,
+        weekStart,
+        expected as Array<{ id: string; version: number }>,
+      );
+      return actionSuccess(
+        'action.time.weekSubmitted',
+        result,
+        `${result.timeSubmitted} time drafts and ${result.mealsSubmitted} linked meal expenses submitted`,
+      );
     } catch (error) {
       return actionFailure(error);
     } finally {

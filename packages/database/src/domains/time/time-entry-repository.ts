@@ -716,22 +716,26 @@ export class TimeEntryRepository {
       }
       if (patch.category !== undefined) this.deps.assertText(patch.category, 'Category', 100);
       if (patch.summary !== undefined) this.deps.assertText(patch.summary, 'Activity summary');
-      if (!Object.entries(patch).some(([key, value]) => {
-        const originalValue = ({
-          workDate: original.work_date,
-          category: original.category,
-          activityCode: original.activity_code,
-          minutes: original.minutes,
-          summary: original.activity_summary,
-          site: original.site,
-          startTime: original.start_time,
-          endTime: original.end_time,
-          breakMinutes: original.break_minutes,
-        } as Record<string, unknown>)[key];
-        const normalized = (item: unknown) => item === undefined || item === null || item === ''
-          ? null : String(item).trim();
-        return normalized(value) !== normalized(originalValue);
-      }))
+      if (
+        !Object.entries(patch).some(([key, value]) => {
+          const originalValue = (
+            {
+              workDate: original.work_date,
+              category: original.category,
+              activityCode: original.activity_code,
+              minutes: original.minutes,
+              summary: original.activity_summary,
+              site: original.site,
+              startTime: original.start_time,
+              endTime: original.end_time,
+              breakMinutes: original.break_minutes,
+            } as Record<string, unknown>
+          )[key];
+          const normalized = (item: unknown) =>
+            item === undefined || item === null || item === '' ? null : String(item).trim();
+          return normalized(value) !== normalized(originalValue);
+        })
+      )
         throw this.deps.errors.validation(
           'Change at least one operational field before creating a correction',
         );
@@ -1013,7 +1017,7 @@ export class TimeEntryRepository {
       weekEnd,
       rows: this.deps.sqlite
         .prepare(
-          "SELECT t.id,t.project_id,t.work_date,t.category,t.activity_code,t.minutes,t.start_time,t.end_time,t.break_minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ? AND t.approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id AND correction.approval_state NOT IN ('rejected','void')) ORDER BY t.work_date,t.created_at,t.id",
+          "SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,t.start_time,t.end_time,t.break_minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ? AND t.approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id AND correction.approval_state NOT IN ('rejected','void')) ORDER BY t.work_date,t.created_at,t.id",
         )
         .all(principal.userId, weekStart, weekEnd),
     };

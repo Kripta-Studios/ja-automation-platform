@@ -7,3 +7,9 @@ export function supplierCsvCell(value: unknown): string {
 export function supplierCsv(rows: unknown[][]): string {
   return '\uFEFF' + rows.map((row) => row.map(supplierCsvCell).join(',')).join('\r\n') + '\r\n';
 }
+
+/** Decimal display for CSV readers; the adjacent exact-minute column remains authoritative. */
+export function supplierHoursFromMinutes(value: unknown): string {
+  const minutes = Number(value);
+  return Number.isSafeInteger(minutes) && minutes >= 0 ? (minutes / 60).toFixed(2) : '';
+}

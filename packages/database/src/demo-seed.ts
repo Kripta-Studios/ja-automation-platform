@@ -2105,13 +2105,18 @@ sqlite
   .run();
 
 // Real Legal Entity & IMPC Invoices
-const jaEntityId = 'legal-entity-ja-usa';
+const jaEntityId =
+  (
+    sqlite.prepare("SELECT id FROM legal_entity WHERE code = 'JA-USA'").get() as
+      | { id: string }
+      | undefined
+  )?.id ?? 'legal-entity-ja-usa';
 sqlite
   .prepare(
     `
     INSERT INTO legal_entity (id, code, legal_name, currency, billing_address, company_identifiers, status, created_at, updated_at, version)
     VALUES (?, 'JA-USA', 'J&A Automation LLC', 'USD', '112 Birkshire Dr, Georgetown TX 78626', 'USA division', 'active', ?, ?, 1)
-    ON CONFLICT(id) DO UPDATE SET legal_name=excluded.legal_name
+    ON CONFLICT(id) DO NOTHING
   `,
   )
   .run(jaEntityId, timestamp, timestamp);

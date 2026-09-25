@@ -70,6 +70,27 @@ function dayOffset(days: number): string {
 }
 
 describe('project-centered billing setup', () => {
+  it('saves billing rules without a tax profile', () => {
+    const value = setup();
+    const result = value.service.save(
+      value.finance,
+      value.input({ laborTaxProfileId: '', expenseTaxProfileId: '' }),
+    );
+    expect(
+      value.sqlite
+        .prepare('SELECT tax_profile_id FROM billing_rule WHERE id=?')
+        .get(result.laborRuleId),
+    ).toEqual({ tax_profile_id: null });
+    expect(
+      value.service.issuingPrerequisites(
+        value.finance,
+        value.project.id,
+        dayOffset(0),
+        value.entity.id,
+        [],
+      ),
+    ).not.toContain('missing_tax_profile');
+  });
   it('provides the selected project client for billing contact scoping', () => {
     const value = setup();
     const ownContact = value.repository.createClientContact(value.owner, {
@@ -138,7 +159,9 @@ describe('project-centered billing setup', () => {
     opened.push(fixture);
     const finance = stepUpB5Principal(fixture.sqlite, fixture.finance, 'billing-setup-empty');
     const service = new ProjectBillingSetupRepository(fixture.sqlite, fixture.repository);
-    expect(fixture.repository.listLegalEntities(finance)).toEqual([]);
+    expect(
+      fixture.repository.listLegalEntities(finance).filter((entity) => entity.currency === 'EUR'),
+    ).toEqual([]);
     expect(fixture.repository.listTaxProfiles(finance)).toEqual([]);
     expect(service.listTemplates(finance, 'EUR')).toEqual([]);
     expect(() =>

@@ -27,6 +27,83 @@ function fixture() {
 }
 
 describe('per-assignment expense policy', () => {
+  it('uses the project reimbursement default with a reimbursement-only worker override', () => {
+    const value = fixture();
+    value.policy.create(value.finance, {
+      projectMemberId: value.memberId,
+      payer: 'worker',
+      category: 'hotel',
+      effectiveFrom: '2026-08-01',
+      workerReimbursement: 'none',
+      clientRecovery: 'non_billable',
+      reason: 'Legacy person policy before project default',
+    });
+    const expense = value.repository.createExpense(value.worker, {
+      projectId: value.project.id,
+      spentOn: '2026-08-20',
+      vendor: 'Hotel',
+      category: 'hotel',
+      description: 'Worker paid stay',
+      currency: 'EUR',
+      amountMinor: 4000n,
+      whoPaid: 'worker',
+      receiptRequired: false,
+    });
+    const preview = () => value.policy.preview(value.finance, expense.id);
+    expect(preview()).toMatchObject({
+      workerReimbursementMinor: '0',
+      clientRecoveryMinor: '0',
+      billingTreatment: 'internal_non_billable',
+    });
+    const projectVersion = value.sqlite
+      .prepare('SELECT version FROM project WHERE id=?')
+      .get(value.project.id) as { version: number };
+    value.policy.setProjectReimbursementDefault(value.finance, {
+      projectId: value.project.id,
+      expectedVersion: projectVersion.version,
+      mode: 'at_cost',
+      reason: 'Reimburse project worker expenses',
+    });
+    expect(preview()).toMatchObject({
+      workerReimbursementMinor: '4000',
+      clientRecoveryMinor: '0',
+      billingTreatment: 'internal_non_billable',
+    });
+    const memberVersion = value.sqlite
+      .prepare('SELECT version FROM project_member WHERE id=?')
+      .get(value.memberId) as { version: number };
+    value.policy.setWorkerReimbursementOverride(value.finance, {
+      projectMemberId: value.memberId,
+      expectedVersion: memberVersion.version,
+      mode: 'none',
+      reason: 'Worker has nonreimbursable terms',
+    });
+    expect(preview()).toMatchObject({
+      workerReimbursementMinor: '0',
+      clientRecoveryMinor: '0',
+      billingTreatment: 'internal_non_billable',
+    });
+    expect(() =>
+      value.policy.setWorkerReimbursementOverride(value.finance, {
+        projectMemberId: value.memberId,
+        expectedVersion: memberVersion.version,
+        mode: 'at_cost',
+        reason: 'Stale edit should conflict',
+      }),
+    ).toThrow(ConflictError);
+    value.policy.setWorkerReimbursementOverride(value.finance, {
+      projectMemberId: value.memberId,
+      expectedVersion: memberVersion.version + 1,
+      mode: null,
+      reason: 'Return to project default',
+    });
+    expect(preview()).toMatchObject({
+      workerReimbursementMinor: '4000',
+      clientRecoveryMinor: '0',
+      billingTreatment: 'internal_non_billable',
+    });
+  });
+
   it('keeps worker reimbursement and customer recovery independent by payer and category', () => {
     const value = fixture();
     const input = {

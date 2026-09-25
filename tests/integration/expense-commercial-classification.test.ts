@@ -382,6 +382,19 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
     expect(stored.markup_bps).toBeNull();
     expect(stored.tax_amount_minor).toBeNull();
     expect(stored.fx_rate_bps).toBeNull();
+    const finance = value.v3.projectFinance(authenticatedFinance(value), value.project.id);
+    expect(finance.expenseEconomics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: created.id,
+          recordedCurrency: 'EUR',
+          recordedAmountMinor: '12345',
+          classificationState: 'unclassified',
+          actualCostMinor: '0',
+          revenueMinor: '0',
+        }),
+      ]),
+    );
   });
 
   it('does not trust forged commercial fields in a Worker create payload', () => {
@@ -619,6 +632,84 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
       { event_type: 'activate', revision_id: revisions[0]?.id },
       { event_type: 'supersede', revision_id: revisions[1]?.id },
     ]);
+  });
+
+  it('snapshots project reimbursement defaults and worker overrides at first finance classification', () => {
+    const value = expenseFixture();
+    const repository = expenseContract(value);
+    const finance = authenticatedFinance(value);
+    const policy = new AssignmentExpensePolicyRepository(value.sqlite);
+    canonicalAuthority(value, finance, 'wp03:expense-classification:project-reimbursement');
+    const projectVersion = () =>
+      (
+        value.sqlite.prepare('SELECT version FROM project WHERE id=?').get(value.project.id) as {
+          version: number;
+        }
+      ).version;
+    policy.setProjectReimbursementDefault(finance, {
+      projectId: value.project.id,
+      expectedVersion: projectVersion(),
+      mode: 'none',
+      reason: 'Project does not reimburse worker-paid expenses',
+    });
+    const classify = (key: string) => {
+      const expense = repository.createExpense(value.worker, operationalExpenseInput(value));
+      repository.classifyExpenseCommercially(finance, {
+        expenseId: expense.id,
+        expectedVersion: expense.version,
+        clientTreatment: 'reimbursable',
+        billingTreatment: 'reimbursable_at_cost',
+        markupBps: 0,
+        taxBps: 0,
+        reason: 'Finance classified expense under current reimbursement terms',
+        idempotencyKey: `wp03:expense-classification:project-reimbursement:${key}`,
+      });
+      return expense.id;
+    };
+    const amount = (id: string) =>
+      value.sqlite
+        .prepare(
+          'SELECT reimbursement_amount_minor,billing_amount_minor,assignment_expense_policy_id FROM expense WHERE id=?',
+        )
+        .get(id) as {
+        reimbursement_amount_minor: number;
+        billing_amount_minor: number;
+        assignment_expense_policy_id: string;
+      };
+    const before = classify('before');
+    expect(amount(before)).toMatchObject({
+      reimbursement_amount_minor: 0,
+      billing_amount_minor: 12345,
+    });
+    policy.setProjectReimbursementDefault(finance, {
+      projectId: value.project.id,
+      expectedVersion: projectVersion(),
+      mode: 'at_cost',
+      reason: 'Project now reimburses worker-paid expenses',
+    });
+    expect(amount(before).reimbursement_amount_minor).toBe(0);
+    const after = classify('after');
+    expect(amount(after)).toMatchObject({
+      reimbursement_amount_minor: 12345,
+      billing_amount_minor: 12345,
+      assignment_expense_policy_id: amount(before).assignment_expense_policy_id,
+    });
+    const member = value.sqlite
+      .prepare('SELECT id,version FROM project_member WHERE project_id=? AND user_id=?')
+      .get(value.project.id, value.worker.userId) as { id: string; version: number };
+    policy.setWorkerReimbursementOverride(finance, {
+      projectMemberId: member.id,
+      expectedVersion: member.version,
+      mode: 'none',
+      reason: 'This worker uses a nonreimbursable assignment',
+    });
+    expect(amount(after).reimbursement_amount_minor).toBe(12345);
+    const overridden = classify('overridden');
+    expect(amount(overridden)).toMatchObject({
+      reimbursement_amount_minor: 0,
+      billing_amount_minor: 12345,
+      assignment_expense_policy_id: amount(before).assignment_expense_policy_id,
+    });
   });
 
   it('replaces stale derived monetary projections with exact same-currency classification values', () => {
@@ -983,6 +1074,65 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
       expenseRevenueMinor: '0',
       reasons: [{ code: 'missing_expense_currency_conversion', sourceId: created.id }],
     });
+  });
+
+  it('uses project currency for a fully converted foreign worker reimbursement and blocks partial conversions', () => {
+    const value = expenseFixture();
+    const finance = authenticatedFinance(value);
+    const created = value.repository.createExpense(value.worker, {
+      ...operationalExpenseInput(value),
+      currency: 'USD',
+      amountMinor: 12_345n,
+    });
+    value.repository.submitExpense(value.worker, created.id, created.version);
+    value.repository.operationalApproveExpense(value.manager, created.id, 'approved');
+    value.sqlite
+      .prepare(
+        `UPDATE expense SET commercial_classification_state='classified',
+           client_treatment='reimbursable',billing_treatment='reimbursable_at_cost',
+           project_currency_amount_minor=11111,billing_amount_minor=11111,
+           reimbursement_amount_minor=12345,expense_policy_required=1,
+           finance_approved_at='2026-08-21T00:00:00.000Z' WHERE id=?`,
+      )
+      .run(created.id);
+    const converted = value.v3.projectFinance(finance, value.project.id);
+    expect(converted.expenseEconomics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: created.id, actualCostMinor: '11111', costMinor: '11111' }),
+      ]),
+    );
+    value.sqlite
+      .prepare('UPDATE expense SET reimbursement_amount_minor=6000 WHERE id=?')
+      .run(created.id);
+    const unconverted = value.v3.projectFinance(finance, value.project.id);
+    expect(unconverted.expenseEconomics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: created.id,
+          actualCostMinor: null,
+          costMinor: null,
+          revenueMinor: '11111',
+          financeProjectionState: 'incomplete',
+        }),
+      ]),
+    );
+    expect(unconverted.expenseRevenueMinor).toBe('11111');
+    expect(unconverted.approvedUnbilledSources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceType: 'expense',
+          sourceId: created.id,
+          amountMinor: '11111',
+        }),
+      ]),
+    );
+    expect(unconverted.reasons).toContainEqual({
+      code: 'missing_expense_currency_conversion',
+      sourceId: created.id,
+    });
+    expect(() => value.v3.createAccountingPack(finance, '2026-08-01', '2026-08-31')).toThrow(
+      /exact project-currency reimbursement projection/u,
+    );
   });
 
   it('does not create a foreign-currency worker obligation without exact conversion', () => {

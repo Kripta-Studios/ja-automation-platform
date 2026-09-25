@@ -47,7 +47,7 @@ const expenseUpdateSchema = versionedRecordSchema
       .nullable()
       .optional(),
     timeEntryId: z.uuid().nullable().optional(),
-    vendor: z.string().trim().min(1).max(200).optional(),
+    vendor: z.string().trim().max(200).optional(),
     category: expenseCategorySchema.optional(),
     description: z.string().trim().max(5000).optional(),
     amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),

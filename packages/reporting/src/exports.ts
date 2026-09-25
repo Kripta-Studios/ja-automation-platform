@@ -192,6 +192,8 @@ type XlsxSheet = Readonly<{
   name: string;
   rows: readonly Row[];
   columns?: readonly string[];
+  /** Reader-facing labels; keys remain stable for row lookup and number formats. */
+  headerLabels?: Readonly<Record<string, string>>;
   /** Columns whose values are contractually numeric, never identifiers or money minor-unit text. */
   numericColumns?: readonly string[];
   /** ISO calendar-date columns represented as real Excel dates. */
@@ -199,6 +201,18 @@ type XlsxSheet = Readonly<{
   /** Major-unit monetary columns. Values remain numeric and receive a reader currency-number style. */
   moneyColumns?: readonly string[];
 }>;
+
+function readableExportHeader(key: string): string {
+  const words = key
+    .replace(/Minor$/u, ' Minor units')
+    .replace(/([a-z0-9])([A-Z])/gu, '$1 $2')
+    .replace(/\bId\b/gu, 'ID');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+function displayedExportHeader(sheet: XlsxSheet, key: string): string {
+  return sheet.headerLabels ? (sheet.headerLabels[key] ?? readableExportHeader(key)) : key;
+}
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/u;
 
@@ -240,9 +254,7 @@ function numericXlsxValue(value: Cell): string | null {
   return String(parsed);
 }
 
-function worksheet(
-  sheet: Pick<XlsxSheet, 'rows' | 'columns' | 'numericColumns' | 'dateColumns' | 'moneyColumns'>,
-): string {
+function worksheet(sheet: XlsxSheet): string {
   const { rows, columns } = sheet;
   const headers = columns ? [...columns] : [...new Set(rows.flatMap((row) => Object.keys(row)))];
   const numericColumns = new Set(sheet.numericColumns ?? []);
@@ -254,14 +266,17 @@ function worksheet(
         48,
         Math.max(
           10,
-          header.length + 2,
+          displayedExportHeader(sheet, header).length + 2,
           ...rows.map((row) => Math.min(46, cellText(row[header]).length + 2)),
         ),
       );
       return `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"${moneyColumns.has(header) ? ' style="2"' : ''}/>`;
     })
     .join('');
-  const allRows = [Object.fromEntries(headers.map((header) => [header, header])), ...rows];
+  const allRows = [
+    Object.fromEntries(headers.map((header) => [header, displayedExportHeader(sheet, header)])),
+    ...rows,
+  ];
   const cells = allRows
     .map((row, rowIndex) => {
       const values = headers
@@ -574,6 +589,13 @@ const operationalTableCss = `
 .operational-table .number { text-align:right; white-space:nowrap; }
 `;
 
+const accountingPackCss = `${operationalTableCss}
+@page { size:A4 landscape; margin:12mm 12mm 16mm; }
+.grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:3mm; }
+.metric { min-width:0; padding:2.5mm; }
+.metric strong { font-size:11pt; overflow-wrap:anywhere; }
+`;
+
 const workerStatementCss = `${operationalTableCss}
 @page { size:A4 landscape; margin:12mm 14mm 16mm; }
 body { font-size:9pt; }
@@ -868,17 +890,37 @@ export function accountingPackXlsx(
     { amount: 'amount', minor: 'amountMinor' },
     { amount: 'tax', minor: 'taxMinor' },
     { amount: 'gross', minor: 'grossMinor' },
+    { amount: 'reimbursementAmount', minor: 'reimbursementAmountMinor' },
+    { amount: 'reimbursedAmount', minor: 'reimbursedAmountMinor' },
     {
       amount: 'projectCurrencyAmount',
       minor: 'projectCurrencyAmountMinor',
       currency: 'projectCurrency',
     },
+    { amount: 'companyCost', minor: 'companyCostMinor', currency: 'projectCurrency' },
     { amount: 'billingAmount', minor: 'billingAmountMinor', currency: 'projectCurrency' },
   ]);
   return xlsxFromSheets([
     {
       name: 'Invoice register',
       rows: invoiceRegister,
+      headerLabels: {
+        invoiceNumber: 'Invoice number',
+        client: 'Customer',
+        project: 'Project number',
+        stream: 'Billing stream',
+        servicePeriod: 'Service period',
+        issueDate: 'Issued date',
+        dueDate: 'Due date',
+        currency: 'Invoice currency',
+        net: 'Client invoiced before tax',
+        tax: 'Tax charged to client',
+        gross: 'Client invoiced including tax',
+        netMinor: 'Invoiced before tax (minor units)',
+        taxMinor: 'Tax charged (minor units)',
+        grossMinor: 'Invoiced including tax (minor units)',
+        status: 'Payment status',
+      },
       numericColumns: ['version', 'net', 'tax', 'gross'],
       moneyColumns: ['net', 'tax', 'gross'],
       dateColumns: ['issueDate', 'dueDate'],
@@ -886,6 +928,17 @@ export function accountingPackXlsx(
     {
       name: 'Collections',
       rows: collections,
+      headerLabels: {
+        currency: 'Payment currency',
+        grossInvoiced: 'Invoice total including tax',
+        amountCollectedInMonth: 'Payments collected in this period',
+        totalCollectedToDate: 'Payments collected through report date',
+        outstanding: 'Outstanding client balance',
+        grossInvoicedMinor: 'Invoice total (minor units)',
+        amountCollectedInMonthMinor: 'Period collections (minor units)',
+        totalCollectedToDateMinor: 'Collections to date (minor units)',
+        outstandingMinor: 'Outstanding balance (minor units)',
+      },
       numericColumns: [
         'grossInvoiced',
         'amountCollectedInMonth',
@@ -903,6 +956,21 @@ export function accountingPackXlsx(
     {
       name: 'Worker direct costs',
       rows: workerCosts,
+      headerLabels: {
+        worker: 'Worker',
+        project: 'Project number',
+        currency: 'Project currency',
+        actualApprovedMinutes: 'Approved work minutes',
+        approvedCompensation: 'Calculated worker compensation',
+        settledCompensation: 'Worker compensation paid',
+        internalLoadedLaborCost: 'Internal labor cost',
+        reimbursement: 'Worker reimbursements',
+        approvedCompensationMinor: 'Worker compensation (minor units)',
+        settledCompensationMinor: 'Compensation paid (minor units)',
+        internalLoadedLaborCostMinor: 'Internal labor cost (minor units)',
+        reimbursementMinor: 'Worker reimbursements (minor units)',
+        missingCostRuleCount: 'Missing cost rules',
+      },
       numericColumns: [
         'actualApprovedMinutes',
         'regularMinutes',
@@ -925,16 +993,58 @@ export function accountingPackXlsx(
     {
       name: 'Expenses',
       rows: expenseRegister,
+      headerLabels: {
+        date: 'Expense date',
+        worker: 'Worker',
+        project: 'Project number',
+        vendor: 'Vendor (if provided)',
+        description: 'Expense description',
+        category: 'Expense category',
+        whoPaid: 'Who paid at purchase',
+        currency: 'Currency of receipt',
+        projectCurrency: 'Project currency',
+        amount: 'Amount entered from receipt',
+        tax: 'Recorded tax amount',
+        gross: 'Receipt amount including tax',
+        reimbursementAmount: 'Calculated worker reimbursement',
+        reimbursedAmount: 'Amount actually reimbursed',
+        projectCurrencyAmount: 'Receipt amount in project currency',
+        companyCost: 'Approved company cost',
+        billingAmount: 'Calculated amount to charge client',
+        amountMinor: 'Receipt amount (minor units)',
+        taxMinor: 'Recorded tax (minor units)',
+        grossMinor: 'Receipt gross (minor units)',
+        reimbursementAmountMinor: 'Calculated reimbursement (minor units)',
+        reimbursedAmountMinor: 'Paid reimbursement (minor units)',
+        projectCurrencyAmountMinor: 'Project-currency receipt (minor units)',
+        companyCostMinor: 'Company cost (minor units)',
+        billingAmountMinor: 'Calculated client charge (minor units)',
+        reimbursementStatus: 'Reimbursement status',
+        billingStatus: 'Client billing status',
+        commercialClassificationState: 'Finance classification status',
+      },
       numericColumns: [
         'version',
         'amount',
         'tax',
         'gross',
+        'reimbursementAmount',
+        'reimbursedAmount',
         'projectCurrencyAmount',
+        'companyCost',
         'billingAmount',
       ],
       dateColumns: ['date'],
-      moneyColumns: ['amount', 'tax', 'gross', 'projectCurrencyAmount', 'billingAmount'],
+      moneyColumns: [
+        'amount',
+        'tax',
+        'gross',
+        'reimbursementAmount',
+        'reimbursedAmount',
+        'projectCurrencyAmount',
+        'companyCost',
+        'billingAmount',
+      ],
     },
   ]);
 }
@@ -951,6 +1061,7 @@ export function projectFinanceXlsx(
     timeEconomics: readonly Record<string, unknown>[];
     expenseEconomics: readonly Record<string, unknown>[];
     invoices?: readonly Record<string, unknown>[];
+    invoiceExpenseLines?: readonly Record<string, unknown>[];
     milestones?: readonly Record<string, unknown>[];
     locale?: ReportLocale | string;
   }>,
@@ -972,6 +1083,15 @@ export function projectFinanceXlsx(
         'percentage',
         'exactMinorUnits',
       ],
+      headerLabels: {
+        section: 'Section',
+        metric: 'What this measures',
+        displayValue: 'Formatted value',
+        amount: 'Amount in project currency',
+        hours: 'Hours',
+        percentage: 'Percent',
+        exactMinorUnits: 'Exact amount in minor units',
+      },
       numericColumns: ['amount', 'hours', 'percentage'],
       moneyColumns: ['amount'],
     },
@@ -997,6 +1117,25 @@ export function projectFinanceXlsx(
         'internalCostExactMinor',
         'workerCompensationExactMinor',
       ],
+      headerLabels: {
+        worker: 'Worker',
+        date: 'Work date',
+        category: 'Time category',
+        actualHours: 'Hours recorded',
+        actualMinutes: 'Minutes recorded',
+        billableHours: 'Hours eligible to charge client',
+        billableMinutes: 'Minutes eligible to charge client',
+        clientRevenue: 'Potential amount to charge client',
+        internalCost: 'Calculated internal labor cost',
+        workerCompensation: 'Calculated worker compensation',
+        billability: 'Client billing eligibility',
+        approval: 'Time approval status',
+        billingStatus: 'Billing status',
+        invoiceId: 'Linked invoice ID',
+        clientRevenueExactMinor: 'Potential client charge (minor units)',
+        internalCostExactMinor: 'Internal labor cost (minor units)',
+        workerCompensationExactMinor: 'Worker compensation (minor units)',
+      },
       numericColumns: [
         'actualHours',
         'actualMinutes',
@@ -1013,11 +1152,19 @@ export function projectFinanceXlsx(
       name: labels.expenseSheet,
       rows: projectFinanceExpenseRows(snapshot.expenseEconomics, currency, locale),
       columns: [
+        'expenseId',
         'worker',
         'date',
         'category',
+        'description',
         'paidBy',
+        'recordedCurrency',
+        'recordedAmount',
+        'reimbursementAmount',
+        'reimbursedAmount',
+        'reimbursementState',
         'treatment',
+        'classification',
         'cost',
         'actualCost',
         'revenue',
@@ -1025,19 +1172,77 @@ export function projectFinanceXlsx(
         'approval',
         'financeApproval',
         'projection',
+        'invoiceId',
+        'recordedAmountExactMinor',
+        'reimbursementAmountExactMinor',
+        'reimbursedAmountExactMinor',
         'costExactMinor',
         'actualCostExactMinor',
         'revenueExactMinor',
         'pendingFinanceRevenueExactMinor',
       ],
-      numericColumns: ['cost', 'actualCost', 'revenue', 'pendingFinanceRevenue'],
+      headerLabels: {
+        expenseId: 'Expense record ID',
+        worker: 'Worker',
+        date: 'Expense date',
+        category: 'Expense category',
+        description: 'Expense description',
+        paidBy: 'Who paid at purchase',
+        recordedCurrency: 'Currency of receipt',
+        recordedAmount: 'Amount entered from receipt',
+        reimbursementAmount: 'Calculated worker reimbursement',
+        reimbursedAmount: 'Amount actually reimbursed',
+        reimbursementState: 'Reimbursement status',
+        treatment: 'Client charge treatment',
+        classification: 'Finance classification status',
+        cost: 'Approved company cost',
+        actualCost: 'Calculated company cost',
+        revenue: 'Finance-approved client charge',
+        pendingFinanceRevenue: 'Client charge awaiting finance approval',
+        approval: 'Expense approval status',
+        financeApproval: 'Finance approval status',
+        projection: 'Finance calculation status',
+        invoiceId: 'Linked invoice ID',
+        recordedAmountExactMinor: 'Receipt amount (minor units)',
+        reimbursementAmountExactMinor: 'Calculated reimbursement (minor units)',
+        reimbursedAmountExactMinor: 'Paid reimbursement (minor units)',
+        costExactMinor: 'Approved company cost (minor units)',
+        actualCostExactMinor: 'Calculated company cost (minor units)',
+        revenueExactMinor: 'Finance-approved client charge (minor units)',
+        pendingFinanceRevenueExactMinor: 'Pending client charge (minor units)',
+      },
+      numericColumns: [
+        'recordedAmount',
+        'reimbursementAmount',
+        'reimbursedAmount',
+        'cost',
+        'actualCost',
+        'revenue',
+        'pendingFinanceRevenue',
+      ],
       dateColumns: ['date'],
-      moneyColumns: ['cost', 'actualCost', 'revenue', 'pendingFinanceRevenue'],
+      moneyColumns: [
+        'recordedAmount',
+        'reimbursementAmount',
+        'reimbursedAmount',
+        'cost',
+        'actualCost',
+        'revenue',
+        'pendingFinanceRevenue',
+      ],
     },
     {
       name: labels.unbilledSheet,
       rows: projectFinanceUnbilledRows(finance.approvedUnbilledSources, currency, locale),
       columns: ['sourceType', 'sourceId', 'date', 'workerId', 'amount', 'amountExactMinor'],
+      headerLabels: {
+        sourceType: 'Record type',
+        sourceId: 'Record ID',
+        date: 'Work or expense date',
+        workerId: 'Worker ID',
+        amount: 'Approved amount not yet invoiced',
+        amountExactMinor: 'Unbilled amount (minor units)',
+      },
       numericColumns: ['amount'],
       dateColumns: ['date'],
       moneyColumns: ['amount'],
@@ -1053,13 +1258,25 @@ export function projectFinanceXlsx(
         'revenue',
         'revenueExactMinor',
       ],
+      headerLabels: {
+        workerId: 'Worker ID',
+        date: 'Work date',
+        adjustmentHours: 'Extra billable hours from daily minimum',
+        adjustmentMinutes: 'Extra billable minutes from daily minimum',
+        revenue: 'Potential client charge from daily minimum',
+        revenueExactMinor: 'Daily minimum charge (minor units)',
+      },
       numericColumns: ['adjustmentHours', 'adjustmentMinutes', 'revenue'],
       dateColumns: ['date'],
       moneyColumns: ['revenue'],
     },
     {
       name: labels.invoiceSheet,
-      rows: projectFinanceInvoiceRows(snapshot.invoices ?? [], locale),
+      rows: projectFinanceInvoiceRows(
+        snapshot.invoices ?? [],
+        snapshot.invoiceExpenseLines ?? [],
+        locale,
+      ),
       columns: [
         'invoiceNumber',
         'stream',
@@ -1068,20 +1285,73 @@ export function projectFinanceXlsx(
         'periodEnd',
         'currency',
         'total',
+        'expenseLineCount',
+        'expenseTotal',
         'collected',
         'issuedAt',
         'dueAt',
         'totalExactMinor',
+        'expenseTotalExactMinor',
         'collectedExactMinor',
       ],
-      numericColumns: ['total', 'collected'],
+      headerLabels: {
+        invoiceNumber: 'Invoice number',
+        stream: 'Billing stream',
+        state: 'Invoice status',
+        periodStart: 'Service period start',
+        periodEnd: 'Service period end',
+        currency: 'Invoice currency',
+        total: 'Invoice total including tax',
+        expenseLineCount: 'Expense lines on invoice',
+        expenseTotal: 'Expense lines charged to client',
+        collected: 'Payments collected',
+        issuedAt: 'Issued date',
+        dueAt: 'Due date',
+        totalExactMinor: 'Invoice total (minor units)',
+        expenseTotalExactMinor: 'Invoiced expense lines (minor units)',
+        collectedExactMinor: 'Collected payments (minor units)',
+      },
+      numericColumns: ['total', 'expenseLineCount', 'expenseTotal', 'collected'],
       dateColumns: ['periodStart', 'periodEnd'],
-      moneyColumns: ['total', 'collected'],
+      moneyColumns: ['total', 'expenseTotal', 'collected'],
+    },
+    {
+      name: labels.invoiceExpenseSheet,
+      rows: projectFinanceInvoiceExpenseRows(snapshot.invoiceExpenseLines ?? [], locale),
+      columns: [
+        'invoiceNumber',
+        'invoiceId',
+        'invoiceState',
+        'expenseId',
+        'description',
+        'currency',
+        'amount',
+        'amountExactMinor',
+      ],
+      headerLabels: {
+        invoiceNumber: 'Invoice number',
+        invoiceId: 'Invoice ID',
+        invoiceState: 'Invoice status',
+        expenseId: 'Source expense ID',
+        description: 'Line charged to client',
+        currency: 'Invoice currency',
+        amount: 'Expense amount on invoice',
+        amountExactMinor: 'Invoiced expense (minor units)',
+      },
+      numericColumns: ['amount'],
+      moneyColumns: ['amount'],
     },
     {
       name: labels.milestoneSheet,
       rows: projectFinanceMilestoneRows(snapshot.milestones ?? [], currency, locale),
       columns: ['name', 'dueOn', 'state', 'amount', 'amountExactMinor'],
+      headerLabels: {
+        name: 'Milestone',
+        dueOn: 'Due date',
+        state: 'Approval status',
+        amount: 'Milestone amount to charge client',
+        amountExactMinor: 'Milestone amount (minor units)',
+      },
       numericColumns: ['amount'],
       dateColumns: ['dueOn'],
       moneyColumns: ['amount'],
@@ -1090,6 +1360,7 @@ export function projectFinanceXlsx(
       name: labels.alertSheet,
       rows: projectFinanceAlertRows(finance),
       columns: ['code', 'sourceId'],
+      headerLabels: { code: 'Finance alert code', sourceId: 'Affected record ID' },
     },
   ]);
 }
@@ -1101,6 +1372,7 @@ type ProjectFinanceCopy = Readonly<{
   unbilledSheet: string;
   minimumSheet: string;
   invoiceSheet: string;
+  invoiceExpenseSheet: string;
   milestoneSheet: string;
   alertSheet: string;
   project: string;
@@ -1118,6 +1390,7 @@ function projectFinanceCopy(locale: ReportLocale): ProjectFinanceCopy {
       unbilledSheet: 'WIP no facturado',
       minimumSheet: 'Minimo diario',
       invoiceSheet: 'Facturas',
+      invoiceExpenseSheet: 'Gastos facturados',
       milestoneSheet: 'Hitos',
       alertSheet: 'Alertas',
       project: 'Proyecto',
@@ -1133,6 +1406,7 @@ function projectFinanceCopy(locale: ReportLocale): ProjectFinanceCopy {
       unbilledSheet: 'WIP nao faturado',
       minimumSheet: 'Minimo diario',
       invoiceSheet: 'Faturas',
+      invoiceExpenseSheet: 'Despesas faturadas',
       milestoneSheet: 'Marcos',
       alertSheet: 'Alertas',
       project: 'Projeto',
@@ -1147,6 +1421,7 @@ function projectFinanceCopy(locale: ReportLocale): ProjectFinanceCopy {
     unbilledSheet: 'Unbilled WIP',
     minimumSheet: 'Daily minimum',
     invoiceSheet: 'Invoices',
+    invoiceExpenseSheet: 'Invoice expenses',
     milestoneSheet: 'Milestones',
     alertSheet: 'Alerts',
     project: 'Project',
@@ -1286,26 +1561,80 @@ function projectFinanceSummaryRows(
     summaryRow(labels.project, 'Period end', project.period_end ?? ''),
     summaryRow(labels.project, 'Billing model', text('billingModel')),
     summaryRow(labels.project, 'Projection state', text('state')),
-    summaryMoneyRow(labels.economics, 'Labor revenue', currency, locale, laborRevenue),
-    summaryMoneyRow(labels.economics, 'Expense revenue', currency, locale, expenseRevenue),
-    summaryMoneyRow(labels.economics, 'Milestone revenue', currency, locale, milestoneRevenue),
-    summaryMoneyRow(labels.economics, 'Revenue', currency, locale, revenue),
+    summaryMoneyRow(
+      labels.economics,
+      'Potential labor charges to client',
+      currency,
+      locale,
+      laborRevenue,
+    ),
+    summaryMoneyRow(
+      labels.economics,
+      'Finance-approved expense charges to client',
+      currency,
+      locale,
+      expenseRevenue,
+    ),
+    summaryMoneyRow(
+      labels.economics,
+      'Approved milestone charges to client',
+      currency,
+      locale,
+      milestoneRevenue,
+    ),
+    summaryMoneyRow(
+      labels.economics,
+      'Potential total charges to client',
+      currency,
+      locale,
+      revenue,
+    ),
     summaryMoneyRow(labels.economics, 'Internal labor cost', currency, locale, laborCost),
     summaryMoneyRow(labels.economics, 'Travel cost', currency, locale, travelCost),
     summaryMoneyRow(labels.economics, 'Other direct cost', currency, locale, otherCost),
-    summaryMoneyRow(labels.economics, 'Direct cost', currency, locale, directCost),
+    summaryMoneyRow(labels.economics, 'Approved direct company cost', currency, locale, directCost),
     summaryMoneyRow(labels.economics, 'Worker compensation', currency, locale, compensation),
     summaryMoneyRow(labels.economics, 'Contribution', currency, locale, contribution),
     summaryPercentageRow(labels.economics, 'Contribution margin', finance.contributionMarginBps),
     summaryHoursRow(labels.economics, 'Actual hours', finance.actualMinutes),
     summaryHoursRow(labels.economics, 'Approved hours', finance.approvedMinutes),
     summaryHoursRow(labels.economics, 'Billable hours', finance.billableMinutes),
-    summaryMoneyRow(labels.collections, 'Invoiced net', currency, locale, invoiced),
-    summaryMoneyRow(labels.collections, 'Invoiced gross', currency, locale, invoicedGross),
-    summaryMoneyRow(labels.collections, 'Collected', currency, locale, collected),
-    summaryMoneyRow(labels.collections, 'Receivable', currency, locale, receivable),
-    summaryMoneyRow(labels.collections, 'Approved unbilled WIP', currency, locale, unbilled),
-    summaryMoneyRow(labels.collections, 'Unapproved WIP', currency, locale, unapproved),
+    summaryMoneyRow(
+      labels.collections,
+      'Invoiced to client before tax',
+      currency,
+      locale,
+      invoiced,
+    ),
+    summaryMoneyRow(
+      labels.collections,
+      'Invoiced to client including tax',
+      currency,
+      locale,
+      invoicedGross,
+    ),
+    summaryMoneyRow(
+      labels.collections,
+      'Payments collected from client',
+      currency,
+      locale,
+      collected,
+    ),
+    summaryMoneyRow(labels.collections, 'Outstanding client balance', currency, locale, receivable),
+    summaryMoneyRow(
+      labels.collections,
+      'Approved charges not yet invoiced',
+      currency,
+      locale,
+      unbilled,
+    ),
+    summaryMoneyRow(
+      labels.collections,
+      'Potential charges awaiting approval',
+      currency,
+      locale,
+      unapproved,
+    ),
     summaryMoneyRow(labels.forecast, 'Budget', currency, locale, budget),
     summaryMoneyRow(labels.forecast, 'Remaining cap', currency, locale, remaining),
     summaryPercentageRow(labels.forecast, 'Budget consumed', finance.budgetConsumedBps),
@@ -1327,6 +1656,31 @@ function projectFinanceSummaryRows(
     ),
     summaryMoneyRow(labels.forecast, 'Expected final margin', currency, locale, finalMargin),
     summaryRow(labels.forecast, 'Forecast basis', text('forecastBasis')),
+    summaryRow(
+      'How to read this file',
+      'Amount entered from receipt',
+      'The source expense amount, even when approval, reimbursement or client billing is not configured.',
+    ),
+    summaryRow(
+      'How to read this file',
+      'Calculated worker reimbursement',
+      'Blank until a reimbursement amount is configured; it is not proof of payment.',
+    ),
+    summaryRow(
+      'How to read this file',
+      'Amount actually reimbursed',
+      'Shown only when the reimbursement is marked reimbursed.',
+    ),
+    summaryRow(
+      'How to read this file',
+      'Potential client charge',
+      'An estimate from the rate or billing rule; check Invoices and Invoice expenses for amounts actually placed on an invoice.',
+    ),
+    summaryRow(
+      'How to read this file',
+      'Zero versus blank',
+      'Zero is a calculated value. Blank means the amount is not configured or not yet available.',
+    ),
   ];
 }
 
@@ -1382,11 +1736,31 @@ function projectFinanceExpenseRows(
   locale: ReportLocale,
 ): readonly Row[] {
   return rows.map((row) => ({
+    expenseId: String(row.id ?? ''),
     worker: String(row.workerName ?? row.worker_name ?? ''),
     date: String(row.spentOn ?? row.spent_on ?? ''),
     category: String(row.category ?? ''),
+    description: String(row.description ?? ''),
     paidBy: String(row.paidBy ?? ''),
+    recordedCurrency: String(row.recordedCurrency ?? ''),
+    recordedAmount: majorAmountCell(
+      String(row.recordedCurrency ?? currency),
+      row.recordedAmountMinor,
+      locale,
+    ),
+    reimbursementAmount: majorAmountCell(
+      String(row.recordedCurrency ?? currency),
+      row.reimbursementAmountMinor,
+      locale,
+    ),
+    reimbursedAmount: majorAmountCell(
+      String(row.recordedCurrency ?? currency),
+      row.reimbursedAmountMinor,
+      locale,
+    ),
+    reimbursementState: String(row.reimbursementState ?? ''),
     treatment: String(row.treatment ?? ''),
+    classification: String(row.classificationState ?? ''),
     cost: majorAmountCell(currency, row.costMinor, locale),
     actualCost: majorAmountCell(currency, row.actualCostMinor, locale),
     revenue: majorAmountCell(currency, row.revenueMinor, locale),
@@ -1398,6 +1772,10 @@ function projectFinanceExpenseRows(
     approval: translateReportStatus(row.approvalState, locale),
     financeApproval: String(row.financeApprovalState ?? ''),
     projection: String(row.financeProjectionState ?? ''),
+    invoiceId: String(row.invoiceId ?? ''),
+    recordedAmountExactMinor: String(row.recordedAmountMinor ?? ''),
+    reimbursementAmountExactMinor: String(row.reimbursementAmountMinor ?? ''),
+    reimbursedAmountExactMinor: String(row.reimbursedAmountMinor ?? ''),
     costExactMinor: String(row.costMinor ?? ''),
     actualCostExactMinor: String(row.actualCostMinor ?? ''),
     revenueExactMinor: String(row.revenueMinor ?? ''),
@@ -1447,12 +1825,20 @@ function projectFinanceMinimumRows(
 
 function projectFinanceInvoiceRows(
   rows: readonly Record<string, unknown>[],
+  expenseLines: readonly Record<string, unknown>[],
   locale: ReportLocale,
 ): readonly Row[] {
   return rows.map((row) => {
     const currency = String(row.currency ?? '');
     const total = row.total_minor ?? row.totalMinor ?? '';
     const collected = row.paid_minor ?? row.paidMinor ?? '';
+    const invoiceId = String(row.id ?? row.invoiceId ?? '');
+    const expenses = expenseLines.filter(
+      (line) => String(line.invoice_id ?? line.invoiceId ?? '') === invoiceId,
+    );
+    const expenseTotal = expenses
+      .reduce((sum, line) => sum + BigInt(String(line.amount_minor ?? line.amountMinor ?? '0')), 0n)
+      .toString();
     return {
       invoiceNumber: String(row.invoice_number ?? row.invoiceNumber ?? ''),
       stream: String(row.stream_type ?? row.streamType ?? ''),
@@ -1461,11 +1847,34 @@ function projectFinanceInvoiceRows(
       periodEnd: String(row.period_end ?? row.periodEnd ?? ''),
       currency,
       total: majorAmountCell(currency, total, locale),
+      expenseLineCount: String(expenses.length),
+      expenseTotal: majorAmountCell(currency, expenseTotal, locale),
       collected: majorAmountCell(currency, collected, locale),
       issuedAt: String(row.issued_at ?? row.issuedAt ?? ''),
       dueAt: String(row.due_at ?? row.dueAt ?? ''),
       totalExactMinor: String(total ?? ''),
+      expenseTotalExactMinor: expenseTotal,
       collectedExactMinor: String(collected ?? ''),
+    };
+  });
+}
+
+function projectFinanceInvoiceExpenseRows(
+  lines: readonly Record<string, unknown>[],
+  locale: ReportLocale,
+): readonly Row[] {
+  return lines.map((line) => {
+    const currency = String(line.currency ?? '');
+    const amount = String(line.amount_minor ?? line.amountMinor ?? '0');
+    return {
+      invoiceNumber: String(line.invoice_number ?? line.invoiceNumber ?? ''),
+      invoiceId: String(line.invoice_id ?? line.invoiceId ?? ''),
+      invoiceState: translateReportStatus(line.invoice_state ?? line.invoiceState, locale),
+      expenseId: String(line.expense_id ?? line.expenseId ?? ''),
+      description: String(line.description ?? ''),
+      currency,
+      amount: majorAmountCell(currency, amount, locale),
+      amountExactMinor: amount,
     };
   });
 }
@@ -1584,9 +1993,14 @@ const workerStatementColumns = [
   'category',
   'activitySummary',
   'currency',
+  'amountMeaning',
+  'amount',
   'amountMinor',
+  'actualHours',
   'actualMinutes',
+  'approvedHours',
   'approvedMinutes',
+  'pendingHours',
   'pendingMinutes',
   'approvalState',
   'paymentStatus',
@@ -1630,7 +2044,7 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
   const activityCompensation = workerActivityCompensation(snapshot);
   const mixed = snapshot.currency === 'MULTI';
   const summaries = snapshot.currencyBreakdown ?? [snapshot];
-  return [
+  const rows: Row[] = [
     ...summaries.map((amount) => ({
       recordType: 'compensation_summary',
       recordId: `${snapshot.worker.id}:${snapshot.periodStart}:${snapshot.periodEnd}${mixed ? `:${amount.currency}` : ''}`,
@@ -1716,6 +2130,21 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
       reimbursedAt: expense.reimbursedAt ?? '',
     })),
   ];
+  const meanings: Record<string, string> = {
+    compensation_summary: 'Estimated approved worker compensation',
+    pending_compensation: 'Estimated compensation awaiting approval',
+    time_activity: 'Allocated estimated worker compensation',
+    compensation_settlement: 'Worker compensation settlement',
+    reimbursable_expense: 'Calculated worker expense reimbursement',
+  };
+  return rows.map((row) => ({
+    ...row,
+    amountMeaning: meanings[String(row.recordType ?? '')] ?? '',
+    amount: majorAmountCell(String(row.currency ?? ''), row.amountMinor, 'en'),
+    actualHours: row.actualMinutes == null ? '' : minutesAsHours(row.actualMinutes),
+    approvedHours: row.approvedMinutes == null ? '' : minutesAsHours(row.approvedMinutes),
+    pendingHours: row.pendingMinutes == null ? '' : minutesAsHours(row.pendingMinutes),
+  }));
 }
 
 export function workerStatementCsv(snapshot: WorkerStatementSnapshot): Uint8Array {
@@ -1726,8 +2155,12 @@ export function workerStatementCsv(snapshot: WorkerStatementSnapshot): Uint8Arra
     toCsv(workerStatementRows(snapshot), columns, {
       numericColumns: [
         'amountMinor',
+        'amount',
+        'actualHours',
         'actualMinutes',
+        'approvedHours',
         'approvedMinutes',
+        'pendingHours',
         'pendingMinutes',
         'breakMinutes',
       ],
@@ -1808,7 +2241,7 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
   const expenseRows = snapshot.expenses.map((row) => [
     formatReportDate(row.spentOn ?? row.date, locale) || '—',
     row.projectNumber ?? row.project ?? '—',
-    row.vendor ?? '—',
+    [row.category, row.vendor?.trim()].filter(Boolean).join(' · ') || '—',
     translateReportStatus(row.reimbursementState ?? row.status, locale) || '—',
     formatReportDate(row.expectedReimbursementOn, locale) || '—',
     formatReportDate(row.reimbursedAt, locale) || '—',
@@ -1881,11 +2314,11 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
     [
       common.date,
       common.project,
-      common.vendor,
+      common.expenseOrVendor,
       copy.paymentStatus,
       copy.expectedReimbursement,
       copy.reimbursed,
-      common.amount,
+      copy.reimbursementAmount,
     ],
     expenseRows,
     copy.noReimbursableExpenses,
@@ -2127,6 +2560,42 @@ export function invoiceCollectionLedgerXlsx(
     {
       name: 'Invoice collection ledger',
       rows: ledgerRows,
+      headerLabels: {
+        invoiceNumber: 'Invoice number',
+        clientName: 'Customer',
+        projectNumber: 'Project number',
+        projectName: 'Project name',
+        issueDate: 'Issued date',
+        dueDate: 'Due date',
+        currency: 'Invoice currency',
+        subtotal: 'Amount invoiced before tax',
+        tax: 'Tax invoiced',
+        total: 'Amount invoiced including tax',
+        grossPayments: 'Payments received before reversals',
+        paymentReversalAmount: 'Reversed payments',
+        netCollected: 'Payments retained after reversals',
+        collected: 'Total collected on invoice',
+        outstanding: 'Outstanding client balance',
+        directCostKnown: 'Direct cost with known source amounts',
+        directCost: 'Total direct cost',
+        directCostComplete: 'Direct cost data complete',
+        contribution: 'Invoice contribution after direct cost',
+        contributionMarginPercent: 'Contribution margin percent',
+        paymentStatus: 'Payment status',
+        billingStatus: 'Billing status',
+        subtotalMinor: 'Amount invoiced before tax (minor units)',
+        taxMinor: 'Tax invoiced (minor units)',
+        totalMinor: 'Amount invoiced including tax (minor units)',
+        grossPaymentsMinor: 'Payments received (minor units)',
+        paymentReversalsMinor: 'Reversed payments (minor units)',
+        netCollectedMinor: 'Net payments (minor units)',
+        collectedMinor: 'Total collected (minor units)',
+        outstandingMinor: 'Outstanding balance (minor units)',
+        directCostKnownMinor: 'Known direct cost (minor units)',
+        directCostMinor: 'Direct cost (minor units)',
+        contributionMinor: 'Contribution (minor units)',
+        contributionMarginBps: 'Contribution margin (basis points)',
+      },
       numericColumns: [
         'subtotal',
         'tax',
@@ -2159,6 +2628,19 @@ export function invoiceCollectionLedgerXlsx(
     {
       name: 'Payments',
       rows: payments,
+      headerLabels: {
+        invoiceId: 'Invoice ID',
+        currency: 'Payment currency',
+        paymentDate: 'Date payment was received',
+        grossAmount: 'Payment received before reversals',
+        reversed: 'Amount reversed',
+        netAmount: 'Payment retained',
+        amount: 'Payment source amount',
+        grossAmountMinor: 'Payment received (minor units)',
+        reversedMinor: 'Reversed amount (minor units)',
+        netAmountMinor: 'Net payment (minor units)',
+        amountMinor: 'Payment source amount (minor units)',
+      },
       numericColumns: ['grossAmount', 'reversed', 'netAmount', 'amount'],
       moneyColumns: ['grossAmount', 'reversed', 'netAmount', 'amount'],
       dateColumns: ['paymentDate', 'paidOn', 'receivedOn'],
@@ -2166,6 +2648,13 @@ export function invoiceCollectionLedgerXlsx(
     {
       name: 'Reversals',
       rows: reversals,
+      headerLabels: {
+        invoiceId: 'Invoice ID',
+        currency: 'Payment currency',
+        paymentDate: 'Reversal effective date',
+        amount: 'Amount reversed',
+        amountMinor: 'Reversed amount (minor units)',
+      },
       numericColumns: ['amount'],
       moneyColumns: ['amount'],
       dateColumns: ['paymentDate'],
@@ -2383,7 +2872,7 @@ export function accountingPackPdf(
 ): Uint8Array {
   const locale = normalizeReportLocale(snapshot.locale);
   const copy = localizedCopy[locale];
-  const snapshotCurrency = snapshot.currency ?? snapshot.totals?.currency ?? 'USD';
+  const snapshotCurrency = String(snapshot.currency ?? snapshot.totals?.currency ?? 'USD');
   const legalEntityName =
     snapshotText(snapshot.legalEntity, 'legalName', 'legal_name', 'code', 'name') ||
     snapshotText(snapshot.totals, 'legalEntityName', 'legal_entity_name');
@@ -2405,6 +2894,25 @@ export function accountingPackPdf(
       return `<div class="metric-stack"><h3>${htmlEscape(currency)}</h3>${htmlTable([copy.metric, copy.value], metricRows, copy.noCurrencyBreakdown, { amountIndexes: [1] })}</div>`;
     })
     .join('');
+  const rowCurrency = (row: Record<string, unknown>): string =>
+    snapshotText(row, 'currency') || snapshotCurrency;
+  const knownMoney = (currency: string, minor: string): string =>
+    minor === '' ? '—' : exactMoneyText(currency, minor, locale);
+  const registerTotal = (
+    rows: readonly Record<string, unknown>[] | undefined,
+    amounts: readonly string[],
+  ): string => {
+    const sources = rows ?? [];
+    const currency = sources[0] ? rowCurrency(sources[0]) : '';
+    if (
+      !currency ||
+      sources.length !== amounts.length ||
+      !sources.every((row) => rowCurrency(row) === currency) ||
+      amounts.some((amount) => amount === '')
+    )
+      return '—';
+    return exactMoneyText(currency, sumMinorUnits(amounts), locale);
+  };
   const invoiceSource = accountingPackRegisterRows(snapshot.invoiceRegister, [
     { key: 'invoiceNumber', fallback: ['invoice_number'] },
     { key: 'client', fallback: ['clientName', 'client_name'] },
@@ -2419,13 +2927,13 @@ export function accountingPackPdf(
     },
     { key: 'grossMinor', fallback: ['gross_minor', 'totalMinor', 'total_minor', 'netMinor'] },
   ]);
-  const invoiceRows = invoiceSource.map((row) => [
+  const invoiceRows = invoiceSource.map((row, index) => [
     row[0] ?? '',
     row[1] ?? '',
     row[2] ?? '',
     row[3] ?? '',
     row[4] ?? '',
-    exactMoneyText(snapshotCurrency, row[5], locale),
+    knownMoney(rowCurrency(snapshot.invoiceRegister?.[index] ?? {}), row[5] ?? ''),
   ]);
   const parseWorkerHours = (rawVal: unknown, sourceUnit: 'minutes' | 'hours'): number => {
     if (rawVal === undefined || rawVal === null || rawVal === '') return 0;
@@ -2450,6 +2958,7 @@ export function accountingPackPdf(
   };
 
   const workerSource = (snapshot.workerCosts ?? []).map((row) => ({
+    currency: rowCurrency(row),
     worker: snapshotText(row, 'worker', 'workerName', 'worker_name', 'name'),
     project: snapshotText(
       row,
@@ -2478,35 +2987,76 @@ export function accountingPackPdf(
     row.worker,
     row.project,
     `${row.hours.toFixed(2)} h`,
-    exactMoneyText(snapshotCurrency, row.amount, locale),
+    knownMoney(row.currency, row.amount),
   ]);
   const totalWorkerHours = workerSource.reduce((acc, row) => acc + row.hours, 0);
-  const expenseSource = accountingPackRegisterRows(snapshot.expenseRegister, [
-    { key: 'date', fallback: ['spentOn', 'spent_on'] },
-    { key: 'worker', fallback: ['workerName', 'worker_name'] },
-    { key: 'project', fallback: ['projectNumber', 'project_number'] },
-    { key: 'vendor' },
-    { key: 'category' },
-    {
-      key: 'grossMinor',
-      fallback: [
-        'amountMinor',
-        'amount_minor',
-        'costMinor',
-        'cost_minor',
+  const expenseSource = (snapshot.expenseRegister ?? []).map((row) => {
+    const sourceCurrency = snapshotText(row, 'currency') || snapshotCurrency;
+    const projectCurrency =
+      snapshotText(row, 'projectCurrency', 'project_currency') || sourceCurrency;
+    const amountMinor = snapshotText(row, 'amountMinor', 'amount_minor');
+    const taxMinor = snapshotText(row, 'taxMinor', 'tax_minor');
+    let recordedMinor = snapshotText(row, 'grossMinor', 'gross_minor');
+    if (!recordedMinor && amountMinor) {
+      try {
+        recordedMinor = (BigInt(amountMinor) + BigInt(taxMinor || '0')).toString();
+      } catch {
+        recordedMinor = amountMinor;
+      }
+    }
+    return {
+      date: snapshotText(row, 'date', 'spentOn', 'spent_on'),
+      worker: snapshotText(row, 'worker', 'workerName', 'worker_name'),
+      project: snapshotText(row, 'project', 'projectNumber', 'project_number'),
+      expense:
+        [snapshotText(row, 'description', 'category'), snapshotText(row, 'vendor')]
+          .filter(Boolean)
+          .join(' · ') || '—',
+      recordedMinor,
+      companyCostMinor: snapshotText(row, 'companyCostMinor', 'company_cost_minor'),
+      billingAmountMinor: snapshotText(row, 'billingAmountMinor', 'billing_amount_minor'),
+      reimbursementAmountMinor: snapshotText(
+        row,
         'reimbursementAmountMinor',
         'reimbursement_amount_minor',
-      ],
-    },
-  ]);
+      ),
+      reimbursedAmountMinor: snapshotText(row, 'reimbursedAmountMinor', 'reimbursed_amount_minor'),
+      sourceCurrency,
+      projectCurrency,
+    };
+  });
+  const expenseMoney = knownMoney;
   const expenseRows = expenseSource.map((row) => [
-    row[0] ?? '',
-    row[1] ?? '',
-    row[2] ?? '',
-    row[3] ?? '',
-    row[4] ?? '',
-    exactMoneyText(snapshotCurrency, row[5], locale),
+    row.date,
+    row.worker,
+    row.project,
+    row.expense,
+    expenseMoney(row.sourceCurrency, row.recordedMinor),
+    expenseMoney(row.projectCurrency, row.companyCostMinor),
+    expenseMoney(row.projectCurrency, row.billingAmountMinor),
+    `${expenseMoney(row.sourceCurrency, row.reimbursementAmountMinor)} / ${expenseMoney(row.sourceCurrency, row.reimbursedAmountMinor)}`,
   ]);
+  const expenseTotal = (
+    amountKey:
+      | 'recordedMinor'
+      | 'companyCostMinor'
+      | 'billingAmountMinor'
+      | 'reimbursementAmountMinor'
+      | 'reimbursedAmountMinor',
+    currencyKey: 'sourceCurrency' | 'projectCurrency',
+  ): string => {
+    const currency = expenseSource[0]?.[currencyKey];
+    if (
+      !currency ||
+      !expenseSource.every((row) => row[currencyKey] === currency && row[amountKey] !== '')
+    )
+      return '—';
+    return exactMoneyText(
+      currency,
+      sumMinorUnits(expenseSource.map((row) => row[amountKey])),
+      locale,
+    );
+  };
   const collectionSource = accountingPackRegisterRows(snapshot.collections, [
     { key: 'invoiceNumber', fallback: ['invoice_number'] },
     { key: 'client', fallback: ['clientName', 'client_name'] },
@@ -2516,19 +3066,128 @@ export function accountingPackPdf(
       fallback: ['amountMinor', 'amount_minor', 'netCollectedMinor'],
     },
   ]);
-  const collectionRows = collectionSource.map((row) => [
+  const collectionRows = collectionSource.map((row, index) => [
     row[0] ?? '',
     row[1] ?? '',
     row[2] ?? '',
-    exactMoneyText(snapshotCurrency, row[3], locale),
+    knownMoney(rowCurrency(snapshot.collections?.[index] ?? {}), row[3] ?? ''),
   ]);
   return renderHtmlToPdf(
     layout(
       copy.accountingPack,
       `${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
-      `${legalEntityName ? `<p class="muted">${htmlEscape(copy.legalEntity)}: ${htmlEscape(legalEntityName)} · ${htmlEscape(String(snapshotCurrency))}</p>` : ''}<section class="grid">${totals || `<div class="muted">${copy.noTotals}</div>`}</section><h2>${copy.totalsByCurrency}</h2>${byCurrency || `<p class="muted">${copy.noCurrencyBreakdown}</p>`}<h2>${copy.invoiceRegister}</h2>${htmlTable([copy.invoiceNumber, copy.client, copy.project, copy.stream, copy.date, copy.amount], invoiceRows, copy.noInvoiceLines, { amountIndexes: [5], columnWidths: [15, 18, 18, 15, 17, 17], footer: invoiceRows.length ? [copy.total, '', '', '', '', exactMoneyText(snapshotCurrency, sumMinorUnits(invoiceSource.map((row) => row[5])), locale)] : undefined })}<h2>${copy.workerCosts}</h2>${htmlTable([copy.worker, copy.project, copy.hours, copy.amount], workerRows, copy.noTotals, { amountIndexes: [3], footer: workerRows.length ? [copy.total, '', `${totalWorkerHours.toFixed(2)} h`, exactMoneyText(snapshotCurrency, sumMinorUnits(workerSource.map((row) => row.amount)), locale)] : undefined })}<h2>${copy.expenses}</h2>${htmlTable([copy.date, copy.worker, copy.project, copy.vendor, copy.detail, copy.amount], expenseRows, copy.noTotals, { amountIndexes: [5], columnWidths: [15, 18, 17, 16, 17, 17], footer: expenseRows.length ? [copy.total, '', '', '', '', exactMoneyText(snapshotCurrency, sumMinorUnits(expenseSource.map((row) => row[5])), locale)] : undefined })}<h2>${copy.collections}</h2>${htmlTable([copy.invoiceNumber, copy.client, copy.date, copy.amount], collectionRows, copy.noTotals, { amountIndexes: [3], footer: collectionRows.length ? [copy.total, '', '', exactMoneyText(snapshotCurrency, sumMinorUnits(collectionSource.map((row) => row[3])), locale)] : undefined })}`,
+      [
+        legalEntityName
+          ? `<p class="muted">${htmlEscape(copy.legalEntity)}: ${htmlEscape(legalEntityName)} · ${htmlEscape(String(snapshotCurrency))}</p>`
+          : '',
+        `<section class="grid">${totals || `<div class="muted">${copy.noTotals}</div>`}</section>`,
+        `<h2>${copy.totalsByCurrency}</h2>`,
+        byCurrency || `<p class="muted">${copy.noCurrencyBreakdown}</p>`,
+        `<h2>${copy.invoiceRegister}</h2>`,
+        htmlTable(
+          [
+            copy.invoiceNumber,
+            copy.client,
+            copy.project,
+            copy.stream,
+            copy.invoicePeriodOrDate,
+            copy.invoiceTotalWithTax,
+          ],
+          invoiceRows,
+          copy.noInvoiceLines,
+          {
+            amountIndexes: [5],
+            columnWidths: [15, 18, 18, 15, 17, 17],
+            footer: invoiceRows.length
+              ? [
+                  copy.total,
+                  '',
+                  '',
+                  '',
+                  '',
+                  registerTotal(
+                    snapshot.invoiceRegister,
+                    invoiceSource.map((row) => row[5] ?? ''),
+                  ),
+                ]
+              : undefined,
+          },
+        ),
+        `<h2>${copy.workerCosts}</h2>`,
+        htmlTable(
+          [copy.worker, copy.project, copy.hours, copy.approvedWorkerCompensation],
+          workerRows,
+          copy.noTotals,
+          {
+            amountIndexes: [3],
+            footer: workerRows.length
+              ? [
+                  copy.total,
+                  '',
+                  `${totalWorkerHours.toFixed(2)} h`,
+                  registerTotal(
+                    snapshot.workerCosts,
+                    workerSource.map((row) => row.amount),
+                  ),
+                ]
+              : undefined,
+          },
+        ),
+        `<h2>${copy.expenses}</h2>`,
+        htmlTable(
+          [
+            copy.date,
+            copy.worker,
+            copy.project,
+            copy.expenseOrVendor,
+            copy.recordedExpenseWithTax,
+            copy.companyExpenseCost,
+            copy.clientBillableExpense,
+            copy.workerReimbursementEligiblePaid,
+          ],
+          expenseRows,
+          copy.noTotals,
+          {
+            amountIndexes: [4, 5, 6, 7],
+            columnWidths: [8, 10, 11, 16, 12, 12, 12, 19],
+            footer: expenseRows.length
+              ? [
+                  copy.total,
+                  '',
+                  '',
+                  '',
+                  expenseTotal('recordedMinor', 'sourceCurrency'),
+                  expenseTotal('companyCostMinor', 'projectCurrency'),
+                  expenseTotal('billingAmountMinor', 'projectCurrency'),
+                  `${expenseTotal('reimbursementAmountMinor', 'sourceCurrency')} / ${expenseTotal('reimbursedAmountMinor', 'sourceCurrency')}`,
+                ]
+              : undefined,
+          },
+        ),
+        expenseRows.length ? `<p class="muted">${htmlEscape(copy.unavailableAmountNote)}</p>` : '',
+        `<h2>${copy.collections}</h2>`,
+        htmlTable(
+          [copy.invoiceNumber, copy.client, copy.date, copy.collectedThisPeriod],
+          collectionRows,
+          copy.noTotals,
+          {
+            amountIndexes: [3],
+            footer: collectionRows.length
+              ? [
+                  copy.total,
+                  '',
+                  '',
+                  registerTotal(
+                    snapshot.collections,
+                    collectionSource.map((row) => row[3] ?? ''),
+                  ),
+                ]
+              : undefined,
+          },
+        ),
+      ].join(''),
       locale,
-      operationalTableCss,
+      accountingPackCss,
       ACCOUNTING_PACK_PDF_TEMPLATE_VERSION,
     ),
   );
@@ -2565,9 +3224,9 @@ export function periodReportPdf(
       maximumFractionDigits: 1,
     });
   const moneyMetric = (label: string, value: unknown): string =>
-    `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${htmlEscape(moneyText(currency, value, locale))}</strong></div>`;
+    `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${value === null || value === undefined || value === '' ? '—' : moneyText(currency, value, locale)}</strong></div>`;
   const hoursMetric = (label: string, value: unknown): string =>
-    `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${htmlEscape(`${hours(value)} h`)}</strong></div>`;
+    `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${value === null || value === undefined || value === '' ? '—' : htmlEscape(`${hours(value)} h`)}</strong></div>`;
   const timeSummary = snapshot.timeSummary ?? [];
   const approvedTimeMinutes = timeSummary.reduce(
     (total, row) =>
@@ -2597,7 +3256,7 @@ export function periodReportPdf(
       ? [
           moneyMetric(copy.directCost, finance.approvedCostMinor),
           moneyMetric(copy.contribution, finance.contributionMarginMinor),
-          `<div class="metric"><span class="muted">${htmlEscape(copy.contributionMargin)}</span><strong>${htmlEscape(`${(Number(finance.contributionMarginBps ?? 0) / 100).toFixed(1)}%`)}</strong></div>`,
+          `<div class="metric"><span class="muted">${htmlEscape(copy.contributionMargin)}</span><strong>${finance.contributionMarginBps === null || finance.contributionMarginBps === undefined || finance.contributionMarginBps === '' ? '—' : htmlEscape(`${(Number(finance.contributionMarginBps) / 100).toFixed(1)}%`)}</strong></div>`,
         ].join('')
       : '';
   const calculationLines = customer ? [] : (snapshot.commercialCalculation ?? []);

@@ -74,7 +74,9 @@
   <header class="record-detail-header">
     <div>
       <span class="portal-kicker">{t('EXPENSE · SOURCE RECORD')}</span>
-      <h1>{record.vendor ?? controlled('expenseCategory', record.category)}</h1>
+      <h1>
+        {record.vendor || record.description || controlled('expenseCategory', record.category)}
+      </h1>
       <p>{record.project_number} · {record.project_name} · {record.spent_on}</p>
     </div>
     <span class="state-tag">{controlled('status', record.approval_state)}</span>
@@ -191,7 +193,7 @@
     <dl class="record-facts">
       <div>
         <dt>{t('Vendor')}</dt>
-        <dd>{record.vendor ?? '—'}</dd>
+        <dd>{record.vendor || '—'}</dd>
       </div>
       <div>
         <dt>{t('Time expense occurred')}</dt>

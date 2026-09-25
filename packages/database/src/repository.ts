@@ -71,6 +71,14 @@ import { V3Repository } from './v3-repository.ts';
 export class AccessDeniedError extends Error {}
 export class ConflictError extends Error {}
 export class ValidationError extends Error {}
+
+function projectNumberForCostCenter(clientNumber: string, costCenterCode: string): string | null {
+  const digits = /^\d+$/.test(costCenterCode)
+    ? costCenterCode
+    : /(?:^|\D)(\d{3,})$/.exec(costCenterCode)?.[1];
+  return digits ? `${clientNumber}-P-${digits.padStart(3, '0')}` : null;
+}
+
 export class ReadinessError extends Error {
   readonly reasons: readonly ReadinessReason[];
 
@@ -246,7 +254,7 @@ type ExpenseInput = Readonly<{
   spentOn: string;
   occurredTimeLocal?: string;
   timeEntryId?: string;
-  vendor: string;
+  vendor?: string;
   category: string;
   description: string;
   currency: Currency;
@@ -1152,8 +1160,24 @@ export class PortalRepository {
         (!Number.isInteger(input.laborBudgetMinutes) || input.laborBudgetMinutes < 0)
       )
         throw new ValidationError('Labor budget minutes are invalid');
-      const sequence = this.nextSequence('project', input.clientId);
-      const projectNumber = `${client.client_number}-P-${String(sequence).padStart(3, '0')}`;
+      const costCenterNumber = projectNumberForCostCenter(client.client_number, costCenterCode);
+      let projectNumber = costCenterNumber;
+      if (projectNumber) {
+        const duplicate = this.sqlite
+          .prepare('SELECT 1 FROM project WHERE project_number=?')
+          .get(projectNumber);
+        if (duplicate)
+          throw new ValidationError(
+            'Cost center code is already used by another project for this client',
+          );
+      } else {
+        do {
+          const sequence = this.nextSequence('project', input.clientId);
+          projectNumber = `${client.client_number}-P-${String(sequence).padStart(3, '0')}`;
+        } while (
+          this.sqlite.prepare('SELECT 1 FROM project WHERE project_number=?').get(projectNumber)
+        );
+      }
       const id = newId();
       const timestamp = now();
       this.sqlite
@@ -1627,6 +1651,21 @@ export class PortalRepository {
     return this.time.createTimeEntryForWorker(principal, workerId, input);
   }
 
+  /** Save a week's editable daily entries as one unit. Each row runs the same
+   * live assignment, overlap, and audit checks as the single-entry command. */
+  createTimeBatch(principal: Principal, workerId: string, entries: readonly TimeInput[]) {
+    this.assertActive(principal);
+    if (entries.length < 1 || entries.length > 31)
+      throw new ValidationError('Choose 1 to 31 days for a time batch');
+    const dates = new Set(entries.map((entry) => entry.workDate));
+    if (dates.size !== entries.length)
+      throw new ValidationError('A time batch can contain only one entry per day');
+    return this.transaction(() => {
+      const created = entries.map((entry) => this.createTimeEntry(principal, entry, workerId));
+      return { created };
+    });
+  }
+
   /**
    * Capture one person's work and its expense as one operational unit.  The
    * expense scope is derived from the saved shift, so callers cannot attach
@@ -1667,7 +1706,7 @@ export class PortalRepository {
             startTime: input.startTime || null,
             endTime: input.endTime || null,
             breakMinutes: input.breakMinutes ?? null,
-            vendor: expense.vendor.trim(),
+            vendor: expense.vendor?.trim() ?? '',
             expenseCategory: expense.category,
             expenseDescription: expense.description.trim(),
             expenseCurrency: expense.currency,
@@ -1727,6 +1766,84 @@ export class PortalRepository {
     if (!scope) throw new ValidationError('Time entry not found');
     this.assertProjectObjectAccess(principal, scope.project_id, scope.work_date, scope.worker_id);
     return this.time.submitTime(principal, id, baseVersion);
+  }
+
+  /** Submit the exact drafts the user reviewed for one worker and ISO week.
+   * The complete set and versions are rechecked under one immediate lock so a
+   * stale page cannot silently omit a newly created or edited draft. Only
+   * linked meal expenses created from Log time travel with their hours. */
+  submitTimeWeek(
+    principal: Principal,
+    workerId: string,
+    weekStart: string,
+    expected: readonly Readonly<{ id: string; version: number }>[],
+  ) {
+    this.assertActive(principal);
+    assertDate(weekStart, 'Week start');
+    const date = new Date(`${weekStart}T00:00:00.000Z`);
+    if (!Number.isFinite(date.getTime()) || date.getUTCDay() !== 1)
+      throw new ValidationError('Week start must be a Monday');
+    if (workerId !== principal.userId) {
+      if (principal.role !== 'owner_admin')
+        throw new AccessDeniedError('Only the owner can submit another worker’s week');
+      this.assertLiveSession(principal);
+    }
+    if (expected.length < 1 || expected.length > 200)
+      throw new ValidationError('Select a week with 1 to 200 draft entries');
+    const weekEnd = shiftIsoDate(weekStart, 6);
+    return this.transaction(() => {
+      const rows = this.sqlite
+        .prepare(
+          `SELECT id,project_id,worker_id,work_date,version
+             FROM time_entry
+            WHERE worker_id=? AND work_date BETWEEN ? AND ? AND approval_state='draft'
+            ORDER BY work_date,id`,
+        )
+        .all(workerId, weekStart, weekEnd) as Array<{
+        id: string;
+        project_id: string;
+        worker_id: string;
+        work_date: string;
+        version: number;
+      }>;
+      const versions = new Map(expected.map((row) => [row.id, row.version]));
+      if (
+        versions.size !== expected.length ||
+        rows.length !== expected.length ||
+        rows.some((row) => versions.get(row.id) !== row.version)
+      )
+        throw new ConflictError('Week changed. Refresh and review its drafts before submitting');
+      let mealsSubmitted = 0;
+      for (const row of rows) {
+        this.submitTime(principal, row.id, row.version);
+        const meals = this.sqlite
+          .prepare(
+            `SELECT e.id,e.version,e.project_id,e.worker_id,e.spent_on
+               FROM operational_time_expense_request link
+               JOIN expense e ON e.id=link.expense_id
+              WHERE link.time_entry_id=? AND e.time_entry_id=?
+                AND e.category='meals' AND e.approval_state='draft'`,
+          )
+          .all(row.id, row.id) as Array<{
+          id: string;
+          version: number;
+          project_id: string;
+          worker_id: string;
+          spent_on: string;
+        }>;
+        for (const meal of meals) {
+          if (
+            meal.project_id !== row.project_id ||
+            meal.worker_id !== row.worker_id ||
+            meal.spent_on !== row.work_date
+          )
+            throw new ConflictError('Linked meal no longer matches its time entry');
+          this.submitExpense(principal, meal.id, meal.version);
+          mealsSubmitted += 1;
+        }
+      }
+      return { timeSubmitted: rows.length, mealsSubmitted };
+    });
   }
 
   updateTimeEntry(
@@ -3614,6 +3731,8 @@ export class PortalRepository {
         .get(input.projectId) as { currency: Currency } | undefined;
       if (!project) throw new ValidationError('Project not found');
       if (input.amountMinor <= 0n) throw new ValidationError('Expense amount must be positive');
+      const vendor = input.vendor?.trim() ?? '';
+      if (vendor.length > 200) throw new ValidationError('Vendor must be 200 characters or fewer');
       const normalizedWhoPaid = input.whoPaid === 'company' ? 'company_direct' : input.whoPaid;
       const paidBy = ['worker', 'company_card', 'company_direct', 'client', 'third_party'];
       if (!paidBy.includes(normalizedWhoPaid))
@@ -3649,7 +3768,7 @@ export class PortalRepository {
               category: input.category,
               currency: input.currency,
               amountMinor: input.amountMinor.toString(),
-              vendor: input.vendor.trim(),
+              vendor,
               description: input.description.trim(),
               whoPaid: normalizedWhoPaid,
               paymentMethod: input.paymentMethod?.trim() || null,
@@ -3706,7 +3825,7 @@ export class PortalRepository {
           input.currency,
           safeInteger(input.amountMinor),
           'non_billable',
-          assertText(input.vendor, 'Vendor', 200),
+          vendor,
           assertText(input.description, 'Description'),
           normalizedWhoPaid,
           input.paymentMethod?.trim() || null,
@@ -4190,12 +4309,15 @@ export class PortalRepository {
           throw new AccessDeniedError('Receipt must belong to the expense project');
       }
       const amountMinor = input.amountMinor === undefined ? null : safeInteger(input.amountMinor);
+      const vendor = input.vendor?.trim();
+      if (vendor && vendor.length > 200)
+        throw new ValidationError('Vendor must be 200 characters or fewer');
       const result = this.sqlite
         .prepare(
           `UPDATE expense SET spent_on=COALESCE(?,spent_on),
             occurred_time_local=CASE WHEN ?=1 THEN ? ELSE occurred_time_local END,
             time_entry_id=CASE WHEN ?=1 THEN ? ELSE time_entry_id END,
-            vendor=COALESCE(?,vendor),
+            vendor=CASE WHEN ?=1 THEN ? ELSE vendor END,
             category=COALESCE(?,category),description=COALESCE(?,description),
             amount_minor=COALESCE(?,amount_minor),
             reimbursement_amount_minor=CASE
@@ -4218,7 +4340,8 @@ export class PortalRepository {
           input.occurredTimeLocal ?? null,
           input.timeEntryId === undefined ? 0 : 1,
           input.timeEntryId ?? null,
-          input.vendor?.trim() || null,
+          input.vendor === undefined ? 0 : 1,
+          vendor ?? '',
           input.category?.trim() || null,
           input.description?.trim() || null,
           amountMinor,
@@ -4436,7 +4559,7 @@ export class PortalRepository {
       legalName: string;
       currency: Currency;
       billingAddress: string;
-      companyIdentifiers: string;
+      companyIdentifiers?: string;
     },
   ) {
     this.assertActive(principal);
@@ -4446,7 +4569,9 @@ export class PortalRepository {
       throw new ValidationError('Legal entity code may contain only letters, numbers, _ and -');
     const legalName = assertText(input.legalName, 'Legal entity name', 300);
     const billingAddress = assertText(input.billingAddress, 'Billing address', 2000);
-    const companyIdentifiers = assertText(input.companyIdentifiers, 'Company identifiers', 1000);
+    const companyIdentifiers = input.companyIdentifiers?.trim() ?? '';
+    if (companyIdentifiers.length > 1000)
+      throw new ValidationError('Tax or registration identifier is too long');
     const id = newId();
     const timestamp = now();
     try {
@@ -4584,7 +4709,7 @@ export class PortalRepository {
       includeExpenses?: boolean;
       cadenceType: string;
       anchorDate?: string;
-      taxProfileId: string;
+      taxProfileId?: string;
       currency: Currency;
       effectiveFrom: string;
       templateId?: string;
@@ -4650,16 +4775,18 @@ export class PortalRepository {
     const legalEntity = this.activeLegalEntity(input.legalEntityId);
     if (legalEntity.currency !== input.currency)
       throw new ValidationError('Billing currency must match the legal entity currency');
-    const taxProfile = this.sqlite
-      .prepare('SELECT currency,status,legal_entity_id FROM tax_profile WHERE id=?')
-      .get(input.taxProfileId) as
-      | { currency: Currency; status: string; legal_entity_id: string | null }
-      | undefined;
-    if (!taxProfile) throw new ValidationError('Active tax profile not found');
-    if (taxProfile.status !== 'active') throw new ValidationError('Active tax profile not found');
-    if (taxProfile.legal_entity_id && taxProfile.legal_entity_id !== input.legalEntityId)
+    const taxProfile = input.taxProfileId
+      ? (this.sqlite
+          .prepare('SELECT currency,status,legal_entity_id FROM tax_profile WHERE id=?')
+          .get(input.taxProfileId) as
+          | { currency: Currency; status: string; legal_entity_id: string | null }
+          | undefined)
+      : undefined;
+    if (input.taxProfileId && (!taxProfile || taxProfile.status !== 'active'))
+      throw new ValidationError('Active tax profile not found');
+    if (taxProfile?.legal_entity_id && taxProfile.legal_entity_id !== input.legalEntityId)
       throw new ValidationError('Tax profile belongs to a different legal entity');
-    if (taxProfile.currency !== input.currency)
+    if (taxProfile && taxProfile.currency !== input.currency)
       throw new ValidationError('Billing currency must match the tax profile currency');
     if (input.billingContactId) {
       const contact = this.sqlite
@@ -4677,17 +4804,20 @@ export class PortalRepository {
       const activeEntity = this.activeLegalEntity(input.legalEntityId);
       if (activeEntity.currency !== input.currency)
         throw new ValidationError('Billing currency must match the legal entity currency');
-      const activeTaxProfile = this.sqlite
-        .prepare('SELECT currency,status,legal_entity_id FROM tax_profile WHERE id=?')
-        .get(input.taxProfileId) as
-        | { currency: Currency; status: string; legal_entity_id: string | null }
-        | undefined;
+      const activeTaxProfile = input.taxProfileId
+        ? (this.sqlite
+            .prepare('SELECT currency,status,legal_entity_id FROM tax_profile WHERE id=?')
+            .get(input.taxProfileId) as
+            | { currency: Currency; status: string; legal_entity_id: string | null }
+            | undefined)
+        : undefined;
       if (
-        !activeTaxProfile ||
-        activeTaxProfile.status !== 'active' ||
-        activeTaxProfile.currency !== input.currency ||
-        (activeTaxProfile.legal_entity_id !== null &&
-          activeTaxProfile.legal_entity_id !== input.legalEntityId)
+        input.taxProfileId &&
+        (!activeTaxProfile ||
+          activeTaxProfile.status !== 'active' ||
+          activeTaxProfile.currency !== input.currency ||
+          (activeTaxProfile.legal_entity_id !== null &&
+            activeTaxProfile.legal_entity_id !== input.legalEntityId))
       )
         throw new ValidationError('Active tax profile matching the billing entity is required');
       const successorConflict = this.sqlite
@@ -4748,7 +4878,7 @@ export class PortalRepository {
           input.streamType,
           cadence,
           input.anchorDate ?? null,
-          input.taxProfileId,
+          input.taxProfileId || null,
           input.currency,
           input.autoGenerateDraft ? 1 : 0,
           input.effectiveFrom,
@@ -4781,7 +4911,7 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     return this.sqlite
       .prepare(
-        "SELECT id,code,legal_name,currency FROM legal_entity WHERE status='active' ORDER BY code",
+        "SELECT id,code,legal_name,currency,billing_address,company_identifiers,status FROM legal_entity WHERE status='active' ORDER BY code",
       )
       .all();
   }
@@ -5229,6 +5359,13 @@ export class PortalRepository {
     }
     let includedSourceCount = 0;
     let excludedSourceCount = 0;
+    const includedExpenseRows: Array<{
+      id: string;
+      spentOn: string;
+      category: string;
+      description: string;
+      amountMinor: string;
+    }> = [];
     const otherDraftReservations = new Set(
       (
         this.sqlite
@@ -5246,8 +5383,8 @@ export class PortalRepository {
         }>
       ).map((row) => `${row.source_type}:${row.source_id}`),
     );
-    if (!rule.tax_profile_id) reasons.push({ code: 'missing_tax_profile' });
-    else if (rule.tax_profile_status !== 'active') reasons.push({ code: 'inactive_tax_profile' });
+    if (rule.tax_profile_id && rule.tax_profile_status !== 'active')
+      reasons.push({ code: 'inactive_tax_profile' });
     if (!rule.legal_entity_id) reasons.push({ code: 'missing_legal_entity' });
     else if (rule.legal_entity_status !== 'active') reasons.push({ code: 'archived_legal_entity' });
     if (rule.legal_entity_status === 'active' && rule.legal_entity_currency !== rule.rule_currency)
@@ -5333,11 +5470,15 @@ export class PortalRepository {
     ) {
       const candidates = this.sqlite
         .prepare(
-          `SELECT id,currency,approval_state,finance_approved_at,invoice_id,
-                  project_currency_amount_minor,billing_amount_minor,commercial_classification_state
+          `SELECT id,spent_on,category,description,currency,approval_state,finance_approved_at,invoice_id,
+                  CAST(amount_minor AS TEXT) amount_minor,
+                  CAST(project_currency_amount_minor AS TEXT) project_currency_amount_minor,
+                  CAST(billing_amount_minor AS TEXT) billing_amount_minor,
+                  commercial_classification_state
              FROM expense
             WHERE project_id=? AND spent_on BETWEEN ? AND ?
               AND approval_state NOT IN ('rejected','void')
+              AND billing_state IN ('unlocked','locked')
               AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment='allowance_per_diem')
               AND NOT EXISTS (
                 SELECT 1 FROM record_correction_link rcl
@@ -5349,12 +5490,16 @@ export class PortalRepository {
         )
         .all(rule.project_id, periodStart, periodEnd) as Array<{
         id: string;
+        spent_on: string;
+        category: string;
+        description: string;
         currency: string;
         approval_state: string;
         finance_approved_at: string | null;
         invoice_id: string | null;
-        project_currency_amount_minor: number | null;
-        billing_amount_minor: number | null;
+        amount_minor: string;
+        project_currency_amount_minor: string | null;
+        billing_amount_minor: string | null;
         commercial_classification_state: string;
       }>;
       const pending = this.sqlite
@@ -5398,14 +5543,25 @@ export class PortalRepository {
         })),
       );
       const missingProjectionIds = new Set(missingProjections.map((row) => row.id));
-      const includedExpenses = candidates.filter(
+      const eligibleExpenses = candidates.filter(
         (candidate) =>
           candidate.approval_state === 'approved' &&
           candidate.finance_approved_at !== null &&
           candidate.invoice_id === null &&
           !missingProjectionIds.has(candidate.id) &&
           !otherDraftReservations.has(`expense:${candidate.id}`),
-      ).length;
+      );
+      for (const expense of eligibleExpenses)
+        includedExpenseRows.push({
+          id: expense.id,
+          spentOn: expense.spent_on,
+          category: expense.category,
+          description: expense.description,
+          amountMinor:
+            expense.billing_amount_minor ??
+            expense.project_currency_amount_minor ??
+            expense.amount_minor,
+        });
       reasons.push(
         ...candidates
           .filter(
@@ -5415,8 +5571,8 @@ export class PortalRepository {
           )
           .map((candidate) => ({ code: 'source_already_reserved', sourceId: candidate.id })),
       );
-      includedSourceCount += includedExpenses;
-      excludedSourceCount += Math.max(0, candidates.length - includedExpenses);
+      includedSourceCount += eligibleExpenses.length;
+      excludedSourceCount += Math.max(0, candidates.length - eligibleExpenses.length);
     }
     if (rule.stream_type === 'milestone') {
       const milestones = this.sqlite
@@ -5453,6 +5609,10 @@ export class PortalRepository {
       streamType: rule.stream_type,
       includedSourceCount,
       excludedSourceCount,
+      includedExpenseRows,
+      includedExpenseSubtotalMinor: includedExpenseRows
+        .reduce((sum, row) => sum + BigInt(row.amountMinor), 0n)
+        .toString(),
       hasPositiveFixedFee,
       hasPositiveDraftAmount,
       existingInvoiceId: existingInvoice?.id ?? null,
@@ -5734,7 +5894,7 @@ export class PortalRepository {
                   CAST(p.fixed_price_minor AS TEXT) fixed_price_minor
            FROM billing_rule br JOIN project p ON p.id=br.project_id
            JOIN legal_entity le ON le.id=br.legal_entity_id AND le.status='active'
-           JOIN tax_profile tp ON tp.id=br.tax_profile_id AND tp.status='active'
+           LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id
            WHERE br.id=? AND br.enabled=1`,
         )
         .get(billingRuleId) as {
@@ -5744,7 +5904,7 @@ export class PortalRepository {
         include_expenses: number;
         version: number;
         currency: Currency;
-        tax_profile_id: string;
+        tax_profile_id: string | null;
         cadence_type: string;
         anchor_date: string | null;
         monthly_cutoff_day: number | null;
@@ -5760,6 +5920,17 @@ export class PortalRepository {
           { code: 'archived_legal_entity' },
           { code: 'inactive_billing_configuration' },
         ]);
+      if (rule.tax_profile_id) {
+        const selectedTax = this.sqlite
+          .prepare('SELECT status,currency FROM tax_profile WHERE id=?')
+          .get(rule.tax_profile_id) as { status: string; currency: Currency } | undefined;
+        if (
+          !selectedTax ||
+          selectedTax.status !== 'active' ||
+          selectedTax.currency !== rule.currency
+        )
+          throw new ReadinessError([{ code: 'inactive_tax_profile' }]);
+      }
       if (periodEnd < periodStart)
         throw new ValidationError('Billing period end must follow start');
       if (['weekly', 'every_14_days', 'semi_monthly', 'monthly'].includes(rule.cadence_type)) {
@@ -6017,9 +6188,10 @@ export class PortalRepository {
             row.billing_amount_minor ?? row.project_currency_amount_minor ?? row.amount_minor,
           );
           subtotal = add(subtotal, money(rule.currency, billedMinor));
+          const expenseLabel = row.vendor?.trim() || row.description?.trim() || row.category;
           this.insertInvoiceLine(
             id,
-            `${row.spent_on} · ${row.vendor} · ${row.category}`,
+            `${row.spent_on} · ${expenseLabel}${expenseLabel === row.category ? '' : ` · ${row.category}`}`,
             1,
             1,
             safeInteger(billedMinor),
@@ -7314,7 +7486,7 @@ export class PortalRepository {
                   tp.jurisdiction_label,tp.description tax_description
            FROM billing_rule br JOIN legal_entity le ON le.id=br.legal_entity_id
            JOIN project p ON p.id=br.project_id JOIN client c ON c.id=p.client_id
-           JOIN tax_profile tp ON tp.id=br.tax_profile_id WHERE br.id=?`,
+           LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id WHERE br.id=?`,
         )
         .get(invoice.billing_rule_id) as
         | {
@@ -7344,10 +7516,10 @@ export class PortalRepository {
             project_name: string;
             cost_center_code: string | null;
             po_number: string | null;
-            tax_profile_id: string;
-            tax_name: string;
-            tax_currency: Currency;
-            tax_profile_status: string;
+            tax_profile_id: string | null;
+            tax_name: string | null;
+            tax_currency: Currency | null;
+            tax_profile_status: string | null;
             jurisdiction_label: string | null;
             tax_description: string | null;
           }
@@ -7355,11 +7527,11 @@ export class PortalRepository {
       if (!context) throw new ValidationError('Billing context is incomplete');
       if (context.legal_entity_status !== 'active')
         throw new ValidationError('Cannot issue invoice for an archived legal entity');
-      if (context.tax_profile_status !== 'active')
+      if (context.tax_profile_id && context.tax_profile_status !== 'active')
         throw new ValidationError('Cannot issue invoice with an inactive tax profile');
       if (context.legal_entity_currency !== invoice.currency)
         throw new ValidationError('Legal entity currency no longer matches the invoice currency');
-      if (context.tax_currency !== invoice.currency)
+      if (context.tax_profile_id && context.tax_currency !== invoice.currency)
         throw new ValidationError('Tax profile currency no longer matches the invoice currency');
       const deployment = this.deploymentIdentity();
       const canonicalAuthority = this.sqlite
@@ -7538,14 +7710,16 @@ export class PortalRepository {
           paymentTermsDays: context.billing_payment_terms_days,
           poNumberOverride: context.po_number_override,
         },
-        taxProfile: {
-          id: context.tax_profile_id,
-          name: context.tax_name,
-          currency: context.tax_currency,
-          jurisdiction: context.jurisdiction_label,
-          description: context.tax_description,
-          components: taxComponents,
-        },
+        taxProfile: context.tax_profile_id
+          ? {
+              id: context.tax_profile_id,
+              name: context.tax_name,
+              currency: context.tax_currency,
+              jurisdiction: context.jurisdiction_label,
+              description: context.tax_description,
+              components: taxComponents,
+            }
+          : null,
         calculation: {
           currency: invoice.currency,
           subtotalMinor: String(invoice.subtotal_minor),
@@ -8994,7 +9168,7 @@ export class PortalRepository {
       principal.role === 'worker'
         ? this.sqlite
             .prepare(
-              `SELECT e.id,'expense' type,COALESCE(e.vendor,e.description,e.category) label,p.project_number || ' · Expense / receipt' detail
+              `SELECT e.id,'expense' type,COALESCE(NULLIF(TRIM(e.vendor),''),NULLIF(TRIM(e.description),''),e.category) label,p.project_number || ' · Expense / receipt' detail
                FROM expense e JOIN project p ON p.id=e.project_id
                WHERE e.worker_id=? AND p.status='active'
                  AND EXISTS(SELECT 1 FROM project_member pm WHERE pm.project_id=e.project_id AND pm.user_id=? AND pm.status='active' AND pm.starts_on<=e.spent_on AND (pm.ends_on IS NULL OR pm.ends_on>=e.spent_on) AND pm.starts_on<=date('now') AND (pm.ends_on IS NULL OR pm.ends_on>=date('now')))
@@ -9003,7 +9177,7 @@ export class PortalRepository {
             .all(principal.userId, principal.userId, pattern, pattern, pattern, pattern, pattern)
         : this.sqlite
             .prepare(
-              `SELECT e.id,'expense' type,COALESCE(e.vendor,e.description,e.category) label,p.project_number || ' · Expense / receipt' detail
+              `SELECT e.id,'expense' type,COALESCE(NULLIF(TRIM(e.vendor),''),NULLIF(TRIM(e.description),''),e.category) label,p.project_number || ' · Expense / receipt' detail
                FROM expense e JOIN project p ON p.id=e.project_id
                WHERE (e.id LIKE ? ESCAPE '\\' OR e.receipt_document_id LIKE ? ESCAPE '\\' OR e.vendor LIKE ? ESCAPE '\\' OR e.description LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\')${projectRestriction} LIMIT 50`,
             )
@@ -9422,6 +9596,7 @@ export class PortalRepository {
     projectNumber: string;
     spentOn: string;
     vendor: string;
+    description: string;
     category: string;
     reimbursementAmountMinor: string;
     currency: string;
@@ -9440,7 +9615,7 @@ export class PortalRepository {
       throw new ValidationError('Period start must not follow period end');
     const rows = this.sqlite
       .prepare(
-        `SELECT e.id,e.spent_on,e.vendor,e.category,CAST(e.amount_minor AS TEXT) amount_minor,
+        `SELECT e.id,e.spent_on,e.vendor,e.description,e.category,CAST(e.amount_minor AS TEXT) amount_minor,
                 e.currency source_currency,p.currency project_currency,e.expense_policy_required,
                 CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor,
                 CAST(e.reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,
@@ -9479,6 +9654,7 @@ export class PortalRepository {
       project_number: string;
       spent_on: string;
       vendor: string | null;
+      description: string;
       category: string;
       amount_minor: string;
       source_currency: string;
@@ -9496,6 +9672,7 @@ export class PortalRepository {
       projectNumber: row.project_number,
       spentOn: row.spent_on,
       vendor: row.vendor ?? '',
+      description: row.description,
       category: row.category,
       // Keep SQLite's exact minor-unit text all the way to the export layer.
       // Worker reimbursement is an obligation in the expense/source currency.
@@ -9923,6 +10100,31 @@ export class PortalRepository {
     });
   }
 
+  /** Invoice expense lines use the invoice snapshot amounts, including any cap allocation. */
+  listProjectInvoiceExpenseLines(principal: Principal, projectId: string) {
+    this.assertReadable(principal);
+    if (!canManageBilling(principal) && principal.role !== 'auditor_read_only')
+      throw new AccessDeniedError('Finance role required');
+    return this.sqlite
+      .prepare(
+        `SELECT i.id invoice_id,i.invoice_number,i.state invoice_state,i.currency,
+                line.source_id expense_id,line.description,
+                CAST(line.subtotal_minor AS TEXT) amount_minor
+           FROM invoice i JOIN invoice_line line ON line.invoice_id=i.id
+          WHERE i.project_id=? AND line.source_type='expense'
+          ORDER BY i.created_at,i.id,line.rowid`,
+      )
+      .all(projectId) as Array<{
+      invoice_id: string;
+      invoice_number: string | null;
+      invoice_state: string;
+      currency: string;
+      expense_id: string | null;
+      description: string;
+      amount_minor: string;
+    }>;
+  }
+
   setInvoicePlanningDates(
     principal: Principal,
     input: Readonly<{
@@ -10040,6 +10242,7 @@ export class PortalRepository {
       .prepare(
         `SELECT br.*,p.project_number,p.name project_name,p.client_id,
                 c.client_number,c.client_code,c.display_name client_name,
+                c.legal_name client_legal_name,c.billing_address client_billing_address,
                 tp.name tax_profile_name,le.code legal_entity_code,cc.name billing_contact_name,
                 (SELECT bp.updated_at FROM billing_period bp
                   WHERE bp.billing_rule_id=br.id ORDER BY bp.updated_at DESC LIMIT 1) automation_last_run,
@@ -10253,7 +10456,9 @@ export class PortalRepository {
       const companyIdentifiers =
         input.companyIdentifiers === undefined
           ? existing.company_identifiers
-          : assertText(String(input.companyIdentifiers), 'Company identifiers', 1000);
+          : String(input.companyIdentifiers).trim();
+      if (companyIdentifiers.length > 1000)
+        throw new ValidationError('Tax or registration identifier is too long');
       const currency = input.currency === undefined ? existing.currency : String(input.currency);
       if (!['USD', 'BRL', 'EUR'].includes(currency))
         throw new ValidationError('Unsupported legal entity currency');
@@ -10816,6 +11021,37 @@ export class PortalRepository {
             : textOrNull(input.notes, 'Notes'),
         ],
       ];
+      if (input.costCenterCode !== undefined) {
+        const costCenterCode = updates.find(([field]) => field === 'cost_center_code')?.[1];
+        const client = this.sqlite
+          .prepare('SELECT client_number FROM client WHERE id=?')
+          .get(String(existing.client_id)) as { client_number: string } | undefined;
+        if (!client) throw new ValidationError('Project client not found');
+        const projectNumber = projectNumberForCostCenter(
+          client.client_number,
+          String(costCenterCode),
+        );
+        if (projectNumber && projectNumber !== existing.project_number) {
+          const hasInvoice = Boolean(
+            this.sqlite
+              .prepare('SELECT 1 FROM invoice WHERE project_id=? LIMIT 1')
+              .get(input.projectId),
+          );
+          if (hasInvoice && costCenterCode !== existing.cost_center_code)
+            throw new ConflictError('Project number cannot change after an invoice was created');
+          if (!hasInvoice) {
+            if (
+              this.sqlite
+                .prepare('SELECT 1 FROM project WHERE project_number=? AND id<>?')
+                .get(projectNumber, input.projectId)
+            )
+              throw new ValidationError(
+                'Cost center code is already used by another project for this client',
+              );
+            updates.push(['project_number', projectNumber]);
+          }
+        }
+      }
       const changed = this.sqlite
         .prepare(
           `UPDATE project SET ${updates.map(([field]) => `${field}=?`).join(',')},updated_at=?,version=version+1 WHERE id=?${input.version !== undefined ? ' AND version=?' : ''}`,

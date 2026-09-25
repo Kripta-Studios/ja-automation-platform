@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync, copyFileSync, linkSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync, copyFileSync, cpSync, linkSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -39,6 +39,7 @@ function fixture() {
     CREATE TABLE supplier(id TEXT PRIMARY KEY, name TEXT);
     CREATE TABLE supplier_user_profile(user_id TEXT REFERENCES user(id), supplier_id TEXT REFERENCES supplier(id));
     CREATE TABLE supplier_user_profile_period(id TEXT PRIMARY KEY, user_id TEXT REFERENCES user(id), supplier_id TEXT REFERENCES supplier(id));
+    CREATE TABLE supplier_project_grant(id TEXT PRIMARY KEY, supplier_id TEXT REFERENCES supplier(id), project_id TEXT REFERENCES project(id));
     CREATE TABLE skill(id TEXT PRIMARY KEY, code TEXT, name TEXT);
     CREATE TABLE worker_skill(worker_id TEXT REFERENCES user(id), skill_id TEXT REFERENCES skill(id));
     CREATE TABLE number_sequence(scope TEXT, scope_id TEXT, next_value INTEGER, PRIMARY KEY(scope,scope_id));
@@ -61,6 +62,7 @@ function fixture() {
     INSERT INTO supplier VALUES('account-linked','TEST supplier role access'),('unused-demo','DEMO supplier');
     INSERT INTO supplier_user_profile VALUES('owner','account-linked');
     INSERT INTO supplier_user_profile_period VALUES('period','owner','account-linked');
+    INSERT INTO supplier_project_grant VALUES('demo-grant','account-linked','demo');
     INSERT INTO skill VALUES('real-skill','PLC-COMM','PLC commissioning'),('qa-skill','QA-INSTALL-SUPERVISION','QA installation supervision');
     INSERT INTO worker_skill VALUES('mail-worker','real-skill'),('owner','qa-skill');
     INSERT INTO number_sequence VALUES('client','global',31),('project','client-020-impc',3),('project','demo-client',7),('invoice','demo-entity:2026',10);
@@ -76,7 +78,7 @@ describe('isolated clean-slate rehearsal', () => {
     expect(first.status).toBe('applied');
     expect(first.before).toMatchObject({client:2,project:4,user:2,mail_identity:1,invoice:1,payment:1,daily_report:1});
     expect(first.after).toMatchObject({client:1,project:2,user:2,mail_identity:1,invoice:0,payment:0,daily_report:0});
-    expect(first.after).toMatchObject({legal_entity:0,tax_profile:0,tax_component:0,invoice_number_policy:0,supplier:0,supplier_user_profile:0,supplier_user_profile_period:0,skill:1,worker_skill:1,number_sequence:2});
+    expect(first.after).toMatchObject({legal_entity:0,tax_profile:0,tax_component:0,invoice_number_policy:0,supplier:2,supplier_user_profile:1,supplier_user_profile_period:1,supplier_project_grant:0,skill:1,worker_skill:1,number_sequence:2});
     expect(first.deleted).toMatchObject({client:1,project:2,invoice:1,invoice_line:1,payment:1,daily_report:1,project_member:1});
     expect(first.archivedFinancialCounts).toMatchObject({invoice:1,invoice_line:1,payment:1,daily_report:1});
     expect(first.archivedArtifactFiles).toHaveLength(2);
@@ -98,7 +100,11 @@ describe('isolated clean-slate rehearsal', () => {
       expect.objectContaining({id:'project-cp020-dfw'}),
     ]);
     expect(active.prepare("SELECT password_hash FROM account WHERE user_id='mail-worker'").get()).toMatchObject({password_hash:'original-password-hash'});
-    expect(active.prepare('SELECT id FROM supplier').all()).toEqual([]);
+    expect(active.prepare('SELECT id FROM supplier ORDER BY id').all()).toEqual([
+      expect.objectContaining({id:'account-linked'}),
+      expect.objectContaining({id:'unused-demo'}),
+    ]);
+    expect(active.prepare('SELECT id FROM supplier_project_grant').all()).toEqual([]);
     expect(active.prepare('SELECT scope,scope_id FROM number_sequence ORDER BY scope,scope_id').all()).toEqual([
       expect.objectContaining({scope:'client',scope_id:'global'}),
       expect.objectContaining({scope:'project',scope_id:'client-020-impc'}),
@@ -122,6 +128,34 @@ describe('isolated clean-slate rehearsal', () => {
     expect(existsSync(join(f.artifacts,'reports','bbs.pdf'))).toBe(true);
   });
 
+  it('appends a second journal generation when new QA data appears after a prior cleanup', () => {
+    const f=fixture();
+    const first=rehearseCleanSlate(f.database,f.artifacts,f.archive);
+    const source=new DatabaseSync(f.database);
+    source.exec(`
+      INSERT INTO client VALUES('later-qa-client','Later QA');
+      INSERT INTO project VALUES('later-qa-project','later-qa-client','Later QA project');
+      INSERT INTO supplier_project_grant VALUES('later-qa-grant','account-linked','later-qa-project');
+    `);
+    source.close();
+    const database=join(f.root,'second.rehearsal.sqlite');
+    const artifacts=join(f.root,'second.rehearsal-artifacts');
+    const archive=join(f.root,'second.rehearsal-archive');
+    copyFileSync(f.database,database);
+    cpSync(f.artifacts,artifacts,{recursive:true});
+    const second=rehearseCleanSlate(database,artifacts,archive);
+    expect(second.status).toBe('applied');
+    expect(second.originalDatabaseSha256).not.toBe(first.originalDatabaseSha256);
+    expect(second.before).toMatchObject({client:2,project:3,supplier:2,supplier_user_profile:1,supplier_user_profile_period:1,supplier_project_grant:1});
+    expect(second.after).toMatchObject({client:1,project:2,supplier:2,supplier_user_profile:1,supplier_user_profile_period:1,supplier_project_grant:0});
+    const active=new DatabaseSync(database,{readOnly:true});
+    const journals=active.prepare('SELECT original_sha256 FROM clean_slate_rehearsal_journal ORDER BY rowid').all() as {original_sha256:string}[];
+    expect(journals.map((x)=>x.original_sha256)).toEqual([first.originalDatabaseSha256,second.originalDatabaseSha256]);
+    expect(active.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
+    active.close();
+    expect(rehearseCleanSlate(database,artifacts,archive).status).toBe('already_applied');
+  });
+
   it('fails a rerun when a retained BBS artifact is missing', () => {
     const f=fixture();
     rehearseCleanSlate(f.database,f.artifacts,f.archive);
@@ -129,16 +163,19 @@ describe('isolated clean-slate rehearsal', () => {
     expect(()=>rehearseCleanSlate(f.database,f.artifacts,f.archive)).toThrow(/Missing or changed retained artifact: reports\/bbs.pdf/);
   });
 
-  it('removes even account-linked supplier profiles while keeping every user/account row', () => {
+  it('preserves supplier role profiles for every retained identity while removing project grants', () => {
     const f=fixture();
     const db=new DatabaseSync(f.database);
     db.exec("INSERT INTO user VALUES('orphan-user','No portal account'); INSERT INTO supplier_user_profile VALUES('orphan-user','unused-demo')");
     db.close();
     const result=rehearseCleanSlate(f.database,f.artifacts,f.archive);
-    expect(result.after).toMatchObject({user:3,account:2,supplier:0,supplier_user_profile:0,supplier_user_profile_period:0});
+    expect(result.after).toMatchObject({user:3,account:2,supplier:2,supplier_user_profile:2,supplier_user_profile_period:1,supplier_project_grant:0});
     const active=new DatabaseSync(f.database,{readOnly:true});
     expect(active.prepare("SELECT id FROM user WHERE id='orphan-user'").get()).toBeTruthy();
-    expect(active.prepare('SELECT supplier_id FROM supplier_user_profile').all()).toEqual([]);
+    expect(active.prepare('SELECT supplier_id FROM supplier_user_profile ORDER BY supplier_id').all()).toEqual([
+      expect.objectContaining({supplier_id:'account-linked'}),
+      expect.objectContaining({supplier_id:'unused-demo'}),
+    ]);
     active.close();
   });
 

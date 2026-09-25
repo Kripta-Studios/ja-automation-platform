@@ -22,6 +22,11 @@ const PRESERVE = new Set([
   'deployment_identity', 'deployment_service_actor_binding', 'service_actor',
   'service_actor_binding_history', 'schema_migration', 'migration_contract_metadata',
   'audit_action_registry', 'finance_v2_cutover',
+  // These are global identities, not grants to a particular project. Removing
+  // them would leave existing supplier logins without their role/profile.
+  'supplier', 'supplier_user_profile', 'supplier_user_profile_period',
+  // A later cleanup keeps earlier evidence and appends its own generation.
+  'clean_slate_rehearsal_journal',
 ]);
 const FINANCIAL_ARCHIVE_TABLES = [
   'invoice', 'invoice_line', 'invoice_source', 'invoice_event',
@@ -33,6 +38,16 @@ const FINANCIAL_ARCHIVE_TABLES = [
 
 type FK = { child: string; parent: string; from: string[]; to: string[] };
 type Table = { name: string; columns: string[]; rowid: boolean; fks: FK[] };
+type JournalRow = {
+  rowid: number;
+  original_sha256: string;
+  applied_at: string;
+  artifact_candidates_json: string;
+  survivor_artifacts_json: string;
+  survivor_artifacts_sha256: string;
+  post_manifest_json: string;
+  post_manifest_sha256: string;
+};
 export type CleanSlateReport = {
   kind: 'isolated_clean_slate_rehearsal';
   version: 1;
@@ -124,7 +139,7 @@ function inventory(db: DatabaseSync): Table[] {
   });
 }
 function counts(db: DatabaseSync, ts: Table[]): Record<string, number> {
-  return Object.fromEntries(ts.map((t) => [t.name, Number((db.prepare(`SELECT COUNT(*) n FROM ${quote(t.name)}`).get() as {n:number}).n)]));
+  return Object.fromEntries(ts.filter((t)=>t.name!=='clean_slate_rehearsal_journal').map((t) => [t.name, Number((db.prepare(`SELECT COUNT(*) n FROM ${quote(t.name)}`).get() as {n:number}).n)]));
 }
 function tableDigest(db: DatabaseSync, table: string): string {
   const h = createHash('sha256');
@@ -134,7 +149,12 @@ function tableDigest(db: DatabaseSync, table: string): string {
   return h.digest('hex');
 }
 function protectedDigests(db: DatabaseSync, ts: Table[]): Record<string, string> {
-  return Object.fromEntries(ts.filter((t) => PRESERVE.has(t.name)).map((t) => [t.name, tableDigest(db, t.name)]));
+  return Object.fromEntries(ts.filter((t) => PRESERVE.has(t.name) && t.name!=='clean_slate_rehearsal_journal').map((t) => [t.name, tableDigest(db, t.name)]));
+}
+function journalRows(db: DatabaseSync): JournalRow[] {
+  return db.prepare(`SELECT rowid,original_sha256,applied_at,artifact_candidates_json,
+    survivor_artifacts_json,survivor_artifacts_sha256,post_manifest_json,post_manifest_sha256
+    FROM clean_slate_rehearsal_journal ORDER BY rowid`).all() as JournalRow[];
 }
 function archiveEvidence(db: DatabaseSync, ts: Table[]): Record<string, number> {
   return Object.fromEntries(ts.filter((t) => FINANCIAL_ARCHIVE_TABLES.includes(t.name)).map((t) => [t.name, Number((db.prepare(`SELECT COUNT(*) n FROM ${quote(t.name)}`).get() as {n:number}).n)]));
@@ -298,6 +318,7 @@ export function rehearseCleanSlate(databasePath: string, artifactPath: string, a
   const originalCounts = counts(original, originalTables);
   const originalProtected = protectedDigests(original, originalTables);
   const financialCounts = archiveEvidence(original, originalTables);
+  const originalJournalRows = originalTables.some((t)=>t.name==='clean_slate_rehearsal_journal') ? journalRows(original) : [];
   assertIntegrity(original,'Original archive');
   original.close();
   const db = new DatabaseSync(database);
@@ -308,35 +329,45 @@ export function rehearseCleanSlate(databasePath: string, artifactPath: string, a
     const journalExists = ts.some((t) => t.name === 'clean_slate_rehearsal_journal');
     if (journalExists) {
       const journalColumns = new Set((db.prepare('PRAGMA table_info(clean_slate_rehearsal_journal)').all() as {name:string}[]).map((x)=>x.name));
-      if (!['original_sha256','artifact_candidates_json','survivor_artifacts_json','survivor_artifacts_sha256','post_manifest_json','post_manifest_sha256'].every((x)=>journalColumns.has(x)))
+      if (!['original_sha256','applied_at','artifact_candidates_json','survivor_artifacts_json','survivor_artifacts_sha256','post_manifest_json','post_manifest_sha256'].every((x)=>journalColumns.has(x)))
         throw new Error('Legacy cleanup journal lacks recovery or expected survivor/post-clean manifest');
-      const journal = db.prepare('SELECT original_sha256,artifact_candidates_json,survivor_artifacts_json,survivor_artifacts_sha256,post_manifest_json,post_manifest_sha256 FROM clean_slate_rehearsal_journal').get() as {original_sha256:string;artifact_candidates_json:string;survivor_artifacts_json:string;survivor_artifacts_sha256:string;post_manifest_json:string;post_manifest_sha256:string}|undefined;
-      if (!journal || journal.original_sha256 !== archived.databaseSha256) throw new Error('Rehearsal journal/archive mismatch');
-      if (typeof journal.artifact_candidates_json!=='string') throw new Error('Artifact recovery journal is incomplete');
-      if (typeof journal.post_manifest_json!=='string' || sha(journal.post_manifest_json)!==journal.post_manifest_sha256)
-        throw new Error('Expected post-clean manifest is missing or corrupted');
-      const expectedManifest = JSON.parse(journal.post_manifest_json) as Record<string,{count:number;digest:string}>;
-      if (JSON.stringify(logicalManifest(db,ts))!==journal.post_manifest_json)
-        throw new Error('Working database differs from expected post-clean manifest');
-      const planned = JSON.parse(journal.artifact_candidates_json) as unknown;
-      const archivePaths = new Set(archived.artifactFiles.map((x)=>x.path));
-      if (!Array.isArray(planned) || planned.some((path)=>typeof path!=='string' || !archivePaths.has(path)) || new Set(planned).size!==planned.length)
-        throw new Error('Artifact recovery journal contains unreviewed paths');
-      if (typeof journal.survivor_artifacts_json!=='string' || sha(journal.survivor_artifacts_json)!==journal.survivor_artifacts_sha256)
-        throw new Error('Retained artifact manifest is missing or corrupted');
-      const survivors = JSON.parse(journal.survivor_artifacts_json) as Array<{path:string;sha256:string}>;
-      const expectedSurvivors = archived.artifactFiles.filter((entry)=>!new Set(planned).has(entry.path));
-      if (JSON.stringify(survivors)!==JSON.stringify(expectedSurvivors))
-        throw new Error('Retained artifact manifest does not partition archive');
-      assertArtifactSubset(workingArtifacts,archived.artifactFiles,false);
-      assertRetainedArtifacts(workingArtifacts,survivors);
-      if (JSON.stringify(protectedDigests(db, ts)) !== JSON.stringify(originalProtected)) throw new Error('Protected rows changed after rehearsal');
-      assertIntegrity(db,'Rehearsal rerun');
-      const files = new Set(workingArtifacts.map((x)=>x.path));
-      const remaining = planned.filter((path)=>files.has(path));
-      for (const path of remaining) rmSync(join(artifacts,path));
-      assertArtifactSubset(walkFiles(artifacts),survivors,true);
-      return {kind:'isolated_clean_slate_rehearsal',version:1,status:'already_applied',retained:{clientId:CLIENT,projectIds:PROJECTS},originalDatabaseSha256:archived.databaseSha256,archivedDatabaseSha256:fileSha(join(archive,'original.sqlite')),archivedArtifactFiles:archived.artifactFiles,retainedArtifactFiles:survivors,retainedArtifactManifestSha256:journal.survivor_artifacts_sha256,archivedFinancialCounts:financialCounts,protectedTableDigests:originalProtected,postCleanManifestSha256:journal.post_manifest_sha256,postCleanTableManifest:expectedManifest,before:originalCounts,after:before,deleted:Object.fromEntries(Object.entries(originalCounts).map(([t,n])=>[t,n-(before[t]??0)])),artifactDeletionCandidates:remaining,blockedReferences:[],integrity:'ok',foreignKeyFailures:0};
+      const rows = journalRows(db);
+      const matching = rows.filter((row)=>row.original_sha256===archived.databaseSha256);
+      if (matching.length>1) throw new Error('Duplicate rehearsal journal generation for source archive');
+      if (JSON.stringify(rows.slice(0,originalJournalRows.length))!==JSON.stringify(originalJournalRows))
+        throw new Error('Historical rehearsal journal changed after source archive');
+      if (matching.length===0 && rows.length!==originalJournalRows.length)
+        throw new Error('Unexpected rehearsal journal generation after source archive');
+      if (matching.length===1) {
+        if (rows.length!==originalJournalRows.length+1 || rows[rows.length-1]?.rowid!==matching[0]!.rowid)
+          throw new Error('Rehearsal journal generation/archive mismatch');
+        const journal = matching[0]!;
+        if (typeof journal.artifact_candidates_json!=='string') throw new Error('Artifact recovery journal is incomplete');
+        if (typeof journal.post_manifest_json!=='string' || sha(journal.post_manifest_json)!==journal.post_manifest_sha256)
+          throw new Error('Expected post-clean manifest is missing or corrupted');
+        const expectedManifest = JSON.parse(journal.post_manifest_json) as Record<string,{count:number;digest:string}>;
+        if (JSON.stringify(logicalManifest(db,ts))!==journal.post_manifest_json)
+          throw new Error('Working database differs from expected post-clean manifest');
+        const planned = JSON.parse(journal.artifact_candidates_json) as unknown;
+        const archivePaths = new Set(archived.artifactFiles.map((x)=>x.path));
+        if (!Array.isArray(planned) || planned.some((path)=>typeof path!=='string' || !archivePaths.has(path)) || new Set(planned).size!==planned.length)
+          throw new Error('Artifact recovery journal contains unreviewed paths');
+        if (typeof journal.survivor_artifacts_json!=='string' || sha(journal.survivor_artifacts_json)!==journal.survivor_artifacts_sha256)
+          throw new Error('Retained artifact manifest is missing or corrupted');
+        const survivors = JSON.parse(journal.survivor_artifacts_json) as Array<{path:string;sha256:string}>;
+        const expectedSurvivors = archived.artifactFiles.filter((entry)=>!new Set(planned).has(entry.path));
+        if (JSON.stringify(survivors)!==JSON.stringify(expectedSurvivors))
+          throw new Error('Retained artifact manifest does not partition archive');
+        assertArtifactSubset(workingArtifacts,archived.artifactFiles,false);
+        assertRetainedArtifacts(workingArtifacts,survivors);
+        if (JSON.stringify(protectedDigests(db, ts)) !== JSON.stringify(originalProtected)) throw new Error('Protected rows changed after rehearsal');
+        assertIntegrity(db,'Rehearsal rerun');
+        const files = new Set(workingArtifacts.map((x)=>x.path));
+        const remaining = planned.filter((path)=>files.has(path));
+        for (const path of remaining) rmSync(join(artifacts,path));
+        assertArtifactSubset(walkFiles(artifacts),survivors,true);
+        return {kind:'isolated_clean_slate_rehearsal',version:1,status:'already_applied',retained:{clientId:CLIENT,projectIds:PROJECTS},originalDatabaseSha256:archived.databaseSha256,archivedDatabaseSha256:fileSha(join(archive,'original.sqlite')),archivedArtifactFiles:archived.artifactFiles,retainedArtifactFiles:survivors,retainedArtifactManifestSha256:journal.survivor_artifacts_sha256,archivedFinancialCounts:financialCounts,protectedTableDigests:originalProtected,postCleanManifestSha256:journal.post_manifest_sha256,postCleanTableManifest:expectedManifest,before:originalCounts,after:before,deleted:Object.fromEntries(Object.entries(originalCounts).map(([t,n])=>[t,n-(before[t]??0)])),artifactDeletionCandidates:remaining,blockedReferences:[],integrity:'ok',foreignKeyFailures:0};
+      }
     }
     if (fileSha(database)!==archived.databaseSha256)
       throw new Error('Working database bytes differ from original archive before mutation');
@@ -384,9 +415,12 @@ export function rehearseCleanSlate(databasePath: string, artifactPath: string, a
       const projects = db.prepare('SELECT id FROM project ORDER BY id').all() as {id:string}[];
       if (clients.map((x)=>x.id).join('|') !== CLIENT || projects.map((x)=>x.id).join('|') !== [...PROJECTS].sort().join('|'))
         throw new Error('Clean slate did not retain exactly the requested examples');
+      if (journalExists && JSON.stringify(journalRows(db))!==JSON.stringify(originalJournalRows))
+        throw new Error('Historical rehearsal journal changed during cleanup');
       postManifest = logicalManifest(db,ts);
       postManifestJson = JSON.stringify(postManifest);
-      db.exec('CREATE TABLE clean_slate_rehearsal_journal(original_sha256 TEXT NOT NULL, applied_at TEXT NOT NULL, artifact_candidates_json TEXT NOT NULL, survivor_artifacts_json TEXT NOT NULL, survivor_artifacts_sha256 TEXT NOT NULL, post_manifest_json TEXT NOT NULL, post_manifest_sha256 TEXT NOT NULL) STRICT');
+      if (!journalExists)
+        db.exec('CREATE TABLE clean_slate_rehearsal_journal(original_sha256 TEXT NOT NULL, applied_at TEXT NOT NULL, artifact_candidates_json TEXT NOT NULL, survivor_artifacts_json TEXT NOT NULL, survivor_artifacts_sha256 TEXT NOT NULL, post_manifest_json TEXT NOT NULL, post_manifest_sha256 TEXT NOT NULL) STRICT');
       db.prepare('INSERT INTO clean_slate_rehearsal_journal VALUES(?,?,?,?,?,?,?)').run(archived.databaseSha256,new Date().toISOString(),JSON.stringify(candidates),survivorsJson,sha(survivorsJson),postManifestJson,sha(postManifestJson));
       testHooks.beforeCommit?.();
       db.exec('COMMIT');

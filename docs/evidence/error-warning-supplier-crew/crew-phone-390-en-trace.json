@@ -1,0 +1,34 @@
+[
+  {
+    "step": "same-person",
+    "code": "CREW_SAME_PERSON",
+    "retained": true
+  },
+  {
+    "step": "assignment-changed",
+    "code": "CREW_ASSIGNMENT_REQUIRED",
+    "retained": true
+  },
+  {
+    "step": "grant-success",
+    "created": true
+  },
+  {
+    "step": "duplicate-network",
+    "status": 409,
+    "path": "/j-aautomation/app/crew",
+    "htmlResponse": true
+  },
+  {
+    "step": "duplicate-native",
+    "code": "CREW_DELEGATION_EXISTS",
+    "retained": true,
+    "focusRetained": true,
+    "scrollBefore": 479,
+    "scrollAfter": 479
+  },
+  {
+    "step": "manager-role",
+    "denied": true
+  }
+]

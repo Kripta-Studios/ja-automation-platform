@@ -1307,7 +1307,7 @@ export class ProjectCloseoutService {
     const revisions = series
       ? this.sqlite
           .prepare(
-            'SELECT id,revision_number,state,internal_snapshot_json,client_snapshot_json,client_snapshot_sha256,client_confirmation_hash,created_at,finalized_at FROM project_closeout_revision WHERE series_id=? ORDER BY revision_number DESC',
+            'SELECT id,revision_number,state,internal_snapshot_json,client_snapshot_json,internal_snapshot_sha256,client_snapshot_sha256,client_confirmation_hash,created_at,updated_at,finalized_at FROM project_closeout_revision WHERE series_id=? ORDER BY revision_number DESC',
           )
           .all(series.id)
       : [];

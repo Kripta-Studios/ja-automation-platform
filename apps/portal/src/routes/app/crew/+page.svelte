@@ -30,6 +30,10 @@
   const actionContext = $derived(
     new URLSearchParams({ project: data.projectId, date: data.workDate, lang: locale }).toString(),
   );
+  const scrollKey = $derived(`crew-form-scroll:${data.projectId}:${data.workDate}`);
+  function rememberScroll(): void {
+    sessionStorage.setItem(scrollKey, JSON.stringify({ top: window.scrollY, at: Date.now() }));
+  }
   const remedyLinks = $derived({
     review_delegations: {
       label: t('Review current crew delegations'),
@@ -56,6 +60,7 @@
   }
   const preserveCrewForm: SubmitFunction = () => {
     const scrollTop = window.scrollY;
+    rememberScroll();
     return async ({ result, update }) => {
       await update({ reset: false });
       if (result.type === 'failure') {
@@ -90,10 +95,31 @@
       timeEntry: entry.id,
     })}`;
   onMount(() => {
+    const savedScroll = sessionStorage.getItem(scrollKey);
+    window.addEventListener('pagehide', rememberScroll);
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
     persistStandaloneLocale(locale);
     applyStandaloneDocumentLocale(locale);
-    if (problem) void tick().then(() => showFieldProblems(form));
+    if (problem)
+      void tick().then(() => {
+        showFieldProblems(form);
+        if (savedScroll) {
+          sessionStorage.removeItem(scrollKey);
+          try {
+            const value = JSON.parse(savedScroll) as { top?: unknown; at?: unknown };
+            if (
+              typeof value.top === 'number' &&
+              Number.isFinite(value.top) &&
+              typeof value.at === 'number' &&
+              Date.now() - value.at < 300_000
+            )
+              window.scrollTo({ top: value.top, behavior: 'instant' });
+          } catch {
+            // A malformed saved position should not hide the form problem.
+          }
+        }
+      });
+    return () => window.removeEventListener('pagehide', rememberScroll);
   });
   $effect(() => applyStandaloneDocumentLocale(locale));
 </script>

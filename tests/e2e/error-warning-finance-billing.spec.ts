@@ -52,7 +52,7 @@ async function saveEvidence(
   // The sticky chrome overlaps the notice's first lines when Playwright scrolls
   // it into view. Remove only the chrome from this finished test page so the
   // evidence captures the notice without account identity or an obscured title.
-  if (target === '[data-approval-problem]')
+  if (target === '[data-approval-problem]' || target.startsWith('[data-closeout-problem]'))
     await page
       .getByRole('banner')
       .first()
@@ -643,8 +643,8 @@ function seedCloseoutDocument(projectId: string) {
         `INSERT INTO document
         (id,project_id,owner_id,sha256,media_type,byte_length,state,storage_key,
          safe_filename,artifact_type,sensitivity,scan_status,artifact_classification,
-         created_at,updated_at)
-         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+         classification_provenance,created_at,updated_at)
+         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       )
       .run(
         id,
@@ -660,6 +660,7 @@ function seedCloseoutDocument(projectId: string) {
         'operational',
         'clean',
         'standard',
+        'native',
         now,
         now,
       );
@@ -736,7 +737,12 @@ for (const viewport of ['phone-390', 'desktop'] as const) {
       const initialHash = await financePage
         .locator('form[data-closeout-action="confirmClient"] input[name="clientSnapshotHash"]')
         .inputValue();
+      const ownerRefreshResponse = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' && response.url().includes('?/refresh'),
+      );
       await page.locator('form[data-closeout-action="refresh"] button').click();
+      await expect((await ownerRefreshResponse).json()).resolves.toMatchObject({ type: 'success' });
       await expect
         .poll(() =>
           page
@@ -773,7 +779,14 @@ for (const viewport of ['phone-390', 'desktop'] as const) {
       confirm = financePage.locator('form[data-closeout-action="confirmClient"]');
       const staleHash = await confirm.locator('input[name="clientSnapshotHash"]').inputValue();
       await confirm.locator('input[name="confirmationChecked"]').check();
+      const ownerSecondRefreshResponse = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' && response.url().includes('?/refresh'),
+      );
       await page.locator('form[data-closeout-action="refresh"] button').click();
+      await expect((await ownerSecondRefreshResponse).json()).resolves.toMatchObject({
+        type: 'success',
+      });
       await expect
         .poll(() =>
           page
@@ -848,7 +861,7 @@ for (const viewport of ['phone-390', 'desktop'] as const) {
     ).toHaveAttribute('data-problem-code', 'CLOSEOUT_REOPEN_REASON_REQUIRED');
     reopen = page.locator('form[data-closeout-action="reopen"]');
     await expect(reopen.locator('input[name="reason"]')).toHaveValue(' ');
-    await expect(page.locator('[data-closeout-problem] [data-ui="problem-notice"]')).toBeFocused();
+    await expect(reopen.locator('[data-validation-summary]')).toBeFocused();
     trace.push({ step: 'reopen-reason-invalid', retained: true });
     await saveEvidence(
       page,

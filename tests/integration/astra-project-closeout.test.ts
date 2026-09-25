@@ -471,6 +471,40 @@ describe('ASTRA project closeout revisions', () => {
     expect(detail.artifacts).toEqual([]);
   });
 
+  it('exposes the draft state needed by a fresh guarded refresh form', () => {
+    const value = fixture();
+    const principal = owner(value);
+    const draft = value.repository.prepareProjectCloseout(principal, {
+      projectId: value.project.id,
+    });
+    const detail = value.repository.projectCloseoutDetail(principal, value.project.id) as {
+      revisions: Array<{
+        id: string;
+        client_snapshot_sha256: string;
+        internal_snapshot_sha256: string;
+        client_confirmation_hash: string | null;
+        updated_at: string;
+      }>;
+    };
+    const visible = detail.revisions.find((revision) => revision.id === draft.id);
+    expect(visible).toMatchObject({
+      client_snapshot_sha256: draft.clientSnapshotHash,
+      internal_snapshot_sha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      updated_at: expect.any(String),
+    });
+    expect(
+      value.repository.refreshProjectCloseoutDraft(principal, {
+        revisionId: draft.id,
+        expectedState: {
+          clientSnapshotHash: visible!.client_snapshot_sha256,
+          internalSnapshotHash: visible!.internal_snapshot_sha256,
+          confirmationHash: visible!.client_confirmation_hash ?? '',
+          updatedAt: visible!.updated_at,
+        },
+      }),
+    ).toBeTruthy();
+  });
+
   it('does not treat an approved customer period report as accepted customer conformity', () => {
     const value = fixture();
     const principal = owner(value);

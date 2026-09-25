@@ -452,23 +452,27 @@
         </fieldset>
         <button type="submit">{t.replace}</button>
       </form>
-      {#if !draft.client_confirmation_hash}<form
-          method="POST"
-          action="?/confirmClient"
-          data-closeout-action="confirmClient"
-          use:formValidation
-          use:enhance={submitCloseout}
-          onsubmit={rememberScroll}
-        >
-          <input type="hidden" name="revisionId" value={String(draft.id)} /><input
-            type="hidden"
-            name="clientSnapshotHash"
-            value={String(draft.client_snapshot_sha256)}
-          /><label
-            ><input type="checkbox" name="confirmationChecked" value="yes" required />
-            {t.confirm}</label
-          ><button type="submit">{t.confirmAction}</button>
-        </form>{:else}<form
+      {#if !draft.client_confirmation_hash}
+        {#key `${String(draft.client_snapshot_sha256)}:${problem?.correlationId ?? ''}`}
+          <form
+            method="POST"
+            action="?/confirmClient"
+            data-closeout-action="confirmClient"
+            use:formValidation
+            use:enhance={submitCloseout}
+            onsubmit={rememberScroll}
+          >
+            <input type="hidden" name="revisionId" value={String(draft.id)} /><input
+              type="hidden"
+              name="clientSnapshotHash"
+              value={String(draft.client_snapshot_sha256)}
+            /><label
+              ><input type="checkbox" name="confirmationChecked" value="yes" required />
+              {t.confirm}</label
+            ><button type="submit">{t.confirmAction}</button>
+          </form>
+        {/key}
+      {:else}<form
           method="POST"
           action="?/finalize"
           data-closeout-action="finalize"

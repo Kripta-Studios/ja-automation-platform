@@ -110,7 +110,11 @@ test('crew delegation explains invalid, stale, duplicate, and role failures', as
   const trace: Array<Record<string, string | number | boolean>> = [];
   const failedPaths: Array<{ status: number; path: string }> = [];
   const pageErrors: string[] = [];
+  const consoleErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
   page.on('response', (response) => {
     if (response.status() >= 400)
       failedPaths.push({ status: response.status(), path: new URL(response.url()).pathname });
@@ -164,9 +168,9 @@ test('crew delegation explains invalid, stale, duplicate, and role failures', as
   await grant.getByRole('button').click();
   expect((await successResponse).status()).toBe(200);
   await expect.poll(() => grantCount(fixture.databasePath, fixture.projectId)).toBe(1);
+  await expect(page).toHaveURL(/#crew-delegations$/);
   trace.push({ step: 'grant-success', created: true });
 
-  await page.goto(qaPortal(`/crew?project=${fixture.projectId}&date=${workDate}&lang=${locale}`));
   grant = page.locator('form[data-crew-operation="grant"]');
   await grant.locator('[name="chiefUserId"]').selectOption(fixture.chiefId);
   await grant.locator('[name="workerUserId"]').selectOption(fixture.memberId);
@@ -202,9 +206,8 @@ test('crew delegation explains invalid, stale, duplicate, and role failures', as
   expect(reviewUrl.searchParams.get('project')).toBe(fixture.projectId);
   expect(reviewUrl.searchParams.get('date')).toBe(workDate);
   await expect(page.locator('[data-crew-problem]')).toBeFocused();
-  expect(
-    Math.abs((await page.evaluate(() => window.scrollY)) - duplicateScroll),
-  ).toBeLessThanOrEqual(150);
+  const duplicateAfterScroll = await page.evaluate(() => window.scrollY);
+  expect(Math.abs(duplicateAfterScroll - duplicateScroll)).toBeLessThanOrEqual(150);
   await expect(page.locator('form[data-crew-operation="grant"] [name="chiefUserId"]')).toHaveValue(
     fixture.chiefId,
   );
@@ -218,9 +221,19 @@ test('crew delegation explains invalid, stale, duplicate, and role failures', as
     endDate,
   );
   expect(grantCount(fixture.databasePath, fixture.projectId)).toBe(1);
-  trace.push({ step: 'duplicate-native', code: 'CREW_DELEGATION_EXISTS', retained: true });
+  trace.push({
+    step: 'duplicate-native',
+    code: 'CREW_DELEGATION_EXISTS',
+    retained: true,
+    focusRetained: true,
+    scrollBefore: duplicateScroll,
+    scrollAfter: duplicateAfterScroll,
+  });
 
-  const managerPage = await page.context().newPage();
+  const browser = page.context().browser();
+  if (!browser) throw new Error('Browser context required for manager role boundary');
+  const managerContext = await browser.newContext({ viewport: page.viewportSize() ?? undefined });
+  const managerPage = await managerContext.newPage();
   await qaSignIn(managerPage, 'manager');
   const denied = await managerPage.evaluate(
     async ({ url, projectId, chiefId, memberId, startsOn }) => {
@@ -246,10 +259,13 @@ test('crew delegation explains invalid, stale, duplicate, and role failures', as
   );
   expect(denied.status).toBe(200);
   expect(denied.body).toContain('CREW_OWNER_ROLE_REQUIRED');
-  await managerPage.close();
+  await managerContext.close();
   trace.push({ step: 'manager-role', denied: true });
 
   expect(pageErrors).toEqual([]);
+  expect(consoleErrors.filter((message) => !message.startsWith('Failed to load resource:'))).toEqual(
+    [],
+  );
   mkdirSync(evidenceDirectory, { recursive: true });
   writeFileSync(
     join(evidenceDirectory, `crew-${info.project.name}-${locale}.png`),

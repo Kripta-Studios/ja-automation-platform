@@ -1,0 +1,74 @@
+{
+  "suite": "crew-delegation",
+  "runDate": "2026-09-25",
+  "result": {
+    "passed": 2,
+    "skipped": 0,
+    "failed": 0
+  },
+  "viewports": [
+    {
+      "name": "phone-390",
+      "width": 390
+    },
+    {
+      "name": "desktop",
+      "width": 1440
+    }
+  ],
+  "testedBuild": {
+    "path": "apps/portal/build",
+    "sortedFileSha256ListingHash": "bb7915427d97bb6a2a6ca15a9bbaa90deafaaf0fd0c97e707595d395306aee46",
+    "indexMtimeLocal": "2026-09-25 21:26:25 +0200"
+  },
+  "sourceReference": {
+    "headObservedAtRun": "5370f74029f4a49fad66346b137fd4404a6123b8",
+    "relevantUncommittedDiffSha256": "82f901906a14136abd3294c4d0d17f180200a94a252561987b55b286a3389ab3",
+    "note": "The built artifact hash is authoritative; other agents edited live source after this build."
+  },
+  "qaSpec": {
+    "path": "tests/e2e/error-warning-supplier-crew.spec.ts",
+    "sha256": "34a1da9e99a2d02763efa70ec999e70cea0190651f85383b0f575b9551bbd823"
+  },
+  "previewConfig": {
+    "path": "docs/evidence/error-warning-finance-billing/playwright.qa-preview.config.ts",
+    "sha256": "4681aa87e04173b92a261706e21b2c720da869a7d3d89048d4fadb6011be141f",
+    "buildCommand": "preview only"
+  },
+  "capture": {
+    "screenshots": "problem notice region; identifying header hidden after assertions where overlapping",
+    "traces": "sanitized step JSON only; Playwright raw tracing off",
+    "network": "status and URL pathname only; query omitted",
+    "console": "no page errors or unexpected console errors"
+  },
+  "networkClassification": {
+    "503 /j-aautomation/app/api/offline/identity": "Disposable fixture offline identity endpoint; not an action failure",
+    "400/409 action responses": "Expected invalid input or business conflict asserted by tests"
+  },
+  "artifacts": [
+    {
+      "name": "crew-desktop-pt-network.json",
+      "sha256": "7e6523d839a658ef6cbad8f4a6f4094c13260f3ee7a7f44ace4dca4c81157945"
+    },
+    {
+      "name": "crew-desktop-pt-trace.json",
+      "sha256": "796f9780ea35f91f8162533e398b72b6ff99264d238d7eceb0e524297ef5bb71"
+    },
+    {
+      "name": "crew-desktop-pt.png",
+      "sha256": "5d728942e5ee64aac0d40f0f1a0ce259dbf2481a7f9d6c9ec2d2588b2e0b2572"
+    },
+    {
+      "name": "crew-phone-390-en-network.json",
+      "sha256": "7e6523d839a658ef6cbad8f4a6f4094c13260f3ee7a7f44ace4dca4c81157945"
+    },
+    {
+      "name": "crew-phone-390-en-trace.json",
+      "sha256": "780d582b53a4f53439b908ac5b7f4bf875fb552d01ad427bb467862ad67106b1"
+    },
+    {
+      "name": "crew-phone-390-en.png",
+      "sha256": "2101621f37208bacdf7bc3753f81f38b8fa10dbe4f0f51648ff7cae9b89f23f7"
+    }
+  ]
+}

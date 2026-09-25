@@ -99,15 +99,50 @@ export function createB5LifecycleSecurityFixture() {
       billingAddress: 'B5 Fixture Client, Calle de Prueba 1, Madrid',
       paymentTermsDays: 30,
     });
-    const project = repository.createProject(owner, {
-      costCenterCode: 'QA-B5-LIFECYCLE-SECURITY-FIXTURE-1',
-      clientId: client.id,
-      name: 'B5 lifecycle fixture',
-      timezone: 'Europe/Madrid',
-      currency: 'EUR',
-      billingModel: 'tm',
-      startDate: '2026-01-01',
-    });
+    // Upgrade tests deliberately open a database before migration 0060. The
+    // current repository writes expense_budget_minor, which those historical
+    // schemas cannot have yet. Seed only the pre-0060 project with columns
+    // available at that version; keep the normal path exercising the API.
+    const isHistoricalProjectSchema = !sqlite
+      .prepare("SELECT 1 FROM pragma_table_info('project') WHERE name='expense_budget_minor'")
+      .get();
+    const project = isHistoricalProjectSchema
+      ? (() => {
+          const id = 'b5-historical-project';
+          const projectNumber = `${client.clientNumber}-P-001`;
+          const timestamp = new Date().toISOString();
+          sqlite
+            .prepare(
+              `INSERT INTO project(
+                 id,project_number,cost_center_code,client_id,name,timezone,currency,
+                 status,billing_model,start_date,created_at,updated_at
+               ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+            )
+            .run(
+              id,
+              projectNumber,
+              'QA-B5-LIFECYCLE-SECURITY-FIXTURE-1',
+              client.id,
+              'B5 lifecycle fixture',
+              'Europe/Madrid',
+              'EUR',
+              'active',
+              'tm',
+              '2026-01-01',
+              timestamp,
+              timestamp,
+            );
+          return { id, projectNumber };
+        })()
+      : repository.createProject(owner, {
+          costCenterCode: 'QA-B5-LIFECYCLE-SECURITY-FIXTURE-1',
+          clientId: client.id,
+          name: 'B5 lifecycle fixture',
+          timezone: 'Europe/Madrid',
+          currency: 'EUR',
+          billingModel: 'tm',
+          startDate: '2026-01-01',
+        });
     repository.assignWorker(owner, {
       projectId: project.id,
       workerId: 'b5-manager',

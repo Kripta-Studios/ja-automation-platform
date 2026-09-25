@@ -657,6 +657,26 @@ export const billingActions = {
       context.sqlite.close();
     }
   },
+  restoreCreditNoteState: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'billing')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const parsed = invoiceIdSchema.safeParse(await formObject(request));
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.invoice', {}, 'Invalid credit note');
+    const context = openPortalRepository(locals);
+    try {
+      const result = context.v3.restoreCreditNoteState(context.principal, parsed.data.invoiceId);
+      return actionSuccess(
+        'action.billing.creditNoteStateRestored',
+        {},
+        result.restored ? 'Credit note restored to issued state' : 'Credit note is already issued',
+      );
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
   emailInvoice: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'billing') return actionFail(404, 'action.navigation.wrongSection');
     const object = await formObject(request);
@@ -746,6 +766,13 @@ export const billingActions = {
         'action.validation.accountingPeriod',
         {},
         'Choose a start date on or before the end date. Empty dates use the previous complete month.',
+      );
+    if (parsed.data.periodStart === parsed.data.periodEnd)
+      return actionFail(
+        400,
+        'action.validation.accountingPeriod',
+        {},
+        'Choose an accounting period of at least two calendar dates.',
       );
     const context = openPortalRepository(locals);
     try {

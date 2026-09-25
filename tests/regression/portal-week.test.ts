@@ -20,6 +20,78 @@ describe('Worker weekly planning projection', () => {
     expect(mondayOf('2026-02-30')).toBe(mondayOf(null));
   });
 
+  it('does not count rejected or void history as worked time or a day needing changes', () => {
+    const view = weeklyView(
+      [
+        {
+          project_id: 'project-a',
+          work_date: '2026-08-10',
+          category: 'regular',
+          minutes: 60,
+          approval_state: 'approved',
+        },
+        {
+          project_id: 'project-a',
+          work_date: '2026-08-10',
+          category: 'regular',
+          minutes: 105,
+          approval_state: 'approved',
+        },
+        {
+          project_id: 'project-a',
+          work_date: '2026-08-10',
+          category: 'regular',
+          minutes: 360,
+          approval_state: 'rejected',
+        },
+        {
+          project_id: 'project-a',
+          work_date: '2026-08-10',
+          category: 'travel',
+          minutes: 45,
+          approval_state: 'void',
+        },
+      ],
+      '2026-08-10',
+    );
+    expect(view.days[0]).toMatchObject({
+      actualMinutes: 165,
+      status: 'Approved',
+      categories: { regular: 165 },
+    });
+  });
+
+  it('counts a manager-scope correction once and restores the original after rejection', () => {
+    const original = {
+      project_id: 'project-a',
+      work_date: '2026-08-10',
+      category: 'regular',
+      minutes: 105,
+      approval_state: 'approved',
+      active_correction_id: 'correction-1',
+    };
+    const correction = {
+      project_id: 'project-a',
+      work_date: '2026-08-10',
+      category: 'regular',
+      minutes: 100,
+      approval_state: 'submitted',
+    };
+    expect(weeklyView([original, correction], '2026-08-10').days[0]).toMatchObject({
+      actualMinutes: 100,
+      status: 'Submitted',
+    });
+    expect(
+      weeklyView(
+        [
+          { ...original, active_correction_id: null },
+          { ...correction, approval_state: 'rejected' },
+        ],
+        '2026-08-10',
+      ).days[0],
+    ).toMatchObject({ actualMinutes: 105, status: 'Approved' });
+  });
+
   it('does not fabricate a target when no effective schedule is available', () => {
     const view = weeklyView(
       [

@@ -406,13 +406,6 @@
     });
     return `${base}/app/finance?${params.toString()}#expense-classification`;
   }
-
-  function correctionType(row: Row): string {
-    const type = value(row, 'type');
-    if (type === 'time') return 'time_entry';
-    if (type === 'expense') return 'expense';
-    return `${type}_report`;
-  }
 </script>
 
 <div class="approval-page">
@@ -654,35 +647,15 @@
                   {#if value(row, 'review_stage') === 'owner_override' && !ownerOverrideAllowed}
                     <span class="approval-read-only">{translate('Owner review required')}</span>
                   {:else}
-                    <form method="POST" action="?/createCorrectionDraft">
-                      <input type="hidden" name="recordType" value={correctionType(row)} />
-                      <input type="hidden" name="originalId" value={value(row, 'id')} />
-                      <input
-                        type="hidden"
-                        name="requestId"
-                        value={`approval-correction-${value(row, 'type')}-${value(row, 'id')}`}
-                      />
-                      {#if value(row, 'review_stage') === 'owner_override'}
-                        <input type="hidden" name="ownerOverride" value="yes" />
-                      {/if}
-                      <label>
-                        <span
-                          >{translate(
-                            value(row, 'review_stage') === 'owner_override'
-                              ? 'Owner override reason'
-                              : 'Correction reason',
-                          )}</span
-                        >
-                        <input name="reason" minlength="3" required />
-                      </label>
-                      <button type="submit"
-                        >{translate(
-                          value(row, 'review_stage') === 'owner_override'
-                            ? 'Create owner override draft'
-                            : 'Create correction draft',
-                        )}</button
-                      >
-                    </form>
+                    <a
+                      class="secondary-button"
+                      href={`${recordHref(row)}#${['daily', 'technical'].includes(value(row, 'type')) ? 'report-correction-title' : value(row, 'type') === 'expense' ? 'expense-correction-title' : 'time-correction-title'}`}
+                      >{translate(
+                        value(row, 'review_stage') === 'owner_override'
+                          ? 'Create owner override draft'
+                          : 'Create correction draft',
+                      )} →</a
+                    >
                   {/if}
                 {:else}
                   <form method="POST" action="?/approveRecord">
@@ -1113,8 +1086,7 @@
 
   .approval-filters label,
   .finance-review-form label,
-  .approval-action-menu label,
-  .approval-row-actions > form label {
+  .approval-action-menu label {
     display: grid;
     gap: 0.3rem;
   }
@@ -1129,8 +1101,7 @@
 
   .approval-filters span,
   .finance-review-form span,
-  .approval-action-menu span,
-  .approval-row-actions > form span {
+  .approval-action-menu span {
     font-size: 0.8125rem;
     font-weight: 700;
   }

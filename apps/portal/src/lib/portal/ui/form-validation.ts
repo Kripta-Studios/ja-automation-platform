@@ -42,7 +42,8 @@ function errorMessage(control: ValidationControl): string {
       return t('Enter a valid date.');
     return t('Enter a valid number.');
   }
-  if (validity.patternMismatch) return t('Match the requested format.');
+  if (validity.patternMismatch)
+    return t(control.getAttribute('data-pattern-message') || 'Match the requested format.');
   if (validity.tooShort)
     return t('Use at least {min} characters.', { min: control.getAttribute('minlength') ?? '' });
   if (validity.tooLong)
@@ -55,6 +56,16 @@ function errorMessage(control: ValidationControl): string {
     return t('Enter a value no greater than {max}.', { max: control.getAttribute('max') ?? '' });
   if (validity.stepMismatch) return t('Enter a value matching the required step.');
   return t('Enter a valid value.');
+}
+
+function fieldMessage(control: ValidationControl): string {
+  const label = control.labels?.[0];
+  const title =
+    label?.querySelector('span')?.textContent?.trim() ||
+    label?.firstChild?.textContent?.trim() ||
+    control.getAttribute('aria-label')?.trim() ||
+    control.name;
+  return title ? `${title}: ${errorMessage(control)}` : errorMessage(control);
 }
 
 function slug(value: string): string {
@@ -165,7 +176,7 @@ function renderInvalidState(form: HTMLFormElement, invalidControls: ValidationCo
     const id = control.id;
     const errorId = `${formIdentity(form)}-${slug(id)}-${index + 1}-error`;
     const message = errorMessage(control);
-    messages.push(message);
+    messages.push(fieldMessage(control));
     const error = ownerDocument.createElement('p');
     error.id = errorId;
     error.setAttribute('data-field-error-for', id);
@@ -214,7 +225,7 @@ function updateReportedErrors(form: HTMLFormElement): void {
   summary.textContent = translate(
     normalizePortalLocale(form.ownerDocument.documentElement.getAttribute('lang')),
     'Please correct the following fields: {messages}',
-    { messages: remaining.map(errorMessage).join(' ') },
+    { messages: remaining.map(fieldMessage).join(' ') },
   );
 }
 

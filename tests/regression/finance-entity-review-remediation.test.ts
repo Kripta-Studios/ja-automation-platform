@@ -138,6 +138,20 @@ describe('finance entity reviewer regressions', () => {
       '2026-08-31',
     );
     value.repository.approveInvoiceDraft(value.finance, draft.id);
+    expect(() => value.repository.archiveLegalEntity(value.owner, entity.id)).toThrow(
+      /Issue or recalculate approved invoices/i,
+    );
+    const approvedVersion = (
+      value.sqlite.prepare('SELECT version FROM invoice WHERE id=?').get(draft.id) as {
+        version: number;
+      }
+    ).version;
+    const replacement = value.repository.recalculateApprovedInvoice(
+      value.finance,
+      draft.id,
+      approvedVersion,
+      'Replace approved draft before entity archive',
+    );
     value.repository.archiveLegalEntity(value.owner, entity.id);
 
     const readiness = value.repository.billingReadiness(
@@ -182,9 +196,9 @@ describe('finance entity reviewer regressions', () => {
         effectiveFrom: '2026-09-01',
       }),
     ).toThrow(/archived|active legal entity/i);
-    expect(() => value.repository.issueInvoice(value.finance, draft.id)).toThrow(
-      /archived legal entity/i,
-    );
+    expect(
+      value.sqlite.prepare('SELECT state FROM invoice WHERE id=?').get(replacement.id),
+    ).toMatchObject({ state: 'draft' });
   });
 
   it('blocks currency changes that would reinterpret active finance configuration', () => {

@@ -1,5 +1,16 @@
+import { randomUUID } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile, utimes } from 'node:fs/promises';
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+  utimes,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -7,7 +18,7 @@ vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs/promises')>();
   return { ...actual, cp: vi.fn(actual.cp), readFile: vi.fn(actual.readFile) };
 });
-import { createBackup } from '../../deployment/scripts/backup.mjs';
+import { createBackup, pruneExpiredBackups } from '../../deployment/scripts/backup.mjs';
 const roots: string[] = [];
 afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
@@ -34,7 +45,7 @@ it('verifies actual database and private bytes, reports short history honestly',
     integrity: 'ok',
     foreignKeyViolations: 0,
     documentCount: 1,
-    history: { observedDays: 1, requiredDays: 30, coverageComplete: false },
+    history: { observedDays: 1, requiredDays: 3, coverageComplete: false },
   });
   await writeFile(join(f.backup.path, 'documents', 'receipt'), 'tampered');
   await expect(verifyLatestBackup({ backupRoot: f.backupRoot })).rejects.toThrow(
@@ -56,12 +67,15 @@ it('retains recent backups even if directory mtime is old and preserves unrelate
   const unrelated = join(f.backupRoot, 'operator-evidence');
   await mkdir(unrelated);
   await utimes(unrelated, old, old);
-  await createBackup({
+  await expect(pruneExpiredBackups({ backupRoot: f.backupRoot })).resolves.toEqual({ removed: 0 });
+  expect(await stat(f.backup.path)).toBeTruthy();
+  const newer = await createBackup({
     databasePath: f.databasePath,
     documentRoot: f.documents,
     backupRoot: f.backupRoot,
   });
-  expect(JSON.parse(await readFile(join(f.backup.path, 'manifest.json'), 'utf8')).format).toBe(1);
+  await expect(stat(f.backup.path)).rejects.toMatchObject({ code: 'ENOENT' });
+  expect(JSON.parse(await readFile(join(newer.path, 'manifest.json'), 'utf8')).format).toBe(1);
   expect(await import('node:fs/promises').then((fs) => fs.stat(unrelated))).toBeTruthy();
 });
 
@@ -163,12 +177,60 @@ it('validates retention before creating any snapshot directory', async () => {
         documentRoot: f.documents,
         backupRoot: f.backupRoot,
       }),
-    ).rejects.toThrow(/at least 30/i);
+    ).rejects.toThrow(/exactly 3/i);
     expect(await readdir(f.backupRoot)).toEqual(before);
   } finally {
     if (original === undefined) delete process.env.JA_BACKUP_RETENTION_DAYS;
     else process.env.JA_BACKUP_RETENTION_DAYS = original;
   }
+});
+
+it('prunes only completed snapshots older than three days', async () => {
+  const f = await fixture();
+  const oldPath = join(f.backupRoot, `2020-01-01T000000000Z-${randomUUID()}`);
+  await cp(f.backup.path, oldPath, { recursive: true });
+  const manifestPath = join(oldPath, 'manifest.json');
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  manifest.createdAt = new Date(Date.now() - 4 * 86_400_000).toISOString();
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  const unrelated = join(f.backupRoot, 'operator-evidence');
+  await mkdir(unrelated);
+
+  await expect(pruneExpiredBackups({ backupRoot: f.backupRoot })).resolves.toEqual({ removed: 1 });
+  await expect(stat(oldPath)).rejects.toMatchObject({ code: 'ENOENT' });
+  await expect(stat(f.backup.path)).resolves.toBeTruthy();
+  await expect(stat(unrelated)).resolves.toBeTruthy();
+});
+
+it('keeps only the newest completed backup for each of the last three Madrid dates', async () => {
+  const f = await fixture();
+  const dates = [
+    '2026-09-22T12:00:00.000Z',
+    '2026-09-23T12:00:00.000Z',
+    '2026-09-23T22:30:00.000Z',
+    '2026-09-24T12:00:00.000Z',
+    '2026-09-25T07:00:00.000Z',
+  ];
+  const paths: string[] = [];
+  for (const date of dates) {
+    const name = `${date.replaceAll(':', '').replaceAll('.', '')}-${randomUUID()}`;
+    const path = join(f.backupRoot, name);
+    await cp(f.backup.path, path, { recursive: true });
+    const manifestPath = join(path, 'manifest.json');
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    manifest.createdAt = date;
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    paths.push(path);
+  }
+  await rm(f.backup.path, { recursive: true });
+
+  await expect(
+    pruneExpiredBackups({ backupRoot: f.backupRoot, now: new Date('2026-09-25T08:00:00.000Z') }),
+  ).resolves.toEqual({ removed: 2 });
+  const names = await readdir(f.backupRoot);
+  expect(names.sort()).toEqual(
+    [paths[1], paths[3], paths[4]].map((path) => path.split('/').at(-1)).sort(),
+  );
 });
 
 it('streams private artifacts and copies only SQLite into temporary storage', async () => {

@@ -13,10 +13,7 @@
   let { workers, expertise, workerExpertise, selectedWorkerId = '', translate }: Props = $props();
 
   let expertiseId = $state('');
-  let workerId = $state('');
-  $effect(() => {
-    workerId = selectedWorkerId;
-  });
+  let workerId = $derived(selectedWorkerId);
   const availableWorkers = $derived(workersWithExpertise(workers, workerExpertise, expertiseId));
   const availableExpertise = $derived(
     expertise.filter((item) => typeof item.id === 'string' && item.id.length > 0),

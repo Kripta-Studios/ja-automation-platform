@@ -64,6 +64,14 @@ export const offlineMutationSchema = z.object({
 export const currencySchema = z.enum(['USD', 'BRL', 'EUR']);
 export const reportLocaleSchema = z.enum(['en', 'pt', 'es']);
 export const uuidSchema = z.uuid();
+// Imported clients retain stable, non-UUID IDs. The repository checks that
+// these IDs refer to an active client before accepting a mutation.
+export const clientRecordIdSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/);
 export const minorUnitsSchema = z.string().regex(/^\d+$/, 'Use non-negative integer minor units');
 const optionalMinorUnitsSchema = z
   .union([z.literal(''), minorUnitsSchema])
@@ -116,7 +124,7 @@ export const clientInputSchema = z
  */
 export const clientUpdateInputSchema = z
   .object({
-    clientId: uuidSchema,
+    clientId: clientRecordIdSchema,
     version: z.coerce.number().int().positive(),
     clientCode: z
       .union([z.literal(''), z.string().trim().max(40)])
@@ -137,7 +145,7 @@ export const clientUpdateInputSchema = z
 
 export const projectInputSchema = z
   .object({
-    clientId: uuidSchema,
+    clientId: clientRecordIdSchema,
     /** Required for new Essential projects; legacy rows remain nullable in storage. */
     costCenterCode: z.string().trim().min(1).max(120),
     name: z.string().trim().min(2).max(200),
@@ -205,7 +213,7 @@ export const projectInputSchema = z
   });
 
 export const clientContactInputSchema = z.object({
-  clientId: uuidSchema,
+  clientId: clientRecordIdSchema,
   name: z.string().trim().min(2).max(160),
   email: z.union([z.literal(''), z.email().max(254)]).optional(),
   phone: z.string().trim().max(60).optional(),

@@ -481,6 +481,14 @@ export class TimeEntryRepository {
         current.approval_state !== 'draft'
       )
         throw this.deps.errors.conflict('Only an unlocked never-submitted time draft can change');
+      if (
+        this.deps.sqlite
+          .prepare(
+            "SELECT 1 FROM record_correction_link WHERE record_type='time_entry' AND correction_id=? LIMIT 1",
+          )
+          .get(input.id)
+      )
+        throw this.deps.errors.conflict('A linked correction draft cannot be edited');
       const workDate = input.workDate ?? current.work_date;
       if (
         workDate !== current.work_date &&
@@ -549,7 +557,8 @@ export class TimeEntryRepository {
             activity_summary=COALESCE(?,activity_summary),site=COALESCE(?,site),
             start_time=?,end_time=?,break_minutes=?,updated_at=?,version=version+1
            WHERE id=? AND worker_id=? AND version=? AND invoice_id IS NULL AND billing_status='unlocked'
-             AND approval_state='draft'`,
+             AND approval_state='draft'
+             AND NOT EXISTS(SELECT 1 FROM record_correction_link l WHERE l.record_type='time_entry' AND l.correction_id=time_entry.id)`,
         )
         .run(
           input.workDate ?? null,
@@ -688,8 +697,44 @@ export class TimeEntryRepository {
       const endTime = patch.endTime ?? original.end_time;
       const breakMinutes = patch.breakMinutes ?? original.break_minutes;
       this.deps.assertDate(workDate, 'Work date');
+      if (workDate !== original.work_date) {
+        this.assertEffectiveMembership(
+          principal,
+          original.project_id,
+          original.worker_id,
+          workDate,
+        );
+        const workerAssignment = this.deps.sqlite
+          .prepare(
+            "SELECT 1 FROM project_member WHERE project_id=? AND user_id=? AND status='active' AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) LIMIT 1",
+          )
+          .get(original.project_id, original.worker_id, workDate, workDate);
+        if (!workerAssignment)
+          throw this.deps.errors.accessDenied(
+            'Worker assignment does not cover corrected work date',
+          );
+      }
       if (patch.category !== undefined) this.deps.assertText(patch.category, 'Category', 100);
       if (patch.summary !== undefined) this.deps.assertText(patch.summary, 'Activity summary');
+      if (!Object.entries(patch).some(([key, value]) => {
+        const originalValue = ({
+          workDate: original.work_date,
+          category: original.category,
+          activityCode: original.activity_code,
+          minutes: original.minutes,
+          summary: original.activity_summary,
+          site: original.site,
+          startTime: original.start_time,
+          endTime: original.end_time,
+          breakMinutes: original.break_minutes,
+        } as Record<string, unknown>)[key];
+        const normalized = (item: unknown) => item === undefined || item === null || item === ''
+          ? null : String(item).trim();
+        return normalized(value) !== normalized(originalValue);
+      }))
+        throw this.deps.errors.validation(
+          'Change at least one operational field before creating a correction',
+        );
       const correctionId = newId();
       const timestamp = this.deps.now();
       if (parent && original.approval_state === 'needs_changes') {
@@ -968,7 +1013,7 @@ export class TimeEntryRepository {
       weekEnd,
       rows: this.deps.sqlite
         .prepare(
-          'SELECT t.id,t.project_id,t.work_date,t.category,t.activity_code,t.minutes,t.start_time,t.end_time,t.break_minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ? ORDER BY t.work_date,t.created_at,t.id',
+          "SELECT t.id,t.project_id,t.work_date,t.category,t.activity_code,t.minutes,t.start_time,t.end_time,t.break_minutes,t.activity_summary,t.approval_state,t.billability_state,t.version,p.project_number,p.name project_name FROM time_entry t JOIN project p ON p.id=t.project_id WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ? AND t.approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id AND correction.approval_state NOT IN ('rejected','void')) ORDER BY t.work_date,t.created_at,t.id",
         )
         .all(principal.userId, weekStart, weekEnd),
     };
@@ -987,7 +1032,7 @@ export class TimeEntryRepository {
     const sourceWeekEnd = this.deps.shiftIsoDate(sourceWeekStart, 6);
     const sourceRows = this.deps.sqlite
       .prepare(
-        "SELECT project_id,work_date,category,activity_code,activity_summary FROM time_entry WHERE worker_id=? AND work_date BETWEEN ? AND ? AND approval_state NOT IN ('rejected','void') ORDER BY work_date,id",
+        "SELECT project_id,work_date,category,activity_code,activity_summary FROM time_entry t WHERE worker_id=? AND work_date BETWEEN ? AND ? AND approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id AND correction.approval_state NOT IN ('rejected','void')) ORDER BY work_date,id",
       )
       .all(principal.userId, sourceWeekStart, sourceWeekEnd) as Array<{
       project_id: string;

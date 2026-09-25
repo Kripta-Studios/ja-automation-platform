@@ -66,6 +66,24 @@ function setup() {
 }
 
 describe('supplier workforce canonical time', () => {
+  it('lets only the recording coordinator discard an unsubmitted delegated draft', () => {
+    const { fixture, suppliers, coordinator, technician } = setup();
+    const draft = suppliers.createTime(coordinator, {
+      workerId: technician.id,
+      projectId: fixture.project.id,
+      workDate: operationalDate,
+      category: 'work',
+      minutes: 60,
+      summary: 'Disposable supplier draft',
+    });
+    expect(() => suppliers.discardTime(fixture.owner, draft)).toThrow(AccessDeniedError);
+    suppliers.discardTime(coordinator, draft);
+    expect(
+      fixture.sqlite.prepare('SELECT approval_state FROM time_entry WHERE id=?').get(draft.id),
+    ).toEqual({ approval_state: 'void' });
+    expect(() => suppliers.discardTime(coordinator, draft)).toThrow();
+  });
+
   it('retains standard-worker own-time assignment filtering after membership expiry', () => {
     const fixture = createB5LifecycleSecurityFixture();
     fixtures.push(fixture);

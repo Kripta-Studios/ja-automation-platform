@@ -329,6 +329,7 @@ export class ProjectBillingSetupRepository {
     termsEffectiveFrom: string;
     termsFingerprint: string;
     needsReview: boolean;
+    issues: string[];
   }> {
     this.assertReadable(principal);
     const rows = this.sqlite
@@ -383,6 +384,7 @@ export class ProjectBillingSetupRepository {
             termsEffectiveFrom: reviewDate,
             termsFingerprint: this.personTermsFingerprint(principal, projectId, row.user_id),
             needsReview: true,
+            issues: ['commercial_terms_unavailable'],
           };
         }
         const rate = terms.clientLaborRate?.rule.hourly_rate_minor;
@@ -434,6 +436,7 @@ export class ProjectBillingSetupRepository {
           termsEffectiveFrom: reviewDate,
           termsFingerprint: this.personTermsFingerprint(principal, projectId, row.user_id),
           needsReview: terms.issues.length > 0,
+          issues: terms.issues.map((issue) => issue.code),
         };
       });
   }

@@ -4,6 +4,7 @@ import {
   accountingPackXlsx,
   projectFinanceXlsx,
   expenseRegisterExport,
+  expenseRegisterRows,
   toCsv,
 } from '@ja/reporting';
 import { xlsxFromSheets } from '../packages/reporting/src/exports.ts';
@@ -125,6 +126,28 @@ describe('project finance XLSX export', () => {
     expect(files.get('xl/worksheets/sheet1.xml')).not.toContain('<f>');
     const ordinary = unzip(expenseRegisterExport([record], 'xlsx', '2026-09'));
     expect(cellByHeader(ordinary, 2, 'Amount')).toContain('s="2"><v>125.5</v>');
+  });
+
+  it('omits reimbursement status until an expense is approved', () => {
+    const records = ['draft', 'submitted', 'needs_changes', 'rejected', 'approved'].map(
+      (approval_state) => ({
+        spent_on: '2026-09-24',
+        currency: 'EUR',
+        amount_minor: '100',
+        vendor: `QA ${approval_state}`,
+        approval_state,
+        reimbursement_state: 'pending',
+      }),
+    );
+    const rows = expenseRegisterRows(records);
+    expect(rows.map((row) => row.Reimbursement)).toEqual(['', '', '', '', 'pending']);
+    const csv = new TextDecoder().decode(expenseRegisterExport(records, 'csv', '2026-09'));
+    expect(csv).toContain('QA draft');
+    expect(csv).not.toContain('draft,pending');
+    expect(csv).toContain('approved,pending');
+    const workbook = unzip(expenseRegisterExport(records, 'xlsx', '2026-09'));
+    expect(cellByHeader(workbook, 1, 'Reimbursement', 2)).not.toContain('pending');
+    expect(cellByHeader(workbook, 1, 'Reimbursement', 6)).toContain('pending');
   });
 
   it('preserves values exceeding spreadsheet precision as literal text', () => {

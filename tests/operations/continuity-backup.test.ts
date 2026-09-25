@@ -30,7 +30,7 @@ function hash(bytes: Uint8Array) {
 function continuityEnv() {
   return {
     JA_BACKUP_REMOTE_ENABLED: 'true',
-    JA_BACKUP_REMOTE_RETENTION_DAYS: '30',
+    JA_BACKUP_REMOTE_RETENTION_DAYS: '3',
     JA_BACKUP_REMOTE_NAMESPACE: 'continuity-tests',
     JA_DEPLOYMENT_ID: 'test-deployment',
     JA_BACKUP_ENCRYPTION_KEY: KEY.toString('hex'),
@@ -239,27 +239,27 @@ describe('encrypted continuity backup operations', () => {
     );
   });
 
-  it('verifies remote hashes and applies a 30-day retention window', async () => {
+  it('verifies remote hashes and applies a 3-day retention window', async () => {
     const value = await fixture();
     const env = continuityEnv();
     const transport = createFilesystemContinuityTransport(value.remote);
-    const thirtyDays = 30 * 86_400_000;
+    const threeDays = 3 * 86_400_000;
 
     await replicateBackup({
       backupPath: value.local.path,
-      backupId: 'old-31-days',
+      backupId: 'old-4-days',
       transport,
       env,
       encryptionKey: KEY,
-      now: new Date(NOW.getTime() - 31 * 86_400_000),
+      now: new Date(NOW.getTime() - 4 * 86_400_000),
     });
     await replicateBackup({
       backupPath: value.local.path,
-      backupId: 'exact-30-days',
+      backupId: 'exact-3-days',
       transport,
       env,
       encryptionKey: KEY,
-      now: new Date(NOW.getTime() - thirtyDays),
+      now: new Date(NOW.getTime() - threeDays),
     });
     await replicateBackup({
       backupPath: value.local.path,
@@ -271,8 +271,8 @@ describe('encrypted continuity backup operations', () => {
     });
 
     const namespace = 'continuity-tests/test-deployment';
-    expect((await transport.stat(`${namespace}/old-31-days/complete.json`)).exists).toBe(false);
-    expect((await transport.stat(`${namespace}/exact-30-days/complete.json`)).exists).toBe(true);
+    expect((await transport.stat(`${namespace}/old-4-days/complete.json`)).exists).toBe(false);
+    expect((await transport.stat(`${namespace}/exact-3-days/complete.json`)).exists).toBe(true);
     expect((await transport.stat(`${namespace}/current/complete.json`)).exists).toBe(true);
 
     const verified = await verifyRemoteBackup({
@@ -401,7 +401,7 @@ describe('encrypted continuity backup operations', () => {
     ).rejects.toMatchObject({ code: 'CONTINUITY_REMOTE_INCOMPLETE' });
   });
 
-  it('rejects a per-run retention override shorter than the required 30-day window', async () => {
+  it('rejects a per-run retention override different from three days', async () => {
     const value = await fixture();
     await expect(
       replicateBackup({
@@ -507,7 +507,7 @@ describe('continuity backup readiness', () => {
   it('blocks readiness when the remote host, user, SSH key and encryption key are absent', async () => {
     const env = {
       JA_BACKUP_REMOTE_ENABLED: 'true',
-      JA_BACKUP_REMOTE_RETENTION_DAYS: '30',
+      JA_BACKUP_REMOTE_RETENTION_DAYS: '3',
     };
     const synchronous = continuityReadiness({ environment: env });
     expect(synchronous.ok).toBe(false);
@@ -534,7 +534,7 @@ describe('continuity backup readiness', () => {
       backupRoot: join(value.root, 'scheduled-backups'),
       env: {
         JA_BACKUP_REMOTE_ENABLED: 'true',
-        JA_BACKUP_REMOTE_RETENTION_DAYS: '30',
+        JA_BACKUP_REMOTE_RETENTION_DAYS: '3',
       },
       now: NOW,
     });
@@ -594,7 +594,7 @@ describe('continuity backup readiness', () => {
       'JA_BACKUP_REMOTE_USER=',
       'JA_BACKUP_SSH_KEY=',
       'JA_BACKUP_ENCRYPTION_KEY=',
-      'JA_BACKUP_REMOTE_RETENTION_DAYS=30',
+      'JA_BACKUP_REMOTE_RETENTION_DAYS=3',
     ])
       expect(environment).toContain(setting);
   });

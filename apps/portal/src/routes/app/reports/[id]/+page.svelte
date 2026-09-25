@@ -28,6 +28,7 @@
     type ControlledValueDomain,
   } from '$lib/i18n/controlled-values';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
+  import CorrectionDraftForm from '$lib/portal/ui/CorrectionDraftForm.svelte';
 
   type Value = string | number | boolean | null | undefined;
   type Report = Record<string, Value>;
@@ -85,6 +86,7 @@
   let autosaveVersion = $state(1);
   let recoveryDraft = $state<StoredReportAutosave | null>(null);
   let recoveryOpen = $state(false);
+  let recoveryStale = $state(false);
   let comparingDraft = $state(false);
   let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
   let autosaveInFlight = false;
@@ -352,6 +354,7 @@
       clearStoredReportAutosave(reportStorage(), autosaveKey);
       recoveryDraft = null;
       recoveryOpen = false;
+      recoveryStale = false;
       comparingDraft = false;
       autosaveState = 'saved';
       autosaveMessage = `${t('Draft saved at')} ${new Date().toLocaleTimeString([], {
@@ -369,6 +372,13 @@
   function recoverDraft(): void {
     const editForm = editFormElement();
     if (!editForm || !recoveryDraft) return;
+    if (recoveryStale) {
+      autosaveState = 'conflict';
+      autosaveMessage = t(
+        'This local draft belongs to an older report version. Compare it and copy only needed text; it cannot replace the newer record.',
+      );
+      return;
+    }
     applyReportSnapshot(editForm, recoveryDraft.payload);
     const draftVersion = Number(recoveryDraft.payload.version ?? recoveryDraft.version);
     if (Number.isInteger(draftVersion) && draftVersion > 0) setReportVersion(draftVersion);
@@ -387,6 +397,7 @@
     clearStoredReportAutosave(reportStorage(), autosaveKey);
     recoveryDraft = null;
     recoveryOpen = false;
+    recoveryStale = false;
     comparingDraft = false;
     autosaveState = 'idle';
     autosaveMessage = t('Local recovery draft discarded');
@@ -401,11 +412,26 @@
         localeOverride = resolveStandaloneLocale(event.newValue);
     };
     window.addEventListener('storage', onStorage);
+    if (
+      form?.success &&
+      [
+        'action.reports.changesSaved',
+        'action.reports.dailyDraftSaved',
+        'action.reports.technicalDraftSaved',
+      ].includes(String(form.messageKey ?? ''))
+    ) {
+      clearStoredReportAutosave(reportStorage(), autosaveKey);
+    }
     const saved = readStoredReportAutosave(reportStorage(), autosaveKey);
     if (saved) {
       recoveryDraft = saved;
       recoveryOpen = true;
-      autosaveMessage = t('A local recovery draft is available for review');
+      recoveryStale = saved.version < Number(report.version);
+      autosaveMessage = recoveryStale
+        ? t(
+            'This local draft belongs to an older report version. Compare it and copy only needed text; it cannot replace the newer record.',
+          )
+        : t('A local recovery draft is available for review');
     } else if (!canAutosave && data.detail.canEdit) {
       autosaveMessage = t('Autosave is available for draft reports and reports needing changes');
     }
@@ -467,6 +493,53 @@
     <p class:success={form?.success} class="action-message" role="status" aria-live="polite">
       {standaloneActionMessage(locale, form)}
     </p>
+  {/if}
+
+  {#if data.detail.canSubmitDraft}
+    <section class="detail-panel record-detail-copy" aria-label={t('Report actions')}>
+      <p>{t('Changes saved in this report still need an explicit submission for review.')}</p>
+      <form method="POST" action="?/submitReport">
+        <input type="hidden" name="type" value={data.detail.type} />
+        <input type="hidden" name="id" value={String(report.id)} />
+        <input type="hidden" name="version" value={Number(report.version)} />
+        <button type="submit">{t('Submit for review')}</button>
+      </form>
+    </section>
+  {/if}
+  {#if data.detail.canWithdrawCorrection}
+    <section class="detail-panel record-detail-copy" aria-label={t('Withdraw correction draft')}>
+      <form method="POST" action="?/withdrawCorrectionDraft" class="record-correction-withdraw">
+        <input
+          type="hidden"
+          name="recordType"
+          value={isDaily ? 'daily_report' : 'technical_report'}
+        />
+        <input type="hidden" name="correctionId" value={String(report.id)} />
+        <input type="hidden" name="version" value={Number(report.version)} />
+        <label
+          ><span>{t('Why withdraw this draft?')}</span><input
+            name="reason"
+            minlength="3"
+            required
+          /></label
+        >
+        <button type="submit" class="destructive-button">{t('Withdraw correction draft')}</button>
+      </form>
+    </section>
+  {/if}
+
+  {#if data.detail.canCreateCorrection}
+    <section class="detail-panel record-detail-copy" aria-labelledby="report-correction-title">
+      <h2 id="report-correction-title">{t('Create corrected draft')}</h2>
+      <CorrectionDraftForm
+        recordType={isDaily ? 'daily_report' : 'technical_report'}
+        record={report}
+        translate={t}
+        ownerOverride={data.user.role === 'owner_admin'}
+        values={form?.values ?? {}}
+        requestId={data.correctionRequestId}
+      />
+    </section>
   {/if}
 
   {#if data.detail.canEdit && report.approval_state === 'needs_changes'}
@@ -955,8 +1028,9 @@
         {/if}
 
         <ActionBar class="report-form-actions">
-          <a class="secondary-action" href={base + '/app/reports'}>{t('Cancel')}</a>
-          <button type="submit">{t('Save changes and notify reviewers')}</button>
+          <a class="secondary-action" href={base + '/app/reports'} data-origin-back>{t('Cancel')}</a
+          >
+          <button type="submit">{t('Save changes')}</button>
         </ActionBar>
       </form>
 
@@ -982,7 +1056,7 @@
           {/if}
         </div>
         <div class="record-actions">
-          <button type="button" data-recover-draft onclick={recoverDraft}
+          <button type="button" data-recover-draft onclick={recoverDraft} disabled={recoveryStale}
             >{t('Recover draft')}</button
           >
           <button type="button" class="secondary-action" data-compare-draft onclick={compareDraft}>

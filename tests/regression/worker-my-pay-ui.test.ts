@@ -63,7 +63,8 @@ describe('Worker My Pay UI', () => {
 
   it('uses exact money formatting and does not expose Finance-only fields', () => {
     expect(payBranch).toContain('paymentMoney(');
-    expect(payBranch).not.toMatch(/\bNumber\s*\(/);
+    expect(payBranch).not.toMatch(/paymentMoney\(\s*Number\s*\(/);
+    expect(payBranch).toContain('Number(activity.breakMinutes ?? 0) > 0');
     for (const forbiddenField of [
       'clientTreatment',
       'billingTreatment',

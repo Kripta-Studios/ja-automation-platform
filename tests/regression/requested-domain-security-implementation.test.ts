@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  seedB5User,
   stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
@@ -181,5 +182,133 @@ describe('domain security implementation contracts', () => {
     expect(
       value.sqlite.prepare('SELECT id FROM document WHERE id=?').get(temporary.reservationId),
     ).toBeUndefined();
+  });
+
+  it('archives a committed document without deleting its immutable record', () => {
+    const value = fixture();
+    const owner = stepUpB5Principal(value.sqlite, value.owner, 'archive-committed-document');
+    const worker = stepUpB5Principal(value.sqlite, value.worker, 'archive-worker-denied');
+    value.sqlite
+      .prepare(
+        `INSERT INTO document(id,project_id,owner_id,sha256,media_type,byte_length,state,
+           storage_key,created_at,updated_at,scan_status,sensitivity,
+           artifact_classification,classification_provenance)
+         VALUES('archive-document',?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        value.project.id,
+        value.owner.userId,
+        'b'.repeat(64),
+        'application/pdf',
+        10,
+        'committed',
+        'reports/archive-document.pdf',
+        '2026-08-22T00:00:00.000Z',
+        '2026-08-22T00:00:00.000Z',
+        'clean',
+        'internal',
+        'standard',
+        'native',
+      );
+    expect(() =>
+      value.v3.archiveDocument(worker, 'archive-document', 'Other worker file'),
+    ).toThrow();
+    expect(value.repository.listDocuments(owner).some((row) => row.id === 'archive-document')).toBe(
+      true,
+    );
+    value.v3.archiveDocument(owner, 'archive-document', 'Superseded QA evidence');
+    expect(value.repository.listDocuments(owner).some((row) => row.id === 'archive-document')).toBe(
+      false,
+    );
+    expect(
+      value.sqlite
+        .prepare('SELECT state,archived_by,archived_at FROM document WHERE id=?')
+        .get('archive-document'),
+    ).toEqual({ state: 'committed', archived_by: owner.userId, archived_at: expect.any(String) });
+    expect(() => value.v3.archiveDocument(owner, 'archive-document', 'Repeat archive')).toThrow();
+  });
+
+  it('keeps an auditor-owned document read only', () => {
+    const value = fixture();
+    seedB5User(value.sqlite, 'b5-auditor-document', 'auditor_read_only');
+    const auditor = stepUpB5Principal(
+      value.sqlite,
+      value.repository.principalFor('b5-auditor-document'),
+      'archive-denied',
+    );
+    value.sqlite
+      .prepare(
+        `INSERT INTO document(id,project_id,owner_id,sha256,media_type,byte_length,state,
+           storage_key,created_at,updated_at,scan_status,sensitivity,
+           artifact_classification,classification_provenance)
+         VALUES('auditor-owned-document',?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        value.project.id,
+        auditor.userId,
+        'c'.repeat(64),
+        'application/pdf',
+        10,
+        'committed',
+        'reports/auditor-owned-document.pdf',
+        '2026-08-22T00:00:00.000Z',
+        '2026-08-22T00:00:00.000Z',
+        'clean',
+        'internal',
+        'standard',
+        'native',
+      );
+    expect(
+      value.repository.listDocuments(auditor).some((row) => row.id === 'auditor-owned-document'),
+    ).toBe(true);
+    expect(() =>
+      value.v3.archiveDocument(auditor, 'auditor-owned-document', 'Attempted archive'),
+    ).toThrow('Read-only auditors cannot archive documents');
+    expect(
+      value.sqlite
+        .prepare('SELECT archived_at FROM document WHERE id=?')
+        .get('auditor-owned-document'),
+    ).toEqual({ archived_at: null });
+
+    const temporary = value.v3.reserveUpload(value.owner, {
+      projectId: value.project.id,
+      originalFilename: 'auditor-owned-temporary.pdf',
+      artifactType: 'report',
+    });
+    value.sqlite
+      .prepare('UPDATE document SET owner_id=? WHERE id=?')
+      .run(auditor.userId, temporary.reservationId);
+    const documentCount = value.sqlite.prepare('SELECT count(*) count FROM document').get() as {
+      count: number;
+    };
+
+    expect(() =>
+      value.v3.reserveUpload(auditor, {
+        projectId: value.project.id,
+        originalFilename: 'forged.pdf',
+        artifactType: 'report',
+      }),
+    ).toThrow('Read-only role');
+    expect(() =>
+      value.v3.finalizeUpload(auditor, temporary.reservationId, {
+        sha256: 'd'.repeat(64),
+        mediaType: 'application/pdf',
+        byteLength: 10,
+      }),
+    ).toThrow('Read-only role');
+    expect(() => value.v3.cancelUploadReservation(auditor, temporary.reservationId)).toThrow(
+      'Read-only role',
+    );
+    expect(() => value.v3.deleteDocument(auditor, temporary.reservationId)).toThrow(
+      'Read-only role',
+    );
+    expect(value.sqlite.prepare('SELECT count(*) count FROM document').get()).toEqual(
+      documentCount,
+    );
+    expect(
+      value.sqlite
+        .prepare('SELECT owner_id,state,byte_length FROM document WHERE id=?')
+        .get(temporary.reservationId),
+    ).toEqual({ owner_id: auditor.userId, state: 'temporary', byte_length: 0 });
   });
 });

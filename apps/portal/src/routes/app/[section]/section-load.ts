@@ -9,6 +9,8 @@ import { error, redirect } from '@sveltejs/kit';
 import { defaultLookbackPeriod } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { mondayOf, weeklyView, type WeeklyProjectSchedule } from '$lib/server/portal-week';
+import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
+import { listProjectSettlementWorkers } from '$lib/server/finance-settlement-workers';
 import type { PageServerLoad } from './$types';
 import {
   projectManagerApprovalQueueProjection,
@@ -253,6 +255,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           documents: context.repository.listDocuments(context.principal),
         };
       case 'pay': {
+        if (context.principal.role === 'owner_admin')
+          redirect(303, `/j-aautomation/app/manage/worker-pay${url.search}`);
         if (!['worker', 'project_manager'].includes(context.principal.role))
           error(403, 'Worker or project manager role required');
         const lookback = defaultLookbackPeriod();
@@ -321,6 +325,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           settlements,
           payActivities,
           payExpenses,
+          payOutstanding: workerPayOutstanding(settlements, payExpenses),
         };
       }
       // The base project list is already role-scoped by the repository. Add
@@ -517,7 +522,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           skills: context.repository.listSkills(context.principal),
           workers:
             context.principal.role !== 'worker'
-              ? context.repository.listAllWorkers(context.principal)
+              ? context.repository.listPlanningWorkerOptions(context.principal)
+              : [],
+          assignments:
+            context.principal.role !== 'worker'
+              ? context.repository.listAssignments(context.principal)
               : [],
         };
       case 'profile': {
@@ -688,8 +697,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           ...common,
           projects,
           workers:
-            context.principal.role === 'owner_admin' || context.principal.role === 'finance_admin'
-              ? context.repository.listActiveWorkers(context.principal)
+            canManageCanonicalAuthority && selected
+              ? listProjectSettlementWorkers(context.sqlite, selected, financeToday)
               : [],
           selectedProjectId: selected,
           finance: selected ? context.v3.projectFinance(context.principal, selected) : null,

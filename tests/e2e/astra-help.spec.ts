@@ -16,13 +16,26 @@ test('worker can find localized Help and download the quick-start PDF', async ({
   await expect(work.locator('h2')).toHaveText('Guía de trabajo y proyectos');
   await expect(work.locator('.role-badges')).toContainText('Trabajador');
   await expect(work.locator('.role-guidance')).toContainText('trabajo asignado');
-  await expect(page.getByText('Revisión 2026-09-19')).toHaveCount(2);
+  await expect(page.getByText('Revisión 2026-09-22')).toHaveCount(2);
+  await expect(work.locator('.download')).toHaveAttribute('href', /download\?lang=en$/);
+  await expect(work.locator('.download')).toContainText('Descargar PDF · EN');
+  await expect(work.getByRole('note')).toHaveText(
+    'Esta guía no tiene PDF en español. La descarga será en inglés.',
+  );
+  const quick = page.locator('.manual-card[data-manual-id="employee-field-guide"]');
+  await expect(quick.locator('.download')).toHaveAttribute('href', /download\?lang=es$/);
+  await expect(quick.getByRole('note')).toHaveCount(0);
 
   const response = await page.request.get(portal('/help/employee-field-guide/download?lang=es'));
   expect(response.status()).toBe(200);
   expect(response.headers()['content-type']).toBe('application/pdf');
   expect(response.headers()['content-disposition']).toContain('employee-field-guide-ES-');
   expect((await response.body()).subarray(0, 5).toString('ascii')).toBe('%PDF-');
+  const reference = await page.request.get(
+    portal('/help/work-projects-reference/download?lang=es'),
+  );
+  expect(reference.status()).toBe(200);
+  expect(reference.headers()['x-help-manual-language']).toBe('en');
 });
 
 test('worker cannot download the administration group by changing the manual id', async ({
@@ -53,4 +66,15 @@ test('Owner sees three grouped references and can download administration, finan
     'administration-finance-reference-EN-',
   );
   expect((await response.body()).subarray(0, 5).toString('ascii')).toBe('%PDF-');
+
+  await page.goto(portal('/help?lang=es'));
+  for (const guide of [
+    'administration-finance-reference',
+    'work-projects-reference',
+    'supplier-operations-reference',
+  ]) {
+    const card = page.locator(`.manual-card[data-manual-id="${guide}"]`);
+    await expect(card.locator('.download')).toHaveAttribute('href', /download\?lang=en$/);
+    await expect(card.getByRole('note')).toContainText('no tiene PDF en español');
+  }
 });

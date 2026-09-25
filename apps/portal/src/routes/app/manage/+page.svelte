@@ -66,6 +66,7 @@
       const raw = String(row.amount_minor).padStart(3, '0');
       return `${raw.slice(0, -2)}.${raw.slice(-2)}`;
     }
+    if (!row && type === 'project') return String(data.selectedProjectId ?? '');
     const value = String(row?.[name] ?? '');
     return type === 'datetime-local' ? value.slice(0, 16) : value;
   }
@@ -82,6 +83,9 @@
         'Manage all company records from your Owner account. Changes apply equally to demo and production records.',
       )}
     </p>
+    <a class="management-action" href={`${base}/app/manage/worker-pay`}
+      >{t('Worker pay review')} →</a
+    >
   </header>
   {#if feedback}<p class="management-feedback" role={form?.success ? 'status' : 'alert'}>
       {feedback}
@@ -97,6 +101,13 @@
   </nav>
   {#if data.catalog}
     <SectionCard title={t(data.catalog.title)}>
+      {#if data.selectedProjectId && data.area === 'project_milestone'}
+        <a
+          class="management-action"
+          href={`${base}/app/projects/${data.selectedProjectId}?tab=commercial`}
+          >{t('Back to project')} →</a
+        >
+      {/if}
       {#if data.area === 'document'}<a
           class="management-action primary-action"
           href={`${base}/app/documents`}>{t('Upload document')} →</a
@@ -135,6 +146,15 @@
             >
               <summary>{t('Edit')}</summary>{@render catalogForm(row)}
             </details>
+            {#if data.area === 'project_milestone' && ['draft', 'rejected'].includes(String(row.approval_state ?? ''))}
+              <form method="POST" action={`${base}/app/projects?/submitMilestone`}>
+                <input type="hidden" name="id" value={String(row.id)} />
+                <input type="hidden" name="version" value={String(row.version ?? 1)} />
+                <button type="submit" class="management-action primary-action"
+                  >{t('Submit for approval now')}</button
+                >
+              </form>
+            {/if}
           </article>
         {:else}<p>{t('No records found')}</p>{/each}
       </div>

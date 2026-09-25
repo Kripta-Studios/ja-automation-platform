@@ -178,6 +178,38 @@ describe('approved operational report immutability', () => {
         change_summary: 'Corrected technical summary',
       }),
     );
+    const dailyDraftBefore = JSON.stringify(row(value, 'daily_report', dailyCorrection.id));
+    const technicalDraftBefore = JSON.stringify(
+      row(value, 'technical_report', technicalCorrection.id),
+    );
+    expect(value.repository.reportDetail(value.worker, dailyCorrection.id).canEdit).toBe(false);
+    expect(value.repository.reportDetail(value.worker, technicalCorrection.id).canEdit).toBe(false);
+    expect(() =>
+      value.repository.updateDailyReport(value.worker, {
+        id: dailyCorrection.id,
+        version: 1,
+        projectId: value.project.id,
+        workDate: '2026-08-20',
+        summary: 'Untracked daily change',
+        tasksCompleted: 'Commissioning tasks completed',
+        downtimeMinutes: 5,
+        safetyRelated: false,
+      }),
+    ).toThrow(ConflictError);
+    expect(() =>
+      value.repository.updateTechnicalReport(value.worker, {
+        id: technicalCorrection.id,
+        version: 1,
+        projectId: value.project.id,
+        systemName: 'PLC source truth',
+        changeSummary: 'Untracked technical change',
+        safetyRelated: false,
+      }),
+    ).toThrow(ConflictError);
+    expect(JSON.stringify(row(value, 'daily_report', dailyCorrection.id))).toBe(dailyDraftBefore);
+    expect(JSON.stringify(row(value, 'technical_report', technicalCorrection.id))).toBe(
+      technicalDraftBefore,
+    );
     expect(JSON.stringify(row(value, 'daily_report', dailyId))).toBe(dailyBefore);
     expect(JSON.stringify(row(value, 'technical_report', technicalId))).toBe(technicalBefore);
 

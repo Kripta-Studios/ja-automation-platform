@@ -7,8 +7,9 @@
   import { supplierCopy, supplierStateLabel, supplierManagementCopy } from './copy';
   import { standaloneActionMessage } from '../standalone-locale';
   import { enhance } from '$app/forms';
+  import { replaceState } from '$app/navigation';
   import { page } from '$app/stores';
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   let { data, form } = $props();
   const c = $derived(supplierCopy[data.locale as keyof typeof supplierCopy]);
   const m = $derived(supplierManagementCopy[data.locale as keyof typeof supplierManagementCopy]);
@@ -36,6 +37,18 @@
       return data.owner ? 'directory' : 'time';
     }),
   );
+  $effect(() => {
+    if (form?.success && form.operation === 'createTimeBatch') workspaceAction = 'report';
+  });
+  async function selectWorkspaceAction(action: WorkspaceAction): Promise<void> {
+    workspaceAction = action;
+    const url = new URL(location.href);
+    url.searchParams.set('workspaceAction', action);
+    url.hash = 'supplier-workspace';
+    replaceState(url, {});
+    await tick();
+    document.getElementById('supplier-workspace')?.scrollIntoView({ block: 'start' });
+  }
   type UpdateOperation = 'updateSupplier' | 'updateTechnician';
   type StatusOperation = 'setSupplierStatus' | 'setTechnicianStatus';
   type UpdateEditor = {
@@ -195,7 +208,7 @@
     if (workspaceAction) today = localToday();
   });
   const actionUrl = (operation: string) =>
-    `?/${operation}&${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale, workspaceAction }).toString()}`;
+    `?/${operation}&${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale, workspaceAction }).toString()}#supplier-workspace`;
   const value = (operation: string, key: string, fallback = '') =>
     form?.operation === operation ? (form.values?.[key] ?? fallback) : fallback;
 </script>
@@ -205,6 +218,43 @@
   <h1 class="supplier-title">{data.owner ? c.title : c.team}</h1>
   <p>{data.owner ? m.intro : c.intro}</p>
   {#if !data.owner}<p>{c.restricted}</p>{/if}
+  <nav class="supplier-jump-links" aria-label={c.title}>
+    {#if data.owner}
+      <button
+        type="button"
+        class:active={workspaceAction === 'directory'}
+        onclick={() => selectWorkspaceAction('directory')}>{m.directory}</button
+      >
+      <button
+        type="button"
+        class:active={workspaceAction === 'setup'}
+        onclick={() => selectWorkspaceAction('setup')}>{m.setup}</button
+      >
+      <button
+        type="button"
+        class:active={workspaceAction === 'authorize'}
+        onclick={() => selectWorkspaceAction('authorize')}>{c.grant}</button
+      >
+    {/if}
+    <button
+      type="button"
+      class:active={workspaceAction === 'personnel'}
+      onclick={() => selectWorkspaceAction('personnel')}>{m.personnel}</button
+    >
+    {#if !data.owner}
+      <button
+        type="button"
+        class:active={workspaceAction === 'time'}
+        onclick={() => selectWorkspaceAction('time')}>{c.time}</button
+      >
+    {/if}
+    <button
+      type="button"
+      class:active={workspaceAction === 'report'}
+      onclick={() => selectWorkspaceAction('report')}>{c.report}</button
+    >
+  </nav>
+  <div id="supplier-workspace" class="supplier-workspace-heading">
   {#if form}<p role={form.success ? 'status' : 'alert'}>
       {#if form.success && form.operation === 'createTimeBatch' && form.outcome}
         {form.outcome.replayed ? c.batchAlreadySaved : c.batchSaved}: {form.outcome.createdCount}
@@ -216,42 +266,6 @@
       {:else}{form.success ? c.saved : c.failed}{/if}
     </p>
     {#if !form.success}<p>{standaloneActionMessage(data.locale, form)}</p>{/if}{/if}
-  <nav class="supplier-jump-links" aria-label={c.title}>
-    {#if data.owner}
-      <button
-        type="button"
-        class:active={workspaceAction === 'directory'}
-        onclick={() => (workspaceAction = 'directory')}>{m.directory}</button
-      >
-      <button
-        type="button"
-        class:active={workspaceAction === 'setup'}
-        onclick={() => (workspaceAction = 'setup')}>{m.setup}</button
-      >
-      <button
-        type="button"
-        class:active={workspaceAction === 'authorize'}
-        onclick={() => (workspaceAction = 'authorize')}>{c.grant}</button
-      >
-    {/if}
-    <button
-      type="button"
-      class:active={workspaceAction === 'personnel'}
-      onclick={() => (workspaceAction = 'personnel')}>{m.personnel}</button
-    >
-    {#if !data.owner}
-      <button
-        type="button"
-        class:active={workspaceAction === 'time'}
-        onclick={() => (workspaceAction = 'time')}>{c.time}</button
-      >
-    {/if}
-    <button
-      type="button"
-      class:active={workspaceAction === 'report'}
-      onclick={() => (workspaceAction = 'report')}>{c.report}</button
-    >
-  </nav>
   <p class="supplier-action-help">
     {workspaceAction === 'directory'
       ? m.intro
@@ -263,8 +277,9 @@
             ? c.personnel
             : workspaceAction === 'time'
               ? c.intro
-              : c.report}
+      : c.report}
   </p>
+  </div>
   {#if data.owner && workspaceAction === 'directory'}
     <SectionCard title={c.title} id="supplier-directory">
       <div class="directory-filters">
@@ -491,7 +506,7 @@
   </ResponsiveSheet>
   {#if ['personnel', 'time', 'report'].includes(workspaceAction)}
     <SectionCard title={m.filters}>
-      <form method="GET" class="filters">
+      <form method="GET" action={`${base}/supplier#supplier-workspace`} class="filters">
         <input type="hidden" name="workspaceAction" value={workspaceAction} />
         <label data-ui="field"
           >{c.project}<select name="projectId" value={data.projectId}
@@ -745,6 +760,16 @@
   {/if}
   {#if data.projects.length && workspaceAction === 'time' && !data.owner}
     <SectionCard title={c.time}>
+      {#if data.entries.length}
+        <p>
+          {data.entries.length}
+          {c.report.toLocaleLowerCase()} · {draftEntries.length}
+          {c.drafts}
+        </p>
+        <button type="button" class="secondary-button" onclick={() => selectWorkspaceAction('report')}
+          >{c.report} →</button
+        >
+      {/if}
       <p>{c.batchHelp}</p>
       <form method="POST" action={actionUrl('createTimeBatch')}>
         <input
@@ -1025,6 +1050,19 @@
                 ><button class="primary-button">{c.save}</button>
               </form>
             </details>
+            {#if entry.recordedBy === data.currentUserId}
+              <form
+                method="POST"
+                action={actionUrl('discardTime')}
+                onsubmit={(event) => {
+                  if (!confirm(c.discardConfirm)) event.preventDefault();
+                }}
+              >
+                <input type="hidden" name="id" value={String(entry.id)} />
+                <input type="hidden" name="version" value={Number(entry.version)} />
+                <button type="submit" class="danger">{c.discard}</button>
+              </form>
+            {/if}
           {/if}
         </article>
       {:else}<p>{c.empty}</p>{/each}
@@ -1044,6 +1082,14 @@
     min-width: 0;
     display: grid;
     gap: 1rem;
+  }
+  .supplier-workspace-heading {
+    display: grid;
+    gap: 1rem;
+    scroll-margin-top: 5rem;
+  }
+  .supplier-workspace-heading > p {
+    margin: 0;
   }
   form {
     display: grid;

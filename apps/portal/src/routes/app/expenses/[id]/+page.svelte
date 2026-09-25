@@ -7,8 +7,10 @@
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
     resolveStandaloneLocale,
+    standaloneActionMessage,
     standaloneText,
   } from '../../standalone-locale';
+  import CorrectionDraftForm from '$lib/portal/ui/CorrectionDraftForm.svelte';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { money as formatMoney } from '$lib/portal/portal-format';
   import {
@@ -16,7 +18,7 @@
     type ControlledValueDomain,
   } from '$lib/i18n/controlled-values';
   type Row = Record<string, string | number | boolean | null>;
-  let { data } = $props();
+  let { data, form } = $props();
   let localeOverride = $state<PortalLocale | null>(null);
   const locale = $derived(
     localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
@@ -77,6 +79,85 @@
     </div>
     <span class="state-tag">{controlled('status', record.approval_state)}</span>
   </header>
+  {#if standaloneActionMessage(locale, form)}
+    <p class="action-message" role="alert">{standaloneActionMessage(locale, form)}</p>
+  {/if}
+  {#if data.canSubmitDraft}
+    <section class="detail-panel record-detail-copy" aria-label={t('Draft actions')}>
+      <form method="POST" action="?/submitExpense">
+        <input type="hidden" name="id" value={String(record.id)} />
+        <input type="hidden" name="version" value={Number(record.version)} />
+        <button type="submit">{t('Submit')}</button>
+      </form>
+    </section>
+  {/if}
+  {#if data.canWithdrawCorrection}
+    <section class="detail-panel record-detail-copy" aria-label={t('Withdraw correction draft')}>
+      <form method="POST" action="?/withdrawCorrectionDraft" class="record-correction-withdraw">
+        <input type="hidden" name="recordType" value="expense" />
+        <input type="hidden" name="correctionId" value={String(record.id)} />
+        <input type="hidden" name="version" value={Number(record.version)} />
+        <label
+          ><span>{t('Why withdraw this draft?')}</span><input
+            name="reason"
+            minlength="3"
+            required
+          /></label
+        >
+        <button type="submit" class="destructive-button">{t('Withdraw correction draft')}</button>
+      </form>
+    </section>
+  {/if}
+  {#if ['needs_changes', 'rejected'].includes(String(record.approval_state))}
+    <section class="detail-panel record-detail-copy" aria-labelledby="expense-review-title">
+      <h2 id="expense-review-title">{t('Review outcome')}</h2>
+      <p>
+        <strong>{t('Review reason')}:</strong>
+        {record.review_reason || t('No review reason was recorded.')}
+      </p>
+      {#if record.active_correction_id}
+        <p>
+          {t('An existing correction is')}
+          {controlled('status', record.active_correction_state)}.
+        </p>
+        <a href={`${base}/app/expenses/${encodeURIComponent(String(record.active_correction_id))}`}
+          >{t('Open existing correction')} →</a
+        >
+      {:else if data.canCreateCorrection}
+        <a href="#expense-correction-title">{t('Create corrected draft')} →</a>
+      {:else if record.approval_state === 'rejected'}
+        <p>
+          {t(
+            'A rejected expense cannot be corrected. Create a new expense if the cost should be recorded.',
+          )}
+        </p>
+        {#if data.user?.role === 'owner_admin' || (data.user?.role === 'worker' && String(record.worker_id) === String(data.user?.id))}
+          <a
+            href={`${base}/app/expenses?project=${encodeURIComponent(String(record.project_id))}&date=${encodeURIComponent(String(record.spent_on))}`}
+            >{t('Add expense')} →</a
+          >
+        {/if}
+      {:else}
+        <p>
+          {t('The recorded worker must create a corrected draft from their Expenses register.')}
+        </p>
+      {/if}
+    </section>
+  {/if}
+  {#if data.canCreateCorrection}
+    <section class="detail-panel record-detail-copy" aria-labelledby="expense-correction-title">
+      <h2 id="expense-correction-title">{t('Create corrected draft')}</h2>
+      <CorrectionDraftForm
+        recordType="expense"
+        {record}
+        translate={t}
+        ownerOverride={data.user.role === 'owner_admin'}
+        values={form?.values ?? {}}
+        timeOptions={data.correctionTimeOptions}
+        requestId={data.correctionRequestId}
+      />
+    </section>
+  {/if}
   <section class="record-detail-grid">
     <article>
       <span>{t('AMOUNT')}</span><strong

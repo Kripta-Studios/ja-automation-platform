@@ -686,6 +686,31 @@ describe('localized report PDF renderers', () => {
     expect(containsPdfCopy(text, 'legalEntityId')).toBe(false);
   });
 
+  it('renders signed collection rows from the stored Accounting Pack field names', () => {
+    const text = expectPdf(
+      accountingPackPdf({
+        ...packSnapshot('en'),
+        collections: [
+          {
+            invoiceNumber: 'QA-100',
+            client: 'QA Client',
+            paymentDate: '2026-08-12',
+            amountCollectedInMonthMinor: '2161',
+          },
+          {
+            invoiceNumber: 'QA-100',
+            client: 'QA Client',
+            paymentDate: '2026-08-13',
+            amountCollectedInMonthMinor: '-203',
+          },
+        ],
+      }),
+    );
+    expect(containsPdfCopy(text, '21.61')).toBe(true);
+    expect(containsPdfCopy(text, '2.03')).toBe(true);
+    expect(containsPdfCopy(text, '19.58')).toBe(true);
+  });
+
   it('derives Accounting Pack worker hours from source field units', () => {
     const minuteText = expectPdf(
       accountingPackPdf({

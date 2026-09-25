@@ -1530,6 +1530,18 @@ export class SupplierWorkforceRepository {
     return this.time.updateTimeEntry(principal, input);
   }
 
+  discardTime(principal: Principal, input: { id: string; version: number }) {
+    this.assertActive(principal);
+    if (!Number.isInteger(input.version) || input.version < 1)
+      throw new ValidationError('Refresh this draft before discarding it');
+    const recorder = this.sqlite
+      .prepare('SELECT recorded_by_user_id FROM supplier_time_entry_recorder WHERE time_entry_id=?')
+      .get(input.id) as { recorded_by_user_id: string } | undefined;
+    if (!recorder || recorder.recorded_by_user_id !== principal.userId)
+      throw new AccessDeniedError('Only the coordinator who recorded this draft may discard it');
+    return this.time.deleteTime(principal, input.id, input.version);
+  }
+
   createTimeCorrection(principal: Principal, input: TimeEntryCorrectionInput) {
     return this.time.createCorrectionDraft(principal, input);
   }

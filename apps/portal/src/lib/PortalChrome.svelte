@@ -72,6 +72,7 @@
   let mobileDrawer = $state(false);
   let drawerWasOpen = false;
   let previousFocus: HTMLElement | null = null;
+  let restoreDrawerFocus = true;
   let rootHadScrollLockClass = false;
   let bodyHadScrollLockClass = false;
 
@@ -171,26 +172,9 @@
       : [];
   }
 
-  function restoreMenuFocus(attempt = 0): void {
-    if (typeof document === 'undefined') return;
-
-    document
-      .querySelector<HTMLButtonElement>(
-        `.menu-button[aria-label="${translate('Toggle navigation')}"]`,
-      )
-      ?.focus();
-
-    if (attempt < 20 && typeof window !== 'undefined') {
-      window.setTimeout(() => restoreMenuFocus(attempt + 1), 25);
-    }
-  }
-
-  function closeDrawer(): void {
-    const shouldRestoreFocus = mobileDrawer;
+  function closeDrawer(followingLink = false): void {
+    restoreDrawerFocus = !followingLink;
     onCloseMenu();
-    if (shouldRestoreFocus && typeof window !== 'undefined') {
-      window.setTimeout(() => restoreMenuFocus(), 0);
-    }
   }
 
   function toggleNavigation(event?: MouseEvent): void {
@@ -248,6 +232,7 @@
     root.classList.add(drawerScrollLockClass);
     body.classList.add(drawerScrollLockClass);
     drawerWasOpen = true;
+    restoreDrawerFocus = true;
   }
 
   function releaseDrawerScrollLock(): void {
@@ -310,8 +295,11 @@
       releaseDrawerScrollLock();
       const focusTarget = previousFocus;
       previousFocus = null;
-      if (focusTarget && document.contains(focusTarget)) focusTarget.focus();
-      else menuToggle?.focus();
+      if (restoreDrawerFocus) {
+        if (focusTarget && document.contains(focusTarget)) focusTarget.focus({ preventScroll: true });
+        else menuToggle?.focus({ preventScroll: true });
+      }
+      restoreDrawerFocus = true;
     }
   });
 </script>
@@ -323,7 +311,7 @@
   aria-label={translate('Close navigation')}
   aria-hidden={menuOpen && mobileDrawer ? undefined : 'true'}
   tabindex="-1"
-  onclick={closeDrawer}
+  onclick={() => closeDrawer()}
 ></button>
 
 <aside
@@ -336,7 +324,7 @@
   aria-hidden={mobileDrawer && !menuOpen ? 'true' : undefined}
   inert={mobileDrawer && !menuOpen ? true : undefined}
 >
-  <a class="portal-brand" href={`${base}/app/`} onclick={closeDrawer}
+  <a class="portal-brand" href={`${base}/app/`} onclick={() => closeDrawer(true)}
     ><img src={`${base}/app/logo.png`} alt="J&A Automation" /></a
   >
   <nav aria-label={translate('Primary navigation')}>
@@ -346,7 +334,7 @@
         href={itemHref(item)}
         title={translate(item.label)}
         aria-current={itemIsCurrent(item) ? 'page' : undefined}
-        onclick={closeDrawer}
+        onclick={() => closeDrawer(true)}
       >
         <span class="nav-icon" aria-hidden="true"
           ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
@@ -360,7 +348,7 @@
         href={itemHref(item)}
         title={translate(item.label)}
         aria-current={itemIsCurrent(item) ? 'page' : undefined}
-        onclick={closeDrawer}
+        onclick={() => closeDrawer(true)}
       >
         <span class="nav-icon" aria-hidden="true"
           ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
@@ -379,7 +367,7 @@
             href={itemHref(item)}
             title={translate(item.label)}
             aria-current={itemIsCurrent(item) ? 'page' : undefined}
-            onclick={closeDrawer}
+            onclick={() => closeDrawer(true)}
           >
             <span class="nav-icon" aria-hidden="true"
               ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
@@ -395,7 +383,7 @@
             href={itemHref(item)}
             title={translate(item.label)}
             aria-current={itemIsCurrent(item) ? 'page' : undefined}
-            onclick={closeDrawer}
+            onclick={() => closeDrawer(true)}
           >
             <span class="nav-icon" aria-hidden="true"
               ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span

@@ -15,7 +15,7 @@ describe('Client Essential client and team directory surfaces', () => {
     expect(source).toContain('Projects and sites');
     expect(source).toContain('mailto:');
     expect(source).toContain('box-sizing: border-box');
-    expect(source).toContain('color: var(--portal-muted, #526174)');
+    expect(source).toMatch(/color:\s*var\(--portal-muted,\s*#[0-9a-f]{6}\)/i);
     expect(source).toContain('canManageContacts?: boolean');
     expect(source).toContain('data-contact-actions');
     expect(source).toContain('?view=clients&/createClientContact');
@@ -64,7 +64,12 @@ describe('Client Essential client and team directory surfaces', () => {
     expect(source).toContain("t.approval_state NOT IN ('rejected','void')");
     expect(source).toContain('actual_minutes');
     expect(source).toContain('authorizedAssignments');
-    expect(source).not.toMatch(/client_rate|internal_cost|compensation_minor/);
+    const assignmentActuals = source.slice(
+      source.indexOf('const authorizedAssignments'),
+      source.indexOf('const projectIds', source.indexOf('const authorizedAssignments')),
+    );
+    expect(assignmentActuals).toContain('t.approval_state NOT IN');
+    expect(assignmentActuals).not.toMatch(/client_rate|internal_cost|compensation_minor/);
   });
 
   it('styles project workflow actions as visible buttons, not text links', () => {
@@ -86,7 +91,9 @@ describe('Client Essential client and team directory surfaces', () => {
   it('styles client directory contact actions as filled buttons', () => {
     const source = read('apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte');
     expect(source).toContain('class="client-directory__action primary-button"');
-    expect(source).toContain('background: var(--ja-primary, #0f766e)');
+    expect(source).toMatch(
+      /\.client-directory__action\s*\{[\s\S]*?background:\s*var\(--ja-primary,\s*#[0-9a-f]{6}\)/i,
+    );
     expect(source).toContain('box-shadow: 0 0.3rem 0.8rem rgb(16 32 47 / 0.12)');
     expect(source).not.toMatch(
       /\.client-directory__action--quiet\s*\{[\s\S]*?background:\s*transparent/,

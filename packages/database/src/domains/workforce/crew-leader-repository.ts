@@ -32,6 +32,7 @@ export type CrewTimeRow = Readonly<{
   approvalState: string;
   version: number;
   recordedBy: string;
+  editable: boolean;
 }>;
 export type CrewTimeDetail = CrewTimeRow &
   Readonly<{
@@ -41,6 +42,11 @@ export type CrewTimeDetail = CrewTimeRow &
     startTime: string | null;
     endTime: string | null;
     breakMinutes: number | null;
+    editable: boolean;
+    reviewReason?: string | null;
+    activeCorrectionId?: string | null;
+    activeCorrectionState?: string | null;
+    isCorrectionDraft: boolean;
   }>;
 export type CrewBatchInput = TimeEntryInput &
   Readonly<{
@@ -418,17 +424,53 @@ export class CrewLeaderRepository {
     assertDate(to, 'To date');
     if (to < from) throw new ValidationError('End date must follow start date');
     this.assertChief(principal);
-    return this.sqlite
+    const rows = this.sqlite
       .prepare(
         `SELECT t.id,t.project_id projectId,t.worker_id workerId,u.name workerName,
               t.work_date workDate,t.category,t.minutes,t.activity_summary summary,
-              t.approval_state approvalState,t.version,rec.recorded_by_user_id recordedBy
+              t.approval_state approvalState,t.version,rec.recorded_by_user_id recordedBy,
+              rec.grant_id grantId,
+              t.invoice_id invoiceId,t.billing_status billingStatus,t.billing_lock_id billingLockId
        FROM crew_time_entry_recorder rec JOIN time_entry t ON t.id=rec.time_entry_id
        JOIN user u ON u.id=t.worker_id
        WHERE rec.recorded_by_user_id=? AND t.project_id=? AND t.work_date BETWEEN ? AND ?
+         AND t.approval_state<>'void'
        ORDER BY t.work_date DESC,t.created_at DESC LIMIT 400`,
       )
-      .all(principal.userId, projectId, from, to) as CrewTimeRow[];
+      .all(principal.userId, projectId, from, to) as Array<
+      Omit<CrewTimeRow, 'editable'> & {
+        grantId: string;
+        invoiceId: string | null;
+        billingStatus: string;
+        billingLockId: string | null;
+      }
+    >;
+    const activeGrants = new Map<string, string | null>();
+    return rows
+      .filter((row) => {
+        const key = `${row.workerId}:${row.workDate}`;
+        if (!activeGrants.has(key)) {
+          try {
+            activeGrants.set(
+              key,
+              this.assertScope(principal, row.workerId, projectId, row.workDate).id,
+            );
+          } catch (caught) {
+            if (!(caught instanceof AccessDeniedError)) throw caught;
+            activeGrants.set(key, null);
+          }
+        }
+        return activeGrants.get(key) === row.grantId;
+      })
+      .map(({ grantId: _grantId, invoiceId, billingStatus, billingLockId, ...row }) => ({
+        ...row,
+        editable:
+          row.approvalState === 'draft' &&
+          invoiceId === null &&
+          billingStatus === 'unlocked' &&
+          billingLockId === null &&
+          !this.hasLinkedEvidence(row.id),
+      }));
   }
 
   entryDetail(principal: Principal, id: string): CrewTimeDetail {
@@ -439,17 +481,219 @@ export class CrewLeaderRepository {
               u.name workerName,t.work_date workDate,t.category,t.activity_code activityCode,
               t.minutes,t.activity_summary summary,t.site,t.start_time startTime,
               t.end_time endTime,t.break_minutes breakMinutes,t.approval_state approvalState,
-              t.version,rec.recorded_by_user_id recordedBy,rec.grant_id grantId
+              t.version,rec.recorded_by_user_id recordedBy,rec.grant_id grantId,
+              t.invoice_id invoiceId,t.billing_status billingStatus,t.billing_lock_id billingLockId
        FROM crew_time_entry_recorder rec JOIN time_entry t ON t.id=rec.time_entry_id
        JOIN project p ON p.id=t.project_id JOIN user u ON u.id=t.worker_id
        WHERE rec.time_entry_id=? AND rec.recorded_by_user_id=?`,
       )
-      .get(id, principal.userId) as (CrewTimeDetail & { grantId: string }) | undefined;
+      .get(id, principal.userId) as
+      | (CrewTimeDetail & {
+          grantId: string;
+          invoiceId: string | null;
+          billingStatus: string;
+          billingLockId: string | null;
+        })
+      | undefined;
     if (!row) throw new AccessDeniedError('Crew time entry access required');
     const grant = this.assertScope(principal, row.workerId, row.projectId, row.workDate);
     if (grant.id !== row.grantId) throw new AccessDeniedError('Crew time entry delegation changed');
-    const { grantId: _grantId, ...operational } = row;
-    return operational;
+    const { grantId: _grantId, invoiceId, billingStatus, billingLockId, ...operational } = row;
+    const parent = this.sqlite
+      .prepare(
+        "SELECT original_id FROM record_correction_link WHERE record_type='time_entry' AND correction_id=? LIMIT 1",
+      )
+      .get(id) as { original_id: string } | undefined;
+    const review =
+      row.approvalState === 'needs_changes' || row.approvalState === 'rejected'
+        ? (this.sqlite
+            .prepare(
+              "SELECT reason FROM approval_event WHERE entity_type IN ('time','time_entry') AND entity_id=? AND to_state IN ('needs_changes','rejected') AND (reason IS NULL OR reason NOT LIKE 'Superseded by append-only correction retry %') ORDER BY occurred_at DESC,id DESC LIMIT 1",
+            )
+            .get(id) as { reason: string | null } | undefined)
+        : undefined;
+    const correction =
+      row.approvalState === 'needs_changes' || row.approvalState === 'rejected'
+        ? (this.sqlite
+            .prepare(
+              `SELECT correction.id,correction.approval_state state,recorder.recorded_by_user_id recordedBy
+                 FROM record_correction_link link JOIN time_entry correction ON correction.id=link.correction_id
+                 LEFT JOIN crew_time_entry_recorder recorder ON recorder.time_entry_id=correction.id
+                WHERE link.record_type='time_entry' AND link.original_id=? AND correction.approval_state NOT IN ('rejected','void')
+                ORDER BY link.created_at DESC,link.id DESC LIMIT 1`,
+            )
+            .get(parent?.original_id ?? id) as
+            | { id: string; state: string; recordedBy: string | null }
+            | undefined)
+        : undefined;
+    return {
+      ...operational,
+      isCorrectionDraft: Boolean(parent),
+      ...(row.approvalState === 'needs_changes' || row.approvalState === 'rejected'
+        ? {
+            reviewReason: review?.reason ?? null,
+            activeCorrectionId:
+              correction?.id !== id && correction?.recordedBy === principal.userId
+                ? correction.id
+                : null,
+            activeCorrectionState: correction?.id !== id ? (correction?.state ?? null) : null,
+          }
+        : {}),
+      editable:
+        row.approvalState === 'draft' &&
+        invoiceId === null &&
+        billingStatus === 'unlocked' &&
+        billingLockId === null &&
+        !this.hasLinkedEvidence(id),
+    };
+  }
+
+  private hasLinkedEvidence(id: string): boolean {
+    return Boolean(
+      this.sqlite
+        .prepare(
+          `SELECT 1 WHERE EXISTS(SELECT 1 FROM expense WHERE time_entry_id=?)
+             OR EXISTS(SELECT 1 FROM crew_shared_expense_allocation WHERE time_entry_id=?)
+             OR EXISTS(SELECT 1 FROM report_time_link WHERE time_entry_id=?)
+             OR EXISTS(SELECT 1 FROM operational_time_expense_request WHERE time_entry_id=?)
+             OR EXISTS(SELECT 1 FROM record_correction_link
+                       WHERE record_type='time_entry' AND (original_id=? OR correction_id=?))`,
+        )
+        .get(id, id, id, id, id, id),
+    );
+  }
+
+  private editableDraft(principal: Principal, id: string, version: number): CrewTimeDetail {
+    if (!Number.isSafeInteger(version) || version < 1)
+      throw new ValidationError('A valid draft version is required');
+    const row = this.entryDetail(principal, id);
+    if (row.version !== version)
+      throw new ConflictError('This crew draft changed. Reload it before saving.');
+    if (row.approvalState !== 'draft')
+      throw new ConflictError('Only a never-submitted crew draft can change');
+    if (!row.editable)
+      throw new ConflictError(
+        'This crew draft is linked to an expense, receipt, report, correction, or billing record and cannot change',
+      );
+    return row;
+  }
+
+  createCorrectedDraft(
+    principal: Principal,
+    input: {
+      originalId: string;
+      version: number;
+      requestId: string;
+      reason: string;
+      workDate: string;
+      category: string;
+      minutes: number;
+      summary: string;
+      startTime?: string;
+      endTime?: string;
+      breakMinutes?: number;
+    },
+  ): { id: string; version: number } {
+    return this.transaction(() => {
+      // entryDetail checks the original recorder, active grant, and worker/project scope.
+      const original = this.entryDetail(principal, input.originalId);
+      if (original.version !== input.version)
+        throw new ConflictError('This crew time changed. Reload it before correcting.');
+      if (original.approvalState !== 'needs_changes')
+        throw new ConflictError('Only reviewer-returned crew time can be corrected here');
+      assertDate(input.workDate, 'Work date');
+      const grant = this.assertScope(
+        principal,
+        original.workerId,
+        original.projectId,
+        input.workDate,
+      );
+      const recorder = this.sqlite
+        .prepare('SELECT grant_id grantId FROM crew_time_entry_recorder WHERE time_entry_id=?')
+        .get(input.originalId) as { grantId: string };
+      if (grant.id !== recorder.grantId)
+        throw new AccessDeniedError('Crew time entry delegation changed');
+      if (!['regular', 'overtime', 'travel', 'standby'].includes(input.category))
+        throw new ValidationError('Choose a valid time category');
+      if (!Number.isInteger(input.minutes) || input.minutes < 1 || input.minutes > 1440)
+        throw new ValidationError('Enter 1 to 1440 minutes');
+      const result = this.time.createCorrectionDraft(principal, {
+        originalId: input.originalId,
+        requestId: input.requestId,
+        reason: text(input.reason, 'Correction reason', 2000),
+        patch: {
+          workDate: input.workDate,
+          category: input.category,
+          minutes: input.minutes,
+          summary: text(input.summary, 'Work performed'),
+          ...(input.startTime ? { startTime: input.startTime } : {}),
+          ...(input.endTime ? { endTime: input.endTime } : {}),
+          ...(input.breakMinutes !== undefined ? { breakMinutes: input.breakMinutes } : {}),
+        },
+      });
+      return { id: result.correctionId, version: result.version ?? 1 };
+    });
+  }
+
+  updateDraft(
+    principal: Principal,
+    input: {
+      id: string;
+      version: number;
+      workDate: string;
+      category: string;
+      minutes: number;
+      summary: string;
+    },
+  ): { id: string; version: number } {
+    return this.transaction(() => {
+      const current = this.editableDraft(principal, input.id, input.version);
+      assertDate(input.workDate, 'Work date');
+      const grant = this.assertScope(
+        principal,
+        current.workerId,
+        current.projectId,
+        input.workDate,
+      );
+      const recorder = this.sqlite
+        .prepare('SELECT grant_id grantId FROM crew_time_entry_recorder WHERE time_entry_id=?')
+        .get(input.id) as { grantId: string };
+      if (grant.id !== recorder.grantId)
+        throw new AccessDeniedError('Crew time entry delegation changed');
+      if (!['regular', 'overtime', 'travel', 'standby'].includes(input.category))
+        throw new ValidationError('Choose a valid time category');
+      if (!Number.isInteger(input.minutes) || input.minutes < 1 || input.minutes > 1440)
+        throw new ValidationError('Enter 1 to 1440 minutes');
+      const summary = text(input.summary, 'Work performed');
+      return this.time.updateTimeEntry(principal, {
+        id: input.id,
+        version: input.version,
+        workDate: input.workDate,
+        category: input.category,
+        minutes: input.minutes,
+        summary,
+      });
+    });
+  }
+
+  discardDraft(principal: Principal, id: string, version: number): void {
+    this.transaction(() => {
+      const current = this.editableDraft(principal, id, version);
+      const result = this.sqlite
+        .prepare(
+          `UPDATE time_entry SET approval_state='void',updated_at=?,version=version+1
+           WHERE id=? AND version=? AND approval_state='draft' AND invoice_id IS NULL
+             AND billing_status='unlocked' AND billing_lock_id IS NULL`,
+        )
+        .run(now(), id, version);
+      if (result.changes !== 1)
+        throw new ConflictError('This crew draft changed. Reload it before discarding.');
+      recordAuditEvent(this.sqlite, principal, 'time.void', 'time_entry', id, {
+        version,
+        workerId: current.workerId,
+        operation: 'discard_crew_draft',
+      });
+    });
   }
 
   createBatch(
@@ -558,13 +802,11 @@ export class CrewLeaderRepository {
   }
 
   submit(principal: Principal, id: string, version: number): { id: string; version: number } {
-    this.assertChief(principal);
-    const row = this.sqlite
-      .prepare(
-        'SELECT 1 FROM crew_time_entry_recorder WHERE time_entry_id=? AND recorded_by_user_id=?',
-      )
-      .get(id, principal.userId);
-    if (!row) throw new AccessDeniedError('Crew time entry access required');
-    return this.time.submitTime(principal, id, version);
+    return this.transaction(() => {
+      // Keep submission bound to the same grant that recorded this entry.
+      // A new grant to the same pair must not revive a formerly revoked entry.
+      this.entryDetail(principal, id);
+      return this.time.submitTime(principal, id, version);
+    });
   }
 }

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Principal } from '@ja/domain';
+import { ReadinessError } from '@ja/database';
 import { AssignmentExpensePolicyRepository } from '../../packages/database/src/domains/expenses/assignment-expense-policy-repository.ts';
 import {
   closeB5LifecycleSecurityFixture,
@@ -41,7 +42,11 @@ function fixture() {
   return { ...value, finance, policy, workers, memberId };
 }
 
-function bindCanonicalAuthority(value: ReturnType<typeof fixture>, combined = false): void {
+function bindCanonicalAuthority(
+  value: ReturnType<typeof fixture>,
+  combined = false,
+  fixedAmountMinor?: bigint,
+): void {
   const legalEntity = value.repository.createLegalEntity(value.owner, {
     code: 'RECON',
     legalName: 'Reconciliation Test Entity',
@@ -90,6 +95,7 @@ function bindCanonicalAuthority(value: ReturnType<typeof fixture>, combined = fa
       taxProfileId: tax.id,
       currency: 'EUR',
       effectiveFrom: '2026-08-01',
+      ...(streamType === 'labor' && fixedAmountMinor !== undefined ? { fixedAmountMinor } : {}),
     });
   }
 }
@@ -173,6 +179,287 @@ function approvedLaborInvoice(value: ReturnType<typeof fixture>, combined = fals
 }
 
 describe('project calculation reconciliation', () => {
+  it('distinguishes empty hourly periods from positive fixed-fee labor periods', () => {
+    const hourly = fixture();
+    bindCanonicalAuthority(hourly, true);
+    const hourlyRule = hourly.sqlite
+      .prepare("SELECT id FROM billing_rule WHERE project_id=? AND stream_type='labor'")
+      .get(hourly.project.id) as { id: string };
+    expect(
+      hourly.repository.billingReadiness(hourly.finance, hourlyRule.id, '2026-09-25', '2026-09-25'),
+    ).toMatchObject({
+      state: 'ready',
+      includedSourceCount: 0,
+      hasPositiveFixedFee: false,
+      hasPositiveDraftAmount: false,
+    });
+    expect(() =>
+      hourly.repository.createInvoiceDraft(
+        hourly.finance,
+        hourlyRule.id,
+        '2026-09-25',
+        '2026-09-25',
+      ),
+    ).toThrow(ReadinessError);
+
+    const fixed = fixture();
+    fixed.repository.updateProject(fixed.owner, {
+      projectId: fixed.project.id,
+      billingModel: 'all_in',
+      fixedPriceMinor: 25_000n,
+    });
+    bindCanonicalAuthority(fixed, true);
+    const fixedRule = fixed.sqlite
+      .prepare("SELECT id FROM billing_rule WHERE project_id=? AND stream_type='labor'")
+      .get(fixed.project.id) as { id: string };
+    expect(
+      fixed.repository.billingReadiness(fixed.finance, fixedRule.id, '2026-09-25', '2026-09-25'),
+    ).toMatchObject({
+      state: 'ready',
+      includedSourceCount: 0,
+      hasPositiveFixedFee: true,
+      hasPositiveDraftAmount: true,
+    });
+    const fixedDraft = fixed.repository.createInvoiceDraft(
+      fixed.finance,
+      fixedRule.id,
+      '2026-09-25',
+      '2026-09-25',
+    );
+    expect(
+      fixed.sqlite.prepare('SELECT subtotal_minor FROM invoice WHERE id=?').get(fixedDraft.id),
+    ).toEqual({ subtotal_minor: 25_000 });
+
+    const hybrid = fixture();
+    hybrid.repository.updateProject(hybrid.owner, {
+      projectId: hybrid.project.id,
+      billingModel: 'hybrid',
+    });
+    bindCanonicalAuthority(hybrid, true, 5_000n);
+    const hybridRule = hybrid.sqlite
+      .prepare("SELECT id FROM billing_rule WHERE project_id=? AND stream_type='labor'")
+      .get(hybrid.project.id) as { id: string };
+    expect(
+      hybrid.repository.billingReadiness(hybrid.finance, hybridRule.id, '2026-09-25', '2026-09-25'),
+    ).toMatchObject({
+      state: 'ready',
+      includedSourceCount: 0,
+      hasPositiveFixedFee: true,
+      hasPositiveDraftAmount: true,
+    });
+    const hybridDraft = hybrid.repository.createInvoiceDraft(
+      hybrid.finance,
+      hybridRule.id,
+      '2026-09-25',
+      '2026-09-25',
+    );
+    expect(
+      hybrid.sqlite.prepare('SELECT subtotal_minor FROM invoice WHERE id=?').get(hybridDraft.id),
+    ).toEqual({ subtotal_minor: 5_000 });
+  });
+
+  it('blocks a zero-value refresh of an existing draft without mutating its prior snapshot', () => {
+    const value = fixture();
+    value.repository.updateProject(value.owner, {
+      projectId: value.project.id,
+      billingModel: 'all_in',
+      fixedPriceMinor: 2_500n,
+    });
+    bindCanonicalAuthority(value, true);
+    const rule = value.sqlite
+      .prepare("SELECT id FROM billing_rule WHERE project_id=? AND stream_type='labor'")
+      .get(value.project.id) as { id: string };
+    const draft = value.repository.createInvoiceDraft(
+      value.finance,
+      rule.id,
+      '2026-09-25',
+      '2026-09-25',
+    );
+    value.sqlite.prepare('UPDATE project SET fixed_price_minor=0 WHERE id=?').run(value.project.id);
+    expect(
+      value.repository.billingReadiness(value.finance, rule.id, '2026-09-25', '2026-09-25'),
+    ).toMatchObject({
+      state: 'ready',
+      existingInvoiceId: draft.id,
+      existingInvoiceState: 'draft',
+      includedSourceCount: 0,
+      hasPositiveDraftAmount: false,
+    });
+    expect(() =>
+      value.repository.createInvoiceDraft(value.finance, rule.id, '2026-09-25', '2026-09-25'),
+    ).toThrow(ReadinessError);
+    expect(
+      value.sqlite.prepare('SELECT subtotal_minor,state FROM invoice WHERE id=?').get(draft.id),
+    ).toEqual({ subtotal_minor: 2_500, state: 'draft' });
+  });
+
+  it('treats included hybrid minutes and rounded-zero labor as zero-value', () => {
+    for (const scenario of ['hybrid', 'rounded'] as const) {
+      const value = fixture();
+      if (scenario === 'hybrid')
+        value.repository.updateProject(value.owner, {
+          projectId: value.project.id,
+          billingModel: 'hybrid',
+        });
+      bindCanonicalAuthority(value, true, scenario === 'hybrid' ? 0n : undefined);
+      const rule = value.sqlite
+        .prepare("SELECT id FROM billing_rule WHERE project_id=? AND stream_type='labor'")
+        .get(value.project.id) as { id: string };
+      if (scenario === 'hybrid')
+        value.sqlite
+          .prepare('UPDATE billing_rule SET included_minutes=480 WHERE id=?')
+          .run(rule.id);
+      value.v3.createClientLaborRate(value.finance, {
+        projectId: value.project.id,
+        workerId: value.worker.userId,
+        currency: 'EUR',
+        hourlyRateMinor: scenario === 'hybrid' ? 5_500n : 1n,
+        effectiveFrom: '2026-08-01',
+      });
+      const time = value.repository.createTimeEntry(value.worker, {
+        projectId: value.project.id,
+        workDate: '2026-09-25',
+        category: 'regular',
+        minutes: scenario === 'hybrid' ? 60 : 1,
+        summary: `${scenario} zero-value test`,
+      });
+      value.repository.submitTime(value.worker, time.id, time.version);
+      value.repository.operationalApproveTime(value.manager, time.id, 'approved');
+      value.repository.financeApproveTime(value.finance, time.id, true);
+      expect(
+        value.repository.billingReadiness(value.finance, rule.id, '2026-09-25', '2026-09-25'),
+      ).toMatchObject({
+        state: 'ready',
+        includedSourceCount: 1,
+        hasPositiveDraftAmount: false,
+      });
+      expect(() =>
+        value.repository.createInvoiceDraft(value.finance, rule.id, '2026-09-25', '2026-09-25'),
+      ).toThrow(ReadinessError);
+    }
+  });
+
+  it('recognizes an approved positive milestone as a billable source', () => {
+    const value = fixture();
+    bindCanonicalAuthority(value, true);
+    const authority = value.sqlite
+      .prepare(
+        "SELECT legal_entity_id,tax_profile_id FROM billing_rule WHERE project_id=? AND stream_type='labor'",
+      )
+      .get(value.project.id) as { legal_entity_id: string; tax_profile_id: string };
+    const rule = value.repository.createBillingRule(value.finance, {
+      projectId: value.project.id,
+      legalEntityId: authority.legal_entity_id,
+      streamType: 'milestone',
+      cadenceType: 'custom',
+      taxProfileId: authority.tax_profile_id,
+      currency: 'EUR',
+      effectiveFrom: '2026-08-01',
+    });
+    const milestone = value.repository.createProjectMilestone(value.owner, {
+      projectId: value.project.id,
+      name: 'Milestone readiness regression',
+      amountMinor: 3_200n,
+      dueOn: '2026-09-25',
+    });
+    value.repository.submitProjectMilestone(value.owner, milestone.id, milestone.version);
+    value.repository.reviewProjectMilestone(value.manager, milestone.id, 'approved');
+    expect(
+      value.repository.billingReadiness(value.finance, rule.id, '2026-09-25', '2026-09-25'),
+    ).toMatchObject({
+      state: 'ready',
+      streamType: 'milestone',
+      includedSourceCount: 1,
+      hasPositiveDraftAmount: true,
+    });
+    expect(
+      value.repository.createInvoiceDraft(value.finance, rule.id, '2026-09-25', '2026-09-25'),
+    ).toMatchObject({ created: true });
+  });
+
+  it('allows a hybrid expense stream to bill its fixed amount without expense rows', () => {
+    const value = fixture();
+    value.repository.updateProject(value.owner, {
+      projectId: value.project.id,
+      billingModel: 'hybrid',
+    });
+    bindCanonicalAuthority(value);
+    const rule = value.sqlite
+      .prepare("SELECT id FROM billing_rule WHERE project_id=? AND stream_type='expense'")
+      .get(value.project.id) as { id: string };
+    value.sqlite.prepare('UPDATE billing_rule SET fixed_amount_minor=1800 WHERE id=?').run(rule.id);
+    expect(
+      value.repository.billingReadiness(value.finance, rule.id, '2026-09-25', '2026-09-25'),
+    ).toMatchObject({
+      state: 'ready',
+      streamType: 'expense',
+      includedSourceCount: 0,
+      hasPositiveFixedFee: true,
+      hasPositiveDraftAmount: true,
+    });
+    const invoice = value.repository.createInvoiceDraft(
+      value.finance,
+      rule.id,
+      '2026-09-25',
+      '2026-09-25',
+    );
+    expect(
+      value.sqlite.prepare('SELECT subtotal_minor FROM invoice WHERE id=?').get(invoice.id),
+    ).toEqual({ subtotal_minor: 1800 });
+  });
+
+  it('allows refreshing the draft that occupies its own cap but closes another period', () => {
+    const value = fixture();
+    value.repository.updateProject(value.owner, {
+      projectId: value.project.id,
+      billingModel: 'capped_tm',
+      poCapMinor: 5_500n,
+    });
+    bindCanonicalAuthority(value, true);
+    value.v3.createClientLaborRate(value.finance, {
+      projectId: value.project.id,
+      workerId: value.worker.userId,
+      currency: 'EUR',
+      hourlyRateMinor: 5_500n,
+      effectiveFrom: '2026-08-01',
+    });
+    const time = value.repository.createTimeEntry(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-09-25',
+      category: 'regular',
+      minutes: 60,
+      summary: 'At-cap draft refresh',
+    });
+    value.repository.submitTime(value.worker, time.id, time.version);
+    value.repository.operationalApproveTime(value.manager, time.id, 'approved');
+    value.repository.financeApproveTime(value.finance, time.id, true);
+    const rule = value.sqlite
+      .prepare("SELECT id FROM billing_rule WHERE project_id=? AND stream_type='labor'")
+      .get(value.project.id) as { id: string };
+    const draft = value.repository.createInvoiceDraft(
+      value.finance,
+      rule.id,
+      '2026-09-25',
+      '2026-09-25',
+    );
+    expect(
+      value.repository.billingReadiness(value.finance, rule.id, '2026-09-25', '2026-09-25'),
+    ).toMatchObject({
+      state: 'ready',
+      existingInvoiceId: draft.id,
+      hasPositiveDraftAmount: true,
+    });
+    expect(
+      value.repository.createInvoiceDraft(value.finance, rule.id, '2026-09-25', '2026-09-25'),
+    ).toMatchObject({ refreshed: true });
+    expect(
+      value.repository.billingReadiness(value.finance, rule.id, '2026-09-26', '2026-09-26'),
+    ).toMatchObject({
+      state: 'incomplete',
+      reasons: expect.arrayContaining([{ code: 'cap_exhausted' }]),
+    });
+  });
+
   it('keeps a prior-period approval issuable when a successor only closes its rule', () => {
     const value = fixture();
     const { rule, draft } = approvedLaborInvoice(value, true);

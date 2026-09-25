@@ -26,7 +26,15 @@ const labels = (role: string | null | undefined): string[] =>
 
 describe('portal role navigation contract', () => {
   it('keeps the worker menu operational and free of administrative destinations', () => {
-    expect(labels('worker')).toEqual(['Today', 'Time', 'Expenses', 'Reports', 'My Pay', 'Profile']);
+    expect(labels('worker')).toEqual([
+      'Today',
+      'Time',
+      'Expenses',
+      'Reports',
+      'Crew hours',
+      'My Pay',
+      'Profile',
+    ]);
     expect(labels('worker')).not.toEqual(
       expect.arrayContaining(['Projects', 'Billing', 'Finance']),
     );
@@ -96,6 +104,7 @@ describe('portal role navigation contract', () => {
       'Clients',
       'Team',
       'Suppliers',
+      'Crew hours',
       'Time',
       'Expenses',
       'Planning',

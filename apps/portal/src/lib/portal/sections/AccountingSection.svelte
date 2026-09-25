@@ -111,6 +111,7 @@
 
   {#if !isAuditor}
     <SectionCard
+      id="accounting-generate"
       title={translate('Generate monthly Accounting Pack')}
       collapsible
       class="accounting-section__create"

@@ -4,8 +4,10 @@ import {
   versionedRecordSchema,
 } from '@ja/schemas';
 import { error, redirect } from '@sveltejs/kit';
+import { randomUUID } from 'node:crypto';
 import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/action-message';
 import { openPortalRepository } from '$lib/server/portal-repository';
+import { reportActions } from '$lib/server/actions/operations-actions';
 import { formObject } from '$lib/server/action-utils';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -15,6 +17,12 @@ export const load: PageServerLoad = ({ locals, params }) => {
   try {
     const detail = context.repository.reportDetail(context.principal, params.id);
     const reportType = detail.type === 'technical' ? 'technical' : 'daily';
+    const correctionActor = context.sqlite
+      .prepare(
+        `SELECT actor_user_id FROM record_correction_link
+        WHERE record_type=? AND correction_id=? LIMIT 1`,
+      )
+      .get(`${reportType}_report`, params.id) as { actor_user_id: string } | undefined;
     // listReportAttachments is the authorization boundary.  The small
     // read-only enrichment query is deliberately constrained to the returned
     // document ids so the detail page never becomes a document oracle.
@@ -57,7 +65,20 @@ export const load: PageServerLoad = ({ locals, params }) => {
     }));
     return {
       user: locals.user,
-      detail: { ...detail, attachments },
+      correctionRequestId: randomUUID(),
+      detail: {
+        ...detail,
+        attachments,
+        canWithdrawCorrection:
+          detail.report.approval_state === 'draft' &&
+          (correctionActor?.actor_user_id === context.principal.userId ||
+            context.principal.role === 'owner_admin'),
+        canSubmitDraft:
+          ['draft', 'needs_changes'].includes(String(detail.report.approval_state)) &&
+          (String(detail.report.worker_id ?? detail.report.author_id) ===
+            context.principal.userId ||
+            context.principal.role === 'owner_admin'),
+      },
     };
   } catch {
     error(404, 'detail.report.notFound');
@@ -88,10 +109,12 @@ export const actions: Actions = {
         const result = context.repository.updateDailyReport(context.principal, parsed.data);
         const changedFields = 'changedFields' in result ? result.changedFields : [];
         return actionSuccess(
-          changedFields.length > 0 ? 'action.reports.submitted' : 'action.reports.dailyDraftSaved',
+          changedFields.length > 0
+            ? 'action.reports.changesSaved'
+            : 'action.reports.dailyDraftSaved',
           changedFields.length > 0 ? { changedFields: changedFields.join(', ') } : {},
           changedFields.length > 0
-            ? `Report updated. Review requested for: ${changedFields.join(', ')}`
+            ? `Changes saved. Submit for review when ready: ${changedFields.join(', ')}`
             : 'No report fields changed',
         );
       }
@@ -108,11 +131,11 @@ export const actions: Actions = {
       const changedFields = 'changedFields' in result ? result.changedFields : [];
       return actionSuccess(
         changedFields.length > 0
-          ? 'action.reports.submitted'
+          ? 'action.reports.changesSaved'
           : 'action.reports.technicalDraftSaved',
         changedFields.length > 0 ? { changedFields: changedFields.join(', ') } : {},
         changedFields.length > 0
-          ? `Report updated. Review requested for: ${changedFields.join(', ')}`
+          ? `Changes saved. Submit for review when ready: ${changedFields.join(', ')}`
           : 'No report fields changed',
       );
     } catch (error) {
@@ -120,5 +143,38 @@ export const actions: Actions = {
     } finally {
       context.sqlite.close();
     }
+  },
+  createCorrectionDraft: async (event) => {
+    const result = await reportActions.createCorrectionDraft({
+      ...event,
+      params: { ...event.params, section: 'reports' },
+    });
+    if ('success' in result && result.success === true)
+      redirect(
+        303,
+        `/j-aautomation/app/reports/${encodeURIComponent(String(result.messageParams.correctionId))}`,
+      );
+    return result;
+  },
+  withdrawCorrectionDraft: async (event) => {
+    const result = await reportActions.withdrawCorrectionDraft({
+      ...event,
+      params: { ...event.params, section: 'reports' },
+    });
+    if ('success' in result && result.success === true)
+      redirect(
+        303,
+        `/j-aautomation/app/reports/${encodeURIComponent(String(result.messageParams.originalId))}`,
+      );
+    return result;
+  },
+  submitReport: async (event) => {
+    const result = await reportActions.submitReport({
+      ...event,
+      params: { ...event.params, section: 'reports' },
+    });
+    if ('success' in result && result.success === true)
+      redirect(303, `/j-aautomation/app/reports/${encodeURIComponent(event.params.id)}`);
+    return result;
   },
 };

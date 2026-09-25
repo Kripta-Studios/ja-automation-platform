@@ -325,6 +325,8 @@ describe('repository authorization and privacy', () => {
         id: receipt.id,
         project_id: project.id,
         safe_filename: 'receipt.pdf',
+        byte_length: 42,
+        sensitivity: 'internal',
         artifact_type: 'receipt',
         project_number: project.projectNumber,
       }),
@@ -332,9 +334,7 @@ describe('repository authorization and privacy', () => {
     for (const key of [
       'owner_id',
       'original_filename',
-      'byte_length',
       'software_version',
-      'sensitivity',
       'scan_status',
       'owner_name',
     ])
@@ -399,6 +399,7 @@ describe('repository authorization and privacy', () => {
         description: 'Travel to site',
         amount_minor: 1000,
         reimbursement_state: 'pending',
+        correction_financially_finalized: 1,
       }),
     );
     expect(pmScopeExpense).toBeDefined();

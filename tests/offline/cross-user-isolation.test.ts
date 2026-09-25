@@ -385,7 +385,8 @@ describe('offline authenticated-user partitioning', () => {
     await form.locator('select[name="projectId"]').selectOption({ index: 1 });
     await form.locator('input[name="workDate"]').fill('2026-08-20');
     await form.locator('select[name="category"]').selectOption('regular');
-    await form.locator('input[name="minutes"]').fill('30');
+    await form.getByLabel('Actual hours').fill('0.5');
+    await expect(form.locator('input[name="minutes"]')).toHaveValue('30');
     await form.locator('textarea[name="summary"]').fill('Worker-only queued draft');
     await form.getByRole('button', { name: 'Save draft', exact: true }).click();
     await expect(workerQueuePage.locator('.connection')).toHaveText('Offline');

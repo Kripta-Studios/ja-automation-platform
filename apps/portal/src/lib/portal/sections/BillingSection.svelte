@@ -4,13 +4,14 @@
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
+  import { tick } from 'svelte';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { ResponsiveSheet, SectionCard, StatusBadge, TableRegion } from '../ui';
   import type { TableCardRow } from '../ui';
   import { billingReadinessMessageKey } from '../billing-readiness';
 
-  type BillingStage = 'all' | 'wip' | 'drafts' | 'outstanding' | 'overdue' | 'paid';
+  type BillingStage = 'all' | 'wip' | 'drafts' | 'outstanding' | 'overdue' | 'credits' | 'paid';
   type BillingWorkspace = 'invoices' | 'streams' | 'setup';
   type BillingSetupAction = 'stream' | 'entity' | 'tax' | 'numbering';
   type InvoicePdfStatus = 'queued' | 'running' | 'ready' | 'failed' | 'unavailable';
@@ -65,9 +66,14 @@
 
   type BillingReadinessPreview = {
     state: 'ready' | 'incomplete' | 'already_closed';
+    streamType: string;
     includedSourceCount: number;
     excludedSourceCount: number;
+    hasPositiveFixedFee: boolean;
+    hasPositiveDraftAmount: boolean;
     reasons: Array<{ code?: string; sourceId?: string }>;
+    existingInvoiceId?: string | null;
+    existingInvoiceState?: string | null;
   };
 
   type BillingActionResult = {
@@ -76,6 +82,7 @@
     success?: boolean;
     message?: string;
     messageKey?: unknown;
+    messageParams?: Record<string, unknown>;
     reasons?: unknown;
     issueBlocker?: unknown;
     code?: unknown;
@@ -118,8 +125,6 @@
   let wizardReadiness = $state<BillingReadinessPreview | null>(null);
   let wizardReadinessLoading = $state(false);
   let wizardReadinessError = $state('');
-  type InvoiceDrawerTab = 'overview' | 'collections' | 'lifecycle';
-  let invoiceDrawerTab = $state<InvoiceDrawerTab>('overview');
 
   const todayIso = $derived(new Date().toISOString().slice(0, 10));
 
@@ -129,7 +134,7 @@
     try {
       const period = lastCompletePeriodForCadence(cadence, todayIso, {
         anchorDate: rowValue(rule, 'anchor_date', 'anchorDate') || undefined,
-        monthlyCutoffDay: monthlyCutoffRaw ? Number(monthlyCutoffRaw) : undefined,
+        monthlyCutoffDay: monthlyCutoffRaw ? parseInt(monthlyCutoffRaw, 10) : undefined,
       }) ?? { start: '', end: '' };
       const effectiveFrom = rowValue(rule, 'effective_from', 'effectiveFrom');
       const effectiveTo = rowValue(rule, 'effective_to', 'effectiveTo');
@@ -173,8 +178,20 @@
     invoiceWizardOpen = true;
   }
 
+  async function showSetupAction(action: BillingSetupAction): Promise<void> {
+    workspace = 'setup';
+    setupAction = action;
+    await tick();
+    const form = document.querySelector<HTMLElement>('.billing-section__config-form');
+    form?.scrollIntoView({ block: 'start' });
+    form?.querySelector<HTMLElement>('input:not([type="hidden"]), select, textarea')?.focus({
+      preventScroll: true,
+    });
+  }
+
   const invoices = $derived(data.invoices ?? []);
   const billingRules = $derived(data.billingRules ?? []);
+  const activeWizardRules = $derived(billingRules.filter((rule) => String(rule.enabled) === '1'));
   const visibleBillingRules = $derived(
     billingRules.filter(
       (rule) => !projectFilter || rowValue(rule, 'project_id', 'projectId') === projectFilter,
@@ -183,6 +200,52 @@
   let billingRulePage = $state<Row[]>([]);
   const streamFocusId = $derived($page.url.searchParams.get('focus')?.trim() ?? '');
   const wizardRule = $derived(billingRules.find((rule) => rowValue(rule, 'id') === wizardRuleId));
+  const wizardHasNoBillableSources = $derived(
+    wizardReadiness?.state === 'ready' &&
+      !wizardReadiness.hasPositiveDraftAmount &&
+      (!wizardReadiness.existingInvoiceId || wizardReadiness.existingInvoiceState === 'draft'),
+  );
+  const wizardEmptySourcesMessage = $derived(
+    (wizardReadiness?.includedSourceCount ?? 0) > 0
+      ? 'The eligible records total zero billable amount. Review rates, included hours, milestone amounts, and the billing setup.'
+      : wizardReadiness?.streamType === 'expense'
+        ? 'No approved, unbilled expenses are available in this period. Choose another period or approve the expenses first.'
+        : wizardReadiness?.streamType === 'milestone'
+          ? 'No approved, unbilled milestones are available in this period. Choose another period or approve a milestone first.'
+          : 'No billable labor records are available in this period. Choose another period or review the time and billing setup.',
+  );
+  const wizardStepLabels = [
+    'Client / project',
+    'Billing stream',
+    'Labor / expenses',
+    'Period',
+    'Included records',
+    'Excluded / pending',
+    'Taxes',
+    'Invoice data',
+    'Banking / payment',
+    'Commercial adjustments',
+    'Preview',
+    'Save / issue',
+  ];
+  let setupProjectId = $state('');
+  let setupCurrency = $state('');
+  let setupLegalEntityId = $state('');
+  let setupTaxProfileId = $state('');
+  let setupContactId = $state('');
+  const setupProject = $derived(
+    availableProjects.find((project) => rowValue(project, 'id') === setupProjectId),
+  );
+  $effect(() => {
+    setupCurrency = rowValue(setupProject, 'currency');
+    setupLegalEntityId = '';
+    setupTaxProfileId = '';
+    setupContactId = '';
+  });
+  $effect(() => {
+    if (!setupLegalEntityId) return;
+    setupTaxProfileId = '';
+  });
   const ledgerRows = $derived(data.ledger ?? []);
   const canManageBilling = $derived(
     !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
@@ -197,7 +260,7 @@
     const requestedStage = $page.url.searchParams.get('stage')?.trim() as BillingStage | null;
     if (
       requestedStage &&
-      ['all', 'wip', 'drafts', 'outstanding', 'overdue', 'paid'].includes(requestedStage)
+      ['all', 'wip', 'drafts', 'outstanding', 'overdue', 'credits', 'paid'].includes(requestedStage)
     )
       stageFilter = requestedStage;
   });
@@ -244,10 +307,35 @@
     return rowValue(invoice, 'state').toLowerCase();
   }
 
+  function isCreditNoteInvoice(invoice: Row): boolean {
+    return (
+      rowValue(invoice, 'stream_type', 'streamType') === 'adjustment' &&
+      rowValue(invoice, 'total_minor', 'totalMinor').startsWith('-')
+    );
+  }
+
+  function balanceLabel(invoice: Row): string {
+    return isCreditNoteInvoice(invoice) ? translate('Credit balance') : translate('Outstanding');
+  }
+
+  function balanceDisplay(invoice: Row, ledger: BillingLedgerRow | undefined): string {
+    if (!ledger) return '—';
+    const amount = String(ledger.outstandingMinor ?? '0');
+    return formatMoney(
+      isCreditNoteInvoice(invoice) && amount.startsWith('-') ? amount.slice(1) : amount,
+      invoiceCurrency(invoice),
+    );
+  }
+
   function invoiceStage(invoice: Row): Exclude<BillingStage, 'all'> | null {
     const state = invoiceState(invoice);
     const ledger = ledgerForInvoice(rowValue(invoice, 'id'));
     const paymentState = String(ledger?.paymentStatus ?? '').toLowerCase();
+    if (
+      isCreditNoteInvoice(invoice) &&
+      ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(state)
+    )
+      return 'credits';
     if (state === 'overdue' || paymentState === 'overdue') return 'overdue';
     if (['wip', 'ready'].includes(state)) return 'wip';
     if (['draft', 'approved'].includes(state)) return 'drafts';
@@ -261,6 +349,7 @@
     drafts: invoices.filter((invoice) => invoiceStage(invoice) === 'drafts').length,
     outstanding: invoices.filter((invoice) => invoiceStage(invoice) === 'outstanding').length,
     overdue: invoices.filter((invoice) => invoiceStage(invoice) === 'overdue').length,
+    credits: invoices.filter((invoice) => invoiceStage(invoice) === 'credits').length,
     paid: invoices.filter((invoice) => invoiceStage(invoice) === 'paid').length,
   });
 
@@ -301,7 +390,6 @@
     invoicePage.map((invoice) => {
       const id = rowValue(invoice, 'id');
       const ledger = ledgerForInvoice(id);
-      const currency = invoiceCurrency(invoice);
       return {
         id,
         href: `#invoice-${id}`,
@@ -328,8 +416,8 @@
             value: invoiceStatusText(invoice),
           },
           {
-            label: translate('Outstanding'),
-            value: ledger ? formatMoney(ledger.outstandingMinor, currency) : '—',
+            label: balanceLabel(invoice),
+            value: balanceDisplay(invoice, ledger),
           },
         ],
       };
@@ -346,6 +434,8 @@
         return translate('Outstanding');
       case 'overdue':
         return translate('Overdue');
+      case 'credits':
+        return translate('Credit balances');
       case 'paid':
         return translate('Paid');
       default:
@@ -392,15 +482,14 @@
     return raw ? raw.slice(0, 10) : '';
   }
 
-  function defaultDrawerTab(state: string): InvoiceDrawerTab {
-    if (['draft', 'approved'].includes(state)) return 'lifecycle';
-    if (['issued', 'sent', 'partially_paid', 'overdue'].includes(state)) return 'collections';
-    return 'overview';
-  }
-
   function openInvoice(invoice: Row): void {
     selectedInvoiceId = rowValue(invoice, 'id');
-    invoiceDrawerTab = defaultDrawerTab(invoiceState(invoice));
+  }
+
+  function jumpInvoiceSection(id: string): void {
+    const target = document.getElementById(id);
+    target?.scrollIntoView({ block: 'start' });
+    target?.focus({ preventScroll: true });
   }
 
   function chooseWizardRule(ruleId: string): void {
@@ -434,23 +523,36 @@
       const response = await fetch(`${base}/app/api/billing/readiness?${query.toString()}`, {
         headers: { accept: 'application/json' },
       });
-      if (!response.ok) throw new Error('billing-readiness-unavailable');
+      if (!response.ok) {
+        const problem = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(problem?.error || 'The selected billing period could not be checked.');
+      }
       wizardReadiness = (await response.json()) as BillingReadinessPreview;
-    } catch {
-      wizardReadinessError = translate('The selected billing period could not be checked.');
+    } catch (error) {
+      wizardReadinessError = translate(
+        error instanceof Error
+          ? error.message
+          : 'The selected billing period could not be checked.',
+      );
     } finally {
       wizardReadinessLoading = false;
     }
   }
 
   function openInvoiceWizard(): void {
-    if (billingRules.length === 0) {
-      workspace = 'setup';
-      setupAction = 'stream';
+    if (activeWizardRules.length === 0) {
+      void showSetupAction('stream');
       return;
     }
     invoiceWizardStep = 1;
-    chooseWizardRule(rowValue(billingRules[0], 'id'));
+    chooseWizardRule(
+      rowValue(
+        activeWizardRules.find(
+          (rule) => rowValue(rule, 'project_id', 'projectId') === projectFilter,
+        ) ?? activeWizardRules[0],
+        'id',
+      ),
+    );
     invoiceWizardOpen = true;
   }
 
@@ -466,11 +568,11 @@
 
   function percentToBps(raw: string): string | null {
     const value = raw.trim();
-    if (!/^\d+(\.\d{1,2})?$/.test(value) || Number(value) > 100) return null;
+    if (!/^\d+(\.\d{1,2})?$/.test(value)) return null;
     const [whole, fraction = ''] = value.split('.');
     const paddedFraction = `${fraction}00`.slice(0, 2);
     const digits = `${whole}${paddedFraction}`.replace(/^0+(?=\d)/, '') || '0';
-    return digits;
+    return BigInt(digits) <= 10_000n ? digits : null;
   }
 
   function minorToDecimal(value: unknown): string {
@@ -614,7 +716,11 @@
     return 'draft';
   }
 
-  function nextStepCopy(state: string): string {
+  function nextStepCopy(state: string, isCreditNote = false): string {
+    if (isCreditNote && ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(state))
+      return translate(
+        'This issued credit is a balance owed to the customer. Review its allocation or refund in the ledger; do not record a customer payment.',
+      );
     if (state === 'superseded')
       return translate(
         'This approved version was replaced. Its amounts and lines remain available for review.',
@@ -656,6 +762,23 @@
       >
     {/if}
   </header>
+  {#if form?.success && String(form.messageKey ?? '').startsWith('action.billing.invoiceDraft') && form.messageParams?.invoiceId}
+    <p role="status">
+      <a
+        class="secondary-button"
+        href={`${base}/app/billing/invoices/${encodeURIComponent(String(form.messageParams.invoiceId))}`}
+        >{translate('Open invoice')} →</a
+      >
+    </p>
+  {:else if form?.success && form.messageKey === 'action.billing.invoiceAlreadyExists' && form.messageParams?.invoiceId}
+    <p role="status">
+      <a
+        class="secondary-button"
+        href={`${base}/app/billing/invoices/${encodeURIComponent(String(form.messageParams.invoiceId))}`}
+        >{translate('Open existing invoice')} →</a
+      >
+    </p>
+  {/if}
 
   {#if invoiceWizardOpen && canManageBilling}
     <ResponsiveSheet
@@ -670,7 +793,7 @@
         <input type="hidden" name="periodStart" value={wizardPeriodStart} />
         <input type="hidden" name="periodEnd" value={wizardPeriodEnd} />
         <ol class="billing-section__wizard-progress" aria-label={translate('Invoice steps')}>
-          {#each ['Client / project', 'Billing stream', 'Labor / expenses', 'Period', 'Included records', 'Excluded / pending', 'Taxes', 'Invoice data', 'Banking / payment', 'Commercial adjustments', 'Preview', 'Save / issue'] as label, index}
+          {#each wizardStepLabels as label, index}
             <li aria-current={invoiceWizardStep === index + 1 ? 'step' : undefined}>
               <button type="button" onclick={() => (invoiceWizardStep = index + 1)}>
                 <span>{index + 1}</span>{translate(label)}
@@ -678,25 +801,49 @@
             </li>
           {/each}
         </ol>
+        <details class="billing-section__wizard-mobile-progress">
+          <summary
+            >{translate('Invoice steps')} · {invoiceWizardStep}/12 · {translate(
+              wizardStepLabels[invoiceWizardStep - 1] ?? 'Invoice steps',
+            )}</summary
+          >
+          <ol aria-label={translate('Invoice steps')}>
+            {#each wizardStepLabels as label, index}
+              <li aria-current={invoiceWizardStep === index + 1 ? 'step' : undefined}>
+                <button
+                  type="button"
+                  onclick={(event) => {
+                    invoiceWizardStep = index + 1;
+                    event.currentTarget.closest('details')?.removeAttribute('open');
+                  }}><span>{index + 1}</span>{translate(label)}</button
+                >
+              </li>
+            {/each}
+          </ol>
+        </details>
 
         {#if invoiceWizardStep === 1}
           <section>
             <h3>{translate('Client / project')}</h3>
             <p>{translate('Choose the project whose approved source records will be billed.')}</p>
             <label>
-              <span>{translate('Project')}</span>
+              <span>{translate('Project and billing stream')}</span>
               <select
                 value={wizardRuleId}
                 onchange={(event) => chooseWizardRule(event.currentTarget.value)}
                 required
               >
-                {#each billingRules as rule}
+                {#each activeWizardRules as rule}
                   <option value={rowValue(rule, 'id')}>
                     {rowValue(rule, 'client_number', 'clientNumber')} · {rowValue(
                       rule,
                       'client_name',
                       'clientName',
-                    )} — {rowValue(rule, 'project_number', 'projectNumber')}
+                    )} — {rowValue(rule, 'project_number', 'projectNumber')} · {controlledValue(
+                      'billingStream',
+                      rowValue(rule, 'stream_type', 'streamType'),
+                    )} · {controlledValue('status', rowValue(rule, 'cadence_type', 'cadenceType'))} ·
+                    {rowValue(rule, 'currency')}
                   </option>
                 {/each}
               </select>
@@ -811,6 +958,17 @@
                 : translate('Check selected period')}</button
             >
             {#if wizardReadinessError}<p role="alert">{wizardReadinessError}</p>{/if}
+            {#if wizardReadiness?.existingInvoiceId}
+              <p role="status">
+                {translate('An invoice already exists for this stream and period.')}
+                {controlledValue('status', wizardReadiness.existingInvoiceState)}
+              </p>
+              <a
+                class="secondary-button"
+                href={`${base}/app/billing/invoices/${encodeURIComponent(wizardReadiness.existingInvoiceId)}`}
+                >{translate('Open existing invoice')} →</a
+              >
+            {/if}
           </section>
         {:else if invoiceWizardStep === 5}
           <section>
@@ -833,9 +991,20 @@
                 </div>
                 <div>
                   <dt>{translate('Period readiness')}</dt>
-                  <dd>{controlledValue('status', wizardReadiness.state)}</dd>
+                  <dd>
+                    {wizardHasNoBillableSources
+                      ? translate(
+                          wizardReadiness.includedSourceCount > 0
+                            ? 'No positive billable amount'
+                            : 'No billable records',
+                        )
+                      : controlledValue('status', wizardReadiness.state)}
+                  </dd>
                 </div>
               </dl>
+              {#if wizardHasNoBillableSources}<p role="alert">
+                  {translate(wizardEmptySourcesMessage)}
+                </p>{/if}
             {:else}
               <button type="button" class="secondary-button" onclick={checkWizardPeriod}
                 >{translate('Check selected period')}</button
@@ -978,7 +1147,11 @@
               </div>
               <div>
                 <dt>{translate('Period')}</dt>
-                <dd>{wizardPeriodStart} → {wizardPeriodEnd}</dd>
+                <dd>
+                  {wizardPeriodStart && wizardPeriodEnd
+                    ? `${wizardPeriodStart} → ${wizardPeriodEnd}`
+                    : translate('Choose dates in the Period step to preview this invoice.')}
+                </dd>
               </div>
             </dl>
             <p>
@@ -986,6 +1159,9 @@
                 'Save draft builds a reviewable snapshot. It does not issue, number, send or collect the invoice.',
               )}
             </p>
+            {#if !wizardReadiness}<p role="status">
+                {translate('Check the selected billing period before saving a draft.')}
+              </p>{/if}
           </section>
         {:else}
           <section>
@@ -995,9 +1171,42 @@
                 'Save the draft now. Finance can then review lines and adjustments, approve it, issue the immutable numbered version, send it and register collections.',
               )}
             </p>
-            <button type="submit" disabled={!wizardRuleId || !wizardPeriodStart || !wizardPeriodEnd}
-              >{translate('Save invoice draft')}</button
-            >
+            {#if wizardHasNoBillableSources}
+              <p role="status">
+                {translate(wizardEmptySourcesMessage)}
+              </p>
+              {#if wizardReadiness?.existingInvoiceId}
+                <a
+                  class="secondary-button"
+                  href={`${base}/app/billing/invoices/${encodeURIComponent(wizardReadiness.existingInvoiceId)}`}
+                  >{translate('Open existing invoice')} →</a
+                >
+              {/if}
+              <button type="button" class="secondary-button" onclick={() => (invoiceWizardStep = 4)}
+                >{translate('Period')} →</button
+              >
+            {:else if !wizardReadiness || wizardReadiness.state === 'incomplete'}
+              <p role="status">
+                {translate('Resolve the period readiness issues before saving an invoice draft.')}
+              </p>
+            {/if}
+            {#if wizardReadiness?.existingInvoiceId && wizardReadiness.existingInvoiceState !== 'draft'}
+              <a
+                class="primary-button"
+                href={`${base}/app/billing/invoices/${encodeURIComponent(wizardReadiness.existingInvoiceId)}`}
+                >{translate('Open existing invoice')} →</a
+              >
+            {:else}
+              <button
+                type="submit"
+                disabled={!wizardRuleId ||
+                  !wizardPeriodStart ||
+                  !wizardPeriodEnd ||
+                  !wizardReadiness ||
+                  wizardReadiness.state === 'incomplete' ||
+                  wizardHasNoBillableSources}>{translate('Save invoice draft')}</button
+              >
+            {/if}
           </section>
         {/if}
 
@@ -1085,7 +1294,7 @@
 
   {#if workspace === 'invoices'}
     <div class="billing-section__summary" aria-label={translate('Billing stage summary')}>
-      {#each [['all', 'All invoices', invoices.length], ['wip', 'WIP / Ready', stageCounts.wip], ['drafts', 'Drafts', stageCounts.drafts], ['outstanding', 'Outstanding', stageCounts.outstanding], ['overdue', 'Overdue', stageCounts.overdue], ['paid', 'Paid', stageCounts.paid]] as summary}
+      {#each [['all', 'All invoices', invoices.length], ['wip', 'WIP / Ready', stageCounts.wip], ['drafts', 'Drafts', stageCounts.drafts], ['outstanding', 'Outstanding', stageCounts.outstanding], ['overdue', 'Overdue', stageCounts.overdue], ['credits', 'Credit balances', stageCounts.credits], ['paid', 'Paid', stageCounts.paid]] as summary}
         <button
           type="button"
           class:billing-section__summary-card--active={stageFilter === summary[0]}
@@ -1130,6 +1339,7 @@
           <option value="drafts">{translate('Drafts')}</option>
           <option value="outstanding">{translate('Outstanding')}</option>
           <option value="overdue">{translate('Overdue')}</option>
+          <option value="credits">{translate('Credit balances')}</option>
           <option value="paid">{translate('Paid')}</option>
         </select>
       </label>
@@ -1171,7 +1381,7 @@
               (action.id === 'entity' || action.id === 'numbering')
                 ? translate('Owner access')
                 : undefined}
-              onclick={() => (setupAction = action.id)}
+              onclick={() => void showSetupAction(action.id)}
             >
               {translate(action.label)}
             </button>
@@ -1251,7 +1461,7 @@
             <h4>{translate('New billing stream')}</h4>
             <label>
               <span>{translate('Project')}</span>
-              <select name="projectId" required>
+              <select name="projectId" bind:value={setupProjectId} required>
                 <option value="">{translate('Select project')}</option>
                 {#each availableProjects as project}
                   <option value={rowValue(project, 'id')}>{projectLabel(project)}</option>
@@ -1289,9 +1499,9 @@
             </label>
             <label>
               <span>{translate('Legal entity')}</span>
-              <select name="legalEntityId" required>
+              <select name="legalEntityId" bind:value={setupLegalEntityId} required>
                 <option value="">{translate('Select legal entity')}</option>
-                {#each data.legalEntities ?? [] as entity}
+                {#each (data.legalEntities ?? []).filter((entity) => setupProjectId && rowValue(entity, 'currency') === setupCurrency && rowValue(entity, 'status') === 'active') as entity}
                   <option value={rowValue(entity, 'id')}>
                     {rowValue(entity, 'code')} — {rowValue(entity, 'legal_name', 'legalName')}
                   </option>
@@ -1300,9 +1510,9 @@
             </label>
             <label>
               <span>{translate('Tax profile')}</span>
-              <select name="taxProfileId" required>
+              <select name="taxProfileId" bind:value={setupTaxProfileId} required>
                 <option value="">{translate('Select tax profile')}</option>
-                {#each data.taxProfiles ?? [] as profile}
+                {#each (data.taxProfiles ?? []).filter((profile) => setupLegalEntityId && rowValue(profile, 'currency') === setupCurrency && rowValue(profile, 'status') === 'active' && (!rowValue(profile, 'legal_entity_id', 'legalEntityId') || rowValue(profile, 'legal_entity_id', 'legalEntityId') === setupLegalEntityId)) as profile}
                   <option value={rowValue(profile, 'id')}>
                     {rowValue(profile, 'name')} ({rowValue(profile, 'currency')})
                   </option>
@@ -1311,11 +1521,7 @@
             </label>
             <label>
               <span>{translate('Currency')}</span>
-              <select name="currency" required>
-                <option>USD</option>
-                <option>BRL</option>
-                <option>EUR</option>
-              </select>
+              <input name="currency" value={setupCurrency} readonly required />
             </label>
             <label>
               <span>{translate('Invoice template')}</span>
@@ -1333,9 +1539,9 @@
             </label>
             <label>
               <span>{translate('Billing contact')}</span>
-              <select name="billingContactId">
+              <select name="billingContactId" bind:value={setupContactId}>
                 <option value="">{translate('Use recipient email')}</option>
-                {#each data.contacts ?? [] as contact}
+                {#each (data.contacts ?? []).filter((contact) => setupProject && rowValue(contact, 'client_id', 'clientId') === rowValue(setupProject, 'client_id', 'clientId')) as contact}
                   <option value={rowValue(contact, 'id')}>
                     {rowValue(contact, 'client_number', 'clientNumber')} · {rowValue(
                       contact,
@@ -1600,11 +1806,11 @@
                       → {rowValue(rule, 'effective_to', 'effectiveTo') || '…'}
                     </small>
                     <small>
-                      {Number(rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft')) === 1
+                      {String(rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft')) === '1'
                         ? translate('Automatic draft enabled')
                         : translate('Automatic draft disabled')}
                     </small>
-                    {#if Number(rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft')) === 1}
+                    {#if String(rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft')) === '1'}
                       <small>
                         {translate('Next period')}: {streamDraftPeriod(rule).start || '—'} → {streamDraftPeriod(
                           rule,
@@ -1763,9 +1969,9 @@
                               <input
                                 name="autoGenerateDraft"
                                 type="checkbox"
-                                checked={Number(
+                                checked={String(
                                   rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft'),
-                                ) === 1}
+                                ) === '1'}
                               />
                               <span
                                 >{translate('Automatically prepare draft after period close')}</span
@@ -1776,10 +1982,8 @@
                           <button
                             type="button"
                             class="secondary-button"
-                            onclick={() => {
-                              workspace = 'setup';
-                              setupAction = 'stream';
-                            }}>{translate('New effective-dated conditions')}</button
+                            onclick={() => void showSetupAction('stream')}
+                            >{translate('New effective-dated conditions')}</button
                           >
                           <p class="billing-section__effective-note">
                             {translate(
@@ -1908,7 +2112,7 @@
                   <th scope="col">{translate('Project')}</th>
                   <th scope="col">{translate('Dates')}</th>
                   <th scope="col">{translate('Amount')}</th>
-                  <th scope="col">{translate('Outstanding')}</th>
+                  <th scope="col">{translate('Balance (receivable / credit)')}</th>
                   <th scope="col">{translate('Status')}</th>
                   <th scope="col">{translate('PDF')}</th>
                   <th scope="col">{translate('Actions')}</th>
@@ -1919,7 +2123,6 @@
                   {@const invoiceId = rowValue(invoice, 'id')}
                   {@const invoiceStateValue = invoiceState(invoice)}
                   {@const ledger = ledgerForInvoice(invoiceId)}
-                  {@const currency = invoiceCurrency(invoice)}
                   {@const pdfStatus = invoicePdfStatus(invoice)}
                   <tr
                     data-invoice-row={invoiceId}
@@ -1941,7 +2144,7 @@
                       )}
                     </td>
                     <td>{invoiceTotal(invoice)}</td>
-                    <td>{ledger ? formatMoney(ledger.outstandingMinor, currency) : '—'}</td>
+                    <td>{balanceDisplay(invoice, ledger)}</td>
                     <td>
                       <StatusBadge
                         variant={statusVariant(invoiceStateValue)}
@@ -1980,6 +2183,7 @@
             {@const invoice = selectedInvoice}
             {@const invoiceId = rowValue(invoice, 'id')}
             {@const invoiceStateValue = invoiceState(invoice)}
+            {@const isCreditNote = isCreditNoteInvoice(invoice)}
             {@const ledger = ledgerForInvoice(invoiceId)}
             {@const currency = invoiceCurrency(invoice)}
             {@const rowBlocker = invoiceIssueBlocker(invoice)}
@@ -1993,29 +2197,18 @@
               onclose={() => (selectedInvoiceId = '')}
             >
               <article class="billing-section__invoice" data-invoice-row={invoiceId}>
-                <div class="billing-section__drawer-tabs" role="tablist">
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={invoiceDrawerTab === 'overview'}
-                    onclick={() => (invoiceDrawerTab = 'overview')}>{translate('Overview')}</button
+                <nav class="billing-section__drawer-tabs" aria-label={translate('Jump to')}>
+                  <button type="button" onclick={() => jumpInvoiceSection('invoice-overview')}
+                    >{translate('Overview')}</button
                   >
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={invoiceDrawerTab === 'collections'}
-                    onclick={() => (invoiceDrawerTab = 'collections')}
+                  <button type="button" onclick={() => jumpInvoiceSection('invoice-collections')}
                     >{translate('Collections')}</button
                   >
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={invoiceDrawerTab === 'lifecycle'}
-                    onclick={() => (invoiceDrawerTab = 'lifecycle')}
+                  <button type="button" onclick={() => jumpInvoiceSection('invoice-lifecycle')}
                     >{translate('Lifecycle')}</button
                   >
-                </div>
-                <div class="billing-section__invoice-heading">
+                </nav>
+                <div class="billing-section__invoice-heading" id="invoice-overview" tabindex="-1">
                   <div>
                     <strong
                       >{invoiceTitle(invoice)} · {rowValue(
@@ -2039,7 +2232,12 @@
                     aria-label={invoiceStatus(invoice)}
                   />
                 </div>
-                <ol class="billing-section__lifecycle" aria-label={translate('Invoice timeline')}>
+                <ol
+                  class="billing-section__lifecycle"
+                  id="invoice-lifecycle"
+                  tabindex="-1"
+                  aria-label={translate('Invoice timeline')}
+                >
                   {#each ['draft', 'approved', 'issued', 'collected'] as step}
                     {@const status =
                       ['draft', 'approved', 'issued', 'collected'].indexOf(step) <
@@ -2137,6 +2335,7 @@
                   </form>
                 {/if}
 
+                <h3 id="invoice-collections" tabindex="-1">{translate('Collections')}</h3>
                 <p class="billing-section__timeline-note">
                   {translate('Only append-only payment events count as collected')}
                 </p>
@@ -2148,8 +2347,8 @@
                       <strong>{formatMoney(ledger.netCollectedMinor, currency)}</strong></span
                     >
                     <span
-                      >{translate('Outstanding')}:
-                      <strong>{formatMoney(ledger.outstandingMinor, currency)}</strong></span
+                      >{balanceLabel(invoice)}:
+                      <strong>{balanceDisplay(invoice, ledger)}</strong></span
                     >
                     <span
                       >{translate('Payment state')}: <strong>{paymentStatus(ledger)}</strong></span
@@ -2314,7 +2513,7 @@
                 <div class="billing-section__invoice-actions">
                   <div class="billing-section__next-step">
                     <strong>{translate('Next step')}</strong>
-                    <p>{nextStepCopy(invoiceStateValue)}</p>
+                    <p>{nextStepCopy(invoiceStateValue, isCreditNote)}</p>
                   </div>
                   <div class="billing-section__invoice-toolbar">
                     <a
@@ -2483,66 +2682,90 @@
                       >
                       <button type="submit">{translate('Issue invoice')}</button>
                     </form>
-                  {:else if ['issued', 'sent', 'partially_paid', 'overdue'].includes(invoiceStateValue)}
-                    <details class="billing-section__action-panel">
-                      <summary>{translate('Record payment')}</summary>
-                      <p>
+                  {:else if ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(invoiceStateValue)}
+                    {#if isCreditNote && invoiceStateValue === 'overdue'}
+                      <form method="POST" action="?/restoreCreditNoteState">
+                        <input type="hidden" name="invoiceId" value={invoiceId} />
+                        <p>
+                          {translate(
+                            'A credit note cannot be overdue. Restore its issued status before accounting finalization.',
+                          )}
+                        </p>
+                        <button type="submit">{translate('Restore credit note status')}</button>
+                      </form>
+                    {/if}
+                    {#if isCreditNote}
+                      <p class="billing-section__timeline-note">
                         {translate(
-                          'Record money received from the client. That is the only path that counts as collected.',
+                          'A credit balance is not a customer payment. Use the ledger to review it.',
                         )}
                       </p>
-                      <form
-                        method="POST"
-                        action="?/recordPayment"
-                        class="billing-section__payment-form"
+                      <a
+                        class="secondary-button"
+                        href={`${base}/app/ledger?project=${encodeURIComponent(rowValue(invoice, 'project_id', 'projectId'))}`}
+                        >{translate('Review credit in ledger')} →</a
                       >
-                        <input type="hidden" name="invoiceId" value={invoiceId} />
-                        <label
-                          ><span>{translate('Payment amount')}</span><input
-                            name="amount"
-                            inputmode="decimal"
-                            type="number"
-                            min="0.01"
-                            step="0.01"
-                            max={minorToDecimal(
-                              ledger?.outstandingMinor ??
-                                rowValue(invoice, 'total_minor', 'totalMinor'),
-                            )}
-                            required
-                          /></label
+                    {:else if invoiceStateValue !== 'paid'}
+                      <details class="billing-section__action-panel">
+                        <summary>{translate('Record payment')}</summary>
+                        <p>
+                          {translate(
+                            'Record money received from the client. That is the only path that counts as collected.',
+                          )}
+                        </p>
+                        <form
+                          method="POST"
+                          action="?/recordPayment"
+                          class="billing-section__payment-form"
                         >
-                        <label
-                          ><span>{translate('Currency')}</span><input
-                            name="currency"
-                            value={currency}
-                            readonly
-                            aria-readonly="true"
-                            required
-                          /></label
-                        >
-                        <label
-                          ><span>{translate('Received on')}</span><input
-                            name="receivedOn"
-                            type="date"
-                            value={todayIso}
-                            required
-                          /></label
-                        >
-                        <label
-                          ><span>{translate('Payment reference / note')}</span><input
-                            name="reference"
-                            required
-                          /></label
-                        >
-                        <input
-                          name="idempotencyKey"
-                          type="hidden"
-                          value={rowValue(invoice, 'paymentCommandToken') ||
-                            `payment-${invoiceId}-${currency}`}
-                        />
-                        <button type="submit">{translate('Record payment')}</button>
-                      </form>
-                    </details>
+                          <input type="hidden" name="invoiceId" value={invoiceId} />
+                          <label
+                            ><span>{translate('Payment amount')}</span><input
+                              name="amount"
+                              inputmode="decimal"
+                              type="number"
+                              min="0.01"
+                              step="0.01"
+                              max={minorToDecimal(
+                                ledger?.outstandingMinor ??
+                                  rowValue(invoice, 'total_minor', 'totalMinor'),
+                              )}
+                              required
+                            /></label
+                          >
+                          <label
+                            ><span>{translate('Currency')}</span><input
+                              name="currency"
+                              value={currency}
+                              readonly
+                              aria-readonly="true"
+                              required
+                            /></label
+                          >
+                          <label
+                            ><span>{translate('Received on')}</span><input
+                              name="receivedOn"
+                              type="date"
+                              value={todayIso}
+                              required
+                            /></label
+                          >
+                          <label
+                            ><span>{translate('Payment reference / note')}</span><input
+                              name="reference"
+                              required
+                            /></label
+                          >
+                          <input
+                            name="idempotencyKey"
+                            type="hidden"
+                            value={rowValue(invoice, 'paymentCommandToken') ||
+                              `payment-${invoiceId}-${currency}`}
+                          />
+                          <button type="submit">{translate('Record payment')}</button>
+                        </form>
+                      </details>
+                    {/if}
                     <details class="billing-section__action-panel">
                       <summary>{translate('Create adjustment')}</summary>
                       <p>
@@ -2695,7 +2918,7 @@
     font-weight: 650;
   }
 
-  .billing-section__drawer-tabs button[aria-selected='true'] {
+  .billing-section__drawer-tabs button:hover {
     background: var(--portal-ink, #20201d);
     border-color: var(--portal-ink, #20201d);
     color: #fff;
@@ -2838,7 +3061,7 @@
 
   .billing-section__summary {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
     gap: 0.75rem;
   }
 
@@ -3007,6 +3230,7 @@
   }
 
   .billing-section__config-form {
+    scroll-margin-top: 6rem;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.75rem;
@@ -3381,7 +3605,25 @@
 
   .billing-section__invoice-wizard {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .billing-section__invoice-wizard > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .billing-section__invoice-wizard select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .billing-section__wizard-mobile-progress {
+    display: none;
   }
 
   .billing-section__wizard-progress {
@@ -3424,7 +3666,13 @@
   .billing-section__invoice-wizard section,
   .billing-section__invoice-wizard dl {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .billing-section__invoice-wizard section > * {
+    min-width: 0;
   }
 
   .billing-section__invoice-wizard section > h3,
@@ -3535,9 +3783,48 @@
     .billing-section__directories,
     .billing-section__invoice-dates,
     .billing-section__planning-fields,
-    .billing-section__wizard-progress,
     .billing-section__wizard-fields {
       grid-template-columns: 1fr;
+    }
+
+    .billing-section__wizard-progress {
+      display: none;
+    }
+    .billing-section__wizard-mobile-progress {
+      display: block;
+      min-width: 0;
+    }
+    .billing-section__wizard-mobile-progress summary {
+      padding: 0.65rem;
+      border: 1px solid var(--portal-border, #dfdedc);
+      border-radius: 0.45rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .billing-section__wizard-mobile-progress ol {
+      display: grid;
+      gap: 0.35rem;
+      max-height: min(40vh, 20rem);
+      overflow-y: auto;
+      margin: 0.4rem 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .billing-section__wizard-mobile-progress button {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      min-height: 2.75rem;
+      padding: 0.55rem;
+      border: 1px solid var(--portal-border, #dfdedc);
+      background: var(--portal-wash, #f9f9f8);
+      color: var(--portal-ink, #20201d);
+      text-align: left;
+    }
+    .billing-section__wizard-mobile-progress li[aria-current='step'] button {
+      border-color: var(--portal-accent, #53524c);
+      font-weight: 700;
     }
 
     .billing-section__filters label:first-child,

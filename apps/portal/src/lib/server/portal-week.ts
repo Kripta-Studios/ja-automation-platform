@@ -96,7 +96,14 @@ export const weeklyView = (
     const date = new Date(`${weekStart}T00:00:00.000Z`);
     date.setUTCDate(date.getUTCDate() + index);
     const dateValue = date.toISOString().slice(0, 10);
-    const dayRows = rows.filter((row) => row.work_date === dateValue);
+    // Keep historical rejected/void rows in the register, but never present
+    // them as worked time or as the current approval state of a day.
+    const dayRows = rows.filter(
+      (row) =>
+        row.work_date === dateValue &&
+        !['rejected', 'void'].includes(String(row.approval_state ?? 'draft')) &&
+        !row.active_correction_id,
+    );
     const actualMinutes = dayRows.reduce((sum, row) => sum + Number(row.minutes ?? 0), 0);
     const categories = dayRows.reduce<Record<string, number>>((result, row) => {
       const category = String(row.category ?? 'other');
@@ -133,7 +140,7 @@ export const weeklyView = (
     const status =
       dayRows.length === 0
         ? '—'
-        : states.has('needs_changes') || states.has('rejected')
+        : states.has('needs_changes')
           ? 'Needs changes'
           : states.has('submitted')
             ? 'Submitted'

@@ -4,6 +4,16 @@ export type ManualDownloadResult =
   | { ok: true; blob: Blob; language: 'en' | 'es' | 'pt' }
   | { ok: false; failure: ManualDownloadFailure };
 
+export type ManualLanguage = 'en' | 'es' | 'pt';
+
+/** Select the actual PDF language advertised by the catalog before building a download link. */
+export function manualDownloadLanguage(
+  requested: ManualLanguage,
+  available: readonly ManualLanguage[],
+): ManualLanguage {
+  return available.includes(requested) ? requested : (available[0] ?? 'en');
+}
+
 const retryStatuses = new Set([429, 502, 503, 504]);
 const retryBudgetMs = 2_000;
 const wait = (milliseconds: number, signal?: AbortSignal) =>

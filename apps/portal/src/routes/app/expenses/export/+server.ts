@@ -55,7 +55,8 @@ export const GET: RequestHandler = ({ locals, url }) => {
         (ctx.principal.role === 'project_manager' ||
           !reimbursement ||
           (reimbursement === 'pending'
-            ? ['pending', 'scheduled'].includes(String(row.reimbursement_state))
+            ? ['approved', 'locked'].includes(String(row.approval_state)) &&
+              ['pending', 'scheduled'].includes(String(row.reimbursement_state))
             : row.reimbursement_state === reimbursement)) &&
         expenseSearchMatches(row, query),
     );

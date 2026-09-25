@@ -107,6 +107,12 @@
   margin-top: 0.75rem;
 }
 
+.project-workflow-panel,
+#project-register,
+#assignment-history {
+  scroll-margin-top: 6rem;
+}
+
 @media (max-width: 767px) {
   .project-workflow-actions > div {
     grid-template-columns: 1fr;
@@ -412,6 +418,30 @@
   display: inline;
 }
 
+.document-archive-control[open] {
+  flex-basis: 100%;
+}
+
+.document-archive-control > summary {
+  cursor: pointer;
+  min-height: var(--ja-target-min, 2.75rem);
+  display: inline-flex;
+  align-items: center;
+}
+
+.document-archive-control .document-delete-form {
+  display: grid;
+  gap: 0.65rem;
+  max-width: 22rem;
+  padding: 0.75rem;
+}
+
+.document-archive-control label,
+.document-archive-control input {
+  display: block;
+  width: 100%;
+}
+
 .preview-link.preview-link-danger {
   display: inline-flex;
   align-items: center;
@@ -621,4 +651,7 @@
   .finance-config-preview {
     width: 100%;
   }
+}
+#planning-create-form {
+  scroll-margin-top: 6rem;
 }

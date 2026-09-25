@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { weeklyView } from '$lib/server/portal-week';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -88,6 +90,79 @@ describe('time interval operational listings', () => {
     );
     expect(value.repository.listOwnTimeWeek(value.worker, '2026-08-17').rows).toEqual(
       expect.arrayContaining([expect.objectContaining(expectedInterval)]),
+    );
+  });
+
+  it('excludes rejected and void history and resolves correction attempts in the own week', () => {
+    const value = fixture();
+    const create = (minutes: number, summary: string) =>
+      value.repository.createTimeEntry(value.worker, {
+        projectId: value.project.id,
+        workDate: '2026-08-20',
+        category: 'regular',
+        minutes,
+        summary,
+      });
+    const approved = create(60, 'Approved first');
+    const rejected = create(360, 'Rejected history');
+    const voided = create(45, 'Voided history');
+    const original = create(105, 'Original needing correction');
+    value.sqlite
+      .prepare("UPDATE time_entry SET approval_state='approved' WHERE id=?")
+      .run(approved.id);
+    value.sqlite
+      .prepare("UPDATE time_entry SET approval_state='rejected' WHERE id=?")
+      .run(rejected.id);
+    value.sqlite.prepare("UPDATE time_entry SET approval_state='void' WHERE id=?").run(voided.id);
+    value.sqlite
+      .prepare("UPDATE time_entry SET approval_state='needs_changes' WHERE id=?")
+      .run(original.id);
+
+    const worker = stepUpB5Principal(value.sqlite, value.worker, 'week-correction');
+    const correction = value.repository.createCorrectionDraft(worker, {
+      recordType: 'time_entry',
+      originalId: original.id,
+      requestId: 'week-correction-0001',
+      reason: 'Use the corrected duration',
+      patch: { minutes: 100 },
+    });
+    const activeIds = () =>
+      (
+        value.repository.listOwnTimeWeek(value.worker, '2026-08-17').rows as Array<{ id: string }>
+      ).map((row) => row.id);
+    expect(activeIds()).toEqual([approved.id, correction.correctionId]);
+    const managerRows = () =>
+      value.repository.listTimeForScope(value.manager, {
+        from: '2026-08-20',
+        to: '2026-08-20',
+      });
+    expect(managerRows().find((row) => row.id === original.id)).toMatchObject({
+      active_correction_id: correction.correctionId,
+    });
+    expect(weeklyView(managerRows(), '2026-08-17').days[3].actualMinutes).toBe(160);
+    value.sqlite
+      .prepare("UPDATE time_entry SET approval_state='rejected' WHERE id=?")
+      .run(correction.correctionId);
+    expect(activeIds()).toEqual([approved.id, original.id]);
+    expect(managerRows().find((row) => row.id === original.id)).toMatchObject({
+      active_correction_id: null,
+    });
+    expect(weeklyView(managerRows(), '2026-08-17').days[3].actualMinutes).toBe(165);
+    value.sqlite
+      .prepare("UPDATE time_entry SET approval_state='void' WHERE id=?")
+      .run(correction.correctionId);
+    expect(activeIds()).toEqual([approved.id, original.id]);
+    expect(managerRows().find((row) => row.id === original.id)).toMatchObject({
+      active_correction_id: null,
+    });
+    expect(weeklyView(managerRows(), '2026-08-17').days[3].actualMinutes).toBe(165);
+    expect(
+      value.repository.copyOwnTimeLayout(value.worker, '2026-08-17', '2026-08-24'),
+    ).toMatchObject({
+      created: 2,
+    });
+    expect(value.repository.listOwnTime(value.worker)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: rejected.id })]),
     );
   });
 });

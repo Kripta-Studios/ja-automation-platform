@@ -64,30 +64,58 @@ describe('expense occurrence time and linked hours', () => {
       occurred_time_local: '14:35',
       amount_minor: 1250,
     });
-    const countTime = value.sqlite.prepare('SELECT COUNT(*) count FROM time_entry').get() as {count: number};
-    const countExpense = value.sqlite.prepare('SELECT COUNT(*) count FROM expense').get() as {count: number};
+    expect(() =>
+      value.repository.deleteDraft(
+        value.worker,
+        'time_entry',
+        created.time.id,
+        created.time.version,
+      ),
+    ).toThrow('linked to another record');
+    const countTime = value.sqlite.prepare('SELECT COUNT(*) count FROM time_entry').get() as {
+      count: number;
+    };
+    const countExpense = value.sqlite.prepare('SELECT COUNT(*) count FROM expense').get() as {
+      count: number;
+    };
     expect(value.repository.createTimeWithExpense(value.worker, time, expense, requestId)).toEqual({
       ...created,
       replayed: true,
     });
-    expect(() => value.repository.createTimeWithExpense(value.worker, time, {
-      ...expense,
-      amountMinor: 1300n,
-    }, requestId)).toThrow('Time and expense retry has changed');
-    expect(() => value.repository.createTimeWithExpense(value.worker, {
-      ...time,
-      summary: 'Another installation',
-    }, {
-      ...expense,
-      amountMinor: 0n,
-    }, 'shift-expense-request-0002')).toThrow('Expense amount must be positive');
+    expect(() =>
+      value.repository.createTimeWithExpense(
+        value.worker,
+        time,
+        {
+          ...expense,
+          amountMinor: 1300n,
+        },
+        requestId,
+      ),
+    ).toThrow('Time and expense retry has changed');
+    expect(() =>
+      value.repository.createTimeWithExpense(
+        value.worker,
+        {
+          ...time,
+          summary: 'Another installation',
+        },
+        {
+          ...expense,
+          amountMinor: 0n,
+        },
+        'shift-expense-request-0002',
+      ),
+    ).toThrow('Expense amount must be positive');
     expect(value.sqlite.prepare('SELECT COUNT(*) count FROM time_entry').get()).toEqual(countTime);
     expect(value.sqlite.prepare('SELECT COUNT(*) count FROM expense').get()).toEqual(countExpense);
-    expect(() => value.sqlite.prepare(
-      'UPDATE operational_time_expense_request SET request_id=? WHERE actor_user_id=? AND request_id=?',
-    ).run('changed-shift-expense-request-0001', value.worker.userId, requestId)).toThrow(
-      /time expense request immutable/u,
-    );
+    expect(() =>
+      value.sqlite
+        .prepare(
+          'UPDATE operational_time_expense_request SET request_id=? WHERE actor_user_id=? AND request_id=?',
+        )
+        .run('changed-shift-expense-request-0001', value.worker.userId, requestId),
+    ).toThrow(/time expense request immutable/u);
     expect(value.sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
   });
 

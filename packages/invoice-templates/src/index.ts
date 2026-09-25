@@ -721,7 +721,11 @@ const renderCommon = (snapshot: InvoiceTemplateSnapshot, localized: InvoiceCopy)
   const project = snapshot.project;
   const calculation = snapshot.calculation;
   const issueDate = formatInvoiceDate(
-    snapshot.issueDate ?? snapshot.issue_date ?? snapshot.issuedAt ?? snapshot.issued_at,
+    snapshot.issueDate ??
+      snapshot.issue_date ??
+      snapshot.issuedAt ??
+      snapshot.issued_at ??
+      snapshot.generatedAt,
   );
   const dueDate = formatInvoiceDate(
     snapshot.dueDate ?? snapshot.due_date ?? snapshot.dueAt ?? snapshot.due_at,

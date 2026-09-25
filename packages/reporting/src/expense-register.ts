@@ -28,7 +28,11 @@ export function expenseRegisterRows(records: readonly Row[]): Record<string, str
     Payer: String(row.who_paid ?? ''),
     Status: String(row.approval_state ?? ''),
     ...('reimbursement_state' in row
-      ? { Reimbursement: String(row.reimbursement_state ?? '') }
+      ? {
+          Reimbursement: ['approved', 'locked'].includes(String(row.approval_state))
+            ? String(row.reimbursement_state ?? '')
+            : '',
+        }
       : {}),
   }));
 }

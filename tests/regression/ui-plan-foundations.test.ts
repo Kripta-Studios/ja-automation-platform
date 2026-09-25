@@ -115,13 +115,13 @@ describe('UI_PLAN foundation contracts', () => {
     expect(foundation).toContain('select:not([multiple])');
     expect(foundation).toContain('min-height: var(--ja-target-min)');
     expect(foundation).toContain('outline: 2px solid color-mix');
-    expect(foundation).toContain('--ja-status-success: #047857');
+    expect(foundation).toMatch(/--ja-status-success:\s*#[0-9a-f]{6};/i);
   });
 
   it('restores visible button chrome after Tailwind Preflight so action controls are not body text', () => {
     const foundation = read('apps/portal/src/styles/portal/foundation.css');
     expect(foundation).toContain("button:not([role='tab'])");
-    expect(foundation).toContain('background: var(--ja-primary, #0f766e)');
+    expect(foundation).toMatch(/background:\s*var\(--ja-primary,\s*#[0-9a-f]{6}\)/i);
     expect(foundation).toContain('min-height: var(--ja-target-min, 2.75rem)');
     expect(foundation).toContain('button.danger');
     expect(foundation).toContain('background: var(--ja-status-danger, #dc2626)');

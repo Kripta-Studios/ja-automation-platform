@@ -1513,6 +1513,13 @@ export type WorkerStatementSnapshot = Readonly<{
   estimatedPendingMinor: string;
   approvedReimbursementMinor: string;
   pendingReimbursementMinor: string;
+  currencyBreakdown?: readonly Readonly<{
+    currency: string;
+    estimatedApprovedMinor: string;
+    estimatedPendingMinor: string;
+    approvedReimbursementMinor: string;
+    pendingReimbursementMinor: string;
+  }>[];
   missingCompensationRules: number;
   activities: readonly Readonly<{
     id: string;
@@ -1593,6 +1600,9 @@ const workerStatementColumns = [
 ] as const;
 
 function workerActivityCompensation(snapshot: WorkerStatementSnapshot): bigint[] {
+  // A mixed-currency estimate cannot be allocated to time entries without
+  // inventing an exchange rate or an activity-level compensation basis.
+  if (snapshot.currency === 'MULTI') return snapshot.activities.map(() => 0n);
   const approvedIndexes: number[] = [];
   const pendingIndexes: number[] = [];
   snapshot.activities.forEach((activity, index) => {
@@ -1618,35 +1628,37 @@ function workerActivityCompensation(snapshot: WorkerStatementSnapshot): bigint[]
 
 function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] {
   const activityCompensation = workerActivityCompensation(snapshot);
+  const mixed = snapshot.currency === 'MULTI';
+  const summaries = snapshot.currencyBreakdown ?? [snapshot];
   return [
-    {
+    ...summaries.map((amount) => ({
       recordType: 'compensation_summary',
-      recordId: `${snapshot.worker.id}:${snapshot.periodStart}:${snapshot.periodEnd}`,
+      recordId: `${snapshot.worker.id}:${snapshot.periodStart}:${snapshot.periodEnd}${mixed ? `:${amount.currency}` : ''}`,
       workerId: snapshot.worker.id,
       workerName: snapshot.worker.name,
       periodStart: snapshot.periodStart,
       periodEnd: snapshot.periodEnd,
-      currency: snapshot.currency,
-      amountMinor: snapshot.estimatedApprovedMinor,
+      currency: amount.currency,
+      amountMinor: amount.estimatedApprovedMinor,
       approvedMinutes: snapshot.approvedMinutes,
       pendingMinutes: snapshot.pendingMinutes,
       approvalState: snapshot.missingCompensationRules === 0 ? 'complete' : 'incomplete',
       paymentStatus: 'estimated_approved',
-    },
-    {
+    })),
+    ...summaries.map((amount) => ({
       recordType: 'pending_compensation',
-      recordId: `${snapshot.worker.id}:${snapshot.periodStart}:${snapshot.periodEnd}:pending`,
+      recordId: `${snapshot.worker.id}:${snapshot.periodStart}:${snapshot.periodEnd}${mixed ? `:${amount.currency}` : ''}:pending`,
       workerId: snapshot.worker.id,
       workerName: snapshot.worker.name,
       periodStart: snapshot.periodStart,
       periodEnd: snapshot.periodEnd,
-      currency: snapshot.currency,
-      amountMinor: snapshot.estimatedPendingMinor,
+      currency: amount.currency,
+      amountMinor: amount.estimatedPendingMinor,
       approvedMinutes: snapshot.approvedMinutes,
       pendingMinutes: snapshot.pendingMinutes,
       approvalState: 'pending',
       paymentStatus: 'estimated_pending',
-    },
+    })),
     ...snapshot.activities.map((activity, index) => ({
       recordType: 'time_activity',
       recordId: activity.id,
@@ -1664,8 +1676,8 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
       endTime: activity.endTime ?? '',
       breakMinutes: activity.breakMinutes ?? '',
       approvalState: activity.approvalState,
-      currency: snapshot.currency,
-      amountMinor: (activityCompensation[index] ?? 0n).toString(),
+      currency: mixed ? '' : snapshot.currency,
+      amountMinor: mixed ? '' : (activityCompensation[index] ?? 0n).toString(),
     })),
     ...snapshot.settlements.map((settlement) => ({
       recordType: 'compensation_settlement',
@@ -1728,23 +1740,27 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
   const copy = workerStatementCopy(locale);
   const common = localizedCopy[locale];
   const activityCompensation = workerActivityCompensation(snapshot);
+  const mixed = snapshot.currency === 'MULTI';
   const activityHoursTotal = sumFiniteNumbers(
     snapshot.activities.map((activity) => activity.actualMinutes),
   );
   const activityAmountTotal = activityCompensation.reduce((sum, amount) => sum + amount, 0n);
-  const settlementAmountTotal = sumMinorUnits(snapshot.settlements.map((row) => row.amountMinor));
-  const expenseAmountTotal = sumMinorUnits(
-    snapshot.expenses.map((row) => row.reimbursementAmountMinor),
-  );
-  const summary = [
-    [copy.approvedCompensation, snapshot.estimatedApprovedMinor],
-    [copy.pendingCompensation, snapshot.estimatedPendingMinor],
-    [copy.approvedReimbursements, snapshot.approvedReimbursementMinor],
-    [copy.pendingReimbursements, snapshot.pendingReimbursementMinor],
-  ]
+  const settlementAmountTotal = mixed
+    ? 0n
+    : sumMinorUnits(snapshot.settlements.map((row) => row.amountMinor));
+  const expenseAmountTotal = mixed
+    ? 0n
+    : sumMinorUnits(snapshot.expenses.map((row) => row.reimbursementAmountMinor));
+  const summary = (snapshot.currencyBreakdown ?? [snapshot])
+    .flatMap((source) => [
+      [copy.approvedCompensation, source.estimatedApprovedMinor, source.currency],
+      [copy.pendingCompensation, source.estimatedPendingMinor, source.currency],
+      [copy.approvedReimbursements, source.approvedReimbursementMinor, source.currency],
+      [copy.pendingReimbursements, source.pendingReimbursementMinor, source.currency],
+    ])
     .map(
-      ([label, amount]) =>
-        `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${moneyText(snapshot.currency, amount, locale)}</strong></div>`,
+      ([label, amount, currency]) =>
+        `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${moneyText(currency, amount, locale)}</strong></div>`,
     )
     .join('');
   const activityRows = snapshot.activities.map((row, index) => {
@@ -1760,7 +1776,7 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
       activityWithInterval(row.activitySummary ?? '—', row, locale),
       minutesAsHours(row.actualMinutes) || String(row.actualMinutes ?? '—'),
       translateReportStatus(row.approvalState, locale) || '—',
-      exactMoneyText(snapshot.currency, activityCompensation[index] ?? 0n, locale),
+      mixed ? '—' : exactMoneyText(snapshot.currency, activityCompensation[index] ?? 0n, locale),
     ];
   });
   const settlementRows = snapshot.settlements.map((row) => {
@@ -1826,7 +1842,7 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
             '',
             minutesAsHours(activityHoursTotal) || String(activityHoursTotal),
             '',
-            exactMoneyText(snapshot.currency, activityAmountTotal, locale),
+            mixed ? '—' : exactMoneyText(snapshot.currency, activityAmountTotal, locale),
           ]
         : undefined,
     },
@@ -1854,7 +1870,7 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
             '',
             '',
             '',
-            exactMoneyText(snapshot.currency, settlementAmountTotal, locale),
+            mixed ? '—' : exactMoneyText(snapshot.currency, settlementAmountTotal, locale),
             '',
             '',
           ]
@@ -1884,7 +1900,7 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
             '',
             '',
             '',
-            exactMoneyText(snapshot.currency, expenseAmountTotal, locale),
+            mixed ? '—' : exactMoneyText(snapshot.currency, expenseAmountTotal, locale),
           ]
         : undefined,
     },
@@ -2494,8 +2510,11 @@ export function accountingPackPdf(
   const collectionSource = accountingPackRegisterRows(snapshot.collections, [
     { key: 'invoiceNumber', fallback: ['invoice_number'] },
     { key: 'client', fallback: ['clientName', 'client_name'] },
-    { key: 'receivedAt', fallback: ['received_at', 'date'] },
-    { key: 'amountMinor', fallback: ['amount_minor', 'netCollectedMinor'] },
+    { key: 'paymentDate', fallback: ['receivedAt', 'received_at', 'date'] },
+    {
+      key: 'amountCollectedInMonthMinor',
+      fallback: ['amountMinor', 'amount_minor', 'netCollectedMinor'],
+    },
   ]);
   const collectionRows = collectionSource.map((row) => [
     row[0] ?? '',

@@ -59,6 +59,7 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
     const period = supplierPeriod(url);
     return {
       owner,
+      currentUserId: ctx.principal.userId,
       directory: owner ? ctx.supplier.technicianDirectory(ctx.principal) : [],
       batchRequestId: randomUUID(),
       correctionRequestId: randomUUID(),
@@ -343,6 +344,12 @@ function action(operation: string): Actions[string] {
           });
           break;
         }
+        case 'discardTime':
+          ctx.supplier.discardTime(ctx.principal, {
+            id: text('id'),
+            version: Number(text('version')),
+          });
+          break;
       }
       return { success: true, operation, values: {}, outcome };
     } catch (caught) {
@@ -370,6 +377,7 @@ export const actions: Actions = Object.fromEntries(
     'submitTime',
     'submitTimeBatch',
     'updateTime',
+    'discardTime',
     'correctTime',
   ].map((name) => [name, action(name)]),
 );

@@ -2545,7 +2545,9 @@ function validateAuthoritativeSourceItems(
           const row = rowFor(
             `SELECT e.project_id,CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor,
                     CAST(e.amount_minor AS TEXT) amount_minor,e.currency,e.spent_on,
-                    e.who_paid,COALESCE(e.billing_treatment,e.client_treatment) treatment,
+                    e.who_paid,e.expense_policy_required,
+                    CAST(e.reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,
+                    COALESCE(e.billing_treatment,e.client_treatment) treatment,
                     e.approval_state,p.currency project_currency
                FROM expense e JOIN project p ON p.id=e.project_id WHERE e.id=?`,
             expenseId,
@@ -2566,11 +2568,19 @@ function validateAuthoritativeSourceItems(
           const converted = rowValue<string | null>(row, 'project_currency_amount_minor');
           if (converted === null && projectCurrency !== originalCurrency)
             reasons.push(`${kind}:${sourceId}:missing_project_currency_amount`);
-          expectedAmount =
+          const projectAmount =
             converted ??
             (projectCurrency === originalCurrency
               ? rowValue<string>(row, 'amount_minor')
               : undefined);
+          expectedAmount =
+            rowValue<string>(row, 'who_paid') === 'client' ||
+            rowValue<string>(row, 'treatment') === 'client_direct'
+              ? '0'
+              : rowValue<number>(row, 'expense_policy_required') === 1 &&
+                  rowValue<string>(row, 'who_paid') === 'worker'
+                ? (rowValue<string>(row, 'reimbursement_amount_minor') ?? '0')
+                : projectAmount;
           expectedCurrency = projectCurrency;
           sourceDate = rowValue<string>(row, 'spent_on');
           if (
@@ -3867,12 +3877,22 @@ function ensureSourceCut(
         canonicalEvidenceId: semanticOwner.evidence_id,
         canonicalEvidenceHash: semanticOwner.evidence_hash,
       };
+    // The same operational source can acquire a new commercial state without
+    // changing its row version (for example, reimbursement after invoicing).
+    // Keep the previous evidence immutable and bind the new bytes to a distinct
+    // content identity in the next pack revision. A retry with identical bytes
+    // resolves to that same identity.
+    const changedSource = Boolean(semanticOwner);
+    const evidenceId = changedSource
+      ? `source-evidence-${sha256(`${scopedSemanticId}:${item.itemHash}`).slice(0, 40)}`
+      : item.normalizedEvidenceId;
+    const semanticId = changedSource ? `${scopedSemanticId}:${item.itemHash}` : scopedSemanticId;
     const canonicalEvidence = ensureEvidenceRecord(
       sqlite,
-      item.normalizedEvidenceId,
+      evidenceId,
       item.normalizedEvidenceType,
       'accounting-pack-source-item-v1',
-      semanticOwner?.semantic_id ?? scopedSemanticId,
+      semanticId,
       item.evidenceBlob,
       createdAt,
     );

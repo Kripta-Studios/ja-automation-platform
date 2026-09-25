@@ -137,6 +137,303 @@ function seedRefreshablePeriodReports(value: B5LifecycleSecurityFixture) {
 }
 
 describe('Client Essential approval lifecycle', () => {
+  it('lets a live Owner submit another worker report while a manager cannot impersonate its author', () => {
+    const value = fixture();
+    const report = value.repository.createDailyReport(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-20',
+      summary: 'Worker-owned report awaiting submission',
+      tasksCompleted: 'Checked commissioning equipment',
+      downtimeMinutes: 0,
+      safetyRelated: false,
+    });
+    expect(() =>
+      value.repository.submitReport(value.manager, 'daily', report.id, report.version),
+    ).toThrow(AccessDeniedError);
+    value.repository.submitReport(authenticatedOwner(value), 'daily', report.id, report.version);
+    expect(
+      value.sqlite
+        .prepare('SELECT approval_state,version FROM daily_report WHERE id=?')
+        .get(report.id),
+    ).toEqual({ approval_state: 'submitted', version: 2 });
+    const audit = value.sqlite
+      .prepare(
+        "SELECT details_json FROM audit_event WHERE entity_type='daily_report' AND entity_id=? AND action='daily_report.submit' ORDER BY occurred_at DESC LIMIT 1",
+      )
+      .get(report.id) as { details_json: string };
+    expect(JSON.parse(audit.details_json)).toMatchObject({ ownerOverride: true });
+  });
+
+  it('requires a real time revision and permits audited withdrawal, Owner recovery, and resubmission', () => {
+    const value = fixture();
+    const originalId = submittedTime(value);
+    value.repository.operationalApproveTime(
+      value.manager,
+      originalId,
+      'needs_changes',
+      'Clarify activity detail',
+    );
+    const original = value.sqlite.prepare('SELECT * FROM time_entry WHERE id=?').get(originalId);
+    const requestId = 'returned-time-correction-restart';
+    expect(() =>
+      value.repository.createCorrectionDraft(value.worker, {
+        recordType: 'time_entry',
+        originalId,
+        requestId,
+        reason: 'Clarify the activity',
+        patch: { activitySummary: 'Commissioning shift' },
+      }),
+    ).toThrow(ValidationError);
+    expect(() =>
+      value.repository.createCorrectionDraft(value.worker, {
+        recordType: 'time_entry',
+        originalId,
+        requestId,
+        reason: 'Clarify the activity',
+        patch: {
+          activitySummary: 'Clarified commissioning work',
+          startTime: '10:00',
+          endTime: '11:00',
+          breakMinutes: 0,
+          minutes: 600,
+        },
+      }),
+    ).toThrow(ValidationError);
+    expect(
+      value.sqlite
+        .prepare(
+          "SELECT COUNT(*) count FROM record_correction_link WHERE record_type='time_entry' AND original_id=?",
+        )
+        .get(originalId),
+    ).toEqual({ count: 0 });
+    const first = value.repository.createCorrectionDraft(value.worker, {
+      recordType: 'time_entry',
+      originalId,
+      requestId,
+      reason: 'Clarify the activity',
+      patch: { activitySummary: 'Clarified commissioning work' },
+    });
+    expect(() =>
+      value.repository.withdrawCorrectionDraft(value.outsider, {
+        recordType: 'time_entry',
+        correctionId: first.correctionId,
+        version: 1,
+        reason: 'Try another workers record',
+      }),
+    ).toThrow(AccessDeniedError);
+    const owner = authenticatedOwner(value);
+    value.repository.withdrawCorrectionDraft(owner, {
+      recordType: 'time_entry',
+      correctionId: first.correctionId,
+      version: 1,
+      reason: 'Worker needs to revise the draft again',
+    });
+    expect(
+      value.sqlite
+        .prepare('SELECT approval_state FROM time_entry WHERE id=?')
+        .get(first.correctionId),
+    ).toEqual({ approval_state: 'rejected' });
+    expect(value.sqlite.prepare('SELECT * FROM time_entry WHERE id=?').get(originalId)).toEqual(
+      original,
+    );
+    expect(
+      value.sqlite
+        .prepare('SELECT COUNT(*) count FROM record_correction_link WHERE correction_id=?')
+        .get(first.correctionId),
+    ).toEqual({ count: 1 });
+    const retry = value.repository.createCorrectionDraft(value.worker, {
+      recordType: 'time_entry',
+      originalId,
+      requestId,
+      reason: 'Completed the requested detail',
+      patch: { activitySummary: 'Commissioning conveyor controls and safety checks' },
+    });
+    value.repository.submitTime(value.worker, retry.correctionId, 1);
+    expect(
+      value.sqlite
+        .prepare('SELECT approval_state,activity_summary FROM time_entry WHERE id=?')
+        .get(retry.correctionId),
+    ).toEqual({
+      approval_state: 'submitted',
+      activity_summary: 'Commissioning conveyor controls and safety checks',
+    });
+    expect(value.repository.timeDetail(value.worker, originalId)).toMatchObject({
+      active_correction_id: retry.correctionId,
+    });
+    expect(
+      value.sqlite
+        .prepare(
+          "SELECT COUNT(*) count FROM audit_event WHERE action='correction.withdraw' AND entity_id=?",
+        )
+        .get(first.correctionId),
+    ).toEqual({ count: 1 });
+  });
+
+  it('rejects identical expense and report correction payloads before linking history', () => {
+    const value = fixture();
+    const expenseId = submittedExpense(value);
+    const dailyId = submittedDaily(value);
+    const technicalId = submittedTechnical(value);
+    value.repository.operationalApproveExpense(
+      value.manager,
+      expenseId,
+      'needs_changes',
+      'Clarify vendor',
+    );
+    value.repository.reviewReport(value.manager, 'daily', dailyId, 'approved');
+    value.repository.reviewReport(value.manager, 'technical', technicalId, 'approved');
+    expect(() =>
+      value.repository.createCorrectionDraft(value.worker, {
+        recordType: 'expense',
+        originalId: expenseId,
+        requestId: 'same-expense-correction',
+        reason: 'Try an unchanged expense',
+        patch: { vendor: 'Hotel Essential' },
+      }),
+    ).toThrow(ValidationError);
+    expect(() =>
+      value.repository.createCorrectionDraft(value.worker, {
+        recordType: 'daily_report',
+        originalId: dailyId,
+        requestId: 'same-daily-correction',
+        reason: 'Try an unchanged report',
+        patch: { summary: 'Daily operational truth' },
+      }),
+    ).toThrow(ValidationError);
+    expect(() =>
+      value.repository.createCorrectionDraft(value.worker, {
+        recordType: 'technical_report',
+        originalId: technicalId,
+        requestId: 'same-technical-correction',
+        reason: 'Try an unchanged PLC report',
+        patch: { systemName: 'PLC-01' },
+      }),
+    ).toThrow(ValidationError);
+    const expense = value.repository.createCorrectionDraft(value.worker, {
+      recordType: 'expense',
+      originalId: expenseId,
+      requestId: 'changed-expense-correction',
+      reason: 'Correct the vendor',
+      patch: { vendor: 'Hotel Essential Central' },
+    });
+    expect(
+      value.sqlite
+        .prepare('SELECT approval_state,vendor FROM expense WHERE id=?')
+        .get(expense.correctionId),
+    ).toEqual({
+      approval_state: 'draft',
+      vendor: 'Hotel Essential Central',
+    });
+    value.repository.withdrawCorrectionDraft(value.worker, {
+      recordType: 'expense',
+      correctionId: expense.correctionId,
+      version: 1,
+      reason: 'Vendor should be checked again',
+    });
+    expect(value.repository.expenseDetail(value.worker, expenseId)).toMatchObject({
+      approval_state: 'needs_changes',
+      active_correction_id: undefined,
+    });
+    const managerExpense = value.repository.createCorrectionDraft(value.manager, {
+      recordType: 'expense',
+      originalId: expenseId,
+      requestId: 'manager-expense-correction',
+      reason: 'Clarify the receipt vendor',
+      patch: { vendor: 'Verified hotel vendor' },
+    });
+    value.repository.withdrawCorrectionDraft(value.manager, {
+      recordType: 'expense',
+      correctionId: managerExpense.correctionId,
+      version: 1,
+      reason: 'Worker must verify the final receipt',
+    });
+    const managerReport = value.repository.createCorrectionDraft(value.manager, {
+      recordType: 'daily_report',
+      originalId: dailyId,
+      requestId: 'manager-daily-correction',
+      reason: 'Complete the site activity',
+      patch: { summary: 'Verified daily operational truth' },
+    });
+    value.repository.withdrawCorrectionDraft(value.manager, {
+      recordType: 'daily_report',
+      correctionId: managerReport.correctionId,
+      version: 1,
+      reason: 'Worker must confirm the summary',
+    });
+    expect(
+      value.sqlite
+        .prepare('SELECT approval_state FROM daily_report WHERE id=?')
+        .get(managerReport.correctionId),
+    ).toEqual({ approval_state: 'rejected' });
+  });
+
+  it('preserves linked expense and time corrections across direct and offline edits', () => {
+    const value = fixture();
+    const expenseId = submittedExpense(value);
+    value.repository.operationalApproveExpense(value.manager, expenseId, 'approved');
+    const expenseCorrection = value.repository.createCorrectionDraft(value.worker, {
+      recordType: 'expense',
+      originalId: expenseId,
+      requestId: 'linked-expense-edit-guard',
+      reason: 'Correct the approved source amount',
+      patch: { amountMinor: 12_000 },
+    });
+    const expenseBefore = value.sqlite
+      .prepare('SELECT * FROM expense WHERE id=?')
+      .get(expenseCorrection.correctionId);
+    const expenseLinkBefore = value.sqlite
+      .prepare('SELECT * FROM record_correction_link WHERE correction_id=?')
+      .get(expenseCorrection.correctionId);
+    expect(() =>
+      value.repository.updateExpense(value.worker, {
+        id: expenseCorrection.correctionId,
+        version: 1,
+        description: 'Untracked expense change',
+      }),
+    ).toThrow(ConflictError);
+    expect(
+      value.sqlite.prepare('SELECT * FROM expense WHERE id=?').get(expenseCorrection.correctionId),
+    ).toEqual(expenseBefore);
+    expect(
+      value.sqlite
+        .prepare('SELECT * FROM record_correction_link WHERE correction_id=?')
+        .get(expenseCorrection.correctionId),
+    ).toEqual(expenseLinkBefore);
+
+    const timeId = submittedTime(value);
+    value.repository.operationalApproveTime(value.manager, timeId, 'approved');
+    const timeCorrection = value.repository.createCorrectionDraft(value.worker, {
+      recordType: 'time_entry',
+      originalId: timeId,
+      requestId: 'linked-time-offline-edit-guard',
+      reason: 'Correct the approved shift',
+      patch: { minutes: 540 },
+    });
+    const timeBefore = value.sqlite
+      .prepare('SELECT * FROM time_entry WHERE id=?')
+      .get(timeCorrection.correctionId);
+    const timeLinkBefore = value.sqlite
+      .prepare('SELECT * FROM record_correction_link WHERE correction_id=?')
+      .get(timeCorrection.correctionId);
+    expect(
+      value.v3.syncMutation(value.worker, {
+        mutationId: '0198be45-cd9c-7ab4-9a5a-a6c000000199',
+        entityType: 'time',
+        entityId: timeCorrection.correctionId,
+        baseVersion: 1,
+        payload: { category: 'regular', summary: 'Untracked offline change', minutes: 300 },
+        attachments: [],
+      }),
+    ).toMatchObject({ outcome: 'rejected', reason: 'A linked correction draft cannot be edited' });
+    expect(
+      value.sqlite.prepare('SELECT * FROM time_entry WHERE id=?').get(timeCorrection.correctionId),
+    ).toEqual(timeBefore);
+    expect(
+      value.sqlite
+        .prepare('SELECT * FROM record_correction_link WHERE correction_id=?')
+        .get(timeCorrection.correctionId),
+    ).toEqual(timeLinkBefore);
+  });
   it('revalidates source-date assignment inside report and technical-change submission', () => {
     const value = fixture();
     const daily = value.repository.createDailyReport(value.worker, {
@@ -410,6 +707,9 @@ describe('Client Essential approval lifecycle', () => {
       reason: 'Correct the approved shift minutes without hiding history',
       patch: { minutes: 540 },
     });
+    expect(
+      value.repository.listTimeForScope(value.worker).find((row) => row.id === originalId),
+    ).toMatchObject({ active_correction_id: correction.correctionId });
 
     // A draft correction is input under review, not yet a replacement of approved truth.
     expect(value.v3.workerPay(value.worker, '2026-08-20', '2026-08-20')).toMatchObject({
@@ -442,7 +742,7 @@ describe('Client Essential approval lifecycle', () => {
     });
     expect(
       value.repository.listTimeForScope(value.worker).find((row) => row.id === originalId),
-    ).toMatchObject({ id: originalId, approval_state: 'approved' });
+    ).toMatchObject({ id: originalId, approval_state: 'approved', active_correction_id: null });
     expect(
       value.repository.listApprovalQueue(value.manager).find((row) => row.id === originalId),
     ).toMatchObject({ id: originalId, review_stage: 'correction' });
@@ -670,6 +970,9 @@ describe('Client Essential approval lifecycle', () => {
       reason: 'Correct the worker-paid receipt amount',
       patch: { amountMinor: 12_500 },
     });
+    expect(
+      value.repository.listExpensesForScope(value.worker).find((row) => row.id === original.id),
+    ).toMatchObject({ active_correction_id: correction.correctionId });
     expect(statement().map((row) => row.id)).toEqual([original.id]);
     expect(value.v3.listReimbursementQueue(value.finance, value.project.id)).toEqual([]);
     value.repository.submitExpense(value.worker, correction.correctionId, 1);
@@ -682,6 +985,9 @@ describe('Client Essential approval lifecycle', () => {
       'rejected',
       'Original receipt remains authoritative',
     );
+    expect(
+      value.repository.listExpensesForScope(value.worker).find((row) => row.id === original.id),
+    ).toMatchObject({ active_correction_id: null });
     expect(statement().map((row) => row.id)).toEqual([original.id]);
     expect(
       value.v3.listReimbursementQueue(value.finance, value.project.id).map((row) => row.id),
@@ -763,6 +1069,12 @@ describe('Client Essential approval lifecycle', () => {
       reason: 'Clarified amount in an append-only retry',
       patch: { amountMinor: 13_000 },
     });
+    expect(held.repository.expenseDetail(held.worker, heldCorrection.correctionId)).toMatchObject({
+      approval_state: 'rejected',
+      review_reason: 'Clarify the corrected amount before reimbursement',
+      active_correction_id: heldRetry.correctionId,
+      active_correction_state: 'draft',
+    });
     held.repository.submitExpense(held.worker, heldRetry.correctionId, 1);
     held.repository.operationalApproveExpense(held.manager, heldRetry.correctionId, 'approved');
     expect(
@@ -791,6 +1103,167 @@ describe('Client Essential approval lifecycle', () => {
     expect(
       held.v3.listReimbursementQueue(held.finance, held.project.id).map((row) => row.id),
     ).toEqual([heldRetry.correctionId]);
+  });
+
+  it('queues a foreign-currency worker reimbursement in its receipt currency', () => {
+    const value = fixture();
+    const expense = value.repository.createExpense(value.worker, {
+      projectId: value.project.id,
+      spentOn: '2026-08-20',
+      vendor: 'USD hotel',
+      category: 'hotel',
+      description: 'Legacy worker-paid USD receipt',
+      currency: 'USD',
+      amountMinor: 12_345n,
+      whoPaid: 'worker',
+      receiptRequired: false,
+    });
+    value.sqlite
+      .prepare(
+        'UPDATE expense SET expense_policy_required=0,project_currency_amount_minor=11111 WHERE id=?',
+      )
+      .run(expense.id);
+    value.repository.submitExpense(value.worker, expense.id, expense.version);
+    value.repository.operationalApproveExpense(value.manager, expense.id, 'approved');
+    // Legacy FX rows may retain a converted amount in this historical column;
+    // the worker obligation remains the source receipt amount and currency.
+    value.sqlite
+      .prepare('UPDATE expense SET reimbursement_amount_minor=11111 WHERE id=?')
+      .run(expense.id);
+    const invoicedSource = value.sqlite
+      .prepare('SELECT amount_minor,currency,project_currency_amount_minor FROM expense WHERE id=?')
+      .get(expense.id);
+    const invoicedAt = new Date().toISOString();
+    value.sqlite
+      .prepare(
+        `INSERT INTO invoice(id,project_id,invoice_number,stream_type,state,currency,
+           issued_at,snapshot_json,created_at,updated_at)
+         VALUES(?,?,?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        'issued-fx-worker-expense-invoice',
+        value.project.id,
+        'QA-ISSUED-FX-REIMBURSEMENT-1',
+        'expenses',
+        'issued',
+        'EUR',
+        invoicedAt,
+        '{}',
+        invoicedAt,
+        invoicedAt,
+      );
+    value.sqlite
+      .prepare("UPDATE expense SET invoice_id=?,billing_state='invoiced' WHERE id=?")
+      .run('issued-fx-worker-expense-invoice', expense.id);
+    expect(() =>
+      value.sqlite
+        .prepare('UPDATE expense SET reimbursement_amount_minor=12345 WHERE id=?')
+        .run(expense.id),
+    ).toThrow(/invoiced expense is immutable/u);
+    expect(
+      value.sqlite
+        .prepare('SELECT project_currency_amount_minor FROM expense WHERE id=?')
+        .get(expense.id),
+    ).toEqual({ project_currency_amount_minor: 11111 });
+    const queued = value.v3.listReimbursementQueue(value.finance, value.project.id);
+    expect(queued).toEqual([
+      expect.objectContaining({
+        id: expense.id,
+        currency: 'USD',
+        amountMinor: '12345',
+        reimbursementAmountMinor: '12345',
+      }),
+    ]);
+    expect(
+      value.repository.listWorkerStatementExpenses(value.worker, '2026-08-20', '2026-08-20'),
+    ).toEqual([
+      expect.objectContaining({
+        id: expense.id,
+        currency: 'USD',
+        reimbursementAmountMinor: '12345',
+      }),
+    ]);
+    const finance = authenticatedFinance(value);
+    expect(
+      value.v3.recordReimbursement(finance, {
+        expenseId: expense.id,
+        amountMinor: BigInt(queued[0]!.reimbursementAmountMinor),
+        reference: 'USD-RECEIPT-SETTLED',
+      }),
+    ).toMatchObject({ amountMinor: '12345', state: 'reimbursed' });
+    expect(value.v3.listReimbursementQueue(value.finance, value.project.id)[0]).toMatchObject({
+      currency: 'USD',
+      reimbursementAmountMinor: '12345',
+      reimbursementState: 'reimbursed',
+    });
+    expect(
+      value.v3.recordReimbursement(finance, {
+        expenseId: expense.id,
+        amountMinor: 12_345n,
+        reference: 'USD-RECEIPT-SETTLED',
+      }),
+    ).toMatchObject({ amountMinor: '12345', state: 'reimbursed' });
+    expect(
+      value.sqlite
+        .prepare(
+          'SELECT amount_minor,currency,project_currency_amount_minor FROM expense WHERE id=?',
+        )
+        .get(expense.id),
+    ).toEqual(invoicedSource);
+  });
+
+  it('records an invoiced expense reimbursement without changing its invoice source', () => {
+    const value = fixture();
+    const expenseId = submittedExpense(value);
+    value.sqlite.prepare('UPDATE expense SET expense_policy_required=0 WHERE id=?').run(expenseId);
+    value.repository.operationalApproveExpense(value.manager, expenseId, 'approved');
+    const now = new Date().toISOString();
+    value.sqlite
+      .prepare(
+        `INSERT INTO invoice(id,project_id,invoice_number,stream_type,state,currency,
+           issued_at,snapshot_json,created_at,updated_at)
+         VALUES(?,?,?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        'issued-worker-expense-invoice',
+        value.project.id,
+        'QA-ISSUED-REIMBURSEMENT-1',
+        'expenses',
+        'issued',
+        'EUR',
+        now,
+        '{}',
+        now,
+        now,
+      );
+    value.sqlite
+      .prepare("UPDATE expense SET invoice_id=?,billing_state='invoiced' WHERE id=?")
+      .run('issued-worker-expense-invoice', expenseId);
+    const sourceBefore = value.sqlite
+      .prepare(
+        `SELECT invoice_id,project_id,worker_id,spent_on,currency,amount_minor,
+                client_treatment,billing_state,billing_amount_minor
+           FROM expense WHERE id=?`,
+      )
+      .get(expenseId);
+    expect(
+      value.v3.recordReimbursement(authenticatedFinance(value), {
+        expenseId,
+        reference: 'INVOICED-WORKER-PAID-1',
+      }),
+    ).toMatchObject({ expenseId, amountMinor: '10000', state: 'reimbursed' });
+    expect(
+      value.sqlite
+        .prepare(
+          `SELECT invoice_id,project_id,worker_id,spent_on,currency,amount_minor,
+                  client_treatment,billing_state,billing_amount_minor
+             FROM expense WHERE id=?`,
+        )
+        .get(expenseId),
+    ).toEqual(sourceBefore);
+    expect(() =>
+      value.sqlite.prepare('UPDATE expense SET amount_minor=10001 WHERE id=?').run(expenseId),
+    ).toThrow(/invoiced expense is immutable/u);
   });
 
   it('keeps approved daily and technical report truth, including technical-change detail, until a correction is approved', () => {

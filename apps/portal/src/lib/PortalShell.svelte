@@ -164,6 +164,55 @@
     | 'update-assignment'
     | 'remove-assignment';
   let projectWorkflow = $state<ProjectWorkflow | null>(null);
+  function rememberProjectWorkflow(workflow: ProjectWorkflow | null, hash = ''): void {
+    const url = new URL(location.href);
+    if (workflow) url.searchParams.set('action', workflow);
+    else url.searchParams.delete('action');
+    url.searchParams.delete('project');
+    url.searchParams.delete('worker');
+    url.hash = hash;
+    replaceState(url, {});
+  }
+  async function focusProjectDestination(selector: string): Promise<void> {
+    await tick();
+    const target = document.querySelector<HTMLElement>(selector);
+    if (!target) return;
+    target.scrollIntoView({ block: 'start' });
+    target.focus({ preventScroll: true });
+  }
+  function openProjectWorkflow(workflow: ProjectWorkflow): void {
+    projectWorkflow = workflow;
+    rememberProjectWorkflow(workflow);
+    if (workflow === 'new-project') {
+      newProjectClientId = '';
+      newProjectCurrencyOverride = null;
+      newProjectTimezoneOverride = null;
+    }
+    void focusProjectDestination(`[data-project-workflow="${workflow}"]`);
+  }
+  function showProjectList(): void {
+    projectWorkflow = null;
+    rememberProjectWorkflow(null);
+    void tick().then(() => {
+      const target = document.getElementById('project-register');
+      const disclosure = target?.querySelector('details');
+      if (disclosure) disclosure.open = true;
+      target?.scrollIntoView({ block: 'start' });
+      target?.focus({ preventScroll: true });
+    });
+  }
+  function showAssignmentHistory(event: MouseEvent): void {
+    event.preventDefault();
+    projectWorkflow = null;
+    rememberProjectWorkflow(null, 'assignment-history');
+    void tick().then(() => {
+      const target = document.getElementById('assignment-history');
+      const disclosure = target?.querySelector('details');
+      if (disclosure) disclosure.open = true;
+      target?.scrollIntoView({ block: 'start' });
+      target?.focus({ preventScroll: true });
+    });
+  }
   $effect(() => {
     const requested = $page.url.searchParams.get('action');
     if (
@@ -345,6 +394,72 @@
     const value = projectFormValues[field];
     return typeof value === 'string' ? value : fallback;
   };
+  const planningFailure = $derived.by(() => {
+    const result = form as
+      | {
+          success?: boolean;
+          operation?: string;
+          values?: Record<string, unknown>;
+          fields?: Record<string, string[]>;
+        }
+      | null
+      | undefined;
+    return result?.success === false &&
+      ['createPlanning', 'updatePlanning', 'cancelPlanning'].includes(result.operation ?? '')
+      ? result
+      : null;
+  });
+  const planningFailedUpdateId = $derived(
+    planningFailure?.operation === 'updatePlanning' ? String(planningFailure.values?.id ?? '') : '',
+  );
+  const planningFieldMessage = (field: string, operation: string, id = ''): string =>
+    planningFailure?.operation === operation &&
+    (!id || String(planningFailure.values?.id ?? '') === id) &&
+    planningFailure.fields?.[field]?.length
+      ? translate(planningFailure.fields[field]?.[0] ?? '')
+      : '';
+  const planningUpdateValue = (field: string, id: string, fallback: unknown): string => {
+    if (planningFailedUpdateId === id && planningFailure?.values?.[field] != null)
+      return String(planningFailure.values[field]);
+    return String(fallback ?? '');
+  };
+  let planningEditForms = $state<Record<string, Record<string, string>>>({});
+  const planningEditKey = (row: Row): string => `${String(row.id)}:${String(row.version)}`;
+  const planningEditValue = (row: Row, field: string, fallback: unknown): string =>
+    planningEditForms[planningEditKey(row)]?.[field] ??
+    planningUpdateValue(field, String(row.id), fallback);
+  const rememberPlanningEdit = (row: Row, form: HTMLFormElement): void => {
+    planningEditForms[planningEditKey(row)] = Object.fromEntries(
+      [...new FormData(form)].filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string',
+      ),
+    );
+  };
+  const planningWorkersForUpdate = (row: Row): Row[] => {
+    const projectId = String(row.project_id);
+    const startsOn = planningEditValue(row, 'startsAt', row.starts_at).slice(0, 10);
+    const endsOn = planningEditValue(row, 'endsAt', row.ends_at).slice(0, 10);
+    const eligible = (data.workers ?? []).filter(
+      (worker) =>
+        worker.status === 'active' &&
+        (data.assignments ?? []).some(
+          (assignment) =>
+            String(assignment.project_id) === projectId &&
+            String(assignment.worker_id ?? assignment.user_id) === String(worker.id) &&
+            assignment.status === 'active' &&
+            String(assignment.starts_on) <= startsOn &&
+            (!assignment.ends_on || String(assignment.ends_on) >= endsOn),
+        ),
+    );
+    // Keep the published worker visible if their membership has since expired or
+    // the edited dates no longer fit it. The server validates any saved change.
+    if (!eligible.some((worker) => String(worker.id) === String(row.worker_id)))
+      return [
+        { id: String(row.worker_id), name: String(row.worker_name ?? row.worker_id) },
+        ...eligible,
+      ];
+    return eligible;
+  };
   const initialProjectWorkerIds = $derived(
     Array.isArray(projectFormValues.initialWorkerIds)
       ? projectFormValues.initialWorkerIds.filter((id): id is string => typeof id === 'string')
@@ -397,6 +512,71 @@
   const profileWorkerId = $derived(String(data.selectedWorkerId ?? data.user.id));
   let planningStarts = $state('');
   let planningEnds = $state('');
+  let planningProjectId = $state('');
+  let planningWorkerId = $state('');
+  let restoredPlanningFailure: unknown;
+  $effect(() => {
+    if (
+      planningFailure?.operation !== 'createPlanning' ||
+      planningFailure === restoredPlanningFailure
+    )
+      return;
+    restoredPlanningFailure = planningFailure;
+    const values = planningFailure.values ?? {};
+    planningProjectId = String(values.projectId ?? '');
+    planningWorkerId = String(values.workerId ?? '');
+    planningStarts = String(values.startsAt ?? '');
+    planningEnds = String(values.endsAt ?? '');
+  });
+  const planningEligibleWorkers = $derived(
+    (data.workers ?? []).filter(
+      (worker) =>
+        worker.status === 'active' &&
+        (data.assignments ?? []).some(
+          (assignment) =>
+            String(assignment.project_id) === planningProjectId &&
+            String(assignment.worker_id ?? assignment.user_id) === String(worker.id) &&
+            assignment.status === 'active' &&
+            (!planningStarts || String(assignment.starts_on) <= planningStarts.slice(0, 10)) &&
+            (!planningEnds ||
+              !assignment.ends_on ||
+              String(assignment.ends_on) >= planningEnds.slice(0, 10)),
+        ),
+    ),
+  );
+  $effect(() => {
+    if (data.section !== 'planning') return;
+    const requested = $page.url.searchParams.get('project');
+    if (
+      !planningProjectId ||
+      !operationalProjects.some((project) => project.id === planningProjectId)
+    )
+      planningProjectId =
+        requested && operationalProjects.some((project) => project.id === requested)
+          ? requested
+          : String(operationalProjects[0]?.id ?? '');
+  });
+  $effect(() => {
+    const requestedWorker = $page.url.searchParams.get('worker');
+    if (
+      !planningWorkerId &&
+      requestedWorker &&
+      planningEligibleWorkers.some((worker) => worker.id === requestedWorker)
+    )
+      planningWorkerId = requestedWorker;
+    else if (!planningEligibleWorkers.some((worker) => worker.id === planningWorkerId))
+      planningWorkerId = '';
+  });
+  let handledPlanningUrlDate = '';
+  $effect(() => {
+    if (data.section !== 'planning') return;
+    const date = $page.url.searchParams.get('date') ?? '';
+    if (/^\d{4}-\d{2}-\d{2}$/u.test(date) && date !== handledPlanningUrlDate) {
+      handledPlanningUrlDate = date;
+      planningStarts = `${date}T08:00`;
+      planningEnds = `${date}T16:00`;
+    }
+  });
   let planningForm: HTMLFormElement | undefined = $state();
   function selectPlanningDate(date: string) {
     planningStarts = `${date}T08:00`;
@@ -813,6 +993,37 @@
     locale = resolveStandaloneLocale(queryLocale, data.locale);
     persistStandaloneLocale(locale);
     document.documentElement.lang = documentLanguage(locale);
+    if (data.section === 'projects') {
+      const requested = new URLSearchParams(location.search).get('action');
+      if (
+        requested &&
+        [
+          'new-client',
+          'update-client',
+          'new-project',
+          'assign-worker',
+          'update-assignment',
+          'remove-assignment',
+        ].includes(requested)
+      ) {
+        void focusProjectDestination(`[data-project-workflow="${requested}"]`);
+      }
+    }
+    if (data.section === 'planning' && location.hash === '#planning-create-form') {
+      void tick().then(() => {
+        planningForm?.scrollIntoView({ block: 'start' });
+        planningForm?.querySelector<HTMLInputElement>('input[name="startsAt"]')?.focus({
+          preventScroll: true,
+        });
+      });
+    }
+    if (data.section === 'planning' && location.hash === '#planning-day-agenda') {
+      void tick().then(() => {
+        const agenda = document.getElementById('planning-day-agenda');
+        agenda?.scrollIntoView({ block: 'start' });
+        agenda?.focus({ preventScroll: true });
+      });
+    }
     if (location.hash === '#new-project') {
       const newProjectDetails = document.getElementById('new-project');
       if (newProjectDetails instanceof HTMLDetailsElement) newProjectDetails.open = true;
@@ -1444,6 +1655,11 @@
             <div>
               <h2>{translate('Private project documents')}</h2>
               <p class="form-help">
+                {translate(
+                  'Registered documents are retained as evidence. Upload a corrected file as a new document; the original stays available in the audit history.',
+                )}
+              </p>
+              <p class="form-help">
                 {translate('Files are private, hash-verified, and authorized on every download.')}
               </p>
             </div>
@@ -1466,7 +1682,9 @@
                   >{document.project_number
                     ? String(document.project_number)
                     : translate('Private')} · {String(document.artifact_type)} ·
-                  {String(document.byte_length)} bytes</small
+                  {document.byte_length == null
+                    ? ''
+                    : `${String(document.byte_length)} bytes`}</small
                 >
               </div>
               <div class="record-actions">
@@ -1480,21 +1698,20 @@
                 <a class="preview-link" href={`${base}/app/api/documents/${String(document.id)}`}
                   >{translate('Download')}</a
                 >
-                {#if data.user.role === 'owner_admin' || data.user.id === document.owner_id}
-                  <form
-                    method="POST"
-                    action="?/deleteDocument"
-                    class="document-delete-form"
-                    onsubmit={(e) => {
-                      if (!confirm(translate('Are you sure you want to delete this document?')))
-                        e.preventDefault();
-                    }}
-                  >
-                    <input type="hidden" name="documentId" value={String(document.id)} />
-                    <button type="submit" class="preview-link preview-link-danger"
-                      >{translate('Delete')}</button
-                    >
-                  </form>
+                {#if data.user.role === 'owner_admin' || (data.user.role !== 'auditor_read_only' && (data.user.id === document.owner_id || document.can_archive === true))}
+                  <details class="document-archive-control">
+                    <summary>{translate('Archive')}</summary>
+                    <form method="POST" action="?/archiveDocument" class="document-delete-form">
+                      <input type="hidden" name="documentId" value={String(document.id)} />
+                      <label
+                        >{translate('Archive reason')}
+                        <input name="reason" minlength="3" maxlength="500" required />
+                      </label>
+                      <button type="submit" class="preview-link preview-link-danger"
+                        >{translate('Archive document')}</button
+                      >
+                    </form>
+                  </details>
                 {/if}
               </div>
             </article>{:else}<div class="empty">
@@ -1560,39 +1777,79 @@
         {/if}
       </section>
       <div class="finance-grid">
-        <a href="{base}/app/time" class="metric metric-link">
-          <span>{translate('APPROVED COMPENSATION')}</span><strong
-            >{paymentMoney(
-              data.pay.estimatedApprovedMinor,
-              data.pay.currency,
-              documentLanguage(locale),
-            )}</strong
-          >
-          <p>{data.pay.approvedMinutes} {translate('approved minutes')}</p>
-        </a>
-        <a href="{base}/app/expenses" class="metric metric-link">
-          <span>{translate('APPROVED REIMBURSEMENTS')}</span><strong
-            >{paymentMoney(
-              data.pay.approvedReimbursementMinor,
-              data.pay.currency,
-              documentLanguage(locale),
-            )}</strong
-          >
-          <p>
-            {translate('Pending pay:')}
-            {paymentMoney(
-              data.pay.estimatedPendingMinor,
-              data.pay.currency,
-              documentLanguage(locale),
-            )} + {paymentMoney(
-              data.pay.pendingReimbursementMinor,
-              data.pay.currency,
-              documentLanguage(locale),
-            )}
-            {translate('reimbursements.')}
-          </p>
-        </a>
+        {#each data.pay.currencyBreakdown ?? [data.pay] as amount}
+          <a href="{base}/app/time" class="metric metric-link">
+            <span>{translate('APPROVED COMPENSATION')} · {amount.currency}</span><strong
+              >{paymentMoney(
+                amount.estimatedApprovedMinor,
+                amount.currency,
+                documentLanguage(locale),
+              )}</strong
+            >
+            <p>{data.pay.approvedMinutes} {translate('approved minutes')}</p>
+          </a>
+          <a href="{base}/app/expenses" class="metric metric-link">
+            <span>{translate('APPROVED REIMBURSEMENTS')} · {amount.currency}</span><strong
+              >{paymentMoney(
+                amount.approvedReimbursementMinor,
+                amount.currency,
+                documentLanguage(locale),
+              )}</strong
+            >
+            <p>
+              {translate('Estimated compensation awaiting approval:')}
+              {paymentMoney(
+                amount.estimatedPendingMinor,
+                amount.currency,
+                documentLanguage(locale),
+              )} · {translate('Estimated reimbursements awaiting approval:')}
+              {paymentMoney(
+                amount.pendingReimbursementMinor,
+                amount.currency,
+                documentLanguage(locale),
+              )}
+            </p>
+          </a>
+        {/each}
       </div>
+      <section class="record-list full" aria-label={translate('Payment still outstanding')}>
+        <div class="panel-title">
+          <div>
+            <h2>{translate('Payment still outstanding')}</h2>
+            <p>
+              {translate(
+                'Reviewed compensation and approved expenses that have not been paid yet.',
+              )}
+            </p>
+          </div>
+        </div>
+        {#each data.payOutstanding ?? [] as outstanding}
+          <p>
+            {translate('Unpaid reviewed settlements:')}
+            <strong
+              >{paymentMoney(
+                outstanding.settlementMinor,
+                outstanding.currency,
+                documentLanguage(locale),
+              )}</strong
+            >
+            · {translate('Approved reimbursements awaiting payment:')}
+            <strong
+              >{paymentMoney(
+                outstanding.reimbursementMinor,
+                outstanding.currency,
+                documentLanguage(locale),
+              )}</strong
+            >
+          </p>
+        {:else}
+          <p>
+            {translate(
+              'No reviewed payments or approved reimbursements are outstanding in this period.',
+            )}
+          </p>
+        {/each}
+      </section>
       <section class="record-list full pay-detail">
         <div class="panel-title">
           <div>
@@ -1983,25 +2240,24 @@
               )}
             </p>
             <div>
+              <button type="button" class="secondary-button" onclick={showProjectList}
+                >{translate('All projects')}</button
+              >
               <a class="secondary-button" href={href('projects') + '?view=clients'}
                 >{translate('Client contacts')}</a
               >
               <a class="secondary-button" href={href('projects') + '?view=team'}
                 >{translate('Team access')}</a
               >
-              <a class="secondary-button" href="#assignment-history"
+              <a class="secondary-button" href="#assignment-history" onclick={showAssignmentHistory}
                 >{translate('Assignment history')}</a
               >
               <button
                 type="button"
                 class="primary-button"
                 class:active={projectWorkflow === 'new-project'}
-                onclick={() => {
-                  projectWorkflow = 'new-project';
-                  newProjectClientId = '';
-                  newProjectCurrencyOverride = null;
-                  newProjectTimezoneOverride = null;
-                }}>{translate('New Project')}</button
+                onclick={() => openProjectWorkflow('new-project')}
+                >{translate('New Project')}</button
               >
               <details
                 class="workspace-actions-disclosure"
@@ -2013,14 +2269,14 @@
                     type="button"
                     class="primary-button"
                     class:active={projectWorkflow === 'new-client'}
-                    onclick={() => (projectWorkflow = 'new-client')}
+                    onclick={() => openProjectWorkflow('new-client')}
                     >{translate('New Client')}</button
                   >
                   <button
                     type="button"
                     class="primary-button"
                     class:active={projectWorkflow === 'update-client'}
-                    onclick={() => (projectWorkflow = 'update-client')}
+                    onclick={() => openProjectWorkflow('update-client')}
                     >{translate('Update Client')}</button
                   >
 
@@ -2029,21 +2285,21 @@
                       type="button"
                       class="primary-button"
                       class:active={projectWorkflow === 'assign-worker'}
-                      onclick={() => (projectWorkflow = 'assign-worker')}
+                      onclick={() => openProjectWorkflow('assign-worker')}
                       >{translate('Assign Worker')}</button
                     >
                     <button
                       type="button"
                       class="primary-button"
                       class:active={projectWorkflow === 'update-assignment'}
-                      onclick={() => (projectWorkflow = 'update-assignment')}
+                      onclick={() => openProjectWorkflow('update-assignment')}
                       >{translate('Update Assignment')}</button
                     >
                     <button
                       type="button"
                       class="primary-button danger-outline"
                       class:active={projectWorkflow === 'remove-assignment'}
-                      onclick={() => (projectWorkflow = 'remove-assignment')}
+                      onclick={() => openProjectWorkflow('remove-assignment')}
                       >{translate('Remove Assignment')}</button
                     >
                   {/if}
@@ -2055,6 +2311,7 @@
             <section
               class="admin-details project-workflow-panel"
               data-project-workflow="new-client"
+              tabindex="-1"
             >
               <form method="POST" action="?/createClient" class="admin-form-grid">
                 <h2>{translate('Create client')}</h2>
@@ -2152,6 +2409,7 @@
             <section
               class="admin-details project-workflow-panel"
               data-project-workflow="update-client"
+              tabindex="-1"
             >
               <p class="form-help">
                 {translate(
@@ -2260,6 +2518,7 @@
               id="new-project"
               class="admin-details project-workflow-panel"
               data-project-workflow="new-project"
+              tabindex="-1"
             >
               {#if createdProject}
                 <ProjectSetupNextSteps
@@ -2522,6 +2781,7 @@
               <section
                 class="admin-details project-workflow-panel"
                 data-project-workflow="assign-worker"
+                tabindex="-1"
               >
                 <form method="POST" action="?/assignWorker" class="admin-form-grid">
                   <h2>{translate('Assign worker')}</h2>
@@ -2558,6 +2818,7 @@
               <section
                 class="admin-details project-workflow-panel"
                 data-project-workflow="update-assignment"
+                tabindex="-1"
               >
                 <h2>{translate('Update assignment')}</h2>
                 {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active' && (!$page.url.searchParams.get('worker') || String(assignment.worker_id ?? assignment.user_id) === $page.url.searchParams.get('worker')) && (!$page.url.searchParams.get('project') || String(assignment.project_id) === $page.url.searchParams.get('project'))) as assignment}
@@ -2609,6 +2870,7 @@
               <section
                 class="admin-details project-workflow-panel"
                 data-project-workflow="remove-assignment"
+                tabindex="-1"
               >
                 <h2>{translate('Remove assignment')}</h2>
                 <p class="form-help">
@@ -2650,150 +2912,154 @@
             {/if}
           {/if}
         {/if}
-        <SectionCard
-          title={translate('Authorized projects')}
-          collapsible
-          expanded={!projectWorkflow}
-          class="record-list full"
-        >
-          <RecordBrowser
-            rows={availableProjects}
-            bind:visible={projectRegisterPage}
-            {translate}
-            label="Project"
-          />
-          {#each projectRegisterPage as row (row.id)}
-            <article class="project-list-link">
-              <a href={`${base}/app/projects/${row.id}`}>
-                <div>
-                  <strong>{row.project_number} · {row.name}</strong><small
-                    >{controlledValue('status', row.status)} · {row.currency} · {row.timezone} · {row.start_date ??
-                      translate('No start')} → {row.planned_end_date ??
-                      translate('Open target')}</small
-                  >
-                </div>
-                <span>{translate('OPEN PROJECT →')}</span>
-              </a>
-              {#if canManageProjects}
-                <details class="project-row-actions" use:disclosure>
-                  <summary>{translate('Actions')}</summary>
-                  <div class="record-actions lifecycle-actions">
-                    {#if row.status === 'active' || row.status === 'paused'}
-                      <form
-                        method="POST"
-                        action="?/transitionProject"
-                        data-action="transitionProject"
-                      >
-                        <input type="hidden" name="projectId" value={row.id} />
-                        <input type="hidden" name="version" value={row.version ?? 1} />
-                        <input
-                          type="hidden"
-                          name="status"
-                          value={row.status === 'active' ? 'closing' : 'closing'}
-                        />
-                        <label class="sr-only" for={`project-close-reason-${row.id}`}
-                          >{translate('Reason')}</label
-                        >
-                        <input
-                          id={`project-close-reason-${row.id}`}
-                          name="reason"
-                          required
-                          placeholder={translate('Reason')}
-                        />
-                        <button type="submit" class="secondary-button"
-                          >{translate('Begin close')}</button
-                        >
-                      </form>
-                    {:else if row.status === 'closing'}
-                      <form
-                        method="POST"
-                        action="?/transitionProject"
-                        data-action="transitionProject"
-                      >
-                        <input type="hidden" name="projectId" value={row.id} />
-                        <input type="hidden" name="version" value={row.version ?? 1} />
-                        <input type="hidden" name="status" value="closed" />
-                        <label class="sr-only" for={`project-finish-reason-${row.id}`}
-                          >{translate('Reason')}</label
-                        >
-                        <input
-                          id={`project-finish-reason-${row.id}`}
-                          name="reason"
-                          required
-                          placeholder={translate('Reason')}
-                        />
-                        <button type="submit" class="secondary-button"
-                          >{translate('Close project')}</button
-                        >
-                      </form>
-                    {:else if row.status === 'closed'}
-                      <form
-                        method="POST"
-                        action="?/transitionProject"
-                        data-action="transitionProject"
-                      >
-                        <input type="hidden" name="projectId" value={row.id} />
-                        <input type="hidden" name="version" value={row.version ?? 1} />
-                        <input type="hidden" name="status" value="archived" />
-                        <label class="sr-only" for={`project-archive-reason-${row.id}`}
-                          >{translate('Reason')}</label
-                        >
-                        <input
-                          id={`project-archive-reason-${row.id}`}
-                          name="reason"
-                          required
-                          placeholder={translate('Reason')}
-                        />
-                        <button type="submit" class="danger">{translate('Archive project')}</button>
-                      </form>
-                    {:else if row.status === 'archived'}
-                      <form
-                        method="POST"
-                        action="?/transitionProject"
-                        data-action="transitionProject"
-                      >
-                        <input type="hidden" name="projectId" value={row.id} />
-                        <input type="hidden" name="version" value={row.version ?? 1} />
-                        <input type="hidden" name="status" value="restore" />
-                        <label class="sr-only" for={`project-restore-reason-${row.id}`}
-                          >{translate('Reason')}</label
-                        >
-                        <input
-                          id={`project-restore-reason-${row.id}`}
-                          name="reason"
-                          required
-                          placeholder={translate('Reason')}
-                        />
-                        <button type="submit" class="secondary-button"
-                          >{translate('Restore project')}</button
-                        >
-                      </form>
-                    {/if}
-                    <form
-                      method="POST"
-                      action="?/deleteProject"
-                      data-action="deleteProject"
-                      onsubmit={(event) => {
-                        if (
-                          !confirm(
-                            translate(
-                              'Delete this project? This will permanently remove it if it has no financial activity.',
-                            ),
-                          )
-                        ) {
-                          event.preventDefault();
-                        }
-                      }}
+        <div id="project-register" tabindex="-1">
+          <SectionCard
+            title={translate('Authorized projects')}
+            collapsible
+            expanded={!projectWorkflow}
+            class="record-list full"
+          >
+            <RecordBrowser
+              rows={availableProjects}
+              bind:visible={projectRegisterPage}
+              {translate}
+              label="Project"
+            />
+            {#each projectRegisterPage as row (row.id)}
+              <article class="project-list-link">
+                <a href={`${base}/app/projects/${row.id}`}>
+                  <div>
+                    <strong>{row.project_number} · {row.name}</strong><small
+                      >{controlledValue('status', row.status)} · {row.currency} · {row.timezone} · {row.start_date ??
+                        translate('No start')} → {row.planned_end_date ??
+                        translate('Open target')}</small
                     >
-                      <input type="hidden" name="projectId" value={row.id} />
-                      <button type="submit" class="danger">{translate('Delete project')}</button>
-                    </form>
                   </div>
-                </details>
-              {/if}
-            </article>
-          {:else}<div class="empty">{translate('No projects available.')}</div>{/each}
-        </SectionCard>
+                  <span>{translate('OPEN PROJECT →')}</span>
+                </a>
+                {#if canManageProjects}
+                  <details class="project-row-actions" use:disclosure>
+                    <summary>{translate('Actions')}</summary>
+                    <div class="record-actions lifecycle-actions">
+                      {#if row.status === 'active' || row.status === 'paused'}
+                        <form
+                          method="POST"
+                          action="?/transitionProject"
+                          data-action="transitionProject"
+                        >
+                          <input type="hidden" name="projectId" value={row.id} />
+                          <input type="hidden" name="version" value={row.version ?? 1} />
+                          <input
+                            type="hidden"
+                            name="status"
+                            value={row.status === 'active' ? 'closing' : 'closing'}
+                          />
+                          <label class="sr-only" for={`project-close-reason-${row.id}`}
+                            >{translate('Reason')}</label
+                          >
+                          <input
+                            id={`project-close-reason-${row.id}`}
+                            name="reason"
+                            required
+                            placeholder={translate('Reason')}
+                          />
+                          <button type="submit" class="secondary-button"
+                            >{translate('Begin close')}</button
+                          >
+                        </form>
+                      {:else if row.status === 'closing'}
+                        <form
+                          method="POST"
+                          action="?/transitionProject"
+                          data-action="transitionProject"
+                        >
+                          <input type="hidden" name="projectId" value={row.id} />
+                          <input type="hidden" name="version" value={row.version ?? 1} />
+                          <input type="hidden" name="status" value="closed" />
+                          <label class="sr-only" for={`project-finish-reason-${row.id}`}
+                            >{translate('Reason')}</label
+                          >
+                          <input
+                            id={`project-finish-reason-${row.id}`}
+                            name="reason"
+                            required
+                            placeholder={translate('Reason')}
+                          />
+                          <button type="submit" class="secondary-button"
+                            >{translate('Close project')}</button
+                          >
+                        </form>
+                      {:else if row.status === 'closed'}
+                        <form
+                          method="POST"
+                          action="?/transitionProject"
+                          data-action="transitionProject"
+                        >
+                          <input type="hidden" name="projectId" value={row.id} />
+                          <input type="hidden" name="version" value={row.version ?? 1} />
+                          <input type="hidden" name="status" value="archived" />
+                          <label class="sr-only" for={`project-archive-reason-${row.id}`}
+                            >{translate('Reason')}</label
+                          >
+                          <input
+                            id={`project-archive-reason-${row.id}`}
+                            name="reason"
+                            required
+                            placeholder={translate('Reason')}
+                          />
+                          <button type="submit" class="danger"
+                            >{translate('Archive project')}</button
+                          >
+                        </form>
+                      {:else if row.status === 'archived'}
+                        <form
+                          method="POST"
+                          action="?/transitionProject"
+                          data-action="transitionProject"
+                        >
+                          <input type="hidden" name="projectId" value={row.id} />
+                          <input type="hidden" name="version" value={row.version ?? 1} />
+                          <input type="hidden" name="status" value="restore" />
+                          <label class="sr-only" for={`project-restore-reason-${row.id}`}
+                            >{translate('Reason')}</label
+                          >
+                          <input
+                            id={`project-restore-reason-${row.id}`}
+                            name="reason"
+                            required
+                            placeholder={translate('Reason')}
+                          />
+                          <button type="submit" class="secondary-button"
+                            >{translate('Restore project')}</button
+                          >
+                        </form>
+                      {/if}
+                      <form
+                        method="POST"
+                        action="?/deleteProject"
+                        data-action="deleteProject"
+                        onsubmit={(event) => {
+                          if (
+                            !confirm(
+                              translate(
+                                'Delete this project? This will permanently remove it if it has no financial activity.',
+                              ),
+                            )
+                          ) {
+                            event.preventDefault();
+                          }
+                        }}
+                      >
+                        <input type="hidden" name="projectId" value={row.id} />
+                        <button type="submit" class="danger">{translate('Delete project')}</button>
+                      </form>
+                    </div>
+                  </details>
+                {/if}
+              </article>
+            {:else}<div class="empty">{translate('No projects available.')}</div>{/each}
+          </SectionCard>
+        </div>
         {#if canManageProjects}
           <SectionCard
             title={translate('Clients')}
@@ -3024,6 +3290,8 @@
             title={translate('Assignment history')}
             collapsible
             class="record-list full assignment-history-list"
+            id="assignment-history"
+            tabindex="-1"
           >
             <div class="panel-title">
               <div>
@@ -3035,7 +3303,6 @@
               </div>
               <span>{data.assignments?.length ?? 0}</span>
             </div>
-            <div id="assignment-history"></div>
             <RecordBrowser
               rows={data.assignments ?? []}
               bind:visible={assignmentPage}
@@ -3349,6 +3616,8 @@
         <PlanningCalendar
           {translate}
           {locale}
+          agendaId="planning-day-agenda"
+          initialDate={$page.url.searchParams.get('date') ?? undefined}
           events={(data.records ?? []).map((row) => ({
             id: String(row.id),
             title: `${row.worker_name} · ${row.project_number} · ${row.planned_minutes} min`,
@@ -3357,14 +3626,129 @@
             href:
               data.user.role === 'owner_admin'
                 ? `${base}/app/manage?area=planning_assignment&project=${row.project_id}&focus=${row.id}`
-                : `${base}/app/projects/${row.project_id}?tab=team`,
+                : data.user.role === 'project_manager'
+                  ? `${base}/app/planning?project=${row.project_id}&focus=${row.id}#planning-assignment-${row.id}`
+                  : `${base}/app/projects/${row.project_id}?tab=team`,
           }))}
           onselectdate={canManageAssignmentControls ? selectPlanningDate : undefined}
         />
         <p class="form-help">
           {translate('Calendar times are shown in UTC. Planning never creates actual hours.')}
         </p>
+        {#if canManageAssignmentControls && (data.records?.length ?? 0) > 0}
+          <SectionCard title={translate('Published assignments')} class="full">
+            {#each data.records ?? [] as row}
+              {@const updateWorkers = planningWorkersForUpdate(row)}
+              {@const selectedWorkerId = planningEditValue(row, 'workerId', row.worker_id)}
+              <details
+                id={`planning-assignment-${row.id}`}
+                open={$page.url.searchParams.get('focus') === String(row.id) ||
+                  planningFailedUpdateId === String(row.id)}
+              >
+                <summary
+                  >{row.worker_name} · {row.project_number} · {String(row.starts_at)
+                    .slice(0, 16)
+                    .replace('T', ' ')} → {String(row.ends_at)
+                    .slice(0, 16)
+                    .replace('T', ' ')}</summary
+                >
+                <form
+                  method="POST"
+                  action="?/updatePlanning"
+                  class="admin-form-grid"
+                  oninput={(event) => rememberPlanningEdit(row, event.currentTarget)}
+                >
+                  <input type="hidden" name="id" value={row.id} />
+                  <input type="hidden" name="version" value={row.version} />
+                  <input type="hidden" name="projectId" value={row.project_id} />
+                  <label
+                    >{translate('Worker')}<select name="workerId" required>
+                      <option
+                        value=""
+                        selected={!updateWorkers.some(
+                          (worker) => String(worker.id) === selectedWorkerId,
+                        )}>{translate('Select assigned worker')}</option
+                      >
+                      {#each updateWorkers as worker}
+                        <option value={worker.id} selected={String(worker.id) === selectedWorkerId}
+                          >{worker.name}</option
+                        >
+                      {/each}
+                    </select></label
+                  >{#if planningFieldMessage('workerId', 'updatePlanning', String(row.id))}<small
+                      class="field-error"
+                      role="alert"
+                      >{planningFieldMessage('workerId', 'updatePlanning', String(row.id))}</small
+                    >{/if}
+                  <label
+                    >{translate('Start')}<input
+                      name="startsAt"
+                      type="datetime-local"
+                      value={planningEditValue(row, 'startsAt', row.starts_at).slice(0, 16)}
+                      required
+                    /></label
+                  >{#if planningFieldMessage('startsAt', 'updatePlanning', String(row.id))}<small
+                      class="field-error"
+                      role="alert"
+                      >{planningFieldMessage('startsAt', 'updatePlanning', String(row.id))}</small
+                    >{/if}
+                  <label
+                    >{translate('End')}<input
+                      name="endsAt"
+                      type="datetime-local"
+                      value={planningEditValue(row, 'endsAt', row.ends_at).slice(0, 16)}
+                      required
+                    /></label
+                  >{#if planningFieldMessage('endsAt', 'updatePlanning', String(row.id))}<small
+                      class="field-error"
+                      role="alert"
+                      >{planningFieldMessage('endsAt', 'updatePlanning', String(row.id))}</small
+                    >{/if}
+                  <label
+                    >{translate('Planned minutes')}<input
+                      name="plannedMinutes"
+                      type="number"
+                      min="1"
+                      max="10080"
+                      value={planningEditValue(row, 'plannedMinutes', row.planned_minutes)}
+                      required
+                    /></label
+                  >{#if planningFieldMessage('plannedMinutes', 'updatePlanning', String(row.id))}<small
+                      class="field-error"
+                      role="alert"
+                      >{planningFieldMessage(
+                        'plannedMinutes',
+                        'updatePlanning',
+                        String(row.id),
+                      )}</small
+                    >{/if}
+                  <label
+                    >{translate('Site')}<input
+                      name="site"
+                      value={planningEditValue(row, 'site', row.site)}
+                    /></label
+                  >
+                  <label
+                    >{translate('Required expertise')}<input
+                      name="requiredSkill"
+                      value={planningEditValue(row, 'requiredSkill', row.required_skill)}
+                    /></label
+                  >
+                  <button type="submit">{translate('Save assignment')}</button>
+                </form>
+                <form method="POST" action="?/cancelPlanning">
+                  <input type="hidden" name="id" value={row.id} />
+                  <input type="hidden" name="version" value={row.version} />
+                  <button type="submit" class="secondary-button"
+                    >{translate('Cancel assignment')}</button
+                  >
+                </form>
+              </details>
+            {/each}
+          </SectionCard>
+        {/if}
         {#if canManageAssignmentControls}<form
+            id="planning-create-form"
             method="POST"
             action="?/createPlanning"
             bind:this={planningForm}
@@ -3379,42 +3763,79 @@
             <label
               >{translate('Project')}<select
                 name="projectId"
-                value={$page.url.searchParams.get('project') ?? undefined}
+                bind:value={planningProjectId}
                 required
                 >{#each operationalProjects as project}<option value={project.id}
                     >{project.project_number} — {project.name}</option
                   >{/each}</select
               ></label
-            ><label
-              >{translate('Worker')}<select
-                name="workerId"
-                value={$page.url.searchParams.get('worker') ?? undefined}
-                required
-                >{#each data.workers ?? [] as worker}<option value={worker.id}>{worker.name}</option
+            >{#if planningFieldMessage('projectId', 'createPlanning')}<small
+                class="field-error"
+                role="alert">{planningFieldMessage('projectId', 'createPlanning')}</small
+              >{/if}{#if planningProjectId && planningEligibleWorkers.length === 0}<p
+                class="form-help"
+                role="status"
+              >
+                {translate(
+                  'No worker is assigned to this project for the selected dates. Assign a worker to the project or choose another date.',
+                )}
+              </p>{/if}
+            <label
+              >{translate('Worker')}<select name="workerId" bind:value={planningWorkerId} required
+                ><option value="">{translate('Select assigned worker')}</option
+                >{#each planningEligibleWorkers as worker}<option value={worker.id}
+                    >{worker.name}</option
                   >{/each}</select
               ></label
-            ><label
+            >{#if planningFieldMessage('workerId', 'createPlanning')}<small
+                class="field-error"
+                role="alert">{planningFieldMessage('workerId', 'createPlanning')}</small
+              >{/if}<label
               >{translate('Start')}<input
                 name="startsAt"
                 type="datetime-local"
                 bind:value={planningStarts}
                 required
               /></label
-            ><label
+            >{#if planningFieldMessage('startsAt', 'createPlanning')}<small
+                class="field-error"
+                role="alert">{planningFieldMessage('startsAt', 'createPlanning')}</small
+              >{/if}<label
               >{translate('End')}<input
                 name="endsAt"
                 type="datetime-local"
                 bind:value={planningEnds}
                 required
               /></label
-            ><ProjectBudgetInput
+            >{#if planningFieldMessage('endsAt', 'createPlanning')}<small
+                class="field-error"
+                role="alert">{planningFieldMessage('endsAt', 'createPlanning')}</small
+              >{/if}<ProjectBudgetInput
               name="plannedMinutes"
               label={translate('Planned hours')}
               kind="hours"
+              value={planningFailure?.operation === 'createPlanning'
+                ? String(planningFailure.values?.plannedMinutes ?? '')
+                : ''}
               required
             />
-            ><label>{translate('Site')}<input name="site" /></label><label
-              >{translate('Required expertise')}<input name="requiredSkill" /></label
+            >{#if planningFieldMessage('plannedMinutes', 'createPlanning')}<small
+                class="field-error"
+                role="alert">{planningFieldMessage('plannedMinutes', 'createPlanning')}</small
+              >{/if}<label
+              >{translate('Site')}<input
+                name="site"
+                value={planningFailure?.operation === 'createPlanning'
+                  ? String(planningFailure.values?.site ?? '')
+                  : ''}
+              /></label
+            ><label
+              >{translate('Required expertise')}<input
+                name="requiredSkill"
+                value={planningFailure?.operation === 'createPlanning'
+                  ? String(planningFailure.values?.requiredSkill ?? '')
+                  : ''}
+              /></label
             ><button>{translate('Publish assignment')}</button>
           </form>{/if}
         {#if data.user.role === 'owner_admin' || data.user.role === 'finance_admin'}

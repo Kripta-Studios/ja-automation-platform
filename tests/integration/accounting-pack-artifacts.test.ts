@@ -588,6 +588,9 @@ describe('Accounting Pack artifact lifecycle', () => {
     ).toEqual({ count: 5 });
     const pdf = v3.accountingPackExport(principal, pack.id, 'pdf');
     expect(pdf.filename).toBe(`accounting-pack-${periodStart}-${periodEnd}-pdf.pdf`);
+    expect(
+      v3.accountingPackExport({ ...principal, role: 'auditor_read_only' }, pack.id, 'pdf'),
+    ).toEqual(pdf);
   });
 
   it('blocks finalization when the required PDF is absent while preserving ready XLSX/CSV outputs', () => {

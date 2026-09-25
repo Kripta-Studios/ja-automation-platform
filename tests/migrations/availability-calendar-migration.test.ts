@@ -47,6 +47,14 @@ describe('0049 availability calendar audit migration', () => {
       ];
       const orderBy = (table: string) =>
         table === 'audit_action_registry' ? 'contract_version,action,entity_type,actor_kind' : '1';
+      const originalColumns = Object.fromEntries(
+        tables.map((table) => [
+          table,
+          (
+            value.sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
+          ).map((column) => column.name),
+        ]),
+      ) as Record<string, string[]>;
       const before = Object.fromEntries(
         tables.map((table) => [
           table,
@@ -56,21 +64,33 @@ describe('0049 availability calendar audit migration', () => {
       value.sqlite.close();
       process.env.JA_MIGRATIONS_PATH = migrations;
       value.sqlite = createDatabase(join(value.directory, 'app.db')).sqlite;
+      const originalActions = (before.audit_action_registry as Array<{ action: string }>).map(
+        (row) => row.action,
+      );
       for (const table of tables) {
         const where =
           table === 'migration_contract_metadata'
             ? ' WHERE migration_version<=48'
             : table === 'audit_action_registry'
-              ? " WHERE action<>'worker_availability.update'"
+              ? ` WHERE action IN (${originalActions.map(() => '?').join(',')})`
               : '';
         expect(
-          value.sqlite.prepare(`SELECT * FROM ${table}${where} ORDER BY ${orderBy(table)}`).all(),
+          value.sqlite
+            .prepare(
+              `SELECT ${originalColumns[table].join(',')} FROM ${table}${where} ORDER BY ${orderBy(table)}`,
+            )
+            .all(...(table === 'audit_action_registry' ? originalActions : [])),
           table,
         ).toEqual(before[table]);
       }
       expect(
+        value.sqlite
+          .prepare('SELECT expense_budget_minor FROM project WHERE id=?')
+          .get(value.project.id),
+      ).toEqual({ expense_budget_minor: null });
+      expect(
         value.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get(),
-      ).toEqual({ version: 49 });
+      ).toEqual({ version: 64 });
       expect(
         value.sqlite
           .prepare(

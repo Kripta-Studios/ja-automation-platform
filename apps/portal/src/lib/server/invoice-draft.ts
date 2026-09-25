@@ -9,11 +9,11 @@ type DraftRepository = {
     billingRuleId: string,
     periodStart: string,
     periodEnd: string,
-  ) => { created: boolean; id?: string };
+  ) => { created: boolean; id?: string; existingState?: string };
 };
 
 type DraftAttempt =
-  | { ok: true; result: { created: boolean } }
+  | { ok: true; result: { created: boolean; id?: string; existingState?: string } }
   | { ok: false; reasons: readonly { code: string; sourceId?: string }[] };
 
 function tryCreateDraft(
@@ -59,14 +59,27 @@ export function createInvoiceDraftResolvingPeriod(
     input.periodEnd,
   );
   if (requested.ok) {
+    const existingFinal =
+      !requested.result.created &&
+      requested.result.existingState &&
+      requested.result.existingState !== 'draft';
     return actionSuccess(
       requested.result.created
         ? 'action.billing.invoiceDraftCreated'
-        : 'action.billing.invoiceDraftExisting',
-      { periodStart: input.periodStart, periodEnd: input.periodEnd },
+        : existingFinal
+          ? 'action.billing.invoiceAlreadyExists'
+          : 'action.billing.invoiceDraftExisting',
+      {
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+        invoiceId: requested.result.id ?? '',
+        invoiceState: requested.result.existingState ?? 'draft',
+      },
       requested.result.created
         ? 'Invoice draft created for review'
-        : 'Existing invoice draft returned for review',
+        : existingFinal
+          ? 'An invoice already exists for this stream and period. Open it to review its current state.'
+          : 'Existing invoice draft returned for review',
     );
   }
   // The selected range is a commercial instruction. Never search backwards and

@@ -38,6 +38,9 @@ if [[ ! -f /etc/jaautomation/jaautomation.env ]]; then
 fi
 
 "$NODE_RUNTIME" "$RELEASE_ROOT/deployment/scripts/configure-backup-reader.mjs"
+install -o root -g root -m 0750 \
+  "$RELEASE_ROOT/deployment/scripts/jaautomation-runtime-cleanup.py" \
+  /usr/local/sbin/jaautomation-runtime-cleanup
 
 install -o root -g root -m 0644 "$RELEASE_ROOT/deployment/jaautomation.service" /etc/systemd/system/jaautomation.service
 install -o root -g root -m 0644 \
@@ -45,6 +48,10 @@ install -o root -g root -m 0644 \
   "$RELEASE_ROOT/deployment/jaautomation-jobs.timer" \
   "$RELEASE_ROOT/deployment/jaautomation-backup.service" \
   "$RELEASE_ROOT/deployment/jaautomation-backup.timer" \
+  "$RELEASE_ROOT/deployment/jaautomation-backup-prune.service" \
+  "$RELEASE_ROOT/deployment/jaautomation-backup-prune.timer" \
+  "$RELEASE_ROOT/deployment/jaautomation-runtime-cleanup.service" \
+  "$RELEASE_ROOT/deployment/jaautomation-runtime-cleanup.timer" \
   /etc/systemd/system/
 install -o root -g root -m 0644 "$RELEASE_ROOT/deployment/Caddyfile.snippet" /etc/caddy/jaautomation.caddy
 
@@ -73,6 +80,6 @@ if ! caddy validate --config "$CADDYFILE" --adapter caddyfile; then
 fi
 
 systemctl daemon-reload
-systemctl enable jaautomation.service jaautomation-jobs.timer jaautomation-backup.timer
+systemctl enable jaautomation.service jaautomation-jobs.timer jaautomation-backup.timer jaautomation-backup-prune.timer jaautomation-runtime-cleanup.timer
 systemctl reload caddy
 echo "VPS integration installed. Edit /etc/jaautomation/jaautomation.env, then validate and start the service and timers."

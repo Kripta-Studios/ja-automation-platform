@@ -3,6 +3,45 @@ import { expect, test } from '@playwright/test';
 import { portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
 
+test('worker can delete an unlinked own draft from its detail', async ({ page }, info) => {
+  test.skip(!['phone-390', 'desktop'].includes(info.project.name));
+  const summary = `Delete unlinked own draft ${info.project.name}`;
+  const db = new DatabaseSync(readE2EFixturePointer().databasePath);
+  try {
+    await signIn(page, 'worker');
+    await page.goto(portal('/time?lang=en'));
+    await page.locator('[data-time-primary-cta]').click();
+    const form = page.locator('form[data-time-entry-surface]');
+    const projectId = await form
+      .locator('[name="projectId"] option:not([value=""])')
+      .first()
+      .getAttribute('value');
+    if (!projectId) throw new Error('A worker project is required');
+    await form.locator('[name="projectId"]').selectOption(projectId);
+    await form.getByRole('textbox', { name: 'Actual hours' }).fill('1');
+    await form.locator('[name="summary"]').fill(summary);
+    await form.getByRole('button', { name: 'Save draft' }).click();
+    await expect
+      .poll(() => db.prepare('SELECT id FROM time_entry WHERE activity_summary=?').get(summary))
+      .toBeTruthy();
+    const id = (
+      db.prepare('SELECT id FROM time_entry WHERE activity_summary=?').get(summary) as {
+        id: string;
+      }
+    ).id;
+    await page.goto(portal(`/time/${id}?lang=en`));
+    const deleteButton = page.getByRole('button', { name: 'Delete draft' });
+    await expect(deleteButton).toBeVisible();
+    page.once('dialog', (dialog) => dialog.accept());
+    await deleteButton.click();
+    await expect
+      .poll(() => db.prepare('SELECT id FROM time_entry WHERE id=?').get(id))
+      .toBeUndefined();
+  } finally {
+    db.close();
+  }
+});
+
 test('worker links an expense with a local occurrence time to saved hours', async ({
   page,
 }, info) => {
@@ -37,9 +76,43 @@ test('worker links an expense with a local occurrence time to saved hours', asyn
     expect(time.minutes).toBe(150);
 
     await page.goto(portal(`/time/${time.id}?lang=en`));
+    await expect(page.getByRole('link', { name: 'Edit draft' })).toHaveAttribute(
+      'href',
+      `/j-aautomation/app/time?edit=${time.id}`,
+    );
+    await page.getByRole('link', { name: 'Edit draft' }).click();
+    await expect(page.locator('form[data-time-entry-surface]')).toBeVisible();
+    await page.goto(portal(`/time/${time.id}?lang=en`));
+    await page
+      .locator('main form[action*="submitTime"]')
+      .getByRole('button', { name: 'Submit' })
+      .click();
+    await expect
+      .poll(() => db.prepare('SELECT approval_state FROM time_entry WHERE id=?').get(time.id))
+      .toEqual({ approval_state: 'submitted' });
+    await page.goto(portal(`/time/${time.id}?lang=en`));
+    const submitted = page
+      .locator('.record-facts div')
+      .filter({ has: page.locator('dt', { hasText: 'Submitted' }) })
+      .locator('dd');
+    await expect(submitted).not.toHaveText(/^\d{4}-\d{2}-\d{2}T.*Z$/u);
     await page.getByRole('link', { name: 'Add related expense' }).click();
     const expenseForm = page.locator('form[data-expense-entry-surface]');
     await expect(expenseForm).toBeVisible();
+    const workerName = (
+      db.prepare('SELECT name FROM user WHERE email=?').get('worker@demo.jaautomation.test') as {
+        name: string;
+      }
+    ).name;
+    await expect(
+      page.locator('[data-filter-summary]').getByRole('link', {
+        name: `Remove filter: Worker: ${workerName}`,
+      }),
+    ).toBeVisible();
+    await expect(expenseForm.locator('[name="currency"]')).toHaveValue(
+      (db.prepare('SELECT currency FROM project WHERE id=?').get(projectId) as { currency: string })
+        .currency,
+    );
     await expect(expenseForm.locator('[name="projectId"]')).toHaveValue(projectId);
     await expect(expenseForm.locator('[name="spentOn"]')).toHaveValue(date);
     await expect(

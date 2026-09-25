@@ -12,6 +12,9 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
     const projectId = url.searchParams.get('projectId') || projects[0]?.id;
     const supplierId = url.searchParams.get('supplierId') || undefined;
     const period = supplierPeriod(url);
+    const workforceProfile = ctx.sqlite
+      .prepare('SELECT profile FROM supplier_user_profile WHERE user_id=?')
+      .get(ctx.principal.userId) as { profile?: string } | undefined;
     return {
       locale: resolvePortalLocalePreference(
         url.searchParams.get('lang'),
@@ -19,6 +22,7 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
         cookies.get('ja-portal-locale'),
       ),
       owner: ctx.principal.role === 'owner_admin',
+      technician: workforceProfile?.profile === 'external_technician',
       projects,
       projectId,
       supplierId,

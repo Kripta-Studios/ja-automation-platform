@@ -50,6 +50,11 @@ export type PortalData = {
   financeToday?: string;
   payActivities?: PortalRow[];
   payExpenses?: PortalRow[];
+  payOutstanding?: Array<{
+    currency: string;
+    settlementMinor: string;
+    reimbursementMinor: string;
+  }>;
   reimbursements?: PortalRow[];
   ledger?: Array<Record<string, unknown>>;
   packs?: Array<Record<string, unknown>>;
@@ -92,6 +97,13 @@ export type PortalData = {
     pendingMinutes: number;
     estimatedApprovedMinor: string;
     estimatedPendingMinor: string;
+    currencyBreakdown?: Array<{
+      currency: string;
+      estimatedApprovedMinor: string;
+      estimatedPendingMinor: string;
+      approvedReimbursementMinor: string;
+      pendingReimbursementMinor: string;
+    }>;
   };
   searchQuery?: string;
   searchSuggestions?: PortalRow[];
@@ -105,6 +117,13 @@ export type PortalData = {
     estimatedPendingMinor: string;
     approvedReimbursementMinor: string;
     pendingReimbursementMinor: string;
+    currencyBreakdown?: Array<{
+      currency: string;
+      estimatedApprovedMinor: string;
+      estimatedPendingMinor: string;
+      approvedReimbursementMinor: string;
+      pendingReimbursementMinor: string;
+    }>;
     guaranteedMinutes?: number;
     percentageBased?: boolean;
     settlementTriggers?: string[];

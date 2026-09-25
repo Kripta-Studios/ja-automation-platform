@@ -170,6 +170,13 @@ export function buildWorkerStatementSnapshot(
         estimatedPendingMinor: string;
         approvedReimbursementMinor: string;
         pendingReimbursementMinor: string;
+        currencyBreakdown?: readonly Readonly<{
+          currency: string;
+          estimatedApprovedMinor: string;
+          estimatedPendingMinor: string;
+          approvedReimbursementMinor: string;
+          pendingReimbursementMinor: string;
+        }>[];
         missingCompensationRules: number;
       };
       listCompensationSettlements: (
@@ -231,6 +238,7 @@ export function buildWorkerStatementSnapshot(
       estimatedPendingMinor: String(pay.estimatedPendingMinor),
       approvedReimbursementMinor: String(pay.approvedReimbursementMinor),
       pendingReimbursementMinor: String(pay.pendingReimbursementMinor),
+      ...(pay.currencyBreakdown ? { currencyBreakdown: pay.currencyBreakdown } : {}),
       missingCompensationRules: pay.missingCompensationRules,
       activities: activities.map((row) => ({
         id: rowString(row.id),

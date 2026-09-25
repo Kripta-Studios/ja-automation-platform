@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import {
     calendarDate,
     calendarMonthDays,
@@ -15,6 +15,7 @@
     onselectdate,
     onselectevent,
     initialDate,
+    agendaId,
     headingLevel = 2,
   }: {
     events: PlanningEvent[];
@@ -23,12 +24,14 @@
     onselectdate?: (date: string) => void;
     onselectevent?: (event: PlanningEvent) => void;
     initialDate?: string;
+    agendaId?: string;
     headingLevel?: 2 | 3;
   } = $props();
 
   const today = calendarDate(new Date());
   let selected = $state(untrack(() => calendarDate(initialDate ?? today)));
   let month = $state(untrack(() => selected));
+  let agendaElement: HTMLDivElement | undefined = $state();
   const days = $derived(
     calendarMonthDays(month).map((day) => ({
       ...day,
@@ -56,10 +59,16 @@
     );
   }
 
-  function selectDate(date: string) {
+  async function selectDate(date: string) {
     selected = date;
     month = date;
-    onselectdate?.(date);
+    if (onselectdate) {
+      onselectdate(date);
+      return;
+    }
+    await tick();
+    agendaElement?.scrollIntoView({ block: 'start' });
+    agendaElement?.focus({ preventScroll: true });
   }
 
   function moveMonth(amount: number) {
@@ -118,7 +127,7 @@
       </button>
     {/each}
   </div>
-  <div class="calendar-agenda">
+  <div id={agendaId} class="calendar-agenda" bind:this={agendaElement} tabindex="-1">
     <svelte:element this={`h${headingLevel + 1}`} class="agenda-date" aria-live="polite"
       >{selectedLabel}</svelte:element
     >
@@ -246,6 +255,7 @@
     font-weight: 700;
   }
   .calendar-agenda {
+    scroll-margin-top: 5rem;
     margin-top: 1rem;
     border-top: 1px solid var(--ja-border-strong);
     padding-top: 0.85rem;

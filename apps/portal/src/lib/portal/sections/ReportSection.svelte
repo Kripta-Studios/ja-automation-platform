@@ -617,7 +617,8 @@
 
   function openCreate(type: 'daily' | 'technical'): void {
     surfaceError = '';
-    createDate = localToday();
+    const requestedDate = $page.url.searchParams.get('date')?.trim() ?? '';
+    createDate = /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate) ? requestedDate : localToday();
     createProject = availableProjects.some((project) => String(project.id) === projectFilter)
       ? projectFilter
       : '';
@@ -736,7 +737,7 @@
   <form
     class="report-register-filters"
     method="GET"
-    action={`${base}/app/reports`}
+    action={`${base}/app/reports#report-panel-${activeTab}`}
     aria-label={translate('Filter reports')}
   >
     <input type="hidden" name="view" value={activeTab} />
@@ -860,13 +861,13 @@
     <DatePresets
       from={fromFilter}
       to={toFilter}
-      href={(range) => registerHref(range)}
+      href={(range) => `${registerHref(range)}#report-panel-${activeTab}`}
       {translate}
     />
     <FilterSummary
       items={activeFilterItems}
       resultCount={visibleResultCount}
-      clearHref={`${base}/app/reports?view=${activeTab}&q=`}
+      clearHref={`${base}/app/reports?view=${activeTab}&q=#report-panel-${activeTab}`}
       onclear={clearReportFilters}
       {translate}
     />

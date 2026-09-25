@@ -16,7 +16,8 @@ const previousMigrationPath = process.env.JA_MIGRATIONS_PATH;
 
 afterEach(() => {
   for (const value of fixtures.splice(0)) closeB5LifecycleSecurityFixture(value);
-  for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true });
+  for (const directory of directories.splice(0))
+    rmSync(directory, { recursive: true, force: true });
   if (previousMigrationPath === undefined) delete process.env.JA_MIGRATIONS_PATH;
   else process.env.JA_MIGRATIONS_PATH = previousMigrationPath;
 });
@@ -28,7 +29,8 @@ function priorMigrationDirectory(): string {
     if (
       entry === 'contracts' ||
       (/^\d{4}_.+\.sql$/u.test(entry) && Number(entry.slice(0, 4)) <= 54)
-    ) cpSync(join(migrations, entry), join(directory, entry), { recursive: true });
+    )
+      cpSync(join(migrations, entry), join(directory, entry), { recursive: true });
   }
   return directory;
 }
@@ -46,13 +48,21 @@ describe('0055 operational time/expense request migration', () => {
       summary: 'Earlier site work',
     });
     const before = value.sqlite.prepare('SELECT * FROM time_entry WHERE id=?').get(time.id);
-    expect(value.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({ version: 54 });
+    expect(value.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual(
+      { version: 54 },
+    );
     value.sqlite.close();
     process.env.JA_MIGRATIONS_PATH = migrations;
     value.sqlite = createDatabase(join(value.directory, 'app.db')).sqlite;
-    expect(value.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({ version: 55 });
-    expect(value.sqlite.prepare('SELECT * FROM time_entry WHERE id=?').get(time.id)).toEqual(before);
-    expect(value.sqlite.prepare('SELECT COUNT(*) count FROM operational_time_expense_request').get()).toEqual({ count: 0 });
+    expect(value.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual(
+      { version: 64 },
+    );
+    expect(value.sqlite.prepare('SELECT * FROM time_entry WHERE id=?').get(time.id)).toEqual(
+      before,
+    );
+    expect(
+      value.sqlite.prepare('SELECT COUNT(*) count FROM operational_time_expense_request').get(),
+    ).toEqual({ count: 0 });
     expect(value.sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
     expect(integrityCheck(value.sqlite)).toBe('ok');
   });

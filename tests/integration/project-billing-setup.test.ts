@@ -63,10 +63,70 @@ function setup() {
 }
 
 function dayOffset(days: number): string {
-  return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+  const projectToday = projectCalendarDate('Europe/Madrid', new Date());
+  return new Date(Date.parse(`${projectToday}T00:00:00.000Z`) + days * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
 }
 
 describe('project-centered billing setup', () => {
+  it('provides the selected project client for billing contact scoping', () => {
+    const value = setup();
+    const ownContact = value.repository.createClientContact(value.owner, {
+      clientId: value.client.id,
+      name: 'Selected client billing',
+      email: 'selected-client@example.test',
+      isBillingContact: true,
+    });
+    const otherClient = value.repository.createClient(value.owner, {
+      legalName: 'Other Client SL',
+      displayName: 'Other Client',
+      currency: 'EUR',
+      timezone: 'Europe/Madrid',
+      billingEmail: 'other-client@example.test',
+      billingAddress: 'Other Street, Madrid',
+      paymentTermsDays: 30,
+    });
+    value.repository.createClientContact(value.owner, {
+      clientId: otherClient.id,
+      name: 'Other client billing',
+      email: 'other-contact@example.test',
+      isBillingContact: true,
+    });
+    const project = value.repository
+      .listFinanceProjects(value.finance)
+      .find((row) => row.id === value.project.id);
+    expect(project?.client_id).toBe(value.client.id);
+    const contacts = value.repository.listAllClientContacts(value.finance);
+    expect(
+      contacts
+        .filter((contact) => contact.client_id === project?.client_id)
+        .map((contact) => contact.id),
+    ).toContain(ownContact.id);
+    expect(
+      contacts
+        .filter((contact) => contact.client_id === project?.client_id)
+        .every((contact) => contact.client_id !== otherClient.id),
+    ).toBe(true);
+  });
+
+  it('reports an off-cadence billing period once', () => {
+    const value = setup();
+    const rule = value.repository.createBillingRule(value.finance, {
+      projectId: value.project.id,
+      legalEntityId: value.entity.id,
+      taxProfileId: value.tax.id,
+      streamType: 'labor',
+      cadenceType: 'monthly',
+      currency: 'EUR',
+      effectiveFrom: '2026-01-01',
+    });
+    const cutoffReasons = value.repository
+      .billingReadiness(value.finance, rule.id, '2026-08-03', '2026-08-16')
+      .reasons.filter((reason) => reason.code === 'period_cutoff_mismatch');
+    expect(cutoffReasons).toEqual([{ code: 'period_cutoff_mismatch' }]);
+  });
+
   it('uses the project civil date near UTC midnight', () => {
     const instant = new Date('2026-09-23T23:30:00.000Z');
     expect(projectCalendarDate('Europe/Madrid', instant)).toBe('2026-09-24');

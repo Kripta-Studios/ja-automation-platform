@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { clientInputSchema, clientUpdateInputSchema, projectInputSchema } from '@ja/schemas';
+import {
+  clientContactInputSchema,
+  clientInputSchema,
+  clientUpdateInputSchema,
+  projectInputSchema,
+} from '@ja/schemas';
 
 const read = (path: string): string => readFileSync(resolve(process.cwd(), path), 'utf8');
 const shell = read('apps/portal/src/lib/PortalShell.svelte');
@@ -74,6 +79,26 @@ describe('Client Essential identifier portal contract', () => {
     expect(projectInputSchema.safeParse({ ...projectFields, costCenterCode: '' }).success).toBe(
       false,
     );
+  });
+
+  it('accepts the imported IMPC client identifier in project, contact and client forms', () => {
+    const clientId = 'client-020-impc';
+    expect(
+      projectInputSchema.parse({ ...projectFields, costCenterCode: 'IMPC-001', clientId }).clientId,
+    ).toBe(clientId);
+    expect(
+      clientUpdateInputSchema.parse({ clientId, version: '1', notes: 'Updated' }).clientId,
+    ).toBe(clientId);
+    expect(clientContactInputSchema.parse({ clientId, name: 'Billing contact' }).clientId).toBe(
+      clientId,
+    );
+    expect(
+      projectInputSchema.safeParse({
+        ...projectFields,
+        costCenterCode: 'IMPC-001',
+        clientId: '../other',
+      }).success,
+    ).toBe(false);
   });
 
   it('accepts blank optional budget fields submitted by the new time-and-materials project form', () => {

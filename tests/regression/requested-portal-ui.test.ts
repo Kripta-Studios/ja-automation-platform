@@ -27,19 +27,18 @@ describe('requested portal UI regressions (RED characterization)', () => {
 
     const navigation = readSource('apps/portal/src/lib/portal-navigation.ts');
     const routeSource = `${source}\n${navigation}`;
-    for (const view of ['Clients', 'Team', 'Invoices', 'PLC / Technical'])
-      expect(routeSource, `${view} must have a title/view contract`).toContain(view);
-    expect(routeSource).toMatch(/(?:viewTitle|viewTitles|titleFor|searchParams\.get\(['"]view)/i);
+    expect(navigation).toMatch(
+      /projects:\s*\{[\s\S]*?clients:\s*'Client contacts',[\s\S]*?team:\s*'Team access'/,
+    );
+    expect(navigation).toMatch(/reports:\s*\{[\s\S]*?technical:\s*'PLC \/ technical reports'/);
+    expect(navigation).toMatch(/billing:\s*\{[\s\S]*?invoices:\s*'Invoices'/);
+    expect(routeSource).toContain('portalTitleFor(data.section, currentView)');
   });
 
   it('places project actions under the page title and before Authorized projects', () => {
     const projects = sectionBlock(shellSource(), 'projects');
     const workflowActions = projects.indexOf('class="project-workflow-actions"');
-    const authorizedCandidates = [
-      projects.indexOf('<h2>Authorized projects</h2>'),
-      projects.indexOf("<h2>{translate('Authorized projects')}</h2>"),
-    ].filter((index) => index >= 0);
-    const authorized = authorizedCandidates.length > 0 ? Math.min(...authorizedCandidates) : -1;
+    const authorized = projects.indexOf("title={translate('Authorized projects')}");
     const firstAdminPanel = projects.indexOf('<details class="admin-details">');
     expect(workflowActions, 'Projects must expose the Choose one action buttons').toBeGreaterThan(
       -1,
@@ -137,8 +136,8 @@ describe('requested portal UI regressions (RED characterization)', () => {
     const profileLoad = load.slice(profileStart, profileEnd < 0 ? load.length : profileEnd);
     expect(profileLoad).toMatch(/workers\s*:/);
     expect(profileLoad).toMatch(/listAllWorkers/);
-    expect(profile).toMatch(/Skills and availability/);
+    expect(profile).toMatch(/Expertise and availability/);
     expect(profile).toMatch(/name="workerId"/);
-    expect(profile).toMatch(/(?:each data\.workers|worker selector)/i);
+    expect(profile).toMatch(/name="worker"[\s\S]*?each data\.workers/);
   });
 });

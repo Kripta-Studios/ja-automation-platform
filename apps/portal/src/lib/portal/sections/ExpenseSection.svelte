@@ -52,6 +52,11 @@
   let saving = $state(false);
   let createDate = $state('');
   let createProject = $state('');
+  const createProjectCurrency = $derived(
+    String(
+      availableProjects.find((project) => String(project.id) === createProject)?.currency ?? 'USD',
+    ),
+  );
   let createWorker = $state('');
   let createRequestId = $state('');
   let crewWorkerOptions = $state<Array<{ id: string; name: string }>>([]);
@@ -67,6 +72,8 @@
       minutes: number;
       category: string;
       summary: string;
+      approvalState: string;
+      correctionLinked: number;
     }>
   >([]);
   let linkedTimeLoading = $state(false);
@@ -96,7 +103,10 @@
       id &&
       records.some(
         (row) =>
-          String(row.id) === id && row.approval_state === 'draft' && !row.shared_receipt_allocated,
+          String(row.id) === id &&
+          row.approval_state === 'draft' &&
+          !row.shared_receipt_allocated &&
+          Number(row.correction_linked ?? 0) !== 1,
       )
     ) {
       editExpenseId = id;
@@ -145,6 +155,7 @@
     }
     if (typeof saved?.page === 'number') registerPage = saved.page;
     registerStateHydrated = true;
+    if (!isAuditor && $page.url.searchParams.get('action') === 'record-expense') openCreate();
   });
   $effect(() => {
     if (registerStateHydrated)
@@ -305,7 +316,8 @@
           !canViewReimbursement ||
           !reimbursementFilter ||
           (reimbursementFilter === 'pending'
-            ? ['pending', 'scheduled'].includes(reimbursementState)
+            ? ['approved', 'locked'].includes(String(row.approval_state)) &&
+              ['pending', 'scheduled'].includes(reimbursementState)
             : reimbursementState === reimbursementFilter);
         return (
           matchesSearch &&
@@ -334,7 +346,8 @@
         label: translate('Worker'),
         value: workerFilter
           ? String(
-              data.workers?.find((row) => String(row.id) === workerFilter)?.name ?? workerFilter,
+              data.workers?.find((row) => String(row.id) === workerFilter)?.name ??
+                (workerFilter === data.user.id ? data.user.name : workerFilter),
             )
           : '',
       },
@@ -427,8 +440,11 @@
     ).length,
   );
   const reimbursementCount = $derived(
-    records.filter((row) => ['pending', 'scheduled'].includes(String(row.reimbursement_state)))
-      .length,
+    records.filter(
+      (row) =>
+        ['approved', 'locked'].includes(String(row.approval_state)) &&
+        ['pending', 'scheduled'].includes(String(row.reimbursement_state)),
+    ).length,
   );
 
   function rowText(row: Row, key: string): string {
@@ -461,6 +477,20 @@
       default:
         return 'neutral';
     }
+  }
+
+  function correctionBlocker(row: Row): 'shared_receipt' | 'reimbursed' | 'finalized' | null {
+    if (row.shared_receipt_allocated) return 'shared_receipt';
+    if (['paid', 'reimbursed'].includes(String(row.reimbursement_state ?? '')) || row.reimbursed_at)
+      return 'reimbursed';
+    if (
+      row.correction_financially_finalized ||
+      row.invoice_id ||
+      row.billing_lock_id ||
+      ['locked', 'invoiced'].includes(String(row.billing_state ?? ''))
+    )
+      return 'finalized';
+    return null;
   }
 
   function openCreate(): void {
@@ -501,7 +531,7 @@
   }
 
   function openEdit(row: Row): void {
-    if (row.shared_receipt_allocated) return;
+    if (row.shared_receipt_allocated || Number(row.correction_linked ?? 0) === 1) return;
     surfaceError = '';
     editDate = String(row.spent_on ?? '');
     surface = 'edit';
@@ -832,13 +862,13 @@
       </div>
       <div class="expense-export-actions">
         {#if filteredExportPeriod}
-          <a class="secondary-button" href={filteredExportHref('pdf')}
+          <a class="secondary-button" href={filteredExportHref('pdf')} data-sveltekit-reload
             >{translate('Download PDF')}</a
           >
-          <a class="secondary-button" href={filteredExportHref('xlsx')}
+          <a class="secondary-button" href={filteredExportHref('xlsx')} data-sveltekit-reload
             >{translate('Download Excel')}</a
           >
-          <a class="secondary-button" href={filteredExportHref('csv')}
+          <a class="secondary-button" href={filteredExportHref('csv')} data-sveltekit-reload
             >{translate('Download CSV')}</a
           >
         {:else}
@@ -916,9 +946,15 @@
           >{/if}
       </div>
       <div class="expense-export-actions">
-        <a class="secondary-button" href={exportHref('pdf')}>{translate('Download PDF')}</a>
-        <a class="secondary-button" href={exportHref('xlsx')}>{translate('Download Excel')}</a>
-        <a class="secondary-button" href={exportHref('csv')}>{translate('Download CSV')}</a>
+        <a class="secondary-button" href={exportHref('pdf')} data-sveltekit-reload
+          >{translate('Download PDF')}</a
+        >
+        <a class="secondary-button" href={exportHref('xlsx')} data-sveltekit-reload
+          >{translate('Download Excel')}</a
+        >
+        <a class="secondary-button" href={exportHref('csv')} data-sveltekit-reload
+          >{translate('Download CSV')}</a
+        >
       </div>
     </SectionCard>
   {/if}
@@ -962,7 +998,7 @@
                     translate(String(row.approval_state ?? ''))}
                 />
               </a>
-              {#if canViewReimbursement && row.reimbursement_state}
+              {#if canViewReimbursement && row.reimbursement_state && ['approved', 'locked'].includes(String(row.approval_state))}
                 <a
                   href={reimbursementStatusHref(row)}
                   aria-label={`${translate('Reimbursement')}: ${controlledValue('status', row.reimbursement_state) || translate(String(row.reimbursement_state))}`}
@@ -980,7 +1016,7 @@
             {#if data.user.role === 'worker' || data.user.role === 'owner_admin'}
               <div class="expense-record-actions">
                 {#if row.approval_state === 'draft'}
-                  {#if !row.shared_receipt_allocated}
+                  {#if !row.shared_receipt_allocated && Number(row.correction_linked ?? 0) !== 1}
                     <button type="button" class="secondary-button" onclick={() => openEdit(row)}>
                       {translate('Edit')}
                     </button>
@@ -991,7 +1027,7 @@
                     <button type="submit">{translate('Submit')}</button>
                   </form>
                 {/if}
-                {#if row.approval_state === 'draft' && !row.shared_receipt_allocated && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
+                {#if row.approval_state === 'draft' && !row.shared_receipt_allocated && Number(row.correction_linked ?? 0) !== 1 && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
                   <form
                     method="POST"
                     action="?/deleteDraft"
@@ -1005,25 +1041,37 @@
                     <button type="submit" class="destructive-button">{translate('Delete')}</button>
                   </form>
                 {/if}
-                {#if (row.approval_state === 'needs_changes' || row.approval_state === 'approved') && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
-                  <form
-                    class="expense-record-actions"
-                    method="POST"
-                    action="?/createCorrectionDraft"
+                {#if row.active_correction_id && (row.approval_state === 'needs_changes' || row.approval_state === 'approved')}
+                  <a
+                    class="secondary-button"
+                    href={`${base}/app/expenses/${String(row.active_correction_id)}`}
+                    >{translate('Open existing correction')} →</a
                   >
-                    <input type="hidden" name="recordType" value="expense" />
-                    <input type="hidden" name="originalId" value={row.id} />
-                    <input
-                      type="hidden"
-                      name="requestId"
-                      value={`expense-correction-${String(row.id)}`}
-                    />
-                    <label>
-                      <span>{translate('Correction reason')}</span>
-                      <input name="reason" minlength="3" required />
-                    </label>
-                    <button type="submit">{translate('Create corrected draft')}</button>
-                  </form>
+                {:else if (row.approval_state === 'approved' || row.approval_state === 'needs_changes') && correctionBlocker(row) === 'shared_receipt'}
+                  <p class="expense-record-actions__note">
+                    {translate('Shared crew receipt · allocation locked')}
+                  </p>
+                {:else if (row.approval_state === 'approved' || row.approval_state === 'needs_changes') && correctionBlocker(row) === 'reimbursed'}
+                  <p class="expense-record-actions__note">
+                    {translate(
+                      'This expense has a reimbursement. Reverse or adjust the payment first.',
+                    )}
+                  </p>
+                  {#if data.user.role === 'owner_admin'}
+                    <a class="secondary-button" href={reimbursementStatusHref(row)}
+                      >{translate('Reimbursement')} →</a
+                    >
+                  {/if}
+                {:else if (row.approval_state === 'approved' || row.approval_state === 'needs_changes') && correctionBlocker(row) === 'finalized'}
+                  <p class="expense-record-actions__note">
+                    {translate('This record has financial history. Use a financial correction.')}
+                  </p>
+                {:else if (row.approval_state === 'needs_changes' || row.approval_state === 'approved') && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
+                  <a
+                    class="secondary-button"
+                    href={`${base}/app/expenses/${String(row.id)}#expense-correction-title`}
+                    >{translate('Create corrected draft')} →</a
+                  >
                 {/if}
               </div>
             {/if}
@@ -1204,7 +1252,10 @@
               {/if}
               {#each linkedTimeOptions as time (time.id)}
                 <option value={time.id}>
-                  {time.workerName} · {Math.floor(time.minutes / 60)} h {time.minutes % 60} min · {time.summary}
+                  {time.workerName} · {Math.floor(time.minutes / 60)} h {time.minutes % 60} min · {controlledValue(
+                    'status',
+                    time.approvalState,
+                  )}{time.correctionLinked ? ` · ${translate('Correction')}` : ''} · {time.summary}
                 </option>
               {/each}
             </select>
@@ -1222,12 +1273,21 @@
         <div class="expense-form-grid">
           <label>
             <span>{translate('Amount')}</span>
-            <input name="amount" inputmode="decimal" pattern="[0-9]+([.][0-9][0-9]?)?" required />
+            <input
+              name="amount"
+              inputmode="decimal"
+              pattern="[0-9]+([.][0-9][0-9]?)?"
+              data-pattern-message="Amount: enter a number such as 12.34, with no more than two decimal places."
+              required
+            />
           </label>
           <label>
             <span>{translate('Currency')}</span>
-            <select name="currency" required>
-              <option value="USD" selected>USD</option>
+            <select name="currency" value={createProjectCurrency} required>
+              {#if !['USD', 'BRL', 'EUR'].includes(createProjectCurrency)}
+                <option value={createProjectCurrency}>{createProjectCurrency}</option>
+              {/if}
+              <option value="USD">USD</option>
               <option value="BRL">BRL</option>
               <option value="EUR">EUR</option>
             </select>
@@ -1323,7 +1383,10 @@
               {/if}
               {#each linkedTimeOptions as time (time.id)}
                 <option value={time.id}>
-                  {time.workerName} · {Math.floor(time.minutes / 60)} h {time.minutes % 60} min · {time.summary}
+                  {time.workerName} · {Math.floor(time.minutes / 60)} h {time.minutes % 60} min · {controlledValue(
+                    'status',
+                    time.approvalState,
+                  )}{time.correctionLinked ? ` · ${translate('Correction')}` : ''} · {time.summary}
                 </option>
               {/each}
             </select>
@@ -1345,6 +1408,7 @@
               name="amount"
               inputmode="decimal"
               pattern="[0-9]+([.][0-9][0-9]?)?"
+              data-pattern-message="Amount: enter a number such as 12.34, with no more than two decimal places."
               value={minorToDecimal(editRow.amount_minor)}
               required
             />

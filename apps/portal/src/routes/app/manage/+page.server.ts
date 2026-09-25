@@ -83,6 +83,10 @@ export const load: PageServerLoad = ({ locals, url }) => {
       error(400, 'Invalid record type');
     const area = url.searchParams.get('area') || '';
     if (area && !Object.hasOwn(ownerCatalogs, area)) error(400, 'Invalid management area');
+    const projects = ctx.sqlite
+      .prepare('SELECT id,project_number,name FROM project ORDER BY project_number')
+      .all() as { id: string; project_number: string; name: string }[];
+    const requestedProjectId = url.searchParams.get('project') ?? '';
     return {
       managementUser: locals.user!,
       recordType,
@@ -102,9 +106,10 @@ export const load: PageServerLoad = ({ locals, url }) => {
             )
         : [],
       focusId: url.searchParams.get('focus') ?? '',
-      projects: ctx.sqlite
-        .prepare('SELECT id,project_number,name FROM project ORDER BY project_number')
-        .all() as { id: string; project_number: string; name: string }[],
+      projects,
+      selectedProjectId: projects.some((project) => project.id === requestedProjectId)
+        ? requestedProjectId
+        : '',
       workers: ctx.sqlite
         .prepare(
           "SELECT id,name,email FROM user WHERE role IN ('worker','project_manager') ORDER BY name",

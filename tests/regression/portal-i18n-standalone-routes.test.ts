@@ -164,9 +164,13 @@ describe('standalone portal route locale boundary', () => {
       expect(source, `${path} must expose a keyed success or validation result`).toMatch(
         /action(?:Success|Fail)\(/,
       );
-      expect(source, `${path} must not return an English-only message field`).not.toMatch(
-        /message\s*:\s*['"`]/,
-      );
+      // Zod's custom validation issues use `message` internally; only a returned
+      // action payload with a literal message would bypass the keyed locale contract.
+      const actionResultSource = source.replace(/issue\.addIssue\(\{[\s\S]*?\}\);/gu, '');
+      expect(
+        actionResultSource,
+        `${path} must not return an English-only message field`,
+      ).not.toMatch(/message\s*:\s*['"`]/);
     }
   });
 

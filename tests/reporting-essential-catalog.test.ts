@@ -4,7 +4,12 @@ import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { PortalRepository, createDatabase } from '@ja/database';
+import {
+  AssignmentExpensePolicyRepository,
+  PortalRepository,
+  V3Repository,
+  createDatabase,
+} from '@ja/database';
 import type { Principal, Role } from '@ja/domain';
 import {
   invoiceCollectionLedgerCsv,
@@ -392,6 +397,38 @@ beforeEach(() => {
     currency: 'USD',
     billingModel: 'tm',
   });
+  const finance = principals.get('finance_admin') as Principal;
+  const legalEntity = repository.createLegalEntity(owner, {
+    code: 'STATEMENT',
+    legalName: 'Statement Test Entity',
+    currency: 'USD',
+    billingAddress: '1 Statement Street',
+    companyIdentifiers: 'STATEMENT-TEST-001',
+  });
+  const v3 = new V3Repository(database.sqlite);
+  const revision = v3.createCanonicalLegalEntityRevision(finance, {
+    legacyLegalEntityId: legalEntity.id,
+    effectiveFrom: '2026-01-01',
+    legalName: 'Statement Test Entity',
+    taxIdentifier: 'STATEMENT-TAX-001',
+    registrationIdentifier: 'STATEMENT-REG-001',
+    addressLine1: '1 Statement Street',
+    locality: 'Test City',
+    region: 'Test Region',
+    postalCode: '10001',
+    countryCode: 'US',
+    baseCurrency: 'USD',
+    timezone: 'UTC',
+    reason: 'Set up the worker statement test project',
+    idempotencyKey: 'reporting-statement:canonical-revision',
+  });
+  v3.assignCanonicalLegalEntityToProject(finance, {
+    projectId: project.id,
+    legalEntityRevisionId: revision.revisionId,
+    effectiveFrom: '2026-01-01',
+    reason: 'Bind the worker statement test project to its legal entity',
+    idempotencyKey: 'reporting-statement:canonical-assignment',
+  });
   repository.assignWorker(owner, {
     projectId: project.id,
     workerId: 'worker',
@@ -402,6 +439,21 @@ beforeEach(() => {
     workerId: 'other-worker',
     startsOn: '2026-01-01',
   });
+  const expensePolicies = new AssignmentExpensePolicyRepository(database.sqlite);
+  for (const workerId of ['worker', 'other-worker']) {
+    const membership = database.sqlite
+      .prepare('SELECT id FROM project_member WHERE project_id=? AND user_id=?')
+      .get(project.id, workerId) as { id: string };
+    expensePolicies.create(finance, {
+      projectMemberId: membership.id,
+      payer: 'worker',
+      category: 'hotel',
+      effectiveFrom: '2026-01-01',
+      workerReimbursement: 'at_cost',
+      clientRecovery: 'at_cost',
+      reason: 'Worker statement test hotel reimbursement',
+    });
+  }
   const worker = { ...principals.get('worker'), projectIds: new Set([project.id]) } as Principal;
   const other = { ...otherWorker, projectIds: new Set([project.id]) } as Principal;
   repository.createTimeEntry(worker, {
@@ -424,13 +476,25 @@ beforeEach(() => {
     paymentMethod: 'personal_card',
     receiptRequired: false,
   });
-  repository.setExpensePlanningDates(principals.get('finance_admin') as Principal, {
+  const classifiedOwnExpense = repository.classifyExpenseCommercially(finance, {
+    expenseId: ownExpense.id,
+    expectedVersion: ownExpense.version,
+    clientTreatment: 'reimbursable',
+    billingTreatment: 'reimbursable_at_cost',
+    markupBps: 0,
+    taxBps: 0,
+    reason: 'Apply the worker hotel reimbursement policy',
+    idempotencyKey: `reporting-own-expense:${ownExpense.id}`,
+  });
+  const plannedOwnExpense = repository.setExpensePlanningDates(finance, {
     expenseId: ownExpense.id,
     expectedReimbursementOn: '2026-09-05',
     expectedRecoveryOn: '2026-09-20',
-    expectedVersion: ownExpense.version,
+    expectedVersion: classifiedOwnExpense.version,
   });
-  repository.createExpense(other, {
+  repository.submitExpense(worker, ownExpense.id, plannedOwnExpense.version);
+  repository.operationalApproveExpense(owner, ownExpense.id, 'approved');
+  const otherExpense = repository.createExpense(other, {
     projectId: project.id,
     spentOn: '2026-08-13',
     category: 'hotel',
@@ -443,6 +507,18 @@ beforeEach(() => {
     paymentMethod: 'personal_card',
     receiptRequired: false,
   });
+  const classifiedOtherExpense = repository.classifyExpenseCommercially(finance, {
+    expenseId: otherExpense.id,
+    expectedVersion: otherExpense.version,
+    clientTreatment: 'reimbursable',
+    billingTreatment: 'reimbursable_at_cost',
+    markupBps: 0,
+    taxBps: 0,
+    reason: 'Apply the other worker hotel reimbursement policy',
+    idempotencyKey: `reporting-other-expense:${otherExpense.id}`,
+  });
+  repository.submitExpense(other, otherExpense.id, classifiedOtherExpense.version);
+  repository.operationalApproveExpense(owner, otherExpense.id, 'approved');
   database.sqlite.close();
 });
 

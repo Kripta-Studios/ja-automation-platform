@@ -1,5 +1,297 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Change the requested operational fields before creating this draft. Review every value: a linked correction cannot be edited after creation. You can withdraw an unsubmitted draft and start again.':
+    [
+      'Cambia los datos operativos solicitados antes de crear este borrador. Revisa todos los valores: una corrección vinculada no se puede editar después. Puedes retirar un borrador sin enviar y empezar de nuevo.',
+      'Altere os dados operacionais solicitados antes de criar este rascunho. Revise todos os valores: uma correção vinculada não pode ser editada depois. Pode retirar um rascunho não enviado e recomeçar.',
+    ],
+  'Why withdraw this draft?': ['¿Por qué retiras este borrador?', 'Por que retirar este rascunho?'],
+  'Withdraw correction draft': ['Retirar borrador de corrección', 'Retirar rascunho de correção'],
+  'Keep current linked hours': [
+    'Mantener las horas vinculadas actuales',
+    'Manter as horas vinculadas atuais',
+  ],
+  'Changes saved in this report still need an explicit submission for review.': [
+    'Los cambios guardados en este informe aún requieren que lo envíes para revisión.',
+    'As alterações salvas neste relatório ainda exigem o envio para revisão.',
+  ],
+  'This local draft belongs to an older report version. Compare it and copy only needed text; it cannot replace the newer record.':
+    [
+      'Este borrador local pertenece a una versión anterior del informe. Compáralo y copia sólo el texto necesario; no puede sustituir el registro más reciente.',
+      'Este rascunho local pertence a uma versão anterior do relatório. Compare e copie apenas o texto necessário; não pode substituir o registo mais recente.',
+    ],
+  'Submit for review': ['Enviar para revisión', 'Enviar para revisão'],
+  'Report actions': ['Acciones del informe', 'Ações do relatório'],
+  'Draft actions': ['Acciones del borrador', 'Ações do rascunho'],
+  Correction: ['Corrección', 'Correção'],
+  'The recorded worker must create a corrected draft from their Expenses register.': [
+    'El trabajador registrado debe crear un borrador corregido desde su registro de gastos.',
+    'O trabalhador registado deve criar um rascunho corrigido no seu registo de despesas.',
+  ],
+  'A rejected expense cannot be corrected. Create a new expense if the cost should be recorded.': [
+    'Un gasto rechazado no se puede corregir. Crea un gasto nuevo si ese coste debe registrarse.',
+    'Uma despesa rejeitada não pode ser corrigida. Crie uma nova despesa se esse custo tiver de ser registado.',
+  ],
+  'Unpaid reviewed settlements:': [
+    'Liquidaciones revisadas pendientes de pago:',
+    'Liquidações revistas por pagar:',
+  ],
+  'Approved reimbursements awaiting payment:': [
+    'Reembolsos aprobados pendientes de pago:',
+    'Reembolsos aprovados por pagar:',
+  ],
+  'Estimated compensation awaiting approval:': [
+    'Compensación estimada pendiente de aprobación:',
+    'Compensação estimada a aguardar aprovação:',
+  ],
+  'Estimated reimbursements awaiting approval:': [
+    'Reembolsos estimados pendientes de aprobación:',
+    'Reembolsos estimados a aguardar aprovação:',
+  ],
+  'Payment still outstanding': ['Pago todavía pendiente', 'Pagamento ainda pendente'],
+  'Reviewed compensation and approved expenses that have not been paid yet.': [
+    'Compensación revisada y gastos aprobados que todavía no se han pagado.',
+    'Compensação revista e despesas aprovadas que ainda não foram pagas.',
+  ],
+  'No reviewed payments or approved reimbursements are outstanding in this period.': [
+    'No hay liquidaciones revisadas ni reembolsos aprobados pendientes de pago en este periodo.',
+    'Não há liquidações revistas nem reembolsos aprovados por pagar neste período.',
+  ],
+  'Registered documents are retained as evidence. Upload a corrected file as a new document; the original stays available in the audit history.':
+    [
+      'Los documentos registrados se conservan como prueba. Sube el archivo corregido como documento nuevo; el original seguirá disponible en el historial de auditoría.',
+      'Os documentos registados são conservados como prova. Carregue o ficheiro corrigido como novo documento; o original continuará disponível no histórico de auditoria.',
+    ],
+  'A credit note cannot be overdue. Restore its issued status before accounting finalization.': [
+    'Una nota de crédito no puede estar vencida. Restaura su estado de emisión antes de finalizar la contabilidad.',
+    'Uma nota de crédito não pode estar vencida. Restaure o estado de emissão antes de finalizar a contabilidade.',
+  ],
+  'Open invoice': ['Abrir factura', 'Abrir fatura'],
+  'Restore credit note status': [
+    'Restaurar estado de la nota de crédito',
+    'Restaurar estado da nota de crédito',
+  ],
+  'PROJECT RECORDS': ['REGISTROS DEL PROYECTO', 'REGISTOS DO PROJETO'],
+  'Review outcome': ['Resultado de la revisión', 'Resultado da revisão'],
+  'Delete draft': ['Eliminar borrador', 'Eliminar rascunho'],
+  'Delete this draft?': ['¿Eliminar este borrador?', 'Eliminar este rascunho?'],
+  'No review reason was recorded.': [
+    'No se registró el motivo de la revisión.',
+    'Não foi registado o motivo da revisão.',
+  ],
+  'An existing correction is': ['La corrección existente está', 'A correção existente está'],
+  'The recorded worker owns this correction. Ask them to review it from their Time register.': [
+    'La corrección pertenece al trabajador registrado. Pídele que la revise desde su registro de horas.',
+    'A correção pertence ao trabalhador registado. Peça que a reveja no seu registo de horas.',
+  ],
+  'Ask the recorded worker to create a corrected draft from their Time register.': [
+    'Pide al trabajador registrado que cree un borrador corregido desde su registro de horas.',
+    'Peça ao trabalhador registado que crie um rascunho corrigido no seu registo de horas.',
+  ],
+  'Open the Time register to create a corrected draft': [
+    'Abrir el registro de horas para crear un borrador corregido',
+    'Abrir o registo de horas para criar um rascunho corrigido',
+  ],
+  'The recorded worker must create a corrected draft from their Time register.': [
+    'El trabajador registrado debe crear un borrador corregido desde su registro de horas.',
+    'O trabalhador registado deve criar um rascunho corrigido no seu registo de horas.',
+  ],
+  'Only worker-paid expenses can reimburse a worker': [
+    'Solo los gastos pagados por el trabajador pueden reembolsarse a ese trabajador.',
+    'Apenas despesas pagas pelo trabalhador podem ser reembolsadas a esse trabalhador.',
+  ],
+  'Client-paid expenses require client-direct recovery': [
+    'Los gastos pagados por el cliente requieren recuperación directa del cliente.',
+    'Despesas pagas pelo cliente exigem recuperação direta do cliente.',
+  ],
+  'A positive markup percentage is required': [
+    'Indica un porcentaje de recargo mayor que cero.',
+    'Informe uma percentagem de acréscimo maior que zero.',
+  ],
+  'Markup is only available with markup recovery': [
+    'El recargo solo se puede usar con recuperación del cliente con recargo.',
+    'O acréscimo só pode ser usado com recuperação do cliente com acréscimo.',
+  ],
+  'Choose a labor cadence anchor date': [
+    'Elige la fecha de inicio de la periodicidad de horas.',
+    'Escolha a data inicial da periodicidade das horas.',
+  ],
+  'Choose an expense cadence anchor date': [
+    'Elige la fecha de inicio de la periodicidad de gastos.',
+    'Escolha a data inicial da periodicidade das despesas.',
+  ],
+  'Use at least two characters for the template name': [
+    'Escribe al menos dos caracteres para el nombre de la plantilla.',
+    'Use pelo menos dois caracteres no nome do modelo.',
+  ],
+  'Your account does not have access to this page. Return to a section available to your role.': [
+    'Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil.',
+    'Sua conta não tem acesso a esta página. Volte a uma seção disponível para seu perfil.',
+  ],
+  'Project and billing stream': [
+    'Proyecto y flujo de facturación',
+    'Projeto e fluxo de faturamento',
+  ],
+  'Check the selected billing period before saving a draft.': [
+    'Comprueba el periodo de facturación elegido antes de guardar el borrador.',
+    'Verifique o período de faturamento escolhido antes de salvar o rascunho.',
+  ],
+  'Choose dates in the Period step to preview this invoice.': [
+    'Elige las fechas en el paso Periodo para previsualizar esta factura.',
+    'Escolha as datas na etapa Período para visualizar esta fatura.',
+  ],
+  'Resolve the period readiness issues before saving an invoice draft.': [
+    'Resuelve los problemas del periodo antes de guardar el borrador de factura.',
+    'Resolva os problemas do período antes de salvar o rascunho da fatura.',
+  ],
+  'No approved, unbilled expenses are available in this period. Choose another period or approve the expenses first.':
+    [
+      'No hay gastos aprobados y sin facturar en este periodo. Elige otro periodo o aprueba primero los gastos.',
+      'Não há despesas aprovadas e não faturadas neste período. Escolha outro período ou aprove as despesas primeiro.',
+    ],
+  'The selected dates do not match this stream’s billing cadence. Choose its complete billing period.':
+    [
+      'Las fechas no coinciden con la periodicidad de este flujo. Elige su periodo de facturación completo.',
+      'As datas não correspondem à periodicidade deste fluxo. Escolha o período de faturamento completo.',
+    ],
+  'The selected billing period is invalid. Check its start and end dates.': [
+    'El periodo de facturación no es válido. Revisa las fechas de inicio y fin.',
+    'O período de faturamento é inválido. Confira as datas de início e fim.',
+  ],
+  'This billing stream is inactive. Choose an active stream or configure a new one.': [
+    'Este flujo de facturación está inactivo. Elige uno activo o configura otro.',
+    'Este fluxo de faturação está inativo. Escolha um fluxo ativo ou configure outro.',
+  ],
+  'Worker must have an effective project assignment for the planning window': [
+    'El trabajador debe estar asignado al proyecto durante todo el turno.',
+    'O trabalhador deve estar atribuído ao projeto durante todo o turno.',
+  ],
+  'Worker already has an overlapping planning assignment': [
+    'El trabajador ya tiene un turno planificado que se solapa.',
+    'O trabalhador já tem um turno planeado sobreposto.',
+  ],
+  'Worker is unavailable for this planning window': [
+    'El trabajador no está disponible durante este turno.',
+    'O trabalhador não está disponível durante este turno.',
+  ],
+  'Planning end must follow a valid start': [
+    'La hora de fin debe ser posterior a una hora de inicio válida.',
+    'A hora de fim deve ser posterior a uma hora de início válida.',
+  ],
+  'Planned minutes must be between 1 and 10080': [
+    'La duración planificada debe estar entre 1 minuto y 168 horas.',
+    'A duração planeada deve estar entre 1 minuto e 168 horas.',
+  ],
+  'Billing access is required to check this period.': [
+    'Necesitas acceso a facturación para comprobar este periodo.',
+    'É necessário acesso ao faturamento para verificar este período.',
+  ],
+  'Select assigned worker': [
+    'Selecciona un trabajador asignado',
+    'Selecione um trabalhador atribuído',
+  ],
+  'No worker is assigned to this project for the selected dates. Assign a worker to the project or choose another date.':
+    [
+      'No hay trabajadores asignados a este proyecto en las fechas elegidas. Asigna uno al proyecto o cambia la fecha.',
+      'Não há trabalhadores atribuídos a este projeto nas datas escolhidas. Atribua um ao projeto ou altere a data.',
+    ],
+  'Published assignments': ['Asignaciones publicadas', 'Atribuições publicadas'],
+  'Save assignment': ['Guardar asignación', 'Salvar atribuição'],
+  'Open existing invoice': ['Abrir factura existente', 'Abrir fatura existente'],
+  'Classify expenses': ['Clasificar gastos', 'Classificar despesas'],
+  'Review documents': ['Revisar documentos', 'Revisar documentos'],
+  'Review project economics': ['Revisar economía de proyectos', 'Revisar economia dos projetos'],
+  'Generate new version': ['Generar nueva versión', 'Gerar nova versão'],
+  'Sources changed after this final version. Keep this historical pack and generate a new version for the same period.':
+    [
+      'Las fuentes cambiaron después de esta versión final. Conserva el paquete histórico y genera una versión nueva para el mismo periodo.',
+      'As fontes mudaram após esta versão final. Mantenha o pacote histórico e gere uma nova versão para o mesmo período.',
+    ],
+  'An invoice already exists for this stream and period.': [
+    'Ya existe una factura para este flujo y periodo.',
+    'Já existe uma fatura para este fluxo e período.',
+  ],
+  'Cancel assignment': ['Cancelar asignación', 'Cancelar atribuição'],
+  'Edit draft': ['Editar borrador', 'Editar rascunho'],
+  'Save changes': ['Guardar cambios', 'Salvar alterações'],
+  Minutes: ['Minutos', 'Minutos'],
+  'This draft is linked to another record and cannot be edited or discarded.': [
+    'Este borrador está vinculado a otro registro y no puede editarse ni descartarse.',
+    'Este rascunho está vinculado a outro registro e não pode ser editado nem descartado.',
+  ],
+  'Amount: enter a number such as 12.34, with no more than two decimal places.': [
+    'Importe: escribe un número como 12.34, con un máximo de dos decimales.',
+    'Valor: digite um número como 12.34, com no máximo duas casas decimais.',
+  ],
+  'Actions for selected day': ['Acciones para el día seleccionado', 'Ações para o dia selecionado'],
+  'Open existing correction': ['Abrir corrección existente', 'Abrir correção existente'],
+  'Back to project': ['Volver al proyecto', 'Voltar ao projeto'],
+  'Archive document': ['Archivar documento', 'Arquivar documento'],
+  'Archive reason': ['Motivo del archivo', 'Motivo do arquivamento'],
+  'Credit balance': ['Saldo a favor del cliente', 'Saldo a favor do cliente'],
+  'Balance (receivable / credit)': ['Saldo (cobro / crédito)', 'Saldo (cobrança / crédito)'],
+  'Net receivable / credit': [
+    'Saldo neto por cobrar / a favor del cliente',
+    'Saldo líquido a receber / a favor do cliente',
+  ],
+  'This issued credit is a balance owed to the customer. Review its allocation or refund in the ledger; do not record a customer payment.':
+    [
+      'Este crédito emitido es un saldo a favor del cliente. Revisa su aplicación o devolución en el libro; no registres un cobro del cliente.',
+      'Este crédito emitido é um saldo a favor do cliente. Revise sua aplicação ou devolução no livro; não registre um pagamento do cliente.',
+    ],
+  'A credit balance is not a customer payment. Use the ledger to review it.': [
+    'Un saldo a favor del cliente no es un cobro. Revísalo en el libro.',
+    'Um saldo a favor do cliente não é um pagamento recebido. Revise-o no livro.',
+  ],
+  'Review credit in ledger': ['Revisar crédito en el libro', 'Revisar crédito no livro'],
+  'Open planning for this day': ['Abrir planificación de este día', 'Abrir planejamento deste dia'],
+  'Record time for this day': ['Registrar horas de este día', 'Registrar horas deste dia'],
+  'Add expense for this day': ['Añadir gasto de este día', 'Adicionar despesa deste dia'],
+  'Configure commercial terms': [
+    'Configurar condiciones comerciales',
+    'Configurar condições comerciais',
+  ],
+  'Edit economics inputs': ['Editar datos de economía', 'Editar dados econômicos'],
+  'Create or edit milestones': ['Crear o editar hitos', 'Criar ou editar marcos'],
+  'Commercial setup needs attention': [
+    'Hay condiciones comerciales por resolver',
+    'Há condições comerciais a resolver',
+  ],
+  'Review these people and save the missing or conflicting terms before preparing their records for billing.':
+    [
+      'Revisa estas personas y guarda las condiciones pendientes o en conflicto antes de preparar sus registros para facturación.',
+      'Revise estas pessoas e salve as condições pendentes ou em conflito antes de preparar seus registros para faturamento.',
+    ],
+  'Set a customer hourly rate effective for this assignment.': [
+    'Configura una tarifa por hora al cliente vigente para esta asignación.',
+    'Configure uma tarifa horária do cliente válida para esta atribuição.',
+  ],
+  'Set this person’s compensation method and rate.': [
+    'Configura el método y la tarifa de pago de esta persona.',
+    'Configure o método e a taxa de pagamento desta pessoa.',
+  ],
+  'Set who pays expenses, whether the worker is reimbursed, and how the customer is charged.': [
+    'Define quién paga los gastos, si se reembolsa al trabajador y cómo se cobran al cliente.',
+    'Defina quem paga as despesas, se o trabalhador é reembolsado e como são cobradas do cliente.',
+  ],
+  'Set an internal cost rule in Finance to complete project economics.': [
+    'Configura un coste interno en Finanzas para completar la economía del proyecto.',
+    'Configure um custo interno em Finanças para completar a economia do projeto.',
+  ],
+  'Conflicting assignments or commercial rules overlap on the effective date. Review their dates in Finance.':
+    [
+      'Hay asignaciones o reglas comerciales solapadas en la fecha de vigencia. Revisa sus fechas en Finanzas.',
+      'Há atribuições ou regras comerciais sobrepostas na data de vigência. Revise as datas em Finanças.',
+    ],
+  'A linked commercial rule is unavailable for this assignment or date. Review its scope and effective dates in Finance.':
+    [
+      'Una regla comercial vinculada no está disponible para esta asignación o fecha. Revisa su alcance y vigencia en Finanzas.',
+      'Uma regra comercial vinculada não está disponível para esta atribuição ou data. Revise seu escopo e vigência em Finanças.',
+    ],
+  'Review the assignment and commercial rules for the effective date in Finance.': [
+    'Revisa la asignación y las reglas comerciales para la fecha de vigencia en Finanzas.',
+    'Revise a atribuição e as regras comerciais para a data de vigência em Finanças.',
+  ],
   'Entries recorded on {dia}': ['Registros del {dia}', 'Registros de {dia}'],
   'If a worker is not listed, ask the owner to assign them to a project you manage first.': [
     'Si no aparece un trabajador, pide al propietario que primero lo asigne a un proyecto que gestionas.',
@@ -13,15 +305,31 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   person: ['persona', 'pessoa'],
   ' onward': [' en adelante', ' em diante'],
   ' to {dia}': [' hasta {dia}', ' até {dia}'],
-  ' · customer markup {percent}%': [' · recargo al cliente del {percent} %', ' · acréscimo ao cliente de {percent}%'],
+  ' · customer markup {percent}%': [
+    ' · recargo al cliente del {percent} %',
+    ' · acréscimo ao cliente de {percent}%',
+  ],
   ' · source {id}': [' · registro {id}', ' · registro {id}'],
   'Approved operational source': ['Registro operativo aprobado', 'Registro operacional aprovado'],
-  'Customer rate {clientRate} · worker pay {payMethod} · internal cost {cost}': ['Tarifa al cliente {clientRate} · pago al trabajador {payMethod} · coste interno {cost}', 'Tarifa ao cliente {clientRate} · pagamento ao trabalhador {payMethod} · custo interno {cost}'],
+  'Customer rate {clientRate} · worker pay {payMethod} · internal cost {cost}': [
+    'Tarifa al cliente {clientRate} · pago al trabajador {payMethod} · coste interno {cost}',
+    'Tarifa ao cliente {clientRate} · pagamento ao trabalhador {payMethod} · custo interno {cost}',
+  ],
   Excluded: ['Excluido', 'Excluído'],
-  'No assignment expense policy selected': ['No se ha seleccionado una política de gastos para la asignación', 'Nenhuma política de despesas foi selecionada para a atribuição'],
+  'No assignment expense policy selected': [
+    'No se ha seleccionado una política de gastos para la asignación',
+    'Nenhuma política de despesas foi selecionada para a atribuição',
+  ],
   'Pending approval': ['Pendiente de aprobación', 'Pendente de aprovação'],
-  'Policy v{version}: worker reimbursement {workerReimbursement} · customer recovery {clientRecovery}{markup} · effective {effectiveFrom}{ending}': ['Política v{version}: reembolso al trabajador {workerReimbursement} · cobro al cliente {clientRecovery}{markup} · vigente desde {effectiveFrom}{ending}', 'Política v{version}: reembolso ao trabalhador {workerReimbursement} · cobrança ao cliente {clientRecovery}{markup} · vigente desde {effectiveFrom}{ending}'],
-  'Required expense policy is unavailable': ['La política de gastos obligatoria no está disponible', 'A política de despesas obrigatória não está disponível'],
+  'Policy v{version}: worker reimbursement {workerReimbursement} · customer recovery {clientRecovery}{markup} · effective {effectiveFrom}{ending}':
+    [
+      'Política v{version}: reembolso al trabajador {workerReimbursement} · cobro al cliente {clientRecovery}{markup} · vigente desde {effectiveFrom}{ending}',
+      'Política v{version}: reembolso ao trabalhador {workerReimbursement} · cobrança ao cliente {clientRecovery}{markup} · vigente desde {effectiveFrom}{ending}',
+    ],
+  'Required expense policy is unavailable': [
+    'La política de gastos obligatoria no está disponible',
+    'A política de despesas obrigatória não está disponível',
+  ],
   'Time and expenses together': ['Horas y gastos juntos', 'Horas e despesas juntos'],
   unavailable: ['no disponible', 'indisponível'],
   '. This is expected for a configured fixed or all-in commercial model.': [
@@ -120,6 +428,10 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     ],
   'Hours for': ['Horas de', 'Horas de'],
   'Hours per member': ['Horas por miembro', 'Horas por integrante'],
+  'Use exact one-minute increments: 0.1 hours = 6 minutes.': [
+    'Usa incrementos exactos de un minuto: 0,1 horas = 6 minutos.',
+    'Use incrementos exatos de um minuto: 0,1 horas = 6 minutos.',
+  ],
   'How to enter hours': ['Cómo registrar las horas', 'Como registrar as horas'],
   'Internal labor cost': ['Coste interno de mano de obra', 'Custo interno de mão de obra'],
   Interval: ['Intervalo', 'Intervalo'],
@@ -2004,6 +2316,16 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   ],
   Continue: ['Continuar', 'Continuar'],
   'Create corrected draft': ['Crear borrador corregido', 'Criar rascunho corrigido'],
+  'Review every revised field before creating the correction. The linked draft cannot be edited afterward.':
+    [
+      'Revisa todos los campos corregidos antes de crear la corrección. Después no podrás editar el borrador vinculado.',
+      'Revise todos os campos corrigidos antes de criar a correção. Depois não será possível editar o rascunho vinculado.',
+    ],
+  'This correction draft is linked to the reviewed record. Check the revised fields and submit it for approval.':
+    [
+      'Este borrador de corrección está vinculado al registro revisado. Comprueba los campos corregidos y envíalo para aprobación.',
+      'Este rascunho de correção está vinculado ao registro revisado. Confira os campos corrigidos e envie para aprovação.',
+    ],
   'Cost center': ['Centro de coste', 'Centro de custo'],
   'Cost center code': ['Código del centro de coste', 'Código do centro de custo'],
   'Create a reviewable Accounting Pack and follow each artifact until it is ready, failed or queued for automatic processing.':
@@ -3609,6 +3931,27 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   'Create invoice': ['Crear factura', 'Criar fatura'],
   'Guided invoice workflow': ['Flujo guiado de facturación', 'Fluxo guiado de faturamento'],
   'Invoice steps': ['Pasos de la factura', 'Etapas da fatura'],
+  'No billable records': ['Sin registros facturables', 'Sem registros faturáveis'],
+  'No positive billable amount': [
+    'Sin importe facturable positivo',
+    'Sem valor faturável positivo',
+  ],
+  'No billable labor records are available in this period. Choose another period or review the time and billing setup.':
+    [
+      'No hay registros de mano de obra facturables en este periodo. Elige otro periodo o revisa las horas y la configuración de facturación.',
+      'Não há registros de mão de obra faturáveis neste período. Escolha outro período ou revise as horas e a configuração de faturamento.',
+    ],
+  'No approved, unbilled milestones are available in this period. Choose another period or approve a milestone first.':
+    [
+      'No hay hitos aprobados y pendientes de facturar en este periodo. Elige otro periodo o aprueba primero un hito.',
+      'Não há marcos aprovados e por faturar neste período. Escolha outro período ou aprove primeiro um marco.',
+    ],
+  'The eligible records total zero billable amount. Review rates, included hours, milestone amounts, and the billing setup.':
+    [
+      'Los registros aptos suman un importe facturable de cero. Revisa las tarifas, las horas incluidas, los importes de los hitos y la configuración de facturación.',
+      'Os registos elegíveis somam um valor faturável de zero. Reveja as tarifas, as horas incluídas, os valores dos marcos e a configuração de faturação.',
+    ],
+  'Jump to': ['Ir a', 'Ir para'],
   'Choose the project whose approved source records will be billed.': [
     'Elige el proyecto cuyos registros de origen aprobados se facturarán.',
     'Escolha o projeto cujos registros de origem aprovados serão faturados.',
@@ -3640,6 +3983,10 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
       'Finalizar congela esta versão revisada. Correções posteriores dos dados de origem exigem uma nova versão do pacote contábil.',
     ],
   'Pending records': ['Registros pendientes', 'Registros pendentes'],
+  'Draft and returned records may not appear in the approval queue.': [
+    'Los borradores y registros devueltos pueden no aparecer en la cola de aprobación.',
+    'Rascunhos e registros devolvidos podem não aparecer na fila de aprovação.',
+  ],
   'Unclassified expenses': ['Gastos sin clasificar', 'Despesas não classificadas'],
   'Missing documents': ['Documentos que faltan', 'Documentos ausentes'],
   'Reconciliation issues': ['Problemas de conciliación', 'Problemas de conciliação'],

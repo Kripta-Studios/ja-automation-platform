@@ -777,7 +777,7 @@ acceptance is implied by the code or by the local `test:continuity` suite. Keep 
 shell history or logs. Required remote settings are `JA_BACKUP_REMOTE_ENABLED=true`,
 `JA_BACKUP_REMOTE_HOST`, `JA_BACKUP_REMOTE_USER`, `JA_BACKUP_REMOTE_PORT`, `JA_BACKUP_SSH_KEY`,
 `JA_BACKUP_ENCRYPTION_KEY`, `JA_BACKUP_REMOTE_NAMESPACE`, `JA_BACKUP_REMOTE_ROOT` (absolute but not
-`/`) and `JA_BACKUP_REMOTE_RETENTION_DAYS` (at least 30). An incomplete enabled configuration must
+`/`) and `JA_BACKUP_REMOTE_RETENTION_DAYS` (exactly 3). An incomplete enabled configuration must
 remain **pending**; set it disabled only while recording off-site recovery as the Owner-waived
 post-release improvement.
 

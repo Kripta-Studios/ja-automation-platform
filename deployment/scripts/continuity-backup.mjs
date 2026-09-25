@@ -30,7 +30,7 @@ const execFile = promisify(execFileCallback);
 const BUNDLE_MAGIC = Buffer.from('JA-CONTINUITY-ENC-V1\0', 'utf8');
 const BUNDLE_IV_BYTES = 12;
 const BUNDLE_TAG_BYTES = 16;
-const DEFAULT_RETENTION_DAYS = 30;
+const DEFAULT_RETENTION_DAYS = 3;
 const DEFAULT_REMOTE_ROOT = '/var/backups/jaautomation-offsite';
 const DEFAULT_NAMESPACE = 'jaautomation';
 const COMPONENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
@@ -374,11 +374,11 @@ export function continuityReadiness({
       );
     }
   }
-  if (config.retentionDays === null || config.retentionDays < DEFAULT_RETENTION_DAYS)
+  if (config.retentionDays !== DEFAULT_RETENTION_DAYS)
     issues.push(
       readinessIssue(
         'CONTINUITY_RETENTION_INVALID',
-        `Remote retention must be at least ${DEFAULT_RETENTION_DAYS} days`,
+        `Remote retention must be exactly ${DEFAULT_RETENTION_DAYS} days`,
         'JA_BACKUP_REMOTE_RETENTION_DAYS',
       ),
     );
@@ -1150,9 +1150,9 @@ export async function replicateBackup({
   const snapshot = await verifyLocalBackup(backupPath);
   const id = validateBackupId(backupId ?? basename(snapshot.path));
   const days = retentionDays ?? config.retentionDays;
-  if (!Number.isSafeInteger(days) || days < DEFAULT_RETENTION_DAYS)
+  if (days !== DEFAULT_RETENTION_DAYS)
     throw new ContinuityBackupError(
-      `Remote retention must be at least ${DEFAULT_RETENTION_DAYS} days`,
+      `Remote retention must be exactly ${DEFAULT_RETENTION_DAYS} days`,
       'CONTINUITY_CONFIG_INVALID',
     );
   const selectedTransport = transport ?? new SshTransport(config);
@@ -1333,9 +1333,9 @@ export async function applyRemoteRetention({
   now = new Date(),
 } = {}) {
   assertTransport(transport);
-  if (!Number.isSafeInteger(retentionDays) || retentionDays < DEFAULT_RETENTION_DAYS)
+  if (retentionDays !== DEFAULT_RETENTION_DAYS)
     throw new ContinuityBackupError(
-      `Remote retention must be at least ${DEFAULT_RETENTION_DAYS} days`,
+      `Remote retention must be exactly ${DEFAULT_RETENTION_DAYS} days`,
       'CONTINUITY_CONFIG_INVALID',
     );
   const cutoff = retentionDays * 86_400_000;

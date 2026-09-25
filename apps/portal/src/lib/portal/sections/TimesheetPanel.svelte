@@ -33,7 +33,7 @@
     params.set('to', shiftWeek(week, 6));
     params.delete('edit');
     params.delete('action');
-    return `${base}/app/time?${params}`;
+    return `${base}/app/time?${params}#weekly-timesheet-title`;
   }
   const displayMinutes = (value: number | null | undefined): string =>
     value === null || value === undefined ? '—' : hours(value);
@@ -63,7 +63,7 @@
   const timesheetCardRows = $derived.by((): TableCardRow[] =>
     (data.timesheet?.days ?? []).map((day) => ({
       id: day.date,
-      href: `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&from=${encodeURIComponent(day.date)}&to=${encodeURIComponent(day.date)}`,
+      href: `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&from=${encodeURIComponent(day.date)}&to=${encodeURIComponent(day.date)}#time-records`,
       linkLabel: translate('Open day entries'),
       linkAriaLabel: `${translate('Open time entries for')} ${day.label} ${day.date}`,
       cells: [
@@ -95,7 +95,7 @@
         )}
       </p>
     </div>
-    <form class="timesheet-period" method="GET" action={`${base}/app/time`}>
+    <form class="timesheet-period" method="GET" action={`${base}/app/time#weekly-timesheet-title`}>
       <label>{translate('Week of')}<input name="week" type="date" value={data.weekStart} /></label>
       <button type="submit">{translate('Open week')}</button>
     </form>
@@ -160,7 +160,7 @@
           >
             <th scope="row"
               ><a
-                href={`${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&from=${encodeURIComponent(day.date)}&to=${encodeURIComponent(day.date)}`}
+                href={`${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&from=${encodeURIComponent(day.date)}&to=${encodeURIComponent(day.date)}#time-records`}
                 >{day.label}<small>{day.date}</small></a
               ></th
             >
@@ -198,11 +198,11 @@
             {#if data.weeklyPay}
               {hours(data.weeklyPay.approvedMinutes)}
               {translate('approved')} · {hours(data.weeklyPay.pendingMinutes)}
-              {translate('pending')} · {money(
-                data.weeklyPay.estimatedApprovedMinor,
-                data.weeklyPay.currency,
-              )}
-              {translate('approved estimate')}
+              {translate('pending')}
+              {#each data.weeklyPay.currencyBreakdown ?? [data.weeklyPay] as amount}
+                · {money(amount.estimatedApprovedMinor, amount.currency)}
+                {translate('approved estimate')}
+              {/each}
             {:else}
               {translate('Review access is limited to operational time.')}
             {/if}
@@ -231,6 +231,9 @@
 </section>
 
 <style>
+  #weekly-timesheet-title {
+    scroll-margin-top: 5rem;
+  }
   .timesheet-table th a {
     color: inherit;
     display: grid;

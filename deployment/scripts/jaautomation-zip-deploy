@@ -150,6 +150,15 @@ release_shape_is_valid() {
   [[ -f "$root/deployment/jaautomation-jobs.timer" ]] || return 1
   [[ -f "$root/deployment/jaautomation-backup.service" ]] || return 1
   [[ -f "$root/deployment/jaautomation-backup.timer" ]] || return 1
+  [[ -f "$root/deployment/jaautomation-backup-prune.service" ]] || return 1
+  [[ -f "$root/deployment/jaautomation-backup-prune.timer" ]] || return 1
+  [[ -f "$root/deployment/scripts/jaautomation-runtime-cleanup.py" ]] || return 1
+  [[ -f "$root/deployment/jaautomation-runtime-cleanup.service" ]] || return 1
+  [[ -f "$root/deployment/jaautomation-runtime-cleanup.timer" ]] || return 1
+  grep -Fq 'Backup retention must be exactly 3 days' "$root/deployment/scripts/backup.mjs" || return 1
+  grep -Fq 'pruneExpiredBackups' "$root/deployment/scripts/backup.mjs" || return 1
+  grep -Fq 'retainedByDay.has(snapshot.day)' "$root/deployment/scripts/backup.mjs" || return 1
+  grep -Fq 'const DEFAULT_RETENTION_DAYS = 3;' "$root/deployment/scripts/continuity-backup.mjs" || return 1
 }
 
 compose() {
@@ -635,12 +644,16 @@ process_archive() (
   [[ -f "$DB_PATH" ]] || die 'La base de datos de producción no está disponible para el backup previo'
   [[ -f "$old_release/deployment/scripts/backup.mjs" ]] \
     || die 'El release activo no contiene el backup online requerido'
+  local old_backup_retention_days=30
+  if grep -Fq 'Backup retention must be exactly 3 days' "$old_release/deployment/scripts/backup.mjs"; then
+    old_backup_retention_days=3
+  fi
   log 'Creando backup online antes del reemplazo'
   backup_output=$(env \
     JA_DATABASE_PATH="$DB_PATH" \
     JA_DOCUMENT_ROOT="$DOCUMENT_ROOT" \
     JA_BACKUP_ROOT="$BACKUP_ROOT" \
-    JA_BACKUP_RETENTION_DAYS=30 \
+    JA_BACKUP_RETENTION_DAYS="$old_backup_retention_days" \
     "$NODE" "$old_release/deployment/scripts/backup.mjs")
   log "$backup_output"
   backup_dir=$(sed -n 's/^backup=\([^ ]*\) .*/\1/p' <<<"$backup_output")

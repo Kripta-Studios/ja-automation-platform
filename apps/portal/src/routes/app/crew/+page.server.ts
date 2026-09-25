@@ -160,11 +160,19 @@ function action(
       }
       const projectId = value('projectId');
       const workDate =
-        operation === 'createBatch' || operation === 'allocateReceipt' ? value('workDate') : '';
+        operation === 'createBatch' || operation === 'allocateReceipt' || operation === 'submit'
+          ? value('workDate')
+          : '';
       const query = new URLSearchParams();
       if (projectId) query.set('project', projectId);
       if (workDate) query.set('date', workDate);
-      redirect(303, `/j-aautomation/app/crew?${query}`);
+      const destination =
+        operation === 'grant' || operation === 'revoke'
+          ? 'crew-delegations'
+          : operation === 'allocateReceipt'
+            ? 'crew-receipts'
+            : 'crew-entries';
+      redirect(303, `/j-aautomation/app/crew?${query}#${destination}`);
     } catch (caught) {
       const response = actionFailure(caught);
       return fail(response.status, {

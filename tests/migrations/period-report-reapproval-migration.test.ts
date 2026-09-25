@@ -72,15 +72,46 @@ function seedSignedReport(sqlite: ReturnType<typeof createDatabase>['sqlite']) {
     billingAddress: 'Calle Reapproval 1, Madrid',
     paymentTermsDays: 30,
   });
-  const project = repository.createProject(owner, {
-    costCenterCode: 'QA-PERIOD-REPORT-REAPPROVAL-MIGRATION-TEST-1',
-    clientId: client.id,
-    name: 'Reapproval Project',
-    timezone: 'Europe/Madrid',
-    currency: 'EUR',
-    billingModel: 'tm',
-    startDate: '2026-01-01',
-  });
+  const isHistoricalProjectSchema = !sqlite
+    .prepare("SELECT 1 FROM pragma_table_info('project') WHERE name='expense_budget_minor'")
+    .get();
+  const project = isHistoricalProjectSchema
+    ? (() => {
+        // A schema-28 upgrade fixture must be written with schema-28 columns.
+        // The current createProject repository writes a column added in 0060.
+        const id = 'reapproval-project';
+        sqlite
+          .prepare(
+            `INSERT INTO project(
+               id,project_number,cost_center_code,client_id,name,timezone,currency,
+               status,billing_model,start_date,created_at,updated_at
+             ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+          )
+          .run(
+            id,
+            `${client.clientNumber}-P-001`,
+            'QA-PERIOD-REPORT-REAPPROVAL-MIGRATION-TEST-1',
+            client.id,
+            'Reapproval Project',
+            'Europe/Madrid',
+            'EUR',
+            'active',
+            'tm',
+            '2026-01-01',
+            now,
+            now,
+          );
+        return { id };
+      })()
+    : repository.createProject(owner, {
+        costCenterCode: 'QA-PERIOD-REPORT-REAPPROVAL-MIGRATION-TEST-1',
+        clientId: client.id,
+        name: 'Reapproval Project',
+        timezone: 'Europe/Madrid',
+        currency: 'EUR',
+        billingModel: 'tm',
+        startDate: '2026-01-01',
+      });
   const snapshotJson = '{}';
   const snapshotSha256 = createHash('sha256').update(snapshotJson).digest('hex');
   const pdfSha256 = 'c'.repeat(64);
@@ -144,7 +175,7 @@ describe('migration 0029 period report reapproval', () => {
     const { sqlite } = createDatabase(':memory:');
     try {
       expect(sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({
-        version: 49,
+        version: 64,
       });
       expect(
         sqlite
@@ -297,7 +328,7 @@ describe('migration 0029 period report reapproval', () => {
     try {
       expect(
         upgraded.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get(),
-      ).toEqual({ version: 49 });
+      ).toEqual({ version: 64 });
       expect(
         upgraded.sqlite
           .prepare(

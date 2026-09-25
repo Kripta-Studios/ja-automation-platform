@@ -13,14 +13,25 @@
       ...(data.supplierId ? { supplierId: data.supplierId } : {}),
     }).toString(),
   );
+  const backHref = $derived(
+    data.technician
+      ? '/j-aautomation/app'
+      : `/j-aautomation/app/supplier?${new URLSearchParams({
+          projectId: data.projectId || '',
+          from: data.from,
+          to: data.to,
+          lang: data.locale,
+          workspaceAction: 'report',
+        })}#supplier-workspace`,
+  );
 </script>
 
 <svelte:head><title>{c.report} · J&A</title></svelte:head>
 <div class="supplier-page" lang={data.locale}>
-  <nav><a href="/j-aautomation/app">{c.back}</a></nav>
+  <nav><a href={backHref}>{c.back}</a></nav>
   <h1 class="supplier-title">{c.report}</h1>
   <p>{c.reportNote}</p>
-  <form method="GET">
+  <form method="GET" action="#supplier-report">
     <label
       >{c.project}<select name="projectId" value={data.projectId}
         >{#each data.projects as project}<option value={project.id}>{project.name}</option
@@ -45,6 +56,7 @@
       ></label
     ><button class="primary-button">{c.apply}</button>
   </form>
+  <div id="supplier-report" class="supplier-report-results">
   {#if data.report}
     <h2>{data.report.project.name}</h2>
     <p>{data.from} — {data.to}</p>
@@ -82,6 +94,7 @@
       {:else}<p>{c.empty}</p>{/each}
     </SectionCard>
   {:else}<p>{c.empty}</p>{/if}
+  </div>
 </div>
 
 <style>
@@ -94,6 +107,9 @@
     min-width: 0;
     display: grid;
     gap: 1rem;
+  }
+  .supplier-report-results {
+    scroll-margin-top: 5rem;
   }
   form {
     display: grid;

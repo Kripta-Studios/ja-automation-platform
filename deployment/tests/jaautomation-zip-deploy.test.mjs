@@ -38,6 +38,30 @@ test('a candidate must carry the jobs runner and both systemd units', () => {
     deployer,
     /release_shape_is_valid\(\)[\s\S]*deployment\/jaautomation-backup\.timer/u,
   );
+  assert.match(
+    deployer,
+    /release_shape_is_valid\(\)[\s\S]*deployment\/jaautomation-backup-prune\.service/u,
+  );
+  assert.match(
+    deployer,
+    /release_shape_is_valid\(\)[\s\S]*deployment\/jaautomation-backup-prune\.timer/u,
+  );
+  assert.match(
+    deployer,
+    /release_shape_is_valid\(\)[\s\S]*deployment\/scripts\/jaautomation-runtime-cleanup\.py/u,
+  );
+  assert.match(
+    deployer,
+    /release_shape_is_valid\(\)[\s\S]*deployment\/jaautomation-runtime-cleanup\.service/u,
+  );
+  assert.match(
+    deployer,
+    /release_shape_is_valid\(\)[\s\S]*deployment\/jaautomation-runtime-cleanup\.timer/u,
+  );
+  assert.match(deployer, /grep -Fq 'Backup retention must be exactly 3 days'/u);
+  assert.match(deployer, /grep -Fq 'pruneExpiredBackups'/u);
+  assert.match(deployer, /grep -Fq 'retainedByDay\.has\(snapshot\.day\)'/u);
+  assert.match(deployer, /grep -Fq 'const DEFAULT_RETENTION_DAYS = 3;'/u);
 });
 
 test('the candidate jobs and backup units replace installed units before managed preflight', () => {
@@ -87,12 +111,17 @@ test('the VPS installer carries the current jobs and backup units', () => {
     'jaautomation-jobs.timer',
     'jaautomation-backup.service',
     'jaautomation-backup.timer',
+    'jaautomation-backup-prune.service',
+    'jaautomation-backup-prune.timer',
+    'jaautomation-runtime-cleanup.service',
+    'jaautomation-runtime-cleanup.timer',
   ])
     assert.match(installer, new RegExp(`deployment\\/${unit}`, 'u'));
   assert.match(
     installer,
-    /systemctl enable jaautomation\.service jaautomation-jobs\.timer jaautomation-backup\.timer/u,
+    /systemctl enable jaautomation\.service jaautomation-jobs\.timer jaautomation-backup\.timer jaautomation-backup-prune\.timer jaautomation-runtime-cleanup\.timer/u,
   );
+  assert.match(installer, /scripts\/jaautomation-runtime-cleanup\.py/u);
 });
 
 test('rollback restores the previous unit bytes and reloads systemd before restoring the timer state', () => {

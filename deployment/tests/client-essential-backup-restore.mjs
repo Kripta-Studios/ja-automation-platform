@@ -474,7 +474,7 @@ try {
     transport: remoteTransport,
     env: {
       JA_BACKUP_REMOTE_ENABLED: 'true',
-      JA_BACKUP_REMOTE_RETENTION_DAYS: '30',
+      JA_BACKUP_REMOTE_RETENTION_DAYS: '3',
       JA_BACKUP_REMOTE_NAMESPACE: 'client-essential',
       JA_DEPLOYMENT_ID: DEPLOYMENT_ID,
       JA_BACKUP_ENCRYPTION_KEY: continuityKey.toString('hex'),
@@ -489,7 +489,7 @@ try {
     transport: remoteTransport,
     env: {
       JA_BACKUP_REMOTE_ENABLED: 'true',
-      JA_BACKUP_REMOTE_RETENTION_DAYS: '30',
+      JA_BACKUP_REMOTE_RETENTION_DAYS: '3',
       JA_BACKUP_REMOTE_NAMESPACE: 'client-essential',
       JA_DEPLOYMENT_ID: DEPLOYMENT_ID,
       JA_BACKUP_ENCRYPTION_KEY: continuityKey.toString('hex'),

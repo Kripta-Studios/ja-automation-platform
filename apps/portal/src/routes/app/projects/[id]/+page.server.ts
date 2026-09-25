@@ -219,6 +219,37 @@ const personTermsSchema = z
       });
   });
 export const actions: Actions = {
+  submitMilestone: async ({ request, locals, params }) => {
+    if (!locals.user) return actionFail(401, 'action.error.unauthenticated');
+    const raw = Object.fromEntries(await request.formData());
+    const parsed = z
+      .object({ id: z.string().uuid(), version: z.coerce.number().int().positive() })
+      .safeParse(raw);
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.milestoneRecord', {}, 'Invalid milestone record');
+    const context = openPortalRepository(locals);
+    try {
+      const milestone = context.sqlite
+        .prepare('SELECT project_id FROM project_milestone WHERE id=?')
+        .get(parsed.data.id) as { project_id: string } | undefined;
+      if (!milestone || milestone.project_id !== params.id)
+        return actionFail(404, 'action.validation.milestoneRecord', {}, 'Milestone not found');
+      context.repository.submitProjectMilestone(
+        context.principal,
+        parsed.data.id,
+        parsed.data.version,
+      );
+      return actionSuccess(
+        'action.projects.milestoneSubmitted',
+        {},
+        'Milestone submitted for review',
+      );
+    } catch (caught) {
+      return actionFailure(caught);
+    } finally {
+      context.sqlite.close();
+    }
+  },
   savePeopleTerms: async ({ request, locals, params }) => {
     if (!locals.user) return actionFail(401, 'action.error.forbidden');
     if (locals.user.role !== 'owner_admin' && locals.user.role !== 'finance_admin')

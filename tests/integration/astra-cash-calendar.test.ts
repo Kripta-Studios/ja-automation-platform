@@ -139,6 +139,11 @@ describe('source-backed cash and obligations calendar', () => {
   });
   it('replaces an expense obligation with exactly one actual reimbursement only on recorded evidence', () => {
     const f = fixture();
+    // Historical legacy rows may contain a project-currency cost estimate in
+    // this column. It is never the amount paid to the worker.
+    f.sqlite
+      .prepare('UPDATE expense SET reimbursement_amount_minor=9000 WHERE id=?')
+      .run('cash-expense');
     f.v3.recordReimbursement(f.principal, {
       expenseId: 'cash-expense',
       reference: 'Bank transfer 123',

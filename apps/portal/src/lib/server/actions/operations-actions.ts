@@ -13,7 +13,8 @@ import {
   uuidSchema,
 } from '@ja/schemas';
 import { z } from 'zod';
-import type { PortalRepository } from '@ja/database';
+import { fail } from '@sveltejs/kit';
+import { ConflictError, ValidationError, type PortalRepository } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
 import {
@@ -21,6 +22,76 @@ import {
   normalizeLocalDateTime,
   type PortalActionEvent,
 } from '$lib/server/action-utils';
+import { buildCorrectionPatch } from './correction-draft-fields';
+
+function planningActionFailure(error: unknown, operation: string, values: Record<string, unknown>) {
+  if (!(error instanceof ValidationError || error instanceof ConflictError)) {
+    const result = actionFailure(error);
+    return fail(result.status, { ...result.data, operation, values });
+  }
+  const messages: Record<string, { key: `action.${string}`; field?: string; status: number }> = {
+    'Worker must have an effective project assignment for the planning window': {
+      key: 'action.planning.workerNotAssigned',
+      field: 'workerId',
+      status: 400,
+    },
+    'Worker already has an overlapping planning assignment': {
+      key: 'action.planning.workerOverlap',
+      field: 'startsAt',
+      status: 409,
+    },
+    'Worker is unavailable for this planning window': {
+      key: 'action.planning.workerUnavailable',
+      field: 'startsAt',
+      status: 409,
+    },
+    'Planning end must follow a valid start': {
+      key: 'action.planning.invalidWindow',
+      field: 'endsAt',
+      status: 400,
+    },
+    'Planned minutes must be between 1 and 10080': {
+      key: 'action.planning.invalidMinutes',
+      field: 'plannedMinutes',
+      status: 400,
+    },
+    'Planning assignment changed; reload before editing': {
+      key: 'action.planning.changed',
+      status: 409,
+    },
+    'Planning assignment changed; reload before cancelling': {
+      key: 'action.planning.changed',
+      status: 409,
+    },
+    'Cancelled planning cannot be edited': {
+      key: 'action.planning.alreadyCancelled',
+      status: 409,
+    },
+    'Planning assignment is already cancelled': {
+      key: 'action.planning.alreadyCancelled',
+      status: 409,
+    },
+    'Planning assignment not found': {
+      key: 'action.planning.assignmentNotFound',
+      status: 400,
+    },
+    'Planning and schedules are only allowed on active, planned, or paused projects': {
+      key: 'action.planning.projectUnavailable',
+      field: 'projectId',
+      status: 409,
+    },
+  };
+  const known = messages[error.message];
+  if (!known) {
+    const result = actionFailure(error);
+    return fail(result.status, { ...result.data, operation, values });
+  }
+  return actionFail(known.status, known.key, {}, error.message, {
+    operation,
+    values,
+    ...(known.field ? { fields: { [known.field]: [error.message] } } : {}),
+  });
+}
 
 export const reportActions = {
   autosaveReport: async ({ locals, request, params }: PortalActionEvent) => {
@@ -130,13 +201,16 @@ export const reportActions = {
     }
   },
   createCorrectionDraft: async ({ locals, request, params }: PortalActionEvent) => {
-    if (!['reports', 'time', 'expenses', 'approvals'].includes(params.section ?? ''))
-      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     const rawType = String(object.recordType ?? object.type ?? '');
     const recordType =
       rawType === 'daily' ? 'daily_report' : rawType === 'technical' ? 'technical_report' : rawType;
     const originalId = String(object.originalId ?? object.recordId ?? object.id ?? '');
+    if (
+      !['reports', 'time', 'expenses', 'approvals'].includes(params.section ?? '') &&
+      params.id !== originalId
+    )
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const requestId = String(object.requestId ?? '');
     const reason = String(object.reason ?? '').trim();
     if (
@@ -163,6 +237,29 @@ export const reportActions = {
     }
     const context = openPortalRepository(locals);
     try {
+      if (object.correctionFields) {
+        const original =
+          recordType === 'time_entry'
+            ? context.repository.timeDetail(context.principal, originalId)
+            : recordType === 'expense'
+              ? context.repository.expenseDetail(context.principal, originalId)
+              : context.repository.reportDetail(context.principal, originalId).report;
+        patch = buildCorrectionPatch(
+          recordType as 'time_entry' | 'expense' | 'daily_report' | 'technical_report',
+          object,
+          original as Record<string, unknown>,
+        );
+      } else if (!patch || Object.keys(patch).length === 0) {
+        return actionFail(
+          400,
+          'action.validation.correctionDraft',
+          {},
+          'Revised fields are required',
+          {
+            values: object,
+          },
+        );
+      }
       const correctionInput = {
         recordType: recordType as 'time_entry' | 'expense' | 'daily_report' | 'technical_report',
         originalId,
@@ -178,6 +275,51 @@ export const reportActions = {
         'action.reports.correctionDraftCreated',
         { correctionId: result.correctionId },
         'Correction draft created',
+      );
+    } catch (error) {
+      if (error instanceof ValidationError)
+        return actionFail(400, 'action.validation.correctionDraft', {}, error.message, {
+          values: object,
+        });
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  withdrawCorrectionDraft: async ({ locals, request, params }: PortalActionEvent) => {
+    const object = await formObject(request);
+    const recordType = String(object.recordType ?? '');
+    const correctionId = String(object.correctionId ?? '');
+    const version = Number(object.version);
+    const reason = String(object.reason ?? '').trim();
+    if (
+      !['time_entry', 'expense', 'daily_report', 'technical_report'].includes(recordType) ||
+      !correctionId ||
+      !Number.isSafeInteger(version) ||
+      reason.length < 3 ||
+      (!['time', 'expenses', 'reports'].includes(params.section ?? '') &&
+        params.id !== correctionId)
+    )
+      return actionFail(
+        400,
+        'action.validation.correctionDraft',
+        {},
+        'Invalid correction withdrawal',
+      );
+    const context = openPortalRepository(locals);
+    try {
+      const result = context.repository.withdrawCorrectionDraft(context.principal, {
+        recordType: recordType as 'time_entry' | 'expense' | 'daily_report' | 'technical_report',
+        correctionId,
+        version,
+        reason,
+      });
+      return actionSuccess(
+        'action.reports.correctionDraftWithdrawn',
+        {
+          originalId: result.originalId,
+        },
+        'Correction draft withdrawn',
       );
     } catch (error) {
       return actionFailure(error);
@@ -356,6 +498,7 @@ export const reportActions = {
     if (params.section !== 'planning')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
+    const values = { ...object };
     // Planning's datetime-local controls represent UTC, independent of the server timezone.
     for (const key of ['startsAt', 'endsAt']) {
       const value = object[key];
@@ -366,13 +509,67 @@ export const reportActions = {
     }
     const parsed = planningAssignmentInputSchema.safeParse(object);
     if (!parsed.success)
-      return actionFail(400, 'action.validation.planningFields', {}, 'Check planning fields');
+      return actionFail(400, 'action.validation.planningFields', {}, 'Check planning fields', {
+        fields: parsed.error.flatten().fieldErrors,
+        operation: 'createPlanning',
+        values,
+      });
     const context = openPortalRepository(locals);
     try {
       context.repository.createPlanningAssignment(context.principal, parsed.data);
       return actionSuccess('action.planning.assignmentPublished', {}, 'Assignment published');
     } catch (error) {
-      return actionFailure(error);
+      return planningActionFailure(error, 'createPlanning', values);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  updatePlanning: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'planning')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const values = { ...object };
+    for (const key of ['startsAt', 'endsAt']) {
+      const value = object[key];
+      object[key] =
+        typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)
+          ? `${value}:00.000Z`
+          : value;
+    }
+    const parsed = planningAssignmentInputSchema.and(versionedRecordSchema).safeParse(object);
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.planningFields', {}, 'Check planning fields', {
+        fields: parsed.error.flatten().fieldErrors,
+        operation: 'updatePlanning',
+        values,
+      });
+    const context = openPortalRepository(locals);
+    try {
+      context.repository.updatePlanningAssignment(context.principal, parsed.data);
+      return actionSuccess('action.planning.assignmentUpdated', {}, 'Assignment updated');
+    } catch (error) {
+      return planningActionFailure(error, 'updatePlanning', values);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  cancelPlanning: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'planning')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const values = await formObject(request);
+    const parsed = versionedRecordSchema.safeParse(values);
+    if (!parsed.success)
+      return actionFail(400, 'action.validation.planningFields', {}, 'Check planning fields', {
+        fields: parsed.error.flatten().fieldErrors,
+        operation: 'cancelPlanning',
+        values,
+      });
+    const context = openPortalRepository(locals);
+    try {
+      context.repository.cancelPlanningAssignment(context.principal, parsed.data);
+      return actionSuccess('action.planning.assignmentCancelled', {}, 'Assignment cancelled');
+    } catch (error) {
+      return planningActionFailure(error, 'cancelPlanning', values);
     } finally {
       context.sqlite.close();
     }

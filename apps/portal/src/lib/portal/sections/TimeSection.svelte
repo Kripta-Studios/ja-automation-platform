@@ -106,6 +106,7 @@
     }
     if (typeof saved?.page === 'number') registerPage = saved.page;
     registerStateHydrated = true;
+    if (!isAuditor && $page.url.searchParams.get('action') === 'log-time') openCreate();
   });
   $effect(() => {
     if (registerStateHydrated)
@@ -155,22 +156,35 @@
   });
   $effect(() => {
     const id = $page.url.searchParams.get('edit');
-    const row = records.find((row) => String(row.id) === id && row.approval_state === 'draft');
+    const row = records.find(
+      (row) =>
+        String(row.id) === id &&
+        row.approval_state === 'draft' &&
+        Number(row.correction_linked ?? 0) !== 1,
+    );
     if (row) openEdit(row);
   });
   const editRow = $derived.by(
     () => records.find((row) => String(row.id) === editTimeId) as Row | undefined,
   );
   const totalActualMinutes = $derived(
-    records.reduce((total, row) => total + Number(row.minutes ?? 0), 0),
+    records
+      .filter(
+        (row) =>
+          !row.active_correction_id && !['rejected', 'void'].includes(String(row.approval_state)),
+      )
+      .reduce((total, row) => total + Number(row.minutes ?? 0), 0),
   );
   const pendingCount = $derived(
-    records.filter((row) =>
-      ['draft', 'submitted', 'needs_changes'].includes(String(row.approval_state)),
+    records.filter(
+      (row) =>
+        !row.active_correction_id &&
+        ['draft', 'submitted', 'needs_changes'].includes(String(row.approval_state)),
     ).length,
   );
   const approvedCount = $derived(
-    records.filter((row) => String(row.approval_state) === 'approved').length,
+    records.filter((row) => !row.active_correction_id && String(row.approval_state) === 'approved')
+      .length,
   );
   const activeCategory = $derived(surface === 'edit' ? editCategory : createCategory);
   const showOperationalDetail = $derived(
@@ -265,7 +279,7 @@
     ].filter((item) => item.value);
   });
   const clearFiltersHref = $derived(
-    `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&q=`,
+    `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&q=#time-records`,
   );
 
   function clearFilters(): void {
@@ -299,12 +313,13 @@
     params.set('q', queryText);
     if ($page.url.searchParams.has('lang')) params.set('lang', $page.url.searchParams.get('lang')!);
     const query = params.toString();
-    return `${base}/app/time${query ? `?${query}` : ''}`;
+    return `${base}/app/time${query ? `?${query}` : ''}#time-records`;
   }
 
   function openCreate(): void {
     surfaceError = '';
-    createDate = localToday();
+    const requestedDate = $page.url.searchParams.get('date')?.trim() ?? '';
+    createDate = /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate) ? requestedDate : localToday();
     const filteredProjectId = String(data.timeFilter?.projectId ?? '');
     createWorker =
       data.user.role === 'project_manager' &&
@@ -328,6 +343,7 @@
   }
 
   function openEdit(row: Row): void {
+    if (Number(row.correction_linked ?? 0) === 1) return;
     surfaceError = '';
     surface = 'edit';
     editTimeId = String(row.id);
@@ -374,17 +390,17 @@
   {/if}
 
   <div class="time-status-strip" aria-label={translate('Time attention summary')}>
-    <a class="time-status-card" href={`${filterHref({ status: '' })}#time-records`}>
+    <a class="time-status-card" href={filterHref({ status: '' })}>
       <span>{translate('Actual recorded')}</span>
       <strong>{totalActualMinutes} {translate('min')}</strong>
       <small>{translate('Minutes you really recorded.')}</small>
     </a>
-    <a class="time-status-card" href={`${filterHref({ status: 'attention' })}#time-records`}>
+    <a class="time-status-card" href={filterHref({ status: 'attention' })}>
       <span>{translate('Needs attention')}</span>
       <strong>{pendingCount}</strong>
       <small>{translate('Draft or review state')}</small>
     </a>
-    <a class="time-status-card" href={`${filterHref({ status: 'approved' })}#time-records`}>
+    <a class="time-status-card" href={filterHref({ status: 'approved' })}>
       <span>{translate('Approved')}</span>
       <strong>{approvedCount}</strong>
       <small>{translate('Rows approved by the workflow')}</small>
@@ -396,9 +412,10 @@
   {/if}
 
   <form
+    id="time-filters"
     class="time-filters"
     method="GET"
-    action={`${base}/app/time`}
+    action={`${base}/app/time#time-filters`}
     aria-label={translate('Filter time entries')}
   >
     <input type="hidden" name="week" value={data.weekStart ?? ''} />
@@ -556,9 +573,11 @@
           </a>
           {#if row.approval_state === 'draft' && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
             <div class="time-record-actions">
-              <button type="button" class="secondary-button" onclick={() => openEdit(row)}>
-                {translate('Edit draft')}
-              </button>
+              {#if Number(row.correction_linked ?? 0) !== 1}
+                <button type="button" class="secondary-button" onclick={() => openEdit(row)}>
+                  {translate('Edit draft')}
+                </button>
+              {/if}
               <form method="POST" action="?/submitTime">
                 <input type="hidden" name="id" value={row.id} />
                 <input type="hidden" name="version" value={row.version} />
@@ -566,21 +585,18 @@
               </form>
             </div>
           {/if}
-          {#if row.approval_state === 'needs_changes' && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
-            <form class="time-record-actions" method="POST" action="?/createCorrectionDraft">
-              <input type="hidden" name="recordType" value="time_entry" />
-              <input type="hidden" name="originalId" value={row.id} />
-              <input
-                type="hidden"
-                name="requestId"
-                value={`time-returned-correction-${String(row.id)}`}
-              />
-              <label>
-                <span>{translate('Correction reason')}</span>
-                <input name="reason" minlength="3" required />
-              </label>
-              <button type="submit">{translate('Create corrected draft')}</button>
-            </form>
+          {#if row.active_correction_id && row.approval_state === 'needs_changes'}
+            <a
+              class="secondary-button"
+              href={`${base}/app/time/${String(row.active_correction_id)}`}
+              >{translate('Open existing correction')} →</a
+            >
+          {:else if row.approval_state === 'needs_changes' && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
+            <a
+              class="secondary-button"
+              href={`${base}/app/time/${String(row.id)}#time-correction-title`}
+              >{translate('Create corrected draft')} →</a
+            >
           {/if}
           {#if canDelete(row)}
             <div class="time-record-actions time-destructive-actions">
@@ -902,6 +918,10 @@
 </ResponsiveSheet>
 
 <style>
+  #time-filters,
+  #time-records {
+    scroll-margin-top: 5rem;
+  }
   .time-form-error {
     color: var(--ja-red-dark, #8f1d14);
     padding: 0.75rem 0;

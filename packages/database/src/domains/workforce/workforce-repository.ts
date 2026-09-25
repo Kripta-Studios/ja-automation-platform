@@ -147,6 +147,42 @@ export class WorkforceRepository {
       .all(...ids, this.today(), this.today(), principal.userId, this.today(), this.today());
   }
 
+  listPlanningWorkerOptions(principal: Principal) {
+    this.deps.assertReadable(principal);
+    if (principal.role === 'worker') return [];
+    if (principal.role === 'project_manager') {
+      const ids = [...principal.projectIds];
+      if (ids.length === 0) return [];
+      return this.deps.sqlite
+        .prepare(
+          `SELECT DISTINCT u.id,u.name,u.status
+           FROM user u
+           JOIN project_member pm ON pm.user_id=u.id
+           JOIN project p ON p.id=pm.project_id
+           JOIN project_member scope_pm ON scope_pm.project_id=pm.project_id
+           WHERE p.status IN ('active','planned','paused')
+             AND u.status='active' AND u.role IN ('worker','project_manager')
+             AND pm.status='active' AND pm.project_id IN (${ids.map(() => '?').join(',')})
+             AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+             AND scope_pm.user_id=? AND scope_pm.status='active'
+             AND scope_pm.starts_on<=? AND (scope_pm.ends_on IS NULL OR scope_pm.ends_on>=?)
+           ORDER BY u.name,u.id`,
+        )
+        .all(...ids, this.today(), principal.userId, this.today(), this.today());
+    }
+    if (
+      principal.role !== 'owner_admin' &&
+      principal.role !== 'finance_admin' &&
+      principal.role !== 'auditor_read_only'
+    )
+      throw this.deps.errors.accessDenied('Planning worker selection required');
+    return this.deps.sqlite
+      .prepare(
+        "SELECT id,name,status FROM user WHERE status='active' AND role IN ('worker','project_manager') ORDER BY name,id",
+      )
+      .all();
+  }
+
   listSkills(principal: Principal) {
     this.deps.assertReadable(principal);
     return this.deps.sqlite

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createDatabase } from '@ja/database';
+import { AssignmentExpensePolicyRepository, createDatabase } from '@ja/database';
 import { join } from 'node:path';
 import {
   closeB5LifecycleSecurityFixture,
@@ -463,6 +463,18 @@ describe('requested immutable-history and RBAC invariants (RED characterization)
       reason: 'Bind correction project to canonical authority',
       idempotencyKey: 'corrected-expense:assignment',
     });
+    const workerAssignment = value.sqlite
+      .prepare('SELECT id FROM project_member WHERE project_id=? AND user_id=?')
+      .get(value.project.id, value.worker.userId) as { id: string };
+    new AssignmentExpensePolicyRepository(value.sqlite).create(finance, {
+      projectMemberId: workerAssignment.id,
+      payer: 'worker',
+      category: 'hotel',
+      effectiveFrom: '2026-01-01',
+      workerReimbursement: 'at_cost',
+      clientRecovery: 'at_cost',
+      reason: 'Explicit correction fixture lodging terms',
+    });
     const original = value.repository.createExpense(value.worker, {
       projectId: value.project.id,
       spentOn: '2026-08-21',
@@ -582,7 +594,7 @@ describe('requested immutable-history and RBAC invariants (RED characterization)
     );
   });
 
-  it('does not multiply worker pay under overlapping eligible project assignments', () => {
+  it('blocks ambiguous worker pay under overlapping assignments and counts it once when resolved', () => {
     const value = fixture();
     const finance = stepUpB5Principal(value.sqlite, value.finance, 'overlapping-pay-assignments');
     value.v3.createCompensationRule(finance, {
@@ -619,6 +631,12 @@ describe('requested immutable-history and RBAC invariants (RED characterization)
     });
     value.repository.submitTime(value.worker, entry.id, entry.version);
     value.repository.operationalApproveTime(value.manager, entry.id, 'approved');
+    expect(() => value.v3.workerPay(value.worker, '2026-08-01', '2026-08-31')).toThrow(
+      /ambiguous_assignment/i,
+    );
+    value.sqlite
+      .prepare('DELETE FROM project_member WHERE id=?')
+      .run('overlapping-worker-assignment');
     expect(value.v3.workerPay(value.worker, '2026-08-01', '2026-08-31').approvedMinutes).toBe(60);
   });
 

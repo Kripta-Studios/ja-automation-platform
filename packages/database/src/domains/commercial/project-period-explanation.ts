@@ -91,7 +91,7 @@ function minor(value: unknown): bigint {
 
 function sourceStateForTime(row: CanonicalRow): SourceState {
   if (nullableText(row.invoiceId)) return 'invoiced';
-  if (!Boolean(row.approved)) return 'pending';
+  if (!row.approved) return 'pending';
   if (
     text(row.billabilityState) === 'billable' &&
     Boolean(row.clientRateConfigured) &&
@@ -302,12 +302,12 @@ export function projectPeriodExplanation(
       clientRevenueMinor: revenue.toString(),
       workerCompensationMinor: compensation.toString(),
       internalCostMinor: internalCost.toString(),
-      clientRateConfigured: Boolean(row.clientRateConfigured),
-      internalCostConfigured: Boolean(row.internalCostConfigured),
+      clientRateConfigured: row.clientRateConfigured,
+      internalCostConfigured: row.internalCostConfigured,
       compensationRuleType: nullableText(row.compensationRuleType),
       commercialPolicyId: nullableText(row.commercialPolicyId),
-      clientRateStatus: Boolean(row.clientRateConfigured) ? 'configured' : 'unavailable',
-      internalCostStatus: Boolean(row.internalCostConfigured) ? 'configured' : 'unavailable',
+      clientRateStatus: row.clientRateConfigured ? 'configured' : 'unavailable',
+      internalCostStatus: row.internalCostConfigured ? 'configured' : 'unavailable',
       formula:
         'Canonical time projection for recorded minutes. Immutable rate-rule provenance is unavailable in this release.',
     });

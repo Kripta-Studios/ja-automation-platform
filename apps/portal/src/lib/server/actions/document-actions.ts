@@ -176,6 +176,24 @@ export const documentActions = {
       context.sqlite.close();
     }
   },
+  archiveDocument: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'documents')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const documentId = String(object.documentId ?? '').trim();
+    const reason = String(object.reason ?? '').trim();
+    if (!documentId || reason.length < 3 || reason.length > 500)
+      return actionFail(400, 'action.validation.documentArchive', {}, 'Enter an archive reason');
+    const context = openPortalRepository(locals);
+    try {
+      context.v3.archiveDocument(context.principal, documentId, reason);
+      return actionSuccess('action.documents.archived', {}, 'Document archived');
+    } catch (error) {
+      return actionFailure(error);
+    } finally {
+      context.sqlite.close();
+    }
+  },
   deleteDocument: async ({ locals, request, params }: PortalActionEvent) => {
     if (
       params.section !== 'documents' &&

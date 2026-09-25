@@ -87,7 +87,16 @@
   let mounted = $state(false);
   let dismissedActionToastKey = $state('');
   let expenseCategoryFilter = $state('');
+  let selectedPlanningDate = $state('');
   let tabButtons = $state<Partial<Record<TabId, HTMLButtonElement>>>({});
+
+  async function selectProjectPlanningDate(date: string): Promise<void> {
+    selectedPlanningDate = date;
+    await tick();
+    const actions = document.getElementById('project-day-actions');
+    actions?.scrollIntoView({ block: 'start' });
+    actions?.focus({ preventScroll: true });
+  }
 
   const locale = $derived(
     localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
@@ -538,12 +547,47 @@
                     : t('No expenses recorded for this project.')}
                 </p>{/each}
             </div>
-            {#if filteredExpenses.length > 5}<a
-                class="inline-link"
-                href={`${base}/app/expenses?project=${encodeURIComponent(String(project.id))}`}
-                >{t('View all expenses')} →</a
-              >{/if}
+            <a
+              class="inline-link"
+              href={`${base}/app/expenses?project=${encodeURIComponent(String(project.id))}`}
+              >{t('View all expenses')} →</a
+            >
           </section>
+          {#if data.user.role === 'project_manager' && overview.milestones.length > 0}
+            <section class="project-surface" aria-labelledby="operational-milestones-title">
+              <div class="surface-heading">
+                <div>
+                  <p class="portal-kicker">{t('PROJECT RECORDS')}</p>
+                  <h2 id="operational-milestones-title">{t('Milestones')}</h2>
+                </div>
+                <span class="surface-count">{overview.milestones.length}</span>
+              </div>
+              <div class="compact-record-list">
+                {#each overview.milestones as milestone}
+                  <div class="compact-record">
+                    <span class="record-mark" aria-hidden="true">M</span>
+                    <span class="record-copy">
+                      <strong>{display(milestone.name, t('Milestone'))}</strong>
+                      <small
+                        >{display(milestone.due_on, t('No due date'))} · {status(
+                          milestone.approval_state,
+                        )}</small
+                      >
+                    </span>
+                    {#if ['draft', 'rejected'].includes(String(milestone.approval_state ?? ''))}
+                      <form method="POST" action="?/submitMilestone">
+                        <input type="hidden" name="id" value={milestone.id} />
+                        <input type="hidden" name="version" value={milestone.version} />
+                        <button type="submit" class="secondary-button"
+                          >{t('Submit for approval now')}</button
+                        >
+                      </form>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            </section>
+          {/if}
         </div>
       </div>
     {:else if activeTab === 'team'}
@@ -577,11 +621,13 @@
               </div>
               <span class="surface-count">{overview.workers.length}</span>
             </div>
-            <p class="surface-intro">
-              {t(
-                'Assign people here, then set each person’s customer rate, pay and expense terms in this project’s Billing setup.',
-              )}
-            </p>
+            {#if isOwner}
+              <p class="surface-intro">
+                {t(
+                  'Assign people here, then set each person’s customer rate, pay and expense terms in this project’s Billing setup.',
+                )}
+              </p>
+            {/if}
             <div class="team-list">
               {#each overview.workers as worker}
                 <article class="team-record">
@@ -602,6 +648,14 @@
                         worker.starts_on,
                       )} → {display(worker.ends_on, t('Open assignment'))}</small
                     >
+                    {#if isOwner}
+                      <small
+                        ><a
+                          href={`${base}/app/manage/worker-pay?worker=${encodeURIComponent(String(worker.worker_id ?? worker.id))}`}
+                          >{t('Worker pay review')} →</a
+                        ></small
+                      >
+                    {/if}
                   </div>
                   <span class="record-value"
                     >{worker.planned_minutes === null || worker.planned_minutes === undefined
@@ -655,6 +709,7 @@
             <PlanningCalendar
               translate={t}
               {locale}
+              onselectdate={selectProjectPlanningDate}
               events={overview.planning.map((plan) => ({
                 id: String(plan.id),
                 title: `${display(plan.worker_name)} · ${display(plan.planned_minutes)} min`,
@@ -666,6 +721,33 @@
                     : `${base}/app/planning?project=${project.id}`,
               }))}
             />
+            {#if selectedPlanningDate}
+              <nav
+                id="project-day-actions"
+                class="project-day-actions"
+                aria-label={t('Actions for selected day')}
+                tabindex="-1"
+              >
+                <strong>{selectedPlanningDate}</strong>
+                <a
+                  class="secondary-button"
+                  href={`${base}/app/planning?project=${encodeURIComponent(String(project.id))}&date=${selectedPlanningDate}#${role === 'owner_admin' || role === 'project_manager' ? 'planning-create-form' : 'planning-day-agenda'}`}
+                  >{t('Open planning for this day')} →</a
+                >
+                {#if role === 'worker' || role === 'project_manager'}
+                  <a
+                    class="secondary-button"
+                    href={`${base}/app/time?project=${encodeURIComponent(String(project.id))}&date=${selectedPlanningDate}&action=log-time`}
+                    >{t('Record time for this day')} →</a
+                  >
+                  <a
+                    class="secondary-button"
+                    href={`${base}/app/expenses?project=${encodeURIComponent(String(project.id))}&date=${selectedPlanningDate}&action=record-expense`}
+                    >{t('Add expense for this day')} →</a
+                  >
+                {/if}
+              </nav>
+            {/if}
             <div class="planning-list">
               {#each overview.planning as plan}
                 <article class="planning-record">
@@ -782,6 +864,13 @@
               <span class="read-only-note">{isAuditor ? t('Read only') : t('Authorized view')}</span
               >
             </div>
+            {#if canWriteFinance}
+              <a
+                class="secondary-button"
+                href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(String(project.id))}`}
+                >{t('Configure commercial terms')} →</a
+              >
+            {/if}
             <dl class="project-facts">
               <div>
                 <dt>{t('Commercial model')}</dt>
@@ -839,6 +928,13 @@
                 >{isAuditor ? t('Read only') : t('Exact source records')}</span
               >
             </div>
+            {#if canWriteFinance}
+              <a
+                class="secondary-button"
+                href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(String(project.id))}`}
+                >{t('Edit economics inputs')} →</a
+              >
+            {/if}
             {#if finance}
               <dl class="finance-facts">
                 <div>
@@ -945,11 +1041,21 @@
             </div>
             <span class="surface-count">{overview.milestones.length}</span>
           </div>
+          {#if isOwner}
+            <a
+              class="secondary-button"
+              href={`${base}/app/manage?area=project_milestone&project=${encodeURIComponent(String(project.id))}`}
+              >{t('Create or edit milestones')} →</a
+            >
+          {/if}
           <div class="compact-record-list">
             {#each overview.milestones as milestone}
-              <a
+              <svelte:element
+                this={isOwner ? 'a' : 'div'}
                 class="compact-record"
-                href={`${base}/app/manage?area=project_milestone&project=${project.id}&focus=${milestone.id}`}
+                href={isOwner
+                  ? `${base}/app/manage?area=project_milestone&project=${encodeURIComponent(String(project.id))}&focus=${encodeURIComponent(String(milestone.id))}`
+                  : undefined}
                 ><span class="record-mark" aria-hidden="true">M</span><span class="record-copy"
                   ><strong>{display(milestone.name, t('Milestone'))}</strong><small
                     >{display(milestone.due_on, t('No due date'))} · {status(
@@ -961,7 +1067,7 @@
                     milestone.amount_minor,
                     String(milestone.currency ?? project.currency),
                   )}</span
-                ></a
+                ></svelte:element
               >
             {:else}<p class="empty-state">{t('No milestones configured.')}</p>{/each}
           </div>
@@ -1768,6 +1874,14 @@
   .report-register {
     display: grid;
     gap: 0.55rem;
+  }
+  .project-day-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0.85rem 0;
+    scroll-margin-top: 5rem;
   }
   .compact-record,
   .team-record,

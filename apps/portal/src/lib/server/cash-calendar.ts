@@ -203,12 +203,9 @@ function readCashMovementSnapshot(context: Context): CashMovement[] {
   for (const item of v3.listReimbursementQueue(principal)) {
     const expense = sqlite
       .prepare(
-        'SELECT currency,CAST(amount_minor AS TEXT) amount_minor,CAST(reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,reimbursed_at,expected_reimbursement_on,reimbursement_reference,billing_treatment FROM expense WHERE id=?',
+        'SELECT reimbursed_at,expected_reimbursement_on,reimbursement_reference,billing_treatment FROM expense WHERE id=?',
       )
       .get(String(item.id)) as {
-      currency: string;
-      amount_minor: string;
-      reimbursement_amount_minor: string | null;
       reimbursed_at: string | null;
       expected_reimbursement_on: string | null;
       reimbursement_reference: string | null;
@@ -224,9 +221,9 @@ function readCashMovementSnapshot(context: Context): CashMovement[] {
       reimbursed &&
       Boolean(dateOnly(expense.reimbursed_at)) &&
       Boolean(expense.reimbursement_reference);
-    const amount = BigInt(
-      actual ? (expense.reimbursement_amount_minor ?? expense.amount_minor) : expense.amount_minor,
-    );
+    // The queue resolves both policy-based and legacy settlement amounts in
+    // receipt currency. Historical FX cost columns must never change cash.
+    const amount = BigInt(String(item.reimbursementAmountMinor));
     if (amount <= 0n) continue;
     const projectId = String(item.projectId);
     movements.push({
@@ -236,7 +233,7 @@ function readCashMovementSnapshot(context: Context): CashMovement[] {
       project: `${item.projectNumber} — ${item.projectName}`,
       party: String(item.workerName ?? ''),
       ...entityOn(projectId, String(item.spentOn)),
-      currency: expense.currency,
+      currency: String(item.currency),
       kind: 'worker_reimbursement',
       basis: actual ? 'actual' : reimbursed ? 'needs_confirmation' : 'expected',
       date: dateOnly(actual ? expense.reimbursed_at : expense.expected_reimbursement_on),

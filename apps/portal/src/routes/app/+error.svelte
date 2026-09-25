@@ -25,7 +25,11 @@
   const description = $derived(
     status === 404
       ? translate('No records match that search in your access scope.')
-      : genericFailure,
+      : status === 403
+        ? translate(
+            'Your account does not have access to this page. Return to a section available to your role.',
+          )
+        : genericFailure,
   );
   const sectionLabel = $derived.by(() => {
     const code = String($page.error?.message ?? '');

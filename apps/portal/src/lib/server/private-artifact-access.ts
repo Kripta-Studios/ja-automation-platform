@@ -130,7 +130,7 @@ export function authorizePrivateArtifact(
   if (!identity) return null;
 
   if (kind === 'accounting_pack') {
-    if (!isFinanceRole(principal)) return null;
+    if (!isFinanceReadableRole(principal)) return null;
     const row = sqlite.prepare('SELECT id FROM accounting_pack_run WHERE id=?').get(id) as
       | { id: string }
       | undefined;

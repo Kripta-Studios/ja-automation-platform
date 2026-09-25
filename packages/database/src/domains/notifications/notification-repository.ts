@@ -538,7 +538,7 @@ export class NotificationRepository {
       .prepare(
         `SELECT i.id invoice_id,i.version
            FROM invoice i JOIN project p ON p.id=i.project_id
-          WHERE i.state='overdue'
+          WHERE i.state='overdue' AND i.total_minor>0
           ORDER BY i.id`,
       )
       .all() as Array<{ invoice_id: string; version: number }>;

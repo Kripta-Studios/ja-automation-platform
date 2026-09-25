@@ -26,6 +26,8 @@ the authenticated account settings facade; raw Better Auth MFA management endpoi
 - `jaautomation.service` — builds and starts site, portal and jobs containers.
 - `jaautomation-jobs.service` / `.timer` — watchdog that keeps the always-on jobs worker running.
 - `jaautomation-backup.service` / `.timer` — online SQLite backup plus private-file manifest.
+- `jaautomation-backup-prune.service` / `.timer` — keep one completed local backup per Madrid calendar day for at most three days; check every five minutes.
+- `jaautomation-runtime-cleanup.service` / `.timer` — every day at 03:30, keep the active release and two processed rollback releases and clear only Docker's build cache. It shares the deployment lock and skips a run while a deployment is active.
 - `scripts/install-vps.sh` — explicit host integration; review it before running with `sudo`.
 - `scripts/verify-vps.sh` — local/HTTPS liveness, readiness and routing checks.
 - `secrets/stalwart_mail_provisioner` in Compose — read-only JMAP API key mounted only in `portal`.
@@ -85,7 +87,7 @@ is in [docs/DEPLOYMENT_VPS.md](../docs/DEPLOYMENT_VPS.md).
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now jaautomation.service
-sudo systemctl enable --now jaautomation-jobs.timer jaautomation-backup.timer
+sudo systemctl enable --now jaautomation-jobs.timer jaautomation-backup.timer jaautomation-backup-prune.timer jaautomation-runtime-cleanup.timer
 sudo bash deployment/scripts/verify-vps.sh https://j-aautomation.com/j-aautomation
 ```
 
@@ -118,7 +120,7 @@ sudo docker compose --env-file /etc/jaautomation/jaautomation.env \
   bootstrap-owner
 sudo systemctl daemon-reload
 sudo systemctl enable --now jaautomation.service
-sudo systemctl enable --now jaautomation-jobs.timer jaautomation-backup.timer
+sudo systemctl enable --now jaautomation-jobs.timer jaautomation-backup.timer jaautomation-backup-prune.timer jaautomation-runtime-cleanup.timer
 sudo bash deployment/scripts/verify-vps.sh https://j-aautomation.com/j-aautomation
 ```
 
@@ -411,7 +413,7 @@ the original roots. See `docs/BACKUP_RESTORE.md` for the runbook.
 ### Encrypted continuity copy and remote restore drill
 
 The local backup and the encrypted separate-host copy are distinct gates. Configure the remote host,
-least-privilege SSH user/key, namespace, non-root remote directory, retention (at least 30 days) and
+least-privilege SSH user/key, namespace, non-root remote directory, retention (exactly 3 days) and
 32-byte encryption key in the root-owned `0600` environment file. Keep these values out of Git and
 out of command history/logs. `JA_BACKUP_REMOTE_ENABLED=true` with any missing or invalid value is a
 blocked fail-closed configuration; use `false` only while explicitly recording off-site recovery as

@@ -52,10 +52,11 @@
   let { data } = $props<{ data: { explanation: Explanation; user: { role?: string } } }>();
   const explanation = $derived(data.explanation);
   let localeOverride = $state<PortalLocale | null>(null);
-  const locale = $derived(localeOverride ?? resolveStandaloneLocale($page.url.searchParams.get('lang')));
+  const locale = $derived(
+    localeOverride ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
+  );
   const t = (key: string, params?: Record<string, string | number>) =>
     standaloneText(locale, key, params);
-  const status = (value: string) => translateControlledValue(locale, 'status', value);
   const category = (value: string) => translateControlledValue(locale, 'category', value);
   onMount(() => {
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'));
@@ -80,7 +81,10 @@
   function hours(minutes: unknown): string {
     const amount = Number(minutes);
     if (!Number.isFinite(amount)) return t('Unknown');
-    return `${(amount / 60).toFixed(2).replace(/\.00$/u, '').replace('.', locale === 'en' ? '.' : ',')} h`;
+    return `${(amount / 60)
+      .toFixed(2)
+      .replace(/\.00$/u, '')
+      .replace('.', locale === 'en' ? '.' : ',')} h`;
   }
 
   function stateLabel(value: unknown): string {
@@ -124,114 +128,127 @@
     const clientRecovery = sourceText(values, 'clientRecovery');
     const markupBps = Number(values.markupBps);
     const markup = Number.isFinite(markupBps)
-      ? t(' · customer markup {percent}%', { percent: (markupBps / 100).toLocaleString(locale === 'es' ? 'es-ES' : locale === 'pt' ? 'pt-BR' : 'en-US', { maximumFractionDigits: 2 }) })
+      ? t(' · customer markup {percent}%', {
+          percent: (markupBps / 100).toLocaleString(
+            locale === 'es' ? 'es-ES' : locale === 'pt' ? 'pt-BR' : 'en-US',
+            { maximumFractionDigits: 2 },
+          ),
+        })
       : '';
     const effectiveFrom = sourceText(values, 'effectiveFrom');
     const effectiveTo = sourceText(values, 'effectiveTo');
     const version = sourceText(values, 'version');
-    return t('Policy v{version}: worker reimbursement {workerReimbursement} · customer recovery {clientRecovery}{markup} · effective {effectiveFrom}{ending}', {
-      version,
-      workerReimbursement,
-      clientRecovery,
-      markup,
-      effectiveFrom,
-      ending: effectiveTo === '—' ? t(' onward') : t(' to {dia}', { dia: effectiveTo }),
-    });
+    return t(
+      'Policy v{version}: worker reimbursement {workerReimbursement} · customer recovery {clientRecovery}{markup} · effective {effectiveFrom}{ending}',
+      {
+        version,
+        workerReimbursement,
+        clientRecovery,
+        markup,
+        effectiveFrom,
+        ending: effectiveTo === '—' ? t(' onward') : t(' to {dia}', { dia: effectiveTo }),
+      },
+    );
   }
 </script>
 
-<svelte:head><title>{t("How this project is calculated")}</title></svelte:head>
+<svelte:head><title>{t('How this project is calculated')}</title></svelte:head>
 
 <main class="calculation-page" data-project-calculation-page>
   <a
     class="back-link"
     href={`${base}/app/finance?project=${encodeURIComponent(explanation.project.id)}&view=economic`}
   >
-    {t("← Back to project finance")}
+    {t('← Back to project finance')}
   </a>
   <header class="page-header">
-    <p>{t("PROJECT FINANCE EXPLANATION")}</p>
-    <h1>{t("How this project is calculated")}</h1>
+    <p>{t('PROJECT FINANCE EXPLANATION')}</p>
+    <h1>{t('How this project is calculated')}</h1>
     <span>{explanation.project.number} · {explanation.project.name}</span>
-    <p class="period">{explanation.period.start} {t("to")} {explanation.period.end}</p>
+    <p class="period">{explanation.period.start} {t('to')} {explanation.period.end}</p>
   </header>
 
   <section class="notice" data-calculation-canonical-note>
-    <strong>{t("These are the canonical project-finance results.")}</strong>
+    <strong>{t('These are the canonical project-finance results.')}</strong>
     <p>
-      {t("Amounts come from the same saved finance projection used by the project finance workspace. This screen explains its source rows and effective terms; it does not recalculate invoice amounts.")}
+      {t(
+        'Amounts come from the same saved finance projection used by the project finance workspace. This screen explains its source rows and effective terms; it does not recalculate invoice amounts.',
+      )}
     </p>
   </section>
 
-  <section class="totals" aria-label={t("Period totals")}>
+  <section class="totals" aria-label={t('Period totals')}>
     <article data-calculation-total="recorded">
-      <span>{t("Recorded")}</span><strong>{hours(explanation.totals.actualMinutes)}</strong>
+      <span>{t('Recorded')}</span><strong>{hours(explanation.totals.actualMinutes)}</strong>
     </article>
     <article data-calculation-total="approved">
-      <span>{t("Approved")}</span><strong>{hours(explanation.totals.approvedMinutes)}</strong>
+      <span>{t('Approved')}</span><strong>{hours(explanation.totals.approvedMinutes)}</strong>
     </article>
     <article data-calculation-total="billable">
-      <span>{t("Billable")}</span><strong>{hours(explanation.totals.billableMinutes)}</strong>
+      <span>{t('Billable')}</span><strong>{hours(explanation.totals.billableMinutes)}</strong>
     </article>
     <article data-calculation-total="operational-source-revenue">
-      <span>{t("Operational source revenue")}</span><strong
+      <span>{t('Operational source revenue')}</span><strong
         >{money(explanation.totals.operationalRevenueCandidateMinor)}</strong
       >
     </article>
     <article data-calculation-total="worker-compensation">
-      <span>{t("Worker pay basis")}</span><strong
+      <span>{t('Worker pay basis')}</span><strong
         >{money(explanation.totals.workerCompensationMinor)}</strong
       >
     </article>
     <article data-calculation-total="direct-cost">
-      <span>{t("Direct cost")}</span><strong>{money(explanation.totals.approvedCostMinor)}</strong>
+      <span>{t('Direct cost')}</span><strong>{money(explanation.totals.approvedCostMinor)}</strong>
     </article>
     <article data-calculation-total="approved-unbilled">
-      <span>{t("Approved, unbilled")}</span><strong
+      <span>{t('Approved, unbilled')}</span><strong
         >{money(explanation.totals.approvedUnbilledWipMinor)}</strong
       >
     </article>
     <article data-calculation-total="pending-wip">
-      <span>{t("Pending WIP")}</span><strong>{money(explanation.totals.unapprovedWipMinor)}</strong>
+      <span>{t('Pending WIP')}</span><strong>{money(explanation.totals.unapprovedWipMinor)}</strong>
     </article>
     <article data-calculation-total="invoiced">
-      <span>{t("Invoiced")}</span><strong>{money(explanation.totals.invoicedMinor)}</strong>
+      <span>{t('Invoiced')}</span><strong>{money(explanation.totals.invoicedMinor)}</strong>
     </article>
     <article data-calculation-total="paid">
-      <span>{t("Paid")}</span><strong>{money(explanation.totals.paidMinor)}</strong>
+      <span>{t('Paid')}</span><strong>{money(explanation.totals.paidMinor)}</strong>
     </article>
   </section>
 
   <section class="reconciliation" data-calculation-reconciliation>
     <div>
-      <p>{t("Approved operational sources")}</p>
+      <p>{t('Approved operational sources')}</p>
       <strong>{money(explanation.totals.sourceRevenueMinor)}</strong>
     </div>
     <div>
-      <p>{t("Canonical operational revenue")}</p>
+      <p>{t('Canonical operational revenue')}</p>
       <strong>{money(explanation.totals.operationalRevenueCandidateMinor)}</strong>
     </div>
     <div>
-      <p>{t("Reconciliation")}</p>
+      <p>{t('Reconciliation')}</p>
       {#if explanation.totals.sourceRevenueReconcilesToOperationalCandidate}
-        <strong class="ok">{t("Source rows reconcile exactly")}</strong>
+        <strong class="ok">{t('Source rows reconcile exactly')}</strong>
       {:else}
         <strong class="warning"
-          >{t("Needs review:")} {money(explanation.totals.candidateRevenueDiffMinor)}</strong
+          >{t('Needs review:')} {money(explanation.totals.candidateRevenueDiffMinor)}</strong
         >
       {/if}
     </div>
   </section>
   {#if explanation.totals.canonicalCandidateDiffFromOperationalMinor !== '0'}
     <p class="fixed-note">
-      {t("The project billing model changes the customer candidate from operational source revenue by")} {money(
-        explanation.totals.canonicalCandidateDiffFromOperationalMinor,
-      )}{t(". This is expected for a configured fixed or all-in commercial model.")}
+      {t(
+        'The project billing model changes the customer candidate from operational source revenue by',
+      )}
+      {money(explanation.totals.canonicalCandidateDiffFromOperationalMinor)}{t(
+        '. This is expected for a configured fixed or all-in commercial model.',
+      )}
     </p>
   {/if}
 
   <section class="section-card" aria-labelledby="billing-configuration-title">
-    <h2 id="billing-configuration-title">{t("Billing configuration in this period")}</h2>
+    <h2 id="billing-configuration-title">{t('Billing configuration in this period')}</h2>
     {#if explanation.billingRules.length}
       <ul class="rules">
         {#each explanation.billingRules as rule}
@@ -242,7 +259,9 @@
                 : translateControlledValue(locale, 'billingStream', rule.streamType)}</strong
             >
             <span
-              >{t(rule.cadenceType.replaceAll('_', ' '))} · {rule.currency} {t("· effective")} {rule.effectiveFrom}{rule.effectiveTo
+              >{t(rule.cadenceType.replaceAll('_', ' '))} · {rule.currency}
+              {t('· effective')}
+              {rule.effectiveFrom}{rule.effectiveTo
                 ? t(' to {dia}', { dia: rule.effectiveTo })
                 : ''}</span
             >
@@ -250,16 +269,18 @@
         {/each}
       </ul>
     {:else}
-      <p class="unknown">{t("No active billing configuration covers this period.")}</p>
+      <p class="unknown">{t('No active billing configuration covers this period.')}</p>
     {/if}
   </section>
 
   {#if explanation.issues.length}
-    <section class="issues" aria-label={t("Configuration issues")}>
-      <h2>{t("Configuration that still needs attention")}</h2>
+    <section class="issues" aria-label={t('Configuration issues')}>
+      <h2>{t('Configuration that still needs attention')}</h2>
       <ul>
         {#each explanation.issues as issue}<li>
-            {t(issue.code.replaceAll('_', ' '))}{issue.sourceId ? t(' · source {id}', { id: issue.sourceId }) : ''}
+            {t(issue.code.replaceAll('_', ' '))}{issue.sourceId
+              ? t(' · source {id}', { id: issue.sourceId })
+              : ''}
           </li>{/each}
       </ul>
     </section>
@@ -268,10 +289,10 @@
   <section class="people-section" aria-labelledby="people-calculation-title">
     <div class="section-heading">
       <div>
-        <p>{t("BY PERSON")}</p>
-        <h2 id="people-calculation-title">{t("Recorded work and finance treatment")}</h2>
+        <p>{t('BY PERSON')}</p>
+        <h2 id="people-calculation-title">{t('Recorded work and finance treatment')}</h2>
       </div>
-      <span>{explanation.people.length} {t("people")}</span>
+      <span>{explanation.people.length} {t('people')}</span>
     </div>
     {#each explanation.people as person}
       <article class="person" data-calculation-person={person.workerId}>
@@ -279,39 +300,53 @@
           <div>
             <h3>{person.workerName}</h3>
             <span
-              >{hours(person.actualMinutes)} {t("actual ·")} {hours(person.approvedMinutes)} {t("approved ·")} {hours(
-                person.billableMinutes,
-              )} {t("billable")}</span
+              >{hours(person.actualMinutes)}
+              {t('actual ·')}
+              {hours(person.approvedMinutes)}
+              {t('approved ·')}
+              {hours(person.billableMinutes)}
+              {t('billable')}</span
             >
           </div>
-          <span class="person-revenue">{money(person.customerRevenueMinor)} {t("customer revenue")}</span>
+          <span class="person-revenue"
+            >{money(person.customerRevenueMinor)} {t('customer revenue')}</span
+          >
         </header>
         <div class="person-totals">
-          <span>{t("Worker compensation")} <strong>{money(person.workerCompensationMinor)}</strong></span>
-          <span>{t("Internal labor cost")} <strong>{money(person.internalCostMinor)}</strong></span>
-          <span>{t("Expense recovery")} <strong>{money(person.expenseRevenueMinor)}</strong></span>
-          <span>{t("Expense cost")} <strong>{money(person.expenseCostMinor)}</strong></span>
+          <span
+            >{t('Worker compensation')}
+            <strong>{money(person.workerCompensationMinor)}</strong></span
+          >
+          <span>{t('Internal labor cost')} <strong>{money(person.internalCostMinor)}</strong></span>
+          <span>{t('Expense recovery')} <strong>{money(person.expenseRevenueMinor)}</strong></span>
+          <span>{t('Expense cost')} <strong>{money(person.expenseCostMinor)}</strong></span>
         </div>
         <div class="source-counts" aria-label={`Source state for ${person.workerName}`}>
-          <span>{person.approvedOperationalSources} {t("approved operational")}</span><span
-            >{person.invoicedSources} {t("invoiced")}</span
-          ><span>{person.pendingSources} {t("pending")}</span><span>{person.excludedSources} {t("excluded")}</span
+          <span>{person.approvedOperationalSources} {t('approved operational')}</span><span
+            >{person.invoicedSources} {t('invoiced')}</span
+          ><span>{person.pendingSources} {t('pending')}</span><span
+            >{person.excludedSources} {t('excluded')}</span
           >
         </div>
         <p class="provenance-unavailable">
-          {t("Rate-rule IDs and versions are not included in the canonical finance projection yet. Source rows below show the canonical configured/unavailable statuses and pay method; use Project billing setup to review or change future terms.")}
+          {t(
+            'Rate-rule IDs and versions are not included in the canonical finance projection yet. Source rows below show the canonical configured/unavailable statuses and pay method; use Project billing setup to review or change future terms.',
+          )}
         </p>
         <details>
-          <summary>{t("Recorded time and calculation sources (")}{person.time.length})</summary>
+          <summary>{t('Recorded time and calculation sources (')}{person.time.length})</summary>
           <div class="source-list">
             {#each person.time as row}
               <article>
                 <div>
-                  <strong>{sourceText(row, 'workDate')} · {category(sourceText(row, 'category'))}</strong
+                  <strong
+                    >{sourceText(row, 'workDate')} · {category(sourceText(row, 'category'))}</strong
                   ><span
-                    >{hours(row.actualMinutes)} {t("actual ·")} {hours(row.billableMinutes)} {t("billable ·")} {stateLabel(
-                      row.sourceState,
-                    )}</span
+                    >{hours(row.actualMinutes)}
+                    {t('actual ·')}
+                    {hours(row.billableMinutes)}
+                    {t('billable ·')}
+                    {stateLabel(row.sourceState)}</span
                   >
                   <span>{sourceCalculationSummary(row)}</span>
                 </div>
@@ -321,23 +356,26 @@
                   >
                 </div>
               </article>
-            {:else}<p>{t("No time source in this period.")}</p>{/each}
+            {:else}<p>{t('No time source in this period.')}</p>{/each}
           </div>
         </details>
         <details>
-          <summary>{t("Expenses and recovery sources (")}{person.expenses.length})</summary>
+          <summary>{t('Expenses and recovery sources (')}{person.expenses.length})</summary>
           <div class="source-list">
             {#each person.expenses as row}
               <article>
                 <div>
-                  <strong>{sourceText(row, 'spentOn')} · {category(sourceText(row, 'category'))}</strong><span
-                    >{t(sourceText(row, 'treatment'))} · {stateLabel(row.sourceState)}</span
-                  >
+                  <strong
+                    >{sourceText(row, 'spentOn')} · {category(sourceText(row, 'category'))}</strong
+                  ><span>{t(sourceText(row, 'treatment'))} · {stateLabel(row.sourceState)}</span>
                 </div>
                 <div>
-                  <strong>{money(row.revenueMinor)}</strong><span>{t("Cost")} {money(row.costMinor)}</span>
+                  <strong>{money(row.revenueMinor)}</strong><span
+                    >{t('Cost')} {money(row.costMinor)}</span
+                  >
                   <span
-                    >{t("Worker reimbursement")} {money(row.reimbursementAmountMinor)} · {sourceText(
+                    >{t('Worker reimbursement')}
+                    {money(row.reimbursementAmountMinor)} · {sourceText(
                       row,
                       'reimbursementState',
                     )}</span
@@ -345,22 +383,22 @@
                   <span>{expensePolicySummary(row)}</span>
                 </div>
               </article>
-            {:else}<p>{t("No expense source in this period.")}</p>{/each}
+            {:else}<p>{t('No expense source in this period.')}</p>{/each}
           </div>
         </details>
       </article>
-    {:else}<p class="empty">{t("No time or expense source exists in this period.")}</p>{/each}
+    {:else}<p class="empty">{t('No time or expense source exists in this period.')}</p>{/each}
   </section>
 
   {#if explanation.milestones.length}
     <section class="section-card" data-calculation-milestones>
-      <h2>{t("Milestone sources")}</h2>
-      <p>{t("Approved milestones are included only while they remain un-invoiced.")}</p>
+      <h2>{t('Milestone sources')}</h2>
+      <p>{t('Approved milestones are included only while they remain un-invoiced.')}</p>
       <div class="source-list">
         {#each explanation.milestones as milestone}
           <article>
             <div>
-              <strong>{sourceText(milestone, 'dueOn')} {t("· milestone")}</strong>
+              <strong>{sourceText(milestone, 'dueOn')} {t('· milestone')}</strong>
               <span>{stateLabel(milestone.sourceState)}</span>
             </div>
             <div>
@@ -375,14 +413,17 @@
 
   {#if explanation.dailyMinimumAdjustments.length}
     <section class="section-card" data-daily-minimum-adjustments>
-      <h2>{t("Daily minimum adjustments")}</h2>
+      <h2>{t('Daily minimum adjustments')}</h2>
       <p>
-        {t("Each adjustment applies once per person and project day. It raises billable quantity only; it does not invent actual time.")}
+        {t(
+          'Each adjustment applies once per person and project day. It raises billable quantity only; it does not invent actual time.',
+        )}
       </p>
       <ul class="rules">
         {#each explanation.dailyMinimumAdjustments as adjustment}<li>
             <strong
-              >{sourceText(adjustment, 'workDate')} · {hours(adjustment.adjustmentMinutes)} {t("top-up")}</strong
+              >{sourceText(adjustment, 'workDate')} · {hours(adjustment.adjustmentMinutes)}
+              {t('top-up')}</strong
             ><span>{money(adjustment.revenueMinor)} · {sourceText(adjustment, 'formula')}</span>
           </li>{/each}
       </ul>

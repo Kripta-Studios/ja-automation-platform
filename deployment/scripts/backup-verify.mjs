@@ -3,6 +3,7 @@ import { cp, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { backupDay } from './backup.mjs';
 import { backupFileMetadata, verifyLocalBackupMetadata } from './continuity-backup.mjs';
 import { assertSafePath, assertSafeTree } from './storage-safety.mjs';
 
@@ -139,13 +140,14 @@ export async function verifyLatestBackup({
     await rm(directory, { recursive: true, force: true });
   }
   const days = new Set(
-    snapshots
-      .filter((s) => s.createdAt <= now.getTime())
-      .map((s) => new Date(s.createdAt).toISOString().slice(0, 10)),
+    snapshots.filter((s) => s.createdAt <= now.getTime()).map((s) => backupDay(s.createdAt)),
   );
   const missingDays = [];
-  for (let offset = 0; offset < 30; offset++) {
-    const day = new Date(now.getTime() - offset * 86400000).toISOString().slice(0, 10);
+  const currentDay = backupDay(now.getTime());
+  const [year, month, dayOfMonth] = currentDay.split('-').map(Number);
+  const calendarAnchor = Date.UTC(year, month - 1, dayOfMonth);
+  for (let offset = 0; offset < 3; offset++) {
+    const day = new Date(calendarAnchor - offset * 86400000).toISOString().slice(0, 10);
     if (!days.has(day)) missingDays.push(day);
   }
   return {
@@ -159,7 +161,7 @@ export async function verifyLatestBackup({
     history: {
       snapshotCount: snapshots.length,
       observedDays: days.size,
-      requiredDays: 30,
+      requiredDays: 3,
       coverageComplete: missingDays.length === 0,
       missingDays,
       scope: 'Manifest dates only; integrity verified for latest snapshot',

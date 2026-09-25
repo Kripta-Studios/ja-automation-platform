@@ -2127,6 +2127,92 @@ describe('AccountingPackRevisionService', () => {
       );
 
       expect(result.revisionId).toMatch(/^fp-accounting-pack-revision-/u);
+      const firstGroupEvidence = sqlite
+        .prepare(
+          "SELECT evidence_id,evidence_hash FROM finance_source_cut_item WHERE cut_id=? AND item_kind='direct_cost'",
+        )
+        .get(result.sourceCutId) as { evidence_id: string; evidence_hash: string };
+      sqlite
+        .prepare(
+          `INSERT INTO time_entry(
+             id,project_id,worker_id,work_date,category,minutes,approval_state,billability_state,
+             compensation_amount_minor,created_at,updated_at,version
+           ) VALUES('time-2','project-1','worker-1','2026-01-16','regular',480,'approved',
+                    'billable',200,?,?,1)`,
+        )
+        .run(now, now);
+      const updated = input({
+        idempotencyKey: 'test:accounting-pack:approved-time-cost-v2',
+        sourceItems: [
+          ...(input().sourceItems as readonly Record<string, unknown>[]),
+          ...['time-1', 'time-2'].map((id, index) => ({
+            id: `source-${id}`,
+            itemKind: 'time',
+            sourceId: id,
+            itemVersion: 1,
+            effectiveAt: `${index === 0 ? '2026-01-15' : '2026-01-16'}T00:00:00.000Z`,
+            evidenceType: 'finance_change_event',
+            evidenceId: `time-evidence-${index + 1}`,
+            amountMinor: null,
+            currency: 'EUR',
+          })),
+          {
+            id: 'source-compensation-1',
+            itemKind: 'compensation',
+            sourceId: 'worker-1:project-1',
+            itemVersion: 1,
+            effectiveAt: '2026-02-01T00:00:00.000Z',
+            evidenceType: 'settlement_revision',
+            evidenceId: 'compensation-evidence-1',
+            amountMinor: 400,
+            currency: 'EUR',
+            payload: { sourceTimeIds: ['time-1', 'time-2'] },
+          },
+          {
+            id: 'source-direct-cost-1',
+            itemKind: 'direct_cost',
+            sourceId: 'labor:worker-1:project-1',
+            itemVersion: 1,
+            effectiveAt: '2026-02-01T00:00:00.000Z',
+            evidenceType: 'direct_cost_event',
+            evidenceId: 'direct-cost-evidence-1',
+            amountMinor: 400,
+            currency: 'EUR',
+            payload: { sourceTimeIds: ['time-1', 'time-2'] },
+          },
+        ],
+        workerCosts: [
+          {
+            workerId: 'worker-1',
+            projectId: 'project-1',
+            currency: 'EUR',
+            internalLoadedLaborCostMinor: '400',
+          },
+        ],
+        sourceItemCount: 5,
+        workerCostCount: 1,
+        approvedTimeEntryCount: 2,
+        workerCostMinor: 400,
+        directCostMinor: 400,
+        contributionMinor: 600,
+      });
+      const refreshed = service.createCanonicalRevision(principal, updated);
+      const nextGroupEvidence = sqlite
+        .prepare(
+          "SELECT evidence_id,evidence_hash FROM finance_source_cut_item WHERE cut_id=? AND item_kind='direct_cost'",
+        )
+        .get(refreshed.sourceCutId) as { evidence_id: string; evidence_hash: string };
+      expect(refreshed.revisionId).not.toBe(result.revisionId);
+      expect(nextGroupEvidence.evidence_id).not.toBe(firstGroupEvidence.evidence_id);
+      expect(nextGroupEvidence.evidence_hash).not.toBe(firstGroupEvidence.evidence_hash);
+      expect(service.createCanonicalRevision(principal, updated).revisionId).toBe(
+        refreshed.revisionId,
+      );
+      expect(
+        sqlite
+          .prepare('SELECT evidence_hash FROM finance_hash_evidence WHERE evidence_id=?')
+          .get(firstGroupEvidence.evidence_id),
+      ).toEqual({ evidence_hash: firstGroupEvidence.evidence_hash });
     } finally {
       sqlite.close();
     }

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   fetchManualWithRetry,
+  manualDownloadLanguage,
   manualDownloadFilename,
 } from '../../apps/portal/src/lib/portal/ui/manual-download.ts';
+import { manualCatalog } from '../../apps/portal/src/lib/server/manual-catalog.ts';
 
 const pdf = () =>
   new Response(new Blob(['%PDF-1.7\n'], { type: 'application/pdf' }), {
@@ -11,6 +13,15 @@ const pdf = () =>
   });
 
 describe('manual PDF GET recovery', () => {
+  it('uses the advertised PDF language for every guide', () => {
+    for (const manual of manualCatalog) {
+      for (const language of manual.locales)
+        expect(manualDownloadLanguage(language, manual.locales)).toBe(language);
+      expect(manualDownloadLanguage('es', manual.locales)).toBe(
+        manual.id === 'employee-field-guide' ? 'es' : 'en',
+      );
+    }
+  });
   it('retries a transient 503 once and returns the PDF without an error state', async () => {
     let calls = 0;
     const waits: number[] = [];

@@ -231,6 +231,25 @@
         </span>
       {/if}
     {/each}
+    {#if !isAuditor && packState === 'final' && pack.sourceStale}
+      <div class="accounting-pack-review" role="status">
+        <p>
+          {translate(
+            'Sources changed after this final version. Keep this historical pack and generate a new version for the same period.',
+          )}
+        </p>
+        <form method="POST" action="?/createAccountingPack">
+          <input type="hidden" name="periodStart" value={String(pack.period_start)} />
+          <input type="hidden" name="periodEnd" value={String(pack.period_end)} />
+          <input
+            type="hidden"
+            name="reportLocale"
+            value={locale === 'es' ? 'es' : String(locale).startsWith('pt') ? 'pt' : 'en'}
+          />
+          <button type="submit">{translate('Generate new version')}</button>
+        </form>
+      </div>
+    {/if}
     {#if !isAuditor && packState !== 'final' && packState !== 'queued'}
       <details class="accounting-pack-review">
         <summary>{translate('Review before finalizing')}</summary>
@@ -242,19 +261,42 @@
         <dl>
           <div>
             <dt>{translate('Pending records')}</dt>
-            <dd>{reviewCount('pendingRecordCount')}</dd>
+            <dd>
+              {reviewCount('pendingRecordCount')}
+              <a href={`${base}/app/approvals`}>{translate('Review pending records')} →</a>
+              {#if reviewCount('pendingRecordCount') > 0}
+                <small
+                  >{translate(
+                    'Draft and returned records may not appear in the approval queue.',
+                  )}</small
+                >
+              {/if}
+            </dd>
           </div>
           <div>
             <dt>{translate('Unclassified expenses')}</dt>
-            <dd>{reviewCount('unclassifiedExpenseCount')}</dd>
+            <dd>
+              {reviewCount('unclassifiedExpenseCount')}
+              <a href={`${base}/app/finance?view=economic#finance-source-records`}
+                >{translate('Classify expenses')} →</a
+              >
+            </dd>
           </div>
           <div>
             <dt>{translate('Missing documents')}</dt>
-            <dd>{reviewCount('missingDocumentCount')}</dd>
+            <dd>
+              {reviewCount('missingDocumentCount')}
+              <a href={`${base}/app/documents`}>{translate('Review documents')} →</a>
+            </dd>
           </div>
           <div>
             <dt>{translate('Reconciliation issues')}</dt>
-            <dd>{reviewCount('sourceMismatchCount') + reviewCount('missingCostRuleCount')}</dd>
+            <dd>
+              {reviewCount('sourceMismatchCount') + reviewCount('missingCostRuleCount')}
+              <a href={`${base}/app/finance?view=economic`}
+                >{translate('Review project economics')} →</a
+              >
+            </dd>
           </div>
           <div>
             <dt>{translate('Changes since generation')}</dt>
@@ -262,6 +304,8 @@
               {pack.sourceStale
                 ? translate('Yes — generate a new version')
                 : translate('None detected')}
+              {#if pack.sourceStale}
+                <a href="#accounting-generate">{translate('Generate new version')} →</a>{/if}
             </dd>
           </div>
         </dl>

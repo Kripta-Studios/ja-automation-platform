@@ -112,7 +112,7 @@ describe('0050 expense occurrence time and shift link migration', () => {
     ).toEqual({ count: 0 });
     expect(
       fixture.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get(),
-    ).toEqual({ version: 55 });
+    ).toEqual({ version: 64 });
     expect(fixture.sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
     expect(integrityCheck(fixture.sqlite)).toBe('ok');
   });

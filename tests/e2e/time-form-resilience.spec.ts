@@ -4,6 +4,20 @@ import { portal, signIn } from './auth.js';
 
 const requiredViewports = new Set(['phone-360', 'phone-390', 'tablet-768', 'desktop']);
 
+test('empty time entry summary names the fields to fix', async ({ page }, info) => {
+  test.skip(!requiredViewports.has(info.project.name));
+  await signIn(page, 'worker');
+  await page.goto(portal('/time?lang=en'));
+  await page.locator('[data-time-primary-cta]').click();
+  const form = page.locator('form[data-time-entry-surface]');
+  await form.getByRole('button', { name: 'Save draft', exact: true }).click();
+  const summary = form.locator('[data-validation-summary]');
+  await expect(summary).toContainText('Assigned project:');
+  await expect(summary).toContainText('Actual hours:');
+  await expect(summary).toContainText('Activity summary:');
+  await expect(form.locator('[name="projectId"]')).toBeFocused();
+});
+
 async function openTimeForm(page: Page, role: 'worker' | 'owner' = 'worker'): Promise<Locator> {
   await signIn(page, role);
   await page.goto(portal('/time?lang=en&q='), { waitUntil: 'networkidle' });
@@ -97,7 +111,9 @@ test('time blocks duplicate writes, freezes the submitted interval and focuses n
   await sheet.screenshot({ path: info.outputPath('time-save-failure.png') });
 });
 
-test('time and linked expense controls fit phone and tablet sheets with each value retained', async ({ page }, info) => {
+test('time and linked expense controls fit phone and tablet sheets with each value retained', async ({
+  page,
+}, info) => {
   test.skip(!requiredViewports.has(info.project.name));
   const form = await openTimeForm(page);
   await form.getByRole('checkbox', { name: 'Add an expense with these hours' }).check();

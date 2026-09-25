@@ -101,6 +101,33 @@
   const expenseEconomics = $derived(finance?.expenseEconomics ?? []);
   const financeExpenses = $derived(data.financeExpenses ?? []);
   const settlements = $derived(data.settlements ?? []);
+  const selectedSettlementProject = $derived(
+    availableProjects.find((project) => String(project.id) === String(data.selectedProjectId)),
+  );
+  let settlementPeriodStart = $state('');
+  let settlementPeriodEnd = $state('');
+  let settlementWorkerId = $state('');
+  const settlementWorkerChoices = $derived(
+    (data.workers ?? []).filter((worker) => {
+      if (!settlementPeriodStart || !settlementPeriodEnd) return true;
+      if (settlementPeriodEnd < settlementPeriodStart) return false;
+      return (
+        Array.isArray(worker.assignmentWindows) &&
+        worker.assignmentWindows.some((window) => {
+          const [startsOn, endsOn] = String(window).split('/');
+          return startsOn <= settlementPeriodStart && (!endsOn || endsOn >= settlementPeriodEnd);
+        })
+      );
+    }),
+  );
+  $effect(() => {
+    if (
+      settlementWorkerId &&
+      !settlementWorkerChoices.some((worker) => String(worker.id) === settlementWorkerId)
+    ) {
+      settlementWorkerId = '';
+    }
+  });
   const compensationPayments = $derived(data.compensationPayments ?? []);
   const reimbursements = $derived(data.reimbursements ?? []);
 
@@ -305,7 +332,7 @@
   };
 
   function requiresExpensePolicy(row: Row | Record<string, unknown>): boolean {
-    return Number(row.expense_policy_required ?? row.expensePolicyRequired ?? 0) === 1;
+    return String(row.expense_policy_required ?? row.expensePolicyRequired ?? 0) === '1';
   }
 
   function expensePolicyPreview(row: Row | Record<string, unknown>): PolicyPreview | null {
@@ -558,7 +585,7 @@
       },
       {
         key: 'outstanding',
-        label: translate('Outstanding (actual)'),
+        label: translate('Net receivable / credit'),
         value: displayMoney(finance.receivableMinor, finance.currency),
       },
       {
@@ -1018,7 +1045,7 @@
             class="finance-overview__cash-link"
             href={ledgerHref('outstanding')}
             data-metric="outstanding"
-            >{translate('Outstanding (actual)')}:
+            >{translate('Net receivable / credit')}:
             <strong>{displayMoney(finance.receivableMinor, finance.currency)}</strong></a
           >
           <span data-metric="approved-wip"
@@ -1840,7 +1867,7 @@
                       'Historical or billed expense state; planning and classification are locked.',
                     )}
                   </p>
-                {:else}
+                {:else if isAuditor}
                   <p class="finance-overview__immutable-note">
                     {translate(
                       'Auditor view is read-only; Finance/Admin changes require authorized access.',
@@ -1882,14 +1909,30 @@
             )}
           </p>
           {#if canWriteFinance}
+            <p class="finance-overview__surface-note">
+              {#if selectedSettlementProject}
+                <strong
+                  >{translate('Project')}: {value(selectedSettlementProject, 'project_number')} — {value(
+                    selectedSettlementProject,
+                    'name',
+                  )}</strong
+                >
+                <br />
+              {/if}
+              {translate(
+                'Worker choices belong to the selected project, including past assignments. Choose dates to show only people whose assignment covers the full period.',
+              )}
+            </p>
             <form method="POST" action="?/settleCompensation" class="finance-overview__action-form">
               <input type="hidden" name="projectId" value={data.selectedProjectId} />
               <label>
                 <span>{translate('Worker')}</span>
-                <select name="workerId" required>
+                <select name="workerId" bind:value={settlementWorkerId} required>
                   <option value="">{translate('Select worker')}</option>
-                  {#each data.workers ?? [] as worker}
-                    <option value={String(worker.id)}>{worker.name}</option>
+                  {#each settlementWorkerChoices as worker}
+                    <option value={String(worker.id)}
+                      >{worker.name} · {translate(String(worker.assignmentRelation))}</option
+                    >
                   {/each}
                 </select>
               </label>
@@ -1897,6 +1940,7 @@
                 ><span>{translate('Period start')}</span><input
                   name="periodStart"
                   type="date"
+                  bind:value={settlementPeriodStart}
                   required
                 /></label
               >
@@ -1904,11 +1948,27 @@
                 ><span>{translate('Period end')}</span><input
                   name="periodEnd"
                   type="date"
+                  bind:value={settlementPeriodEnd}
                   required
                 /></label
               >
-              <button type="submit">{translate('Finalize compensation')}</button>
+              <button
+                type="submit"
+                disabled={!data.selectedProjectId || !settlementWorkerChoices.length}
+                >{translate('Finalize compensation')}</button
+              >
             </form>
+            {#if !settlementWorkerChoices.length}
+              <p class="finance-overview__surface-note">
+                {!data.selectedProjectId
+                  ? translate('Select a project before finalizing compensation.')
+                  : settlementPeriodStart && settlementPeriodEnd
+                    ? translate('No assigned worker covers the selected settlement period.')
+                    : translate(
+                        'No active worker or project manager assignment exists for this project.',
+                      )}
+              </p>
+            {/if}
           {/if}
           <TableRegion
             class="finance-overview__table-region"

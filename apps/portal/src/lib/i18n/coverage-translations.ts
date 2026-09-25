@@ -8,6 +8,89 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  'Shared crew receipt · allocation locked': [
+    'Recibo compartido de cuadrilla · reparto bloqueado',
+    'Recibo partilhado da equipa · distribuição bloqueada',
+  ],
+  'This record has financial history. Use a financial correction.': [
+    'Este registro tiene historial financiero. Utiliza una corrección financiera.',
+    'Este registo tem histórico financeiro. Utilize uma correção financeira.',
+  ],
+  'Approved reimbursements awaiting payment': [
+    'Reembolsos aprobados pendientes de pago',
+    'Reembolsos aprovados à espera de pagamento',
+  ],
+  'Reimbursement state': ['Estado del reembolso', 'Estado do reembolso'],
+  'Unpaid reviewed settlements': [
+    'Liquidaciones revisadas sin pagar',
+    'Liquidações revistas não pagas',
+  ],
+  'Worker pay review': [
+    'Revisión de pagos por trabajador',
+    'Revisão de pagamentos por trabalhador',
+  ],
+  'Current approved and pending worker compensation, reimbursements, and settlement status.': [
+    'Remuneración aprobada y pendiente, reembolsos y estado de las liquidaciones por trabajador.',
+    'Remuneração aprovada e pendente, reembolsos e estado das liquidações por trabalhador.',
+  ],
+  'Select worker and period': [
+    'Seleccionar trabajador y período',
+    'Selecionar trabalhador e período',
+  ],
+  'Select worker': ['Seleccionar trabajador', 'Selecionar trabalhador'],
+  'Approved compensation': ['Remuneración aprobada', 'Remuneração aprovada'],
+  'Pending compensation': ['Remuneración pendiente', 'Remuneração pendente'],
+  'Approved reimbursements': ['Reembolsos aprobados', 'Reembolsos aprovados'],
+  'Pending reimbursements': ['Reembolsos pendientes', 'Reembolsos pendentes'],
+  'Estimates are not proof of payment.': [
+    'Las estimaciones no acreditan un pago.',
+    'As estimativas não comprovam um pagamento.',
+  ],
+  'Reviewed settlements and approved reimbursements awaiting actual payment.': [
+    'Liquidaciones revisadas y reembolsos aprobados pendientes del pago efectivo.',
+    'Liquidações revistas e reembolsos aprovados à espera de pagamento efetivo.',
+  ],
+  'Activity detail': ['Detalle de actividad', 'Detalhe da atividade'],
+  'A reviewed settlement is not proof of payment.': [
+    'Una liquidación revisada no acredita un pago.',
+    'Uma liquidação revista não comprova um pagamento.',
+  ],
+  Reimbursements: ['Reembolsos', 'Reembolsos'],
+  'No settlements in this period.': [
+    'No hay liquidaciones en este período.',
+    'Não há liquidações neste período.',
+  ],
+  'No reimbursements in this period.': [
+    'No hay reembolsos en este período.',
+    'Não há reembolsos neste período.',
+  ],
+  'Select a worker to review their current pay statement.': [
+    'Selecciona un trabajador para revisar su estado de remuneración actual.',
+    'Selecione um trabalhador para rever o estado atual da sua remuneração.',
+  ],
+  'Current project assignment': ['Asignación actual al proyecto', 'Atribuição atual ao projeto'],
+  'Past project assignment': ['Asignación anterior al proyecto', 'Atribuição anterior ao projeto'],
+  'Upcoming project assignment': [
+    'Próxima asignación al proyecto',
+    'Próxima atribuição ao projeto',
+  ],
+  'Worker choices belong to the selected project, including past assignments. Choose dates to show only people whose assignment covers the full period.':
+    [
+      'Se muestran las personas asignadas al proyecto seleccionado, también las de períodos anteriores. Al elegir las fechas, verás sólo quienes tengan una asignación que cubra todo el período.',
+      'São mostradas as pessoas atribuídas ao projeto selecionado, incluindo períodos anteriores. Ao escolher as datas, verá apenas quem tenha uma atribuição que cubra todo o período.',
+    ],
+  'No assigned worker covers the selected settlement period.': [
+    'Ninguna persona asignada cubre el período de liquidación seleccionado.',
+    'Nenhuma pessoa atribuída cobre o período de liquidação selecionado.',
+  ],
+  'No active worker or project manager assignment exists for this project.': [
+    'Este proyecto no tiene asignaciones activas de trabajadores o responsables.',
+    'Este projeto não tem atribuições ativas de trabalhadores ou gestores.',
+  ],
+  'Select a project before finalizing compensation.': [
+    'Selecciona un proyecto antes de liquidar la remuneración.',
+    'Selecione um projeto antes de finalizar a remuneração.',
+  ],
   'action.finance.assignmentCommercialFallbackSaved': [
     'Preferencia de reglas de la asignación guardada.',
     'Preferência de regras da atribuição salva.',
@@ -1085,6 +1168,11 @@ const exact: Record<string, readonly [string, string]> = {
     'Documentos privados del proyecto',
     'Documentos privados do projeto',
   ],
+  'Registered documents are retained as evidence. Upload a corrected file as a new document; the original stays available in the audit history.':
+    [
+      'Los documentos registrados se conservan como prueba. Sube el archivo corregido como documento nuevo; el original seguirá disponible en el historial de auditoría.',
+      'Os documentos registados são conservados como prova. Carregue o ficheiro corrigido como novo documento; o original continuará disponível no histórico de auditoria.',
+    ],
   Processing: ['Procesando', 'Processando'],
   Proficiency: ['Competencia', 'Proficiência'],
   'Proficiency (1-5)': ['Competencia (1-5)', 'Proficiência (1-5)'],
@@ -2019,6 +2107,14 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Ya existe un borrador de factura.',
     'Já existe um rascunho de fatura.',
   ],
+  'action.billing.invoiceAlreadyExists': [
+    'Ya existe una factura para este flujo y periodo. Ábrela para revisar su estado.',
+    'Já existe uma fatura para este fluxo e período. Abra-a para revisar seu estado.',
+  ],
+  'action.billing.creditNoteStateRestored': [
+    'Estado de emisión de la nota de crédito restaurado.',
+    'Estado de emissão da nota de crédito restaurado.',
+  ],
   'action.billing.invoiceDraftExistingForPeriod': [
     'Se devolvió el borrador existente para {periodStart} → {periodEnd}.',
     'O rascunho existente foi devolvido para {periodStart} → {periodEnd}.',
@@ -2172,6 +2268,11 @@ const actionExact: Record<string, readonly [string, string]> = {
     'O relatório não pode ser editado.',
   ],
   'action.documents.deleted': ['Documento eliminado.', 'Documento excluído.'],
+  'action.documents.archived': ['Documento archivado.', 'Documento arquivado.'],
+  'action.validation.documentArchive': [
+    'Escribe un motivo de archivo de 3 a 500 caracteres.',
+    'Informe um motivo de arquivamento de 3 a 500 caracteres.',
+  ],
   'action.documents.uploaded': ['Documento cargado.', 'Documento enviado.'],
   'action.expense.draftSaved': ['Borrador de gasto guardado.', 'Rascunho de despesa salvo.'],
   'action.expense.removedOrVoided': [
@@ -2249,6 +2350,44 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Notificação marcada como lida.',
   ],
   'action.planning.assignmentPublished': ['Asignación publicada.', 'Atribuição publicada.'],
+  'action.planning.assignmentUpdated': ['Asignación actualizada.', 'Atribuição atualizada.'],
+  'action.planning.assignmentCancelled': ['Asignación cancelada.', 'Atribuição cancelada.'],
+  'action.planning.workerNotAssigned': [
+    'El trabajador no está asignado a este proyecto durante todo el turno. Revisa las fechas o asígnalo al proyecto.',
+    'O trabalhador não está atribuído a este projeto durante todo o turno. Revise as datas ou atribua-o ao projeto.',
+  ],
+  'action.planning.workerOverlap': [
+    'El trabajador ya tiene otro turno que se solapa con este horario.',
+    'O trabalhador já tem outro turno que se sobrepõe a este horário.',
+  ],
+  'action.planning.workerUnavailable': [
+    'El trabajador figura como no disponible durante este turno.',
+    'O trabalhador está indisponível durante este turno.',
+  ],
+  'action.planning.invalidWindow': [
+    'La fecha y hora de fin deben ser posteriores al inicio.',
+    'A data e hora de fim devem ser posteriores ao início.',
+  ],
+  'action.planning.invalidMinutes': [
+    'Introduce minutos planificados válidos para el turno.',
+    'Informe minutos planejados válidos para o turno.',
+  ],
+  'action.planning.changed': [
+    'Esta asignación cambió mientras la editabas. Recarga y vuelve a revisar sus datos.',
+    'Esta atribuição mudou enquanto você a editava. Recarregue e revise os dados.',
+  ],
+  'action.planning.alreadyCancelled': [
+    'Esta asignación ya está cancelada.',
+    'Esta atribuição já foi cancelada.',
+  ],
+  'action.planning.assignmentNotFound': [
+    'No se encontró la asignación en tu ámbito de acceso.',
+    'A atribuição não foi encontrada no seu escopo de acesso.',
+  ],
+  'action.planning.projectUnavailable': [
+    'Este proyecto no admite nuevos turnos en su estado actual.',
+    'Este projeto não aceita novos turnos em seu estado atual.',
+  ],
   'action.planning.availabilitySaved': ['Disponibilidad guardada.', 'Disponibilidade salva.'],
   'action.planning.skillDeleted': ['Especialidad eliminada.', 'Especialidade excluída.'],
   'action.planning.skillSaved': ['Especialidad guardada.', 'Especialidade salva.'],
@@ -2293,6 +2432,18 @@ const actionExact: Record<string, readonly [string, string]> = {
   'action.reports.correctionDraftCreated': [
     'Borrador de corrección creado.',
     'Rascunho de correção criado.',
+  ],
+  'action.reports.correctionDraftWithdrawn': [
+    'Borrador de corrección retirado. Ya puedes crear uno nuevo.',
+    'Rascunho de correção retirado. Já pode criar um novo.',
+  ],
+  'action.reports.changesSaved': [
+    'Cambios guardados. Envía el informe para revisión cuando esté listo.',
+    'Alterações salvas. Envie o relatório para revisão quando estiver pronto.',
+  ],
+  'action.validation.correctionDraft': [
+    'Revisa los campos corregidos y cambia al menos un dato operativo.',
+    'Revise os campos corrigidos e altere pelo menos um dado operacional.',
   ],
   'action.reports.dailyDraftSaved': [
     'Borrador de informe diario guardado.',
@@ -2686,6 +2837,8 @@ function englishActionMessage(key: string): string {
     'action.documents.uploaded': 'Private document uploaded and hash-registered.',
     'action.validation.documentIdRequired': 'Document ID required.',
     'action.documents.deleted': 'Document deleted.',
+    'action.documents.archived': 'Document archived.',
+    'action.validation.documentArchive': 'Enter an archive reason of 3–500 characters.',
     'action.validation.expenseFields': 'Check expense fields.',
     'action.validation.receiptTypeOrSize': 'Receipt must be JPG, PNG or PDF under 10 MB.',
     'action.validation.receiptContent':
@@ -2733,8 +2886,12 @@ function englishActionMessage(key: string): string {
       'Autosave is available only for draft reports or reports needing changes.',
     'action.reports.autosaved': 'Report draft autosaved.',
     'action.validation.draftDelete': 'Invalid draft deletion.',
-    'action.validation.correctionDraft': 'Invalid correction request.',
+    'action.validation.correctionDraft':
+      'Check revised fields and change at least one operational value.',
     'action.reports.correctionDraftCreated': 'Correction draft created.',
+    'action.reports.correctionDraftWithdrawn':
+      'Correction draft withdrawn. You can create a new one.',
+    'action.reports.changesSaved': 'Changes saved. Submit the report for review when ready.',
     'action.validation.projectReportingPeriod': 'Check project and reporting period.',
     'action.validation.dailyReportFields': 'Check the daily report fields.',
     'action.validation.technicalReportFields': 'Check the PLC report fields.',
@@ -2747,6 +2904,20 @@ function englishActionMessage(key: string): string {
     'action.reports.technicalChangeSubmitted': 'Technical change submitted for review.',
     'action.validation.planningFields': 'Check planning fields.',
     'action.planning.assignmentPublished': 'Assignment published.',
+    'action.planning.assignmentUpdated': 'Assignment updated.',
+    'action.planning.assignmentCancelled': 'Assignment cancelled.',
+    'action.planning.workerNotAssigned':
+      'The worker is not assigned to this project for the full shift. Check the dates or assign the worker.',
+    'action.planning.workerOverlap': 'The worker already has an overlapping shift.',
+    'action.planning.workerUnavailable': 'The worker is unavailable during this shift.',
+    'action.planning.invalidWindow': 'The shift end must be after its start.',
+    'action.planning.invalidMinutes': 'Enter valid planned minutes for the shift.',
+    'action.planning.changed':
+      'This assignment changed while you edited it. Reload and review it again.',
+    'action.planning.alreadyCancelled': 'This assignment is already cancelled.',
+    'action.planning.assignmentNotFound': 'The assignment was not found in your access scope.',
+    'action.planning.projectUnavailable':
+      'This project does not accept new shifts in its current state.',
     'action.validation.skillFields': 'Check expertise fields.',
     'action.planning.skillSaved': 'Expertise saved.',
     'action.validation.workerSkillFields': 'Check worker expertise fields.',
@@ -2812,6 +2983,9 @@ function englishActionMessage(key: string): string {
     'action.billing.invoiceRecalculated':
       'Invoice recalculated as a draft. Review and approve it again.',
     'action.billing.invoiceDraftExisting': 'Existing invoice draft returned.',
+    'action.billing.invoiceAlreadyExists':
+      'An invoice already exists for this stream and period. Open it to review its current state.',
+    'action.billing.creditNoteStateRestored': 'Credit note issued status restored.',
     'action.billing.invoiceIssued': 'Invoice issued.',
     'action.billing.jobsProcessed': 'Background jobs processed.',
     'action.expense.removedOrVoided': 'Expense removed or voided.',

@@ -241,7 +241,7 @@ export function assertWorkerStatementSnapshot(
     !/^\d{4}-\d{2}-\d{2}$/u.test(snapshot.periodEnd) ||
     snapshot.periodStart > snapshot.periodEnd ||
     !requiredString(snapshot.currency) ||
-    !/^[A-Z]{3}$/u.test(snapshot.currency) ||
+    !/^(?:[A-Z]{3}|MULTI)$/u.test(snapshot.currency) ||
     !requiredInteger(snapshot.approvedMinutes) ||
     !requiredInteger(snapshot.pendingMinutes) ||
     !safeMinor(snapshot.estimatedApprovedMinor) ||
@@ -251,6 +251,51 @@ export function assertWorkerStatementSnapshot(
     !requiredInteger(snapshot.missingCompensationRules)
   )
     throw new Error('WORKER_STATEMENT_SNAPSHOT_INVALID');
+  if (snapshot.currencyBreakdown !== undefined) {
+    if (!Array.isArray(snapshot.currencyBreakdown) || snapshot.currencyBreakdown.length === 0)
+      throw new Error('WORKER_STATEMENT_SNAPSHOT_INVALID');
+    const seen = new Set<string>();
+    for (const entry of snapshot.currencyBreakdown) {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry))
+        throw new Error('WORKER_STATEMENT_SNAPSHOT_INVALID');
+      const amount = entry as Record<string, unknown>;
+      if (
+        !requiredString(amount.currency) ||
+        !/^[A-Z]{3}$/u.test(amount.currency) ||
+        seen.has(amount.currency) ||
+        !safeMinor(amount.estimatedApprovedMinor) ||
+        !safeMinor(amount.estimatedPendingMinor) ||
+        !safeMinor(amount.approvedReimbursementMinor) ||
+        !safeMinor(amount.pendingReimbursementMinor)
+      )
+        throw new Error('WORKER_STATEMENT_SNAPSHOT_INVALID');
+      seen.add(amount.currency);
+    }
+    if (snapshot.currency === 'MULTI') {
+      if (
+        seen.size < 2 ||
+        snapshot.estimatedApprovedMinor !== '0' ||
+        snapshot.estimatedPendingMinor !== '0' ||
+        snapshot.approvedReimbursementMinor !== '0' ||
+        snapshot.pendingReimbursementMinor !== '0'
+      )
+        throw new Error('WORKER_STATEMENT_SNAPSHOT_INVALID');
+    } else if (
+      seen.size !== 1 ||
+      snapshot.currency !== (snapshot.currencyBreakdown[0] as Record<string, unknown>).currency ||
+      snapshot.estimatedApprovedMinor !==
+        (snapshot.currencyBreakdown[0] as Record<string, unknown>).estimatedApprovedMinor ||
+      snapshot.estimatedPendingMinor !==
+        (snapshot.currencyBreakdown[0] as Record<string, unknown>).estimatedPendingMinor ||
+      snapshot.approvedReimbursementMinor !==
+        (snapshot.currencyBreakdown[0] as Record<string, unknown>).approvedReimbursementMinor ||
+      snapshot.pendingReimbursementMinor !==
+        (snapshot.currencyBreakdown[0] as Record<string, unknown>).pendingReimbursementMinor
+    )
+      throw new Error('WORKER_STATEMENT_SNAPSHOT_INVALID');
+  } else if (snapshot.currency === 'MULTI') {
+    throw new Error('WORKER_STATEMENT_SNAPSHOT_INVALID');
+  }
   const forbidden =
     /(?:client.?rate|internal.?cost|contribution|margin|other.?worker|loaded.?cost)/iu;
   const walk = (entry: unknown): void => {

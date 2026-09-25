@@ -26,6 +26,16 @@ export type PlanningAssignmentInput = {
   requiredSkill?: string;
 };
 
+export type PlanningAssignmentUpdateInput = PlanningAssignmentInput & {
+  id: string;
+  version: number;
+};
+
+export type PlanningAssignmentCancelInput = {
+  id: string;
+  version: number;
+};
+
 export type PlanningRepositoryDependencies = Readonly<{
   sqlite: DatabaseSync;
   transaction: <T>(work: () => T) => T;
@@ -193,28 +203,7 @@ export class PlanningRepository {
     return this.deps.transaction(() => {
       this.assertOperationalProject(input.projectId);
       this.assertManagerScope(principal, input.projectId);
-      if (Date.parse(input.endsAt) <= Date.parse(input.startsAt))
-        throw this.deps.errors.validation('Planning end must follow start');
-      const startsOn = this.datePart(input.startsAt, 'Planning start');
-      const endsOn = this.datePart(input.endsAt, 'Planning end');
-      if (!this.assignmentCoversWindow(input.projectId, input.workerId, startsOn, endsOn))
-        throw this.deps.errors.validation(
-          'Worker must have an effective project assignment for the planning window',
-        );
-      const overlap = this.deps.sqlite
-        .prepare(
-          "SELECT 1 ok FROM planning_assignment WHERE worker_id=? AND status<>'cancelled' AND starts_at<? AND ends_at>? LIMIT 1",
-        )
-        .get(input.workerId, input.endsAt, input.startsAt);
-      if (overlap)
-        throw this.deps.errors.conflict('Worker already has an overlapping planning assignment');
-      const unavailable = this.deps.sqlite
-        .prepare(
-          "SELECT 1 ok FROM worker_availability WHERE worker_id=? AND availability='unavailable' AND starts_at<? AND ends_at>? LIMIT 1",
-        )
-        .get(input.workerId, input.endsAt, input.startsAt);
-      if (unavailable)
-        throw this.deps.errors.conflict('Worker is unavailable for this planning window');
+      this.validatePlanningWindow(input, '');
       const id = newId();
       const timestamp = this.deps.now();
       this.deps.sqlite
@@ -240,6 +229,123 @@ export class PlanningRepository {
     });
   }
 
+  updatePlanningAssignment(principal: Principal, input: PlanningAssignmentUpdateInput) {
+    this.deps.assertActive(principal);
+    if (!Number.isInteger(input.version) || input.version < 1)
+      throw this.deps.errors.validation('Planning version must be a positive integer');
+    return this.deps.transaction(() => {
+      const current = this.deps.sqlite
+        .prepare('SELECT * FROM planning_assignment WHERE id=?')
+        .get(input.id) as Record<string, unknown> | undefined;
+      if (!current) throw this.deps.errors.validation('Planning assignment not found');
+      const previousProjectId = String(current.project_id);
+      if (
+        !canManageAssignments(principal, previousProjectId) ||
+        !canManageAssignments(principal, input.projectId)
+      )
+        throw this.deps.errors.accessDenied('Planning administration required');
+      this.assertManagerScope(principal, previousProjectId);
+      this.assertManagerScope(principal, input.projectId);
+      if (current.status === 'cancelled')
+        throw this.deps.errors.conflict('Cancelled planning cannot be edited');
+      if (Number(current.version) !== input.version)
+        throw this.deps.errors.conflict('Planning assignment changed; reload before editing');
+      this.assertOperationalProject(input.projectId);
+      this.validatePlanningWindow(input, input.id);
+      const timestamp = this.deps.now();
+      const changed = this.deps.sqlite
+        .prepare(
+          `UPDATE planning_assignment
+           SET project_id=?,worker_id=?,starts_at=?,ends_at=?,planned_minutes=?,site=?,required_skill=?,version=version+1,updated_at=?
+           WHERE id=? AND version=? AND status<>'cancelled'`,
+        )
+        .run(
+          input.projectId,
+          input.workerId,
+          input.startsAt,
+          input.endsAt,
+          input.plannedMinutes,
+          input.site ?? null,
+          input.requiredSkill ?? null,
+          timestamp,
+          input.id,
+          input.version,
+        );
+      if (changed.changes !== 1)
+        throw this.deps.errors.conflict('Planning assignment changed; reload before editing');
+      this.deps.audit(principal, 'planning.update', 'planning_assignment', input.id, {
+        before: current,
+        after: input,
+      });
+      return { id: input.id, version: input.version + 1 };
+    });
+  }
+
+  cancelPlanningAssignment(principal: Principal, input: PlanningAssignmentCancelInput) {
+    this.deps.assertActive(principal);
+    if (!Number.isInteger(input.version) || input.version < 1)
+      throw this.deps.errors.validation('Planning version must be a positive integer');
+    return this.deps.transaction(() => {
+      const current = this.deps.sqlite
+        .prepare('SELECT * FROM planning_assignment WHERE id=?')
+        .get(input.id) as Record<string, unknown> | undefined;
+      if (!current) throw this.deps.errors.validation('Planning assignment not found');
+      const projectId = String(current.project_id);
+      if (!canManageAssignments(principal, projectId))
+        throw this.deps.errors.accessDenied('Planning administration required');
+      this.assertManagerScope(principal, projectId);
+      if (current.status === 'cancelled')
+        throw this.deps.errors.conflict('Planning assignment is already cancelled');
+      if (Number(current.version) !== input.version)
+        throw this.deps.errors.conflict('Planning assignment changed; reload before cancelling');
+      const changed = this.deps.sqlite
+        .prepare(
+          "UPDATE planning_assignment SET status='cancelled',version=version+1,updated_at=? WHERE id=? AND version=? AND status<>'cancelled'",
+        )
+        .run(this.deps.now(), input.id, input.version);
+      if (changed.changes !== 1)
+        throw this.deps.errors.conflict('Planning assignment changed; reload before cancelling');
+      this.deps.audit(principal, 'planning.cancel', 'planning_assignment', input.id, {
+        before: current,
+        after: { status: 'cancelled', version: input.version + 1 },
+      });
+      return { id: input.id, version: input.version + 1 };
+    });
+  }
+
+  private validatePlanningWindow(input: PlanningAssignmentInput, excludeId: string): void {
+    const starts = Date.parse(input.startsAt);
+    const ends = Date.parse(input.endsAt);
+    if (!Number.isFinite(starts) || !Number.isFinite(ends) || ends <= starts)
+      throw this.deps.errors.validation('Planning end must follow a valid start');
+    if (
+      !Number.isInteger(input.plannedMinutes) ||
+      input.plannedMinutes < 1 ||
+      input.plannedMinutes > 10080
+    )
+      throw this.deps.errors.validation('Planned minutes must be between 1 and 10080');
+    const startsOn = this.datePart(input.startsAt, 'Planning start');
+    const endsOn = this.datePart(input.endsAt, 'Planning end');
+    if (!this.assignmentCoversWindow(input.projectId, input.workerId, startsOn, endsOn))
+      throw this.deps.errors.validation(
+        'Worker must have an effective project assignment for the planning window',
+      );
+    const overlap = this.deps.sqlite
+      .prepare(
+        "SELECT 1 FROM planning_assignment WHERE worker_id=? AND id<>? AND status<>'cancelled' AND starts_at<? AND ends_at>? LIMIT 1",
+      )
+      .get(input.workerId, excludeId, input.endsAt, input.startsAt);
+    if (overlap)
+      throw this.deps.errors.conflict('Worker already has an overlapping planning assignment');
+    const unavailable = this.deps.sqlite
+      .prepare(
+        "SELECT 1 FROM worker_availability WHERE worker_id=? AND availability='unavailable' AND starts_at<? AND ends_at>? LIMIT 1",
+      )
+      .get(input.workerId, input.endsAt, input.startsAt);
+    if (unavailable)
+      throw this.deps.errors.conflict('Worker is unavailable for this planning window');
+  }
+
   listPlanning(principal: Principal) {
     this.deps.assertReadable(principal);
     if (principal.role === 'worker')
@@ -263,15 +369,11 @@ export class PlanningRepository {
     const restriction = ids.length ? ` AND pa.project_id IN (${ids.map(() => '?').join(',')})` : '';
     return this.deps.sqlite
       .prepare(
-        `SELECT DISTINCT pa.*,p.project_number,p.name project_name,u.name worker_name
+        `SELECT pa.*,p.project_number,p.name project_name,u.name worker_name
          FROM planning_assignment pa
          JOIN project p ON p.id=pa.project_id
          JOIN user u ON u.id=pa.worker_id
-         JOIN project_member pm ON pm.project_id=pa.project_id AND pm.user_id=pa.worker_id
-         WHERE pa.status<>'cancelled' AND pm.status='active' AND u.status='active'
-           AND u.role IN ('worker','project_manager')
-           AND pm.starts_on<=date(pa.starts_at)
-           AND (pm.ends_on IS NULL OR pm.ends_on>=date(pa.ends_at))${restriction}
+         WHERE pa.status<>'cancelled'${restriction}
          ORDER BY pa.starts_at`,
       )
       .all(...ids);

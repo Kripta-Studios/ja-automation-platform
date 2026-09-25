@@ -3,6 +3,7 @@
   import { helpWorkflows } from '$lib/portal/help-workflows';
   import {
     fetchManualWithRetry,
+    manualDownloadLanguage,
     manualDownloadFilename,
     type ManualDownloadFailure,
   } from '$lib/portal/ui/manual-download';
@@ -130,6 +131,8 @@
       laterHelp: 'The server asked us to wait. Please try again later or contact support.',
       contactSupport: 'Contact support',
       availableLanguages: 'Available languages',
+      fallbackLanguage:
+        'This guide is not available in your selected language. The PDF will download in English.',
       quickStart: 'Quick start',
       detailed: 'Detailed reference',
       sharedChapters:
@@ -175,6 +178,7 @@
       laterHelp: 'El servidor pidió esperar. Vuelve a intentarlo más tarde o contacta con soporte.',
       contactSupport: 'Contactar con soporte',
       availableLanguages: 'Idiomas disponibles',
+      fallbackLanguage: 'Esta guía no tiene PDF en español. La descarga será en inglés.',
       quickStart: 'Inicio rápido',
       detailed: 'Referencia detallada',
       sharedChapters:
@@ -221,6 +225,8 @@
       laterHelp: 'O servidor pediu para aguardar. Tente novamente mais tarde ou contate o suporte.',
       contactSupport: 'Contatar suporte',
       availableLanguages: 'Idiomas disponíveis',
+      fallbackLanguage:
+        'Este guia não tem PDF no idioma selecionado. O arquivo será baixado em inglês.',
       quickStart: 'Início rápido',
       detailed: 'Referência detalhada',
       sharedChapters:
@@ -250,12 +256,10 @@
   };
 
   const text = (key: string): string => copy[data.locale][key] ?? copy.en[key] ?? key;
-  const downloadHref = (manual: Manual): string => {
-    const requestedLocale = manual.locales.includes(data.locale)
-      ? data.locale
-      : (manual.locales[0] ?? 'en');
-    return `${base}/app/help/${encodeURIComponent(manual.id)}/download?lang=${requestedLocale}`;
-  };
+  const downloadLanguage = (manual: Manual): Locale =>
+    manualDownloadLanguage(data.locale, manual.locales);
+  const downloadHref = (manual: Manual): string =>
+    `${base}/app/help/${encodeURIComponent(manual.id)}/download?lang=${downloadLanguage(manual)}`;
   const title = (manual: Manual): string => manual.title[data.locale] ?? manual.title.en;
   const description = (manual: Manual): string =>
     manual.description[data.locale] ?? manual.description.en;
@@ -370,7 +374,11 @@
               onclick={(event) => {
                 event.preventDefault();
                 void downloadManual(manual);
-              }}>{busyManualId === manual.id ? text('downloading') : text('download')}</a
+              }}
+            >
+              {busyManualId === manual.id
+                ? text('downloading')
+                : `${text('download')} · ${localeNames[downloadLanguage(manual)]}`}</a
             >
             <span class="available"
               >{text('availableLanguages')}: {manual.locales
@@ -378,6 +386,9 @@
                 .join(', ')}</span
             >
           </div>
+          {#if downloadLanguage(manual) !== data.locale}
+            <p class="language-fallback" role="note">{text('fallbackLanguage')}</p>
+          {/if}
           {#if downloadFailure?.id === manual.id}
             <div class="download-feedback" role="alert">
               <p>
@@ -610,6 +621,11 @@
   .available {
     color: #67675f;
     font-size: 0.78rem;
+  }
+  .language-fallback {
+    margin: 0.65rem 0 0;
+    color: #62512a;
+    font-size: 0.84rem;
   }
   .download-feedback {
     margin-top: 0.75rem;

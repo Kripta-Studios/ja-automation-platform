@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   WORKER_STATEMENT_TEMPLATE_VERSION,
   assertWorkerStatementSnapshot,
   runWorkerStatementArtifactJob,
   workerStatementCsv,
+  workerStatementPdf,
   type WorkerStatementJobArtifact,
   type WorkerStatementSnapshot,
 } from '@ja/reporting';
@@ -144,6 +149,58 @@ describe('Client Essential Worker statement allowlist', () => {
     expect(csv).toContain('2026-09-05');
     expect(csv).toContain('2026-09-06');
     expect(csv).toContain('123456789012345678');
+  });
+
+  it('renders mixed currencies in separate CSV and PDF totals while retaining legacy single-currency output', () => {
+    const mixed: WorkerStatementSnapshot = {
+      ...snapshot,
+      currency: 'MULTI',
+      estimatedApprovedMinor: '0',
+      estimatedPendingMinor: '0',
+      approvedReimbursementMinor: '0',
+      pendingReimbursementMinor: '0',
+      currencyBreakdown: [
+        {
+          currency: 'EUR',
+          estimatedApprovedMinor: snapshot.estimatedApprovedMinor,
+          estimatedPendingMinor: snapshot.estimatedPendingMinor,
+          approvedReimbursementMinor: '0',
+          pendingReimbursementMinor: '0',
+        },
+        {
+          currency: 'USD',
+          estimatedApprovedMinor: '0',
+          estimatedPendingMinor: '0',
+          approvedReimbursementMinor: '12345',
+          pendingReimbursementMinor: '0',
+        },
+      ],
+      expenses: snapshot.expenses.map((row) => ({
+        ...row,
+        currency: 'USD',
+        reimbursementAmountMinor: '12345',
+      })),
+    };
+    expect(() => assertWorkerStatementSnapshot(mixed)).not.toThrow();
+    const csv = Buffer.from(workerStatementCsv(mixed)).toString('utf8');
+    expect(csv).toContain('compensation_summary');
+    expect(csv).toContain('EUR,123456789012345678');
+    expect(csv).toContain('USD,12345');
+    expect(csv).not.toContain('MULTI,123456789012345678');
+    const legacy = Buffer.from(workerStatementCsv(snapshot)).toString('utf8');
+    expect(legacy).toContain('EUR,123456789012345678');
+
+    const directory = mkdtempSync(join(tmpdir(), 'ja-worker-statement-fx-'));
+    try {
+      const path = join(directory, 'statement.pdf');
+      writeFileSync(path, workerStatementPdf(mixed));
+      const text = execFileSync('pdftotext', ['-layout', path, '-'], { encoding: 'utf8' });
+      expect(text).toContain('€1,234,567,890,123,456.78');
+      expect(text).toContain('$123.45');
+      expect(text).not.toContain('MULTI');
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 
   it('does not serialize injected commercial or other-worker properties', () => {

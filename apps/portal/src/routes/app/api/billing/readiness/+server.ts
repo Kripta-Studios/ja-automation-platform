@@ -1,5 +1,11 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { z } from 'zod';
+import {
+  AccessDeniedError,
+  ValidationError,
+  V3AccessDeniedError,
+  V3ValidationError,
+} from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 
 const querySchema = z.object({
@@ -32,9 +38,24 @@ export const GET: RequestHandler = ({ locals, url }) => {
         'x-content-type-options': 'nosniff',
       },
     });
-  } catch {
-    // Do not expose resource existence or internal financial details across the API boundary.
-    return json({ error: 'The selected billing period could not be checked' }, { status: 403 });
+  } catch (caught) {
+    if (caught instanceof AccessDeniedError || caught instanceof V3AccessDeniedError)
+      return json({ error: 'Billing access is required to check this period.' }, { status: 403 });
+    if (caught instanceof ValidationError || caught instanceof V3ValidationError)
+      return json(
+        {
+          error: /inactive/i.test(caught.message)
+            ? 'This billing stream is inactive. Choose an active stream or configure a new one.'
+            : /cadence/i.test(caught.message)
+              ? 'The selected dates do not match this stream’s billing cadence. Choose its complete billing period.'
+              : 'The selected billing period is invalid. Check its start and end dates.',
+        },
+        { status: 400 },
+      );
+    return json(
+      { error: 'The selected billing period could not be checked. Try again.' },
+      { status: 500 },
+    );
   } finally {
     context.sqlite.close();
   }

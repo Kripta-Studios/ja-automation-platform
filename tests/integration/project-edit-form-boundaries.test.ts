@@ -39,6 +39,36 @@ afterEach(() => {
 });
 
 describe('Project editing through actual HTML form payloads', () => {
+  it('accepts an imported project ID when assigning a worker', async () => {
+    const value = fixture();
+    const assign = vi
+      .spyOn(value.repository, 'assignWorker')
+      .mockReturnValue({ id: 'assignment-1' });
+    const result = await projectActions.assignWorker(
+      event({
+        projectId: 'project-cp020-dfw',
+        workerId: 'b5-outsider',
+        startsOn: '2026-09-25',
+        endsOn: '',
+      }),
+    );
+    expect(result).toMatchObject({ success: true });
+    expect(assign).toHaveBeenCalledWith(
+      value.owner,
+      expect.objectContaining({ projectId: 'project-cp020-dfw', workerId: 'b5-outsider' }),
+    );
+  });
+
+  it('rejects malformed imported project IDs before assignment', async () => {
+    const value = fixture();
+    const assign = vi.spyOn(value.repository, 'assignWorker');
+    const result = await projectActions.assignWorker(
+      event({ projectId: '../project-cp020-dfw', workerId: 'b5-outsider', startsOn: '2026-09-25' }),
+    );
+    expect(result).toMatchObject({ status: 400 });
+    expect(assign).not.toHaveBeenCalled();
+  });
+
   it('saves, clears and distinguishes zero from an unset expense budget', async () => {
     const value = fixture();
     const projectId = value.project.id;

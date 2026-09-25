@@ -94,6 +94,37 @@ function policyInput(
 }
 
 describe('Client Essential CORE-03/09 project commercial policy contracts', () => {
+  it('persists a policy for an imported project with a non-UUID ID', () => {
+    const value = fixture();
+    const importedProjectId = 'project-cp020-dfw';
+    value.sqlite
+      .prepare(
+        `INSERT INTO project(
+           id,project_number,cost_center_code,client_id,name,timezone,currency,
+           status,billing_model,start_date,created_at,updated_at
+         ) SELECT ?,?,?,client_id,?,timezone,currency,status,billing_model,start_date,
+                  created_at,updated_at
+           FROM project WHERE id=?`,
+      )
+      .run(
+        importedProjectId,
+        'CP020-DFW',
+        'QA-IMPORTED-POLICY',
+        'Imported policy fixture',
+        value.project.id,
+      );
+
+    const policies = repository(value);
+    const created = policies.createProjectCommercialPolicy(
+      value.finance,
+      policyInput(importedProjectId, '2026-09-01'),
+    );
+    expect(created.projectId).toBe(importedProjectId);
+    expect(policies.listProjectCommercialPolicies(value.finance, importedProjectId)).toEqual([
+      created,
+    ]);
+  });
+
   it('allows only Finance/Admin and Owner to create, list and resolve project policy', () => {
     const value = fixture();
     const policies = repository(value);

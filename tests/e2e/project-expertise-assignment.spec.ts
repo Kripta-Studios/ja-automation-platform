@@ -59,6 +59,42 @@ test('owner filters active workers by expertise and assignment persists', async 
       id: string;
     };
 
+    await page.goto(portal('/projects?action=assign-worker&project=project-removed-stale-id'));
+    await expect(
+      page.locator('[data-project-workflow="assign-worker"] select[name="projectId"]'),
+    ).toHaveValue('');
+    const importedProjectId = 'project-cp020-dfw';
+    await page.goto(portal(`/projects?action=assign-worker&project=${importedProjectId}`));
+    const importedForm = page.locator(
+      '[data-project-workflow="assign-worker"] form[action="?/assignWorker"]',
+    );
+    await expect(importedForm.locator('select[name="projectId"]')).toHaveValue(importedProjectId);
+    const importedAssignmentsBefore = (
+      db
+        .prepare('SELECT COUNT(*) count FROM project_member WHERE project_id=? AND user_id=?')
+        .get(importedProjectId, match.worker_id) as { count: number }
+    ).count;
+    await importedForm.locator('select[name="workerId"]').selectOption(match.worker_id);
+    const importedStartDate =
+      {
+        'phone-360': '2026-09-19',
+        'phone-390': '2026-09-20',
+        'tablet-768': '2026-09-21',
+        desktop: '2026-09-22',
+      }[testInfo.project.name] ?? '';
+    await importedForm.locator('input[name="startsOn"]').fill(importedStartDate);
+    await importedForm.getByRole('button', { name: 'Assign', exact: true }).click();
+    await expect
+      .poll(
+        () =>
+          (
+            db
+              .prepare('SELECT COUNT(*) count FROM project_member WHERE project_id=? AND user_id=?')
+              .get(importedProjectId, match.worker_id) as { count: number }
+          ).count,
+      )
+      .toBe(importedAssignmentsBefore + 1);
+
     await page.goto(portal(`/projects?action=assign-worker&project=${created.id}`));
     const form = page.locator(
       '[data-project-workflow="assign-worker"] form[action="?/assignWorker"]',

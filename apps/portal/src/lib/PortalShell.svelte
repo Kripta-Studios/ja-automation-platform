@@ -2787,6 +2787,11 @@
                   <h2>{translate('Assign worker')}</h2>
                   <label
                     >{translate('Project')}<select name="projectId" required
+                      ><option
+                        value=""
+                        selected={!activeProjects.some(
+                          (project) => String(project.id) === $page.url.searchParams.get('project'),
+                        )}>{translate('Select project')}</option
                       >{#each activeProjects as project}<option
                           value={project.id}
                           selected={String(project.id) === $page.url.searchParams.get('project')}

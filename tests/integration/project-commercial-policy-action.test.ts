@@ -98,6 +98,24 @@ describe('project commercial policy finance action', () => {
     expect(close).toHaveBeenCalledOnce();
   });
 
+  it('accepts a retained imported project ID', async () => {
+    const createProjectCommercialPolicy = vi.fn(() => ({ version: 1 }));
+    openPortalRepository.mockReturnValue({
+      repository: { createProjectCommercialPolicy },
+      principal: { userId: 'finance-1', role: 'finance_admin', projectIds: new Set<string>() },
+      sqlite: { close: vi.fn() },
+    });
+
+    const result = await financeActions.createProjectCommercialPolicy(
+      event({ ...validForm, projectId: 'project-cp020-dfw' }),
+    );
+    expect(result).toMatchObject({ success: true });
+    expect(createProjectCommercialPolicy).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'finance_admin' }),
+      expect.objectContaining({ projectId: 'project-cp020-dfw' }),
+    );
+  });
+
   it('returns a localized-compatible forbidden result for a role denial', async () => {
     const close = vi.fn();
     openPortalRepository.mockReturnValue({

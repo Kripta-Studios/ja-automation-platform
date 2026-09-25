@@ -500,6 +500,12 @@
           <label>
             <span>{translate('Project')}</span>
             <select name="projectId" required>
+              <option
+                value=""
+                selected={!assignableProjects.some(
+                  (project) => projectId(project) === $page.url.searchParams.get('project'),
+                )}>{translate('Select project')}</option
+              >
               {#each assignableProjects as project}
                 <option
                   value={projectId(project)}

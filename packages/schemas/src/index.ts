@@ -72,6 +72,9 @@ export const clientRecordIdSchema = z
   .min(1)
   .max(200)
   .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/);
+// Imported projects also retain stable non-UUID IDs (for example
+// project-cp020-dfw). Repository authorization verifies the referenced row.
+export const projectRecordIdSchema = clientRecordIdSchema;
 export const minorUnitsSchema = z.string().regex(/^\d+$/, 'Use non-negative integer minor units');
 const optionalMinorUnitsSchema = z
   .union([z.literal(''), minorUnitsSchema])
@@ -274,7 +277,7 @@ export const availabilityInputSchema = z
   });
 
 export const assignmentInputSchema = z.object({
-  projectId: uuidSchema,
+  projectId: projectRecordIdSchema,
   workerId: z.string().min(1).max(100),
   startsOn: z.iso.date(),
   endsOn: z.union([z.literal(''), z.iso.date()]).optional(),
@@ -466,7 +469,7 @@ const commercialPolicyBooleanSchema = z
 
 export const projectCommercialPolicyInputSchema = z
   .object({
-    projectId: uuidSchema,
+    projectId: projectRecordIdSchema,
     effectiveFrom: z.iso.date(),
     overtimeEnabled: commercialPolicyBooleanSchema,
     overtimeThresholdMinutes: z.preprocess(

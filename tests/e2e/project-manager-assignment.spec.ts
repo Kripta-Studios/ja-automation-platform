@@ -65,6 +65,10 @@ test('project manager assigns an already-visible worker to an authorized project
   }
 
   await signIn(page, 'manager');
+  await page.goto(portal(`/projects?action=assign-worker&project=${otherProjectId}`));
+  await expect(
+    page.locator('[data-project-workflow="assign-worker"] select[name="projectId"]'),
+  ).toHaveValue('');
   await page.goto(portal(`/projects?action=assign-worker&project=${targetProjectId}`));
   const section = page.locator('[data-ui="project-section"]');
   const form = section.locator(

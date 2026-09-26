@@ -1,0 +1,42 @@
+{
+  "schema": "ja.client-essential.operations-evidence.v1",
+  "schemaVersion": 1,
+  "evidenceId": "eb11e67-production-20260926",
+  "capturedAt": "2026-09-26T01:42:24.820Z",
+  "tenantId": "jaautomation",
+  "deploymentId": "production-vps",
+  "jobs": {
+    "status": "PASS",
+    "manualProcessing": false,
+    "runs": [
+      {
+        "id": "jobs-cycle-20260926014040832",
+        "status": "PASS",
+        "automatic": true,
+        "completedAt": "2026-09-26T01:40:40.832Z"
+      },
+      {
+        "id": "jobs-cycle-20260926014045862",
+        "status": "PASS",
+        "automatic": true,
+        "completedAt": "2026-09-26T01:40:45.862Z"
+      }
+    ]
+  },
+  "continuity": {
+    "status": "WAIVED",
+    "releaseBlocking": false,
+    "waivedBy": "owner",
+    "waivedAt": "2026-09-06T13:17:12.563Z",
+    "reason": "Owner explicitly waived restoration testing on a separate host as not relevant for this acceptance.",
+    "localBackup": {
+      "status": "PASS",
+      "completedAt": "2026-09-26T01:39:56.704Z"
+    },
+    "rollback": {
+      "status": "PASS",
+      "verifiedAt": "2026-09-26T01:41:24.311Z"
+    }
+  },
+  "sha256": "4fc36edd0d447cd921b674aa5200fcb929a9ae06be056f36f3f83b90fbe4d112"
+}

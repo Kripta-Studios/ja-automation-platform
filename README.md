@@ -7,20 +7,20 @@ authority, followed by the validated local contract (`ANEXO A` and `ANEXO D`), `
 only, and the repository instructions. The unified V3 specification is subordinate domain reference;
 V3.1–V3.4 expansion is deferred roadmap.
 
-## Current release checkpoint — 2026-09-19
+## Current release checkpoint — 2026-09-26
 
-Production is operational on application commit `3893245`. Historical PDF recovery is complete:
-three originals recovered and two safe replacements generated, with history and financial records
-preserved. **Client Essential acceptance remains open; `CLIENT READY` is not claimed.**
+Production is operational on application commit `eb11e67`; GitHub branch tip `7fdfeb1` adds only
+test fixes. The [production release receipt](docs/evidence/production-release-20260926/README.md)
+records the deployment, two successful automatic jobs cycles, local backup verification, isolated
+restore, and Docker cache cleanup. The full security and invariant run passed 252/252 tests. The
+[Chromium browser receipt](docs/evidence/browser-release-20260926/README.md) covers visible controls,
+form errors, and network requests in a disposable fixture. The final 32-step journey passed with
+fresh production operations evidence.
 
-Read the [current project status](docs/PROJECT_STATUS_2026-09-19.md) and the
-[recovery and acceptance receipt](docs/RECOVERY_AND_ACCEPTANCE_2026-09-19.md).
-The full regression on `5db9bfc` passes 1,050/1,050; the invoice-filter fix on `3893245` passes
-8 focused checks. The complete **32/32 acceptance journey passes on `3893245`**, with current
-production operations evidence; human/fiscal/legal approvals remain separate.
-Backup and isolated restore verify 59 private files; daily 30-day coverage and external approvals
-remain tracked. Docker build cache is 0 B. Later test/documentation commits do not change deployed
-application code. Intuit connectivity/OAuth/synchronization is explicitly excluded.
+The owner's existing waiver covers a restore on a separate host; remote backup replication is not
+claimed. The newest local backup and isolated restore pass, while three-day backup history is not yet
+complete after the earlier authorized cleanup. Human, fiscal, and legal approvals remain separate;
+**`CLIENT READY` is not claimed.** Intuit connectivity/OAuth/synchronization remains excluded.
 
 Earlier release checkpoints remain in the dated checklist and deployment receipts; their verdicts
 apply to those candidates, not automatically to the current one. Requirement authority is unchanged:

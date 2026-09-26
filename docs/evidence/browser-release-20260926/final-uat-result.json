@@ -1,0 +1,49 @@
+{
+  "schema": "ja.browser-release.final-uat.v1",
+  "date": "2026-09-26",
+  "environment": {
+    "browser": "Chromium via Playwright",
+    "playwrightProject": "desktop",
+    "workers": 1,
+    "portal": "isolated disposable fixture on 127.0.0.1:4185",
+    "productionMutations": false
+  },
+  "result": {
+    "playwrightExitCode": 0,
+    "serialTest": "passed",
+    "passedStepBodies": 32,
+    "failedStepBodies": 0,
+    "steps": "1-32",
+    "durationReported": "2.6m",
+    "fixtureLockAndPointerRemovedAtTeardown": true
+  },
+  "operatorEvidence": {
+    "fileName": "ja-ops-evidence-eb11e67-20260926.json",
+    "rawFileSha256": "e65c723afb6759e6d1774c8c80fe3a456b7136d339f3e104223555d205553324",
+    "canonicalContractSha256": "4fc36edd0d447cd921b674aa5200fcb929a9ae06be056f36f3f83b90fbe4d112",
+    "schema": "ja.client-essential.operations-evidence.v1",
+    "tenantId": "jaautomation",
+    "deploymentId": "production-vps",
+    "automaticJobsRuns": 2,
+    "continuityStatus": "WAIVED",
+    "waivedBy": "owner",
+    "releaseBlocking": false,
+    "localBackupAndRollbackChecks": "PASS"
+  },
+  "readOnlyCaddyBoundary": {
+    "origin": "https://j-aautomation.com",
+    "routesChecked": [
+      "/health/live",
+      "/j-aautomation/en",
+      "/j-aautomation/app/login",
+      "/j-aautomation/health/ready"
+    ],
+    "expectedStatusCodes": [200, 200, 200, 404],
+    "stepPassed": true
+  },
+  "provenance": {
+    "qaSpecSha256": "b9e4a135e919b15ef0c7be24dd717edb5cd35f51f9d0e41c6a5cc5506cc70e6b",
+    "portalBuildEntrypointSha256": "d8623125718d91ee19c7c5c337ce81eb462163fd6b50243a61e3d1b1f12a2a06",
+    "rawPlaywrightLogSha256": "24681a8046a0d9c246de2140dd9e8721839bf23857a27b9641073f980cd00115"
+  }
+}

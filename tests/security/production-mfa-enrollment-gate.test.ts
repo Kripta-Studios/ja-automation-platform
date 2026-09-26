@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const authMocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -20,6 +23,8 @@ vi.mock('better-auth/svelte-kit', () => ({
 const previousNodeEnv = process.env.NODE_ENV;
 const previousTenantId = process.env.JA_TENANT_ID;
 const previousDeploymentId = process.env.JA_DEPLOYMENT_ID;
+const previousDatabasePath = process.env.JA_DATABASE_PATH;
+let databaseDirectory: string;
 const unenrolledUser = {
   id: 'owner',
   name: 'Owner',
@@ -52,6 +57,8 @@ function eventFor(path: string, options?: { method?: string; accept?: string; or
 }
 
 beforeEach(() => {
+  databaseDirectory = mkdtempSync(join(tmpdir(), 'ja-mfa-gate-'));
+  process.env.JA_DATABASE_PATH = join(databaseDirectory, 'app.db');
   process.env.JA_TENANT_ID = 'mfa-gate-test';
   process.env.JA_DEPLOYMENT_ID = 'mfa-gate-test';
   authMocks.getSession.mockReset();
@@ -61,6 +68,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  if (previousDatabasePath === undefined) delete process.env.JA_DATABASE_PATH;
+  else process.env.JA_DATABASE_PATH = previousDatabasePath;
+  rmSync(databaseDirectory, { recursive: true, force: true });
   if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
   else process.env.NODE_ENV = previousNodeEnv;
   if (previousTenantId === undefined) delete process.env.JA_TENANT_ID;

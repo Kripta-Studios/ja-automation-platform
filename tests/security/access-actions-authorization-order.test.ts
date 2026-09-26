@@ -46,17 +46,17 @@ describe('owner action authorization order', () => {
   });
 
   it.each([
-    ['createInvitation', accessActions.createInvitation],
-    ['updateUserStatus', accessActions.updateUserStatus],
-    ['updateWorkerProfile', accessActions.updateWorkerProfile],
+    ['createInvitation', accessActions.createInvitation, 'problem.access.ownerRequired'],
+    ['updateUserStatus', accessActions.updateUserStatus, 'action.error.forbidden'],
+    ['updateWorkerProfile', accessActions.updateWorkerProfile, 'action.error.forbidden'],
   ] as const)(
     'rejects non-owners before validation or repository access for %s',
-    async (name, action) => {
+    async (name, action, messageKey) => {
       const result = await action(unauthorizedEvent('finance_admin', name));
 
       expect(result).toMatchObject({
         status: 403,
-        data: { success: false, messageKey: 'action.error.forbidden' },
+        data: { success: false, messageKey },
       });
       expect(openPortalRepository).not.toHaveBeenCalled();
     },
@@ -74,7 +74,7 @@ describe('owner action authorization order', () => {
 
     expect(result).toMatchObject({
       status: 400,
-      data: { success: false, messageKey: 'action.validation.invitation' },
+      data: { success: false, messageKey: 'problem.access.directoryInputInvalid' },
     });
     expect(openPortalRepository).not.toHaveBeenCalled();
   });

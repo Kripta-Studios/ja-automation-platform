@@ -35,7 +35,7 @@ function fixture(): B5LifecycleSecurityFixture & { billingRuleId: string } {
     components: [{ name: 'Zero tax', basisPoints: 0 }],
   });
   const project = value.repository.createProject(value.owner, {
-    costCenterCode: 'QA-SERVICE-ACTOR-FROM-JOB-REPOSITORY-TEST-1',
+    costCenterCode: 'QA-SERVICE-ACTOR-FROM-JOB-REPOSITORY-TEST-2',
     clientId: value.client.id,
     name: 'Job FromJob project',
     timezone: 'Europe/Madrid',

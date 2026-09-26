@@ -1,0 +1,25 @@
+[
+  {
+    "step": "invalid-native",
+    "code": "PERIOD_FOLLOWUP_FIELDS_INVALID",
+    "retained": true
+  },
+  {
+    "step": "followup-success",
+    "saved": true
+  },
+  {
+    "step": "history-changed-native",
+    "code": "PERIOD_FOLLOWUP_HISTORY_CHANGED",
+    "retained": true,
+    "focusTag": "ASIDE",
+    "focusName": "",
+    "focusRole": "alert",
+    "scrollBefore": 1009,
+    "scrollAfter": 1009
+  },
+  {
+    "step": "worker-role-denied",
+    "code": "PERIOD_REPORT_PERMISSION_REQUIRED"
+  }
+]

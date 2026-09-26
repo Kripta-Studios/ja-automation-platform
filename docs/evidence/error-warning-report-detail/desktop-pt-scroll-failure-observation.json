@@ -1,0 +1,14 @@
+{
+  "candidateBuildSha256": "afd6a571ba27c75649e95bb3c39db3fe85715a04445e327ea6d04b0af4f8b3ac",
+  "kind": "summary transcribed from the earlier one-off sanitized diagnostic, not a raw trace",
+  "invalidNative": {
+    "scrollBeforeTestSubmit": 480,
+    "oldPageScrollBeforePagehide": 442,
+    "oldPageScrollAtPagehide": 442,
+    "newPageScrollAfterRestore": 442,
+    "newPageScrollSettled": 442,
+    "newPageDocumentHeight": 5134,
+    "viewportHeight": 900,
+    "focusRoleAfterRestore": "alert"
+  }
+}

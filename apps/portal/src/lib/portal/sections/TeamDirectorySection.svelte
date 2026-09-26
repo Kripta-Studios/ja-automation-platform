@@ -150,16 +150,62 @@
     activeTab = 'specialists';
   });
   $effect(() => {
+    if (problemPayload?.actionName === 'createMailboxAccount') {
+      creatingMailbox = true;
+      activeTab = 'mailboxes';
+    }
+    if (
+      ['updateMailboxPassword', 'destroyMailboxAccount'].includes(problemPayload?.actionName ?? '')
+    )
+      activeTab = 'mailboxes';
+  });
+  $effect(() => {
     const actionName = problemPayload?.actionName;
     const errors = problemPayload?.fieldErrors;
     if (!actionName || !errors || !Object.keys(errors).length) return;
     void tick().then(() => {
-      const target = document.querySelector<HTMLFormElement>(
+      const candidates = document.querySelectorAll<HTMLFormElement>(
         `[data-team-directory] form[action*="/${actionName}"]`,
       );
-      if (target) reportFormFieldErrors(target, errors);
+      const selectedUserId = String(problemPayload.values?.portalUserId ?? '');
+      const target =
+        Array.from(candidates).find(
+          (candidate) =>
+            !selectedUserId ||
+            candidate.querySelector<HTMLInputElement>('input[name="portalUserId"]')?.value ===
+              selectedUserId,
+        ) ?? null;
+      if (target) {
+        reportFormFieldErrors(target, errors);
+        // The sheet also focuses its first control after opening. Move focus
+        // after that initial focus pass so the submitted error stays announced.
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            (
+              target.querySelector<HTMLElement>('[data-validation-summary]') ??
+              document.querySelector<HTMLElement>(
+                '[data-team-directory] > [data-ui="problem-notice"]',
+              )
+            )?.focus({ preventScroll: true });
+          }),
+        );
+      }
     });
   });
+
+  function failedMailboxValue(actionName: string, mailbox: MailboxRow, field: string): string {
+    if (problemPayload?.actionName !== actionName) return '';
+    if (String(problemPayload.values?.portalUserId ?? '') !== String(mailbox.portalUserId ?? ''))
+      return '';
+    return String(problemPayload.values?.[field] ?? '');
+  }
+  function failedExternalValue(actionName: string, accountId: string, field: string): string {
+    if (problemPayload?.actionName !== actionName) return '';
+    if (actionName !== 'createMailboxAccount') {
+      if (String(problemPayload.values?.stalwartAccountId ?? '') !== accountId) return '';
+    }
+    return String(problemPayload.values?.[field] ?? '');
+  }
 
   type MailboxActionStatus = 'idle' | 'pending' | 'success' | 'error';
   type MailboxActionState = { status: MailboxActionStatus; action: string; message: string };
@@ -431,6 +477,11 @@
     const key = `${action}:${target}`;
     const existing = externalCommandKeys[key];
     if (existing) return existing;
+    const retained = failedExternalValue(action, target, 'idempotencyKey');
+    if (retained.length >= 16 && retained.length <= 200) {
+      externalCommandKeys[key] = retained;
+      return retained;
+    }
     const created = globalThis.crypto.randomUUID();
     externalCommandKeys[key] = created;
     return created;
@@ -1294,7 +1345,18 @@
                   </button>
                 </form>
               {/if}
-              <details class="team-directory__mailbox-management">
+              <details
+                class="team-directory__mailbox-management"
+                open={(['changeMailboxRole', 'deprovisionMailboxUser'].includes(
+                  problemPayload?.actionName ?? '',
+                ) &&
+                  String(problemPayload?.values?.portalUserId ?? '') ===
+                    String(mailbox.portalUserId ?? '')) ||
+                  (['updateMailboxPassword', 'destroyMailboxAccount'].includes(
+                    problemPayload?.actionName ?? '',
+                  ) &&
+                    String(problemPayload?.values?.stalwartAccountId ?? '') === accountId)}
+              >
                 <summary class="team-directory__action team-directory__action--quiet"
                   >{translate('Manage mailbox')}</summary
                 >
@@ -1312,7 +1374,7 @@
                       {#if accountId}
                         <form
                           method="POST"
-                          action="?view=team&/updateMailboxPassword"
+                          action="?view=team&directory=mailboxes&/updateMailboxPassword"
                           class="team-directory__protected-form"
                           data-mailbox-action="updateMailboxPassword"
                           use:enhance={enhanceMailboxForm}
@@ -1344,6 +1406,11 @@
                           <textarea
                             id={`owner-mailbox-password-reason-${fieldKey}`}
                             name="reason"
+                            value={failedExternalValue(
+                              'updateMailboxPassword',
+                              accountId,
+                              'reason',
+                            )}
                             rows="2"
                             minlength="5"
                             required
@@ -1354,6 +1421,11 @@
                           <input
                             id={`owner-mailbox-password-confirm-${fieldKey}`}
                             name="confirmation"
+                            value={failedExternalValue(
+                              'updateMailboxPassword',
+                              accountId,
+                              'confirmation',
+                            )}
                             type="email"
                             autocomplete="off"
                             pattern={confirmationPattern(email)}
@@ -1371,7 +1443,7 @@
                     </div>
                   {:else}{#if mailbox.isProvisioned}<form
                         method="POST"
-                        action="?view=team&/changeMailboxRole"
+                        action="?view=team&directory=mailboxes&/changeMailboxRole"
                         class="team-directory__protected-form"
                         data-mailbox-action="changeMailboxRole"
                         use:enhance={enhanceMailboxForm}
@@ -1384,23 +1456,22 @@
                           name="portalUserId"
                           value={mailbox.portalUserId ?? ''}
                         /><label for={`mailbox-role-${fieldKey}`}>{translate('New role')}</label
-                        ><select id={`mailbox-role-${fieldKey}`} name="role" required
-                          ><option value="worker" selected={mailboxRole(mailbox) === 'worker'}
-                            >{translate('Worker')}</option
-                          ><option
-                            value="project_manager"
-                            selected={mailboxRole(mailbox) === 'project_manager'}
-                            >{translate('Project Manager')}</option
-                          ><option
-                            value="finance_admin"
-                            selected={mailboxRole(mailbox) === 'finance_admin'}
-                            >{translate('Finance Admin')}</option
+                        ><select
+                          id={`mailbox-role-${fieldKey}`}
+                          name="role"
+                          value={failedMailboxValue('changeMailboxRole', mailbox, 'role') ||
+                            mailboxRole(mailbox)}
+                          required
+                          ><option value="worker">{translate('Worker')}</option><option
+                            value="project_manager">{translate('Project Manager')}</option
+                          ><option value="finance_admin">{translate('Finance Admin')}</option
                           ></select
                         ><label for={`mailbox-role-reason-${fieldKey}`}
                           >{translate('Reason for role change')}</label
                         ><textarea
                           id={`mailbox-role-reason-${fieldKey}`}
                           name="reason"
+                          value={failedMailboxValue('changeMailboxRole', mailbox, 'reason')}
                           rows="2"
                           minlength="5"
                           required
@@ -1409,6 +1480,7 @@
                         ><input
                           id={`mailbox-role-confirm-${fieldKey}`}
                           name="confirmation"
+                          value={failedMailboxValue('changeMailboxRole', mailbox, 'confirmation')}
                           type="email"
                           autocomplete="off"
                           pattern={confirmationPattern(email)}
@@ -1425,7 +1497,7 @@
                       </p>{/if}
                     {#if mailbox.isProvisioned}<form
                         method="POST"
-                        action="?view=team&/deprovisionMailboxUser"
+                        action="?view=team&directory=mailboxes&/deprovisionMailboxUser"
                         class="team-directory__protected-form team-directory__protected-form--danger"
                         data-mailbox-action="deprovisionMailboxUser"
                         use:enhance={enhanceMailboxForm}
@@ -1447,6 +1519,7 @@
                         ><textarea
                           id={`mailbox-offboard-reason-${fieldKey}`}
                           name="reason"
+                          value={failedMailboxValue('deprovisionMailboxUser', mailbox, 'reason')}
                           rows="2"
                           minlength="5"
                           required
@@ -1455,6 +1528,11 @@
                         ><input
                           id={`mailbox-offboard-confirm-${fieldKey}`}
                           name="confirmation"
+                          value={failedMailboxValue(
+                            'deprovisionMailboxUser',
+                            mailbox,
+                            'confirmation',
+                          )}
                           type="email"
                           autocomplete="off"
                           pattern={confirmationPattern(email)}
@@ -1468,7 +1546,7 @@
                       </form>{/if}
                     {#if accountId}<form
                         method="POST"
-                        action="?view=team&/updateMailboxPassword"
+                        action="?view=team&directory=mailboxes&/updateMailboxPassword"
                         class="team-directory__protected-form"
                         data-mailbox-action="updateMailboxPassword"
                         use:enhance={enhanceMailboxForm}
@@ -1504,6 +1582,7 @@
                         ><textarea
                           id={`mailbox-password-reason-${fieldKey}`}
                           name="reason"
+                          value={failedExternalValue('updateMailboxPassword', accountId, 'reason')}
                           rows="2"
                           minlength="5"
                           required
@@ -1512,6 +1591,11 @@
                         ><input
                           id={`mailbox-password-confirm-${fieldKey}`}
                           name="confirmation"
+                          value={failedExternalValue(
+                            'updateMailboxPassword',
+                            accountId,
+                            'confirmation',
+                          )}
                           type="email"
                           autocomplete="off"
                           pattern={confirmationPattern(email)}
@@ -1525,7 +1609,7 @@
                       </form>
                       <form
                         method="POST"
-                        action="?view=team&/destroyMailboxAccount"
+                        action="?view=team&directory=mailboxes&/destroyMailboxAccount"
                         class="team-directory__protected-form team-directory__protected-form--danger"
                         data-mailbox-action="destroyMailboxAccount"
                         use:enhance={enhanceMailboxForm}
@@ -1553,6 +1637,7 @@
                         ><textarea
                           id={`mailbox-delete-reason-${fieldKey}`}
                           name="reason"
+                          value={failedExternalValue('destroyMailboxAccount', accountId, 'reason')}
                           rows="2"
                           minlength="5"
                           required
@@ -1563,6 +1648,11 @@
                         ><input
                           id={`mailbox-delete-confirm-${fieldKey}`}
                           name="confirmation"
+                          value={failedExternalValue(
+                            'destroyMailboxAccount',
+                            accountId,
+                            'confirmation',
+                          )}
                           type="text"
                           autocomplete="off"
                           pattern={confirmationPattern(`DELETE ${email}`)}
@@ -1703,7 +1793,7 @@
       <form
         id="create-mailbox-sheet-form"
         method="POST"
-        action="?view=team&/createMailboxAccount"
+        action="?view=team&directory=mailboxes&/createMailboxAccount"
         class="team-directory__mailbox-create-form"
         data-mailbox-action="createMailboxAccount"
         use:enhance={enhanceMailboxForm}
@@ -1721,6 +1811,7 @@
           <input
             id="mailbox-create-username"
             name="username"
+            value={failedExternalValue('createMailboxAccount', 'new', 'username')}
             type="text"
             autocomplete="off"
             placeholder={translate('first.last')}
@@ -1731,6 +1822,7 @@
         <label for="mailbox-create-name">{translate('Display name')}</label><input
           id="mailbox-create-name"
           name="name"
+          value={failedExternalValue('createMailboxAccount', 'new', 'name')}
           type="text"
           autocomplete="name"
           required
@@ -1751,15 +1843,17 @@
         <label for="mailbox-create-quota">{translate('Disk quota')}</label><select
           id="mailbox-create-quota"
           name="quotaMb"
+          value={failedExternalValue('createMailboxAccount', 'new', 'quotaMb') || '5120'}
           required
-          ><option value="1024">1 GB</option><option value="5120" selected>5 GB</option><option
-            value="10240">10 GB</option
+          ><option value="1024">1 GB</option><option value="5120">5 GB</option><option value="10240"
+            >10 GB</option
           ><option value="0">{translate('Unlimited')}</option></select
         ><label for="mailbox-create-role">{translate('Provision in portal as')}</label><select
           id="mailbox-create-role"
           name="provisionRole"
+          value={failedExternalValue('createMailboxAccount', 'new', 'provisionRole') || 'worker'}
           required
-          ><option value="worker" selected>{translate('Worker (default)')}</option><option
+          ><option value="worker">{translate('Worker (default)')}</option><option
             value="project_manager">{translate('Project Manager')}</option
           ><option value="finance_admin">{translate('Finance Admin')}</option></select
         >

@@ -73,8 +73,11 @@ function fieldMessage(control: ValidationControl): string {
   return title ? `${title}: ${errorMessage(control)}` : errorMessage(control);
 }
 
-function serverFieldMessage(control: ValidationControl, raw: string): string {
-  const locale = normalizePortalLocale(control.ownerDocument.documentElement.getAttribute('lang'));
+export function localizedServerFieldMessage(
+  localeInput: string | null | undefined,
+  raw: string,
+): string {
+  const locale = normalizePortalLocale(localeInput);
   const t = (key: string, params?: Record<string, string | number>) =>
     translate(locale, key, params);
   // Zod supplies English diagnostics even when the portal is in another
@@ -104,6 +107,13 @@ function serverFieldMessage(control: ValidationControl, raw: string): string {
   if (/^Invalid string: must match pattern\b/u.test(raw)) return t('Match the requested format.');
   if (/^Invalid input:/u.test(raw)) return t('Enter a valid value.');
   return t(raw);
+}
+
+function serverFieldMessage(control: ValidationControl, raw: string): string {
+  return localizedServerFieldMessage(
+    control.ownerDocument.documentElement.getAttribute('lang'),
+    raw,
+  );
 }
 
 function slug(value: string): string {

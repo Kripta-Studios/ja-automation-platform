@@ -1,0 +1,22 @@
+[
+  {
+    "status": 503,
+    "path": "/j-aautomation/app/api/offline/identity"
+  },
+  {
+    "status": 503,
+    "path": "/j-aautomation/app/api/offline/identity"
+  },
+  {
+    "status": 400,
+    "path": "/j-aautomation/app/documents"
+  },
+  {
+    "status": 503,
+    "path": "/j-aautomation/app/api/offline/identity"
+  },
+  {
+    "status": 503,
+    "path": "/j-aautomation/app/api/offline/identity"
+  }
+]

@@ -80,14 +80,56 @@ export function documentProblemFor(error: unknown):
   return undefined;
 }
 
-export function documentActionFailure(error: unknown) {
+export function documentActionFailure(
+  error: unknown,
+  actionName?: string,
+  values: Record<string, string> = {},
+) {
   const mapped = documentProblemFor(error);
   return mapped
     ? actionFail(mapped.status, mapped.key, {}, mapped.message, {
         code: mapped.code,
+        actionName,
+        values,
         remedies: [{ id: mapped.remedy }],
       })
-    : actionFailure(error);
+    : actionFailure(error, { actionName, values });
+}
+
+function documentValues(object: Record<string, unknown>) {
+  return Object.fromEntries(
+    [
+      'projectId',
+      'artifactType',
+      'description',
+      'sensitivity',
+      'artifactClassification',
+      'documentId',
+      'reason',
+      'viewportScrollY',
+    ]
+      .filter((field) => typeof object[field] === 'string')
+      .map((field) => [field, String(object[field]).slice(0, 5_000)]),
+  );
+}
+
+function documentInputFailure(
+  status: number,
+  code: string,
+  key: `problem.${string}`,
+  message: string,
+  actionName: string,
+  values: Record<string, string>,
+  fields: readonly string[] = [],
+  remedy = 'correct_fields',
+) {
+  return actionFail(status, key, {}, message, {
+    code,
+    actionName,
+    values,
+    fieldErrors: Object.fromEntries(fields.map((field) => [field, [key]])),
+    remedies: [{ id: remedy }],
+  });
 }
 
 export const documentActions = {
@@ -101,33 +143,50 @@ export const documentActions = {
     const description = String(object.description ?? '').trim();
     const sensitivity = String(object.sensitivity ?? 'internal');
     const artifactClassification = String(object.artifactClassification ?? 'standard');
+    const values = documentValues(object);
     if (!['standard', 'finance'].includes(artifactClassification))
-      return actionFail(
+      return documentInputFailure(
         400,
-        'action.validation.documentSensitivity',
-        {},
-        'Document classification is invalid',
+        'DOCUMENT_CLASSIFICATION_INVALID',
+        'problem.document.classificationInvalid',
+        'Choose a valid document access classification.',
+        'uploadPrivateDocument',
+        values,
+        ['artifactClassification'],
       );
     if (!(file instanceof File) || file.size < 1)
-      return actionFail(
+      return documentInputFailure(
         400,
-        'action.validation.documentRequired',
-        {},
-        'Choose a private document to upload',
+        'DOCUMENT_FILE_REQUIRED',
+        'problem.document.fileRequired',
+        'Choose a private document to upload.',
+        'uploadPrivateDocument',
+        values,
+        ['file'],
       );
     if (!projectId || !artifactType || !description)
-      return actionFail(
+      return documentInputFailure(
         400,
-        'action.validation.documentMetadata',
-        {},
-        'Project, artifact type and description are required',
+        'DOCUMENT_METADATA_REQUIRED',
+        'problem.document.metadataRequired',
+        'Choose a project, artifact type, and description before uploading.',
+        'uploadPrivateDocument',
+        values,
+        [
+          ...(!projectId ? ['projectId'] : []),
+          ...(!artifactType ? ['artifactType'] : []),
+          ...(!description ? ['description'] : []),
+        ],
       );
     if (!['internal', 'sensitive', 'customer_private'].includes(sensitivity))
-      return actionFail(
+      return documentInputFailure(
         400,
-        'action.validation.documentSensitivity',
-        {},
-        'Document sensitivity is invalid',
+        'DOCUMENT_SENSITIVITY_INVALID',
+        'problem.document.sensitivityInvalid',
+        'Choose a valid sensitivity level for this document.',
+        'uploadPrivateDocument',
+        values,
+        ['sensitivity'],
       );
     const allowed = [
       'application/pdf',
@@ -140,21 +199,27 @@ export const documentActions = {
       'text/plain',
     ];
     if (!allowed.includes(file.type) || file.size > 50_000_000)
-      return actionFail(
+      return documentInputFailure(
         400,
-        'action.validation.documentTypeOrSize',
-        {},
-        'Unsupported document type or size over 50 MB',
+        'DOCUMENT_FILE_TYPE_OR_SIZE_INVALID',
+        'problem.document.fileTypeOrSizeInvalid',
+        'Choose a supported PDF, ZIP, image, or text file no larger than 50 MB.',
+        'uploadPrivateDocument',
+        values,
+        ['file'],
       );
     let bytes: Uint8Array;
     try {
       bytes = await validateReportAttachmentFile(file);
     } catch {
-      return actionFail(
+      return documentInputFailure(
         400,
-        'action.validation.documentContent',
-        {},
-        'Document filename or content does not match its declared type',
+        'DOCUMENT_FILE_CONTENT_INVALID',
+        'problem.document.fileContentInvalid',
+        'The document filename or content does not match its file type. Choose a valid file and attach it again.',
+        'uploadPrivateDocument',
+        values,
+        ['file'],
       );
     }
     const context = openPortalRepository(locals);
@@ -167,11 +232,15 @@ export const documentActions = {
         artifactClassification === 'finance' &&
         !['owner_admin', 'finance_admin'].includes(context.principal.role)
       )
-        return actionFail(
+        return documentInputFailure(
           403,
-          'action.error.financeRoleRequired',
-          {},
-          'Finance document access required',
+          'DOCUMENT_FINANCE_ROLE_REQUIRED',
+          'problem.document.financeRoleRequired',
+          'Only an owner or finance administrator may register a finance document. Contact an authorized administrator.',
+          'uploadPrivateDocument',
+          values,
+          [],
+          'contact_document_owner',
         );
       const sha256 = createHash('sha256').update(bytes).digest('hex');
 
@@ -196,11 +265,15 @@ export const documentActions = {
         relativePath.startsWith('/')
       ) {
         context.v3.cancelUploadReservation(context.principal, reservation.reservationId);
-        return actionFail(
-          400,
-          'action.validation.documentPath',
-          {},
-          'Invalid private document path',
+        return documentInputFailure(
+          503,
+          'DOCUMENT_STORAGE_UNAVAILABLE',
+          'problem.document.storageUnavailable',
+          'The document could not be stored safely. Check the document list before trying again.',
+          'uploadPrivateDocument',
+          values,
+          [],
+          'review_documents',
         );
       }
 
@@ -249,7 +322,7 @@ export const documentActions = {
         )
           await removePrivateFileIfPresent(root, createdStorageKey).catch(() => undefined);
       }
-      return documentActionFailure(error);
+      return documentActionFailure(error, 'uploadPrivateDocument', values);
     } finally {
       context.sqlite.close();
     }
@@ -260,14 +333,33 @@ export const documentActions = {
     const object = await formObject(request);
     const documentId = String(object.documentId ?? '').trim();
     const reason = String(object.reason ?? '').trim();
-    if (!documentId || reason.length < 3 || reason.length > 500)
-      return actionFail(400, 'action.validation.documentArchive', {}, 'Enter an archive reason');
+    const values = documentValues(object);
+    if (!documentId)
+      return documentInputFailure(
+        400,
+        'DOCUMENT_ID_REQUIRED',
+        'problem.document.idRequired',
+        'Select a document before continuing.',
+        'archiveDocument',
+        values,
+        ['documentId'],
+      );
+    if (reason.length < 3 || reason.length > 500)
+      return documentInputFailure(
+        400,
+        'DOCUMENT_ARCHIVE_REASON_REQUIRED',
+        'problem.document.archiveReasonRequired',
+        'Enter an archive reason of 3 to 500 characters.',
+        'archiveDocument',
+        values,
+        ['reason'],
+      );
     const context = openPortalRepository(locals);
     try {
       context.v3.archiveDocument(context.principal, documentId, reason);
       return actionSuccess('action.documents.archived', {}, 'Document archived');
     } catch (error) {
-      return documentActionFailure(error);
+      return documentActionFailure(error, 'archiveDocument', values);
     } finally {
       context.sqlite.close();
     }
@@ -282,7 +374,15 @@ export const documentActions = {
     const object = await formObject(request);
     const documentId = String(object.documentId ?? '').trim();
     if (!documentId)
-      return actionFail(400, 'action.validation.documentIdRequired', {}, 'Document ID required');
+      return documentInputFailure(
+        400,
+        'DOCUMENT_ID_REQUIRED',
+        'problem.document.idRequired',
+        'Select a document before continuing.',
+        'deleteDocument',
+        documentValues(object),
+        ['documentId'],
+      );
 
     const context = openPortalRepository(locals);
     try {
@@ -300,7 +400,7 @@ export const documentActions = {
       await removePrivateFileIfPresent(root, deleted.storageKey);
       return actionSuccess('action.documents.deleted', {}, 'Document deleted');
     } catch (error) {
-      return documentActionFailure(error);
+      return documentActionFailure(error, 'deleteDocument', documentValues(object));
     } finally {
       context.sqlite.close();
     }

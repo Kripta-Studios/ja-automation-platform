@@ -1,11 +1,18 @@
 <script lang="ts">
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { invalidateAll } from '$app/navigation';
+  import { enhance } from '$app/forms';
+  import { base } from '$app/paths';
+  import { page } from '$app/stores';
+  import { onMount, tick } from 'svelte';
   import type { PortalLocale } from '../../portal-i18n';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import AccountingPackArtifactStatus from '../ui/localized-pdf/AccountingPackArtifactStatus.svelte';
   import type { PortalData } from '../portal-data';
   import { SectionCard } from '../ui';
+  import ProblemNotice from '../ui/ProblemNotice.svelte';
+  import { localizedServerFieldMessage } from '../ui/form-validation';
+  import type { ProblemData } from '../../problem/contract';
 
   type Props = {
     data: PortalData;
@@ -16,6 +23,295 @@
   };
 
   let { data, isAuditor, locale, translate, controlledValue }: Props = $props();
+
+  type PackActionForm = {
+    success?: boolean;
+    billingOperation?: unknown;
+    values?: unknown;
+    code?: unknown;
+    messageKey?: unknown;
+    params?: unknown;
+    fieldErrors?: unknown;
+    remedies?: unknown;
+    correlationId?: unknown;
+  } | null;
+  const actionForm = $derived($page.form as PackActionForm);
+  const packProblem = $derived.by((): ProblemData | null => {
+    if (
+      actionForm?.success !== false ||
+      !['createAccountingPack', 'finalizeAccountingPack'].includes(
+        String(actionForm.billingOperation),
+      ) ||
+      typeof actionForm.code !== 'string' ||
+      typeof actionForm.messageKey !== 'string'
+    )
+      return null;
+    return {
+      code: actionForm.code,
+      messageKey: actionForm.messageKey as ProblemData['messageKey'],
+      params:
+        actionForm.params && typeof actionForm.params === 'object'
+          ? (actionForm.params as ProblemData['params'])
+          : {},
+      fieldErrors:
+        actionForm.fieldErrors && typeof actionForm.fieldErrors === 'object'
+          ? (actionForm.fieldErrors as ProblemData['fieldErrors'])
+          : {},
+      remedies: Array.isArray(actionForm.remedies)
+        ? (actionForm.remedies as ProblemData['remedies'])
+        : [],
+      correlationId: String(actionForm.correlationId ?? ''),
+    };
+  });
+  const packValues = $derived.by((): Record<string, string> => {
+    const values = actionForm?.values;
+    return values && typeof values === 'object' && !Array.isArray(values)
+      ? Object.fromEntries(
+          Object.entries(values).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string',
+          ),
+        )
+      : {};
+  });
+  const createPackProblem = $derived(
+    actionForm?.billingOperation === 'createAccountingPack' ? packProblem : null,
+  );
+  const finalizePackProblem = $derived(
+    actionForm?.billingOperation === 'finalizeAccountingPack' ? packProblem : null,
+  );
+  const packRemedyLinks = $derived({
+    review_accounting_pack: {
+      label: translate('Review accounting pack'),
+      href: '#accounting-register',
+    },
+    review_billing_setup: {
+      label: translate('Review billing setup'),
+      href: `${base}/app/billing?view=setup`,
+    },
+    contact_finance: { label: translate('Contact a finance administrator') },
+    contact_owner: { label: translate('Contact an owner') },
+  });
+  const createPackErrors = $derived.by(() => {
+    if (!createPackProblem) return [];
+    return [
+      { name: 'periodStart', label: 'Period start' },
+      { name: 'periodEnd', label: 'Period end' },
+      { name: 'reportLocale', label: 'Report language' },
+    ].flatMap(({ name, label }) => {
+      const raw = createPackProblem.fieldErrors[name]?.[0];
+      return raw ? [{ name, label, message: localizedServerFieldMessage(locale, raw) }] : [];
+    });
+  });
+  function createPackError(name: string): string | undefined {
+    return createPackErrors.find((field) => field.name === name)?.message;
+  }
+  let focusedPackProblemId = '';
+  let focusedFinalizeProblemId = '';
+  let restoredPackScrollId = '';
+  let packScrollIntent = false;
+  let packRecoveryFocusId = $state('');
+  type PackScrollOperation = 'createAccountingPack' | 'finalizeAccountingPack';
+  type PackScrollSnapshot = {
+    top: number;
+    path: string;
+    operation: PackScrollOperation;
+    packId: string;
+    at: number;
+  };
+  const packScrollKey = () => `ja-accounting-pack-scroll:${data.user.id}`;
+  function readPackScroll(operation: PackScrollOperation, packId: string): number | null {
+    let saved: string | null;
+    try {
+      saved = sessionStorage.getItem(packScrollKey());
+      sessionStorage.removeItem(packScrollKey());
+    } catch {
+      return null;
+    }
+    if (!saved) return null;
+    let snapshot: Partial<PackScrollSnapshot>;
+    try {
+      snapshot = JSON.parse(saved) as Partial<PackScrollSnapshot>;
+    } catch {
+      return null;
+    }
+    const valid =
+      snapshot.path === location.pathname &&
+      snapshot.operation === operation &&
+      (operation !== 'finalizeAccountingPack' || snapshot.packId === packId) &&
+      typeof snapshot.top === 'number' &&
+      Number.isSafeInteger(snapshot.top) &&
+      snapshot.top >= 0 &&
+      typeof snapshot.at === 'number' &&
+      Date.now() - snapshot.at >= 0 &&
+      Date.now() - snapshot.at < 300_000;
+    if (!valid) return null;
+    if (snapshot.packId) packRecoveryFocusId = snapshot.packId;
+    return snapshot.top!;
+  }
+  onMount(() => {
+    const markIntent = () => {
+      packScrollIntent = true;
+    };
+    const markKeyIntent = (event: KeyboardEvent) => {
+      if (
+        ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ', 'Tab'].includes(
+          event.key,
+        )
+      )
+        markIntent();
+    };
+    window.addEventListener('wheel', markIntent, { passive: true });
+    window.addEventListener('touchmove', markIntent, { passive: true });
+    window.addEventListener('pointerdown', markIntent, { passive: true });
+    window.addEventListener('keydown', markKeyIntent, true);
+    return () => {
+      window.removeEventListener('wheel', markIntent);
+      window.removeEventListener('touchmove', markIntent);
+      window.removeEventListener('pointerdown', markIntent);
+      window.removeEventListener('keydown', markKeyIntent, true);
+    };
+  });
+  function rememberPackScroll(form: HTMLFormElement) {
+    const input = form.elements.namedItem('viewportScrollY') as HTMLInputElement | null;
+    const operation: PackScrollOperation = form
+      .getAttribute('action')
+      ?.includes('finalizeAccountingPack')
+      ? 'finalizeAccountingPack'
+      : 'createAccountingPack';
+    const packId =
+      form.querySelector<HTMLInputElement>('input[name="packId"]')?.value ??
+      form.dataset.packId ??
+      '';
+    let pending = false;
+    const capture = () => {
+      const viewport = Math.max(0, Math.round(window.scrollY));
+      if (input) input.value = String(viewport);
+      return viewport;
+    };
+    const remember = (top: number) => {
+      try {
+        sessionStorage.setItem(
+          packScrollKey(),
+          JSON.stringify({
+            top,
+            path: location.pathname,
+            operation,
+            packId,
+            at: Date.now(),
+          } satisfies PackScrollSnapshot),
+        );
+      } catch {
+        // The server-retained create scroll still works when storage is unavailable.
+      }
+    };
+    capture();
+    window.addEventListener('scroll', capture, { passive: true });
+    const captureSubmit = () => {
+      packScrollIntent = false;
+      pending = true;
+      remember(capture());
+    };
+    const captureFormData = (event: FormDataEvent) => {
+      packScrollIntent = false;
+      pending = true;
+      const viewport = capture();
+      event.formData.set('viewportScrollY', String(viewport));
+      remember(viewport);
+    };
+    const capturePageHide = () => {
+      if (!pending) return;
+      try {
+        if (!sessionStorage.getItem(packScrollKey())) remember(capture());
+      } catch {
+        // Keep the first pre-navigation snapshot when storage is unavailable.
+      }
+    };
+    form.addEventListener('submit', captureSubmit, true);
+    form.addEventListener('formdata', captureFormData);
+    window.addEventListener('pagehide', capturePageHide);
+    return {
+      destroy() {
+        window.removeEventListener('scroll', capture);
+        form.removeEventListener('submit', captureSubmit, true);
+        form.removeEventListener('formdata', captureFormData);
+        window.removeEventListener('pagehide', capturePageHide);
+      },
+    };
+  }
+  $effect(() => {
+    if (actionForm?.success !== true) return;
+    try {
+      sessionStorage.removeItem(packScrollKey());
+    } catch {
+      // Browser storage is optional for this recovery path.
+    }
+  });
+  $effect(() => {
+    const problem = createPackProblem ?? finalizePackProblem;
+    const id = problem?.correlationId;
+    if (!id || id === restoredPackScrollId) return;
+    const operation: PackScrollOperation = createPackProblem
+      ? 'createAccountingPack'
+      : 'finalizeAccountingPack';
+    const savedViewport = readPackScroll(operation, packValues.packId ?? '');
+    const retainedViewport = String(packValues.viewportScrollY ?? '');
+    const viewport = /^\d{1,7}$/.test(retainedViewport) ? Number(retainedViewport) : savedViewport;
+    if (viewport === null || !Number.isSafeInteger(viewport) || viewport < 0) return;
+    restoredPackScrollId = id;
+    let active = true;
+    let observer: ResizeObserver | undefined;
+    const timers: number[] = [];
+    const restore = () => {
+      if (
+        active &&
+        (createPackProblem ?? finalizePackProblem)?.correlationId === id &&
+        !packScrollIntent
+      )
+        window.scrollTo({ top: viewport, behavior: 'instant' });
+    };
+    void tick().then(() =>
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (!active) return;
+          restore();
+          observer = new ResizeObserver(() => requestAnimationFrame(restore));
+          observer.observe(document.body);
+          for (const delay of [180, 450, 900]) timers.push(window.setTimeout(restore, delay));
+          timers.push(window.setTimeout(() => observer?.disconnect(), 1_500));
+        }),
+      ),
+    );
+    return () => {
+      active = false;
+      observer?.disconnect();
+      for (const timer of timers) window.clearTimeout(timer);
+    };
+  });
+  $effect(() => {
+    const id = createPackProblem?.correlationId;
+    if (!id || id === focusedPackProblemId) return;
+    focusedPackProblemId = id;
+    void tick().then(() => {
+      const target = document.querySelector<HTMLElement>(
+        createPackErrors.length > 1
+          ? '[data-accounting-pack-summary]'
+          : createPackErrors.length === 1
+            ? `#accounting-pack-${createPackErrors[0]?.name}`
+            : '#accounting-generate [data-ui="problem-notice"]',
+      );
+      target?.focus({ preventScroll: true });
+    });
+  });
+  $effect(() => {
+    const id = finalizePackProblem?.correlationId;
+    if (!id || id === focusedFinalizeProblemId) return;
+    focusedFinalizeProblemId = id;
+    void tick().then(() =>
+      document
+        .querySelector<HTMLElement>('[data-accounting-finalize-problem] [data-ui="problem-notice"]')
+        ?.focus({ preventScroll: true }),
+    );
+  });
 
   $effect(() => {
     if (
@@ -71,6 +367,16 @@
     </div>
   </header>
 
+  {#if finalizePackProblem}
+    <div data-accounting-finalize-problem>
+      <ProblemNotice
+        problem={finalizePackProblem}
+        kind={finalizePackProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        remedyLinks={packRemedyLinks}
+      />
+    </div>
+  {/if}
+
   <div
     class="accounting-section__attention"
     aria-label={translate('Accounting Pack attention summary')}
@@ -114,9 +420,24 @@
       id="accounting-generate"
       title={translate('Generate monthly Accounting Pack')}
       collapsible
+      expanded={Boolean(createPackProblem)}
       class="accounting-section__create"
     >
-      <form method="POST" action="?/createAccountingPack" class="accounting-section__form">
+      {#if createPackProblem}
+        <ProblemNotice
+          problem={createPackProblem}
+          kind={createPackProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+          remedyLinks={packRemedyLinks}
+        />
+      {/if}
+      <form
+        method="POST"
+        action="?/createAccountingPack"
+        class="accounting-section__form"
+        use:rememberPackScroll
+        use:enhance
+      >
+        <input type="hidden" name="viewportScrollY" value="0" />
         <p>
           {translate(
             'The pack contains invoice register, collections, worker/direct costs, expenses, accounts receivable, contribution, source counts and deterministic artifacts.',
@@ -127,22 +448,77 @@
             'The previous complete month is filled in. Change the dates only if you need another range.',
           )}
         </p>
+        {#if createPackErrors.length > 1}
+          <div data-ui="validation-summary" data-accounting-pack-summary tabindex="-1" role="alert">
+            <strong>{translate('Check the highlighted fields')}</strong>
+            <ul>
+              {#each createPackErrors as field (field.name)}
+                <li>
+                  <a href={`#accounting-pack-${field.name}`}
+                    >{translate(field.label)}: {field.message}</a
+                  >
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
         <div class="accounting-section__fields">
           <label>
             <span>{translate('Period start')}</span>
-            <input name="periodStart" type="date" value={packPeriod.periodStart} required />
+            <input
+              id="accounting-pack-periodStart"
+              name="periodStart"
+              type="date"
+              value={createPackProblem ? (packValues.periodStart ?? '') : packPeriod.periodStart}
+              aria-invalid={Boolean(createPackError('periodStart'))}
+              aria-describedby={createPackError('periodStart')
+                ? 'accounting-pack-periodStart-error'
+                : undefined}
+              required
+            />
+            {#if createPackError('periodStart')}<small
+                id="accounting-pack-periodStart-error"
+                role="alert">{createPackError('periodStart')}</small
+              >{/if}
           </label>
           <label>
             <span>{translate('Period end')}</span>
-            <input name="periodEnd" type="date" value={packPeriod.periodEnd} required />
+            <input
+              id="accounting-pack-periodEnd"
+              name="periodEnd"
+              type="date"
+              value={createPackProblem ? (packValues.periodEnd ?? '') : packPeriod.periodEnd}
+              aria-invalid={Boolean(createPackError('periodEnd'))}
+              aria-describedby={createPackError('periodEnd')
+                ? 'accounting-pack-periodEnd-error'
+                : undefined}
+              required
+            />
+            {#if createPackError('periodEnd')}<small
+                id="accounting-pack-periodEnd-error"
+                role="alert">{createPackError('periodEnd')}</small
+              >{/if}
           </label>
           <label>
             <span>{translate('Report language')}</span>
-            <select name="reportLocale" aria-label={translate('Accounting Pack report language')}>
+            <select
+              id="accounting-pack-reportLocale"
+              name="reportLocale"
+              value={createPackProblem ? (packValues.reportLocale ?? 'en') : 'en'}
+              aria-label={translate('Accounting Pack report language')}
+              aria-invalid={Boolean(createPackError('reportLocale'))}
+              aria-describedby={createPackError('reportLocale')
+                ? 'accounting-pack-reportLocale-error'
+                : undefined}
+            >
               <option value="en">{translate('English')}</option>
               <option value="pt">{translate('Português (BR)')}</option>
               <option value="es">{translate('Spanish')}</option>
             </select>
+            {#if createPackError('reportLocale')}<small
+                id="accounting-pack-reportLocale-error"
+                role="alert">{createPackError('reportLocale')}</small
+              >{/if}
           </label>
         </div>
         <div class="accounting-section__actions">
@@ -166,13 +542,24 @@
       rows={packs}
       bind:visible={packPage}
       bind:status={packFilter}
+      focusId={packRecoveryFocusId}
       {translate}
       label="Accounting"
     />
     {#if packs.length > 0}
       <div class="accounting-section__packs" aria-live="polite">
         {#each packPage as pack}
-          <AccountingPackArtifactStatus {pack} {isAuditor} {locale} {translate} {controlledValue} />
+          <AccountingPackArtifactStatus
+            {pack}
+            {isAuditor}
+            {locale}
+            {translate}
+            {controlledValue}
+            {rememberPackScroll}
+            problem={finalizePackProblem && packValues.packId === String(pack.id)
+              ? finalizePackProblem
+              : null}
+          />
         {/each}
       </div>
     {:else}
@@ -187,6 +574,9 @@
 </div>
 
 <style>
+  .accounting-section {
+    overflow-anchor: none;
+  }
   .accounting-section {
     display: grid;
     gap: 1.25rem;

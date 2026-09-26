@@ -1,15 +1,17 @@
 import { error, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
 import {
+  AccessDeniedError,
   PeriodFollowupAccessDeniedError,
   PeriodFollowupConflictError,
   PeriodFollowupNotFoundError,
   PeriodFollowupRepository,
   PeriodFollowupValidationError,
 } from '@ja/database';
-import { actionFail, actionSuccess } from '$lib/server/actions/action-message';
+import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/action-message';
 import { formObject } from '$lib/server/action-utils';
 import { openPortalRepository } from '$lib/server/portal-repository';
+import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import type { Actions, PageServerLoad } from './$types';
 
 const DATE = z
@@ -296,47 +298,195 @@ function hasEffectiveVerifiedConformity(
   return conformity?.status === 'active' && conformity.signatureEvidenceStatus === 'verified';
 }
 
-function c1Failure(errorValue: unknown, values: Record<string, unknown>) {
-  if (errorValue instanceof PeriodFollowupAccessDeniedError)
-    return actionFail(
-      403,
-      'action.error.forbidden',
-      {},
-      'You do not have permission to perform this action.',
-      { values },
-    );
-  if (errorValue instanceof PeriodFollowupConflictError)
-    return actionFail(
-      409,
-      'action.error.conflict',
-      {},
-      'The report or follow-up history changed. Refresh and try again.',
-      { values },
-    );
-  if (errorValue instanceof PeriodFollowupNotFoundError)
-    return actionFail(404, 'action.error.invalid', {}, 'The period report was not found.', {
-      values,
-    });
-  if (errorValue instanceof PeriodFollowupValidationError)
-    return actionFail(
-      400,
-      'action.error.invalid',
-      {},
-      'Check the follow-up fields and try again.',
-      { values },
-    );
-  throw errorValue;
+type FollowupValues = Record<string, string>;
+const followupFields = [
+  'periodReportId',
+  'expectedSnapshotVersion',
+  'expectedSnapshotSha256',
+  'expectedLatestEventId',
+  'idempotencyKey',
+  'eventType',
+  'method',
+  'eventDate',
+  'reference',
+  'signatoryName',
+  'reason',
+  'responsibleUserId',
+  'nextFollowUpOn',
+] as const;
+
+function retainedFollowupValues(object: Record<string, unknown>): FollowupValues {
+  return Object.fromEntries(
+    followupFields.flatMap((field) =>
+      typeof object[field] === 'string' ? [[field, object[field] as string]] : [],
+    ),
+  );
 }
 
-export const load: PageServerLoad = ({ locals, url }) => {
+function followupProblem(
+  status: number,
+  code: string,
+  key: `problem.${string}`,
+  message: string,
+  values: FollowupValues,
+  remedy: string,
+  fieldErrors: Record<string, string[]> = {},
+) {
+  return actionFail(status, key, {}, message, {
+    code,
+    operation: 'recordFollowup',
+    values,
+    fieldErrors,
+    remedies: [{ id: remedy }],
+  });
+}
+
+function validationField(message: string): string | null {
+  const fields: Record<string, string> = {
+    'Dispatch method': 'method',
+    'Event date': 'eventDate',
+    'Dispatch reference': 'reference',
+    'Signatory name': 'signatoryName',
+    Reason: 'reason',
+    'Responsible staff member': 'responsibleUserId',
+    'Next follow-up date': 'nextFollowUpOn',
+    'Follow-up event type': 'eventType',
+  };
+  if (/Active staff member required|Responsible staff member is not assigned/u.test(message))
+    return 'responsibleUserId';
+  return Object.entries(fields).find(([name]) => message.startsWith(name))?.[1] ?? null;
+}
+
+function validationFieldMessage(message: string, field: string): string {
+  if (field === 'responsibleUserId' && /Active staff member required|not assigned/u.test(message))
+    return 'problem.period.responsibleUnavailable';
+  const maxByField: Record<string, number> = {
+    method: 200,
+    reference: 500,
+    signatoryName: 200,
+    reason: 2000,
+    responsibleUserId: 200,
+  };
+  if (/is too long/u.test(message) && maxByField[field])
+    return `Too big: expected string to have <=${maxByField[field]} characters`;
+  if (/date|Date/u.test(message) && /invalid|real date/u.test(message))
+    return 'Enter a valid date.';
+  if (/invalid/u.test(message)) return 'Enter a valid value.';
+  return field === 'responsibleUserId' ? 'Please select an option.' : 'Please complete this field.';
+}
+
+function c1Failure(errorValue: unknown, values: FollowupValues) {
+  if (
+    errorValue instanceof PeriodFollowupAccessDeniedError ||
+    errorValue instanceof AccessDeniedError
+  ) {
+    const signIn = /Authenticated role changed|Active account required/u.test(errorValue.message);
+    return followupProblem(
+      signIn ? 401 : 403,
+      signIn ? 'PERIOD_REPORT_SIGN_IN_REQUIRED' : 'PERIOD_REPORT_PERMISSION_REQUIRED',
+      signIn ? 'problem.period.signInRequired' : 'problem.period.permissionRequired',
+      signIn
+        ? 'Your session ended. Sign in again, then review the report before submitting another action.'
+        : 'Your role or project access does not permit this report action. Ask the project owner to review access.',
+      values,
+      signIn ? 'sign_in_again' : 'contact_project_owner',
+    );
+  }
+  if (errorValue instanceof PeriodFollowupNotFoundError)
+    return followupProblem(
+      404,
+      'PERIOD_REPORT_NOT_FOUND',
+      'problem.period.notFound',
+      'This period report is no longer available. Review the report list.',
+      values,
+      'review_reports',
+    );
+  if (errorValue instanceof PeriodFollowupValidationError) {
+    const field = validationField(errorValue.message);
+    const responsible = field === 'responsibleUserId';
+    return followupProblem(
+      400,
+      responsible ? 'PERIOD_FOLLOWUP_RESPONSIBLE_UNAVAILABLE' : 'PERIOD_FOLLOWUP_FIELDS_INVALID',
+      responsible
+        ? 'problem.period.responsibleUnavailable'
+        : 'problem.period.followupFieldsInvalid',
+      responsible
+        ? 'The responsible staff member is no longer active or assigned to this project. Review the current report before recording follow-up.'
+        : 'Review the follow-up date and required details before saving.',
+      values,
+      'review_followup',
+      field ? { [field]: [validationFieldMessage(errorValue.message, field)] } : {},
+    );
+  }
+  if (errorValue instanceof PeriodFollowupConflictError) {
+    const message = errorValue.message;
+    if (
+      message ===
+      'Invalidate the signed conformity through its explicit lifecycle before returning or disputing this report'
+    )
+      return followupProblem(
+        409,
+        'PERIOD_FOLLOWUP_CONFORMITY_ACTIVE',
+        'problem.period.followupConformityActive',
+        'A verified customer sign-off is active. An authorized finance user must review and explicitly invalidate it before a return or dispute can be recorded.',
+        values,
+        'review_signoff',
+      );
+    if (message === 'Idempotency key was already used for different follow-up data')
+      return followupProblem(
+        409,
+        'PERIOD_FOLLOWUP_RETRY_KEY_USED',
+        'problem.period.followupRetryKeyUsed',
+        'A different follow-up already used this request key. Review the latest history before submitting a new event.',
+        values,
+        'review_followup',
+      );
+    if (message === 'Follow-up history changed; refresh before recording follow-up')
+      return followupProblem(
+        409,
+        'PERIOD_FOLLOWUP_HISTORY_CHANGED',
+        'problem.period.followupHistoryChanged',
+        'The follow-up history changed while this form was open. Review the latest event before recording another.',
+        values,
+        'review_followup',
+      );
+    if (message === 'A ready customer PDF is required before dispatch or signatory follow-up')
+      return followupProblem(
+        409,
+        'PERIOD_FOLLOWUP_PDF_NOT_READY',
+        'problem.period.followupPdfNotReady',
+        'A ready customer PDF is required before dispatch or signatory follow-up can be recorded.',
+        values,
+        'review_report',
+      );
+    return followupProblem(
+      409,
+      'PERIOD_FOLLOWUP_SNAPSHOT_CHANGED',
+      'problem.period.followupSnapshotChanged',
+      'The customer report version changed while this form was open. Review the updated report before recording follow-up.',
+      values,
+      'review_report',
+    );
+  }
+  return actionFailure(errorValue, { operation: 'recordFollowup', values });
+}
+
+export const load: PageServerLoad = ({ locals, url, cookies }) => {
   const context = authorized(locals);
   try {
     const projectId = url.searchParams.get('project')?.trim() ?? '';
     const periodStartValue = url.searchParams.get('from')?.trim() ?? '';
     const periodEndValue = url.searchParams.get('to')?.trim() ?? '';
     const projects = projectsFor(context);
+    const locale = resolvePortalLocalePreference(
+      url.searchParams.get('lang'),
+      cookies.get('ja.portal.locale'),
+      cookies.get('ja-portal-locale'),
+    );
     if (!projectId || !periodStartValue || !periodEndValue)
       return {
+        user: locals.user,
+        locale,
         projects,
         selectedProjectId: projectId,
         periodStart: periodStartValue,
@@ -362,6 +512,8 @@ export const load: PageServerLoad = ({ locals, url }) => {
       conformityState: conformityState(context, report.reportId),
     }));
     return {
+      user: locals.user,
+      locale,
       projects,
       selectedProjectId: projectId,
       periodStart: periodStartValue,
@@ -379,12 +531,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 export const actions: Actions = {
   recordFollowup: async ({ locals, request }) => {
     const object = await formObject(request);
-    const values = Object.fromEntries(
-      Object.entries(object).map(([key, value]) => [
-        key,
-        value instanceof File ? value.name : String(value ?? ''),
-      ]),
-    );
+    const values = retainedFollowupValues(object);
     const parsed = z
       .object({
         periodReportId: z.string().trim().min(1).max(200),
@@ -407,14 +554,45 @@ export const actions: Actions = {
         expectedLatestEventId: object.expectedLatestEventId ?? '',
       });
     if (!parsed.success)
-      return actionFail(
+      return followupProblem(
         400,
-        'action.error.invalid',
-        {},
-        'Check the follow-up fields and try again.',
-        { values },
+        'PERIOD_FOLLOWUP_FIELDS_INVALID',
+        'problem.period.followupFieldsInvalid',
+        'Review the follow-up date and required details before saving.',
+        values,
+        'review_followup',
+        Object.fromEntries(
+          parsed.error.issues.flatMap((issue) =>
+            typeof issue.path[0] === 'string'
+              ? [
+                  [
+                    issue.path[0],
+                    [
+                      issue.path[0] === 'eventType' || issue.path[0] === 'responsibleUserId'
+                        ? 'Please select an option.'
+                        : 'Please complete this field.',
+                    ],
+                  ],
+                ]
+              : [],
+          ),
+        ),
       );
-    const context = openPortalRepository(locals);
+    if (!locals.user || !locals.session)
+      return followupProblem(
+        401,
+        'PERIOD_REPORT_SIGN_IN_REQUIRED',
+        'problem.period.signInRequired',
+        'Your session ended. Sign in again, then review the report before submitting another action.',
+        values,
+        'sign_in_again',
+      );
+    let context: ReturnType<typeof openPortalRepository>;
+    try {
+      context = openPortalRepository(locals);
+    } catch (errorValue) {
+      return c1Failure(errorValue, values);
+    }
     try {
       const repository = new PeriodFollowupRepository(context.sqlite);
       if (parsed.data.eventType === 'returned' || parsed.data.eventType === 'disputed') {

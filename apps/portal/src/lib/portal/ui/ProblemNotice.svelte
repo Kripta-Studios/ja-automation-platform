@@ -37,7 +37,10 @@
       ]),
     ),
   );
-  const message = $derived(portalText(locale, problem.messageKey, params));
+  const message = $derived.by(() => {
+    const translated = portalText(locale, problem.messageKey, params);
+    return translated === problem.messageKey ? (problem.message ?? translated) : translated;
+  });
   const heading = $derived(
     title ??
       portalText(

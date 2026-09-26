@@ -1,0 +1,22 @@
+[
+  {
+    "status": 200,
+    "path": "/j-aautomation/app/api/auth/sign-in/email"
+  },
+  {
+    "status": 400,
+    "path": "/j-aautomation/app/planning"
+  },
+  {
+    "status": 200,
+    "path": "/j-aautomation/app/planning"
+  },
+  {
+    "status": 409,
+    "path": "/j-aautomation/app/planning"
+  },
+  {
+    "status": 200,
+    "path": "/j-aautomation/app/planning"
+  }
+]

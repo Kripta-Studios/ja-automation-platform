@@ -605,6 +605,9 @@
                   })
                 : undefined}
               remedyLinks={{
+                correct_fields: {
+                  label: portalText(normalizedLocale, 'problem.remedy.correctFields'),
+                },
                 contact_project_owner: {
                   label: portalText(normalizedLocale, 'problem.remedy.contactOwner'),
                 },
@@ -697,6 +700,9 @@
               <ProblemNotice
                 problem={assignmentRecordProblem}
                 remedyLinks={{
+                  correct_fields: {
+                    label: portalText(normalizedLocale, 'problem.remedy.correctFields'),
+                  },
                   review_assignments: {
                     label: portalText(normalizedLocale, 'problem.remedy.reviewAssignments'),
                     href: `${base}/app/projects?action=update-assignment#project-assignment-list`,

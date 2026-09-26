@@ -71,6 +71,7 @@ const controlledKeys: Record<ControlledValueDomain, Record<string, string>> = {
     tentative: 'Tentative',
     billable: 'Billable',
     non_billable: 'Non-billable',
+    finance_reviewed: 'Finance reviewed',
     customer: 'Customer private',
     internal: 'Internal',
     review: 'Review required',

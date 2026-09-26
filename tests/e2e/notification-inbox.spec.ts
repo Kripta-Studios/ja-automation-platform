@@ -36,11 +36,16 @@ test('unread inbox preserves failures, marks only the selected notice and remain
       { times: 1 },
     );
     await mark.click();
-    await expect(page.locator('.inbox-feedback')).toContainText('No se pudo actualizar');
+    const problem = page.locator('.notification-inbox [data-ui="problem-notice"]');
+    await expect(problem).toHaveAttribute('data-problem-code', 'NOTIFICATION_SAVE_UNCONFIRMED');
+    await expect(problem).toContainText('No se pudo confirmar el guardado');
+    await expect(problem.getByRole('link', { name: 'Revisar bandeja de actividad' })).toBeVisible();
+    await expect(problem).toBeFocused();
     await expect(row).toBeVisible();
     await page.unrouteAll({ behavior: 'wait' });
     await mark.click();
     await expect(row).toHaveCount(0);
+    await expect(page).toHaveURL(/read=unread/u);
     await expect(page.locator(`[data-notification-id="${ids[1]}"]`)).toBeVisible();
     await expect(page.locator('.inbox-feedback')).toBeFocused();
     const db = createDatabase(e2eDatabasePath);

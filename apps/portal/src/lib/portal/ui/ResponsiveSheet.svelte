@@ -166,7 +166,10 @@
       if (!open) return;
       baseline = formSnapshot();
       const first = focusableElements()[0];
-      (first ?? panel)?.focus();
+      const problem = panel?.querySelector<HTMLElement>(
+        '[data-validation-summary], [data-ui="problem-notice"][data-kind="error"]',
+      );
+      (problem ?? first ?? panel)?.focus();
     });
 
     return () => {

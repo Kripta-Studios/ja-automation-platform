@@ -54,6 +54,13 @@
   let relatedTimeId = $state(fieldValue('timeEntryId', 'time_entry_id'));
   let relatedLoading = $state(false);
   let relatedError = $state(false);
+  const relatedUnavailable = $derived(
+    Boolean(
+      relatedTimeId &&
+      !relatedLoading &&
+      !relatedOptions.some((option) => option.id === relatedTimeId),
+    ),
+  );
   const statusLabel = (state: string): string =>
     (
       ({
@@ -66,7 +73,6 @@
     )[state] ?? state;
   async function loadRelatedOptions(date: string): Promise<void> {
     relatedDate = date;
-    relatedTimeId = '';
     relatedOptions = [];
     relatedError = false;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
@@ -185,7 +191,7 @@
           name="spentOn"
           type="date"
           required
-          value={fieldValue('spentOn', 'spent_on')}
+          value={relatedDate}
           onchange={(event) => void loadRelatedOptions(event.currentTarget.value)}
         /></label
       >
@@ -235,9 +241,14 @@
     </div>
     <label>
       <span>{translate('Related logged hours (optional)')}</span>
-      <select name="timeEntryId" bind:value={relatedTimeId}>
+      <select
+        name="timeEntryId"
+        bind:value={relatedTimeId}
+        aria-invalid={relatedUnavailable}
+        aria-describedby={relatedUnavailable ? 'correction-time-link-warning' : undefined}
+      >
         <option value="">{translate('Expense only / no linked hours')}</option>
-        {#if relatedDate === String(original('spent_on')) && relatedTimeId && !relatedOptions.some((option) => option.id === relatedTimeId)}
+        {#if relatedTimeId && !relatedOptions.some((option) => option.id === relatedTimeId)}
           <option value={relatedTimeId}
             >{translate('Current linked hours')} · {translate('Needs review')}</option
           >
@@ -250,6 +261,11 @@
           </option>
         {/each}
       </select>
+      {#if relatedUnavailable}<small id="correction-time-link-warning" class="warning"
+          >{translate(
+            'The selected logged hours are no longer available. Review the link before saving.',
+          )}</small
+        >{/if}
       {#if relatedLoading}<small>{translate('Loading logged hours…')}</small>{/if}
       {#if relatedError}<small
           >{translate(

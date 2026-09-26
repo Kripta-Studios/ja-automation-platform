@@ -4,10 +4,14 @@
   import ProjectBudgetInput from '$lib/portal/sections/ProjectBudgetInput.svelte';
   import ProjectBillingSetup from '$lib/portal/sections/ProjectBillingSetup.svelte';
   import { base } from '$app/paths';
+  import { enhance, type SubmitFunction } from '$app/forms';
   import { replaceState } from '$app/navigation';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
-  import { ResponsiveSheet, ToastRegion, type ToastItem } from '$lib/portal/ui';
+  import { ResponsiveSheet, ToastRegion, formValidation, type ToastItem } from '$lib/portal/ui';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
+  import type { ProblemData } from '$lib/problem/contract';
   import {
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
@@ -80,6 +84,18 @@
     periodStart?: string;
     periodEnd?: string;
   };
+  type DetailForm = Partial<ProblemData> & {
+    success?: boolean;
+    action?: string;
+    actionName?: string;
+    values?: Record<string, string>;
+  };
+  const detailForm = $derived((form ?? null) as DetailForm | null);
+  const problem = $derived(
+    detailForm?.code && detailForm.messageKey && detailForm.correlationId
+      ? (detailForm as ProblemData)
+      : null,
+  );
   let localeOverride = $state<PortalLocale | null>(null);
   let restoredTab = $state<{ projectId: string; tab: TabId } | null>(null);
   let activeTab = $derived(
@@ -89,8 +105,12 @@
       data.user?.role,
     ),
   );
-  let editOpen = $state(false);
-  let invoiceOpen = $state(false);
+  function initiallyFailed(action: string): boolean {
+    const submitted = form as DetailForm | null | undefined;
+    return submitted?.success === false && submitted.actionName === action;
+  }
+  let editOpen = $state(initiallyFailed('updateProject'));
+  let invoiceOpen = $state(initiallyFailed('createInvoiceDraft'));
   let saving = $state(false);
   let mounted = $state(false);
   let dismissedActionToastKey = $state('');
@@ -124,6 +144,63 @@
   const isAuditor = $derived(role === 'auditor_read_only');
   const canViewCommercial = $derived(isOwner || isFinance || isAuditor);
   const canWriteFinance = $derived(isOwner || isFinance);
+  const projectHref = $derived(
+    `${base}/app/projects/${encodeURIComponent(String(data.overview.project.id))}`,
+  );
+  const readinessHref = $derived.by(() => {
+    const reasons = (form as { reasons?: Array<{ code?: string }> } | null)?.reasons ?? [];
+    if (reasons.some((reason) => String(reason.code ?? '').includes('time_approval')))
+      return base + '/app/approvals?queue=time';
+    if (reasons.some((reason) => String(reason.code ?? '').includes('expense')))
+      return base + '/app/approvals?queue=expenses';
+    return base + '/app/approvals';
+  });
+  const remedyLinks = $derived({
+    review_projects: { label: t('problem.remedy.reviewProjects'), href: base + '/app/projects' },
+    review_updated_record: { label: t('problem.remedy.reviewUpdatedRecord'), href: projectHref },
+    correct_field: { label: t('problem.remedy.correctField') },
+    contact_owner: { label: t('problem.remedy.contactOwner') },
+    sign_in_again: { label: t('problem.remedy.signInAgain'), href: base + '/app/login' },
+    ...(canWriteFinance
+      ? {
+          review_billing_setup: {
+            label: t('Project billing setup'),
+            href: projectHref + '?tab=billing#project-panel-billing',
+          },
+          review_person_terms: {
+            label: t('problem.remedy.reviewPersonTerms'),
+            href: projectHref + '?tab=billing#project-panel-billing',
+          },
+          review_pending_records: { label: t('Review pending records'), href: readinessHref },
+        }
+      : {}),
+    ...(isOwner
+      ? {
+          review_project_status: {
+            label: t('problem.remedy.reviewProjectStatus'),
+            href: projectHref + '?tab=overview',
+          },
+        }
+      : {}),
+  });
+  const failedProjectValues = $derived(
+    detailForm?.success === false && detailForm.actionName === 'updateProject'
+      ? (detailForm.values ?? {})
+      : {},
+  );
+  function projectValue(name: string, fallback: string | number): string | number {
+    return Object.hasOwn(failedProjectValues, name) ? (failedProjectValues[name] ?? '') : fallback;
+  }
+  function projectChecked(name: string, fallback: boolean): boolean {
+    return detailForm?.success === false && detailForm.actionName === 'updateProject'
+      ? Object.hasOwn(failedProjectValues, name)
+      : fallback;
+  }
+  function projectFieldError(name: string): string {
+    const key =
+      detailForm?.actionName === 'updateProject' ? problem?.fieldErrors?.[name]?.[0] : null;
+    return key ? t(key) : '';
+  }
   const billingRules = $derived((data.billingRules ?? []) as BillingRule[]);
   const billingSetup = $derived(data.billingSetup ?? null);
   const finance = $derived(overview.financial);
@@ -133,19 +210,31 @@
   const invoiceDraftEnd = $derived(String(data.invoiceDraftEnd ?? financePeriodEnd));
   const draftFailure = $derived((form ?? null) as DraftFailure | null);
   const selectedDraftRuleId = $derived(
-    draftFailure?.success === false && draftFailure.billingRuleId
-      ? draftFailure.billingRuleId
-      : String(billingRules[0]?.id ?? ''),
+    detailForm?.success === false &&
+      detailForm.actionName === 'createInvoiceDraft' &&
+      detailForm.values?.billingRuleId
+      ? detailForm.values.billingRuleId
+      : draftFailure?.success === false && draftFailure.billingRuleId
+        ? draftFailure.billingRuleId
+        : String(billingRules[0]?.id ?? ''),
   );
   const selectedDraftStart = $derived(
-    draftFailure?.success === false && draftFailure.periodStart
-      ? draftFailure.periodStart
-      : invoiceDraftStart,
+    detailForm?.success === false &&
+      detailForm.actionName === 'createInvoiceDraft' &&
+      detailForm.values?.periodStart
+      ? detailForm.values.periodStart
+      : draftFailure?.success === false && draftFailure.periodStart
+        ? draftFailure.periodStart
+        : invoiceDraftStart,
   );
   const selectedDraftEnd = $derived(
-    draftFailure?.success === false && draftFailure.periodEnd
-      ? draftFailure.periodEnd
-      : invoiceDraftEnd,
+    detailForm?.success === false &&
+      detailForm.actionName === 'createInvoiceDraft' &&
+      detailForm.values?.periodEnd
+      ? detailForm.values.periodEnd
+      : draftFailure?.success === false && draftFailure.periodEnd
+        ? draftFailure.periodEnd
+        : invoiceDraftEnd,
   );
   let handledDraftFailure = '';
   $effect(() => {
@@ -259,7 +348,7 @@
     messageKey?: unknown;
   };
 
-  const actionFeedback = $derived(standaloneActionMessage(locale, form));
+  const actionFeedback = $derived(problem ? null : standaloneActionMessage(locale, form));
   const actionResult = $derived((form ?? null) as ActionFeedback | null);
   const actionFeedbackKey = $derived(
     actionFeedback
@@ -289,10 +378,131 @@
 
   const tabStateKey = (): string =>
     `ja-project-tab:${String(data.overview.project.id)}:${String(data.user.id)}`;
+  const scrollStateKey = (): string =>
+    `ja-project-scroll:${String(data.overview.project.id)}:${String(data.user.id)}`;
+  let inMemoryScrollState: string | null = null;
+  function readSessionState(key: string): string | null {
+    try {
+      return sessionStorage.getItem(key);
+    } catch {
+      // Storage may be blocked; the URL and component state still retain the active tab.
+      return null;
+    }
+  }
+  function writeSessionState(key: string, value: string): void {
+    try {
+      sessionStorage.setItem(key, value);
+    } catch {
+      // Storage is optional for form submission and navigation.
+    }
+  }
+  function removeSessionState(key: string): void {
+    try {
+      sessionStorage.removeItem(key);
+    } catch {
+      // The in-memory scroll snapshot is cleared independently below.
+    }
+  }
+  function rememberDetailScroll(): void {
+    const sheet = document.querySelector<HTMLElement>(
+      '.project-edit-sheet .responsive-sheet-body, .project-invoice-sheet .responsive-sheet-body',
+    );
+    inMemoryScrollState = JSON.stringify({
+      top: window.scrollY,
+      sheetTop: sheet?.scrollTop ?? null,
+      sheetKind: sheet?.closest('.project-edit-sheet') ? 'edit' : sheet ? 'invoice' : null,
+      at: Date.now(),
+    });
+    writeSessionState(scrollStateKey(), inMemoryScrollState);
+  }
+  function restoreDetailScroll(): void {
+    const saved = readSessionState(scrollStateKey()) ?? inMemoryScrollState;
+    if (saved === null) return;
+    removeSessionState(scrollStateKey());
+    inMemoryScrollState = null;
+    try {
+      const position = JSON.parse(saved) as {
+        top?: unknown;
+        sheetTop?: unknown;
+        sheetKind?: unknown;
+        at?: unknown;
+      };
+      if (
+        typeof position.top === 'number' &&
+        Number.isFinite(position.top) &&
+        typeof position.at === 'number' &&
+        Date.now() - position.at < 300_000
+      ) {
+        const sheetSelector =
+          position.sheetKind === 'edit'
+            ? '.project-edit-sheet .responsive-sheet-body'
+            : position.sheetKind === 'invoice'
+              ? '.project-invoice-sheet .responsive-sheet-body'
+              : null;
+        const sheetTop = typeof position.sheetTop === 'number' ? position.sheetTop : null;
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: position.top as number, behavior: 'auto' });
+          if (sheetSelector && sheetTop !== null) {
+            const sheet = document.querySelector<HTMLElement>(sheetSelector);
+            if (sheet) sheet.scrollTop = sheetTop;
+          }
+        });
+      }
+    } catch {
+      // A malformed position must not interrupt form recovery.
+    }
+  }
+  const submitDetail: SubmitFunction = ({ formElement }) => {
+    const isProjectUpdate = formElement.getAttribute('action')?.startsWith('?/updateProject');
+    rememberDetailScroll();
+    return async ({ result, update }) => {
+      try {
+        await update({ reset: false, invalidateAll: true });
+        if (isProjectUpdate && result.type === 'success') editOpen = false;
+      } finally {
+        saving = false;
+        restoreDetailScroll();
+      }
+    };
+  };
+  let handledProblemId = '';
+  $effect(() => {
+    const id = problem?.correlationId;
+    if (!id || id === handledProblemId) return;
+    handledProblemId = id;
+    saving = false;
+    const action = detailForm?.actionName;
+    if (action === 'updateProject') editOpen = true;
+    if (action === 'createInvoiceDraft') invoiceOpen = true;
+    if (
+      action === 'saveBillingSetup' ||
+      action === 'savePersonTerms' ||
+      action === 'savePeopleTerms' ||
+      action === 'createInvoiceDraft'
+    )
+      restoredTab = { projectId: String(data.overview.project.id), tab: 'billing' };
+    else if (
+      action === 'submitMilestone' ||
+      action === 'updateProject' ||
+      action === 'deleteProject'
+    )
+      restoredTab = { projectId: String(data.overview.project.id), tab: 'overview' };
+    void tick().then(() => {
+      const formElement = action
+        ? document.querySelector<HTMLFormElement>(`form[action*="/${action}"]`)
+        : null;
+      if (formElement && problem.fieldErrors)
+        reportFormFieldErrors(formElement, problem.fieldErrors);
+      const target =
+        formElement?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        document.querySelector<HTMLElement>('[data-project-problem] [data-ui="problem-notice"]');
+      target?.focus({ preventScroll: true });
+    });
+  });
 
   function selectTab(tab: TabId): void {
     restoredTab = { projectId: String(data.overview.project.id), tab };
-    sessionStorage.setItem(tabStateKey(), tab);
+    writeSessionState(tabStateKey(), tab);
     const url = new URL($page.url);
     url.searchParams.set('tab', tab);
     replaceState(url, $page.state);
@@ -323,8 +533,9 @@
 
   onMount(() => {
     mounted = true;
+    if (problem) void tick().then(restoreDetailScroll);
     if (!$page.url.searchParams.has('tab')) {
-      const savedTab = sessionStorage.getItem(tabStateKey());
+      const savedTab = readSessionState(tabStateKey());
       if (savedTab && allowedTabIds.includes(savedTab as TabId))
         restoredTab = {
           projectId: String(data.overview.project.id),
@@ -338,8 +549,22 @@
       if (event.key === 'ja.portal.locale' || event.key === 'ja-portal-locale')
         localeOverride = resolveStandaloneLocale(event.newValue);
     };
+    const onSubmit = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.closest('[data-project-detail]') ||
+        target?.matches('.project-edit-form, .invoice-draft-form')
+      )
+        rememberDetailScroll();
+    };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener('pagehide', rememberDetailScroll);
+    document.addEventListener('submit', onSubmit, true);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('pagehide', rememberDetailScroll);
+      document.removeEventListener('submit', onSubmit, true);
+    };
   });
   $effect(() => applyStandaloneDocumentLocale(locale));
 </script>
@@ -368,6 +593,16 @@
       {/if}
     </div>
   </nav>
+
+  {#if problem && (detailForm?.actionName !== 'updateProject' || !isOwner) && (detailForm?.actionName !== 'createInvoiceDraft' || !canWriteFinance)}
+    <div data-project-problem>
+      <ProblemNotice
+        {problem}
+        {remedyLinks}
+        kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+      />
+    </div>
+  {/if}
 
   {#if actionFeedback && !actionToastVisible}
     <p
@@ -610,7 +845,11 @@
                       >
                     </span>
                     {#if ['draft', 'rejected'].includes(String(milestone.approval_state ?? ''))}
-                      <form method="POST" action="?/submitMilestone">
+                      <form
+                        method="POST"
+                        action="?/submitMilestone&tab=overview"
+                        use:enhance={submitDetail}
+                      >
                         <input type="hidden" name="id" value={milestone.id} />
                         <input type="hidden" name="version" value={milestone.version} />
                         <button type="submit" class="secondary-button"
@@ -1139,6 +1378,7 @@
               onEditProject={() => (editOpen = true)}
               {form}
               {t}
+              {locale}
             />
           {/key}
         {/if}
@@ -1213,9 +1453,29 @@
     class="project-edit-sheet"
     onclose={() => (editOpen = false)}
   >
-    <form method="POST" action="?/updateProject" class="project-edit-form" onsubmit={submitForm}>
+    {#if problem && detailForm?.actionName === 'updateProject'}
+      <div data-project-problem>
+        <ProblemNotice
+          {problem}
+          {remedyLinks}
+          kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        />
+      </div>
+    {/if}
+    <form
+      method="POST"
+      action="?/updateProject&tab=overview"
+      class="project-edit-form"
+      onsubmit={submitForm}
+      use:formValidation
+      use:enhance={submitDetail}
+    >
       <input type="hidden" name="projectId" value={project.id} />
-      <input type="hidden" name="version" value={project.version ?? 1} />
+      <input
+        type="hidden"
+        name="version"
+        value={projectValue('version', Number(project.version ?? 1))}
+      />
       <div class="form-notice">
         <strong>{t('Protected project identity')}</strong><span
           >{display(project.project_number)} · {display(project.client_name)} · {display(
@@ -1233,7 +1493,7 @@
           <label
             >{t('Name')}<input
               name="name"
-              value={display(project.name, '')}
+              value={projectValue('name', display(project.name, ''))}
               required
               maxlength="200"
             /></label
@@ -1241,7 +1501,7 @@
           <label
             >{t('Cost center code')}<input
               name="costCenterCode"
-              value={display(project.cost_center_code, '')}
+              value={projectValue('costCenterCode', display(project.cost_center_code, ''))}
               required
               maxlength="120"
             /><small
@@ -1253,21 +1513,21 @@
           <label
             >{t('Project alias')}<input
               name="projectAlias"
-              value={display(project.project_alias, '')}
+              value={projectValue('projectAlias', display(project.project_alias, ''))}
               maxlength="120"
             /></label
           >
           <label
             >{t('PO / reference')}<input
               name="poNumber"
-              value={display(project.po_number, '')}
+              value={projectValue('poNumber', display(project.po_number, ''))}
               maxlength="200"
             /></label
           >
           <label
             >{t('Contract number')}<input
               name="contractNumber"
-              value={display(project.contract_number, '')}
+              value={projectValue('contractNumber', display(project.contract_number, ''))}
               maxlength="200"
             /></label
           >
@@ -1283,7 +1543,7 @@
           <label
             >{t('Timezone')}<input
               name="timezone"
-              value={display(project.timezone, '')}
+              value={projectValue('timezone', display(project.timezone, ''))}
               required
               maxlength="80"
             /></label
@@ -1291,14 +1551,14 @@
           <label
             >{t('Site / plant')}<input
               name="siteName"
-              value={display(project.site_name, '')}
+              value={projectValue('siteName', display(project.site_name, ''))}
               maxlength="200"
             /></label
           >
           <label
             >{t('Country')}<input
               name="country"
-              value={display(project.country, '')}
+              value={projectValue('country', display(project.country, ''))}
               maxlength="120"
             /></label
           >
@@ -1306,14 +1566,14 @@
             >{t('Start date')}<input
               name="startDate"
               type="date"
-              value={display(project.start_date, '')}
+              value={projectValue('startDate', display(project.start_date, ''))}
             /></label
           >
           <label
             >{t('Planned end')}<input
               name="plannedEndDate"
               type="date"
-              value={display(project.planned_end_date, '')}
+              value={projectValue('plannedEndDate', display(project.planned_end_date, ''))}
             /></label
           >
           <label
@@ -1323,9 +1583,12 @@
               step="0.25"
               min="0"
               max="24"
-              value={project.expected_minutes_per_day != null
-                ? Number((Number(project.expected_minutes_per_day) / 60).toFixed(2))
-                : ''}
+              value={projectValue(
+                'expectedHoursPerDay',
+                project.expected_minutes_per_day != null
+                  ? Number((Number(project.expected_minutes_per_day) / 60).toFixed(2))
+                  : '',
+              )}
               required
             /></label
           >
@@ -1336,9 +1599,12 @@
               step="0.25"
               min="0"
               max="24"
-              value={project.client_daily_minimum_minutes != null
-                ? Number((Number(project.client_daily_minimum_minutes) / 60).toFixed(2))
-                : ''}
+              value={projectValue(
+                'clientDailyMinimumHours',
+                project.client_daily_minimum_minutes != null
+                  ? Number((Number(project.client_daily_minimum_minutes) / 60).toFixed(2))
+                  : '',
+              )}
             /></label
           >
           <p class="edit-field-grid__help">
@@ -1349,9 +1615,12 @@
           <ProjectBudgetInput
             name="plannedMinutes"
             label={t('Planned hours')}
-            value={String(project.planned_minutes ?? '')}
+            value={String(projectValue('plannedMinutes', String(project.planned_minutes ?? '')))}
             kind="hours"
           />
+          {#if projectFieldError('plannedMinutes')}<p role="alert">
+              {projectFieldError('plannedMinutes')}
+            </p>{/if}
         </div>
       </section>
       <section class="edit-form-section" aria-labelledby="edit-commercial-title">
@@ -1364,10 +1633,20 @@
           <label
             >{t('Project manager')}<select name="projectManagerId"
               ><option value="">{t('Unassigned')}</option
+              >{#if failedProjectValues.projectManagerId && !(data.workers ?? []).some((worker) => String(worker.id) === failedProjectValues.projectManagerId)}<option
+                  value={failedProjectValues.projectManagerId}
+                  selected
+                  disabled
+                  >{failedProjectValues.projectManagerId} · {t(
+                    'problem.projectDetail.optionUnavailable',
+                  )}</option
+                >{/if}
               >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager'}<option
                     value={worker.id}
-                    selected={String(worker.id) === String(project.project_manager_id)}
-                    >{display(worker.name)} — {display(worker.email)}</option
+                    selected={String(worker.id) ===
+                      String(
+                        projectValue('projectManagerId', String(project.project_manager_id ?? '')),
+                      )}>{display(worker.name)} — {display(worker.email)}</option
                   >{/if}{/each}</select
             ></label
           >
@@ -1375,7 +1654,9 @@
             >{t('Commercial model')}<select name="billingModel"
               >{#each ['tm', 'tm_daily_minimum', 'all_in', 'capped_tm', 'milestone', 'hybrid', 'internal'] as model}<option
                   value={model}
-                  selected={String(project.billing_model) === model}
+                  selected={String(
+                    projectValue('billingModel', String(project.billing_model ?? '')),
+                  ) === model}
                   >{model === 'all_in'
                     ? t('Hourly labor with included expenses (all-in)')
                     : controlled('billingStream', model)}</option
@@ -1390,58 +1671,92 @@
           <label
             >{t('Budget type')}<input
               name="budgetType"
-              value={display(project.budget_type, 'none')}
+              value={projectValue('budgetType', display(project.budget_type, 'none'))}
               maxlength="80"
             /></label
           >
           <ProjectBudgetInput
             name="budgetMinor"
             label={t('Budget')}
-            value={String(project.budget_minor ?? '')}
+            value={String(projectValue('budgetMinor', String(project.budget_minor ?? '')))}
             currency={String(project.currency ?? 'USD')}
           />
+          {#if projectFieldError('budgetMinor')}<p role="alert">
+              {projectFieldError('budgetMinor')}
+            </p>{/if}
           <ProjectBudgetInput
             name="revenueBudgetMinor"
             label={t('Revenue budget')}
-            value={String(project.revenue_budget_minor ?? '')}
+            value={String(
+              projectValue('revenueBudgetMinor', String(project.revenue_budget_minor ?? '')),
+            )}
             currency={String(project.currency ?? 'USD')}
           />
+          {#if projectFieldError('revenueBudgetMinor')}<p role="alert">
+              {projectFieldError('revenueBudgetMinor')}
+            </p>{/if}
           <ProjectBudgetInput
             name="poCapMinor"
             label={t('PO cap')}
-            value={String(project.po_cap_minor ?? '')}
+            value={String(projectValue('poCapMinor', String(project.po_cap_minor ?? '')))}
             currency={String(project.currency ?? 'USD')}
           />
+          {#if projectFieldError('poCapMinor')}<p role="alert">
+              {projectFieldError('poCapMinor')}
+            </p>{/if}
           <ProjectBudgetInput
             name="fixedPriceMinor"
             label={t('Explicit fixed labor price')}
-            value={String(project.fixed_price_minor ?? '')}
+            value={String(projectValue('fixedPriceMinor', String(project.fixed_price_minor ?? '')))}
             currency={String(project.currency ?? 'USD')}
           />
+          {#if projectFieldError('fixedPriceMinor')}<p role="alert">
+              {projectFieldError('fixedPriceMinor')}
+            </p>{/if}
           <ProjectBudgetInput
             name="laborBudgetMinutes"
             label={t('Planned labor hours')}
-            value={String(project.labor_budget_minutes ?? '')}
+            value={String(
+              projectValue('laborBudgetMinutes', String(project.labor_budget_minutes ?? '')),
+            )}
             kind="hours"
           />
+          {#if projectFieldError('laborBudgetMinutes')}<p role="alert">
+              {projectFieldError('laborBudgetMinutes')}
+            </p>{/if}
           <ProjectBudgetInput
             name="expenseBudgetMinor"
             label={t('Expense budget')}
-            value={String(project.expense_budget_minor ?? '')}
+            value={String(
+              projectValue('expenseBudgetMinor', String(project.expense_budget_minor ?? '')),
+            )}
             currency={String(project.currency ?? 'USD')}
           />
+          {#if projectFieldError('expenseBudgetMinor')}<p role="alert">
+              {projectFieldError('expenseBudgetMinor')}
+            </p>{/if}
           <ProjectBudgetInput
             name="travelBudgetMinor"
             label={t('Travel budget')}
-            value={String(project.travel_budget_minor ?? '')}
+            value={String(
+              projectValue('travelBudgetMinor', String(project.travel_budget_minor ?? '')),
+            )}
             currency={String(project.currency ?? 'USD')}
           />
+          {#if projectFieldError('travelBudgetMinor')}<p role="alert">
+              {projectFieldError('travelBudgetMinor')}
+            </p>{/if}
           <ProjectBudgetInput
             name="otherCostBudgetMinor"
             label={t('Other cost budget')}
-            value={String(project.other_cost_budget_minor ?? '')}
+            value={String(
+              projectValue('otherCostBudgetMinor', String(project.other_cost_budget_minor ?? '')),
+            )}
             currency={String(project.currency ?? 'USD')}
           />
+          {#if projectFieldError('otherCostBudgetMinor')}<p role="alert">
+              {projectFieldError('otherCostBudgetMinor')}
+            </p>{/if}
         </div>
       </section>
       <details class="advanced-edit-fields">
@@ -1449,19 +1764,22 @@
         <div class="edit-field-grid">
           <label class="wide-field"
             >{t('Description')}<textarea name="description" rows="3"
-              >{display(project.description, '')}</textarea
+              >{projectValue('description', display(project.description, ''))}</textarea
             ></label
           >
           <label class="wide-field"
             >{t('Administration notes')}<textarea name="notes" rows="3"
-              >{display(project.notes, '')}</textarea
+              >{projectValue('notes', display(project.notes, ''))}</textarea
             ></label
           >
           <label class="check"
             ><input
               name="weeklyCloseEnabled"
               type="checkbox"
-              checked={Number(project.weekly_close_enabled ?? 0) === 1}
+              checked={projectChecked(
+                'weeklyCloseEnabled',
+                Number(project.weekly_close_enabled ?? 0) === 1,
+              )}
             />
             {t('Weekly close enabled')}</label
           >
@@ -1469,7 +1787,10 @@
             ><input
               name="dailyReportRequired"
               type="checkbox"
-              checked={Number(project.daily_report_required ?? 0) === 1}
+              checked={projectChecked(
+                'dailyReportRequired',
+                Number(project.daily_report_required ?? 0) === 1,
+              )}
             />
             {t('Daily report required')}</label
           >
@@ -1477,7 +1798,10 @@
             ><input
               name="technicalReportingRequired"
               type="checkbox"
-              checked={Number(project.technical_reporting_required ?? 0) === 1}
+              checked={projectChecked(
+                'technicalReportingRequired',
+                Number(project.technical_reporting_required ?? 0) === 1,
+              )}
             />
             {t('PLC report required')}</label
           >
@@ -1510,15 +1834,32 @@
     class="project-invoice-sheet"
     onclose={() => (invoiceOpen = false)}
   >
+    {#if problem && detailForm?.actionName === 'createInvoiceDraft'}
+      <div data-project-problem>
+        <ProblemNotice
+          {problem}
+          {remedyLinks}
+          kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        />
+      </div>
+    {/if}
     {#if billingRules.length > 0}
       <form
         method="POST"
         action="?/createInvoiceDraft&tab=billing"
         class="invoice-draft-form"
         onsubmit={submitForm}
+        use:formValidation
+        use:enhance={submitDetail}
       >
         <label
           >{t('Billing stream')}<select name="billingRuleId" value={selectedDraftRuleId} required
+            >{#if selectedDraftRuleId && !billingRules.some((rule) => String(rule.id) === selectedDraftRuleId)}<option
+                value={selectedDraftRuleId}
+                selected
+                disabled
+                >{selectedDraftRuleId} · {t('problem.projectDetail.optionUnavailable')}</option
+              >{/if}
             >{#each billingRules as rule}<option value={rule.id}
                 >{controlled('billingStream', rule.stream_type)} · {controlled(
                   'billingStream',
@@ -1545,7 +1886,7 @@
         >
         {#if form && !form.success && Array.isArray((form as { reasons?: unknown }).reasons)}
           <aside class="form-notice" role="alert">
-            <span>{actionFeedback}</span>
+            {#if actionFeedback}<span>{actionFeedback}</span>{/if}
             <ul>
               {#each (form as { reasons?: Array<{ code?: string }> }).reasons ?? [] as reason}
                 <li>{t(billingReadinessMessageKey(reason?.code))}</li>

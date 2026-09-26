@@ -13,7 +13,7 @@
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import FilterSummary from '../ui/FilterSummary.svelte';
   import DatePresets from '../ui/DatePresets.svelte';
-  import { normalizePortalLocale } from '../../portal-i18n';
+  import { normalizePortalLocale, portalText } from '../../portal-i18n';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { reportGuidanceFor } from '../report-guidance';
@@ -45,6 +45,9 @@
     translate: (value: string) => string;
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
+  const reportLocale = $derived(
+    normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
+  );
 
   const nativeReportForm = $page.form as
     | (ProblemData & { values?: Record<string, unknown> })
@@ -1411,6 +1414,13 @@
           review_report: {
             label: translate('Review updated report'),
             href: `${base}/app/reports?view=${activeTab}#report-panel-${activeTab}`,
+          },
+          review_report_fields: {
+            label: portalText(reportLocale, 'problem.remedy.reviewReportFields'),
+          },
+          review_report_period: {
+            label: portalText(reportLocale, 'problem.remedy.reviewReportPeriod'),
+            href: `${base}/app/reports?view=generated#report-panel-generated`,
           },
           request_report_correction: {
             label: translate('Review report corrections'),

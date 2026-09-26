@@ -8,7 +8,13 @@
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { ProblemData } from '../../problem/contract';
   import type { PortalData, PortalRow as Row } from '../portal-data';
-  import { ProblemNotice, SectionCard, StatusBadge } from '../ui';
+  import {
+    ProblemNotice,
+    SectionCard,
+    StatusBadge,
+    formValidation,
+    reportFormFieldErrors,
+  } from '../ui';
   import {
     operationalMatches,
     operationalPage,
@@ -40,7 +46,16 @@
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
 
-  let activeTab = $state<Tab>('time');
+  const initialFailureType = String(
+    (($page.form as { values?: Record<string, unknown> } | null)?.values ?? {}).type ?? '',
+  );
+  let activeTab = $state<Tab>(
+    initialFailureType === 'expense'
+      ? 'expenses'
+      : initialFailureType === 'daily' || initialFailureType === 'technical'
+        ? 'reports'
+        : 'time',
+  );
   const approvalProblem = $derived.by(() => {
     const result = $page.form as (ProblemData & { success?: boolean }) | null | undefined;
     return result?.success === false &&
@@ -48,16 +63,61 @@
       ? result
       : null;
   });
+  const failedApprovalValues = $derived(
+    ((approvalProblem as (ProblemData & { values?: Record<string, unknown> }) | null)?.values ??
+      {}) as Record<string, unknown>,
+  );
+  const failedApprovalRowMissing = $derived.by(() => {
+    const id = String(failedApprovalValues.id ?? '');
+    return (
+      Boolean(approvalProblem && id) &&
+      ![...(data.records ?? []), ...(data.milestones ?? [])].some(
+        (row) => String(row.id ?? '') === id,
+      )
+    );
+  });
+  const retainedApprovalInputs = $derived.by(() => {
+    const inputs: Array<{ label: string; value: string }> = [];
+    const reason = String(failedApprovalValues.reason ?? '');
+    if (reason) inputs.push({ label: translate('Review reason'), value: reason });
+    const billable = String(failedApprovalValues.billable ?? '');
+    if (billable === 'yes' || billable === 'no')
+      inputs.push({
+        label: translate('Commercial treatment'),
+        value: translate(billable === 'yes' ? 'Billable' : 'Non-billable'),
+      });
+    return inputs;
+  });
+  const approvalCurrentStatus = $derived.by(() => {
+    const currentStatus = String(approvalProblem?.params.currentStatus ?? '');
+    if (currentStatus)
+      return `${translate('Current status')}: ${controlledValue('status', currentStatus) || currentStatus}`;
+    const id = String(failedApprovalValues.id ?? '');
+    if (!id) return undefined;
+    const row = [...(data.records ?? []), ...(data.milestones ?? [])].find(
+      (candidate) => String(candidate.id ?? '') === id,
+    );
+    const status = String(row?.approval_state ?? row?.state ?? '');
+    return status
+      ? `${translate('Current status')}: ${controlledValue('status', status) || status}`
+      : undefined;
+  });
   const approvalRemedyLinks = $derived.by(() => {
     const links: Record<string, { label: string; href?: string }> = {
       contact_project_owner: { label: translate('Contact a project owner') },
       contact_project_reviewer: { label: translate('Contact a project reviewer') },
       contact_finance_owner: { label: translate('Contact Finance or an owner') },
+      review_approval_queue: {
+        label: translate('problem.remedy.reviewApprovalQueue'),
+        href: '#approval-queue',
+      },
+      enter_reason: { label: translate('Review reason') },
+      return_for_correction: { label: translate('problem.remedy.returnForCorrection') },
     };
     const remedy = approvalProblem?.remedies.find((item) => item.id === 'review_updated_record');
     if (
       remedy?.recordId &&
-      ['time', 'expense'].includes(String(approvalProblem?.params.recordType))
+      ['time', 'expense', 'daily', 'technical'].includes(String(approvalProblem?.params.recordType))
     ) {
       links.review_updated_record = {
         label: translate('Review updated record'),
@@ -95,6 +155,77 @@
   let registerStateHydrated = $state(false);
   // v2 intentionally resets the former "oldest" default to the action-priority ordering.
   const registerStateKey = (): string => `ja-operational-register:approvals-v2:${data.user.id}`;
+  const approvalScrollKey = (): string => `ja-approval-scroll:${data.user.id}`;
+  let pendingApprovalForm: HTMLFormElement | null = null;
+  let approvalScrollIntent = false;
+  let stopApprovalScrollRestore: (() => void) | null = null;
+
+  function rememberApprovalScroll(form: HTMLFormElement): void {
+    if (!form.closest('.approval-page')) return;
+    if (
+      !/^\?\/(?:approveRecord|financeApprove|reviewReport|reviewMilestone|reviewTechnicalChange)/u.test(
+        form.getAttribute('action') ?? '',
+      )
+    )
+      return;
+    pendingApprovalForm = form;
+    approvalScrollIntent = false;
+    try {
+      sessionStorage.setItem(
+        approvalScrollKey(),
+        JSON.stringify({ path: location.pathname, top: window.scrollY, at: Date.now() }),
+      );
+    } catch {
+      // Storage can be unavailable; the action and visible response still work.
+    }
+  }
+
+  function restoreApprovalScroll(): void {
+    let stored: string | null = null;
+    try {
+      stored = sessionStorage.getItem(approvalScrollKey());
+      sessionStorage.removeItem(approvalScrollKey());
+    } catch {
+      return;
+    }
+    if (!stored) return;
+    try {
+      const snapshot = JSON.parse(stored) as { path?: string; top?: number; at?: number };
+      if (
+        snapshot.path === location.pathname &&
+        typeof snapshot.top === 'number' &&
+        Number.isFinite(snapshot.top) &&
+        typeof snapshot.at === 'number' &&
+        Date.now() - snapshot.at < 300_000
+      ) {
+        stopApprovalScrollRestore?.();
+        let active = true;
+        let observer: ResizeObserver | undefined;
+        const timers: number[] = [];
+        const restore = () => {
+          if (active && !approvalScrollIntent)
+            window.scrollTo({ top: snapshot.top!, behavior: 'instant' });
+        };
+        stopApprovalScrollRestore = () => {
+          active = false;
+          observer?.disconnect();
+          for (const timer of timers) window.clearTimeout(timer);
+        };
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            if (!active) return;
+            restore();
+            observer = new ResizeObserver(() => requestAnimationFrame(restore));
+            observer.observe(document.body);
+            for (const delay of [180, 450, 900]) timers.push(window.setTimeout(restore, delay));
+            timers.push(window.setTimeout(() => observer?.disconnect(), 1_500));
+          }),
+        );
+      }
+    } catch {
+      // Ignore a stale or malformed snapshot.
+    }
+  }
 
   onMount(() => {
     const saved = readOperationalRegisterState<{
@@ -108,7 +239,12 @@
       financeSearch?: string;
       financePage?: number;
     }>(registerStateKey());
-    if (!$page.url.searchParams.has('tab') && saved?.activeTab && tabs.includes(saved.activeTab))
+    if (
+      !approvalProblem &&
+      !$page.url.searchParams.has('tab') &&
+      saved?.activeTab &&
+      tabs.includes(saved.activeTab)
+    )
       activeTab = saved.activeTab;
     if (!$page.url.searchParams.has('q') && typeof saved?.search === 'string')
       search = saved.search;
@@ -126,6 +262,46 @@
     if (typeof saved?.financeSearch === 'string') financeSearch = saved.financeSearch;
     if (typeof saved?.financePage === 'number') financePage = saved.financePage;
     registerStateHydrated = true;
+    if (!approvalProblem) {
+      try {
+        sessionStorage.removeItem(approvalScrollKey());
+      } catch {
+        // Storage can be unavailable.
+      }
+    }
+    const captureSubmit = (event: Event) => {
+      if (event.target instanceof HTMLFormElement) rememberApprovalScroll(event.target);
+    };
+    const captureFormData = (event: Event) => {
+      if (event.target instanceof HTMLFormElement && event.target !== pendingApprovalForm)
+        rememberApprovalScroll(event.target);
+    };
+    const markScrollIntent = () => {
+      approvalScrollIntent = true;
+    };
+    const markKeyScrollIntent = (event: KeyboardEvent) => {
+      if (
+        ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ', 'Tab'].includes(
+          event.key,
+        )
+      )
+        markScrollIntent();
+    };
+    document.addEventListener('submit', captureSubmit, true);
+    document.addEventListener('formdata', captureFormData, true);
+    window.addEventListener('wheel', markScrollIntent, { passive: true });
+    window.addEventListener('touchmove', markScrollIntent, { passive: true });
+    window.addEventListener('pointerdown', markScrollIntent, { passive: true });
+    window.addEventListener('keydown', markKeyScrollIntent, true);
+    return () => {
+      document.removeEventListener('submit', captureSubmit, true);
+      document.removeEventListener('formdata', captureFormData, true);
+      window.removeEventListener('wheel', markScrollIntent);
+      window.removeEventListener('touchmove', markScrollIntent);
+      window.removeEventListener('pointerdown', markScrollIntent);
+      window.removeEventListener('keydown', markKeyScrollIntent, true);
+      stopApprovalScrollRestore?.();
+    };
   });
   $effect(() => {
     if (registerStateHydrated)
@@ -145,7 +321,8 @@
 
   $effect(() => {
     const tab = $page.url.searchParams.get('tab');
-    if (tab === 'time' || tab === 'expenses' || tab === 'reports') activeTab = tab;
+    if (!approvalProblem && (tab === 'time' || tab === 'expenses' || tab === 'reports'))
+      activeTab = tab;
     search = $page.url.searchParams.get('q')?.trim() ?? search;
     projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
     workerFilter = $page.url.searchParams.get('worker')?.trim() ?? '';
@@ -326,6 +503,23 @@
     return raw === null || raw === undefined ? '' : String(raw);
   }
 
+  function failedDecisionValue(row: Row, decision: string, field: string): string {
+    if (
+      String(failedApprovalValues.id ?? '') !== value(row, 'id') ||
+      String(failedApprovalValues.type ?? '') !== rowType(row) ||
+      String(failedApprovalValues.decision ?? '') !== decision
+    )
+      return '';
+    return String(failedApprovalValues[field] ?? '');
+  }
+
+  function failedFinanceBillable(row: Row): string {
+    return String(failedApprovalValues.id ?? '') === value(row, 'id') &&
+      String(failedApprovalValues.type ?? '') === rowType(row)
+      ? String(failedApprovalValues.billable ?? '')
+      : '';
+  }
+
   function recordHref(row: Row): string {
     const id = encodeURIComponent(value(row, 'id'));
     const type = value(row, 'type');
@@ -361,17 +555,64 @@
     const scrollTop = window.scrollY;
     return async ({ result, update }) => {
       await update({ reset: false });
+      pendingApprovalForm = null;
+      if (result.type === 'success') {
+        try {
+          sessionStorage.removeItem(approvalScrollKey());
+        } catch {
+          // Storage can be unavailable.
+        }
+      }
       if (result.type === 'success' || result.type === 'failure') {
         await tick();
         window.scrollTo({ top: scrollTop, behavior: 'instant' });
-        if (result.type === 'failure') {
-          (document.querySelector('[data-approval-problem]') as HTMLElement | null)?.focus({
-            preventScroll: true,
-          });
-        }
       }
     };
   };
+
+  let focusedApprovalProblemId = '';
+  $effect(() => {
+    const problem = approvalProblem;
+    if (!problem?.correlationId || problem.correlationId === focusedApprovalProblemId) return;
+    focusedApprovalProblemId = problem.correlationId;
+    const values = failedApprovalValues;
+    const type = String(values.type ?? '');
+    if (type === 'time') activeTab = 'time';
+    else if (type === 'expense') activeTab = 'expenses';
+    else if (type === 'daily' || type === 'technical') activeTab = 'reports';
+    void tick().then(() => {
+      const actionName = String(
+        (problem as ProblemData & { actionName?: string }).actionName ?? '',
+      );
+      const forms = Array.from(document.querySelectorAll<HTMLFormElement>('form[action^="?/"]'));
+      const target = forms.find((candidate) => {
+        const action = candidate.getAttribute('action') ?? '';
+        if (actionName && !action.includes('?/' + actionName)) return false;
+        if (candidate.querySelector<HTMLInputElement>('input[name="id"]')?.value !== values.id)
+          return false;
+        if (
+          values.type &&
+          candidate.querySelector<HTMLInputElement>('input[name="type"]')?.value !== values.type
+        )
+          return false;
+        if (
+          values.decision &&
+          candidate.querySelector<HTMLInputElement>('input[name="decision"]')?.value !==
+            values.decision
+        )
+          return false;
+        return true;
+      });
+      const disclosure = target?.closest('details');
+      if (disclosure) disclosure.open = true;
+      if (target && problem.fieldErrors) reportFormFieldErrors(target, problem.fieldErrors);
+      const focusTarget =
+        target?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        document.querySelector<HTMLElement>('[data-approval-problem] [data-ui="problem-notice"]');
+      focusTarget?.focus({ preventScroll: true });
+      restoreApprovalScroll();
+    });
+  });
 
   function applyFilters(event: SubmitEvent): void {
     event.preventDefault();
@@ -531,7 +772,28 @@
 
   {#if approvalProblem}
     <div data-approval-problem tabindex="-1">
-      <ProblemNotice problem={approvalProblem} remedyLinks={approvalRemedyLinks} />
+      <ProblemNotice
+        problem={approvalProblem}
+        status={approvalCurrentStatus}
+        remedyLinks={approvalRemedyLinks}
+      />
+      {#if failedApprovalRowMissing && retainedApprovalInputs.length}
+        <section
+          class="approval-retained-values"
+          data-approval-retained-values
+          aria-label={translate('Entered values')}
+        >
+          <strong>{translate('Entered values')}</strong>
+          <dl>
+            {#each retainedApprovalInputs as input (input.label)}
+              <div>
+                <dt>{input.label}</dt>
+                <dd>{input.value}</dd>
+              </div>
+            {/each}
+          </dl>
+        </section>
+      {/if}
     </div>
   {/if}
 
@@ -714,21 +976,42 @@
                 {#if isAuditor}
                   <span class="approval-read-only">{translate('Read-only review')}</span>
                 {:else if value(row, 'review_stage') === 'report'}
-                  <form method="POST" action="?/reviewReport" use:enhance={submitApproval}>
+                  <form
+                    method="POST"
+                    action="?/reviewReport"
+                    use:formValidation
+                    use:enhance={submitApproval}
+                  >
                     <input type="hidden" name="type" value={value(row, 'type')} />
                     <input type="hidden" name="id" value={value(row, 'id')} />
                     <input type="hidden" name="decision" value="approved" />
                     <button type="submit">{translate('Approve report')}</button>
                   </form>
-                  <details class="approval-action-menu">
+                  <details
+                    class="approval-action-menu"
+                    open={String(failedApprovalValues.id ?? '') === value(row, 'id') &&
+                      String(failedApprovalValues.decision ?? '') === 'needs_changes'}
+                  >
                     <summary>{translate('Review actions')}</summary>
-                    <form method="POST" action="?/reviewReport" use:enhance={submitApproval}>
+                    <form
+                      method="POST"
+                      action="?/reviewReport"
+                      use:formValidation
+                      use:enhance={submitApproval}
+                    >
                       <input type="hidden" name="type" value={value(row, 'type')} />
                       <input type="hidden" name="id" value={value(row, 'id')} />
                       <input type="hidden" name="decision" value="needs_changes" />
                       <label>
                         <span>{translate('Required change')}</span>
-                        <input name="reason" minlength="3" required />
+                        <input
+                          name="reason"
+                          minlength="3"
+                          value={String(failedApprovalValues.id ?? '') === value(row, 'id')
+                            ? String(failedApprovalValues.reason ?? '')
+                            : ''}
+                          required
+                        />
                       </label>
                       <button type="submit" class="secondary-button">{translate('Return')}</button>
                     </form>
@@ -748,33 +1031,64 @@
                     >
                   {/if}
                 {:else}
-                  <form method="POST" action="?/approveRecord" use:enhance={submitApproval}>
+                  <form
+                    method="POST"
+                    action="?/approveRecord"
+                    use:formValidation
+                    use:enhance={submitApproval}
+                  >
                     <input type="hidden" name="type" value={rowType(row)} />
                     <input type="hidden" name="id" value={value(row, 'id')} />
                     <input type="hidden" name="decision" value="approved" />
                     <button type="submit">{translate('Approve')}</button>
                   </form>
-                  <details class="approval-action-menu">
+                  <details
+                    class="approval-action-menu"
+                    open={String(failedApprovalValues.id ?? '') === value(row, 'id') &&
+                      ['needs_changes', 'rejected'].includes(
+                        String(failedApprovalValues.decision ?? ''),
+                      )}
+                  >
                     <summary>{translate('Review actions')}</summary>
-                    <form method="POST" action="?/approveRecord" use:enhance={submitApproval}>
+                    <form
+                      method="POST"
+                      action="?/approveRecord"
+                      use:formValidation
+                      use:enhance={submitApproval}
+                    >
                       <input type="hidden" name="type" value={rowType(row)} />
                       <input type="hidden" name="id" value={value(row, 'id')} />
                       <input type="hidden" name="decision" value="needs_changes" />
                       <label>
                         <span>{translate('Required change')}</span>
-                        <input name="reason" minlength="3" required />
+                        <input
+                          name="reason"
+                          minlength="3"
+                          value={failedDecisionValue(row, 'needs_changes', 'reason')}
+                          required
+                        />
                       </label>
                       <button type="submit" class="secondary-button">
                         {translate('Needs changes')}
                       </button>
                     </form>
-                    <form method="POST" action="?/approveRecord" use:enhance={submitApproval}>
+                    <form
+                      method="POST"
+                      action="?/approveRecord"
+                      use:formValidation
+                      use:enhance={submitApproval}
+                    >
                       <input type="hidden" name="type" value={rowType(row)} />
                       <input type="hidden" name="id" value={value(row, 'id')} />
                       <input type="hidden" name="decision" value="rejected" />
                       <label>
                         <span>{translate('Rejection reason')}</span>
-                        <input name="reason" minlength="3" required />
+                        <input
+                          name="reason"
+                          minlength="3"
+                          value={failedDecisionValue(row, 'rejected', 'reason')}
+                          required
+                        />
                       </label>
                       <button type="submit" class="danger-button">{translate('Reject')}</button>
                     </form>
@@ -902,19 +1216,40 @@
               <span class="approval-read-only">{translate('Read-only review')}</span>
             {:else}
               <div class="approval-row-actions">
-                <form method="POST" action="?/reviewMilestone" use:enhance={submitApproval}>
+                <form
+                  method="POST"
+                  action="?/reviewMilestone"
+                  use:formValidation
+                  use:enhance={submitApproval}
+                >
                   <input type="hidden" name="id" value={value(milestone, 'id')} />
                   <input type="hidden" name="decision" value="approved" />
                   <button type="submit">{translate('Approve')}</button>
                 </form>
-                <details class="approval-action-menu">
+                <details
+                  class="approval-action-menu"
+                  open={String(failedApprovalValues.id ?? '') === value(milestone, 'id') &&
+                    String(failedApprovalValues.decision ?? '') === 'rejected'}
+                >
                   <summary>{translate('Review actions')}</summary>
-                  <form method="POST" action="?/reviewMilestone" use:enhance={submitApproval}>
+                  <form
+                    method="POST"
+                    action="?/reviewMilestone"
+                    use:formValidation
+                    use:enhance={submitApproval}
+                  >
                     <input type="hidden" name="id" value={value(milestone, 'id')} />
                     <input type="hidden" name="decision" value="rejected" />
                     <label>
                       <span>{translate('Rejection reason')}</span>
-                      <input name="reason" minlength="3" required />
+                      <input
+                        name="reason"
+                        minlength="3"
+                        value={String(failedApprovalValues.id ?? '') === value(milestone, 'id')
+                          ? String(failedApprovalValues.reason ?? '')
+                          : ''}
+                        required
+                      />
                     </label>
                     <button type="submit" class="danger-button">{translate('Reject')}</button>
                   </form>
@@ -998,6 +1333,7 @@
                   method="POST"
                   action="?/financeApprove"
                   class="finance-review-form"
+                  use:formValidation
                   use:enhance={submitApproval}
                 >
                   <input type="hidden" name="type" value={rowType(row)} />
@@ -1005,7 +1341,8 @@
                   {#if value(row, 'type') === 'time'}
                     <label>
                       <span>{translate('Commercial treatment')}</span>
-                      <select name="billable" required>
+                      <select name="billable" value={failedFinanceBillable(row)} required>
+                        <option value="" disabled>{translate('Choose an option')}</option>
                         <option value="yes">{translate('Billable')}</option>
                         <option value="no">{translate('Non-billable')}</option>
                       </select>
@@ -1056,6 +1393,23 @@
   .approval-page {
     display: grid;
     gap: 1.25rem;
+    overflow-anchor: none;
+  }
+
+  .approval-retained-values {
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--border, #dfdedc);
+    border-radius: 0.5rem;
+    overflow-wrap: anywhere;
+  }
+
+  .approval-retained-values dl {
+    margin: 0.5rem 0 0;
+  }
+
+  .approval-retained-values dd {
+    margin: 0.15rem 0 0;
+    white-space: pre-wrap;
   }
 
   .approval-context,

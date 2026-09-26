@@ -28,7 +28,7 @@
   },
   "qaSpec": {
     "path": "tests/e2e/error-warning-supplier-crew.spec.ts",
-    "sha256": "34a1da9e99a2d02763efa70ec999e70cea0190651f85383b0f575b9551bbd823"
+    "sha256": "5dfd6e4caac41d417598c352e1145ea6ac0782800164eff1cb4bdb5dd1a12c0a"
   },
   "previewConfig": {
     "path": "docs/evidence/error-warning-finance-billing/playwright.qa-preview.config.ts",

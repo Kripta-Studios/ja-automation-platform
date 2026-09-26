@@ -56,7 +56,7 @@ describe('billing and export action problems', () => {
       values,
     );
     expect(result.data).toMatchObject({
-      code: 'BILLING_PAYMENT_BLOCKED',
+      code: 'BILLING_PAYMENT_INVOICE_UNAVAILABLE',
       remedies: [{ id: 'review_ledger' }],
       billingOperation: 'recordPayment',
       values,

@@ -1,38 +1,233 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { page } from '$app/stores';
-  import { tick } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { notificationCopy } from '../../notifications/copy';
   import { notificationTargetPath } from '../../notifications/target';
   import { standaloneActionMessage } from '../../../routes/app/standalone-locale';
+  import ProblemNotice from '../ui/ProblemNotice.svelte';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
-  import type { PortalRow } from '../portal-data';
+  import type { ProblemData } from '$lib/problem/contract';
+  import type { PortalActionResult, PortalRow } from '../portal-data';
 
   let {
     records,
     base,
+    currentUserId,
     locale,
     translate,
+    form,
   }: {
     records: PortalRow[];
     base: string;
+    currentUserId: string;
     locale: 'en' | 'es' | 'pt';
     translate: (key: string) => string;
+    form?: PortalActionResult;
   } = $props();
+  type NotificationFailure = ProblemData & {
+    success?: boolean;
+    actionName?: string;
+    values?: Record<string, unknown>;
+  };
+  const nativeFailure = $derived.by(() => {
+    const result = form as NotificationFailure | null | undefined;
+    return result?.success === false && result.actionName === 'markNotificationRead' && result.code
+      ? result
+      : null;
+  });
+  const nativeSuccess = $derived.by(() => {
+    const result = form as { success?: boolean; messageKey?: string } | null | undefined;
+    return result?.success === true && result.messageKey === 'action.notifications.markedRead'
+      ? standaloneActionMessage(locale, form)
+      : '';
+  });
+  let enhancedProblem = $state<NotificationFailure | null>(null);
+  const problem = $derived(enhancedProblem ?? nativeFailure);
+  const blockedByAccess = $derived(problem?.code === 'NOTIFICATION_ACCESS_CHANGED');
+  const hiddenNotificationId = $derived(
+    problem?.code === 'NOTIFICATION_UNAVAILABLE'
+      ? String(problem.values?.notificationId ?? '')
+      : '',
+  );
+  const visibleRecords = $derived(
+    blockedByAccess ? [] : records.filter((row) => String(row.id) !== hiddenNotificationId),
+  );
   const unreadOnly = $derived($page.url.searchParams.get('read') === 'unread');
-  const unreadCount = $derived(records.filter((row) => !row.read_at).length);
-  const filtered = $derived(unreadOnly ? records.filter((row) => !row.read_at) : records);
+  const unreadCount = $derived(visibleRecords.filter((row) => !row.read_at).length);
+  const filtered = $derived(
+    unreadOnly ? visibleRecords.filter((row) => !row.read_at) : visibleRecords,
+  );
   let savingId = $state('');
   let feedback = $state('');
-  let failed = $state(false);
-  let feedbackElement: HTMLParagraphElement;
+  let feedbackElement: HTMLParagraphElement | undefined = $state();
+  const remedyLinks = $derived({
+    review_notifications: {
+      label: translate('Review activity inbox'),
+      href: filterHref(unreadOnly) + '#notification-inbox-title',
+    },
+    sign_in_again: { label: translate('Sign in again'), href: `${base}/app/login` },
+    contact_owner: { label: translate('Contact an owner') },
+  });
 
   function filterHref(unread: boolean): string {
     const url = new URL($page.url);
+    url.searchParams.delete('/markNotificationRead');
     if (unread) url.searchParams.set('read', 'unread');
     else url.searchParams.delete('read');
     url.searchParams.set('lang', locale);
     return `${url.pathname}${url.search}`;
+  }
+  function markReadHref(): string {
+    const parameters = new URLSearchParams($page.url.searchParams);
+    parameters.delete('/markNotificationRead');
+    parameters.set('lang', locale);
+    return `?/markNotificationRead&${parameters.toString()}#notification-inbox-title`;
+  }
+  type ScrollSnapshot = {
+    top: number;
+    path: string;
+    unreadOnly: boolean;
+    notificationId: string;
+    at: number;
+  };
+  const scrollKey = () => `ja-notification-scroll:${currentUserId}:markNotificationRead`;
+  let pendingForm: HTMLFormElement | null = null;
+  let pendingSource: 'submit' | 'formdata' | null = null;
+  let userIntentCount = 0;
+  let enhancedHandled = false;
+  function rememberScroll(formElement: HTMLFormElement): void {
+    const snapshot: ScrollSnapshot = {
+      top: window.scrollY,
+      path: location.pathname,
+      unreadOnly,
+      notificationId:
+        formElement.querySelector<HTMLInputElement>('input[name="notificationId"]')?.value ?? '',
+      at: Date.now(),
+    };
+    try {
+      sessionStorage.setItem(scrollKey(), JSON.stringify(snapshot));
+    } catch {
+      // The form still works when browser storage is unavailable.
+    }
+  }
+  function forgetScroll(): void {
+    try {
+      sessionStorage.removeItem(scrollKey());
+    } catch {
+      // The form still works when browser storage is unavailable.
+    }
+  }
+  function restoreScroll(notificationId?: string): void {
+    let saved: string | null = null;
+    try {
+      saved = sessionStorage.getItem(scrollKey());
+      sessionStorage.removeItem(scrollKey());
+    } catch {
+      return;
+    }
+    if (!saved) return;
+    let snapshot: Partial<ScrollSnapshot>;
+    try {
+      snapshot = JSON.parse(saved) as Partial<ScrollSnapshot>;
+    } catch {
+      return;
+    }
+    if (
+      snapshot.path !== location.pathname ||
+      snapshot.unreadOnly !== unreadOnly ||
+      (notificationId && snapshot.notificationId !== notificationId) ||
+      typeof snapshot.top !== 'number' ||
+      !Number.isFinite(snapshot.top) ||
+      typeof snapshot.at !== 'number' ||
+      Date.now() - snapshot.at > 300_000 ||
+      userIntentCount > 0
+    )
+      return;
+    window.scrollTo({ top: snapshot.top, behavior: 'auto' });
+  }
+  onMount(() => {
+    if (!nativeFailure && !nativeSuccess) forgetScroll();
+    const markIntent = () => {
+      userIntentCount += 1;
+    };
+    const captureSubmit = (event: Event) => {
+      const formElement = event.target;
+      if (!(formElement instanceof HTMLFormElement)) return;
+      if (!formElement.matches('[data-notification-read-form]')) return;
+      pendingForm = formElement;
+      pendingSource = 'submit';
+      rememberScroll(formElement);
+    };
+    const captureFormData = (event: Event) => {
+      const formElement = event.target;
+      if (!(formElement instanceof HTMLFormElement)) return;
+      if (!formElement.matches('[data-notification-read-form]')) return;
+      if (pendingForm === formElement && pendingSource === 'submit') return;
+      pendingForm = formElement;
+      pendingSource = 'formdata';
+      rememberScroll(formElement);
+    };
+    const capturePageHide = () => {
+      if (!pendingForm) return;
+      try {
+        if (!sessionStorage.getItem(scrollKey())) rememberScroll(pendingForm);
+      } catch {
+        // The pre-navigation snapshot already failed to persist.
+      }
+    };
+    document.addEventListener('submit', captureSubmit, true);
+    document.addEventListener('formdata', captureFormData, true);
+    window.addEventListener('pagehide', capturePageHide);
+    window.addEventListener('wheel', markIntent, { passive: true });
+    window.addEventListener('touchmove', markIntent, { passive: true });
+    window.addEventListener('pointerdown', markIntent, true);
+    window.addEventListener('keydown', markIntent, true);
+    return () => {
+      document.removeEventListener('submit', captureSubmit, true);
+      document.removeEventListener('formdata', captureFormData, true);
+      window.removeEventListener('pagehide', capturePageHide);
+      window.removeEventListener('wheel', markIntent);
+      window.removeEventListener('touchmove', markIntent);
+      window.removeEventListener('pointerdown', markIntent, true);
+      window.removeEventListener('keydown', markIntent, true);
+    };
+  });
+  let handledNativeResult = '';
+  $effect(() => {
+    const resultId = nativeFailure?.correlationId ?? (nativeSuccess ? 'marked-read' : '');
+    if (!resultId || resultId === handledNativeResult || enhancedHandled) return;
+    handledNativeResult = resultId;
+    const notificationId = String(nativeFailure?.values?.notificationId ?? '');
+    void tick().then(() =>
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (userIntentCount > 0) return;
+          const focusTarget = nativeFailure
+            ? (document.querySelector<HTMLElement>(
+                '#notification-inbox-title ~ [data-ui="problem-notice"]',
+              ) ??
+              document.querySelector<HTMLElement>('.notification-inbox [data-ui="problem-notice"]'))
+            : feedbackElement;
+          focusTarget?.focus({ preventScroll: true });
+          restoreScroll(notificationId || undefined);
+        }),
+      ),
+    );
+  });
+  function uncertainSaveProblem(): NotificationFailure {
+    return {
+      success: false,
+      actionName: 'markNotificationRead',
+      code: 'NOTIFICATION_SAVE_UNCONFIRMED',
+      messageKey: 'problem.notification.saveUnconfirmed',
+      message:
+        'The save could not be confirmed. Review the activity inbox before trying again; it may already be marked as read.',
+      params: {},
+      fieldErrors: {},
+      remedies: [{ id: 'review_notifications' }],
+      correlationId: '',
+    };
   }
   function timestamp(value: unknown): string {
     const date = new Date(String(value));
@@ -49,27 +244,30 @@
 <section class="record-list full notification-inbox" aria-labelledby="notification-inbox-title">
   <div class="panel-title">
     <h2 id="notification-inbox-title">{translate('Activity inbox')}</h2>
-    <span class="inbox-total"><b>{records.length}</b>{translate('Records')}</span>
+    <span class="inbox-total"><b>{visibleRecords.length}</b>{translate('Records')}</span>
   </div>
   <p class="inbox-description">
     {translate('Review your latest 50 notifications. Filters apply to this list.')}
   </p>
   <nav class="inbox-filters" aria-label={translate('Notification filters')}>
     <a href={filterHref(false)} aria-current={!unreadOnly ? 'page' : undefined}>
-      {translate('All')} <span>{records.length}</span>
+      {translate('All')} <span>{visibleRecords.length}</span>
     </a>
     <a href={filterHref(true)} aria-current={unreadOnly ? 'page' : undefined}>
       {translate('Unread')} <span>{unreadCount}</span>
     </a>
   </nav>
-  <p
-    bind:this={feedbackElement}
-    class:error={failed}
-    class="inbox-feedback"
-    role="status"
-    tabindex="-1"
-  >
-    {feedback}
+  {#if problem}
+    <ProblemNotice
+      {problem}
+      kind={problem.code === 'UNEXPECTED_ERROR' || problem.code === 'NOTIFICATION_SAVE_UNCONFIRMED'
+        ? 'service'
+        : 'error'}
+      {remedyLinks}
+    />
+  {/if}
+  <p bind:this={feedbackElement} class="inbox-feedback" role="status" tabindex="-1">
+    {feedback || nativeSuccess}
   </p>
   <RecordBrowser
     rows={filtered}
@@ -112,7 +310,8 @@
             {#if !row.read_at}
               <form
                 method="POST"
-                action="?/markNotificationRead"
+                action={markReadHref()}
+                data-notification-read-form
                 use:enhance={({ cancel }) => {
                   if (savingId) {
                     cancel();
@@ -120,27 +319,42 @@
                   }
                   savingId = String(row.id);
                   feedback = '';
+                  enhancedProblem = null;
+                  enhancedHandled = true;
+                  const scrollTop = window.scrollY;
+                  const intentAtSubmit = userIntentCount;
                   return async ({ result, update }) => {
                     try {
-                      if (result.type === 'success' || result.type === 'failure') {
-                        failed = result.type === 'failure' || !result.data?.success;
+                      if (result.type === 'success' && result.data?.success) {
+                        await update({ reset: false });
                         feedback = standaloneActionMessage(locale, result.data);
-                        if (!failed) await update({ reset: false });
+                      } else if (
+                        result.type === 'failure' &&
+                        result.data &&
+                        typeof result.data === 'object' &&
+                        'code' in result.data
+                      ) {
+                        enhancedProblem = result.data as NotificationFailure;
                       } else {
-                        failed = true;
-                        feedback = translate(
-                          'Could not update the notification. Please try again.',
-                        );
+                        enhancedProblem = uncertainSaveProblem();
                       }
                     } catch {
-                      failed = true;
-                      feedback = translate(
-                        'Could not refresh the inbox. Reload to check the notification status.',
-                      );
+                      enhancedProblem = uncertainSaveProblem();
                     } finally {
                       savingId = '';
+                      pendingForm = null;
+                      pendingSource = null;
+                      forgetScroll();
                       await tick();
-                      feedbackElement?.focus();
+                      if (userIntentCount === intentAtSubmit) {
+                        const focusTarget = enhancedProblem
+                          ? document.querySelector<HTMLElement>(
+                              '.notification-inbox [data-ui="problem-notice"]',
+                            )
+                          : feedbackElement;
+                        focusTarget?.focus({ preventScroll: true });
+                        window.scrollTo({ top: scrollTop, behavior: 'auto' });
+                      }
                     }
                   };
                 }}
@@ -257,9 +471,6 @@
   }
   .inbox-feedback:empty {
     display: none;
-  }
-  .inbox-feedback.error {
-    color: #9a2018;
   }
   .empty {
     display: grid;

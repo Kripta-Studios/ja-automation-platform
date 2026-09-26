@@ -1,6 +1,7 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { tick, untrack } from 'svelte';
+  import { localizedServerFieldMessage } from '$lib/portal/ui/form-validation';
   type Row = Record<string, unknown>;
   type SetupTemplate = {
     id: string;
@@ -30,6 +31,7 @@
     onEditProject,
     form,
     t,
+    locale,
   }: {
     projectId: string;
     currency: string;
@@ -71,6 +73,7 @@
     onEditProject: () => void;
     form?: unknown;
     t: (key: string) => string;
+    locale: string;
   } = $props();
 
   const entityChoices = $derived(
@@ -116,7 +119,7 @@
     }
   });
   const localizeMessages = (messages: readonly string[] | undefined): string =>
-    messages?.map((message) => t(message)).join(', ') ?? '';
+    messages?.map((message) => localizedServerFieldMessage(locale, message)).join(', ') ?? '';
   const personFieldError = (workerId: string, name: string): string => {
     if (personFailedValues.workerId === workerId)
       return localizeMessages(personFailure?.fields?.[name]);

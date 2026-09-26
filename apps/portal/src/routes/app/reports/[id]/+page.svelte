@@ -1,7 +1,7 @@
 <script lang="ts">
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { base } from '$app/paths';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { page } from '$app/stores';
   import {
     applyStandaloneDocumentLocale,
@@ -22,13 +22,21 @@
     writeStoredReportAutosave,
     type StoredReportAutosave,
   } from '$lib/portal/report-autosave';
-  import formValidation from '$lib/portal/ui/form-validation';
+  import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import type { ProblemData } from '$lib/problem/contract';
   import {
     translateControlledValue,
     type ControlledValueDomain,
   } from '$lib/i18n/controlled-values';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
   import CorrectionDraftForm from '$lib/portal/ui/CorrectionDraftForm.svelte';
+  import { dailyCorrectionFields, technicalCorrectionFields } from '$lib/portal/correction-fields';
+  import {
+    readSessionItem,
+    removeSessionItem,
+    saveSessionItem,
+  } from '$lib/portal/ui/safe-session-storage';
 
   type Value = string | number | boolean | null | undefined;
   type Report = Record<string, Value>;
@@ -36,11 +44,59 @@
   type Attachment = Record<string, Value>;
 
   let { data, form } = $props();
+  const reportForm = $derived(
+    form as
+      | (Partial<ProblemData> & {
+          actionName?: string;
+          values?: Record<string, string>;
+          success?: boolean;
+        })
+      | null
+      | undefined,
+  );
+  const problem = $derived(
+    reportForm?.code && reportForm.messageKey && reportForm.correlationId
+      ? (reportForm as ProblemData)
+      : null,
+  );
   let localeOverride = $state<PortalLocale | null>(null);
   const locale = $derived(
     localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
   );
   const t = (key: string): string => standaloneText(locale, key);
+  const reportHref = $derived(
+    `${base}/app/reports/${encodeURIComponent(String(data.detail.report.id))}`,
+  );
+  const remedyLinks = $derived({
+    review_report: { label: t('problem.remedy.reviewReport'), href: reportHref },
+    review_reports: { label: t('problem.remedy.reviewReports'), href: `${base}/app/reports` },
+    review_report_fields: data.detail.canEdit
+      ? { label: t('problem.remedy.reviewReportFields'), href: '#modify-report-form' }
+      : { label: t('problem.remedy.reviewReport'), href: reportHref },
+    request_report_correction: data.detail.canCreateCorrection
+      ? {
+          label: t('problem.remedy.requestReportCorrection'),
+          href: '#report-correction-title',
+        }
+      : { label: t('problem.remedy.contactProjectOwner') },
+    contact_project_owner: { label: t('problem.remedy.contactProjectOwner') },
+    sign_in_again: { label: t('problem.remedy.signInAgain'), href: `${base}/app/login` },
+  });
+  const scrollKey = $derived(
+    `report-form-scroll:${String(data.user.id)}:${String(data.detail.report.id)}`,
+  );
+  let submittingScroll: { top: number; at: number } | null = null;
+  function captureSubmittingScroll(): void {
+    submittingScroll = { top: window.scrollY, at: Date.now() };
+    rememberScroll();
+  }
+  function rememberScroll(): void {
+    const recent = submittingScroll && Date.now() - submittingScroll.at < 10_000;
+    saveSessionItem(
+      scrollKey,
+      JSON.stringify(recent ? submittingScroll : { top: window.scrollY, at: Date.now() }),
+    );
+  }
   const controlled = (domain: ControlledValueDomain, value: unknown): string =>
     translateControlledValue(
       locale,
@@ -51,6 +107,24 @@
   const history = $derived((data.detail.history ?? []) as HistoryRow[]);
   const attachments = $derived((data.detail.attachments ?? []) as Attachment[]);
   const isDaily = $derived(data.detail.type === 'daily');
+  const retainedReportValues = $derived(
+    reportForm?.actionName === 'updateReport' && !data.detail.canEdit && reportForm.values
+      ? (isDaily ? dailyCorrectionFields : technicalCorrectionFields).flatMap((field) => {
+          const value = reportForm.values?.[field.name];
+          return value === undefined
+            ? []
+            : [
+                {
+                  label: t(field.label),
+                  value:
+                    field.kind === 'checkbox'
+                      ? t(value === 'on' ? 'problem.report.checked' : 'problem.report.notChecked')
+                      : value || '—',
+                },
+              ];
+        })
+      : [],
+  );
   const canAutosave = $derived(
     Boolean(
       data.detail.canEdit &&
@@ -96,6 +170,10 @@
   });
   const display = (value: Value): string =>
     value === null || value === undefined ? '' : String(value);
+  const submitted = (name: string, fallback: Value): string =>
+    reportForm?.actionName === 'updateReport' && typeof reportForm.values?.[name] === 'string'
+      ? reportForm.values[name]
+      : display(fallback);
   const eventAction = (value: Value): string => {
     const action = display(value).trim();
     if (!action) return t('Change history');
@@ -141,6 +219,12 @@
     return recordType ? controlled('recordType', recordType) : t('Change history');
   };
   const checked = (value: Value): boolean => value === true || value === 1 || value === '1';
+  const submittedChecked = (name: string, fallback: Value): boolean => {
+    const value = reportForm?.actionName === 'updateReport' ? reportForm.values?.[name] : undefined;
+    return value === undefined
+      ? checked(fallback)
+      : value === 'on' || value === 'true' || value === '1';
+  };
   const changedFields = (value: Value): string[] => {
     if (typeof value !== 'string') return [];
     try {
@@ -404,6 +488,16 @@
   }
 
   onMount(() => {
+    const savedScroll = readSessionItem(scrollKey);
+    // Browser scroll anchoring can shift the restored position when the failed
+    // form's validation summary is inserted after hydration.
+    const previousOverflowAnchor = document.documentElement.style.overflowAnchor;
+    if (problem) document.documentElement.style.overflowAnchor = 'none';
+    // `formdata` also fires for a direct form.submit() call, before the browser
+    // adjusts scroll while unloading the old page.
+    const editFormForScroll = editFormElement();
+    editFormForScroll?.addEventListener('formdata', captureSubmittingScroll);
+    window.addEventListener('pagehide', rememberScroll);
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
     persistStandaloneLocale(locale);
     applyStandaloneDocumentLocale(locale);
@@ -412,6 +506,31 @@
         localeOverride = resolveStandaloneLocale(event.newValue);
     };
     window.addEventListener('storage', onStorage);
+    if (problem)
+      void tick().then(() => {
+        const editForm = reportForm?.actionName === 'updateReport' ? editFormElement() : null;
+        if (editForm && reportForm?.values) applyReportSnapshot(editForm, reportForm.values);
+        if (editForm && problem.fieldErrors) reportFormFieldErrors(editForm, problem.fieldErrors);
+        const target =
+          editForm?.querySelector<HTMLElement>('[data-validation-summary]') ??
+          document.querySelector<HTMLElement>('[data-report-problem] [data-ui="problem-notice"]');
+        target?.focus({ preventScroll: true });
+        if (savedScroll) {
+          removeSessionItem(scrollKey);
+          try {
+            const value = JSON.parse(savedScroll) as { top?: unknown; at?: unknown };
+            if (
+              typeof value.top === 'number' &&
+              Number.isFinite(value.top) &&
+              typeof value.at === 'number' &&
+              Date.now() - value.at < 300_000
+            )
+              window.scrollTo({ top: value.top, behavior: 'instant' });
+          } catch {
+            // A malformed saved position should not hide the report problem.
+          }
+        }
+      });
     if (
       form?.success &&
       [
@@ -438,6 +557,9 @@
     return () => {
       if (autosaveTimer) clearTimeout(autosaveTimer);
       window.removeEventListener('storage', onStorage);
+      window.removeEventListener('pagehide', rememberScroll);
+      editFormForScroll?.removeEventListener('formdata', captureSubmittingScroll);
+      document.documentElement.style.overflowAnchor = previousOverflowAnchor;
     };
   });
   $effect(() => applyStandaloneDocumentLocale(locale));
@@ -489,10 +611,32 @@
     </div>
   </header>
 
-  {#if standaloneActionMessage(locale, form)}
+  {#if problem}
+    <div data-report-problem>
+      <ProblemNotice
+        {problem}
+        {remedyLinks}
+        kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+      />
+    </div>
+  {:else if standaloneActionMessage(locale, form)}
     <p class:success={form?.success} class="action-message" role="status" aria-live="polite">
       {standaloneActionMessage(locale, form)}
     </p>
+  {/if}
+
+  {#if retainedReportValues.length}
+    <SectionCard title={t('problem.report.retainedValuesTitle')} data-report-retained-values>
+      <p>{t('problem.report.retainedValuesHelp')}</p>
+      <dl class="retained-report-values">
+        {#each retainedReportValues as item}
+          <div>
+            <dt>{item.label}</dt>
+            <dd>{item.value}</dd>
+          </div>
+        {/each}
+      </dl>
+    </SectionCard>
   {/if}
 
   {#if data.detail.canSubmitDraft}
@@ -591,9 +735,21 @@
         use:formValidation
       >
         <input id="report-id" type="hidden" name="id" value={report.id} />
-        <input id="report-version" type="hidden" name="version" value={report.version} />
+        <input
+          id="report-version"
+          type="hidden"
+          name="version"
+          value={submitted('version', report.version)}
+        />
         <input id="report-type" type="hidden" name="type" value={data.detail.type} />
         <input id="report-project-id" type="hidden" name="projectId" value={report.project_id} />
+        {#if !isDaily}
+          <input
+            type="hidden"
+            name="reportDate"
+            value={display(report.report_date ?? report.created_at).slice(0, 10)}
+          />
+        {/if}
 
         {#if isDaily}
           <FormSection
@@ -607,7 +763,7 @@
                   data-field="workDate"
                   name="workDate"
                   type="date"
-                  value={report.work_date}
+                  value={submitted('workDate', report.work_date)}
                   required
                 />
               </Field>
@@ -616,7 +772,7 @@
                   id="report-site-shift"
                   data-field="siteShift"
                   name="siteShift"
-                  value={display(report.site_shift)}
+                  value={submitted('siteShift', report.site_shift)}
                 />
               </Field>
             </FieldGroup>
@@ -632,7 +788,7 @@
                 data-field="summary"
                 name="summary"
                 required
-                value={display(report.summary)}
+                value={submitted('summary', report.summary)}
               ></textarea>
             </Field>
             <Field
@@ -646,7 +802,7 @@
                 data-field="tasksCompleted"
                 name="tasksCompleted"
                 required
-                value={display(report.tasks_completed)}
+                value={submitted('tasksCompleted', report.tasks_completed)}
               ></textarea>
             </Field>
           </FormSection>
@@ -667,7 +823,7 @@
                   id="report-problems-found"
                   data-field="problemsFound"
                   name="problemsFound"
-                  value={display(report.problems_found)}
+                  value={submitted('problemsFound', report.problems_found)}
                 ></textarea>
               </Field>
               <Field
@@ -679,7 +835,7 @@
                   id="report-corrective-actions"
                   data-field="correctiveActions"
                   name="correctiveActions"
-                  value={display(report.corrective_actions)}
+                  value={submitted('correctiveActions', report.corrective_actions)}
                 ></textarea>
               </Field>
               <Field
@@ -691,7 +847,7 @@
                   id="report-client-decisions"
                   data-field="clientDecisions"
                   name="clientDecisions"
-                  value={display(report.client_decisions)}
+                  value={submitted('clientDecisions', report.client_decisions)}
                 ></textarea>
               </Field>
               <Field id="report-open-items" label={t('Open items')} data-field="openItems">
@@ -699,7 +855,7 @@
                   id="report-open-items"
                   data-field="openItems"
                   name="openItems"
-                  value={display(report.open_items)}
+                  value={submitted('openItems', report.open_items)}
                 ></textarea>
               </Field>
               <Field
@@ -714,7 +870,7 @@
                   type="number"
                   min="0"
                   max="1440"
-                  value={report.downtime_minutes ?? 0}
+                  value={submitted('downtimeMinutes', report.downtime_minutes ?? 0)}
                 />
               </Field>
               <Field
@@ -726,7 +882,7 @@
                   id="report-standby-reason"
                   data-field="standbyReason"
                   name="standbyReason"
-                  value={display(report.standby_reason)}
+                  value={submitted('standbyReason', report.standby_reason)}
                 />
               </Field>
               <Field id="report-blockers" label={t('Blockers')} data-field="blockers">
@@ -734,7 +890,7 @@
                   id="report-blockers"
                   data-field="blockers"
                   name="blockers"
-                  value={display(report.blockers)}
+                  value={submitted('blockers', report.blockers)}
                 ></textarea>
               </Field>
             </FieldGroup>
@@ -750,7 +906,7 @@
                   id="report-next-day-plan"
                   data-field="nextDayPlan"
                   name="nextDayPlan"
-                  value={display(report.next_day_plan)}
+                  value={submitted('nextDayPlan', report.next_day_plan)}
                 ></textarea>
               </Field>
               <Field
@@ -762,7 +918,7 @@
                   id="report-customer-contact"
                   data-field="customerContact"
                   name="customerContact"
-                  value={display(report.customer_contact)}
+                  value={submitted('customerContact', report.customer_contact)}
                 />
               </Field>
             </FieldGroup>
@@ -776,7 +932,7 @@
                 data-field="safetyRelated"
                 name="safetyRelated"
                 type="checkbox"
-                checked={checked(report.safety_related)}
+                checked={submittedChecked('safetyRelated', report.safety_related)}
               />
             </Field>
           </FormSection>
@@ -796,7 +952,7 @@
                   id="report-system-name"
                   data-field="systemName"
                   name="systemName"
-                  value={display(report.system_name)}
+                  value={submitted('systemName', report.system_name)}
                   required
                 />
               </Field>
@@ -805,7 +961,7 @@
                   id="report-plant-site"
                   data-field="plantSite"
                   name="plantSite"
-                  value={display(report.plant_site)}
+                  value={submitted('plantSite', report.plant_site)}
                 />
               </Field>
               <Field id="report-area-line" label={t('Area / line')} data-field="areaLine">
@@ -813,7 +969,7 @@
                   id="report-area-line"
                   data-field="areaLine"
                   name="areaLine"
-                  value={display(report.area_line)}
+                  value={submitted('areaLine', report.area_line)}
                 />
               </Field>
               <Field
@@ -825,7 +981,7 @@
                   id="report-station-machine"
                   data-field="stationMachine"
                   name="stationMachine"
-                  value={display(report.station_machine)}
+                  value={submitted('stationMachine', report.station_machine)}
                 />
               </Field>
             </FieldGroup>
@@ -835,7 +991,7 @@
                   id="report-system-type"
                   data-field="systemType"
                   name="systemType"
-                  value={display(report.system_type)}
+                  value={submitted('systemType', report.system_type)}
                 />
               </Field>
               <Field id="report-plc-platform" label={t('PLC platform')} data-field="plcPlatform">
@@ -843,7 +999,7 @@
                   id="report-plc-platform"
                   data-field="plcPlatform"
                   name="plcPlatform"
-                  value={display(report.plc_platform)}
+                  value={submitted('plcPlatform', report.plc_platform)}
                 />
               </Field>
               <Field id="report-controller" label={t('Controller')} data-field="controller">
@@ -851,7 +1007,7 @@
                   id="report-controller"
                   data-field="controller"
                   name="controller"
-                  value={display(report.controller)}
+                  value={submitted('controller', report.controller)}
                 />
               </Field>
               <Field id="report-hmi-scada" label={t('HMI / SCADA')} data-field="hmiScada">
@@ -859,7 +1015,7 @@
                   id="report-hmi-scada"
                   data-field="hmiScada"
                   name="hmiScada"
-                  value={display(report.hmi_scada)}
+                  value={submitted('hmiScada', report.hmi_scada)}
                 />
               </Field>
               <Field
@@ -871,7 +1027,7 @@
                   id="report-network-protocol"
                   data-field="networkProtocol"
                   name="networkProtocol"
-                  value={display(report.network_protocol)}
+                  value={submitted('networkProtocol', report.network_protocol)}
                 />
               </Field>
               <Field
@@ -883,7 +1039,7 @@
                   id="report-software-version"
                   data-field="softwareVersion"
                   name="softwareVersion"
-                  value={display(report.software_version)}
+                  value={submitted('softwareVersion', report.software_version)}
                 />
               </Field>
             </FieldGroup>
@@ -902,7 +1058,7 @@
                 id="report-program-reference"
                 data-field="programReference"
                 name="programReference"
-                value={display(report.program_reference)}
+                value={submitted('programReference', report.program_reference)}
               />
             </Field>
             <Field
@@ -916,7 +1072,7 @@
                 data-field="problemSymptom"
                 name="problemSymptom"
                 required
-                value={display(report.problem_symptom)}
+                value={submitted('problemSymptom', report.problem_symptom)}
               ></textarea>
             </Field>
             <Field
@@ -930,7 +1086,7 @@
                 data-field="diagnosisRootCause"
                 name="diagnosisRootCause"
                 required
-                value={display(report.diagnosis_root_cause)}
+                value={submitted('diagnosisRootCause', report.diagnosis_root_cause)}
               ></textarea>
             </Field>
             <Field
@@ -944,7 +1100,10 @@
                 data-field="changePerformed"
                 name="changePerformed"
                 required
-                value={display(report.change_performed ?? report.change_summary)}
+                value={submitted(
+                  'changePerformed',
+                  report.change_performed ?? report.change_summary,
+                )}
               ></textarea>
             </Field>
             <Field
@@ -956,7 +1115,7 @@
                 id="report-production-impact"
                 data-field="productionImpact"
                 name="productionImpact"
-                value={display(report.production_impact)}
+                value={submitted('productionImpact', report.production_impact)}
               ></textarea>
             </Field>
           </FormSection>
@@ -973,7 +1132,7 @@
                   id="report-validation"
                   data-field="validation"
                   name="validation"
-                  value={display(report.validation)}
+                  value={submitted('validation', report.validation)}
                 ></textarea>
               </Field>
               <Field
@@ -985,7 +1144,7 @@
                   id="report-validation-result"
                   data-field="validationResult"
                   name="validationResult"
-                  value={display(report.validation_result)}
+                  value={submitted('validationResult', report.validation_result)}
                 ></textarea>
               </Field>
               <Field id="report-open-risk" label={t('Open risk / issue')} data-field="openRisk">
@@ -993,7 +1152,7 @@
                   id="report-open-risk"
                   data-field="openRisk"
                   name="openRisk"
-                  value={display(report.open_risk)}
+                  value={submitted('openRisk', report.open_risk)}
                 ></textarea>
               </Field>
               <Field id="report-rollback-plan" label={t('Rollback plan')} data-field="rollbackPlan">
@@ -1001,7 +1160,7 @@
                   id="report-rollback-plan"
                   data-field="rollbackPlan"
                   name="rollbackPlan"
-                  value={display(report.rollback_plan)}
+                  value={submitted('rollbackPlan', report.rollback_plan)}
                 ></textarea>
               </Field>
             </FieldGroup>
@@ -1021,7 +1180,7 @@
                 data-field="safetyRelated"
                 name="safetyRelated"
                 type="checkbox"
-                checked={checked(report.safety_related)}
+                checked={submittedChecked('safetyRelated', report.safety_related)}
               />
             </Field>
           </FormSection>
@@ -1446,6 +1605,28 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     margin: 0.5rem 0 0;
+  }
+
+  .retained-report-values {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: 0.8rem 1rem;
+    margin: 1rem 0 0;
+  }
+
+  .retained-report-values > div {
+    min-width: 0;
+  }
+
+  .retained-report-values dt {
+    color: var(--portal-muted, #63625b);
+    font-weight: 700;
+  }
+
+  .retained-report-values dd {
+    margin: 0.2rem 0 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 
   .report-attachment-meta {

@@ -1,0 +1,27 @@
+[
+  {
+    "step": "invalid-native",
+    "code": "EXPENSE_CORRECTION_AMOUNT_INVALID",
+    "retained": true
+  },
+  {
+    "step": "success-enhanced",
+    "saved": true
+  },
+  {
+    "step": "changed-date-linked-hours-native",
+    "code": "EXPENSE_CORRECTION_TIME_LINK_INVALID",
+    "retained": true
+  },
+  {
+    "step": "concurrent-correction-native",
+    "code": "EXPENSE_CORRECTION_ALREADY_EXISTS",
+    "retained": true,
+    "scrollBefore": 659,
+    "scrollAfter": 656
+  },
+  {
+    "step": "worker2-role-denied",
+    "code": "EXPENSE_CORRECTION_ACCESS_REQUIRED"
+  }
+]

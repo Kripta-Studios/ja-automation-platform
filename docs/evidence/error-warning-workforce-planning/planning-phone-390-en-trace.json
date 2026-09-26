@@ -1,0 +1,22 @@
+[
+  {
+    "step": "planning-invalid-native",
+    "code": "ACTION_VALIDATION_PLANNING_FIELDS",
+    "retained": true
+  },
+  {
+    "step": "planning-success",
+    "saved": true
+  },
+  {
+    "step": "planning-overlap-native",
+    "code": "PLANNING_WORKER_OVERLAP",
+    "retained": true,
+    "scrollBefore": 942,
+    "scrollAfter": 942
+  },
+  {
+    "step": "worker-role-denied",
+    "code": "PLANNING_ACCESS_REQUIRED"
+  }
+]

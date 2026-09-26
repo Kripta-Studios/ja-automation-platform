@@ -1,0 +1,9 @@
+{
+	admin off
+	auto_https disable_redirects
+}
+
+qa.test:4185 {
+	tls internal
+	reverse_proxy 127.0.0.1:4184
+}

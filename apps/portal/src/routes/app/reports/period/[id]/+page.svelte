@@ -2,7 +2,9 @@
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
-  import { onMount } from 'svelte';
+  import { enhance } from '$app/forms';
+  import type { SubmitFunction } from '@sveltejs/kit';
+  import { onMount, tick, untrack } from 'svelte';
   import {
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
@@ -18,6 +20,14 @@
   } from '$lib/i18n/controlled-values';
   import { Field, FieldGroup, StatusBadge, TableRegion } from '$lib/portal/ui';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
+  import {
+    readSessionItem,
+    removeSessionItem,
+    saveSessionItem,
+  } from '$lib/portal/ui/safe-session-storage';
+  import type { ProblemData } from '$lib/problem/contract';
   import { reviewCopy, type ReviewLocale } from '../../review/copy';
 
   type Row = Record<string, unknown>;
@@ -27,6 +37,24 @@
     events: readonly Row[];
   };
   let { data, form } = $props();
+  const resultForm = $derived(
+    form as
+      | (Partial<ProblemData> & {
+          operation?: string;
+          values?: Record<string, string>;
+          success?: boolean;
+          pendingSignatureDocumentId?: string;
+          pendingSnapshotVersion?: number;
+          pendingSnapshotSha256?: string;
+        })
+      | null
+      | undefined,
+  );
+  const problem = $derived(
+    resultForm?.code && resultForm.messageKey && resultForm.correlationId
+      ? (resultForm as ProblemData)
+      : null,
+  );
   let localeOverride = $state<PortalLocale | null>(null);
   const locale = $derived(
     localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
@@ -39,6 +67,83 @@
       value === null || value === undefined ? null : String(value),
     );
   const report = $derived(data.report as Row);
+  const reportHref = $derived(
+    `${base}/app/reports/period/${encodeURIComponent(String(report.id))}`,
+  );
+  const remedyLinks = $derived({
+    review_report: {
+      label: t('problem.remedy.reviewUpdatedRecord'),
+      href: `${reportHref}?review=1#period-report-header`,
+    },
+    review_reports: { label: t('problem.remedy.reviewReports'), href: `${base}/app/reports` },
+    review_followup: {
+      label: t('problem.remedy.reviewUpdatedRecord'),
+      href: `${reportHref}?review=1#period-followup`,
+    },
+    review_signoff: {
+      label: t('problem.remedy.reviewUpdatedRecord'),
+      href: `${reportHref}?review=1#customer-signoff`,
+    },
+    contact_project_owner: { label: t('problem.remedy.contactProjectOwner') },
+    sign_in_again: { label: t('problem.remedy.signInAgain'), href: `${base}/app/login` },
+    reattach_signed_pdf: { label: t('problem.remedy.reattachSignedPdf') },
+    wait_for_scan: { label: t('problem.remedy.waitForScan') },
+  });
+  const scrollKey = $derived(
+    `period-report-form-scroll:${String(data.user?.id ?? '')}:${String(report.id)}`,
+  );
+  const signDraftKey = $derived(
+    `period-signoff-draft:${String(data.user?.id ?? '')}:${String(report.id)}:${String(report.snapshotVersion)}:${String(report.snapshotSha256)}`,
+  );
+  let recoveredSignInputs = $state<Record<string, string>>({});
+  function rememberScroll(): void {
+    saveSessionItem(scrollKey, String(window.scrollY));
+  }
+  function rememberSignInputs(): void {
+    const signForm = document.querySelector<HTMLFormElement>('form[data-period-operation="sign"]');
+    if (!signForm) return;
+    const values = new FormData(signForm);
+    const draft = Object.fromEntries(
+      ['conformityId', 'reason', 'signerName', 'signerIdentity', 'signatureDate'].flatMap(
+        (field) => {
+          const value = values.get(field);
+          return typeof value === 'string' ? [[field, value]] : [];
+        },
+      ),
+    );
+    saveSessionItem(signDraftKey, JSON.stringify(draft));
+  }
+  function rememberPageState(): void {
+    rememberScroll();
+    rememberSignInputs();
+  }
+  function showFieldProblems(result: Record<string, unknown> | null | undefined): void {
+    const operation = typeof result?.operation === 'string' ? result.operation : '';
+    const target = document.querySelector<HTMLFormElement>(
+      `form[data-period-operation="${operation}"]`,
+    );
+    const fields = result?.fieldErrors;
+    if (target && fields && typeof fields === 'object' && !Array.isArray(fields))
+      reportFormFieldErrors(target, fields as Record<string, readonly string[]>);
+    const summary = target?.querySelector<HTMLElement>('[data-validation-summary]');
+    (
+      summary ??
+      document.querySelector<HTMLElement>('[data-period-problem] [data-ui="problem-notice"]')
+    )?.focus({
+      preventScroll: true,
+    });
+  }
+  const preservePeriodForm: SubmitFunction = () => {
+    const scrollTop = window.scrollY;
+    return async ({ result, update }) => {
+      await update({ reset: false });
+      if (result.type === 'failure') {
+        await tick();
+        showFieldProblems(result.data);
+        window.scrollTo({ top: scrollTop, behavior: 'instant' });
+      }
+    };
+  };
   const project = $derived((report.project ?? {}) as Row);
   const summary = $derived((report.commercialSummary ?? {}) as Row);
   const finance = $derived(
@@ -67,12 +172,14 @@
   const followupCopy = $derived(
     reviewCopy[(locale === 'pt' ? 'pt' : locale === 'es' ? 'es' : 'en') as ReviewLocale],
   );
-  const followupFormValues = $derived((form?.values ?? {}) as Row);
+  const followupFormValues = $derived(
+    (resultForm?.operation === 'recordFollowup' ? resultForm.values : {}) as Row,
+  );
   const followupFormValue = (name: string, fallback = ''): string => {
     const value = followupFormValues[name];
     return value === null || value === undefined || value === '' ? fallback : String(value);
   };
-  const followupEventType = $derived(followupFormValue('eventType', 'shared'));
+  let followupEventType = $state(untrack(() => followupFormValue('eventType', 'shared')));
   const followupLatestEvent = $derived((followup?.latestEvent ?? null) as Row | null);
   const followupResponsible = $derived(
     followupFormValue(
@@ -104,9 +211,29 @@
   const signatureEvidenceStatus = $derived(
     String(customerConformity?.signatureEvidenceStatus ?? 'missing'),
   );
-  const pendingSignatureDocumentId = $derived(String(form?.pendingSignatureDocumentId ?? ''));
+  const savedSignoffEvidence = $derived(
+    (data.pendingSignoffEvidence ?? null) as { id: string; state: 'pending_scan' | 'ready' } | null,
+  );
+  const pendingSignatureDocumentId = $derived(
+    savedSignoffEvidence?.id ??
+      (resultForm?.code === 'PERIOD_SIGNOFF_SCAN_PENDING' &&
+      Number(resultForm.pendingSnapshotVersion) === Number(report.snapshotVersion) &&
+      resultForm.pendingSnapshotSha256 === String(report.snapshotSha256)
+        ? String(resultForm.pendingSignatureDocumentId ?? '')
+        : ''),
+  );
+  const pendingSignoffState = $derived(
+    savedSignoffEvidence?.state ??
+      (pendingSignatureDocumentId && resultForm?.code === 'PERIOD_SIGNOFF_SCAN_PENDING'
+        ? 'pending_scan'
+        : null),
+  );
   const signatureDateDefault = $derived(
-    String(form?.signatureDate ?? new Date().toISOString().slice(0, 10)),
+    String(
+      resultForm?.operation === 'sign'
+        ? (resultForm.values?.signatureDate ?? new Date().toISOString().slice(0, 10))
+        : (recoveredSignInputs.signatureDate ?? new Date().toISOString().slice(0, 10)),
+    ),
   );
   const signoffState = $derived(
     customerConformity?.status === 'active'
@@ -204,12 +331,53 @@
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
     persistStandaloneLocale(locale);
     applyStandaloneDocumentLocale(locale);
+    if (pendingSignatureDocumentId) {
+      try {
+        const stored = JSON.parse(readSessionItem(signDraftKey) ?? '{}') as unknown;
+        if (stored && typeof stored === 'object' && !Array.isArray(stored))
+          recoveredSignInputs = Object.fromEntries(
+            Object.entries(stored).filter(
+              (entry): entry is [string, string] =>
+                [
+                  'conformityId',
+                  'reason',
+                  'signerName',
+                  'signerIdentity',
+                  'signatureDate',
+                ].includes(entry[0]) && typeof entry[1] === 'string',
+            ),
+          );
+      } catch {
+        removeSessionItem(signDraftKey);
+      }
+    } else removeSessionItem(signDraftKey);
     const onStorage = (event: StorageEvent) => {
       if (event.key === 'ja.portal.locale' || event.key === 'ja-portal-locale')
         localeOverride = resolveStandaloneLocale(event.newValue);
     };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener('pagehide', rememberPageState);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('pagehide', rememberPageState);
+    };
+  });
+  let focusedProblemId = '';
+  $effect(() => {
+    const id = problem?.correlationId;
+    if (!id || id === focusedProblemId) return;
+    focusedProblemId = id;
+    void tick().then(() => {
+      requestAnimationFrame(() => {
+        showFieldProblems(resultForm);
+        const saved = readSessionItem(scrollKey);
+        if (saved !== null) {
+          const previous = Number(saved);
+          if (Number.isFinite(previous)) window.scrollTo({ top: previous, behavior: 'instant' });
+        }
+        removeSessionItem(scrollKey);
+      });
+    });
   });
   $effect(() => applyStandaloneDocumentLocale(locale));
 </script>
@@ -225,13 +393,22 @@
     >
   </nav>
 
-  {#if standaloneActionMessage(locale, form)}
+  {#if problem}
+    <div data-period-problem>
+      <ProblemNotice
+        {problem}
+        kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        status={`${t('Current status')}: ${controlled('status', report.state)}`}
+        {remedyLinks}
+      />
+    </div>
+  {:else if standaloneActionMessage(locale, form)}
     <p class="action-message no-print" role="status" aria-live="polite">
       {standaloneActionMessage(locale, form)}
     </p>
   {/if}
 
-  <header class="record-detail-header">
+  <header class="record-detail-header" id="period-report-header">
     <div>
       <p class="portal-kicker">
         {display(project.number)} / {controlled('recordType', report.reportType)}
@@ -255,7 +432,7 @@
   </header>
 
   {#if customerAudience}
-    <section class="detail-panel customer-signoff" data-customer-signoff>
+    <section class="detail-panel customer-signoff" id="customer-signoff" data-customer-signoff>
       <header class="customer-signoff__header">
         <div>
           <p class="portal-kicker">{t('Reports')} / {t('Client Sign-off')}</p>
@@ -281,6 +458,10 @@
             action="?/approve"
             class="customer-signoff__form customer-signoff__approval-form"
             data-period-report-approval
+            data-period-operation="approve"
+            use:enhance={preservePeriodForm}
+            use:formValidation
+            onsubmit={rememberScroll}
             aria-describedby="customer-report-approval-help"
           >
             <div>
@@ -420,6 +601,10 @@
             enctype="multipart/form-data"
             class="customer-signoff__form"
             data-signoff-form
+            data-period-operation="sign"
+            use:enhance={preservePeriodForm}
+            use:formValidation
+            onsubmit={rememberPageState}
           >
             <div>
               <h3>{t('Capture verified signed-copy evidence')}</h3>
@@ -437,12 +622,20 @@
               <input
                 type="hidden"
                 name="pendingSignatureDocumentId"
-                value={form?.pendingSignatureDocumentId}
+                value={pendingSignatureDocumentId}
               />
-              <p class="customer-signoff__notice" data-signoff-scan-pending>
-                {t(
-                  'The uploaded signed PDF is awaiting its security scan. Retry after the scan completes; do not upload it again.',
-                )}
+              <p
+                class="customer-signoff__notice"
+                data-signoff-recovered-evidence
+                data-signoff-scan-pending={pendingSignoffState === 'pending_scan' ? '' : undefined}
+              >
+                {pendingSignoffState === 'pending_scan'
+                  ? t(
+                      'The uploaded signed PDF is awaiting its security scan. Retry after the scan completes; do not upload it again.',
+                    )
+                  : t(
+                      'Your signed PDF is ready. Review the signer details and complete sign-off without uploading it again.',
+                    )}
               </p>
             {/if}
             <label>
@@ -467,7 +660,9 @@
                 required
                 maxlength="200"
                 autocomplete="name"
-                value={form?.signerName ?? ''}
+                value={resultForm?.operation === 'sign'
+                  ? (resultForm.values?.signerName ?? '')
+                  : (recoveredSignInputs.signerName ?? '')}
                 aria-describedby="customer-signoff-signer-help"
               />
             </label>
@@ -481,7 +676,9 @@
                 type="text"
                 maxlength="320"
                 autocomplete="email"
-                value={form?.signerIdentity ?? ''}
+                value={resultForm?.operation === 'sign'
+                  ? (resultForm.values?.signerIdentity ?? '')
+                  : (recoveredSignInputs.signerIdentity ?? '')}
               />
             </label>
             <label>
@@ -496,7 +693,9 @@
             </label>
             <button type="submit"
               >{pendingSignatureDocumentId
-                ? t('Retry after security scan')
+                ? pendingSignoffState === 'pending_scan'
+                  ? t('Retry after security scan')
+                  : t('Complete sign-off with saved PDF')
                 : t('Record verified signed-copy evidence')}</button
             >
           </form>
@@ -509,6 +708,10 @@
             enctype="multipart/form-data"
             class="customer-signoff__form"
             data-signoff-evidence-attachment
+            data-period-operation="sign"
+            use:enhance={preservePeriodForm}
+            use:formValidation
+            onsubmit={rememberPageState}
           >
             <div>
               <h3>{t('Attach verified signed-copy evidence')}</h3>
@@ -523,12 +726,20 @@
               <input
                 type="hidden"
                 name="pendingSignatureDocumentId"
-                value={form?.pendingSignatureDocumentId}
+                value={pendingSignatureDocumentId}
               />
-              <p class="customer-signoff__notice" data-signoff-scan-pending>
-                {t(
-                  'The uploaded signed PDF is awaiting its security scan. Retry after the scan completes; do not upload it again.',
-                )}
+              <p
+                class="customer-signoff__notice"
+                data-signoff-recovered-evidence
+                data-signoff-scan-pending={pendingSignoffState === 'pending_scan' ? '' : undefined}
+              >
+                {pendingSignoffState === 'pending_scan'
+                  ? t(
+                      'The uploaded signed PDF is awaiting its security scan. Retry after the scan completes; do not upload it again.',
+                    )
+                  : t(
+                      'Your signed PDF is ready. Review the attachment reason and complete sign-off without uploading it again.',
+                    )}
               </p>
             {/if}
             <p class="form-help">
@@ -552,7 +763,11 @@
             <label>
               {t('Reason for evidence attachment')}
               <textarea name="reason" required maxlength="2000" rows="3"
-                >{form?.reason ?? ''}</textarea
+                >{resultForm?.operation === 'sign'
+                  ? (resultForm.values?.reason ?? '')
+                  : recoveredSignInputs.conformityId === String(customerConformity?.id ?? '')
+                    ? (recoveredSignInputs.reason ?? '')
+                    : ''}</textarea
               >
             </label>
             <p class="form-help">
@@ -562,14 +777,20 @@
             </p>
             <button type="submit"
               >{pendingSignatureDocumentId
-                ? t('Retry after security scan')
+                ? pendingSignoffState === 'pending_scan'
+                  ? t('Retry after security scan')
+                  : t('Attach saved signed-copy evidence')
                 : t('Attach verified signed-copy evidence')}</button
             >
           </form>
         {/if}
 
         {#if customerConformity?.status === 'active' && canManageCustomerSignoff}
-          <details class="customer-signoff__invalidate no-print" data-signoff-invalidation>
+          <details
+            class="customer-signoff__invalidate no-print"
+            data-signoff-invalidation
+            open={resultForm?.operation === 'invalidateSignoff'}
+          >
             <summary>{t('Invalidate sign-off')}</summary>
             <div>
               <p class="form-help">
@@ -577,11 +798,23 @@
                   'Use this only when the customer confirmation no longer matches the report. The signed record remains available in the audit history.',
                 )}
               </p>
-              <form method="POST" action="?/invalidateSignoff" class="customer-signoff__form">
+              <form
+                method="POST"
+                action="?/invalidateSignoff"
+                class="customer-signoff__form"
+                data-period-operation="invalidateSignoff"
+                use:enhance={preservePeriodForm}
+                use:formValidation
+                onsubmit={rememberScroll}
+              >
                 <input type="hidden" name="conformityId" value={customerConformity.id} />
                 <label>
                   {t('Reason for invalidation')}
-                  <textarea name="reason" required maxlength="2000" rows="3"></textarea>
+                  <textarea name="reason" required maxlength="2000" rows="3"
+                    >{resultForm?.operation === 'invalidateSignoff'
+                      ? (resultForm.values?.reason ?? '')
+                      : ''}</textarea
+                  >
                 </label>
                 <button type="submit" class="customer-signoff__danger-action">
                   {t('Confirm invalidation')}
@@ -595,7 +828,7 @@
   {/if}
 
   {#if canManagePeriodFollowup && followup}
-    <section class="detail-panel period-followup" data-period-followup>
+    <section class="detail-panel period-followup" id="period-followup" data-period-followup>
       <header class="period-followup__header">
         <div>
           <p class="portal-kicker">{followupCopy.period} / {followupCopy.followup}</p>
@@ -674,7 +907,15 @@
           </TableRegion>
         </details>
 
-        <form method="POST" action="?/recordFollowup" class="period-followup__form">
+        <form
+          method="POST"
+          action="?/recordFollowup"
+          class="period-followup__form"
+          data-period-operation="recordFollowup"
+          use:enhance={preservePeriodForm}
+          use:formValidation
+          onsubmit={rememberScroll}
+        >
           <p class="form-help">{followupCopy.dispatchAttestation}</p>
           <input type="hidden" name="expectedSnapshotVersion" value={followup.snapshotVersion} />
           <input type="hidden" name="expectedSnapshotSha256" value={followup.snapshotSha256} />
@@ -693,7 +934,7 @@
               <select
                 id="period-followup-event-type"
                 name="eventType"
-                value={followupEventType}
+                bind:value={followupEventType}
                 required
               >
                 {#each Object.entries(followupCopy.followupTypes) as [value, label]}
@@ -1063,7 +1304,15 @@
           >
         </div>
       {/if}
-      <form method="POST" action="?/refresh" class="admin-form-grid">
+      <form
+        method="POST"
+        action="?/refresh"
+        class="admin-form-grid"
+        data-period-operation="refresh"
+        use:enhance={preservePeriodForm}
+        use:formValidation
+        onsubmit={rememberScroll}
+      >
         <input type="hidden" name="projectId" value={project.id} />
         <input type="hidden" name="periodStart" value={report.periodStart} />
         <input type="hidden" name="periodEnd" value={report.periodEnd} />
@@ -1078,7 +1327,11 @@
           {/each}
         {/if}
         <label
-          >{t('Language')}<select name="reportLocale" value={locale}
+          >{t('Language')}<select
+            name="reportLocale"
+            value={resultForm?.operation === 'refresh'
+              ? (resultForm.values?.reportLocale ?? locale)
+              : locale}
             ><option value="en">{t('English')}</option><option value="es">{t('Español')}</option
             ><option value="pt">{t('Português')}</option></select
           ></label

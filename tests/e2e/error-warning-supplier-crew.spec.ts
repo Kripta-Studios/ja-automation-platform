@@ -263,9 +263,9 @@ test('crew delegation explains invalid, stale, duplicate, and role failures', as
   trace.push({ step: 'manager-role', denied: true });
 
   expect(pageErrors).toEqual([]);
-  expect(consoleErrors.filter((message) => !message.startsWith('Failed to load resource:'))).toEqual(
-    [],
-  );
+  expect(
+    consoleErrors.filter((message) => !message.startsWith('Failed to load resource:')),
+  ).toEqual([]);
   mkdirSync(evidenceDirectory, { recursive: true });
   writeFileSync(
     join(evidenceDirectory, `crew-${info.project.name}-${locale}.png`),

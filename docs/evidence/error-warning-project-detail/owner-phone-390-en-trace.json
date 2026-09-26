@@ -1,0 +1,18 @@
+[
+  {
+    "step": "person-invalid-native",
+    "code": "PROJECT_PERSON_TERMS_INVALID",
+    "retained": true
+  },
+  {
+    "step": "billing-invalid-native",
+    "code": "PROJECT_BILLING_SETUP_INVALID",
+    "retained": true
+  },
+  {
+    "step": "project-stale-native",
+    "code": "PROJECT_DETAIL_CHANGED",
+    "retained": true,
+    "sheetScroll": 420
+  }
+]

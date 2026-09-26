@@ -726,6 +726,14 @@ function applyB5Migration(
   sqlite.exec('BEGIN IMMEDIATE');
   let committed = false;
   try {
+    // A second migrator can have committed this version while this connection
+    // waited for the write lock. Only the committed schema_migration row may
+    // authorize a skip; the final pass below checks its contract metadata.
+    if (sqlite.prepare('SELECT 1 FROM schema_migration WHERE version=?').get(version)) {
+      sqlite.exec('COMMIT');
+      committed = true;
+      return;
+    }
     if (version === 19) {
       createMigrationContext(sqlite, identity);
     } else {
@@ -765,6 +773,49 @@ function applyB5Migration(
       sqlite.exec('DROP TABLE IF EXISTS temp.legacy_offline_hash_backfill');
       sqlite.exec('DROP TABLE IF EXISTS temp.legacy_audit_registry_backfill');
     }
+  }
+}
+
+function applyLegacyMigration(sqlite: DatabaseSync, version: number, sql: string): void {
+  // Legacy files own their transaction in the archived SQL. Move that wrapper
+  // into the runner so the version check occurs after acquiring the write lock.
+  // 0015 alone disables foreign keys while rebuilding the user table.
+  const rebuildsUser = version === 15;
+  const wrapper = rebuildsUser
+    ? /^PRAGMA foreign_keys=OFF;\s*BEGIN IMMEDIATE;([\s\S]*)COMMIT;\s*PRAGMA foreign_keys=ON;\s*$/u
+    : /^BEGIN IMMEDIATE;([\s\S]*)COMMIT;\s*$/u;
+  const match = wrapper.exec(sql);
+  const transactionCommands = [
+    ...sql.matchAll(/^\s*(?:BEGIN IMMEDIATE|COMMIT|PRAGMA foreign_keys=(?:OFF|ON));\s*$/gmu),
+  ];
+  const body = match?.[1];
+  if (body === undefined || transactionCommands.length !== (rebuildsUser ? 4 : 2))
+    throw new Error(`LEGACY_MIGRATION_TRANSACTION_UNSUPPORTED: ${version}`);
+  if (rebuildsUser) sqlite.exec('PRAGMA foreign_keys=OFF');
+  let committed = false;
+  try {
+    sqlite.exec('BEGIN IMMEDIATE');
+    const hasMigrationTable = Boolean(
+      sqlite
+        .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_migration'")
+        .get(),
+    );
+    if (
+      !hasMigrationTable ||
+      !sqlite.prepare('SELECT 1 FROM schema_migration WHERE version=?').get(version)
+    )
+      sqlite.exec(body);
+    sqlite.exec('COMMIT');
+    committed = true;
+  } finally {
+    if (!committed) {
+      try {
+        sqlite.exec('ROLLBACK');
+      } catch {
+        // Preserve the migration failure.
+      }
+    }
+    if (rebuildsUser) sqlite.exec('PRAGMA foreign_keys=ON');
   }
 }
 
@@ -836,10 +887,37 @@ export function migrate(sqlite: DatabaseSync): void {
         migrationContract.sha256,
       );
     } else {
-      sqlite.exec(readFileSync(resolve(migrationDirectory, file), 'utf8'));
+      applyLegacyMigration(
+        sqlite,
+        version,
+        readFileSync(resolve(migrationDirectory, file), 'utf8'),
+      );
     }
   }
   assertExistingDeploymentIdentity(sqlite, identity);
+  for (const file of files) {
+    const version = Number(file.slice(0, 4));
+    if (!sqlite.prepare('SELECT 1 FROM schema_migration WHERE version=?').get(version))
+      throw new Error(`MIGRATION_RECORD_MISSING: ${version}`);
+    if (version < 19) continue;
+    const entry = verifiedB5Files.get(file)?.entry;
+    if (!entry) throw new Error(`UNREVIEWED_B5_MIGRATION: ${file}`);
+    const metadata = sqlite
+      .prepare(
+        `SELECT migration_name,descriptor_sha256,sql_sha256
+         FROM migration_contract_metadata WHERE migration_version=?`,
+      )
+      .get(version) as
+      | { migration_name: string; descriptor_sha256: string; sql_sha256: string }
+      | undefined;
+    if (
+      !metadata ||
+      metadata.migration_name !== entry.canonicalName ||
+      metadata.descriptor_sha256 !== entry.descriptorSha256 ||
+      metadata.sql_sha256 !== entry.sha256
+    )
+      throw new Error(`MIGRATION_METADATA_MISMATCH: ${version}`);
+  }
   const finalVersion = Number(
     (
       sqlite.prepare('SELECT COALESCE(MAX(version),0) version FROM schema_migration').get() as {

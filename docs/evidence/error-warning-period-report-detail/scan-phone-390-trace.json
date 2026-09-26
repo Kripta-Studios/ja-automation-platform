@@ -1,0 +1,19 @@
+[
+  {
+    "step": "scan-pending",
+    "code": "PERIOD_SIGNOFF_SCAN_PENDING",
+    "retained": true,
+    "scrollBefore": 1076,
+    "scrollAfter": 1076
+  },
+  {
+    "step": "reload-pending",
+    "sameEvidenceId": true,
+    "fileUploadDisabled": true
+  },
+  {
+    "step": "retry-after-fixture-scan",
+    "sameEvidenceId": true,
+    "signed": true
+  }
+]

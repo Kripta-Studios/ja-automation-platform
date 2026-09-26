@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { relative, resolve } from 'node:path';
 import { expenseInputSchema, minorUnitsSchema, versionedRecordSchema } from '@ja/schemas';
 import { AccessDeniedError, ConflictError, ValidationError } from '@ja/database';
-import { z } from 'zod';
+import { z, type ZodError } from 'zod';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import {
   removePrivateFileIfPresent,
@@ -66,6 +66,105 @@ function safeExpenseValues(values: Record<string, unknown>): Record<string, stri
       ? { receiptNeedsReattach: true }
       : {}),
   };
+}
+
+type ExpenseFieldProblem = Readonly<{ code: string; key: ActionMessageKey; message: string }>;
+const expenseFieldProblems: Record<string, ExpenseFieldProblem> = {
+  projectId: {
+    code: 'EXPENSE_PROJECT_INVALID',
+    key: 'problem.expense.projectInvalid',
+    message: 'Choose a valid project before saving this expense.',
+  },
+  spentOn: {
+    code: 'EXPENSE_DATE_INVALID',
+    key: 'problem.expense.dateInvalid',
+    message: 'Enter a valid expense date. An active assignment must cover that date.',
+  },
+  occurredTimeLocal: {
+    code: 'EXPENSE_OCCURRENCE_TIME_INVALID',
+    key: 'problem.expenseDetail.correctionOccurrenceTimeInvalid',
+    message: 'Enter a valid time when the expense occurred.',
+  },
+  timeEntryId: {
+    code: 'EXPENSE_TIME_LINK_INVALID',
+    key: 'problem.expense.timeLinkInvalid',
+    message:
+      'The linked time entry must be active and match this worker, project, and date. Review the time entry.',
+  },
+  vendor: {
+    code: 'EXPENSE_VENDOR_INVALID',
+    key: 'problem.expense.vendorInvalid',
+    message: 'Enter a vendor of no more than 200 characters.',
+  },
+  category: {
+    code: 'EXPENSE_CATEGORY_INVALID',
+    key: 'problem.expenseDetail.correctionExpenseCategoryInvalid',
+    message: 'Choose a valid expense category.',
+  },
+  description: {
+    code: 'EXPENSE_DESCRIPTION_INVALID',
+    key: 'problem.expense.descriptionInvalid',
+    message: 'Describe the expense in 3 to 5,000 characters.',
+  },
+  currency: {
+    code: 'EXPENSE_CURRENCY_INVALID',
+    key: 'problem.expense.currencyInvalid',
+    message: 'Choose a valid expense currency.',
+  },
+  amountMinor: {
+    code: 'EXPENSE_AMOUNT_INVALID',
+    key: 'problem.expense.amountInvalid',
+    message: 'Enter an expense amount greater than zero.',
+  },
+  whoPaid: {
+    code: 'EXPENSE_PAYER_INVALID',
+    key: 'problem.expense.payerInvalid',
+    message: 'Select who paid this expense. Customer billing treatment is reviewed separately.',
+  },
+  paymentMethod: {
+    code: 'EXPENSE_PAYMENT_METHOD_INVALID',
+    key: 'problem.expense.paymentMethodInvalid',
+    message: 'Enter a payment method of no more than 80 characters.',
+  },
+  receiptDocumentId: {
+    code: 'EXPENSE_RECEIPT_SELECTION_INVALID',
+    key: 'problem.expense.receiptSelectionInvalid',
+    message: 'Choose a valid committed receipt for this project, or reattach the receipt.',
+  },
+  id: {
+    code: 'EXPENSE_RECORD_INVALID',
+    key: 'problem.expense.recordInvalid',
+    message:
+      'The expense record ID or version is invalid. Review the current expense before trying again.',
+  },
+  version: {
+    code: 'EXPENSE_RECORD_INVALID',
+    key: 'problem.expense.recordInvalid',
+    message:
+      'The expense record ID or version is invalid. Review the current expense before trying again.',
+  },
+};
+
+function expenseSchemaFailure(error: ZodError, values: Record<string, unknown>) {
+  const rawFields = error.flatten().fieldErrors;
+  const firstField = Object.keys(rawFields)[0] ?? '';
+  const known = expenseFieldProblems[firstField] ?? {
+    code: 'EXPENSE_FIELDS_INVALID',
+    key: 'problem.expense.fieldsInvalid' as ActionMessageKey,
+    message: 'Review the highlighted expense fields before saving.',
+  };
+  const fieldErrors = Object.fromEntries(
+    Object.keys(rawFields).map((field) => [
+      field === 'amountMinor' ? 'amount' : field,
+      [expenseFieldProblems[field]?.key ?? 'problem.expense.fieldsInvalid'],
+    ]),
+  );
+  return actionFail(400, known.key, {}, known.message, {
+    code: known.code,
+    values: safeExpenseValues(values),
+    fieldErrors,
+    remedies: [{ id: firstField === 'receiptDocumentId' ? 'attach_receipt' : 'review_expense' }],
+  });
 }
 
 /**
@@ -325,11 +424,7 @@ export const expenseActions = {
       if (object[key] === '') object[key] = undefined;
     }
     const preflight = expenseInputSchema.safeParse(object);
-    if (!preflight.success)
-      return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
-        fields: preflight.error.flatten().fieldErrors,
-        values,
-      });
+    if (!preflight.success) return expenseSchemaFailure(preflight.error, { ...object, ...values });
     const context = openPortalRepository(locals);
     let createdReceiptId: string | undefined;
     let createdReceiptStorageKey: string | undefined;
@@ -354,15 +449,14 @@ export const expenseActions = {
         )
           return actionFail(
             400,
-            'action.validation.receiptTypeOrSize',
+            'problem.expense.receiptTypeOrSize',
             {},
-            'Receipt must be JPG, PNG or PDF under 10 MB',
+            'Choose a JPG, PNG, WebP, HEIC, HEIF, or PDF receipt under 10 MB.',
             {
               code: 'EXPENSE_RECEIPT_TYPE_OR_SIZE',
               values,
-              fields: {
-                receipt: ['Choose a JPG, PNG, WebP, HEIC, HEIF, or PDF receipt under 10 MB.'],
-              },
+              fieldErrors: { receipt: ['problem.expense.receiptTypeOrSize'] },
+              remedies: [{ id: 'attach_receipt' }],
             },
           );
         let bytes: Uint8Array;
@@ -371,13 +465,14 @@ export const expenseActions = {
         } catch {
           return actionFail(
             400,
-            'action.validation.receiptContent',
+            'problem.expense.receiptContentInvalid',
             {},
-            'Receipt filename or content does not match its declared file type',
+            'The receipt content does not match its file type. Choose a valid receipt and reattach it.',
             {
               code: 'EXPENSE_RECEIPT_CONTENT_INVALID',
               values,
-              fields: { receipt: ['Choose a receipt whose content matches its file type.'] },
+              fieldErrors: { receipt: ['problem.expense.receiptContentInvalid'] },
+              remedies: [{ id: 'attach_receipt' }],
             },
           );
         }
@@ -404,11 +499,18 @@ export const expenseActions = {
         ) {
           context.v3.cancelUploadReservation(context.principal, reservation.reservationId);
           reservationId = undefined;
-          return actionFail(400, 'action.validation.receiptPath', {}, 'Invalid receipt path', {
-            code: 'EXPENSE_RECEIPT_PATH_INVALID',
-            values,
-            fields: { receipt: ['Choose a receipt with a valid filename.'] },
-          });
+          return actionFail(
+            400,
+            'problem.expense.receiptPathInvalid',
+            {},
+            'The receipt filename could not be used. Rename the file and reattach it.',
+            {
+              code: 'EXPENSE_RECEIPT_PATH_INVALID',
+              values,
+              fieldErrors: { receipt: ['problem.expense.receiptPathInvalid'] },
+              remedies: [{ id: 'attach_receipt' }],
+            },
+          );
         }
 
         createdReceiptStorageKey = storageKey;
@@ -441,11 +543,7 @@ export const expenseActions = {
         }
       }
       const parsed = expenseInputSchema.safeParse(object);
-      if (!parsed.success)
-        return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
-          fields: parsed.error.flatten().fieldErrors,
-          values,
-        });
+      if (!parsed.success) return expenseSchemaFailure(parsed.error, { ...object, ...values });
       const created = context.repository.createExpense(
         context.principal,
         parsed.data,
@@ -512,11 +610,7 @@ export const expenseActions = {
     const object = await formObject(request);
     const values = safeExpenseValues(object);
     const parsed = parseExpenseUpdateForm(object);
-    if (!parsed.success)
-      return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
-        fields: parsed.error.flatten().fieldErrors,
-        values,
-      });
+    if (!parsed.success) return expenseSchemaFailure(parsed.error, values);
     const context = openPortalRepository(locals);
     try {
       context.repository.updateExpense(context.principal, parsed.data);
@@ -533,11 +627,7 @@ export const expenseActions = {
     const object = await formObject(request);
     const values = safeExpenseValues(object);
     const parsed = versionedRecordSchema.safeParse(object);
-    if (!parsed.success)
-      return actionFail(400, 'action.validation.expenseRecord', {}, 'Invalid expense record', {
-        values,
-        fields: parsed.error.flatten().fieldErrors,
-      });
+    if (!parsed.success) return expenseSchemaFailure(parsed.error, values);
     const context = openPortalRepository(locals);
     try {
       context.repository.submitExpense(context.principal, parsed.data.id, parsed.data.version);
@@ -556,11 +646,7 @@ export const expenseActions = {
     const object = await formObject(request);
     const values = safeExpenseValues(object);
     const parsed = versionedRecordSchema.safeParse(object);
-    if (!parsed.success)
-      return actionFail(400, 'action.validation.expenseRecord', {}, 'Invalid expense record', {
-        values,
-        fields: parsed.error.flatten().fieldErrors,
-      });
+    if (!parsed.success) return expenseSchemaFailure(parsed.error, values);
     const context = openPortalRepository(locals);
     try {
       context.repository.deleteExpense(context.principal, parsed.data.id, parsed.data.version);

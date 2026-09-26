@@ -21,6 +21,7 @@
     reportFormFieldErrors,
   } from '../ui';
   import type { TableCardRow } from '../ui';
+  import { readSessionItem, removeSessionItem, saveSessionItem } from '../ui/safe-session-storage';
 
   type MoneyFormatter = (minor: unknown, currency?: string) => string;
   type Metric = {
@@ -167,7 +168,7 @@
   };
   const financeScrollKey = 'ja-finance-failed-form-scroll';
   function rememberFinanceScroll(): void {
-    sessionStorage.setItem(financeScrollKey, String(window.scrollY));
+    saveSessionItem(financeScrollKey, String(window.scrollY));
   }
   onMount(() => {
     if (
@@ -176,15 +177,16 @@
         String(failedFinanceForm.actionName),
       )
     ) {
-      const saved = Number(sessionStorage.getItem(financeScrollKey));
+      const saved = Number(readSessionItem(financeScrollKey));
       if (Number.isFinite(saved) && saved >= 0)
         requestAnimationFrame(() => window.scrollTo({ top: saved, behavior: 'instant' }));
     }
-    sessionStorage.removeItem(financeScrollKey);
+    removeSessionItem(financeScrollKey);
   });
   const financeRemedyLinks = $derived.by(() => {
     const links: Record<string, { label: string; href?: string }> = {
       contact_finance_owner: { label: translate('Contact Finance or an owner') },
+      correct_field: { label: translate('problem.remedy.correctField') },
       review_updated_record: { label: translate('Review updated record') },
       review_expense_policy: { label: translate('Review expense policy') },
       review_assignment_policy: { label: translate('problem.remedy.reviewAssignmentPolicy') },
@@ -252,22 +254,51 @@
     focusedFinanceProblemId = id;
     void tick().then(() => {
       const failed = failedFinanceForm;
+      let fieldFocus: HTMLElement | null = null;
       if (failed?.actionName && failed.fieldErrors && failed.values) {
-        const submittedId = String(failed.values.settlementId ?? failed.values.expenseId ?? '');
-        const forms = document.querySelectorAll<HTMLFormElement>(
-          `[data-ui="finance-overview"] form[data-finance-action="${failed.actionName}"]`,
-        );
-        const form = [...forms].find(
+        const forms = [
+          ...document.querySelectorAll<HTMLFormElement>('[data-ui="finance-overview"] form'),
+        ].filter(
           (candidate) =>
-            String(
-              new FormData(candidate).get('settlementId') ??
-                new FormData(candidate).get('expenseId') ??
-                '',
-            ) === submittedId,
+            candidate.dataset.financeAction === failed.actionName ||
+            candidate.getAttribute('action') === `?/${failed.actionName}`,
         );
-        if (form) reportFormFieldErrors(form, failed.fieldErrors);
+        const submittedIds = Object.entries(failed.values).filter(
+          ([name, value]) => name.endsWith('Id') && typeof value === 'string' && value,
+        ) as Array<[string, string]>;
+        const matched = forms
+          .map((candidate) => {
+            const data = new FormData(candidate);
+            let matches = 0;
+            for (const [name, value] of submittedIds) {
+              if (!data.has(name)) continue;
+              if (data.get(name) !== value) return { candidate, matches: -1 };
+              matches += 1;
+            }
+            return { candidate, matches };
+          })
+          .filter((item) => item.matches >= 0)
+          .sort((left, right) => right.matches - left.matches);
+        const form =
+          matched.length === 1 || (matched[0]?.matches ?? 0) > (matched[1]?.matches ?? 0)
+            ? matched[0]?.candidate
+            : undefined;
+        if (form) {
+          reportFormFieldErrors(form, failed.fieldErrors);
+          const fields = Object.keys(failed.fieldErrors);
+          fieldFocus =
+            fields.length > 1
+              ? form.querySelector<HTMLElement>('[data-validation-summary]')
+              : fields.length === 1
+                ? form.elements.namedItem(fields[0] ?? '') instanceof HTMLElement
+                  ? (form.elements.namedItem(fields[0] ?? '') as HTMLElement)
+                  : null
+                : null;
+        }
       }
-      document.querySelector<HTMLElement>('[data-finance-problem]')?.focus({ preventScroll: true });
+      (fieldFocus ?? document.querySelector<HTMLElement>('[data-finance-problem]'))?.focus({
+        preventScroll: true,
+      });
     });
   });
   const portfolioProjects = $derived(data.portfolio?.projects ?? []);

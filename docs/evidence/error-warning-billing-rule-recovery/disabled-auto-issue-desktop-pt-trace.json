@@ -1,0 +1,13 @@
+{
+  "build": "e344f463cf5f3247d507667bdd827d5f16a6b84e140e93d0137bc370f7798c07",
+  "code": "BILLING_AUTOMATIC_ISSUANCE_DISABLED",
+  "status": 400,
+  "retainedRecipient": true,
+  "streamId": "rule-cp020-expense",
+  "scrollBefore": 212,
+  "scrollAfter": 212,
+  "focusedNotice": true,
+  "locale": "pt",
+  "viewport": "desktop",
+  "consoleErrors": []
+}

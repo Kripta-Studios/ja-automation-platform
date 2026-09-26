@@ -1,0 +1,24 @@
+[
+  {
+    "step": "native-invalid",
+    "code": "PERIOD_FOLLOWUP_FIELDS_INVALID",
+    "retained": true,
+    "scrollBefore": 1827,
+    "scrollAfter": 1827
+  },
+  {
+    "step": "enhanced-success",
+    "saved": true
+  },
+  {
+    "step": "native-stale",
+    "code": "PERIOD_FOLLOWUP_HISTORY_CHANGED",
+    "retained": true,
+    "scrollBefore": 1890,
+    "scrollAfter": 1890
+  },
+  {
+    "step": "worker-denied",
+    "noForm": true
+  }
+]

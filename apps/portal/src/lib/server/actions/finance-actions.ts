@@ -27,12 +27,192 @@ import {
 } from '@ja/database';
 import { z } from 'zod';
 import { openPortalRepository } from '$lib/server/portal-repository';
-import { actionFail, actionFailure, actionSuccess } from './action-message';
+import { actionFail, actionFailure, actionSuccess, type ActionMessageKey } from './action-message';
 import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
 
 function parseRuleId(value: FormDataEntryValue | null): string | undefined {
   const parsed = uuidSchema.safeParse(value?.toString() ?? '');
   return parsed.success ? parsed.data : undefined;
+}
+
+type FinanceInputProblem = Readonly<{
+  code: string;
+  key: ActionMessageKey;
+  message: string;
+}>;
+
+const financeInputProblems: Readonly<Record<string, FinanceInputProblem>> = {
+  setProjectReimbursementDefault: {
+    code: 'FINANCE_PROJECT_REIMBURSEMENT_FIELDS_INVALID',
+    key: 'problem.finance.input.projectReimbursement',
+    message: 'Review the project worker reimbursement mode, version, and reason.',
+  },
+  setWorkerReimbursementOverride: {
+    code: 'FINANCE_WORKER_REIMBURSEMENT_FIELDS_INVALID',
+    key: 'problem.finance.input.workerReimbursement',
+    message: "Review the person's worker reimbursement mode, version, and reason.",
+  },
+  createAssignmentExpensePolicy: {
+    code: 'FINANCE_ASSIGNMENT_EXPENSE_POLICY_FIELDS_INVALID',
+    key: 'problem.finance.input.assignmentExpensePolicy',
+    message:
+      "Review the person expense policy's dates, payer, worker reimbursement, customer recovery, and reason.",
+  },
+  setAssignmentCommercialFallback: {
+    code: 'FINANCE_ASSIGNMENT_COMMERCIAL_FALLBACK_FIELDS_INVALID',
+    key: 'problem.finance.input.assignmentCommercialFallback',
+    message: "Review the assignment's commercial fallback choices and version.",
+  },
+  setAssignmentCommercialRuleReferences: {
+    code: 'FINANCE_ASSIGNMENT_COMMERCIAL_REFERENCES_FIELDS_INVALID',
+    key: 'problem.finance.input.assignmentCommercialReferences',
+    message: "Review the assignment's commercial rule references and version.",
+  },
+  createCanonicalLegalEntityRevision: {
+    code: 'FINANCE_LEGAL_ENTITY_REVISION_FIELDS_INVALID',
+    key: 'problem.finance.input.legalEntityRevision',
+    message: "Review the issuing legal entity's dates, identity, currency, address, and reason.",
+  },
+  assignProjectLegalEntity: {
+    code: 'FINANCE_PROJECT_LEGAL_ENTITY_ASSIGNMENT_FIELDS_INVALID',
+    key: 'problem.finance.input.projectLegalEntityAssignment',
+    message: 'Review the project issuing authority and effective period.',
+  },
+  classifyExpenseCommercially: {
+    code: 'FINANCE_EXPENSE_CLASSIFICATION_FIELDS_INVALID',
+    key: 'problem.finance.input.expenseClassification',
+    message: "Review this expense's commercial treatment, tax rate, and version.",
+  },
+  setExpensePlanningDates: {
+    code: 'FINANCE_EXPENSE_PLANNING_DATES_INVALID',
+    key: 'problem.finance.input.expensePlanningDates',
+    message: "Review the expense's planning dates.",
+  },
+  setCompensationSettlementExpectedPaymentOn: {
+    code: 'FINANCE_SETTLEMENT_PLANNING_FIELDS_INVALID',
+    key: 'problem.finance.input.settlementPlanning',
+    message: "Review the worker settlement's expected payment date.",
+  },
+  createProjectCommercialPolicy: {
+    code: 'FINANCE_PROJECT_COMMERCIAL_POLICY_FIELDS_INVALID',
+    key: 'problem.finance.input.projectCommercialPolicy',
+    message: "Review the project's commercial policy fields.",
+  },
+  createCompensationRule: {
+    code: 'FINANCE_COMPENSATION_RULE_FIELDS_INVALID',
+    key: 'problem.finance.input.compensationRule',
+    message: "Review the worker compensation rule's rate, scope, and effective dates.",
+  },
+  supersedeCompensationRule: {
+    code: 'FINANCE_REPLACEMENT_COMPENSATION_RULE_FIELDS_INVALID',
+    key: 'problem.finance.input.compensationRule',
+    message: "Review the worker compensation rule's rate, scope, and effective dates.",
+  },
+  deactivateCompensationRule: {
+    code: 'FINANCE_COMPENSATION_RULE_REFERENCE_INVALID',
+    key: 'problem.finance.input.compensationRuleReference',
+    message: 'Choose a current worker compensation rule before changing it.',
+  },
+  settleCompensation: {
+    code: 'FINANCE_SETTLEMENT_PERIOD_FIELDS_INVALID',
+    key: 'problem.finance.input.settlementPeriod',
+    message: 'Review the worker compensation settlement period.',
+  },
+  recordCompensationPayment: {
+    code: 'FINANCE_COMPENSATION_PAYMENT_FIELDS_INVALID',
+    key: 'problem.finance.input.compensationPayment',
+    message: "Review the worker payment's payee, amount, date, and reference.",
+  },
+  reverseCompensationPayment: {
+    code: 'FINANCE_PAYMENT_REVERSAL_FIELDS_INVALID',
+    key: 'problem.finance.input.paymentReversal',
+    message: 'Review the worker payment reversal reference and reason.',
+  },
+  recordReimbursement: {
+    code: 'FINANCE_REIMBURSEMENT_FIELDS_INVALID',
+    key: 'problem.finance.input.reimbursement',
+    message: "Review the worker reimbursement's expense, amount, and payment reference.",
+  },
+  createClientLaborRate: {
+    code: 'FINANCE_CLIENT_LABOR_RATE_FIELDS_INVALID',
+    key: 'problem.finance.input.clientLaborRate',
+    message: "Review the customer labor rate's scope, amount, and effective dates.",
+  },
+  supersedeClientLaborRate: {
+    code: 'FINANCE_REPLACEMENT_CLIENT_LABOR_RATE_FIELDS_INVALID',
+    key: 'problem.finance.input.clientLaborRate',
+    message: "Review the customer labor rate's scope, amount, and effective dates.",
+  },
+  deactivateClientLaborRate: {
+    code: 'FINANCE_CLIENT_RATE_REFERENCE_INVALID',
+    key: 'problem.finance.input.clientRateReference',
+    message: 'Choose a current customer labor rate before changing it.',
+  },
+  createInternalCostRule: {
+    code: 'FINANCE_INTERNAL_COST_RULE_FIELDS_INVALID',
+    key: 'problem.finance.input.internalCostRule',
+    message: "Review the internal cost rule's scope, amount, and effective dates.",
+  },
+  supersedeInternalCostRule: {
+    code: 'FINANCE_REPLACEMENT_INTERNAL_COST_RULE_FIELDS_INVALID',
+    key: 'problem.finance.input.internalCostRule',
+    message: "Review the internal cost rule's scope, amount, and effective dates.",
+  },
+  deactivateInternalCostRule: {
+    code: 'FINANCE_INTERNAL_COST_REFERENCE_INVALID',
+    key: 'problem.finance.input.internalCostReference',
+    message: 'Choose a current internal cost rule before changing it.',
+  },
+  createAssignmentRateOverride: {
+    code: 'FINANCE_ASSIGNMENT_OVERRIDE_FIELDS_INVALID',
+    key: 'problem.finance.input.assignmentOverride',
+    message: "Review the assignment rate override's scope, rate, and effective dates.",
+  },
+};
+
+const financeReferenceProblems: Readonly<Record<string, FinanceInputProblem>> = {
+  supersedeCompensationRule: financeInputProblems.deactivateCompensationRule!,
+  supersedeClientLaborRate: financeInputProblems.deactivateClientLaborRate!,
+  supersedeInternalCostRule: financeInputProblems.deactivateInternalCostRule!,
+};
+
+function safeFinanceValues(object: Record<string, unknown>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(object).filter(
+      (entry): entry is [string, string] =>
+        /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(entry[0]) &&
+        !/(?:password|secret|sessionToken|authorization|cookie)/i.test(entry[0]) &&
+        typeof entry[1] === 'string' &&
+        entry[1].length <= 10_000,
+    ),
+  );
+}
+
+function financeRemediesWithContext(remedies: unknown, values: Record<string, string>): unknown {
+  if (!Array.isArray(remedies)) return remedies;
+  return remedies.map((remedy) => {
+    if (!remedy || typeof remedy !== 'object' || typeof remedy.id !== 'string') return remedy;
+    const recordId =
+      remedy.id === 'review_assignment_policy'
+        ? values.projectMemberId
+        : remedy.id === 'review_expense_classification'
+          ? values.expenseId
+          : remedy.id === 'review_updated_record'
+            ? (values.expenseId ??
+              values.settlementId ??
+              values.projectMemberId ??
+              values.ruleId ??
+              values.supersedesId)
+            : undefined;
+    const projectId = ['configure_project_issuer', 'review_expense_policy'].includes(remedy.id)
+      ? values.projectId
+      : undefined;
+    return {
+      ...remedy,
+      ...(recordId && !remedy.recordId ? { recordId } : {}),
+      ...(projectId && !remedy.projectId ? { projectId } : {}),
+    };
+  });
 }
 
 /** Keep Finance's known domain failures out of the generic conflict path. */
@@ -1264,16 +1444,48 @@ export const financeActions = Object.fromEntries(
   Object.entries(rawFinanceActions).map(([actionName, action]) => [
     actionName,
     async (event: PortalActionEvent) => {
-      const values = await formObject(event.request.clone());
+      const values = safeFinanceValues(await formObject(event.request.clone()));
       const result = await action(event);
       if (isActionFailure(result) && result.data && typeof result.data === 'object') {
         const data = result.data as Record<string, unknown>;
         const existing =
           data.values && typeof data.values === 'object'
-            ? (data.values as Record<string, unknown>)
+            ? safeFinanceValues(data.values as Record<string, unknown>)
             : {};
-        data.values = { ...values, ...existing };
+        const retainedValues = { ...values, ...existing };
+        if (typeof data.messageKey === 'string' && /^action\.validation\./u.test(data.messageKey)) {
+          const reference = /(?:compensationRuleId|clientLaborRateId|internalCostRuleId)$/.test(
+            data.messageKey,
+          );
+          const problem =
+            (reference ? financeReferenceProblems[actionName] : undefined) ??
+            financeInputProblems[actionName];
+          if (problem) {
+            const fieldErrors =
+              data.fieldErrors &&
+              typeof data.fieldErrors === 'object' &&
+              !Array.isArray(data.fieldErrors)
+                ? (data.fieldErrors as Record<string, string[]>)
+                : {};
+            const referenceField = actionName.startsWith('deactivate') ? 'ruleId' : 'supersedesId';
+            return actionFail(result.status, problem.key, {}, problem.message, {
+              code: problem.code,
+              actionName,
+              values: retainedValues,
+              fieldErrors: Object.keys(fieldErrors).length
+                ? fieldErrors
+                : reference
+                  ? { [referenceField]: [problem.key] }
+                  : {},
+              remedies: [{ id: 'correct_field' }],
+              correlationId:
+                typeof data.correlationId === 'string' ? data.correlationId : undefined,
+            });
+          }
+        }
+        data.values = retainedValues;
         data.actionName = actionName;
+        data.remedies = financeRemediesWithContext(data.remedies, retainedValues);
       }
       return result;
     },

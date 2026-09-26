@@ -1,0 +1,58 @@
+{
+  "schema": "ja.browser-release-qa.v1",
+  "capturedDate": "2026-09-26",
+  "environment": {
+    "browser": "Chromium via Playwright",
+    "workers": 1,
+    "fixture": "isolated disposable SQLite and documents",
+    "productionMutations": false
+  },
+  "clientEssential32": {
+    "project": "desktop",
+    "overallPlaywrightResult": "failed",
+    "passedStepBodies": 30,
+    "passedSteps": "1-29,32",
+    "blockedSteps": [
+      { "step": 30, "code": "OPERATIONS_EVIDENCE_MISSING", "requirement": "recent automatic jobs evidence" },
+      { "step": 31, "code": "OPERATIONS_EVIDENCE_MISSING", "requirement": "recent continuity evidence or Owner waiver" }
+    ],
+    "responsiveWidthsCheckedInStep29": [360, 390, 768, 1440]
+  },
+  "taxProfileClickPath": {
+    "result": "passed",
+    "role": "finance",
+    "path": ["Billing", "Configure billing", "New tax profile", "Save tax profile", "New billing stream"],
+    "globalProfile": true,
+    "currency": "USD",
+    "enteredPercent": 8.25,
+    "submittedBasisPoints": 825,
+    "saveResponseStatus": 200,
+    "profileVisibleInDirectory": true,
+    "profileAvailableInStreamSelector": true,
+    "selectedTabAfterSave": "Configure billing",
+    "problemNoticeCount": 0,
+    "pageErrorCount": 0
+  },
+  "recoveryClickPaths": {
+    "ownerApprovalAndFinancePayment": { "passed": 4, "total": 4, "viewports": [390, 1440] },
+    "blockedSessionStorageProjectSave": { "passed": 1, "responseStatus": 200, "problemCode": "PROJECT_DETAIL_CHANGED", "enteredValueRetained": true, "noticeFocused": true, "pageErrorCount": 0 },
+    "nativeInvalidInvoiceVoid": { "passed": 1, "responseStatus": 400, "problemCode": "BILLING_VOID_FIELDS_INVALID", "scopedNoticeCount": 1, "reasonRetained": true, "reasonFocused": true, "drawerScrollRetained": true, "pageErrorCount": 0 }
+  },
+  "nativeTaxProfileRecovery": {
+    "passed": 1,
+    "invalidNameLength": 1,
+    "failurePostResourceType": "document",
+    "failureResponseStatus": 400,
+    "visiblePercentAfterFailure": "7.5",
+    "hiddenBasisPointsAfterFailure": "750",
+    "selectedTabAfterFailure": "Configure billing",
+    "successPostResourceType": "fetch",
+    "successResponseStatus": 200,
+    "profileVisibleInDirectory": true,
+    "savedCurrency": "USD",
+    "savedStatus": "active",
+    "savedBasisPointsInDisposableDatabase": 750,
+    "pageErrorCount": 0
+  },
+  "qaRuntimeSignal": { "path": "/j-aautomation/app/api/offline/identity", "status": 503, "classification": "QA environment observation; production behavior unverified" }
+}

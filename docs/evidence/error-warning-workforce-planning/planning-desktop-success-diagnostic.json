@@ -1,0 +1,16 @@
+{
+  "form": {
+    "valid": true,
+    "startsAt": "2026-10-30T08:00",
+    "endsAt": "2026-10-30T16:00",
+    "plannedMinutes": "480",
+    "workerSelected": true
+  },
+  "responseStatus": 200,
+  "saved": [
+    {
+      "startsAt": "2026-10-30T08:00:00.000Z",
+      "site": "Retained QA site"
+    }
+  ]
+}

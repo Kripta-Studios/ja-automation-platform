@@ -1,7 +1,9 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { page } from '$app/stores';
-  import { onMount } from 'svelte';
+  import { enhance } from '$app/forms';
+  import type { SubmitFunction } from '@sveltejs/kit';
+  import { onMount, tick } from 'svelte';
   import {
     Field,
     FieldGroup,
@@ -15,10 +17,17 @@
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
     resolveStandaloneLocale,
-    standaloneActionMessage,
     standaloneText,
   } from '../../standalone-locale';
   import { reviewCopy, type ReviewLocale } from './copy';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
+  import {
+    readSessionItem,
+    removeSessionItem,
+    saveSessionItem,
+  } from '$lib/portal/ui/safe-session-storage';
+  import type { ProblemData } from '$lib/problem/contract';
 
   type Row = Record<string, unknown>;
   type ReviewReport = Row & {
@@ -43,10 +52,25 @@
   const eventTypes = ['shared', 'exported', 'awaiting_signatory', 'returned', 'disputed'] as const;
 
   let { data, form } = $props();
+  const resultForm = $derived(
+    form as
+      | (Partial<ProblemData> & {
+          operation?: string;
+          values?: Record<string, string>;
+          success?: boolean;
+        })
+      | null
+      | undefined,
+  );
+  const problem = $derived(
+    resultForm?.code && resultForm.messageKey && resultForm.correlationId
+      ? (resultForm as ProblemData)
+      : null,
+  );
   let localeOverride = $state<PortalLocale | null>(null);
   let selectedEvents = $state<Record<string, string>>({});
   const locale = $derived(
-    localeOverride ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
+    localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
   );
   const copy = $derived(
     reviewCopy[(locale === 'pt' ? 'pt' : locale === 'es' ? 'es' : 'en') as ReviewLocale],
@@ -60,24 +84,67 @@
       invoices?: readonly Row[];
     },
   );
-  const values = $derived((form?.values ?? {}) as Record<string, unknown>);
+  const values = $derived((resultForm?.values ?? {}) as Record<string, unknown>);
   const feedback = $derived.by(() => {
-    if (form?.success && form.messageKey === 'action.reports.periodFollowupRecorded')
+    if (resultForm?.success && resultForm.messageKey === 'action.reports.periodFollowupRecorded')
       return copy.recorded;
-    const message = standaloneActionMessage(locale, form);
-    return message === 'action.reports.periodFollowupRecorded' || message === 'Follow-up recorded'
-      ? copy.recorded
-      : message;
+    return '';
   });
 
   const display = (value: unknown, fallback = '—'): string =>
     value === null || value === undefined || value === '' ? fallback : String(value);
-  const submittedValue = (name: string, fallback = ''): string => {
+  const submittedValue = (reportId: string, name: string, fallback = ''): string => {
+    if (values.periodReportId !== reportId) return fallback;
     const value = values[name];
     return value === null || value === undefined || value === '' ? fallback : String(value);
   };
   const eventType = (reportId: string): string =>
-    selectedEvents[reportId] ?? submittedValue('eventType', 'shared');
+    selectedEvents[reportId] ?? submittedValue(reportId, 'eventType', 'shared');
+
+  const scrollKey = $derived(
+    `period-review-scroll:${String(data.user?.id ?? '')}:${String(data.selectedProjectId ?? '')}:${String(data.periodStart ?? '')}:${String(data.periodEnd ?? '')}`,
+  );
+  function rememberScroll(): void {
+    saveSessionItem(scrollKey, String(window.scrollY));
+  }
+  function showFieldProblems(result: typeof resultForm): void {
+    const reportId = result?.values?.periodReportId;
+    const target = reportId
+      ? Array.from(document.querySelectorAll<HTMLFormElement>('form[data-followup-form]')).find(
+          (item) => item.dataset.followupForm === reportId,
+        )
+      : undefined;
+    if (target && result?.fieldErrors) reportFormFieldErrors(target, result.fieldErrors);
+    const summary = target?.querySelector<HTMLElement>('[data-validation-summary]');
+    const namedFields = Object.keys(result?.fieldErrors ?? {});
+    const firstField =
+      namedFields.length === 1
+        ? Array.from(
+            target?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+              'input,select,textarea',
+            ) ?? [],
+          ).find((control) => control.name === namedFields[0] && control.type !== 'hidden')
+        : undefined;
+    (
+      firstField ??
+      (namedFields.length > 1 ? summary : null) ??
+      target
+        ?.closest('[data-followup-card]')
+        ?.querySelector<HTMLElement>('[data-ui="problem-notice"]') ??
+      document.querySelector<HTMLElement>('[data-review-global-problem] [data-ui="problem-notice"]')
+    )?.focus({ preventScroll: true });
+  }
+  const preserveFollowupForm: SubmitFunction = () => {
+    const scrollTop = window.scrollY;
+    return async ({ result, update }) => {
+      await update({ reset: false });
+      if (result.type === 'failure') {
+        await tick();
+        showFieldProblems(result.data as typeof resultForm);
+        window.scrollTo({ top: scrollTop, behavior: 'instant' });
+      }
+    };
+  };
   const eventLabel = (value: unknown): string => {
     const key = String(value ?? '');
     const labels = copy.followupTypes;
@@ -145,14 +212,33 @@
     applyStandaloneDocumentLocale(next);
   }
   onMount(() => {
-    const resolved = resolveStandaloneLocale($page.url.searchParams.get('lang'));
+    const resolved = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
     applyLocale(resolved);
     const onStorage = (event: StorageEvent) => {
       if (event.key === 'ja.portal.locale' || event.key === 'ja-portal-locale')
         localeOverride = resolveStandaloneLocale(event.newValue);
     };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener('pagehide', rememberScroll);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('pagehide', rememberScroll);
+    };
+  });
+  let focusedProblemId = '';
+  $effect(() => {
+    const id = problem?.correlationId;
+    if (!id || id === focusedProblemId) return;
+    focusedProblemId = id;
+    void tick().then(() =>
+      requestAnimationFrame(() => {
+        showFieldProblems(resultForm);
+        const saved = readSessionItem(scrollKey);
+        if (saved !== null && Number.isFinite(Number(saved)))
+          window.scrollTo({ top: Number(saved), behavior: 'instant' });
+        removeSessionItem(scrollKey);
+      }),
+    );
   });
   $effect(() => applyStandaloneDocumentLocale(locale));
 </script>
@@ -188,9 +274,37 @@
   {#if feedback}
     <p class="review-feedback" role="status" aria-live="polite">{feedback}</p>
   {/if}
+  {#if problem && !reports.some((report) => report.reportId === values.periodReportId)}
+    <div data-review-global-problem>
+      <ProblemNotice
+        {problem}
+        remedyLinks={{
+          review_reports: {
+            label: standaloneText(locale, 'problem.remedy.reviewReports'),
+            href: `${base}/app/reports`,
+          },
+          review_report: {
+            label: standaloneText(locale, 'problem.remedy.reviewReport'),
+            href: `${base}/app/reports/period/${encodeURIComponent(String(values.periodReportId ?? ''))}?review=1#period-report-header`,
+          },
+          review_followup: {
+            label: standaloneText(locale, 'problem.remedy.reviewUpdatedRecord'),
+            href: `${base}/app/reports`,
+          },
+          contact_project_owner: {
+            label: standaloneText(locale, 'problem.remedy.contactProjectOwner'),
+          },
+          sign_in_again: {
+            label: standaloneText(locale, 'problem.remedy.signInAgain'),
+            href: `${base}/app/login`,
+          },
+        }}
+      />
+    </div>
+  {/if}
 
   <FormCard title={copy.period} class="review-filter-card">
-    <form method="GET" action={`${base}/app/reports/review`}>
+    <form method="GET" action={`${base}/app/reports/review`} use:formValidation>
       <input type="hidden" name="lang" value={locale} />
       <FieldGroup columns="auto">
         <Field id="review-project" label={copy.project} required>
@@ -307,7 +421,12 @@
                 </ul>
               </section>
 
-              <section class="review-followup" data-followup-history>
+              <section
+                class="review-followup"
+                data-followup-history
+                data-followup-card
+                id={`followup-${report.reportId}`}
+              >
                 <div class="review-section-heading">
                   <div>
                     <h4>{copy.followup}</h4>
@@ -379,12 +498,47 @@
                   </TableRegion>
                 </details>
 
+                {#if problem && values.periodReportId === report.reportId}
+                  <ProblemNotice
+                    {problem}
+                    status={`${copy.state}: ${display(report.state)} · ${copy.version}: v${display(report.snapshotVersion)}`}
+                    remedyLinks={{
+                      review_followup: {
+                        label: standaloneText(locale, 'problem.remedy.reviewUpdatedRecord'),
+                        href: `${base}/app/reports/period/${encodeURIComponent(report.reportId)}?review=1#period-followup`,
+                      },
+                      review_report: {
+                        label: standaloneText(locale, 'problem.remedy.reviewReport'),
+                        href: `${base}/app/reports/period/${encodeURIComponent(report.reportId)}?review=1#period-report-header`,
+                      },
+                      review_signoff: {
+                        label: standaloneText(locale, 'problem.remedy.reviewUpdatedRecord'),
+                        href: `${base}/app/reports/period/${encodeURIComponent(report.reportId)}?review=1#customer-signoff`,
+                      },
+                      review_reports: {
+                        label: standaloneText(locale, 'problem.remedy.reviewReports'),
+                        href: `${base}/app/reports`,
+                      },
+                      contact_project_owner: {
+                        label: standaloneText(locale, 'problem.remedy.contactProjectOwner'),
+                      },
+                      sign_in_again: {
+                        label: standaloneText(locale, 'problem.remedy.signInAgain'),
+                        href: `${base}/app/login`,
+                      },
+                    }}
+                  />
+                {/if}
                 <FormCard title={copy.followupForm} class="followup-form">
                   <p class="review-help">{copy.dispatchAttestation}</p>
                   {#if /^[a-f0-9]{64}$/.test(report.snapshotSha256 ?? '')}
                     <form
                       method="POST"
                       action={`?/recordFollowup&${new URLSearchParams({ project: data.selectedProjectId ?? '', from: data.periodStart ?? '', to: data.periodEnd ?? '', lang: locale })}`}
+                      data-followup-form={report.reportId}
+                      use:formValidation
+                      use:enhance={preserveFollowupForm}
+                      onsubmit={rememberScroll}
                     >
                       <input type="hidden" name="periodReportId" value={report.reportId} />
                       <input
@@ -424,7 +578,7 @@
                           <select
                             id={`responsible-${report.reportId}`}
                             name="responsibleUserId"
-                            value={submittedValue('responsibleUserId')}
+                            value={submittedValue(report.reportId, 'responsibleUserId')}
                             required
                           >
                             <option value="">{copy.responsible}</option>
@@ -440,14 +594,18 @@
                         <input
                           type="hidden"
                           name="idempotencyKey"
-                          value={submittedValue('idempotencyKey', defaultRetryKey(report))}
+                          value={submittedValue(
+                            report.reportId,
+                            'idempotencyKey',
+                            defaultRetryKey(report),
+                          )}
                         />
                         <Field id={`next-followup-${report.reportId}`} label={copy.nextFollowUp}>
                           <input
                             id={`next-followup-${report.reportId}`}
                             name="nextFollowUpOn"
                             type="date"
-                            value={submittedValue('nextFollowUpOn')}
+                            value={submittedValue(report.reportId, 'nextFollowUpOn')}
                           />
                         </Field>
                         <Field
@@ -462,7 +620,7 @@
                             name="method"
                             type="text"
                             maxlength="200"
-                            value={submittedValue('method')}
+                            value={submittedValue(report.reportId, 'method')}
                             required={isDispatchEvent(report.reportId)}
                           />
                         </Field>
@@ -471,7 +629,7 @@
                             id={`event-date-${report.reportId}`}
                             name="eventDate"
                             type="date"
-                            value={submittedValue('eventDate')}
+                            value={submittedValue(report.reportId, 'eventDate')}
                             required={isDispatchEvent(report.reportId)}
                           />
                         </Field>
@@ -481,7 +639,7 @@
                             name="reference"
                             type="text"
                             maxlength="500"
-                            value={submittedValue('reference')}
+                            value={submittedValue(report.reportId, 'reference')}
                             required={isDispatchEvent(report.reportId)}
                           />
                         </Field>
@@ -497,7 +655,7 @@
                             name="signatoryName"
                             type="text"
                             maxlength="200"
-                            value={submittedValue('signatoryName')}
+                            value={submittedValue(report.reportId, 'signatoryName')}
                             required={isSignatoryEvent(report.reportId)}
                           />
                         </Field>
@@ -512,7 +670,7 @@
                             maxlength="2000"
                             rows="3"
                             required={isReturnEvent(report.reportId)}
-                            >{submittedValue('reason')}</textarea
+                            >{submittedValue(report.reportId, 'reason')}</textarea
                           >
                         </Field>
                       </FieldGroup>

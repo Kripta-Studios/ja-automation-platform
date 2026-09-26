@@ -3,6 +3,7 @@
   import { base } from '$app/paths';
   import type { PortalLocale } from '$lib/portal-i18n';
   import type { ControlledValueDomain } from '$lib/i18n/controlled-values';
+  import type { ProblemData } from '$lib/problem/contract';
   import {
     downloadAccountingPackArtifact,
     isModifiedDownloadClick,
@@ -20,9 +21,19 @@
     locale: PortalLocale;
     translate: (value: string) => string;
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
+    problem?: ProblemData | null;
+    rememberPackScroll: (form: HTMLFormElement) => { destroy(): void };
   };
 
-  let { pack, isAuditor, locale, translate, controlledValue }: Props = $props();
+  let {
+    pack,
+    isAuditor,
+    locale,
+    translate,
+    controlledValue,
+    rememberPackScroll,
+    problem = null,
+  }: Props = $props();
 
   const accountingPackExportTypes: ReadonlyArray<{
     key: AccountingPackExportType;
@@ -198,7 +209,7 @@
   }
 </script>
 
-<article class="invoice-row accounting-pack-artifact-row">
+<article class="invoice-row accounting-pack-artifact-row" id={`accounting-pack-${String(pack.id)}`}>
   <div>
     <strong>{String(pack.period_start)} → {String(pack.period_end)}</strong>
     <small>{controlledValue('artifactState', pack.state)} · {String(pack.created_at)}</small>
@@ -238,9 +249,15 @@
             'Sources changed after this final version. Keep this historical pack and generate a new version for the same period.',
           )}
         </p>
-        <form method="POST" action="?/createAccountingPack">
+        <form
+          method="POST"
+          action="?/createAccountingPack"
+          data-pack-id={String(pack.id)}
+          use:rememberPackScroll
+        >
           <input type="hidden" name="periodStart" value={String(pack.period_start)} />
           <input type="hidden" name="periodEnd" value={String(pack.period_end)} />
+          <input type="hidden" name="viewportScrollY" value="0" />
           <input
             type="hidden"
             name="reportLocale"
@@ -251,7 +268,7 @@
       </div>
     {/if}
     {#if !isAuditor && packState !== 'final' && packState !== 'queued'}
-      <details class="accounting-pack-review">
+      <details class="accounting-pack-review" open={Boolean(problem)}>
         <summary>{translate('Review before finalizing')}</summary>
         <p>
           {translate(
@@ -310,8 +327,9 @@
           </div>
         </dl>
         {#if packState === 'ready' && reconciliation.reconciles === true && !pack.sourceStale}
-          <form method="POST" action="?/finalizeAccountingPack">
+          <form method="POST" action="?/finalizeAccountingPack" use:rememberPackScroll>
             <input type="hidden" name="packId" value={pack.id} />
+            <input type="hidden" name="viewportScrollY" value="0" />
             <button>{translate('Finalize reviewed version')}</button>
           </form>
         {:else}

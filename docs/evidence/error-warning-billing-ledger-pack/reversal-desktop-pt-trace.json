@@ -1,0 +1,21 @@
+[
+  {
+    "step": "payment-source-success",
+    "saved": true
+  },
+  {
+    "step": "reverse-invalid-native",
+    "code": "BILLING_PAYMENT_AMOUNT_INVALID",
+    "retained": true,
+    "scrollBefore": 173,
+    "scrollAfter": 173
+  },
+  {
+    "step": "reverse-enhanced-success",
+    "saved": true
+  },
+  {
+    "step": "worker-denied",
+    "code": "BILLING_FINANCE_REQUIRED"
+  }
+]

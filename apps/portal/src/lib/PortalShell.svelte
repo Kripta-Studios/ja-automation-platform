@@ -345,11 +345,155 @@
   const currentView = $derived($page.url.searchParams.get('view') ?? '');
   const currentTitle = $derived(portalTitleFor(data.section, currentView));
   const actionFeedback = $derived(actionMessage(form));
+  const documentResult = $derived.by(() => {
+    const result = form as
+      | (ProblemData & {
+          success?: boolean;
+          actionName?: string;
+          values?: Record<string, unknown>;
+        })
+      | null
+      | undefined;
+    return data.section === 'documents' &&
+      result?.success === false &&
+      ['uploadPrivateDocument', 'archiveDocument'].includes(result.actionName ?? '') &&
+      result.code &&
+      result.messageKey
+      ? result
+      : null;
+  });
+  const documentProblem = $derived(documentResult as ProblemData | null);
+  const documentFormValues = $derived.by((): Record<string, string> => {
+    const values = documentResult?.values;
+    return values && typeof values === 'object'
+      ? Object.fromEntries(
+          Object.entries(values).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string',
+          ),
+        )
+      : {};
+  });
+  let documentScrollIntent = false;
+  let restoredDocumentScrollId = '';
+  onMount(() => {
+    if (data.section !== 'documents') return;
+    const markIntent = () => {
+      documentScrollIntent = true;
+    };
+    const markKeyIntent = (event: KeyboardEvent) => {
+      if (
+        ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ', 'Tab'].includes(
+          event.key,
+        )
+      )
+        markIntent();
+    };
+    window.addEventListener('wheel', markIntent, { passive: true });
+    window.addEventListener('touchmove', markIntent, { passive: true });
+    window.addEventListener('pointerdown', markIntent, { passive: true });
+    window.addEventListener('keydown', markKeyIntent, true);
+    return () => {
+      window.removeEventListener('wheel', markIntent);
+      window.removeEventListener('touchmove', markIntent);
+      window.removeEventListener('pointerdown', markIntent);
+      window.removeEventListener('keydown', markKeyIntent, true);
+    };
+  });
+  function rememberDocumentScroll(form: HTMLFormElement) {
+    const input = form.elements.namedItem('viewportScrollY') as HTMLInputElement | null;
+    const capture = () => {
+      if (input) input.value = String(Math.max(0, Math.round(window.scrollY)));
+    };
+    const onSubmit = () => {
+      documentScrollIntent = false;
+      capture();
+    };
+    const onFormData = (event: FormDataEvent) => {
+      documentScrollIntent = false;
+      const viewport = String(Math.max(0, Math.round(window.scrollY)));
+      if (input) input.value = viewport;
+      event.formData.set('viewportScrollY', viewport);
+    };
+    form.addEventListener('submit', onSubmit, true);
+    form.addEventListener('formdata', onFormData);
+    return {
+      destroy() {
+        form.removeEventListener('submit', onSubmit, true);
+        form.removeEventListener('formdata', onFormData);
+      },
+    };
+  }
+  $effect(() => {
+    const id = documentProblem?.correlationId;
+    if (!id || id === restoredDocumentScrollId) return;
+    if (!/^\d{1,7}$/.test(documentFormValues.viewportScrollY ?? '')) return;
+    const viewport = Number(documentFormValues.viewportScrollY);
+    if (!Number.isSafeInteger(viewport) || viewport < 0) return;
+    restoredDocumentScrollId = id;
+    let active = true;
+    let observer: ResizeObserver | undefined;
+    const timers: number[] = [];
+    const restore = () => {
+      if (active && documentProblem?.correlationId === id && !documentScrollIntent)
+        window.scrollTo({ top: viewport, behavior: 'instant' });
+    };
+    void tick().then(() =>
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (!active) return;
+          restore();
+          observer = new ResizeObserver(() => requestAnimationFrame(restore));
+          observer.observe(document.body);
+          for (const delay of [180, 450, 900]) timers.push(window.setTimeout(restore, delay));
+          timers.push(window.setTimeout(() => observer?.disconnect(), 1_500));
+        }),
+      ),
+    );
+    return () => {
+      active = false;
+      observer?.disconnect();
+      for (const timer of timers) window.clearTimeout(timer);
+    };
+  });
+  let documentUploadForm: HTMLFormElement | undefined = $state();
+  let focusedDocumentProblemId = '';
+  $effect(() => {
+    const id = documentProblem?.correlationId;
+    if (!id || id === focusedDocumentProblemId) return;
+    focusedDocumentProblemId = id;
+    void tick().then(() => {
+      if (documentResult?.actionName === 'uploadPrivateDocument' && documentUploadForm) {
+        reportFormFieldErrors(documentUploadForm, documentProblem.fieldErrors);
+        (
+          documentUploadForm.querySelector<HTMLElement>('[data-validation-summary]') ??
+          documentUploadForm.querySelector<HTMLElement>('[data-ui="problem-notice"]')
+        )?.focus({ preventScroll: true });
+      } else if (documentResult?.actionName === 'archiveDocument') {
+        const forms = document.querySelectorAll<HTMLFormElement>(
+          'form[action="?/archiveDocument"]',
+        );
+        const selected = Array.from(forms).find(
+          (candidate) =>
+            candidate.elements.namedItem('documentId') instanceof HTMLInputElement &&
+            (candidate.elements.namedItem('documentId') as HTMLInputElement).value ===
+              documentFormValues.documentId,
+        );
+        if (selected) {
+          reportFormFieldErrors(selected, documentProblem.fieldErrors);
+          (
+            selected.querySelector<HTMLElement>('[data-validation-summary]') ??
+            selected.querySelector<HTMLElement>('[data-ui="problem-notice"]')
+          )?.focus({ preventScroll: true });
+        }
+      }
+    });
+  });
   const globalProblem = $derived.by(() => {
     const result = form as
       | (ProblemData & {
           success?: boolean;
           actionName?: string;
+          operation?: string;
           values?: Record<string, unknown>;
         })
       | null
@@ -370,10 +514,28 @@
           hasValue('amount') ||
           result?.messageKey === 'action.validation.expenseFields')) ||
       (data.section === 'projects' && result?.actionName === 'createClient') ||
+      (data.section === 'documents' &&
+        ['uploadPrivateDocument', 'archiveDocument'].includes(result?.actionName ?? '')) ||
+      (data.section === 'notifications' && result?.actionName === 'markNotificationRead') ||
       data.section === 'billing' ||
       (data.section === 'projects' &&
         ['updateAssignment', 'removeAssignment', 'deleteAssignment'].includes(
           result?.actionName ?? '',
+        )) ||
+      (data.section === 'planning' &&
+        [
+          'createPlanning',
+          'updatePlanning',
+          'cancelPlanning',
+          'createSkill',
+          'updateSkill',
+          'deleteSkill',
+          'setWorkerSkill',
+          'deleteWorkerSkill',
+        ].includes(result?.operation ?? '')) ||
+      (data.section === 'profile' &&
+        ['setWorkerSkill', 'deleteWorkerSkill', 'setAvailability'].includes(
+          result?.operation ?? '',
         ));
     return result &&
       result.success === false &&
@@ -402,6 +564,12 @@
     const canManageClients = data.user.role === 'owner_admin' || data.user.role === 'finance_admin';
     const projectAction = (form as { actionName?: string } | null)?.actionName ?? '';
     const isClientAction = /client/i.test(projectAction);
+    const workforceWorkerId = (form as { values?: Record<string, unknown> } | null)?.values
+      ?.workerId;
+    const reviewedWorkerId =
+      typeof workforceWorkerId === 'string' && workforceWorkerId
+        ? workforceWorkerId
+        : String(data.selectedWorkerId ?? data.user.id);
     return {
       ...(sections.has('time')
         ? {
@@ -481,15 +649,83 @@
             },
             review_billing_contact: {
               label: translate('Review billing contact'),
-              href: `${base}/app/projects?view=clients`,
+              href:
+                isClientAction && form?.success === false
+                  ? undefined
+                  : `${base}/app/projects?view=clients`,
             },
             add_billing_contact: {
               label: translate('Add billing contact'),
-              href: `${base}/app/projects?view=clients`,
+              href:
+                isClientAction && form?.success === false
+                  ? undefined
+                  : `${base}/app/projects?view=clients`,
             },
           }
         : {}),
+      ...(sections.has('planning')
+        ? {
+            review_planning: {
+              label: translate('Review current planning'),
+              href: `${base}/app/planning#planning-day-agenda`,
+            },
+            review_planning_fields: { label: translate('Review the planning fields') },
+            review_worker_assignments: {
+              label: translate('Review worker assignments'),
+              href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+            },
+            review_projects: {
+              label: translate('Review available projects'),
+              href: `${base}/app/projects`,
+            },
+            review_project_status: {
+              label:
+                data.user.role === 'owner_admin'
+                  ? translate('Review project status')
+                  : translate('Contact the project owner'),
+              href: data.user.role === 'owner_admin' ? `${base}/app/projects` : undefined,
+            },
+          }
+        : {}),
+      ...(['planning', 'profile'].some((section) => sections.has(section))
+        ? {
+            review_availability: {
+              label: translate('Review updated availability'),
+              href: `${base}/app/profile?worker=${encodeURIComponent(reviewedWorkerId)}#availability-calendar`,
+            },
+            review_availability_fields: { label: translate('Review availability dates') },
+            review_skill_fields: { label: translate('Review expertise fields') },
+            review_skills: {
+              label: translate('Review current expertise'),
+              href: `${base}/app/planning#planning-skills`,
+            },
+            review_worker_skills: {
+              label: portalText(locale, 'problem.remedy.reviewWorkerSkills'),
+              href: sections.has('planning')
+                ? `${base}/app/planning#planning-skills`
+                : `${base}/app/profile#profile-skills`,
+            },
+            review_workers: {
+              label: translate('Review available workers'),
+              href: `${base}/app/profile`,
+            },
+            review_own_skills: {
+              label: translate('Review your expertise'),
+              href: `${base}/app/profile#profile-skills`,
+            },
+            contact_project_owner: { label: translate('Contact the project owner') },
+            sign_in_again: { label: translate('Sign in again'), href: `${base}/app/login` },
+          }
+        : {}),
       contact_owner: { label: translate('Contact an owner') },
+      correct_fields: { label: portalText(locale, 'problem.remedy.correctFields') },
+      review_documents: {
+        label: portalText(locale, 'problem.remedy.reviewDocuments'),
+        href: `${base}/app/documents#document-list`,
+      },
+      contact_document_owner: {
+        label: portalText(locale, 'problem.remedy.contactDocumentOwner'),
+      },
     };
   });
   const clientFormResult = $derived(
@@ -594,6 +830,9 @@
           operation?: string;
           values?: Record<string, unknown>;
           fields?: Record<string, string[]>;
+          fieldErrors?: Record<string, string[]>;
+          code?: string;
+          correlationId?: string;
         }
       | null
       | undefined;
@@ -605,9 +844,50 @@
   const planningFailedUpdateId = $derived(
     planningFailure?.operation === 'updatePlanning' ? String(planningFailure.values?.id ?? '') : '',
   );
+  const planningFailedRecordId = $derived(String(planningFailure?.values?.id ?? ''));
+  const planningFailedRecordVisible = $derived(
+    (data.records ?? []).some((row) => String(row.id) === planningFailedRecordId),
+  );
+  const planningProblem = $derived(
+    planningFailure?.code && planningFailure.correlationId
+      ? (planningFailure as unknown as ProblemData)
+      : null,
+  );
+  const skillFailure = $derived.by(() => {
+    const result = form as
+      | {
+          success?: boolean;
+          operation?: string;
+          values?: Record<string, unknown>;
+          fields?: Record<string, string[]>;
+          fieldErrors?: Record<string, string[]>;
+          code?: string;
+          correlationId?: string;
+        }
+      | null
+      | undefined;
+    return result?.success === false &&
+      ['createSkill', 'updateSkill', 'deleteSkill', 'setWorkerSkill', 'deleteWorkerSkill'].includes(
+        result.operation ?? '',
+      )
+      ? result
+      : null;
+  });
+  const skillProblem = $derived(
+    skillFailure?.code && skillFailure.correlationId
+      ? (skillFailure as unknown as ProblemData)
+      : null,
+  );
+  const skillValue = (operation: string, field: string, fallback = ''): string =>
+    skillFailure?.operation === operation && skillFailure.values?.[field] != null
+      ? String(skillFailure.values[field])
+      : fallback;
+  const missingChoice = (value: string, choices: readonly Row[]): boolean =>
+    Boolean(value && !choices.some((choice) => String(choice.id) === value));
   const planningFieldMessage = (field: string, operation: string, id = ''): string =>
     planningFailure?.operation === operation &&
     (!id || String(planningFailure.values?.id ?? '') === id) &&
+    !planningProblem &&
     planningFailure.fields?.[field]?.length
       ? translate(planningFailure.fields[field]?.[0] ?? '')
       : '';
@@ -737,13 +1017,16 @@
         ),
     ),
   );
+  const planningWorkerUnavailable = $derived(
+    planningWorkerId &&
+      !planningEligibleWorkers.some((worker) => String(worker.id) === planningWorkerId)
+      ? ((data.workers ?? []).find((worker) => String(worker.id) === planningWorkerId) ?? null)
+      : null,
+  );
   $effect(() => {
     if (data.section !== 'planning') return;
     const requested = $page.url.searchParams.get('project');
-    if (
-      !planningProjectId ||
-      !operationalProjects.some((project) => project.id === planningProjectId)
-    )
+    if (!planningProjectId)
       planningProjectId =
         requested && operationalProjects.some((project) => project.id === requested)
           ? requested
@@ -757,12 +1040,11 @@
       planningEligibleWorkers.some((worker) => worker.id === requestedWorker)
     )
       planningWorkerId = requestedWorker;
-    else if (!planningEligibleWorkers.some((worker) => worker.id === planningWorkerId))
-      planningWorkerId = '';
   });
   let handledPlanningUrlDate = '';
   $effect(() => {
     if (data.section !== 'planning') return;
+    if (planningFailure?.operation === 'createPlanning') return;
     const date = $page.url.searchParams.get('date') ?? '';
     if (/^\d{4}-\d{2}-\d{2}$/u.test(date) && date !== handledPlanningUrlDate) {
       handledPlanningUrlDate = date;
@@ -771,6 +1053,124 @@
     }
   });
   let planningForm: HTMLFormElement | undefined = $state();
+  type WorkforceScrollSnapshot = {
+    top: number;
+    path: string;
+    recordId: string;
+    workerId: string;
+    at: number;
+  };
+  const workforceScrollKey = (operation: string): string =>
+    `ja-workforce-scroll:${String(data.user.id)}:${data.section}:${operation}`;
+  let pendingWorkforceForm: HTMLFormElement | null = null;
+  let pendingWorkforceSource: 'submit' | 'formdata' | null = null;
+  let workforceScrollIntent = false;
+  let workforceFocusIntent = false;
+  function workforceFormValue(formElement: HTMLFormElement, name: string): string {
+    return (
+      formElement.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${name}"]`)?.value ??
+      ''
+    );
+  }
+  function rememberWorkforceScroll(formElement: HTMLFormElement): void {
+    const operation = formElement.dataset.workforceOperation;
+    if (!operation) return;
+    const snapshot: WorkforceScrollSnapshot = {
+      top: window.scrollY,
+      path: location.pathname,
+      recordId: formElement.dataset.recordId ?? workforceFormValue(formElement, 'id'),
+      workerId: workforceFormValue(formElement, 'workerId'),
+      at: Date.now(),
+    };
+    try {
+      sessionStorage.setItem(workforceScrollKey(operation), JSON.stringify(snapshot));
+    } catch {
+      // Storage may be unavailable; the form remains usable with its fragment anchor.
+    }
+  }
+  function restoreWorkforceScroll(operation: string, recordId: string, workerId: string): void {
+    let saved: string | null = null;
+    try {
+      saved = sessionStorage.getItem(workforceScrollKey(operation));
+      sessionStorage.removeItem(workforceScrollKey(operation));
+    } catch {
+      return;
+    }
+    if (!saved) return;
+    let snapshot: Partial<WorkforceScrollSnapshot>;
+    try {
+      snapshot = JSON.parse(saved) as Partial<WorkforceScrollSnapshot>;
+    } catch {
+      return;
+    }
+    if (
+      snapshot.path !== location.pathname ||
+      snapshot.recordId !== recordId ||
+      (workerId && snapshot.workerId !== workerId) ||
+      typeof snapshot.top !== 'number' ||
+      !Number.isFinite(snapshot.top) ||
+      typeof snapshot.at !== 'number' ||
+      Date.now() - snapshot.at > 300_000
+    )
+      return;
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (!workforceScrollIntent) window.scrollTo({ top: snapshot.top, behavior: 'auto' });
+      }),
+    );
+  }
+  let handledWorkforceProblemId = '';
+  $effect(() => {
+    const problem = planningProblem ?? skillProblem;
+    const failure = planningProblem ? planningFailure : skillFailure;
+    if (!problem?.correlationId || !failure?.operation) return;
+    if (handledWorkforceProblemId === problem.correlationId) return;
+    handledWorkforceProblemId = problem.correlationId;
+    const operation = failure.operation;
+    const recordId = String(failure.values?.id ?? '');
+    const fieldErrors = problem.fieldErrors;
+    void tick().then(() => {
+      const candidates = Array.from(
+        document.querySelectorAll<HTMLFormElement>(`form[data-workforce-operation="${operation}"]`),
+      );
+      const matching = candidates.filter(
+        (candidate) => !recordId || candidate.dataset.recordId === recordId,
+      );
+      const target =
+        matching.find((candidate) => candidate.closest('details')?.open) ?? matching[0];
+      if (target && Object.keys(fieldErrors).length) {
+        // ProjectBudgetInput submits a hidden minute value while its visible hours input has
+        // no name. Give the visible control the server field name only while attaching errors.
+        const plannedHoursInput =
+          operation === 'createPlanning' && fieldErrors.plannedMinutes
+            ? target
+                .querySelector<HTMLInputElement>('input[type="hidden"][name="plannedMinutes"]')
+                ?.parentElement?.querySelector<HTMLInputElement>('input:not([type="hidden"])')
+            : null;
+        if (plannedHoursInput) plannedHoursInput.name = 'plannedMinutes';
+        try {
+          reportFormFieldErrors(target, fieldErrors);
+        } finally {
+          plannedHoursInput?.removeAttribute('name');
+        }
+      }
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (workforceFocusIntent) return;
+          const focusTarget =
+            target?.querySelector<HTMLElement>('[data-validation-summary]') ??
+            target?.querySelector<HTMLElement>('[data-ui="problem-notice"]') ??
+            document.querySelector<HTMLElement>(
+              data.section === 'profile'
+                ? '#profile-skills [data-ui="problem-notice"]'
+                : '[data-planning-fallback] [data-ui="problem-notice"], #planning-skills [data-ui="problem-notice"]',
+            );
+          focusTarget?.focus({ preventScroll: true });
+        }),
+      );
+      restoreWorkforceScroll(operation, recordId, String(failure.values?.workerId ?? ''));
+    });
+  });
   function selectPlanningDate(date: string) {
     planningStarts = `${date}T08:00`;
     planningEnds = `${date}T16:00`;
@@ -804,6 +1204,12 @@
     availableProjects.filter((project) =>
       ['active', 'planned', 'paused'].includes(String(project.status ?? 'active')),
     ),
+  );
+  const planningProjectUnavailable = $derived(
+    planningProjectId &&
+      !operationalProjects.some((project) => String(project.id) === planningProjectId)
+      ? (availableProjects.find((project) => String(project.id) === planningProjectId) ?? null)
+      : null,
   );
   const activeProjects = $derived(operationalProjects);
   type AssignmentFormResult = {
@@ -925,6 +1331,9 @@
       : undefined,
   );
   const assignmentRemedyLinks = $derived({
+    correct_fields: {
+      label: portalText(locale, 'problem.remedy.correctFields'),
+    },
     review_project_status: {
       label: portalText(locale, 'problem.remedy.reviewProjectStatus'),
       href: assignmentSelectedProjectId
@@ -1322,6 +1731,77 @@
   }
 
   onMount(() => {
+    const scrollOperations = [
+      'createPlanning',
+      'updatePlanning',
+      'cancelPlanning',
+      'createSkill',
+      'updateSkill',
+      'deleteSkill',
+      'setWorkerSkill',
+      'deleteWorkerSkill',
+    ];
+    if (!planningFailure && !skillFailure) {
+      for (const operation of scrollOperations) {
+        try {
+          sessionStorage.removeItem(workforceScrollKey(operation));
+        } catch {
+          break;
+        }
+      }
+    }
+    const markScrollIntent = () => {
+      workforceScrollIntent = true;
+    };
+    const markFocusIntent = () => {
+      workforceFocusIntent = true;
+    };
+    const markKeyScrollIntent = (event: KeyboardEvent) => {
+      markFocusIntent();
+      if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key))
+        markScrollIntent();
+    };
+    const captureSubmit = (event: Event) => {
+      const formElement = event.target;
+      if (!(formElement instanceof HTMLFormElement)) return;
+      if (!scrollOperations.includes(formElement.dataset.workforceOperation ?? '')) return;
+      workforceFocusIntent = false;
+      workforceScrollIntent = false;
+      pendingWorkforceForm = formElement;
+      pendingWorkforceSource = 'submit';
+      rememberWorkforceScroll(formElement);
+    };
+    const captureFormData = (event: Event) => {
+      const formElement = event.target;
+      if (!(formElement instanceof HTMLFormElement)) return;
+      if (!scrollOperations.includes(formElement.dataset.workforceOperation ?? '')) return;
+      if (pendingWorkforceForm === formElement && pendingWorkforceSource === 'submit') return;
+      workforceFocusIntent = false;
+      workforceScrollIntent = false;
+      pendingWorkforceForm = formElement;
+      pendingWorkforceSource = 'formdata';
+      rememberWorkforceScroll(formElement);
+    };
+    const capturePageHide = () => {
+      if (!pendingWorkforceForm) return;
+      try {
+        if (
+          !sessionStorage.getItem(
+            workforceScrollKey(pendingWorkforceForm.dataset.workforceOperation ?? ''),
+          )
+        )
+          rememberWorkforceScroll(pendingWorkforceForm);
+      } catch {
+        // The pre-navigation snapshot already failed to persist.
+      }
+    };
+    document.addEventListener('submit', captureSubmit, true);
+    document.addEventListener('formdata', captureFormData, true);
+    window.addEventListener('pagehide', capturePageHide);
+    window.addEventListener('wheel', markScrollIntent, { passive: true });
+    window.addEventListener('touchmove', markScrollIntent, { passive: true });
+    window.addEventListener('pointerdown', markFocusIntent, true);
+    window.addEventListener('keydown', markKeyScrollIntent, true);
     const queryLocale = new URLSearchParams(location.search).get('lang');
     locale = resolveStandaloneLocale(queryLocale, data.locale);
     persistStandaloneLocale(locale);
@@ -1342,7 +1822,11 @@
         void focusProjectDestination(`[data-project-workflow="${requested}"]`);
       }
     }
-    if (data.section === 'planning' && location.hash === '#planning-create-form') {
+    if (
+      data.section === 'planning' &&
+      location.hash === '#planning-create-form' &&
+      planningFailure?.operation !== 'createPlanning'
+    ) {
       void tick().then(() => {
         planningForm?.scrollIntoView({ block: 'start' });
         planningForm?.querySelector<HTMLInputElement>('input[name="startsAt"]')?.focus({
@@ -1376,6 +1860,13 @@
       if (result.data?.user) void refreshPasskeys();
     });
     return () => {
+      document.removeEventListener('submit', captureSubmit, true);
+      document.removeEventListener('formdata', captureFormData, true);
+      window.removeEventListener('pagehide', capturePageHide);
+      window.removeEventListener('wheel', markScrollIntent);
+      window.removeEventListener('touchmove', markScrollIntent);
+      window.removeEventListener('pointerdown', markFocusIntent, true);
+      window.removeEventListener('keydown', markKeyScrollIntent, true);
       stopOfflineController?.();
       stopOfflineController = null;
     };
@@ -1888,6 +2379,7 @@
           collapsible
           title={translate('Register a private artifact')}
           class="document-upload-panel"
+          expanded={documentResult?.actionName === 'uploadPrivateDocument'}
         >
           <div class="panel-title">
             <div>
@@ -1900,11 +2392,18 @@
           </div>
           {#if !isAuditor}
             <form
+              bind:this={documentUploadForm}
               method="POST"
               action="?/uploadPrivateDocument"
               enctype="multipart/form-data"
               use:formValidation
+              use:rememberDocumentScroll
             >
+              <input type="hidden" name="viewportScrollY" value="0" />
+              {#if documentResult?.actionName === 'uploadPrivateDocument' && documentProblem}
+                <ProblemNotice problem={documentProblem} remedyLinks={globalRemedyLinks} />
+                <p class="form-help">{translate('Attach the file again before retrying.')}</p>
+              {/if}
               <FormSection title={translate('Artifact details')}>
                 <FieldGroup columns="2">
                   <Field
@@ -1913,7 +2412,14 @@
                     required
                     data-field="projectId"
                   >
-                    <select id="doc-project" name="projectId" required>
+                    <select
+                      id="doc-project"
+                      name="projectId"
+                      value={documentResult?.actionName === 'uploadPrivateDocument'
+                        ? (documentFormValues.projectId ?? '')
+                        : ''}
+                      required
+                    >
                       <option value="">{translate('Select assignment')}</option>
                       {#each availableProjects as project}
                         <option value={project.id}>{project.project_number} — {project.name}</option
@@ -1931,6 +2437,9 @@
                       id="doc-type"
                       name="artifactType"
                       placeholder={translate('PLC backup, engineering report')}
+                      value={documentResult?.actionName === 'uploadPrivateDocument'
+                        ? (documentFormValues.artifactType ?? '')
+                        : ''}
                       required
                     />
                   </Field>
@@ -1940,7 +2449,13 @@
                       label={translate('Document access')}
                       data-field="artifactClassification"
                     >
-                      <select id="doc-classification" name="artifactClassification">
+                      <select
+                        id="doc-classification"
+                        name="artifactClassification"
+                        value={documentResult?.actionName === 'uploadPrivateDocument'
+                          ? (documentFormValues.artifactClassification ?? 'standard')
+                          : 'standard'}
+                      >
                         <option value="standard">{translate('Project document')}</option>
                         <option value="finance"
                           >{translate('Finance, Owner and Auditor only')}</option
@@ -1953,7 +2468,13 @@
                     label={translate('Sensitivity')}
                     data-field="sensitivity"
                   >
-                    <select id="doc-sensitivity" name="sensitivity">
+                    <select
+                      id="doc-sensitivity"
+                      name="sensitivity"
+                      value={documentResult?.actionName === 'uploadPrivateDocument'
+                        ? (documentFormValues.sensitivity ?? 'internal')
+                        : 'internal'}
+                    >
                       <option value="internal">{translate('Internal')}</option>
                       <option value="sensitive">{translate('Sensitive')}</option>
                       <option value="customer_private">{translate('Customer private')}</option>
@@ -1968,6 +2489,9 @@
                     <textarea
                       id="doc-description"
                       name="description"
+                      value={documentResult?.actionName === 'uploadPrivateDocument'
+                        ? (documentFormValues.description ?? '')
+                        : ''}
                       required
                       placeholder={translate('What this artifact contains and why it is retained')}
                     ></textarea>
@@ -1990,7 +2514,10 @@
             </form>
           {/if}
         </SectionCard>
-        <section class="record-list full">
+        {#if documentResult?.actionName === 'archiveDocument' && documentProblem && !documentPage.some((entry) => String(entry.id) === documentFormValues.documentId)}
+          <ProblemNotice problem={documentProblem} remedyLinks={globalRemedyLinks} />
+        {/if}
+        <section id="document-list" class="record-list full">
           <div class="panel-title">
             <div>
               <h2>{translate('Private project documents')}</h2>
@@ -2039,13 +2566,36 @@
                   >{translate('Download')}</a
                 >
                 {#if data.user.role === 'owner_admin' || (data.user.role !== 'auditor_read_only' && (data.user.id === document.owner_id || document.can_archive === true))}
-                  <details class="document-archive-control">
+                  <details
+                    class="document-archive-control"
+                    open={documentResult?.actionName === 'archiveDocument' &&
+                      documentFormValues.documentId === String(document.id)}
+                  >
                     <summary>{translate('Archive')}</summary>
-                    <form method="POST" action="?/archiveDocument" class="document-delete-form">
+                    <form
+                      method="POST"
+                      action="?/archiveDocument"
+                      class="document-delete-form"
+                      use:formValidation
+                      use:rememberDocumentScroll
+                    >
+                      <input type="hidden" name="viewportScrollY" value="0" />
+                      {#if documentResult?.actionName === 'archiveDocument' && documentProblem && documentFormValues.documentId === String(document.id)}
+                        <ProblemNotice problem={documentProblem} remedyLinks={globalRemedyLinks} />
+                      {/if}
                       <input type="hidden" name="documentId" value={String(document.id)} />
                       <label
                         >{translate('Archive reason')}
-                        <input name="reason" minlength="3" maxlength="500" required />
+                        <input
+                          name="reason"
+                          value={documentResult?.actionName === 'archiveDocument' &&
+                          documentFormValues.documentId === String(document.id)
+                            ? (documentFormValues.reason ?? '')
+                            : ''}
+                          minlength="3"
+                          maxlength="500"
+                          required
+                        />
                       </label>
                       <button type="submit" class="preview-link preview-link-danger"
                         >{translate('Archive document')}</button
@@ -4122,6 +4672,15 @@
         <p class="form-help">
           {translate('Calendar times are shown in UTC. Planning never creates actual hours.')}
         </p>
+        {#if planningProblem && planningFailure?.operation !== 'createPlanning' && !planningFailedRecordVisible}
+          <div data-planning-fallback>
+            <ProblemNotice
+              problem={planningProblem}
+              kind={planningProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+              remedyLinks={globalRemedyLinks}
+            />
+          </div>
+        {/if}
         {#if canManageAssignmentControls && (data.records?.length ?? 0) > 0}
           <SectionCard title={translate('Published assignments')} class="full">
             {#each data.records ?? [] as row}
@@ -4130,7 +4689,9 @@
               <details
                 id={`planning-assignment-${row.id}`}
                 open={$page.url.searchParams.get('focus') === String(row.id) ||
-                  planningFailedUpdateId === String(row.id)}
+                  planningFailedUpdateId === String(row.id) ||
+                  (planningFailure?.operation === 'cancelPlanning' &&
+                    String(planningFailure.values?.id ?? '') === String(row.id))}
               >
                 <summary
                   >{row.worker_name} · {row.project_number} · {String(row.starts_at)
@@ -4141,10 +4702,20 @@
                 >
                 <form
                   method="POST"
-                  action="?/updatePlanning"
+                  action={`?/updatePlanning#planning-assignment-${row.id}`}
+                  data-workforce-operation="updatePlanning"
+                  data-record-id={String(row.id)}
                   class="admin-form-grid"
+                  use:formValidation
                   oninput={(event) => rememberPlanningEdit(row, event.currentTarget)}
                 >
+                  {#if planningProblem && planningFailure?.operation === 'updatePlanning' && planningFailedUpdateId === String(row.id)}
+                    <ProblemNotice
+                      problem={planningProblem}
+                      kind={planningProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+                      remedyLinks={globalRemedyLinks}
+                    />
+                  {/if}
                   <input type="hidden" name="id" value={row.id} />
                   <input type="hidden" name="version" value={row.version} />
                   <input type="hidden" name="projectId" value={row.project_id} />
@@ -4223,7 +4794,20 @@
                   >
                   <button type="submit">{translate('Save assignment')}</button>
                 </form>
-                <form method="POST" action="?/cancelPlanning">
+                <form
+                  method="POST"
+                  action={`?/cancelPlanning#planning-assignment-${row.id}`}
+                  data-workforce-operation="cancelPlanning"
+                  data-record-id={String(row.id)}
+                  use:formValidation
+                >
+                  {#if planningProblem && planningFailure?.operation === 'cancelPlanning' && String(planningFailure.values?.id ?? '') === String(row.id)}
+                    <ProblemNotice
+                      problem={planningProblem}
+                      kind={planningProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+                      remedyLinks={globalRemedyLinks}
+                    />
+                  {/if}
                   <input type="hidden" name="id" value={row.id} />
                   <input type="hidden" name="version" value={row.version} />
                   <button type="submit" class="secondary-button"
@@ -4237,10 +4821,19 @@
         {#if canManageAssignmentControls}<form
             id="planning-create-form"
             method="POST"
-            action="?/createPlanning"
+            action="?/createPlanning#planning-create-form"
+            data-workforce-operation="createPlanning"
             bind:this={planningForm}
             class="admin-form-grid"
+            use:formValidation
           >
+            {#if planningProblem && planningFailure?.operation === 'createPlanning'}
+              <ProblemNotice
+                problem={planningProblem}
+                kind={planningProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+                remedyLinks={globalRemedyLinks}
+              />
+            {/if}
             <h2>{translate('Publish field assignment')}</h2>
             <p class="form-help">
               {translate(
@@ -4252,7 +4845,13 @@
                 name="projectId"
                 bind:value={planningProjectId}
                 required
-                >{#each operationalProjects as project}<option value={project.id}
+                >{#if planningProjectId && !operationalProjects.some((project) => String(project.id) === planningProjectId)}
+                  <option value={planningProjectId} disabled
+                    >{String(
+                      planningProjectUnavailable?.name ?? translate('Previously selected project'),
+                    )} · {translate('Unavailable for planning')}</option
+                  >
+                {/if}{#each operationalProjects as project}<option value={project.id}
                     >{project.project_number} — {project.name}</option
                   >{/each}</select
               ></label
@@ -4270,7 +4869,13 @@
             <label
               >{translate('Worker')}<select name="workerId" bind:value={planningWorkerId} required
                 ><option value="">{translate('Select assigned worker')}</option
-                >{#each planningEligibleWorkers as worker}<option value={worker.id}
+                >{#if planningWorkerId && !planningEligibleWorkers.some((worker) => String(worker.id) === planningWorkerId)}
+                  <option value={planningWorkerId} disabled
+                    >{String(
+                      planningWorkerUnavailable?.name ?? translate('Previously selected worker'),
+                    )} · {translate('Unavailable for these dates')}</option
+                  >
+                {/if}{#each planningEligibleWorkers as worker}<option value={worker.id}
                     >{worker.name}</option
                   >{/each}</select
               ></label
@@ -4323,44 +4928,113 @@
                   ? String(planningFailure.values?.requiredSkill ?? '')
                   : ''}
               /></label
-            ><button>{translate('Publish assignment')}</button>
+            ><button
+              disabled={Boolean(
+                (planningProjectId &&
+                  !operationalProjects.some(
+                    (project) => String(project.id) === planningProjectId,
+                  )) ||
+                (planningWorkerId &&
+                  !planningEligibleWorkers.some(
+                    (worker) => String(worker.id) === planningWorkerId,
+                  )),
+              )}>{translate('Publish assignment')}</button
+            >
           </form>{/if}
         {#if data.user.role === 'owner_admin' || data.user.role === 'finance_admin'}
           <SectionCard
             title={translate('Manage worker expertise')}
+            id="planning-skills"
             collapsible
+            expanded={Boolean(skillProblem)}
             class="full planning-skill-tools"
           >
-            <details class="admin-details">
+            {#if skillProblem}
+              <ProblemNotice
+                problem={skillProblem}
+                kind={skillProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+                remedyLinks={globalRemedyLinks}
+              />
+            {/if}
+            <details class="admin-details" open={skillFailure?.operation === 'createSkill'}>
               <summary class="primary-button">{translate('New expertise')}</summary>
-              <form method="POST" action="?/createSkill" class="admin-form-grid">
+              <form
+                method="POST"
+                action="?/createSkill#planning-skills"
+                data-workforce-operation="createSkill"
+                class="admin-form-grid"
+                use:formValidation
+              >
                 <h2>{translate('Add expertise')}</h2>
-                <label>{translate('Code')}<input name="code" required /></label><label
-                  >{translate('Name')}<input name="name" required /></label
+                <label
+                  >{translate('Code')}<input
+                    name="code"
+                    value={skillValue('createSkill', 'code')}
+                    required
+                  /></label
+                ><label
+                  >{translate('Name')}<input
+                    name="name"
+                    value={skillValue('createSkill', 'name')}
+                    required
+                  /></label
                 ><button>{translate('Save expertise')}</button>
               </form>
             </details>
-            <details class="admin-details">
+            <details class="admin-details" open={skillFailure?.operation === 'updateSkill'}>
               <summary class="primary-button">{translate('Update expertise')}</summary>
-              <form method="POST" action="?/updateSkill" class="admin-form-grid">
+              <form
+                method="POST"
+                action="?/updateSkill#planning-skills"
+                data-workforce-operation="updateSkill"
+                class="admin-form-grid"
+                use:formValidation
+              >
                 <h2>{translate('Update expertise')}</h2>
                 <label
-                  >{translate('Expertise')}<select name="skillId" required>
+                  >{translate('Expertise')}<select
+                    name="skillId"
+                    value={skillValue('updateSkill', 'skillId')}
+                    required
+                  >
+                    {#if missingChoice(skillValue('updateSkill', 'skillId'), data.skills ?? [])}<option
+                        value={skillValue('updateSkill', 'skillId')}
+                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                      >{/if}
                     {#each data.skills ?? [] as skill}<option value={skill.id}
                         >{skill.code} — {skill.name}</option
                       >{/each}
                   </select></label
                 >
-                <label>{translate('Name')}<input name="name" /></label>
+                <label
+                  >{translate('Name')}<input
+                    name="name"
+                    value={skillValue('updateSkill', 'name')}
+                  /></label
+                >
                 <button>{translate('Update expertise')}</button>
               </form>
             </details>
-            <details class="admin-details">
+            <details class="admin-details" open={skillFailure?.operation === 'deleteSkill'}>
               <summary class="primary-button">{translate('Delete expertise')}</summary>
-              <form method="POST" action="?/deleteSkill" class="admin-form-grid">
+              <form
+                method="POST"
+                action="?/deleteSkill#planning-skills"
+                data-workforce-operation="deleteSkill"
+                class="admin-form-grid"
+                use:formValidation
+              >
                 <h2>{translate('Delete expertise')}</h2>
                 <label
-                  >{translate('Expertise')}<select name="skillId" required>
+                  >{translate('Expertise')}<select
+                    name="skillId"
+                    value={skillValue('deleteSkill', 'skillId')}
+                    required
+                  >
+                    {#if missingChoice(skillValue('deleteSkill', 'skillId'), data.skills ?? [])}<option
+                        value={skillValue('deleteSkill', 'skillId')}
+                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                      >{/if}
                     {#each data.skills ?? [] as skill}<option value={skill.id}
                         >{skill.code} — {skill.name}</option
                       >{/each}
@@ -4369,24 +5043,44 @@
                 <button class="danger">{translate('Delete expertise')}</button>
               </form>
             </details>
-            <details class="admin-details">
+            <details class="admin-details" open={skillFailure?.operation === 'setWorkerSkill'}>
               <summary class="primary-button">{translate('Assign expertise')}</summary>
-              <form method="POST" action="?/setWorkerSkill" class="admin-form-grid">
+              <form
+                method="POST"
+                action="?/setWorkerSkill#planning-skills"
+                data-workforce-operation="setWorkerSkill"
+                class="admin-form-grid"
+                use:formValidation
+              >
                 <h2>{translate('Assign expertise')}</h2>
                 <label
-                  >{translate('Worker')}<select name="workerId" required
-                    >{#each data.workers ?? [] as worker}<option value={worker.id}
+                  >{translate('Worker')}<select
+                    name="workerId"
+                    value={skillValue('setWorkerSkill', 'workerId')}
+                    required
+                    >{#if missingChoice(skillValue('setWorkerSkill', 'workerId'), data.workers ?? [])}<option
+                        value={skillValue('setWorkerSkill', 'workerId')}
+                        disabled>{translate('Worker')} · {translate('Unavailable')}</option
+                      >{/if}{#each data.workers ?? [] as worker}<option value={worker.id}
                         >{worker.name}</option
                       >{/each}</select
                   ></label
                 ><label
-                  >{translate('Expertise')}<select name="skillId" required
-                    >{#each data.skills ?? [] as skill}<option value={skill.id}
+                  >{translate('Expertise')}<select
+                    name="skillId"
+                    value={skillValue('setWorkerSkill', 'skillId')}
+                    required
+                    >{#if missingChoice(skillValue('setWorkerSkill', 'skillId'), data.skills ?? [])}<option
+                        value={skillValue('setWorkerSkill', 'skillId')}
+                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                      >{/if}{#each data.skills ?? [] as skill}<option value={skill.id}
                         >{skill.code} — {skill.name}</option
                       >{/each}</select
                   ></label
                 ><label
-                  >{translate('Proficiency')}<select name="proficiency"
+                  >{translate('Proficiency')}<select
+                    name="proficiency"
+                    value={skillValue('setWorkerSkill', 'proficiency', '1')}
                     ><option value="1">1 · {translate('exposure')}</option><option value="2"
                       >2 · {translate('developing')}</option
                     ><option value="3">3 · {translate('capable')}</option><option value="4"
@@ -4396,19 +5090,41 @@
                 ><button>{translate('Update expertise matrix')}</button>
               </form>
             </details>
-            <details class="admin-details">
+            <details class="admin-details" open={skillFailure?.operation === 'deleteWorkerSkill'}>
               <summary class="primary-button">{translate('Remove worker expertise')}</summary>
-              <form method="POST" action="?/deleteWorkerSkill" class="admin-form-grid">
+              <form
+                method="POST"
+                action="?/deleteWorkerSkill#planning-skills"
+                data-workforce-operation="deleteWorkerSkill"
+                class="admin-form-grid"
+                use:formValidation
+              >
                 <h2>{translate('Remove worker expertise')}</h2>
                 <label
-                  >{translate('Worker')}<select name="workerId" required>
+                  >{translate('Worker')}<select
+                    name="workerId"
+                    value={skillValue('deleteWorkerSkill', 'workerId')}
+                    required
+                  >
+                    {#if missingChoice(skillValue('deleteWorkerSkill', 'workerId'), data.workers ?? [])}<option
+                        value={skillValue('deleteWorkerSkill', 'workerId')}
+                        disabled>{translate('Worker')} · {translate('Unavailable')}</option
+                      >{/if}
                     {#each data.workers ?? [] as worker}<option value={worker.id}
                         >{worker.name}</option
                       >{/each}
                   </select></label
                 >
                 <label
-                  >{translate('Expertise')}<select name="skillId" required>
+                  >{translate('Expertise')}<select
+                    name="skillId"
+                    value={skillValue('deleteWorkerSkill', 'skillId')}
+                    required
+                  >
+                    {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), data.skills ?? [])}<option
+                        value={skillValue('deleteWorkerSkill', 'skillId')}
+                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                      >{/if}
                     {#each data.skills ?? [] as skill}<option value={skill.id}
                         >{skill.code} — {skill.name}</option
                       >{/each}
@@ -4507,7 +5223,7 @@
       <AccountingSection {data} {isAuditor} {locale} {translate} {controlledValue} />
     {:else if data.section === 'profile'}
       <div class="management-stack">
-        <section class="entry-panel">
+        <section class="entry-panel" id="profile-skills">
           <span class="portal-kicker">{translate('WORKFORCE PROFILE')}</span>
           <h2>{translate('Expertise and availability')}</h2>
           <p>
@@ -4515,6 +5231,13 @@
               'Keep your own workforce profile current without exposing compensation or client rates.',
             )}
           </p>
+          {#if skillProblem}
+            <ProblemNotice
+              problem={skillProblem}
+              kind={skillProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+              remedyLinks={globalRemedyLinks}
+            />
+          {/if}
           {#if (data.user.role === 'owner_admin' || data.user.role === 'finance_admin' || data.user.role === 'project_manager') && (data.workers?.length ?? 0) > 0}
             <form method="GET" action={href('profile')} class="worker-profile-selector">
               <label
@@ -4530,14 +5253,29 @@
             </form>
           {/if}
           {#if !isAuditor}
-            <details class="admin-details profile-skill-details">
+            <details
+              class="admin-details profile-skill-details"
+              open={skillFailure?.operation === 'setWorkerSkill' &&
+                skillValue('setWorkerSkill', 'workerId') === profileWorkerId}
+            >
               <summary class="primary-button">{translate('Add expertise')}</summary>
-              <form method="POST" action="?/setWorkerSkill" class="admin-form-grid">
+              <form
+                method="POST"
+                action="?/setWorkerSkill#profile-skills"
+                data-workforce-operation="setWorkerSkill"
+                data-workforce-origin="profile"
+                class="admin-form-grid"
+                use:formValidation
+              >
                 <input type="hidden" name="workerId" value={profileWorkerId} />
                 <label
                   >{translate('Expertise')}
-                  <select name="skillId" required>
+                  <select name="skillId" value={skillValue('setWorkerSkill', 'skillId')} required>
                     <option value="">{translate('Select expertise')}</option>
+                    {#if missingChoice(skillValue('setWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [])}<option
+                        value={skillValue('setWorkerSkill', 'skillId')}
+                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                      >{/if}
                     {#each data.allSkills ?? data.skills ?? [] as skill}
                       <option value={skill.id}>{skill.name}</option>
                     {/each}
@@ -4545,19 +5283,45 @@
                 </label>
                 <label
                   >{translate('Proficiency (1-5)')}
-                  <input name="proficiency" type="number" min="1" max="5" value="3" required />
+                  <input
+                    name="proficiency"
+                    type="number"
+                    min="1"
+                    max="5"
+                    value={skillValue('setWorkerSkill', 'proficiency', '3')}
+                    required
+                  />
                 </label>
                 <button>{translate('Add expertise')}</button>
               </form>
             </details>
-            <details class="admin-details profile-skill-details">
+            <details
+              class="admin-details profile-skill-details"
+              open={skillFailure?.operation === 'deleteWorkerSkill' &&
+                skillValue('deleteWorkerSkill', 'workerId') === profileWorkerId}
+            >
               <summary class="primary-button">{translate('Remove expertise')}</summary>
-              <form method="POST" action="?/deleteWorkerSkill" class="admin-form-grid">
+              <form
+                method="POST"
+                action="?/deleteWorkerSkill#profile-skills"
+                data-workforce-operation="deleteWorkerSkill"
+                data-workforce-origin="profile"
+                class="admin-form-grid"
+                use:formValidation
+              >
                 <input type="hidden" name="workerId" value={profileWorkerId} />
                 <label
                   >{translate('Expertise')}
-                  <select name="skillId" required>
+                  <select
+                    name="skillId"
+                    value={skillValue('deleteWorkerSkill', 'skillId')}
+                    required
+                  >
                     <option value="">{translate('Select expertise')}</option>
+                    {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), data.skills ?? [])}<option
+                        value={skillValue('deleteWorkerSkill', 'skillId')}
+                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                      >{/if}
                     {#each data.skills ?? [] as skill}
                       <option value={skill.id}>{skill.name}</option>
                     {/each}
@@ -4593,7 +5357,9 @@
             <AvailabilityCalendar
               records={data.availability ?? []}
               workerId={profileWorkerId}
+              currentUserId={String(data.user.id)}
               readOnly={isAuditor}
+              {form}
               {translate}
               {locale}
             />
@@ -4614,11 +5380,30 @@
                   </p>
                 </div>
               </div>
-              <details class="admin-details">
+              <details
+                class="admin-details"
+                open={skillFailure?.operation === 'setWorkerSkill' ||
+                  skillFailure?.operation === 'deleteWorkerSkill'}
+              >
                 <summary class="primary-button">{translate('Manage worker expertise')}</summary>
-                <form method="POST" action="?/setWorkerSkill" class="admin-form-grid">
+                <form
+                  method="POST"
+                  action="?/setWorkerSkill#profile-skills"
+                  data-workforce-operation="setWorkerSkill"
+                  data-workforce-origin="owner"
+                  class="admin-form-grid"
+                  use:formValidation
+                >
                   <label
-                    >{translate('Worker')}<select name="workerId" required>
+                    >{translate('Worker')}<select
+                      name="workerId"
+                      value={skillValue('setWorkerSkill', 'workerId')}
+                      required
+                    >
+                      {#if missingChoice(skillValue('setWorkerSkill', 'workerId'), data.workers ?? [])}<option
+                          value={skillValue('setWorkerSkill', 'workerId')}
+                          disabled>{translate('Worker')} · {translate('Unavailable')}</option
+                        >{/if}
                       {#each data.workers ?? [] as worker}
                         <option value={worker.id}
                           >{worker.name} · {controlledValue('role', worker.role)}</option
@@ -4627,8 +5412,16 @@
                     </select></label
                   >
                   <label
-                    >{translate('Expertise')}<select name="skillId" required>
+                    >{translate('Expertise')}<select
+                      name="skillId"
+                      value={skillValue('setWorkerSkill', 'skillId')}
+                      required
+                    >
                       <option value="">{translate('Select expertise')}</option>
+                      {#if missingChoice(skillValue('setWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [])}<option
+                          value={skillValue('setWorkerSkill', 'skillId')}
+                          disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                        >{/if}
                       {#each data.allSkills ?? data.skills ?? [] as skill}
                         <option value={skill.id}>{skill.name}</option>
                       {/each}
@@ -4640,15 +5433,30 @@
                       type="number"
                       min="1"
                       max="5"
-                      value="3"
+                      value={skillValue('setWorkerSkill', 'proficiency', '3')}
                       required
                     /></label
                   >
                   <button type="submit">{translate('Assign expertise')}</button>
                 </form>
-                <form method="POST" action="?/deleteWorkerSkill" class="admin-form-grid">
+                <form
+                  method="POST"
+                  action="?/deleteWorkerSkill#profile-skills"
+                  data-workforce-operation="deleteWorkerSkill"
+                  data-workforce-origin="owner"
+                  class="admin-form-grid"
+                  use:formValidation
+                >
                   <label
-                    >{translate('Worker')}<select name="workerId" required>
+                    >{translate('Worker')}<select
+                      name="workerId"
+                      value={skillValue('deleteWorkerSkill', 'workerId')}
+                      required
+                    >
+                      {#if missingChoice(skillValue('deleteWorkerSkill', 'workerId'), data.workers ?? [])}<option
+                          value={skillValue('deleteWorkerSkill', 'workerId')}
+                          disabled>{translate('Worker')} · {translate('Unavailable')}</option
+                        >{/if}
                       {#each data.workers ?? [] as worker}
                         <option value={worker.id}
                           >{worker.name} · {controlledValue('role', worker.role)}</option
@@ -4657,8 +5465,16 @@
                     </select></label
                   >
                   <label
-                    >{translate('Expertise')}<select name="skillId" required>
+                    >{translate('Expertise')}<select
+                      name="skillId"
+                      value={skillValue('deleteWorkerSkill', 'skillId')}
+                      required
+                    >
                       <option value="">{translate('Select expertise')}</option>
+                      {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [])}<option
+                          value={skillValue('deleteWorkerSkill', 'skillId')}
+                          disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                        >{/if}
                       {#each data.allSkills ?? data.skills ?? [] as skill}
                         <option value={skill.id}>{skill.name}</option>
                       {/each}
@@ -4803,7 +5619,14 @@
         </section>
       </div>
     {:else if data.section === 'notifications'}
-      <NotificationSection records={data.records ?? []} {base} {locale} {translate} />
+      <NotificationSection
+        records={data.records ?? []}
+        {form}
+        currentUserId={String(data.user.id)}
+        {base}
+        {locale}
+        {translate}
+      />
     {:else if data.section === 'audit'}
       <section class="record-list full">
         <div class="panel-title">
@@ -4850,6 +5673,9 @@
 </div>
 
 <style>
+  .document-workspace {
+    overflow-anchor: none;
+  }
   @media (max-width: 767px) {
     :global(.portal-layout main .admin-form-grid.project-setup-form) {
       grid-template-columns: minmax(0, 1fr);

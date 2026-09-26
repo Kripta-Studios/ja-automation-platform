@@ -1,0 +1,15 @@
+[
+  {
+    "step": "milestone-success",
+    "state": "submitted"
+  },
+  {
+    "step": "milestone-stale-enhanced",
+    "code": "PROJECT_MILESTONE_CHANGED",
+    "retained": true
+  },
+  {
+    "step": "worker-role-denied",
+    "code": "PROJECT_MILESTONE_ROLE_REQUIRED"
+  }
+]

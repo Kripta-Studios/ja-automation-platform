@@ -11,7 +11,10 @@ import {
   SYNTHETIC_OWNER_TENANT_ID,
   SupplierWorkforceRepository,
 } from '@ja/database';
-import { StalwartOperationRejectedError } from '$lib/server/stalwart-client';
+import {
+  StalwartOperationRejectedError,
+  StalwartUnavailableError,
+} from '$lib/server/stalwart-client';
 import { hashPortalPassword } from '$lib/server/webmail-password';
 
 const knownAccessRules: Readonly<
@@ -180,11 +183,453 @@ function knownAccessFailure(
   });
 }
 
-function openAccessContext(locals: PortalActionEvent['locals']) {
+type DirectoryAction =
+  | 'createInvitation'
+  | 'provisionMailboxUsers'
+  | 'createMailboxAccount'
+  | 'bootstrapMailboxUsers'
+  | 'changeMailboxRole'
+  | 'deprovisionMailboxUser'
+  | 'updateMailboxPassword'
+  | 'destroyMailboxAccount';
+
+type DirectoryProblem = Readonly<{
+  status: number;
+  code: string;
+  key: `problem.${string}` | `action.${string}`;
+  message: string;
+  remedy: string;
+  field?: string;
+}>;
+
+const directoryProblems: Readonly<Record<string, DirectoryProblem>> = {
+  'Owner role required to invite users': {
+    status: 403,
+    code: 'ACCESS_INVITATION_OWNER_REQUIRED',
+    key: 'problem.access.ownerRequired',
+    message: 'Only an owner can invite people. Contact an owner to review access.',
+    remedy: 'contact_owner',
+  },
+  'Invitation email is invalid': {
+    status: 400,
+    code: 'ACCESS_INVITATION_EMAIL_INVALID',
+    key: 'problem.access.emailInvalid',
+    message: 'Enter a valid email address for this invitation.',
+    remedy: 'correct_email',
+    field: 'email',
+  },
+  'Invitation expiry must be 1 to 14 days': {
+    status: 400,
+    code: 'ACCESS_INVITATION_EXPIRY_INVALID',
+    key: 'problem.access.invitationExpiryInvalid',
+    message: 'Choose an invitation expiry from 1 to 14 days.',
+    remedy: 'review_user_access',
+    field: 'expiresInDays',
+  },
+  'An active or pending account already uses this email': {
+    status: 409,
+    code: 'ACCESS_INVITATION_ACCOUNT_EXISTS',
+    key: 'problem.access.emailAlreadyUsed',
+    message:
+      'An active or pending account already uses this email. Review that person before inviting again.',
+    remedy: 'review_existing_person',
+    field: 'email',
+  },
+  CANONICAL_OWNER_REQUIRED: {
+    status: 403,
+    code: 'ACCESS_OWNER_REQUIRED',
+    key: 'problem.access.ownerRequired',
+    message: 'Only the designated owner can change mailbox access. Contact the owner.',
+    remedy: 'contact_owner',
+  },
+  MAILBOX_ROLE_INVALID: {
+    status: 400,
+    code: 'ACCESS_MAILBOX_ROLE_INVALID',
+    key: 'problem.access.mailboxRoleInvalid',
+    message: 'Choose a permitted portal role for this mailbox.',
+    remedy: 'review_user_access',
+    field: 'role',
+  },
+  MAILBOX_NOT_FOUND_IN_STALWART: {
+    status: 409,
+    code: 'ACCESS_MAILBOX_NOT_FOUND',
+    key: 'problem.access.mailIdentityStale',
+    message: 'The selected mailbox is no longer available. Review the current mailbox directory.',
+    remedy: 'review_mailbox_identity',
+    field: 'stalwartAccountId',
+  },
+  MAILBOX_EMAIL_INVALID: {
+    status: 400,
+    code: 'ACCESS_MAILBOX_EMAIL_INVALID',
+    key: 'problem.access.emailInvalid',
+    message: 'Enter a valid mailbox email address.',
+    remedy: 'correct_email',
+    field: 'email',
+  },
+  STALWART_ACCOUNT_ID_INVALID: {
+    status: 400,
+    code: 'ACCESS_MAILBOX_ACCOUNT_INVALID',
+    key: 'problem.access.mailboxAccountInvalid',
+    message: 'The mailbox reference is invalid. Choose an account from the current directory.',
+    remedy: 'review_mailbox_identity',
+    field: 'stalwartAccountId',
+  },
+  DUPLICATE_MAILBOX_EMAIL: {
+    status: 400,
+    code: 'ACCESS_MAILBOX_SELECTION_DUPLICATE',
+    key: 'problem.access.mailboxSelectionDuplicate',
+    message: 'The same mailbox was selected more than once. Keep one selection for each email.',
+    remedy: 'review_mailbox_identity',
+    field: 'emails',
+  },
+  PORTAL_USER_INACTIVE: {
+    status: 409,
+    code: 'ACCESS_PORTAL_USER_INACTIVE',
+    key: 'problem.access.userInactive',
+    message: 'The portal account is inactive. Review its status before linking the mailbox.',
+    remedy: 'review_user_status',
+  },
+  MAIL_IDENTITY_COLLISION: {
+    status: 409,
+    code: 'ACCESS_MAILBOX_IDENTITY_COLLISION',
+    key: 'action.access.mailbox.identityCollision',
+    message: 'This mailbox conflicts with an existing portal identity. Review the current link.',
+    remedy: 'review_mailbox_identity',
+  },
+  MAIL_IDENTITY_RELINK_REQUIRES_EXPLICIT_ACTION: {
+    status: 409,
+    code: 'ACCESS_MAILBOX_RELINK_REQUIRED',
+    key: 'action.access.mailbox.relinkRequired',
+    message:
+      'This mailbox was linked to another account. Review the identity before an explicit relink.',
+    remedy: 'review_mailbox_identity',
+  },
+  CANONICAL_OWNER_MAILBOX_MISSING: {
+    status: 409,
+    code: 'ACCESS_OWNER_MAILBOX_MISSING',
+    key: 'problem.access.ownerMailboxMissing',
+    message:
+      'The designated owner mailbox is missing. Review the mailbox directory before synchronizing.',
+    remedy: 'review_mailbox_identity',
+  },
+  CANONICAL_OWNER_MAILBOX_PROTECTED: {
+    status: 409,
+    code: 'ACCESS_CANONICAL_OWNER_PROTECTED',
+    key: 'problem.access.canonicalOwnerProtected',
+    message: 'The designated owner mailbox cannot be deleted here.',
+    remedy: 'review_owner_access',
+  },
+  NON_CANONICAL_OWNER_CONFLICT: {
+    status: 409,
+    code: 'ACCESS_OWNER_IDENTITY_CONFLICT',
+    key: 'problem.access.ownerIdentityConflict',
+    message: 'Owner identity records need review before mailbox synchronization can continue.',
+    remedy: 'review_owner_access',
+  },
+  SYNTHETIC_OWNER_DEPLOYMENT_REQUIRED: {
+    status: 409,
+    code: 'ACCESS_MAILBOX_DEPLOYMENT_MISMATCH',
+    key: 'problem.access.mailboxDeploymentMismatch',
+    message: 'The selected mailbox is outside this deployment. Review the directory setup.',
+    remedy: 'review_mailbox_identity',
+  },
+  MAILBOX_ALIAS_INVALID: {
+    status: 400,
+    code: 'ACCESS_MAILBOX_ALIAS_INVALID',
+    key: 'action.access.mailbox.invalidAlias',
+    message: 'Use an alias of 2–64 lowercase letters, numbers, dots, underscores or hyphens.',
+    remedy: 'review_mailbox_identity',
+    field: 'username',
+  },
+  MAILBOX_NAME_INVALID: {
+    status: 400,
+    code: 'ACCESS_MAILBOX_NAME_INVALID',
+    key: 'problem.access.mailboxNameInvalid',
+    message: 'Enter a mailbox display name of 1 to 160 characters.',
+    remedy: 'review_user_access',
+    field: 'name',
+  },
+  MAILBOX_PASSWORD_INVALID: {
+    status: 400,
+    code: 'ACCESS_MAILBOX_PASSWORD_INVALID',
+    key: 'action.access.mailbox.invalidPassword',
+    message: 'Use a password of 12–128 characters without line breaks.',
+    remedy: 'review_user_access',
+    field: 'password',
+  },
+  MAILBOX_QUOTA_INVALID: {
+    status: 400,
+    code: 'ACCESS_MAILBOX_QUOTA_INVALID',
+    key: 'action.access.mailbox.invalidQuota',
+    message: 'Enter a valid mailbox quota.',
+    remedy: 'review_mailbox_identity',
+    field: 'quotaMb',
+  },
+  MAILBOX_IDEMPOTENCY_KEY_INVALID: {
+    status: 400,
+    code: 'ACCESS_MAILBOX_REQUEST_KEY_INVALID',
+    key: 'problem.access.mailboxRequestKeyInvalid',
+    message: 'The mailbox request reference is invalid. Reload this form before trying again.',
+    remedy: 'review_mailbox_identity',
+    field: 'idempotencyKey',
+  },
+  MAILBOX_IDEMPOTENCY_KEY_COLLISION: {
+    status: 409,
+    code: 'ACCESS_MAILBOX_REQUEST_KEY_REUSED',
+    key: 'problem.access.mailboxRequestKeyReused',
+    message:
+      'This request reference was used for another mailbox action. Review the current account before starting a new request.',
+    remedy: 'review_mailbox_identity',
+  },
+  MAILBOX_COMMAND_RESULT_MISSING: {
+    status: 409,
+    code: 'ACCESS_MAILBOX_RESULT_UNCERTAIN',
+    key: 'problem.access.mailboxResultUncertain',
+    message:
+      'The mailbox may have changed, but its saved result is unavailable. Check the current account before retrying with the same request reference.',
+    remedy: 'review_mailbox_identity',
+  },
+  STALWART_TOKEN_REQUIRED: {
+    status: 503,
+    code: 'ACCESS_MAILBOX_SERVICE_CONFIGURATION',
+    key: 'problem.access.mailboxServiceConfiguration',
+    message: 'Mailbox service access is not configured. Contact the owner before retrying.',
+    remedy: 'contact_owner',
+  },
+  STALWART_JMAP_TLS_REQUIRED: {
+    status: 503,
+    code: 'ACCESS_MAILBOX_SERVICE_CONFIGURATION',
+    key: 'problem.access.mailboxServiceConfiguration',
+    message:
+      'Mailbox service access is not configured securely. Contact the owner before retrying.',
+    remedy: 'contact_owner',
+  },
+  MAILBOX_CHANGE_REASON_REQUIRED: {
+    status: 400,
+    code: 'ACCESS_CHANGE_REASON_REQUIRED',
+    key: 'problem.access.reasonRequired',
+    message: 'Enter a reason for this mailbox access change.',
+    remedy: 'enter_reason',
+    field: 'reason',
+  },
+  MAILBOX_PASSWORD_CONFIRMATION_INVALID: {
+    status: 400,
+    code: 'ACCESS_MAILBOX_CONFIRMATION_INVALID',
+    key: 'problem.access.mailboxConfirmationInvalid',
+    message: 'Confirm the current mailbox email before changing its password.',
+    remedy: 'correct_email',
+    field: 'confirmation',
+  },
+  MAILBOX_DESTROY_CONFIRMATION_INVALID: {
+    status: 400,
+    code: 'ACCESS_MAILBOX_DESTROY_CONFIRMATION_INVALID',
+    key: 'problem.access.mailboxDestroyConfirmationInvalid',
+    message: 'Type the required delete confirmation for this mailbox before deleting it.',
+    remedy: 'review_mailbox_identity',
+    field: 'confirmation',
+  },
+};
+
+function directoryFailure(
+  error: unknown,
+  actionName: DirectoryAction,
+  values: Record<string, string>,
+  correlationId?: string,
+) {
+  const extras = { actionName, values, correlationId };
+  const make = (problem: DirectoryProblem) =>
+    actionFail(problem.status, problem.key, {}, problem.message, {
+      ...extras,
+      code: problem.code,
+      ...(problem.field ? { fieldErrors: { [problem.field]: [problem.key] } } : {}),
+      remedies: [{ id: problem.remedy }],
+    });
+  if (error instanceof StalwartUnavailableError)
+    return make({
+      status: 503,
+      code: 'ACCESS_MAILBOX_SERVICE_UNAVAILABLE',
+      key: 'problem.access.mailboxServiceUnavailable',
+      message:
+        'The mailbox service is unavailable. The change may have succeeded; check the mailbox directory before retrying with the same request reference.',
+      remedy: 'review_mailbox_identity',
+    });
+  if (error instanceof StalwartOperationRejectedError) {
+    if (error.rejectionType === 'alreadyExists' || error.rejectionType === 'primaryKeyViolation')
+      return make({
+        status: 409,
+        code: 'ACCESS_MAILBOX_ALIAS_EXISTS',
+        key: 'action.access.mailbox.aliasExists',
+        message: 'That mailbox alias already exists. Review the directory before choosing another.',
+        remedy: 'review_mailbox_identity',
+        field: 'username',
+      });
+    if (error.rejectionType === 'forbidden')
+      return make({
+        status: 503,
+        code: 'ACCESS_MAILBOX_SERVICE_PERMISSION',
+        key: 'problem.access.mailboxServicePermission',
+        message:
+          'Mailbox service permissions prevent this change. Contact the owner to review service access.',
+        remedy: 'contact_owner',
+      });
+    if (
+      error.rejectionType === 'invalidProperties' &&
+      error.properties.some((property) => property.toLowerCase().includes('secret'))
+    )
+      return make({
+        status: 400,
+        code: 'ACCESS_MAILBOX_PASSWORD_REJECTED',
+        key: 'action.access.mailbox.passwordRejected',
+        message: 'The mailbox service rejected this password. Enter a different strong password.',
+        remedy: 'review_user_access',
+        field: 'password',
+      });
+    if (
+      error.rejectionType === 'invalidProperties' &&
+      error.properties.some((property) => property.toLowerCase().includes('quota'))
+    )
+      return make(directoryProblems.MAILBOX_QUOTA_INVALID!);
+    return make({
+      status: 409,
+      code: 'ACCESS_MAILBOX_OPERATION_REJECTED',
+      key: 'problem.access.mailboxOperationRejected',
+      message:
+        'The mailbox service rejected this change. Review the account state before trying again.',
+      remedy: 'review_mailbox_identity',
+    });
+  }
+  if (error instanceof Error) {
+    const partial = {
+      MAILBOX_PARTIAL_FAILURE_CREATED: {
+        code: 'ACCESS_MAILBOX_CREATED_LINK_PENDING',
+        key: 'action.access.mailbox.createdLinkPending',
+        message:
+          'The mailbox was created, but its portal link is pending. Check the directory and retry with the same request reference to finish linking.',
+      },
+      MAILBOX_PARTIAL_FAILURE_PASSWORD_UPDATED: {
+        code: 'ACCESS_MAILBOX_PASSWORD_AUDIT_PENDING',
+        key: 'problem.access.mailboxPasswordAuditPending',
+        message:
+          'The mailbox password may already have changed, but portal recording is pending. Check the account and retry with the same request reference to finish recording it.',
+      },
+      MAILBOX_PARTIAL_FAILURE_DESTROYED: {
+        code: 'ACCESS_MAILBOX_DESTROY_AUDIT_PENDING',
+        key: 'problem.access.mailboxDestroyAuditPending',
+        message:
+          'The mailbox was deleted, but portal recording is pending. Check the directory and retry with the same request reference to finish recording it.',
+      },
+    }[error.message];
+    if (partial)
+      return make({
+        status: 409,
+        ...partial,
+        key: partial.key as `problem.${string}` | `action.${string}`,
+        remedy: 'review_mailbox_identity',
+      });
+    const known = directoryProblems[error.message];
+    if (known)
+      return make({
+        ...known,
+        ...(known.field === 'role' && actionName === 'createMailboxAccount'
+          ? { field: 'provisionRole' }
+          : {}),
+        ...(known.field === 'stalwartAccountId' && actionName === 'provisionMailboxUsers'
+          ? { field: 'emails' }
+          : {}),
+      });
+  }
+  return actionFailure(error, extras);
+}
+
+function directoryInputFailure(
+  actionName: DirectoryAction,
+  values: Record<string, string>,
+  fieldErrors: Record<string, string[]>,
+  correlationId?: string,
+) {
+  return actionFail(
+    400,
+    'problem.access.directoryInputInvalid',
+    {},
+    'Correct the highlighted mailbox or invitation fields before continuing.',
+    {
+      code: 'ACCESS_DIRECTORY_INPUT_INVALID',
+      actionName,
+      values,
+      fieldErrors,
+      remedies: [{ id: 'review_user_access' }],
+      correlationId,
+    },
+  );
+}
+
+function directoryFormFailure(actionName: DirectoryAction, correlationId?: string) {
+  return actionFail(
+    400,
+    'problem.access.invalidForm',
+    {},
+    'The submitted form could not be read. Reload it and enter the details again.',
+    {
+      code: 'ACCESS_FORM_UNREADABLE',
+      actionName,
+      remedies: [{ id: 'review_user_access' }],
+      correlationId,
+    },
+  );
+}
+
+function directoryOwnerFailure(
+  event: PortalActionEvent,
+  actionName: DirectoryAction,
+  values: Record<string, string>,
+) {
+  if (!event.locals.user || !event.locals.session)
+    return actionFail(401, 'action.error.unauthenticated', {}, 'Sign in again to continue.', {
+      code: 'ACCESS_SESSION_REQUIRED',
+      actionName,
+      values,
+      remedies: [{ id: 'contact_owner' }],
+      correlationId: event.locals.correlationId,
+    });
+  const email = event.locals.user.email.trim().toLowerCase();
+  const syntheticOwnerAllowed =
+    process.env.NODE_ENV !== 'production' &&
+    process.env.JA_TENANT_ID === SYNTHETIC_OWNER_TENANT_ID &&
+    process.env.JA_DEPLOYMENT_ID === SYNTHETIC_OWNER_DEPLOYMENT_ID &&
+    email === SYNTHETIC_OWNER_EMAIL;
+  if (
+    event.locals.user.role !== 'owner_admin' ||
+    (email !== CANONICAL_OWNER_EMAIL && !syntheticOwnerAllowed)
+  )
+    return actionFail(
+      403,
+      'problem.access.ownerRequired',
+      {},
+      'Only an owner can change invitation or mailbox access. Contact an owner.',
+      {
+        code: 'ACCESS_OWNER_REQUIRED',
+        actionName,
+        values,
+        remedies: [{ id: 'contact_owner' }],
+        correlationId: event.locals.correlationId,
+      },
+    );
+  return null;
+}
+
+function openAccessContext(
+  locals: PortalActionEvent['locals'],
+  directoryAction?: DirectoryAction,
+  values: Record<string, string> = {},
+) {
   try {
     return { context: openPortalRepository(locals) };
   } catch (error) {
-    return { failure: actionFailure(error) };
+    return {
+      failure: directoryAction
+        ? directoryFailure(error, directoryAction, values, locals.correlationId)
+        : actionFailure(error),
+    };
   }
 }
 
@@ -226,7 +671,7 @@ export const accessActions = {
         {
           code: 'ACCESS_WORKFORCE_PROFILE_INVALID',
           fieldErrors: {
-            ...(!userId.success ? { workerId: ['Choose a person.'] } : {}),
+            ...(!userId.success ? { workerId: ['problem.access.personSelectionRequired'] } : {}),
             ...(!['standard', 'supplier_coordinator', 'external_technician'].includes(profile)
               ? { profile: ['Choose a valid workforce profile.'] }
               : {}),
@@ -383,22 +828,45 @@ export const accessActions = {
     const { locals, request, params } = event;
     if (params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const authorizationFailure = requireOwner(event);
+    const object = await formObject(request).catch(() => null);
+    if (!object) return directoryFormFailure('createInvitation', locals.correlationId);
+    const values = {
+      email: String(object.email ?? ''),
+      role: String(object.role ?? ''),
+      expiresInDays: String(object.expiresInDays ?? ''),
+      emailChoice: String(object.emailChoice ?? ''),
+    };
+    const authorizationFailure = directoryOwnerFailure(event, 'createInvitation', values);
     if (authorizationFailure) return authorizationFailure;
-    const object = await formObject(request);
     const parsed = invitationInputSchema.safeParse(object);
     if (!parsed.success)
-      return actionFail(400, 'action.validation.invitation', {}, 'Invalid invitation', {
-        fields: parsed.error.flatten().fieldErrors,
-      });
-    if (!['yes', 'no'].includes(String(object.emailChoice)))
-      return actionFail(
-        400,
-        'action.validation.invalid',
-        {},
-        'Choose whether to send the invitation email.',
+      return directoryInputFailure(
+        'createInvitation',
+        values,
+        Object.fromEntries(
+          Object.entries(parsed.error.flatten().fieldErrors)
+            .filter(([, errors]) => Boolean(errors?.length))
+            .map(([field]) => [
+              field,
+              [
+                {
+                  email: 'problem.access.emailInvalid',
+                  role: 'problem.access.invitationRoleInvalid',
+                  expiresInDays: 'problem.access.invitationExpiryInvalid',
+                }[field] ?? 'problem.access.directoryInputInvalid',
+              ],
+            ]),
+        ),
+        locals.correlationId,
       );
-    const opened = openAccessContext(locals);
+    if (!['yes', 'no'].includes(String(object.emailChoice)))
+      return directoryInputFailure(
+        'createInvitation',
+        values,
+        { emailChoice: ['problem.access.invitationEmailChoiceInvalid'] },
+        locals.correlationId,
+      );
+    const opened = openAccessContext(locals, 'createInvitation', values);
     if ('failure' in opened) return opened.failure;
     try {
       const result = opened.context.v3.createInvitation(
@@ -413,7 +881,7 @@ export const accessActions = {
         `Invite created: ${publicBase}/app/invite/${result.token}`,
       );
     } catch (error) {
-      return actionFailure(error);
+      return directoryFailure(error, 'createInvitation', values, locals.correlationId);
     } finally {
       opened.context.sqlite.close();
     }
@@ -437,7 +905,7 @@ export const accessActions = {
         {
           code: 'ACCESS_STATUS_INVALID',
           fieldErrors: {
-            ...(!parsedId.success ? { userId: ['Choose a person.'] } : {}),
+            ...(!parsedId.success ? { userId: ['problem.access.personSelectionRequired'] } : {}),
             ...(!['active', 'suspended', 'offboarded', 'archived'].includes(status)
               ? { status: ['Choose a valid account status.'] }
               : {}),
@@ -487,10 +955,10 @@ export const accessActions = {
         {
           code: 'ACCESS_WORKER_PROFILE_INVALID',
           fieldErrors: {
-            ...(!parsedId.success ? { workerId: ['Choose a person.'] } : {}),
-            ...(!name.trim() ? { name: ['Enter a name.'] } : {}),
-            ...(!email.trim() ? { email: ['Enter an email address.'] } : {}),
-            ...(!role ? { role: ['Choose a role.'] } : {}),
+            ...(!parsedId.success ? { workerId: ['problem.access.personSelectionRequired'] } : {}),
+            ...(!name.trim() ? { name: ['problem.access.nameRequired'] } : {}),
+            ...(!email.trim() ? { email: ['problem.access.emailRequired'] } : {}),
+            ...(!role ? { role: ['problem.access.roleRequired'] } : {}),
           },
           correlationId: locals.correlationId,
         },
@@ -503,7 +971,20 @@ export const accessActions = {
         .prepare('SELECT email,role FROM user WHERE id=?')
         .get(workerId) as { email: string; role: string } | undefined;
       if (!target)
-        return actionFail(400, 'action.validation.workerProfile', {}, 'Worker not found');
+        return actionFail(
+          404,
+          'problem.access.userSelectionInvalid',
+          {},
+          'The selected person is no longer available. Review the team directory before saving.',
+          {
+            code: 'ACCESS_PERSON_UNAVAILABLE',
+            actionName: 'updateWorkerProfile',
+            values: { workerId, name, email, role, joinedAt },
+            fieldErrors: { workerId: ['problem.access.userSelectionInvalid'] },
+            remedies: [{ id: 'review_user_access' }],
+            correlationId: locals.correlationId,
+          },
+        );
       const designatedOwnerEmail =
         process.env.NODE_ENV !== 'production' &&
         process.env.JA_TENANT_ID === SYNTHETIC_OWNER_TENANT_ID &&
@@ -555,10 +1036,8 @@ export const accessActions = {
     const { locals, request, params } = event;
     if (params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const authorizationFailure = requireOwner(event);
-    if (authorizationFailure) return authorizationFailure;
     const form = await request.formData().catch(() => null);
-    if (!form) return actionFail(400, 'action.validation.invalidForm', {}, 'Invalid form');
+    if (!form) return directoryFormFailure('provisionMailboxUsers', event.locals.correlationId);
 
     const role = String(form.get('role') ?? 'worker');
     const emailsRaw = form.getAll('emails');
@@ -566,15 +1045,28 @@ export const accessActions = {
       .flatMap((val) => String(val).split(','))
       .map((e) => e.trim())
       .filter(Boolean);
+    const values = { role, emails: emails.join(',') };
+    const authorizationFailure = directoryOwnerFailure(event, 'provisionMailboxUsers', values);
+    if (authorizationFailure) return authorizationFailure;
 
     if (emails.length === 0) {
-      return actionFail(400, 'action.validation.missingEmails', {}, 'No email accounts selected');
+      return directoryInputFailure(
+        'provisionMailboxUsers',
+        values,
+        { emails: ['problem.access.mailboxSelectionRequired'] },
+        locals.correlationId,
+      );
     }
     if (!['worker', 'project_manager', 'finance_admin'].includes(role))
-      return actionFail(400, 'action.validation.invalid', {}, 'Invalid portal role');
+      return directoryInputFailure(
+        'provisionMailboxUsers',
+        values,
+        { role: ['problem.access.mailboxRoleInvalid'] },
+        locals.correlationId,
+      );
 
     const { provisionMailboxUsers } = await import('$lib/server/mail-directory');
-    const opened = openAccessContext(locals);
+    const opened = openAccessContext(locals, 'provisionMailboxUsers', values);
     if ('failure' in opened) return opened.failure;
     try {
       const result = await provisionMailboxUsers(opened.context.sqlite, opened.context.principal, {
@@ -587,7 +1079,7 @@ export const accessActions = {
         `${result.created + result.updated} mailbox account(s) provisioned successfully.`,
       );
     } catch (error) {
-      return actionFailure(error);
+      return directoryFailure(error, 'provisionMailboxUsers', values, locals.correlationId);
     } finally {
       opened.context.sqlite.close();
     }
@@ -596,10 +1088,8 @@ export const accessActions = {
     const { locals, request, params } = event;
     if (params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const authorizationFailure = requireOwner(event);
-    if (authorizationFailure) return authorizationFailure;
     const form = await request.formData().catch(() => null);
-    if (!form) return actionFail(400, 'action.validation.invalidForm', {}, 'Invalid form');
+    if (!form) return directoryFormFailure('createMailboxAccount', event.locals.correlationId);
 
     const username = String(form.get('username') ?? '').trim();
     const name = String(form.get('name') ?? '').trim();
@@ -612,17 +1102,45 @@ export const accessActions = {
       | 'worker'
       | 'project_manager'
       | 'finance_admin';
+    const values = {
+      username,
+      name,
+      quotaMb: String(form.get('quotaMb') ?? ''),
+      provisionRole,
+      idempotencyKey,
+    };
+    const authorizationFailure = directoryOwnerFailure(event, 'createMailboxAccount', values);
+    if (authorizationFailure) return authorizationFailure;
 
-    if (!username || idempotencyKey.length < 16) {
-      return actionFail(400, 'action.validation.missingUsername', {}, 'Username is required');
-    }
-    if (!password) return actionFail(400, 'action.validation.invalid', {}, 'Password is required');
+    if (!username || idempotencyKey.length < 16)
+      return directoryInputFailure(
+        'createMailboxAccount',
+        values,
+        {
+          ...(!username ? { username: ['action.access.mailbox.invalidAlias'] } : {}),
+          ...(idempotencyKey.length < 16
+            ? { idempotencyKey: ['problem.access.mailboxRequestKeyInvalid'] }
+            : {}),
+        },
+        locals.correlationId,
+      );
+    if (!password)
+      return directoryInputFailure(
+        'createMailboxAccount',
+        values,
+        { password: ['action.access.mailbox.invalidPassword'] },
+        locals.correlationId,
+      );
     if (!['worker', 'project_manager', 'finance_admin'].includes(provisionRole))
-      return actionFail(400, 'action.validation.invalid', {}, 'Invalid portal role');
+      return directoryInputFailure(
+        'createMailboxAccount',
+        values,
+        { provisionRole: ['problem.access.mailboxRoleInvalid'] },
+        locals.correlationId,
+      );
 
-    const { createMailboxAccount, MailboxSagaPartialFailureError } =
-      await import('$lib/server/mail-directory');
-    const opened = openAccessContext(locals);
+    const { createMailboxAccount } = await import('$lib/server/mail-directory');
+    const opened = openAccessContext(locals, 'createMailboxAccount', values);
     if ('failure' in opened) return opened.failure;
     try {
       const created = await createMailboxAccount(opened.context.sqlite, opened.context.principal, {
@@ -639,78 +1157,7 @@ export const accessActions = {
         `Mailbox ${created.email} created successfully.`,
       );
     } catch (error) {
-      if (error instanceof MailboxSagaPartialFailureError && error.externalOutcome === 'created')
-        return actionFail(
-          409,
-          'action.access.mailbox.createdLinkPending',
-          {},
-          'The mailbox was created in Stalwart, but its portal link is pending. Retry the same creation to finish linking it; a second mailbox will not be created.',
-        );
-      if (error instanceof StalwartOperationRejectedError && error.operation === 'create') {
-        const isPasswordRejection = error.properties.some((property) =>
-          property.toLowerCase().includes('secret'),
-        );
-        const isQuotaRejection = error.properties.some((property) =>
-          property.toLowerCase().includes('quota'),
-        );
-        const message =
-          error.rejectionType === 'alreadyExists' || error.rejectionType === 'primaryKeyViolation'
-            ? {
-                key: 'action.access.mailbox.aliasExists' as const,
-                text: 'That mailbox alias already exists in Stalwart.',
-              }
-            : error.rejectionType === 'forbidden'
-              ? {
-                  key: 'action.access.mailbox.permissionDenied' as const,
-                  text: 'The portal service key cannot create this Stalwart account or grant its mailbox permissions.',
-                }
-              : error.rejectionType === 'invalidProperties' && isPasswordRejection
-                ? {
-                    key: 'action.access.mailbox.passwordRejected' as const,
-                    text: 'Stalwart rejected the password. Use a unique strong password of at least 16 characters.',
-                  }
-                : error.rejectionType === 'invalidProperties' && isQuotaRejection
-                  ? {
-                      key: 'action.access.mailbox.invalidQuota' as const,
-                      text: 'Stalwart rejected the mailbox quota.',
-                    }
-                  : {
-                      key: 'action.access.mailbox.rejected' as const,
-                      text: `Stalwart rejected the account creation (${error.rejectionType}).`,
-                    };
-        return actionFail(400, message.key, { reason: error.rejectionType }, message.text);
-      }
-      if (error instanceof Error) {
-        const knownFailure = {
-          MAILBOX_ALIAS_INVALID: [
-            'action.access.mailbox.invalidAlias',
-            'Use an alias of 2–64 lowercase letters, numbers, dots, underscores or hyphens.',
-          ],
-          MAILBOX_PASSWORD_INVALID: [
-            'action.access.mailbox.invalidPassword',
-            'Use a password of 12–128 characters without line breaks.',
-          ],
-          MAILBOX_QUOTA_INVALID: [
-            'action.access.mailbox.invalidQuota',
-            'Enter a valid mailbox quota.',
-          ],
-          PORTAL_USER_INACTIVE: [
-            'action.access.mailbox.userInactive',
-            'A portal user with this email is archived. Restore it explicitly before linking this mailbox.',
-          ],
-          MAIL_IDENTITY_COLLISION: [
-            'action.access.mailbox.identityCollision',
-            'This mailbox conflicts with an existing portal identity and was not linked.',
-          ],
-          MAIL_IDENTITY_RELINK_REQUIRES_EXPLICIT_ACTION: [
-            'action.access.mailbox.relinkRequired',
-            'This email was linked to a different Stalwart account. An explicit relink is required.',
-          ],
-        }[error.message];
-        if (knownFailure)
-          return actionFail(409, knownFailure[0] as `action.${string}`, {}, knownFailure[1]);
-      }
-      return actionFailure(error);
+      return directoryFailure(error, 'createMailboxAccount', values, locals.correlationId);
     } finally {
       opened.context.sqlite.close();
     }
@@ -718,9 +1165,9 @@ export const accessActions = {
   bootstrapMailboxUsers: async (event: PortalActionEvent) => {
     if (event.params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const authorizationFailure = requireOwner(event);
+    const authorizationFailure = directoryOwnerFailure(event, 'bootstrapMailboxUsers', {});
     if (authorizationFailure) return authorizationFailure;
-    const opened = openAccessContext(event.locals);
+    const opened = openAccessContext(event.locals, 'bootstrapMailboxUsers');
     if ('failure' in opened) return opened.failure;
     try {
       const { bootstrapMailboxUsers } = await import('$lib/server/mail-directory');
@@ -731,7 +1178,7 @@ export const accessActions = {
         'Mailbox directory synchronized.',
       );
     } catch (error) {
-      return actionFailure(error);
+      return directoryFailure(error, 'bootstrapMailboxUsers', {}, event.locals.correlationId);
     } finally {
       opened.context.sqlite.close();
     }
@@ -742,7 +1189,7 @@ export const accessActions = {
     const authorizationFailure = requireOwner(event);
     if (authorizationFailure) return authorizationFailure;
     const form = await event.request.formData().catch(() => null);
-    if (!form) return actionFail(400, 'action.validation.invalidForm', {}, 'Invalid form');
+    if (!form) return directoryFormFailure('changeMailboxRole', event.locals.correlationId);
     const userId = String(form.get('portalUserId') ?? '').trim();
     const email = String(form.get('email') ?? '')
       .trim()
@@ -752,13 +1199,32 @@ export const accessActions = {
     const confirmation = String(form.get('confirmation') ?? '')
       .trim()
       .toLowerCase();
-    if (
-      !uuidSchema.safeParse(userId).success ||
-      confirmation !== email ||
-      !reason ||
-      !['worker', 'project_manager', 'finance_admin'].includes(role)
-    )
-      return actionFail(400, 'action.validation.invalid', {}, 'Invalid role change confirmation');
+    const values = { portalUserId: userId, email, role, reason, confirmation };
+    const roleAllowed = ['worker', 'project_manager', 'finance_admin'].includes(role);
+    if (!uuidSchema.safeParse(userId).success || confirmation !== email || !reason || !roleAllowed)
+      return actionFail(
+        400,
+        'problem.access.roleChangeFieldsInvalid',
+        {},
+        'Select a user and role, enter a reason, and confirm the current email before changing access.',
+        {
+          code: 'ACCESS_ROLE_CHANGE_FIELDS_INVALID',
+          actionName: 'changeMailboxRole',
+          values,
+          fieldErrors: {
+            ...(!uuidSchema.safeParse(userId).success
+              ? { portalUserId: ['problem.access.userSelectionInvalid'] }
+              : {}),
+            ...(confirmation !== email
+              ? { confirmation: ['problem.access.confirmationMismatch'] }
+              : {}),
+            ...(!reason ? { reason: ['problem.access.reasonRequired'] } : {}),
+            ...(!roleAllowed ? { role: ['Please select an option.'] } : {}),
+          },
+          remedies: [{ id: 'review_user_access', recordId: userId }],
+          correlationId: event.locals.correlationId,
+        },
+      );
     const opened = openAccessContext(event.locals);
     if ('failure' in opened) return opened.failure;
     try {
@@ -771,7 +1237,15 @@ export const accessActions = {
       );
       return actionSuccess('action.access.workerProfile.updated', { role }, 'Portal role updated.');
     } catch (error) {
-      return knownAccessFailure(error, event.locals.correlationId, userId) ?? actionFailure(error);
+      return (
+        knownAccessFailure(
+          error,
+          event.locals.correlationId,
+          userId,
+          'changeMailboxRole',
+          values,
+        ) ?? actionFailure(error, { actionName: 'changeMailboxRole', values })
+      );
     } finally {
       opened.context.sqlite.close();
     }
@@ -782,7 +1256,7 @@ export const accessActions = {
     const authorizationFailure = requireOwner(event);
     if (authorizationFailure) return authorizationFailure;
     const form = await event.request.formData().catch(() => null);
-    if (!form) return actionFail(400, 'action.validation.invalidForm', {}, 'Invalid form');
+    if (!form) return directoryFormFailure('deprovisionMailboxUser', event.locals.correlationId);
     const userId = String(form.get('portalUserId') ?? '').trim();
     const email = String(form.get('email') ?? '')
       .trim()
@@ -791,8 +1265,30 @@ export const accessActions = {
     const confirmation = String(form.get('confirmation') ?? '')
       .trim()
       .toLowerCase();
+    const values = { portalUserId: userId, email, reason, confirmation };
     if (!uuidSchema.safeParse(userId).success || confirmation !== email || !reason)
-      return actionFail(400, 'action.validation.invalid', {}, 'Invalid offboarding confirmation');
+      return actionFail(
+        400,
+        'problem.access.offboardFieldsInvalid',
+        {},
+        'Select a user, enter a reason, and confirm the current email before removing portal access.',
+        {
+          code: 'ACCESS_OFFBOARD_FIELDS_INVALID',
+          actionName: 'deprovisionMailboxUser',
+          values,
+          fieldErrors: {
+            ...(!uuidSchema.safeParse(userId).success
+              ? { portalUserId: ['problem.access.userSelectionInvalid'] }
+              : {}),
+            ...(confirmation !== email
+              ? { confirmation: ['problem.access.confirmationMismatch'] }
+              : {}),
+            ...(!reason ? { reason: ['problem.access.reasonRequired'] } : {}),
+          },
+          remedies: [{ id: 'review_user_access', recordId: userId }],
+          correlationId: event.locals.correlationId,
+        },
+      );
     const opened = openAccessContext(event.locals);
     if ('failure' in opened) return opened.failure;
     try {
@@ -808,7 +1304,15 @@ export const accessActions = {
         'Portal access removed; mailbox preserved.',
       );
     } catch (error) {
-      return knownAccessFailure(error, event.locals.correlationId, userId) ?? actionFailure(error);
+      return (
+        knownAccessFailure(
+          error,
+          event.locals.correlationId,
+          userId,
+          'deprovisionMailboxUser',
+          values,
+        ) ?? actionFailure(error, { actionName: 'deprovisionMailboxUser', values })
+      );
     } finally {
       opened.context.sqlite.close();
     }
@@ -816,10 +1320,8 @@ export const accessActions = {
   updateMailboxPassword: async (event: PortalActionEvent) => {
     if (event.params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const authorizationFailure = requireOwner(event);
-    if (authorizationFailure) return authorizationFailure;
     const form = await event.request.formData().catch(() => null);
-    if (!form) return actionFail(400, 'action.validation.invalidForm', {}, 'Invalid form');
+    if (!form) return directoryFormFailure('updateMailboxPassword', event.locals.correlationId);
     const stalwartAccountId = String(form.get('stalwartAccountId') ?? '').trim();
     const password = String(form.get('password') ?? '');
     const reason = String(form.get('reason') ?? '').trim();
@@ -830,6 +1332,9 @@ export const accessActions = {
       .trim()
       .toLowerCase();
     const idempotencyKey = String(form.get('idempotencyKey') ?? '').trim();
+    const values = { stalwartAccountId, reason, email, confirmation, idempotencyKey };
+    const authorizationFailure = directoryOwnerFailure(event, 'updateMailboxPassword', values);
+    if (authorizationFailure) return authorizationFailure;
     if (
       !stalwartAccountId ||
       !password ||
@@ -838,13 +1343,26 @@ export const accessActions = {
       confirmation !== email ||
       idempotencyKey.length < 16
     )
-      return actionFail(
-        400,
-        'action.validation.invalid',
-        {},
-        'Account, password, reason and confirmation are required',
+      return directoryInputFailure(
+        'updateMailboxPassword',
+        values,
+        {
+          ...(!stalwartAccountId
+            ? { stalwartAccountId: ['problem.access.mailboxAccountInvalid'] }
+            : {}),
+          ...(!password ? { password: ['action.access.mailbox.invalidPassword'] } : {}),
+          ...(!reason ? { reason: ['problem.access.reasonRequired'] } : {}),
+          ...(!email ? { email: ['problem.access.emailInvalid'] } : {}),
+          ...(confirmation !== email
+            ? { confirmation: ['problem.access.mailboxConfirmationInvalid'] }
+            : {}),
+          ...(idempotencyKey.length < 16
+            ? { idempotencyKey: ['problem.access.mailboxRequestKeyInvalid'] }
+            : {}),
+        },
+        event.locals.correlationId,
       );
-    const opened = openAccessContext(event.locals);
+    const opened = openAccessContext(event.locals, 'updateMailboxPassword', values);
     if ('failure' in opened) return opened.failure;
     try {
       const { updateMailboxPassword } = await import('$lib/server/mail-directory');
@@ -862,7 +1380,7 @@ export const accessActions = {
         'Mailbox password updated.',
       );
     } catch (error) {
-      return actionFailure(error);
+      return directoryFailure(error, 'updateMailboxPassword', values, event.locals.correlationId);
     } finally {
       opened.context.sqlite.close();
     }
@@ -870,23 +1388,36 @@ export const accessActions = {
   destroyMailboxAccount: async (event: PortalActionEvent) => {
     if (event.params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const authorizationFailure = requireOwner(event);
-    if (authorizationFailure) return authorizationFailure;
     const form = await event.request.formData().catch(() => null);
-    if (!form) return actionFail(400, 'action.validation.invalidForm', {}, 'Invalid form');
+    if (!form) return directoryFormFailure('destroyMailboxAccount', event.locals.correlationId);
     const stalwartAccountId = String(form.get('stalwartAccountId') ?? '').trim();
     const email = String(form.get('email') ?? '').trim();
     const confirmation = String(form.get('confirmation') ?? '').trim();
     const reason = String(form.get('reason') ?? '').trim();
     const idempotencyKey = String(form.get('idempotencyKey') ?? '').trim();
+    const values = { stalwartAccountId, email, confirmation, reason, idempotencyKey };
+    const authorizationFailure = directoryOwnerFailure(event, 'destroyMailboxAccount', values);
+    if (authorizationFailure) return authorizationFailure;
     if (!stalwartAccountId || !email || !confirmation || !reason || idempotencyKey.length < 16)
-      return actionFail(
-        400,
-        'action.validation.invalid',
-        {},
-        'Explicit confirmation and reason are required',
+      return directoryInputFailure(
+        'destroyMailboxAccount',
+        values,
+        {
+          ...(!stalwartAccountId
+            ? { stalwartAccountId: ['problem.access.mailboxAccountInvalid'] }
+            : {}),
+          ...(!email ? { email: ['problem.access.emailInvalid'] } : {}),
+          ...(!confirmation
+            ? { confirmation: ['problem.access.mailboxDestroyConfirmationInvalid'] }
+            : {}),
+          ...(!reason ? { reason: ['problem.access.reasonRequired'] } : {}),
+          ...(idempotencyKey.length < 16
+            ? { idempotencyKey: ['problem.access.mailboxRequestKeyInvalid'] }
+            : {}),
+        },
+        event.locals.correlationId,
       );
-    const opened = openAccessContext(event.locals);
+    const opened = openAccessContext(event.locals, 'destroyMailboxAccount', values);
     if ('failure' in opened) return opened.failure;
     try {
       const { destroyMailboxAccount } = await import('$lib/server/mail-directory');
@@ -903,7 +1434,7 @@ export const accessActions = {
         'Mailbox deleted; portal account preserved.',
       );
     } catch (error) {
-      return actionFailure(error);
+      return directoryFailure(error, 'destroyMailboxAccount', values, event.locals.correlationId);
     } finally {
       opened.context.sqlite.close();
     }

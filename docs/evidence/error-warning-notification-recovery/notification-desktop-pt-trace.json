@@ -1,0 +1,22 @@
+[
+  {
+    "step": "native-invalid",
+    "code": "NOTIFICATION_INVALID_LINK",
+    "scrollBefore": 0,
+    "scrollAfter": 0
+  },
+  {
+    "step": "native-stale",
+    "code": "NOTIFICATION_UNAVAILABLE",
+    "scrollBefore": 0,
+    "scrollAfter": 0
+  },
+  {
+    "step": "enhanced-success",
+    "saved": true
+  },
+  {
+    "step": "other-user-denied",
+    "code": "NOTIFICATION_UNAVAILABLE"
+  }
+]

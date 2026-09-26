@@ -135,6 +135,37 @@ function expectNoIssueWrites(fixture: ReturnType<typeof setupInvoice>) {
 }
 
 describe('PortalRepository final finance hardening', () => {
+  it('does not overwrite a competing Finance time treatment', () => {
+    const fixture = createB5LifecycleSecurityFixture();
+    fixtures.push(fixture);
+    const entry = fixture.repository.createTimeEntry(fixture.worker, {
+      projectId: fixture.project.id,
+      workDate: '2026-08-03',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Concurrent Finance review',
+    });
+    fixture.repository.submitTime(fixture.worker, entry.id, entry.version);
+    fixture.repository.operationalApproveTime(fixture.manager, entry.id, 'approved');
+    fixture.repository.financeApproveTime(fixture.finance, entry.id, false);
+    const before = fixture.sqlite
+      .prepare(
+        'SELECT billability_state,finance_approved_by,finance_approved_at,version FROM time_entry WHERE id=?',
+      )
+      .get(entry.id);
+
+    expect(() => fixture.repository.financeApproveTime(fixture.finance, entry.id, true)).toThrow(
+      'Approved unlocked time required',
+    );
+    expect(
+      fixture.sqlite
+        .prepare(
+          'SELECT billability_state,finance_approved_by,finance_approved_at,version FROM time_entry WHERE id=?',
+        )
+        .get(entry.id),
+    ).toEqual(before);
+  });
+
   it('fails closed when the project has no canonical legal-entity revision', () => {
     const fixture = setupInvoice(false);
 

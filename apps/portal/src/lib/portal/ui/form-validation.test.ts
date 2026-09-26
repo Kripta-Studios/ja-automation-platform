@@ -846,4 +846,24 @@ describe('progressive form validation contract', () => {
       'Introduce un valor igual o inferior a 24.',
     );
   });
+
+  it.each([
+    ['es', 'La hora de fin debe ser posterior a la de inicio en el mismo día.'],
+    ['pt-BR', 'O horário de término deve ser posterior ao início no mesmo dia.'],
+  ])('localizes a custom cross-field schema error for %s', async (locale, expected) => {
+    documentFixture.documentElement.setAttribute('lang', locale);
+    const form = new FakeForm(documentFixture);
+    const endTime = new FakeNode('INPUT', documentFixture);
+    endTime.name = 'endTime';
+    form.append(endTime);
+    documentFixture.body.appendChild(form);
+    const loaded = await loadValidationModule();
+    const report = loaded.module?.reportFormFieldErrors as
+      | ((form: HTMLFormElement, errors: Record<string, string[]>) => void)
+      | undefined;
+    report!(form as unknown as HTMLFormElement, {
+      endTime: ['End time must be later on the same day'],
+    });
+    expect(form.querySelector('[data-field-error-for]')?.textContent).toBe(expected);
+  });
 });

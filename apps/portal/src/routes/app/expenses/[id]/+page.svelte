@@ -1,8 +1,9 @@
 <script lang="ts">
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { base } from '$app/paths';
+  import { enhance, type SubmitFunction } from '$app/forms';
   import { page } from '$app/stores';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import {
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
@@ -11,6 +12,9 @@
     standaloneText,
   } from '../../standalone-locale';
   import CorrectionDraftForm from '$lib/portal/ui/CorrectionDraftForm.svelte';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
+  import type { ProblemData } from '$lib/problem/contract';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { money as formatMoney } from '$lib/portal/portal-format';
   import {
@@ -19,6 +23,20 @@
   } from '$lib/i18n/controlled-values';
   type Row = Record<string, string | number | boolean | null>;
   let { data, form } = $props();
+  type DetailForm = Partial<ProblemData> & {
+    actionName?: 'createCorrectionDraft' | 'withdrawCorrectionDraft' | 'submitExpense';
+    values?: Record<string, string>;
+    success?: boolean;
+  };
+  const detailForm = $derived(form as DetailForm | null | undefined);
+  const problem = $derived(
+    detailForm?.success === false &&
+      detailForm.code &&
+      detailForm.messageKey &&
+      detailForm.correlationId
+      ? (detailForm as ProblemData)
+      : null,
+  );
   let localeOverride = $state<PortalLocale | null>(null);
   const locale = $derived(
     localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
@@ -31,6 +49,121 @@
       value === null || value === undefined ? null : String(value),
     );
   const record = $derived(data.record as Row);
+  const recordHref = $derived(`${base}/app/expenses/${encodeURIComponent(String(record.id))}`);
+  const remedyLinks = $derived({
+    review_expense: {
+      label: t('problem.remedy.reviewExpense'),
+      href:
+        problem?.code === 'EXPENSE_CORRECTION_ALREADY_EXISTS' && record.active_correction_id
+          ? `${base}/app/expenses/${encodeURIComponent(String(record.active_correction_id))}`
+          : recordHref,
+    },
+    review_expenses: { label: t('problem.remedy.reviewExpenses'), href: `${base}/app/expenses` },
+    review_expense_fields: data.canCreateCorrection
+      ? { label: t('problem.remedy.reviewExpenseFields'), href: '#expense-correction-title' }
+      : { label: t('problem.remedy.reviewExpense') },
+    review_time: record.time_entry_id
+      ? {
+          label: t('Review logged hours'),
+          href: `${base}/app/time/${encodeURIComponent(String(record.time_entry_id))}`,
+        }
+      : { label: t('Review logged hours') },
+    attach_receipt: { label: t('Reattach the receipt before saving again.') },
+    contact_project_owner: { label: t('problem.remedy.contactProjectOwner') },
+    contact_finance: { label: t('Contact Finance for an audited adjustment.') },
+    enter_reason: {
+      label: t('problem.remedy.enterReason'),
+      href:
+        detailForm?.actionName === 'withdrawCorrectionDraft' && data.canWithdrawCorrection
+          ? '#expense-withdraw-reason'
+          : data.canCreateCorrection
+            ? '#expense-correction-title'
+            : undefined,
+    },
+    sign_in_again: { label: t('problem.remedy.signInAgain'), href: `${base}/app/login` },
+  });
+  const retainedCorrectionValues = $derived(
+    detailForm?.actionName === 'createCorrectionDraft' && !data.canCreateCorrection
+      ? (
+          [
+            ['vendor', 'Vendor'],
+            ['spentOn', 'Date'],
+            ['description', 'Description'],
+            ['category', 'Category'],
+            ['amount', 'Amount'],
+            ['occurredTimeLocal', 'Time expense occurred'],
+            ['paymentMethod', 'Payment method'],
+            ['timeEntryId', 'Related logged hours'],
+            ['reason', 'Correction reason'],
+          ] as const
+        ).flatMap(([name, label]) =>
+          typeof detailForm.values?.[name] === 'string'
+            ? [{ label: t(label), value: detailForm.values[name] }]
+            : [],
+        )
+      : [],
+  );
+  const retainedWithdrawReason = $derived(
+    detailForm?.actionName === 'withdrawCorrectionDraft' && !data.canWithdrawCorrection
+      ? (detailForm.values?.reason ?? '')
+      : '',
+  );
+  const scrollKey = $derived(`expense-detail-scroll:${String(data.user.id)}:${String(record.id)}`);
+  function rememberScroll(): void {
+    sessionStorage.setItem(scrollKey, JSON.stringify({ top: window.scrollY, at: Date.now() }));
+  }
+  function restoreScroll(): void {
+    const saved = sessionStorage.getItem(scrollKey);
+    if (!saved) return;
+    sessionStorage.removeItem(scrollKey);
+    try {
+      const value = JSON.parse(saved) as { top?: unknown; at?: unknown };
+      if (
+        typeof value.top === 'number' &&
+        Number.isFinite(value.top) &&
+        typeof value.at === 'number' &&
+        Date.now() - value.at < 300_000
+      )
+        window.scrollTo({ top: value.top, behavior: 'instant' });
+    } catch {
+      // A malformed saved position does not hide the failure notice.
+    }
+  }
+  const enhancedSubmit: SubmitFunction = () => {
+    rememberScroll();
+    return async ({ result, update }) => {
+      await update({ reset: false, invalidateAll: true });
+      if (result.type === 'failure') {
+        await tick();
+        restoreScroll();
+      }
+    };
+  };
+  let focusedProblemId = '';
+  $effect(() => {
+    const id = problem?.correlationId;
+    if (!id || id === focusedProblemId) return;
+    focusedProblemId = id;
+    void tick().then(() => {
+      const action = detailForm?.actionName;
+      const targetForm =
+        action === 'createCorrectionDraft'
+          ? document.querySelector<HTMLFormElement>('form[data-correction-draft-form]')
+          : action
+            ? document.querySelector<HTMLFormElement>(
+                `form[data-expense-detail-action="${action}"]`,
+              )
+            : null;
+      if (targetForm && problem?.fieldErrors)
+        reportFormFieldErrors(targetForm, problem.fieldErrors);
+      const target =
+        targetForm?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        document.querySelector<HTMLElement>(
+          '[data-expense-detail-problem] [data-ui="problem-notice"]',
+        );
+      target?.focus({ preventScroll: true });
+    });
+  });
   const restrictedOperational = $derived(Boolean(data.user?.workforceProfile));
   const canViewFinance = $derived(
     !restrictedOperational && ['owner_admin', 'finance_admin'].includes(String(data.user?.role)),
@@ -48,6 +181,13 @@
     window.print();
   }
   onMount(() => {
+    window.addEventListener('pagehide', rememberScroll);
+    const correctionForm = document.querySelector<HTMLFormElement>(
+      'form[data-correction-draft-form]',
+    );
+    const correctionValidation = correctionForm ? formValidation(correctionForm) : null;
+    const correctionEnhancement = correctionForm ? enhance(correctionForm, enhancedSubmit) : null;
+    if (problem) void tick().then(restoreScroll);
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
     persistStandaloneLocale(locale);
     applyStandaloneDocumentLocale(locale);
@@ -56,7 +196,12 @@
         localeOverride = resolveStandaloneLocale(event.newValue);
     };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('pagehide', rememberScroll);
+      correctionValidation?.destroy();
+      correctionEnhancement?.destroy();
+    };
   });
   $effect(() => applyStandaloneDocumentLocale(locale));
 </script>
@@ -81,12 +226,50 @@
     </div>
     <span class="state-tag">{controlled('status', record.approval_state)}</span>
   </header>
-  {#if standaloneActionMessage(locale, form)}
+  {#if problem}
+    <div data-expense-detail-problem>
+      <ProblemNotice
+        {problem}
+        kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        status={`${t('Status')}: ${controlled('status', record.approval_state)}`}
+        {remedyLinks}
+      />
+    </div>
+  {:else if standaloneActionMessage(locale, form)}
     <p class="action-message" role="alert">{standaloneActionMessage(locale, form)}</p>
+  {/if}
+  {#if retainedCorrectionValues.length}
+    <section
+      class="detail-panel record-detail-copy"
+      aria-labelledby="expense-retained-values-title"
+    >
+      <h2 id="expense-retained-values-title">{t('problem.expenseDetail.retainedValuesTitle')}</h2>
+      <p>{t('problem.expenseDetail.retainedValuesHelp')}</p>
+      <dl class="record-facts">
+        {#each retainedCorrectionValues as item (item.label)}
+          <div>
+            <dt>{item.label}</dt>
+            <dd>{item.value || '—'}</dd>
+          </div>
+        {/each}
+      </dl>
+    </section>
+  {/if}
+  {#if retainedWithdrawReason}
+    <p class="detail-panel record-detail-copy">
+      <strong>{t('problem.expenseDetail.retainedReason')}:</strong>
+      {retainedWithdrawReason}
+    </p>
   {/if}
   {#if data.canSubmitDraft}
     <section class="detail-panel record-detail-copy" aria-label={t('Draft actions')}>
-      <form method="POST" action="?/submitExpense">
+      <form
+        method="POST"
+        action="?/submitExpense"
+        data-expense-detail-action="submitExpense"
+        use:formValidation
+        use:enhance={enhancedSubmit}
+      >
         <input type="hidden" name="id" value={String(record.id)} />
         <input type="hidden" name="version" value={Number(record.version)} />
         <button type="submit">{t('Submit')}</button>
@@ -95,15 +278,27 @@
   {/if}
   {#if data.canWithdrawCorrection}
     <section class="detail-panel record-detail-copy" aria-label={t('Withdraw correction draft')}>
-      <form method="POST" action="?/withdrawCorrectionDraft" class="record-correction-withdraw">
+      <form
+        method="POST"
+        action="?/withdrawCorrectionDraft"
+        class="record-correction-withdraw"
+        data-expense-detail-action="withdrawCorrectionDraft"
+        use:formValidation
+        use:enhance={enhancedSubmit}
+      >
         <input type="hidden" name="recordType" value="expense" />
         <input type="hidden" name="correctionId" value={String(record.id)} />
         <input type="hidden" name="version" value={Number(record.version)} />
         <label
           ><span>{t('Why withdraw this draft?')}</span><input
+            id="expense-withdraw-reason"
             name="reason"
             minlength="3"
+            maxlength="2000"
             required
+            value={detailForm?.actionName === 'withdrawCorrectionDraft'
+              ? (detailForm.values?.reason ?? '')
+              : ''}
           /></label
         >
         <button type="submit" class="destructive-button">{t('Withdraw correction draft')}</button>
@@ -149,15 +344,21 @@
   {#if data.canCreateCorrection}
     <section class="detail-panel record-detail-copy" aria-labelledby="expense-correction-title">
       <h2 id="expense-correction-title">{t('Create corrected draft')}</h2>
-      <CorrectionDraftForm
-        recordType="expense"
-        {record}
-        translate={t}
-        ownerOverride={data.user.role === 'owner_admin'}
-        values={form?.values ?? {}}
-        timeOptions={data.correctionTimeOptions}
-        requestId={data.correctionRequestId}
-      />
+      <div data-expense-detail-action="createCorrectionDraft">
+        <CorrectionDraftForm
+          recordType="expense"
+          {record}
+          translate={t}
+          ownerOverride={data.user.role === 'owner_admin'}
+          values={detailForm?.actionName === 'createCorrectionDraft'
+            ? (detailForm.values ?? {})
+            : {}}
+          timeOptions={data.correctionTimeOptions}
+          requestId={detailForm?.actionName === 'createCorrectionDraft'
+            ? (detailForm.values?.requestId ?? data.correctionRequestId)
+            : data.correctionRequestId}
+        />
+      </div>
     </section>
   {/if}
   <section class="record-detail-grid">

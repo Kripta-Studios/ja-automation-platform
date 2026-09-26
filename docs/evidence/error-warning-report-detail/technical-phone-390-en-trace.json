@@ -1,0 +1,24 @@
+[
+  {
+    "step": "technical-success",
+    "saved": true
+  },
+  {
+    "step": "invalid-native",
+    "code": "REPORT_FIELDS_INVALID",
+    "retained": true,
+    "scrollBefore": 480,
+    "scrollAfter": 480,
+    "scrollSettled": 480,
+    "maxScrollAfter": 6231
+  },
+  {
+    "step": "stale-native",
+    "code": "REPORT_DRAFT_CHANGED",
+    "retained": true,
+    "scrollBefore": 480,
+    "scrollAfter": 480,
+    "scrollSettled": 480,
+    "maxScrollAfter": 6086
+  }
+]

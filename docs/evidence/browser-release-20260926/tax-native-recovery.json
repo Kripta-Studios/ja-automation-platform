@@ -1,0 +1,44 @@
+{
+  "browserResponses": [
+    {
+      "status": 400,
+      "path": "/j-aautomation/app/billing?/createTaxProfile",
+      "resourceType": "document"
+    },
+    {
+      "status": 200,
+      "path": "/j-aautomation/app/billing?/createTaxProfile",
+      "resourceType": "fetch"
+    }
+  ],
+  "pageErrors": [],
+  "beforeFailure": {
+    "visiblePercent": "7.5",
+    "hiddenBasisPoints": "750"
+  },
+  "failureStatus": 400,
+  "failureRequestResourceType": "document",
+  "afterFailure": {
+    "name": "X",
+    "visiblePercent": "7.5",
+    "hiddenBasisPoints": "750",
+    "selectedTab": [
+      "Configure billing"
+    ],
+    "fieldErrorCount": 1
+  },
+  "afterSuccess": {
+    "selectedTab": [
+      "Configure billing"
+    ],
+    "successVisible": true
+  },
+  "profileVisibleInDirectory": true,
+  "savedRows": [
+    {
+      "currency": "USD",
+      "status": "active",
+      "basisPoints": 750
+    }
+  ]
+}

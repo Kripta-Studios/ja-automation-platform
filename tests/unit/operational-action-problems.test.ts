@@ -25,14 +25,14 @@ describe('operational action problems', () => {
     } as never);
     expect(response.status).toBe(400);
     expect(response.data).toMatchObject({
-      code: 'ACTION_VALIDATION_TIME_FIELDS',
+      code: 'TIME_PROJECT_INVALID',
       values: {
         projectId: 'selected-project',
         workDate: 'invalid-date',
         summary: 'Work already entered',
       },
       fieldErrors: expect.any(Object),
-      remedies: [],
+      remedies: [{ id: 'review_time' }],
     });
     expect(JSON.parse(JSON.stringify(response.data))).toEqual(response.data);
   });

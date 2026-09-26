@@ -1,0 +1,218 @@
+{
+  "suite": "finance-billing-closeout",
+  "runDate": "2026-09-25",
+  "result": {
+    "passed": 14,
+    "skipped": 2,
+    "failed": 0
+  },
+  "viewports": [
+    {
+      "name": "phone-390",
+      "width": 390
+    },
+    {
+      "name": "desktop",
+      "width": 1440
+    }
+  ],
+  "testedBuild": {
+    "path": "apps/portal/build",
+    "sortedFileSha256ListingHash": "bb7915427d97bb6a2a6ca15a9bbaa90deafaaf0fd0c97e707595d395306aee46",
+    "indexMtimeLocal": "2026-09-25 21:26:25 +0200"
+  },
+  "sourceReference": {
+    "headObservedAtRun": "5370f74029f4a49fad66346b137fd4404a6123b8",
+    "relevantUncommittedDiffSha256": "82f901906a14136abd3294c4d0d17f180200a94a252561987b55b286a3389ab3",
+    "note": "The built artifact hash is authoritative; other agents edited live source after this build."
+  },
+  "qaSpec": {
+    "path": "tests/e2e/error-warning-finance-billing.spec.ts",
+    "sha256": "f3b3f8a2e1806f7b25de4c0a2f5290bce56d477aedf9cebffd8fb7dc431165cb"
+  },
+  "previewConfig": {
+    "path": "docs/evidence/error-warning-finance-billing/playwright.qa-preview.config.ts",
+    "sha256": "4681aa87e04173b92a261706e21b2c720da869a7d3d89048d4fadb6011be141f",
+    "buildCommand": "preview only"
+  },
+  "capture": {
+    "screenshots": "problem notice region; identifying header hidden after assertions where overlapping",
+    "traces": "sanitized step JSON only; Playwright raw tracing off",
+    "network": "status and URL pathname only; query omitted",
+    "console": "no page errors or unexpected console errors"
+  },
+  "networkClassification": {
+    "503 /j-aautomation/app/api/offline/identity": "Disposable fixture offline identity endpoint; not an action failure",
+    "400/409 action responses": "Expected invalid input or business conflict asserted by tests"
+  },
+  "artifacts": [
+    {
+      "name": "approval-manager-desktop-es-network.json",
+      "sha256": "6f3abbf256f7e8e5476dad8227fedea025b9f7c3611fde594f096054d8e48bbc"
+    },
+    {
+      "name": "approval-manager-desktop-es-trace.json",
+      "sha256": "84110820a9bda22776db529aa1fb4f6f4ac2663b8c14a82f31fd09630d5cb8da"
+    },
+    {
+      "name": "approval-manager-desktop-es.png",
+      "sha256": "ee02c92e58f927f0012a773f17c204431df57ef8704f4f4095aafecb894eceba"
+    },
+    {
+      "name": "approval-manager-phone-390-en-network.json",
+      "sha256": "6f3abbf256f7e8e5476dad8227fedea025b9f7c3611fde594f096054d8e48bbc"
+    },
+    {
+      "name": "approval-manager-phone-390-en-trace.json",
+      "sha256": "84110820a9bda22776db529aa1fb4f6f4ac2663b8c14a82f31fd09630d5cb8da"
+    },
+    {
+      "name": "approval-manager-phone-390-en.png",
+      "sha256": "3a515b805172752fa8587b7a9db149207f92e9651907f7a01d38359290ebedeb"
+    },
+    {
+      "name": "approval-owner-desktop-es-network.json",
+      "sha256": "6f3abbf256f7e8e5476dad8227fedea025b9f7c3611fde594f096054d8e48bbc"
+    },
+    {
+      "name": "approval-owner-desktop-es-trace.json",
+      "sha256": "84110820a9bda22776db529aa1fb4f6f4ac2663b8c14a82f31fd09630d5cb8da"
+    },
+    {
+      "name": "approval-owner-desktop-es.png",
+      "sha256": "ee02c92e58f927f0012a773f17c204431df57ef8704f4f4095aafecb894eceba"
+    },
+    {
+      "name": "approval-owner-phone-390-en-network.json",
+      "sha256": "6f3abbf256f7e8e5476dad8227fedea025b9f7c3611fde594f096054d8e48bbc"
+    },
+    {
+      "name": "approval-owner-phone-390-en-trace.json",
+      "sha256": "84110820a9bda22776db529aa1fb4f6f4ac2663b8c14a82f31fd09630d5cb8da"
+    },
+    {
+      "name": "approval-owner-phone-390-en.png",
+      "sha256": "4e65cafa1903ab6a6c9394e516406a56de482e0e932608a2bfcfc835e793f1e1"
+    },
+    {
+      "name": "closeout-desktop-pt-network.json",
+      "sha256": "c85373ef57638e76ac1b5a0a1fa79b864838e42106d8b22eac6b6965fa4b5de9"
+    },
+    {
+      "name": "closeout-desktop-pt-trace.json",
+      "sha256": "96d93fb211d754c6643895564fbb934b1105eb93e5ee6cf0f899cc28744a8ea2"
+    },
+    {
+      "name": "closeout-desktop-pt.png",
+      "sha256": "01015798f8ff6d68fd916f52156b14ebcf29c3576aa59d21d6f48e85701ce389"
+    },
+    {
+      "name": "closeout-phone-390-en-network.json",
+      "sha256": "2d3096cce5ed9df3118cf47c4aaba84c9a29c0c8e0e1a077f38c84b72b3ef78a"
+    },
+    {
+      "name": "closeout-phone-390-en-trace.json",
+      "sha256": "96d93fb211d754c6643895564fbb934b1105eb93e5ee6cf0f899cc28744a8ea2"
+    },
+    {
+      "name": "closeout-phone-390-en.png",
+      "sha256": "3372fde4650dee6c6fef6f2c5b527b2ae7040cd3798a612e47c1b227f39259ef"
+    },
+    {
+      "name": "finance-preview-desktop-pt-network.json",
+      "sha256": "6f3abbf256f7e8e5476dad8227fedea025b9f7c3611fde594f096054d8e48bbc"
+    },
+    {
+      "name": "finance-preview-desktop-pt-trace.json",
+      "sha256": "c43f4ef318450af4802ca0ea649975312b929db9e3c53e34cd83b011c01e68f8"
+    },
+    {
+      "name": "finance-preview-desktop-pt.png",
+      "sha256": "2253a90805427ba3c7204409b856d11f04083ce57f9286546b19b3d7a55c3431"
+    },
+    {
+      "name": "finance-preview-phone-390-es-network.json",
+      "sha256": "6f3abbf256f7e8e5476dad8227fedea025b9f7c3611fde594f096054d8e48bbc"
+    },
+    {
+      "name": "finance-preview-phone-390-es-trace.json",
+      "sha256": "9a8f2382584d9e70a994a6ad6c0a22ff0542605da44b969284e9bbb38ff69207"
+    },
+    {
+      "name": "finance-preview-phone-390-es.png",
+      "sha256": "ab8b5c930a5c83c8ad6c7c1c8195e9705947dedfe9c75a455cf2a923dab6c6fe"
+    },
+    {
+      "name": "payment-finance-desktop-pt-network.json",
+      "sha256": "aa802c5fd2ab4d66faf3b35bbe8bfca36fe4c862d9a19585a522dcb4e86994cc"
+    },
+    {
+      "name": "payment-finance-desktop-pt-trace.json",
+      "sha256": "a8d3db01e9e65b49ab8f335e4b24a87b317a65f193e008dbc666f50b79f358cf"
+    },
+    {
+      "name": "payment-finance-desktop-pt.png",
+      "sha256": "7217b3ff32da745af4a1b4cd320391b132572655eccf254fe085674361c83468"
+    },
+    {
+      "name": "payment-finance-phone-390-en-network.json",
+      "sha256": "aa802c5fd2ab4d66faf3b35bbe8bfca36fe4c862d9a19585a522dcb4e86994cc"
+    },
+    {
+      "name": "payment-finance-phone-390-en-trace.json",
+      "sha256": "a8d3db01e9e65b49ab8f335e4b24a87b317a65f193e008dbc666f50b79f358cf"
+    },
+    {
+      "name": "payment-finance-phone-390-en.png",
+      "sha256": "f00c3b7d3786ebed0677701fd2de6ebeacf04b6a28dab6c8bdb9b2758f71d0bf"
+    },
+    {
+      "name": "payment-key-reuse-desktop-network.json",
+      "sha256": "6f3abbf256f7e8e5476dad8227fedea025b9f7c3611fde594f096054d8e48bbc"
+    },
+    {
+      "name": "payment-key-reuse-desktop-trace.json",
+      "sha256": "9da2d4ce4908ac20fb689f55373552c34865adda106b70a01c5b487c04ebff25"
+    },
+    {
+      "name": "payment-key-reuse-desktop.png",
+      "sha256": "8ebda2c80b058b430c7f6080a833eac4cacf21e54aded3e6e53464283cab0bbf"
+    },
+    {
+      "name": "payment-key-reuse-phone-390-network.json",
+      "sha256": "6f3abbf256f7e8e5476dad8227fedea025b9f7c3611fde594f096054d8e48bbc"
+    },
+    {
+      "name": "payment-key-reuse-phone-390-trace.json",
+      "sha256": "9da2d4ce4908ac20fb689f55373552c34865adda106b70a01c5b487c04ebff25"
+    },
+    {
+      "name": "payment-key-reuse-phone-390.png",
+      "sha256": "15d123d6d0d573d41b400ad36950349d61ba389847101917aa42499ee82cc033"
+    },
+    {
+      "name": "payment-owner-desktop-pt-network.json",
+      "sha256": "aa802c5fd2ab4d66faf3b35bbe8bfca36fe4c862d9a19585a522dcb4e86994cc"
+    },
+    {
+      "name": "payment-owner-desktop-pt-trace.json",
+      "sha256": "a8d3db01e9e65b49ab8f335e4b24a87b317a65f193e008dbc666f50b79f358cf"
+    },
+    {
+      "name": "payment-owner-desktop-pt.png",
+      "sha256": "7217b3ff32da745af4a1b4cd320391b132572655eccf254fe085674361c83468"
+    },
+    {
+      "name": "payment-owner-phone-390-en-network.json",
+      "sha256": "aa802c5fd2ab4d66faf3b35bbe8bfca36fe4c862d9a19585a522dcb4e86994cc"
+    },
+    {
+      "name": "payment-owner-phone-390-en-trace.json",
+      "sha256": "a8d3db01e9e65b49ab8f335e4b24a87b317a65f193e008dbc666f50b79f358cf"
+    },
+    {
+      "name": "payment-owner-phone-390-en.png",
+      "sha256": "f00c3b7d3786ebed0677701fd2de6ebeacf04b6a28dab6c8bdb9b2758f71d0bf"
+    }
+  ]
+}

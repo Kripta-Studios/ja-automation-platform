@@ -4,6 +4,7 @@ import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess, type ActionMessageKey } from './action-message';
 import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
 import { mondayOf } from '$lib/server/portal-week';
+import type { ZodError } from 'zod';
 
 export const parseTimeUpdateForm = (input: Record<string, unknown>) =>
   timeInputSchema.and(versionedRecordSchema).safeParse(input);
@@ -40,11 +41,174 @@ const timeValueFields = new Set([
 
 function safeTimeValues(values: Record<string, unknown>): Record<string, string> {
   return Object.fromEntries(
-    Object.entries(values).filter(
-      (entry): entry is [string, string] =>
-        timeValueFields.has(entry[0]) && typeof entry[1] === 'string',
-    ),
+    Object.entries(values).flatMap(([key, value]) => {
+      if (!timeValueFields.has(key) || typeof value !== 'string') return [];
+      if (key !== 'entries') return [[key, value]];
+      try {
+        const rows = JSON.parse(value) as unknown;
+        if (!Array.isArray(rows) || rows.length > 200) return [];
+        const allowed = new Set([
+          'id',
+          'version',
+          'projectId',
+          'workDate',
+          'category',
+          'activityCode',
+          'minutes',
+          'summary',
+          'site',
+          'startTime',
+          'endTime',
+          'breakMinutes',
+        ]);
+        const safeRows = rows.map((row) =>
+          row && typeof row === 'object' && !Array.isArray(row)
+            ? Object.fromEntries(
+                Object.entries(row).filter(
+                  ([field, entry]) =>
+                    allowed.has(field) &&
+                    (typeof entry === 'number' ||
+                      (typeof entry === 'string' && entry.length <= 5000)),
+                ),
+              )
+            : {},
+        );
+        return [['entries', JSON.stringify(safeRows)]];
+      } catch {
+        return [];
+      }
+    }),
   );
+}
+
+type TimeFieldProblem = Readonly<{ code: string; key: ActionMessageKey; message: string }>;
+const timeFieldProblems: Record<string, TimeFieldProblem> = {
+  projectId: {
+    code: 'TIME_PROJECT_INVALID',
+    key: 'problem.time.projectInvalid',
+    message: 'Choose a valid project before saving time.',
+  },
+  workDate: {
+    code: 'TIME_WORK_DATE_INVALID',
+    key: 'problem.time.workDateInvalid',
+    message: 'Enter a valid work date. An active assignment must cover that date.',
+  },
+  category: {
+    code: 'TIME_CATEGORY_INVALID',
+    key: 'problem.time.categoryInvalid',
+    message: 'Choose a valid time category.',
+  },
+  summary: {
+    code: 'TIME_SUMMARY_INVALID',
+    key: 'problem.time.summaryInvalid',
+    message: 'Describe the work in 3 to 5,000 characters.',
+  },
+  activityCode: {
+    code: 'TIME_ACTIVITY_CODE_INVALID',
+    key: 'problem.time.activityCodeInvalid',
+    message: 'Enter an activity code of no more than 100 characters.',
+  },
+  minutes: {
+    code: 'TIME_MINUTES_INVALID',
+    key: 'problem.time.minutesInvalid',
+    message: 'Enter a whole number of minutes between 0 and 1440.',
+  },
+  startTime: {
+    code: 'TIME_INTERVAL_INCOMPLETE',
+    key: 'problem.time.intervalIncomplete',
+    message: 'Enter both start and end time, or leave both empty.',
+  },
+  endTime: {
+    code: 'TIME_INTERVAL_ORDER_INVALID',
+    key: 'problem.time.intervalOrderInvalid',
+    message: 'End time must be later than start time on the same day.',
+  },
+  breakMinutes: {
+    code: 'TIME_BREAK_INVALID',
+    key: 'problem.time.breakInvalid',
+    message: 'Break minutes must be a whole number within the shift.',
+  },
+  id: {
+    code: 'TIME_RECORD_INVALID',
+    key: 'problem.time.recordInvalid',
+    message:
+      'The time record ID or version is invalid. Review the current entry before trying again.',
+  },
+  version: {
+    code: 'TIME_RECORD_INVALID',
+    key: 'problem.time.recordInvalid',
+    message:
+      'The time record ID or version is invalid. Review the current entry before trying again.',
+  },
+};
+
+const clockProblem: TimeFieldProblem = {
+  code: 'TIME_CLOCK_INVALID',
+  key: 'problem.time.clockInvalid',
+  message: 'Enter start and end times in HH:mm format.',
+};
+
+function timeProblemForIssue(
+  field: string,
+  messages: string[] | undefined,
+): TimeFieldProblem | undefined {
+  if (
+    (field === 'startTime' || field === 'endTime') &&
+    messages?.some((message) => /HH:mm/u.test(message))
+  )
+    return clockProblem;
+  if (field === 'endTime' && messages?.some((message) => /required together/u.test(message)))
+    return timeFieldProblems.startTime;
+  return timeFieldProblems[field];
+}
+
+function timeSchemaFailure(
+  error: ZodError,
+  values: Record<string, unknown>,
+  remedy: 'review_time' | 'review_week' = 'review_time',
+) {
+  const rawFields = error.flatten().fieldErrors as Record<string, string[] | undefined>;
+  const firstField = Object.keys(rawFields)[0] ?? '';
+  const known = timeProblemForIssue(firstField, rawFields[firstField]) ?? {
+    code: 'TIME_FIELDS_INVALID',
+    key: 'problem.time.fieldsInvalid' as ActionMessageKey,
+    message: 'Review the highlighted time fields before saving.',
+  };
+  const fieldErrors = Object.fromEntries(
+    Object.entries(rawFields).map(([field, messages]) => [
+      field,
+      [timeProblemForIssue(field, messages)?.key ?? 'problem.time.fieldsInvalid'],
+    ]),
+  );
+  return actionFail(400, known.key, {}, known.message, {
+    code: known.code,
+    values: safeTimeValues(values),
+    fieldErrors,
+    remedies: [{ id: remedy }],
+  });
+}
+
+function timePrecheckFailure(
+  code: string,
+  key: ActionMessageKey,
+  message: string,
+  values: Record<string, unknown>,
+  field: string,
+  remedy: string,
+  status = 400,
+) {
+  return actionFail(status, key, {}, message, {
+    code,
+    values: safeTimeValues(values),
+    fieldErrors: field ? { [field]: [key] } : {},
+    remedies: [{ id: remedy }],
+  });
+}
+
+function realIsoDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
 }
 
 type TimeProblem = {
@@ -297,23 +461,46 @@ export const timeActions = {
     try {
       rawEntries = JSON.parse(String(object.entries ?? ''));
     } catch {
-      return actionFail(400, 'action.validation.timeFields', {}, 'Check batch time fields', {
-        values: safeTimeValues(object),
-      });
+      return timePrecheckFailure(
+        'TIME_BATCH_ENTRIES_INVALID',
+        'problem.time.batchEntriesInvalid',
+        'The batch entries could not be read. Review the daily drafts and save again.',
+        object,
+        'entries',
+        'review_week',
+      );
     }
     if (!Array.isArray(rawEntries) || rawEntries.length < 1 || rawEntries.length > 31)
-      return actionFail(400, 'action.validation.timeFields', {}, 'Choose 1 to 31 daily entries', {
-        values: safeTimeValues(object),
-      });
+      return timePrecheckFailure(
+        'TIME_BATCH_COUNT_INVALID',
+        'problem.time.batchCountInvalid',
+        'Choose between 1 and 31 daily entries for this batch.',
+        object,
+        'entries',
+        'review_week',
+      );
     const parsed = rawEntries.map((entry) => timeInputSchema.safeParse(entry));
     if (parsed.some((entry) => !entry.success))
-      return actionFail(400, 'action.validation.timeFields', {}, 'Check batch time fields', {
-        values: safeTimeValues(object),
-      });
+      return timePrecheckFailure(
+        'TIME_BATCH_ENTRY_INVALID',
+        'problem.time.batchEntryInvalid',
+        'A daily entry has invalid project, date, category, duration, or work details. Review the batch before saving.',
+        object,
+        'entries',
+        'review_week',
+      );
     const context = openPortalRepository(locals);
     try {
       if (context.principal.role !== 'owner_admin')
-        return actionFail(403, 'action.access.denied', {}, 'Owner access required');
+        return timePrecheckFailure(
+          'TIME_BATCH_OWNER_REQUIRED',
+          'problem.time.batchOwnerRequired',
+          'Only an owner can create time drafts for another worker. Contact the project owner to review access.',
+          object,
+          '',
+          'contact_project_owner',
+          403,
+        );
       const result = context.repository.createTimeBatch(
         context.principal,
         workerId,
@@ -364,11 +551,7 @@ export const timeActions = {
     ])
       delete object[key];
     const parsed = timeInputSchema.safeParse(object);
-    if (!parsed.success)
-      return actionFail(400, 'action.validation.timeFields', {}, 'Check time fields', {
-        fields: parsed.error.flatten().fieldErrors,
-        values,
-      });
+    if (!parsed.success) return timeSchemaFailure(parsed.error, values);
     const parsedExpense = withExpense
       ? expenseInputSchema.safeParse({
           ...expenseFields,
@@ -381,20 +564,25 @@ export const timeActions = {
     if (withExpense && expenseFields.category !== 'meals')
       return actionFail(
         400,
-        'action.validation.expenseFields',
+        'problem.time.linkedExpenseMealsOnly',
         {},
         'Only meals can be added in Log time',
         {
           code: 'TIME_LINKED_EXPENSE_MEALS_ONLY',
           values,
-          fields: { expenseCategory: ['Choose meals for an expense linked to logged time.'] },
+          fieldErrors: { expenseCategory: ['problem.time.linkedExpenseMealsOnly'] },
+          remedies: [{ id: 'review_time' }],
         },
       );
     if (withExpense && !/^[a-zA-Z0-9_-]{16,200}$/u.test(requestId))
-      return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
-        fields: { requestId: ['Refresh the form and try again'] },
+      return timePrecheckFailure(
+        'TIME_LINKED_MEAL_REQUEST_INVALID',
+        'problem.time.linkedMealRequestInvalid',
+        'The time and meal request ID is missing or invalid. Refresh the form, then review the entries before saving.',
         values,
-      });
+        'requestId',
+        'review_time',
+      );
     if (parsedExpense && !parsedExpense.success) {
       const fields = Object.fromEntries(
         Object.entries(parsedExpense.error.flatten().fieldErrors).map(([key, errors]) => [
@@ -402,10 +590,20 @@ export const timeActions = {
           errors,
         ]),
       );
-      return actionFail(400, 'action.validation.expenseFields', {}, 'Check expense fields', {
-        fields,
-        values,
-      });
+      return actionFail(
+        400,
+        'problem.time.linkedMealFieldsInvalid',
+        {},
+        'Review the highlighted meal details before saving the time and expense drafts.',
+        {
+          code: 'TIME_LINKED_MEAL_FIELDS_INVALID',
+          values,
+          fieldErrors: Object.fromEntries(
+            Object.keys(fields).map((field) => [field, ['problem.time.linkedMealFieldsInvalid']]),
+          ),
+          remedies: [{ id: 'review_time' }],
+        },
+      );
     }
     const context = openPortalRepository(locals);
     try {
@@ -431,6 +629,16 @@ export const timeActions = {
     if (params.section !== 'time')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
+    for (const field of ['sourceWeekStart', 'targetWeekStart'] as const)
+      if (!realIsoDate(object[field]))
+        return timePrecheckFailure(
+          'TIME_COPY_WEEK_INVALID',
+          'problem.time.copyWeekInvalid',
+          'Select valid source and destination dates before copying a week layout.',
+          object,
+          field,
+          'review_week',
+        );
     const targetWeekStart = mondayOf(
       typeof object.targetWeekStart === 'string' ? object.targetWeekStart : null,
     );
@@ -438,17 +646,12 @@ export const timeActions = {
       typeof object.sourceWeekStart === 'string' ? object.sourceWeekStart : null,
     );
     if (sourceWeekStart === targetWeekStart)
-      return actionFail(
-        400,
-        'action.validation.timeSourceWeekDifferent',
-        {},
-        'Choose a different source week',
-        {
-          code: 'TIME_SOURCE_WEEK_SAME',
-          values: safeTimeValues(object),
-          fields: { sourceWeekStart: ['Choose a different source week.'] },
-        },
-      );
+      return actionFail(400, 'problem.time.sourceWeekSame', {}, 'Choose a different source week', {
+        code: 'TIME_SOURCE_WEEK_SAME',
+        values: safeTimeValues(object),
+        fieldErrors: { sourceWeekStart: ['problem.time.sourceWeekSame'] },
+        remedies: [{ id: 'review_week' }],
+      });
     const context = openPortalRepository(locals);
     try {
       const result = context.repository.copyOwnTimeLayout(
@@ -472,11 +675,7 @@ export const timeActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     const parsed = parseTimeUpdateForm(object);
-    if (!parsed.success)
-      return actionFail(400, 'action.validation.timeFields', {}, 'Check time fields', {
-        fields: parsed.error.flatten().fieldErrors,
-        values: safeTimeValues(object),
-      });
+    if (!parsed.success) return timeSchemaFailure(parsed.error, object);
     const context = openPortalRepository(locals);
     try {
       const interval =
@@ -509,11 +708,7 @@ export const timeActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     const parsed = versionedRecordSchema.safeParse(object);
-    if (!parsed.success)
-      return actionFail(400, 'action.validation.timeRecord', {}, 'Invalid time record', {
-        values: safeTimeValues(object),
-        fields: parsed.error.flatten().fieldErrors,
-      });
+    if (!parsed.success) return timeSchemaFailure(parsed.error, object);
     const context = openPortalRepository(locals);
     try {
       context.repository.submitTime(context.principal, parsed.data.id, parsed.data.version);
@@ -530,15 +725,27 @@ export const timeActions = {
     const object = await formObject(request);
     const workerId = String(object.workerId ?? '');
     const weekStart = String(object.weekStart ?? '');
+    if (!realIsoDate(weekStart) || mondayOf(weekStart) !== weekStart)
+      return timePrecheckFailure(
+        'TIME_WEEK_START_INVALID',
+        'problem.time.weekStartInvalid',
+        'Select a week that starts on Monday, then review its drafts before submitting.',
+        object,
+        'weekStart',
+        'review_week',
+      );
     let expected: unknown;
     try {
       expected = JSON.parse(String(object.entries ?? ''));
     } catch {
-      return actionFail(400, 'action.validation.timeRecord', {}, 'Refresh the week and try again', {
-        code: 'TIME_WEEK_SELECTION_INVALID',
-        values: safeTimeValues(object),
-        remedies: [{ id: 'review_week' }],
-      });
+      return timePrecheckFailure(
+        'TIME_WEEK_SELECTION_INVALID',
+        'problem.time.weekSelectionInvalid',
+        'The selected week drafts are invalid. Review the current week and try again.',
+        object,
+        'entries',
+        'review_week',
+      );
     }
     if (
       !Array.isArray(expected) ||
@@ -553,11 +760,14 @@ export const timeActions = {
           row.version < 1,
       )
     )
-      return actionFail(400, 'action.validation.timeRecord', {}, 'Refresh the week and try again', {
-        code: 'TIME_WEEK_SELECTION_INVALID',
-        values: safeTimeValues(object),
-        remedies: [{ id: 'review_week' }],
-      });
+      return timePrecheckFailure(
+        'TIME_WEEK_SELECTION_INVALID',
+        'problem.time.weekSelectionInvalid',
+        'The selected week drafts are invalid. Review the current week and try again.',
+        object,
+        'entries',
+        'review_week',
+      );
     const context = openPortalRepository(locals);
     try {
       const result = context.repository.submitTimeWeek(
@@ -582,11 +792,7 @@ export const timeActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     const parsed = versionedRecordSchema.safeParse(object);
-    if (!parsed.success)
-      return actionFail(400, 'action.validation.timeRecord', {}, 'Invalid time record', {
-        values: safeTimeValues(object),
-        fields: parsed.error.flatten().fieldErrors,
-      });
+    if (!parsed.success) return timeSchemaFailure(parsed.error, object);
     const context = openPortalRepository(locals);
     try {
       context.repository.deleteTime(context.principal, parsed.data.id, parsed.data.version);

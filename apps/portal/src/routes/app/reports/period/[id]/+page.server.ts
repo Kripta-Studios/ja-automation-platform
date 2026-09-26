@@ -4,11 +4,18 @@ import { createHash } from 'node:crypto';
 import { relative, resolve } from 'node:path';
 import { z } from 'zod';
 import {
+  AccessDeniedError,
   PeriodFollowupConflictError,
   PeriodFollowupRepository,
   PeriodFollowupValidationError,
+  PeriodFollowupAccessDeniedError,
+  PeriodFollowupNotFoundError,
+  V3AccessDeniedError,
+  V3ConflictError,
+  V3ValidationError,
 } from '@ja/database';
 import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/action-message';
+import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { formObject, privateDocumentSignature } from '$lib/server/action-utils';
 import {
@@ -17,6 +24,253 @@ import {
 } from '$lib/server/private-artifact-access';
 import { assertRegularPrivateFile } from '$lib/server/report-attachment-route';
 import type { Actions, PageServerLoad } from './$types';
+
+type Operation = 'recordFollowup' | 'approve' | 'sign' | 'invalidateSignoff' | 'refresh';
+type Values = Record<string, string>;
+
+function scalarValues(source: Record<string, unknown>, fields: readonly string[]): Values {
+  return Object.fromEntries(
+    fields.flatMap((field) => {
+      const value = source[field];
+      return typeof value === 'string' || typeof value === 'number' ? [[field, String(value)]] : [];
+    }),
+  );
+}
+
+function periodProblem(
+  status: number,
+  code: string,
+  key: `problem.${string}`,
+  message: string,
+  operation: Operation,
+  values: Values,
+  remedy: string,
+  fieldErrors: Record<string, string[]> = {},
+  extra: Record<string, unknown> = {},
+) {
+  return actionFail(status, key, {}, message, {
+    operation,
+    values,
+    code,
+    remedies: [{ id: remedy }],
+    fieldErrors,
+    ...extra,
+  });
+}
+
+function mappedPeriodFailure(error: unknown, operation: Operation, values: Values) {
+  if (error instanceof AccessDeniedError && error.message === 'Sign in required')
+    return periodProblem(
+      401,
+      'PERIOD_REPORT_SIGN_IN_REQUIRED',
+      'problem.period.signInRequired',
+      'Your session ended. Sign in again, then review the report before submitting another action.',
+      operation,
+      values,
+      'sign_in_again',
+    );
+  if (
+    error instanceof AccessDeniedError ||
+    error instanceof PeriodFollowupAccessDeniedError ||
+    error instanceof V3AccessDeniedError
+  )
+    return periodProblem(
+      403,
+      'PERIOD_REPORT_PERMISSION_REQUIRED',
+      'problem.period.permissionRequired',
+      'Your role or project access does not permit this report action. Ask the project owner to review access.',
+      operation,
+      values,
+      'contact_project_owner',
+    );
+  if (error instanceof PeriodFollowupNotFoundError)
+    return periodProblem(
+      404,
+      'PERIOD_REPORT_NOT_FOUND',
+      'problem.period.notFound',
+      'This period report is no longer available. Review the report list.',
+      operation,
+      values,
+      'review_reports',
+    );
+  if (error instanceof PeriodFollowupValidationError) {
+    const responsible = /staff member|assigned to the project/iu.test(error.message);
+    return periodProblem(
+      400,
+      responsible ? 'PERIOD_FOLLOWUP_RESPONSIBLE_UNAVAILABLE' : 'PERIOD_FOLLOWUP_FIELDS_INVALID',
+      responsible
+        ? 'problem.period.responsibleUnavailable'
+        : 'problem.period.followupFieldsInvalid',
+      responsible
+        ? 'The responsible staff member is no longer active or assigned to this project. Review the current report before recording follow-up.'
+        : 'Review the follow-up date and required details before saving.',
+      operation,
+      values,
+      'review_followup',
+    );
+  }
+  if (error instanceof PeriodFollowupConflictError) {
+    const message = error.message;
+    if (/Invalidate the signed conformity/iu.test(message))
+      return periodProblem(
+        409,
+        'PERIOD_FOLLOWUP_CONFORMITY_ACTIVE',
+        'problem.period.followupConformityActive',
+        'A verified customer sign-off is active. An authorized finance user must review and explicitly invalidate it before a return or dispute can be recorded.',
+        operation,
+        values,
+        'review_signoff',
+      );
+    if (/Idempotency key/iu.test(message))
+      return periodProblem(
+        409,
+        'PERIOD_FOLLOWUP_RETRY_KEY_USED',
+        'problem.period.followupRetryKeyUsed',
+        'A different follow-up already used this request key. Review the latest history before submitting a new event.',
+        operation,
+        values,
+        'review_followup',
+      );
+    if (/history changed/iu.test(message))
+      return periodProblem(
+        409,
+        'PERIOD_FOLLOWUP_HISTORY_CHANGED',
+        'problem.period.followupHistoryChanged',
+        'The follow-up history changed while this form was open. Review the latest event before recording another.',
+        operation,
+        values,
+        'review_followup',
+      );
+    if (/PDF is required/iu.test(message))
+      return periodProblem(
+        409,
+        'PERIOD_FOLLOWUP_PDF_NOT_READY',
+        'problem.period.followupPdfNotReady',
+        'A ready customer PDF is required before dispatch or signatory follow-up can be recorded.',
+        operation,
+        values,
+        'review_report',
+      );
+    return periodProblem(
+      409,
+      'PERIOD_FOLLOWUP_SNAPSHOT_CHANGED',
+      'problem.period.followupSnapshotChanged',
+      'The customer report version changed while this form was open. Review the updated report before recording follow-up.',
+      operation,
+      values,
+      'review_report',
+    );
+  }
+  if (error instanceof V3ConflictError) {
+    const message = error.message;
+    if (operation === 'approve')
+      return periodProblem(
+        409,
+        'PERIOD_REPORT_APPROVAL_CHANGED',
+        'problem.period.approvalChanged',
+        'The report version or approval state changed. Review the current report before approving it.',
+        operation,
+        values,
+        'review_report',
+      );
+    if (operation === 'invalidateSignoff')
+      return periodProblem(
+        409,
+        'PERIOD_SIGNOFF_ALREADY_INVALIDATED',
+        'problem.period.signoffAlreadyInvalidated',
+        'This customer sign-off has already been invalidated. Review its current status.',
+        operation,
+        values,
+        'review_signoff',
+      );
+    if (operation === 'sign') {
+      if (message === 'Upload conflicts with existing content')
+        return periodProblem(
+          409,
+          'PERIOD_SIGNOFF_DUPLICATE_CONTENT',
+          'problem.period.signoffDuplicateContent',
+          'This signed PDF was already uploaded, so this upload was not accepted. Review the current sign-off, then choose a different signed copy if evidence is still needed.',
+          operation,
+          values,
+          'review_signoff',
+        );
+      const evidence = /evidence|signed PDF/iu.test(message);
+      const existing = /already|exists/iu.test(message);
+      const reportNotReady = /report.*not ready|PDF artifact/iu.test(message);
+      return periodProblem(
+        409,
+        existing
+          ? 'PERIOD_SIGNOFF_ALREADY_EXISTS'
+          : reportNotReady
+            ? 'PERIOD_SIGNOFF_REPORT_NOT_READY'
+            : evidence
+              ? 'PERIOD_SIGNOFF_EVIDENCE_UNAVAILABLE'
+              : 'PERIOD_SIGNOFF_REPORT_CHANGED',
+        existing
+          ? 'problem.period.signoffAlreadyExists'
+          : reportNotReady
+            ? 'problem.period.signoffReportNotReady'
+            : evidence
+              ? 'problem.period.signoffEvidenceUnavailable'
+              : 'problem.period.signoffReportChanged',
+        existing
+          ? 'A customer sign-off or evidence attachment already exists for this report version. Review its current status.'
+          : reportNotReady
+            ? 'The current customer report or its PDF is not ready for sign-off. Review the report before uploading again.'
+            : evidence
+              ? 'The signed PDF could not be verified for this report version. Review the report and attach a complete signed copy.'
+              : 'The report or customer sign-off changed while this form was open. Review its current status before trying again.',
+        operation,
+        values,
+        'review_signoff',
+      );
+    }
+    if (operation === 'refresh')
+      return periodProblem(
+        409,
+        'PERIOD_REFRESH_CHANGED',
+        'problem.period.refreshChanged',
+        'The report or its source records changed during recalculation. Review the current period before trying again.',
+        operation,
+        values,
+        'review_report',
+      );
+    return periodProblem(
+      409,
+      'PERIOD_REPORT_CHANGED',
+      'problem.period.changed',
+      'This report changed while the form was open. Review its current status before continuing.',
+      operation,
+      values,
+      'review_report',
+    );
+  }
+  if (error instanceof V3ValidationError)
+    return periodProblem(
+      400,
+      operation === 'refresh' ? 'PERIOD_REFRESH_NOT_READY' : 'PERIOD_REPORT_FIELDS_INVALID',
+      operation === 'refresh' ? 'problem.period.refreshNotReady' : 'problem.period.fieldsInvalid',
+      operation === 'refresh'
+        ? 'This period has no report ready to recalculate, or the selected dates are invalid. Review the current period and approved source records.'
+        : 'Review the report details before continuing.',
+      operation,
+      values,
+      'review_report',
+    );
+  return null;
+}
+
+function openPeriodContext(locals: App.Locals, operation: Operation, values: Values) {
+  try {
+    return { context: openPortalRepository(locals) } as const;
+  } catch (error) {
+    return {
+      failure:
+        mappedPeriodFailure(error, operation, values) ??
+        actionFailure(error, { operation, values }),
+    } as const;
+  }
+}
 
 const signatureDateIssue = 'Signature date must be a real date not in the future';
 const signatureDateSchema = z
@@ -118,7 +372,85 @@ function hasEffectiveVerifiedConformity(
   return conformity?.status === 'active' && conformity.signatureEvidenceStatus === 'verified';
 }
 
-export const load: PageServerLoad = ({ locals, params }) => {
+type RecoverableSignoffEvidence = Readonly<{
+  id: string;
+  state: 'pending_scan' | 'ready';
+}>;
+
+function recoverableSignoffEvidence(
+  context: ReturnType<typeof openPortalRepository>,
+  input: Readonly<{
+    projectId: string;
+    reportId: string;
+    snapshotVersion: number;
+    snapshotSha256: string;
+    requestedId?: string;
+  }>,
+): RecoverableSignoffEvidence | null {
+  const candidates = context.sqlite
+    .prepare(
+      `SELECT d.id,d.description,d.state,d.scan_status,d.media_type,d.sha256,d.byte_length
+         FROM document d
+        WHERE d.owner_id=? AND d.project_id=?
+          AND d.artifact_type='customer_signoff_evidence'
+          AND d.sensitivity='customer_private'
+          AND ((d.state='quarantined' AND d.scan_status='pending')
+            OR (d.state='committed' AND d.scan_status IN ('clean','not_scanned')))
+          AND NOT EXISTS(
+            SELECT 1 FROM customer_conformity c WHERE c.signature_document_id=d.id
+          )
+          AND NOT EXISTS(
+            SELECT 1 FROM customer_conformity_evidence_attachment a
+             WHERE a.signature_document_id=d.id
+          )
+          ${input.requestedId ? 'AND d.id=?' : ''}
+        ORDER BY d.created_at DESC,d.id DESC`,
+    )
+    .all(
+      context.principal.userId,
+      input.projectId,
+      ...(input.requestedId ? [input.requestedId] : []),
+    ) as Array<{
+    id: string;
+    description: string | null;
+    state: string;
+    scan_status: string | null;
+    media_type: string;
+    sha256: string;
+    byte_length: number;
+  }>;
+  for (const candidate of candidates) {
+    if (
+      candidate.media_type !== 'application/pdf' ||
+      !/^[a-f0-9]{64}$/u.test(candidate.sha256) ||
+      !Number.isSafeInteger(candidate.byte_length) ||
+      candidate.byte_length < 1
+    )
+      continue;
+    let binding: Record<string, unknown>;
+    try {
+      const parsed = JSON.parse(candidate.description ?? '') as unknown;
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;
+      binding = parsed as Record<string, unknown>;
+    } catch {
+      continue;
+    }
+    if (
+      binding.kind !== 'customer_signoff_evidence_binding_v1' ||
+      binding.periodReportId !== input.reportId ||
+      binding.snapshotVersion !== input.snapshotVersion ||
+      binding.snapshotSha256 !== input.snapshotSha256
+    )
+      continue;
+    return {
+      id: candidate.id,
+      state: candidate.state === 'quarantined' ? 'pending_scan' : 'ready',
+    };
+  }
+  return null;
+}
+
+export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
   const context = openPortalRepository(locals);
   try {
@@ -138,6 +470,24 @@ export const load: PageServerLoad = ({ locals, params }) => {
             context.principal,
             params.id,
           );
+    const projectId = String((report as { project?: { id?: unknown } }).project?.id ?? '');
+    const snapshotVersion = Number(metadata?.snapshot_version);
+    const snapshotSha256 = String(metadata?.snapshot_sha256 ?? '');
+    const pendingSignoffEvidence =
+      (locals.user.role === 'owner_admin' || locals.user.role === 'finance_admin') &&
+      metadata?.audience === 'customer' &&
+      ['approved', 'final'].includes(String(metadata.state)) &&
+      projectId &&
+      Number.isInteger(snapshotVersion) &&
+      snapshotVersion > 0 &&
+      /^[a-f0-9]{64}$/u.test(snapshotSha256)
+        ? recoverableSignoffEvidence(context, {
+            projectId,
+            reportId: params.id,
+            snapshotVersion,
+            snapshotSha256,
+          })
+        : null;
     try {
       context.v3.periodReportPdfMetadata(context.principal, params.id);
       pdfReady = true;
@@ -146,6 +496,12 @@ export const load: PageServerLoad = ({ locals, params }) => {
     }
     return {
       user: locals.user,
+      locale: resolvePortalLocalePreference(
+        url.searchParams.get('lang'),
+        cookies.get('ja.portal.locale'),
+        cookies.get('ja-portal-locale'),
+      ),
+      pendingSignoffEvidence,
       report: {
         ...report,
         id: params.id,
@@ -167,12 +523,18 @@ export const load: PageServerLoad = ({ locals, params }) => {
 export const actions: Actions = {
   recordFollowup: async ({ locals, request, params }) => {
     const object = await formObject(request);
-    const values = Object.fromEntries(
-      Object.entries(object).map(([key, value]) => [
-        key,
-        value instanceof File ? value.name : String(value ?? ''),
-      ]),
-    );
+    const values = scalarValues(object, [
+      'expectedLatestEventId',
+      'idempotencyKey',
+      'eventType',
+      'method',
+      'eventDate',
+      'reference',
+      'signatoryName',
+      'reason',
+      'responsibleUserId',
+      'nextFollowUpOn',
+    ]);
     const parsed = z
       .object({
         expectedSnapshotVersion: z.coerce.number().int().positive(),
@@ -194,14 +556,23 @@ export const actions: Actions = {
         expectedLatestEventId: object.expectedLatestEventId ?? '',
       });
     if (!parsed.success)
-      return actionFail(
+      return periodProblem(
         400,
-        'action.error.invalid',
-        {},
-        'Check the follow-up fields and try again.',
-        { values },
+        'PERIOD_FOLLOWUP_FIELDS_INVALID',
+        'problem.period.followupFieldsInvalid',
+        'Review the follow-up date and required details before saving.',
+        'recordFollowup',
+        values,
+        'review_followup',
+        Object.fromEntries(
+          parsed.error.issues.flatMap((issue) =>
+            typeof issue.path[0] === 'string' ? [[issue.path[0], [issue.message]]] : [],
+          ),
+        ),
       );
-    const context = openPortalRepository(locals);
+    const opened = openPeriodContext(locals, 'recordFollowup', values);
+    if (opened.failure) return opened.failure;
+    const context = opened.context;
     try {
       if (parsed.data.eventType === 'returned' || parsed.data.eventType === 'disputed') {
         if (hasEffectiveVerifiedConformity(context, params.id))
@@ -220,43 +591,37 @@ export const actions: Actions = {
         'Follow-up recorded',
       );
     } catch (errorValue) {
-      if (errorValue instanceof PeriodFollowupConflictError)
-        return actionFail(
-          409,
-          'action.error.conflict',
-          {},
-          'The report or follow-up history changed. Refresh and try again.',
-          { values },
-        );
-      if (errorValue instanceof PeriodFollowupValidationError)
-        return actionFail(
-          400,
-          'action.error.invalid',
-          {},
-          'Check the follow-up fields and try again.',
-          { values },
-        );
-      return actionFailure(errorValue);
+      return (
+        mappedPeriodFailure(errorValue, 'recordFollowup', values) ??
+        actionFailure(errorValue, { operation: 'recordFollowup', values })
+      );
     } finally {
       context.sqlite.close();
     }
   },
   approve: async ({ locals, request, params }) => {
+    const object = await formObject(request);
+    const values = scalarValues(object, ['expectedSnapshotVersion', 'expectedSnapshotSha256']);
     const parsed = z
       .object({
         expectedSnapshotVersion: z.coerce.number().int().positive(),
         expectedSnapshotSha256: z.string().regex(/^[a-f0-9]{64}$/u),
       })
       .strict()
-      .safeParse(await formObject(request));
+      .safeParse(object);
     if (!parsed.success)
-      return actionFail(
+      return periodProblem(
         400,
-        'action.validation.periodReportApproval',
-        {},
-        'Valid period report snapshot binding is required',
+        'PERIOD_REPORT_APPROVAL_BINDING_INVALID',
+        'problem.period.approvalBindingInvalid',
+        'The report version in this form is invalid. Review the current report before approving it.',
+        'approve',
+        values,
+        'review_report',
       );
-    const context = openPortalRepository(locals);
+    const opened = openPeriodContext(locals, 'approve', values);
+    if (opened.failure) return opened.failure;
+    const context = opened.context;
     try {
       const approved = context.v3.approvePeriodReport(context.principal, {
         periodReportId: params.id,
@@ -275,13 +640,24 @@ export const actions: Actions = {
           : 'Period report was already approved for this snapshot version',
       );
     } catch (error) {
-      return actionFailure(error);
+      return (
+        mappedPeriodFailure(error, 'approve', values) ??
+        actionFailure(error, { operation: 'approve', values })
+      );
     } finally {
       context.sqlite.close();
     }
   },
   sign: async ({ locals, request, params }) => {
     const object = await formObject(request);
+    const values = scalarValues(object, [
+      'conformityId',
+      'reason',
+      'signerName',
+      'signerIdentity',
+      'signatureDate',
+      'pendingSignatureDocumentId',
+    ]);
     const pendingEvidence = z.string().uuid().safeParse(object.pendingSignatureDocumentId);
     const pendingSignatureDocumentId = pendingEvidence.success ? pendingEvidence.data : null;
     const attachment = z
@@ -308,7 +684,21 @@ export const actions: Actions = {
         ...(object.signerIdentity ? { signerIdentity: object.signerIdentity } : {}),
       });
     if ((attachmentRequested && !attachment.success) || (!attachmentRequested && !parsed.success))
-      return actionFail(400, 'action.validation.customerSignoff', {}, 'Signer name is required');
+      return periodProblem(
+        400,
+        'PERIOD_SIGNOFF_FIELDS_INVALID',
+        'problem.period.signoffFieldsInvalid',
+        'Review the signer details, signature date, and attachment reason. Reattach the signed PDF if it was selected.',
+        'sign',
+        values,
+        'reattach_signed_pdf',
+        Object.fromEntries(
+          (attachmentRequested ? attachment.error?.issues : parsed.error?.issues)?.flatMap(
+            (issue) =>
+              typeof issue.path[0] === 'string' ? [[issue.path[0], [issue.message]]] : [],
+          ) ?? [],
+        ),
+      );
     const signedCopy = object.signatureFile;
     let bytes: Uint8Array | null = null;
     if (!pendingSignatureDocumentId) {
@@ -318,33 +708,46 @@ export const actions: Actions = {
         signedCopy.size > 20_000_000 ||
         signedCopy.type !== 'application/pdf'
       )
-        return actionFail(
+        return periodProblem(
           400,
-          'action.validation.customerSignoff',
-          {},
-          'A signed PDF copy up to 20 MB is required',
+          'PERIOD_SIGNOFF_PDF_REQUIRED',
+          'problem.period.signoffPdfRequired',
+          'Select a signed PDF copy up to 20 MB, then submit again.',
+          'sign',
+          values,
+          'reattach_signed_pdf',
+          { signatureFile: ['Please select a complete PDF file up to 20 MB.'] },
         );
       bytes = new Uint8Array(await signedCopy.arrayBuffer());
       const trailer = new TextDecoder('latin1').decode(
         bytes.slice(Math.max(0, bytes.length - 1024)),
       );
       if (!privateDocumentSignature(signedCopy.type, bytes) || !trailer.includes('%%EOF'))
-        return actionFail(
+        return periodProblem(
           400,
-          'action.validation.customerSignoff',
-          {},
-          'The signed-copy file must be a complete PDF',
+          'PERIOD_SIGNOFF_PDF_INCOMPLETE',
+          'problem.period.signoffPdfIncomplete',
+          'The selected file is not a complete PDF. Select a complete signed copy and submit again.',
+          'sign',
+          values,
+          'reattach_signed_pdf',
+          { signatureFile: ['Select a complete PDF file.'] },
         );
     }
-    const context = openPortalRepository(locals);
+    const opened = openPeriodContext(locals, 'sign', values);
+    if (opened.failure) return opened.failure;
+    const context = opened.context;
     let reservationId: string | null = null;
     let storageKey: string | null = null;
     let storageFileCreated = false;
     let finalized = false;
     let conformityRecorded = false;
     let preservePendingEvidence = false;
+    let projectId: string | null = null;
+    let boundSnapshotVersion: number | null = null;
+    let boundSnapshotSha256 = '';
     try {
-      const projectId = String(
+      projectId = String(
         (
           context.v3.periodReportSnapshot(context.principal, params.id) as {
             project?: { id?: unknown };
@@ -362,9 +765,45 @@ export const actions: Actions = {
         !/^[a-f0-9]{64}$/u.test(snapshotSha256)
       )
         throw new Error('Customer report snapshot binding is unavailable');
+      boundSnapshotVersion = snapshotVersion;
+      boundSnapshotSha256 = snapshotSha256;
       if (pendingSignatureDocumentId) {
+        const recoverable = recoverableSignoffEvidence(context, {
+          projectId,
+          reportId: params.id,
+          snapshotVersion,
+          snapshotSha256,
+          requestedId: pendingSignatureDocumentId,
+        });
+        if (!recoverable)
+          return periodProblem(
+            409,
+            'PERIOD_SIGNOFF_RETRY_UNAVAILABLE',
+            'problem.period.signoffRetryUnavailable',
+            'The saved signed PDF cannot be used for this report version. Review the current report and select a signed copy if sign-off is still needed.',
+            'sign',
+            values,
+            'review_signoff',
+          );
         reservationId = pendingSignatureDocumentId;
         finalized = true;
+        if (recoverable.state === 'pending_scan')
+          return periodProblem(
+            409,
+            'PERIOD_SIGNOFF_SCAN_PENDING',
+            'problem.period.signoffScanPending',
+            'The signed PDF is awaiting its security scan. Check the sign-off status and retry after the scan completes; do not upload the file again.',
+            'sign',
+            values,
+            'wait_for_scan',
+            {},
+            {
+              scanPending: true,
+              pendingSignatureDocumentId,
+              pendingSnapshotVersion: snapshotVersion,
+              pendingSnapshotSha256: snapshotSha256,
+            },
+          );
       } else {
         if (!(signedCopy instanceof File) || !bytes)
           throw new Error('Signed-copy validation was not completed');
@@ -427,11 +866,14 @@ export const actions: Actions = {
         // branch. Keep the local guard so TypeScript and future changes cannot
         // turn a malformed attachment request into a new acceptance.
         if (!parsed.success)
-          return actionFail(
+          return periodProblem(
             400,
-            'action.validation.customerSignoff',
-            {},
-            'Signer name is required',
+            'PERIOD_SIGNOFF_FIELDS_INVALID',
+            'problem.period.signoffFieldsInvalid',
+            'Review the signer details, signature date, and attachment reason. Reattach the signed PDF if it was selected.',
+            'sign',
+            values,
+            'reattach_signed_pdf',
           );
         signed = context.v3.recordCustomerConformity(context.principal, {
           periodReportId: params.id,
@@ -468,35 +910,36 @@ export const actions: Actions = {
               }
             | undefined)
         : undefined;
-      const expectedProjectId = String(
-        (
-          context.v3.periodReportSnapshot(context.principal, params.id) as {
-            project?: { id?: unknown };
-          }
-        )?.project?.id ?? '',
-      );
       if (
-        pending?.project_id === expectedProjectId &&
+        projectId &&
+        pending?.project_id === projectId &&
         pending.owner_id === context.principal.userId &&
         pending.state === 'quarantined' &&
         pending.scan_status === 'pending' &&
         pending.artifact_type === 'customer_signoff_evidence'
       ) {
         preservePendingEvidence = true;
-        return actionFail(
+        return periodProblem(
           409,
-          'action.error.conflict',
+          'PERIOD_SIGNOFF_SCAN_PENDING',
+          'problem.period.signoffScanPending',
+          'The signed PDF is awaiting its security scan. Check the sign-off status and retry after the scan completes; do not upload the file again.',
+          'sign',
+          values,
+          'wait_for_scan',
           {},
-          'The signed PDF is awaiting its security scan. Retry after the scan completes.',
           {
             scanPending: true,
             pendingSignatureDocumentId: reservationId,
-            ...(parsed.success ? parsed.data : {}),
-            ...(attachment.success ? attachment.data : {}),
+            pendingSnapshotVersion: boundSnapshotVersion,
+            pendingSnapshotSha256: boundSnapshotSha256,
           },
         );
       }
-      return actionFailure(error);
+      return (
+        mappedPeriodFailure(error, 'sign', values) ??
+        actionFailure(error, { operation: 'sign', values })
+      );
     } finally {
       if (reservationId && !finalized) {
         try {
@@ -536,21 +979,29 @@ export const actions: Actions = {
     }
   },
   invalidateSignoff: async ({ locals, request }) => {
+    const object = await formObject(request);
+    const values = scalarValues(object, ['conformityId', 'reason']);
     const parsed = z
       .object({
         conformityId: z.string().trim().min(1).max(200),
         reason: z.string().trim().min(1).max(2000),
       })
       .strict()
-      .safeParse(await formObject(request));
+      .safeParse(object);
     if (!parsed.success)
-      return actionFail(
+      return periodProblem(
         400,
-        'action.validation.customerSignoffInvalidation',
-        {},
-        'Conformity and invalidation reason are required',
+        'PERIOD_SIGNOFF_INVALIDATION_REASON_REQUIRED',
+        'problem.period.invalidationReasonRequired',
+        'Enter a reason before invalidating this customer sign-off.',
+        'invalidateSignoff',
+        values,
+        'review_signoff',
+        { reason: ['Please complete this field.'] },
       );
-    const context = openPortalRepository(locals);
+    const opened = openPeriodContext(locals, 'invalidateSignoff', values);
+    if (opened.failure) return opened.failure;
+    const context = opened.context;
     try {
       const invalidated = context.v3.invalidateCustomerConformity(context.principal, parsed.data);
       return actionSuccess(
@@ -559,13 +1010,23 @@ export const actions: Actions = {
         'Customer sign-off invalidated; the immutable signed record was retained',
       );
     } catch (error) {
-      return actionFailure(error);
+      return (
+        mappedPeriodFailure(error, 'invalidateSignoff', values) ??
+        actionFailure(error, { operation: 'invalidateSignoff', values })
+      );
     } finally {
       context.sqlite.close();
     }
   },
   refresh: async ({ locals, request }) => {
     const formData = await request.formData();
+    const values = scalarValues(Object.fromEntries(formData), [
+      'projectId',
+      'periodStart',
+      'periodEnd',
+      'contentMode',
+      'reportLocale',
+    ]);
     const parsed = accountingPackPeriodSchema
       .extend({
         projectId: uuidSchema,
@@ -584,13 +1045,18 @@ export const actions: Actions = {
         technicalReportIds: formData.getAll('technicalReportIds').map(String),
       });
     if (!parsed.success)
-      return actionFail(
+      return periodProblem(
         400,
-        'action.validation.projectReportingPeriod',
-        {},
-        'Project and reporting period are required',
+        'PERIOD_REFRESH_FIELDS_INVALID',
+        'problem.period.refreshFieldsInvalid',
+        'Review the project, reporting dates, and language before recalculating.',
+        'refresh',
+        values,
+        'review_report',
       );
-    const context = openPortalRepository(locals);
+    const opened = openPeriodContext(locals, 'refresh', values);
+    if (opened.failure) return opened.failure;
+    const context = opened.context;
     try {
       const result = context.v3.refreshAndQueuePeriodReports(context.principal, parsed.data);
       return actionSuccess(
@@ -604,7 +1070,10 @@ export const actions: Actions = {
         `${result.reports.length} report snapshots recalculated. Rendering job: ${result.jobState}.`,
       );
     } catch (error) {
-      return actionFailure(error);
+      return (
+        mappedPeriodFailure(error, 'refresh', values) ??
+        actionFailure(error, { operation: 'refresh', values })
+      );
     } finally {
       context.sqlite.close();
     }

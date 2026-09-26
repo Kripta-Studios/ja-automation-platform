@@ -1,0 +1,29 @@
+[
+  {
+    "step": "finance-treatment-required",
+    "code": "FINANCE_REVIEW_TREATMENT_REQUIRED",
+    "scrollBefore": 2576,
+    "scrollAfter": 2576
+  },
+  {
+    "step": "finance-nonbillable-success",
+    "saved": true
+  },
+  {
+    "step": "finance-stale",
+    "code": "FINANCE_REVIEW_UNAVAILABLE",
+    "currentTreatment": "non_billable",
+    "visibleStatus": "Current status: Non-billable",
+    "scrollBefore": 2713,
+    "scrollAfter": 2713
+  },
+  {
+    "step": "operational-reason-invalid",
+    "code": "APPROVAL_REASON_INVALID",
+    "retained": true
+  },
+  {
+    "step": "manager-finance-denied",
+    "code": "FINANCE_ROLE_REQUIRED"
+  }
+]

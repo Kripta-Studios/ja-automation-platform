@@ -500,6 +500,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await expect(form.locator('input[name="plannedMinutes"]')).toHaveValue('86400');
         await form.getByRole('button', { name: 'Save project', exact: true }).click();
         await expectActionMessage(page, /project|updated|saved/i);
+        await expect(form).toBeHidden();
         await page.locator('[data-project-edit-cta]').click();
         const saved = page.locator('form.project-edit-form:visible');
         await expect(saved.locator('input[name="expectedHoursPerDay"]')).toHaveValue('12');
@@ -856,6 +857,15 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await signInFresh(page, 'finance');
         await navigate(page, '/billing');
         await expect(page.getByRole('heading', { name: 'Billing', exact: true })).toBeVisible();
+        await page.getByRole('tab', { name: 'Configure billing', exact: true }).click();
+        await page.getByRole('button', { name: 'New tax profile', exact: true }).click();
+        const taxProfile = page.locator('form[action="?/createTaxProfile"]');
+        await expect(taxProfile).toBeVisible();
+        await taxProfile.locator('input[name="name"]').fill('Client Essential UAT 0% labor');
+        await taxProfile.locator('input[name="effectiveFrom"]').fill('2026-08-01');
+        await expect(taxProfile.locator('input[name="componentBasisPoints"]')).toHaveValue('0');
+        await taxProfile.getByRole('button', { name: 'Save tax profile', exact: true }).click();
+        await expectActionMessage(page, /tax profile|saved/i);
         const createStream = async (
           streamType: 'labor' | 'expense',
           cadenceType: 'weekly' | 'monthly',
@@ -879,17 +889,25 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
             'cadenceType',
             'legalEntityId',
             'taxProfileId',
-            'currency',
             'templateId',
           ])
             await expect(form.locator(`select[name="${name}"]`)).toBeVisible();
           await form.locator('select[name="projectId"]').selectOption(uatProjectId);
+          await expect(form.locator('input[name="currency"]')).toHaveValue('USD');
+          await expect(form.locator('input[name="currency"]')).toHaveAttribute('readonly', '');
           await form.locator('select[name="streamType"]').selectOption(streamType);
           await form.locator('select[name="cadenceType"]').selectOption(cadenceType);
           await form.locator('input[name="effectiveFrom"]').fill('2026-08-01');
           await selectFirstValue(form.locator('select[name="legalEntityId"]'));
-          await selectFirstValue(form.locator('select[name="taxProfileId"]'));
-          await form.locator('select[name="currency"]').selectOption('USD');
+          if (streamType === 'labor') {
+            await selectOptionContaining(
+              form.locator('select[name="taxProfileId"]'),
+              'Client Essential UAT 0% labor',
+            );
+          } else {
+            await form.locator('select[name="taxProfileId"]').selectOption('');
+            await expect(form.locator('select[name="taxProfileId"]')).toHaveValue('');
+          }
           await form.locator('select[name="templateId"]').selectOption(templateId);
           await form.locator('input[name="paymentTermsDays"]').fill('30');
           await form.locator('input[name="poNumberOverride"]').fill(fixture.mutation.purchaseOrder);
@@ -1227,9 +1245,8 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await signInFresh(page, 'manager');
         await navigate(page, '/approvals');
         await expect(page.getByRole('heading', { name: 'Approvals', exact: true })).toBeVisible();
-        // Each approval refreshes the route data and resets the local domain
-        // state to Time. Remount and explicitly reopen Expenses for every row;
-        // the tab's accessible name includes its live count.
+        // Explicitly select each queue because the portal remembers the user's
+        // last approval tab across navigation and action refreshes.
         for (const expenseId of uatExpenseIds) {
           await navigate(page, '/projects');
           await navigate(page, '/approvals');
@@ -1246,6 +1263,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         if (!uatTimeEntryId) throw new Error('BLOCKED by step 12: no time entry identity');
         await navigate(page, '/projects');
         await navigate(page, '/approvals');
+        await page.getByRole('tab', { name: /^Time\b/ }).click();
         const row = page.locator(`[data-approval-row="${uatTimeEntryId}"]`);
         await expect(row).toBeVisible();
         const approve = row.locator('form[action="?/approveRecord"]').first();

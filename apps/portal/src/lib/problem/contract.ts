@@ -13,6 +13,8 @@ export type ProblemRemedy = Readonly<{
 export type ProblemData = Readonly<{
   code: string;
   messageKey: `problem.${string}` | `action.${string}`;
+  /** Safe English fallback supplied by the action when a translation is unavailable. */
+  message?: string;
   params: ProblemParams;
   fieldErrors: ProblemFieldErrors;
   remedies: readonly ProblemRemedy[];

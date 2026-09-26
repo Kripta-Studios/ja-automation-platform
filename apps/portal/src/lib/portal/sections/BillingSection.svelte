@@ -13,6 +13,7 @@
   import type { ProblemData } from '../../problem/contract';
   import type { TableCardRow } from '../ui';
   import { billingReadinessMessageKey } from '../billing-readiness';
+  import { localizedServerFieldMessage } from '../ui/form-validation';
 
   type BillingStage = 'all' | 'wip' | 'drafts' | 'outstanding' | 'overdue' | 'credits' | 'paid';
   type BillingWorkspace = 'invoices' | 'streams' | 'setup';
@@ -133,17 +134,64 @@
   let stageFilter = $state<BillingStage>('all');
   let workspace = $state<BillingWorkspace>('invoices');
   let setupAction = $state<BillingSetupAction>('stream');
-  // Native form failures render a fresh page. Restore the affected invoice on
-  // the server render too, before client effects run after hydration.
-  let selectedInvoiceId = $state(
-    form?.success === false &&
-      form.billingOperation === 'recordPayment' &&
-      form.values &&
-      typeof form.values === 'object' &&
-      !Array.isArray(form.values) &&
-      typeof (form.values as Record<string, unknown>).invoiceId === 'string'
-      ? String((form.values as Record<string, unknown>).invoiceId)
-      : '',
+  // A native failure can render the selected invoice immediately on the server.
+  // Explicit user selection or closing the drawer takes precedence afterward.
+  let selectedInvoiceIntent = $state<string | null>(null);
+  const paymentDraft = $derived.by((): Record<string, string> | null => {
+    if (form?.success !== false || form.billingOperation !== 'recordPayment') return null;
+    const values = form.values;
+    if (!values || typeof values !== 'object' || Array.isArray(values)) return null;
+    return Object.fromEntries(
+      Object.entries(values).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string',
+      ),
+    );
+  });
+  const reversalDraft = $derived.by((): Record<string, string> | null => {
+    if (form?.success !== false || form.billingOperation !== 'reversePayment') return null;
+    const values = form.values;
+    if (!values || typeof values !== 'object' || Array.isArray(values)) return null;
+    return Object.fromEntries(
+      Object.entries(values).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string',
+      ),
+    );
+  });
+  const reversalInvoiceId = $derived.by(() => {
+    const paymentId = reversalDraft?.paymentId;
+    if (!paymentId) return '';
+    const ledger = (data.ledger ?? []).find(
+      (row) =>
+        Array.isArray((row as BillingLedgerRow).payments) &&
+        (row as BillingLedgerRow).payments?.some(
+          (payment) => String(payment.id ?? '') === paymentId,
+        ),
+    ) as BillingLedgerRow | undefined;
+    return String(
+      ledger?.invoiceId ?? (ledger as Record<string, unknown> | undefined)?.invoice_id ?? '',
+    );
+  });
+  const billingFailureOperation = $derived(
+    form?.success === false ? String(form.billingOperation ?? '') : '',
+  );
+  const billingFailureValues = $derived.by((): Record<string, string> => {
+    const values = form?.success === false ? form.values : null;
+    if (!values || typeof values !== 'object' || Array.isArray(values)) return {};
+    return Object.fromEntries(
+      Object.entries(values).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string',
+      ),
+    );
+  });
+  const invoiceFailureId = $derived(
+    billingFailureValues.invoiceId ||
+      billingFailureValues.originalInvoiceId ||
+      String(form?.invoiceEmailId ?? ''),
+  );
+  const selectedInvoiceId = $derived(
+    selectedInvoiceIntent ??
+      paymentDraft?.invoiceId ??
+      (reversalInvoiceId || invoiceFailureId || ''),
   );
   let invoiceWizardOpen = $state(false);
   let invoiceWizardStep = $state(1);
@@ -176,7 +224,340 @@
       correlationId: String(form.correlationId ?? ''),
     };
   });
+  function problemFor(operation: string, field?: string, id?: string): boolean {
+    if (!billingProblem || billingFailureOperation !== operation) return false;
+    return !field || billingFailureValues[field] === id;
+  }
+  function invoiceProblemFormAvailable(
+    operation: string,
+    state: string,
+    creditNote: boolean,
+  ): boolean {
+    if (operation === 'setInvoicePlanningDates')
+      return canManageBilling && ['draft', 'approved'].includes(state);
+    if (operation === 'emailInvoice')
+      return !isAuditor && ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(state);
+    if (operation === 'approveInvoice') return !isAuditor && state === 'draft';
+    if (operation === 'deleteInvoice')
+      return (
+        !isAuditor &&
+        (state === 'draft' || (state === 'approved' && data.user.role === 'owner_admin'))
+      );
+    if (operation === 'recalculateApprovedInvoice' || operation === 'issueInvoice')
+      return !isAuditor && state === 'approved';
+    if (operation === 'restoreCreditNoteState')
+      return !isAuditor && creditNote && state === 'overdue';
+    if (operation === 'sendInvoice') return !isAuditor && state === 'issued';
+    if (['createInvoiceAdjustment', 'voidInvoice'].includes(operation))
+      return !isAuditor && ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(state);
+    return false;
+  }
+  type BillingRecoveryOptions = {
+    operation: string;
+    problem: ProblemData | null;
+    values: Record<string, string>;
+    field?: string;
+    id?: string;
+  };
+  function recoveryOptions(operation: string, field?: string, id?: string): BillingRecoveryOptions {
+    return { operation, problem: billingProblem, values: billingFailureValues, field, id };
+  }
+  let nextBillingFormId = 0;
+  function recoverBillingForm(formElement: HTMLFormElement, initial: BillingRecoveryOptions) {
+    const formId = ++nextBillingFormId;
+    let submitted: Map<string, string> | null = null;
+    let lastProblemId = '';
+    const scrollInput = document.createElement('input');
+    scrollInput.type = 'hidden';
+    scrollInput.name = 'viewportScrollY';
+    formElement.append(scrollInput);
+    const drawerScrollInput = document.createElement('input');
+    drawerScrollInput.type = 'hidden';
+    drawerScrollInput.name = 'drawerScrollTop';
+    formElement.append(drawerScrollInput);
+    const drawerBody = formElement
+      .closest('[data-ui="responsive-sheet"]')
+      ?.querySelector<HTMLElement>('.responsive-sheet-body');
+    const capture = () => {
+      scrollInput.value = String(Math.max(0, Math.round(window.scrollY)));
+      drawerScrollInput.value = String(Math.max(0, Math.round(drawerBody?.scrollTop ?? 0)));
+    };
+    const onSubmit = () => {
+      capture();
+      submitted = new Map(
+        Array.from(new FormData(formElement).entries()).filter(
+          (entry): entry is [string, string] => typeof entry[1] === 'string',
+        ),
+      );
+    };
+    const onFormData = (event: Event) => {
+      capture();
+      const data = (event as FormDataEvent).formData;
+      data.set('viewportScrollY', scrollInput.value);
+      data.set('drawerScrollTop', drawerScrollInput.value);
+      submitted = new Map(
+        Array.from(data.entries()).filter(
+          (entry): entry is [string, string] => typeof entry[1] === 'string',
+        ),
+      );
+    };
+    formElement.addEventListener('submit', onSubmit, true);
+    formElement.addEventListener('formdata', onFormData);
+    window.addEventListener('scroll', capture, { passive: true });
+    drawerBody?.addEventListener('scroll', capture, { passive: true });
+    capture();
+    const apply = (options: BillingRecoveryOptions) => {
+      const { operation, problem, values, field, id } = options;
+      if (!problem || billingFailureOperation !== operation || (field && values[field] !== id))
+        return;
+      if (lastProblemId === problem.correlationId) return;
+      lastProblemId = problem.correlationId;
+      formElement
+        .querySelectorAll('[data-billing-recovery-error], [data-billing-recovery-summary]')
+        .forEach((node) => node.remove());
+      formElement
+        .querySelectorAll<HTMLElement>('[data-billing-recovery-invalid]')
+        .forEach((node) => {
+          node.removeAttribute('data-billing-recovery-invalid');
+          node.removeAttribute('aria-invalid');
+          node.removeAttribute('aria-describedby');
+        });
+      for (const [name, value] of Object.entries(values)) {
+        if (name === 'viewportScrollY' || name === 'drawerScrollTop') continue;
+        const control = Array.from(formElement.elements).find(
+          (element): element is HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement =>
+            (element instanceof HTMLInputElement ||
+              element instanceof HTMLSelectElement ||
+              element instanceof HTMLTextAreaElement) &&
+            element.name === name,
+        );
+        if (!control) continue;
+        if (
+          submitted &&
+          (control instanceof HTMLInputElement && control.type === 'checkbox'
+            ? control.checked !== submitted.has(name)
+            : control.value !== submitted.get(name))
+        )
+          continue;
+        if (control instanceof HTMLInputElement && control.type === 'checkbox')
+          control.checked = value === 'true' || value === 'on' || value === '1';
+        else control.value = value;
+      }
+      if (operation === 'createTaxProfile') {
+        const percent = formElement.querySelector<HTMLInputElement>(
+          'input[name="componentPercent"]',
+        );
+        const basisPoints = formElement.querySelector<HTMLInputElement>(
+          'input[name="componentBasisPoints"]',
+        );
+        const value = percent ? percentToBps(percent.value) : null;
+        if (basisPoints && value !== null) basisPoints.value = value;
+      }
+      const visibleErrors: Array<{
+        control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+        message: string;
+      }> = [];
+      for (const [name, messages] of Object.entries(problem.fieldErrors)) {
+        const control = Array.from(formElement.elements).find(
+          (element): element is HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement =>
+            (element instanceof HTMLInputElement ||
+              element instanceof HTMLSelectElement ||
+              element instanceof HTMLTextAreaElement) &&
+            element.name === name &&
+            !(element instanceof HTMLInputElement && element.type === 'hidden'),
+        );
+        if (!control || !messages?.length) continue;
+        const message = localizedServerFieldMessage(
+          String($page.data.locale ?? 'en'),
+          messages[0] ?? '',
+        );
+        const inputId = control.id || `billing-recovery-${formId}-${name}`;
+        control.id = inputId;
+        const errorId = `${inputId}-error`;
+        control.setAttribute('aria-invalid', 'true');
+        control.setAttribute('aria-describedby', errorId);
+        control.dataset.billingRecoveryInvalid = '';
+        const small = document.createElement('small');
+        small.id = errorId;
+        small.dataset.fieldErrorFor = inputId;
+        small.dataset.billingRecoveryError = '';
+        small.setAttribute('role', 'alert');
+        small.textContent = message;
+        control.insertAdjacentElement('afterend', small);
+        visibleErrors.push({ control, message });
+      }
+      if (visibleErrors.length > 1) {
+        const summary = document.createElement('div');
+        summary.dataset.ui = 'validation-summary';
+        summary.dataset.billingRecoverySummary = '';
+        summary.tabIndex = -1;
+        summary.setAttribute('role', 'alert');
+        const heading = document.createElement('strong');
+        heading.textContent = translate('Check the highlighted fields');
+        const list = document.createElement('ul');
+        for (const { control, message } of visibleErrors) {
+          const item = document.createElement('li');
+          const link = document.createElement('a');
+          link.href = `#${control.id}`;
+          link.textContent = `${control.closest('label')?.querySelector('span')?.textContent?.trim() || control.name}: ${message}`;
+          item.append(link);
+          list.append(item);
+        }
+        summary.append(heading, list);
+        formElement.prepend(summary);
+      }
+      const scroll = /^\d{1,7}$/.test(values.viewportScrollY ?? '')
+        ? Number(values.viewportScrollY)
+        : null;
+      const drawerScroll = /^\d{1,7}$/.test(values.drawerScrollTop ?? '')
+        ? Number(values.drawerScrollTop)
+        : null;
+      void tick().then(() =>
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            const previous = formElement.previousElementSibling;
+            const precedingNotice =
+              previous instanceof HTMLElement && previous.matches('[data-ui="problem-notice"]')
+                ? previous
+                : previous?.querySelector<HTMLElement>('[data-ui="problem-notice"]');
+            const target =
+              visibleErrors.length > 1
+                ? formElement.querySelector<HTMLElement>('[data-billing-recovery-summary]')
+                : (visibleErrors[0]?.control ?? precedingNotice);
+            target?.focus({ preventScroll: true });
+            if (drawerScroll !== null)
+              drawerBody?.scrollTo({ top: drawerScroll, behavior: 'instant' });
+            if (scroll !== null) window.scrollTo({ top: scroll, behavior: 'instant' });
+          }),
+        ),
+      );
+    };
+    apply(initial);
+    return {
+      update(next: BillingRecoveryOptions) {
+        apply(next);
+      },
+      destroy() {
+        formElement.removeEventListener('submit', onSubmit, true);
+        formElement.removeEventListener('formdata', onFormData);
+        window.removeEventListener('scroll', capture);
+        drawerBody?.removeEventListener('scroll', capture);
+        scrollInput.remove();
+        drawerScrollInput.remove();
+      },
+    };
+  }
+  const paymentFieldErrors = $derived.by(() => {
+    if (!billingProblem || !paymentDraft?.invoiceId) return [];
+    const fields = billingProblem.fieldErrors;
+    const definitions = [
+      { name: 'amount', source: 'amountMinor', label: 'Payment amount' },
+      { name: 'currency', source: 'currency', label: 'Currency' },
+      { name: 'receivedOn', source: 'receivedAt', label: 'Received on' },
+      { name: 'reference', source: 'reference', label: 'Payment reference / note' },
+    ] as const;
+    return definitions.flatMap(({ name, source, label }) => {
+      const raw = fields[source]?.[0] ?? fields[name]?.[0];
+      return raw
+        ? [
+            {
+              name,
+              label,
+              message: localizedServerFieldMessage(String($page.data.locale ?? 'en'), raw),
+            },
+          ]
+        : [];
+    });
+  });
+  const reversalFieldErrors = $derived.by(() => {
+    if (!billingProblem || !reversalDraft?.paymentId) return [];
+    const fields = billingProblem.fieldErrors;
+    const definitions = [
+      { name: 'amount', source: 'amountMinor', label: 'Reversal amount' },
+      { name: 'effectiveOn', source: 'effectiveOn', label: 'Effective date' },
+      { name: 'reasonCode', source: 'reasonCode', label: 'Reason code' },
+      { name: 'reason', source: 'reason', label: 'Reason' },
+    ] as const;
+    return definitions.flatMap(({ name, source, label }) => {
+      const raw = fields[source]?.[0] ?? fields[name]?.[0];
+      return raw
+        ? [
+            {
+              name,
+              label,
+              message: localizedServerFieldMessage(String($page.data.locale ?? 'en'), raw),
+            },
+          ]
+        : [];
+    });
+  });
+  function paymentError(name: string): string | undefined {
+    if (selectedInvoiceId !== paymentDraft?.invoiceId) return undefined;
+    return paymentFieldErrors.find((field) => field.name === name)?.message;
+  }
+  function reversalError(name: string, paymentId: string): string | undefined {
+    if (reversalDraft?.paymentId !== paymentId || selectedInvoiceId !== reversalInvoiceId)
+      return undefined;
+    return reversalFieldErrors.find((field) => field.name === name)?.message;
+  }
   let focusedProblemId = '';
+  let focusedPaymentFieldsId = '';
+  let focusedReversalFieldsId = '';
+  let restoredReversalScrollId = '';
+  function rememberReversalScroll(form: HTMLFormElement) {
+    const drawerBody = form
+      .closest('[data-ui="responsive-sheet"]')
+      ?.querySelector<HTMLElement>('.responsive-sheet-body');
+    const viewportInput = form.elements.namedItem('viewportScrollY') as HTMLInputElement | null;
+    const drawerInput = form.elements.namedItem('drawerScrollTop') as HTMLInputElement | null;
+    const capture = () => {
+      if (viewportInput) viewportInput.value = String(Math.max(0, Math.round(window.scrollY)));
+      if (drawerInput)
+        drawerInput.value = String(Math.max(0, Math.round(drawerBody?.scrollTop ?? 0)));
+    };
+    capture();
+    window.addEventListener('scroll', capture, { passive: true });
+    drawerBody?.addEventListener('scroll', capture, { passive: true });
+    form.addEventListener('submit', capture, true);
+    return {
+      destroy() {
+        window.removeEventListener('scroll', capture);
+        drawerBody?.removeEventListener('scroll', capture);
+        form.removeEventListener('submit', capture, true);
+      },
+    };
+  }
+  $effect(() => {
+    const id = billingProblem?.correlationId;
+    if (!id || id === restoredReversalScrollId || !reversalDraft?.paymentId) return;
+    if (
+      !/^\d{1,7}$/.test(String(reversalDraft.viewportScrollY ?? '')) ||
+      !/^\d{1,7}$/.test(String(reversalDraft.drawerScrollTop ?? ''))
+    )
+      return;
+    const viewport = Number(reversalDraft.viewportScrollY);
+    const drawer = Number(reversalDraft.drawerScrollTop);
+    if (
+      !Number.isSafeInteger(viewport) ||
+      viewport < 0 ||
+      !Number.isSafeInteger(drawer) ||
+      drawer < 0
+    )
+      return;
+    restoredReversalScrollId = id;
+    void tick().then(() =>
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          document
+            .querySelector<HTMLElement>(
+              '[data-ui="billing-section"] [data-ui="responsive-sheet"] .responsive-sheet-body',
+            )
+            ?.scrollTo({ top: drawer, behavior: 'instant' });
+          window.scrollTo({ top: viewport, behavior: 'instant' });
+        }),
+      ),
+    );
+  });
   const problemRemedyLinks = $derived({
     review_record: {
       label: translate('Review updated record'),
@@ -188,7 +569,7 @@
     },
     review_ledger: {
       label: translate('Review invoice ledger'),
-      href: `${base}/app/billing?view=invoices`,
+      href: selectedInvoiceId ? '#invoice-collections' : `${base}/app/billing?view=invoices`,
     },
     review_billing_setup: {
       label: translate('Review billing setup'),
@@ -207,18 +588,73 @@
   });
   $effect(() => {
     const id = billingProblem?.correlationId;
+    const inWizard = invoiceWizardOpen && form?.billingRuleId !== undefined;
     const inPaymentDrawer = Boolean(
-      paymentDraft?.invoiceId && selectedInvoiceId === paymentDraft.invoiceId,
+      (paymentDraft?.invoiceId && selectedInvoiceId === paymentDraft.invoiceId) ||
+      (reversalDraft?.paymentId && selectedInvoiceId === reversalInvoiceId),
     );
-    const focusKey = `${id}:${inPaymentDrawer ? 'drawer' : 'page'}`;
+    const inInvoiceDrawer = Boolean(invoiceFailureId && selectedInvoiceId === invoiceFailureId);
+    const focusKey = `${id}:${inPaymentDrawer || inInvoiceDrawer ? 'drawer' : inWizard ? 'wizard' : 'page'}`;
     if (!id || focusKey === focusedProblemId) return;
     focusedProblemId = focusKey;
+    if (inPaymentDrawer && (paymentFieldErrors.length || reversalFieldErrors.length)) return;
     void tick().then(() => {
-      const selector = inPaymentDrawer
-        ? '[data-billing-payment-problem] [data-ui="problem-notice"]'
-        : '[data-ui="billing-section"] > [data-ui="problem-notice"]';
-      const notice = document.querySelector<HTMLElement>(selector);
-      notice?.focus({ preventScroll: true });
+      const selector =
+        inPaymentDrawer || inInvoiceDrawer
+          ? '[data-billing-invoice-problem] [data-ui="problem-notice"], [data-billing-payment-problem] [data-ui="problem-notice"]'
+          : inWizard
+            ? '.billing-section__invoice-wizard [data-ui="problem-notice"]'
+            : '[data-ui="billing-section"] > [data-ui="problem-notice"]';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true });
+        });
+      });
+    });
+  });
+  $effect(() => {
+    const id = billingProblem?.correlationId;
+    if (
+      !id ||
+      !paymentDraft?.invoiceId ||
+      selectedInvoiceId !== paymentDraft.invoiceId ||
+      !paymentFieldErrors.length
+    )
+      return;
+    if (id === focusedPaymentFieldsId) return;
+    focusedPaymentFieldsId = id;
+    void tick().then(() => {
+      const target = document.querySelector<HTMLElement>(
+        paymentFieldErrors.length > 1
+          ? '[data-billing-payment-summary]'
+          : `#billing-payment-${paymentFieldErrors[0]?.name}`,
+      );
+      (
+        target ??
+        document.querySelector<HTMLElement>(
+          '[data-billing-payment-problem] [data-ui="problem-notice"]',
+        )
+      )?.focus({ preventScroll: true });
+    });
+  });
+  $effect(() => {
+    const id = billingProblem?.correlationId;
+    const paymentId = reversalDraft?.paymentId;
+    if (!id || !paymentId || selectedInvoiceId !== reversalInvoiceId || !reversalFieldErrors.length)
+      return;
+    if (id === focusedReversalFieldsId) return;
+    focusedReversalFieldsId = id;
+    void tick().then(() => {
+      const targetId =
+        reversalFieldErrors.length > 1
+          ? `billing-reversal-${paymentId}-summary`
+          : `billing-reversal-${paymentId}-${reversalFieldErrors[0]?.name}`;
+      (
+        document.getElementById(targetId) ??
+        document.querySelector<HTMLElement>(
+          '[data-billing-payment-problem] [data-ui="problem-notice"]',
+        )
+      )?.focus({ preventScroll: true });
     });
   });
 
@@ -295,25 +731,6 @@
   }
 
   const invoices = $derived(data.invoices ?? []);
-  const paymentDraft = $derived.by((): Record<string, string> | null => {
-    if (form?.success !== false || form.billingOperation !== 'recordPayment') return null;
-    const values = form.values;
-    if (!values || typeof values !== 'object' || Array.isArray(values)) return null;
-    return Object.fromEntries(
-      Object.entries(values).filter(
-        (entry): entry is [string, string] => typeof entry[1] === 'string',
-      ),
-    );
-  });
-  let restoredPaymentProblemId = '';
-  $effect(() => {
-    const problemId = String(form?.correlationId ?? '');
-    const invoiceId = paymentDraft?.invoiceId;
-    if (!problemId || problemId === restoredPaymentProblemId || !invoiceId) return;
-    if (!invoices.some((invoice) => rowValue(invoice, 'id') === invoiceId)) return;
-    restoredPaymentProblemId = problemId;
-    selectedInvoiceId = invoiceId;
-  });
   const billingRules = $derived(data.billingRules ?? []);
   const activeWizardRules = $derived(billingRules.filter((rule) => String(rule.enabled) === '1'));
   const visibleBillingRules = $derived(
@@ -393,6 +810,47 @@
       ['all', 'wip', 'drafts', 'outstanding', 'overdue', 'credits', 'paid'].includes(requestedStage)
     )
       stageFilter = requestedStage;
+  });
+  let restoredBillingLocationId = '';
+  $effect(() => {
+    const id = billingProblem?.correlationId;
+    if (!id || id === restoredBillingLocationId) return;
+    restoredBillingLocationId = id;
+    if (
+      [
+        'createBillingRule',
+        'createLegalEntity',
+        'createTaxProfile',
+        'createInvoiceNumberPolicy',
+        'updateLegalEntity',
+        'archiveLegalEntity',
+        'updateTaxProfile',
+        'archiveTaxProfile',
+      ].includes(billingFailureOperation)
+    ) {
+      workspace = 'setup';
+      setupAction = billingFailureOperation.includes('LegalEntity')
+        ? 'entity'
+        : billingFailureOperation.includes('TaxProfile')
+          ? 'tax'
+          : billingFailureOperation === 'createInvoiceNumberPolicy'
+            ? 'numbering'
+            : 'stream';
+      if (billingFailureOperation === 'createBillingRule') {
+        setupProjectId = billingFailureValues.projectId ?? '';
+        void tick().then(() => {
+          setupLegalEntityId = billingFailureValues.legalEntityId ?? '';
+          setupContactId = billingFailureValues.billingContactId ?? '';
+          void tick().then(() => (setupTaxProfileId = billingFailureValues.taxProfileId ?? ''));
+        });
+      }
+    } else if (
+      ['updateBillingRule', 'archiveBillingRule', 'closePeriod'].includes(billingFailureOperation)
+    ) {
+      workspace = 'streams';
+    } else if (billingFailureOperation && billingFailureOperation !== 'createDraft') {
+      workspace = 'invoices';
+    }
   });
 
   function rowValue(row: Row | Record<string, unknown> | undefined, ...keys: string[]): string {
@@ -515,6 +973,40 @@
   const selectedInvoice = $derived(
     invoices.find((invoice) => rowValue(invoice, 'id') === selectedInvoiceId),
   );
+  const billingProblemByForm = $derived.by(() => {
+    if (!billingProblem) return false;
+    if (invoiceWizardOpen && billingFailureOperation === 'createDraft') return true;
+    if (selectedInvoice && invoiceFailureId === selectedInvoiceId) return true;
+    if (
+      (paymentDraft?.invoiceId && paymentDraft.invoiceId === selectedInvoiceId) ||
+      (reversalDraft?.paymentId && reversalInvoiceId && reversalInvoiceId === selectedInvoiceId)
+    )
+      return true;
+    if (workspace === 'setup' && canManageBilling) {
+      if (billingFailureOperation === 'createBillingRule' && setupAction === 'stream') return true;
+      if (billingFailureOperation === 'createTaxProfile' && setupAction === 'tax') return true;
+      if (
+        canManageIssuerAndNumbering &&
+        ((billingFailureOperation === 'createLegalEntity' && setupAction === 'entity') ||
+          (billingFailureOperation === 'createInvoiceNumberPolicy' && setupAction === 'numbering'))
+      )
+        return true;
+      if (
+        billingFailureOperation === 'updateLegalEntity' &&
+        (data.legalEntities ?? []).some(
+          (entity) => rowValue(entity, 'id') === billingFailureValues.legalEntityId,
+        )
+      )
+        return true;
+    }
+    return (
+      workspace === 'streams' &&
+      ['updateBillingRule', 'archiveBillingRule', 'closePeriod'].includes(
+        billingFailureOperation,
+      ) &&
+      billingRules.some((rule) => rowValue(rule, 'id') === billingFailureValues.billingRuleId)
+    );
+  });
 
   const invoiceCardRows = $derived.by((): TableCardRow[] =>
     invoicePage.map((invoice) => {
@@ -613,7 +1105,7 @@
   }
 
   function openInvoice(invoice: Row): void {
-    selectedInvoiceId = rowValue(invoice, 'id');
+    selectedInvoiceIntent = rowValue(invoice, 'id');
   }
 
   function jumpInvoiceSection(id: string): void {
@@ -892,7 +1384,7 @@
       >
     {/if}
   </header>
-  {#if billingProblem && !invoiceWizardOpen && selectedInvoiceId !== paymentDraft?.invoiceId}
+  {#if billingProblem && !billingProblemByForm}
     <ProblemNotice
       problem={billingProblem}
       kind={billingProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
@@ -1639,12 +2131,30 @@
                     <td>{rowValue(entity, 'legal_name', 'legalName')}</td>
                     <td>{rowValue(entity, 'currency')}</td>
                     {#if canManageIssuerAndNumbering}<td>
-                        <details>
+                        <details
+                          open={problemFor(
+                            'updateLegalEntity',
+                            'legalEntityId',
+                            rowValue(entity, 'id'),
+                          )}
+                        >
                           <summary>{translate('Edit issuer')}</summary>
+                          {#if problemFor('updateLegalEntity', 'legalEntityId', rowValue(entity, 'id'))}
+                            <ProblemNotice
+                              problem={billingProblem!}
+                              kind="error"
+                              remedyLinks={problemRemedyLinks}
+                            />
+                          {/if}
                           <form
                             method="POST"
                             action="?/updateLegalEntity"
                             class="billing-section__config-form"
+                            use:recoverBillingForm={recoveryOptions(
+                              'updateLegalEntity',
+                              'legalEntityId',
+                              rowValue(entity, 'id'),
+                            )}
                           >
                             <input
                               type="hidden"
@@ -1730,7 +2240,20 @@
         </div>
 
         {#if setupAction === 'stream'}
-          <form method="POST" action="?/createBillingRule" class="billing-section__config-form">
+          {#if problemFor('createBillingRule')}
+            <ProblemNotice
+              problem={billingProblem!}
+              kind="error"
+              remedyLinks={problemRemedyLinks}
+            />
+          {/if}
+          <form
+            method="POST"
+            action="?/createBillingRule"
+            class="billing-section__config-form"
+            use:recoverBillingForm={recoveryOptions('createBillingRule')}
+            use:enhance
+          >
             <h4>{translate('New billing stream')}</h4>
             <label>
               <span>{translate('Project')}</span>
@@ -1862,7 +2385,20 @@
 
         <div class="billing-section__config-compact-grid">
           {#if setupAction === 'entity' && canManageIssuerAndNumbering}
-            <form method="POST" action="?/createLegalEntity" class="billing-section__config-form">
+            {#if problemFor('createLegalEntity')}
+              <ProblemNotice
+                problem={billingProblem!}
+                kind="error"
+                remedyLinks={problemRemedyLinks}
+              />
+            {/if}
+            <form
+              method="POST"
+              action="?/createLegalEntity"
+              class="billing-section__config-form"
+              use:recoverBillingForm={recoveryOptions('createLegalEntity')}
+              use:enhance
+            >
               <h4>{translate('New invoice issuer')}</h4>
               <label><span>{translate('Code')}</span><input name="code" required /></label>
               <label
@@ -1892,7 +2428,20 @@
           {/if}
 
           {#if setupAction === 'tax'}
-            <form method="POST" action="?/createTaxProfile" class="billing-section__config-form">
+            {#if problemFor('createTaxProfile')}
+              <ProblemNotice
+                problem={billingProblem!}
+                kind="error"
+                remedyLinks={problemRemedyLinks}
+              />
+            {/if}
+            <form
+              method="POST"
+              action="?/createTaxProfile"
+              class="billing-section__config-form"
+              use:recoverBillingForm={recoveryOptions('createTaxProfile')}
+              use:enhance
+            >
               <h4>{translate('New tax profile')}</h4>
               <label>
                 <span>{translate('Legal entity')}</span>
@@ -1969,10 +2518,19 @@
           {/if}
 
           {#if setupAction === 'numbering' && canManageIssuerAndNumbering}
+            {#if problemFor('createInvoiceNumberPolicy')}
+              <ProblemNotice
+                problem={billingProblem!}
+                kind="error"
+                remedyLinks={problemRemedyLinks}
+              />
+            {/if}
             <form
               method="POST"
               action="?/createInvoiceNumberPolicy"
               class="billing-section__config-form"
+              use:recoverBillingForm={recoveryOptions('createInvoiceNumberPolicy')}
+              use:enhance
             >
               <h4>{translate('Invoice numbering policy')}</h4>
               <label>
@@ -2144,14 +2702,30 @@
                       <details
                         id={`billing-stream-${rowValue(rule, 'id')}`}
                         class="billing-section__rule-editor"
-                        open={streamFocusId === rowValue(rule, 'id')}
+                        open={streamFocusId === rowValue(rule, 'id') ||
+                          ['updateBillingRule', 'archiveBillingRule', 'closePeriod'].some(
+                            (operation) =>
+                              problemFor(operation, 'billingRuleId', rowValue(rule, 'id')),
+                          )}
                       >
                         <summary class="secondary-button">{translate('Manage stream')}</summary>
                         <div class="billing-section__rule-actions">
+                          {#if problemFor('updateBillingRule', 'billingRuleId', rowValue(rule, 'id'))}
+                            <ProblemNotice
+                              problem={billingProblem!}
+                              kind="error"
+                              remedyLinks={problemRemedyLinks}
+                            />
+                          {/if}
                           <form
                             method="POST"
                             action="?/updateBillingRule"
                             class="billing-section__inline-form"
+                            use:recoverBillingForm={recoveryOptions(
+                              'updateBillingRule',
+                              'billingRuleId',
+                              rowValue(rule, 'id'),
+                            )}
                           >
                             <input
                               type="hidden"
@@ -2267,9 +2841,21 @@
                               'Cadence and commercial conditions use effective-dated streams. Create a successor for a future change so historic periods are never reinterpreted.',
                             )}
                           </p>
+                          {#if problemFor('archiveBillingRule', 'billingRuleId', rowValue(rule, 'id'))}
+                            <ProblemNotice
+                              problem={billingProblem!}
+                              kind="error"
+                              remedyLinks={problemRemedyLinks}
+                            />
+                          {/if}
                           <form
                             method="POST"
                             action="?/archiveBillingRule"
+                            use:recoverBillingForm={recoveryOptions(
+                              'archiveBillingRule',
+                              'billingRuleId',
+                              rowValue(rule, 'id'),
+                            )}
                             onsubmit={(event) => {
                               if (!confirm(translate('Archive this billing rule?')))
                                 event.preventDefault();
@@ -2284,17 +2870,32 @@
                               >{translate('Archive billing stream')}</button
                             >
                           </form>
-                          <details class="billing-section__close-sources">
+                          <details
+                            class="billing-section__close-sources"
+                            open={problemFor('closePeriod', 'billingRuleId', rowValue(rule, 'id'))}
+                          >
                             <summary>{translate('Close sources')}</summary>
                             <p>
                               {translate(
                                 'Close sources after the invoice is issued so leftover work cannot be billed twice.',
                               )}
                             </p>
+                            {#if problemFor('closePeriod', 'billingRuleId', rowValue(rule, 'id'))}
+                              <ProblemNotice
+                                problem={billingProblem!}
+                                kind="error"
+                                remedyLinks={problemRemedyLinks}
+                              />
+                            {/if}
                             <form
                               method="POST"
                               action="?/closePeriod"
                               class="billing-section__period-form"
+                              use:recoverBillingForm={recoveryOptions(
+                                'closePeriod',
+                                'billingRuleId',
+                                rowValue(rule, 'id'),
+                              )}
                             >
                               <input
                                 type="hidden"
@@ -2466,6 +3067,13 @@
             {@const paymentRetryBlocked =
               billingProblem?.code === 'BILLING_IDEMPOTENCY_REUSED' &&
               paymentDraft?.invoiceId === invoiceId}
+            {@const paymentProblemForInvoice = Boolean(
+              (billingFailureOperation === 'recordPayment' &&
+                paymentDraft?.invoiceId === invoiceId) ||
+              (billingFailureOperation === 'reversePayment' &&
+                reversalDraft?.paymentId &&
+                reversalInvoiceId === invoiceId),
+            )}
             {@const isCreditNote = isCreditNoteInvoice(invoice)}
             {@const ledger = ledgerForInvoice(invoiceId)}
             {@const currency = invoiceCurrency(invoice)}
@@ -2477,10 +3085,19 @@
               title={invoiceTitle(invoice)}
               description={rowValue(invoice, 'project_number', 'projectNumber')}
               closeLabel={translate('Close')}
-              onclose={() => (selectedInvoiceId = '')}
+              onclose={() => (selectedInvoiceIntent = '')}
             >
-              {#if billingProblem && paymentDraft?.invoiceId === invoiceId}
+              {#if billingProblem && paymentProblemForInvoice}
                 <div data-billing-payment-problem>
+                  <ProblemNotice
+                    problem={billingProblem}
+                    kind={billingProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+                    remedyLinks={problemRemedyLinks}
+                  />
+                </div>
+              {/if}
+              {#if billingProblem && invoiceFailureId === invoiceId && !paymentProblemForInvoice && !invoiceProblemFormAvailable(billingFailureOperation, invoiceStateValue, isCreditNote)}
+                <div data-billing-invoice-problem>
                   <ProblemNotice
                     problem={billingProblem}
                     kind={billingProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
@@ -2583,11 +3200,23 @@
                 </div>
 
                 {#if canManageBilling && ['draft', 'approved'].includes(invoiceStateValue)}
+                  {#if problemFor('setInvoicePlanningDates', 'invoiceId', invoiceId)}
+                    <ProblemNotice
+                      problem={billingProblem!}
+                      kind="error"
+                      remedyLinks={problemRemedyLinks}
+                    />
+                  {/if}
                   <form
                     method="POST"
                     action="?/setInvoicePlanningDates"
                     class="billing-section__planning-form"
                     aria-label={translate('Plan invoice dates')}
+                    use:recoverBillingForm={recoveryOptions(
+                      'setInvoicePlanningDates',
+                      'invoiceId',
+                      invoiceId,
+                    )}
                   >
                     <fieldset>
                       <legend>{translate('Planned and expected dates')}</legend>
@@ -2662,7 +3291,10 @@
                 {/if}
 
                 {#if ledger}
-                  <details class="billing-section__payment-history">
+                  <details
+                    class="billing-section__payment-history"
+                    open={Boolean(reversalDraft?.paymentId) && reversalInvoiceId === invoiceId}
+                  >
                     <summary>{translate('Collections and reversals')}</summary>
                     <div class="billing-section__history-summary">
                       <span
@@ -2682,6 +3314,7 @@
                       >
                     </div>
                     {#each ledger.payments ?? [] as payment}
+                      {@const paymentId = String(payment.id ?? '')}
                       <article class="billing-section__payment-row">
                         <div>
                           <strong
@@ -2711,50 +3344,116 @@
                           </small>
                         </div>
                         {#if canManageBilling && !['void', 'credited'].includes(invoiceStateValue) && positiveMinor(payment.netAmountMinor)}
+                          {#if reversalDraft?.paymentId === paymentId && reversalFieldErrors.length > 1}
+                            <div
+                              data-ui="validation-summary"
+                              id={`billing-reversal-${paymentId}-summary`}
+                              tabindex="-1"
+                              role="alert"
+                            >
+                              <strong>{translate('Check the highlighted fields')}</strong>
+                              <ul>
+                                {#each reversalFieldErrors as field (field.name)}
+                                  <li>
+                                    <a href={`#billing-reversal-${paymentId}-${field.name}`}
+                                      >{translate(field.label)}: {field.message}</a
+                                    >
+                                  </li>
+                                {/each}
+                              </ul>
+                            </div>
+                          {/if}
                           <form
                             method="POST"
                             action="?/reversePayment"
                             class="billing-section__payment-form"
+                            use:rememberReversalScroll
+                            use:enhance
                           >
-                            <input
-                              type="hidden"
-                              name="paymentId"
-                              value={String(payment.id ?? '')}
-                            />
+                            <input type="hidden" name="paymentId" value={paymentId} />
+                            <input type="hidden" name="viewportScrollY" value="0" />
+                            <input type="hidden" name="drawerScrollTop" value="0" />
                             <label
                               ><span>{translate('Reversal amount')}</span><input
+                                id={`billing-reversal-${paymentId}-amount`}
                                 name="amount"
                                 inputmode="decimal"
                                 type="number"
                                 min="0.01"
                                 step="0.01"
                                 max={minorToDecimal(payment.netAmountMinor)}
-                                value={minorToDecimal(payment.netAmountMinor)}
+                                value={reversalDraft?.paymentId === paymentId
+                                  ? reversalDraft.amount
+                                  : minorToDecimal(payment.netAmountMinor)}
+                                aria-invalid={Boolean(reversalError('amount', paymentId))}
+                                aria-describedby={reversalError('amount', paymentId)
+                                  ? `billing-reversal-${paymentId}-amount-error`
+                                  : undefined}
                                 required
-                              /></label
+                              />{#if reversalError('amount', paymentId)}<small
+                                  id={`billing-reversal-${paymentId}-amount-error`}
+                                  data-field-error-for={`billing-reversal-${paymentId}-amount`}
+                                  role="alert">{reversalError('amount', paymentId)}</small
+                                >{/if}</label
                             >
                             <label
                               ><span>{translate('Effective date')}</span><input
+                                id={`billing-reversal-${paymentId}-effectiveOn`}
                                 name="effectiveOn"
                                 type="date"
+                                value={reversalDraft?.paymentId === paymentId
+                                  ? reversalDraft.effectiveOn
+                                  : ''}
+                                aria-invalid={Boolean(reversalError('effectiveOn', paymentId))}
+                                aria-describedby={reversalError('effectiveOn', paymentId)
+                                  ? `billing-reversal-${paymentId}-effectiveOn-error`
+                                  : undefined}
                                 required
-                              /></label
+                              />{#if reversalError('effectiveOn', paymentId)}<small
+                                  id={`billing-reversal-${paymentId}-effectiveOn-error`}
+                                  data-field-error-for={`billing-reversal-${paymentId}-effectiveOn`}
+                                  role="alert">{reversalError('effectiveOn', paymentId)}</small
+                                >{/if}</label
                             >
                             <label
                               ><span>{translate('Reason code')}</span><select
+                                id={`billing-reversal-${paymentId}-reasonCode`}
                                 name="reasonCode"
+                                value={reversalDraft?.paymentId === paymentId
+                                  ? reversalDraft.reasonCode
+                                  : 'bank_return'}
+                                aria-invalid={Boolean(reversalError('reasonCode', paymentId))}
+                                aria-describedby={reversalError('reasonCode', paymentId)
+                                  ? `billing-reversal-${paymentId}-reasonCode-error`
+                                  : undefined}
                                 required
                                 ><option value="bank_return">{translate('Bank return')}</option
                                 ><option value="duplicate">{translate('Duplicate')}</option><option
                                   value="entry_correction">{translate('Entry correction')}</option
                                 ><option value="other">{translate('Other')}</option></select
-                              ></label
+                              >{#if reversalError('reasonCode', paymentId)}<small
+                                  id={`billing-reversal-${paymentId}-reasonCode-error`}
+                                  data-field-error-for={`billing-reversal-${paymentId}-reasonCode`}
+                                  role="alert">{reversalError('reasonCode', paymentId)}</small
+                                >{/if}</label
                             >
                             <label
                               ><span>{translate('Reason')}</span><input
+                                id={`billing-reversal-${paymentId}-reason`}
                                 name="reason"
+                                value={reversalDraft?.paymentId === paymentId
+                                  ? reversalDraft.reason
+                                  : ''}
+                                aria-invalid={Boolean(reversalError('reason', paymentId))}
+                                aria-describedby={reversalError('reason', paymentId)
+                                  ? `billing-reversal-${paymentId}-reason-error`
+                                  : undefined}
                                 required
-                              /></label
+                              />{#if reversalError('reason', paymentId)}<small
+                                  id={`billing-reversal-${paymentId}-reason-error`}
+                                  data-field-error-for={`billing-reversal-${paymentId}-reason`}
+                                  role="alert">{reversalError('reason', paymentId)}</small
+                                >{/if}</label
                             >
                             <input
                               type="hidden"
@@ -2853,12 +3552,27 @@
                     {/if}
                   </div>
                   {#if !isAuditor && ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(invoiceStateValue)}
-                    <details class="billing-section__action-panel">
+                    <details
+                      class="billing-section__action-panel"
+                      open={problemFor('emailInvoice', 'invoiceId', invoiceId)}
+                    >
                       <summary>{translate('Send by email')}</summary>
+                      {#if problemFor('emailInvoice', 'invoiceId', invoiceId)}
+                        <ProblemNotice
+                          problem={billingProblem!}
+                          kind="error"
+                          remedyLinks={problemRemedyLinks}
+                        />
+                      {/if}
                       <form
                         method="POST"
                         action="?/emailInvoice"
                         class="billing-section__payment-form"
+                        use:recoverBillingForm={recoveryOptions(
+                          'emailInvoice',
+                          'invoiceId',
+                          invoiceId,
+                        )}
                       >
                         <input type="hidden" name="invoiceId" value={invoiceId} />
                         <label
@@ -2913,11 +3627,41 @@
                       >{translate('Issued history is immutable')}</span
                     >
                   {:else if invoiceStateValue === 'draft'}
-                    <form method="POST" action="?/approveInvoice">
+                    {#if problemFor('approveInvoice', 'invoiceId', invoiceId)}
+                      <ProblemNotice
+                        problem={billingProblem!}
+                        kind="error"
+                        remedyLinks={problemRemedyLinks}
+                      />
+                    {/if}
+                    <form
+                      method="POST"
+                      action="?/approveInvoice"
+                      use:recoverBillingForm={recoveryOptions(
+                        'approveInvoice',
+                        'invoiceId',
+                        invoiceId,
+                      )}
+                    >
                       <input type="hidden" name="invoiceId" value={invoiceId} />
                       <button type="submit">{translate('Approve')}</button>
                     </form>
-                    <form method="POST" action="?/deleteInvoice">
+                    {#if problemFor('deleteInvoice', 'invoiceId', invoiceId)}
+                      <ProblemNotice
+                        problem={billingProblem!}
+                        kind="error"
+                        remedyLinks={problemRemedyLinks}
+                      />
+                    {/if}
+                    <form
+                      method="POST"
+                      action="?/deleteInvoice"
+                      use:recoverBillingForm={recoveryOptions(
+                        'deleteInvoice',
+                        'invoiceId',
+                        invoiceId,
+                      )}
+                    >
                       <input type="hidden" name="version" value={invoice.version} />
                       <input type="hidden" name="invoiceId" value={invoiceId} />
                       <label
@@ -2931,7 +3675,22 @@
                       <button type="submit" class="danger">{translate('Discard draft')}</button>
                     </form>
                   {:else if invoiceStateValue === 'approved'}
-                    <form method="POST" action="?/recalculateApprovedInvoice">
+                    {#if problemFor('recalculateApprovedInvoice', 'invoiceId', invoiceId)}
+                      <ProblemNotice
+                        problem={billingProblem!}
+                        kind="error"
+                        remedyLinks={problemRemedyLinks}
+                      />
+                    {/if}
+                    <form
+                      method="POST"
+                      action="?/recalculateApprovedInvoice"
+                      use:recoverBillingForm={recoveryOptions(
+                        'recalculateApprovedInvoice',
+                        'invoiceId',
+                        invoiceId,
+                      )}
+                    >
                       <input type="hidden" name="version" value={invoice.version} />
                       <input type="hidden" name="invoiceId" value={invoiceId} />
                       <label
@@ -2945,7 +3704,22 @@
                       <button type="submit">{translate('Recalculate and review draft')}</button>
                     </form>
                     {#if data.user.role === 'owner_admin'}
-                      <form method="POST" action="?/deleteInvoice">
+                      {#if problemFor('deleteInvoice', 'invoiceId', invoiceId)}
+                        <ProblemNotice
+                          problem={billingProblem!}
+                          kind="error"
+                          remedyLinks={problemRemedyLinks}
+                        />
+                      {/if}
+                      <form
+                        method="POST"
+                        action="?/deleteInvoice"
+                        use:recoverBillingForm={recoveryOptions(
+                          'deleteInvoice',
+                          'invoiceId',
+                          invoiceId,
+                        )}
+                      >
                         <input type="hidden" name="version" value={invoice.version} />
                         <input type="hidden" name="invoiceId" value={invoiceId} />
                         <label
@@ -2959,10 +3733,22 @@
                         <button class="danger">{translate('Discard draft')}</button>
                       </form>
                     {/if}
+                    {#if problemFor('issueInvoice', 'invoiceId', invoiceId)}
+                      <ProblemNotice
+                        problem={billingProblem!}
+                        kind="error"
+                        remedyLinks={problemRemedyLinks}
+                      />
+                    {/if}
                     <form
                       method="POST"
                       action="?/issueInvoice"
                       class="billing-section__primary-form"
+                      use:recoverBillingForm={recoveryOptions(
+                        'issueInvoice',
+                        'invoiceId',
+                        invoiceId,
+                      )}
                     >
                       <input type="hidden" name="invoiceId" value={invoiceId} />
                       <label
@@ -2976,7 +3762,22 @@
                     </form>
                   {:else if ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(invoiceStateValue) || paymentDraft?.invoiceId === invoiceId}
                     {#if isCreditNote && invoiceStateValue === 'overdue'}
-                      <form method="POST" action="?/restoreCreditNoteState">
+                      {#if problemFor('restoreCreditNoteState', 'invoiceId', invoiceId)}
+                        <ProblemNotice
+                          problem={billingProblem!}
+                          kind="error"
+                          remedyLinks={problemRemedyLinks}
+                        />
+                      {/if}
+                      <form
+                        method="POST"
+                        action="?/restoreCreditNoteState"
+                        use:recoverBillingForm={recoveryOptions(
+                          'restoreCreditNoteState',
+                          'invoiceId',
+                          invoiceId,
+                        )}
+                      >
                         <input type="hidden" name="invoiceId" value={invoiceId} />
                         <p>
                           {translate(
@@ -3008,6 +3809,25 @@
                             'Record money received from the client. That is the only path that counts as collected.',
                           )}
                         </p>
+                        {#if paymentDraft?.invoiceId === invoiceId && paymentFieldErrors.length > 1}
+                          <div
+                            data-ui="validation-summary"
+                            data-billing-payment-summary
+                            tabindex="-1"
+                            role="alert"
+                          >
+                            <strong>{translate('Check the highlighted fields')}</strong>
+                            <ul>
+                              {#each paymentFieldErrors as field (field.name)}
+                                <li>
+                                  <a href={`#billing-payment-${field.name}`}
+                                    >{translate(field.label)}: {field.message}</a
+                                  >
+                                </li>
+                              {/each}
+                            </ul>
+                          </div>
+                        {/if}
                         <form
                           method="POST"
                           action="?/recordPayment"
@@ -3017,6 +3837,7 @@
                           <input type="hidden" name="invoiceId" value={invoiceId} />
                           <label
                             ><span>{translate('Payment amount')}</span><input
+                              id="billing-payment-amount"
                               name="amount"
                               inputmode="decimal"
                               type="number"
@@ -3029,36 +3850,71 @@
                               value={paymentDraft?.invoiceId === invoiceId
                                 ? paymentDraft.amount
                                 : ''}
+                              aria-invalid={Boolean(paymentError('amount'))}
+                              aria-describedby={paymentError('amount')
+                                ? 'billing-payment-amount-error'
+                                : undefined}
                               required
-                            /></label
+                            />{#if paymentError('amount')}<small
+                                id="billing-payment-amount-error"
+                                data-field-error-for="billing-payment-amount"
+                                role="alert">{paymentError('amount')}</small
+                              >{/if}</label
                           >
                           <label
                             ><span>{translate('Currency')}</span><input
+                              id="billing-payment-currency"
                               name="currency"
                               value={currency}
                               readonly
                               aria-readonly="true"
+                              aria-invalid={Boolean(paymentError('currency'))}
+                              aria-describedby={paymentError('currency')
+                                ? 'billing-payment-currency-error'
+                                : undefined}
                               required
-                            /></label
+                            />{#if paymentError('currency')}<small
+                                id="billing-payment-currency-error"
+                                data-field-error-for="billing-payment-currency"
+                                role="alert">{paymentError('currency')}</small
+                              >{/if}</label
                           >
                           <label
                             ><span>{translate('Received on')}</span><input
+                              id="billing-payment-receivedOn"
                               name="receivedOn"
                               type="date"
                               value={paymentDraft?.invoiceId === invoiceId
-                                ? paymentDraft.receivedOn || todayIso
+                                ? paymentDraft.receivedOn
                                 : todayIso}
+                              aria-invalid={Boolean(paymentError('receivedOn'))}
+                              aria-describedby={paymentError('receivedOn')
+                                ? 'billing-payment-receivedOn-error'
+                                : undefined}
                               required
-                            /></label
+                            />{#if paymentError('receivedOn')}<small
+                                id="billing-payment-receivedOn-error"
+                                data-field-error-for="billing-payment-receivedOn"
+                                role="alert">{paymentError('receivedOn')}</small
+                              >{/if}</label
                           >
                           <label
                             ><span>{translate('Payment reference / note')}</span><input
+                              id="billing-payment-reference"
                               name="reference"
                               value={paymentDraft?.invoiceId === invoiceId
                                 ? paymentDraft.reference
                                 : ''}
+                              aria-invalid={Boolean(paymentError('reference'))}
+                              aria-describedby={paymentError('reference')
+                                ? 'billing-payment-reference-error'
+                                : undefined}
                               required
-                            /></label
+                            />{#if paymentError('reference')}<small
+                                id="billing-payment-reference-error"
+                                data-field-error-for="billing-payment-reference"
+                                role="alert">{paymentError('reference')}</small
+                              >{/if}</label
                           >
                           <input
                             name="idempotencyKey"
@@ -3072,17 +3928,32 @@
                         </form>
                       </details>
                     {/if}
-                    <details class="billing-section__action-panel">
+                    <details
+                      class="billing-section__action-panel"
+                      open={problemFor('createInvoiceAdjustment', 'originalInvoiceId', invoiceId)}
+                    >
                       <summary>{translate('Create adjustment')}</summary>
                       <p>
                         {translate(
                           'Open a credit or debit draft. The issued bill stays unchanged.',
                         )}
                       </p>
+                      {#if problemFor('createInvoiceAdjustment', 'originalInvoiceId', invoiceId)}
+                        <ProblemNotice
+                          problem={billingProblem!}
+                          kind="error"
+                          remedyLinks={problemRemedyLinks}
+                        />
+                      {/if}
                       <form
                         method="POST"
                         action="?/createInvoiceAdjustment"
                         class="billing-section__payment-form"
+                        use:recoverBillingForm={recoveryOptions(
+                          'createInvoiceAdjustment',
+                          'originalInvoiceId',
+                          invoiceId,
+                        )}
                       >
                         <input type="hidden" name="originalInvoiceId" value={invoiceId} />
                         <label
@@ -3111,7 +3982,11 @@
                         <button type="submit">{translate('Create adjustment')}</button>
                       </form>
                     </details>
-                    <details class="billing-section__action-panel">
+                    <details
+                      class="billing-section__action-panel"
+                      open={problemFor('sendInvoice', 'invoiceId', invoiceId) ||
+                        problemFor('voidInvoice', 'invoiceId', invoiceId)}
+                    >
                       <summary>{translate('More actions')}</summary>
                       {#if invoiceStateValue === 'issued'}
                         <p>
@@ -3119,16 +3994,43 @@
                             'Mark sent records a manual delivery only. It does not send an email.',
                           )}
                         </p>
-                        <form method="POST" action="?/sendInvoice">
+                        {#if problemFor('sendInvoice', 'invoiceId', invoiceId)}
+                          <ProblemNotice
+                            problem={billingProblem!}
+                            kind="error"
+                            remedyLinks={problemRemedyLinks}
+                          />
+                        {/if}
+                        <form
+                          method="POST"
+                          action="?/sendInvoice"
+                          use:recoverBillingForm={recoveryOptions(
+                            'sendInvoice',
+                            'invoiceId',
+                            invoiceId,
+                          )}
+                        >
                           <input type="hidden" name="invoiceId" value={invoiceId} />
                           <input type="hidden" name="idempotencyKey" value={`send-${invoiceId}`} />
                           <button type="submit">{translate('Mark sent')}</button>
                         </form>
                       {/if}
+                      {#if problemFor('voidInvoice', 'invoiceId', invoiceId)}
+                        <ProblemNotice
+                          problem={billingProblem!}
+                          kind="error"
+                          remedyLinks={problemRemedyLinks}
+                        />
+                      {/if}
                       <form
                         method="POST"
                         action="?/voidInvoice"
                         class="billing-section__payment-form"
+                        use:recoverBillingForm={recoveryOptions(
+                          'voidInvoice',
+                          'invoiceId',
+                          invoiceId,
+                        )}
                       >
                         <input type="hidden" name="invoiceId" value={invoiceId} />
                         <input type="hidden" name="idempotencyKey" value={`void-${invoiceId}`} />
@@ -3860,6 +4762,39 @@
   .billing-section__invoice-actions form > label,
   .billing-section__payment-form > label {
     min-width: 11rem;
+  }
+
+  .billing-section__payment-form [data-field-error-for] {
+    display: block;
+    margin-block-start: 0.25rem;
+    color: var(--ja-danger, #a40f18);
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .billing-section__payment-form [aria-invalid='true'] {
+    border-color: var(--ja-danger, #a40f18);
+  }
+
+  .billing-section :global([data-billing-recovery-error]) {
+    display: block;
+    margin-block-start: 0.25rem;
+    color: var(--ja-danger, #a40f18);
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .billing-section :global([data-billing-recovery-invalid]) {
+    border-color: var(--ja-danger, #a40f18);
+  }
+
+  .billing-section :global([data-billing-recovery-summary]) {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.75rem;
+    border: 1px solid var(--ja-danger, #a40f18);
+    border-radius: 0.5rem;
+    color: var(--ja-danger, #a40f18);
   }
 
   .billing-section__action-panel,

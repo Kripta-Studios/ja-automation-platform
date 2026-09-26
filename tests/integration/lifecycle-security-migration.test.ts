@@ -1,3 +1,5 @@
+import { readdirSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   closeB5LifecycleSecurityFixture,
@@ -7,6 +9,11 @@ import {
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
 const fixtures: B5LifecycleSecurityFixture[] = [];
+const latestMigrationVersion = Math.max(
+  ...readdirSync(resolve(process.cwd(), 'migrations'))
+    .filter((file) => /^\d{4}_.+\.sql$/u.test(file))
+    .map((file) => Number(file.slice(0, 4))),
+);
 
 afterEach(() => {
   for (const fixture of fixtures.splice(0)) closeB5LifecycleSecurityFixture(fixture);
@@ -36,7 +43,7 @@ describe('B5 lifecycle/security migration integration', () => {
       value.sqlite.prepare('SELECT MAX(version) AS version FROM schema_migration').get() as {
         version: number;
       },
-    ).toEqual({ version: 49 });
+    ).toEqual({ version: latestMigrationVersion });
   });
 
   it('permits the repository archive flow but never reactivates or deletes history', () => {

@@ -1883,7 +1883,7 @@ export class PortalRepository {
     const timestamp = now();
     const result = this.sqlite
       .prepare(
-        "UPDATE time_entry SET billability_state=?,finance_approved_by=?,finance_approved_at=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='approved' AND invoice_id IS NULL AND billing_status='unlocked' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id AND correction.approval_state<>'rejected')",
+        "UPDATE time_entry SET billability_state=?,finance_approved_by=?,finance_approved_at=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='approved' AND billability_state='pending' AND finance_approved_at IS NULL AND invoice_id IS NULL AND billing_status='unlocked' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id AND correction.approval_state<>'rejected')",
       )
       .run(billable ? 'billable' : 'non_billable', principal.userId, timestamp, timestamp, id);
     if (result.changes !== 1) throw new ConflictError('Approved unlocked time required');
@@ -4913,7 +4913,7 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     return this.sqlite
       .prepare(
-        "SELECT tp.id,tp.name,tp.currency,tp.effective_from,tp.legal_entity_id,le.code legal_entity_code FROM tax_profile tp LEFT JOIN legal_entity le ON le.id=tp.legal_entity_id WHERE tp.status='active' AND (tp.legal_entity_id IS NULL OR le.status='active') ORDER BY tp.name",
+        "SELECT tp.id,tp.name,tp.currency,tp.effective_from,tp.legal_entity_id,tp.status,le.code legal_entity_code FROM tax_profile tp LEFT JOIN legal_entity le ON le.id=tp.legal_entity_id WHERE tp.status='active' AND (tp.legal_entity_id IS NULL OR le.status='active') ORDER BY tp.name",
       )
       .all();
   }

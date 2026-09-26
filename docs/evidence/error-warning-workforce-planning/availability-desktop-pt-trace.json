@@ -1,0 +1,22 @@
+[
+  {
+    "step": "availability-success-enhanced",
+    "saved": true
+  },
+  {
+    "step": "availability-invalid-native",
+    "code": "ACTION_VALIDATION_AVAILABILITY_FIELDS",
+    "retained": true
+  },
+  {
+    "step": "availability-stale-native",
+    "code": "AVAILABILITY_CHANGED",
+    "retained": true,
+    "scrollBefore": 1198,
+    "scrollAfter": 1198
+  },
+  {
+    "step": "other-worker-role-denied",
+    "code": "AVAILABILITY_OWNERSHIP_REQUIRED"
+  }
+]

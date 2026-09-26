@@ -70,6 +70,13 @@ function dayOffset(days: number): string {
 }
 
 describe('project-centered billing setup', () => {
+  it('exposes active tax profiles to the billing setup selector', () => {
+    const value = setup();
+    expect(value.repository.listTaxProfiles(value.finance)).toContainEqual(
+      expect.objectContaining({ id: value.tax.id, name: 'Setup zero tax', status: 'active' }),
+    );
+  });
+
   it('saves billing rules without a tax profile', () => {
     const value = setup();
     const result = value.service.save(
@@ -390,13 +397,8 @@ describe('project-centered billing setup', () => {
     ).toThrow(ConflictError);
   });
 
-  it('keeps an ambiguous worker assignment visible as needing review', () => {
+  it('keeps a worker with missing terms visible as needing review', () => {
     const value = setup();
-    value.repository.assignWorker(value.owner, {
-      projectId: value.project.id,
-      workerId: value.worker.userId,
-      startsOn: '2026-02-01',
-    });
     expect(value.service.peopleReview(value.finance, value.project.id, '2026-08-15')).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: value.worker.userId, needsReview: true }),

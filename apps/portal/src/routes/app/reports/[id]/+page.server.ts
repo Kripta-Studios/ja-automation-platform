@@ -5,13 +5,26 @@ import {
 } from '@ja/schemas';
 import { error, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
-import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/action-message';
+import { actionFail, actionSuccess } from '$lib/server/actions/action-message';
 import { openPortalRepository } from '$lib/server/portal-repository';
-import { reportActions } from '$lib/server/actions/operations-actions';
+import { reportActionFailure, reportActions } from '$lib/server/actions/operations-actions';
 import { formObject } from '$lib/server/action-utils';
+import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals, params }) => {
+function reportValues(object: Record<string, unknown>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(object).flatMap(([key, value]) =>
+      typeof value === 'string'
+        ? [[key, value]]
+        : key === 'safetyRelated' && typeof value === 'boolean'
+          ? [[key, value ? 'on' : 'off']]
+          : [],
+    ),
+  );
+}
+
+export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
   const context = openPortalRepository(locals);
   try {
@@ -65,6 +78,11 @@ export const load: PageServerLoad = ({ locals, params }) => {
     }));
     return {
       user: locals.user,
+      locale: resolvePortalLocalePreference(
+        url.searchParams.get('lang'),
+        cookies.get('ja.portal.locale'),
+        cookies.get('ja-portal-locale'),
+      ),
       correctionRequestId: randomUUID(),
       detail: {
         ...detail,
@@ -91,21 +109,47 @@ export const actions: Actions = {
   updateReport: async ({ locals, request, params }) => {
     const object = await formObject(request);
     object.safetyRelated = object.safetyRelated === 'on';
+    const values = reportValues(object);
+    if (!locals.user)
+      return actionFail(401, 'action.error.unauthenticated', {}, undefined, {
+        actionName: 'updateReport',
+        values,
+        code: 'REPORT_SIGN_IN_REQUIRED',
+        remedies: [{ id: 'sign_in_again' }],
+      });
     const type = object.type;
     if (object.id !== params.id || (type !== 'daily' && type !== 'technical'))
-      return actionFail(400, 'action.validation.report', {}, 'Invalid report update');
-    const context = openPortalRepository(locals);
+      return actionFail(
+        400,
+        'problem.report.routeMismatch',
+        {},
+        'This report link and form no longer match. Review the current report.',
+        {
+          actionName: 'updateReport',
+          values,
+          code: 'REPORT_ROUTE_MISMATCH',
+          remedies: [{ id: 'review_report' }],
+        },
+      );
+    let context: ReturnType<typeof openPortalRepository> | undefined;
     try {
       if (type === 'daily') {
         const parsed = dailyReportInputSchema.and(versionedRecordSchema).safeParse(object);
         if (!parsed.success)
           return actionFail(
             400,
-            'action.validation.dailyReportFields',
+            'problem.report.fieldsInvalid',
             {},
-            'Check the daily report fields',
-            { fields: parsed.error.flatten().fieldErrors },
+            'Review the highlighted daily report fields before saving.',
+            {
+              actionName: 'updateReport',
+              values,
+              code: 'REPORT_FIELDS_INVALID',
+              fieldErrors: parsed.error.flatten().fieldErrors,
+              remedies: [{ id: 'review_report_fields' }],
+            },
           );
+        context = openPortalRepository(locals);
         const result = context.repository.updateDailyReport(context.principal, parsed.data);
         const changedFields = 'changedFields' in result ? result.changedFields : [];
         return actionSuccess(
@@ -122,11 +166,18 @@ export const actions: Actions = {
       if (!parsed.success)
         return actionFail(
           400,
-          'action.validation.technicalReportFields',
+          'problem.report.fieldsInvalid',
           {},
-          'Check the PLC report fields',
-          { fields: parsed.error.flatten().fieldErrors },
+          'Review the highlighted report fields before saving.',
+          {
+            actionName: 'updateReport',
+            values,
+            code: 'REPORT_FIELDS_INVALID',
+            fieldErrors: parsed.error.flatten().fieldErrors,
+            remedies: [{ id: 'review_report_fields' }],
+          },
         );
+      context = openPortalRepository(locals);
       const result = context.repository.updateTechnicalReport(context.principal, parsed.data);
       const changedFields = 'changedFields' in result ? result.changedFields : [];
       return actionSuccess(
@@ -139,9 +190,9 @@ export const actions: Actions = {
           : 'No report fields changed',
       );
     } catch (error) {
-      return actionFailure(error);
+      return reportActionFailure(error, { ...values, actionName: 'updateReport' });
     } finally {
-      context.sqlite.close();
+      context?.sqlite.close();
     }
   },
   createCorrectionDraft: async (event) => {

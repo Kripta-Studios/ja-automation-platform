@@ -224,7 +224,7 @@ for (const role of ['owner', 'manager'] as const) {
     approveOutsideBrowser(fixture.databasePath, fixture.staleId);
     const result = await submitApproval(page, form);
     expect(JSON.stringify(result.data)).toContain('APPROVAL_RECORD_NOT_SUBMITTED');
-    const notice = page.locator('[data-approval-problem]');
+    const notice = page.locator('[data-approval-problem] [data-ui="problem-notice"]');
     await expect(notice).toBeFocused();
     await expect(notice).toContainText(
       locale === 'es' ? 'Este registro ya no está enviado' : 'This record is no longer submitted',
@@ -407,10 +407,16 @@ for (const role of ['finance', 'owner'] as const) {
       expect((await conflictResponse).status()).toBeGreaterThanOrEqual(400);
       await page.waitForLoadState('networkidle');
       const notice = page.locator('[data-ui="billing-section"] [data-ui="problem-notice"]');
-      await expect(notice).toHaveAttribute('data-problem-code', 'BILLING_PAYMENT_BLOCKED');
+      await expect(notice).toHaveCount(1);
+      await expect(notice).toHaveAttribute(
+        'data-problem-code',
+        'BILLING_PAYMENT_INVOICE_UNAVAILABLE',
+      );
       await expect(notice).toBeFocused();
       await expect(notice).toContainText(
-        locale === 'pt' ? 'O pagamento não pode ser registrado' : 'The payment cannot be recorded',
+        locale === 'pt'
+          ? 'O pagamento exige uma fatura emitida'
+          : 'The payment requires an issued invoice',
       );
       await expect(notice).not.toContainText(/problem\.|\{\w+\}/);
       await expect(
@@ -426,7 +432,11 @@ for (const role of ['finance', 'owner'] as const) {
         page.locator('form[action="?/recordPayment"] button[type="submit"]'),
       ).toBeDisabled();
       expect(paymentCount(invoice.databasePath, invoice.id)).toBe(existingCount);
-      trace.push({ step: 'stale-payment', code: 'BILLING_PAYMENT_BLOCKED', unchanged: true });
+      trace.push({
+        step: 'stale-payment',
+        code: 'BILLING_PAYMENT_INVOICE_UNAVAILABLE',
+        unchanged: true,
+      });
     } finally {
       setInvoiceState(invoice.databasePath, invoice.id, 'partially_paid');
     }

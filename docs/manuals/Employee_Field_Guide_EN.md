@@ -1,0 +1,71 @@
+# Employee field guide — revision 2026-09-22
+
+> Use only the portal address and verified support route stated in your invitation. This guide uses synthetic examples. Never share a password, MFA code, recovery code, receipt or session.
+
+## 1. Sign in with your invitation
+
+Choose English, Spanish or Portuguese with the language selector on the login page or in the portal. English is the default when no preference is saved. Your choice stays in this browser after reloading, signing out and signing in again.
+
+If the invitation is linked to a company mailbox, open it from that mailbox and sign in with the account named in the message. If you were invited as an external worker, use the single-use invitation link to create your account. There is no public sign-up. If access or password help is needed, contact admin@j-aautomation.com; do not send passwords or security codes.
+
+MFA is optional. If you choose it, open **Profile**, follow **Set up MFA**, store the one-time recovery codes privately, enter the authenticator code and choose **Verify MFA**. Ordinary portal work does not require an extra step-up request. Never send a password, code or session to another person.
+
+## 2. Today and the correct project
+
+Start on **Today** and select only the project where the work happened. If it is missing, ask a manager to check your assignment; do not record hours or expenses on another project. On a shared device, finish with **Sign out**.
+
+Project, worker and client selectors include search inside the dropdown. Use the arrows and Enter to select or Escape to close without changing the selection.
+
+Use **Go to section** in the header, or **Ctrl/⌘ K**, to find a destination available to your profile. Type part of its name, use the arrow keys and Enter, or Escape to return to your previous position. This searches section names; the workspace search still finds records.
+
+In Time, Expenses and Reports, **Today**, **This week**, **This month** and **Last month** set date filters using your browser's local calendar. Weeks run Monday to Sunday. The other filters stay selected. Select the × on one active filter to remove only that criterion; **Clear filters** removes all criteria. In the weekly timesheet, **Previous week**, **This week** and **Next week** change the displayed week and the register dates together, retaining project, category and status filters.
+
+<!-- screenshot:worker:section-navigator -->
+
+**Today** separates every assignment overlapping the current UTC day from upcoming work. An overnight assignment can appear on both affected days. Read the full dates and UTC label; use **Show more assignments** for further upcoming assignments. Planned work never creates actual time. Open a project only through your authorized link.
+
+## 3. Record actual work and travel
+
+Open **Time**. Choose **Log time** and the assigned project. The work date defaults to today in your browser's local timezone; change it to the actual work date when necessary. Enter the category, factual description, **Start time** and **End time** using the local clock in the project's timezone, without converting to UTC. The end must be later on the same day. Enter an optional **Break (minutes)**, or leave it blank or zero for no break. The portal calculates net duration as end minus start minus break; the break must be shorter than the interval. For example, 08:15–16:15 with a 60-minute break records 7 hours. Save the draft. A customer minimum or a planned ten-hour day never changes the actual time you report. Record travel separately when the project permits it; travel pay and customer billing can follow different rules. Review the date, interval, net duration and factual description before submitting.
+
+Older entries may contain only a duration. Their clocks remain empty until you choose **Add start and end times** in an editable draft or authorized correction and enter the actual times. Do not infer them from a planned shift or the duration.
+
+<!-- screenshot:worker:time-entry -->
+
+Draft means you can still review it. Submitted means it awaits review. If a reviewer returns it, read the reason and submit the requested correction. An approved record stays in history: use the correction flow with a reason and let the authorized reviewer update it. Do not delete, duplicate or overwrite approved time.
+
+## 4. Expenses, receipt uploads and private files
+
+Open **Expenses**, choose the project, service date, category, amount, currency and the real payer. Select yourself only when you actually paid the expense. Attach one readable JPEG, PNG or PDF receipt and check that the complete receipt is visible before submitting. Keep the original until the upload is confirmed.
+
+If an upload fails, is pending scan/quarantine, or is rejected, read the portal message, check the file type and connection, then retry from the same draft. If the status is unclear, refresh **Expenses** and check before uploading again; this avoids duplicate submissions. Do not use a company-paid purchase as an employee advance and do not upload replacement or altered evidence. Project documents and downloads remain private and role-scoped; a link does not grant access.
+
+## 5. Daily and Technical / PLC reports
+
+Use **Reports** for the report required by the work. **Daily** records a factual field summary. **Technical / PLC** records the system, work performed, validation, remaining risks and permitted attachments. The generated report PDF shows the persisted author's name and account email when available. Keep technical facts accurate and do not claim a test passed when it did not. Customer acceptance is a separate, money-free action; never sign for a customer.
+
+## 6. My Pay and payment status
+
+**My Pay** is your private view and shows only your own compensation and reimbursable expenses. An **estimated** amount is a working calculation. **Approved** means the authorized review accepted the amount. **Scheduled** means a payment is planned for the shown expected date. **Paid** means the payment record has an actual paid date; a scheduled date is not proof of payment. Ask the administrator if a status, expected date or actual date is unclear.
+
+This private statement is not a payslip or tax document. Never infer a customer rate or another worker’s pay from it or from a customer invoice.
+
+New period reports and your private worker statement show recorded start/end intervals, net hours and any recorded break in their web views and PDFs. Entries without clocks retain their duration; previously issued files and finalized history are unchanged. Daily and Technical / PLC narratives remain separate records and do not acquire an assumed time interval.
+
+## 7. Connection and offline capture
+
+Use offline capture only when the portal says it is enabled. Keep the device secure, reconnect and confirm that the saved or synced state is shown before signing out. If offline is disabled, wait for a connection and retry through the portal rather than making a duplicate record.
+
+## 8. Calendars and your availability
+
+In **Projects**, select a day in the project calendar to see its agenda and open an authorized project. Planned work never creates actual hours. In **Profile**, the availability calendar shows your latest 200 windows. Choose a day to add a UTC availability window or an existing item to edit its state, start/end and note. Select Available, Unavailable or Tentative, save and reopen to verify. If the version is stale, reload before trying again. A project end date includes the last day; timed availability ends are exclusive.
+
+## 9. Help, Activity Inbox and access limits
+
+Open **Help** to download the guide assigned to your role. **Activity Inbox** at `/app/notifications` can link to a permitted source record; reading a notification is not approval. Workers use only their own assigned projects, records, files and My Pay. Finance, Billing, Accounting, Audit, staff follow-up, Closeout and approval queues are not Worker flows; an access denial is a boundary, not an error to bypass. Email is not the system of record: use the portal and admin@j-aautomation.com.
+
+Time, Expense and Daily/Technical entry forms keep their entered values after a validation or connection failure. Correct the highlighted fields; the validation summary clears as those errors are fixed. During a save, wait for the result before editing. If the portal cannot confirm the save, check the register before submitting again. If it confirms a save but cannot refresh the register, close the form and refresh; do not resubmit. Closing, Escape, Back or reloading asks before discarding changed entries. Searching a selector without choosing another value does not change the form. This protection is not a saved draft or recovery after closing the browser.
+
+Open **Notifications** from the section navigator or account menu. **All** and **Unread** filter the latest 50 notices loaded by the inbox. Use **Mark as read** for the selected notice; opening the inbox does not mark everything read. **Notification details** and source links retain their normal access checks. Marking a notice read does not approve its business record.
+
+<!-- screenshot:worker:activity-inbox -->

@@ -1,0 +1,41 @@
+{
+  "candidateCommit": "6a08b733c270bafacf1c23fe97f1c8ba8af5221c",
+  "role": "owner",
+  "locale": "es",
+  "viewport": "desktop",
+  "fixture": "syntactically valid absent UUID posted from rendered status form through browser DevTools-style fetch",
+  "response": {
+    "transportStatus": 200,
+    "actionStatus": 400,
+    "type": "failure",
+    "code": "ACTION_ERROR_INVALID",
+    "messageKey": "action.error.invalid",
+    "remedies": [],
+    "fieldErrors": {}
+  },
+  "noWrite": {
+    "before": {
+      "worker": {
+        "status": "active",
+        "version": 1
+      },
+      "audits": 331
+    },
+    "after": {
+      "worker": {
+        "status": "active",
+        "version": 1
+      },
+      "absent": null,
+      "audits": 331
+    }
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "http": [
+      "503 /j-aautomation/app/api/offline/identity",
+      "503 /j-aautomation/app/api/offline/identity"
+    ]
+  }
+}

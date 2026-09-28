@@ -1,0 +1,18 @@
+{
+  "code": "ACCESS_MAILBOX_ALIAS_INVALID",
+  "requestKeySha256": "3a5b8190a39168f23df289dd8bf849d25bfbf66cfedee452131b69ed4746e5ae",
+  "sameKey": true,
+  "externalCommandRecorded": false,
+  "tab": "mailboxes",
+  "retainedAlias": true,
+  "retainedName": true,
+  "retainedQuota": true,
+  "retainedRole": true,
+  "scrollBefore": 0,
+  "scrollAfter": 0,
+  "focus": {
+    "id": "validation-create-mailbox-sheet-form-1-summary",
+    "role": "alert",
+    "tag": "DIV"
+  }
+}

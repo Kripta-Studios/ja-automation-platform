@@ -1,0 +1,526 @@
+{
+  "target": "deployed production",
+  "mode": "read-only GET/filter navigation; no follow-up action",
+  "testedAtUtc": "2026-09-27T17:25:07.122Z",
+  "roles": [
+    {
+      "role": "finance",
+      "viewport": 390,
+      "locale": "en",
+      "login": "signed-in",
+      "scenarios": [
+        {
+          "name": "base-page",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/reports/review",
+            "queryKeys": [
+              "lang"
+            ],
+            "requested": {
+              "project": [],
+              "from": [],
+              "to": [],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "report-review",
+            "errorText": null,
+            "filterFormPresent": true,
+            "filterNoticePresent": false,
+            "fromValue": "",
+            "toValue": "",
+            "selectedProjectPresent": false,
+            "visibleReportCount": 0,
+            "focusTag": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "valid-period",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/reports/review",
+            "queryKeys": [
+              "project",
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "project": [
+                ":record"
+              ],
+              "from": [
+                "2026-09-01"
+              ],
+              "to": [
+                "2026-09-30"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "report-review",
+            "errorText": null,
+            "filterFormPresent": true,
+            "filterNoticePresent": false,
+            "fromValue": "2026-09-01",
+            "toValue": "2026-09-30",
+            "selectedProjectPresent": true,
+            "visibleReportCount": 0,
+            "focusTag": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "invalid-date",
+          "status": 400,
+          "ui": {
+            "pathname": "/j-aautomation/app/reports/review",
+            "queryKeys": [
+              "project",
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "project": [
+                ":record"
+              ],
+              "from": [
+                "2026-02-30"
+              ],
+              "to": [
+                "2026-03-01"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Dashboard Portal Portal Error The action could not be completed. Try again shortly. Back",
+            "filterFormPresent": false,
+            "filterNoticePresent": false,
+            "fromValue": null,
+            "toValue": null,
+            "selectedProjectPresent": false,
+            "visibleReportCount": 0,
+            "focusTag": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "reversed-date",
+          "status": 400,
+          "ui": {
+            "pathname": "/j-aautomation/app/reports/review",
+            "queryKeys": [
+              "project",
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "project": [
+                ":record"
+              ],
+              "from": [
+                "2026-09-20"
+              ],
+              "to": [
+                "2026-09-19"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Dashboard Portal Portal Error The action could not be completed. Try again shortly. Back",
+            "filterFormPresent": false,
+            "filterNoticePresent": false,
+            "fromValue": null,
+            "toValue": null,
+            "selectedProjectPresent": false,
+            "visibleReportCount": 0,
+            "focusTag": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "duplicate-start",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/reports/review",
+            "queryKeys": [
+              "project",
+              "from",
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "project": [
+                ":record"
+              ],
+              "from": [
+                "2026-09-01",
+                "2026-09-02"
+              ],
+              "to": [
+                "2026-09-30"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "report-review",
+            "errorText": null,
+            "filterFormPresent": true,
+            "filterNoticePresent": false,
+            "fromValue": "2026-09-01",
+            "toValue": "2026-09-30",
+            "selectedProjectPresent": true,
+            "visibleReportCount": 0,
+            "focusTag": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "unavailable-project",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/reports/review",
+            "queryKeys": [
+              "project",
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "project": [
+                ":record"
+              ],
+              "from": [
+                "2026-09-01"
+              ],
+              "to": [
+                "2026-09-30"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "report-review",
+            "errorText": null,
+            "filterFormPresent": true,
+            "filterNoticePresent": false,
+            "fromValue": "2026-09-01",
+            "toValue": "2026-09-30",
+            "selectedProjectPresent": false,
+            "visibleReportCount": 0,
+            "focusTag": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "rendered-reversed-form",
+          "startingScroll": 97,
+          "ui": {
+            "pathname": "/j-aautomation/app/reports/review",
+            "queryKeys": [
+              "lang",
+              "project",
+              "from",
+              "to"
+            ],
+            "requested": {
+              "project": [
+                ":record"
+              ],
+              "from": [
+                "2026-09-20"
+              ],
+              "to": [
+                "2026-09-19"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Dashboard Portal Portal Error The action could not be completed. Try again shortly. Back",
+            "filterFormPresent": false,
+            "filterNoticePresent": false,
+            "fromValue": null,
+            "toValue": null,
+            "selectedProjectPresent": false,
+            "visibleReportCount": 0,
+            "focusTag": "body",
+            "scrollY": 0
+          }
+        }
+      ],
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [
+          "Failed to load resource: the server responded with a status of 400 ()",
+          "Failed to load resource: the server responded with a status of 400 ()"
+        ],
+        "reviewResponses": [
+          "200 document",
+          "200 document",
+          "400 document",
+          "400 document",
+          "200 document",
+          "200 document",
+          "200 document",
+          "200 fetch"
+        ]
+      }
+    },
+    {
+      "role": "auditor",
+      "viewport": 1440,
+      "locale": "es",
+      "login": "signed-in",
+      "scenarios": [
+        {
+          "name": "base-page",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/reports/review",
+            "queryKeys": [
+              "lang"
+            ],
+            "requested": {
+              "project": [],
+              "from": [],
+              "to": [],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "filterFormPresent": false,
+            "filterNoticePresent": false,
+            "fromValue": null,
+            "toValue": null,
+            "selectedProjectPresent": false,
+            "visibleReportCount": 0,
+            "focusTag": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "valid-period",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/reports/review",
+            "queryKeys": [
+              "project",
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "project": [
+                ":record"
+              ],
+              "from": [
+                "2026-09-01"
+              ],
+              "to": [
+                "2026-09-30"
+              ],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "filterFormPresent": false,
+            "filterNoticePresent": false,
+            "fromValue": null,
+            "toValue": null,
+            "selectedProjectPresent": false,
+            "visibleReportCount": 0,
+            "focusTag": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "invalid-date",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/reports/review",
+            "queryKeys": [
+              "project",
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "project": [
+                ":record"
+              ],
+              "from": [
+                "2026-02-30"
+              ],
+              "to": [
+                "2026-03-01"
+              ],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "filterFormPresent": false,
+            "filterNoticePresent": false,
+            "fromValue": null,
+            "toValue": null,
+            "selectedProjectPresent": false,
+            "visibleReportCount": 0,
+            "focusTag": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "reversed-date",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/reports/review",
+            "queryKeys": [
+              "project",
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "project": [
+                ":record"
+              ],
+              "from": [
+                "2026-09-20"
+              ],
+              "to": [
+                "2026-09-19"
+              ],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "filterFormPresent": false,
+            "filterNoticePresent": false,
+            "fromValue": null,
+            "toValue": null,
+            "selectedProjectPresent": false,
+            "visibleReportCount": 0,
+            "focusTag": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "duplicate-start",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/reports/review",
+            "queryKeys": [
+              "project",
+              "from",
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "project": [
+                ":record"
+              ],
+              "from": [
+                "2026-09-01",
+                "2026-09-02"
+              ],
+              "to": [
+                "2026-09-30"
+              ],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "filterFormPresent": false,
+            "filterNoticePresent": false,
+            "fromValue": null,
+            "toValue": null,
+            "selectedProjectPresent": false,
+            "visibleReportCount": 0,
+            "focusTag": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "unavailable-project",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/reports/review",
+            "queryKeys": [
+              "project",
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "project": [
+                ":record"
+              ],
+              "from": [
+                "2026-09-01"
+              ],
+              "to": [
+                "2026-09-30"
+              ],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "filterFormPresent": false,
+            "filterNoticePresent": false,
+            "fromValue": null,
+            "toValue": null,
+            "selectedProjectPresent": false,
+            "visibleReportCount": 0,
+            "focusTag": "body",
+            "scrollY": 0
+          }
+        }
+      ],
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [
+          "Failed to load resource: the server responded with a status of 403 ()",
+          "Failed to load resource: the server responded with a status of 403 ()",
+          "Failed to load resource: the server responded with a status of 403 ()",
+          "Failed to load resource: the server responded with a status of 403 ()",
+          "Failed to load resource: the server responded with a status of 403 ()",
+          "Failed to load resource: the server responded with a status of 403 ()"
+        ],
+        "reviewResponses": [
+          "403 document",
+          "403 document",
+          "403 document",
+          "403 document",
+          "403 document",
+          "403 document"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "role": "owner",
+  "viewport": "phone-390",
+  "locale": "en",
+  "idFormat": "UUID",
+  "warningCode": "WARNING_BILLING_DISCARD_DRAFT",
+  "noPreSubmitWrite": true,
+  "responseStatus": 200,
+  "responseHasProblem": null,
+  "deleted": true,
+  "pageErrors": []
+}

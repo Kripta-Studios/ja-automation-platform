@@ -1,0 +1,204 @@
+{
+  "candidateCommit": "8676c831fa0347c16d2873324bf2bbc3e7c9a56c",
+  "role": "owner",
+  "viewport": 390,
+  "startingScroll": 300,
+  "timeline": [
+    {
+      "atMsAfterNoticeVisible": 0,
+      "ui": {
+        "query": {
+          "periodStart": "2026-09-20",
+          "periodEnd": "2026-09-18",
+          "tab": "commercial",
+          "lang": "en"
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 324,
+        "code": "PROJECT_DETAIL_PERIOD_RANGE_REVERSED",
+        "noticeText": "Action needed The period end is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeTop": 394.09375,
+        "noticeBottom": 522.65625,
+        "bannerBottom": 69.59375,
+        "focusIsNotice": false,
+        "focusedTag": "body",
+        "startValue": "2026-09-20",
+        "endValue": "2026-09-18",
+        "selectedTab": "project-tab-commercial",
+        "financeSummaryCount": 0
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 50,
+      "ui": {
+        "query": {
+          "periodStart": "2026-09-20",
+          "periodEnd": "2026-09-18",
+          "tab": "commercial",
+          "lang": "en"
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 324,
+        "code": "PROJECT_DETAIL_PERIOD_RANGE_REVERSED",
+        "noticeText": "Action needed The period end is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeTop": 394.09375,
+        "noticeBottom": 522.65625,
+        "bannerBottom": 69.59375,
+        "focusIsNotice": true,
+        "focusedTag": "aside",
+        "startValue": "2026-09-20",
+        "endValue": "2026-09-18",
+        "selectedTab": "project-tab-commercial",
+        "financeSummaryCount": 0
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 250,
+      "ui": {
+        "query": {
+          "periodStart": "2026-09-20",
+          "periodEnd": "2026-09-18",
+          "tab": "commercial",
+          "lang": "en"
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 324,
+        "code": "PROJECT_DETAIL_PERIOD_RANGE_REVERSED",
+        "noticeText": "Action needed The period end is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeTop": 394.09375,
+        "noticeBottom": 522.65625,
+        "bannerBottom": 69.59375,
+        "focusIsNotice": true,
+        "focusedTag": "aside",
+        "startValue": "2026-09-20",
+        "endValue": "2026-09-18",
+        "selectedTab": "project-tab-commercial",
+        "financeSummaryCount": 0
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 500,
+      "ui": {
+        "query": {
+          "periodStart": "2026-09-20",
+          "periodEnd": "2026-09-18",
+          "tab": "commercial",
+          "lang": "en"
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 324,
+        "code": "PROJECT_DETAIL_PERIOD_RANGE_REVERSED",
+        "noticeText": "Action needed The period end is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeTop": 394.09375,
+        "noticeBottom": 522.65625,
+        "bannerBottom": 69.59375,
+        "focusIsNotice": true,
+        "focusedTag": "aside",
+        "startValue": "2026-09-20",
+        "endValue": "2026-09-18",
+        "selectedTab": "project-tab-commercial",
+        "financeSummaryCount": 0
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 1000,
+      "ui": {
+        "query": {
+          "periodStart": "2026-09-20",
+          "periodEnd": "2026-09-18",
+          "tab": "commercial",
+          "lang": "en"
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 324,
+        "code": "PROJECT_DETAIL_PERIOD_RANGE_REVERSED",
+        "noticeText": "Action needed The period end is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeTop": 394.09375,
+        "noticeBottom": 522.65625,
+        "bannerBottom": 69.59375,
+        "focusIsNotice": true,
+        "focusedTag": "aside",
+        "startValue": "2026-09-20",
+        "endValue": "2026-09-18",
+        "selectedTab": "project-tab-commercial",
+        "financeSummaryCount": 0
+      }
+    }
+  ],
+  "invalid": {
+    "query": {
+      "periodStart": "2026-09-20",
+      "periodEnd": "2026-09-18",
+      "tab": "commercial",
+      "lang": "en"
+    },
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 324,
+    "code": "PROJECT_DETAIL_PERIOD_RANGE_REVERSED",
+    "noticeText": "Action needed The period end is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+    "noticeTop": 394.09375,
+    "noticeBottom": 522.65625,
+    "bannerBottom": 69.59375,
+    "focusIsNotice": true,
+    "focusedTag": "aside",
+    "startValue": "2026-09-20",
+    "endValue": "2026-09-18",
+    "selectedTab": "project-tab-commercial",
+    "financeSummaryCount": 0
+  },
+  "corrected": {
+    "query": {
+      "periodStart": "2026-09-20",
+      "periodEnd": "2026-09-21",
+      "tab": "commercial",
+      "lang": "en"
+    },
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 0,
+    "code": null,
+    "noticeText": null,
+    "noticeTop": null,
+    "noticeBottom": null,
+    "bannerBottom": 69.59375,
+    "focusIsNotice": false,
+    "focusedTag": "body",
+    "startValue": null,
+    "endValue": null,
+    "selectedTab": "project-tab-commercial",
+    "financeSummaryCount": 1
+  },
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 document",
+      "200 fetch",
+      "200 fetch"
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "reviewedAt": "2026-09-19T09:21:34.498597+00:00",
+  "reviewer": "Independent read-only agent /root/manuals_final_review",
+  "sourceDigest": "0a73eebb85225d37100b81c2493ca3e849679e30f75c8dfe91d08f19d8d7c467",
+  "scope": [
+    "persisted role and supplier profile authorization",
+    "live session checks for list and download",
+    "bounded same-origin GET recovery and auth/access stop",
+    "Owner known-error allowlist and value retention",
+    "selected-locale validation",
+    "exact money display and canonical input separation",
+    "role guide publication and edit permissions",
+    "PDF manifest, runtime digest and PNG integrity checks"
+  ],
+  "blockingFindings": [],
+  "finalPdfRenderingReviewed": false,
+  "note": "Source review only; final PDF artifact and browser verification recorded separately.",
+  "incrementalReview": {
+    "reviewedAt": "2026-09-19T09:28:56.133299+00:00",
+    "scope": "Supplier and external technician home redirect preserves canonical request locale; fixed same-origin destination, unchanged authorization and security headers",
+    "blockingFindings": []
+  },
+  "touchTargetReview": {
+    "reviewedAt": "2026-09-19T09:38:11.340730+00:00",
+    "reviewer": "Parent, independent of CSS implementer",
+    "scope": "Help language/download/retry/support controls: inline-flex, minimum 44px target and visible keyboard focus; no request or permission changes",
+    "blockingFindings": [],
+    "browserGeometryEvidence": "Recorded separately after final CSS run"
+  },
+  "navigationReview": {
+    "reviewedAt": "2026-09-19T09:47:16.993758+00:00",
+    "reviewer": "Parent, independent of translation implementer",
+    "scope": "Static translated Help and Finance Overview labels, localized breadcrumb/title interpolation for print; every navigation group of five roles and two supplier profiles covered by explicit catalog tests",
+    "blockingFindings": []
+  },
+  "availabilityLayoutReview": {
+    "reviewedAt": "2026-09-19T09:53:42.714548+00:00",
+    "reviewer": "Independent agent /root/release_readiness",
+    "scope": "AvailabilityCalendar scoped one-column drawer form and full-width inputs; CSS specificity against legacy desktop/tablet grids; no submit, state or permission changes",
+    "blockingFindings": []
+  },
+  "releaseArtifactReview": {
+    "reviewedAt": "2026-09-19T10:06:04.030832+00:00",
+    "reviewer": "Independent read-only agent /root/release_readiness",
+    "applicationCommit": "e43c640611bf3f50297056719e2a5a185ed9783f",
+    "scope": "Dockerfile copies exactly the 17 catalogued PDFs; all 17 PDF/source hashes, 90 PNG hashes, capture manifest hash and final runtime source digest match. Seven personas in EN/PT-BR; isolated synthetic capture provenance accurately documented.",
+    "blockingFindings": []
+  },
+  "productionEvidenceReview": {
+    "reviewedAt": "2026-09-19T10:12:02.422635+00:00",
+    "reviewer": "Independent read-only agent /root/release_readiness",
+    "applicationCommit": "e43c640611bf3f50297056719e2a5a185ed9783f",
+    "crossChecksPassed": 20,
+    "scope": "Deployed commit and archive identity, monotonic timestamps, schema 49 before/after, unchanged historical rows, paired backups and isolated restore of 59 documents, jobs cycles and log hashes, operations contract digest, 17 runtime PDFs and capture provenance; incomplete 11/30-day backup coverage explicitly retained. Acceptance run reviewed separately.",
+    "blockingFindings": []
+  },
+  "acceptanceAssertionReview": {
+    "reviewedAt": "2026-09-19T10:17:10.051987+00:00",
+    "reviewer": "Parent, independent of test assertion implementer",
+    "scope": "Step 8 now checks the exact visible English compensation label and the seeded worker, retaining the persisted project, worker, internal rule type and percentage_bps=5500 assertion. No skipped step, product change or weakened financial assertion.",
+    "testFileSha256": "52dc463fd9e0a5b3581615e630d12bcf90ce4753636a46420ebf2cf08592e77d",
+    "runtimeSourceDigestUnchanged": "0a73eebb85225d37100b81c2493ca3e849679e30f75c8dfe91d08f19d8d7c467",
+    "blockingFindings": []
+  }
+}

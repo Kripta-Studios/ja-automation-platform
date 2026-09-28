@@ -1,0 +1,23 @@
+{
+  "source": "e89e7fa",
+  "scenario": "document-view-middle-click-typed-404",
+  "width": 390,
+  "locale": "pt",
+  "role": "owner",
+  "code": "DOCUMENT_DOWNLOAD_FILE_MISSING",
+  "text": "Ação necessária O arquivo deste documento está ausente. Peça ao proprietário que revise o registro do documento antes de tentar novamente. Revisar documentos",
+  "links": [
+    "Revisar documentos"
+  ],
+  "focus": true,
+  "pageCountBefore": 1,
+  "pageCountAfter": 1,
+  "stillDocuments": true,
+  "network": [
+    {
+      "method": "GET",
+      "url": "/app/api/documents/[redacted]"
+    }
+  ],
+  "errors": []
+}

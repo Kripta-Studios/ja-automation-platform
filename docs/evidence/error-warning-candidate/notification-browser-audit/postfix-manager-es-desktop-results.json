@@ -1,0 +1,61 @@
+{
+  "candidate": "389e5fb",
+  "role": "manager",
+  "locale": "es",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "stale": {
+    "responseStatus": 404,
+    "url": "/j-aautomation/app/notifications/:record?/markRead",
+    "documentLanguage": "es-ES",
+    "heading": "Notificación no disponible",
+    "headingFocused": true,
+    "mainText": "← Bandeja de actividad Notificaciones Notificaciones Notificación no disponible Esta notificación ya no está disponible. Vuelve a la bandeja de actividad. Bandeja de actividad",
+    "links": [
+      {
+        "text": "← Bandeja de actividad",
+        "href": "/j-aautomation/app/notifications?lang=es"
+      },
+      {
+        "text": "Bandeja de actividad",
+        "href": "/j-aautomation/app/notifications?lang=es"
+      }
+    ],
+    "scrollY": 0,
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "remedyOpenedInbox": true
+  },
+  "inboxSuccess": {
+    "responseStatus": 200,
+    "markedRead": true,
+    "rowRemoved": true,
+    "feedbackFocused": true
+  },
+  "network": [
+    {
+      "status": 404,
+      "path": "/j-aautomation/app/notifications/:record",
+      "method": "POST"
+    },
+    {
+      "status": 503,
+      "path": "/j-aautomation/app/api/offline/identity",
+      "method": "GET"
+    },
+    {
+      "status": 503,
+      "path": "/j-aautomation/app/api/offline/identity",
+      "method": "GET"
+    },
+    {
+      "status": 503,
+      "path": "/j-aautomation/app/api/offline/identity",
+      "method": "GET"
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": []
+}

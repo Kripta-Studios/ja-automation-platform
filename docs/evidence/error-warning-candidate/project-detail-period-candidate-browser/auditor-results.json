@@ -1,0 +1,155 @@
+{
+  "candidateCommit": "0a0cee42913ba5d14a0584a1296116b67f07917d",
+  "role": "auditor",
+  "width": 1440,
+  "height": 900,
+  "locale": "es",
+  "scenarios": [
+    {
+      "name": "invalid",
+      "status": 200,
+      "ui": {
+        "path": "/j-aautomation/app/projects/:record",
+        "query": {
+          "periodStart": [
+            "2026-02-30"
+          ],
+          "periodEnd": [
+            "2026-03-01"
+          ],
+          "tab": [
+            "commercial"
+          ],
+          "lang": [
+            "es"
+          ]
+        },
+        "locale": "es-ES",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scrollY": 0,
+        "code": "PROJECT_DETAIL_PERIOD_DATE_INVALID",
+        "noticeText": "Se requiere una acción Introduce fechas de inicio y fin válidas para el período financiero de este proyecto. Corregir el campo señalado",
+        "noticeTop": 466.125,
+        "noticeBottom": 574.390625,
+        "noticeVisible": true,
+        "focusIsNotice": true,
+        "focusedTag": "aside",
+        "focusedId": "",
+        "remedyText": null,
+        "periodFormPresent": true,
+        "startValue": "2026-02-30",
+        "endValue": "2026-03-01",
+        "startError": "Introduce fechas de inicio y fin válidas para el período financiero de este proyecto.",
+        "endError": null,
+        "selectedTab": "project-tab-commercial",
+        "financeSummaryCount": 0,
+        "correctionCount": 1
+      }
+    },
+    {
+      "name": "reversed",
+      "status": 200,
+      "ui": {
+        "path": "/j-aautomation/app/projects/:record",
+        "query": {
+          "periodStart": [
+            "2026-09-20"
+          ],
+          "periodEnd": [
+            "2026-09-19"
+          ],
+          "tab": [
+            "commercial"
+          ],
+          "lang": [
+            "es"
+          ]
+        },
+        "locale": "es-ES",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scrollY": 0,
+        "code": "PROJECT_DETAIL_PERIOD_RANGE_REVERSED",
+        "noticeText": "Se requiere una acción La fecha de fin del período es anterior a la de inicio. Elige una fecha de fin igual o posterior a la de inicio. Corregir el campo señalado",
+        "noticeTop": 466.125,
+        "noticeBottom": 574.390625,
+        "noticeVisible": true,
+        "focusIsNotice": true,
+        "focusedTag": "aside",
+        "focusedId": "",
+        "remedyText": null,
+        "periodFormPresent": true,
+        "startValue": "2026-09-20",
+        "endValue": "2026-09-19",
+        "startError": null,
+        "endError": "La fecha de fin del período es anterior a la de inicio. Elige una fecha de fin igual o posterior a la de inicio.",
+        "selectedTab": "project-tab-commercial",
+        "financeSummaryCount": 0,
+        "correctionCount": 1
+      }
+    },
+    {
+      "name": "duplicate",
+      "status": 200,
+      "ui": {
+        "path": "/j-aautomation/app/projects/:record",
+        "query": {
+          "periodStart": [
+            "2026-09-01",
+            "2026-09-02"
+          ],
+          "periodEnd": [
+            "2026-09-30"
+          ],
+          "tab": [
+            "commercial"
+          ],
+          "lang": [
+            "es"
+          ]
+        },
+        "locale": "es-ES",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scrollY": 0,
+        "code": "PROJECT_DETAIL_PERIOD_DATE_DUPLICATE",
+        "noticeText": "Se requiere una acción Una fecha del período financiero aparece más de una vez. Deja una fecha de inicio y una de fin y revisa el período. Corregir el campo señalado",
+        "noticeTop": 466.125,
+        "noticeBottom": 574.390625,
+        "noticeVisible": true,
+        "focusIsNotice": true,
+        "focusedTag": "aside",
+        "focusedId": "",
+        "remedyText": null,
+        "periodFormPresent": true,
+        "startValue": "2026-09-01",
+        "endValue": "2026-09-30",
+        "startError": "Una fecha del período financiero aparece más de una vez. Deja una fecha de inicio y una de fin y revisa el período.",
+        "endError": null,
+        "selectedTab": "project-tab-commercial",
+        "financeSummaryCount": 0,
+        "correctionCount": 1
+      }
+    }
+  ],
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 document",
+      "200 document",
+      "200 document"
+    ]
+  }
+}

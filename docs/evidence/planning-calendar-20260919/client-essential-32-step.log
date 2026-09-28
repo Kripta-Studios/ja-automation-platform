@@ -1,0 +1,102 @@
+[WebServer] (node:182793) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+
+[WebServer] (node:182828) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+
+[WebServer] (node:182855) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ node build
+
+[WebServer] (node:182868) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0b8da-0a78-721f-9535-005924813cb1",
+    "01a0b8da-0a79-703e-a805-8c742d635a30",
+    "01a0b8da-0a7a-717e-b823-636cc174a533",
+    "01a0b8da-0a7a-717e-b823-70edeff4230c"
+  ],
+  "invoiceDrafts": [
+    "01a0b8da-0b64-71ed-97f4-e6739d5debb9",
+    "01a0b8da-0b68-70ea-8f39-b12a2ba75887",
+    "01a0b8da-0b6d-7628-b559-9d45c6c0ddb4"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0b8da-0b74-73a9-b8f9-3bbcbb96ab6e",
+    "01a0b8da-0b76-73a9-beee-d1604220743a",
+    "01a0b8da-0b79-72b4-964c-2ffae5921d34"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0b8da-0b74-73a9-b8f9-3bbcbb96ab6e",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0b8da-0b5a-7350-b3d3-d2d922718799",
+    "01a0b8da-0b5c-7735-8e29-5c6ff30010a7"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0b8da-0a78-721f-9535-005924813cb1",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0b8da-0b82-72df-b5a7-fdc75cf3d644"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0b8da-0a78-721f-9535-005924813cb1",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0b8da-0b84-75a8-85d1-c58cfc6b70cb"
+    }
+  ],
+  "periodReportIds": [
+    "01a0b8da-0b85-75df-8f39-bad075a20db4",
+    "01a0b8da-0b85-75df-8f39-bcfb48c56b7d"
+  ],
+  "accountingPackId": "01a0b8da-0bca-738d-8a3b-249d7f66f1bc",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-67105ff275c2b7273045e438784681ff79f74434",
+  "closeoutId": "01a0b8da-0c54-73cf-8e5c-4a1a35d405a8"
+}
+
+Running 1 test using 1 worker
+
+(node:182988) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/1] [desktop] › tests/e2e/client-essential-32-step.spec.ts:280:3 › Client Essential · executable 32-step acceptance journey › one deterministic authenticated fixture covers steps 1–32
+  1 passed (2.4m)

@@ -1,0 +1,32 @@
+{
+  "reviewedAt": "2026-09-19T11:13:32.322297+00:00",
+  "reviewer": "Independent read-only agent /root/manual_access_analysis",
+  "verdict": "ship",
+  "applicationCommit": "1b2eef40247371e0fd88a11a946cfd92a217a471",
+  "scope": [
+    "release identity and 1976 files",
+    "nine runtime PDF hashes",
+    "operations canonical digest and evidence hashes",
+    "schema 49 and 36 protected rows",
+    "59 private documents and isolated restore",
+    "24 snapshots over 11 UTC days",
+    "two post-cutover automatic cycles",
+    "Docker cache 6.961GB reclaimed and 0B remaining",
+    "synthetic browser versus production scope and historical attribution"
+  ],
+  "blockingFindings": [],
+  "documentationClarificationsApplied": [
+    "Current acceptance is now 32/32 for 1b2eef4; previous results remain historical",
+    "Download matrix is desktop; 19 Help E2E cases cover four viewports"
+  ],
+  "parentAcceptanceEvidenceVerification": {
+    "status": "PASS",
+    "steps": 32,
+    "failures": 0,
+    "invocations": 1,
+    "testHashVerified": true,
+    "operationsContractHashVerified": true,
+    "attachmentsLogAndRawReporterHashesVerified": true,
+    "evidence": "acceptance-32-steps.json"
+  }
+}

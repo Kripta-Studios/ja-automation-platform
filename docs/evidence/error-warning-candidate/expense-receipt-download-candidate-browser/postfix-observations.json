@@ -1,0 +1,62 @@
+{
+  "candidate": "1866755",
+  "case": "actual-pdf-success-postfix",
+  "locales": [
+    {
+      "locale": "en",
+      "width": 390,
+      "status": 200,
+      "popupKind": "blank",
+      "nativeDownload": true,
+      "fallback": {
+        "lang": "en",
+        "title": "Verified receipt ready",
+        "heading": "Verified receipt ready",
+        "explanation": "If the preview does not open in this browser, use the download link below.",
+        "linkText": "Download verified receipt",
+        "linkHrefKind": "blob"
+      },
+      "noInlineProblem": true,
+      "pageRetained": true
+    },
+    {
+      "locale": "es",
+      "width": 390,
+      "status": 200,
+      "popupKind": "blank",
+      "nativeDownload": true,
+      "fallback": {
+        "lang": "es",
+        "title": "Recibo verificado listo",
+        "heading": "Recibo verificado listo",
+        "explanation": "Si la vista previa no se abre en este navegador, usa el enlace de descarga de abajo.",
+        "linkText": "Descargar recibo verificado",
+        "linkHrefKind": "blob"
+      },
+      "noInlineProblem": true,
+      "pageRetained": true
+    },
+    {
+      "locale": "pt",
+      "width": 390,
+      "status": 200,
+      "popupKind": "blank",
+      "nativeDownload": true,
+      "fallback": {
+        "lang": "pt",
+        "title": "Recibo verificado pronto",
+        "heading": "Recibo verificado pronto",
+        "explanation": "Se a prévia não abrir neste navegador, use o link de download abaixo.",
+        "linkText": "Baixar recibo verificado",
+        "linkHrefKind": "blob"
+      },
+      "noInlineProblem": true,
+      "pageRetained": true
+    }
+  ],
+  "fixtureCreatedThroughUI": true,
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": []
+  }
+}

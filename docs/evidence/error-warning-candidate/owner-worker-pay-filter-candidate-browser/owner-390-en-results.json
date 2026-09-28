@@ -1,0 +1,324 @@
+{
+  "candidateCommit": "f3955489afc09a62df1001fe3a7f80ef662407a6",
+  "role": "owner",
+  "width": 390,
+  "height": 844,
+  "locale": "en",
+  "scenarios": [
+    {
+      "name": "invalid",
+      "status": 200,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "start": [
+            "2026-02-30"
+          ],
+          "end": [
+            "2026-03-01"
+          ],
+          "worker": [
+            "01a0e401-66ff-7358-b50b-b45e0399c5d2"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "WORKER_PAY_PERIOD_DATE_INVALID",
+        "text": "Action needed Enter valid start and end dates to review worker pay. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#worker-pay-start",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 435.78125,
+        "targetBottom": 587.34375,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e401-66ff-7358-b50b-b45e0399c5d2",
+        "workerUnavailableOption": false,
+        "startValue": "2026-02-30",
+        "startType": "text",
+        "endValue": "2026-03-01",
+        "endType": "date",
+        "startError": "Enter valid start and end dates to review worker pay.",
+        "endError": null,
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "reversed",
+      "status": 200,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "start": [
+            "2026-09-20"
+          ],
+          "end": [
+            "2026-09-19"
+          ],
+          "worker": [
+            "01a0e401-66ff-7358-b50b-b45e0399c5d2"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "WORKER_PAY_PERIOD_RANGE_REVERSED",
+        "text": "Action needed The end date is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#worker-pay-end",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 435.78125,
+        "targetBottom": 587.34375,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e401-66ff-7358-b50b-b45e0399c5d2",
+        "workerUnavailableOption": false,
+        "startValue": "2026-09-20",
+        "startType": "date",
+        "endValue": "2026-09-19",
+        "endType": "date",
+        "startError": null,
+        "endError": "The end date is before the start. Choose an end date on or after the start date.",
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "duplicate",
+      "status": 200,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "start": [
+            "2026-09-01",
+            "2026-09-02"
+          ],
+          "end": [
+            "2026-09-30"
+          ],
+          "worker": [
+            "01a0e401-66ff-7358-b50b-b45e0399c5d2"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "WORKER_PAY_FILTER_DUPLICATE",
+        "text": "Action needed A worker pay review filter was supplied more than once. Keep one value per field, then apply the period again. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#worker-pay-start",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 435.78125,
+        "targetBottom": 607.640625,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e401-66ff-7358-b50b-b45e0399c5d2",
+        "workerUnavailableOption": false,
+        "startValue": "2026-09-01",
+        "startType": "date",
+        "endValue": "2026-09-30",
+        "endType": "date",
+        "startError": "A worker pay review filter was supplied more than once. Keep one value per field, then apply the period again.",
+        "endError": null,
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "stale worker",
+      "status": 200,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "start": [
+            "2026-09-01"
+          ],
+          "end": [
+            "2026-09-30"
+          ],
+          "worker": [
+            "00000000-0000-4000-8000-ffffffffffff"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "WORKER_PAY_WORKER_UNAVAILABLE",
+        "text": "Action needed The selected worker is no longer available for this review. Choose another worker, then apply the period again. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#worker-pay-worker",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 435.78125,
+        "targetBottom": 627.9375,
+        "headerBottom": 69.59375,
+        "workerValue": "00000000-0000-4000-8000-ffffffffffff",
+        "workerUnavailableOption": true,
+        "startValue": "2026-09-01",
+        "startType": "date",
+        "endValue": "2026-09-30",
+        "endType": "date",
+        "startError": null,
+        "endError": null,
+        "workerError": "The selected worker is no longer available for this review. Choose another worker, then apply the period again.",
+        "paySummaryCount": 0,
+        "activityTableCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "duplicate and malformed",
+      "status": 200,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "start": [
+            "not-a-date",
+            "2026-03-01"
+          ],
+          "end": [
+            "2026-03-31"
+          ],
+          "worker": [
+            "01a0e401-66ff-7358-b50b-b45e0399c5d2"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "WORKER_PAY_FILTER_DUPLICATE",
+        "text": "Action needed A worker pay review filter was supplied more than once. Keep one value per field, then apply the period again. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#worker-pay-start",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 435.78125,
+        "targetBottom": 607.640625,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e401-66ff-7358-b50b-b45e0399c5d2",
+        "workerUnavailableOption": false,
+        "startValue": "not-a-date",
+        "startType": "text",
+        "endValue": "2026-03-31",
+        "endType": "date",
+        "startError": "A worker pay review filter was supplied more than once. Keep one value per field, then apply the period again. Enter valid start and end dates to review worker pay.",
+        "endError": null,
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "multiple malformed fields",
+      "status": 200,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 62,
+        "query": {
+          "start": [
+            "not-a-date",
+            "2026-03-01"
+          ],
+          "end": [
+            "2026-02-30",
+            "2026-03-31"
+          ],
+          "worker": [
+            "01a0e401-66ff-7358-b50b-b45e0399c5d2"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "WORKER_PAY_FILTER_DUPLICATE",
+        "text": "Action needed A worker pay review filter was supplied more than once. Keep one value per field, then apply the period again. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#worker-pay-start",
+        "summaryPresent": true,
+        "summaryText": "Check the highlighted fields From: A worker pay review filter was supplied more than once. Keep one value per field, then apply the period again.Through: A worker pay review filter was supplied more than once. Keep one value per field, then apply the period again.",
+        "summaryLinks": [
+          "#worker-pay-start",
+          "#worker-pay-end"
+        ],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 603.640625,
+        "targetBottom": 820.234375,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e401-66ff-7358-b50b-b45e0399c5d2",
+        "workerUnavailableOption": false,
+        "startValue": "not-a-date",
+        "startType": "text",
+        "endValue": "2026-02-30",
+        "endType": "text",
+        "startError": "A worker pay review filter was supplied more than once. Keep one value per field, then apply the period again. Enter valid start and end dates to review worker pay.",
+        "endError": "A worker pay review filter was supplied more than once. Keep one value per field, then apply the period again. Enter valid start and end dates to review worker pay.",
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0,
+        "errorPageText": null
+      }
+    }
+  ],
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json"
+    ]
+  }
+}

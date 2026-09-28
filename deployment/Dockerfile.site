@@ -5,6 +5,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY packages/billing-engine/package.json ./packages/billing-engine/package.json
 COPY packages/database/package.json ./packages/database/package.json
 COPY packages/domain/package.json ./packages/domain/package.json
+COPY packages/invoice-templates/package.json ./packages/invoice-templates/package.json
 COPY packages/money/package.json ./packages/money/package.json
 COPY packages/reporting/package.json ./packages/reporting/package.json
 COPY packages/schemas/package.json ./packages/schemas/package.json

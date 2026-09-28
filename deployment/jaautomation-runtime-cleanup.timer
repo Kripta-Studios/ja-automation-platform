@@ -1,0 +1,11 @@
+[Unit]
+Description=Check old J&A releases and Docker build cache daily
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+AccuracySec=1min
+Unit=jaautomation-runtime-cleanup.service
+
+[Install]
+WantedBy=timers.target

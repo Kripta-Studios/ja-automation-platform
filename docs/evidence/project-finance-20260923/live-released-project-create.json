@@ -1,0 +1,24 @@
+{
+  "clientName": "JA QA Client 1790189483707",
+  "createClientHttpStatus": 200,
+  "visibleAlert": [],
+  "clientPersisted": true,
+  "clientId": "01a0cf9b-bec4-72cd-a97d-8de393f89dd5",
+  "releaseSha256": "4cbf52f162a73ccaadcea8d9d8405e7b575f21d62fdcc7a206fbef5d3165b14e",
+  "projectName": "JA QA Project 1790190716520",
+  "costCenterCode": "QA-1790190716521",
+  "createProjectHttpStatus": 200,
+  "alerts": [],
+  "projectPersisted": true,
+  "projectId": "01a0cfae-9005-76a9-871a-8cf4edf877dd",
+  "persistedFields": {
+    "costCenterCode": "QA-1790190716521",
+    "plannedEndDate": null,
+    "revenueBudgetMinor": null,
+    "poCapMinor": null,
+    "laborBudgetMinutes": null,
+    "travelBudgetMinor": null
+  },
+  "detailRendered": true,
+  "detailUrl": "/j-aautomation/app/projects/01a0cfae-9005-76a9-871a-8cf4edf877dd"
+}

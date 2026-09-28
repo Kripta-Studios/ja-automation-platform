@@ -1,0 +1,10 @@
+{
+  "releaseSha256": "4cbf52f162a73ccaadcea8d9d8405e7b575f21d62fdcc7a206fbef5d3165b14e",
+  "projectId": "01a0cfae-9005-76a9-871a-8cf4edf877dd",
+  "status": 200,
+  "alerts": [],
+  "persisted": {
+    "alias": "QA installation alias",
+    "costCenterCode": "QA-CENTER-TEST"
+  }
+}

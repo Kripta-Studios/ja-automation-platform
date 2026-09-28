@@ -1,0 +1,21 @@
+[
+  {
+    "step": "invalid-system",
+    "adjacentError": true
+  },
+  {
+    "step": "enhanced-safety",
+    "actionStatus": 400,
+    "retainedValues": true
+  },
+  {
+    "step": "native-safety",
+    "httpStatus": 400,
+    "tabRetained": true
+  },
+  {
+    "step": "background-scroll",
+    "before": 0,
+    "after": 0
+  }
+]

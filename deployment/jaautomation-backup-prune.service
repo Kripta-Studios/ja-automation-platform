@@ -1,0 +1,10 @@
+[Unit]
+Description=Keep one J&A Automation backup per day for three days
+After=local-fs.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/jaautomation/current
+EnvironmentFile=-/etc/jaautomation/jaautomation.env
+ExecStart=/opt/jaautomation/runtime/node/bin/node deployment/scripts/backup.mjs --prune
+TimeoutStartSec=60

@@ -1,0 +1,1170 @@
+/* Responsive -------------------------------------------------------------- */
+.nav-backdrop {
+  display: none;
+}
+
+.skip-link {
+  pointer-events: none;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  pointer-events: auto;
+}
+
+/* The management forms intentionally carry an inline flex layout while open.
+   Native <details> should still remove that panel from intrinsic sizing when
+   closed; otherwise the hidden form can widen a tablet page. */
+.worker-actions details:not([open]) > .worker-manage-panel {
+  display: none !important;
+}
+
+.worker-manage-panel {
+  box-sizing: border-box;
+  max-width: min(17.5rem, calc(100vw - 2rem));
+}
+
+@media (max-width: 1000px) {
+  .portal-layout > header {
+    min-width: 0;
+    gap: 0.75rem;
+    padding-inline: 1rem;
+  }
+
+  .header-status,
+  .account-menu-wrap,
+  .account-trigger {
+    min-width: 0;
+  }
+
+  .header-status {
+    flex: 1 1 auto;
+  }
+
+  .account-menu-wrap {
+    flex: 0 1 auto;
+  }
+
+  .user-copy {
+    min-width: 0;
+    max-width: 9rem;
+  }
+
+  .user-copy b,
+  .user-copy small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .contact-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .contact-actions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .contact-actions details {
+    width: min(100%, 19rem);
+  }
+
+  .login-page {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  }
+
+  .login-page > .login-showcase,
+  .login-page > .login-panel {
+    padding: clamp(1.5rem, 5vw, 4rem);
+  }
+
+  .portal-layout {
+    grid-template-columns: 15.5rem minmax(0, 1fr);
+  }
+
+  .dashboard-metrics,
+  .project-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .report-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  /* The report detail lives beside the persistent navigation on tablet
+     widths.  Its content width is therefore much smaller than the viewport;
+     collapse the fixed-width field groups before their tracks can force page
+     overflow. */
+  .report-detail-form [data-ui='field-group'][data-columns='2'],
+  .report-detail-form [data-ui='field-group'][data-columns='3'],
+  .report-detail-form [data-ui='field-group'][data-columns='auto'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .portal-grid,
+  .worker-form,
+  .finance-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Finance configuration cards sit beside the persistent tablet navigation,
+     leaving only roughly 470px for the card at 768px.  Keep their responsive
+     field groups on one track and stack the historical edit/supersede action
+     below the record details.  The legacy `.record-list article div` rule
+     otherwise wins on specificity and leaves the action grid shrink-wrapped
+     to its summary text (176px in the tablet regression). */
+  .finance-config-panel .admin-form-grid,
+  .finance-config-panel [data-ui='field-group'][data-columns] {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .finance-config-panel .record-list article {
+    box-sizing: border-box;
+    align-items: stretch;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .finance-config-panel .record-list article .form-actions {
+    box-sizing: border-box;
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .finance-config-panel .record-list article .form-actions > details,
+  .finance-config-panel .record-list article .form-actions > form,
+  .finance-config-panel .record-list article .form-actions > details > .admin-form-grid {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .expense-page-context,
+  .time-page-context {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .expense-status-strip,
+  .expense-filters,
+  .expense-form-grid,
+  .time-status-strip,
+  .time-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .time-primary-action {
+    width: 100%;
+  }
+
+  .expense-filters {
+    padding: 0.75rem;
+  }
+
+  .expense-record {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .time-record {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .expense-record-statuses {
+    justify-content: flex-start;
+  }
+
+  .expense-record-actions,
+  .expense-record-actions form,
+  .expense-record-actions button,
+  .time-record-actions,
+  .time-record-actions form,
+  .time-record-actions button {
+    width: 100%;
+  }
+
+  .expense-record-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .time-record-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .expense-entry-sheet,
+  .time-entry-sheet {
+    inset: 0;
+    width: 100vw;
+    max-height: 100svh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .responsive-sheet-header {
+    padding: 1rem;
+  }
+
+  .responsive-sheet-body {
+    padding: 1rem;
+  }
+
+  .expense-entry-actions {
+    position: sticky;
+    bottom: 0;
+    margin-inline: -1rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--ja-line, #e4e4e2);
+    background: var(--ja-white, #fff);
+  }
+
+  .expense-entry-actions button {
+    flex: 1 1 0;
+  }
+
+  .time-entry-actions {
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+    border-top: 1px solid var(--ja-line, #e4e4e2);
+    background: var(--ja-white, #fff);
+  }
+
+  .time-entry-actions button {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .timesheet-heading,
+  .timesheet-copy-body {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .timesheet-guide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .timesheet-period {
+    align-items: end;
+  }
+
+  .login-page {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .login-page > .login-panel {
+    order: 1;
+    min-height: auto;
+    padding: 1.25rem 1rem 2rem;
+  }
+
+  .login-page > .login-showcase {
+    order: 2;
+    min-height: auto;
+    padding: 2rem 1.25rem 3rem;
+  }
+
+  .login-intro {
+    margin: 0;
+    padding-top: 1rem;
+  }
+
+  .login-intro h1 {
+    max-width: 13ch;
+    font-size: clamp(2.2rem, 10vw, 3.8rem);
+  }
+
+  .login-proof {
+    margin-top: 2rem;
+  }
+
+  .portal-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 4.35rem minmax(0, 1fr);
+    grid-template-areas: 'head' 'main';
+  }
+
+  .portal-layout > aside {
+    width: min(20rem, calc(100vw - 1rem));
+    height: calc(100svh - 4.35rem);
+    position: fixed;
+    top: 4.35rem;
+    left: 0;
+    display: flex;
+    transform: translateX(calc(-100% - 1rem));
+    border-radius: 0 1rem 1rem 0;
+    box-shadow: 0 1rem 2.5rem rgb(4 20 32 / 0.28);
+    transition: transform 200ms var(--ja-ease);
+  }
+
+  .portal-layout > aside.open {
+    transform: translateX(0);
+  }
+
+  .nav-backdrop {
+    position: fixed;
+    z-index: 18;
+    top: 4.35rem;
+    right: 0;
+    bottom: 0;
+    left: min(20rem, calc(100vw - 1rem));
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+    background: rgb(4 20 32 / 0.46);
+    cursor: default;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+  }
+
+  .nav-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .portal-layout > header {
+    height: 4.35rem;
+    padding: 0 1rem;
+  }
+
+  .menu-button {
+    display: grid;
+  }
+
+  .portal-layout > main {
+    padding: 1.35rem 1rem 5.65rem;
+  }
+
+  .portal-title h1 {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+
+  .portal-title {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .portal-title .portal-primary {
+    position: fixed;
+    z-index: 9;
+    right: 1rem;
+    bottom: 5rem;
+    box-shadow: 0 4px 18px #0004;
+  }
+
+  .portal-heading-tools,
+  .global-search {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .user-copy b {
+    max-width: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .user span {
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .user-copy small {
+    display: block;
+  }
+
+  .compact-stack {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .user-copy {
+    display: none;
+  }
+
+  .account-chevron {
+    display: none;
+  }
+
+  .bottom-nav {
+    position: fixed;
+    z-index: 10;
+    inset: auto 0 0;
+    height: 4.2rem;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    align-items: stretch;
+    background: #fff;
+    border-top: 1px solid var(--ja-line);
+  }
+
+  .bottom-nav a {
+    min-width: 0;
+    min-height: var(--ja-target-min);
+    display: grid;
+    place-content: center;
+    padding: 0.4rem 0.25rem;
+    text-align: center;
+    color: var(--ja-steel);
+    border-top: 3px solid transparent;
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .bottom-nav a.active {
+    color: var(--ja-ink);
+    border-color: var(--ja-red);
+  }
+
+  .login-page {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .login-page > .login-panel {
+    order: 1;
+    min-height: auto;
+    padding: 1rem 0.75rem 1.5rem;
+  }
+
+  .login-page > .login-showcase {
+    order: 2;
+    min-height: auto;
+    padding: 2rem 1.2rem;
+  }
+
+  .login-page > .login-showcase img {
+    width: 9rem;
+    margin-bottom: 1rem;
+  }
+
+  .login-page form {
+    margin-block: 0.5rem 1rem;
+    padding: 1.3rem;
+  }
+
+  .portal-grid > section,
+  .record-list,
+  .worker-form > section {
+    padding: 1rem;
+  }
+
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-form,
+  .record-list article,
+  .record-actions,
+  .record-actions form,
+  .compact-form,
+  .payment-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .metric strong {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 800px) {
+  .login-page {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .login-page > .login-panel {
+    order: 1;
+    min-height: auto;
+    padding: 1.5rem 1rem 2rem;
+  }
+
+  .login-page > .login-showcase {
+    order: 2;
+    min-height: auto;
+    padding: 2.5rem 1.5rem 3.5rem;
+  }
+
+  .login-page .mobile-brand {
+    display: block;
+    margin-bottom: 1.2rem;
+    padding: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .login-page .mobile-brand img {
+    width: 8.5rem;
+  }
+
+  .login-intro {
+    margin: 0;
+    padding-top: 1rem;
+  }
+
+  .portal-title {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .portal-heading-tools,
+  .global-search {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .project-board-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .project-board-row small {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 768px) {
+  .nav-backdrop {
+    display: none;
+  }
+
+  .portal-layout > aside {
+    transform: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .portal-layout > header {
+    gap: 0.25rem;
+    padding-inline: 0.5rem;
+  }
+
+  .portal-webmail-link {
+    padding: 0.32rem 0.5rem;
+    margin-right: 0.25rem;
+  }
+
+  .locale-switcher {
+    margin-right: 0;
+  }
+
+  .portal-webmail-link .webmail-text {
+    display: none;
+  }
+
+  .timesheet-panel {
+    padding: 1rem;
+  }
+
+  .timesheet-period {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
+  .timesheet-period label {
+    min-width: 0;
+  }
+
+  .login-proof {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .login-proof > div {
+    grid-template-columns: 2rem 1fr;
+    align-items: baseline;
+  }
+
+  .login-proof span br {
+    display: none;
+  }
+
+  .login-card {
+    padding: 1.3rem;
+    border-radius: 1rem;
+  }
+
+  .dashboard-hero {
+    min-height: 17rem;
+    padding: 1.4rem;
+  }
+
+  .dashboard-hero h2 {
+    font-size: clamp(2.5rem, 13vw, 3.4rem);
+  }
+
+  .finance-grid .metric {
+    min-height: 9.5rem;
+  }
+
+  .search-result {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .search-result small {
+    text-align: left;
+  }
+
+  .portal-grid > section,
+  .record-list,
+  .worker-form > section {
+    border-radius: 0.8rem;
+  }
+
+  .bottom-nav {
+    height: 4.5rem;
+    border-color: #e7e7e5;
+    box-shadow: 0 -0.5rem 1.5rem rgb(16 32 47 / 0.07);
+  }
+
+  .bottom-nav a {
+    color: #67655e;
+  }
+
+  .bottom-nav a.active {
+    color: #706e66;
+    border-color: #b7b6b1;
+  }
+}
+
+/* The same webmail action remains available in the labelled navigation
+   drawer. Removing its duplicate header icon prevents intrinsic header
+   controls from widening the required 360/390px phone viewport. */
+@media (max-width: 400px) {
+  .portal-layout > header {
+    padding-inline: 0.1875rem;
+    gap: 0;
+  }
+
+  .connection {
+    gap: 0;
+    font-size: 0;
+  }
+
+  .portal-webmail-link {
+    display: none;
+  }
+
+  .account-menu-wrap {
+    flex: 0 0 44px;
+    min-width: 44px;
+  }
+
+  .account-trigger {
+    box-sizing: border-box;
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .locale-switcher select {
+    box-sizing: border-box;
+    width: 4rem;
+    min-width: 4rem;
+    padding-left: 0.4rem;
+    padding-right: 1.35rem;
+  }
+}
+
+/* Drawers remain contextual on tablets: large enough for a comfortable form,
+   but never allowed to consume the whole 768px portrait viewport. Phone
+   layouts keep the established full-screen sheet treatment. */
+@media (min-width: 48rem) and (max-width: 63.99rem) {
+  .responsive-sheet,
+  [data-ui='responsive-sheet'] {
+    width: min(60vw, 40rem);
+    min-width: min(24rem, calc(100vw - 1rem));
+    max-width: 60vw;
+  }
+}
+
+/* Tablet portrait uses the same labelled off-canvas navigation contract as
+   phones. The content keeps the full viewport while the drawer remains
+   contextual; opening it exposes every textual destination and the existing
+   PortalChrome focus trap. */
+@media (min-width: 48rem) and (max-width: 63.99rem) {
+  .portal-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 4.35rem minmax(0, 1fr);
+    grid-template-areas: 'head' 'main';
+  }
+
+  .portal-layout > aside {
+    width: min(20rem, calc(100vw - 1rem));
+    height: calc(100svh - 4.35rem);
+    position: fixed;
+    top: 4.35rem;
+    left: 0;
+    display: flex;
+    transform: translateX(calc(-100% - 1rem));
+    border-radius: 0 1rem 1rem 0;
+    box-shadow: 0 1rem 2.5rem rgb(4 20 32 / 28%);
+    transition: transform 200ms var(--ja-ease);
+  }
+
+  .portal-layout > aside.open {
+    transform: translateX(0);
+  }
+
+  .nav-backdrop {
+    position: fixed;
+    z-index: 18;
+    top: 4.35rem;
+    right: 0;
+    bottom: 0;
+    left: min(20rem, calc(100vw - 1rem));
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+    background: rgb(4 20 32 / 46%);
+    cursor: default;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+  }
+
+  .nav-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .portal-layout > header {
+    height: 4.35rem;
+    padding: 0 1rem;
+  }
+
+  .menu-button {
+    display: grid;
+  }
+}
+
+@media (min-width: 48rem) {
+  /* At desktop/tablet widths the card primitive reveals its semantic table
+     child. Keep the named timesheet region scrollable if its six columns need
+     more room than a narrow content column. */
+  .timesheet-table-wrap[data-mobile-representation='cards'] {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  /* TimesheetPanel supplies the structured card rows. Remove the legacy
+     table wrapper's intrinsic width so cards are the complete phone
+     representation rather than a scroll-only fallback. */
+  .timesheet-table-wrap[data-mobile-representation='cards'] {
+    overflow: visible;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .timesheet-table-wrap[data-mobile-representation='cards'] > [data-table-region-desktop] {
+    display: none;
+  }
+
+  .timesheet-table-wrap[data-mobile-representation='cards'] > [data-table-region-cards] {
+    display: grid;
+  }
+
+  .timesheet-table-wrap[data-mobile-representation='cards'] .timesheet-table {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 47.99rem) {
+  /* Keep the phone contract explicit as well as the shared tablet rule above;
+     the narrower breakpoint also owns the phone FieldGroup assertion. */
+  .finance-config-panel .admin-form-grid,
+  .finance-config-panel [data-ui='field-group'][data-columns] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The edit form sits inside a padded record surface and already has its
+     own border. Keep a compact phone inset so the controls retain a usable
+     width after the two nested surfaces are accounted for. */
+  .finance-config-panel .record-list article .form-actions > details > .admin-form-grid {
+    padding: 0.5rem;
+  }
+
+  .responsive-sheet,
+  [data-ui='responsive-sheet'] {
+    inset-inline: 0;
+    width: 100vw;
+    min-width: 0;
+    max-width: 100vw;
+    border-inline-start: 0;
+    border-radius: 0;
+  }
+
+  [data-ui='toast-region'] {
+    inset-inline: 0.75rem;
+    inset-block-end: calc(4.75rem + env(safe-area-inset-bottom));
+    width: auto;
+  }
+}
+
+/* Legacy route markup predates the shared primitives. Keep its interactive
+   controls usable at the representative phone widths and on coarse-pointer
+   devices without enlarging ordinary inline links. */
+@media (max-width: 47.99rem), (pointer: coarse) {
+  .portal-layout
+    :where(
+      button,
+      select,
+      textarea,
+      input:not([type='hidden']):not([type='checkbox']):not([type='radio']),
+      summary,
+      [role='button'],
+      [role='tab']
+    ) {
+    min-height: max(44px, var(--ja-target-min, 2.75rem));
+  }
+
+  .portal-layout
+    :where(
+      a.primary-button,
+      a.secondary-button,
+      a.print-trigger,
+      a.portal-webmail-link,
+      a.portal-external-nav-link,
+      .quick-actions a,
+      .bottom-nav a
+    ) {
+    min-height: max(44px, var(--ja-target-min, 2.75rem));
+  }
+
+  .portal-layout :where(input[type='checkbox'], input[type='radio']) {
+    min-width: 1.25rem;
+    min-height: 1.25rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .two-up,
+  .three-up,
+  .project-contract,
+  .project-columns,
+  .invoice-parties,
+  .invoice-meta,
+  .invoice-total {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-hero,
+  .project-header,
+  .finance-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .dashboard-hero > strong,
+  .dashboard-hero > .dashboard-project-count {
+    text-align: left;
+  }
+
+  .dashboard-metrics,
+  .project-kpis {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .project-board-row,
+  .project-list-link {
+    grid-template-columns: 1fr auto;
+  }
+
+  .project-board-row small {
+    grid-column: 1 / -1;
+  }
+
+  .project-page {
+    padding: 0;
+  }
+
+  .detail-nav {
+    padding: 1rem;
+  }
+
+  .project-header {
+    min-height: 24rem;
+  }
+
+  .budget-ring {
+    width: 6.5rem;
+  }
+
+  .project-kpis article {
+    min-height: 7rem;
+    padding: 0.8rem;
+  }
+
+  .detail-panel,
+  .project-finance {
+    border-inline: 0;
+  }
+
+  .invoice-preview-page {
+    padding: 0;
+  }
+
+  .invoice-paper {
+    min-height: 100svh;
+    padding: 1.2rem;
+  }
+
+  .invoice-paper > header {
+    gap: 1rem;
+  }
+
+  .invoice-paper table {
+    font-size: 0.75rem;
+  }
+
+  .invoice-paper th,
+  .invoice-paper td {
+    padding: 0.65rem 0.25rem;
+  }
+
+  .invoice-paper footer {
+    position: static;
+    margin-top: 3rem;
+  }
+}
+
+.print-only-header {
+  display: none !important;
+}
+
+@media print {
+  .skip-link {
+    display: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .record-detail-page {
+    min-height: auto !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .record-detail-page > .detail-nav {
+    display: none !important;
+  }
+
+  .portal-layout > aside,
+  .portal-layout > header,
+  .portal-chrome > nav,
+  .nav-backdrop,
+  .search-popover,
+  .menu-button {
+    display: none !important;
+  }
+
+  .portal-layout {
+    display: block !important;
+    min-height: auto;
+  }
+
+  .portal-layout > main {
+    padding: 0 !important;
+    background: #fff !important;
+    width: 100% !important;
+  }
+
+  .print-only-header {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid #000;
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+  }
+  .print-only-header img {
+    width: 40px;
+    max-width: 40px;
+    height: 40px;
+    object-fit: contain;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .print-only-header .print-identity small {
+    font-size: 0.7rem;
+    color: #555;
+    font-weight: 600;
+  }
+  .print-only-header .print-meta {
+    text-align: right;
+  }
+  .print-only-header .print-meta span {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #555;
+  }
+  .print-only-header .print-meta strong {
+    font-size: 1.2rem;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .invoice-preview-page {
+    padding: 0;
+    background: #fff;
+  }
+
+  .invoice-paper {
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto;
+    transition: none;
+  }
+
+  .responsive-sheet,
+  .responsive-sheet-backdrop,
+  .expense-entry-sheet {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Client Essential reports -------------------------------------------------
+   Keep the register readable at the representative phone/tablet widths while
+   allowing the existing ResponsiveSheet to become a full-screen form. */
+@media (max-width: 767px) {
+  .report-page-context,
+  .report-panel-header,
+  .report-period-register-header,
+  .report-generator-copy {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .report-attention {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-primary-action,
+  .report-generator-copy .secondary-button {
+    width: 100%;
+  }
+
+  .report-register-card,
+  .report-signoff-card,
+  .report-period-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .report-register-action,
+  .report-register-action button,
+  .report-period-pdf {
+    width: 100%;
+  }
+
+  .report-register-action button,
+  .report-period-pdf {
+    box-sizing: border-box;
+  }
+
+  .report-entry-sheet {
+    inset: 0;
+    width: 100vw;
+    max-height: 100svh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .report-entry-grid,
+  .report-entry-grid-three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .report-entry-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin-inline: -1rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--ja-line, #e4e4e2);
+    background: var(--ja-white, #fff);
+  }
+
+  .report-entry-actions > button {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .report-attention {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .report-page-context,
+  .report-tab-panel,
+  .report-period-register {
+    padding: 1rem;
+  }
+
+  .report-tab-list {
+    margin-inline: -0.1rem;
+  }
+
+  .report-tab-list > button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 0.35rem;
+    line-height: 1.15;
+    white-space: normal;
+  }
+}

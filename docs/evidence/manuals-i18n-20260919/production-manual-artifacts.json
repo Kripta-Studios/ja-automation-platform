@@ -1,0 +1,37 @@
+{
+  "verifiedAt": "2026-09-19T10:07:59.156012+00:00",
+  "runtimePdfCount": 17,
+  "runtimePdfHashesMatchReviewedArtifacts": true,
+  "outputs": {
+    "Auditor_User_Guide.pdf": "88b3db1680057ec972cebe8c1071c28a7f92fdfbbb5431a0f9ccf1476a592cf0",
+    "Auditor_User_Guide_PT-BR.pdf": "1c45d71055e446dc35034a2de4bda13844300acb794944839f04f907c9e9046c",
+    "Employee_Field_Guide_EN.pdf": "53d7c425b8dee99b1f632c5081ec7293c9f0311a64afe42a190d18e4b2520369",
+    "Employee_Field_Guide_ES.pdf": "c5461fb045eda59b50402e605d38e7842357dfdaa3ad983f6be6b314f3ce653f",
+    "Employee_Field_Guide_PT-BR.pdf": "ddc29ad5f9d69a34dce7173fc75e360b2a2163a157bce6f8f7cacbff475de5b0",
+    "External_Technician_User_Guide.pdf": "86794d0a4ed9ca6e5cd31bc03f1bb435f7c2983d9fe8d951dca111f3a16cfe69",
+    "External_Technician_User_Guide_PT-BR.pdf": "01ccdb6d1e933f67af2276590ef933ebdda7a0a27af228eb374d23bacc7a8b73",
+    "Finance_User_Guide.pdf": "bb12152a950326d9e304147566b67638c8cf88ac1868ef6bb78578fe25fa0de0",
+    "Finance_User_Guide_PT-BR.pdf": "d99995bb32cc39819346c0b6050513ff471b2a16bc65a5aa4430c3a5e6ce0197",
+    "Owner_User_Guide.pdf": "adabe601367cb871272c932b2dbd90f098d2eed57d9b4c42756a8f3e249db0e4",
+    "Owner_User_Guide_PT-BR.pdf": "f85cab6cf8bcb66f7ad206df5c5b3ec1fad3184cd39c41c2cecf031c51ef3788",
+    "Project_Manager_User_Guide.pdf": "d758c9e10fd081bcd97989375d3c83880bc4e19d453c4e78a58863743b8ed2f2",
+    "Project_Manager_User_Guide_PT-BR.pdf": "74b0e34c959b82700db0d10e30853eae777dc1a95db46762e664e105132c566b",
+    "Supplier_Coordinator_User_Guide.pdf": "0204c6125f1aedd0aba45df600ce0d05f76a92e742cdb110861220e1073984bf",
+    "Supplier_Coordinator_User_Guide_PT-BR.pdf": "e5bd70422cbd272e213883a57e7644f22213cfddc5182b775b8cc098d836258e",
+    "Worker_User_Guide.pdf": "6ca085ade688b4b880817c0e33be6db8efb2454cae08c2cbe6be6f4b2984a403",
+    "Worker_User_Guide_PT-BR.pdf": "907404726aaee3e786bb2721fbf3c4dd7a05123f463431a00441e4816347ed5b"
+  },
+  "unsignedDownloads": [
+    {
+      "locale": "en",
+      "unsignedStatus": 401,
+      "privateNoStore": true
+    },
+    {
+      "locale": "pt",
+      "unsignedStatus": 401,
+      "privateNoStore": true
+    }
+  ],
+  "authenticatedScope": "Authenticated persona downloads verified with real browser against identical application source in isolated synthetic fixture; no production user session fabricated."
+}

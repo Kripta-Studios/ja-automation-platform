@@ -1,0 +1,60 @@
+{
+  "commit": "61c9bce",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "locale": "en",
+  "roles": [
+    "owner",
+    "finance"
+  ],
+  "fixture": "Owner UI moved one QA assignment start beyond Finance selected asOf while Finance form stayed open",
+  "originalStart": "2026-09-28",
+  "movedStart": "2026-09-29",
+  "ownerUpdate": {
+    "status": 200
+  },
+  "attempted": {
+    "internalCost": "yes",
+    "expectedVersion": "1"
+  },
+  "network": {
+    "status": 409,
+    "codeInResponse": true,
+    "genericInResponse": false
+  },
+  "visible": {
+    "code": "FINANCE_ASSIGNMENT_COMMERCIAL_VERSION_CHANGED",
+    "text": "Action needed This person's commercial choices changed while the form was open. Your changes were not saved. Review the current saved choices before deciding whether to submit yours. This assignment is not shown for the selected work date. Review its current dates in the project team, then choose a date within the assignment to see its commercial choices. Review assignment dates",
+    "remedy": {
+      "text": "Review assignment dates",
+      "path": "/j-aautomation/app/projects/[qa-id]",
+      "tab": "team",
+      "lang": null,
+      "hash": "#team-title"
+    },
+    "role": "alert",
+    "focused": true,
+    "top": 85,
+    "bottom": 363,
+    "safeTop": 78,
+    "safeBottom": 756,
+    "scrollY": 463,
+    "routeView": "commercial",
+    "language": "en-US",
+    "openAssignmentEditorCount": 0,
+    "overflow": false
+  },
+  "review": {
+    "openedProjectTeam": true,
+    "currentDateVisible": true,
+    "localePreserved": "en-US",
+    "noWrite": true
+  },
+  "assignmentUnchangedAfterFailure": true,
+  "diagnostics": {
+    "owner": [],
+    "finance": []
+  }
+}

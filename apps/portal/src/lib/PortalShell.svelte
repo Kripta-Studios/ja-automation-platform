@@ -1,201 +1,1470 @@
 <script lang="ts">
+  import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import {
+    documentDownloadFallback,
+    documentDownloadProblem,
+    privateDownloadFilename,
+  } from '$lib/portal/ui/private-document-download';
+  import {
+    verifiedWorkerStatementFile,
+    workerStatementDownloadFallback,
+    workerStatementDownloadProblem,
+  } from '$lib/portal/ui/worker-statement-download';
+  import type { ProblemData } from '$lib/problem/contract';
+  import {
+    mfaEnrollmentCopy,
+    mfaProblemFromResponse,
+    mfaProblemIsService,
+    mfaUncertainProblem,
+  } from '../routes/app/mfa-enrollment/mfa-enrollment-copy';
+  import { beforeNavigate, replaceState } from '$app/navigation';
   import { base } from '$app/paths';
+  import { page } from '$app/stores';
   import { createAuthClient } from 'better-auth/client';
   import { passkeyClient } from '@better-auth/passkey/client';
-  import { onMount } from 'svelte';
+  import { disclosure } from './portal/ui/disclosure.js';
+  import RecordBrowser from './portal/ui/RecordBrowser.svelte';
+  import PlanningCalendar from './portal/ui/PlanningCalendar.svelte';
+  import AvailabilityCalendar from './portal/sections/AvailabilityCalendar.svelte';
+  import { onMount, tick, untrack } from 'svelte';
   import {
+    persistStandaloneLocale,
+    resolveStandaloneLocale,
+  } from '../routes/app/standalone-locale';
+  import { SvelteMap } from 'svelte/reactivity';
+  import {
+    documentLanguage,
     normalizePortalLocale,
     portalText,
     translatePortalDom,
     type PortalLocale,
   } from './portal-i18n';
   import {
-    adminNavigation,
-    portalTitles,
-    primaryNavigation,
-    securityNavigation,
-    secondaryNavigation,
+    activeNavItem,
+    mobilePrimaryNavigationFor,
+    portalNavigationForRole,
+    portalTitleFor,
     type NavItem,
   } from './portal-navigation';
   import PortalChrome from './PortalChrome.svelte';
   import {
-    cacheAssignments,
-    conflictMutations,
-    discardMutation,
-    getOfflineAssignments,
-    purgeUserCache,
-    queueMutation,
-    queuedCount,
-    syncQueuedMutations,
-    type OfflineAttachment,
-  } from './offline';
-
-  type Row = Record<string, string | number | boolean | null>;
-  type PortalData = {
-    user: {
-      id?: string;
-      name: string;
-      email: string;
-      role?: string;
-      status?: string;
-      mfaEnrolled?: boolean;
-      mfaRequired?: boolean;
-    };
-    section: string;
-    projects?: Row[];
-    clients?: Row[];
-    contacts?: Row[];
-    workers?: Row[];
-    skills?: Row[];
-    availability?: Row[];
-    records?: Row[];
-    milestones?: Row[];
-    documents?: Row[];
-    technicalChanges?: Row[];
-    periodReports?: Row[];
-    billingRules?: Row[];
-    invoices?: Row[];
-    settlements?: Row[];
-    reimbursements?: Row[];
-    ledger?: Array<Record<string, unknown>>;
-    packs?: Array<Record<string, unknown>>;
-    audit?: Row[];
-    legalEntities?: Row[];
-    taxProfiles?: Row[];
-    selectedProjectId?: string;
-    periodStart?: string;
-    periodEnd?: string;
-    weekStart?: string;
-    weekEnd?: string;
-    timesheet?: {
-      weekStart: string;
-      weekEnd: string;
-      days: Array<{
-        date: string;
-        label: string;
-        expectedMinutes: number;
-        actualMinutes: number;
-        differenceMinutes: number;
-        status: string;
-        categories: Record<string, number>;
-      }>;
-    };
-    weeklyPay?: {
-      currency: string;
-      approvedMinutes: number;
-      pendingMinutes: number;
-      estimatedApprovedMinor: string;
-      estimatedPendingMinor: string;
-    };
-    searchQuery?: string;
-    searchResults?: Row[];
-    pay?: {
-      currency: string;
-      projectIds?: string[];
-      approvedMinutes: number;
-      pendingMinutes: number;
-      estimatedApprovedMinor: string;
-      estimatedPendingMinor: string;
-      approvedReimbursementMinor: string;
-      pendingReimbursementMinor: string;
-      guaranteedMinutes?: number;
-      percentageBased?: boolean;
-      settlementTriggers?: string[];
-      missingCompensationRules?: number;
-      label?: string;
-      projectProgress?: Array<Record<string, unknown>>;
-    };
-    finance?: {
-      currency: string;
-      approvedCostMinor: string;
-      revenueCandidateMinor: string;
-      contributionMarginMinor: string;
-      invoicedMinor: string;
-      paidMinor: string;
-      receivableMinor: string;
-      laborRevenueMinor?: string;
-      expenseRevenueMinor?: string;
-      directLaborCostMinor?: string;
-      travelCostMinor?: string;
-      otherDirectCostMinor?: string;
-      approvedUnbilledWipMinor?: string;
-      unapprovedWipMinor?: string;
-      milestoneRevenueMinor?: string;
-      budgetMinor?: string | null;
-      plannedMinutes?: number | null;
-      plannedRemainingMinutes?: number | null;
-      estimateToCompleteMinor?: string | null;
-      estimateAtCompletionCostMinor?: string | null;
-      expectedFinalMarginMinor?: string | null;
-      hoursConsumedBps?: string | null;
-      travelBudgetConsumedBps?: string | null;
-      travelBudgetMinor?: string | null;
-      forecastAvailable?: boolean;
-      alerts?: string[];
-      contributionMarginBps?: string;
-      timeEconomics?: Array<Record<string, unknown>>;
-      expenseEconomics?: Array<Record<string, unknown>>;
-    } | null;
-    portfolio?: {
-      projects?: Array<Record<string, unknown>>;
-      byClient?: Array<Record<string, unknown>>;
-      byWorker?: Array<Record<string, unknown>>;
-      byMonth?: Array<Record<string, unknown>>;
-      byWeek?: Array<Record<string, unknown>>;
-    };
-    workers?: Row[];
-    dashboard?: {
-      activeProjects: number;
-      actualMinutes: number;
-      pendingReports: number;
-      expenseMinor: string;
-      upcomingInvoices: number;
-      upcomingInvoiceMinor: string;
-      currency: string;
-    };
-  };
-  type ActionResult = { success?: boolean; message?: string } | null;
+    FormSection,
+    SectionCard,
+    FieldGroup,
+    Field,
+    TableRegion,
+    ToastRegion,
+    formValidation,
+    reportFormFieldErrors,
+  } from './portal/ui';
+  import type { ToastItem } from './portal/ui';
+  import TodaySection from './portal/sections/TodaySection.svelte';
+  import NotificationSection from './portal/sections/NotificationSection.svelte';
+  import TimeSection from './portal/sections/TimeSection.svelte';
+  import ExpenseSection from './portal/sections/ExpenseSection.svelte';
+  import ReportSection from './portal/sections/ReportSection.svelte';
+  import ProjectSection, {
+    type ProjectLifecycleAction,
+  } from './portal/sections/ProjectSection.svelte';
+  import ExpertiseWorkerSelect from './portal/sections/ExpertiseWorkerSelect.svelte';
+  import ProjectPeoplePicker from './portal/sections/ProjectPeoplePicker.svelte';
+  import ProjectBudgetInput from './portal/sections/ProjectBudgetInput.svelte';
+  import ProjectSetupNextSteps from './portal/sections/ProjectSetupNextSteps.svelte';
+  import ApprovalSection from './portal/sections/ApprovalSection.svelte';
+  import BillingSection from './portal/sections/BillingSection.svelte';
+  import FinanceOverviewSection from './portal/sections/FinanceOverviewSection.svelte';
+  import CollectionsLedgerSection from './portal/sections/CollectionsLedgerSection.svelte';
+  import AccountingSection from './portal/sections/AccountingSection.svelte';
+  import ClientDirectorySection from './portal/sections/ClientDirectorySection.svelte';
+  import TeamDirectorySection, {
+    type MailboxDirectoryStatus,
+    type MailboxRow,
+  } from './portal/sections/TeamDirectorySection.svelte';
+  import { createOfflineController, offlineReviewReasonMessage } from './portal/offline-controller';
+  import type {
+    PortalActionResult as ActionResult,
+    PortalData,
+    PortalRow as Row,
+  } from './portal/portal-data';
+  import {
+    compact,
+    decimalToMinor,
+    formBoolean,
+    formNumber,
+    formValue,
+    hours,
+    initials,
+  } from './portal/portal-format';
+  import { configureOfflineIdentity, queueMutation, type OfflineAttachment } from './offline';
+  import { paymentMoney } from './portal/payment-money';
+  import {
+    hasControlledValue,
+    translateControlledValue,
+    type ControlledValueDomain,
+  } from './i18n/controlled-values';
 
   let { data, form }: { data: PortalData; form?: ActionResult } = $props();
+
+  function missingCompensationRuleProblem(count: number): ProblemData {
+    return {
+      code: 'WORKER_PAY_MISSING_COMPENSATION_RULE',
+      messageKey:
+        count === 1
+          ? 'problem.warning.workerPayMissingCompensationRuleOne'
+          : 'problem.warning.workerPayMissingCompensationRuleMany',
+      message:
+        count === 1
+          ? '1 time record is excluded from your compensation estimate because no applicable rule exists or its currency does not match the project.'
+          : `${count} time records are excluded from your compensation estimate because no applicable rules exist or their currencies do not match the projects.`,
+      params: { count },
+      fieldErrors: {},
+      remedies: [{ id: 'contact_finance_owner' }],
+      correlationId: '',
+    };
+  }
+
+  type MailboxPortalUser = PortalData['user'] & {
+    canonicalOwner?: boolean;
+    isCanonicalOwner?: boolean;
+    isOwner?: boolean;
+    owner?: { canonical?: boolean; isCanonical?: boolean };
+  };
+  type MailboxPortalData = PortalData & {
+    mailboxes?: MailboxRow[] | null;
+    mailboxDirectoryStatus?: MailboxDirectoryStatus;
+    mailboxDirectoryError?: string | null;
+    canManageMail?: boolean;
+    canonicalOwner?: boolean;
+    isCanonicalOwner?: boolean;
+    owner?: { canonical?: boolean; isCanonical?: boolean; canManageMail?: boolean };
+  };
+  const mailboxData = $derived(data as MailboxPortalData);
+  const canonicalOwner = $derived.by(() => {
+    const user = mailboxData.user as MailboxPortalUser;
+    const owner = mailboxData.owner;
+    return Boolean(
+      mailboxData.canonicalOwner ||
+      mailboxData.isCanonicalOwner ||
+      owner?.canonical ||
+      owner?.isCanonical ||
+      user.canonicalOwner ||
+      user.isCanonicalOwner ||
+      user.isOwner ||
+      user.owner?.canonical ||
+      user.owner?.isCanonical,
+    );
+  });
+  const canManageMail = $derived(
+    Boolean(
+      mailboxData.canManageMail ||
+      mailboxData.owner?.canManageMail ||
+      (mailboxData.user.role === 'owner_admin' && canonicalOwner),
+    ),
+  );
+  const canManageTeamDirectory = $derived(
+    mailboxData.user.role === 'owner_admin' && canonicalOwner,
+  );
   let online = $state(true);
   let queue = $state(0);
   let syncMessage = $state('');
-  let conflictItems = $state<Array<{ mutationId: string; entityType: string; createdAt: string }>>(
-    [],
-  );
-  let stepUpMessage = $state('');
+  let conflictItems = $state<
+    Array<{
+      mutationId: string;
+      entityType: string;
+      createdAt: string;
+      state?: 'queued' | 'conflict' | 'rejected' | 'needs_review';
+      reviewReason?: 'session' | 'service' | 'uncertain' | 'local';
+    }>
+  >([]);
   let menuOpen = $state(false);
+  let searchOpen = $state(false);
+  let searchInput = $state<HTMLInputElement | null>(null);
+  let searchValue = $derived(data.searchQuery ?? '');
   let offlineProjects = $state<Row[]>([]);
-  let expenseClientTreatment = $state('non_billable');
-  let expenseBillingTreatment = $state('internal_non_billable');
-  let locale = $state<PortalLocale>('en');
+  let locale = $state<PortalLocale>(untrack(() => normalizePortalLocale(data.locale)));
   let securityMessage = $state('');
+  let securitySucceeded = $state(false);
+  let mfaProblem = $state<ProblemData | null>(null);
+  let mfaBusy = $state(false);
+  let mfaEnrolled = $derived(Boolean(data.user.mfaEnrolled));
+  const mfaNeedsReview = $derived(Boolean(mfaProblem && mfaProblemIsService(mfaProblem)));
+  const mfaCopy = $derived(mfaEnrollmentCopy[locale]);
+  const mfaRemedyLinks = $derived({
+    sign_in_again: { label: mfaCopy.signInAgain, href: `${base}/app/login` },
+    review_mfa_settings: {
+      label: mfaCopy.reviewMfaSettings,
+      href: `${base}/app/profile?lang=${locale}#account-mfa`,
+    },
+    review_mfa_code: { label: mfaCopy.reviewMfaCode, href: '#profile-mfa-code' },
+    contact_owner: { label: mfaCopy.contactOwner },
+  });
+  type WorkerStatementFormat = 'pdf' | 'csv';
+  type WorkerStatementStatus = 'queued' | 'running' | 'ready' | 'failed';
+  type WorkerStatementArtifact = {
+    artifactId: string;
+    format: WorkerStatementFormat;
+    status: WorkerStatementStatus;
+    errorCode?: string | null;
+    retryable?: boolean | null;
+    currentAttemptNumber?: number;
+    maxAttempts?: number;
+    locale: PortalLocale;
+  };
+  type WorkerStatementRequest = {
+    periodStart: string;
+    periodEnd: string;
+    locale: PortalLocale;
+    refresh: boolean;
+    requestKey: string;
+    requestIssuedAt: string;
+  };
+  let workerStatementArtifacts = $state<WorkerStatementArtifact[]>([]);
+  let workerStatementBusy = $state(false);
+  let workerStatementPolling = $state(false);
+  let workerStatementProblem = $state<ProblemData | null>(null);
+  let workerStatementDownloadFailure = $state(false);
+  let workerStatementDownloadFailedFormat = $state<WorkerStatementFormat | null>(null);
+  let workerStatementDownloadFailedArtifactId = $state<string | null>(null);
+  let workerStatementStatusUnknownIds = $state<string[]>([]);
+  let workerStatementDownloadBusy = $state(false);
+  let workerStatementDownloadController: AbortController | null = null;
+  let workerStatementNoticeId = $state('');
+  let pendingWorkerStatementRequest = $state<WorkerStatementRequest | null>(null);
+  let workerStatementRequestChecked = $state(false);
+  const workerStatementPeriodHref = $derived(
+    `${base}/app/pay?start=${encodeURIComponent(data.periodStart ?? '')}&end=${encodeURIComponent(data.periodEnd ?? '')}&lang=${encodeURIComponent(locale)}`,
+  );
+  let dismissedToastIds = $state<string[]>([]);
+  type ProjectWorkflow =
+    | 'new-client'
+    | 'update-client'
+    | 'new-project'
+    | 'assign-worker'
+    | 'update-assignment'
+    | 'remove-assignment';
+  let projectWorkflow = $state<ProjectWorkflow | null>(null);
+  function rememberProjectWorkflow(workflow: ProjectWorkflow | null, hash = ''): void {
+    const url = new URL(location.href);
+    if (workflow) url.searchParams.set('action', workflow);
+    else url.searchParams.delete('action');
+    url.searchParams.delete('project');
+    url.searchParams.delete('worker');
+    url.hash = hash;
+    replaceState(url, {});
+  }
+  async function focusProjectDestination(selector: string): Promise<void> {
+    await tick();
+    const target = document.querySelector<HTMLElement>(selector);
+    if (!target) return;
+    target.scrollIntoView({ block: 'start' });
+    target.focus({ preventScroll: true });
+  }
+  function openProjectWorkflow(workflow: ProjectWorkflow): void {
+    projectWorkflow = workflow;
+    rememberProjectWorkflow(workflow);
+    if (workflow === 'new-project') {
+      newProjectClientId = '';
+      newProjectCurrencyOverride = null;
+      newProjectTimezoneOverride = null;
+    }
+    void focusProjectDestination(`[data-project-workflow="${workflow}"]`);
+  }
+  function showProjectList(): void {
+    projectWorkflow = null;
+    rememberProjectWorkflow(null);
+    void tick().then(() => {
+      const target = document.getElementById('project-register');
+      const disclosure = target?.querySelector('details');
+      if (disclosure) disclosure.open = true;
+      target?.scrollIntoView({ block: 'start' });
+      target?.focus({ preventScroll: true });
+    });
+  }
+  function showAssignmentHistory(event: MouseEvent): void {
+    event.preventDefault();
+    projectWorkflow = null;
+    rememberProjectWorkflow(null, 'assignment-history');
+    void tick().then(() => {
+      const target = document.getElementById('assignment-history');
+      const disclosure = target?.querySelector('details');
+      if (disclosure) disclosure.open = true;
+      target?.scrollIntoView({ block: 'start' });
+      target?.focus({ preventScroll: true });
+    });
+  }
+  $effect(() => {
+    const requested = $page.url.searchParams.get('action');
+    if (
+      [
+        'new-client',
+        'update-client',
+        'new-project',
+        'assign-worker',
+        'update-assignment',
+        'remove-assignment',
+      ].includes(requested ?? '')
+    )
+      projectWorkflow = requested as ProjectWorkflow;
+  });
+  $effect(() => {
+    if (form?.messageKey === 'action.validation.projectFields') projectWorkflow = 'new-project';
+    if (form?.messageKey === 'action.projects.projectCreated') projectWorkflow = 'new-project';
+    if (form?.messageKey === 'action.validation.clientFields') projectWorkflow = 'new-client';
+    if ((form as { actionName?: string } | undefined)?.actionName === 'createClient')
+      projectWorkflow = 'new-client';
+    if ((form as { actionName?: string } | undefined)?.actionName === 'assignWorker')
+      projectWorkflow = 'assign-worker';
+    if ((form as { actionName?: string } | undefined)?.actionName === 'updateAssignment')
+      projectWorkflow = 'update-assignment';
+    if ((form as { actionName?: string } | undefined)?.actionName === 'removeAssignment')
+      projectWorkflow = 'remove-assignment';
+  });
+  let projectRegisterPage = $state<Row[]>([]);
+  let documentPage = $state<Row[]>([]);
+  let documentTransferBusy = $state(false);
+  let documentTransferFailure = $state<{
+    id: string;
+    mode: 'view' | 'download';
+    problem: ProblemData;
+  } | null>(null);
+  let planningPage = $state<Row[]>([]);
+  let assignmentPage = $state<Row[]>([]);
+  let contactPage = $state<Row[]>([]);
   let passkeyName = $state('');
-  let mfaPassword = $state('');
   let mfaCode = $state('');
   let mfaSetupUri = $state('');
   let mfaBackupCodes = $state<string[]>([]);
   let passkeys = $state<Array<{ id: string; name?: string | null; createdAt?: Date | string }>>([]);
+  let stopOfflineController: (() => void) | null = null;
   const authClient = createAuthClient({
     basePath: `${base}/app/api/auth`,
     plugins: [passkeyClient()],
   });
-  const translate = (value: string): string => portalText(locale, value);
+  const translate = (value: string): string => {
+    switch (value) {
+      case 'Password verification failed.':
+        return portalText(locale, 'Password verification failed.');
+      case 'Passkey registration was not completed.':
+        return portalText(locale, 'Passkey registration was not completed.');
+      case 'Passkey registered for this account.':
+        return portalText(locale, 'Passkey registered for this account.');
+      case 'Passkey could not be revoked.':
+        return portalText(locale, 'Passkey could not be revoked.');
+      case 'Passkey revoked.':
+        return portalText(locale, 'Passkey revoked.');
+      case 'MFA enabled.':
+        return portalText(locale, 'MFA enabled.');
+      case 'MFA disabled.':
+        return portalText(locale, 'MFA disabled.');
+      case 'MFA setup started.':
+        return portalText(locale, 'MFA setup started.');
+      case 'MFA could not be updated.':
+        return portalText(locale, 'MFA could not be updated.');
+      case 'Select a project before saving an offline draft.':
+        return portalText(locale, 'Select a project before saving an offline draft.');
+      case 'Offline — saved on this device':
+        return portalText(locale, 'Offline — saved on this device');
+      case 'Offline draft could not be saved on this device.':
+        return portalText(locale, 'Offline draft could not be saved on this device.');
+      default:
+        return portalText(locale, value);
+    }
+  };
+  const controlledValue = (domain: ControlledValueDomain, value: unknown): string => {
+    const raw = value == null ? '' : String(value);
+    if (!raw) return '';
+    const normalized = raw.trim().toLowerCase().replace(/\s+/g, '_');
+    const canonicalRole =
+      domain === 'role'
+        ? ({
+            owner_admin: 'owner',
+            finance_admin: 'finance',
+            project_manager: 'manager',
+            auditor_read_only: 'admin',
+          }[normalized] ?? normalized)
+        : normalized;
+    const key = hasControlledValue(domain, raw)
+      ? raw
+      : hasControlledValue(domain, canonicalRole)
+        ? canonicalRole
+        : null;
+    return key ? translateControlledValue(locale, domain, key) : translate(raw);
+  };
 
-  function syncExpenseTreatment(event: Event): void {
-    const value = (event.currentTarget as HTMLSelectElement).value;
-    expenseClientTreatment = value;
-    expenseBillingTreatment =
-      value === 'reimbursable'
-        ? 'reimbursable_at_cost'
-        : value === 'all_in'
-          ? 'all_in'
-          : 'internal_non_billable';
+  type ActionResultWithMessageKey = ActionResult & {
+    messageKey?: unknown;
+    messageParams?: unknown;
+  };
+  type SearchGroupKey = 'projects' | 'invoices' | 'specialists' | 'clients' | 'other';
+  type SearchGroup = { key: SearchGroupKey; label: string; rows: Row[] };
+  function actionMessage(result: ActionResult | undefined): string {
+    if (!result) return '';
+    const localized = result as ActionResultWithMessageKey;
+    const messageKey = localized.messageKey;
+    if (typeof messageKey === 'string' && messageKey.trim()) {
+      const rawParams = localized.messageParams;
+      const params: Record<string, string | number> | undefined =
+        rawParams && typeof rawParams === 'object'
+          ? (Object.fromEntries(
+              Object.entries(rawParams as Record<string, unknown>).filter(
+                ([, value]) => typeof value === 'string' || typeof value === 'number',
+              ),
+            ) as Record<string, string | number>)
+          : undefined;
+      return portalText(locale, messageKey, params);
+    }
+    return typeof localized.message === 'string' ? localized.message : '';
   }
-  const navigation: NavItem[] = primaryNavigation;
-  const admin: NavItem[] = adminNavigation(base);
-  const securityAdmin: NavItem[] = securityNavigation;
-  const titles = portalTitles;
+
+  const roleNavigation = $derived(
+    portalNavigationForRole(base, data.user.role, data.user.workforceProfile),
+  );
+  const navigation: readonly NavItem[] = $derived(roleNavigation.primary);
+  const mobileNavigation: readonly NavItem[] = $derived(mobilePrimaryNavigationFor(roleNavigation));
+  const secondaryNavigation: readonly NavItem[] = $derived(roleNavigation.secondary);
+  const visibleAdmin: readonly NavItem[] = $derived(roleNavigation.admin);
+  const securityAdmin: readonly NavItem[] = $derived(roleNavigation.security);
+  const currentView = $derived($page.url.searchParams.get('view') ?? '');
+  const currentTitle = $derived(portalTitleFor(data.section, currentView));
+  const actionFeedback = $derived(actionMessage(form));
+  const documentResult = $derived.by(() => {
+    const result = form as
+      | (ProblemData & {
+          success?: boolean;
+          actionName?: string;
+          values?: Record<string, unknown>;
+        })
+      | null
+      | undefined;
+    return data.section === 'documents' &&
+      result?.success === false &&
+      ['uploadPrivateDocument', 'archiveDocument'].includes(result.actionName ?? '') &&
+      result.code &&
+      result.messageKey
+      ? result
+      : null;
+  });
+  const documentProblem = $derived(documentResult as ProblemData | null);
+  const documentFormValues = $derived.by((): Record<string, string> => {
+    const values = documentResult?.values;
+    return values && typeof values === 'object'
+      ? Object.fromEntries(
+          Object.entries(values).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string',
+          ),
+        )
+      : {};
+  });
+  const documentPreviewTypes = new Set([
+    'application/pdf',
+    'application/zip',
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/heic',
+    'image/heif',
+    'text/plain',
+  ]);
+
+  async function showDocumentTransferFailure(
+    id: string,
+    mode: 'view' | 'download',
+    problem: ProblemData,
+  ): Promise<void> {
+    documentTransferFailure = { id, mode, problem };
+    await tick();
+    if (documentTransferFailure?.id !== id) return;
+    const notice = document.getElementById('document-download-problem')?.querySelector<HTMLElement>(
+      '[data-ui="problem-notice"]',
+    );
+    notice?.focus({ preventScroll: true });
+    const bounds = notice?.getBoundingClientRect();
+    if (!bounds) return;
+    const header = document.querySelector<HTMLElement>('.portal-layout > header');
+    const headerPosition = header ? window.getComputedStyle(header).position : '';
+    const safeTop =
+      (header && (headerPosition === 'sticky' || headerPosition === 'fixed')
+        ? Math.max(0, header.getBoundingClientRect().bottom)
+        : 0) + 16;
+    const mobileNavigation = document.querySelector<HTMLElement>('.bottom-nav');
+    const navigationTop =
+      mobileNavigation && window.getComputedStyle(mobileNavigation).position === 'fixed'
+        ? mobileNavigation.getBoundingClientRect().top
+        : window.innerHeight;
+    const safeBottom = Math.min(window.innerHeight, navigationTop) - 16;
+    const scrollDelta =
+      bounds.height > safeBottom - safeTop || bounds.top < safeTop
+        ? bounds.top - safeTop
+        : bounds.bottom > safeBottom
+          ? bounds.bottom - safeBottom
+          : 0;
+    if (scrollDelta) window.scrollBy({ top: scrollDelta, behavior: 'instant' });
+  }
+
+  async function transferPrivateDocument(
+    event: MouseEvent,
+    record: Row,
+    mode: 'view' | 'download',
+  ): Promise<void> {
+    event.preventDefault();
+    if (documentTransferBusy) return;
+    const id = String(record.id);
+    const href = `${base}/app/api/documents/${encodeURIComponent(id)}${mode === 'view' ? '?view=1' : ''}`;
+    documentTransferBusy = true;
+    documentTransferFailure = null;
+    // Reserve the preview tab in the trusted click. Browsers may block a new tab
+    // opened only after the asynchronous authorization and integrity checks.
+    let preview: Window | null = null;
+    if (mode === 'view') {
+      try {
+        preview = window.open('about:blank', '_blank');
+      } catch {
+        // Treat a browser policy that throws like a blocked popup.
+      }
+    }
+    if (preview) preview.opener = null;
+    if (mode === 'view' && !preview) {
+      await showDocumentTransferFailure(id, 'download', documentDownloadFallback('popup'));
+      documentTransferBusy = false;
+      return;
+    }
+    try {
+      const response = await fetch(href, {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { accept: 'application/json, application/octet-stream, application/pdf, image/*, text/plain' },
+      });
+      const reference = response.headers.get('x-correlation-id') ?? '';
+      if (response.redirected) {
+        const destination = new URL(response.url);
+        preview?.close();
+        await showDocumentTransferFailure(
+          id,
+          mode,
+          destination.origin === location.origin && destination.pathname.endsWith('/app/login')
+            ? documentDownloadFallback('signIn', reference)
+            : documentDownloadFallback('invalid', reference),
+        );
+        return;
+      }
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+        const payload = contentType.includes('application/json')
+          ? await response.json().catch(() => null)
+          : null;
+        preview?.close();
+        await showDocumentTransferFailure(
+          id,
+          mode,
+          documentDownloadProblem(payload, reference) ??
+            documentDownloadFallback(response.status === 401 ? 'signIn' : 'invalid', reference),
+        );
+        return;
+      }
+      const contentType = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase();
+      const disposition = response.headers.get('content-disposition');
+      const expectedDisposition = mode === 'view' ? 'inline' : 'attachment';
+      if (
+        !contentType ||
+        !documentPreviewTypes.has(contentType) ||
+        !disposition?.toLowerCase().startsWith(expectedDisposition)
+      ) {
+        preview?.close();
+        await showDocumentTransferFailure(id, mode, documentDownloadFallback('invalid', reference));
+        return;
+      }
+      const file = await response.blob();
+      if (file.size === 0) {
+        preview?.close();
+        await showDocumentTransferFailure(id, mode, documentDownloadFallback('invalid', reference));
+        return;
+      }
+      const objectUrl = URL.createObjectURL(file);
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      if (mode === 'view' && preview) {
+        preview.location.replace(objectUrl);
+      } else {
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.rel = 'noopener noreferrer';
+        if (mode === 'view') link.target = '_blank';
+        else
+          link.download = privateDownloadFilename(
+            disposition,
+            record.safe_filename ?? record.original_filename,
+          );
+        link.hidden = true;
+        document.body.append(link);
+        link.click();
+        link.remove();
+      }
+    } catch {
+      preview?.close();
+      await showDocumentTransferFailure(id, mode, documentDownloadFallback('network'));
+    } finally {
+      documentTransferBusy = false;
+    }
+  }
+  let documentScrollIntent = false;
+  let restoredDocumentScrollId = '';
+  onMount(() => {
+    if (data.section !== 'documents') return;
+    const markIntent = () => {
+      documentScrollIntent = true;
+    };
+    const markKeyIntent = (event: KeyboardEvent) => {
+      if (
+        ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ', 'Tab'].includes(
+          event.key,
+        )
+      )
+        markIntent();
+    };
+    window.addEventListener('wheel', markIntent, { passive: true });
+    window.addEventListener('touchmove', markIntent, { passive: true });
+    window.addEventListener('pointerdown', markIntent, { passive: true });
+    window.addEventListener('keydown', markKeyIntent, true);
+    return () => {
+      window.removeEventListener('wheel', markIntent);
+      window.removeEventListener('touchmove', markIntent);
+      window.removeEventListener('pointerdown', markIntent);
+      window.removeEventListener('keydown', markKeyIntent, true);
+    };
+  });
+  function rememberDocumentScroll(form: HTMLFormElement) {
+    const input = form.elements.namedItem('viewportScrollY') as HTMLInputElement | null;
+    const capture = () => {
+      if (input) input.value = String(Math.max(0, Math.round(window.scrollY)));
+    };
+    const onSubmit = () => {
+      documentScrollIntent = false;
+      capture();
+    };
+    const onFormData = (event: FormDataEvent) => {
+      documentScrollIntent = false;
+      const viewport = String(Math.max(0, Math.round(window.scrollY)));
+      if (input) input.value = viewport;
+      event.formData.set('viewportScrollY', viewport);
+    };
+    form.addEventListener('submit', onSubmit, true);
+    form.addEventListener('formdata', onFormData);
+    return {
+      destroy() {
+        form.removeEventListener('submit', onSubmit, true);
+        form.removeEventListener('formdata', onFormData);
+      },
+    };
+  }
+  $effect(() => {
+    const id = documentProblem?.correlationId;
+    if (!id || id === restoredDocumentScrollId) return;
+    if (!/^\d{1,7}$/.test(documentFormValues.viewportScrollY ?? '')) return;
+    const viewport = Number(documentFormValues.viewportScrollY);
+    if (!Number.isSafeInteger(viewport) || viewport < 0) return;
+    restoredDocumentScrollId = id;
+    let active = true;
+    let observer: ResizeObserver | undefined;
+    const timers: number[] = [];
+    const restore = () => {
+      if (!active || documentProblem?.correlationId !== id || documentScrollIntent) return;
+      window.scrollTo({ top: viewport, behavior: 'instant' });
+      if (documentResult?.actionName !== 'uploadPrivateDocument') return;
+      const focusedProblem =
+        documentUploadForm?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        documentUploadForm?.querySelector<HTMLElement>('[data-ui="problem-notice"]');
+      if (!focusedProblem) return;
+      const header = document.querySelector<HTMLElement>('.portal-layout > header');
+      const headerPosition = header ? window.getComputedStyle(header).position : '';
+      const headerBottom =
+        header && (headerPosition === 'sticky' || headerPosition === 'fixed')
+          ? header.getBoundingClientRect().bottom
+          : 0;
+      const safeTop = Math.max(0, headerBottom) + 16;
+      const problemTop = focusedProblem.getBoundingClientRect().top;
+      if (problemTop < safeTop)
+        window.scrollTo({
+          top: Math.max(0, window.scrollY - (safeTop - problemTop)),
+          behavior: 'instant',
+        });
+    };
+    void tick().then(() =>
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (!active) return;
+          restore();
+          observer = new ResizeObserver(() => requestAnimationFrame(restore));
+          observer.observe(document.body);
+          for (const delay of [180, 450, 900]) timers.push(window.setTimeout(restore, delay));
+          timers.push(window.setTimeout(() => observer?.disconnect(), 1_500));
+        }),
+      ),
+    );
+    return () => {
+      active = false;
+      observer?.disconnect();
+      for (const timer of timers) window.clearTimeout(timer);
+    };
+  });
+  let documentUploadForm: HTMLFormElement | undefined = $state();
+  let focusedDocumentProblemId = '';
+  $effect(() => {
+    const id = documentProblem?.correlationId;
+    if (!id || id === focusedDocumentProblemId) return;
+    focusedDocumentProblemId = id;
+    void tick().then(() => {
+      if (documentResult?.actionName === 'uploadPrivateDocument' && documentUploadForm) {
+        reportFormFieldErrors(documentUploadForm, documentProblem.fieldErrors);
+        (
+          documentUploadForm.querySelector<HTMLElement>('[data-validation-summary]') ??
+          documentUploadForm.querySelector<HTMLElement>('[data-ui="problem-notice"]')
+        )?.focus({ preventScroll: true });
+      } else if (documentResult?.actionName === 'archiveDocument') {
+        const forms = document.querySelectorAll<HTMLFormElement>(
+          'form[action="?/archiveDocument"]',
+        );
+        const selected = Array.from(forms).find(
+          (candidate) =>
+            candidate.elements.namedItem('documentId') instanceof HTMLInputElement &&
+            (candidate.elements.namedItem('documentId') as HTMLInputElement).value ===
+              documentFormValues.documentId,
+        );
+        if (selected) {
+          reportFormFieldErrors(selected, documentProblem.fieldErrors);
+          (
+            selected.querySelector<HTMLElement>('[data-validation-summary]') ??
+            selected.querySelector<HTMLElement>('[data-ui="problem-notice"]')
+          )?.focus({ preventScroll: true });
+        }
+      }
+    });
+  });
+  const globalProblem = $derived.by(() => {
+    const result = form as
+      | (ProblemData & {
+          success?: boolean;
+          actionName?: string;
+          operation?: string;
+          values?: Record<string, unknown>;
+        })
+      | null
+      | undefined;
+    const values = result?.values;
+    const hasValue = (key: string) => typeof values?.[key] === 'string' && !!values[key];
+    const handledInSection =
+      (data.section === 'time' &&
+        ((hasValue('projectId') && hasValue('workDate')) ||
+          hasValue('weekStart') ||
+          hasValue('entries'))) ||
+      (data.section === 'reports' &&
+        hasValue('projectId') &&
+        (hasValue('workDate') || hasValue('reportDate') || hasValue('periodStart'))) ||
+      (data.section === 'expenses' &&
+        (hasValue('spentOn') ||
+          hasValue('projectId') ||
+          hasValue('amount') ||
+          result?.messageKey === 'action.validation.expenseFields')) ||
+      (data.section === 'projects' && result?.actionName === 'createClient') ||
+      (data.section === 'documents' &&
+        ['uploadPrivateDocument', 'archiveDocument'].includes(result?.actionName ?? '')) ||
+      (data.section === 'notifications' && result?.actionName === 'markNotificationRead') ||
+      data.section === 'billing' ||
+      (data.section === 'projects' &&
+        ['updateAssignment', 'removeAssignment', 'deleteAssignment'].includes(
+          result?.actionName ?? '',
+        )) ||
+      (data.section === 'planning' &&
+        [
+          'createPlanning',
+          'updatePlanning',
+          'cancelPlanning',
+          'createSkill',
+          'updateSkill',
+          'deleteSkill',
+          'setWorkerSkill',
+          'deleteWorkerSkill',
+        ].includes(result?.operation ?? '')) ||
+      (data.section === 'profile' &&
+        ['setWorkerSkill', 'deleteWorkerSkill', 'setAvailability'].includes(
+          result?.operation ?? '',
+        ));
+    return result &&
+      result.success === false &&
+      result.code &&
+      !handledInSection &&
+      result.actionName !== 'assignWorker' &&
+      !(
+        data.section === 'projects' &&
+        currentView === 'team' &&
+        result.code.startsWith('ACCESS_')
+      ) &&
+      !(
+        data.section === 'approvals' &&
+        /^(?:APPROVAL_|FINANCE_REVIEW_|EXPENSE_CLASSIFICATION_|FINANCE_ROLE_)/u.test(result.code)
+      ) &&
+      !(data.section === 'finance' && result.messageKey?.startsWith('problem.finance.'))
+      ? result
+      : null;
+  });
+  const globalRemedyLinks = $derived.by(() => {
+    const sections = new Set(
+      [...roleNavigation.primary, ...roleNavigation.secondary, ...roleNavigation.admin].map(
+        (item) => item.section,
+      ),
+    );
+    const canManageClients = data.user.role === 'owner_admin' || data.user.role === 'finance_admin';
+    const projectAction = (form as { actionName?: string } | null)?.actionName ?? '';
+    const isClientAction = /client/i.test(projectAction);
+    const workforceWorkerId = (form as { values?: Record<string, unknown> } | null)?.values
+      ?.workerId;
+    const reviewedWorkerId =
+      typeof workforceWorkerId === 'string' && workforceWorkerId
+        ? workforceWorkerId
+        : String(data.selectedWorkerId ?? data.user.id);
+    return {
+      ...(sections.has('time')
+        ? {
+            review_time: {
+              label: translate('Review updated time entry'),
+              href: `${base}/app/time#time-records`,
+            },
+          }
+        : {}),
+      ...(sections.has('expenses')
+        ? {
+            review_expense: {
+              label: translate('Review updated expense'),
+              href: `${base}/app/expenses#expense-records`,
+            },
+          }
+        : {}),
+      ...(sections.has('reports')
+        ? {
+            review_report: {
+              label: translate('Review updated report'),
+              href: `${base}/app/reports`,
+            },
+          }
+        : {}),
+      ...(sections.has('projects')
+        ? {
+            review_updated_record: {
+              label: translate('Review updated record'),
+              href:
+                isClientAction && canManageClients
+                  ? `${base}/app/projects?view=clients`
+                  : `${base}/app/projects`,
+            },
+            review_assignments: {
+              label: translate('Review assignments'),
+              href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+            },
+            archive_project: {
+              label:
+                data.user.role === 'owner_admin'
+                  ? translate('Archive project')
+                  : translate('Contact an owner'),
+              href: data.user.role === 'owner_admin' ? `${base}/app/projects` : undefined,
+            },
+            choose_available_manager: {
+              label: translate('Choose an available manager'),
+              href: `${base}/app/projects?action=new-project`,
+            },
+            review_selected_workers: {
+              label: translate('Review selected workers'),
+              href: `${base}/app/projects?action=new-project`,
+            },
+            review_project_dates: {
+              label: translate('Review project dates'),
+              href: `${base}/app/projects?action=new-project`,
+            },
+          }
+        : {}),
+      ...(canManageClients
+        ? {
+            review_client_projects: {
+              label: translate('Review client projects'),
+              href: `${base}/app/projects?view=clients`,
+            },
+            review_client_status: {
+              label: translate('Review client status'),
+              href: `${base}/app/projects?view=clients`,
+            },
+            review_client_currency: {
+              label: translate('Review client currency'),
+              href: `${base}/app/projects?view=clients`,
+            },
+            archive_client: {
+              label: translate('Archive client'),
+              href: `${base}/app/projects?view=clients`,
+            },
+            review_billing_contact: {
+              label: translate('Review billing contact'),
+              href:
+                isClientAction && form?.success === false
+                  ? undefined
+                  : `${base}/app/projects?view=clients`,
+            },
+            add_billing_contact: {
+              label: translate('Add billing contact'),
+              href:
+                isClientAction && form?.success === false
+                  ? undefined
+                  : `${base}/app/projects?view=clients`,
+            },
+          }
+        : {}),
+      ...(sections.has('planning')
+        ? {
+            review_planning: {
+              label: translate('Review current planning'),
+              href: `${base}/app/planning#planning-day-agenda`,
+            },
+            review_planning_fields: { label: translate('Review the planning fields') },
+            review_worker_assignments: {
+              label: translate('Review worker assignments'),
+              href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+            },
+            review_projects: {
+              label: translate('Review available projects'),
+              href: `${base}/app/projects`,
+            },
+            review_project_status: {
+              label:
+                data.user.role === 'owner_admin'
+                  ? translate('Review project status')
+                  : translate('Contact the project owner'),
+              href: data.user.role === 'owner_admin' ? `${base}/app/projects` : undefined,
+            },
+          }
+        : {}),
+      ...(['planning', 'profile'].some((section) => sections.has(section))
+        ? {
+            review_availability: {
+              label: translate('Review updated availability'),
+              href: `${base}/app/profile?worker=${encodeURIComponent(reviewedWorkerId)}#availability-calendar`,
+            },
+            review_availability_fields: { label: translate('Review availability dates') },
+            review_skill_fields: { label: translate('Review expertise fields') },
+            review_skills: {
+              label: translate('Review current expertise'),
+              href: `${base}/app/planning#planning-skills`,
+            },
+            review_worker_skills: {
+              label: portalText(locale, 'problem.remedy.reviewWorkerSkills'),
+              href: sections.has('planning')
+                ? `${base}/app/planning#planning-skills`
+                : `${base}/app/profile#profile-skills`,
+            },
+            review_workers: {
+              label: translate('Review available workers'),
+              href: `${base}/app/profile`,
+            },
+            review_own_skills: {
+              label: translate('Review your expertise'),
+              href: `${base}/app/profile#profile-skills`,
+            },
+            contact_project_owner: { label: translate('Contact the project owner') },
+            sign_in_again: { label: translate('Sign in again'), href: `${base}/app/login` },
+          }
+        : {}),
+      contact_owner: { label: translate('Contact an owner') },
+      correct_fields: { label: portalText(locale, 'problem.remedy.correctFields') },
+      review_documents: {
+        label: portalText(locale, 'problem.remedy.reviewDocuments'),
+        href: `${base}/app/documents#document-list`,
+      },
+      contact_document_owner: {
+        label: portalText(locale, 'problem.remedy.contactDocumentOwner'),
+      },
+    };
+  });
+  const documentDownloadRemedyLinks = $derived({
+    ...globalRemedyLinks,
+    sign_in_again: { label: translate('Sign in again'), href: `${base}/app/login?lang=${locale}` },
+  });
+  const clientFormResult = $derived(
+    (form as { actionName?: string } | undefined)?.actionName === 'createClient'
+      ? (form as AssignmentFormResult)
+      : undefined,
+  );
+  const clientProblem = $derived(
+    clientFormResult?.code && clientFormResult.messageKey && clientFormResult.correlationId
+      ? (clientFormResult as ProblemData)
+      : undefined,
+  );
+  let ownerClientForm: HTMLFormElement | undefined = $state();
+  let focusedClientProblemId = '';
+  $effect(() => {
+    const id = clientProblem?.correlationId;
+    if (!id || id === focusedClientProblemId) return;
+    focusedClientProblemId = id;
+    void tick().then(() => {
+      if (ownerClientForm && clientProblem.fieldErrors)
+        reportFormFieldErrors(ownerClientForm, clientProblem.fieldErrors);
+      const panel = document.querySelector<HTMLElement>('[data-project-workflow="new-client"]');
+      const target =
+        panel?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        panel?.querySelector<HTMLElement>('[data-ui="problem-notice"]');
+      target?.focus({ preventScroll: true });
+      // A native form POST reload can restore the page at the top after focus moves.
+      // Keep the focused explanation visible once that navigation has painted.
+      if (target)
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            if (clientProblem?.correlationId !== id || document.activeElement !== target) return;
+            const bounds = target.getBoundingClientRect();
+            if (bounds.top < 16 || bounds.bottom > window.innerHeight - 16)
+              target.scrollIntoView({ block: 'center', behavior: 'instant' });
+          }),
+        );
+    });
+  });
+  const clientFieldErrors = $derived.by(() => {
+    const result = form as
+      | {
+          actionName?: string;
+          messageKey?: unknown;
+          fields?: Record<string, string[] | undefined>;
+          fieldErrors?: Record<string, string[] | undefined>;
+        }
+      | null
+      | undefined;
+    return (result?.actionName === 'createClient' ||
+      result?.messageKey === 'action.validation.clientFields') &&
+      (result.fieldErrors || result.fields)
+      ? (result.fieldErrors ?? result.fields ?? {})
+      : {};
+  });
+  const clientFormValues = $derived.by(() => {
+    const result = form as
+      | { actionName?: string; messageKey?: unknown; values?: Record<string, unknown> }
+      | null
+      | undefined;
+    return (result?.actionName === 'createClient' ||
+      result?.messageKey === 'action.validation.clientFields') &&
+      result.values
+      ? result.values
+      : {};
+  });
+  const clientFormValue = (field: string, fallback = ''): string => {
+    const value = clientFormValues[field];
+    return typeof value === 'string' ? value : fallback;
+  };
+  function clientFieldLabel(field: string): string {
+    const labels: Record<string, string> = {
+      legalName: 'Legal name',
+      displayName: 'Display name',
+      clientCode: 'Client code (optional)',
+      currency: 'Currency',
+      timezone: 'Timezone',
+      billingContactName: 'Billing contact name',
+      billingEmail: 'Billing contact email',
+      billingAddress: 'Billing address',
+      paymentTermsDays: 'Payment terms (days)',
+      poReference: 'PO / reference',
+      notes: 'Notes',
+    };
+    return translate(labels[field] ?? field);
+  }
+  const projectFieldErrors = $derived.by(() => {
+    const result = form as
+      | { messageKey?: unknown; fields?: Record<string, string[] | undefined> }
+      | null
+      | undefined;
+    return result?.messageKey === 'action.validation.projectFields' && result.fields
+      ? result.fields
+      : {};
+  });
+  const projectFormValues = $derived.by(() => {
+    const result = form as
+      | { messageKey?: unknown; values?: Record<string, unknown> }
+      | null
+      | undefined;
+    return result?.messageKey === 'action.validation.projectFields' && result.values
+      ? result.values
+      : {};
+  });
+  const projectFormValue = (field: string, fallback = ''): string => {
+    const value = projectFormValues[field];
+    return typeof value === 'string' ? value : fallback;
+  };
+  const planningFailure = $derived.by(() => {
+    const result = form as
+      | {
+          success?: boolean;
+          operation?: string;
+          values?: Record<string, unknown>;
+          fields?: Record<string, string[]>;
+          fieldErrors?: Record<string, string[]>;
+          code?: string;
+          correlationId?: string;
+        }
+      | null
+      | undefined;
+    return result?.success === false &&
+      ['createPlanning', 'updatePlanning', 'cancelPlanning'].includes(result.operation ?? '')
+      ? result
+      : null;
+  });
+  const planningFailedUpdateId = $derived(
+    planningFailure?.operation === 'updatePlanning' ? String(planningFailure.values?.id ?? '') : '',
+  );
+  const planningFailedRecordId = $derived(String(planningFailure?.values?.id ?? ''));
+  const planningFailedRecordVisible = $derived(
+    (data.records ?? []).some((row) => String(row.id) === planningFailedRecordId),
+  );
+  const planningProblem = $derived(
+    planningFailure?.code && planningFailure.correlationId
+      ? (planningFailure as unknown as ProblemData)
+      : null,
+  );
+  const skillFailure = $derived.by(() => {
+    const result = form as
+      | {
+          success?: boolean;
+          operation?: string;
+          values?: Record<string, unknown>;
+          fields?: Record<string, string[]>;
+          fieldErrors?: Record<string, string[]>;
+          code?: string;
+          correlationId?: string;
+        }
+      | null
+      | undefined;
+    return result?.success === false &&
+      ['createSkill', 'updateSkill', 'deleteSkill', 'setWorkerSkill', 'deleteWorkerSkill'].includes(
+        result.operation ?? '',
+      )
+      ? result
+      : null;
+  });
+  const skillProblem = $derived(
+    skillFailure?.code && skillFailure.correlationId
+      ? (skillFailure as unknown as ProblemData)
+      : null,
+  );
+  const skillValue = (operation: string, field: string, fallback = ''): string =>
+    skillFailure?.operation === operation && skillFailure.values?.[field] != null
+      ? String(skillFailure.values[field])
+      : fallback;
+  const missingChoice = (value: string, choices: readonly Row[]): boolean =>
+    Boolean(value && !choices.some((choice) => String(choice.id) === value));
+  const planningFieldMessage = (field: string, operation: string, id = ''): string =>
+    planningFailure?.operation === operation &&
+    (!id || String(planningFailure.values?.id ?? '') === id) &&
+    !planningProblem &&
+    planningFailure.fields?.[field]?.length
+      ? translate(planningFailure.fields[field]?.[0] ?? '')
+      : '';
+  const planningUpdateValue = (field: string, id: string, fallback: unknown): string => {
+    if (planningFailedUpdateId === id && planningFailure?.values?.[field] != null)
+      return String(planningFailure.values[field]);
+    return String(fallback ?? '');
+  };
+  let planningEditForms = $state<Record<string, Record<string, string>>>({});
+  const planningEditKey = (row: Row): string => `${String(row.id)}:${String(row.version)}`;
+  const planningEditValue = (row: Row, field: string, fallback: unknown): string =>
+    planningEditForms[planningEditKey(row)]?.[field] ??
+    planningUpdateValue(field, String(row.id), fallback);
+  const rememberPlanningEdit = (row: Row, form: HTMLFormElement): void => {
+    planningEditForms[planningEditKey(row)] = Object.fromEntries(
+      [...new FormData(form)].filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string',
+      ),
+    );
+  };
+  const planningWorkersForUpdate = (row: Row): Row[] => {
+    const projectId = String(row.project_id);
+    const startsOn = planningEditValue(row, 'startsAt', row.starts_at).slice(0, 10);
+    const endsOn = planningEditValue(row, 'endsAt', row.ends_at).slice(0, 10);
+    const eligible = (data.workers ?? []).filter(
+      (worker) =>
+        worker.status === 'active' &&
+        (data.assignments ?? []).some(
+          (assignment) =>
+            String(assignment.project_id) === projectId &&
+            String(assignment.worker_id ?? assignment.user_id) === String(worker.id) &&
+            assignment.status === 'active' &&
+            String(assignment.starts_on) <= startsOn &&
+            (!assignment.ends_on || String(assignment.ends_on) >= endsOn),
+        ),
+    );
+    // Keep the published worker visible if their membership has since expired or
+    // the edited dates no longer fit it. The server validates any saved change.
+    if (!eligible.some((worker) => String(worker.id) === String(row.worker_id)))
+      return [
+        { id: String(row.worker_id), name: String(row.worker_name ?? row.worker_id) },
+        ...eligible,
+      ];
+    return eligible;
+  };
+  const initialProjectWorkerIds = $derived(
+    Array.isArray(projectFormValues.initialWorkerIds)
+      ? projectFormValues.initialWorkerIds.filter((id): id is string => typeof id === 'string')
+      : [],
+  );
+  const createdProject = $derived.by(() => {
+    const result = form as
+      | { success?: boolean; messageKey?: string; messageParams?: Record<string, unknown> }
+      | null
+      | undefined;
+    if (!result?.success || result.messageKey !== 'action.projects.projectCreated') return null;
+    const projectId = result.messageParams?.projectId;
+    const projectNumber = result.messageParams?.projectNumber;
+    if (typeof projectId !== 'string' || !/^[0-9a-f-]{36}$/i.test(projectId)) return null;
+    return {
+      id: projectId,
+      number: typeof projectNumber === 'string' ? projectNumber : '',
+    };
+  });
+  function projectFieldLabel(field: string): string {
+    const labels: Record<string, string> = {
+      clientId: 'Client',
+      costCenterCode: 'Cost center code',
+      name: 'Name',
+      currency: 'Currency',
+      timezone: 'Site timezone',
+      billingModel: 'Billing model',
+      expectedHoursPerDay: 'Expected hours / day',
+      plannedEndDate: 'Planned end date (optional)',
+      revenueBudgetMinor: 'Revenue budget',
+      poCapMinor: 'PO cap',
+      laborBudgetMinutes: 'Planned labor hours',
+      travelBudgetMinor: 'Travel budget',
+      expenseBudgetMinor: 'Expense budget',
+      initialWorkerIds: 'People (optional)',
+      initialWorkersStartOn: 'Worker assignment start date (optional)',
+    };
+    return translate(labels[field] ?? field);
+  }
+  const invitationPath = $derived.by(() => {
+    const result = form as ActionResultWithMessageKey | undefined;
+    if (!result?.success || result.messageKey !== 'action.access.invitation.created') return null;
+    const rawParams = result.messageParams;
+    if (!rawParams || typeof rawParams !== 'object') return null;
+    const path = (rawParams as Record<string, unknown>).path;
+    return typeof path === 'string' && path.startsWith('/') && path.includes('/app/invite/')
+      ? path
+      : null;
+  });
+  const profileWorkerId = $derived(String(data.selectedWorkerId ?? data.user.id));
+  let planningStarts = $state('');
+  let planningEnds = $state('');
+  let planningProjectId = $state('');
+  let planningWorkerId = $state('');
+  let restoredPlanningFailure: unknown;
+  $effect(() => {
+    if (
+      planningFailure?.operation !== 'createPlanning' ||
+      planningFailure === restoredPlanningFailure
+    )
+      return;
+    restoredPlanningFailure = planningFailure;
+    const values = planningFailure.values ?? {};
+    planningProjectId = String(values.projectId ?? '');
+    planningWorkerId = String(values.workerId ?? '');
+    planningStarts = String(values.startsAt ?? '');
+    planningEnds = String(values.endsAt ?? '');
+  });
+  const planningEligibleWorkers = $derived(
+    (data.workers ?? []).filter(
+      (worker) =>
+        worker.status === 'active' &&
+        (data.assignments ?? []).some(
+          (assignment) =>
+            String(assignment.project_id) === planningProjectId &&
+            String(assignment.worker_id ?? assignment.user_id) === String(worker.id) &&
+            assignment.status === 'active' &&
+            (!planningStarts || String(assignment.starts_on) <= planningStarts.slice(0, 10)) &&
+            (!planningEnds ||
+              !assignment.ends_on ||
+              String(assignment.ends_on) >= planningEnds.slice(0, 10)),
+        ),
+    ),
+  );
+  const planningWorkerUnavailable = $derived(
+    planningWorkerId &&
+      !planningEligibleWorkers.some((worker) => String(worker.id) === planningWorkerId)
+      ? ((data.workers ?? []).find((worker) => String(worker.id) === planningWorkerId) ?? null)
+      : null,
+  );
+  $effect(() => {
+    if (data.section !== 'planning') return;
+    const requested = $page.url.searchParams.get('project');
+    if (!planningProjectId)
+      planningProjectId =
+        requested && operationalProjects.some((project) => project.id === requested)
+          ? requested
+          : String(operationalProjects[0]?.id ?? '');
+  });
+  $effect(() => {
+    const requestedWorker = $page.url.searchParams.get('worker');
+    if (
+      !planningWorkerId &&
+      requestedWorker &&
+      planningEligibleWorkers.some((worker) => worker.id === requestedWorker)
+    )
+      planningWorkerId = requestedWorker;
+  });
+  let handledPlanningUrlDate = '';
+  $effect(() => {
+    if (data.section !== 'planning') return;
+    if (planningFailure?.operation === 'createPlanning') return;
+    const date = $page.url.searchParams.get('date') ?? '';
+    if (/^\d{4}-\d{2}-\d{2}$/u.test(date) && date !== handledPlanningUrlDate) {
+      handledPlanningUrlDate = date;
+      planningStarts = `${date}T08:00`;
+      planningEnds = `${date}T16:00`;
+    }
+  });
+  let planningForm: HTMLFormElement | undefined = $state();
+  type WorkforceScrollSnapshot = {
+    top: number;
+    path: string;
+    recordId: string;
+    workerId: string;
+    at: number;
+  };
+  const workforceScrollKey = (operation: string): string =>
+    `ja-workforce-scroll:${String(data.user.id)}:${data.section}:${operation}`;
+  let pendingWorkforceForm: HTMLFormElement | null = null;
+  let pendingWorkforceSource: 'submit' | 'formdata' | null = null;
+  let workforceScrollIntent = false;
+  let workforceFocusIntent = false;
+  function workforceFormValue(formElement: HTMLFormElement, name: string): string {
+    return (
+      formElement.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${name}"]`)?.value ??
+      ''
+    );
+  }
+  function rememberWorkforceScroll(formElement: HTMLFormElement): void {
+    const operation = formElement.dataset.workforceOperation;
+    if (!operation) return;
+    const snapshot: WorkforceScrollSnapshot = {
+      top: window.scrollY,
+      path: location.pathname,
+      recordId: formElement.dataset.recordId ?? workforceFormValue(formElement, 'id'),
+      workerId: workforceFormValue(formElement, 'workerId'),
+      at: Date.now(),
+    };
+    try {
+      sessionStorage.setItem(workforceScrollKey(operation), JSON.stringify(snapshot));
+    } catch {
+      // Storage may be unavailable; the form remains usable with its fragment anchor.
+    }
+  }
+  function revealWorkforceProblem(target: HTMLElement | null): void {
+    if (!target || workforceScrollIntent) return;
+    const header = document.querySelector<HTMLElement>('.portal-layout > header');
+    const headerPosition = header ? window.getComputedStyle(header).position : '';
+    const safeTop =
+      (header && (headerPosition === 'sticky' || headerPosition === 'fixed')
+        ? Math.max(0, header.getBoundingClientRect().bottom)
+        : 0) + 16;
+    const rect = target.getBoundingClientRect();
+    if (rect.top < safeTop) {
+      window.scrollBy({ top: rect.top - safeTop, behavior: 'instant' });
+    } else if (rect.bottom > window.innerHeight - 16) {
+      window.scrollBy({ top: rect.bottom - window.innerHeight + 16, behavior: 'instant' });
+    }
+  }
+  function restoreWorkforceScroll(operation: string, recordId: string, workerId: string): void {
+    let saved: string | null = null;
+    try {
+      saved = sessionStorage.getItem(workforceScrollKey(operation));
+      sessionStorage.removeItem(workforceScrollKey(operation));
+    } catch {
+      return;
+    }
+    if (!saved) return;
+    let snapshot: Partial<WorkforceScrollSnapshot>;
+    try {
+      snapshot = JSON.parse(saved) as Partial<WorkforceScrollSnapshot>;
+    } catch {
+      return;
+    }
+    if (
+      snapshot.path !== location.pathname ||
+      snapshot.recordId !== recordId ||
+      (workerId && snapshot.workerId !== workerId) ||
+      typeof snapshot.top !== 'number' ||
+      !Number.isFinite(snapshot.top) ||
+      typeof snapshot.at !== 'number' ||
+      Date.now() - snapshot.at > 300_000
+    )
+      return;
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (workforceScrollIntent) return;
+        window.scrollTo({ top: snapshot.top, behavior: 'auto' });
+        const focused = document.activeElement;
+        if (focused instanceof HTMLElement) revealWorkforceProblem(focused);
+      }),
+    );
+  }
+  let handledWorkforceProblemId = '';
+  $effect(() => {
+    const problem = planningProblem ?? skillProblem;
+    const failure = planningProblem ? planningFailure : skillFailure;
+    if (!problem?.correlationId || !failure?.operation) return;
+    if (handledWorkforceProblemId === problem.correlationId) return;
+    handledWorkforceProblemId = problem.correlationId;
+    const operation = failure.operation;
+    const recordId = String(failure.values?.id ?? '');
+    const fieldErrors = problem.fieldErrors;
+    void tick().then(() => {
+      const candidates = Array.from(
+        document.querySelectorAll<HTMLFormElement>(`form[data-workforce-operation="${operation}"]`),
+      );
+      const matching = candidates.filter(
+        (candidate) => !recordId || candidate.dataset.recordId === recordId,
+      );
+      const target =
+        matching.find((candidate) => candidate.closest('details')?.open) ?? matching[0];
+      if (target && Object.keys(fieldErrors).length) {
+        // ProjectBudgetInput submits a hidden minute value while its visible hours input has
+        // no name. Give the visible control the server field name only while attaching errors.
+        const plannedHoursInput =
+          operation === 'createPlanning' && fieldErrors.plannedMinutes
+            ? target
+                .querySelector<HTMLInputElement>('input[type="hidden"][name="plannedMinutes"]')
+                ?.parentElement?.querySelector<HTMLInputElement>('input:not([type="hidden"])')
+            : null;
+        if (plannedHoursInput) plannedHoursInput.name = 'plannedMinutes';
+        try {
+          reportFormFieldErrors(target, fieldErrors);
+        } finally {
+          plannedHoursInput?.removeAttribute('name');
+        }
+      }
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (workforceFocusIntent) return;
+          const focusTarget =
+            target?.querySelector<HTMLElement>('[data-validation-summary]') ??
+            target?.querySelector<HTMLElement>('[data-ui="problem-notice"]') ??
+            document.querySelector<HTMLElement>(
+              data.section === 'profile'
+                ? '#profile-skills [data-ui="problem-notice"]'
+                : '[data-planning-fallback] [data-ui="problem-notice"], #planning-skills [data-ui="problem-notice"]',
+            );
+          focusTarget?.focus({ preventScroll: true });
+          revealWorkforceProblem(focusTarget ?? null);
+        }),
+      );
+      restoreWorkforceScroll(operation, recordId, String(failure.values?.workerId ?? ''));
+    });
+  });
+  function selectPlanningDate(date: string) {
+    planningStarts = `${date}T08:00`;
+    planningEnds = `${date}T16:00`;
+    tick().then(() => {
+      planningForm?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      planningForm?.querySelector<HTMLInputElement>('input[name="startsAt"]')?.focus();
+    });
+  }
   const isAuditor = $derived(data.user.role === 'auditor_read_only');
   const isManager = $derived(Boolean(data.user.role && data.user.role !== 'worker' && !isAuditor));
   const isFinance = $derived(
@@ -203,214 +1472,1365 @@
       data.user.role === 'finance_admin' ||
       data.user.role === 'auditor_read_only',
   );
-  const canAudit = $derived(data.user.role === 'owner_admin' || isAuditor);
-  const showAdmin = $derived(isManager || isFinance || canAudit);
-  const visibleAdmin = $derived(admin.filter((item) => !item.financeOnly || isFinance));
-  const availableProjects = $derived(
-    data.projects && data.projects.length > 0 ? data.projects : offlineProjects,
+  const canManageProjects = $derived(
+    data.user.role === 'owner_admin' || data.user.role === 'finance_admin',
   );
-  const money = (minor: string | number | null | undefined, currency = 'USD') =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(
-      Number(minor ?? 0) / 100,
-    );
-  const hours = (minutes: number): string => `${(minutes / 60).toFixed(1)}h`;
-  const categorySummary = (categories: Record<string, number>): string =>
-    Object.entries(categories)
-      .filter(([, minutes]) => minutes > 0)
-      .map(([category, minutes]) => `${category.replaceAll('_', ' ')} ${hours(minutes)}`)
-      .join(' · ');
-  const shiftWeek = (value: string, days: number): string => {
-    return new Date(Date.parse(`${value}T00:00:00.000Z`) + days * 86_400_000)
-      .toISOString()
-      .slice(0, 10);
+  const canManageClientContacts = $derived(
+    data.user.role === 'owner_admin' || data.user.role === 'finance_admin',
+  );
+  const canManageAssignmentControls = $derived(
+    data.user.role === 'owner_admin' || data.user.role === 'project_manager',
+  );
+  const canAudit = $derived(data.user.role === 'owner_admin' || isAuditor);
+  const showAdmin = $derived(visibleAdmin.length > 0 || securityAdmin.length > 0);
+  const availableProjects = $derived(
+    data.projects && data.projects.length > 0
+      ? data.projects
+      : !online && data.offlineEnabled !== false
+        ? offlineProjects
+        : [],
+  );
+  const operationalProjects = $derived(
+    availableProjects.filter((project) =>
+      ['active', 'planned', 'paused'].includes(String(project.status ?? 'active')),
+    ),
+  );
+  const emptyPlanningProjectProblem = $derived<ProblemData | null>(
+    operationalProjects.length === 0
+      ? {
+          code: 'PLANNING_PROJECT_OPTIONS_EMPTY',
+          messageKey: 'problem.planning.projectOptionsEmpty',
+          params: {},
+          fieldErrors: {},
+          remedies:
+            data.user.role === 'owner_admin'
+              ? [{ id: 'review_project_status' }]
+              : [{ id: 'contact_project_owner' }],
+          correlationId: '',
+        }
+      : null,
+  );
+  const planningProjectUnavailable = $derived(
+    planningProjectId &&
+      !operationalProjects.some((project) => String(project.id) === planningProjectId)
+      ? (availableProjects.find((project) => String(project.id) === planningProjectId) ?? null)
+      : null,
+  );
+  const activeProjects = $derived(operationalProjects);
+  type AssignmentFormResult = {
+    actionName?: string;
+    values?: Readonly<Record<string, unknown>>;
+    code?: string;
+    messageKey?: string;
+    params?: ProblemData['params'];
+    fieldErrors?: ProblemData['fieldErrors'];
+    remedies?: ProblemData['remedies'];
+    correlationId?: string;
   };
+  const assignmentForm = $derived(
+    (form as AssignmentFormResult | undefined)?.actionName === 'assignWorker'
+      ? (form as AssignmentFormResult)
+      : undefined,
+  );
+  let ownerAssignmentForm: HTMLFormElement | undefined = $state();
+  $effect(() => {
+    if (assignmentForm?.fieldErrors && ownerAssignmentForm)
+      reportFormFieldErrors(ownerAssignmentForm, assignmentForm.fieldErrors);
+  });
+  const assignmentFormValue = (field: string, fallback = ''): string => {
+    const submitted = assignmentForm?.values?.[field];
+    return submitted == null ? fallback : String(submitted);
+  };
+  let assignmentSelectedProjectId = $derived(
+    assignmentFormValue('projectId', $page.url.searchParams.get('project') ?? ''),
+  );
+  const assignmentSelectedProject = $derived(
+    availableProjects.find((project) => String(project.id) === assignmentSelectedProjectId),
+  );
+  const assignmentProjectOptions = $derived(
+    assignmentSelectedProject &&
+      !activeProjects.some((project) => String(project.id) === assignmentSelectedProjectId)
+      ? [...activeProjects, assignmentSelectedProject]
+      : activeProjects,
+  );
+  const assignmentProjectUnavailable = $derived(
+    Boolean(
+      assignmentSelectedProject &&
+      !['active', 'planned', 'paused'].includes(String(assignmentSelectedProject.status)),
+    ),
+  );
+  const assignmentProblem = $derived(
+    assignmentForm?.code && assignmentForm.messageKey && assignmentForm.correlationId
+      ? (assignmentForm as ProblemData)
+      : undefined,
+  );
+  const assignmentEditForm = $derived(
+    (form as AssignmentFormResult | undefined)?.actionName === 'updateAssignment' ||
+      (form as AssignmentFormResult | undefined)?.actionName === 'removeAssignment'
+      ? (form as AssignmentFormResult)
+      : undefined,
+  );
+  const assignmentEditProblem = $derived(
+    assignmentEditForm?.code && assignmentEditForm.messageKey && assignmentEditForm.correlationId
+      ? (assignmentEditForm as ProblemData)
+      : undefined,
+  );
+  const assignmentEditValue = (field: string, assignmentId: unknown, fallback = ''): string => {
+    if (String(assignmentEditForm?.values?.assignmentId ?? '') !== String(assignmentId))
+      return fallback;
+    const submitted = assignmentEditForm?.values?.[field];
+    return submitted == null ? '' : String(submitted);
+  };
+  let focusedAssignmentEditProblemId = '';
+  $effect(() => {
+    const correlationId = assignmentEditProblem?.correlationId;
+    if (!correlationId || correlationId === focusedAssignmentEditProblemId) return;
+    focusedAssignmentEditProblemId = correlationId;
+    void tick().then(() => {
+      const workflow =
+        assignmentEditForm?.actionName === 'removeAssignment'
+          ? 'remove-assignment'
+          : 'update-assignment';
+      const panel = document.querySelector<HTMLElement>(`[data-project-workflow="${workflow}"]`);
+      const form = [...(panel?.querySelectorAll<HTMLFormElement>('form') ?? [])].find(
+        (candidate) =>
+          candidate.dataset.assignmentId === String(assignmentEditForm?.values?.assignmentId ?? ''),
+      );
+      if (form && assignmentEditProblem.fieldErrors)
+        reportFormFieldErrors(form, assignmentEditProblem.fieldErrors);
+      const target =
+        panel?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        panel?.querySelector<HTMLElement>('[data-ui="problem-notice"]');
+      target?.focus({ preventScroll: true });
+    });
+  });
+  let focusedAssignmentProblemId = '';
+  $effect(() => {
+    const correlationId = assignmentProblem?.correlationId;
+    if (!correlationId || correlationId === focusedAssignmentProblemId) return;
+    focusedAssignmentProblemId = correlationId;
+    void tick().then(() => {
+      const panel = document.querySelector<HTMLElement>('[data-project-workflow="assign-worker"]');
+      const target =
+        panel?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        panel?.querySelector<HTMLElement>('[data-ui="problem-notice"][data-kind="error"]');
+      target?.focus({ preventScroll: true });
+      target?.scrollIntoView({ block: 'center', inline: 'nearest' });
+    });
+  });
+  const assignmentAdvanceProblem = $derived(
+    assignmentProjectUnavailable && assignmentSelectedProject
+      ? ({
+          code: 'PROJECT_ASSIGNMENT_BLOCKED_STATUS',
+          messageKey: 'problem.project.assignmentBlockedStatus',
+          params: {
+            projectName: String(assignmentSelectedProject.name),
+            status: String(assignmentSelectedProject.status),
+          },
+          fieldErrors: {},
+          remedies:
+            data.user.role === 'owner_admin'
+              ? [{ id: 'review_project_status', projectId: assignmentSelectedProjectId }]
+              : [{ id: 'contact_project_owner' }],
+          correlationId: '',
+        } satisfies ProblemData)
+      : undefined,
+  );
+  const assignmentRemedyLinks = $derived({
+    correct_fields: {
+      label: portalText(locale, 'problem.remedy.correctFields'),
+    },
+    review_project_status: {
+      label: portalText(locale, 'problem.remedy.reviewProjectStatus'),
+      href: assignmentSelectedProjectId
+        ? `${base}/app/projects/${encodeURIComponent(assignmentSelectedProjectId)}`
+        : undefined,
+    },
+    contact_project_owner: {
+      label: portalText(locale, 'problem.remedy.contactOwner'),
+    },
+    review_assignments: {
+      label: portalText(locale, 'problem.remedy.reviewAssignments'),
+      href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+    },
+    choose_available_worker: {
+      label: portalText(locale, 'problem.remedy.chooseAvailableWorker'),
+    },
+    review_updated_record: {
+      label: translate('Review updated record'),
+      href: `${base}/app/projects?action=${assignmentEditForm?.actionName === 'removeAssignment' ? 'remove-assignment' : 'update-assignment'}#project-assignment-list`,
+    },
+  });
+  const firstAuthorizedProjectId = $derived(String(data.projects?.[0]?.id ?? '').trim() || null);
+  const invoiceDraftHref = $derived(
+    canManageProjects && firstAuthorizedProjectId
+      ? `${base}/app/projects/${encodeURIComponent(firstAuthorizedProjectId)}`
+      : null,
+  );
+
+  /**
+   * Keep project lifecycle semantics in the existing route actions. The new
+   * project surface only renders these already-authorized transitions; it does
+   * not infer or calculate any commercial state.
+   */
+  const projectLifecycleActions = (row: Row): readonly ProjectLifecycleAction[] => {
+    const status = String(row.status ?? '');
+    if (status === 'active' || status === 'paused') {
+      return [
+        {
+          label: translate('Begin close'),
+          action: '?/transitionProject',
+          fields: { status: 'closing' },
+        },
+      ];
+    }
+    if (status === 'closing') {
+      return [
+        {
+          label: translate('Close project'),
+          action: '?/transitionProject',
+          fields: { status: 'closed' },
+        },
+      ];
+    }
+    if (status === 'closed') {
+      return [
+        {
+          label: translate('Archive project'),
+          action: '?/transitionProject',
+          fields: { status: 'archived' },
+          destructive: true,
+        },
+      ];
+    }
+    if (status === 'archived') {
+      return [
+        {
+          label: translate('Restore project'),
+          action: '?/transitionProject',
+          fields: { status: 'restore' },
+        },
+      ];
+    }
+    return [];
+  };
+  function projectLifecycleAssignmentWarning(row: Row, status: 'closing' | 'closed'): ProblemData {
+    const projectName = String(row.name ?? row.project_name ?? translate('Unnamed project'));
+    return {
+      code: 'WARNING_PROJECT_LIFECYCLE_ASSIGNMENTS',
+      messageKey: 'problem.warning.projectLifecycleAssignments',
+      message: `${projectName}: ${controlledValue('status', status)} prevents new assignments. Review the project and assignments before continuing.`,
+      params: { projectName, status },
+      fieldErrors: {},
+      remedies: [{ id: 'review_project' }, { id: 'review_assignments' }],
+      correlationId: '',
+    };
+  }
+  const activeClients = $derived(
+    (data.clients ?? []).filter((client) => String(client.status ?? 'active') !== 'archived'),
+  );
+  let newProjectClientId = $state('');
+  let newProjectCurrencyOverride = $state<string | null>(null);
+  let newProjectTimezoneOverride = $state<string | null>(null);
+  const selectedNewProjectClientId = $derived(
+    newProjectClientId ||
+      projectFormValue('clientId', $page.url.searchParams.get('client') ?? '') ||
+      String(activeClients[0]?.id ?? ''),
+  );
+  const selectedNewProjectClient = $derived(
+    activeClients.find((client) => String(client.id) === selectedNewProjectClientId),
+  );
+  const newProjectCurrency = $derived(
+    newProjectCurrencyOverride ??
+      (newProjectClientId
+        ? String(selectedNewProjectClient?.currency ?? 'USD')
+        : projectFormValue('currency', String(selectedNewProjectClient?.currency ?? 'USD'))),
+  );
+  const newProjectTimezone = $derived(
+    newProjectTimezoneOverride ??
+      (newProjectClientId
+        ? String(selectedNewProjectClient?.timezone ?? 'America/New_York')
+        : projectFormValue(
+            'timezone',
+            String(selectedNewProjectClient?.timezone ?? 'America/New_York'),
+          )),
+  );
   const href = (section: string) =>
     section === 'today' ? `${base}/app/` : `${base}/app/${section}`;
   const itemHref = (item: NavItem) => item.href ?? href(item.section);
+  const activeDestination = $derived(
+    activeNavItem([...navigation, ...secondaryNavigation, ...visibleAdmin, ...securityAdmin], {
+      base,
+      section: data.section,
+      url: $page.url,
+      role: data.user.role,
+      itemHref,
+    }),
+  );
+  const searchTerm = $derived(searchValue.trim().toLowerCase());
+  const visibleSearchSuggestions = $derived(
+    (data.searchSuggestions ?? [])
+      .filter((row) => {
+        if (!searchTerm) return true;
+        return `${String(row.label ?? '')} ${String(row.detail ?? '')} ${String(row.type ?? '')}`
+          .toLowerCase()
+          .includes(searchTerm);
+      })
+      .slice(0, 8),
+  );
+  const searchGroupKey = (row: Row): SearchGroupKey => {
+    switch (
+      String(row.type ?? '')
+        .trim()
+        .toLowerCase()
+    ) {
+      case 'project':
+      case 'projects':
+        return 'projects';
+      case 'invoice':
+      case 'invoices':
+        return 'invoices';
+      case 'worker':
+      case 'workers':
+      case 'specialist':
+      case 'specialists':
+      case 'person':
+      case 'people':
+        return 'specialists';
+      case 'client':
+      case 'clients':
+        return 'clients';
+      default:
+        return 'other';
+    }
+  };
+  const searchGroupLabel = (key: SearchGroupKey): string => {
+    switch (key) {
+      case 'projects':
+        return translate('Projects');
+      case 'invoices':
+        return translate('Invoices');
+      case 'specialists':
+        return translate('Specialists');
+      case 'clients':
+        return translate('Clients');
+      default:
+        return translate('Other records');
+    }
+  };
+  const groupSearchRows = (rows: Row[]): SearchGroup[] => {
+    const order: SearchGroupKey[] = ['projects', 'invoices', 'specialists', 'clients', 'other'];
+    const grouped = new SvelteMap<SearchGroupKey, Row[]>();
+    for (const row of rows) {
+      const key = searchGroupKey(row);
+      const existing = grouped.get(key);
+      if (existing) existing.push(row);
+      else grouped.set(key, [row]);
+    }
+    return order
+      .filter((key) => (grouped.get(key)?.length ?? 0) > 0)
+      .map((key) => ({ key, label: searchGroupLabel(key), rows: grouped.get(key) ?? [] }));
+  };
+  const groupedSearchSuggestions = $derived(groupSearchRows(visibleSearchSuggestions));
+  const groupedSearchResults = $derived(groupSearchRows(data.searchResults ?? []));
   const searchHref = (row: Row) => {
     const id = String(row.id ?? '');
-    if (row.type === 'project') return `${base}/app/projects/${id}`;
-    if (row.type === 'invoice') return `${base}/app/billing/invoices/${id}`;
-    if (row.type === 'worker') return `${base}/app/planning`;
-    if (row.type === 'expense') return `${base}/app/expenses`;
-    return `${base}/app/reports`;
+    const type = String(row.type ?? '')
+      .trim()
+      .toLowerCase();
+    if (type === 'project' || type === 'projects') return `${base}/app/projects/${id}`;
+    if (type === 'client' || type === 'clients')
+      return `${base}/app/projects?view=clients&focus=${encodeURIComponent(id)}`;
+    if (type === 'invoice' || type === 'invoices') return `${base}/app/billing/invoices/${id}`;
+    if (type === 'report' || type === 'reports') return `${base}/app/reports/${id}`;
+    if (type === 'expense' || type === 'expenses') return `${base}/app/expenses/${id}`;
+    if (['worker', 'workers', 'specialist', 'specialists', 'person', 'people'].includes(type))
+      return `${base}/app/planning`;
+    return `${base}/app/`;
   };
-  const initials = (name: string) =>
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase();
+  const toastItems = $derived.by(() => {
+    const items: ToastItem[] = [];
+    const add = (
+      id: string,
+      message: string,
+      variant: ToastItem['variant'],
+      title: string,
+    ): void => {
+      if (!message || dismissedToastIds.includes(id)) return;
+      items.push({ id, message, variant, title, closeLabel: translate('Dismiss notification') });
+    };
+
+    if (actionFeedback) {
+      add(
+        `action:${String((form as ActionResultWithMessageKey | undefined)?.messageKey ?? actionFeedback)}`,
+        actionFeedback,
+        form?.success ? 'success' : 'danger',
+        form?.success ? translate('Success') : translate('Error'),
+      );
+    }
+    if (securityMessage) {
+      add(
+        `security:${securityMessage}`,
+        translate(securityMessage),
+        securitySucceeded ? 'success' : 'danger',
+        securitySucceeded ? translate('Success') : translate('Error'),
+      );
+    }
+    if (syncMessage) {
+      const succeeded =
+        syncMessage === 'Offline drafts synced.' ||
+        syncMessage === 'Offline — saved on this device';
+      add(
+        `sync:${syncMessage}`,
+        translate(syncMessage),
+        succeeded ? 'success' : 'danger',
+        succeeded ? translate('Success') : translate('Error'),
+      );
+    }
+    return items;
+  });
+
+  function dismissToast(id: string): void {
+    if (!dismissedToastIds.includes(id)) dismissedToastIds = [...dismissedToastIds, id];
+  }
+
+  function searchOptionElements(): HTMLElement[] {
+    if (typeof document === 'undefined') return [];
+    return Array.from(
+      document.querySelectorAll<HTMLElement>('#portal-search-popover a[role="option"]'),
+    );
+  }
+
+  function handleSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      searchOpen = false;
+      searchInput?.blur();
+      return;
+    }
+    if (event.key === 'ArrowDown' && searchOpen) {
+      const first = searchOptionElements()[0];
+      if (!first) return;
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function handleSearchOptionKeydown(event: KeyboardEvent, index: number): void {
+    const options = searchOptionElements();
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      searchOpen = false;
+      searchInput?.focus();
+      return;
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const delta = event.key === 'ArrowDown' ? 1 : -1;
+      options[(index + delta + options.length) % options.length]?.focus();
+    }
+  }
+
+  const offlineController = createOfflineController(base, {
+    setOnline: (value) => (online = value),
+    setQueue: (value) => (queue = value),
+    setSyncMessage: (value) => (syncMessage = value),
+    getSyncMessage: () => syncMessage,
+    setConflictItems: (value) => (conflictItems = value),
+    setOfflineProjects: (value) => (offlineProjects = value),
+  });
+
+  function applyWorkerStatementArtifacts(value: unknown): void {
+    if (!Array.isArray(value)) return;
+    workerStatementArtifacts = value.filter((artifact): artifact is WorkerStatementArtifact => {
+      if (!artifact || typeof artifact !== 'object') return false;
+      const candidate = artifact as Record<string, unknown>;
+      return (
+        typeof candidate.artifactId === 'string' &&
+        (candidate.format === 'pdf' || candidate.format === 'csv') &&
+        (candidate.locale === 'en' || candidate.locale === 'es' || candidate.locale === 'pt') &&
+        (candidate.status === 'queued' ||
+          candidate.status === 'running' ||
+          candidate.status === 'ready' ||
+          candidate.status === 'failed')
+      );
+    });
+  }
+
+  function workerStatementArtifact(format: WorkerStatementFormat): WorkerStatementArtifact | null {
+    return (
+      workerStatementArtifacts.find(
+        (artifact) => artifact.format === format && artifact.locale === locale,
+      ) ?? null
+    );
+  }
+
+  function canRetryWorkerStatement(artifact: WorkerStatementArtifact | null | undefined): boolean {
+    return (
+      artifact?.status === 'failed' &&
+      artifact.retryable === true &&
+      typeof artifact.currentAttemptNumber === 'number' &&
+      typeof artifact.maxAttempts === 'number' &&
+      artifact.currentAttemptNumber < artifact.maxAttempts
+    );
+  }
+
+  function workerStatementStorageKey(request?: WorkerStatementRequest): string {
+    return `worker-statement-request:${data.user.id}:${request?.periodStart ?? data.periodStart}:${request?.periodEnd ?? data.periodEnd}:${request?.locale ?? locale}`;
+  }
+
+  function savePendingWorkerStatementRequest(request: WorkerStatementRequest | null): void {
+    const prior = pendingWorkerStatementRequest;
+    pendingWorkerStatementRequest = request;
+    workerStatementRequestChecked = false;
+    try {
+      if (request)
+        sessionStorage.setItem(workerStatementStorageKey(request), JSON.stringify(request));
+      else sessionStorage.removeItem(workerStatementStorageKey(prior ?? undefined));
+    } catch {
+      // The in-memory request identity still prevents a duplicate in this page session.
+    }
+  }
+
+  function restorePendingWorkerStatementRequest(): void {
+    try {
+      const stored = sessionStorage.getItem(workerStatementStorageKey());
+      if (!stored) return;
+      const value = JSON.parse(stored) as Partial<WorkerStatementRequest>;
+      if (
+        value.periodStart === data.periodStart &&
+        value.periodEnd === data.periodEnd &&
+        value.locale === locale &&
+        typeof value.requestKey === 'string' &&
+        typeof value.requestIssuedAt === 'string' &&
+        typeof value.refresh === 'boolean'
+      )
+        pendingWorkerStatementRequest = value as WorkerStatementRequest;
+    } catch {
+      // Corrupt storage cannot supply a trustworthy replay identity.
+    }
+  }
+
+  function statementProblem(
+    code: string,
+    messageKey: `problem.workerStatement.${string}`,
+    message: string,
+    remedies: ProblemData['remedies'] = [{ id: 'check_statement_status' }],
+  ): ProblemData {
+    return {
+      code,
+      messageKey,
+      message,
+      params: {},
+      fieldErrors: {},
+      remedies,
+      correlationId: crypto.randomUUID(),
+    };
+  }
+
+  function responseStatementProblem(payload: unknown): ProblemData {
+    if (payload && typeof payload === 'object') {
+      const value = payload as Partial<ProblemData>;
+      if (
+        typeof value.code === 'string' &&
+        typeof value.messageKey === 'string' &&
+        value.messageKey.startsWith('problem.workerStatement.') &&
+        typeof value.correlationId === 'string'
+      )
+        return {
+          code: value.code,
+          messageKey: value.messageKey as `problem.workerStatement.${string}`,
+          message: typeof value.message === 'string' ? value.message : undefined,
+          params: value.params ?? {},
+          fieldErrors: value.fieldErrors ?? {},
+          remedies: Array.isArray(value.remedies) ? value.remedies : [],
+          correlationId: value.correlationId,
+        };
+    }
+    return statementProblem(
+      'WORKER_STATEMENT_UNEXPECTED',
+      'problem.workerStatement.networkUncertain',
+      'We could not confirm whether the statement request completed. Check the statement status before requesting again.',
+    );
+  }
+
+  function failedWorkerStatementProblem(artifact: WorkerStatementArtifact): ProblemData {
+    const remedy = canRetryWorkerStatement(artifact)
+      ? [{ id: 'retry_statement' }]
+      : [{ id: 'contact_finance_owner' }];
+    if (artifact.errorCode === 'ARTIFACT_INTEGRITY_FAILED')
+      return statementProblem(
+        'WORKER_STATEMENT_INTEGRITY_FAILED',
+        'problem.workerStatement.integrityFailed',
+        'This statement file did not pass its integrity check. Request help from the owner or finance team.',
+        remedy,
+      );
+    if (artifact.errorCode === 'WORKER_STATEMENT_RENDER_FAILED')
+      return statementProblem(
+        'WORKER_STATEMENT_RENDER_FAILED',
+        'problem.workerStatement.renderFailed',
+        'The statement could not be rendered. Retry this artifact if Retry is offered; otherwise contact the owner or finance team.',
+        remedy,
+      );
+    if (artifact.errorCode === 'FINALIZATION_INTERRUPTED' || artifact.errorCode === 'LEASE_EXPIRED')
+      return statementProblem(
+        'WORKER_STATEMENT_PROCESSING_INTERRUPTED',
+        'problem.workerStatement.processingInterrupted',
+        'Statement processing stopped before completion. Retry this artifact if Retry is offered; otherwise contact the owner or finance team.',
+        remedy,
+      );
+    return statementProblem(
+      'WORKER_STATEMENT_ARTIFACT_FAILED',
+      'problem.workerStatement.artifactFailed',
+      'This statement could not be prepared. Review its status and retry if offered.',
+      remedy,
+    );
+  }
+
+  function refreshedWorkerStatementDownloadProblem(
+    artifactId: string,
+    current: WorkerStatementArtifact | null,
+  ): ProblemData {
+    if (current?.artifactId !== artifactId)
+      return statementProblem(
+        'WORKER_STATEMENT_NOT_FOUND',
+        'problem.workerStatement.notFound',
+        'This worker statement is unavailable. Open My Pay to review your statements.',
+        [{ id: 'review_my_pay' }],
+      );
+    if (current.status === 'failed') return failedWorkerStatementProblem(current);
+    return statementProblem(
+      'WORKER_STATEMENT_ARTIFACT_PENDING',
+      'problem.workerStatement.artifactPending',
+      'This statement is still being prepared. Check its status again shortly.',
+    );
+  }
+
+  async function showWorkerStatementProblem(
+    problem: ProblemData,
+    source: 'action' | 'download' = 'action',
+  ): Promise<void> {
+    workerStatementProblem = problem;
+    workerStatementDownloadFailure = source === 'download';
+    const noticeId = problem.correlationId;
+    workerStatementNoticeId = noticeId;
+    await tick();
+    if (workerStatementNoticeId !== noticeId) return;
+    const notice = document.querySelector<HTMLElement>(
+      '.pay-export-actions [data-ui="problem-notice"]',
+    );
+    if (!notice) return;
+    notice.focus({ preventScroll: true });
+    // After a reload, the browser may restore the old scroll position after Svelte focuses the
+    // notice. Wait for that paint, then move only if the focused explanation is offscreen.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (workerStatementNoticeId !== noticeId || document.activeElement !== notice) return;
+        const bounds = notice.getBoundingClientRect();
+        const mobileNav = document.querySelector<HTMLElement>('.bottom-nav');
+        const bottom =
+          mobileNav && getComputedStyle(mobileNav).position === 'fixed'
+            ? mobileNav.getBoundingClientRect().top - 16
+            : window.innerHeight - 16;
+        const header = document.querySelector<HTMLElement>('.portal-layout > header');
+        const top =
+          header && ['fixed', 'sticky'].includes(getComputedStyle(header).position)
+            ? header.getBoundingClientRect().bottom + 16
+            : 16;
+        const delta =
+          bounds.height > bottom - top || bounds.top < top
+            ? bounds.top - top
+            : bounds.bottom > bottom
+              ? bounds.bottom - bottom
+              : 0;
+        if (delta) window.scrollBy({ top: delta, behavior: 'instant' });
+      }),
+    );
+  }
+
+  function cancelWorkerStatementDownload(): void {
+    workerStatementDownloadController?.abort();
+    workerStatementDownloadController = null;
+    workerStatementDownloadBusy = false;
+  }
+
+  beforeNavigate(() => cancelWorkerStatementDownload());
+  onMount(() => () => cancelWorkerStatementDownload());
+
+  async function downloadWorkerStatement(
+    event: MouseEvent,
+    artifact: WorkerStatementArtifact,
+  ): Promise<void> {
+    event.preventDefault();
+    if (workerStatementDownloadBusy || artifact.status !== 'ready') return;
+    const controller = new AbortController();
+    workerStatementDownloadController = controller;
+    workerStatementDownloadBusy = true;
+    workerStatementDownloadFailedFormat = null;
+    workerStatementDownloadFailedArtifactId = null;
+    workerStatementProblem = null;
+    try {
+      const response = await fetch(
+        `${base}/app/api/worker-statement/artifacts/${encodeURIComponent(artifact.artifactId)}/download`,
+        {
+          method: 'GET',
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: { accept: 'application/pdf, text/csv, application/json' },
+          signal: controller.signal,
+        },
+      );
+      if (controller.signal.aborted) return;
+      const reference = response.headers.get('x-correlation-id') ?? '';
+      if (response.redirected) {
+        const destination = new URL(response.url);
+        workerStatementDownloadFailedFormat = artifact.format;
+        await showWorkerStatementProblem(
+          workerStatementDownloadFallback(
+            destination.origin === location.origin && destination.pathname.endsWith('/app/login')
+              ? 'signIn'
+              : 'invalid',
+            reference,
+          ),
+          'download',
+        );
+        return;
+      }
+      if (!response.ok) {
+        const payload = response.headers.get('content-type')?.toLowerCase().includes('application/json')
+          ? await response.json().catch(() => null)
+          : null;
+        if (controller.signal.aborted) return;
+        const problem =
+          workerStatementDownloadProblem(payload, reference) ??
+          workerStatementDownloadFallback(response.status === 401 ? 'signIn' : 'invalid', reference);
+        if (response.status === 409) {
+          workerStatementStatusUnknownIds = [
+            ...new Set([...workerStatementStatusUnknownIds, artifact.artifactId]),
+          ];
+          const refreshed = await loadWorkerStatementArtifacts({ quiet: true, signal: controller.signal });
+          if (controller.signal.aborted) return;
+          const current = workerStatementArtifact(artifact.format);
+          workerStatementDownloadFailedFormat = artifact.format;
+          workerStatementDownloadFailedArtifactId = artifact.artifactId;
+          if (!refreshed.ok || (current?.artifactId === artifact.artifactId && current.status === 'ready')) {
+            await showWorkerStatementProblem(
+              workerStatementDownloadFallback('statusUnknown', reference),
+              'download',
+            );
+            return;
+          }
+          await showWorkerStatementProblem(
+            refreshedWorkerStatementDownloadProblem(artifact.artifactId, current),
+            'download',
+          );
+          return;
+        }
+        if (controller.signal.aborted) return;
+        workerStatementDownloadFailedFormat = artifact.format;
+        workerStatementDownloadFailedArtifactId = artifact.artifactId;
+        await showWorkerStatementProblem(problem, 'download');
+        return;
+      }
+      const verified = await verifiedWorkerStatementFile(response, artifact.format);
+      if (controller.signal.aborted) return;
+      if (!verified) {
+        workerStatementDownloadFailedFormat = artifact.format;
+        workerStatementDownloadFailedArtifactId = artifact.artifactId;
+        await showWorkerStatementProblem(workerStatementDownloadFallback('invalid', reference), 'download');
+        return;
+      }
+      const objectUrl = URL.createObjectURL(verified.file);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = verified.filename;
+      link.hidden = true;
+      document.body.append(link);
+      try {
+        link.click();
+      } finally {
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      }
+    } catch {
+      if (controller.signal.aborted) return;
+      workerStatementDownloadFailedFormat = artifact.format;
+      workerStatementDownloadFailedArtifactId = artifact.artifactId;
+      await showWorkerStatementProblem(workerStatementDownloadFallback('network'), 'download');
+    } finally {
+      if (workerStatementDownloadController === controller) {
+        workerStatementDownloadController = null;
+        workerStatementDownloadBusy = false;
+      }
+    }
+  }
+
+  async function checkWorkerStatementDownloadStatus(): Promise<void> {
+    const artifactId = workerStatementDownloadFailedArtifactId;
+    const format = workerStatementDownloadFailedFormat;
+    if (!artifactId || !format || workerStatementDownloadBusy) return;
+    const controller = new AbortController();
+    workerStatementDownloadController = controller;
+    workerStatementDownloadBusy = true;
+    try {
+      const result = await loadWorkerStatementArtifacts({ quiet: true, signal: controller.signal });
+      if (controller.signal.aborted) return;
+      const current = workerStatementArtifact(format);
+      if (!result.ok || (current?.artifactId === artifactId && current.status === 'ready')) {
+        await showWorkerStatementProblem(workerStatementDownloadFallback('statusUnknown'), 'download');
+      } else {
+        await showWorkerStatementProblem(
+          refreshedWorkerStatementDownloadProblem(artifactId, current),
+          'download',
+        );
+      }
+    } finally {
+      if (workerStatementDownloadController === controller) {
+        workerStatementDownloadController = null;
+        workerStatementDownloadBusy = false;
+      }
+    }
+  }
+
+  async function loadWorkerStatementArtifacts(
+    options: { quiet?: boolean; signal?: AbortSignal } = {},
+  ): Promise<{ ok: boolean; pending: boolean }> {
+    const query = new URLSearchParams({
+      periodStart: data.periodStart ?? '',
+      periodEnd: data.periodEnd ?? '',
+      locale,
+    });
+    try {
+      const response = await fetch(`${base}/app/api/worker-statement?${query.toString()}`, {
+        headers: { accept: 'application/json' },
+        signal: options.signal,
+      });
+      if (options.signal?.aborted) return { ok: false, pending: false };
+      const payload = (await response.json().catch(() => ({}))) as { artifacts?: unknown };
+      if (options.signal?.aborted) return { ok: false, pending: false };
+      if (!response.ok || !Array.isArray(payload.artifacts)) {
+        if (!options.quiet) await showWorkerStatementProblem(responseStatementProblem(payload));
+        return { ok: false, pending: false };
+      }
+      applyWorkerStatementArtifacts(payload.artifacts);
+      workerStatementStatusUnknownIds = workerStatementStatusUnknownIds.filter((id) =>
+        workerStatementArtifacts.some((artifact) => artifact.artifactId === id && artifact.status === 'ready'),
+      );
+      const pending = workerStatementArtifacts.some(
+        (artifact) => artifact.status === 'queued' || artifact.status === 'running',
+      );
+      const failed = (['pdf', 'csv'] as WorkerStatementFormat[])
+        .map((format) => workerStatementArtifact(format))
+        .find((artifact) => artifact?.status === 'failed');
+      if (!options.quiet && failed && workerStatementProblem?.code !== failedWorkerStatementProblem(failed).code)
+        await showWorkerStatementProblem(failedWorkerStatementProblem(failed));
+      else if (!options.quiet && !failed) workerStatementProblem = null;
+      return { ok: true, pending };
+    } catch {
+      if (!options.quiet) await showWorkerStatementProblem(
+        statementProblem(
+          'WORKER_STATEMENT_NETWORK_UNCERTAIN',
+          'problem.workerStatement.networkUncertain',
+          'We could not confirm whether the statement request completed. Check the statement status before requesting again.',
+        ),
+      );
+      return { ok: false, pending: false };
+    }
+  }
+
+  async function pollWorkerStatementArtifacts(): Promise<void> {
+    if (workerStatementPolling) return;
+    workerStatementPolling = true;
+    try {
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        const status = await loadWorkerStatementArtifacts();
+        if (!status.ok || !status.pending) return;
+        await new Promise((resolve) => setTimeout(resolve, 2_000));
+      }
+      if (
+        workerStatementArtifacts.some(
+          (artifact) => artifact.status === 'queued' || artifact.status === 'running',
+        )
+      )
+        await showWorkerStatementProblem(
+          statementProblem(
+            'WORKER_STATEMENT_ARTIFACT_PENDING',
+            'problem.workerStatement.artifactPending',
+            'This statement is still being prepared. Check its status again shortly.',
+          ),
+        );
+    } finally {
+      workerStatementPolling = false;
+    }
+  }
+
+  async function checkPendingWorkerStatementRequest(): Promise<boolean> {
+    const pending = pendingWorkerStatementRequest;
+    if (!pending) return true;
+    const query = new URLSearchParams({
+      periodStart: pending.periodStart,
+      periodEnd: pending.periodEnd,
+      locale: pending.locale,
+      requestKey: pending.requestKey,
+    });
+    try {
+      const response = await fetch(`${base}/app/api/worker-statement?${query.toString()}`, {
+        headers: { accept: 'application/json' },
+      });
+      const payload = (await response.json().catch(() => ({}))) as { artifacts?: unknown };
+      if (!response.ok) {
+        await showWorkerStatementProblem(responseStatementProblem(payload));
+        return false;
+      }
+      if (Array.isArray(payload.artifacts) && payload.artifacts.length === 2) {
+        applyWorkerStatementArtifacts(payload.artifacts);
+        savePendingWorkerStatementRequest(null);
+        workerStatementProblem = null;
+        if (
+          workerStatementArtifacts.some(
+            (artifact) => artifact.status === 'queued' || artifact.status === 'running',
+          )
+        )
+          void pollWorkerStatementArtifacts();
+        return true;
+      }
+      // The first POST may still be running. Only a replay with this exact request identity is
+      // safe; a fresh Generate action remains hidden until two persisted artifacts are found.
+      workerStatementRequestChecked = true;
+    } catch {
+      workerStatementRequestChecked = false;
+    }
+    await showWorkerStatementProblem(
+      statementProblem(
+        'WORKER_STATEMENT_NETWORK_UNCERTAIN',
+        'problem.workerStatement.networkUncertain',
+        'We could not confirm whether the statement request completed. Check the statement status before requesting again.',
+      ),
+    );
+    return false;
+  }
+
+  async function requestWorkerStatement(): Promise<void> {
+    if (workerStatementBusy || workerStatementPolling || pendingWorkerStatementRequest) return;
+    const request: WorkerStatementRequest = {
+      periodStart: data.periodStart ?? '',
+      periodEnd: data.periodEnd ?? '',
+      locale,
+      refresh: workerStatementArtifacts.length > 0,
+      requestKey: crypto.randomUUID(),
+      requestIssuedAt: new Date().toISOString(),
+    };
+    savePendingWorkerStatementRequest(request);
+    await sendWorkerStatementRequest(request);
+  }
+
+  async function sendWorkerStatementRequest(request: WorkerStatementRequest): Promise<void> {
+    if (workerStatementBusy || workerStatementPolling) return;
+    workerStatementBusy = true;
+    workerStatementProblem = null;
+    try {
+      const response = await fetch(`${base}/app/api/worker-statement`, {
+        method: 'POST',
+        headers: { accept: 'application/json', 'content-type': 'application/json' },
+        body: JSON.stringify(request),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { artifacts?: unknown };
+      if (!response.ok) {
+        const problem = responseStatementProblem(payload);
+        if (response.status >= 500 || response.status === 409)
+          await checkPendingWorkerStatementRequest();
+        else savePendingWorkerStatementRequest(null);
+        if (pendingWorkerStatementRequest || (response.status < 500 && response.status !== 409))
+          await showWorkerStatementProblem(problem);
+        return;
+      }
+      savePendingWorkerStatementRequest(null);
+      applyWorkerStatementArtifacts(payload.artifacts);
+      if (
+        workerStatementArtifacts.some(
+          (artifact) => artifact.status === 'queued' || artifact.status === 'running',
+        )
+      )
+        void pollWorkerStatementArtifacts();
+    } catch {
+      // A lost POST response may already have committed. Look up this request key first; any
+      // user-initiated replay uses the same key, refresh choice, period, locale, and issued time.
+      await checkPendingWorkerStatementRequest();
+    } finally {
+      workerStatementBusy = false;
+    }
+  }
+
+  async function retrySameWorkerStatementRequest(): Promise<void> {
+    const pending = pendingWorkerStatementRequest;
+    if (!pending || !workerStatementRequestChecked || workerStatementBusy) return;
+    const resolved = await checkPendingWorkerStatementRequest();
+    if (
+      resolved ||
+      pendingWorkerStatementRequest?.requestKey !== pending.requestKey ||
+      !workerStatementRequestChecked
+    )
+      return;
+    await sendWorkerStatementRequest(pending);
+  }
+
+  async function retryWorkerStatement(artifact: WorkerStatementArtifact): Promise<void> {
+    if (workerStatementBusy || !canRetryWorkerStatement(artifact)) return;
+    workerStatementBusy = true;
+    workerStatementProblem = null;
+    try {
+      // Re-read before mutation: another session may already have retried or completed it.
+      const statusResponse = await fetch(
+        `${base}/app/api/worker-statement/artifacts/${encodeURIComponent(artifact.artifactId)}`,
+        { headers: { accept: 'application/json' } },
+      );
+      const statusPayload = (await statusResponse.json().catch(() => ({}))) as {
+        artifact?: WorkerStatementArtifact;
+      };
+      if (!statusResponse.ok) {
+        await showWorkerStatementProblem(responseStatementProblem(statusPayload));
+        return;
+      }
+      if (
+        statusPayload.artifact?.status !== 'failed' ||
+        !canRetryWorkerStatement(statusPayload.artifact)
+      ) {
+        await loadWorkerStatementArtifacts();
+        await showWorkerStatementProblem(
+          statementProblem(
+            'WORKER_STATEMENT_RETRY_CHANGED',
+            'problem.workerStatement.retryChanged',
+            'This statement changed while retrying. Review its current status before trying again.',
+          ),
+        );
+        return;
+      }
+      const response = await fetch(
+        `${base}/app/api/worker-statement/artifacts/${encodeURIComponent(artifact.artifactId)}/retry`,
+        { method: 'POST', headers: { accept: 'application/json' } },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        artifact?: WorkerStatementArtifact;
+      };
+      if (!response.ok) {
+        const problem = responseStatementProblem(payload);
+        if (response.status >= 500 || response.status === 409) await loadWorkerStatementArtifacts();
+        await showWorkerStatementProblem(problem);
+        return;
+      }
+      await loadWorkerStatementArtifacts();
+      void pollWorkerStatementArtifacts();
+    } catch {
+      await loadWorkerStatementArtifacts();
+      await showWorkerStatementProblem(
+        statementProblem(
+          'WORKER_STATEMENT_NETWORK_UNCERTAIN',
+          'problem.workerStatement.networkUncertain',
+          'We could not confirm whether the statement request completed. Check the statement status before requesting again.',
+        ),
+      );
+    } finally {
+      workerStatementBusy = false;
+    }
+  }
 
   onMount(() => {
-    const queryLocale = new URLSearchParams(location.search).get('lang');
-    const savedLocale = localStorage.getItem('ja-portal-locale');
-    locale = normalizePortalLocale(queryLocale ?? savedLocale ?? navigator.language);
-    localStorage.setItem('ja-portal-locale', locale);
-    online = navigator.onLine;
-    void queuedCount().then((value) => (queue = value));
-    void conflictMutations().then((items) => (conflictItems = items));
-    void getOfflineAssignments().then((value) => {
-      offlineProjects = value.map((project) => ({
-        id: project.id,
-        project_number: project.projectNumber,
-        name: project.name,
-        status: project.status,
-        currency: project.currency,
-        timezone: project.timezone,
-      }));
-    });
-    const sync = async () => {
-      if (!navigator.onLine) return;
+    const scrollOperations = [
+      'createPlanning',
+      'updatePlanning',
+      'cancelPlanning',
+      'createSkill',
+      'updateSkill',
+      'deleteSkill',
+      'setWorkerSkill',
+      'deleteWorkerSkill',
+    ];
+    if (!planningFailure && !skillFailure) {
+      for (const operation of scrollOperations) {
+        try {
+          sessionStorage.removeItem(workforceScrollKey(operation));
+        } catch {
+          break;
+        }
+      }
+    }
+    const markScrollIntent = () => {
+      workforceScrollIntent = true;
+    };
+    const markFocusIntent = () => {
+      workforceFocusIntent = true;
+    };
+    const markKeyScrollIntent = (event: KeyboardEvent) => {
+      markFocusIntent();
+      if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key))
+        markScrollIntent();
+    };
+    const captureSubmit = (event: Event) => {
+      const formElement = event.target;
+      if (!(formElement instanceof HTMLFormElement)) return;
+      if (!scrollOperations.includes(formElement.dataset.workforceOperation ?? '')) return;
+      workforceFocusIntent = false;
+      workforceScrollIntent = false;
+      pendingWorkforceForm = formElement;
+      pendingWorkforceSource = 'submit';
+      rememberWorkforceScroll(formElement);
+    };
+    const captureFormData = (event: Event) => {
+      const formElement = event.target;
+      if (!(formElement instanceof HTMLFormElement)) return;
+      if (!scrollOperations.includes(formElement.dataset.workforceOperation ?? '')) return;
+      if (pendingWorkforceForm === formElement && pendingWorkforceSource === 'submit') return;
+      workforceFocusIntent = false;
+      workforceScrollIntent = false;
+      pendingWorkforceForm = formElement;
+      pendingWorkforceSource = 'formdata';
+      rememberWorkforceScroll(formElement);
+    };
+    const capturePageHide = () => {
+      if (!pendingWorkforceForm) return;
       try {
-        const result = await syncQueuedMutations();
-        queue = await queuedCount();
-        conflictItems = await conflictMutations();
-        if (result.failed)
-          syncMessage = `Sync failed — retry (${result.failed} item${result.failed === 1 ? '' : 's'})`;
-        else if (result.accepted || result.conflicts || result.rejected)
-          syncMessage = result.conflicts
-            ? `${result.accepted} synced · server changed since your offline edit · ${result.conflicts} conflict${result.conflicts === 1 ? '' : 's'}`
-            : `${result.accepted} synced · ${result.rejected} rejected`;
-        else syncMessage = 'Synced';
+        if (
+          !sessionStorage.getItem(
+            workforceScrollKey(pendingWorkforceForm.dataset.workforceOperation ?? ''),
+          )
+        )
+          rememberWorkforceScroll(pendingWorkforceForm);
       } catch {
-        syncMessage = 'Sync failed — retry when the connection is stable.';
+        // The pre-navigation snapshot already failed to persist.
       }
     };
-    void sync();
-    const update = () => {
-      online = navigator.onLine;
-      if (online) void sync();
-    };
-    addEventListener('online', update);
-    addEventListener('offline', update);
-    navigator.serviceWorker?.addEventListener('message', (event) => {
-      if (event.data?.type === 'sync-request') void sync();
-    });
-    if ('serviceWorker' in navigator)
-      void navigator.serviceWorker.register(`${base}/app/service-worker.js`, {
-        scope: `${base}/app/`,
+    document.addEventListener('submit', captureSubmit, true);
+    document.addEventListener('formdata', captureFormData, true);
+    window.addEventListener('pagehide', capturePageHide);
+    window.addEventListener('wheel', markScrollIntent, { passive: true });
+    window.addEventListener('touchmove', markScrollIntent, { passive: true });
+    window.addEventListener('pointerdown', markFocusIntent, true);
+    window.addEventListener('keydown', markKeyScrollIntent, true);
+    const queryLocale = new URLSearchParams(location.search).get('lang');
+    locale = resolveStandaloneLocale(queryLocale, data.locale);
+    persistStandaloneLocale(locale);
+    document.documentElement.lang = documentLanguage(locale);
+    if (data.section === 'projects') {
+      const requested = new URLSearchParams(location.search).get('action');
+      if (
+        requested &&
+        [
+          'new-client',
+          'update-client',
+          'new-project',
+          'assign-worker',
+          'update-assignment',
+          'remove-assignment',
+        ].includes(requested)
+      ) {
+        void focusProjectDestination(`[data-project-workflow="${requested}"]`);
+      }
+    }
+    if (
+      data.section === 'planning' &&
+      location.hash === '#planning-create-form' &&
+      planningFailure?.operation !== 'createPlanning'
+    ) {
+      void tick().then(() => {
+        planningForm?.scrollIntoView({ block: 'start' });
+        planningForm?.querySelector<HTMLInputElement>('input[name="startsAt"]')?.focus({
+          preventScroll: true,
+        });
       });
-    // Demo sessions are intentionally separate from Better Auth sessions.
+    }
+    if (data.section === 'planning' && location.hash === '#planning-day-agenda') {
+      void tick().then(() => {
+        const agenda = document.getElementById('planning-day-agenda');
+        agenda?.scrollIntoView({ block: 'start' });
+        agenda?.focus({ preventScroll: true });
+      });
+    }
+    if (location.hash === '#new-project') {
+      const newProjectDetails = document.getElementById('new-project');
+      if (newProjectDetails instanceof HTMLDetailsElement) newProjectDetails.open = true;
+    }
+    if (data.offlineEnabled !== false) {
+      configureOfflineIdentity(data.user.id);
+      stopOfflineController = offlineController.start();
+    }
+    if (data.section === 'pay' && data.pay) {
+      restorePendingWorkerStatementRequest();
+      void loadWorkerStatementArtifacts().then((status) => {
+        if (status.pending) void pollWorkerStatementArtifacts();
+        if (pendingWorkerStatementRequest) void checkPendingWorkerStatementRequest();
+      });
+    }
     // Only ask the passkey endpoint for a real authenticated Better Auth
     // session; otherwise its expected 401 would surface as a browser error.
-    void authClient.getSession().then((result) => {
-      if (result.data?.user) void refreshPasskeys();
-    });
+    if (navigator.onLine)
+      void authClient
+        .getSession()
+        .then((result) => {
+          if (result.data?.user) void refreshPasskeys();
+        })
+        .catch(() => undefined);
     return () => {
-      removeEventListener('online', update);
-      removeEventListener('offline', update);
+      document.removeEventListener('submit', captureSubmit, true);
+      document.removeEventListener('formdata', captureFormData, true);
+      window.removeEventListener('pagehide', capturePageHide);
+      window.removeEventListener('wheel', markScrollIntent);
+      window.removeEventListener('touchmove', markScrollIntent);
+      window.removeEventListener('pointerdown', markFocusIntent, true);
+      window.removeEventListener('keydown', markKeyScrollIntent, true);
+      stopOfflineController?.();
+      stopOfflineController = null;
     };
   });
   $effect(() => {
     const projects = data.projects;
-    if (projects?.length) void cacheAssignments(projects);
+    if (data.offlineEnabled !== false && projects?.length)
+      void offlineController.cacheAssignments(projects);
   });
   $effect(() => {
     locale;
-    data.section;
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = documentLanguage(locale);
+    }
     queueMicrotask(() => {
       if (typeof document !== 'undefined') translatePortalDom(document.body, locale);
     });
   });
   async function logout() {
-    await fetch(`${base}/app/api/auth/sign-out`, { method: 'POST' });
-    await fetch(`${base}/app/demo-login`, { method: 'DELETE' });
-    await purgeUserCache();
+    persistStandaloneLocale(locale);
+    // Stop background sync/listeners before revoking this browser's offline
+    // identity. This prevents a queued request from racing with sign-out.
+    stopOfflineController?.();
+    stopOfflineController = null;
+    await offlineController.forgetIdentity(data.user.id);
+    try {
+      await fetch(`${base}/app/api/auth/sign-out`, { method: 'POST' });
+    } catch {
+      // Navigation to login still revokes the local session when the network
+      // is unavailable; no private offline state remains usable.
+    }
     location.assign(`${base}/app/login`);
   }
 
   function changeLocale(event: Event): void {
     const selected = normalizePortalLocale((event.currentTarget as HTMLSelectElement).value);
     locale = selected;
-    localStorage.setItem('ja-portal-locale', selected);
+    persistStandaloneLocale(selected);
     const url = new URL(location.href);
     url.searchParams.set('lang', selected);
-    history.replaceState({}, '', url);
+    replaceState(url, {});
   }
 
   async function discardConflict(mutationId: string) {
-    await discardMutation(mutationId);
-    conflictItems = await conflictMutations();
-    queue = await queuedCount();
-  }
-  async function stepUp(event: SubmitEvent) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget as HTMLFormElement);
-    const response = await fetch(`${base}/app/api/step-up`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ password: formData.get('password') }),
-    });
-    stepUpMessage = response.ok
-      ? 'Step-up authentication is active for the next 10 minutes.'
-      : 'Password verification failed.';
+    await offlineController.discardConflict(mutationId);
   }
 
+  function offlineReviewHref(entityType: string): string {
+    const section =
+      entityType === 'time' ? 'time' : entityType === 'expense' ? 'expenses' : 'reports';
+    return `${base}/app/${section}?lang=${locale}`;
+  }
   async function refreshPasskeys(): Promise<void> {
-    const result = await authClient.passkey.listUserPasskeys();
-    if (result.data) passkeys = result.data;
+    if (!navigator.onLine) return;
+    try {
+      const result = await authClient.passkey.listUserPasskeys();
+      if (result.data) passkeys = result.data;
+    } catch {
+      // This background read can race with a network transition. Keep the
+      // last known list and refresh it when the account page is opened online.
+    }
   }
 
   async function registerPasskey(event: SubmitEvent): Promise<void> {
     event.preventDefault();
     securityMessage = '';
+    securitySucceeded = false;
     const result = await authClient.passkey.addPasskey({
       name: passkeyName.trim() || 'J&A Portal device',
     });
     if (result.error) {
-      securityMessage = result.error.message ?? 'Passkey registration was not completed.';
+      securityMessage = 'Passkey registration was not completed.';
       return;
     }
     passkeyName = '';
+    securitySucceeded = true;
     securityMessage = 'Passkey registered for this account.';
     await refreshPasskeys();
   }
 
   async function revokePasskey(id: string): Promise<void> {
+    securitySucceeded = false;
     const result = await authClient.passkey.deletePasskey({ id });
     if (result.error) {
-      securityMessage = result.error.message ?? 'Passkey could not be revoked.';
+      securityMessage = 'Passkey could not be revoked.';
       return;
     }
+    securitySucceeded = true;
     securityMessage = 'Passkey revoked.';
     await refreshPasskeys();
   }
 
+  async function showMfaProblem(problem: ProblemData): Promise<void> {
+    mfaProblem = problem;
+    await tick();
+    const notice = document.querySelector<HTMLElement>(
+      '[data-profile-mfa-problem] [data-ui="problem-notice"]',
+    );
+    notice?.focus({ preventScroll: true });
+    // Keep the focused explanation clear of the fixed mobile navigation and toasts.
+    notice?.scrollIntoView({ block: 'center', inline: 'nearest' });
+  }
+
+  function reviewCurrentMfaStatus(event: MouseEvent): void {
+    event.preventDefault();
+    window.location.reload();
+  }
+
   async function toggleMfa(action: 'enable' | 'verify' | 'disable'): Promise<void> {
-    const response = await fetch(`${base}/app/api/security/mfa`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        action,
-        ...(action === 'verify' ? { code: mfaCode } : { password: mfaPassword }),
-      }),
-    });
-    const result = (await response.json().catch(() => ({}))) as {
-      message?: string;
-      error?: string;
-      totpURI?: string;
-      backupCodes?: string[];
-      requiresVerification?: boolean;
-    };
-    securityMessage = response.ok
-      ? `${result.message ?? (action === 'verify' ? 'MFA enabled.' : 'MFA setup started.')}${result.totpURI ? ` Save the TOTP URI in an approved authenticator, then verify a current code.` : ''}${result.backupCodes?.length ? ` Backup codes generated: ${result.backupCodes.join(', ')}` : ''}`
-      : (result.error ?? result.message ?? 'MFA could not be updated.');
-    if (response.ok) {
-      mfaPassword = '';
+    if (mfaBusy || mfaNeedsReview || (action === 'enable' && mfaSetupUri)) return;
+    mfaBusy = true;
+    mfaProblem = null;
+    securityMessage = '';
+    securitySucceeded = false;
+    try {
+      const response = await fetch(`${base}/app/api/security/mfa`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          ...(action === 'verify' ? { code: mfaCode } : {}),
+        }),
+      });
+      const result = (await response.json().catch(() => null)) as {
+        totpURI?: string;
+        backupCodes?: string[];
+      } | null;
+      if (!response.ok) {
+        await showMfaProblem(mfaProblemFromResponse(result) ?? mfaUncertainProblem());
+        return;
+      }
       if (action === 'enable') {
-        mfaSetupUri = result.totpURI ?? '';
-        mfaBackupCodes = result.backupCodes ?? [];
+        if (!result?.totpURI || !Array.isArray(result.backupCodes) || !result.backupCodes.length) {
+          await showMfaProblem(mfaUncertainProblem());
+          return;
+        }
+        mfaSetupUri = result.totpURI;
+        mfaBackupCodes = result.backupCodes;
+        securityMessage = 'MFA setup started.';
       } else if (action === 'verify') {
         mfaCode = '';
         mfaSetupUri = '';
         mfaBackupCodes = [];
-        data.user.mfaEnrolled = true;
+        mfaEnrolled = true;
+        securityMessage = 'MFA enabled.';
       } else {
-        data.user.mfaEnrolled = false;
+        mfaEnrolled = false;
+        securityMessage = 'MFA disabled.';
       }
+      securitySucceeded = true;
+    } catch {
+      await showMfaProblem(mfaUncertainProblem());
+    } finally {
+      mfaBusy = false;
     }
   }
 
@@ -421,40 +2841,50 @@
 
   type OfflineEntity = 'time' | 'daily_report' | 'technical_report' | 'expense';
 
-  const formValue = (formData: FormData, name: string): string => {
-    const value = formData.get(name);
-    return typeof value === 'string' ? value.trim() : '';
-  };
+  type OfflineDraftSaveResult = { saved: boolean; error?: string };
 
-  const formNumber = (formData: FormData, name: string): number | undefined => {
-    const value = formValue(formData, name);
-    if (!value) return undefined;
-    const number = Number(value);
-    return Number.isFinite(number) ? number : undefined;
-  };
+  function offlineDraftStorageError(error: unknown): string {
+    if (
+      error instanceof Error &&
+      (/^(?:Authenticated offline identity|Offline identity |Offline identity response)/u.test(
+        error.message,
+      ) ||
+        (error instanceof TypeError &&
+          /^(?:Failed to fetch|NetworkError when attempting to fetch resource\.|Load failed)$/iu.test(
+            error.message,
+          )))
+    )
+      return 'Your offline session is unavailable. Your entries are still here. Reconnect and sign in before saving.';
+    if (error instanceof DOMException && error.name === 'QuotaExceededError')
+      return 'This browser has reached its offline storage limit. Your entries are still here. Free up browser storage, then try saving again or reconnect and save online.';
+    if (error instanceof DOMException && error.name === 'SecurityError')
+      return 'Browser storage is unavailable. Your entries are still here. Enable site storage or reconnect and save online.';
+    return 'The offline draft could not be stored on this device. Your entries are still here. Check browser storage, then try again or reconnect and save online.';
+  }
 
-  const formBoolean = (formData: FormData, name: string): boolean => formData.get(name) === 'on';
+  function clearPreviousLocalSaveToast(): void {
+    if (
+      syncMessage === 'Offline — saved on this device' ||
+      syncMessage === 'Offline draft could not be saved on this device.'
+    )
+      syncMessage = '';
+  }
 
-  const decimalToMinor = (value: string): string | undefined => {
-    const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(value);
-    if (!match) return undefined;
-    return `${match[1]}${(match[2] ?? '').padEnd(2, '0')}`.replace(/^0+(?=\d)/, '');
-  };
-
-  const compact = (payload: Record<string, unknown>): Record<string, unknown> =>
-    Object.fromEntries(
-      Object.entries(payload).filter(([, value]) => value !== undefined && value !== ''),
-    );
-
-  async function saveOfflineDraft(event: SubmitEvent, entityType: OfflineEntity): Promise<void> {
-    if (online) return;
+  async function saveOfflineDraft(
+    event: SubmitEvent,
+    entityType: OfflineEntity,
+  ): Promise<OfflineDraftSaveResult> {
+    if (online) return { saved: false };
     event.preventDefault();
     const formElement = event.currentTarget as HTMLFormElement;
     const formData = new FormData(formElement);
     const projectId = formValue(formData, 'projectId');
     if (!projectId) {
-      syncMessage = 'Select a project before saving an offline draft.';
-      return;
+      clearPreviousLocalSaveToast();
+      return {
+        saved: false,
+        error: 'Select a project before saving this offline draft. Your entries are still here.',
+      };
     }
     const payload =
       entityType === 'time'
@@ -463,7 +2893,10 @@
             workDate: formValue(formData, 'workDate'),
             category: formValue(formData, 'category'),
             activityCode: formValue(formData, 'activityCode'),
-            minutes: formNumber(formData, 'minutes'),
+            minutes: formNumber(formData, 'minutes') ?? 0,
+            startTime: formValue(formData, 'startTime'),
+            endTime: formValue(formData, 'endTime'),
+            breakMinutes: formNumber(formData, 'breakMinutes') ?? 0,
             summary: formValue(formData, 'summary'),
           })
         : entityType === 'daily_report'
@@ -487,6 +2920,7 @@
           : entityType === 'technical_report'
             ? compact({
                 projectId,
+                reportDate: formValue(formData, 'reportDate'),
                 systemName: formValue(formData, 'systemName'),
                 plantSite: formValue(formData, 'plantSite'),
                 areaLine: formValue(formData, 'areaLine'),
@@ -498,7 +2932,9 @@
                 networkProtocol: formValue(formData, 'networkProtocol'),
                 softwareVersion: formValue(formData, 'softwareVersion'),
                 programReference: formValue(formData, 'programReference'),
-                changeSummary: formValue(formData, 'changeSummary'),
+                problemSymptom: formValue(formData, 'problemSymptom'),
+                diagnosisRootCause: formValue(formData, 'diagnosisRootCause'),
+                changePerformed: formValue(formData, 'changePerformed'),
                 safetyRelated: formBoolean(formData, 'safetyRelated'),
                 productionImpact: formValue(formData, 'productionImpact'),
                 validation: formValue(formData, 'validation'),
@@ -524,24 +2960,24 @@
                 paymentMethod: formValue(formData, 'paymentMethod'),
                 receiptRequired: formBoolean(formData, 'receiptRequired'),
               });
-    const attachmentFiles: OfflineAttachment[] = [];
-    if (entityType === 'expense') {
-      const receipt = formData.get('receipt');
-      if (receipt instanceof File && receipt.size > 0) {
-        const id = crypto.randomUUID();
-        attachmentFiles.push({
-          id,
-          fileName: receipt.name || 'receipt',
-          mediaType: receipt.type,
-          bytes: await receipt.arrayBuffer(),
-        });
-        payload.receiptRequired = true;
-      }
-    }
-    const mutationId = crypto.randomUUID();
-    const existingEntityId = formElement.dataset.entityId;
-    const existingVersion = Number(formElement.dataset.version);
     try {
+      const attachmentFiles: OfflineAttachment[] = [];
+      if (entityType === 'expense') {
+        const receipt = formData.get('receipt');
+        if (receipt instanceof File && receipt.size > 0) {
+          const id = crypto.randomUUID();
+          attachmentFiles.push({
+            id,
+            fileName: receipt.name || 'receipt',
+            mediaType: receipt.type,
+            bytes: await receipt.arrayBuffer(),
+          });
+          payload.receiptRequired = true;
+        }
+      }
+      const mutationId = crypto.randomUUID();
+      const existingEntityId = formElement.dataset.entityId;
+      const existingVersion = Number(formElement.dataset.version);
       await queueMutation(
         {
           mutationId,
@@ -554,22 +2990,36 @@
         },
         attachmentFiles,
       );
-      queue = await queuedCount();
+      // The IndexedDB transaction has committed. A queue-count refresh must not
+      // turn a confirmed local save into a failure that invites a duplicate draft.
+      await offlineController.refreshQueue().catch(() => undefined);
       syncMessage = 'Offline — saved on this device';
       formElement.reset();
-    } catch {
-      syncMessage = 'Offline draft could not be saved on this device.';
+      return { saved: true };
+    } catch (error) {
+      clearPreviousLocalSaveToast();
+      return { saved: false, error: offlineDraftStorageError(error) };
     }
+  }
+
+  function printReport(): void {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement)
+      document.activeElement.blur();
+    window.print();
+    window.setTimeout(() => {
+      if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement)
+        document.activeElement.blur();
+    }, 0);
   }
 </script>
 
 <svelte:head
-  ><title>{translate(titles[data.section])} | J&A Portal</title><link
+  ><title>{translate(currentTitle)} | J&A Portal</title><link
     rel="manifest"
     href={`${base}/app/manifest.webmanifest`}
   /><meta name="theme-color" content="#10202f" /></svelte:head
 >
-<a class="skip-link" href="#portal-main">Skip to main content</a>
+<a class="skip-link" href="#portal-main">{translate('Skip to main content')}</a>
 <div class="portal-layout">
   <PortalChrome
     {base}
@@ -588,7 +3038,6 @@
     {syncMessage}
     {locale}
     {translate}
-    {href}
     {itemHref}
     {initials}
     {logout}
@@ -597,36 +3046,129 @@
     onCloseMenu={() => (menuOpen = false)}
   />
   <main id="portal-main">
+    <header class="print-only-header" aria-hidden="true">
+      <div class="print-identity">
+        <img src={`${base}/app/logo.png`} alt="J&A Automation" />
+        <small>{translate('INDUSTRIAL AUTOMATION · FIELD SERVICES')}</small>
+      </div>
+      <div class="print-meta">
+        <span data-portal-live-text
+          >{portalText(locale, 'Report: {title}', { title: translate(currentTitle) })}</span
+        >
+        <strong>{new Date().toISOString().slice(0, 10)}</strong>
+      </div>
+    </header>
     <div class="portal-title">
       <div>
-        <p class="portal-kicker">J&A / {data.section.toUpperCase()}</p>
-        <h1>{titles[data.section]}</h1>
+        <p class="portal-kicker" data-portal-live-text>J&A / {translate(currentTitle)}</p>
+        <h1 data-portal-live-text>{translate(currentTitle)}</h1>
       </div>
       <div class="portal-heading-tools">
-        <form class="global-search" method="GET" action={href(data.section)} role="search">
-          <label class="visually-hidden" for="portal-global-search">Search workspace</label>
+        <button type="button" class="no-print print-trigger" onclick={printReport}>
+          <PrintIcon />
+          {translate('Print report')}
+        </button>
+        <form
+          class="global-search"
+          method="GET"
+          action={href(data.section)}
+          role="search"
+          onsubmit={() => (searchOpen = false)}
+        >
+          <label class="visually-hidden" for="portal-global-search"
+            >{translate('Search workspace')}</label
+          >
           <input
+            bind:this={searchInput}
             id="portal-global-search"
             name="q"
-            value={data.searchQuery ?? ''}
-            placeholder="Search projects, people, invoices…"
+            bind:value={searchValue}
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls="portal-search-popover"
+            aria-expanded={searchOpen}
+            placeholder={translate('Search projects, people, invoices…')}
             autocomplete="off"
+            onfocus={() => (searchOpen = true)}
+            oninput={() => (searchOpen = true)}
+            onkeydown={handleSearchKeydown}
+            onblur={() => setTimeout(() => (searchOpen = false), 200)}
           />
-          <button type="submit">Search</button>
+          <button type="submit">{translate('Search')}</button>
+          {#if searchOpen}
+            <div
+              id="portal-search-popover"
+              class="search-popover"
+              role="listbox"
+              aria-label={translate('Search recommendations')}
+            >
+              <div class="search-popover-heading">
+                <span
+                  >{searchTerm
+                    ? translate('Matching records')
+                    : translate('Recommended records')}</span
+                >
+                <small>{translate('Only records in your access scope')}</small>
+              </div>
+              {#each groupedSearchSuggestions as group}
+                <div
+                  class="search-popover-group"
+                  role="group"
+                  aria-labelledby={`search-group-${group.key}`}
+                >
+                  <h3 id={`search-group-${group.key}`} class="search-popover-group-label">
+                    {group.label}
+                  </h3>
+                  {#each group.rows as suggestion, suggestionIndex}
+                    {@const optionIndex =
+                      groupedSearchSuggestions
+                        .slice(0, groupedSearchSuggestions.indexOf(group))
+                        .reduce((count, item) => count + item.rows.length, 0) + suggestionIndex}
+                    <a
+                      id={`search-option-${optionIndex}`}
+                      class="search-popover-item"
+                      href={searchHref(suggestion)}
+                      role="option"
+                      aria-selected="false"
+                      onclick={() => setTimeout(() => (searchOpen = false), 0)}
+                      onkeydown={(event) => handleSearchOptionKeydown(event, optionIndex)}
+                    >
+                      <span>
+                        <strong>{String(suggestion.label ?? translate('Record'))}</strong>
+                        <small>{group.label} · {String(suggestion.detail ?? '')}</small>
+                      </span>
+                      <i aria-hidden="true">↗</i>
+                    </a>
+                  {/each}
+                </div>
+              {:else}
+                <p class="search-popover-empty">
+                  {translate(
+                    'No recommendation matches. Press Enter to search all authorized records.',
+                  )}
+                </p>
+              {/each}
+            </div>
+          {/if}
         </form>
       </div>
     </div>
-    {#if form?.message}<p class:success={form.success} class="action-message" role="status">
-        {form.message}
-      </p>{/if}
+    {#if globalProblem}
+      <ProblemNotice
+        problem={globalProblem}
+        kind={globalProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        remedyLinks={globalRemedyLinks}
+      />
+    {/if}
     {#if conflictItems.length > 0}
       <section class="conflict-panel" aria-labelledby="offline-conflicts-title">
         <div>
-          <span class="portal-kicker">OFFLINE REVIEW</span>
-          <h2 id="offline-conflicts-title">Server changes need your review</h2>
+          <span class="portal-kicker">{translate('OFFLINE REVIEW')}</span>
+          <h2 id="offline-conflicts-title">{translate('Offline drafts need your review')}</h2>
           <p>
-            Your offline draft stayed on this device. Compare it with the server record before
-            discarding it.
+            {translate(
+              'Check saved records before discarding a local draft. A sync result may be uncertain or a server record may have changed.',
+            )}
           </p>
         </div>
         <div class="conflict-list">
@@ -637,12 +3179,36 @@
                   .slice(0, 16)
                   .replace('T', ' ')}</span
               >
+              <span>
+                {translate(
+                  conflict.state === 'needs_review'
+                    ? 'Draft needs checking'
+                    : conflict.state === 'rejected'
+                      ? 'Draft was rejected'
+                      : 'Server record changed',
+                )}
+              </span>
+              {#if conflict.state === 'needs_review'}
+                <p>{translate(offlineReviewReasonMessage(conflict.reviewReason))}</p>
+              {/if}
+              <a href={offlineReviewHref(conflict.entityType)}>
+                {translate('Check saved records')}
+              </a>
+              {#if conflict.state === 'needs_review'}
+                <button
+                  type="button"
+                  class="text-button"
+                  onclick={() => offlineController.retryReview(conflict.mutationId)}
+                >
+                  {translate('Retry this draft after review')}
+                </button>
+              {/if}
               <button
                 type="button"
                 class="text-button"
                 onclick={() => discardConflict(conflict.mutationId)}
               >
-                Discard local draft
+                {translate('Discard local draft')}
               </button>
             </div>
           {/each}
@@ -652,1114 +3218,2508 @@
     {#if (data.searchQuery ?? '').length >= 2}
       <section class="record-list full search-results" aria-live="polite">
         <div class="panel-title">
-          <h2>Search results</h2>
-          <span>{data.searchResults?.length ?? 0} matches</span>
+          <h2>{translate('Search results')}</h2>
+          <span>{data.searchResults?.length ?? 0} {translate('matches')}</span>
         </div>
-        {#each data.searchResults ?? [] as result}
-          <a class="search-result" href={searchHref(result)}>
-            <strong>{String(result.label ?? 'Result')}</strong>
-            <small>{String(result.type ?? 'record')} · {String(result.detail ?? '')}</small>
-          </a>
+        {#each groupedSearchResults as group}
+          <div class="search-result-group" role="group" aria-label={group.label}>
+            <h3>{group.label}</h3>
+            {#each group.rows as result}
+              <a class="search-result" href={searchHref(result)}>
+                <strong>{String(result.label ?? translate('Result'))}</strong>
+                <small>{group.label} · {String(result.detail ?? '')}</small>
+              </a>
+            {/each}
+          </div>
         {:else}
-          <div class="empty">No records match that search in your access scope.</div>
+          <div class="empty">{translate('No records match that search in your access scope.')}</div>
         {/each}
       </section>
     {/if}
 
     {#if data.section === 'today'}
-      {#if data.dashboard}
-        <div class="dashboard-hero">
-          <div>
-            <span class="portal-kicker">OPERATIONS CONTROL</span>
-            <h2>Field operations overview</h2>
-            <p>Current projects, field records, and billing readiness in one view.</p>
-          </div>
-          <strong>{data.dashboard.activeProjects}<small>active projects</small></strong>
-        </div>
-        <div class="finance-grid dashboard-metrics">
-          <section class="metric">
-            <span>RECORDED HOURS</span><strong
-              >{(data.dashboard.actualMinutes / 60).toFixed(1)}</strong
-            >
-            <p>Approved and submitted field time</p>
-          </section>
-          <section class="metric attention">
-            <span>PENDING REPORTS</span><strong>{data.dashboard.pendingReports}</strong>
-            <p>Daily and PLC records awaiting review</p>
-          </section>
-          <section class="metric">
-            <span>PROJECT EXPENSES</span><strong
-              >{money(data.dashboard.expenseMinor, data.dashboard.currency)}</strong
-            >
-            <p>All-in and reimbursable combined</p>
-          </section>
-          <section class="metric">
-            <span>UPCOMING BILLING</span><strong
-              >{money(data.dashboard.upcomingInvoiceMinor, data.dashboard.currency)}</strong
-            >
-            <p>{data.dashboard.upcomingInvoices} draft invoice streams</p>
-          </section>
-        </div>
-        <section class="record-list dashboard-projects">
-          <div class="panel-title">
-            <h2>Active project board</h2>
-            <span>{availableProjects.length} records</span>
-          </div>
-          {#each availableProjects as project}<a
-              class="project-board-row"
-              href={`${base}/app/projects/${project.id}`}
-              ><span><b>{project.project_number}</b><strong>{project.name}</strong></span><small
-                >{project.status} · {project.timezone}</small
-              ><i>Open project</i></a
-            >{/each}
-        </section>
-      {:else}
-        <div class="portal-grid">
-          <section class="assignment">
-            <span class="status-chip"><b></b>TODAY / 10 H EXPECTED</span>
-            <h2>{data.records?.[0]?.project_name ?? 'Field workspace'}</h2>
-            <p>
-              {data.records?.[0]
-                ? `${data.records[0].site} · ${String(data.records[0].starts_at).slice(11, 16)}–${String(data.records[0].ends_at).slice(11, 16)}`
-                : 'No published assignment for today.'}
-            </p>
-            <div class="quick-actions">
-              <a href={`${base}/app/time`}>Log actual time</a><a href={`${base}/app/reports`}
-                >Write field report</a
-              ><a href={`${base}/app/expenses`}>Add expense</a>
-            </div>
-          </section>
-          <section class="sync-panel">
-            <span class="portal-kicker">DEVICE STATUS</span><strong
-              >{online ? 'Connected to J&A' : 'Working offline'}</strong
-            >
-            <p>{queue} local mutation{queue === 1 ? '' : 's'} waiting to synchronize.</p>
-            {#if syncMessage}<small>{syncMessage}</small>{/if}
-          </section>
-        </div>
-      {/if}
+      <TodaySection
+        {locale}
+        {base}
+        {data}
+        {availableProjects}
+        {online}
+        {queue}
+        {syncMessage}
+        money={(minor, currency) => paymentMoney(minor, currency, documentLanguage(locale))}
+        {translate}
+        {controlledValue}
+        canCreateProject={canManageProjects}
+        canCreateInvoiceDraft={canManageProjects}
+        {invoiceDraftHref}
+        canViewPendingReports={Boolean(data.dashboard)}
+      />
     {:else if data.section === 'time'}
-      {#if data.timesheet}
-        <section class="timesheet-panel" aria-labelledby="weekly-timesheet-title">
-          <div class="timesheet-heading">
+      <TimeSection
+        {data}
+        {isAuditor}
+        {availableProjects}
+        {saveOfflineDraft}
+        {translate}
+        {controlledValue}
+      />
+    {:else if data.section === 'expenses'}
+      <ExpenseSection
+        {data}
+        {isAuditor}
+        {availableProjects}
+        {saveOfflineDraft}
+        {translate}
+        {controlledValue}
+      />
+    {:else if data.section === 'reports'}
+      <ReportSection
+        {data}
+        {isAuditor}
+        {availableProjects}
+        {saveOfflineDraft}
+        {translate}
+        {controlledValue}
+      />
+    {:else if data.section === 'documents'}
+      {#if data.user.role === 'owner_admin'}<a href={`${base}/app/manage?area=document`}
+          >{translate('Data management')} →</a
+        >{/if}
+      <div class="document-workspace">
+        <SectionCard
+          collapsible
+          title={translate('Register a private artifact')}
+          class="document-upload-panel"
+          expanded={documentResult?.actionName === 'uploadPrivateDocument'}
+        >
+          <div class="panel-title">
             <div>
-              <span class="portal-kicker">WEEKLY TIMESHEET</span>
-              <h2 id="weekly-timesheet-title">Actual time, one week at a glance</h2>
-              <p>
-                {data.timesheet.weekStart} → {data.timesheet.weekEnd}. Expected availability is 10
-                hours Monday through Saturday; Sunday stays at zero.
+              <p class="form-help">
+                {translate(
+                  'Receipts, PLC backups and project reports are validated, hashed and kept outside the public site.',
+                )}
               </p>
             </div>
-            <form class="timesheet-period" method="GET" action={`${base}/app/time`}>
-              <label>Week of<input name="week" type="date" value={data.weekStart} /></label>
-              <button type="submit">Open week</button>
-            </form>
-          </div>
-          <div class="timesheet-table-wrap">
-            <table class="timesheet-table">
-              <caption class="visually-hidden">Weekly actual time and approval status</caption>
-              <thead
-                ><tr
-                  ><th scope="col">Day</th><th scope="col">Actual</th><th scope="col">Expected</th
-                  ><th scope="col">Difference</th><th scope="col">Categories</th><th scope="col"
-                    >Status</th
-                  ></tr
-                ></thead
-              >
-              <tbody>
-                {#each data.timesheet.days as day}
-                  <tr
-                    class:timesheet-exception={day.status === 'Needs note' ||
-                      day.status === 'Needs changes'}
-                  >
-                    <th scope="row">{day.label}<small>{day.date}</small></th>
-                    <td>{hours(day.actualMinutes)}</td>
-                    <td>{hours(day.expectedMinutes)}</td>
-                    <td
-                      class:positive={day.differenceMinutes > 0}
-                      class:negative={day.differenceMinutes < 0}
-                      >{day.differenceMinutes > 0 ? '+' : ''}{hours(day.differenceMinutes)}</td
-                    >
-                    <td>{categorySummary(day.categories) || '—'}</td>
-                    <td><span class="timesheet-status">{day.status}</span></td>
-                  </tr>
-                {/each}
-              </tbody>
-              <tfoot>
-                <tr
-                  ><th scope="row">Actual</th><td
-                    >{hours(
-                      data.timesheet.days.reduce((sum, day) => sum + day.actualMinutes, 0),
-                    )}</td
-                  ><td
-                    >{hours(
-                      data.timesheet.days.reduce((sum, day) => sum + day.expectedMinutes, 0),
-                    )}</td
-                  ><td
-                    >{(() => {
-                      const difference = data.timesheet.days.reduce(
-                        (sum, day) => sum + day.differenceMinutes,
-                        0,
-                      );
-                      return `${difference > 0 ? '+' : ''}${hours(difference)}`;
-                    })()}</td
-                  ><td colspan="2"
-                    >{data.weeklyPay
-                      ? `${hours(data.weeklyPay.approvedMinutes)} approved · ${hours(data.weeklyPay.pendingMinutes)} pending · ${money(data.weeklyPay.estimatedApprovedMinor, data.weeklyPay.currency)} approved estimate`
-                      : 'Review access is limited to operational time.'}</td
-                  ></tr
-                >
-              </tfoot>
-            </table>
           </div>
           {#if !isAuditor}
-            <details class="timesheet-copy">
-              <summary>Copy previous week layout</summary>
-              <div class="timesheet-copy-body">
-                <p>
-                  Copies projects, categories and activity labels into zero-minute drafts. It never
-                  copies time values.
-                </p>
-                <form method="POST" action="?/copyTimeLayout">
-                  <input
-                    type="hidden"
-                    name="sourceWeekStart"
-                    value={shiftWeek(data.weekStart, -7)}
-                  />
-                  <input type="hidden" name="targetWeekStart" value={data.weekStart} />
-                  <button type="submit">Add this week’s layout</button>
-                </form>
-              </div>
-            </details>
-          {/if}
-        </section>
-      {/if}
-      <div class="worker-form">
-        {#if !isAuditor}<form
-            method="POST"
-            action="?/createTime"
-            class="entry-panel"
-            onsubmit={(event) => saveOfflineDraft(event, 'time')}
-          >
-            <h2>Log actual time</h2>
-            <p>Enter only minutes actually worked.</p>
-            <label
-              >Project<select name="projectId" required
-                ><option value="">Select assignment</option
-                >{#each availableProjects as project}<option value={project.id}
-                    >{project.project_number} — {project.name}</option
-                  >{/each}</select
-              ></label
-            ><label>Work date<input name="workDate" type="date" required /></label><label
-              >Category<select name="category"
-                ><option value="regular">Regular</option><option value="commissioning"
-                  >Commissioning</option
-                ><option value="overtime">Overtime</option><option value="standby"
-                  >Standby / waiting</option
-                ><option value="weekend_holiday">Weekend / holiday</option><option value="travel"
-                  >Travel</option
-                ><option value="remote_support">Remote support</option><option value="training"
-                  >Training</option
-                ><option value="internal">Internal</option></select
-              ></label
-            ><label
-              >Minutes<input
-                name="minutes"
-                type="number"
-                min="1"
-                max="1440"
-                required
-                inputmode="numeric"
-              /></label
-            ><label>Activity summary<textarea name="summary" required></textarea></label><button
-              >Save draft</button
-            >
-          </form>{/if}
-        <section class="record-list">
-          <div class="panel-title">
-            <h2>Recent entries</h2>
-            <span>{data.records?.length ?? 0}</span>
-          </div>
-          {#each data.records ?? [] as row}<article class="record-card">
-              <div>
-                <strong>{row.work_date} · {row.project_number}</strong><small
-                  >{row.category} · {row.minutes} min · {row.approval_state}</small
-                >
-              </div>
-              {#if row.approval_state === 'draft'}<div class="record-actions">
-                  <details>
-                    <summary>Edit draft</summary>
-                    <form
-                      method="POST"
-                      action="?/updateTime"
-                      data-entity-id={String(row.id)}
-                      data-version={String(row.version)}
-                      onsubmit={(event) => saveOfflineDraft(event, 'time')}
-                    >
-                      <input type="hidden" name="id" value={row.id} /><input
-                        type="hidden"
-                        name="version"
-                        value={row.version}
-                      /><input type="hidden" name="projectId" value={row.project_id} /><input
-                        type="hidden"
-                        name="workDate"
-                        value={row.work_date}
-                      /><label
-                        >Category<select name="category" value={row.category}
-                          ><option value="regular">Regular</option><option value="commissioning"
-                            >Commissioning</option
-                          ><option value="overtime">Overtime</option><option value="standby"
-                            >Standby / waiting</option
-                          ><option value="weekend_holiday">Weekend / holiday</option><option
-                            value="travel">Travel</option
-                          ><option value="remote_support">Remote support</option><option
-                            value="training">Training</option
-                          ><option value="internal">Internal</option></select
-                        ></label
-                      ><label
-                        >Minutes<input
-                          name="minutes"
-                          type="number"
-                          min="0"
-                          max="1440"
-                          value={row.minutes}
-                          required
-                        /></label
-                      ><label
-                        >Summary<textarea name="summary" required>{row.activity_summary}</textarea
-                        ></label
-                      ><button>Save changes</button>
-                    </form>
-                  </details>
-                  <form method="POST" action="?/submitTime">
-                    <input type="hidden" name="id" value={row.id} /><input
-                      type="hidden"
-                      name="version"
-                      value={row.version}
-                    /><button>Submit</button>
-                  </form>
-                </div>{/if}
-            </article>{:else}<div class="empty">No time recorded.</div>{/each}
-        </section>
-      </div>
-    {:else if data.section === 'expenses'}
-      <div class="worker-form">
-        {#if !isAuditor}<form
-            method="POST"
-            action="?/createExpense"
-            enctype="multipart/form-data"
-            class="entry-panel"
-            onsubmit={(event) => saveOfflineDraft(event, 'expense')}
-          >
-            <h2>Record expense</h2>
-            <label
-              >Project<select name="projectId" required
-                ><option value="">Select assignment</option
-                >{#each availableProjects as project}<option value={project.id}
-                    >{project.project_number} — {project.name}</option
-                  >{/each}</select
-              ></label
-            ><label>Date<input name="spentOn" type="date" required /></label><label
-              >Vendor<input name="vendor" required /></label
-            ><label
-              >Category<select name="category"
-                ><option value="hotel">Hotel</option><option value="rental_car">Rental car</option
-                ><option value="fuel">Fuel</option><option value="tolls">Tolls</option><option
-                  value="parking">Parking</option
-                ><option value="airfare">Airfare</option><option value="ground_transport"
-                  >Train / bus / taxi / rideshare</option
-                ><option value="meals">Meals</option><option value="per_diem">Per diem</option
-                ><option value="materials">Project materials</option><option value="tools"
-                  >Tools / consumables</option
-                ><option value="shipping">Shipping</option><option value="phone_data"
-                  >Phone / data</option
-                ><option value="visa_permit">Visa / permit</option><option value="other"
-                  >Other</option
-                ></select
-              ></label
-            ><label
-              >Amount<input
-                name="amount"
-                inputmode="decimal"
-                pattern="[0-9]+([.][0-9][0-9]?)?"
-                required
-              /></label
-            ><label
-              >Currency<select name="currency"
-                ><option>USD</option><option>BRL</option><option>EUR</option></select
-              ></label
-            ><label>Description<textarea name="description" required></textarea></label><label
-              >Who paid<select name="whoPaid"
-                ><option value="worker">Worker</option><option value="company_card"
-                  >Company card</option
-                ><option value="company_direct">Company direct</option><option value="client"
-                  >Client paid directly</option
-                ><option value="third_party">Third party</option></select
-              ></label
-            ><label
-              >Client treatment<select
-                name="clientTreatment"
-                value={expenseClientTreatment}
-                onchange={syncExpenseTreatment}
-                ><option value="non_billable">Non-billable</option><option value="reimbursable"
-                  >Reimbursable</option
-                ><option value="all_in">All-in project cost</option></select
-              ></label
-            ><label
-              >Billing treatment<select name="billingTreatment" value={expenseBillingTreatment}
-                ><option value="internal_non_billable">Internal / non-billable</option><option
-                  value="reimbursable_at_cost">Reimbursable at cost</option
-                ><option value="reimbursable_plus_markup">Reimbursable + markup</option><option
-                  value="all_in">Included in all-in / fixed price</option
-                ><option value="client_direct">Paid directly by client</option><option
-                  value="allowance_per_diem">Allowance / per diem</option
-                ><option value="informational">Informational only</option></select
-              ></label
-            ><label>Markup (basis points)<input name="markupBps" type="number" min="0" /></label
-            ><label
-              >Tax amount (minor units)<input name="taxAmountMinor" type="number" min="0" /></label
-            ><label
-              >Project currency amount (minor units)<input
-                name="projectCurrencyAmountMinor"
-                type="number"
-                min="0"
-              /></label
-            ><label
-              >FX rate (basis points)<input
-                name="fxRateBps"
-                type="number"
-                min="1"
-                placeholder="e.g. 9200"
-              /></label
-            ><label
-              >Payment method<input
-                name="paymentMethod"
-                placeholder="Card, transfer, cash"
-              /></label
-            ><label class="check"
-              ><input name="receiptRequired" type="checkbox" /> Receipt required</label
-            ><label
-              >Receipt image or PDF<input
-                name="receipt"
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
-              /></label
-            ><button>Save draft</button>
-          </form>{/if}
-        <section class="record-list">
-          <div class="panel-title">
-            <h2>Recent expenses</h2>
-            <span>{data.records?.length ?? 0}</span>
-          </div>
-          {#each data.records ?? [] as row}<article class="record-card">
-              <div>
-                <strong>{row.vendor} · {money(row.amount_minor, String(row.currency))}</strong
-                ><small
-                  >{row.spent_on} · {row.project_number} · {row.approval_state} · {row.who_paid} ·
-                  {row.reimbursement_state}</small
-                >
-              </div>
-              {#if row.approval_state === 'draft'}<form method="POST" action="?/submitExpense">
-                  <input type="hidden" name="id" value={row.id} /><input
-                    type="hidden"
-                    name="version"
-                    value={row.version}
-                  /><button>Submit</button>
-                </form>{/if}
-            </article>{:else}<div class="empty">No expenses recorded.</div>{/each}
-        </section>
-      </div>
-    {:else if data.section === 'reports'}
-      <div class="report-workspace">
-        {#if !isAuditor}<div class="report-forms">
-            <details open>
-              <summary
-                ><span>01</span>
-                <div>
-                  <strong>Daily field report</strong><small
-                    >Shift summary, blockers and next-day plan</small
-                  >
-                </div></summary
-              >
-              <form
-                method="POST"
-                action="?/createDailyReport"
-                class="entry-panel report-form"
-                onsubmit={(event) => saveOfflineDraft(event, 'daily_report')}
-              >
-                <label
-                  >Project<select name="projectId" required
-                    ><option value="">Select assignment</option
-                    >{#each availableProjects as project}<option value={project.id}
-                        >{project.project_number} — {project.name}</option
-                      >{/each}</select
-                  ></label
-                >
-                <div class="two-up">
-                  <label>Work date<input name="workDate" type="date" required /></label><label
-                    >Site / shift<input
-                      name="siteShift"
-                      placeholder="Line 4 · first shift"
-                    /></label
-                  >
-                </div>
-                <label>Shift summary<textarea name="summary" required></textarea></label><label
-                  >Tasks completed<textarea name="tasksCompleted" required></textarea></label
-                >
-                <div class="two-up">
-                  <label>Problems found<textarea name="problemsFound"></textarea></label><label
-                    >Corrective actions<textarea name="correctiveActions"></textarea></label
-                  >
-                </div>
-                <div class="two-up">
-                  <label
-                    >Downtime minutes<input
-                      name="downtimeMinutes"
-                      type="number"
-                      min="0"
-                      max="1440"
-                      value="0"
-                    /></label
-                  ><label>Standby reason<input name="standbyReason" /></label>
-                </div>
-                <label>Open items<textarea name="openItems"></textarea></label><label
-                  >Next-day plan<textarea name="nextDayPlan"></textarea></label
-                >
-                <label class="check"
-                  ><input name="safetyRelated" type="checkbox" /> Safety-related change</label
-                ><button>Save daily report</button>
-              </form>
-            </details>
-            <details>
-              <summary
-                ><span>02</span>
-                <div>
-                  <strong>PLC / technical report</strong><small
-                    >Controls-specific change and validation record</small
-                  >
-                </div></summary
-              >
-              <form
-                method="POST"
-                action="?/createTechnicalReport"
-                class="entry-panel report-form"
-                onsubmit={(event) => saveOfflineDraft(event, 'technical_report')}
-              >
-                <label
-                  >Project<select name="projectId" required
-                    ><option value="">Select assignment</option
-                    >{#each availableProjects as project}<option value={project.id}
-                        >{project.project_number} — {project.name}</option
-                      >{/each}</select
-                  ></label
-                >
-                <div class="two-up">
-                  <label
-                    >System / machine<input
-                      name="systemName"
-                      placeholder="Line 4 main conveyor"
-                      required
-                    /></label
-                  ><label>Plant / site<input name="plantSite" /></label>
-                </div>
-                <div class="three-up">
-                  <label>Area / line<input name="areaLine" /></label><label
-                    >Station / machine<input name="stationMachine" /></label
-                  ><label>System type<input name="systemType" /></label>
-                </div>
-                <div class="three-up">
-                  <label
-                    >PLC platform<input
-                      name="plcPlatform"
-                      placeholder="Rockwell Automation"
-                    /></label
-                  ><label
-                    >Controller<input name="controller" placeholder="ControlLogix 5580" /></label
-                  ><label>HMI / SCADA<input name="hmiScada" /></label>
-                </div>
-                <div class="two-up">
-                  <label>Network / protocol<input name="networkProtocol" /></label><label
-                    >Software version<input name="softwareVersion" /></label
-                  >
-                </div>
-                <label>Program / project reference<input name="programReference" /></label><label
-                  >Problem and change performed<textarea name="changeSummary" required
-                  ></textarea></label
-                ><label>Production impact<textarea name="productionImpact"></textarea></label>
-                <div class="two-up">
-                  <label>Validation performed<textarea name="validation"></textarea></label><label
-                    >Validation result<textarea name="validationResult"></textarea></label
-                  >
-                </div>
-                <div class="two-up">
-                  <label>Open risk / issue<textarea name="openRisk"></textarea></label><label
-                    >Rollback plan<textarea name="rollbackPlan"></textarea></label
-                  >
-                </div>
-                <label class="check safety-check"
-                  ><input name="safetyRelated" type="checkbox" /> Safety impact: technical lead review,
-                  validation and rollback detail required</label
-                ><button>Save PLC report</button>
-              </form>
-            </details>
-          </div>{/if}
-        <section class="record-list report-history">
-          <div class="panel-title">
-            <h2>Report register</h2>
-            <span>{data.records?.length ?? 0}</span>
-          </div>
-          {#each data.records ?? [] as row}<article class="record-card">
-              <div>
-                <span class:technical={row.type === 'technical'} class="report-type"
-                  >{row.type === 'technical' ? 'PLC' : 'DAILY'}</span
-                ><strong>{row.title}</strong><small
-                  >{row.date} · {row.project_number} · {row.approval_state}</small
-                >
-              </div>
-              {#if row.approval_state === 'draft' || row.approval_state === 'needs_changes'}<form
-                  method="POST"
-                  action="?/submitReport"
-                >
-                  <input type="hidden" name="type" value={row.type} /><input
-                    type="hidden"
-                    name="id"
-                    value={row.id}
-                  /><input type="hidden" name="version" value={row.version} /><button>Submit</button
-                  >
-                </form>{/if}
-            </article>{:else}<div class="empty">No field reports recorded.</div>{/each}
-        </section>
-        <section class="record-list full period-report-list">
-          <div class="panel-title">
-            <div>
-              <h2>Period report register</h2>
-              <p class="form-help">
-                Customer and internal summaries are generated after a reviewed billing-period close.
-              </p>
-            </div>
-            <span>{data.periodReports?.length ?? 0}</span>
-          </div>
-          {#each data.periodReports ?? [] as report}<article class="record-card">
-              <div>
-                <strong
-                  >{String(report.project_number)} · {String(report.audience).toUpperCase()}</strong
-                ><small
-                  >{String(report.period_start)} → {String(report.period_end)} · {String(
-                    report.state,
-                  )}</small
-                >
-              </div>
-              {#if report.pdf_storage_key}<a
-                  class="preview-link"
-                  href={`${base}/app/api/reports/${String(report.id)}/pdf`}>PDF</a
-                >{/if}
-            </article>{:else}<div class="empty">No generated period summaries yet.</div>{/each}
-        </section>
-      </div>
-    {:else if data.section === 'documents'}
-      <div class="document-workspace">
-        <section class="entry-panel document-upload">
-          <div class="panel-title">
-            <div>
-              <h2>Register a private artifact</h2>
-              <p class="form-help">
-                Receipts, PLC backups and project reports are validated, hashed and kept outside the
-                public site.
-              </p>
-            </div>
-          </div>
-          {#if !isAuditor}<form
+            <form
+              bind:this={documentUploadForm}
               method="POST"
               action="?/uploadPrivateDocument"
               enctype="multipart/form-data"
+              use:formValidation
+              use:rememberDocumentScroll
             >
-              <label
-                >Project<select name="projectId" required
-                  ><option value="">Select assignment</option
-                  >{#each availableProjects as project}<option value={project.id}
-                      >{project.project_number} — {project.name}</option
-                    >{/each}</select
-                ></label
-              >
-              <div class="two-up">
-                <label
-                  >Artifact type<input
-                    name="artifactType"
-                    placeholder="PLC backup, engineering report"
+              <input type="hidden" name="viewportScrollY" value="0" />
+              {#if documentResult?.actionName === 'uploadPrivateDocument' && documentProblem}
+                <ProblemNotice problem={documentProblem} remedyLinks={globalRemedyLinks} />
+                <p class="form-help">{translate('Attach the file again before retrying.')}</p>
+              {/if}
+              <FormSection title={translate('Artifact details')}>
+                <FieldGroup columns="2">
+                  <Field
+                    id="doc-project"
+                    label={translate('Project')}
                     required
-                  /></label
-                >
-                <label
-                  >Sensitivity<select name="sensitivity"
-                    ><option value="internal">Internal</option><option value="sensitive"
-                      >Sensitive</option
-                    ><option value="customer_private">Customer private</option></select
-                  ></label
-                >
-              </div>
-              <label
-                >Description<textarea
-                  name="description"
-                  required
-                  placeholder="What this artifact contains and why it is retained"
-                ></textarea></label
-              >
-              <label
-                >File<input
-                  name="file"
-                  type="file"
-                  accept="application/pdf,application/zip,image/jpeg,image/png,image/webp,image/heic,image/heif,text/plain"
-                  capture="environment"
-                  required
-                /></label
-              >
-              <button>Upload and register hash</button>
-            </form>{/if}
-        </section>
-        <section class="record-list full">
+                    data-field="projectId"
+                  >
+                    <select
+                      id="doc-project"
+                      name="projectId"
+                      value={documentResult?.actionName === 'uploadPrivateDocument'
+                        ? (documentFormValues.projectId ?? '')
+                        : ''}
+                      required
+                    >
+                      <option value="">{translate('Select assignment')}</option>
+                      {#each availableProjects as project}
+                        <option value={project.id}>{project.project_number} — {project.name}</option
+                        >
+                      {/each}
+                    </select>
+                  </Field>
+                  <Field
+                    id="doc-type"
+                    label={translate('Artifact type')}
+                    required
+                    data-field="artifactType"
+                  >
+                    <input
+                      id="doc-type"
+                      name="artifactType"
+                      placeholder={translate('PLC backup, engineering report')}
+                      value={documentResult?.actionName === 'uploadPrivateDocument'
+                        ? (documentFormValues.artifactType ?? '')
+                        : ''}
+                      required
+                    />
+                  </Field>
+                  {#if canManageProjects}
+                    <Field
+                      id="doc-classification"
+                      label={translate('Document access')}
+                      data-field="artifactClassification"
+                    >
+                      <select
+                        id="doc-classification"
+                        name="artifactClassification"
+                        value={documentResult?.actionName === 'uploadPrivateDocument'
+                          ? (documentFormValues.artifactClassification ?? 'standard')
+                          : 'standard'}
+                      >
+                        <option value="standard">{translate('Project document')}</option>
+                        <option value="finance"
+                          >{translate('Finance, Owner and Auditor only')}</option
+                        >
+                      </select>
+                    </Field>
+                  {/if}
+                  <Field
+                    id="doc-sensitivity"
+                    label={translate('Sensitivity')}
+                    data-field="sensitivity"
+                  >
+                    <select
+                      id="doc-sensitivity"
+                      name="sensitivity"
+                      value={documentResult?.actionName === 'uploadPrivateDocument'
+                        ? (documentFormValues.sensitivity ?? 'internal')
+                        : 'internal'}
+                    >
+                      <option value="internal">{translate('Internal')}</option>
+                      <option value="sensitive">{translate('Sensitive')}</option>
+                      <option value="customer_private">{translate('Customer private')}</option>
+                    </select>
+                  </Field>
+                  <Field
+                    id="doc-description"
+                    label={translate('Description')}
+                    required
+                    data-field="description"
+                  >
+                    <textarea
+                      id="doc-description"
+                      name="description"
+                      value={documentResult?.actionName === 'uploadPrivateDocument'
+                        ? (documentFormValues.description ?? '')
+                        : ''}
+                      required
+                      placeholder={translate('What this artifact contains and why it is retained')}
+                    ></textarea>
+                  </Field>
+                  <Field id="doc-file" label={translate('File')} required data-field="file">
+                    <input
+                      id="doc-file"
+                      name="file"
+                      type="file"
+                      accept="application/pdf,application/zip,image/jpeg,image/png,image/webp,image/heic,image/heif,text/plain"
+                      capture="environment"
+                      required
+                    />
+                  </Field>
+                </FieldGroup>
+                <div class="form-actions">
+                  <button>{translate('Upload and register hash')}</button>
+                </div>
+              </FormSection>
+            </form>
+          {/if}
+        </SectionCard>
+        {#if documentResult?.actionName === 'archiveDocument' && documentProblem && !documentPage.some((entry) => String(entry.id) === documentFormValues.documentId)}
+          <ProblemNotice problem={documentProblem} remedyLinks={globalRemedyLinks} />
+        {/if}
+        <section id="document-list" class="record-list full">
           <div class="panel-title">
             <div>
-              <h2>Private project documents</h2>
+              <h2>{translate('Private project documents')}</h2>
               <p class="form-help">
-                Files are private, hash-verified, and authorized on every download.
+                {translate(
+                  'Registered documents are retained as evidence. Upload a corrected file as a new document; the original stays available in the audit history.',
+                )}
+              </p>
+              <p class="form-help">
+                {translate('Files are private, hash-verified, and authorized on every download.')}
               </p>
             </div>
-            <span>{data.documents?.length ?? 0} files</span>
+            <span>{data.documents?.length ?? 0} {translate('files')}</span>
           </div>
-          {#each data.documents ?? [] as document}<article class="invoice-row">
+          <RecordBrowser
+            rows={data.documents ?? []}
+            bind:visible={documentPage}
+            {translate}
+            label="Private project documents"
+          />
+          {#each documentPage as document}<article class="invoice-row document-entry">
               <div>
                 <strong
                   >{String(
-                    document.safe_filename ?? document.original_filename ?? 'Document',
+                    document.safe_filename ?? document.original_filename ?? translate('Document'),
                   )}</strong
                 >
                 <small
-                  >{String(document.project_number ?? 'Private')} · {String(document.artifact_type)} ·
-                  {String(document.byte_length)} bytes</small
+                  >{document.project_number
+                    ? String(document.project_number)
+                    : translate('Private')} · {String(document.artifact_type)} ·
+                  {document.byte_length == null
+                    ? ''
+                    : `${String(document.byte_length)} bytes`}</small
                 >
               </div>
               <div class="record-actions">
                 <span class="state-tag">{String(document.sensitivity ?? 'internal')}</span>
-                <a class="preview-link" href={`${base}/app/api/documents/${String(document.id)}`}
-                  >Download</a
+                <a
+                  class="preview-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  href={`${base}/app/api/documents/${String(document.id)}?view=1`}
+                  aria-disabled={documentTransferBusy}
+                  onclick={(event) => transferPrivateDocument(event, document, 'view')}
+                  onauxclick={(event) => {
+                    if (event.button === 1) void transferPrivateDocument(event, document, 'view');
+                  }}
+                  >{translate('View')}</a
                 >
+                <a
+                  class="preview-link"
+                  href={`${base}/app/api/documents/${String(document.id)}`}
+                  aria-disabled={documentTransferBusy}
+                  onclick={(event) => transferPrivateDocument(event, document, 'download')}
+                  onauxclick={(event) => {
+                    if (event.button === 1) void transferPrivateDocument(event, document, 'download');
+                  }}
+                  >{translate('Download')}</a
+                >
+                {#if data.user.role === 'owner_admin' || (data.user.role !== 'auditor_read_only' && (data.user.id === document.owner_id || document.can_archive === true))}
+                  <details
+                    class="document-archive-control"
+                    open={documentResult?.actionName === 'archiveDocument' &&
+                      documentFormValues.documentId === String(document.id)}
+                  >
+                    <summary>{translate('Archive')}</summary>
+                    <form
+                      method="POST"
+                      action="?/archiveDocument"
+                      class="document-delete-form"
+                      use:formValidation
+                      use:rememberDocumentScroll
+                    >
+                      <input type="hidden" name="viewportScrollY" value="0" />
+                      {#if documentResult?.actionName === 'archiveDocument' && documentProblem && documentFormValues.documentId === String(document.id)}
+                        <ProblemNotice problem={documentProblem} remedyLinks={globalRemedyLinks} />
+                      {/if}
+                      <input type="hidden" name="documentId" value={String(document.id)} />
+                      <label
+                        >{translate('Archive reason')}
+                        <input
+                          name="reason"
+                          value={documentResult?.actionName === 'archiveDocument' &&
+                          documentFormValues.documentId === String(document.id)
+                            ? (documentFormValues.reason ?? '')
+                            : ''}
+                          minlength="3"
+                          maxlength="500"
+                          required
+                        />
+                      </label>
+                      <button type="submit" class="preview-link preview-link-danger"
+                        >{translate('Archive document')}</button
+                      >
+                    </form>
+                  </details>
+                {/if}
               </div>
+              {#if documentTransferFailure?.id === String(document.id)}
+                <div id="document-download-problem" class="document-download-feedback">
+                  <ProblemNotice
+                    problem={documentTransferFailure.problem}
+                    remedyLinks={documentDownloadRemedyLinks}
+                  />
+                  {#if documentTransferFailure.problem.remedies.some((remedy) => remedy.id === 'retry_download')}
+                    <button
+                      type="button"
+                      class="preview-link"
+                      disabled={documentTransferBusy}
+                      onclick={(event) => transferPrivateDocument(event, document, documentTransferFailure?.mode ?? 'download')}
+                      >{documentTransferFailure.mode === 'view'
+                        ? translate('View')
+                        : documentTransferFailure.problem.code === 'DOCUMENT_PREVIEW_POPUP_BLOCKED'
+                          ? translate('Download')
+                          : portalText(locale, 'problem.expenseExport.retryDownload')}</button
+                    >
+                  {/if}
+                  {#if documentTransferFailure.problem.correlationId && documentTransferFailure.problem.code === 'DOCUMENT_DOWNLOAD_INVALID_RESPONSE'}
+                    <small>{portalText(locale, 'problem.error.reference', { correlationId: documentTransferFailure.problem.correlationId })}</small>
+                  {/if}
+                </div>
+              {/if}
             </article>{:else}<div class="empty">
-              No private documents are available in your access scope.
+              {translate('No private documents are available in your access scope.')}
             </div>{/each}
         </section>
       </div>
     {:else if data.section === 'pay' && data.pay}
       <form class="filter-form">
-        <label>From<input name="start" type="date" value={data.periodStart} /></label><label
-          >Through<input name="end" type="date" value={data.periodEnd} /></label
-        ><button>Apply period</button>
+        <label>{translate('From')}<input name="start" type="date" value={data.periodStart} /></label
+        ><label>{translate('Through')}<input name="end" type="date" value={data.periodEnd} /></label
+        ><button>{translate('Apply period')}</button>
       </form>
-      <div class="finance-grid">
-        <section class="metric">
-          <span>APPROVED COMPENSATION</span><strong
-            >{money(data.pay.estimatedApprovedMinor, data.pay.currency)}</strong
-          >
-          <p>{data.pay.approvedMinutes} approved minutes</p>
-        </section>
-        <section class="metric">
-          <span>APPROVED REIMBURSEMENTS</span><strong
-            >{money(data.pay.approvedReimbursementMinor, data.pay.currency)}</strong
-          >
-          <p>
-            Pending pay: {money(data.pay.estimatedPendingMinor, data.pay.currency)} plus {money(
-              data.pay.pendingReimbursementMinor,
-              data.pay.currency,
-            )} reimbursements.
+      <section class="record-list full pay-export-actions" aria-labelledby="pay-export-title">
+        <div class="panel-title">
+          <div>
+            <h2 id="pay-export-title">{translate('Worker statement')}</h2>
+            <p class="form-help">
+              {translate(
+                'Download your own activity, compensation, settlement, and reimbursement statement for this period.',
+              )}
+            </p>
+          </div>
+          <div class="record-actions">
+            {#if pendingWorkerStatementRequest}
+              <button
+                type="button"
+                class="preview-link"
+                disabled={workerStatementBusy}
+                onclick={() => void checkPendingWorkerStatementRequest()}
+                >{portalText(locale, 'problem.workerStatement.checkStatus')}</button
+              >
+              {#if workerStatementRequestChecked}
+                <button
+                  type="button"
+                  class="preview-link"
+                  disabled={workerStatementBusy || workerStatementPolling}
+                  onclick={() => void retrySameWorkerStatementRequest()}
+                  >{portalText(locale, 'problem.workerStatement.retrySameRequest')}</button
+                >
+              {/if}
+            {:else}
+              <button
+                type="button"
+                class="preview-link"
+                disabled={workerStatementBusy || workerStatementPolling}
+                aria-busy={workerStatementBusy || workerStatementPolling}
+                onclick={() => void requestWorkerStatement()}>{translate('Generate report')}</button
+              >
+            {/if}
+            {#each ['pdf', 'csv'] as format}
+              {@const artifact = workerStatementArtifact(format as WorkerStatementFormat)}
+              {#if artifact?.status === 'ready' && !workerStatementStatusUnknownIds.includes(artifact.artifactId)}
+                <a
+                  class="preview-link"
+                  aria-label={format === 'pdf'
+                    ? translate('Download worker statement PDF')
+                    : translate('Download worker statement CSV')}
+                  aria-disabled={workerStatementDownloadBusy}
+                  href={`${base}/app/api/worker-statement/artifacts/${encodeURIComponent(artifact.artifactId)}/download`}
+                  onclick={(event) => void downloadWorkerStatement(event, artifact)}
+                  onauxclick={(event) => {
+                    if (event.button === 1) void downloadWorkerStatement(event, artifact);
+                  }}
+                  >{translate(format.toUpperCase())} · {translate('Ready')}</a
+                >
+              {:else if artifact}
+                <span
+                  class="state-tag"
+                  data-ui="status-badge"
+                  data-variant={artifact.status === 'failed' ? 'danger' : 'warning'}
+                  >{translate(format.toUpperCase())} · {workerStatementStatusUnknownIds.includes(artifact.artifactId)
+                    ? portalText(locale, 'problem.workerStatement.checkStatus')
+                    : controlledValue('artifactState', artifact.status)}</span
+                >
+                {#if canRetryWorkerStatement(artifact)}
+                  <button
+                    type="button"
+                    class="preview-link"
+                    disabled={workerStatementBusy || workerStatementPolling}
+                    onclick={() => void retryWorkerStatement(artifact)}
+                    >{portalText(locale, 'problem.workerStatement.retryAction')}
+                    {translate(format.toUpperCase())}</button
+                  >
+                {/if}
+              {/if}
+            {/each}
+          </div>
+        </div>
+        {#if workerStatementProblem}
+          <ProblemNotice
+            problem={workerStatementProblem.code === 'WORKER_STATEMENT_DOWNLOAD_STATUS_UNKNOWN'
+              ? { ...workerStatementProblem, remedies: [] }
+              : workerStatementProblem}
+            locale={locale}
+            kind={!workerStatementDownloadFailure &&
+            (workerStatementProblem.code === 'WORKER_STATEMENT_NETWORK_UNCERTAIN' ||
+            workerStatementProblem.code === 'WORKER_STATEMENT_SERVICE_UNAVAILABLE')
+              ? 'service'
+              : 'error'}
+            remedyLinks={{
+              review_my_pay: {
+                label: portalText(locale, 'problem.workerStatement.checkStatus'),
+                href: workerStatementPeriodHref,
+              },
+              check_statement_status: {
+                label: portalText(locale, 'problem.workerStatement.checkStatus'),
+                href: workerStatementPeriodHref,
+              },
+              retry_statement: { label: portalText(locale, 'problem.workerStatement.retryAction') },
+              retry_download: { label: portalText(locale, 'problem.expenseExport.retryDownload') },
+              contact_finance_owner: { label: portalText(locale, 'problem.remedy.contactOwner') },
+              sign_in: {
+                label: portalText(locale, 'problem.workerStatement.signInAgain'),
+                href: `${base}/app/login?lang=${encodeURIComponent(locale)}`,
+              },
+              review_workspace: {
+                label: portalText(locale, 'problem.workerStatement.returnToWork'),
+                href: `${base}/app?lang=${encodeURIComponent(locale)}`,
+              },
+            }}
+          />
+          {#if workerStatementProblem.code === 'WORKER_STATEMENT_DOWNLOAD_STATUS_UNKNOWN' && workerStatementDownloadFailedArtifactId}
+            <button
+              type="button"
+              class="preview-link"
+              disabled={workerStatementDownloadBusy}
+              onclick={() => void checkWorkerStatementDownloadStatus()}
+              >{portalText(locale, 'problem.workerStatement.checkStatus')}</button
+            >
+          {/if}
+          {#if workerStatementDownloadFailedFormat && workerStatementProblem.remedies.some((remedy) => remedy.id === 'retry_download')}
+            {@const artifact = workerStatementArtifact(workerStatementDownloadFailedFormat)}
+            {#if artifact?.status === 'ready'}
+              <button
+                type="button"
+                class="preview-link"
+                disabled={workerStatementDownloadBusy}
+                onclick={(event) => void downloadWorkerStatement(event, artifact)}
+                >{portalText(locale, 'problem.expenseExport.retryDownload')}</button
+              >
+            {/if}
+          {/if}
+        {:else if workerStatementBusy || workerStatementPolling}
+          <p class="form-help" role="status" aria-live="polite">
+            {portalText(locale, 'problem.workerStatement.queued')}
           </p>
-        </section>
+        {:else if workerStatementArtifacts.some((artifact) => artifact.status === 'ready')}
+          <p class="form-help" role="status" aria-live="polite">
+            {portalText(locale, 'problem.workerStatement.ready')}
+          </p>
+        {/if}
+      </section>
+      <div class="finance-grid">
+        {#each data.pay.currencyBreakdown ?? [data.pay] as amount}
+          <a href="{base}/app/time" class="metric metric-link">
+            <span>{translate('APPROVED COMPENSATION')} · {amount.currency}</span><strong
+              >{paymentMoney(
+                amount.estimatedApprovedMinor,
+                amount.currency,
+                documentLanguage(locale),
+              )}</strong
+            >
+            <p>{data.pay.approvedMinutes} {translate('approved minutes')}</p>
+          </a>
+          <a href="{base}/app/expenses" class="metric metric-link">
+            <span>{translate('APPROVED REIMBURSEMENTS')} · {amount.currency}</span><strong
+              >{paymentMoney(
+                amount.approvedReimbursementMinor,
+                amount.currency,
+                documentLanguage(locale),
+              )}</strong
+            >
+            <p>
+              {translate('Estimated compensation awaiting approval:')}
+              {paymentMoney(
+                amount.estimatedPendingMinor,
+                amount.currency,
+                documentLanguage(locale),
+              )} · {translate('Estimated reimbursements awaiting approval:')}
+              {paymentMoney(
+                amount.pendingReimbursementMinor,
+                amount.currency,
+                documentLanguage(locale),
+              )}
+            </p>
+          </a>
+        {/each}
       </div>
+      <section class="record-list full" aria-label={translate('Payment still outstanding')}>
+        <div class="panel-title">
+          <div>
+            <h2>{translate('Payment still outstanding')}</h2>
+            <p>
+              {translate(
+                'Reviewed compensation and approved expenses that have not been paid yet.',
+              )}
+            </p>
+          </div>
+        </div>
+        {#each data.payOutstanding ?? [] as outstanding}
+          <p>
+            {translate('Unpaid reviewed settlements:')}
+            <strong
+              >{paymentMoney(
+                outstanding.settlementMinor,
+                outstanding.currency,
+                documentLanguage(locale),
+              )}</strong
+            >
+            · {translate('Approved reimbursements awaiting payment:')}
+            <strong
+              >{paymentMoney(
+                outstanding.reimbursementMinor,
+                outstanding.currency,
+                documentLanguage(locale),
+              )}</strong
+            >
+          </p>
+        {:else}
+          <p>
+            {translate(
+              'No reviewed payments or approved reimbursements are outstanding in this period.',
+            )}
+          </p>
+        {/each}
+      </section>
       <section class="record-list full pay-detail">
         <div class="panel-title">
           <div>
-            <h2>Compensation statement</h2>
+            <h2>{translate('Compensation statement')}</h2>
             <p>
-              {data.pay.label ?? 'Estimate from approved and pending records'} · {data.periodStart} to
+              {data.pay.label ?? translate('Estimate from approved and pending records')} · {data.periodStart}
+              {translate('to')}
               {data.periodEnd}
             </p>
           </div>
-          <span>{data.pay.percentageBased ? 'Percentage rule active' : 'Rate rule active'}</span>
+          <span
+            >{data.pay.percentageBased
+              ? translate('Percentage rule active')
+              : translate('Rate rule active')}</span
+          >
         </div>
         <div class="detail-grid">
-          <div>
-            <span>Approved actual time</span><strong
-              >{(data.pay.approvedMinutes / 60).toFixed(2)} h</strong
+          <a href="{base}/app/time" class="detail-grid-link">
+            <span>{translate('Approved actual time')}</span><strong
+              >{hours(data.pay.approvedMinutes)}</strong
             >
-          </div>
-          <div>
-            <span>Pending actual time</span><strong
-              >{(data.pay.pendingMinutes / 60).toFixed(2)} h</strong
+          </a>
+          <a href="{base}/app/time" class="detail-grid-link">
+            <span>{translate('Pending actual time')}</span><strong
+              >{hours(data.pay.pendingMinutes)}</strong
             >
-          </div>
-          <div>
-            <span>Daily guarantee coverage</span><strong
-              >{(data.pay.guaranteedMinutes ?? 0) / 60} h</strong
+          </a>
+          <a href="{base}/app/time" class="detail-grid-link">
+            <span>{translate('Daily guarantee coverage')}</span><strong
+              >{hours(data.pay.guaranteedMinutes ?? 0)}</strong
             >
-          </div>
-          <div>
-            <span>Projects included</span><strong>{data.pay.projectIds?.length ?? 0}</strong>
-          </div>
+          </a>
+          <a href="{base}/app/projects" class="detail-grid-link">
+            <span>{translate('Projects included')}</span><strong
+              >{data.pay.projectIds?.length ?? 0}</strong
+            >
+          </a>
         </div>
         <div class="statement-note">
-          <strong>Privacy boundary</strong>
-          <p>
-            This view contains only your own time, reimbursement, and compensation estimate. Client
-            rates, internal cost, margin, and other workers remain restricted.
-          </p>
-          {#if (data.pay.missingCompensationRules ?? 0) > 0}<p class="warning">
-              {data.pay.missingCompensationRules} time record(s) have no matching compensation rule and
-              require Finance review.
-            </p>{/if}
-          {#if data.pay.settlementTriggers?.length}<p>
-              Settlement trigger: {data.pay.settlementTriggers.join(' · ')}
-            </p>{/if}
+          {#if (data.pay.missingCompensationRules ?? 0) > 0}
+            <ProblemNotice
+              problem={missingCompensationRuleProblem(data.pay.missingCompensationRules ?? 0)}
+              kind="warning"
+              title={translate('Review required')}
+              remedyLinks={{
+                contact_finance_owner: { label: translate('Contact Finance or an owner') },
+              }}
+            />
+          {/if}
         </div>
       </section>
       <section class="record-list full pay-detail">
         <div class="panel-title">
           <div>
-            <h2>Assignment budget context</h2>
+            <h2>{translate('Assignment budget context')}</h2>
             <p>
-              Optional planning context only; actual and approved time remain the source of
-              compensation.
+              {translate(
+                'Optional planning context only; actual and approved time remain the source of compensation.',
+              )}
             </p>
           </div>
-          <span>{data.pay.projectProgress?.length ?? 0} projects</span>
+          <span>{data.pay.projectProgress?.length ?? 0} {translate('projects')}</span>
         </div>
-        <div class="table-wrap">
+        <TableRegion
+          class="table-wrap worker-pay-table"
+          mobileMode="scroll"
+          label={translate('Assignment budget context')}
+        >
           <table>
             <thead
               ><tr
-                ><th>Project</th><th>Actual</th><th>Approved</th><th>Pending</th><th>Planned</th><th
-                  >Remaining</th
-                ><th>Approved estimate</th><th>Pending estimate</th></tr
+                ><th>{translate('Project')}</th><th>{translate('Actual')}</th><th
+                  >{translate('Approved')}</th
+                ><th>{translate('Pending')}</th><th>{translate('Planned')}</th><th
+                  >{translate('Remaining')}</th
+                ><th>{translate('Approved estimate')}</th><th>{translate('Pending estimate')}</th
+                ></tr
               ></thead
             >
             <tbody
               >{#each data.pay.projectProgress ?? [] as row}<tr
-                  ><td>{String(row.projectNumber)} · {String(row.projectName)}</td><td
-                    >{(Number(row.actualMinutes ?? 0) / 60).toFixed(1)} h</td
-                  ><td>{(Number(row.approvedMinutes ?? 0) / 60).toFixed(1)} h</td><td
-                    >{(Number(row.pendingMinutes ?? 0) / 60).toFixed(1)} h</td
                   ><td
-                    >{row.plannedMinutes === null
-                      ? '—'
-                      : `${(Number(row.plannedMinutes) / 60).toFixed(1)} h`}</td
+                    ><a
+                      href="{base}/app/projects/{String(row.projectId ?? '')}"
+                      class="project-progress-link"
+                      >{String(row.projectNumber)} · {String(row.projectName)}</a
+                    ></td
+                  ><td>{hours(row.actualMinutes ?? 0)}</td><td>{hours(row.approvedMinutes ?? 0)}</td
+                  ><td>{hours(row.pendingMinutes ?? 0)}</td><td
+                    >{row.plannedMinutes === null ? '—' : hours(row.plannedMinutes)}</td
+                  ><td>{row.hoursRemaining === null ? '—' : hours(row.hoursRemaining)}</td><td
+                    >{paymentMoney(
+                      String(row.estimatedApprovedMinor),
+                      String(row.currency),
+                      documentLanguage(locale),
+                    )}</td
                   ><td
-                    >{row.hoursRemaining === null
-                      ? '—'
-                      : `${(Number(row.hoursRemaining) / 60).toFixed(1)} h`}</td
-                  ><td>{money(String(row.estimatedApprovedMinor), String(row.currency))}</td><td
-                    >{money(String(row.estimatedPendingMinor), String(row.currency))}</td
+                    >{paymentMoney(
+                      String(row.estimatedPendingMinor),
+                      String(row.currency),
+                      documentLanguage(locale),
+                    )}</td
                   ></tr
                 >{:else}<tr
-                  ><td colspan="8">No project assignment budget context is configured.</td></tr
+                  ><td colspan="8"
+                    >{translate('No project assignment budget context is configured.')}</td
+                  ></tr
                 >{/each}</tbody
             >
           </table>
+        </TableRegion>
+      </section>
+      <section class="record-list full pay-activity" aria-labelledby="pay-activity-title">
+        <div class="panel-title">
+          <div>
+            <h2 id="pay-activity-title">{translate('Own activity detail')}</h2>
+            <p class="form-help">
+              {translate(
+                'Actual operational activity included in this period. Compensation interpretation remains governed by project rules.',
+              )}
+            </p>
+          </div>
+          <span>{data.payActivities?.length ?? 0} {translate('entries')}</span>
         </div>
+        <TableRegion
+          class="table-wrap worker-pay-table"
+          mobileMode="scroll"
+          label={translate('Own activity detail')}
+        >
+          <table>
+            <caption class="sr-only">{translate('Own activity detail')}</caption>
+            <thead>
+              <tr>
+                <th>{translate('Date')}</th>
+                <th>{translate('Project')}</th>
+                <th>{translate('Category')}</th>
+                <th>{translate('Activity')}</th>
+                <th>{translate('Actual minutes')}</th>
+                <th>{translate('Approval')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each data.payActivities ?? [] as activity}
+                <tr>
+                  <td>{String(activity.date ?? '—')}</td>
+                  <td
+                    >{String(activity.projectNumber ?? '—')} · {String(
+                      activity.projectName ?? '',
+                    )}</td
+                  >
+                  <td>{controlledValue('category', activity.category)}</td>
+                  <td>{String(activity.activitySummary ?? '—')}</td>
+                  <td>
+                    {#if activity.startTime && activity.endTime}
+                      <strong>{String(activity.startTime)} – {String(activity.endTime)}</strong><br
+                      />
+                    {/if}
+                    {hours(activity.actualMinutes ?? 0)}
+                    {#if Number(activity.breakMinutes ?? 0) > 0}
+                      · {translate('Break')}: {String(activity.breakMinutes)} {translate('min')}
+                    {/if}
+                  </td>
+                  <td>{controlledValue('status', activity.approvalState)}</td>
+                </tr>
+              {:else}
+                <tr>
+                  <td colspan="6">{translate('No activity recorded in this period.')}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </TableRegion>
       </section>
       <section class="record-list full pay-settlements">
         <div class="panel-title">
           <div>
-            <h2>Settlement status</h2>
-            <p>Finalized compensation events for your own approved work.</p>
+            <h2>{translate('Settlement status')}</h2>
+            <p>
+              {translate(
+                'Your reviewed compensation, recorded actual payments and remaining balance. Finalizing a settlement is not proof of payment.',
+              )}
+            </p>
           </div>
           <span>{data.settlements?.length ?? 0}</span>
         </div>
-        {#each data.settlements ?? [] as settlement}<article class="record-card">
-            <div>
-              <strong
-                >{settlement.projectNumber} · {settlement.periodStart} → {settlement.periodEnd}</strong
-              ><small>{settlement.state} · {settlement.settledAt ?? 'Estimate only'}</small>
-            </div>
-            <strong>{money(settlement.amountMinor, String(settlement.currency))}</strong>
-          </article>{:else}<div class="empty">
-            No compensation settlements in this period.
-          </div>{/each}
+        <TableRegion
+          class="table-wrap worker-pay-table"
+          mobileMode="scroll"
+          label={translate('Settlement status')}
+        >
+          <table>
+            <caption class="sr-only">{translate('Settlement status')}</caption>
+            <thead>
+              <tr>
+                <th>{translate('Project / period')}</th>
+                <th>{translate('Payment state')}</th>
+                <th>{translate('Expected payment')}</th>
+                <th>{translate('Latest actual payment')}</th>
+                <th>{translate('Reviewed settlement')}</th>
+                <th>{translate('Actual paid')}</th>
+                <th>{translate('Remaining')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each data.settlements ?? [] as settlement}
+                <tr>
+                  <td>
+                    <a
+                      class="project-progress-link"
+                      href="{base}/app/projects/{String(settlement.projectId ?? '')}"
+                    >
+                      {String(settlement.projectNumber ?? '—')} · {String(
+                        settlement.periodStart ?? '—',
+                      )} → {String(settlement.periodEnd ?? '—')}
+                    </a>
+                  </td>
+                  <td>{controlledValue('status', settlement.paymentState ?? settlement.state)}</td>
+                  <td>{String(settlement.expectedPaymentOn ?? translate('Not scheduled'))}</td>
+                  <td>{String(settlement.actualPaymentOn ?? translate('Not paid yet'))}</td>
+                  <td
+                    >{paymentMoney(
+                      settlement.amountMinor,
+                      String(settlement.currency),
+                      documentLanguage(locale),
+                    )}</td
+                  >
+                  <td
+                    >{paymentMoney(
+                      settlement.paidAmountMinor,
+                      String(settlement.currency),
+                      documentLanguage(locale),
+                    )}</td
+                  >
+                  <td
+                    >{paymentMoney(
+                      settlement.remainingAmountMinor,
+                      String(settlement.currency),
+                      documentLanguage(locale),
+                    )}</td
+                  >
+                </tr>
+              {:else}
+                <tr>
+                  <td colspan="7">{translate('No compensation settlements in this period.')}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </TableRegion>
       </section>
+      <section
+        class="record-list full pay-reimbursements"
+        aria-labelledby="pay-reimbursements-title"
+      >
+        <div class="panel-title">
+          <div>
+            <h2 id="pay-reimbursements-title">{translate('Reimbursement status')}</h2>
+            <p>
+              {translate('Expected and actual reimbursement dates for your own approved expenses.')}
+            </p>
+          </div>
+          <span>{data.payExpenses?.length ?? 0}</span>
+        </div>
+        <TableRegion
+          class="table-wrap worker-pay-table"
+          mobileMode="scroll"
+          label={translate('Reimbursement status')}
+        >
+          <table>
+            <caption class="sr-only">{translate('Reimbursement status')}</caption>
+            <thead>
+              <tr>
+                <th>{translate('Date')}</th>
+                <th>{translate('Project')}</th>
+                <th>{translate('Vendor / category')}</th>
+                <th>{translate('State')}</th>
+                <th>{translate('Expected reimbursement')}</th>
+                <th>{translate('Actual reimbursement')}</th>
+                <th>{translate('Own amount')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each data.payExpenses ?? [] as expense}
+                <tr>
+                  <td>{String(expense.spentOn ?? '—')}</td>
+                  <td>{String(expense.projectNumber ?? '—')}</td>
+                  <td
+                    >{String(expense.vendor || expense.description || 'Expense')} · {controlledValue(
+                      'expenseCategory',
+                      expense.category,
+                    )}</td
+                  >
+                  <td
+                    >{controlledValue(
+                      'status',
+                      expense.reimbursementState ?? expense.approvalState,
+                    )}</td
+                  >
+                  <td>{String(expense.expectedReimbursementOn ?? translate('Not scheduled'))}</td>
+                  <td>{String(expense.reimbursedAt ?? translate('Not reimbursed yet'))}</td>
+                  <td
+                    >{paymentMoney(
+                      expense.reimbursementAmountMinor,
+                      String(expense.currency),
+                      documentLanguage(locale),
+                    )}</td
+                  >
+                </tr>
+              {:else}
+                <tr>
+                  <td colspan="7">{translate('No reimbursable expenses in this period.')}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </TableRegion>
+      </section>
+    {:else if data.section === 'projects' && currentView === 'clients'}
+      <ClientDirectorySection
+        clients={data.clients ?? []}
+        contacts={data.contacts ?? []}
+        projects={data.projects ?? []}
+        canManageContacts={canManageClientContacts}
+        {translate}
+        {controlledValue}
+      />
+    {:else if data.section === 'projects' && currentView === 'team'}
+      <TeamDirectorySection
+        {form}
+        suppliers={data.suppliers ?? []}
+        workers={data.workers ?? []}
+        assignments={data.assignments ?? []}
+        mailboxes={mailboxData.mailboxes}
+        mailboxDirectoryStatus={mailboxData.mailboxDirectoryStatus}
+        mailboxDirectoryError={mailboxData.mailboxDirectoryError}
+        {canManageMail}
+        {canonicalOwner}
+        canManageTeam={canManageTeamDirectory}
+        currentUserId={data.user.id}
+        {invitationPath}
+        {translate}
+        {controlledValue}
+      />
+    {:else if data.section === 'projects' && data.user.role === 'project_manager'}
+      <ProjectSection
+        {base}
+        {locale}
+        {form}
+        projects={availableProjects}
+        workers={(data.workers ?? []).filter((worker) => worker.role === 'worker')}
+        assignments={data.assignments ?? []}
+        expertise={data.allSkills ?? []}
+        workerExpertise={data.workerSkills ?? []}
+        role={data.user.role}
+        capabilities={{
+          canCreateProject: false,
+          canTransitionProject: false,
+          canManageClients: false,
+          canManageAssignments: canManageAssignmentControls,
+        }}
+        getProjectLifecycleActions={projectLifecycleActions}
+        {translate}
+        {controlledValue}
+      />
     {:else if data.section === 'projects'}
       <div class="management-stack">
-        {#if data.clients && !isAuditor}<form
-            method="POST"
-            action="?/createClient"
-            class="admin-form-grid"
+        <details class="admin-details" data-project-calendar>
+          <summary class="secondary-button">{translate('Project calendar')}</summary>
+          <PlanningCalendar
+            {translate}
+            {locale}
+            events={availableProjects
+              .filter((project) => project.start_date)
+              .map((project) => ({
+                id: String(project.id),
+                title: `${project.project_number} · ${project.name}`,
+                startsAt: String(project.start_date),
+                endsAt: project.planned_end_date ? String(project.planned_end_date) : undefined,
+                href: `${base}/app/projects/${project.id}`,
+              }))}
+          />
+          <p class="form-help">
+            {translate('Open a project from the calendar to review its dates, team and planning.')}
+          </p>
+        </details>
+        {#if canManageProjects}
+          <nav
+            class="project-workflow-actions"
+            aria-label={translate('Project management actions')}
           >
-            <h2>Create client</h2>
-            <label>Legal name<input name="legalName" required /></label><label
-              >Display name<input name="displayName" required /></label
-            ><label
-              >Currency<select name="currency"
-                ><option>USD</option><option>BRL</option><option>EUR</option></select
-              ></label
-            ><label>Timezone<input name="timezone" value="America/New_York" required /></label
-            ><input type="hidden" name="paymentTermsDays" value="30" />
-            ><button>Create client</button>
-          </form>
-          <form method="POST" action="?/createProject" class="admin-form-grid">
-            <h2>Create project</h2>
-            <label
-              >Client<select name="clientId" required
-                >{#each data.clients as client}<option value={client.id}
-                    >{client.client_number} — {client.display_name}</option
-                  >{/each}</select
-              ></label
-            ><label>Name<input name="name" required /></label><label
-              >Description<textarea name="description" rows="2"></textarea></label
-            ><label>Project alias<input name="projectAlias" /></label><label
-              >Currency<select name="currency"
-                ><option>USD</option><option>BRL</option><option>EUR</option></select
-              ></label
-            ><label
-              >Billing model<select name="billingModel"
-                ><option value="tm">Time & materials</option><option value="tm_daily_minimum"
-                  >T&M · daily minimum</option
-                ><option value="all_in">All-in</option><option value="capped_tm">Capped T&M</option
-                ></select
-              ></label
-            ><label>Site timezone<input name="timezone" value="America/New_York" required /></label
-            ><label>Start date<input name="startDate" type="date" /></label><label
-              >Planned end date<input name="plannedEndDate" type="date" /></label
-            ><label
-              >Expected minutes / day<input
-                name="expectedMinutesPerDay"
-                type="number"
-                min="0"
-                max="1440"
-                value="600"
-                required
-              /></label
-            ><label
-              >Client daily minimum minutes<input
-                name="clientDailyMinimumMinutes"
-                type="number"
-                min="0"
-                max="1440"
-              /></label
-            ><label
-              >Budget type<select name="budgetType"
-                ><option value="none">No budget</option><option value="revenue">Revenue</option
-                ><option value="purchase_order">Purchase order</option><option value="labor"
-                  >Labor</option
-                ><option value="travel">Travel</option><option value="combined">Combined</option
-                ></select
-              ></label
-            ><label
-              >Revenue budget (minor)<input
-                name="revenueBudgetMinor"
-                inputmode="numeric"
-                pattern="[0-9]*"
-              /></label
-            ><label
-              >PO cap (minor)<input name="poCapMinor" inputmode="numeric" pattern="[0-9]*" /></label
-            ><label
-              >Labor budget minutes<input name="laborBudgetMinutes" type="number" min="0" /></label
-            ><label
-              >Travel budget (minor)<input
-                name="travelBudgetMinor"
-                inputmode="numeric"
-                pattern="[0-9]*"
-              /></label
-            ><label class="check"
-              ><input name="weeklyCloseEnabled" type="checkbox" /> Weekly close required</label
-            ><label class="check"
-              ><input name="dailyReportRequired" type="checkbox" /> Daily report required</label
-            ><label class="check"
-              ><input name="technicalReportingRequired" type="checkbox" /> Technical reporting required</label
-            ><button>Create project</button>
-          </form>
-          <form method="POST" action="?/assignWorker" class="admin-form-grid">
-            <h2>Assign worker</h2>
-            <label
-              >Project<select name="projectId" required
-                >{#each availableProjects as project}<option value={project.id}
-                    >{project.project_number}</option
-                  >{/each}</select
-              ></label
-            ><label
-              >Worker<select name="workerId" required
-                >{#each data.workers ?? [] as worker}<option value={worker.id}
-                    >{worker.name} — {worker.role}</option
-                  >{/each}</select
-              ></label
-            ><label>Role<input name="assignmentRole" value="worker" required /></label><label
-              >Starts on<input name="startsOn" type="date" required /></label
-            ><button>Assign</button>
-          </form>
-          <form method="POST" action="?/createClientContact" class="admin-form-grid">
-            <h2>Add client contact</h2>
-            <label
-              >Client<select name="clientId" required
-                >{#each data.clients as client}<option value={client.id}
-                    >{client.client_number} — {client.display_name}</option
-                  >{/each}</select
-              ></label
+            <p>
+              {translate(
+                'Choose one action. The portal will show only the fields needed for that task.',
+              )}
+            </p>
+            <div>
+              <button type="button" class="secondary-button" onclick={showProjectList}
+                >{translate('All projects')}</button
+              >
+              <a class="secondary-button" href={href('projects') + '?view=clients'}
+                >{translate('Client contacts')}</a
+              >
+              <a class="secondary-button" href={href('projects') + '?view=team'}
+                >{translate('Team access')}</a
+              >
+              <a class="secondary-button" href="#assignment-history" onclick={showAssignmentHistory}
+                >{translate('Assignment history')}</a
+              >
+              <button
+                type="button"
+                class="primary-button"
+                class:active={projectWorkflow === 'new-project'}
+                onclick={() => openProjectWorkflow('new-project')}
+                >{translate('New Project')}</button
+              >
+              <details
+                class="workspace-actions-disclosure"
+                open={Boolean(projectWorkflow && projectWorkflow !== 'new-project')}
+              >
+                <summary>{translate('More actions')}</summary>
+                <div class="workspace-secondary-actions">
+                  <button
+                    type="button"
+                    class="primary-button"
+                    class:active={projectWorkflow === 'new-client'}
+                    onclick={() => openProjectWorkflow('new-client')}
+                    >{translate('New Client')}</button
+                  >
+                  <button
+                    type="button"
+                    class="primary-button"
+                    class:active={projectWorkflow === 'update-client'}
+                    onclick={() => openProjectWorkflow('update-client')}
+                    >{translate('Update Client')}</button
+                  >
+
+                  {#if canManageAssignmentControls}
+                    <button
+                      type="button"
+                      class="primary-button"
+                      class:active={projectWorkflow === 'assign-worker'}
+                      onclick={() => openProjectWorkflow('assign-worker')}
+                      >{translate('Assign Worker')}</button
+                    >
+                    <button
+                      type="button"
+                      class="primary-button"
+                      class:active={projectWorkflow === 'update-assignment'}
+                      onclick={() => openProjectWorkflow('update-assignment')}
+                      >{translate('Update Assignment')}</button
+                    >
+                    <button
+                      type="button"
+                      class="primary-button danger-outline"
+                      class:active={projectWorkflow === 'remove-assignment'}
+                      onclick={() => openProjectWorkflow('remove-assignment')}
+                      >{translate('Remove Assignment')}</button
+                    >
+                  {/if}
+                </div>
+              </details>
+            </div>
+          </nav>
+          {#if projectWorkflow === 'new-client'}
+            <section
+              class="admin-details project-workflow-panel"
+              data-project-workflow="new-client"
+              tabindex="-1"
             >
-            <label>Name<input name="name" required /></label><label
-              >Email<input name="email" type="email" /></label
-            ><label>Phone<input name="phone" /></label><label>Role<input name="role" /></label>
-            <label class="check"
-              ><input name="isBillingContact" type="checkbox" /> Billing contact</label
-            ><label class="check"><input name="isPrimary" type="checkbox" /> Primary contact</label>
-            <button>Save contact</button>
-          </form>
-          <form method="POST" action="?/createMilestone" class="admin-form-grid">
-            <h2>Create milestone</h2>
-            <label
-              >Project<select name="projectId" required
-                >{#each availableProjects as project}<option value={project.id}
-                    >{project.project_number} — {project.name}</option
-                  >{/each}</select
-              ></label
-            ><label>Name<input name="name" required /></label><label
-              >Description<textarea name="description" rows="2"></textarea></label
-            ><label
-              >Amount (minor)<input
-                name="amountMinor"
-                inputmode="numeric"
-                pattern="[0-9]*"
-                required
-              /></label
-            ><label>Due on<input name="dueOn" type="date" /></label><button>Save milestone</button>
-          </form>
-          <form method="POST" action="?/updateSchedule" class="admin-form-grid">
-            <h2>Expected working schedule</h2>
-            <label
-              >Project<select name="projectId" required
-                >{#each availableProjects as project}<option value={project.id}
-                    >{project.project_number} — {project.name}</option
-                  >{/each}</select
-              ></label
-            ><label>Timezone<input name="timezone" value="America/New_York" required /></label
-            ><label>Effective from<input name="effectiveFrom" type="date" required /></label>
-            <label
-              >Mon minutes<input
-                name="mondayMinutes"
-                type="number"
-                min="0"
-                max="1440"
-                value="600"
-                required
-              /></label
-            ><label
-              >Tue minutes<input
-                name="tuesdayMinutes"
-                type="number"
-                min="0"
-                max="1440"
-                value="600"
-                required
-              /></label
-            ><label
-              >Wed minutes<input
-                name="wednesdayMinutes"
-                type="number"
-                min="0"
-                max="1440"
-                value="600"
-                required
-              /></label
-            ><label
-              >Thu minutes<input
-                name="thursdayMinutes"
-                type="number"
-                min="0"
-                max="1440"
-                value="600"
-                required
-              /></label
-            ><label
-              >Fri minutes<input
-                name="fridayMinutes"
-                type="number"
-                min="0"
-                max="1440"
-                value="600"
-                required
-              /></label
-            ><label
-              >Sat minutes<input
-                name="saturdayMinutes"
-                type="number"
-                min="0"
-                max="1440"
-                value="600"
-                required
-              /></label
-            ><label
-              >Sun minutes<input
-                name="sundayMinutes"
-                type="number"
-                min="0"
-                max="1440"
-                value="0"
-                required
-              /></label
-            ><button>Save schedule</button>
-          </form>{/if}
-        <section class="record-list full">
-          <div class="panel-title">
-            <h2>Authorized projects</h2>
-            <span>{availableProjects.length}</span>
-          </div>
-          {#each availableProjects as row}<a
-              class="project-list-link"
-              href={`${base}/app/projects/${row.id}`}
-            >
-              <div>
-                <strong>{row.project_number} · {row.name}</strong><small
-                  >{row.status} · {row.currency} · {row.timezone}</small
+              <form
+                bind:this={ownerClientForm}
+                method="POST"
+                action="?/createClient"
+                class="admin-form-grid"
+                use:formValidation
+              >
+                <h2>{translate('Create client')}</h2>
+                {#if clientProblem}
+                  <ProblemNotice
+                    problem={clientProblem}
+                    class="wide-field"
+                    remedyLinks={globalRemedyLinks}
+                  />
+                {/if}
+                {#if Object.keys(clientFieldErrors).length > 0 && !clientProblem}
+                  <div class="form-help wide-field" role="alert" data-client-field-errors>
+                    <strong>{translate('Review these client fields')}</strong>
+                    <ul>
+                      {#each Object.entries(clientFieldErrors) as [field, messages]}
+                        <li>
+                          {clientFieldLabel(field)}: {(messages ?? []).map(translate).join(' · ')}
+                        </li>
+                      {/each}
+                    </ul>
+                  </div>
+                {/if}
+                <label
+                  >{translate('Legal name')}<input
+                    name="legalName"
+                    minlength="2"
+                    value={clientFormValue('legalName')}
+                    required
+                  /></label
+                ><label
+                  >{translate('Display name')}<input
+                    name="displayName"
+                    minlength="2"
+                    value={clientFormValue('displayName')}
+                    required
+                  /></label
+                ><label
+                  >{translate('Client code (optional)')}<input
+                    name="clientCode"
+                    maxlength="40"
+                    value={clientFormValue('clientCode')}
+                  /></label
+                ><label
+                  >{translate('Currency')}<select name="currency" required
+                    ><option value="USD" selected={clientFormValue('currency', 'USD') === 'USD'}
+                      >USD</option
+                    ><option value="BRL" selected={clientFormValue('currency', 'USD') === 'BRL'}
+                      >BRL</option
+                    ><option value="EUR" selected={clientFormValue('currency', 'USD') === 'EUR'}
+                      >EUR</option
+                    ></select
+                  ></label
+                ><label
+                  >{translate('Timezone')}<input
+                    name="timezone"
+                    value={clientFormValue('timezone', 'America/New_York')}
+                    required
+                  /></label
+                ><label
+                  >{translate('Billing contact name')}<input
+                    name="billingContactName"
+                    minlength="2"
+                    value={clientFormValue('billingContactName')}
+                  /><small>{translate('Required when no billing email is provided')}</small></label
+                ><label
+                  >{translate('Billing contact email')}<input
+                    name="billingEmail"
+                    type="email"
+                    value={clientFormValue('billingEmail')}
+                  /></label
+                ><label class="wide-field"
+                  >{translate('Billing address')}<textarea
+                    name="billingAddress"
+                    rows="3"
+                    minlength="5"
+                    required>{clientFormValue('billingAddress')}</textarea
+                  ></label
+                ><label
+                  >{translate('Payment terms (days)')}<input
+                    name="paymentTermsDays"
+                    type="number"
+                    min="0"
+                    max="365"
+                    value={clientFormValue('paymentTermsDays', '30')}
+                    required
+                  /></label
+                ><label
+                  >{translate('PO / reference')}<input
+                    name="poReference"
+                    value={clientFormValue('poReference')}
+                  /></label
+                ><label class="wide-field"
+                  >{translate('Notes')}<textarea name="notes" rows="2"
+                    >{clientFormValue('notes')}</textarea
+                  ></label
                 >
+                <button>{translate('Create client')}</button>
+              </form>
+            </section>
+          {/if}
+          {#if projectWorkflow === 'update-client'}
+            <section
+              class="admin-details project-workflow-panel"
+              data-project-workflow="update-client"
+              tabindex="-1"
+            >
+              <p class="form-help">
+                {translate(
+                  "Each editor carries the record version it displayed. A stale submission is rejected so another administrator's changes are not overwritten.",
+                )}
+              </p>
+              {#each (data.clients ?? []).filter((client) => !$page.url.searchParams.get('client') || String(client.id) === $page.url.searchParams.get('client')) as client}
+                <form
+                  method="POST"
+                  action="?/updateClient"
+                  class="admin-form-grid client-edit-form"
+                >
+                  <input type="hidden" name="clientId" value={client.id} />
+                  <input type="hidden" name="version" value={client.version ?? 1} />
+                  <h3 class="wide-field">{client.client_number} · {client.display_name}</h3>
+                  {#if !client.billing_address}
+                    <p class="form-help wide-field">
+                      {translate(
+                        'Billing address is missing on this existing record. Enter the real address before saving; the interface will not invent one.',
+                      )}
+                    </p>
+                  {/if}
+                  <label
+                    >{translate('Legal name')}<input
+                      name="legalName"
+                      value={String(client.legal_name ?? '')}
+                      required
+                    /></label
+                  >
+                  <label
+                    >{translate('Display name')}<input
+                      name="displayName"
+                      value={String(client.display_name ?? '')}
+                      required
+                    /></label
+                  >
+                  <label
+                    >{translate('Client code (optional)')}<input
+                      name="clientCode"
+                      value={String(client.client_code ?? '')}
+                      maxlength="40"
+                    /></label
+                  >
+                  <label
+                    >{translate('Currency')}<select name="currency" required>
+                      <option value="USD" selected={client.currency === 'USD'}>USD</option>
+                      <option value="BRL" selected={client.currency === 'BRL'}>BRL</option>
+                      <option value="EUR" selected={client.currency === 'EUR'}>EUR</option>
+                    </select></label
+                  >
+                  <label
+                    >{translate('Timezone')}<input
+                      name="timezone"
+                      value={String(client.timezone ?? '')}
+                      required
+                    /></label
+                  >
+                  <label
+                    >{translate('Billing contact name')}<input
+                      name="billingContactName"
+                      value={String(client.billing_contact_name ?? '')}
+                    /></label
+                  >
+                  <label
+                    >{translate('Billing contact email')}<input
+                      name="billingEmail"
+                      type="email"
+                      value={String(client.billing_email ?? '')}
+                    /></label
+                  >
+                  <label class="wide-field"
+                    >{translate('Billing address')}<textarea name="billingAddress" rows="3" required
+                      >{String(client.billing_address ?? '')}</textarea
+                    ></label
+                  >
+                  <label
+                    >{translate('Payment terms (days)')}<input
+                      type="number"
+                      name="paymentTermsDays"
+                      min="0"
+                      max="365"
+                      value={client.payment_terms_days ?? 30}
+                      required
+                    /></label
+                  >
+                  <label
+                    >{translate('PO / reference')}<input
+                      name="poReference"
+                      value={String(client.po_reference ?? '')}
+                    /></label
+                  >
+                  <label class="wide-field"
+                    >{translate('Notes')}<textarea name="notes" rows="2"
+                      >{String(client.notes ?? '')}</textarea
+                    ></label
+                  >
+                  <button>{translate('Update client')}</button>
+                </form>
+              {:else}
+                <p class="empty">{translate('No clients recorded.')}</p>
+              {/each}
+            </section>
+          {/if}
+          {#if projectWorkflow === 'new-project'}
+            <section
+              id="new-project"
+              class="admin-details project-workflow-panel"
+              data-project-workflow="new-project"
+              tabindex="-1"
+            >
+              {#if createdProject}
+                <ProjectSetupNextSteps
+                  {base}
+                  projectId={createdProject.id}
+                  projectNumber={createdProject.number}
+                  canAssignWorkers={canManageAssignmentControls}
+                  {translate}
+                />
+              {/if}
+              <form
+                method="POST"
+                action="?/createProject"
+                class="admin-form-grid project-setup-form"
+              >
+                <h2>{translate('Create project')}</h2>
+                <p class="form-help wide-field">
+                  {translate(
+                    'Set up the project and choose its people. After saving, configure each person’s commercial terms and review the project.',
+                  )}
+                </p>
+                {#if Object.keys(projectFieldErrors).length > 0}
+                  <div class="form-help wide-field" role="alert" data-project-field-errors>
+                    <strong>{translate('Check project fields')}</strong>
+                    <ul>
+                      {#each Object.entries(projectFieldErrors) as [field, messages]}
+                        <li>
+                          {projectFieldLabel(field)}: {(messages ?? []).map(translate).join(' · ')}
+                        </li>
+                      {/each}
+                    </ul>
+                  </div>
+                {/if}
+                <h3 class="wide-field">{translate('1 · Basics')}</h3>
+                <label
+                  >{translate('Client')}<select
+                    name="clientId"
+                    required
+                    value={selectedNewProjectClientId}
+                    onchange={(event) => {
+                      newProjectClientId = event.currentTarget.value;
+                      newProjectCurrencyOverride = null;
+                      newProjectTimezoneOverride = null;
+                    }}
+                    >{#each activeClients as client}<option value={client.id}
+                        >{client.client_number} — {client.display_name}</option
+                      >{/each}</select
+                  ></label
+                ><label
+                  >{translate('Name')}<input
+                    name="name"
+                    value={projectFormValue('name')}
+                    required
+                  /></label
+                ><label
+                  >{translate('Cost center code')}<input
+                    name="costCenterCode"
+                    maxlength="120"
+                    value={projectFormValue('costCenterCode')}
+                    required
+                  /><small
+                    >{translate(
+                      'End the cost center with digits. Those digits become the project number suffix (for example, CP020 becomes P-020).',
+                    )}</small
+                  ></label
+                ><label
+                  >{translate('Description')}<textarea name="description" rows="2"
+                    >{projectFormValue('description')}</textarea
+                  ></label
+                ><label
+                  >{translate('Project alias')}<input
+                    name="projectAlias"
+                    value={projectFormValue('projectAlias')}
+                  /></label
+                ><label
+                  >{translate('Currency')}<select
+                    name="currency"
+                    value={newProjectCurrency}
+                    onchange={(event) => (newProjectCurrencyOverride = event.currentTarget.value)}
+                    ><option value="USD">USD</option><option value="BRL">BRL</option><option
+                      value="EUR">EUR</option
+                    ></select
+                  ></label
+                ><label
+                  >{translate('Project manager')}<select name="projectManagerId"
+                    ><option value="">{translate('Unassigned')}</option
+                    >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager' && worker.status === 'active'}<option
+                          value={worker.id}
+                          selected={projectFormValue('projectManagerId') === worker.id}
+                          >{worker.name} — {worker.email}</option
+                        >{/if}{/each}</select
+                  ></label
+                >
+                <h3 class="wide-field">{translate('2 · People')}</h3>
+                {#if canManageAssignmentControls}
+                  <ProjectPeoplePicker
+                    workers={data.workers ?? []}
+                    expertise={data.allSkills ?? []}
+                    workerExpertise={data.workerSkills ?? []}
+                    selectedWorkerIds={initialProjectWorkerIds}
+                    {translate}
+                  />
+                  <label class="wide-field"
+                    >{translate('Worker assignment start date (optional)')}<input
+                      name="initialWorkersStartOn"
+                      type="date"
+                      value={projectFormValue('initialWorkersStartOn')}
+                    /><small class="form-help"
+                      >{translate('Defaults to the project start date.')}</small
+                    ></label
+                  >
+                {:else}
+                  <p class="form-help wide-field">
+                    {translate('An owner can assign people after this project is created.')}
+                  </p>
+                {/if}
+                <h3 class="wide-field">
+                  {translate('3 · Commercial defaults')}
+                </h3>
+                <p class="form-help wide-field">
+                  {translate(
+                    'Person-specific customer rates, worker pay and expense policies are configured after the people are assigned.',
+                  )}
+                </p>
+                <label
+                  >{translate('Billing model')}<select name="billingModel"
+                    ><option value="tm" selected={projectFormValue('billingModel', 'tm') === 'tm'}
+                      >{translate('Time & materials')}</option
+                    ><option
+                      value="tm_daily_minimum"
+                      selected={projectFormValue('billingModel') === 'tm_daily_minimum'}
+                      >{translate('T&M · daily minimum')}</option
+                    ><option value="all_in" selected={projectFormValue('billingModel') === 'all_in'}
+                      >{translate('Hourly labor with included expenses (all-in)')}</option
+                    ><option
+                      value="capped_tm"
+                      selected={projectFormValue('billingModel') === 'capped_tm'}
+                      >{translate('Capped T&M')}</option
+                    ></select
+                  ></label
+                ><label
+                  >{translate('Site timezone')}<input
+                    name="timezone"
+                    value={newProjectTimezone}
+                    oninput={(event) => (newProjectTimezoneOverride = event.currentTarget.value)}
+                    required
+                  /></label
+                ><label
+                  >{translate('Start date')}<input
+                    name="startDate"
+                    type="date"
+                    value={projectFormValue('startDate')}
+                  /></label
+                ><label
+                  >{translate('Planned end date (optional)')}<input
+                    name="plannedEndDate"
+                    type="date"
+                    value={projectFormValue('plannedEndDate')}
+                  /></label
+                ><label
+                  >{translate('Expected hours / day')}<input
+                    name="expectedHoursPerDay"
+                    type="number"
+                    step="0.25"
+                    min="0"
+                    max="24"
+                    value={projectFormValue('expectedHoursPerDay', '10')}
+                    placeholder="10.0"
+                    required
+                  /></label
+                ><label
+                  >{translate('Client daily minimum hours')}<input
+                    name="clientDailyMinimumHours"
+                    type="number"
+                    step="0.25"
+                    min="0"
+                    max="24"
+                    value={projectFormValue('clientDailyMinimumHours')}
+                    placeholder="8.0"
+                  /></label
+                >
+                <p class="form-help">
+                  {translate(
+                    'Expected hours are planning context. The client daily minimum is a separate commercial top-up applied once per worker, project and day; it never changes actual recorded hours or worker compensation.',
+                  )}
+                </p>
+                <p class="form-help">
+                  {translate(
+                    'All-in keeps labor hourly unless an explicit fixed labor price is configured. It only means selected expenses are included instead of billed separately.',
+                  )}
+                </p>
+                <h3 class="wide-field">
+                  {translate('4 · Optional planning and budget')}
+                </h3>
+                <p class="form-help wide-field">
+                  {translate(
+                    'Leave budgets blank when they are not agreed. A planning target does not limit billing; choose capped T&M and configure a cap only when the contract requires one.',
+                  )}
+                </p>
+                <label
+                  >{translate('Budget type')}<select name="budgetType"
+                    ><option
+                      value="none"
+                      selected={projectFormValue('budgetType', 'none') === 'none'}
+                      >{translate('No budget')}</option
+                    ><option value="revenue" selected={projectFormValue('budgetType') === 'revenue'}
+                      >{translate('Revenue')}</option
+                    ><option
+                      value="purchase_order"
+                      selected={projectFormValue('budgetType') === 'purchase_order'}
+                      >{translate('Purchase order')}</option
+                    ><option value="labor" selected={projectFormValue('budgetType') === 'labor'}
+                      >{translate('Labor')}</option
+                    ><option value="travel" selected={projectFormValue('budgetType') === 'travel'}
+                      >{translate('Travel')}</option
+                    ><option value="expense" selected={projectFormValue('budgetType') === 'expense'}
+                      >{translate('Expenses')}</option
+                    ><option
+                      value="combined"
+                      selected={projectFormValue('budgetType') === 'combined'}
+                      >{translate('Combined')}</option
+                    ></select
+                  ></label
+                ><ProjectBudgetInput
+                  name="revenueBudgetMinor"
+                  label={translate('Revenue budget')}
+                  value={projectFormValue('revenueBudgetMinor')}
+                  currency={newProjectCurrency}
+                /><ProjectBudgetInput
+                  name="poCapMinor"
+                  label={translate('PO cap')}
+                  value={projectFormValue('poCapMinor')}
+                  currency={newProjectCurrency}
+                /><ProjectBudgetInput
+                  name="laborBudgetMinutes"
+                  label={translate('Planned labor hours')}
+                  value={projectFormValue('laborBudgetMinutes')}
+                  kind="hours"
+                /><ProjectBudgetInput
+                  name="expenseBudgetMinor"
+                  label={translate('Expense budget')}
+                  value={projectFormValue('expenseBudgetMinor')}
+                  currency={newProjectCurrency}
+                /><ProjectBudgetInput
+                  name="travelBudgetMinor"
+                  label={translate('Travel budget')}
+                  value={projectFormValue('travelBudgetMinor')}
+                  currency={newProjectCurrency}
+                /><label class="check"
+                  ><input name="weeklyCloseEnabled" type="checkbox" />
+                  {translate('Weekly close required')}</label
+                ><label class="check"
+                  ><input name="dailyReportRequired" type="checkbox" />
+                  {translate('Daily report required')}</label
+                ><label class="check"
+                  ><input name="technicalReportingRequired" type="checkbox" />
+                  {translate('Technical reporting required')}</label
+                ><button>{translate('Create project')}</button>
+              </form>
+            </section>
+          {/if}
+          {#if canManageAssignmentControls}
+            {#if projectWorkflow === 'assign-worker'}
+              <section
+                class="admin-details project-workflow-panel"
+                data-project-workflow="assign-worker"
+                tabindex="-1"
+              >
+                <form
+                  bind:this={ownerAssignmentForm}
+                  use:formValidation
+                  method="POST"
+                  action="?/assignWorker"
+                  class="admin-form-grid"
+                >
+                  <h2>{translate('Assign worker')}</h2>
+                  {#if assignmentProblem}
+                    <ProblemNotice
+                      problem={assignmentProblem}
+                      class="wide-field"
+                      status={assignmentProblem.params.status
+                        ? portalText(locale, 'Current status: {status}', {
+                            status: controlledValue('status', assignmentProblem.params.status),
+                          })
+                        : undefined}
+                      remedyLinks={assignmentRemedyLinks}
+                    />
+                  {:else if assignmentAdvanceProblem}
+                    <ProblemNotice
+                      problem={assignmentAdvanceProblem}
+                      kind="warning"
+                      class="wide-field"
+                      status={portalText(locale, 'Current status: {status}', {
+                        status: controlledValue('status', assignmentSelectedProject?.status),
+                      })}
+                      remedyLinks={assignmentRemedyLinks}
+                    />
+                  {/if}
+                  <label
+                    >{translate('Project')}<select
+                      name="projectId"
+                      bind:value={assignmentSelectedProjectId}
+                      required
+                      ><option value="">{translate('Select project')}</option
+                      >{#each assignmentProjectOptions as project}<option
+                          value={project.id}
+                          disabled={!['active', 'planned', 'paused'].includes(
+                            String(project.status),
+                          )}
+                          >{!['active', 'planned', 'paused'].includes(String(project.status))
+                            ? portalText(locale, 'problem.project.unavailableOption', {
+                                projectName: String(project.name),
+                                status: controlledValue('status', project.status),
+                              })
+                            : `${project.project_number} · ${project.name}`}</option
+                        >{/each}</select
+                    ></label
+                  ><ExpertiseWorkerSelect
+                    workers={data.workers ?? []}
+                    expertise={data.allSkills ?? []}
+                    workerExpertise={data.workerSkills ?? []}
+                    selectedWorkerId={assignmentFormValue(
+                      'workerId',
+                      $page.url.searchParams.get('worker') ?? '',
+                    )}
+                    {translate}
+                  /><label
+                    >{translate('Role')}<input
+                      name="assignmentRole"
+                      value="worker"
+                      readonly
+                      required
+                    /></label
+                  ><label
+                    >{translate('Starts on')}<input
+                      name="startsOn"
+                      type="date"
+                      value={assignmentFormValue('startsOn')}
+                      required
+                    /></label
+                  ><label
+                    >{translate('Ends on (optional)')}<input
+                      name="endsOn"
+                      type="date"
+                      value={assignmentFormValue('endsOn')}
+                    /></label
+                  ><button disabled={assignmentProjectUnavailable}>{translate('Assign')}</button>
+                </form>
+              </section>
+            {/if}
+            {#if projectWorkflow === 'update-assignment'}
+              <section
+                id="project-assignment-list"
+                class="admin-details project-workflow-panel"
+                data-project-workflow="update-assignment"
+                tabindex="-1"
+              >
+                <h2>{translate('Update assignment')}</h2>
+                {#if assignmentEditProblem && assignmentEditForm?.actionName === 'updateAssignment'}
+                  <ProblemNotice
+                    problem={assignmentEditProblem}
+                    remedyLinks={assignmentRemedyLinks}
+                  />
+                {/if}
+                {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active' && (!$page.url.searchParams.get('worker') || String(assignment.worker_id ?? assignment.user_id) === $page.url.searchParams.get('worker')) && (!$page.url.searchParams.get('project') || String(assignment.project_id) === $page.url.searchParams.get('project'))) as assignment}
+                  <form
+                    method="POST"
+                    action="?/updateAssignment"
+                    class="admin-form-grid assignment-edit-form"
+                    data-action="updateAssignment"
+                    data-assignment-id={assignment.id}
+                    use:formValidation
+                  >
+                    <input type="hidden" name="assignmentId" value={assignment.id} />
+                    <input
+                      type="hidden"
+                      name="version"
+                      value={assignmentEditValue(
+                        'version',
+                        assignment.id,
+                        String(assignment.version ?? 1),
+                      )}
+                    />
+                    <p class="form-help wide-field">
+                      {assignment.project_number} · {assignment.project_name} · {assignment.worker_name}
+                    </p>
+                    <label
+                      >{translate('Starts on')}<input
+                        name="startsOn"
+                        type="date"
+                        value={assignmentEditValue(
+                          'startsOn',
+                          assignment.id,
+                          String(assignment.starts_on ?? ''),
+                        )}
+                        required
+                      /></label
+                    >
+                    <label
+                      >{translate('Ends on')}<input
+                        name="endsOn"
+                        type="date"
+                        value={assignmentEditValue(
+                          'endsOn',
+                          assignment.id,
+                          String(assignment.ends_on ?? ''),
+                        )}
+                      /></label
+                    >
+                    <ProjectBudgetInput
+                      name="plannedMinutes"
+                      label={translate('Planned hours')}
+                      value={assignmentEditValue(
+                        'plannedMinutes',
+                        assignment.id,
+                        String(assignment.planned_minutes ?? ''),
+                      )}
+                      kind="hours"
+                    />
+                    <label class="check"
+                      ><input type="hidden" name="canReviewPresent" value="1" /><input
+                        name="canReview"
+                        type="checkbox"
+                        checked={assignmentEditForm?.actionName === 'updateAssignment' &&
+                        String(assignmentEditForm.values?.assignmentId ?? '') ===
+                          String(assignment.id)
+                          ? assignmentEditForm.values?.canReview === 'on'
+                          : Boolean(assignment.can_review)}
+                      />
+                      {translate('Can review')}</label
+                    >
+                    <button>{translate('Update assignment')}</button>
+                  </form>
+                {:else}<p class="empty">{translate('No active assignments to edit.')}</p>{/each}
+              </section>
+            {/if}
+            {#if projectWorkflow === 'remove-assignment'}
+              <section
+                class="admin-details project-workflow-panel"
+                data-project-workflow="remove-assignment"
+                tabindex="-1"
+              >
+                <h2>{translate('Remove assignment')}</h2>
+                {#if assignmentEditProblem && assignmentEditForm?.actionName === 'removeAssignment'}
+                  <ProblemNotice
+                    problem={assignmentEditProblem}
+                    remedyLinks={assignmentRemedyLinks}
+                  />
+                {/if}
+                <p class="form-help">
+                  {translate(
+                    'Removal ends the assignment and preserves its historical row. It never hard-deletes project history.',
+                  )}
+                </p>
+                {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active') as assignment}
+                  <form
+                    method="POST"
+                    action="?/removeAssignment"
+                    class="admin-form-grid assignment-remove-form"
+                    data-action="removeAssignment"
+                    data-assignment-id={assignment.id}
+                    use:formValidation
+                  >
+                    <input type="hidden" name="assignmentId" value={assignment.id} />
+                    <input
+                      type="hidden"
+                      name="version"
+                      value={assignmentEditValue(
+                        'version',
+                        assignment.id,
+                        String(assignment.version ?? 1),
+                      )}
+                    />
+                    <p class="form-help wide-field">
+                      {assignment.project_number} · {assignment.project_name} · {assignment.worker_name}
+                    </p>
+                    <label
+                      >{translate('End date')}<input
+                        name="endsOn"
+                        type="date"
+                        min={String(assignment.starts_on ?? '')}
+                        value={assignmentEditValue(
+                          'endsOn',
+                          assignment.id,
+                          String(assignment.ends_on ?? ''),
+                        )}
+                      /></label
+                    >
+                    <label class="wide-field"
+                      >{translate('Removal reason')}<input
+                        name="reason"
+                        required
+                        maxlength="2000"
+                        value={assignmentEditValue('reason', assignment.id)}
+                      /></label
+                    >
+                    <button class="danger">{translate('Remove assignment')}</button>
+                  </form>
+                {:else}<p class="empty">{translate('No active assignments to remove.')}</p>{/each}
+              </section>
+            {/if}
+          {/if}
+        {/if}
+        <div id="project-register" tabindex="-1">
+          <SectionCard
+            title={translate('Authorized projects')}
+            collapsible
+            expanded={!projectWorkflow}
+            class="record-list full"
+          >
+            <RecordBrowser
+              rows={availableProjects}
+              bind:visible={projectRegisterPage}
+              {translate}
+              label="Project"
+            />
+            {#each projectRegisterPage as row (row.id)}
+              <article class="project-list-link">
+                <a href={`${base}/app/projects/${row.id}`}>
+                  <div>
+                    <strong>{row.project_number} · {row.name}</strong><small
+                      >{controlledValue('status', row.status)} · {row.currency} · {row.timezone} · {row.start_date ??
+                        translate('No start')} → {row.planned_end_date ??
+                        translate('Open target')}</small
+                    >
+                  </div>
+                  <span>{translate('OPEN PROJECT →')}</span>
+                </a>
+                {#if canManageProjects}
+                  <details class="project-row-actions" use:disclosure>
+                    <summary>{translate('Actions')}</summary>
+                    <div class="record-actions lifecycle-actions">
+                      {#if row.status === 'active' || row.status === 'paused'}
+                        <form
+                          method="POST"
+                          action="?/transitionProject"
+                          data-action="transitionProject"
+                        >
+                          <input type="hidden" name="projectId" value={row.id} />
+                          <input type="hidden" name="version" value={row.version ?? 1} />
+                          <input
+                            type="hidden"
+                            name="status"
+                            value={row.status === 'active' ? 'closing' : 'closing'}
+                          />
+                          <ProblemNotice
+                            problem={projectLifecycleAssignmentWarning(row, 'closing')}
+                            kind="warning"
+                            remedyLinks={{
+                              review_project: {
+                                label: portalText(locale, 'problem.remedy.reviewProjectStatus'),
+                                href: `${base}/app/projects/${encodeURIComponent(String(row.id))}`,
+                              },
+                              review_assignments: {
+                                label: portalText(locale, 'problem.remedy.reviewAssignments'),
+                                href: canManageAssignmentControls
+                                  ? `${base}/app/projects?action=update-assignment&project=${encodeURIComponent(String(row.id))}#project-assignment-list`
+                                  : `${base}/app/projects#assignment-history`,
+                              },
+                            }}
+                          />
+                          <label class="sr-only" for={`project-close-reason-${row.id}`}
+                            >{translate('Reason')}</label
+                          >
+                          <input
+                            id={`project-close-reason-${row.id}`}
+                            name="reason"
+                            required
+                            placeholder={translate('Reason')}
+                          />
+                          <button type="submit" class="secondary-button"
+                            >{translate('Begin close')}</button
+                          >
+                        </form>
+                      {:else if row.status === 'closing'}
+                        <form
+                          method="POST"
+                          action="?/transitionProject"
+                          data-action="transitionProject"
+                        >
+                          <input type="hidden" name="projectId" value={row.id} />
+                          <input type="hidden" name="version" value={row.version ?? 1} />
+                          <input type="hidden" name="status" value="closed" />
+                          <ProblemNotice
+                            problem={projectLifecycleAssignmentWarning(row, 'closed')}
+                            kind="warning"
+                            remedyLinks={{
+                              review_project: {
+                                label: portalText(locale, 'problem.remedy.reviewProjectStatus'),
+                                href: `${base}/app/projects/${encodeURIComponent(String(row.id))}`,
+                              },
+                              review_assignments: {
+                                label: portalText(locale, 'problem.remedy.reviewAssignments'),
+                                href: canManageAssignmentControls
+                                  ? `${base}/app/projects?action=update-assignment&project=${encodeURIComponent(String(row.id))}#project-assignment-list`
+                                  : `${base}/app/projects#assignment-history`,
+                              },
+                            }}
+                          />
+                          <label class="sr-only" for={`project-finish-reason-${row.id}`}
+                            >{translate('Reason')}</label
+                          >
+                          <input
+                            id={`project-finish-reason-${row.id}`}
+                            name="reason"
+                            required
+                            placeholder={translate('Reason')}
+                          />
+                          <button type="submit" class="secondary-button"
+                            >{translate('Close project')}</button
+                          >
+                        </form>
+                      {:else if row.status === 'closed'}
+                        <form
+                          method="POST"
+                          action="?/transitionProject"
+                          data-action="transitionProject"
+                        >
+                          <input type="hidden" name="projectId" value={row.id} />
+                          <input type="hidden" name="version" value={row.version ?? 1} />
+                          <input type="hidden" name="status" value="archived" />
+                          <label class="sr-only" for={`project-archive-reason-${row.id}`}
+                            >{translate('Reason')}</label
+                          >
+                          <input
+                            id={`project-archive-reason-${row.id}`}
+                            name="reason"
+                            required
+                            placeholder={translate('Reason')}
+                          />
+                          <button type="submit" class="danger"
+                            >{translate('Archive project')}</button
+                          >
+                        </form>
+                      {:else if row.status === 'archived'}
+                        <form
+                          method="POST"
+                          action="?/transitionProject"
+                          data-action="transitionProject"
+                        >
+                          <input type="hidden" name="projectId" value={row.id} />
+                          <input type="hidden" name="version" value={row.version ?? 1} />
+                          <input type="hidden" name="status" value="restore" />
+                          <label class="sr-only" for={`project-restore-reason-${row.id}`}
+                            >{translate('Reason')}</label
+                          >
+                          <input
+                            id={`project-restore-reason-${row.id}`}
+                            name="reason"
+                            required
+                            placeholder={translate('Reason')}
+                          />
+                          <button type="submit" class="secondary-button"
+                            >{translate('Restore project')}</button
+                          >
+                        </form>
+                      {/if}
+                      <form
+                        method="POST"
+                        action="?/deleteProject"
+                        data-action="deleteProject"
+                        onsubmit={(event) => {
+                          if (
+                            !confirm(
+                              translate(
+                                'Delete this project? This will permanently remove it if it has no financial activity.',
+                              ),
+                            )
+                          ) {
+                            event.preventDefault();
+                          }
+                        }}
+                      >
+                        <input type="hidden" name="projectId" value={row.id} />
+                        <button type="submit" class="danger">{translate('Delete project')}</button>
+                      </form>
+                    </div>
+                  </details>
+                {/if}
+              </article>
+            {:else}<div class="empty">{translate('No projects available.')}</div>{/each}
+          </SectionCard>
+        </div>
+        {#if canManageProjects}
+          <SectionCard
+            title={translate('Clients')}
+            collapsible
+            class="record-list full client-management-list"
+          >
+            <div class="panel-title">
+              <div>
+                <p class="form-help">
+                  {translate(
+                    'Archived clients remain visible to management for safe restore; workers never receive this list.',
+                  )}
+                </p>
               </div>
-              <span>OPEN PROJECT →</span>
-            </a>{/each}
-        </section>
+              <span>{data.clients?.length ?? 0}</span>
+            </div>
+            {#each data.clients ?? [] as client}
+              <article
+                class="record-card"
+                id={`client-controls-${client.id}`}
+                data-client-id={client.id}
+              >
+                <div>
+                  <strong>{client.client_number} · {client.display_name}</strong>
+                  <small
+                    >{client.legal_name} · {client.currency}{client.client_code
+                      ? ` · ${client.client_code}`
+                      : ''} · {controlledValue('status', client.status)} · {client.billing_address ??
+                      translate('Billing address missing')}</small
+                  >
+                </div>
+                <div class="record-actions lifecycle-actions">
+                  {#if client.status === 'active' || client.status === 'closed'}
+                    <form method="POST" action="?/transitionClient" data-action="transitionClient">
+                      <input type="hidden" name="clientId" value={client.id} />
+                      <input type="hidden" name="version" value={client.version ?? 1} />
+                      <input
+                        type="hidden"
+                        name="status"
+                        value={client.status === 'active' ? 'closed' : 'active'}
+                      />
+                      <label class="sr-only" for={`client-status-reason-${client.id}`}
+                        >{translate('Reason')}</label
+                      >
+                      <input
+                        id={`client-status-reason-${client.id}`}
+                        name="reason"
+                        required
+                        placeholder={translate('Reason')}
+                      />
+                      <button type="submit" class="secondary-button">
+                        {translate(client.status === 'active' ? 'Close client' : 'Reopen client')}
+                      </button>
+                    </form>
+                  {/if}
+                  {#if client.status === 'archived'}
+                    <form method="POST" action="?/transitionClient" data-action="transitionClient">
+                      <input type="hidden" name="clientId" value={client.id} />
+                      <input type="hidden" name="version" value={client.version ?? 1} />
+                      <input type="hidden" name="status" value="restore" />
+                      <label class="sr-only" for={`client-restore-reason-${client.id}`}
+                        >{translate('Reason')}</label
+                      >
+                      <input
+                        id={`client-restore-reason-${client.id}`}
+                        name="reason"
+                        required
+                        placeholder={translate('Reason')}
+                      />
+                      <button type="submit" class="secondary-button"
+                        >{translate('Restore client')}</button
+                      >
+                    </form>
+                  {:else}
+                    <form method="POST" action="?/transitionClient" data-action="transitionClient">
+                      <input type="hidden" name="clientId" value={client.id} />
+                      <input type="hidden" name="version" value={client.version ?? 1} />
+                      <input type="hidden" name="status" value="archived" />
+                      <label class="sr-only" for={`client-archive-reason-${client.id}`}
+                        >{translate('Reason')}</label
+                      >
+                      <input
+                        id={`client-archive-reason-${client.id}`}
+                        name="reason"
+                        required
+                        placeholder={translate('Reason')}
+                      />
+                      <button type="submit" class="danger">{translate('Archive client')}</button>
+                    </form>
+                  {/if}
+                  <form
+                    method="POST"
+                    action="?/deleteClient"
+                    data-action="deleteClient"
+                    onsubmit={(event) => {
+                      if (
+                        !confirm(
+                          translate(
+                            'Delete this client? This will permanently remove it if it has no associated projects or invoices.',
+                          ),
+                        )
+                      ) {
+                        event.preventDefault();
+                      }
+                    }}
+                  >
+                    <input type="hidden" name="clientId" value={client.id} />
+                    <button type="submit" class="danger">{translate('Delete client')}</button>
+                  </form>
+                </div>
+              </article>
+            {:else}<div class="empty">{translate('No clients recorded.')}</div>{/each}
+          </SectionCard>
+          <details class="admin-details">
+            <summary class="primary-button">{translate('Add Client Contact')}</summary>
+            <form method="POST" action="?/createClientContact" class="admin-form-grid">
+              <h2>{translate('Add client contact')}</h2>
+              <label
+                >{translate('Client')}<select name="clientId" required
+                  >{#each activeClients as client}<option value={client.id}
+                      >{client.client_number} — {client.display_name}</option
+                    >{/each}</select
+                ></label
+              >
+              <label>{translate('Name')}<input name="name" required /></label><label
+                >{translate('Email')}<input name="email" type="email" /></label
+              ><label>{translate('Phone')}<input name="phone" /></label><label
+                >{translate('Role')}<input name="role" /></label
+              >
+              <label class="check"
+                ><input name="isBillingContact" type="checkbox" />
+                {translate('Billing contact')}</label
+              >
+              <label class="check"
+                ><input name="isPrimary" type="checkbox" /> {translate('Primary contact')}</label
+              >
+              <button>{translate('Save contact')}</button>
+            </form>
+          </details>
+          {#if canManageAssignmentControls}
+            <details class="admin-details">
+              <summary class="primary-button">{translate('Create Milestone')}</summary>
+              <form method="POST" action="?/createMilestone" class="admin-form-grid">
+                <h2>{translate('Create milestone')}</h2>
+                <label
+                  >{translate('Project')}<select name="projectId" required
+                    >{#each activeProjects as project}<option value={project.id}
+                        >{project.project_number} — {project.name}</option
+                      >{/each}</select
+                  ></label
+                ><label>{translate('Name')}<input name="name" required /></label><label
+                  >{translate('Description')}<textarea name="description" rows="2"
+                  ></textarea></label
+                ><label
+                  >{translate('Amount (minor)')}<input
+                    name="amountMinor"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    required
+                  /></label
+                ><label>{translate('Due on')}<input name="dueOn" type="date" /></label><button
+                  >{translate('Save milestone')}</button
+                >
+              </form>
+            </details>
+            <details class="admin-details">
+              <summary class="primary-button">{translate('Expected Working Schedule')}</summary>
+              <form method="POST" action="?/updateSchedule" class="admin-form-grid">
+                <h2>{translate('Expected working schedule')}</h2>
+                <label
+                  >{translate('Project')}<select name="projectId" required
+                    >{#each operationalProjects as project}<option value={project.id}
+                        >{project.project_number} — {project.name}</option
+                      >{/each}</select
+                  ></label
+                ><label
+                  >{translate('Timezone')}<input
+                    name="timezone"
+                    value="America/New_York"
+                    required
+                  /></label
+                ><label
+                  >{translate('Effective from')}<input
+                    name="effectiveFrom"
+                    type="date"
+                    required
+                  /></label
+                >
+                <label
+                  >{translate('Mon minutes')}<input
+                    name="mondayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    required
+                  /></label
+                ><label
+                  >{translate('Tue minutes')}<input
+                    name="tuesdayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    required
+                  /></label
+                ><label
+                  >{translate('Wed minutes')}<input
+                    name="wednesdayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    required
+                  /></label
+                ><label
+                  >{translate('Thu minutes')}<input
+                    name="thursdayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    required
+                  /></label
+                ><label
+                  >{translate('Fri minutes')}<input
+                    name="fridayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    required
+                  /></label
+                ><label
+                  >{translate('Sat minutes')}<input
+                    name="saturdayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    required
+                  /></label
+                ><label
+                  >{translate('Sun minutes')}<input
+                    name="sundayMinutes"
+                    type="number"
+                    min="0"
+                    max="1440"
+                    value="0"
+                    required
+                  /></label
+                ><button>{translate('Save schedule')}</button>
+              </form>
+            </details>
+          {/if}
+          <SectionCard
+            title={translate('Assignment history')}
+            collapsible
+            expanded={$page.url.hash === '#assignment-history'}
+            class="record-list full assignment-history-list"
+            id="assignment-history"
+            tabindex="-1"
+          >
+            <div class="panel-title">
+              <div>
+                <p class="form-help">
+                  {translate(
+                    'Inactive rows remain available for audit and historical attribution.',
+                  )}
+                </p>
+              </div>
+              <span>{data.assignments?.length ?? 0}</span>
+            </div>
+            <RecordBrowser
+              rows={data.assignments ?? []}
+              bind:visible={assignmentPage}
+              {translate}
+              label="Assignment history"
+              focusId={$page.url.hash === '#assignment-history'
+                ? ($page.url.searchParams.get('assignment') ?? '')
+                : ''}
+            />
+            {#each assignmentPage as assignment}
+              <a
+                class="record-card-link"
+                href={canManageAssignmentControls
+                  ? `${base}/app/projects?action=update-assignment&project=${encodeURIComponent(String(assignment.project_id ?? ''))}&worker=${encodeURIComponent(String(assignment.worker_id ?? assignment.user_id ?? ''))}`
+                  : `${base}/app/projects/${encodeURIComponent(String(assignment.project_id ?? ''))}`}
+              >
+                <div>
+                  <strong>{assignment.project_number} · {assignment.project_name}</strong>
+                  <small
+                    >{assignment.worker_name} · {assignment.starts_on} → {assignment.ends_on ??
+                      translate('Open assignment')} · {controlledValue(
+                      'status',
+                      assignment.status,
+                    )}</small
+                  >
+                </div>
+                <span class="record-card-open">{translate('Open record →')}</span>
+              </a>
+            {:else}<div class="empty">{translate('No assignments recorded.')}</div>{/each}
+          </SectionCard>
+        {/if}
         {#if data.contacts}
           <section class="record-list full">
             <div class="panel-title">
-              <h2>Client contacts</h2>
+              <h2>{translate('Client contacts')}</h2>
               <span>{data.contacts.length}</span>
             </div>
-            {#each data.contacts as contact}<article>
+            <RecordBrowser
+              rows={data.contacts}
+              bind:visible={contactPage}
+              {translate}
+              label="Client contacts"
+            />
+            <a class="secondary-button" href={`${base}/app/projects?view=clients`}
+              >{translate('Clients')} →</a
+            >
+            {#each contactPage as contact}
+              <article class="record-card contact-card">
                 <div>
                   <strong>{contact.client_number} · {contact.name}</strong><small
-                    >{contact.email ?? 'No email'} · {contact.role ??
-                      'Contact'}{contact.is_billing_contact ? ' · billing' : ''}{contact.is_primary
-                      ? ' · primary'
-                      : ''}</small
+                    >{contact.email ?? translate('No email')} · {contact.role ??
+                      translate('Contact')}{contact.is_billing_contact
+                      ? ` · ${translate('billing')}`
+                      : ''}{contact.is_primary ? ` · ${translate('primary')}` : ''}</small
                   >
                 </div>
-              </article>{:else}<div class="empty">No client contacts recorded.</div>{/each}
+                {#if canManageClientContacts}
+                  <div class="record-actions contact-actions">
+                    <details>
+                      <summary class="secondary-button">{translate('Edit contact')}</summary>
+                      <form method="POST" action="?/updateClientContact" class="compact-form">
+                        <input type="hidden" name="contactId" value={contact.id} />
+                        <input type="hidden" name="isBillingContactPresent" value="1" />
+                        <input type="hidden" name="isPrimaryPresent" value="1" />
+                        <label
+                          >{translate('Name')}<input
+                            name="name"
+                            value={String(contact.name ?? '')}
+                            required
+                          /></label
+                        >
+                        <label
+                          >{translate('Email')}<input
+                            name="email"
+                            type="email"
+                            value={String(contact.email ?? '')}
+                          /></label
+                        >
+                        <label
+                          >{translate('Phone')}<input
+                            name="phone"
+                            value={String(contact.phone ?? '')}
+                          /></label
+                        >
+                        <label
+                          >{translate('Role')}<input
+                            name="role"
+                            value={String(contact.role ?? '')}
+                          /></label
+                        >
+                        <label class="check"
+                          ><input
+                            name="isBillingContact"
+                            type="checkbox"
+                            checked={Boolean(contact.is_billing_contact)}
+                          />
+                          {translate('Billing contact')}</label
+                        >
+                        <label class="check"
+                          ><input
+                            name="isPrimary"
+                            type="checkbox"
+                            checked={Boolean(contact.is_primary)}
+                          />
+                          {translate('Primary contact')}</label
+                        >
+                        <button type="submit">{translate('Update contact')}</button>
+                      </form>
+                    </details>
+                    <form
+                      method="POST"
+                      action="?/deleteClientContact"
+                      onsubmit={(event) => {
+                        if (!confirm(translate('Delete this contact?'))) event.preventDefault();
+                      }}
+                    >
+                      <input type="hidden" name="contactId" value={contact.id} />
+                      <button class="danger" type="submit">{translate('Delete contact')}</button>
+                    </form>
+                  </div>
+                {/if}
+              </article>
+            {:else}
+              <div class="empty">{translate('No client contacts recorded.')}</div>
+            {/each}
           </section>
         {/if}
         {#if data.workers && data.workers.length > 0}
           <section class="record-list full">
             <div class="panel-title">
-              <h2>Team access</h2>
-              <span>{data.workers.length} active</span>
+              <h2>{translate('Team access')}</h2>
+              <span>{data.workers.length} {translate('workers')}</span>
             </div>
             {#each data.workers as worker}
-              <article class="record-card">
+              <article class="record-card worker-card">
                 <div>
                   <strong>{worker.name}</strong>
-                  <small>{worker.email} · {worker.role} · {worker.status}</small>
+                  {#if worker.status !== 'active'}
+                    <span class="state-tag state-tag-with-gap {worker.status}"
+                      >{controlledValue('status', worker.status)}</span
+                    >
+                  {/if}
+                  <small
+                    >{worker.email} · {controlledValue('role', worker.role)} · {translate('joined')}
+                    {String(worker.created_at ?? '').slice(0, 10)} → {worker.offboarded_at ??
+                      'open'}</small
+                  >
                 </div>
                 {#if data.user.role === 'owner_admin'}
-                  <form method="POST" action="?/updateUserStatus" class="compact-form">
-                    <input type="hidden" name="userId" value={worker.id} />
-                    <select name="status" aria-label={`Status for ${worker.name}`}>
-                      <option value="active">Active</option>
-                      <option value="suspended">Suspend</option>
-                      <option value="offboarded">Offboard</option>
-                      <option value="archived">Archive</option>
-                    </select>
-                    <button type="submit">Save access</button>
-                  </form>
+                  <div class="worker-actions">
+                    <details>
+                      <summary class="worker-manage-toggle">{translate('Manage worker')}</summary>
+                      <div class="worker-manage-panel">
+                        <form
+                          method="POST"
+                          action="?/updateWorkerProfile"
+                          class="compact-form worker-profile-form"
+                        >
+                          <h4 class="worker-form-heading">{translate('Edit Profile')}</h4>
+                          <input type="hidden" name="workerId" value={worker.id} />
+                          <label class="worker-field"
+                            >{translate('Name')}
+                            <input
+                              name="name"
+                              value={worker.name}
+                              required
+                              class="worker-field-control"
+                            /></label
+                          >
+                          <label class="worker-field"
+                            >{translate('Email')}
+                            <input
+                              name="email"
+                              value={worker.email}
+                              type="email"
+                              required
+                              class="worker-field-control"
+                            /></label
+                          >
+                          <label class="worker-field"
+                            >{translate('Role')}
+                            <select name="role" required class="worker-field-control">
+                              <option value="worker" selected={worker.role === 'worker'}
+                                >{translate('Worker')}</option
+                              >
+                              <option
+                                value="project_manager"
+                                selected={worker.role === 'project_manager'}
+                                >{translate('Project Manager')}</option
+                              >
+                              <option
+                                value="finance_admin"
+                                selected={worker.role === 'finance_admin'}
+                                >{translate('Finance Admin')}</option
+                              >
+                              <option
+                                value="auditor_read_only"
+                                selected={worker.role === 'auditor_read_only'}
+                                >{translate('Auditor (Read Only)')}</option
+                              >
+                              <option value="owner_admin" selected={worker.role === 'owner_admin'}
+                                >{translate('Owner / Admin')}</option
+                              >
+                            </select>
+                          </label>
+                          <label class="worker-field"
+                            >{translate('Joined At')}
+                            <input
+                              name="joinedAt"
+                              type="date"
+                              value={worker.created_at
+                                ? String(worker.created_at).slice(0, 10)
+                                : ''}
+                              class="worker-field-control"
+                            /></label
+                          >
+                          <button type="submit" class="worker-form-submit"
+                            >{translate('Save profile')}</button
+                          >
+                        </form>
+
+                        {#if worker.role === 'worker'}
+                          <form
+                            method="POST"
+                            action="?/setWorkforceProfile"
+                            class="compact-form worker-profile-form"
+                          >
+                            <h4 class="worker-form-heading">
+                              {translate('Operational access type')}
+                            </h4>
+                            <p class="form-help">
+                              {translate(
+                                'Portal role controls application permissions. Operational access type links supplier coordinators and external technicians to the same person account without duplicating them.',
+                              )}
+                            </p>
+                            <input type="hidden" name="workerId" value={worker.id} />
+                            <label class="worker-field">
+                              {translate('Operational access type')}
+                              <select name="profile" required class="worker-field-control">
+                                <option
+                                  value="standard"
+                                  selected={!worker.workforce_profile ||
+                                    worker.workforce_profile === 'standard'}
+                                  >{translate('Standard team member')}</option
+                                >
+                                <option
+                                  value="supplier_coordinator"
+                                  selected={worker.workforce_profile === 'supplier_coordinator'}
+                                  >{translate('Supplier coordinator')}</option
+                                >
+                                <option
+                                  value="external_technician"
+                                  selected={worker.workforce_profile === 'external_technician'}
+                                  >{translate('External technician')}</option
+                                >
+                              </select>
+                            </label>
+                            <label class="worker-field">
+                              {translate('Supplier company')}
+                              <select name="supplierId" class="worker-field-control">
+                                <option value="">{translate('Not linked to a supplier')}</option>
+                                {#each data.suppliers ?? [] as supplier}
+                                  <option
+                                    value={supplier.id}
+                                    selected={String(worker.supplier_id ?? '') ===
+                                      String(supplier.id)}>{supplier.name}</option
+                                  >
+                                {/each}
+                              </select>
+                            </label>
+                            <button type="submit" class="worker-form-submit"
+                              >{translate('Save operational access')}</button
+                            >
+                          </form>
+                        {/if}
+
+                        <form
+                          method="POST"
+                          action="?/updateUserStatus"
+                          class="compact-form worker-status-form"
+                        >
+                          <h4 class="worker-form-heading">{translate('Account Status')}</h4>
+                          <input type="hidden" name="userId" value={worker.id} />
+                          <select
+                            name="status"
+                            aria-label={`${translate('Status for')} ${worker.name}`}
+                          >
+                            <option value="active" selected={worker.status === 'active'}
+                              >{translate('Active')}</option
+                            >
+                            <option value="suspended" selected={worker.status === 'suspended'}
+                              >{translate('Suspend')}</option
+                            >
+                            <option value="offboarded" selected={worker.status === 'offboarded'}
+                              >{translate('Offboard')}</option
+                            >
+                            <option value="archived" selected={worker.status === 'archived'}
+                              >{translate('Archive')}</option
+                            >
+                          </select>
+                          <button type="submit">{translate('Update status')}</button>
+                        </form>
+                      </div>
+                    </details>
+                  </div>
                 {/if}
               </article>
             {/each}
@@ -1768,1092 +5728,872 @@
       </div>
     {:else if data.section === 'planning'}
       <div class="management-stack">
-        {#if !isAuditor}<form method="POST" action="?/createPlanning" class="admin-form-grid">
-            <h2>Publish field assignment</h2>
+        <PlanningCalendar
+          {translate}
+          {locale}
+          agendaId="planning-day-agenda"
+          initialDate={$page.url.searchParams.get('date') ?? undefined}
+          events={(data.records ?? []).map((row) => ({
+            id: String(row.id),
+            title: `${row.worker_name} · ${row.project_number} · ${row.planned_minutes} min`,
+            startsAt: String(row.starts_at),
+            endsAt: String(row.ends_at),
+            href:
+              data.user.role === 'owner_admin'
+                ? `${base}/app/manage?area=planning_assignment&project=${row.project_id}&focus=${row.id}`
+                : data.user.role === 'project_manager'
+                  ? `${base}/app/planning?project=${row.project_id}&focus=${row.id}#planning-assignment-${row.id}`
+                  : `${base}/app/projects/${row.project_id}?tab=team`,
+          }))}
+          onselectdate={canManageAssignmentControls ? selectPlanningDate : undefined}
+        />
+        <p class="form-help">
+          {translate('Calendar times are shown in UTC. Planning never creates actual hours.')}
+        </p>
+        {#if planningProblem && planningFailure?.operation !== 'createPlanning' && !planningFailedRecordVisible}
+          <div data-planning-fallback>
+            <ProblemNotice
+              problem={planningProblem}
+              kind={planningProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+              remedyLinks={globalRemedyLinks}
+            />
+          </div>
+        {/if}
+        {#if canManageAssignmentControls && (data.records?.length ?? 0) > 0}
+          <SectionCard title={translate('Published assignments')} class="full">
+            {#each data.records ?? [] as row}
+              {@const updateWorkers = planningWorkersForUpdate(row)}
+              {@const selectedWorkerId = planningEditValue(row, 'workerId', row.worker_id)}
+              <details
+                id={`planning-assignment-${row.id}`}
+                open={$page.url.searchParams.get('focus') === String(row.id) ||
+                  planningFailedUpdateId === String(row.id) ||
+                  (planningFailure?.operation === 'cancelPlanning' &&
+                    String(planningFailure.values?.id ?? '') === String(row.id))}
+              >
+                <summary
+                  >{row.worker_name} · {row.project_number} · {String(row.starts_at)
+                    .slice(0, 16)
+                    .replace('T', ' ')} → {String(row.ends_at)
+                    .slice(0, 16)
+                    .replace('T', ' ')}</summary
+                >
+                <form
+                  method="POST"
+                  action={`?/updatePlanning#planning-assignment-${row.id}`}
+                  data-workforce-operation="updatePlanning"
+                  data-record-id={String(row.id)}
+                  class="admin-form-grid"
+                  use:formValidation
+                  oninput={(event) => rememberPlanningEdit(row, event.currentTarget)}
+                >
+                  {#if planningProblem && planningFailure?.operation === 'updatePlanning' && planningFailedUpdateId === String(row.id)}
+                    <ProblemNotice
+                      problem={planningProblem}
+                      kind={planningProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+                      remedyLinks={globalRemedyLinks}
+                    />
+                  {/if}
+                  <input type="hidden" name="id" value={row.id} />
+                  <input type="hidden" name="version" value={row.version} />
+                  <input type="hidden" name="projectId" value={row.project_id} />
+                  <label
+                    >{translate('Worker')}<select name="workerId" required>
+                      <option
+                        value=""
+                        selected={!updateWorkers.some(
+                          (worker) => String(worker.id) === selectedWorkerId,
+                        )}>{translate('Select assigned worker')}</option
+                      >
+                      {#each updateWorkers as worker}
+                        <option value={worker.id} selected={String(worker.id) === selectedWorkerId}
+                          >{worker.name}</option
+                        >
+                      {/each}
+                    </select></label
+                  >{#if planningFieldMessage('workerId', 'updatePlanning', String(row.id))}<small
+                      class="field-error"
+                      role="alert"
+                      >{planningFieldMessage('workerId', 'updatePlanning', String(row.id))}</small
+                    >{/if}
+                  <label
+                    >{translate('Start')}<input
+                      name="startsAt"
+                      type="datetime-local"
+                      value={planningEditValue(row, 'startsAt', row.starts_at).slice(0, 16)}
+                      required
+                    /></label
+                  >{#if planningFieldMessage('startsAt', 'updatePlanning', String(row.id))}<small
+                      class="field-error"
+                      role="alert"
+                      >{planningFieldMessage('startsAt', 'updatePlanning', String(row.id))}</small
+                    >{/if}
+                  <label
+                    >{translate('End')}<input
+                      name="endsAt"
+                      type="datetime-local"
+                      value={planningEditValue(row, 'endsAt', row.ends_at).slice(0, 16)}
+                      required
+                    /></label
+                  >{#if planningFieldMessage('endsAt', 'updatePlanning', String(row.id))}<small
+                      class="field-error"
+                      role="alert"
+                      >{planningFieldMessage('endsAt', 'updatePlanning', String(row.id))}</small
+                    >{/if}
+                  <label
+                    >{translate('Planned minutes')}<input
+                      name="plannedMinutes"
+                      type="number"
+                      min="1"
+                      max="10080"
+                      value={planningEditValue(row, 'plannedMinutes', row.planned_minutes)}
+                      required
+                    /></label
+                  >{#if planningFieldMessage('plannedMinutes', 'updatePlanning', String(row.id))}<small
+                      class="field-error"
+                      role="alert"
+                      >{planningFieldMessage(
+                        'plannedMinutes',
+                        'updatePlanning',
+                        String(row.id),
+                      )}</small
+                    >{/if}
+                  <label
+                    >{translate('Site')}<input
+                      name="site"
+                      value={planningEditValue(row, 'site', row.site)}
+                    /></label
+                  >
+                  <label
+                    >{translate('Required expertise')}<input
+                      name="requiredSkill"
+                      value={planningEditValue(row, 'requiredSkill', row.required_skill)}
+                    /></label
+                  >
+                  <button type="submit">{translate('Save assignment')}</button>
+                </form>
+                <form
+                  method="POST"
+                  action={`?/cancelPlanning#planning-assignment-${row.id}`}
+                  data-workforce-operation="cancelPlanning"
+                  data-record-id={String(row.id)}
+                  use:formValidation
+                >
+                  {#if planningProblem && planningFailure?.operation === 'cancelPlanning' && String(planningFailure.values?.id ?? '') === String(row.id)}
+                    <ProblemNotice
+                      problem={planningProblem}
+                      kind={planningProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+                      remedyLinks={globalRemedyLinks}
+                    />
+                  {/if}
+                  <input type="hidden" name="id" value={row.id} />
+                  <input type="hidden" name="version" value={row.version} />
+                  <button type="submit" class="secondary-button"
+                    >{translate('Cancel assignment')}</button
+                  >
+                </form>
+              </details>
+            {/each}
+          </SectionCard>
+        {/if}
+        {#if canManageAssignmentControls}<form
+            id="planning-create-form"
+            method="POST"
+            action="?/createPlanning#planning-create-form"
+            data-workforce-operation="createPlanning"
+            bind:this={planningForm}
+            class="admin-form-grid"
+            use:formValidation
+          >
+            {#if planningProblem && planningFailure?.operation === 'createPlanning'}
+              <ProblemNotice
+                problem={planningProblem}
+                kind={planningProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+                remedyLinks={globalRemedyLinks}
+              />
+            {/if}
+            <h2>{translate('Publish field assignment')}</h2>
+            <p class="form-help">
+              {translate(
+                'Publish a planned shift for an assigned worker. Planning does not create actual time entries; the worker records the work performed separately.',
+              )}
+            </p>
+            {#if emptyPlanningProjectProblem}
+              <div class="form-help">
+                <ProblemNotice
+                  problem={emptyPlanningProjectProblem}
+                  kind="error"
+                  remedyLinks={{
+                    review_project_status: {
+                      label: translate('Review project status'),
+                      href: `${base}/app/projects`,
+                    },
+                    contact_project_owner: {
+                      label: translate('Contact the project owner'),
+                    },
+                  }}
+                />
+              </div>
+            {/if}
             <label
-              >Project<select name="projectId" required
-                >{#each availableProjects as project}<option value={project.id}
+              >{translate('Project')}<select
+                name="projectId"
+                bind:value={planningProjectId}
+                required
+                >{#if planningProjectId && !operationalProjects.some((project) => String(project.id) === planningProjectId)}
+                  <option value={planningProjectId} disabled
+                    >{String(
+                      planningProjectUnavailable?.name ?? translate('Previously selected project'),
+                    )} · {translate('Unavailable for planning')}</option
+                  >
+                {/if}{#each operationalProjects as project}<option value={project.id}
                     >{project.project_number} — {project.name}</option
                   >{/each}</select
               ></label
-            ><label
-              >Worker<select name="workerId" required
-                >{#each data.workers ?? [] as worker}<option value={worker.id}>{worker.name}</option
+            >{#if planningFieldMessage('projectId', 'createPlanning')}<small
+                class="field-error"
+                role="alert">{planningFieldMessage('projectId', 'createPlanning')}</small
+              >{/if}{#if planningProjectId && planningEligibleWorkers.length === 0}<p
+                class="form-help"
+                role="status"
+              >
+                {translate(
+                  'No worker is assigned to this project for the selected dates. Assign a worker to the project or choose another date.',
+                )}
+              </p>{/if}
+            <label
+              >{translate('Worker')}<select name="workerId" bind:value={planningWorkerId} required
+                ><option value="">{translate('Select assigned worker')}</option
+                >{#if planningWorkerId && !planningEligibleWorkers.some((worker) => String(worker.id) === planningWorkerId)}
+                  <option value={planningWorkerId} disabled
+                    >{String(
+                      planningWorkerUnavailable?.name ?? translate('Previously selected worker'),
+                    )} · {translate('Unavailable for these dates')}</option
+                  >
+                {/if}{#each planningEligibleWorkers as worker}<option value={worker.id}
+                    >{worker.name}</option
                   >{/each}</select
               ></label
-            ><label>Start<input name="startsAt" type="datetime-local" required /></label><label
-              >End<input name="endsAt" type="datetime-local" required /></label
-            ><label
-              >Planned minutes<input
-                name="plannedMinutes"
-                type="number"
-                min="1"
-                value="600"
+            >{#if planningFieldMessage('workerId', 'createPlanning')}<small
+                class="field-error"
+                role="alert">{planningFieldMessage('workerId', 'createPlanning')}</small
+              >{/if}<label
+              >{translate('Start')}<input
+                name="startsAt"
+                type="datetime-local"
+                bind:value={planningStarts}
                 required
               /></label
-            ><label>Site<input name="site" /></label><label
-              >Required skill<input name="requiredSkill" /></label
-            ><button>Publish assignment</button>
-          </form>
-          <form method="POST" action="?/createSkill" class="admin-form-grid">
-            <h2>Add skill</h2>
-            <label>Code<input name="code" required /></label><label
-              >Name<input name="name" required /></label
-            ><button>Save skill</button>
-          </form>
-          <form method="POST" action="?/setWorkerSkill" class="admin-form-grid">
-            <h2>Assign skill</h2>
-            <label
-              >Worker<select name="workerId" required
-                >{#each data.workers ?? [] as worker}<option value={worker.id}>{worker.name}</option
-                  >{/each}</select
-              ></label
+            >{#if planningFieldMessage('startsAt', 'createPlanning')}<small
+                class="field-error"
+                role="alert">{planningFieldMessage('startsAt', 'createPlanning')}</small
+              >{/if}<label
+              >{translate('End')}<input
+                name="endsAt"
+                type="datetime-local"
+                bind:value={planningEnds}
+                required
+              /></label
+            >{#if planningFieldMessage('endsAt', 'createPlanning')}<small
+                class="field-error"
+                role="alert">{planningFieldMessage('endsAt', 'createPlanning')}</small
+              >{/if}<ProjectBudgetInput
+              name="plannedMinutes"
+              label={translate('Planned hours')}
+              kind="hours"
+              value={planningFailure?.operation === 'createPlanning'
+                ? String(planningFailure.values?.plannedMinutes ?? '')
+                : ''}
+              required
+            />
+            >{#if planningFieldMessage('plannedMinutes', 'createPlanning')}<small
+                class="field-error"
+                role="alert">{planningFieldMessage('plannedMinutes', 'createPlanning')}</small
+              >{/if}<label
+              >{translate('Site')}<input
+                name="site"
+                value={planningFailure?.operation === 'createPlanning'
+                  ? String(planningFailure.values?.site ?? '')
+                  : ''}
+              /></label
             ><label
-              >Skill<select name="skillId" required
-                >{#each data.skills ?? [] as skill}<option value={skill.id}
-                    >{skill.code} — {skill.name}</option
-                  >{/each}</select
-              ></label
-            ><label
-              >Proficiency<select name="proficiency"
-                ><option value="1">1 · exposure</option><option value="2">2 · developing</option
-                ><option value="3">3 · capable</option><option value="4">4 · advanced</option
-                ><option value="5">5 · expert</option></select
-              ></label
-            ><button>Update skill matrix</button>
+              >{translate('Required expertise')}<input
+                name="requiredSkill"
+                value={planningFailure?.operation === 'createPlanning'
+                  ? String(planningFailure.values?.requiredSkill ?? '')
+                  : ''}
+              /></label
+            ><button
+              disabled={Boolean(
+                (planningProjectId &&
+                  !operationalProjects.some(
+                    (project) => String(project.id) === planningProjectId,
+                  )) ||
+                (planningWorkerId &&
+                  !planningEligibleWorkers.some(
+                    (worker) => String(worker.id) === planningWorkerId,
+                  )),
+              )}>{translate('Publish assignment')}</button
+            >
           </form>{/if}
+        {#if data.user.role === 'owner_admin' || data.user.role === 'finance_admin'}
+          <SectionCard
+            title={translate('Manage worker expertise')}
+            id="planning-skills"
+            collapsible
+            expanded={Boolean(skillProblem)}
+            class="full planning-skill-tools"
+          >
+            {#if skillProblem}
+              <ProblemNotice
+                problem={skillProblem}
+                kind={skillProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+                remedyLinks={globalRemedyLinks}
+              />
+            {/if}
+            <details class="admin-details" open={skillFailure?.operation === 'createSkill'}>
+              <summary class="primary-button">{translate('New expertise')}</summary>
+              <form
+                method="POST"
+                action="?/createSkill#planning-skills"
+                data-workforce-operation="createSkill"
+                class="admin-form-grid"
+                use:formValidation
+              >
+                <h2>{translate('Add expertise')}</h2>
+                <label
+                  >{translate('Code')}<input
+                    name="code"
+                    value={skillValue('createSkill', 'code')}
+                    required
+                  /></label
+                ><label
+                  >{translate('Name')}<input
+                    name="name"
+                    value={skillValue('createSkill', 'name')}
+                    required
+                  /></label
+                ><button>{translate('Save expertise')}</button>
+              </form>
+            </details>
+            <details class="admin-details" open={skillFailure?.operation === 'updateSkill'}>
+              <summary class="primary-button">{translate('Update expertise')}</summary>
+              <form
+                method="POST"
+                action="?/updateSkill#planning-skills"
+                data-workforce-operation="updateSkill"
+                class="admin-form-grid"
+                use:formValidation
+              >
+                <h2>{translate('Update expertise')}</h2>
+                <label
+                  >{translate('Expertise')}<select
+                    name="skillId"
+                    value={skillValue('updateSkill', 'skillId')}
+                    required
+                  >
+                    {#if missingChoice(skillValue('updateSkill', 'skillId'), data.skills ?? [])}<option
+                        value={skillValue('updateSkill', 'skillId')}
+                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                      >{/if}
+                    {#each data.skills ?? [] as skill}<option value={skill.id}
+                        >{skill.code} — {skill.name}</option
+                      >{/each}
+                  </select></label
+                >
+                <label
+                  >{translate('Name')}<input
+                    name="name"
+                    value={skillValue('updateSkill', 'name')}
+                  /></label
+                >
+                <button>{translate('Update expertise')}</button>
+              </form>
+            </details>
+            <details class="admin-details" open={skillFailure?.operation === 'deleteSkill'}>
+              <summary class="primary-button">{translate('Delete expertise')}</summary>
+              <form
+                method="POST"
+                action="?/deleteSkill#planning-skills"
+                data-workforce-operation="deleteSkill"
+                class="admin-form-grid"
+                use:formValidation
+              >
+                <h2>{translate('Delete expertise')}</h2>
+                <label
+                  >{translate('Expertise')}<select
+                    name="skillId"
+                    value={skillValue('deleteSkill', 'skillId')}
+                    required
+                  >
+                    {#if missingChoice(skillValue('deleteSkill', 'skillId'), data.skills ?? [])}<option
+                        value={skillValue('deleteSkill', 'skillId')}
+                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                      >{/if}
+                    {#each data.skills ?? [] as skill}<option value={skill.id}
+                        >{skill.code} — {skill.name}</option
+                      >{/each}
+                  </select></label
+                >
+                <button class="danger">{translate('Delete expertise')}</button>
+              </form>
+            </details>
+            <details class="admin-details" open={skillFailure?.operation === 'setWorkerSkill'}>
+              <summary class="primary-button">{translate('Assign expertise')}</summary>
+              <form
+                method="POST"
+                action="?/setWorkerSkill#planning-skills"
+                data-workforce-operation="setWorkerSkill"
+                class="admin-form-grid"
+                use:formValidation
+              >
+                <h2>{translate('Assign expertise')}</h2>
+                <label
+                  >{translate('Worker')}<select
+                    name="workerId"
+                    value={skillValue('setWorkerSkill', 'workerId')}
+                    required
+                    >{#if missingChoice(skillValue('setWorkerSkill', 'workerId'), data.workers ?? [])}<option
+                        value={skillValue('setWorkerSkill', 'workerId')}
+                        disabled>{translate('Worker')} · {translate('Unavailable')}</option
+                      >{/if}{#each data.workers ?? [] as worker}<option value={worker.id}
+                        >{worker.name}</option
+                      >{/each}</select
+                  ></label
+                ><label
+                  >{translate('Expertise')}<select
+                    name="skillId"
+                    value={skillValue('setWorkerSkill', 'skillId')}
+                    required
+                    >{#if missingChoice(skillValue('setWorkerSkill', 'skillId'), data.skills ?? [])}<option
+                        value={skillValue('setWorkerSkill', 'skillId')}
+                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                      >{/if}{#each data.skills ?? [] as skill}<option value={skill.id}
+                        >{skill.code} — {skill.name}</option
+                      >{/each}</select
+                  ></label
+                ><label
+                  >{translate('Proficiency')}<select
+                    name="proficiency"
+                    value={skillValue('setWorkerSkill', 'proficiency', '1')}
+                    ><option value="1">1 · {translate('exposure')}</option><option value="2"
+                      >2 · {translate('developing')}</option
+                    ><option value="3">3 · {translate('capable')}</option><option value="4"
+                      >4 · {translate('advanced')}</option
+                    ><option value="5">5 · {translate('expert')}</option></select
+                  ></label
+                ><button>{translate('Update expertise matrix')}</button>
+              </form>
+            </details>
+            <details class="admin-details" open={skillFailure?.operation === 'deleteWorkerSkill'}>
+              <summary class="primary-button">{translate('Remove worker expertise')}</summary>
+              <form
+                method="POST"
+                action="?/deleteWorkerSkill#planning-skills"
+                data-workforce-operation="deleteWorkerSkill"
+                class="admin-form-grid"
+                use:formValidation
+              >
+                <h2>{translate('Remove worker expertise')}</h2>
+                <label
+                  >{translate('Worker')}<select
+                    name="workerId"
+                    value={skillValue('deleteWorkerSkill', 'workerId')}
+                    required
+                  >
+                    {#if missingChoice(skillValue('deleteWorkerSkill', 'workerId'), data.workers ?? [])}<option
+                        value={skillValue('deleteWorkerSkill', 'workerId')}
+                        disabled>{translate('Worker')} · {translate('Unavailable')}</option
+                      >{/if}
+                    {#each data.workers ?? [] as worker}<option value={worker.id}
+                        >{worker.name}</option
+                      >{/each}
+                  </select></label
+                >
+                <label
+                  >{translate('Expertise')}<select
+                    name="skillId"
+                    value={skillValue('deleteWorkerSkill', 'skillId')}
+                    required
+                  >
+                    {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), data.skills ?? [])}<option
+                        value={skillValue('deleteWorkerSkill', 'skillId')}
+                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                      >{/if}
+                    {#each data.skills ?? [] as skill}<option value={skill.id}
+                        >{skill.code} — {skill.name}</option
+                      >{/each}
+                  </select></label
+                >
+                <button class="danger">{translate('Remove expertise')}</button>
+              </form>
+            </details>
+          </SectionCard>
+        {/if}
         <section class="record-list full">
           <div class="panel-title">
-            <h2>Published schedule</h2>
+            <h2>{translate('Published schedule')}</h2>
             <span>{data.records?.length ?? 0}</span>
           </div>
-          {#each data.records ?? [] as row}<article>
+          <form method="GET" class="admin-form-grid">
+            <label
+              >{translate('Project')}<select
+                name="project"
+                value={$page.url.searchParams.get('project') ?? ''}
+              >
+                <option value="">{translate('All')}</option>
+                {#each data.projects ?? [] as project}<option value={project.id}
+                    >{project.project_number} · {project.name}</option
+                  >{/each}
+              </select></label
+            >
+            {#if data.workers?.length}<label
+                >{translate('Worker')}<select
+                  name="worker"
+                  value={$page.url.searchParams.get('worker') ?? ''}
+                >
+                  <option value="">{translate('All')}</option>
+                  {#each data.workers as worker}<option value={worker.id}>{worker.name}</option
+                    >{/each}
+                </select></label
+              >{/if}
+            <button type="submit">{translate('Filter')}</button>
+          </form>
+          <RecordBrowser
+            rows={data.records ?? []}
+            bind:visible={planningPage}
+            {translate}
+            label="Published schedule"
+          />
+          {#each planningPage as row}<a
+              class="record-card-link"
+              href={data.user.role === 'owner_admin'
+                ? `${base}/app/manage?area=planning_assignment&project=${row.project_id}&focus=${row.id}`
+                : `${base}/app/projects/${row.project_id}`}
+            >
               <div>
                 <strong>{row.worker_name} · {row.project_number}</strong><small
                   >{String(row.starts_at).replace('T', ' ').slice(0, 16)} · {row.planned_minutes} min
                   · {row.site}</small
                 >
               </div>
-              <span class="state-tag">{row.status}</span>
-            </article>{/each}
+              <span class="record-card-open">{translate('Open record →')}</span>
+              <span class="state-tag">{controlledValue('status', row.status)}</span>
+            </a>{/each}
         </section>
       </div>
     {:else if data.section === 'approvals'}
-      <section class="record-list full">
-        <div class="panel-title">
-          <h2>Records requiring review</h2>
-          <span>{data.records?.length ?? 0}</span>
-        </div>
-        {#each data.records ?? [] as row}<article class="approval-row">
-            <div>
-              <strong>{row.type} · {row.date}</strong><small
-                >{row.amount}
-                {row.type === 'time' ? 'minutes' : 'minor units'} · {row.approval_state}</small
-              >
-            </div>
-            <div class="record-actions">
-              {#if isAuditor}<span class="state-tag">Read-only review</span
-                >{:else if row.review_stage === 'report'}<form
-                  method="POST"
-                  action="?/reviewReport"
-                >
-                  <input type="hidden" name="type" value={row.type} /><input
-                    type="hidden"
-                    name="id"
-                    value={row.id}
-                  /><input type="hidden" name="decision" value="approved" /><button
-                    >Approve report</button
-                  >
-                </form>
-                <form method="POST" action="?/reviewReport">
-                  <input type="hidden" name="type" value={row.type} /><input
-                    type="hidden"
-                    name="id"
-                    value={row.id}
-                  /><input type="hidden" name="decision" value="needs_changes" /><input
-                    name="reason"
-                    placeholder="Required change"
-                    required
-                  /><button>Return</button>
-                </form>{:else if row.review_stage === 'finance'}<form
-                  method="POST"
-                  action="?/financeApprove"
-                >
-                  <input type="hidden" name="type" value={row.type} /><input
-                    type="hidden"
-                    name="id"
-                    value={row.id}
-                  />{#if row.type === 'time'}<select name="billable"
-                      ><option value="yes">Billable</option><option value="no">Non-billable</option
-                      ></select
-                    >{/if}<button>Finance approve</button>
-                </form>{:else}<form method="POST" action="?/approveRecord">
-                  <input type="hidden" name="type" value={row.type} /><input
-                    type="hidden"
-                    name="id"
-                    value={row.id}
-                  /><input type="hidden" name="decision" value="approved" /><button>Approve</button>
-                </form>
-                <form method="POST" action="?/approveRecord">
-                  <input type="hidden" name="type" value={row.type} /><input
-                    type="hidden"
-                    name="id"
-                    value={row.id}
-                  /><input type="hidden" name="decision" value="rejected" /><input
-                    name="reason"
-                    aria-label="Rejection reason"
-                    placeholder="Reason"
-                    required
-                  /><button>Reject</button>
-                </form>{/if}
-            </div>
-          </article>{:else}<div class="empty">Approval queue clear.</div>{/each}
-      </section>
-      <section class="record-list full">
-        <div class="panel-title">
-          <h2>Milestones awaiting approval</h2>
-          <span>{data.milestones?.length ?? 0}</span>
-        </div>
-        {#each data.milestones ?? [] as milestone}<article class="approval-row">
-            <div>
-              <strong>{milestone.project_number} · {milestone.name}</strong><small
-                >{milestone.due_on ?? 'No due date'} · {milestone.amount_minor}
-                {milestone.currency} · submitted</small
-              >
-            </div>
-            <div class="record-actions">
-              {#if isAuditor}<span class="state-tag">Read-only review</span>{:else}<form
-                  method="POST"
-                  action="?/reviewMilestone"
-                >
-                  <input type="hidden" name="id" value={milestone.id} /><input
-                    type="hidden"
-                    name="decision"
-                    value="approved"
-                  /><button>Approve milestone</button>
-                </form>
-                <form method="POST" action="?/reviewMilestone">
-                  <input type="hidden" name="id" value={milestone.id} /><input
-                    type="hidden"
-                    name="decision"
-                    value="rejected"
-                  /><input name="reason" placeholder="Reason" required /><button>Reject</button>
-                </form>{/if}
-            </div>
-          </article>{:else}<div class="empty">No milestones await approval.</div>{/each}
-      </section>
+      <ApprovalSection
+        {data}
+        {isAuditor}
+        isOwner={data.user.role === 'owner_admin'}
+        canSeeFinanceReview={isFinance}
+        {translate}
+        {controlledValue}
+      />
     {:else if data.section === 'billing'}
-      <div class="management-stack">
-        {#if !isAuditor}<form method="POST" action="?/createBillingRule" class="admin-form-grid">
-            <h2>Configure billing stream</h2>
-            <p class="form-help">
-              Labor and expense streams are configured independently. Draft generation may be
-              automatic; invoice issue and send remain manual.
-            </p>
-            <label
-              >Project<select name="projectId" required
-                ><option value="">Select project</option>{#each availableProjects as project}<option
-                    value={project.id}
-                    >{project.project_number} — {project.name} ({project.currency})</option
-                  >{/each}</select
-              ></label
-            ><label
-              >Stream<select name="streamType" required
-                ><option value="labor">Labor</option><option value="expense">Expenses</option
-                ><option value="milestone">Milestone</option><option value="other">Other</option
-                ></select
-              ></label
-            ><label
-              >Cadence<select name="cadenceType" required
-                ><option value="weekly">Weekly</option><option value="every_14_days"
-                  >Every 14 days</option
-                ><option value="semi_monthly">Semi-monthly</option><option value="monthly"
-                  >Monthly</option
-                ><option value="custom">Custom</option><option value="milestone">Milestone</option
-                ><option value="manual">Manual</option></select
-              ></label
-            ><label>Effective from<input name="effectiveFrom" type="date" required /></label><label
-              >Anchor date<input name="anchorDate" type="date" /></label
-            ><label
-              >Legal entity<select name="legalEntityId" required
-                ><option value="">Select legal entity</option
-                >{#each data.legalEntities ?? [] as entity}<option value={entity.id}
-                    >{entity.code} — {entity.legal_name} ({entity.currency})</option
-                  >{/each}</select
-              ></label
-            ><label
-              >Tax profile<select name="taxProfileId" required
-                ><option value="">Select tax profile</option
-                >{#each data.taxProfiles ?? [] as profile}<option value={profile.id}
-                    >{profile.name} ({profile.currency})</option
-                  >{/each}</select
-              ></label
-            ><label
-              >Currency<select name="currency" required
-                ><option>USD</option><option>BRL</option><option>EUR</option></select
-              ></label
-            ><label>Invoice template<input name="templateId" value="default" required /></label
-            ><label>Recipient email<input name="recipientEmail" type="email" /></label><label
-              >Billing contact<select name="billingContactId"
-                ><option value="">Use recipient email</option
-                >{#each data.contacts ?? [] as contact}<option value={contact.id}
-                    >{contact.client_number} · {contact.name} · {contact.email ??
-                      'no email'}</option
-                  >{/each}</select
-              ></label
-            ><label
-              >Payment terms (days)<input
-                name="paymentTermsDays"
-                type="number"
-                min="0"
-                max="365"
-                value="30"
-                required
-              /></label
-            ><label>PO reference<input name="poNumberOverride" /></label><label
-              >Grouping<select name="groupingMode"
-                ><option value="summary">Summary</option><option value="detail">Detail</option
-                ><option value="by_worker">By worker</option><option value="by_day">By day</option
-                ><option value="by_category">By category</option></select
-              ></label
-            ><label
-              >Semi-monthly rule<input name="semiMonthlyRule" value="1_15_16_end" required /></label
-            ><label class="check"
-              ><input name="autoGenerateDraft" type="checkbox" /> Generate drafts when the stream is due</label
-            ><button>Save billing stream</button>
-          </form>
-          <div class="management-grid">
-            <form method="POST" action="?/createLegalEntity" class="admin-form-grid">
-              <h2>Legal entity</h2>
-              <label>Code<input name="code" required /></label><label
-                >Legal name<input name="legalName" required /></label
-              ><label
-                >Currency<select name="currency"
-                  ><option>USD</option><option>BRL</option><option>EUR</option></select
-                ></label
-              ><label
-                >Billing address<textarea name="billingAddress" rows="3" required></textarea></label
-              ><label
-                >Company identifiers<textarea name="companyIdentifiers" rows="2" required
-                ></textarea></label
-              ><button>Save legal entity</button>
-            </form>
-            <form method="POST" action="?/createInvoiceNumberPolicy" class="admin-form-grid">
-              <h2>Invoice numbering policy</h2>
-              <label
-                >Legal entity<select name="legalEntityId" required
-                  ><option value="">Select entity</option
-                  >{#each data.legalEntities ?? [] as entity}<option value={entity.id}
-                      >{entity.code} — {entity.legal_name}</option
-                    >{/each}</select
-                ></label
-              ><label>Prefix<input name="prefix" value="JA-" required /></label><label
-                >Digits<input
-                  name="digits"
-                  type="number"
-                  min="4"
-                  max="10"
-                  value="6"
-                  required
-                /></label
-              ><label>Effective from<input name="effectiveFrom" type="date" required /></label
-              ><label
-                >Accountant approved at<input
-                  name="accountantApprovedAt"
-                  type="datetime-local"
-                  required
-                /></label
-              ><button>Save numbering policy</button>
-            </form>
-            <form method="POST" action="?/createTaxProfile" class="admin-form-grid">
-              <h2>Tax profile</h2>
-              <label
-                >Legal entity<select name="legalEntityId"
-                  ><option value="">Global profile</option
-                  >{#each data.legalEntities ?? [] as entity}<option value={entity.id}
-                      >{entity.code} — {entity.legal_name}</option
-                    >{/each}</select
-                ></label
-              ><label>Name<input name="name" required /></label><label
-                >Currency<select name="currency"
-                  ><option>USD</option><option>BRL</option><option>EUR</option></select
-                ></label
-              ><label>Effective from<input name="effectiveFrom" type="date" required /></label
-              ><label
-                >Component<input name="componentName" value="VAT / sales tax" required /></label
-              ><label
-                >Rate (basis points)<input
-                  name="componentBasisPoints"
-                  type="number"
-                  min="0"
-                  max="100000"
-                  value="0"
-                  required
-                /></label
-              ><label class="check"
-                ><input name="componentCompound" type="checkbox" /> Compound on prior component</label
-              ><button>Save tax profile</button>
-            </form>
-          </div>{/if}
-        <section class="record-list">
-          <div class="panel-title">
-            <h2>Billing rules</h2>
-            <span>{data.billingRules?.length ?? 0}</span>
-          </div>
-          {#each data.billingRules ?? [] as rule}<article>
-              <div>
-                <strong>{rule.project_number} · {rule.stream_type}</strong><small
-                  >{rule.cadence_type} · {rule.currency} · {rule.tax_profile_name ??
-                    'No tax profile'}</small
-                >
-              </div>
-              {#if !isAuditor}<div class="compact-actions">
-                  <form method="POST" action="?/createDraft" class="compact-form">
-                    <input type="hidden" name="billingRuleId" value={rule.id} /><input
-                      name="periodStart"
-                      type="date"
-                      aria-label="Period start"
-                      required
-                    /><input name="periodEnd" type="date" aria-label="Period end" required /><button
-                      >Build draft</button
-                    >
-                  </form>
-                  <form method="POST" action="?/closePeriod" class="compact-form">
-                    <input type="hidden" name="billingRuleId" value={rule.id} /><input
-                      name="periodStart"
-                      type="date"
-                      aria-label="Close period start"
-                      required
-                    /><input
-                      name="periodEnd"
-                      type="date"
-                      aria-label="Close period end"
-                      required
-                    /><label
-                      >Report language<select name="reportLocale" aria-label="Report language">
-                        <option value="en">English</option><option value="pt">Português (BR)</option
-                        ><option value="es">Español</option>
-                      </select></label
-                    ><button>Close sources</button>
-                  </form>
-                </div>{/if}
-            </article>{/each}
-        </section>
-        <section class="record-list full">
-          <div class="panel-title">
-            <h2>Invoices</h2>
-            <span>{data.invoices?.length ?? 0}</span>
-          </div>
-          {#each data.invoices ?? [] as invoice}<article class="invoice-row">
-              <div>
-                <strong>{invoice.invoice_number || 'Draft'} · {invoice.project_number}</strong
-                ><small
-                  >{invoice.stream_type} · {invoice.state} · {money(
-                    invoice.total_minor,
-                    String(invoice.currency),
-                  )}</small
-                >
-              </div>
-              <div class="record-actions">
-                <a class="preview-link" href={`${base}/app/billing/invoices/${invoice.id}`}
-                  >Preview</a
-                >
-                {#if !isAuditor}{#if invoice.state === 'draft'}<form
-                      method="POST"
-                      action="?/approveInvoice"
-                    >
-                      <input type="hidden" name="invoiceId" value={invoice.id} /><button
-                        >Approve</button
-                      >
-                    </form>{:else if invoice.state === 'approved'}<form
-                      method="POST"
-                      action="?/issueInvoice"
-                    >
-                      <input type="hidden" name="invoiceId" value={invoice.id} /><label
-                        >Report language<select
-                          name="reportLocale"
-                          aria-label="Invoice report language"
-                        >
-                          <option value="en">EN</option><option value="pt">PT-BR</option><option
-                            value="es">ES</option
-                          >
-                        </select></label
-                      ><button>Issue</button>
-                    </form>{:else if ['issued', 'sent', 'partially_paid', 'overdue'].includes(String(invoice.state))}<form
-                      method="POST"
-                      action="?/recordPayment"
-                      class="payment-form"
-                    >
-                      <input type="hidden" name="invoiceId" value={invoice.id} /><input
-                        name="amount"
-                        aria-label="Payment amount"
-                        placeholder="0.00"
-                        required
-                      /><input
-                        name="receivedOn"
-                        type="date"
-                        aria-label="Received on"
-                        required
-                      /><input
-                        name="idempotencyKey"
-                        type="hidden"
-                        value={`payment-${invoice.id}-${invoice.paid_minor}`}
-                      /><button>Record payment</button>
-                    </form>{/if}
-                  {#if invoice.state === 'issued'}
-                    <form method="POST" action="?/sendInvoice">
-                      <input type="hidden" name="invoiceId" value={invoice.id} /><input
-                        type="hidden"
-                        name="idempotencyKey"
-                        value={`send-${invoice.id}`}
-                      /><button>Mark sent</button>
-                    </form>
-                  {/if}
-                  {#if ['issued', 'sent', 'partially_paid', 'overdue'].includes(String(invoice.state))}
-                    <form method="POST" action="?/voidInvoice">
-                      <input type="hidden" name="invoiceId" value={invoice.id} /><input
-                        type="hidden"
-                        name="idempotencyKey"
-                        value={`void-${invoice.id}`}
-                      /><input
-                        name="reason"
-                        placeholder="Void reason"
-                        aria-label="Void reason"
-                        required
-                      /><button>Void</button>
-                    </form>
-                  {/if}
-                  {#if ['issued', 'sent', 'partially_paid', 'overdue'].includes(String(invoice.state))}
-                    <form method="POST" action="?/createInvoiceAdjustment" class="payment-form">
-                      <input type="hidden" name="originalInvoiceId" value={invoice.id} />
-                      <select name="adjustmentType" aria-label="Adjustment type">
-                        <option value="credit">Credit</option><option value="debit">Debit</option
-                        ><option value="correction">Correction</option>
-                      </select>
-                      <input
-                        name="amountMinor"
-                        placeholder="Minor-unit amount"
-                        aria-label="Adjustment amount"
-                        required
-                      />
-                      <input
-                        name="reason"
-                        placeholder="Reason"
-                        aria-label="Adjustment reason"
-                        required
-                      />
-                      <button>Create adjustment</button>
-                    </form>
-                  {/if}{/if}
-              </div>
-            </article>{:else}<div class="empty">No invoice drafts.</div>{/each}
-        </section>
-      </div>
+      <BillingSection
+        {data}
+        {form}
+        {locale}
+        {isAuditor}
+        {availableProjects}
+        {translate}
+        {controlledValue}
+        formatMoney={(minor, currency) => paymentMoney(minor, currency, documentLanguage(locale))}
+      />
     {:else if data.section === 'finance' && data.finance}
-      <form class="filter-form">
-        <label
-          >Project<select
-            name="project"
-            onchange={(event) => event.currentTarget.form?.requestSubmit()}
-            >{#each availableProjects as project}<option
-                value={project.id}
-                selected={project.id === data.selectedProjectId}
-                >{project.project_number} — {project.name}</option
-              >{/each}</select
-          ></label
-        >
-      </form>
-      <div class="finance-grid">
-        {#each [['Approved cost', data.finance.approvedCostMinor], ['Revenue candidate', data.finance.revenueCandidateMinor], ['Contribution margin', data.finance.contributionMarginMinor], ['Invoiced', data.finance.invoicedMinor], ['Paid', data.finance.paidMinor], ['Receivable', data.finance.receivableMinor], ['Approved unbilled WIP', data.finance.approvedUnbilledWipMinor], ['Unapproved WIP', data.finance.unapprovedWipMinor]] as metric}<section
-            class="metric"
-          >
-            <span>{metric[0]}</span><strong>{money(metric[1], data.finance.currency)}</strong>
-          </section>{/each}
-      </div>
-      <p class="finance-note">
-        Contribution margin is project revenue less approved project cost. It is not company net
-        profit.
-      </p>
-      <section class="record-list full forecast-panel">
-        <div class="panel-title">
-          <div>
-            <h2>Forecast and budget control</h2>
-            <p>
-              Forecasts use actual records first and only use configured planning data for the
-              remaining work. They never create actual time or billing sources.
-            </p>
-          </div>
-          <span
-            >{data.finance.forecastAvailable
-              ? 'Planning basis available'
-              : 'No detailed plan'}</span
-          >
-        </div>
-        <div class="finance-grid">
-          {#each [['Planned remaining', data.finance.plannedRemainingMinutes === null ? '—' : `${(Number(data.finance.plannedRemainingMinutes) / 60).toFixed(1)} h`], ['ETC direct cost', data.finance.estimateToCompleteMinor === null ? '—' : money(data.finance.estimateToCompleteMinor, data.finance.currency)], ['EAC direct cost', data.finance.estimateAtCompletionCostMinor === null ? '—' : money(data.finance.estimateAtCompletionCostMinor, data.finance.currency)], ['Expected final margin', data.finance.expectedFinalMarginMinor === null ? '—' : money(data.finance.expectedFinalMarginMinor, data.finance.currency)], ['Hours consumed', data.finance.hoursConsumedBps === null ? '—' : `${(Number(data.finance.hoursConsumedBps) / 100).toFixed(1)}%`], ['Travel budget used', data.finance.travelBudgetConsumedBps === null ? '—' : `${(Number(data.finance.travelBudgetConsumedBps) / 100).toFixed(1)}%`]] as metric}<section
-              class="metric"
-            >
-              <span>{metric[0]}</span><strong>{metric[1]}</strong>
-            </section>{/each}
-        </div>
-        {#if data.finance.alerts?.length}<div class="alert-strip" role="status">
-            {#each data.finance.alerts as alert}<span>{String(alert).replaceAll('_', ' ')}</span
-              >{/each}
-          </div>{/if}
-      </section>
-      {#if data.portfolio}<section class="record-list full economics-list">
-          <div class="panel-title">
-            <div>
-              <h2>Portfolio views</h2>
-              <p>
-                Admin/Finance-only aggregates remain grouped by currency and drill back to the
-                selected project economics.
-              </p>
-            </div>
-            <span>{data.portfolio.projects?.length ?? 0} projects</span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead
-                ><tr
-                  ><th>Project</th><th>Client</th><th>Currency</th><th>Approved hours</th><th
-                    >Revenue candidate</th
-                  ><th>Direct cost</th><th>Contribution</th><th>WIP</th></tr
-                ></thead
-              >
-              <tbody
-                >{#each data.portfolio.projects ?? [] as row}<tr
-                    ><td>{String(row.projectNumber)} · {String(row.projectName)}</td><td
-                      >{String(row.clientName)}</td
-                    ><td>{String(row.currency)}</td><td
-                      >{(Number(row.approvedMinutes ?? 0) / 60).toFixed(1)} h</td
-                    ><td>{money(String(row.revenueCandidateMinor), String(row.currency))}</td><td
-                      >{money(String(row.approvedCostMinor), String(row.currency))}</td
-                    ><td>{money(String(row.contributionMarginMinor), String(row.currency))}</td><td
-                      >{money(String(row.approvedUnbilledWipMinor), String(row.currency))}</td
-                    ></tr
-                  >{:else}<tr><td colspan="8">No finance projects are available.</td></tr
-                  >{/each}</tbody
-              >
-            </table>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead
-                ><tr
-                  ><th>Worker</th><th>Currency</th><th>Approved hours</th><th>Billable hours</th><th
-                    >Revenue attributed</th
-                  ><th>Loaded labor cost</th><th>Travel / expense</th><th>Contribution</th></tr
-                ></thead
-              >
-              <tbody
-                >{#each data.portfolio.byWorker ?? [] as row}<tr
-                    ><td>{String(row.workerName)}</td><td>{String(row.currency)}</td><td
-                      >{(Number(row.actualMinutes ?? 0) / 60).toFixed(1)} h</td
-                    ><td>{(Number(row.billableMinutes ?? 0) / 60).toFixed(1)} h</td><td
-                      >{money(String(row.revenue), String(row.currency))}</td
-                    ><td>{money(String(row.internalCost), String(row.currency))}</td><td
-                      >{money(String(row.expenseCost), String(row.currency))}</td
-                    ><td>{money(String(row.contribution), String(row.currency))}</td></tr
-                  >{:else}<tr><td colspan="8">No approved worker economics are available.</td></tr
-                  >{/each}</tbody
-              >
-            </table>
-          </div>
-        </section>{/if}
-      <section class="record-list full">
-        <div class="panel-title">
-          <div>
-            <h2>Finance configuration</h2>
-            <p>
-              Rates are effective-dated and resolved by assignment, category, activity, and project
-              scope.
-            </p>
-          </div>
-          <span>Exact minor units</span>
-        </div>
-        {#if !isAuditor}<div class="management-stack compact-stack">
-            <form method="POST" action="?/createCompensationRule" class="admin-form-grid">
-              <h3>Worker compensation</h3>
-              <label
-                >Worker<select name="workerId" required
-                  ><option value="">Select worker</option
-                  >{#each data.workers ?? [] as worker}<option value={worker.id}
-                      >{worker.name} · {worker.role}</option
-                    >{/each}</select
-                ></label
-              >
-              <label
-                >Project scope<select name="projectId"
-                  ><option value="">Global</option>{#each availableProjects as project}<option
-                      value={project.id}
-                      selected={project.id === data.selectedProjectId}
-                      >{project.project_number}</option
-                    >{/each}</select
-                ></label
-              >
-              <label
-                >Currency<select name="currency"
-                  ><option>USD</option><option>BRL</option><option>EUR</option></select
-                ></label
-              >
-              <label
-                >Rule type<select name="ruleType"
-                  ><option value="Hourly">Hourly</option><option value="Daily">Daily</option><option
-                    value="FixedPerBillingPeriod">Fixed per billing period</option
-                  ><option value="FixedProjectAmount">Fixed project amount</option><option
-                    value="PercentageOfEligibleClientLabor"
-                    >Percentage of eligible client labor</option
-                  ><option value="CustomApprovedAdjustment">Custom approved adjustment</option
-                  ></select
-                ></label
-              >
-              <label
-                >Rate (minor units)<input
-                  name="rateMinor"
-                  type="number"
-                  min="0"
-                  value="0"
-                  required
-                /></label
-              >
-              <label
-                >Rate basis<select name="rateBasis"
-                  ><option value="hourly">Hourly</option><option value="daily">Daily</option
-                  ></select
-                ></label
-              >
-              <label
-                >Percentage (basis points)<input
-                  name="percentageBps"
-                  type="number"
-                  min="0"
-                  max="10000"
-                  placeholder="e.g. 5500 = 55%"
-                /></label
-              >
-              <label
-                >Percentage basis<select name="percentageBasis"
-                  ><option value="CLIENT_LABOR_BEFORE_TAX">Client labor before tax</option><option
-                    value="CLIENT_LABOR_AFTER_APPROVED_DISCOUNT"
-                    >Client labor after approved discount</option
-                  ><option value="ISSUED_ELIGIBLE_LABOR">Issued eligible labor</option><option
-                    value="COLLECTED_ELIGIBLE_LABOR">Collected eligible labor</option
-                  ></select
-                ></label
-              >
-              <label
-                >Settlement trigger<select name="settlementTrigger"
-                  ><option value="ON_APPROVED_BILLABLE_LABOR">Approved billable labor</option
-                  ><option value="ON_INVOICE_ISSUE">Invoice issue</option><option
-                    value="ON_CLIENT_PAYMENT">Client payment</option
-                  ></select
-                ></label
-              >
-              <label
-                >Daily guarantee (minutes)<input
-                  name="dailyGuaranteeMinutes"
-                  type="number"
-                  min="0"
-                  max="1440"
-                /></label
-              >
-              <label>Effective from<input name="effectiveFrom" type="date" required /></label>
-              <button>Save compensation rule</button>
-            </form>
-            <form method="POST" action="?/createClientLaborRate" class="admin-form-grid">
-              <h3>Client labor rate</h3>
-              <input type="hidden" name="projectId" value={data.selectedProjectId} />
-              <label
-                >Worker scope<select name="workerId"
-                  ><option value="">All assigned workers</option
-                  >{#each data.workers ?? [] as worker}<option value={worker.id}
-                      >{worker.name}</option
-                    >{/each}</select
-                ></label
-              >
-              <label
-                >Time category<input
-                  name="category"
-                  placeholder="regular, overtime, travel"
-                /></label
-              >
-              <label
-                >Currency<select name="currency"
-                  ><option>USD</option><option>BRL</option><option>EUR</option></select
-                ></label
-              >
-              <label
-                >Hourly rate (minor units)<input
-                  name="hourlyRateMinor"
-                  type="number"
-                  min="0"
-                  required
-                /></label
-              >
-              <label
-                >Overtime method<select name="overtimeMethod"
-                  ><option value="BASE_RATE_MULTIPLIER">Base rate multiplier</option><option
-                    value="NONE">None</option
-                  ><option value="FIXED_RATE">Fixed rate</option><option
-                    value="FIXED_ADDITION_PER_HOUR">Fixed addition per hour</option
-                  ><option value="PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME"
-                    >Percentage of eligible overtime</option
-                  ></select
-                ></label
-              >
-              <label
-                >Overtime multiplier (bps)<input
-                  name="overtimeMultiplierBps"
-                  type="number"
-                  min="0"
-                  value="15000"
-                /></label
-              >
-              <label>Effective from<input name="effectiveFrom" type="date" required /></label>
-              <label class="check"
-                ><input name="eligibleForPercentage" type="checkbox" checked /> Eligible for percentage
-                compensation</label
-              >
-              <button>Save client rate</button>
-            </form>
-            <form method="POST" action="?/createInternalCostRule" class="admin-form-grid">
-              <h3>Internal loaded cost</h3>
-              <input type="hidden" name="projectId" value={data.selectedProjectId} />
-              <label
-                >Worker<select name="workerId" required
-                  ><option value="">Select worker</option
-                  >{#each data.workers ?? [] as worker}<option value={worker.id}
-                      >{worker.name}</option
-                    >{/each}</select
-                ></label
-              >
-              <label
-                >Currency<select name="currency"
-                  ><option>USD</option><option>BRL</option><option>EUR</option></select
-                ></label
-              >
-              <label
-                >Hourly cost (minor units)<input
-                  name="hourlyRateMinor"
-                  type="number"
-                  min="0"
-                  required
-                /></label
-              >
-              <label>Cost method<input name="costMethod" value="loaded_cost" required /></label>
-              <label
-                >Overtime method<select name="overtimeMethod"
-                  ><option value="BASE_RATE_MULTIPLIER">Base rate multiplier</option><option
-                    value="NONE">None</option
-                  ><option value="FIXED_RATE">Fixed rate</option><option
-                    value="FIXED_ADDITION_PER_HOUR">Fixed addition per hour</option
-                  ></select
-                ></label
-              >
-              <label
-                >Overtime multiplier (bps)<input
-                  name="overtimeMultiplierBps"
-                  type="number"
-                  min="0"
-                  value="15000"
-                /></label
-              >
-              <label>Effective from<input name="effectiveFrom" type="date" required /></label>
-              <button>Save internal cost</button>
-            </form>
-          </div>{/if}
-      </section>
-      <section class="record-list full economics-list">
-        <div class="panel-title">
-          <h2>Time economics review</h2>
-          <span>{data.finance.timeEconomics?.length ?? 0} records</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead
-              ><tr
-                ><th>Date</th><th>Category</th><th>Minutes</th><th>Billable</th><th>State</th><th
-                  >Billing</th
-                ><th>Client revenue</th><th>Loaded cost</th><th>Worker compensation</th><th
-                  >Configuration</th
-                ></tr
-              ></thead
-            ><tbody
-              >{#each data.finance.timeEconomics ?? [] as row}<tr
-                  ><td>{String(row.workDate)}</td><td>{String(row.category)}</td><td
-                    >{String(row.actualMinutes)}</td
-                  ><td>{String(row.clientBillableMinutes ?? 0)}</td><td
-                    >{String(row.approvalState)}</td
-                  ><td>{String(row.billingStatus ?? 'unlocked')}</td><td
-                    >{money(String(row.clientRevenueMinor), data.finance.currency)}</td
-                  ><td>{money(String(row.internalCostMinor), data.finance.currency)}</td><td
-                    >{money(String(row.workerCompensationMinor), data.finance.currency)}</td
-                  ><td
-                    >{row.clientRateConfigured && row.internalCostConfigured
-                      ? 'Complete'
-                      : 'Rate review'}</td
-                  ></tr
-                >{:else}<tr
-                  ><td colspan="10">No time economics are available for this project.</td></tr
-                >{/each}</tbody
-            >
-          </table>
-        </div>
-      </section>
-      <section class="record-list full economics-list">
-        <div class="panel-title">
-          <h2>Expense economics</h2>
-          <span>{data.finance.expenseEconomics?.length ?? 0} records</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead
-              ><tr
-                ><th>Date</th><th>Category</th><th>Treatment</th><th>Direct cost</th><th
-                  >Client revenue</th
-                ></tr
-              ></thead
-            ><tbody
-              >{#each data.finance.expenseEconomics ?? [] as row}<tr
-                  ><td>{String(row.spentOn)}</td><td>{String(row.category)}</td><td
-                    >{String(row.treatment)}</td
-                  ><td>{money(String(row.costMinor), data.finance.currency)}</td><td
-                    >{money(String(row.revenueMinor), data.finance.currency)}</td
-                  ></tr
-                >{:else}<tr
-                  ><td colspan="5">No approved expenses are available for this project.</td></tr
-                >{/each}</tbody
-            >
-          </table>
-        </div>
-      </section>
-      <section class="record-list full economics-list">
-        <div class="panel-title">
-          <div>
-            <h2>Compensation settlements</h2>
-            <p>Finance-only finalization of approved compensation for the selected project.</p>
-          </div>
-          <span>{data.settlements?.length ?? 0}</span>
-        </div>
-        {#if !isAuditor}<form method="POST" action="?/settleCompensation" class="admin-form-grid">
-            <input type="hidden" name="projectId" value={data.selectedProjectId} />
-            <label
-              >Worker<select name="workerId" required
-                ><option value="">Select worker</option>{#each data.workers ?? [] as worker}<option
-                    value={worker.id}>{worker.name}</option
-                  >{/each}</select
-              ></label
-            >
-            <label>Period start<input name="periodStart" type="date" required /></label>
-            <label>Period end<input name="periodEnd" type="date" required /></label>
-            <button>Finalize compensation</button>
-          </form>{/if}
-        <div class="table-wrap">
-          <table>
-            <thead
-              ><tr
-                ><th>Worker</th><th>Period</th><th>Basis</th><th>Source</th><th>Amount</th><th
-                  >State</th
-                ></tr
-              ></thead
-            ><tbody
-              >{#each data.settlements ?? [] as settlement}<tr
-                  ><td>{String(settlement.workerName)}</td><td
-                    >{String(settlement.periodStart)} → {String(settlement.periodEnd)}</td
-                  ><td>{String(settlement.sourceBasis)}</td><td
-                    >{money(String(settlement.sourceAmountMinor), String(settlement.currency))}</td
-                  ><td>{money(String(settlement.amountMinor), String(settlement.currency))}</td><td
-                    >{String(settlement.state)}</td
-                  ></tr
-                >{:else}<tr><td colspan="6">No settlements recorded for this project.</td></tr
-                >{/each}</tbody
-            >
-          </table>
-        </div>
-      </section>
-      <section class="record-list full economics-list">
-        <div class="panel-title">
-          <div>
-            <h2>Worker reimbursement queue</h2>
-            <p>Reimbursements are separate from customer expense billing status.</p>
-          </div>
-          <span>{data.reimbursements?.length ?? 0}</span>
-        </div>
-        {#each data.reimbursements ?? [] as reimbursement}<article class="record-card">
-            <div>
-              <strong>{reimbursement.workerName} · {reimbursement.vendor}</strong><small
-                >{reimbursement.spentOn} · {reimbursement.category} · {reimbursement.reimbursementState}</small
-              >
-            </div>
-            {#if !isAuditor && reimbursement.reimbursementState !== 'reimbursed'}<form
-                method="POST"
-                action="?/recordReimbursement"
-              >
-                <input type="hidden" name="expenseId" value={reimbursement.id} />
-                <input
-                  type="hidden"
-                  name="amountMinor"
-                  value={reimbursement.reimbursementAmountMinor}
-                />
-                <input
-                  name="reference"
-                  placeholder="Payment reference"
-                  aria-label="Payment reference"
-                  required
-                />
-                <button>Mark reimbursed</button>
-              </form>{:else}<strong
-                >{money(
-                  reimbursement.reimbursementAmountMinor,
-                  String(reimbursement.currency),
-                )}</strong
-              >{/if}
-          </article>{:else}<div class="empty">
-            No approved worker-paid expenses require reimbursement.
-          </div>{/each}
-      </section>
+      <FinanceOverviewSection
+        {locale}
+        {data}
+        {availableProjects}
+        {isAuditor}
+        {translate}
+        {controlledValue}
+        money={(minor, currency) => paymentMoney(minor, currency, documentLanguage(locale))}
+        currentView={currentView || 'overview'}
+      />
     {:else if data.section === 'ledger'}
-      <section class="record-list full ledger-list">
-        <div class="panel-title">
-          <div>
-            <h2>Master Invoice / Cost / Collection Ledger</h2>
-            <p>
-              Each row reconciles the issued invoice, locked source records, direct cost,
-              collection, outstanding balance, and contribution.
-            </p>
-          </div>
-          <span>{data.ledger?.length ?? 0} invoices</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead
-              ><tr
-                ><th>Invoice</th><th>Client / project</th><th>Stream</th><th>Gross</th><th
-                  >Collected</th
-                ><th>Outstanding</th><th>Direct cost</th><th>Contribution</th><th>Sources</th><th
-                  >Status</th
-                ></tr
-              ></thead
-            ><tbody
-              >{#each data.ledger ?? [] as row}<tr
-                  ><td>{String(row.invoiceNumber ?? '—')}</td><td
-                    >{String(row.clientNumber)} · {String(row.projectNumber)}</td
-                  ><td>{String(row.streamType)}</td><td
-                    >{money(String(row.totalMinor), String(row.currency))}</td
-                  ><td>{money(String(row.collectedMinor), String(row.currency))}</td><td
-                    >{money(String(row.outstandingMinor), String(row.currency))}</td
-                  ><td>{money(String(row.directCostMinor), String(row.currency))}</td><td
-                    >{money(String(row.contributionMinor), String(row.currency))}</td
-                  ><td>{Array.isArray(row.sources) ? row.sources.length : 0}</td><td
-                    >{String(row.paymentStatus)}</td
-                  ></tr
-                >{:else}<tr
-                  ><td colspan="10"
-                    >No issued invoice records match the current authorization scope.</td
-                  ></tr
-                >{/each}</tbody
-            >
-          </table>
-        </div>
-      </section>
+      <CollectionsLedgerSection {data} {translate} {controlledValue} {locale} />
     {:else if data.section === 'accounting'}
-      <div class="management-stack">
-        {#if !isAuditor}<form method="POST" action="?/createAccountingPack" class="admin-form-grid">
-            <h2>Generate monthly Accounting Pack</h2>
-            <p class="form-help">
-              The pack contains invoice register, collections, worker/direct costs, expenses, AR,
-              contribution, source counts, and deterministic PDF/XLSX/CSV/JSON artifacts.
-            </p>
-            <label>Period start<input name="periodStart" type="date" required /></label><label
-              >Period end<input name="periodEnd" type="date" required /></label
-            ><label
-              >Report language<select
-                name="reportLocale"
-                aria-label="Accounting Pack report language"
-              >
-                <option value="en">English</option><option value="pt">Português (BR)</option><option
-                  value="es">Español</option
-                >
-              </select></label
-            ><button>Generate pack</button>
-          </form>
-          <form method="POST" action="?/runJobs" class="entry-panel">
-            <h2>Process durable finance jobs</h2>
-            <p>
-              Runs queued PDF and Accounting Pack artifact jobs with idempotent output registration.
-            </p>
-            <button>Run due jobs</button>
-          </form>{/if}
-        <section class="record-list full">
-          <div class="panel-title">
-            <h2>Accounting Pack register</h2>
-            <span>{data.packs?.length ?? 0} packs</span>
-          </div>
-          {#each data.packs ?? [] as pack}<article class="invoice-row">
-              <div>
-                <strong>{String(pack.period_start)} → {String(pack.period_end)}</strong><small
-                  >{String(pack.state)} · {String(pack.created_at)}</small
-                >
-              </div>
-              <div class="record-actions">
-                <a
-                  class="preview-link"
-                  href={`${base}/app/api/accounting-pack/${String(pack.id)}/pdf`}>PDF</a
-                ><a
-                  class="preview-link"
-                  href={`${base}/app/api/accounting-pack/${String(pack.id)}/xlsx`}>XLSX</a
-                ><a
-                  class="preview-link"
-                  href={`${base}/app/api/accounting-pack/${String(pack.id)}/invoice_csv`}
-                  >Invoice CSV</a
-                >{#if !isAuditor && String(pack.state) !== 'final'}<form
-                    method="POST"
-                    action="?/finalizeAccountingPack"
-                  >
-                    <input type="hidden" name="packId" value={pack.id} /><button>Finalize</button>
-                  </form>{/if}
-              </div>
-            </article>{:else}<div class="empty">
-              No Accounting Packs have been generated.
-            </div>{/each}
-        </section>
-      </div>
+      <AccountingSection {data} {isAuditor} {locale} {translate} {controlledValue} />
     {:else if data.section === 'profile'}
       <div class="management-stack">
-        <section class="entry-panel">
-          <span class="portal-kicker">WORKFORCE PROFILE</span>
-          <h2>Skills and availability</h2>
+        <section class="entry-panel" id="profile-skills">
+          <span class="portal-kicker">{translate('WORKFORCE PROFILE')}</span>
+          <h2>{translate('Expertise and availability')}</h2>
           <p>
-            Keep your own workforce profile current without exposing compensation or client rates.
+            {translate(
+              'Keep your own workforce profile current without exposing compensation or client rates.',
+            )}
           </p>
-          <div class="table-wrap">
+          {#if skillProblem}
+            <ProblemNotice
+              problem={skillProblem}
+              kind={skillProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+              remedyLinks={globalRemedyLinks}
+            />
+          {/if}
+          {#if (data.user.role === 'owner_admin' || data.user.role === 'finance_admin' || data.user.role === 'project_manager') && (data.workers?.length ?? 0) > 0}
+            <form method="GET" action={href('profile')} class="worker-profile-selector">
+              <label
+                >{translate('Inspect worker')}<select name="worker" required>
+                  {#each data.workers ?? [] as worker}
+                    <option value={worker.id} selected={String(worker.id) === profileWorkerId}
+                      >{worker.name} · {controlledValue('role', worker.role)}</option
+                    >
+                  {/each}
+                </select></label
+              >
+              <button type="submit">{translate('View worker profile')}</button>
+            </form>
+          {/if}
+          {#if !isAuditor}
+            <details
+              class="admin-details profile-skill-details"
+              open={skillFailure?.operation === 'setWorkerSkill' &&
+                skillValue('setWorkerSkill', 'workerId') === profileWorkerId}
+            >
+              <summary class="primary-button">{translate('Add expertise')}</summary>
+              <form
+                method="POST"
+                action="?/setWorkerSkill#profile-skills"
+                data-workforce-operation="setWorkerSkill"
+                data-workforce-origin="profile"
+                class="admin-form-grid"
+                use:formValidation
+              >
+                <input type="hidden" name="workerId" value={profileWorkerId} />
+                <label
+                  >{translate('Expertise')}
+                  <select name="skillId" value={skillValue('setWorkerSkill', 'skillId')} required>
+                    <option value="">{translate('Select expertise')}</option>
+                    {#if missingChoice(skillValue('setWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [])}<option
+                        value={skillValue('setWorkerSkill', 'skillId')}
+                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                      >{/if}
+                    {#each data.allSkills ?? data.skills ?? [] as skill}
+                      <option value={skill.id}>{skill.name}</option>
+                    {/each}
+                  </select>
+                </label>
+                <label
+                  >{translate('Proficiency (1-5)')}
+                  <input
+                    name="proficiency"
+                    type="number"
+                    min="1"
+                    max="5"
+                    value={skillValue('setWorkerSkill', 'proficiency', '3')}
+                    required
+                  />
+                </label>
+                <button>{translate('Add expertise')}</button>
+              </form>
+            </details>
+            <details
+              class="admin-details profile-skill-details"
+              open={skillFailure?.operation === 'deleteWorkerSkill' &&
+                skillValue('deleteWorkerSkill', 'workerId') === profileWorkerId}
+            >
+              <summary class="primary-button">{translate('Remove expertise')}</summary>
+              <form
+                method="POST"
+                action="?/deleteWorkerSkill#profile-skills"
+                data-workforce-operation="deleteWorkerSkill"
+                data-workforce-origin="profile"
+                class="admin-form-grid"
+                use:formValidation
+              >
+                <input type="hidden" name="workerId" value={profileWorkerId} />
+                <label
+                  >{translate('Expertise')}
+                  <select
+                    name="skillId"
+                    value={skillValue('deleteWorkerSkill', 'skillId')}
+                    required
+                  >
+                    <option value="">{translate('Select expertise')}</option>
+                    {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), data.skills ?? [])}<option
+                        value={skillValue('deleteWorkerSkill', 'skillId')}
+                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                      >{/if}
+                    {#each data.skills ?? [] as skill}
+                      <option value={skill.id}>{skill.name}</option>
+                    {/each}
+                  </select>
+                </label>
+                <button class="danger">{translate('Remove expertise')}</button>
+              </form>
+            </details>
+          {/if}
+          <TableRegion
+            class="table-wrap worker-profile-table"
+            mobileMode="scroll"
+            label={translate('Expertise and availability')}
+          >
             <table>
-              <thead><tr><th>Skill</th><th>Proficiency</th><th>Verified</th></tr></thead><tbody
+              <thead
+                ><tr
+                  ><th>{translate('Expertise')}</th><th>{translate('Proficiency')}</th><th
+                    >{translate('Verified')}</th
+                  ></tr
+                ></thead
+              ><tbody
                 >{#each data.skills ?? [] as skill}<tr
                     ><td>{skill.name}</td><td>{skill.proficiency}/5</td><td
-                      >{skill.verified_at ? 'verified' : 'self-reported'}</td
+                      >{skill.verified_at ? translate('verified') : translate('self-reported')}</td
                     ></tr
-                  >{:else}<tr><td colspan="3">No skills recorded.</td></tr>{/each}</tbody
+                  >{:else}<tr><td colspan="3">{translate('No expertise recorded.')}</td></tr
+                  >{/each}</tbody
               >
             </table>
-          </div>
-          {#if !isAuditor}<form method="POST" action="?/setAvailability" class="admin-form-grid">
-              <input type="hidden" name="workerId" value={data.user.id ?? ''} /><label
-                >Starts<input name="startsAt" type="datetime-local" required /></label
-              ><label>Ends<input name="endsAt" type="datetime-local" required /></label><label
-                >Availability<select name="availability"
-                  ><option value="available">Available</option><option value="unavailable"
-                    >Unavailable</option
-                  ><option value="tentative">Tentative</option></select
-                ></label
-              ><label>Note<textarea name="note" rows="2"></textarea></label><button
-                >Save availability</button
+          </TableRegion>
+          {#key profileWorkerId}
+            <AvailabilityCalendar
+              records={data.availability ?? []}
+              workerId={profileWorkerId}
+              currentUserId={String(data.user.id)}
+              readOnly={isAuditor}
+              {form}
+              {translate}
+              {locale}
+            />
+          {/key}
+          {#if data.user.role === 'owner_admin' && (data.workers?.length ?? 0) > 0}
+            <section
+              class="owner-workforce-controls"
+              aria-labelledby="worker-profile-controls-title"
+            >
+              <div class="panel-title">
+                <div>
+                  <span class="portal-kicker">{translate('OWNER ADMIN')}</span>
+                  <h3 id="worker-profile-controls-title">{translate('Manage worker profiles')}</h3>
+                  <p class="form-help">
+                    {translate(
+                      'Assign expertise and availability windows for an individual worker. These controls do not expose compensation or client-rate data.',
+                    )}
+                  </p>
+                </div>
+              </div>
+              <details
+                class="admin-details"
+                open={skillFailure?.operation === 'setWorkerSkill' ||
+                  skillFailure?.operation === 'deleteWorkerSkill'}
               >
-            </form>{/if}
-          <div class="table-wrap">
+                <summary class="primary-button">{translate('Manage worker expertise')}</summary>
+                <form
+                  method="POST"
+                  action="?/setWorkerSkill#profile-skills"
+                  data-workforce-operation="setWorkerSkill"
+                  data-workforce-origin="owner"
+                  class="admin-form-grid"
+                  use:formValidation
+                >
+                  <label
+                    >{translate('Worker')}<select
+                      name="workerId"
+                      value={skillValue('setWorkerSkill', 'workerId')}
+                      required
+                    >
+                      {#if missingChoice(skillValue('setWorkerSkill', 'workerId'), data.workers ?? [])}<option
+                          value={skillValue('setWorkerSkill', 'workerId')}
+                          disabled>{translate('Worker')} · {translate('Unavailable')}</option
+                        >{/if}
+                      {#each data.workers ?? [] as worker}
+                        <option value={worker.id}
+                          >{worker.name} · {controlledValue('role', worker.role)}</option
+                        >
+                      {/each}
+                    </select></label
+                  >
+                  <label
+                    >{translate('Expertise')}<select
+                      name="skillId"
+                      value={skillValue('setWorkerSkill', 'skillId')}
+                      required
+                    >
+                      <option value="">{translate('Select expertise')}</option>
+                      {#if missingChoice(skillValue('setWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [])}<option
+                          value={skillValue('setWorkerSkill', 'skillId')}
+                          disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                        >{/if}
+                      {#each data.allSkills ?? data.skills ?? [] as skill}
+                        <option value={skill.id}>{skill.name}</option>
+                      {/each}
+                    </select></label
+                  >
+                  <label
+                    >{translate('Proficiency (1–5)')}<input
+                      name="proficiency"
+                      type="number"
+                      min="1"
+                      max="5"
+                      value={skillValue('setWorkerSkill', 'proficiency', '3')}
+                      required
+                    /></label
+                  >
+                  <button type="submit">{translate('Assign expertise')}</button>
+                </form>
+                <form
+                  method="POST"
+                  action="?/deleteWorkerSkill#profile-skills"
+                  data-workforce-operation="deleteWorkerSkill"
+                  data-workforce-origin="owner"
+                  class="admin-form-grid"
+                  use:formValidation
+                >
+                  <label
+                    >{translate('Worker')}<select
+                      name="workerId"
+                      value={skillValue('deleteWorkerSkill', 'workerId')}
+                      required
+                    >
+                      {#if missingChoice(skillValue('deleteWorkerSkill', 'workerId'), data.workers ?? [])}<option
+                          value={skillValue('deleteWorkerSkill', 'workerId')}
+                          disabled>{translate('Worker')} · {translate('Unavailable')}</option
+                        >{/if}
+                      {#each data.workers ?? [] as worker}
+                        <option value={worker.id}
+                          >{worker.name} · {controlledValue('role', worker.role)}</option
+                        >
+                      {/each}
+                    </select></label
+                  >
+                  <label
+                    >{translate('Expertise')}<select
+                      name="skillId"
+                      value={skillValue('deleteWorkerSkill', 'skillId')}
+                      required
+                    >
+                      <option value="">{translate('Select expertise')}</option>
+                      {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [])}<option
+                          value={skillValue('deleteWorkerSkill', 'skillId')}
+                          disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                        >{/if}
+                      {#each data.allSkills ?? data.skills ?? [] as skill}
+                        <option value={skill.id}>{skill.name}</option>
+                      {/each}
+                    </select></label
+                  >
+                  <button class="danger" type="submit">{translate('Remove expertise')}</button>
+                </form>
+              </details>
+            </section>
+          {/if}
+          <TableRegion
+            class="table-wrap worker-profile-table"
+            mobileMode="scroll"
+            label={translate('Availability')}
+          >
             <table>
-              <thead><tr><th>Window</th><th>Status</th><th>Note</th></tr></thead><tbody
+              <thead
+                ><tr
+                  ><th>{translate('Window')}</th><th>{translate('Status')}</th><th
+                    >{translate('Note')}</th
+                  ></tr
+                ></thead
+              ><tbody
                 >{#each data.availability ?? [] as item}<tr
                     ><td
                       >{String(item.starts_at).replace('T', ' ').slice(0, 16)} → {String(
@@ -2861,152 +6601,178 @@
                       )
                         .replace('T', ' ')
                         .slice(0, 16)}</td
-                    ><td>{item.availability}</td><td>{item.note ?? '—'}</td></tr
-                  >{:else}<tr><td colspan="3">No availability windows recorded.</td></tr
+                    ><td>{controlledValue('availability', item.availability)}</td><td
+                      >{item.note ?? '—'}</td
+                    ></tr
+                  >{:else}<tr
+                    ><td colspan="3">{translate('No availability windows recorded.')}</td></tr
                   >{/each}</tbody
               >
             </table>
-          </div>
+          </TableRegion>
         </section>
         <section class="entry-panel security-panel">
-          <span class="portal-kicker">ACCOUNT SECURITY</span>
+          <span class="portal-kicker">{translate('ACCOUNT SECURITY')}</span>
           <h2>{data.user.name}</h2>
-          <p>{data.user.email} · {data.user.role ?? 'worker'}</p>
-          <p>
-            Use step-up authentication immediately before payment, invoice void, rate, invitation,
-            or final-pack actions.
-          </p>
-          <form onsubmit={stepUp}>
-            <label
-              >Password<input
-                name="password"
-                type="password"
-                minlength="12"
-                autocomplete="current-password"
-                required
-              /></label
-            ><button>Verify for protected actions</button>
-          </form>
-          {#if stepUpMessage}<p class="action-message" role="status">{stepUpMessage}</p>{/if}
+          <p>{data.user.email} · {controlledValue('role', data.user.role ?? 'worker')}</p>
           <div class="security-methods">
             <div class="security-method-heading">
               <div>
-                <span class="portal-kicker">PHISHING-RESISTANT ACCESS</span>
-                <h3>Passkeys</h3>
+                <span class="portal-kicker">{translate('PHISHING-RESISTANT ACCESS')}</span>
+                <h3>{translate('Passkeys')}</h3>
               </div>
-              <span class="state-tag">{passkeys.length} registered</span>
+              <span class="state-tag">{passkeys.length} {translate('registered')}</span>
             </div>
             <p class="form-help">
-              Register a device passkey for faster, phishing-resistant sign-in. A passkey never
-              leaves your device.
+              {translate(
+                'Register a device passkey for faster, phishing-resistant sign-in. A passkey never leaves your device.',
+              )}
             </p>
             <form class="inline-form" onsubmit={registerPasskey}>
               <label
-                >Device name<input
+                >{translate('Device name')}<input
                   name="passkeyName"
                   bind:value={passkeyName}
-                  placeholder="Work laptop"
+                  placeholder={translate('Work laptop')}
                   maxlength="80"
                 /></label
-              ><button type="submit">Register passkey</button>
+              ><button type="submit">{translate('Register passkey')}</button>
             </form>
             {#if passkeys.length}<ul class="security-list">
                 {#each passkeys as passkey}<li>
                     <span
-                      ><strong>{passkey.name || 'Unnamed device'}</strong><small
+                      ><strong>{passkey.name || translate('Unnamed device')}</strong><small
                         >{passkey.createdAt
                           ? new Date(passkey.createdAt).toLocaleDateString()
-                          : 'Registered device'}</small
+                          : translate('Registered device')}</small
                       ></span
                     ><button
                       type="button"
                       class="text-button danger"
-                      onclick={() => revokePasskey(passkey.id)}>Revoke</button
+                      onclick={() => revokePasskey(passkey.id)}>{translate('Revoke')}</button
                     >
                   </li>{/each}
               </ul>{/if}
           </div>
-          <div class="security-methods">
+          <div id="account-mfa" class="security-methods">
             <div class="security-method-heading">
               <div>
-                <span class="portal-kicker">ACCOUNT MFA</span>
-                <h3>Authenticator app</h3>
+                <span class="portal-kicker">{translate('ACCOUNT MFA')}</span>
+                <h3>{translate('Authenticator app')}</h3>
               </div>
-              <span class="state-tag">{data.user.mfaEnrolled ? 'Enabled' : 'Not enabled'}</span>
+              <span class="state-tag"
+                >{mfaNeedsReview
+                  ? mfaCopy.statusUnverified
+                  : mfaEnrolled
+                    ? translate('Enabled')
+                    : translate('Not enabled')}</span
+              >
             </div>
             <p class="form-help">
-              Production accounts require a second factor. Enabling MFA returns the setup URI and
-              one-time recovery codes; store them in an approved password manager.
+              {translate(
+                'MFA is optional. Enabling it returns the setup URI and one-time recovery codes; store them in an approved password manager.',
+              )}
             </p>
-            <label
-              >Confirm with password<input
-                type="password"
-                bind:value={mfaPassword}
-                minlength="12"
-                autocomplete="current-password"
-                required
-              /></label
-            >
+            {#if mfaProblem}
+              <div data-profile-mfa-problem>
+                <ProblemNotice
+                  problem={mfaProblem}
+                  kind={mfaProblemIsService(mfaProblem) ? 'service' : 'error'}
+                  remedyLinks={mfaRemedyLinks}
+                />
+                {#if mfaProblem.correlationId && !mfaProblemIsService(mfaProblem)}
+                  <small
+                    >{portalText(locale, 'problem.error.reference', {
+                      correlationId: mfaProblem.correlationId,
+                    })}</small
+                  >
+                {/if}
+                {#if mfaProblem.remedies.some((remedy) => remedy.id === 'review_mfa_status')}
+                  <a
+                    data-sveltekit-reload
+                    href={`${base}/app/profile?lang=${locale}#account-mfa`}
+                    onclick={reviewCurrentMfaStatus}>{mfaCopy.reviewMfaStatus}</a
+                  >
+                {/if}
+              </div>
+            {/if}
+            {#if mfaEnrolled}
+              <p class="form-help" data-mfa-disable-warning>{mfaCopy.disableWarning}</p>
+            {/if}
             <div class="inline-actions">
-              <button type="button" onclick={() => toggleMfa('enable')}>Enable MFA</button>
-              {#if data.user.mfaEnrolled && !data.user.mfaRequired}<button
+              {#if !mfaEnrolled && !mfaSetupUri}<button
+                  type="button"
+                  disabled={mfaBusy || mfaNeedsReview}
+                  onclick={() => toggleMfa('enable')}>{translate('Enable MFA')}</button
+                >{/if}
+              {#if mfaEnrolled}<button
                   type="button"
                   class="secondary"
-                  onclick={() => toggleMfa('disable')}>Disable MFA</button
+                  disabled={mfaBusy || mfaNeedsReview}
+                  onclick={() => toggleMfa('disable')}>{translate('Disable MFA')}</button
                 >{/if}
             </div>
             {#if mfaSetupUri}
               <div class="security-setup" aria-live="polite">
-                <p><strong>Finish authenticator setup</strong></p>
+                <p><strong>{translate('Finish authenticator setup')}</strong></p>
                 <p class="form-help">
-                  Add this URI to your authenticator, then enter the current six-digit code to
-                  confirm the device. Recovery codes are shown once; store them securely.
+                  {translate(
+                    'Add this URI to your authenticator, then enter the current six-digit code to confirm the device. Recovery codes are shown once; store them securely.',
+                  )}
                 </p>
                 <code class="security-uri">{mfaSetupUri}</code>
                 {#if mfaBackupCodes.length}
-                  <p class="security-codes" aria-label="One-time recovery codes">
+                  <p class="security-codes" aria-label={translate('One-time recovery codes')}>
                     {mfaBackupCodes.join(' · ')}
                   </p>
                 {/if}
                 <form class="inline-form" onsubmit={verifyMfa}>
                   <label
-                    >Authenticator code<input
+                    >{translate('Authenticator code')}<input
+                      id="profile-mfa-code"
                       bind:value={mfaCode}
+                      aria-invalid={Boolean(mfaProblem?.fieldErrors.code?.length)}
+                      aria-describedby={mfaProblem?.fieldErrors.code?.length
+                        ? 'profile-mfa-code-error'
+                        : undefined}
                       inputmode="numeric"
                       autocomplete="one-time-code"
-                      pattern="[0-9]{6}"
+                      pattern={'[0-9]{6}'}
                       minlength="6"
                       maxlength="6"
                       required
                     /></label
-                  ><button type="submit">Verify MFA</button>
+                  >{#if mfaProblem?.fieldErrors.code?.[0]}<p
+                      id="profile-mfa-code-error"
+                      class="field-error"
+                    >
+                      {portalText(locale, mfaProblem.fieldErrors.code[0], mfaProblem.params)}
+                    </p>{/if}<button type="submit" disabled={mfaBusy || mfaNeedsReview}
+                    >{translate('Verify MFA')}</button
+                  >
                 </form>
               </div>
             {/if}
           </div>
-          {#if securityMessage}<p class="action-message" role="status">{securityMessage}</p>{/if}
+          {#if securityMessage}<p class="action-message" role="status">
+              {translate(securityMessage)}
+            </p>{/if}
         </section>
       </div>
     {:else if data.section === 'notifications'}
-      <section class="record-list full">
-        <div class="panel-title">
-          <h2>Activity inbox</h2>
-          <span>{data.records?.length ?? 0}</span>
-        </div>
-        {#each data.records ?? [] as row}<article>
-            <div>
-              <strong>{String(row.kind).replaceAll('_', ' ')}</strong><small
-                >{String(row.created_at).replace('T', ' ').slice(0, 16)}</small
-              >
-            </div>
-            <span class="state-tag">{row.read_at ? 'read' : 'new'}</span>
-          </article>{:else}<div class="empty">No notifications.</div>{/each}
-      </section>
+      <NotificationSection
+        records={data.records ?? []}
+        {form}
+        currentUserId={String(data.user.id)}
+        {base}
+        {locale}
+        {translate}
+      />
     {:else if data.section === 'audit'}
       <section class="record-list full">
         <div class="panel-title">
-          <h2>Append-only security and finance audit</h2>
-          <span>{data.audit?.length ?? 0} events</span>
+          <h2>{translate('Append-only security and finance audit')}</h2>
+          <span>{data.audit?.length ?? 0} {translate('events')}</span>
         </div>
         {#each data.audit ?? [] as row}<article>
             <div>
@@ -3017,18 +6783,53 @@
               >
             </div>
             <code>{String(row.details_json ?? '{}')}</code>
-          </article>{:else}<div class="empty">No audit events recorded.</div>{/each}
+          </article>{:else}<div class="empty">{translate('No audit events recorded.')}</div>{/each}
       </section>
     {:else}
       <section class="record-list full">
-        <div class="panel-title"><h2>{titles[data.section]}</h2></div>
-        <div class="empty">Nothing is available in this view yet.</div>
+        <div class="panel-title"><h2 data-portal-live-text>{translate(currentTitle)}</h2></div>
+        <div class="empty">{translate('Nothing is available in this view yet.')}</div>
       </section>
     {/if}
   </main>
-  <nav class="bottom-nav" aria-label="Mobile navigation">
-    {#each navigation as item}<a class:active={data.section === item.section} href={itemHref(item)}
-        >{item.label}</a
-      >{/each}
+  <ToastRegion toasts={toastItems} label={translate('Notifications')} ondismiss={dismissToast} />
+  <nav class="bottom-nav" aria-label={translate('Mobile navigation')}>
+    {#each mobileNavigation as item}
+      <a
+        class:active={activeDestination === item}
+        href={itemHref(item)}
+        aria-current={activeDestination === item ? 'page' : undefined}>{translate(item.label)}</a
+      >
+    {/each}
+    <button
+      type="button"
+      class="bottom-nav-more"
+      aria-controls="portal-navigation"
+      aria-expanded={menuOpen}
+      onclick={() => (menuOpen = true)}
+    >
+      {translate('More')}
+    </button>
   </nav>
 </div>
+
+<style>
+  .document-workspace {
+    overflow-anchor: none;
+  }
+  .document-entry {
+    flex-wrap: wrap;
+  }
+  .document-download-feedback {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .document-download-feedback > button {
+    min-height: 2.75rem;
+  }
+  @media (max-width: 767px) {
+    :global(.portal-layout main .admin-form-grid.project-setup-form) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

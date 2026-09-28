@@ -1,0 +1,115 @@
+{
+  "candidateCommit": "ed1d7a2",
+  "fixture": "Project, assignment, time, and expense created through browser UI",
+  "matrix": [],
+  "defects": [],
+  "editChecks": [
+    {
+      "entry": "direct URL",
+      "lookupStatus": 200,
+      "linkedEntryReturned": true,
+      "persistedLinkSelected": true,
+      "warningVisible": true
+    },
+    {
+      "entry": "row Edit button",
+      "lookupStatus": 200,
+      "persistedLinkSelected": true,
+      "warningVisible": true
+    }
+  ],
+  "failures": [
+    {
+      "surface": "create",
+      "locale": "es",
+      "lookupStatus": 503,
+      "warningSuppressed": true,
+      "valuesRetained": true,
+      "focusOnError": true,
+      "noticeVisibility": {
+        "messageTop": 175,
+        "messageBottom": 236,
+        "noticeTop": 134,
+        "noticeBottom": 255,
+        "noticeHeight": 121,
+        "bodyTop": 134,
+        "bodyBottom": 844,
+        "bodyScrollTop": 726,
+        "bodyMaxScroll": 1358,
+        "actionTop": 753,
+        "startScrollRequired": 726,
+        "startWouldFitAboveActions": true,
+        "messageOverlapsStickyActions": false,
+        "messageHitIsAction": false
+      },
+      "retryVisibleAboveActions": true,
+      "scrollPreserved": true,
+      "retryStatus": 200,
+      "warningRestored": true
+    },
+    {
+      "surface": "edit",
+      "locale": "en",
+      "lookupStatus": 503,
+      "warningSuppressed": true,
+      "originalLinkRetained": true
+    }
+  ],
+  "saves": [
+    {
+      "role": "worker",
+      "mode": "enhanced",
+      "invalidTransportStatus": 200,
+      "invalidActionStatus": 400,
+      "invalidCode": "EXPENSE_AMOUNT_INVALID",
+      "invalidRemedyTranslated": true,
+      "amountFieldErrorVisible": true,
+      "successStatus": 200,
+      "linkPersisted": true,
+      "state": "draft",
+      "valuesRetainedAfterInvalid": true
+    },
+    {
+      "role": "worker",
+      "mode": "native",
+      "status": 200,
+      "linkPersisted": true,
+      "state": "draft",
+      "unselectedHidden": true,
+      "reselectedVisible": true
+    }
+  ],
+  "diagnostics": {
+    "worker": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "lookups": [
+        200,
+        200,
+        200,
+        503,
+        200,
+        503
+      ],
+      "actionPosts": [
+        200,
+        200,
+        200
+      ],
+      "syncRequests": []
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "lookups": [],
+      "actionPosts": [],
+      "syncRequests": []
+    }
+  },
+  "offlineEmptyQueue": {
+    "enabled": true,
+    "onlineEventDispatched": true,
+    "syncRequests": 0,
+    "falseFailureToastAbsent": true
+  }
+}

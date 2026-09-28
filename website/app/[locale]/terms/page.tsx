@@ -1,4 +1,5 @@
 import { setRequestLocale } from 'next-intl/server';
+import { localizedAlternates } from '@/lib/i18n/metadata';
 
 type TermsCopy = {
   title: string;
@@ -78,7 +79,11 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   const language = locale.slice(0, 2) as 'en' | 'pt' | 'es';
   const selected = copy[language] ?? copy.en;
-  return { title: `${selected.title} | J&A Automation`, description: selected.title };
+  return {
+    title: `${selected.title} | J&A Automation`,
+    description: selected.title,
+    alternates: localizedAlternates(locale, '/terms'),
+  };
 }
 
 export default async function TermsPage({ params }: { params: Promise<{ locale: string }> }) {

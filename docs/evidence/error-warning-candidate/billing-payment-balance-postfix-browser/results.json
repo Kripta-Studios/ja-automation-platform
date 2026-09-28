@@ -1,0 +1,129 @@
+{
+  "candidateFingerprint": "06d87c1c30bc61ee43b05e72d59ff46ee38c66fd+payment-diff:f7a4c76ad3998713645a51ea9db7e7eb81f068e331f45bb31d871ad60bfee7e9",
+  "fixture": "new disposable database; seeded issued invoice; UI-created partial collections in two authorized roles",
+  "cases": [
+    {
+      "role": "finance",
+      "viewport": "390x844",
+      "locale": "en",
+      "mode": "native",
+      "beforeScrollY": 1392,
+      "expectedCurrentBalanceMinor": "7979900",
+      "response": {
+        "transportStatus": 409,
+        "contentType": "text/html",
+        "code": "BILLING_PAYMENT_EXCEEDS_BALANCE",
+        "genericPhrase": false
+      },
+      "visible": {
+        "code": "BILLING_PAYMENT_EXCEEDS_BALANCE",
+        "wording": "Action needed This payment exceeds the invoice balance currently available. Review the current ledger and enter an amount within that balance. Outstanding: $79,799.00 Review invoice ledger",
+        "remedy": ["Review invoice ledger"],
+        "remedyHref": "/j-aautomation/app/billing?view=invoices&invoice=:record#invoice-collections",
+        "remedyHardReload": true,
+        "currentBalanceDisplay": "Outstanding: $79,799.00",
+        "focused": "notice",
+        "focusTop": 129,
+        "focusBottom": 325,
+        "headerBottom": 70,
+        "viewportHeight": 844,
+        "scrollY": 1392,
+        "amount": "79800.00",
+        "referenceRetained": true,
+        "formMax": "79799.00"
+      },
+      "remedyBehavior": {
+        "href": "/j-aautomation/app/billing?view=invoices&invoice=:record#invoice-collections",
+        "freshDocument": true,
+        "maxBefore": "79799.00",
+        "maxAfter": "79799.00",
+        "hashAfter": "#invoice-collections",
+        "noticeStillPresent": false,
+        "collectionTop": 134,
+        "drawerScrollTop": 585
+      },
+      "paymentCountUnchanged": true
+    },
+    {
+      "role": "owner",
+      "viewport": "1440x900",
+      "locale": "es",
+      "mode": "enhanced",
+      "beforeScrollY": 153,
+      "expectedCurrentBalanceMinor": "7979800",
+      "response": {
+        "transportStatus": 200,
+        "contentType": "application/json",
+        "code": "BILLING_PAYMENT_EXCEEDS_BALANCE",
+        "genericPhrase": false
+      },
+      "actionPayload": {
+        "type": "failure",
+        "status": 409,
+        "code": "BILLING_PAYMENT_EXCEEDS_BALANCE",
+        "messageKey": "problem.billing.paymentExceedsBalance",
+        "params": {
+          "remainingMinor": "7979800",
+          "currency": "USD"
+        },
+        "remedies": [
+          {
+            "id": "review_ledger"
+          }
+        ]
+      },
+      "visible": {
+        "code": "BILLING_PAYMENT_EXCEEDS_BALANCE",
+        "wording": "Se requiere una acción Este pago supera el saldo disponible actual de la factura. Revisa el libro de pagos actualizado e introduce un importe dentro de ese saldo. Pendiente de cobro: 79.798,00 US$ Revisar el libro de la factura",
+        "remedy": ["Revisar el libro de la factura"],
+        "remedyHref": "/j-aautomation/app/billing?view=invoices&invoice=:record#invoice-collections",
+        "remedyHardReload": true,
+        "currentBalanceDisplay": "Pendiente de cobro: 79.798,00 US$",
+        "focused": "notice",
+        "focusTop": 137,
+        "focusBottom": 313,
+        "headerBottom": 72,
+        "viewportHeight": 900,
+        "scrollY": 153,
+        "amount": "79799.00",
+        "referenceRetained": true,
+        "formMax": "79799.00"
+      },
+      "remedyBehavior": {
+        "href": "/j-aautomation/app/billing?view=invoices&invoice=:record#invoice-collections",
+        "freshDocument": true,
+        "maxBefore": "79799.00",
+        "maxAfter": "79798.00",
+        "hashAfter": "#invoice-collections",
+        "noticeStillPresent": false,
+        "collectionTop": 218,
+        "drawerScrollTop": 229
+      },
+      "paymentCountUnchanged": true
+    }
+  ],
+  "diagnostics": {
+    "finance": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "409 /j-aautomation/app/billing",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    }
+  }
+}

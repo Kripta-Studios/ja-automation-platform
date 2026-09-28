@@ -1,0 +1,54 @@
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Deleted build cache objects:
+fvwb0lgg6x34ppv0ppbl043ds
+xogn0p02n95goffijwlkyx3ux
+okmveqx9lqihukcc7z4h8vftl
+jg34dta1jsbrj3hnzp2pu5xix
+2ynj9eggcbfzaoiesre5usqa4
+97ero7uxi2orsaeoxyvl0xo6p
+c6t7303fo2d63xv5qu1qud4hy
+8lqb2fzomi3becu0bgpv4zzxa
+p0ljmf0tvs5ahrztgm7ce7zzq
+0ailhxuyn9y63kdafwanxocqi
+l7c0ym4zkw6hgpbyf8qus7v7k
+w3anqbo2n8tonmhtc9jvlb7rc
+qcoziqqjbtfx7qzxjjsz9db0t
+sv1maen6v43utlnbyc8781tgl
+zxzgwwwt63bcg7brsldkm1dag
+rg5xxp7fsm10hkhmjsqevpldq
+9pco7uiaj5mx62pr18lsmja2g
+qx5eemlufe1oecqyhbqwy51gh
+ly870rf9kfhillxjmnfwh1g2x
+v09gez9xikq9uck469mz71je8
+nke3oia0gxrjx7230k2pqe0mt
+qd5zeixe9rrew5a7o8zeu4vac
+sggugqfyqhn6drykpse38k01t
+ld8seg3yz441o429sdhx2iome
+cjeki93mchq2soe2bkbqw3xrx
+kcpuugqkqg9is0ur0no4w5ww5
+80rzx2xirs5zpzb6yc6yjp0j9
+9f4apnr1nrnzgdepjh0qx9u3i
+4yuq2gkf667xhzeva7h38uohl
+x9re0i2szn8x42rzvjoh2rx1n
+n1ujjuk8k21x3ravne2km6gr1
+ohohojsd0g7rwudiidoac8jh3
+kk440c6v69dtpv1mjwar1zy8z
+jjeshsnvcjia7kxxt6h3on1r8
+yuu2bi6ux56hkf0rgookukhyc
+g9wgwuq3x7ybgphtw5wijzxlz
+yoqxcp631uxvnqqvpdgxv4chn
+nf1r524rycrh1c3fgr864lm8p
+qaaxlki42l0m6wx6l5djlwoiw
+shfk29cgaktvakh8rllqqhbb0
+c0d498guq995fbrl1u0ctd5dn
+yoak0uxkt6xk41vw5he0ke33n
+cy19aor8a28ecwgkfq9exv9bv
+psggz56zgd8yh771k1dncap7t
+2o3mgxpb15ij8nuvqvwfiu342
+ks4ur0qk323z1ml94g6yojexf
+uku26u2dl6nl3rcklef1nwhvt
+
+Total reclaimed space: 6.861GB

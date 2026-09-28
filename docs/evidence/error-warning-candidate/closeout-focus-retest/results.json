@@ -1,0 +1,122 @@
+[
+  {
+    "action": "reopen",
+    "viewport": "phone-390",
+    "locale": "en",
+    "prepare": {
+      "transportStatus": 200,
+      "actionStatus": 200,
+      "resultType": "success",
+      "typedReasonCode": false,
+      "leakedStack": false
+    },
+    "confirm": {
+      "transportStatus": 200,
+      "actionStatus": 200,
+      "resultType": "success",
+      "typedReasonCode": false,
+      "leakedStack": false
+    },
+    "finalize": {
+      "transportStatus": 200,
+      "actionStatus": 200,
+      "resultType": "success",
+      "typedReasonCode": false,
+      "leakedStack": false
+    },
+    "invalid": {
+      "transportStatus": 200,
+      "actionStatus": 400,
+      "resultType": "failure",
+      "typedReasonCode": true,
+      "leakedStack": false
+    },
+    "code": "CLOSEOUT_REOPEN_REASON_REQUIRED",
+    "visibleText": "Action needed\n\nEnter a reason of 1 to 2000 characters before reopening.\n\nEnter a reason",
+    "remedies": ["Enter a reason"],
+    "remedyRouteSafe": true,
+    "reasonRetained": true,
+    "formStillVisible": true,
+    "projectPageRetained": true,
+    "scrollBefore": 292,
+    "focus": {
+      "activeIsSummary": true,
+      "activeIsNotice": false,
+      "focusTop": 741,
+      "focusBottom": 832,
+      "focusHeight": 91,
+      "noticeTop": 69,
+      "noticeBottom": 220,
+      "headerBottom": 70,
+      "viewportHeight": 844,
+      "scrollY": 327,
+      "focusFullyVisible": true,
+      "noticeFullyVisible": false,
+      "nearestScroller": null
+    },
+    "noWrite": true,
+    "pageErrors": [],
+    "consoleErrors": [],
+    "failedResponses": []
+  },
+  {
+    "action": "reopen",
+    "viewport": "desktop-1440",
+    "locale": "es",
+    "prepare": {
+      "transportStatus": 200,
+      "actionStatus": 200,
+      "resultType": "success",
+      "typedReasonCode": false,
+      "leakedStack": false
+    },
+    "confirm": {
+      "transportStatus": 200,
+      "actionStatus": 200,
+      "resultType": "success",
+      "typedReasonCode": false,
+      "leakedStack": false
+    },
+    "finalize": {
+      "transportStatus": 200,
+      "actionStatus": 200,
+      "resultType": "success",
+      "typedReasonCode": false,
+      "leakedStack": false
+    },
+    "invalid": {
+      "transportStatus": 200,
+      "actionStatus": 400,
+      "resultType": "failure",
+      "typedReasonCode": true,
+      "leakedStack": false
+    },
+    "code": "CLOSEOUT_REOPEN_REASON_REQUIRED",
+    "visibleText": "Se requiere una acción\n\nIntroduce un motivo de entre 1 y 2000 caracteres antes de reabrir.\n\nIntroducir un motivo",
+    "remedies": ["Introducir un motivo"],
+    "remedyRouteSafe": true,
+    "reasonRetained": true,
+    "formStillVisible": true,
+    "projectPageRetained": true,
+    "scrollBefore": 212,
+    "focus": {
+      "activeIsSummary": true,
+      "activeIsNotice": false,
+      "focusTop": 791,
+      "focusBottom": 839,
+      "focusHeight": 49,
+      "noticeTop": 182,
+      "noticeBottom": 313,
+      "headerBottom": 72,
+      "viewportHeight": 900,
+      "scrollY": 212,
+      "focusFullyVisible": true,
+      "noticeFullyVisible": true,
+      "nearestScroller": null
+    },
+    "noWrite": true,
+    "pageErrors": [],
+    "consoleErrors": [],
+    "failedResponses": []
+  }
+]

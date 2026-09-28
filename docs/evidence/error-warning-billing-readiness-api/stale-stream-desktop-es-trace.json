@@ -1,0 +1,13 @@
+{
+  "role": "finance",
+  "locale": "es",
+  "viewport": "desktop",
+  "status": 409,
+  "code": "BILLING_READINESS_STREAM_UNAVAILABLE",
+  "messageKey": "problem.billing.readinessStreamUnavailable",
+  "remedy": "review_billing_setup",
+  "retainedDates": true,
+  "focusOnNotice": true,
+  "pageErrors": [],
+  "consoleErrors": []
+}

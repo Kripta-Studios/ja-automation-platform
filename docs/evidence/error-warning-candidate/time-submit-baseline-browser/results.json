@@ -1,0 +1,91 @@
+{
+  "candidateCommit": "f5b37aa2604a925ec649af83d61802d2866296cd",
+  "fixture": "new disposable E2E database; Owner project/assignment and Worker Time draft created in rendered UI",
+  "cases": [
+    {
+      "name": "worker_390_en_edited_draft_native_stale_submit",
+      "before": {
+        "scrollY": 0,
+        "viewportHeight": 844
+      },
+      "response": {
+        "status": 409,
+        "contentType": "text/html",
+        "hasTypedCode": true,
+        "hasGenericPhrase": false
+      },
+      "visible": {
+        "status": "Draft",
+        "submitFormVisible": true,
+        "submitVersion": "2",
+        "alerts": [],
+        "notices": [],
+        "remedyLinks": [],
+        "focusedElement": "body",
+        "focusedText": "Skip to main content   TodayTimeExpensesReports SECONDARY Crew hoursMy PayProfile   Company Webmail ",
+        "focusTop": 0,
+        "focusBottom": 1470,
+        "scrollY": 0,
+        "viewportHeight": 844
+      },
+      "stateAfter": "draft",
+      "versionAfter": 2,
+      "auditDeltaAfterStale": 0
+    },
+    {
+      "name": "worker_390_en_already_submitted_native_stale_submit",
+      "response": {
+        "status": 409,
+        "contentType": "text/html",
+        "hasTypedCode": true,
+        "hasGenericPhrase": false
+      },
+      "visible": {
+        "status": "Submitted",
+        "submitFormVisible": false,
+        "submitVersion": null,
+        "alerts": [],
+        "notices": [],
+        "remedyLinks": [],
+        "focusedElement": "body",
+        "focusedText": "Skip to main content   TodayTimeExpensesReports SECONDARY Crew hoursMy PayProfile   Company Webmail ",
+        "focusTop": 0,
+        "focusBottom": 1275,
+        "scrollY": 0,
+        "viewportHeight": 844
+      },
+      "stateAfter": "submitted",
+      "versionAfter": 3,
+      "auditDeltaAfterStale": 0
+    }
+  ],
+  "diagnostics": {
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "workerTabA": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "409 /j-aautomation/app/time/:record",
+        "409 /j-aautomation/app/time/:record"
+      ]
+    },
+    "workerTabB": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    }
+  }
+}

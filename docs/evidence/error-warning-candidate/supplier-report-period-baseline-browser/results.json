@@ -1,0 +1,280 @@
+{
+  "candidateCommit": "b9f46b30660284fc34985cb621637ac74040a7ed",
+  "fixtureSetup": "Owner created disposable supplier and assigned two disposable worker profiles via rendered Supplier forms",
+  "scenarios": [
+    {
+      "role": "owner",
+      "locale": "en",
+      "width": 390,
+      "initial": {
+        "url": "/j-aautomation/app/supplier/report?lang=en",
+        "title": "Operational report · J&A",
+        "heading": "Operational report",
+        "body": "Back to workspace Operational report Operational work and approval status only. This report does not certify payment or customer acceptance. Installation / projectAscensionBBS MexicoBastian SolutionsBody Shop Line 4 Controls Upgrade · DemoCAP Automation GmbhCastor EngineeringCaustic Recovery Skid Integration · DemoDamonEmpackForerunnerHigh-Speed Palletizer Commissioning · DemoInProJoinerJunkers DF",
+        "formPresent": true,
+        "focused": "body",
+        "focusedName": null,
+        "noticeCount": 0,
+        "remedyLinks": [],
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 0,
+        "language": "en-US"
+      },
+      "reversed": {
+        "ui": {
+          "url": "/j-aautomation/app/supplier/report?projectId=project-cp008-ascension&supplierId=&from=2026-09-20&to=2026-09-19&lang=en",
+          "title": "Error · J&A Automation",
+          "heading": "Error",
+          "body": "← Dashboard Reports Reports Error The action could not be completed. Try again shortly. Back",
+          "formPresent": false,
+          "focused": "body",
+          "focusedName": null,
+          "noticeCount": 0,
+          "remedyLinks": [],
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "language": "en-US"
+        }
+      },
+      "malformed": {
+        "status": 400,
+        "ui": {
+          "url": "/j-aautomation/app/supplier/report?from=2026-13-40&to=2026-09-20&lang=en",
+          "title": "Error · J&A Automation",
+          "heading": "Error",
+          "body": "← Dashboard Reports Reports Error The action could not be completed. Try again shortly. Back",
+          "formPresent": false,
+          "focused": "body",
+          "focusedName": null,
+          "noticeCount": 0,
+          "remedyLinks": [],
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "language": "en-US"
+        }
+      },
+      "noWrite": {
+        "before": {
+          "audits": 334,
+          "supplierProfiles": 2
+        },
+        "after": {
+          "audits": 334,
+          "supplierProfiles": 2
+        }
+      },
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [
+          "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo=''. Either the 'unsafe-inline' keyword, a hash ('sha256-XdScB0qSyFKg6jvQ9koq46r+s8QTAeww11dh2ly45wA='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked."
+        ],
+        "http": [
+          "400 /j-aautomation/app/supplier/report",
+          "400 /j-aautomation/app/supplier/report.csv"
+        ],
+        "reportResponses": [
+          "200 document /j-aautomation/app/supplier/report",
+          "200 document /j-aautomation/app/supplier/report",
+          "200 fetch /j-aautomation/app/supplier/report/__data.json",
+          "400 document /j-aautomation/app/supplier/report",
+          "400 document /j-aautomation/app/supplier/report.csv"
+        ]
+      }
+    },
+    {
+      "role": "supplier_coordinator",
+      "locale": "es",
+      "width": 1440,
+      "initial": {
+        "url": "/j-aautomation/app/supplier/report?lang=es",
+        "title": "Informe operativo · J&A",
+        "heading": "Informe operativo",
+        "body": "Volver a la app Informe operativo Solo trabajo operativo y estado de aprobación. Este informe no acredita pagos ni aceptación del cliente. Instalación / proyecto DesdeHasta IdiomaInglésEspañolPortuguésAplicar filtros No hay instalaciones autorizadas o registros para esta selección.",
+        "formPresent": true,
+        "focused": "body",
+        "focusedName": null,
+        "noticeCount": 0,
+        "remedyLinks": [],
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scrollY": 0,
+        "language": "es-ES"
+      },
+      "reversed": {
+        "ui": {
+          "url": "/j-aautomation/app/supplier/report?from=2026-09-20&to=2026-09-19&lang=es",
+          "title": "Error · J&A Automation",
+          "heading": "Error",
+          "body": "← Panel Informes Informes Error La acción no se pudo completar. Inténtalo de nuevo. Atrás",
+          "formPresent": false,
+          "focused": "body",
+          "focusedName": null,
+          "noticeCount": 0,
+          "remedyLinks": [],
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollY": 0,
+          "language": "es-ES"
+        }
+      },
+      "malformed": {
+        "status": 400,
+        "ui": {
+          "url": "/j-aautomation/app/supplier/report?from=2026-13-40&to=2026-09-20&lang=es",
+          "title": "Error · J&A Automation",
+          "heading": "Error",
+          "body": "← Panel Informes Informes Error La acción no se pudo completar. Inténtalo de nuevo. Atrás",
+          "formPresent": false,
+          "focused": "body",
+          "focusedName": null,
+          "noticeCount": 0,
+          "remedyLinks": [],
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollY": 0,
+          "language": "es-ES"
+        }
+      },
+      "noWrite": {
+        "before": {
+          "audits": 334,
+          "supplierProfiles": 2
+        },
+        "after": {
+          "audits": 334,
+          "supplierProfiles": 2
+        }
+      },
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [],
+        "http": [
+          "400 /j-aautomation/app/supplier/report"
+        ],
+        "reportResponses": [
+          "200 document /j-aautomation/app/supplier/report",
+          "200 fetch /j-aautomation/app/supplier/report/__data.json",
+          "400 document /j-aautomation/app/supplier/report"
+        ]
+      }
+    },
+    {
+      "role": "external_technician",
+      "locale": "en",
+      "width": 390,
+      "initial": {
+        "url": "/j-aautomation/app/supplier/report?lang=en",
+        "title": "Operational report · J&A",
+        "heading": "Operational report",
+        "body": "Back to workspace Operational report Operational work and approval status only. This report does not certify payment or customer acceptance. Installation / projectBody Shop Line 4 Controls Upgrade · DemoHigh-Speed Palletizer Commissioning · Demo FromTo LanguageEnglishSpanishPortugueseApply filters Body Shop Line 4 Controls Upgrade · Demo 2026-09-01 — 2026-09-27 Total actual hours: 0 Download CSVPr",
+        "formPresent": true,
+        "focused": "body",
+        "focusedName": null,
+        "noticeCount": 0,
+        "remedyLinks": [],
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 0,
+        "language": "en-US"
+      },
+      "reversed": {
+        "ui": {
+          "url": "/j-aautomation/app/supplier/report?projectId=:record&from=2026-09-20&to=2026-09-19&lang=en",
+          "title": "Error · J&A Automation",
+          "heading": "Error",
+          "body": "← Dashboard Reports Reports Error The action could not be completed. Try again shortly. Back",
+          "formPresent": false,
+          "focused": "body",
+          "focusedName": null,
+          "noticeCount": 0,
+          "remedyLinks": [],
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "language": "en-US"
+        }
+      },
+      "malformed": {
+        "status": 400,
+        "ui": {
+          "url": "/j-aautomation/app/supplier/report?from=2026-13-40&to=2026-09-20&lang=en",
+          "title": "Error · J&A Automation",
+          "heading": "Error",
+          "body": "← Dashboard Reports Reports Error The action could not be completed. Try again shortly. Back",
+          "formPresent": false,
+          "focused": "body",
+          "focusedName": null,
+          "noticeCount": 0,
+          "remedyLinks": [],
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "language": "en-US"
+        }
+      },
+      "noWrite": {
+        "before": {
+          "audits": 334,
+          "supplierProfiles": 2
+        },
+        "after": {
+          "audits": 334,
+          "supplierProfiles": 2
+        }
+      },
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [],
+        "http": [
+          "400 /j-aautomation/app/supplier/report"
+        ],
+        "reportResponses": [
+          "200 document /j-aautomation/app/supplier/report",
+          "200 fetch /j-aautomation/app/supplier/report/__data.json",
+          "400 document /j-aautomation/app/supplier/report"
+        ]
+      }
+    }
+  ],
+  "missingProjectCsv": {
+    "status": 400,
+    "ui": {
+      "url": "/j-aautomation/app/supplier/report.csv?lang=en",
+      "title": "Select an installation",
+      "heading": "Select an installation",
+      "body": null,
+      "formPresent": false,
+      "focused": "body",
+      "focusedName": null,
+      "noticeCount": 0,
+      "remedyLinks": [],
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollY": 0,
+      "language": "en-US"
+    }
+  }
+}

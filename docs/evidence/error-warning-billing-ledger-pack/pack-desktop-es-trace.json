@@ -1,0 +1,26 @@
+[
+  {
+    "step": "pack-period-invalid-native",
+    "code": "BILLING_PERIOD_END_BEFORE_START",
+    "retained": true,
+    "scrollBefore": 0,
+    "scrollAfter": 0,
+    "maxBefore": 464,
+    "maxAfter": 751,
+    "activeName": "periodEnd",
+    "postedViewportScrollY": "0",
+    "settledScroll": 0
+  },
+  {
+    "step": "pack-scroll-timeline",
+    "events": "[{\"phase\":\"document-start\",\"ms\":3,\"scroll\":0,\"max\":-900},{\"phase\":\"timer-0\",\"ms\":6,\"scroll\":0,\"max\":-900},{\"phase\":\"dom-content-loaded\",\"ms\":24,\"scroll\":0,\"max\":696},{\"phase\":\"timer-50\",\"ms\":177,\"scroll\":0,\"max\":631},{\"phase\":\"load\",\"ms\":182,\"scroll\":0,\"max\":631},{\"phase\":\"timer-180\",\"ms\":201,\"scroll\":0,\"max\":631},{\"phase\":\"notice-visible\",\"ms\":204,\"scroll\":0,\"max\":631},{\"phase\":\"timer-300\",\"ms\":311,\"scroll\":0,\"max\":631},{\"phase\":\"scroll\",\"ms\":363,\"scroll\":624,\"max\":751},{\"phase\":\"scroll\",\"ms\":406,\"scroll\":0,\"max\":751},{\"phase\":\"timer-600\",\"ms\":604,\"scroll\":0,\"max\":751}]"
+  },
+  {
+    "step": "pack-create-enhanced-success",
+    "saved": true
+  },
+  {
+    "step": "worker-pack-denied",
+    "code": "BILLING_FINANCE_REQUIRED"
+  }
+]

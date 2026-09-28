@@ -1,0 +1,1280 @@
+{
+  "kind": "business_data_cleanup_dry_run",
+  "version": 1,
+  "snapshotDigest": "de32b79ed8404caeb44547de1d51920da9c52a625edd526f0b08415d0e9b9398",
+  "protectedMailboxUserCount": 99,
+  "allUserCount": 118,
+  "incompleteRelations": [
+    "finance_command:composite-or-implicit-fk",
+    "legal_entity_revision:composite-or-implicit-fk",
+    "project_legal_entity_assignment:composite-or-implicit-fk",
+    "finance_configuration_revision:composite-or-implicit-fk",
+    "finance_change_event:composite-or-implicit-fk",
+    "finance_change_event:composite-or-implicit-fk",
+    "expense_classification_series:composite-or-implicit-fk",
+    "expense_classification_revision:composite-or-implicit-fk",
+    "reimbursement_principal_series:composite-or-implicit-fk",
+    "reimbursement_principal_revision:composite-or-implicit-fk",
+    "compensation_settlement_series_v2:composite-or-implicit-fk",
+    "compensation_settlement_revision_v2:composite-or-implicit-fk",
+    "invoice_chain_anchor:composite-or-implicit-fk",
+    "invoice_overcredit_authorization:composite-or-implicit-fk",
+    "direct_cost_series:composite-or-implicit-fk",
+    "direct_cost_event:composite-or-implicit-fk",
+    "invoice_collection_batch:composite-or-implicit-fk",
+    "finance_source_cut:composite-or-implicit-fk",
+    "finance_source_cut_item:composite-or-implicit-fk",
+    "finance_internal_cost_snapshot:composite-or-implicit-fk",
+    "accounting_pack_series:composite-or-implicit-fk",
+    "accounting_pack_revision:composite-or-implicit-fk",
+    "period_report_series:composite-or-implicit-fk",
+    "report_source_manifest:composite-or-implicit-fk",
+    "report_source_manifest_item:composite-or-implicit-fk",
+    "period_report_revision:composite-or-implicit-fk",
+    "localized_pdf_variant:composite-or-implicit-fk",
+    "legal_entity_revision_bridge:composite-or-implicit-fk",
+    "accounting_pack_legacy_run_bridge:composite-or-implicit-fk",
+    "accounting_pack_revision_snapshot:composite-or-implicit-fk"
+  ],
+  "entries": [
+    {
+      "table": "client",
+      "id": "01a01ac1-d6e9-705b-95d2-b5d5f9b9846f",
+      "rowDigest": "0be77a8d7f2461f6396952ec937d77f836f20992bcab46d91dc169094580d57e",
+      "dependencyDigest": "69055ec19d7938b521329818c4f1af2c4ff4810860e757e6847d1a3cf8e023c4",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project": 2,
+        "project_member": 14,
+        "schedule": 4,
+        "planning_assignment": 14,
+        "time_entry": 54,
+        "daily_report": 21,
+        "technical_report": 7,
+        "expense": 23,
+        "compensation_rule": 6,
+        "billing_rule": 7,
+        "billing_lock": 2,
+        "invoice": 8,
+        "document": 4,
+        "audit_event": 181,
+        "client_labor_rate": 2,
+        "internal_cost_rule": 6,
+        "compensation_settlement": 5,
+        "technical_change": 1,
+        "period_report": 4,
+        "project_milestone": 7,
+        "project_closeout": 1,
+        "project_legal_entity_assignment": 2,
+        "expense_classification_revision": 18,
+        "finance_internal_cost_snapshot": 17,
+        "supplier_project_grant": 2,
+        "billing_period": 2,
+        "invoice_line": 43,
+        "invoice_source": 30,
+        "payment": 3,
+        "invoice_event": 3,
+        "invoice_commercial_source_manifest": 35,
+        "document_access_event": 1,
+        "report_source": 108,
+        "expense_classification_authority_event": 18,
+        "soft:audit_event": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "contains protected or worker-assigned project",
+        "no positive fixture attestation",
+        "656 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "01a01ac1-d6f4-7550-808e-19907c4f44fb",
+      "rowDigest": "8b0b3bad58cdcb1b04c4e0a10f0633cc61faab67696950a7516cd013fbb9e520",
+      "dependencyDigest": "5351b47acbb630278346c8737c304b13db11d11eb2a5b16897b9be8a6d8f7f83",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project": 1,
+        "client_contact": 2,
+        "project_member": 7,
+        "schedule": 2,
+        "planning_assignment": 4,
+        "time_entry": 24,
+        "daily_report": 10,
+        "technical_report": 2,
+        "expense": 16,
+        "compensation_rule": 3,
+        "billing_rule": 1,
+        "invoice": 2,
+        "document": 6,
+        "audit_event": 81,
+        "client_labor_rate": 1,
+        "internal_cost_rule": 3,
+        "compensation_settlement": 2,
+        "technical_change": 1,
+        "project_milestone": 4,
+        "project_legal_entity_assignment": 1,
+        "expense_classification_revision": 10,
+        "finance_internal_cost_snapshot": 6,
+        "supplier_project_grant": 1,
+        "invoice_line": 6,
+        "payment": 1,
+        "invoice_event": 1,
+        "invoice_source": 6,
+        "invoice_commercial_source_manifest": 6,
+        "expense_classification_authority_event": 10,
+        "soft:audit_event": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "contains protected or worker-assigned project",
+        "no positive fixture attestation",
+        "221 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "01a01ac1-d6f4-7550-808e-25d3a5c822a1",
+      "rowDigest": "a1fd1aede411e496edcdb9848222b6dc059d7134ce760b6a50f88c19feff84c8",
+      "dependencyDigest": "36fde499b001a64c0c1959a32f8a85348e5ca9c06de2bbd310c0b5a1eb319b74",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project": 1,
+        "client_contact": 1,
+        "project_member": 7,
+        "schedule": 2,
+        "planning_assignment": 4,
+        "time_entry": 24,
+        "daily_report": 10,
+        "technical_report": 3,
+        "expense": 12,
+        "compensation_rule": 3,
+        "billing_rule": 2,
+        "invoice": 4,
+        "document": 2,
+        "audit_event": 76,
+        "client_labor_rate": 1,
+        "internal_cost_rule": 3,
+        "compensation_settlement": 2,
+        "project_milestone": 3,
+        "project_legal_entity_assignment": 1,
+        "expense_classification_revision": 8,
+        "finance_internal_cost_snapshot": 10,
+        "supplier_project_grant": 1,
+        "invoice_line": 13,
+        "invoice_source": 13,
+        "invoice_commercial_source_manifest": 13,
+        "payment": 2,
+        "invoice_event": 2,
+        "expense_classification_authority_event": 8,
+        "soft:audit_event": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "contains protected or worker-assigned project",
+        "no positive fixture attestation",
+        "232 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "01a076f6-7e99-7108-86f2-b453c9d1b349",
+      "rowDigest": "e46ea783db2891abf8d835a0ccc390aac6b90ed673a807084d321541001d27c7",
+      "dependencyDigest": "4e130027af2147e045aab2e157f2f6356febb95153adc354cc7c67a6a11660f6",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project": 1,
+        "client_contact": 1,
+        "project_member": 1,
+        "schedule": 1,
+        "document": 1,
+        "audit_event": 7,
+        "soft:audit_event": 2,
+        "soft:entity_lifecycle_event": 1
+      },
+      "finalized": true,
+      "blockers": [
+        "contains protected or worker-assigned project",
+        "no positive fixture attestation",
+        "finalized or archived business state",
+        "15 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "01a07717-0caf-7759-82d8-a21669d7ec19",
+      "rowDigest": "f91521f68a8aba600469a0b2e57f17c8c4fd263dafdae618d64e7a2a16f3c2a8",
+      "dependencyDigest": "7580b0275f98387a8c227f01acdc70ab9bc3d6bab645c712ec2a2faf75cdb271",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project": 1,
+        "client_contact": 1,
+        "project_member": 1,
+        "schedule": 1,
+        "document": 1,
+        "audit_event": 7,
+        "soft:audit_event": 2,
+        "soft:entity_lifecycle_event": 1
+      },
+      "finalized": true,
+      "blockers": [
+        "contains protected or worker-assigned project",
+        "no positive fixture attestation",
+        "finalized or archived business state",
+        "15 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "01a087e3-cfe3-76ec-810b-336d3c5670b0",
+      "rowDigest": "1951edf7077d3720438dc0dae910493d310b72dba853ae1cc79c15707cc1a150",
+      "dependencyDigest": "809208e40760d59b1280528fd88cb127332a87a7b4669963971ef9d1394c837c",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project": 1,
+        "client_contact": 1,
+        "project_member": 4,
+        "schedule": 1,
+        "audit_event": 6,
+        "supplier_project_grant": 1,
+        "soft:audit_event": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "contains protected or worker-assigned project",
+        "no positive fixture attestation",
+        "15 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "01a0cf9b-bec4-72cd-a97d-8de393f89dd5",
+      "rowDigest": "09eb57a3bfb64d58b293d7b8d506632c10a2d975a22f60226543051fa651484a",
+      "dependencyDigest": "1ee548d44b632f0691789b1c67afe9bd7c7d1be7975a5242c7fb09d74092a048",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project": 1,
+        "client_contact": 1,
+        "project_member": 11,
+        "schedule": 1,
+        "time_entry": 5,
+        "daily_report": 2,
+        "expense": 2,
+        "compensation_rule": 9,
+        "billing_rule": 2,
+        "invoice": 2,
+        "audit_event": 45,
+        "client_labor_rate": 9,
+        "internal_cost_rule": 1,
+        "project_legal_entity_assignment": 1,
+        "expense_classification_revision": 2,
+        "crew_leader_grant": 2,
+        "crew_time_batch_request": 2,
+        "assignment_expense_policy": 1,
+        "crew_time_entry_recorder": 4,
+        "invoice_line": 3,
+        "invoice_source": 3,
+        "invoice_commercial_source_manifest": 3,
+        "expense_classification_authority_event": 2,
+        "soft:audit_event": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "contains protected or worker-assigned project",
+        "known QA client retained until acceptance",
+        "no positive fixture attestation",
+        "115 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-005-val",
+      "rowDigest": "8f5efabdfdeb39017dcf730ad9b552fb4dfdc835f204f8f21cf7923e23f78c6a",
+      "dependencyDigest": "a0be0f8307995aa9ebed267df9983b5d2bbca86cf64af5fb0876e2a1a161a41c",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-006-ram",
+      "rowDigest": "0b617f407bffbb91f38dfe5db1b979b1e31c8aa70f55fdaae5cf1e10f317a0e4",
+      "dependencyDigest": "bdd578328041243027cd4e5e70a39af64573049b64fc5360bae70b31a92f6144",
+      "classification": "unclassified",
+      "dependencyCounts": {},
+      "finalized": false,
+      "blockers": ["no positive fixture attestation", "30 unresolved database relationships"],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-007-mino",
+      "rowDigest": "6f45fb4c1f9b79dbcde9b98fe5f2d5d4ce557ee4a7cb2c48b7afc9620983ed7e",
+      "dependencyDigest": "bdd578328041243027cd4e5e70a39af64573049b64fc5360bae70b31a92f6144",
+      "classification": "unclassified",
+      "dependencyCounts": {},
+      "finalized": false,
+      "blockers": ["no positive fixture attestation", "30 unresolved database relationships"],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-008-asc",
+      "rowDigest": "e51006f1e558d90d6d846032e17ea5c7fcb2b95c76be693edcf6e3aad9b623ce",
+      "dependencyDigest": "e3db63275fb7ef8c3d64278c7d161b12f988e9170f413751050b048e45487182",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-009-khs",
+      "rowDigest": "6c1c58ffec7d8779db398e58d49767e802af40b2101bf7b4e49dd35bd3caf207",
+      "dependencyDigest": "d4b337b1afc8a6418cad121762f39bc06197f3f68019f9dfbe6ac0ef16275fe1",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-010-wwc",
+      "rowDigest": "565a182ea1eb876c1d8dee6e4dcdc87c265cb021097ffb7b496f4f235ce69a94",
+      "dependencyDigest": "b33936ca49a857181cea9bacfebe06b486f51d04b217f8457e2866d6a56b1473",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-011-inpro",
+      "rowDigest": "a620794ce3ae06f9b24fd1fbf60d3609611e7c59c24412f46ff66c53abfb46ab",
+      "dependencyDigest": "6c58c40a58040f470d663e79e065afd2b4ef340be78d0ecbf9a9873d815bcb5a",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-012-niag",
+      "rowDigest": "c0790a7e461ee1119a3a71c8ecced01be5330a455e7516279b686f1f1a889323",
+      "dependencyDigest": "6d071304a51a812f9fdb5bff433bf74881d6152b9c9b766c27300ffbd963132b",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-013-forerun",
+      "rowDigest": "9d7d001da47126200ee12178af660ca8dfa7feba574d18ce9da7eb87c262b365",
+      "dependencyDigest": "f04a28fec1d80effd32ef6f05ca0744c649c31e35698bca5b47fe1185393ee93",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-014-empack",
+      "rowDigest": "27ce0a468d25b3a3809a1085a214a8aaecda17819dc31d1dcbcbad06f4460609",
+      "dependencyDigest": "3fb6c526ca7ae09199b4e7b409ff7a4818220409e12d4d4f4d25235b1a0ab944",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-015-cap",
+      "rowDigest": "cadaf120ab5376b823736bf684010b259d8586e6c8077eff4fc6d6ffec5aa0c6",
+      "dependencyDigest": "7c22fecae489219dba6bee51e48bc26584f2eccb67a0ca5277b46a95d3f9411d",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-016-castor",
+      "rowDigest": "3814f674a7ca3114fe501cb082b3dfaed92e6a01d90e045bc49406c2fcac36dd",
+      "dependencyDigest": "a0ca7a624c9574d749525edb97911f6d64b2caab6785e61c4e0ddc838db9e26e",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-017-joiner",
+      "rowDigest": "8bcd37eb32b4ca54f589746758c705aac531441805794b3e893c11e1dd9e2f09",
+      "dependencyDigest": "e69d78ac1cd27b46331341480fb7aa0362fe54b325d0d776581d72f808c0bfc8",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-018-socaps",
+      "rowDigest": "5ebcc6b6d5844580f89ceff29923629435b6b807089c78a1c9a080c4b13ff0e7",
+      "dependencyDigest": "c1cb2a7eb7239f23dbf65cb254f3d71bfe3ece1cb03d82ebcbcc887463f3effc",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-019-penrec",
+      "rowDigest": "0926d2fe74c6721a04bc3ac74b043546ddc9ea0f64a62e068a81ea914a2d6316",
+      "dependencyDigest": "08628bdf8f632b2fa5e46813324131fe8d1ae784de3307c943225ea30b3d958a",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-020-impc",
+      "rowDigest": "02fd0a352129466a379f1e25b8ab5632b1e8a3521d12719a090924c27e0303cf",
+      "dependencyDigest": "2c2440e586a5e9d43cef618fbbc459ec29cfaccadb8e85d9be24a654ac7ef1e8",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project": 2,
+        "client_contact": 2,
+        "schedule": 2
+      },
+      "finalized": false,
+      "blockers": [
+        "BBS/IMPC protected client root",
+        "contains protected or worker-assigned project",
+        "no positive fixture attestation",
+        "6 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-021-bastian",
+      "rowDigest": "956450cf59682fe364069ff10804d9cba4436bda1df2ab67a21d80fcac361598",
+      "dependencyDigest": "6234285cb6badd16e193625085fd5fc266b91d6fe8881fde9795debc8ffb583b",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-022-zeppelin",
+      "rowDigest": "f85af8bbe3ca7ce7490985ec98c838eb4aee85658c820b5c426ee568a90d17ce",
+      "dependencyDigest": "9ec80ace4925b12d3945a282353ff4226b7b5d45c38ab4381fbd308b9d4e2bf2",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-023-oxford",
+      "rowDigest": "6119e130089baf12c4b79e6f917d51849b9228d775b45e3776a58674bb3650d3",
+      "dependencyDigest": "df89efa2041ff12a1b14e19b545beecf2177e632e9ecbedf185a12ee5ad6654c",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "client",
+      "id": "client-024-damon",
+      "rowDigest": "0bb5f125b9f76ab887db2642aae4dd0760367c1278d884400bce350a15a800e9",
+      "dependencyDigest": "1788228b992a12d20d39e92f0d1ce87e8d0d3ec4682e085e654bda41c244b91c",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "project": 1,
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "01a01ac1-d6f6-711f-bb46-4317ecad036d",
+      "rowDigest": "acb6ea8c905048be7940e30ee5363f9713d4fee1f6245f45ef4acfa65f65e4d0",
+      "dependencyDigest": "9c20a5bc4a619752cdbd37e5d6c870f1b65da0f26036d511d46243b7838dd6e5",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project_member": 9,
+        "schedule": 2,
+        "planning_assignment": 8,
+        "time_entry": 32,
+        "daily_report": 13,
+        "technical_report": 5,
+        "expense": 15,
+        "compensation_rule": 3,
+        "billing_rule": 5,
+        "billing_lock": 2,
+        "invoice": 5,
+        "document": 4,
+        "audit_event": 114,
+        "client_labor_rate": 1,
+        "internal_cost_rule": 3,
+        "compensation_settlement": 3,
+        "technical_change": 1,
+        "period_report": 4,
+        "project_milestone": 4,
+        "project_closeout": 1,
+        "project_legal_entity_assignment": 1,
+        "expense_classification_revision": 10,
+        "finance_internal_cost_snapshot": 12,
+        "supplier_project_grant": 1,
+        "billing_period": 2,
+        "invoice_line": 32,
+        "invoice_source": 19,
+        "payment": 2,
+        "invoice_event": 2,
+        "invoice_commercial_source_manifest": 24,
+        "document_access_event": 1,
+        "report_source": 108,
+        "expense_classification_authority_event": 10,
+        "soft:notification": 1,
+        "soft:audit_event": 23
+      },
+      "finalized": true,
+      "blockers": [
+        "worker assignment: user identities protected",
+        "no positive fixture attestation",
+        "finalized or archived business state",
+        "482 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "01a01ac1-d6f6-711f-bb46-508f0c3fb7f1",
+      "rowDigest": "08501e779ccd144182f73d8914744f66fbcd64baceb1e007728da8c2f17bdc88",
+      "dependencyDigest": "d2917d734418d1b0f983943494b6af86603bf273762a1445a90a6f904dc50ebe",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project_member": 7,
+        "schedule": 2,
+        "planning_assignment": 4,
+        "time_entry": 24,
+        "daily_report": 10,
+        "technical_report": 2,
+        "expense": 16,
+        "compensation_rule": 3,
+        "billing_rule": 1,
+        "invoice": 2,
+        "document": 6,
+        "audit_event": 81,
+        "client_labor_rate": 1,
+        "internal_cost_rule": 3,
+        "compensation_settlement": 2,
+        "technical_change": 1,
+        "project_milestone": 4,
+        "project_legal_entity_assignment": 1,
+        "expense_classification_revision": 10,
+        "finance_internal_cost_snapshot": 6,
+        "supplier_project_grant": 1,
+        "invoice_line": 6,
+        "payment": 1,
+        "invoice_event": 1,
+        "invoice_source": 6,
+        "invoice_commercial_source_manifest": 6,
+        "expense_classification_authority_event": 10,
+        "soft:audit_event": 3
+      },
+      "finalized": true,
+      "blockers": [
+        "worker assignment: user identities protected",
+        "no positive fixture attestation",
+        "finalized or archived business state",
+        "220 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "01a01ac1-d6f7-76e4-8547-a1e695079fcf",
+      "rowDigest": "3bc421ccc4ba4765dc86612ee4bffda01cf5fb5330665bdb193e321eecc8e43b",
+      "dependencyDigest": "3bce5c49754d7457c77186677265649eeb7afd1a0b50d307fb6089435ed1162b",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project_member": 7,
+        "schedule": 2,
+        "planning_assignment": 4,
+        "time_entry": 24,
+        "daily_report": 10,
+        "technical_report": 3,
+        "expense": 12,
+        "compensation_rule": 3,
+        "billing_rule": 2,
+        "invoice": 4,
+        "document": 2,
+        "audit_event": 76,
+        "client_labor_rate": 1,
+        "internal_cost_rule": 3,
+        "compensation_settlement": 2,
+        "project_milestone": 3,
+        "project_legal_entity_assignment": 1,
+        "expense_classification_revision": 8,
+        "finance_internal_cost_snapshot": 10,
+        "supplier_project_grant": 1,
+        "invoice_line": 13,
+        "invoice_source": 13,
+        "invoice_commercial_source_manifest": 13,
+        "payment": 2,
+        "invoice_event": 2,
+        "expense_classification_authority_event": 8,
+        "soft:audit_event": 3
+      },
+      "finalized": true,
+      "blockers": [
+        "worker assignment: user identities protected",
+        "no positive fixture attestation",
+        "finalized or archived business state",
+        "232 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "01a01ac1-d6f7-76e4-8547-b3d460d31a0a",
+      "rowDigest": "d84ef931345b5db967cb96992f3221ed9b5aaea8339031a90c087a81691af5a6",
+      "dependencyDigest": "fcb12c24abf992b3c6bc602e161b154025b0389697aae1715c9e2bec9b8ce396",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project_member": 5,
+        "schedule": 2,
+        "planning_assignment": 6,
+        "time_entry": 22,
+        "daily_report": 8,
+        "technical_report": 2,
+        "expense": 8,
+        "compensation_rule": 3,
+        "billing_rule": 2,
+        "invoice": 3,
+        "audit_event": 67,
+        "client_labor_rate": 1,
+        "internal_cost_rule": 3,
+        "compensation_settlement": 2,
+        "project_milestone": 3,
+        "project_legal_entity_assignment": 1,
+        "expense_classification_revision": 8,
+        "finance_internal_cost_snapshot": 5,
+        "supplier_project_grant": 1,
+        "invoice_line": 11,
+        "invoice_source": 11,
+        "invoice_commercial_source_manifest": 11,
+        "payment": 1,
+        "invoice_event": 1,
+        "expense_classification_authority_event": 8,
+        "soft:audit_event": 8
+      },
+      "finalized": true,
+      "blockers": [
+        "worker assignment: user identities protected",
+        "no positive fixture attestation",
+        "finalized or archived business state",
+        "203 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "01a076f6-8341-77e1-ad41-2d54d262ce0f",
+      "rowDigest": "a78895196d6ab70827bfedb45a5da178fa3e19076293aca7865e1ff9808f76bc",
+      "dependencyDigest": "68bb458c70dc57ac21d65f6646538fa4f4a6cc082c383059b4fc362a6d41433c",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project_member": 1,
+        "schedule": 1,
+        "document": 1,
+        "audit_event": 7,
+        "soft:audit_event": 4,
+        "soft:entity_lifecycle_event": 3
+      },
+      "finalized": true,
+      "blockers": [
+        "worker assignment: user identities protected",
+        "no positive fixture attestation",
+        "finalized or archived business state",
+        "17 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "01a07717-10e4-774d-9565-bd35dffb4de2",
+      "rowDigest": "ebdd4160d072913b28c31ba465d132dcc9d9c4aead4f554c756b69297f8c6435",
+      "dependencyDigest": "1930ae3233095635d0ae4b11b9c76a10801d15b796d614bfced557bcafb46f8f",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project_member": 1,
+        "schedule": 1,
+        "document": 1,
+        "audit_event": 7,
+        "soft:audit_event": 4,
+        "soft:entity_lifecycle_event": 3
+      },
+      "finalized": true,
+      "blockers": [
+        "worker assignment: user identities protected",
+        "no positive fixture attestation",
+        "finalized or archived business state",
+        "17 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "01a087e3-cfe4-739d-8eba-fba4da09c644",
+      "rowDigest": "57d78a3bbfa3056aa38115b90b7ed998d5b972a4642f7cb52ac643430d29ee60",
+      "dependencyDigest": "77e16d3f0778636c76e536bf96e5b9fd42d9e127a421040587bd8ed4096212c4",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project_member": 4,
+        "schedule": 1,
+        "audit_event": 6,
+        "supplier_project_grant": 1,
+        "soft:audit_event": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "worker assignment: user identities protected",
+        "no positive fixture attestation",
+        "13 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "01a0cfae-9005-76a9-871a-8cf4edf877dd",
+      "rowDigest": "9dacdc3059f6ca4540db9136c13a40c44b6c0fdebd177cd07eff3af0ea13bd82",
+      "dependencyDigest": "7b50e2ede17d92303bb7fc2580e36a485e0416e30a3434d54632ce4bbf499b73",
+      "classification": "protected",
+      "dependencyCounts": {
+        "project_member": 11,
+        "schedule": 1,
+        "time_entry": 5,
+        "daily_report": 2,
+        "expense": 2,
+        "compensation_rule": 9,
+        "billing_rule": 2,
+        "invoice": 2,
+        "audit_event": 45,
+        "client_labor_rate": 9,
+        "internal_cost_rule": 1,
+        "project_legal_entity_assignment": 1,
+        "expense_classification_revision": 2,
+        "crew_leader_grant": 2,
+        "crew_time_batch_request": 2,
+        "assignment_expense_policy": 1,
+        "crew_time_entry_recorder": 4,
+        "invoice_line": 3,
+        "invoice_source": 3,
+        "invoice_commercial_source_manifest": 3,
+        "expense_classification_authority_event": 2,
+        "soft:audit_event": 8
+      },
+      "finalized": false,
+      "blockers": [
+        "worker assignment: user identities protected",
+        "known QA project retained until acceptance",
+        "no positive fixture attestation",
+        "120 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp005-valiant",
+      "rowDigest": "4f9359e9e4fcac6123267715fae5f5a0d80d55590c6141b1ea1468653668d37d",
+      "dependencyDigest": "679e2374a7d572044b0fc4004d46b0349fabfa5b02fb84e9c6a78f8311cc0d9b",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp008-ascension",
+      "rowDigest": "563a59bd743d4afaf2a6ad54a3e175c252f5123b5fd29799bf83830003aa9c99",
+      "dependencyDigest": "08c3c9105bb7536d594833b1b980021a4a25243eea0678feb669de29399e34db",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp009-khs",
+      "rowDigest": "97eb5f338666de413ccf1f9d51a9a3a841d17a36b3434fb4697ac26caa3d2677",
+      "dependencyDigest": "26ac3fda72f7bc110fba396a766ce356f6ed346f597af8da6be3579e5cfa3939",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp010-wwc",
+      "rowDigest": "48bfcbed8b3fbab65118898fa9e66ba6b433551649ac59c4d04e7d5d19e92278",
+      "dependencyDigest": "71d6459bb9f7e3992865db08ca7c46f5c2294a5e60b8bd6526204ab581d585d0",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp011-inpro",
+      "rowDigest": "db943522695d885f5b4df374d097f1d64430d4b61f0ad516f77fcdcb332c0a11",
+      "dependencyDigest": "08b47711407e8c952137ee8dd8dd5ab3e39d2aad1c0a0c225be9ea9367b40446",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp012-niagara",
+      "rowDigest": "4296476087ed89619cf4a5738cdefe1fe60e8ed9c7a4daa8597d21bc12f927ad",
+      "dependencyDigest": "320f58701aba53ddff2b8bba1aa72097a0558f1be6ddae9fd50a04df02dbc705",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp013-forerunner",
+      "rowDigest": "12515557d01a47e512a5994f2ff5739cd33b33b5e332e96fb87f541bbcbc5972",
+      "dependencyDigest": "6209229ce7c6f079bb7ea9b27644e21330a5158cfbf5c78c40128301589b5a64",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp014-empack",
+      "rowDigest": "337919c47a6dc4523bc959642302d9ddf5810925c0be4d78ca1e59c05d2b8fc7",
+      "dependencyDigest": "9bf47d981901fa5627f3ef0c6cc3771cefb975aab31a59ca0fb06c7de0d53578",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp015-cap-automation-gmbh",
+      "rowDigest": "03290dc92e8f06d500455c8862644f747dfdf02ef3befca4c9e0dc363a4af68a",
+      "dependencyDigest": "6c6ec51c07153ba3ba6f6ff595f0251acf862e7b289450368a040f22990716ae",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp016-castor-engineering",
+      "rowDigest": "b614901e490873e99a71359b5566f5f427b27d45d00b61c46200bb4e47db498c",
+      "dependencyDigest": "164457489b41db7bad0b007731618a39198906f87961a07170c35b5a4ac86d3b",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp017-joiner",
+      "rowDigest": "db74c2502bd8a54c275f9b3c4c443c5189b79cc85090d07e792a953bcb9c8648",
+      "dependencyDigest": "08cba99259a82b3c1619d2bf04da418eae33bcb9bfefd4d753f070221ba02352",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp018-socaps",
+      "rowDigest": "48d586b49335ea06276e5a738fdc95b60ecb7654dd058f5d852e830b8e6b94fa",
+      "dependencyDigest": "0f4a6f4b44485bc82a249b26d45afff9c46679ec149284792b9d5acbcda13109",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp019-peninsula-recycling",
+      "rowDigest": "b1572ec2fd11e6f61fe8e0803bbd04ac8df9e02f605d4b272fe70428913a6329",
+      "dependencyDigest": "b6d419d0057101664e6f32a4c40d7aa21fa82db7fe06b3ac4516eb0e3b5ae56a",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp020-bbs-mexico",
+      "rowDigest": "7bd6dbd8ff37d5f8769624504d515205f361e90f4e0be8ce6df1d512a45e30d2",
+      "dependencyDigest": "49c223de8ba3c4ec42bba9ba8d6ffb280977e09daa8a054cfc6e864b8347b2fd",
+      "classification": "protected",
+      "dependencyCounts": {
+        "schedule": 1,
+        "soft:audit_event": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "BBS/IMPC protected project root",
+        "no positive fixture attestation",
+        "2 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp020-dfw",
+      "rowDigest": "03146e09a1b9f2a60d5030b8cd28c0b29c1edf4b4dec21c819cf5876cb69ea57",
+      "dependencyDigest": "8c3d320608a1ff80b4004faf0c95fb2538f59a5f165949ca049303c96e1a06e2",
+      "classification": "protected",
+      "dependencyCounts": {
+        "schedule": 1,
+        "soft:audit_event": 5,
+        "soft:entity_lifecycle_event": 1
+      },
+      "finalized": true,
+      "blockers": [
+        "BBS/IMPC protected project root",
+        "no positive fixture attestation",
+        "finalized or archived business state",
+        "7 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp021-bastian-solutions",
+      "rowDigest": "c2e7b80e5b8d2022e7ff9284c52c930037140699b99c890b46f65a54fbf219ef",
+      "dependencyDigest": "c4176d1d90d01fe363dc27293c2bef4b0ffba631c49e98cf737cf4b9071b93e8",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp022-zeppelin-systems",
+      "rowDigest": "befbcf0bfd346786434d1e59659a32ef8ecd06cc6ce09bbc3f3cfaff8c09f725",
+      "dependencyDigest": "88ff1f24760b5fa75f507bd47c1d9ee65f7ccba47676d32656ae3b80a9f41d4c",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp023-oxford",
+      "rowDigest": "01598ef1491ab33a7434c3b5ffa8ca3b324d77d85166c50b66e66ae022c7a327",
+      "dependencyDigest": "466916b6b7fc6113d2afaca39ab2d9b2dfe52b3832fb4cf9a8473b3e691bdb59",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    },
+    {
+      "table": "project",
+      "id": "project-cp024-damon",
+      "rowDigest": "e486b04312d2867eb0e98b1be42ac75532a8acef9c1b64935819f0adfeca64b7",
+      "dependencyDigest": "f9bfa6d6050c7fc207224f75f04f5d2f39b77e0b19f94f1569abd16eb04e3f8a",
+      "classification": "unclassified",
+      "dependencyCounts": {
+        "schedule": 1
+      },
+      "finalized": false,
+      "blockers": [
+        "no positive fixture attestation",
+        "1 linked records require individual classification",
+        "30 unresolved database relationships"
+      ],
+      "eligibleForRehearsal": false
+    }
+  ]
+}

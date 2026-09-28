@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>J&A Automation — expected work flows by role</title>
+<style>
+  @page { size: A3 landscape; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; color: #183047; }
+  body { background: #e9eef3; }
+  .page { width: 420mm; height: 297mm; padding: 13mm 15mm 11mm; background: #f8fafc; page-break-after: always; overflow: hidden; position: relative; }
+  .page:last-child { page-break-after: auto; }
+  header { display: flex; justify-content: space-between; align-items: end; border-bottom: 1.1mm solid #123955; padding-bottom: 4mm; }
+  h1 { margin: 0; font-size: 27pt; line-height: 1.03; letter-spacing: -.5pt; color: #123955; }
+  .subtitle { font-size: 10.5pt; color: #506479; margin-top: 2.5mm; }
+  .mark { text-align: right; font-size: 10pt; font-weight: 700; letter-spacing: .8pt; color: #147a83; }
+  .mark small { display: block; margin-top: 1mm; color: #607386; font-size: 8pt; font-weight: normal; letter-spacing: 0; }
+  .legend { display: flex; gap: 3mm; margin: 4.2mm 0 3.4mm; align-items: center; font-size: 8.2pt; color: #526579; }
+  .legend strong { margin-right: 1mm; color: #183047; }
+  .key { border-radius: 5mm; padding: 1.4mm 2.8mm; font-weight: 700; }
+  .owner { --accent:#205c8d; --pale:#e7f1fa; }
+  .pm { --accent:#3d668e; --pale:#eaf2f9; }
+  .finance { --accent:#087d84; --pale:#e2f4f3; }
+  .worker { --accent:#396d45; --pale:#eaf5e9; }
+  .chief { --accent:#8558a3; --pale:#f1ebf8; }
+  .review { --accent:#a66316; --pale:#fff1dc; }
+  .client { --accent:#6a6e7b; --pale:#eef0f3; }
+  .key.owner,.key.pm,.key.finance,.key.worker,.key.chief,.key.review,.key.client { color: var(--accent); background: var(--pale); }
+  .stage-title { font-size: 11pt; font-weight: 700; text-transform: uppercase; letter-spacing: .7pt; color: #3a5268; margin: 3mm 0 2.5mm; }
+  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8mm; }
+  .card { min-width: 0; min-height: 84mm; padding: 4.2mm 4mm 3.8mm; border-radius: 3.1mm; border: .45mm solid #d4e0e9; border-top: 1.8mm solid var(--accent); background: white; box-shadow: 0 1.1mm 3mm #18304713; position: relative; }
+  .flow .card:not(:last-child)::after { content: "→"; position: absolute; top: 37mm; right: -7.1mm; color: #6b8a9b; font-size: 19pt; font-weight: 700; }
+  .head { display: flex; gap: 2.5mm; align-items: center; margin-bottom: 3mm; }
+  .num { width: 9.6mm; height: 9.6mm; flex: none; border-radius: 50%; background: var(--accent); color: white; font-size: 11pt; line-height: 9.6mm; text-align: center; font-weight: 700; }
+  .role { display: inline-block; color: var(--accent); background: var(--pale); border-radius: 2mm; padding: 1.5mm 2.5mm; font-size: 8.4pt; font-weight: 700; line-height: 1.1; }
+  h2 { font-size: 14pt; line-height: 1.1; margin: 0 0 2.8mm; color: #17334c; }
+  ul { margin: 0; padding-left: 4.5mm; font-size: 10.1pt; line-height: 1.25; }
+  li { margin-bottom: 2.3mm; }
+  .out { margin-top: 3mm; padding: 2.1mm 2.7mm; border-left: 1mm solid var(--accent); background: var(--pale); color: #29465c; font-size: 8.6pt; line-height: 1.2; }
+  .connector { height: 13mm; position: relative; display: flex; align-items: center; justify-content: center; }
+  .connector::before { content: ""; width: 0; height: 10mm; border-left: .65mm dashed #7292a5; }
+  .connector span { position: absolute; padding: 1.3mm 4mm; border: .35mm solid #c5d7e2; border-radius: 5mm; background: #f8fafc; color: #486679; font-size: 8.4pt; font-weight: 700; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; margin-top: 1mm; }
+  .split section { background: var(--pale); border-radius: 2mm; padding: 2.2mm; }
+  .split b { display: block; font-size: 8.5pt; color: var(--accent); margin-bottom: 1mm; }
+  .split span { font-size: 8.1pt; line-height: 1.18; display: block; }
+  .note { margin-top: 4mm; padding: 2.5mm 3.5mm; background: #e9f0f6; border-radius: 2.2mm; color: #36536a; font-size: 8.5pt; line-height: 1.25; }
+  footer { position: absolute; bottom: 7mm; left: 15mm; right: 15mm; display:flex; justify-content:space-between; padding-top: 2mm; border-top: .3mm solid #d4e0e9; color: #647789; font-size: 8pt; }
+  @media screen { .page { margin: 10mm auto; box-shadow: 0 3mm 15mm #20334340; } }
+</style>
+</head>
+<body>
+<main>
+  <article class="page">
+    <header>
+      <div><h1>Normal work flow by role</h1><div class="subtitle">1 · Set up the project, then capture real work</div></div>
+      <div class="mark">J&amp;A AUTOMATION<small>Expected process · project / workforce / billing</small></div>
+    </header>
+    <div class="legend"><strong>Role colors</strong>
+      <span class="key owner">Owner</span><span class="key pm">Project manager</span><span class="key finance">Finance</span><span class="key worker">Worker</span><span class="key chief">Crew chief</span><span class="key review">Reviewer</span>
+    </div>
+    <div class="stage-title">Set up the work</div>
+    <div class="flow">
+      <section class="card owner"><div class="head"><span class="num">1</span><span class="role">Owner</span></div><h2>Create client</h2>
+        <ul><li>Confirm client details, contacts and billing address.</li><li>Choose the correct currency and site context.</li></ul>
+        <div class="out">Handoff: a client record available for a new project.</div>
+      </section>
+      <section class="card owner"><div class="head"><span class="num">2</span><span class="role">Owner · accountant input</span></div><h2>Prepare issuing authority</h2>
+        <ul><li>Set the legal issuer and tax profile for the project currency.</li><li>Use an approved invoice-number policy before issuing.</li></ul>
+        <div class="out">Handoff: valid issuer/tax/numbering configuration.</div>
+      </section>
+      <section class="card pm"><div class="head"><span class="num">3</span><span class="role">Owner · project manager</span></div><h2>Create project</h2>
+        <ul><li>Set client, name and required cost-center code.</li><li>Choose manager, timezone and model; add alias, budget or planned end if useful.</li></ul>
+        <div class="out">Handoff: saved project with stable identity.</div>
+      </section>
+      <section class="card pm"><div class="head"><span class="num">4</span><span class="role">Owner · project manager</span></div><h2>Assign the people</h2>
+        <ul><li>Find workers by expertise; set dated project assignments.</li><li>Owner grants a chief specific project-member scope when team entry is needed.</li></ul>
+        <div class="out">Handoff: each person can work in the right project and dates.</div>
+      </section>
+    </div>
+    <div class="connector"><span>People + project context → commercial readiness → actual work</span></div>
+    <div class="stage-title">Configure and record</div>
+    <div class="flow">
+      <section class="card finance"><div class="head"><span class="num">5</span><span class="role">Owner · Finance</span></div><h2>Set terms per person</h2>
+        <ul><li>Set customer hourly charge separately from worker compensation.</li><li>Choose who pays each expense, worker reimbursement and customer recovery.</li><li>Check effective dates and missing-rate warnings.</li></ul>
+      </section>
+      <section class="card finance"><div class="head"><span class="num">6</span><span class="role">Owner · Finance</span></div><h2>Set project billing</h2>
+        <ul><li>In Project → Billing setup, choose model, cadence, tax and issuer.</li><li>Choose one invoice with labor/expense sections or two separate invoices.</li><li>Review the calculation summary; save a reusable template if useful.</li></ul>
+      </section>
+      <section class="card worker"><div class="head"><span class="num">7</span><span class="role">Worker · delegated crew chief</span></div><h2>Record actual work</h2>
+        <div class="split"><section><b>Worker</b><span>Enter own dated hours or interval, activity, report and expense with payer, receipt and occurrence time.</span></section><section><b>Crew chief</b><span>Enter each delegated member's hours/activity; copy shared values, then check every person's row.</span></section></div>
+        <div class="out">The worker is the subject; the chief remains the recorded submitter.</div>
+      </section>
+      <section class="card review"><div class="head"><span class="num">8</span><span class="role">Worker · crew chief</span></div><h2>Submit the records</h2>
+        <ul><li>Verify actual hours and expenses, then submit them for review.</li><li>A shared receipt is one expense or explicit allocations, never repeated for each worker.</li></ul>
+        <div class="out">Handoff: submitted source records; no invoice or payment yet.</div>
+      </section>
+    </div>
+    <div class="note">Project settings and forecasts do not create worked hours. A chief can enter only for explicitly delegated people and cannot approve their own team submissions.</div>
+    <footer><span>Expected workflow · roles and permissions may restrict a particular project</span><span>1 / 2 → Continue with review, invoicing and payment</span></footer>
+  </article>
+
+  <article class="page">
+    <header>
+      <div><h1>From submitted work to payment</h1><div class="subtitle">2 · Review sources, invoice the approved work, reconcile actual payment</div></div>
+      <div class="mark">J&amp;A AUTOMATION<small>Continuation of the normal role flow</small></div>
+    </header>
+    <div class="legend"><strong>Role colors</strong>
+      <span class="key review">Reviewer</span><span class="key finance">Finance</span><span class="key pm">Project manager</span><span class="key owner">Owner / issuer</span><span class="key client">Customer</span>
+    </div>
+    <div class="stage-title">Validate the source of every amount</div>
+    <div class="flow">
+      <section class="card review"><div class="head"><span class="num">9</span><span class="role">Authorized approver</span></div><h2>Review actual records</h2>
+        <ul><li>Check the assigned person, date, hours, activity, report and receipt.</li><li>Approve or return with a reason; a returned record goes back for correction.</li></ul>
+        <div class="out">Only approved, eligible sources proceed.</div>
+      </section>
+      <section class="card finance"><div class="head"><span class="num">10</span><span class="role">Finance</span></div><h2>Classify and explain</h2>
+        <ul><li>Confirm billable time and each expense's reimbursement and customer treatment.</li><li>Review hours, selected rates, exclusions and totals in the project calculation.</li></ul>
+        <div class="out">Missing terms block final finance actions; never assume zero.</div>
+      </section>
+      <section class="card pm"><div class="head"><span class="num">11</span><span class="role">Project manager · customer</span></div><h2>Report and sign off</h2>
+        <ul><li>Generate an operational report from approved time/activity.</li><li>Complete customer sign-off only when the project requires it.</li></ul>
+        <div class="out">A generated report is not itself customer acceptance.</div>
+      </section>
+      <section class="card finance"><div class="head"><span class="num">12</span><span class="role">Finance · Owner</span></div><h2>Prepare invoice draft</h2>
+        <ul><li>Select the project and period; include approved, eligible, unbilled sources.</li><li>Preview lines, labor/expense sections, tax, recipient and PDF.</li></ul>
+        <div class="out">One combined invoice or separate labor/expense drafts follows project setup.</div>
+      </section>
+    </div>
+    <div class="connector"><span>Reviewed draft + valid issuer and numbering → immutable invoice → collection</span></div>
+    <div class="stage-title">Issue, deliver and reconcile</div>
+    <div class="flow">
+      <section class="card owner"><div class="head"><span class="num">13</span><span class="role">Authorized issuer</span></div><h2>Issue invoice</h2>
+        <ul><li>Recheck source reservation, exact totals, tax and approved numbering policy.</li><li>Issue once; the numbered invoice is a historical snapshot.</li></ul>
+        <div class="out">Corrections use void, credit or replacement, not silent edits.</div>
+      </section>
+      <section class="card finance"><div class="head"><span class="num">14</span><span class="role">Finance</span></div><h2>Deliver and follow up</h2>
+        <ul><li>Use the authorized email/delivery action and inspect its state.</li><li>Track due date and follow-up separately from the issued document.</li></ul>
+        <div class="out">Queued/sent is not proof the recipient received or accepted it.</div>
+      </section>
+      <section class="card finance"><div class="head"><span class="num">15</span><span class="role">Finance</span></div><h2>Record actual payment</h2>
+        <ul><li>Use real bank/payment evidence, date, amount, currency and reference.</li><li>Record partial payments against the remaining balance.</li></ul>
+        <div class="out">Expected collection is only a forecast, not cash.</div>
+      </section>
+      <section class="card finance"><div class="head"><span class="num">16</span><span class="role">Finance · Owner</span></div><h2>Reconcile and close</h2>
+        <ul><li>Reconcile invoice, collections, expenses and project reports.</li><li>Separately finalize worker compensation and record actual worker pay.</li></ul>
+        <div class="out">Keep audit trail and issued history; archive only through the proper workflow.</div>
+      </section>
+    </div>
+    <div class="note">Role boundaries: workers see their own pay; chiefs and project managers do not gain coworkers' private compensation. Customer reports contain operational work, not internal rates. A test or preview does not prove a live invoice was issued, delivered or paid.</div>
+    <footer><span>Expected workflow · approval and accounting prerequisites apply</span><span>2 / 2</span></footer>
+  </article>
+</main>
+</body>
+</html>

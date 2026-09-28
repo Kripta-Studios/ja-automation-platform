@@ -1,0 +1,48 @@
+{
+  "candidateCommit": "f17cd4fdf28f862185f9359958c6d6e735d51ff1",
+  "role": "manager",
+  "locale": "es",
+  "viewport": "desktop",
+  "response": {
+    "transportStatus": 200,
+    "actionStatus": 403,
+    "type": "failure",
+    "code": "ACCESS_TEAM_OWNER_REQUIRED",
+    "messageKey": "problem.management.ownerRequired",
+    "remedies": [
+      {
+        "id": "contact_owner"
+      }
+    ],
+    "fieldErrors": {}
+  },
+  "native": {
+    "transportStatus": 403,
+    "ui": {
+      "noticeCount": 0,
+      "toastText": "Error Se requiere acceso de Propietario para este cambio. Consulta a un Propietario. × Error Sync failed — retry when the connection is stable. ×",
+      "setupLinkCount": 16,
+      "focusTag": "body"
+    }
+  },
+  "noWrite": {
+    "before": {
+      "profiles": 0,
+      "audits": 6
+    },
+    "after": {
+      "profiles": 0,
+      "audits": 6
+    }
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "http": [
+      "503 /j-aautomation/app/api/offline/identity",
+      "503 /j-aautomation/app/api/offline/identity",
+      "403 /j-aautomation/app/projects",
+      "503 /j-aautomation/app/api/offline/identity"
+    ]
+  }
+}

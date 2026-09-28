@@ -1,0 +1,13 @@
+{
+  "projectId": "01a0cfae-9005-76a9-871a-8cf4edf877dd",
+  "responses": [
+    {
+      "url": "https://j-aautomation.com/j-aautomation/app/billing?/createBillingRule",
+      "status": 200
+    },
+    {
+      "url": "https://j-aautomation.com/j-aautomation/app/billing?/createBillingRule",
+      "status": 200
+    }
+  ]
+}

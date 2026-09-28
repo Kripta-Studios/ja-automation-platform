@@ -1,0 +1,9 @@
+{
+  "code": "BILLING_EMAIL_PDF_NOT_READY",
+  "viewport": "desktop",
+  "responseStatus": 409,
+  "route": "/j-aautomation/app/billing",
+  "method": "POST",
+  "screenshot": "BILLING_EMAIL_PDF_NOT_READY-desktop.png",
+  "scope": "isolated problem notice only; no account or invoice details"
+}

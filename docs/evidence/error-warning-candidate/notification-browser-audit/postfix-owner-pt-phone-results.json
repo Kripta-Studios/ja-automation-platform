@@ -1,0 +1,61 @@
+{
+  "candidate": "389e5fb",
+  "role": "owner",
+  "locale": "pt",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "stale": {
+    "responseStatus": 404,
+    "url": "/j-aautomation/app/notifications/:record?/markRead",
+    "documentLanguage": "pt-BR",
+    "heading": "Notificação indisponível",
+    "headingFocused": true,
+    "mainText": "← Caixa de atividades Notificações Notificações Notificação indisponível Esta notificação não está mais disponível. Volte à caixa de atividades. Caixa de atividades",
+    "links": [
+      {
+        "text": "← Caixa de atividades",
+        "href": "/j-aautomation/app/notifications?lang=pt"
+      },
+      {
+        "text": "Caixa de atividades",
+        "href": "/j-aautomation/app/notifications?lang=pt"
+      }
+    ],
+    "scrollY": 0,
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "remedyOpenedInbox": true
+  },
+  "inboxSuccess": {
+    "responseStatus": 200,
+    "markedRead": true,
+    "rowRemoved": true,
+    "feedbackFocused": true
+  },
+  "network": [
+    {
+      "status": 404,
+      "path": "/j-aautomation/app/notifications/:record",
+      "method": "POST"
+    },
+    {
+      "status": 503,
+      "path": "/j-aautomation/app/api/offline/identity",
+      "method": "GET"
+    },
+    {
+      "status": 503,
+      "path": "/j-aautomation/app/api/offline/identity",
+      "method": "GET"
+    },
+    {
+      "status": 503,
+      "path": "/j-aautomation/app/api/offline/identity",
+      "method": "GET"
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": []
+}

@@ -1,0 +1,150 @@
+{
+  "commit": "695d3cf",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "locale": "es",
+  "fixture": "QA project/assignment and two rates created through rendered forms; two Finance saves and four stale submissions",
+  "baseline": {
+    "version": 1,
+    "flags": [
+      0,
+      0
+    ],
+    "audit": 1
+  },
+  "fallback": {
+    "bResponse": 200,
+    "native": {
+      "status": 409,
+      "codeInResponse": true,
+      "genericInResponse": false
+    },
+    "enhanced": {
+      "transportStatus": 200,
+      "actionStatus": 409,
+      "type": "failure",
+      "codeInResponse": true,
+      "genericInResponse": false
+    },
+    "visible": {
+      "code": "FINANCE_ASSIGNMENT_COMMERCIAL_VERSION_CHANGED",
+      "notice": "Se requiere una acción Las opciones comerciales de esta persona cambiaron mientras el formulario estaba abierto. Tus cambios no se guardaron. Revisa las opciones guardadas actualmente antes de decidir si quieres enviar las tuyas. Las opciones comerciales guardadas actualmente para esta persona pueden diferir de las que enviaste. Revisar el registro actualizado",
+      "remedies": [
+        {
+          "label": "Revisar el registro actualizado",
+          "href": "/j-aautomation/app/finance?view=commercial&project=[qa-id]&lang=es&asOf=2026-09-28&category=regular#commercial-person-[qa-id]"
+        }
+      ],
+      "comparison": [
+        {
+          "field": "Usar remuneración general del trabajador si falta una regla del proyecto",
+          "current": "Opciones comerciales guardadas actualmente: Activado",
+          "attempted": "Opciones que intentaste guardar: Desactivado",
+          "outcome": "Difiere de la opción que enviaste"
+        },
+        {
+          "field": "Usar costo interno general si falta una regla del proyecto",
+          "current": "Opciones comerciales guardadas actualmente: Desactivado",
+          "attempted": "Opciones que intentaste guardar: Activado",
+          "outcome": "Difiere de la opción que enviaste"
+        }
+      ],
+      "routeView": "commercial",
+      "language": "es-ES",
+      "editorOpen": true,
+      "expectedVersion": "2",
+      "attempted": {
+        "compensation": "no",
+        "internalCost": "yes",
+        "clientRule": null
+      },
+      "focusOnNotice": true,
+      "activeTag": "ASIDE",
+      "top": 280,
+      "bottom": 515,
+      "safeTop": 80,
+      "safeBottom": 884,
+      "scrollY": 1901,
+      "overflow": false
+    },
+    "savedVersion": 2,
+    "savedFlags": [
+      1,
+      0
+    ],
+    "reviewReloadedCurrent": true
+  },
+  "references": {
+    "bResponse": 200,
+    "native": {
+      "status": 409,
+      "codeInResponse": true,
+      "genericInResponse": false
+    },
+    "enhanced": {
+      "transportStatus": 200,
+      "actionStatus": 409,
+      "type": "failure",
+      "codeInResponse": true,
+      "genericInResponse": false
+    },
+    "visible": {
+      "code": "FINANCE_ASSIGNMENT_COMMERCIAL_VERSION_CHANGED",
+      "notice": "Se requiere una acción Las opciones comerciales de esta persona cambiaron mientras el formulario estaba abierto. Tus cambios no se guardaron. Revisa las opciones guardadas actualmente antes de decidir si quieres enviar las tuyas. Las opciones comerciales guardadas actualmente para esta persona pueden diferir de las que enviaste. Revisar el registro actualizado",
+      "remedies": [
+        {
+          "label": "Revisar el registro actualizado",
+          "href": "/j-aautomation/app/finance?view=commercial&project=[qa-id]&lang=es&asOf=2026-09-28&category=regular#commercial-person-[qa-id]"
+        }
+      ],
+      "comparison": [
+        {
+          "field": "Regla de tarifa horaria del cliente",
+          "current": "Opciones comerciales guardadas actualmente: 71,25 US$ · 2026-09-28 → sin fecha de fin",
+          "attempted": "Opciones que intentaste guardar: 75,50 US$ · 2026-09-28 → sin fecha de fin",
+          "outcome": "Difiere de la opción que enviaste"
+        },
+        {
+          "field": "Regla de remuneración del trabajador",
+          "current": "Opciones comerciales guardadas actualmente: Resolver por proyecto y fecha",
+          "attempted": "Opciones que intentaste guardar: Resolver por proyecto y fecha",
+          "outcome": "Coincide con la opción que enviaste"
+        },
+        {
+          "field": "Regla de costo interno",
+          "current": "Opciones comerciales guardadas actualmente: Resolver por proyecto y fecha",
+          "attempted": "Opciones que intentaste guardar: Resolver por proyecto y fecha",
+          "outcome": "Coincide con la opción que enviaste"
+        }
+      ],
+      "routeView": "commercial",
+      "language": "es-ES",
+      "editorOpen": true,
+      "expectedVersion": "3",
+      "attempted": {
+        "compensation": null,
+        "internalCost": null,
+        "clientRule": "[qa-id]"
+      },
+      "focusOnNotice": true,
+      "activeTag": "ASIDE",
+      "top": 312,
+      "bottom": 548,
+      "safeTop": 80,
+      "safeBottom": 884,
+      "scrollY": 1366,
+      "overflow": false
+    },
+    "savedVersion": 3,
+    "currentIsBChoice": true,
+    "noExtraWrite": true
+  },
+  "diagnostics": {
+    "owner": [],
+    "financeA": [],
+    "financeB": [],
+    "financeEnhanced": []
+  }
+}

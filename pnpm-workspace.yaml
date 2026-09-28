@@ -29,11 +29,11 @@ catalog:
   drizzle-kit: 0.31.10
   drizzle-orm: 0.45.2
   eslint: 9.39.1
-  eslint-config-next: 16.3.1
+  eslint-config-next: 16.3.3
   eslint-config-prettier: 10.1.8
   eslint-plugin-svelte: 3.13.1
   idb: 8.0.3
-  next: 16.3.1
+  next: 16.3.3
   next-intl: 4.13.6
   playwright: 1.62.1
   prettier: 3.7.4
@@ -71,3 +71,10 @@ minimumReleaseAgeExclude:
   - '@vitest/utils@4.1.11'
   - better-auth@1.7.0
   - vitest@4.1.11
+
+# Security patches for transitive dependencies; preserve compatible public APIs.
+overrides:
+  'cookie@<0.7.0': 0.7.2
+  'esbuild@<=0.24.2': 0.25.12
+  'sharp@<0.35.4': 0.35.4
+  'js-yaml@>=4.0.0 <4.3.2': 4.3.2

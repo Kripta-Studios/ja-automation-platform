@@ -1,0 +1,90 @@
+{
+  "timeProjects": [
+    "Select assignment",
+    "C-0001-P-001 — Body Shop Line 4 Controls Upgrade · Demo",
+    "C-0001-P-002 — Remote Controls Support Retainer · Demo",
+    "C-0003-P-001 — Caustic Recovery Skid Integration · Demo"
+  ],
+  "timeInputs": [
+    {
+      "name": "workDate",
+      "type": "date",
+      "outer": "<input name=\"workDate\" type=\"date\" required=\"\">"
+    },
+    {
+      "name": "",
+      "type": "checkbox",
+      "outer": "<input type=\"checkbox\" class=\"svelte-3d7sn4\">"
+    },
+    {
+      "name": "",
+      "type": "text",
+      "outer": "<input type=\"text\" inputmode=\"decimal\" required=\"\">"
+    },
+    {
+      "name": "withExpense",
+      "type": "checkbox",
+      "outer": "<input type=\"checkbox\" name=\"withExpense\">"
+    },
+    {
+      "name": "",
+      "type": "search",
+      "outer": "<input type=\"search\" disabled=\"\" autocomplete=\"off\" spellcheck=\"false\" role=\"combobox\" aria-autocomplete=\"list\" aria-expanded=\"true\" aria-controls=\"entity-picker-9-options\" data-select-search=\"entity-picker-9\">"
+    },
+    {
+      "name": "",
+      "type": "search",
+      "outer": "<input type=\"search\" disabled=\"\" autocomplete=\"off\" spellcheck=\"false\" role=\"combobox\" aria-autocomplete=\"list\" aria-expanded=\"true\" aria-controls=\"entity-picker-10-options\" data-select-search=\"entity-picker-10\">"
+    }
+  ],
+  "timeAfterSave": {
+    "url": "http://127.0.0.1:4174/j-aautomation/app/time",
+    "dialogVisible": false,
+    "body": "J&A / Time entries\n\nTime entries\nPrint report\nSearch workspace\nSearch\n\nWORKER OPERATIONS\n\nTime\n\nRecord actual operational time. Commercial interpretation is applied from configured project rules.\n\nLog time\n\nSave a draft while details are still changing. Submit time only after the recorded date, duration and activity are accurate; submitted time is reviewed and cannot be silently overwritten.\n\nActual recorded\n302.00h\nHours you really recorded.\nNeeds attention\n3\nDraft or review state\nApproved\n41\nRows approved by the workflow\nWEEKLY TIMESHEET\nActual time, one week at a glance\n\n2026-09-21 → 2026-09-27. Planning target only; it never creates time.\n\nWEEK OF\nOpen week\n← Previous week\nThis week\nNext week →\nACTUAL\nHours you really recorded.\nEXPECTED\nPlanning target only; it never creates time.\nDIFFERENCE\nActual minus expected for the day.\nSTATUS\nDraft, submitted, approved or needs changes.\n\nScroll horizontally to review all columns.\n\nWeekly actual time and approval status\nDAY\tACTUAL\tEXPECTED\tDI"
+  },
+  "timeReopenDate": "2026-09-27",
+  "expenseProjects": [
+    "Select assignment",
+    "C-0001-P-001 — Body Shop Line 4 Controls Upgrade · Demo",
+    "C-0001-P-002 — Remote Controls Support Retainer · Demo",
+    "C-0002-P-001 — High-Speed Palletizer Commissioning · Demo",
+    "C-0003-P-001 — Caustic Recovery Skid Integration · Demo",
+    "CP005 — Valiant",
+    "CP006 — RAM",
+    "CP007 — Mino Automation",
+    "CP008 — Ascension",
+    "CP009 — KHS",
+    "CP010 — WWC",
+    "CP011 — InPro",
+    "CP012 — Niagara",
+    "CP013 — Forerunner",
+    "CP014 — Empack",
+    "CP015 — CAP Automation Gmbh",
+    "CP016 — Castor Engineering",
+    "CP017 — Joiner",
+    "CP018 — Socaps",
+    "CP019 — Peninsula Recycling",
+    "CP020 — BBS Mexico",
+    "CP020-DFW — Junkers DFW",
+    "CP021 — Bastian Solutions",
+    "CP022 — Zeppelin Systems",
+    "CP023 — Oxford",
+    "CP024 — Damon"
+  ],
+  "expenseBeforeSave": {
+    "vendor": "",
+    "currency": "USD",
+    "date": "2026-09-27"
+  },
+  "expenseAfterSave": {
+    "url": "http://127.0.0.1:4174/j-aautomation/app/expenses",
+    "dialogVisible": false,
+    "body": "J&A / Expenses and receipts\n\nExpenses and receipts\nPrint report\nSearch workspace\nSearch\n\nWORKER OPERATIONS\n\nExpenses and reimbursements\n\nRecord the receipt and operational facts. Finance handles later classification.\n\n42\n＋\nRecord expense\nNeeds attention\n1\nDraft or review state\nReimbursement\n11\nPending or scheduled\nRequired receipt missing\n0\nReview supporting evidence before approval\nSearch expenses\nProject\nAll projects\nC-0001-P-001 — Body Shop Line 4 Controls Upgrade · Demo\nC-0001-P-002 — Remote Controls Support Retainer · Demo\nC-0002-P-001 — High-Speed Palletizer Commissioning · Demo\nC-0003-P-001 — Caustic Recovery Skid Integration · Demo\nCP005 — Valiant\nCP006 — RAM\nCP007 — Mino Automation\nCP008 — Ascension\nCP009 — KHS\nCP010 — WWC\nCP011 — InPro\nCP012 — Niagara\nCP013 — Forerunner\nCP014 — Empack\nCP015 — CAP Automation Gmbh\nCP016 — Castor Engineering\nCP017 — Joiner\nCP018 — Socaps\nCP019 — P"
+  },
+  "issues": [],
+  "postRequests": [
+    "200 /j-aautomation/app/api/auth/sign-in/email",
+    "200 /j-aautomation/app/time",
+    "200 /j-aautomation/app/expenses"
+  ]
+}

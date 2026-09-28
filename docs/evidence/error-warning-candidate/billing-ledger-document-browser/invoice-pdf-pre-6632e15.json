@@ -1,0 +1,65 @@
+[
+  {
+    "scenario": "real-route",
+    "role": "signed-out",
+    "locale": "en",
+    "width": 1440,
+    "status": 401,
+    "contentType": "application/json",
+    "code": "INVOICE_PDF_SIGN_IN_REQUIRED",
+    "messageKey": "problem.invoice.pdfSignInRequired",
+    "remedies": [
+      "sign_in_again"
+    ],
+    "correlationIdPresent": true,
+    "network": [
+      {
+        "status": 401,
+        "contentType": "application/json"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "scenario": "real-route",
+    "role": "owner",
+    "locale": "en",
+    "width": 1440,
+    "status": 409,
+    "contentType": "application/json",
+    "code": "INVOICE_PDF_NOT_READY",
+    "messageKey": "problem.invoice.pdfNotReady",
+    "remedies": [
+      "review_invoice"
+    ],
+    "correlationIdPresent": true,
+    "network": [
+      {
+        "status": 409,
+        "contentType": "application/json"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "scenario": "real-route",
+    "role": "worker",
+    "locale": "en",
+    "width": 390,
+    "status": 404,
+    "contentType": "application/json",
+    "code": "INVOICE_PDF_UNAVAILABLE",
+    "messageKey": "problem.invoice.pdfUnavailable",
+    "remedies": [
+      "contact_finance"
+    ],
+    "correlationIdPresent": true,
+    "network": [
+      {
+        "status": 404,
+        "contentType": "application/json"
+      }
+    ],
+    "errors": []
+  }
+]

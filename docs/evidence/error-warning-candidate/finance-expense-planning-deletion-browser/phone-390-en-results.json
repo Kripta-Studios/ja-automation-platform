@@ -1,0 +1,49 @@
+{
+  "commit": "85b696d",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "locale": "en",
+  "roles": ["owner", "finance"],
+  "fixture": "Owner UI created a QA draft; Finance held planning edit; Owner UI deleted draft",
+  "attempted": {
+    "reimbursement": "2026-09-29",
+    "recovery": "2026-09-30"
+  },
+  "network": {
+    "status": 404,
+    "codeInResponse": true,
+    "genericInResponse": false,
+    "valuesInResponse": true
+  },
+  "visible": {
+    "code": "FINANCE_EXPENSE_PLANNING_RECORD_UNAVAILABLE",
+    "text": "Action needed This expense is no longer available. No planning dates were saved. Review the current Finance expense list and choose an available expense. Review current expenses",
+    "recap": "Dates you entered Expected reimbursement 2026-09-29 Expected client recovery 2026-09-30",
+    "remedy": {
+      "text": "Review current expenses",
+      "path": "/j-aautomation/app/finance",
+      "view": "commercial",
+      "lang": "en"
+    },
+    "focused": true,
+    "top": 85,
+    "bottom": 450,
+    "safeTop": 78,
+    "safeBottom": 756,
+    "routeView": "commercial",
+    "language": "en-US",
+    "expenseCardCount": 0,
+    "overflow": false
+  },
+  "noExpenseOrAuditWrite": true,
+  "review": {
+    "financeCommercialList": true,
+    "localePreserved": true
+  },
+  "diagnostics": {
+    "owner": [],
+    "finance": []
+  }
+}

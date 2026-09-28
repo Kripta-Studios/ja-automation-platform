@@ -1,0 +1,101 @@
+{
+  "candidateCommit": "fa8eeb6a975e74344ba9351a6f3f5bd7320b08c2",
+  "role": "finance",
+  "width": 390,
+  "height": 844,
+  "locale": "en",
+  "combined": {
+    "url": "/j-aautomation/app/finance/cash?currency=ZZZ&group=quarter&from=2026-09-01&lang=en",
+    "locale": "en",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 40,
+    "bannerBottom": 70,
+    "noticeCode": "FINANCE_CASH_CURRENCY_INVALID",
+    "noticeText": "Action needed Choose USD, EUR, or BRL for the cash currency filter. Correct the highlighted field",
+    "noticeTop": 519.6875,
+    "noticeBottom": 671.25,
+    "summaryText": "Check the highlighted fields Currency: Choose USD, EUR, or BRL for the cash currency filter.Group by: Choose weekly or monthly grouping for the cash calendar.",
+    "summaryTop": 687.25,
+    "focusIsNotice": false,
+    "focusIsSummary": true,
+    "remedyHref": "#cash-currency",
+    "currency": "ZZZ",
+    "group": "quarter",
+    "from": "2026-09-01",
+    "to": "",
+    "fieldErrors": {
+      "cash-currency-error": "Choose USD, EUR, or BRL for the cash currency filter.",
+      "cash-group-error": "Choose weekly or monthly grouping for the cash calendar."
+    },
+    "groupCount": 0
+  },
+  "groupOnly": {
+    "url": "/j-aautomation/app/finance/cash?group=quarter&lang=en",
+    "locale": "en",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 0,
+    "bannerBottom": 70,
+    "noticeCode": "FINANCE_CASH_GROUP_INVALID",
+    "noticeText": "Action needed Choose weekly or monthly grouping for the cash calendar. Correct the highlighted field",
+    "noticeTop": 559.6875,
+    "noticeBottom": 711.25,
+    "summaryText": null,
+    "summaryTop": null,
+    "focusIsNotice": true,
+    "focusIsSummary": false,
+    "remedyHref": "#cash-group",
+    "currency": "",
+    "group": "quarter",
+    "from": "",
+    "to": "",
+    "fieldErrors": {
+      "cash-group-error": "Choose weekly or monthly grouping for the cash calendar."
+    },
+    "groupCount": 0
+  },
+  "corrected": {
+    "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=819&currency=USD&filter=all&from=&to=&project=&group=month",
+    "locale": "en",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 0,
+    "bannerBottom": 70,
+    "noticeCode": null,
+    "noticeText": null,
+    "noticeTop": null,
+    "noticeBottom": null,
+    "summaryText": null,
+    "summaryTop": null,
+    "focusIsNotice": false,
+    "focusIsSummary": false,
+    "remedyHref": null,
+    "currency": "USD",
+    "group": "month",
+    "from": "",
+    "to": "",
+    "fieldErrors": {},
+    "groupCount": 2
+  },
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 document /j-aautomation/app/finance/cash",
+      "200 document /j-aautomation/app/finance/cash",
+      "200 document /j-aautomation/app/finance/cash",
+      "200 fetch /j-aautomation/app/finance/cash/__data.json"
+    ]
+  }
+}

@@ -1,0 +1,224 @@
+[WebServer] (node:304373) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next build
+
+[WebServer] (node:304387) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:304387) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:304578) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:304572) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:304579) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:304641) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+
+[WebServer] (node:304654) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+
+[WebServer] (node:304695) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite build
+
+[WebServer] (node:304708) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:304708) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] [plugin builtin:vite-reporter]
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+[WebServer] (node:304708) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] .svelte-kit/output/server/chunks/auth.js (3652:0): A comment
+[WebServer]
+[WebServer] "/**
+[WebServer] * Wraps a cipher: validates args, ensures encrypt() can only be called once.
+[WebServer] * Used internally by the exported cipher constructors.
+[WebServer] * Output-buffer support is inferred from the wrapped `encrypt` / `decrypt`
+[WebServer] * arity (`fn.length === 2`), so wrapped output-capable methods must use a normal
+[WebServer] * second parameter, not a default/rest parameter. AAD support is explicit in
+[WebServer] * `params.withAAD`; optional AAD starts after the nonce slot when one is present.
+[WebServer] * @__NO_SIDE_EFFECTS__
+[WebServer] * @param params - Static cipher metadata. See {@link CipherParams}.
+[WebServer] * @param constructor - Cipher constructor.
+[WebServer] * @returns Wrapped constructor with validation.
+[WebServer] */"
+[WebServer]
+[WebServer] in ".svelte-kit/output/server/chunks/auth.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+
+[WebServer] "node:sqlite" is imported by ".svelte-kit/output/server/chunks/src.js", but could not be resolved – treating it as an external dependency.
+
+[WebServer] Generated an empty chunk: "chunks/env.js".
+
+[WebServer] [PLUGIN_TIMINGS] Your build spent 100% of 11.8s inside plugin hooks (18.0s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-sveltekit-compile writeBundle (66%, 7.9s, 1 call)
+[WebServer]   - vite-plugin-sveltekit-compile closeBundle (56%, 6.6s, 1 call)
+[WebServer]   - vite-plugin-svelte:compile transform (22%, 2.6s, 63 calls)
+[WebServer]   - @tailwindcss/vite:generate:build transform (17%, 2.1s, 33 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 100% is below.
+[WebServer] Not measurable — 1 hook whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (4422 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer]
+
+[WebServer] (node:305071) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ node build
+
+[WebServer] (node:305104) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0b927-409c-71ca-8bda-8399ae3675cc",
+    "01a0b927-409d-7293-9487-5dbacee1b8e5",
+    "01a0b927-409e-7516-8230-59b0d0075d49",
+    "01a0b927-409f-7034-8a87-c8fd372323bc"
+  ],
+  "invoiceDrafts": [
+    "01a0b927-4195-77cc-8757-19d86bc7d43a",
+    "01a0b927-4199-70dc-aed3-cc1bc98162cd",
+    "01a0b927-419d-70d6-842c-75e74efcf2d1"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0b927-41a4-75cb-ada1-aa3f27fb1fb5",
+    "01a0b927-41a7-70b4-8d09-eda33c22afdc",
+    "01a0b927-41ab-71eb-8940-707a3e2bb2be"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0b927-41a4-75cb-ada1-aa3f27fb1fb5",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0b927-418b-7622-b1d1-0a8581591ffa",
+    "01a0b927-418c-72d1-8039-270f04ab2b7c"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0b927-409c-71ca-8bda-8399ae3675cc",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0b927-41b4-776f-8f10-a15c5ac75061"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0b927-409c-71ca-8bda-8399ae3675cc",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0b927-41b6-717b-b527-2831254a05ab"
+    }
+  ],
+  "periodReportIds": [
+    "01a0b927-41b7-7719-9ce9-19bee589dabe",
+    "01a0b927-41b7-7719-9ce9-1cba276b0235"
+  ],
+  "accountingPackId": "01a0b927-41ed-7075-bf25-c02769e4baa4",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-f16ff79e155d7a2abdb8c06966678e8cdd61d265",
+  "closeoutId": "01a0b927-4284-75d2-a59c-a018a68c38c3"
+}
+
+Running 1 test using 1 worker
+
+(node:305149) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/1] [desktop] › tests/e2e/client-essential-32-step.spec.ts:280:3 › Client Essential · executable 32-step acceptance journey › one deterministic authenticated fixture covers steps 1–32
+  1) [desktop] › tests/e2e/client-essential-32-step.spec.ts:280:3 › Client Essential · executable 32-step acceptance journey › one deterministic authenticated fixture covers steps 1–32
+
+    Error: Client Essential 32-step UAT failures (see attached per-step evidence)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 17
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "error": "expect(locator).toContainText(expected) failed
+    +
+    + Locator: locator('[aria-label=\"Compensation rules\"] .record-list-item').filter({ hasText: 'PercentageOfEligibleClientLabor' }).first()
+    + Expected substring: \"PercentageOfEligibleClientLabor\"
+    + Timeout: 5000ms
+    + Error: element(s) not found
+    +
+    + Call log:
+    +   - Expect \"toContainText\" with timeout 5000ms
+    +   - waiting for locator('[aria-label=\"Compensation rules\"] .record-list-item').filter({ hasText: 'PercentageOfEligibleClientLabor' }).first()
+    + ",
+    +     "number": 8,
+    +     "title": "Percentage-based worker can be configured",
+    +   },
+    + ]
+
+      1942 |       failures,
+      1943 |       'Client Essential 32-step UAT failures (see attached per-step evidence)',
+    > 1944 |     ).toEqual([]);
+           |       ^
+      1945 |   });
+      1946 | });
+      1947 |
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/client-essential-32-step.spec.ts:1944:7
+
+    Error Context: test-results/client-essential-32-step-C-97fa0-d-fixture-covers-steps-1–32-desktop/error-context.md
+
+    attachment #7: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/client-essential-32-step-C-97fa0-d-fixture-covers-steps-1–32-desktop/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/client-essential-32-step-C-97fa0-d-fixture-covers-steps-1–32-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [desktop] › tests/e2e/client-essential-32-step.spec.ts:280:3 › Client Essential · executable 32-step acceptance journey › one deterministic authenticated fixture covers steps 1–32

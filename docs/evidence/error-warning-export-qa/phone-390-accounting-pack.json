@@ -1,0 +1,43 @@
+{
+  "viewport": "phone-390",
+  "pendingStatus": 409,
+  "pendingCode": "ACCOUNTING_PACK_EXPORT_PROCESSING",
+  "ownerPageStatus": 200,
+  "auditorPageStatus": 200,
+  "auditorPendingStatus": 409,
+  "workerDownloadStatus": 404,
+  "financeHorizontalOverflow": false,
+  "failedResponses": [
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    }
+  ],
+  "pageErrors": []
+}

@@ -1,0 +1,125 @@
+{
+  "commit": "7b12479",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "locale": "es",
+  "role": "owner in two tabs",
+  "fixture": "Two QA suppliers created through UI; selected supplier deactivated through UI while Worker profile form stayed open",
+  "before": {
+    "profile": {
+      "supplier_id": "[qa-id]",
+      "profile": "external_technician"
+    },
+    "workerAuditCount": 7,
+    "scrollY": 746
+  },
+  "network": {
+    "status": 409,
+    "codeInResponse": true,
+    "genericInResponse": false,
+    "valuesInResponse": true
+  },
+  "visible": {
+    "code": "ACCESS_WORKFORCE_SUPPLIER_INACTIVE",
+    "noticeText": "Se requiere una acción El proveedor seleccionado ya no está activo. No se guardó este perfil laboral. Revisa el estado del proveedor o elige uno activo. Revisar estado del proveedor",
+    "fieldError": "El proveedor seleccionado ya no está activo. No se guardó este perfil laboral. Revisa el estado del proveedor o elige uno activo.",
+    "focused": true,
+    "active": {
+      "tag": "aside",
+      "name": null,
+      "dataUi": "problem-notice",
+      "className": "ui-problem-notice svelte-b84mwg"
+    },
+    "top": 629,
+    "bottom": 760,
+    "noticeRect": {
+      "left": 325,
+      "top": 629,
+      "right": 1349,
+      "bottom": 760
+    },
+    "toastRect": {
+      "left": 1040,
+      "top": 776,
+      "right": 1424,
+      "bottom": 884
+    },
+    "toastOverlap": {
+      "width": 309,
+      "height": 0
+    },
+    "safeTop": 80,
+    "safeBottom": 884,
+    "scrollY": 708,
+    "viewportWidth": 1440,
+    "overflow": false,
+    "selectedTab": "Especialistas1",
+    "editorOpen": true,
+    "workerQueryRetained": true,
+    "profileValue": "external_technician",
+    "supplierValue": "[qa-id]",
+    "inactiveOption": {
+      "label": "El proveedor seleccionado anteriormente está inactivo o no disponible",
+      "disabled": true
+    },
+    "remedy": {
+      "text": "Revisar estado del proveedor",
+      "path": "/j-aautomation/app/supplier",
+      "query": "?workspaceAction=directory&directoryStatus=inactive&lang=es"
+    },
+    "language": "es-ES"
+  },
+  "toastTiming": {
+    "shortlyAfterFailure": {
+      "width": 309,
+      "height": 0
+    },
+    "afterTwoSeconds": {
+      "noticeRect": {
+        "left": 325,
+        "top": 629,
+        "right": 1349,
+        "bottom": 760
+      },
+      "toastRect": {
+        "left": 1040,
+        "top": 776,
+        "right": 1424,
+        "bottom": 884
+      },
+      "overlap": {
+        "width": 309,
+        "height": 0
+      }
+    },
+    "afterNineSeconds": {
+      "noticeRect": {
+        "left": 325,
+        "top": 629,
+        "right": 1349,
+        "bottom": 760
+      },
+      "toastRect": null,
+      "overlap": {
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "review": {
+    "inactiveSupplierVisible": true,
+    "localePreserved": true
+  },
+  "noWriteOnConflict": true,
+  "recovery": {
+    "activeSupplierSaveStatus": 200,
+    "profileSaved": true,
+    "oneAuditWrite": true
+  },
+  "diagnostics": {
+    "ownerA": [],
+    "ownerB": []
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "role": "owner",
+  "code": "DOCUMENT_DUPLICATE_CONTENT",
+  "responseStatus": 409,
+  "method": "POST",
+  "route": "/j-aautomation/app/documents",
+  "documentCount": 1,
+  "scrollBefore": 506,
+  "scrollAfter": 420,
+  "noticePosition": {
+    "top": 86.015625,
+    "bottom": 278.171875,
+    "headerBottom": 69.59375
+  },
+  "focus": "[data-ui=\"problem-notice\"]",
+  "accountDetails": "redacted",
+  "viewport": "phone-390",
+  "screenshot": "document-duplicate-phone-390.png"
+}

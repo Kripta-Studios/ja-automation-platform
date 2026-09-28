@@ -1,0 +1,12 @@
+{
+  "viewport": "desktop",
+  "storageBlocked": true,
+  "successStatus": 200,
+  "failureStatus": 400,
+  "problemCode": "SUPPLIER_BATCH_TECHNICIAN_DAILY_LIMIT",
+  "focusedField": "workDate",
+  "valuesRetained": true,
+  "pageErrors": 0,
+  "unexpectedConsoleErrors": 0,
+  "unexpectedServerErrors": 0
+}

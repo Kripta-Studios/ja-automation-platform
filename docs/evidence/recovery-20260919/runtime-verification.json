@@ -1,0 +1,36 @@
+{
+  "verifiedAt": "2026-09-19T06:57:42.495092+00:00",
+  "codeCommit": "3893245d52c9afdf1653f88032737649cf8af27b",
+  "sourceFilesCompared": 1720,
+  "missingOrDifferent": 0,
+  "services": [
+    {
+      "name": "deployment-site-1",
+      "state": "running",
+      "health": "healthy",
+      "image": "ja-automation-site:zip-e5d9583d2f8a2b7de3266d3841f54264"
+    },
+    {
+      "name": "deployment-portal-1",
+      "state": "running",
+      "health": "healthy",
+      "image": "ja-automation-portal:zip-e5d9583d2f8a2b7de3266d3841f54264"
+    },
+    {
+      "name": "deployment-jobs-1",
+      "state": "running",
+      "health": null,
+      "image": "ja-automation-portal:zip-e5d9583d2f8a2b7de3266d3841f54264"
+    }
+  ],
+  "twoAutomaticCyclesVerified": true,
+  "verifier": "deployment/scripts/verify-vps.sh https://j-aautomation.com/j-aautomation --wait-two-automatic-runs",
+  "dockerCache": {
+    "Active": "0",
+    "Reclaimable": "0B",
+    "Size": "0B",
+    "TotalCount": "0",
+    "Type": "Build Cache"
+  },
+  "cacheReclaimed": "7.135GB"
+}

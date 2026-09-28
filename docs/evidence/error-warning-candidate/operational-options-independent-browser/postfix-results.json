@@ -1,0 +1,56 @@
+{
+  "date": "2026-09-27",
+  "candidate": "base b19b3d4 plus reviewed uncommitted three-file operational overlay",
+  "environment": "two new disposable databases, actual Chromium via Playwright MCP",
+  "workerExpense": {
+    "viewportWidth": 390,
+    "locale": "en",
+    "primaryCode": "OPERATIONAL_SELECTED_PROJECT_UNAVAILABLE",
+    "selectedUnavailableOptionDisabled": true,
+    "primaryNoticeInitiallyFocused": true,
+    "typedAmountDescriptionDateRetained": true,
+    "expenseLookupRequests": 0,
+    "expenseLookup403": false,
+    "competingLookupNotice": false,
+    "expectedPayerWarningPresent": true,
+    "documentWidth": 390,
+    "passed": true
+  },
+  "ownerAssignmentRemedy": {
+    "viewportWidth": 390,
+    "locale": "es",
+    "sourceCode": "OPERATIONAL_ASSIGNMENT_UNAVAILABLE_FOR_DATE",
+    "urlHasSelectedProject": true,
+    "urlHasSelectedWorker": true,
+    "urlRetainsLocale": true,
+    "intentionalUnsavedConfirmationAccepted": true,
+    "matchingDestinationRows": 1,
+    "destinationSectionFocused": true,
+    "documentWidth": 390,
+    "passed": true
+  },
+  "ownerWorkerRemedies": {
+    "areas": ["time", "expenses", "daily_reports", "technical_reports"],
+    "viewportWidths": [390, 1440],
+    "locales": ["en", "es", "pt"],
+    "sourceCode": "OPERATIONAL_WORKER_OPTIONS_EMPTY",
+    "sourceNoticeFocused": true,
+    "workerSelectHasOnlyPlaceholder": true,
+    "teamLinksPreserveLocale": true,
+    "clickedFrom": ["time", "expenses", "technical_reports"],
+    "teamCreateUserAndInactiveControlsPresent": true,
+    "destinationIssue": {
+      "activeElement": "BODY",
+      "sectionHasTabIndex": false,
+      "sectionTopPx": 0.47,
+      "headingTopPx": 42.56,
+      "stickyHeaderBottomPhonePx": 69.59,
+      "stickyHeaderBottomDesktopPx": 72,
+      "passed": false
+    }
+  },
+  "console": {
+    "expenseLookup403": false,
+    "unrelatedOfflineIdentity503": true
+  }
+}

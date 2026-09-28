@@ -1,5 +1,50 @@
-export const portalLocales = ['en', 'pt', 'es'] as const;
+import {
+  assertPortalCatalogParity as assertCanonicalCatalogParity,
+  createTranslator as createCanonicalTranslator,
+  INVARIANT_TRANSLATION_KEYS as canonicalInvariantTranslationKeys,
+  isCoverageInvariantKey as canonicalIsCoverageInvariantKey,
+  isExplicitCoverageTranslation as canonicalIsExplicitCoverageTranslation,
+  normalizePortalLocale as normalizeCanonicalLocale,
+  portalCatalog as canonicalPortalCatalog,
+  portalCatalogKeys as canonicalPortalCatalogKeys,
+  portalLocales as canonicalPortalLocales,
+  renderPortalMessage as renderCanonicalPortalMessage,
+  translate as translateCanonical,
+} from './i18n/catalog';
+export type {
+  DocumentLanguage,
+  PortalLocaleInput,
+  PortalTranslationKey,
+  TranslationParams,
+} from './i18n/catalog';
+import {
+  createPortalLocaleController,
+  documentLanguage,
+  setDocumentLanguage,
+} from './i18n/context';
+export {
+  isReportHistoryAction,
+  translateReportHistoryAction,
+  type ReportHistoryAction,
+  type ReportHistoryRecord,
+} from './i18n/report-history';
+
+export const portalLocales = canonicalPortalLocales;
 export type PortalLocale = (typeof portalLocales)[number];
+export {
+  assertCanonicalCatalogParity as assertPortalCatalogParity,
+  canonicalPortalCatalog as portalCatalog,
+  canonicalPortalCatalogKeys as portalCatalogKeys,
+  createCanonicalTranslator as createTranslator,
+  documentLanguage,
+  createPortalLocaleController,
+  canonicalInvariantTranslationKeys as INVARIANT_TRANSLATION_KEYS,
+  canonicalIsCoverageInvariantKey as isCoverageInvariantKey,
+  canonicalIsExplicitCoverageTranslation as isExplicitCoverageTranslation,
+  renderCanonicalPortalMessage as renderPortalMessage,
+  setDocumentLanguage,
+  translateCanonical as translate,
+};
 
 // English is the canonical source. Static copy is translated at the DOM boundary so domain
 // values (codes, tags, invoice numbers and structured records) remain language-neutral.
@@ -63,11 +108,19 @@ const en: Record<string, string> = {
   Pending: 'Pending',
   Planned: 'Planned',
   Revenue: 'Revenue',
+  'Revenue cap': 'Revenue cap',
+  'Daily rate': 'Daily rate',
+  'Fixed fee / milestones': 'Fixed fee / milestones',
   'Client paid directly': 'Client paid directly',
   'Project materials': 'Project materials',
   'Time & materials': 'Time & materials',
   'Billing contact': 'Billing contact',
   'Client contacts': 'Client contacts',
+  'Team access': 'Team access',
+  'All streams': 'All streams',
+  Specialists: 'Specialists',
+  'Other records': 'Other records',
+  'PLC / technical reports': 'PLC / technical reports',
   'No email': 'No email',
   'No due date': 'No due date',
   'No tax profile': 'No tax profile',
@@ -106,12 +159,28 @@ const en: Record<string, string> = {
   'Finance-only finalization of approved compensation for the selected project.':
     'Finance-only finalization of approved compensation for the selected project.',
   'Save availability': 'Save availability',
+  'Dashboard actions': 'Dashboard actions',
+  'View pending reports': 'View pending reports',
+  'Register time': 'Register time',
+  More: 'More',
+  'Open PDF': 'Open PDF',
+  Verified: 'Verified',
+  verified: 'Verified',
+  'self-reported': 'Self-reported',
+  'Company Webmail': 'Company Webmail',
+  Webmail: 'Webmail',
+  'Access Company Webmail': 'Access Company Webmail',
+  'Open corporate webmail in a new tab': 'Open corporate webmail in a new tab',
 };
 
 const copy: Record<PortalLocale, Record<string, string>> = {
   en,
   pt: {
     ...en,
+    'Company Webmail': 'Webmail corporativo',
+    Webmail: 'Webmail',
+    'Access Company Webmail': 'Acessar e-mail corporativo',
+    'Open corporate webmail in a new tab': 'Abrir o e-mail corporativo em uma nova guia',
     Today: 'Hoje',
     Time: 'Tempo',
     Reports: 'Relatórios',
@@ -171,11 +240,19 @@ const copy: Record<PortalLocale, Record<string, string>> = {
     Pending: 'Pendente',
     Planned: 'Planejado',
     Revenue: 'Receita',
+    'Revenue cap': 'Limite de orçamento (Cap)',
+    'Daily rate': 'Taxa diária',
+    'Fixed fee / milestones': 'Preço fechado / Marcos',
     'Client paid directly': 'Cliente pagou diretamente',
     'Project materials': 'Materiais do projeto',
     'Time & materials': 'Tempo e materiais',
     'Billing contact': 'Contato de faturamento',
     'Client contacts': 'Contatos do cliente',
+    'Team access': 'Acesso da equipe',
+    'All streams': 'Todos os conceitos',
+    Specialists: 'Especialistas',
+    'Other records': 'Outros registros',
+    'PLC / technical reports': 'Relatórios PLC / técnicos',
     'No email': 'Sem e-mail',
     'No due date': 'Sem data de vencimento',
     'No tax profile': 'Sem perfil fiscal',
@@ -214,6 +291,14 @@ const copy: Record<PortalLocale, Record<string, string>> = {
     'Finance-only finalization of approved compensation for the selected project.':
       'Finalização financeira da remuneração aprovada para o projeto selecionado.',
     'Save availability': 'Salvar disponibilidade',
+    'Dashboard actions': 'Ações do painel',
+    'View pending reports': 'Ver relatórios pendentes',
+    'Register time': 'Registrar tempo',
+    More: 'Mais',
+    'Open PDF': 'Abrir PDF',
+    Verified: 'Verificada',
+    verified: 'Verificada',
+    'self-reported': 'Autodeclarada',
   },
   es: {
     ...en,
@@ -276,11 +361,19 @@ const copy: Record<PortalLocale, Record<string, string>> = {
     Pending: 'Pendiente',
     Planned: 'Planificado',
     Revenue: 'Ingresos',
+    'Revenue cap': 'Límite de presupuesto (Cap)',
+    'Daily rate': 'Tarifa diaria',
+    'Fixed fee / milestones': 'Precio cerrado / Hitos',
     'Client paid directly': 'Pagado directamente por el cliente',
     'Project materials': 'Materiales del proyecto',
     'Time & materials': 'Tiempo y materiales',
     'Billing contact': 'Contacto de facturación',
     'Client contacts': 'Contactos del cliente',
+    'Team access': 'Acceso del equipo',
+    'All streams': 'Todos los conceptos',
+    Specialists: 'Especialistas',
+    'Other records': 'Otros registros',
+    'PLC / technical reports': 'Informes PLC / técnicos',
     'No email': 'Sin correo electrónico',
     'No due date': 'Sin fecha de vencimiento',
     'No tax profile': 'Sin perfil fiscal',
@@ -320,11 +413,28 @@ const copy: Record<PortalLocale, Record<string, string>> = {
     'Finance-only finalization of approved compensation for the selected project.':
       'Finalización financiera de la compensación aprobada para el proyecto seleccionado.',
     'Save availability': 'Guardar disponibilidad',
+    'Dashboard actions': 'Acciones del panel',
+    'View pending reports': 'Ver informes pendientes',
+    'Register time': 'Registrar tiempo',
+    More: 'Más',
+    'Open PDF': 'Abrir PDF',
+    Verified: 'Verificada',
+    verified: 'Verificada',
+    'self-reported': 'Auto-declarada',
+    'Company Webmail': 'Correo corporativo',
+    Webmail: 'Webmail',
+    'Access Company Webmail': 'Acceder al correo corporativo',
+    'Open corporate webmail in a new tab': 'Abrir el correo corporativo en una pestaña nueva',
   },
 };
 
 const originalText = new WeakMap<Text, string>();
 const originalAttributes = new WeakMap<Element, Record<string, string>>();
+
+/** Dynamic Svelte text must remain owned by Svelte instead of the DOM translator. */
+export function isPortalLiveText(node: Node): boolean {
+  return Boolean(node.parentElement?.closest('[data-portal-live-text]'));
+}
 
 /** Translate static portal copy while leaving codes, tags, invoice numbers and records untouched. */
 export function translatePortalDom(root: ParentNode, locale: PortalLocale): void {
@@ -336,11 +446,15 @@ export function translatePortalDom(root: ParentNode, locale: PortalLocale): void
     const parent = node.parentElement;
     if (!parent || ['SCRIPT', 'STYLE', 'NOSCRIPT', 'CODE', 'PRE'].includes(parent.tagName))
       continue;
+    if (isPortalLiveText(node)) continue;
     const source = originalText.get(node) ?? node.nodeValue ?? '';
     originalText.set(node, source);
     const key = source.trim();
     if (!key) continue;
-    const translated = copy[locale][key] ?? en[key];
+    const translated =
+      canonicalPortalCatalog[locale][key as keyof (typeof canonicalPortalCatalog)[typeof locale]] ??
+      copy[locale][key] ??
+      en[key];
     if (!translated) continue;
     const leading = source.match(/^\s*/)?.[0] ?? '';
     const trailing = source.match(/\s*$/)?.[0] ?? '';
@@ -357,7 +471,12 @@ export function translatePortalDom(root: ParentNode, locale: PortalLocale): void
       saved[attribute] ??= value;
       element.setAttribute(
         attribute,
-        copy[locale][saved[attribute]] ?? en[saved[attribute]] ?? saved[attribute],
+        canonicalPortalCatalog[locale][
+          saved[attribute] as keyof (typeof canonicalPortalCatalog)[typeof locale]
+        ] ??
+          copy[locale][saved[attribute]] ??
+          en[saved[attribute]] ??
+          saved[attribute],
       );
     }
     originalAttributes.set(element, saved);
@@ -365,10 +484,20 @@ export function translatePortalDom(root: ParentNode, locale: PortalLocale): void
 }
 
 export function normalizePortalLocale(value: string | null | undefined): PortalLocale {
-  const normalized = value?.toLowerCase().slice(0, 2);
-  return normalized === 'pt' || normalized === 'es' ? normalized : 'en';
+  return normalizeCanonicalLocale(value);
 }
 
-export function portalText(locale: PortalLocale, key: string): string {
+export function portalText(
+  locale: PortalLocale,
+  key: string,
+  params?: Readonly<Record<string, string | number>>,
+): string {
+  const canonical = translateCanonical(locale, key, params);
+  if (
+    canonical !== key ||
+    canonicalPortalCatalog[locale][key as keyof (typeof canonicalPortalCatalog)[typeof locale]]
+  ) {
+    return canonical;
+  }
   return copy[locale][key] ?? en[key] ?? key;
 }

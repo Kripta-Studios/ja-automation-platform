@@ -1,0 +1,99 @@
+{
+  "candidateCommit": "0a0cee42913ba5d14a0584a1296116b67f07917d",
+  "role": "owner",
+  "viewport": 390,
+  "startingScroll": 300,
+  "invalid": {
+    "path": "/j-aautomation/app/projects/:record",
+    "query": {
+      "periodStart": [
+        "2026-09-20"
+      ],
+      "periodEnd": [
+        "2026-09-18"
+      ],
+      "tab": [
+        "commercial"
+      ],
+      "lang": [
+        "en"
+      ]
+    },
+    "locale": "en-US",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 0,
+    "code": "PROJECT_DETAIL_PERIOD_RANGE_REVERSED",
+    "noticeText": "Action needed The period end is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+    "noticeTop": 718.09375,
+    "noticeBottom": 846.65625,
+    "noticeVisible": false,
+    "focusIsNotice": false,
+    "focusedTag": "body",
+    "focusedId": "",
+    "remedyText": null,
+    "periodFormPresent": true,
+    "startValue": "2026-09-20",
+    "endValue": "2026-09-18",
+    "startError": null,
+    "endError": "The period end is before the start. Choose an end date on or after the start date.",
+    "selectedTab": "project-tab-commercial",
+    "financeSummaryCount": 0,
+    "correctionCount": 1
+  },
+  "corrected": {
+    "path": "/j-aautomation/app/projects/:record",
+    "query": {
+      "periodStart": [
+        "2026-09-20"
+      ],
+      "periodEnd": [
+        "2026-09-21"
+      ],
+      "tab": [
+        "commercial"
+      ],
+      "lang": [
+        "en"
+      ]
+    },
+    "locale": "en-US",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 0,
+    "code": null,
+    "noticeText": null,
+    "noticeTop": null,
+    "noticeBottom": null,
+    "noticeVisible": false,
+    "focusIsNotice": false,
+    "focusedTag": "body",
+    "focusedId": "",
+    "remedyText": null,
+    "periodFormPresent": false,
+    "startValue": null,
+    "endValue": null,
+    "startError": null,
+    "endError": null,
+    "selectedTab": "project-tab-commercial",
+    "financeSummaryCount": 1,
+    "correctionCount": 0
+  },
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 document",
+      "200 fetch",
+      "200 fetch"
+    ]
+  }
+}

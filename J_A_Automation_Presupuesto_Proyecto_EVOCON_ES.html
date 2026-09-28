@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="es-ES">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Presupuesto y resumen del proyecto - J&A Automation</title>
+<style>
+  :root{
+    --ink:#17191d; --muted:#626872; --paper:#f8f7f4; --white:#fff;
+    --red:#c8272c; --redDark:#8f171b; --line:#d9dadd; --dark:#14171b; --soft:#efede8;
+    --green:#4e8f65;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#d5d6d8;color:var(--ink);font-family:Arial,"Helvetica Neue",sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:A4;margin:0}
+  .page{width:210mm;height:297mm;margin:0 auto;background:var(--paper);position:relative;overflow:hidden;page-break-after:always;padding:15mm 17mm 14mm 20mm}
+  .page:last-child{page-break-after:auto}
+  .page:before{content:"";position:absolute;inset:0 auto 0 0;width:6mm;background:linear-gradient(180deg,var(--red),var(--redDark))}
+  .header{display:flex;justify-content:space-between;align-items:center;gap:12mm}
+  .logos{display:flex;align-items:center;gap:14mm}
+  .logo-ja{height:22mm;width:auto;max-width:65mm;object-fit:contain}
+  .logo-evocon{height:22mm;width:auto;max-width:60mm;object-fit:contain}
+  .prepared{font-size:8.5pt;color:var(--muted);text-align:right;line-height:1.35}
+  .eyebrow{margin-top:17mm;font-size:9pt;text-transform:uppercase;letter-spacing:.16em;font-weight:800;color:var(--redDark)}
+  h1{font-size:30pt;line-height:1.03;letter-spacing:-.04em;margin:4mm 0 6mm;max-width:167mm}
+  h2{font-size:22pt;line-height:1.08;letter-spacing:-.025em;margin:10mm 0 5mm}
+  h3{font-size:14pt;line-height:1.15;margin:0 0 2.5mm}
+  p{font-size:12pt;line-height:1.42;margin:0;color:#2e3238}
+  .lead{font-size:15pt;line-height:1.42;max-width:164mm;color:#353a41}
+  .accent{color:var(--red)}
+  .hero-prices{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;margin-top:12mm}
+  .hero-card{background:var(--white);border:none;box-shadow:0 6px 16px rgba(0,0,0,0.06);border-radius:3.5mm;padding:6mm;min-height:39mm}
+  .hero-card .money{font-size:21pt;font-weight:900;letter-spacing:-.035em;color:var(--redDark);margin-bottom:2mm}
+  .hero-card .name{font-size:11pt;font-weight:800;line-height:1.25}
+  .hero-card .mini{font-size:9.5pt;color:var(--muted);line-height:1.35;margin-top:1.8mm}
+  .total{position:absolute;left:20mm;right:17mm;bottom:20mm;background:var(--dark);color:white;border-radius:4mm;padding:7mm 8mm;display:flex;justify-content:space-between;align-items:flex-end;gap:8mm}
+  .total .label{font-size:8.5pt;text-transform:uppercase;letter-spacing:.13em;color:#bdc2c9;font-weight:800}
+  .total .big{font-size:29pt;font-weight:900;letter-spacing:-.04em;margin-top:1mm}
+  .total .side{font-size:12pt;line-height:1.35;text-align:right;color:#eceff2}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:6mm}
+  .card{background:white;border:none;box-shadow:0 6px 16px rgba(0,0,0,0.06);border-radius:3.5mm;padding:6mm}
+  .tag{font-size:8.5pt;text-transform:uppercase;letter-spacing:.11em;font-weight:900;color:var(--redDark);margin-bottom:2mm}
+  ul{margin:3mm 0 0;padding-left:5mm}
+  li{font-size:11pt;line-height:1.38;margin:2mm 0;color:#32363b}
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:2.5mm;margin-top:7mm}
+  .step{background:var(--white);border:none;box-shadow:0 4px 12px rgba(0,0,0,0.05);border-radius:3mm;padding:5mm 3mm;text-align:center;font-size:10pt;font-weight:800;line-height:1.25}
+  .step span{display:block;color:var(--red);font-size:8pt;margin-bottom:1.5mm}
+  .benefit{margin-top:8mm;background:var(--soft);border-radius:3.5mm;padding:6mm 7mm;display:flex;align-items:center;gap:5mm}
+  .benefit .icon{font-size:23pt;font-weight:900;color:var(--red)}
+  .benefit p{font-size:13pt;font-weight:700;line-height:1.35}
+  .mailbox{display:grid;grid-template-columns:1.25fr .75fr;gap:6mm;margin-top:6mm}
+  .dark{background:var(--dark);color:white;border-radius:3.5mm;padding:6mm;box-shadow:0 6px 16px rgba(0,0,0,0.15)}
+  .dark p,.dark li{color:#edf0f2}
+  .price-split{display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:8mm}
+  .pricebox{background:white;border:none;box-shadow:0 6px 16px rgba(0,0,0,0.06);border-radius:3.5mm;padding:6mm}
+  .pricebox .amount{font-size:23pt;font-weight:900;letter-spacing:-.035em;color:var(--redDark)}
+  .pricebox p{font-size:10.5pt;margin-top:2mm}
+  .monthly{margin-top:7mm;background:linear-gradient(135deg,var(--redDark),var(--red));color:white;border-radius:3.5mm;padding:6mm 7mm;box-shadow:0 6px 16px rgba(200,39,44,0.3)}
+  .monthly .big{font-size:24pt;font-weight:900;letter-spacing:-.035em}
+  .monthly p{color:white;font-size:11pt;margin-top:2mm}
+  .budget{width:100%;border-collapse:separate;border-spacing:0;margin-top:7mm;background:white;border:none;box-shadow:0 6px 16px rgba(0,0,0,0.06);border-radius:3.5mm;overflow:hidden}
+  .budget td{padding:5mm;border-bottom:1px solid #f0f0f0;font-size:11pt;line-height:1.3}
+  .budget tr:last-child td{border-bottom:none}
+  .budget .price{text-align:right;white-space:nowrap;font-size:14pt;font-weight:900}
+  .budget .grand td{background:var(--dark);color:white;font-size:14pt;font-weight:900}
+  .budget .rec td{background:#ece8e2;font-weight:800}
+  .impact{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:8mm}
+  .impact .card{min-height:53mm}
+  .impact p{font-size:11.5pt;line-height:1.4}
+  .next{margin-top:8mm;border-left:2mm solid var(--red);padding:2mm 0 2mm 5mm}
+  .next p{font-size:13pt;font-weight:700}
+  .fine{font-size:8.5pt;color:var(--muted);line-height:1.35;margin-top:6mm}
+  .footer{position:absolute;left:20mm;right:17mm;bottom:7mm;border-top:1px solid var(--line);padding-top:2.5mm;display:flex;justify-content:space-between;align-items:center;color:#747983;font-size:8pt}
+  .footer strong{color:#383c42}
+  .p3 .monthly{margin-top:5mm;padding:4.5mm 6mm}
+  .p3 .monthly .big{font-size:20pt}
+  .p3 .monthly p{font-size:10.5pt;line-height:1.3}
+  @media screen{.page{margin:10px auto;box-shadow:0 12px 32px rgba(0,0,0,.16)}}
+</style>
+</head>
+<body>
+
+<!-- PAGE 1 -->
+<section class="page">
+  <div class="header">
+    <div class="logos">
+      <!-- J&A Automation: reconstructed from supplied brand mark -->
+      <img src="Images/logo_jaautomation.png" class="logo-ja" alt="J&A Automation Industrial Solutions" />
+      <img src="Images/logo-evocon.png" class="logo-evocon" alt="EVOCON Solutions" />
+    </div>
+    <div class="prepared">Propuesta para<br><strong>Antonny Nascimento</strong><br>Director de Operaciones</div>
+  </div>
+
+  <div class="eyebrow">Propuesta final y resumen del proyecto</div>
+  <h1 style="font-size:24pt;">Condiciones acordadas — J&A Automation × EVOCON Solutions</h1>
+  <p class="lead">Web corporativa, sistema de gestión y correo empresarial en una única plataforma integrada.</p>
+
+  <div class="hero-prices">
+    <div class="hero-card">
+      <div class="money">USD 1.000</div>
+      <div class="name">Nueva web corporativa</div>
+      <div class="mini">Diseño moderno y totalmente adaptado a móvil.</div>
+    </div>
+    <div class="hero-card">
+      <div class="money">USD 4.000</div>
+      <div class="name">Aplicación web multiplataforma</div>
+      <div class="mini">Operación, gastos y facturación centralizados.</div>
+    </div>
+    <div class="hero-card">
+      <div class="money">USD 1.000</div>
+      <div class="name">Migración del correo</div>
+      <div class="mini">Buzones e historial en una plataforma moderna.</div>
+    </div>
+  </div>
+
+  <div class="total" style="align-items:flex-end">
+    <div>
+      <div class="label" style="text-decoration:line-through; color:var(--muted); font-size:9.5pt;">Valor de los servicios: USD 6.000</div>
+      <div class="label" style="color:var(--redDark); margin-bottom:1.5mm; font-size:9.5pt;">Descuento comercial acordado: -USD 1.000</div>
+      <div class="label" style="font-weight:bold; color:var(--ink)">INVERSIÓN ACORDADA</div>
+      <div class="big">USD 5.000</div>
+    </div>
+    <div class="side" style="text-align:right">
+      <strong>+ USD 100/mes</strong><br>infraestructura, mantenimiento y soporte<br>durante 24 meses
+    </div>
+  </div>
+
+  <div style="margin-top:4mm; padding:4mm 5mm; background:var(--white); border-radius:2.5mm; box-shadow:0 3px 10px rgba(0,0,0,0.05);">
+    <p style="font-size:10pt; font-weight:bold; margin-bottom:1.5mm; color:var(--redDark)">Calendario previsto</p>
+    <div style="display:flex; justify-content:space-between; font-size:9pt; margin-bottom:2mm; color:var(--ink);">
+      <div><strong>≈ 1 semana</strong><br>Primera versión funcional</div>
+      <div><strong>≈ 15 días</strong><br>Web corporativa finalizada</div>
+      <div><strong>≈ 3-4 semanas</strong><br>Sistema completo operativo</div>
+    </div>
+    <p style="font-size:7.5pt; color:var(--muted); line-height:1.2; margin:0;">Objetivo de implantación: aprox. 30 días. Los plazos se computan desde el inicio formal del proyecto y la recepción de los accesos, información y materiales necesarios por parte de J&A.</p>
+  </div>
+
+  <div class="footer"><span>Preparado por <strong>EVOCON Solutions</strong></span><span>01 / 04</span></div>
+</section>
+
+<!-- PAGE 2 -->
+<section class="page">
+  <div class="header">
+    <div class="logos">
+      <img src="Images/logo_jaautomation.png" class="logo-ja" alt="J&A Automation Industrial Solutions" />
+    </div>
+    <div class="prepared">Web + aplicación operativa</div>
+  </div>
+
+  <h2>Una presencia mejor. Una operación mucho más sencilla.</h2>
+  <div class="card" style="margin-bottom:4mm; padding:5mm 6mm;">
+    <div class="tag">USD 1.000 - Página web</div>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <h3 style="margin-bottom:1.5mm; font-size:12.5pt;">Web corporativa renovada</h3>
+        <p style="font-size:10pt; line-height:1.4">Diseño moderno móvil/desktop. Servicios, capacidades y proyectos presentados de forma atractiva. Acceso seguro al sistema.</p>
+      </div>
+      <div style="text-align:right; font-size:9.5pt; line-height:1.4; min-width:35mm;">
+        <strong>Demo:</strong> <a href="https://gex-dashboard.hopto.org/j-aautomation/en" target="_blank" style="color:var(--redDark);">Enlace funcional</a><br>
+        <strong>Idiomas:</strong> EN / ES / PT
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:5mm 6mm;">
+    <div class="tag">USD 4.000 - Sistema de gestión J&A</div>
+    <h3 style="margin-bottom:3.5mm; font-size:12.5pt;">Plataforma operativa centralizada</h3>
+    
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:2.5mm;">
+      <div>
+        <p style="font-size:8pt; font-weight:bold; color:var(--redDark); margin-bottom:0.5mm">PROYECTOS</p>
+        <p style="font-size:7.5pt; line-height:1.3; color:var(--ink);">Clientes · numeración · trabajadores · budgets/PO</p>
+      </div>
+      <div>
+        <p style="font-size:8pt; font-weight:bold; color:var(--redDark); margin-bottom:0.5mm">HORAS Y PERSONAL</p>
+        <p style="font-size:7.5pt; line-height:1.3; color:var(--ink);">Horas reales · 10 h · standby · overtime · My Pay</p>
+      </div>
+      <div>
+        <p style="font-size:8pt; font-weight:bold; color:var(--redDark); margin-bottom:0.5mm">ECONOMÍA</p>
+        <p style="font-size:7.5pt; line-height:1.3; color:var(--ink);">Pago trabajador · coste J&A · precio cliente · % cliente · margen</p>
+      </div>
+      <div>
+        <p style="font-size:8pt; font-weight:bold; color:var(--redDark); margin-bottom:0.5mm">REPORTES</p>
+        <p style="font-size:7.5pt; line-height:1.3; color:var(--ink);">Daily · Project · PLC · EN/ES/PT</p>
+      </div>
+      <div>
+        <p style="font-size:8pt; font-weight:bold; color:var(--redDark); margin-bottom:0.5mm">GASTOS</p>
+        <p style="font-size:7.5pt; line-height:1.3; color:var(--ink);">Hotel · coche · vuelos · foto/PDF · all-in/reembolsable</p>
+      </div>
+      <div>
+        <p style="font-size:8pt; font-weight:bold; color:var(--redDark); margin-bottom:0.5mm">FACTURACIÓN</p>
+        <p style="font-size:7.5pt; line-height:1.3; color:var(--ink);">Labor + Expenses · impuestos separados · semanal/14 días/mensual</p>
+      </div>
+      <div>
+        <p style="font-size:8pt; font-weight:bold; color:var(--redDark); margin-bottom:0.5mm">CONTROL FINANCIERO</p>
+        <p style="font-size:7.5pt; line-height:1.3; color:var(--ink);">Invoices · pagos · pendientes · Ledger general</p>
+      </div>
+      <div>
+        <p style="font-size:8pt; font-weight:bold; color:var(--redDark); margin-bottom:0.5mm">ACCOUNTING</p>
+        <p style="font-size:7.5pt; line-height:1.3; color:var(--ink);">Cierre mensual · PDF/XLSX/CSV</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:6mm; text-align:center; padding:4.5mm 5mm; background:var(--white); border-radius:2.5mm; box-shadow:0 3px 10px rgba(0,0,0,0.05); display:flex; gap:4mm; align-items:center;">
+    <div style="font-size:18pt; color:var(--redDark); display:flex;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+    </div>
+    <p style="font-size:10.5pt; font-weight:bold; color:var(--redDark); line-height:1.3; text-align:left;">La información se registra una vez y se reutiliza durante todo el flujo: operación → costes → reportes → facturación → Accounting.</p>
+  </div>
+  
+  <p style="font-size:8.5pt; text-align:center; color:var(--muted); margin-top:2mm; font-style:italic;">El detalle funcional vinculante del Sistema de Gestión se recoge en el Anexo A del Contrato.</p>
+
+  <div class="footer"><span>Desarrollo orientado a reducir tareas repetitivas</span><span>02 / 04</span></div>
+</section>
+
+<!-- PAGE 3 -->
+<section class="page p3">
+  <div class="header">
+    <div class="logos">
+      <img src="Images/logo_jaautomation.png" class="logo-ja" alt="J&A Automation Industrial Solutions" />
+    </div>
+    <div class="prepared">Correo + mantenimiento</div>
+  </div>
+
+  <h2>Correo corporativo más fiable y un único soporte para todo.</h2>
+
+  <div class="mailbox">
+    <div class="card">
+      <div class="tag">USD 1.000 - Migración del correo</div>
+      <h3 style="margin-bottom:1.5mm">Migración desde HostGator Brasil</h3>
+      <p style="font-size:10pt; line-height:1.4; margin-bottom:2mm;">Transición a una infraestructura de correo empresarial más moderna y fiable.</p>
+      <ul>
+        <li>Cuentas, buzones e historial de mensajes.</li>
+        <li>Alias, configuración del dominio y validación de envío/recepción.</li>
+        <li>Integración con las notificaciones del nuevo sistema.</li>
+      </ul>
+    </div>
+    <div class="dark">
+      <p style="font-size:10pt; line-height:1.4;">La migración se realizará de forma planificada para reducir al mínimo las interrupciones del servicio, mejorando la entrega y la fiabilidad a largo plazo.</p>
+    </div>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:4mm;">
+    <h2 style="font-size:18pt; margin:0;">Mantenimiento: USD 100/mes</h2>
+    <div style="font-size:9.5pt; text-align:right; color:var(--redDark); font-weight:bold;">
+      Contrato inicial: 24 meses<br>
+      <span style="font-weight:normal; color:var(--muted); font-size:8.5pt;">Inicio tras aprobación final y cierre de pagos</span>
+    </div>
+  </div>
+  <div class="price-split" style="margin-top:4mm">
+    <div class="pricebox">
+      <div class="amount">USD 50</div>
+      <h3>Infraestructura</h3>
+      <p>Alojamiento y recursos de servidor necesarios para operar la web, el sistema y los servicios asociados.</p>
+    </div>
+    <div class="pricebox">
+      <div class="amount">USD 50</div>
+      <h3>Mantenimiento y soporte</h3>
+      <p>Monitorización, copias de seguridad, actualizaciones de seguridad, mantenimiento técnico, corrección de errores y asistencia a J&A ante incidencias.</p>
+    </div>
+  </div>
+
+  <div class="monthly">
+    <div class="big">Web + aplicación + correo, un único punto de soporte.</div>
+    <p>Incluye pequeñas mejoras evolutivas. Los nuevos módulos o ampliaciones importantes se valorarían aparte.</p>
+  </div>
+
+  <div class="footer"><span>Mantenimiento coordinado por <strong>EVOCON Solutions</strong></span><span>03 / 04</span></div>
+</section>
+
+<!-- PAGE 4 -->
+<section class="page">
+  <div class="header">
+    <div class="logos">
+      <img src="Images/logo_jaautomation.png" class="logo-ja" alt="J&A Automation Industrial Solutions" />
+    </div>
+    <div class="prepared">Condiciones acordadas</div>
+  </div>
+
+  <h2 style="margin:4mm 0 4mm">Resumen del acuerdo</h2>
+
+  <div style="background:var(--white); border-radius:3mm; padding:5mm 6mm; box-shadow:0 3px 10px rgba(0,0,0,0.05); margin-bottom:4mm;">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6mm;">
+      
+      <div>
+        <h3 style="font-size:11pt; color:var(--redDark); margin-bottom:2mm; text-transform:uppercase; letter-spacing:0.05em;">Pagos (USD 5.000)</h3>
+        <ul style="font-size:9pt; line-height:1.4; padding-left:4mm; margin:0; color:var(--ink);">
+          <li style="margin-bottom:1.5mm;"><strong>1º USD 2.000</strong> · 15 días después de la firma</li>
+          <li style="margin-bottom:1.5mm;"><strong>2º USD 2.000</strong> · 15 días tras el inicio de uso</li>
+          <li><strong>3º USD 1.000</strong> · 15 días tras aprobación final</li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 style="font-size:11pt; color:var(--redDark); margin-bottom:2mm; text-transform:uppercase; letter-spacing:0.05em;">Soporte (USD 100/mes)</h3>
+        <p style="font-size:9pt; line-height:1.4; margin:0 0 1.5mm 0; color:var(--ink);">
+          <strong>Plazo inicial:</strong> 24 meses
+        </p>
+        <p style="font-size:9pt; line-height:1.4; margin:0; color:var(--ink);">
+          Inicio del periodo tras la aprobación final y el cierre de los pagos de desarrollo.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:4mm; margin-bottom:4mm;">
+    <div style="background:var(--white); border-radius:3mm; padding:5mm; box-shadow:0 3px 10px rgba(0,0,0,0.05);">
+      <h3 style="font-size:10pt; color:var(--redDark); margin-bottom:1.5mm; text-transform:uppercase; letter-spacing:0.05em;">Calendario estimado</h3>
+      <ul style="font-size:9pt; line-height:1.4; padding-left:4mm; margin:0; color:var(--ink);">
+        <li style="margin-bottom:1mm;"><strong>1 semana:</strong> Versión funcional</li>
+        <li style="margin-bottom:1mm;"><strong>15 días:</strong> Web final prevista</li>
+        <li><strong>3-4 semanas:</strong> Implantación completa</li>
+      </ul>
+    </div>
+
+    <div style="background:var(--white); border-radius:3mm; padding:5mm; box-shadow:0 3px 10px rgba(0,0,0,0.05);">
+      <h3 style="font-size:10pt; color:var(--redDark); margin-bottom:1.5mm; text-transform:uppercase; letter-spacing:0.05em;">Idiomas del sistema</h3>
+      <p style="font-size:9pt; line-height:1.4; margin-bottom:1.5mm; color:var(--ink);">
+        <strong>English · Español · Português</strong>
+      </p>
+      <p style="font-size:8.5pt; line-height:1.3; margin:0; color:var(--muted);">
+        Reportes generados en idioma seleccionable según necesidad del proyecto.
+      </p>
+    </div>
+  </div>
+
+  <div class="next" style="margin-top:2mm; padding:1.5mm 0 1.5mm 5mm">
+    <p style="font-size:11pt; font-weight:bold; color:var(--redDark);">Tras la firma del contrato comenzará formalmente la implantación.</p>
+  </div>
+
+  <div class="contact-info" style="margin-top:4mm; background:var(--white); border-radius:3.5mm; padding:4mm 6mm; box-shadow:0 4px 12px rgba(0,0,0,0.05); display:flex; gap:6mm; align-items:center;">
+    <div style="flex:1;">
+      <h3 style="margin:0 0 1mm 0; font-size:12pt; color:var(--redDark);">Álvaro Schwiedop Souto</h3>
+      <p style="font-size:10pt; font-weight:700; color:var(--muted); margin-bottom:2mm;">Industrial AI & Predictive Quality Lead | Software Developer</p>
+      <p style="font-size:9.5pt; margin-bottom:0; color:var(--ink);"><strong>EVOCON Solutions GmbH</strong><br>Hamburg · Santiago de Compostela</p>
+    </div>
+    <div style="font-size:9.5pt; text-align:right;">
+      <p style="margin-bottom:1.5mm;"><a href="mailto:alvaro.schwiedop@evocon-solutions.com" style="color:var(--redDark); text-decoration:none; font-weight:bold;">alvaro.schwiedop@evocon-solutions.com</a></p>
+      <p style="margin-bottom:1.5mm; color:var(--ink);">+34 644 75 95 48</p>
+      <p style="margin:0;"><a href="https://www.linkedin.com/in/%C3%A1lvaro-schwiedop-souto-92718b339/" target="_blank" style="color:var(--redDark); text-decoration:none; font-weight:bold;">Perfil de LinkedIn</a></p>
+    </div>
+  </div>
+
+  <p class="fine" style="margin-top:3mm; font-size:8pt">Importes en USD. Servicios, licencias o consumos extraordinarios de terceros no incluidos se comunicarán previamente. La cuota mensual incluye mantenimiento, correcciones y pequeñas mejoras; ampliaciones de alcance o nuevos módulos se presupuestarán por separado.</p>
+
+  <div class="footer"><span>Propuesta para <strong>J&amp;A Automation Industrial Solutions</strong> - preparada por <strong>EVOCON Solutions</strong></span><span>04 / 04</span></div>
+</section>
+
+</body>
+</html>

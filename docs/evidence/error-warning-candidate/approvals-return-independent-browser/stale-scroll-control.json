@@ -1,0 +1,31 @@
+{
+  "before": {
+    "scrollY": 2000,
+    "tag": "INPUT",
+    "role": null,
+    "top": 489.65625,
+    "viewport": 844,
+    "headerBottom": 69.59375
+  },
+  "after": {
+    "scrollY": 2363,
+    "tag": "ASIDE",
+    "role": "alert",
+    "top": -1648.03125,
+    "viewport": 844,
+    "headerBottom": 69.59375
+  },
+  "network": {
+    "http": 200,
+    "type": "failure",
+    "status": 409,
+    "code": "APPROVAL_RECORD_NOT_SUBMITTED"
+  },
+  "noticeCode": "APPROVAL_RECORD_NOT_SUBMITTED",
+  "noticeText": "Se requiere una acción Este registro ya no está enviado. Revisa su estado actual antes de tomar una decisión. Estado actual: Aprobado Revisar el registro actualizado",
+  "reason": "Corrija las horas reales de visita",
+  "tab": "Horas\n36",
+  "detailsOpen": true,
+  "recordState": "approved",
+  "auditDelta": 1
+}

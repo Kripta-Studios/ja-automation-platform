@@ -1,0 +1,122 @@
+{
+  "commit": "d7abf93",
+  "viewport": 430,
+  "locale": "pt",
+  "roles": [
+    "worker",
+    "owner"
+  ],
+  "nativeInvalid": {
+    "actionPosts": 0,
+    "summaryLinks": 2,
+    "inlineSummary": "Corrija os seguintes campos:Resumo da atividade: Preencha este campo.Motivo da correção: Preencha este campo."
+  },
+  "reason": {
+    "status": 400,
+    "code": "TIME_CORRECTION_REASON_INVALID",
+    "notice": {
+      "code": "TIME_CORRECTION_REASON_INVALID",
+      "text": "Ação necessária Explique a correção com 3 a 2.000 caracteres. Status: Aprovado Informar um motivo",
+      "focused": true,
+      "visible": true,
+      "top": 495,
+      "bottom": 650,
+      "safeTop": 78,
+      "safeBottom": 916,
+      "scrollY": 0,
+      "locale": "pt-BR",
+      "overflow": false,
+      "url": "/j-aautomation/app/time/:record?/createCorrectionDraft&lang=pt"
+    },
+    "field": {
+      "workDate": "2026-09-28",
+      "reason": "   ",
+      "summary": "Corrected work account from the browser",
+      "dateInvalid": null,
+      "reasonInvalid": "true",
+      "dateError": "",
+      "reasonError": "Explique a correção com 3 a 2.000 caracteres.",
+      "summaryText": "Corrija os seguintes campos: Motivo da correção: Explique a correção com 3 a 2.000 caracteres.",
+      "summaryLinks": 0
+    }
+  },
+  "workerOutsideAssignment": {
+    "status": 403,
+    "code": "REPORT_ASSIGNMENT_REQUIRED",
+    "notice": {
+      "code": "REPORT_ASSIGNMENT_REQUIRED",
+      "text": "Ação necessária Uma atribuição vigente ao projeto deve cobrir a data do relatório. Contate o proprietário do projeto para revisar o acesso. Status: Aprovado Contatar o proprietário do projeto para revisar o acesso",
+      "focused": true,
+      "visible": true,
+      "top": 495,
+      "bottom": 668,
+      "safeTop": 78,
+      "safeBottom": 916,
+      "scrollY": 0,
+      "locale": "pt-BR",
+      "overflow": false,
+      "url": "/j-aautomation/app/time/:record?/createCorrectionDraft&lang=pt"
+    },
+    "field": {
+      "workDate": "2026-09-27",
+      "reason": "A valid reason for the corrected work.",
+      "summary": "Final correction original [qa-id]",
+      "dateInvalid": null,
+      "reasonInvalid": null,
+      "dateError": "",
+      "reasonError": "",
+      "summaryText": "",
+      "summaryLinks": 0
+    }
+  },
+  "ownerOutsideAssignment": {
+    "status": 409,
+    "code": "TIME_CORRECTION_DATE_ASSIGNMENT_REQUIRED",
+    "notice": {
+      "code": "TIME_CORRECTION_DATE_ASSIGNMENT_REQUIRED",
+      "text": "Ação necessária A atribuição ativa do trabalhador não cobre a data de trabalho corrigida. Revise a data e peça ao responsável pelo projeto para revisar a atribuição antes de tentar novamente. Status: Aprovado Contatar o proprietário do projeto para revisar o acesso",
+      "focused": true,
+      "visible": true,
+      "top": 495,
+      "bottom": 688,
+      "safeTop": 78,
+      "safeBottom": 916,
+      "scrollY": 0,
+      "locale": "pt-BR",
+      "overflow": false,
+      "url": "/j-aautomation/app/time/:record?/createCorrectionDraft&lang=pt"
+    },
+    "field": {
+      "workDate": "2026-09-27",
+      "reason": "Owner verified the original work account.",
+      "summary": "Owner corrected work account",
+      "dateInvalid": "true",
+      "reasonInvalid": null,
+      "dateError": "A atribuição ativa do trabalhador não cobre a data de trabalho corrigida. Revise a data e peça ao responsável pelo projeto para revisar a atribuição antes de tentar novamente.",
+      "reasonError": "",
+      "summaryText": "Corrija os seguintes campos: Data: A atribuição ativa do trabalhador não cobre a data de trabalho corrigida. Revise a data e peça ao responsável pelo projeto para revisar a atribuição antes de tentar novamente.",
+      "summaryLinks": 0
+    }
+  },
+  "correction": {
+    "creation": 303,
+    "links": {
+      "worker": {
+        "count": 1,
+        "opened": true,
+        "localeRetained": true,
+        "detailStatus": "Rascunho"
+      },
+      "owner": {
+        "count": 1,
+        "opened": true,
+        "localeRetained": true,
+        "detailStatus": "Rascunho"
+      }
+    }
+  },
+  "diagnostics": {
+    "worker": [],
+    "owner": []
+  }
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "step": "changed-date",
+    "linkedHoursPreserved": true,
+    "warningVisible": true,
+    "saveDisabled": true
+  },
+  {
+    "step": "remove-link",
+    "datePreserved": true,
+    "warningCleared": true,
+    "saveEnabled": true
+  }
+]

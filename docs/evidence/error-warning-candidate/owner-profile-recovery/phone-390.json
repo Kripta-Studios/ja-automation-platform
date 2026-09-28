@@ -1,0 +1,14 @@
+{
+  "viewport": "phone-390",
+  "role": "owner",
+  "locale": "es",
+  "responseStatus": 400,
+  "code": "ACCESS_WORKER_EMAIL_INVALID",
+  "retainedNameEmailRole": true,
+  "editorOpen": true,
+  "recoveredFromSavedHiddenRegisterState": true,
+  "validationSummaryFocusedAndVisible": true,
+  "workerRecordChanged": false,
+  "runtimeErrors": [],
+  "screenshot": "phone-390.png"
+}

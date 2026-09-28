@@ -1,0 +1,324 @@
+{
+  "candidateCommit": "f3955489afc09a62df1001fe3a7f80ef662407a6",
+  "role": "owner",
+  "width": 390,
+  "height": 844,
+  "locale": "pt",
+  "scenarios": [
+    {
+      "name": "invalid",
+      "status": 200,
+      "ui": {
+        "locale": "pt-BR",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "start": [
+            "2026-02-30"
+          ],
+          "end": [
+            "2026-03-01"
+          ],
+          "worker": [
+            "01a0e401-66ff-7358-b50b-b45e0399c5d2"
+          ],
+          "lang": [
+            "pt"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "WORKER_PAY_PERIOD_DATE_INVALID",
+        "text": "Ação necessária Informe datas de início e fim válidas para revisar o pagamento da pessoa trabalhadora. Corrigir o campo destacado",
+        "remedy": "Corrigir o campo destacado",
+        "remedyHref": "#worker-pay-start",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 414.78125,
+        "targetBottom": 586.640625,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e401-66ff-7358-b50b-b45e0399c5d2",
+        "workerUnavailableOption": false,
+        "startValue": "2026-02-30",
+        "startType": "text",
+        "endValue": "2026-03-01",
+        "endType": "date",
+        "startError": "Informe datas de início e fim válidas para revisar o pagamento da pessoa trabalhadora.",
+        "endError": null,
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "reversed",
+      "status": 200,
+      "ui": {
+        "locale": "pt-BR",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "start": [
+            "2026-09-20"
+          ],
+          "end": [
+            "2026-09-19"
+          ],
+          "worker": [
+            "01a0e401-66ff-7358-b50b-b45e0399c5d2"
+          ],
+          "lang": [
+            "pt"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "WORKER_PAY_PERIOD_RANGE_REVERSED",
+        "text": "Ação necessária A data de fim é anterior à de início. Escolha uma data de fim igual ou posterior à de início. Corrigir o campo destacado",
+        "remedy": "Corrigir o campo destacado",
+        "remedyHref": "#worker-pay-end",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 414.78125,
+        "targetBottom": 586.640625,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e401-66ff-7358-b50b-b45e0399c5d2",
+        "workerUnavailableOption": false,
+        "startValue": "2026-09-20",
+        "startType": "date",
+        "endValue": "2026-09-19",
+        "endType": "date",
+        "startError": null,
+        "endError": "A data de fim é anterior à de início. Escolha uma data de fim igual ou posterior à de início.",
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "duplicate",
+      "status": 200,
+      "ui": {
+        "locale": "pt-BR",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "start": [
+            "2026-09-01",
+            "2026-09-02"
+          ],
+          "end": [
+            "2026-09-30"
+          ],
+          "worker": [
+            "01a0e401-66ff-7358-b50b-b45e0399c5d2"
+          ],
+          "lang": [
+            "pt"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "WORKER_PAY_FILTER_DUPLICATE",
+        "text": "Ação necessária Um filtro da revisão de pagamentos foi informado mais de uma vez. Mantenha um valor por campo e aplique o período novamente. Corrigir o campo destacado",
+        "remedy": "Corrigir o campo destacado",
+        "remedyHref": "#worker-pay-start",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 414.78125,
+        "targetBottom": 606.9375,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e401-66ff-7358-b50b-b45e0399c5d2",
+        "workerUnavailableOption": false,
+        "startValue": "2026-09-01",
+        "startType": "date",
+        "endValue": "2026-09-30",
+        "endType": "date",
+        "startError": "Um filtro da revisão de pagamentos foi informado mais de uma vez. Mantenha um valor por campo e aplique o período novamente.",
+        "endError": null,
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "stale worker",
+      "status": 200,
+      "ui": {
+        "locale": "pt-BR",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "start": [
+            "2026-09-01"
+          ],
+          "end": [
+            "2026-09-30"
+          ],
+          "worker": [
+            "00000000-0000-4000-8000-ffffffffffff"
+          ],
+          "lang": [
+            "pt"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "WORKER_PAY_WORKER_UNAVAILABLE",
+        "text": "Ação necessária A pessoa selecionada não está mais disponível para esta revisão. Escolha outra pessoa e aplique o período novamente. Corrigir o campo destacado",
+        "remedy": "Corrigir o campo destacado",
+        "remedyHref": "#worker-pay-worker",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 414.78125,
+        "targetBottom": 606.9375,
+        "headerBottom": 69.59375,
+        "workerValue": "00000000-0000-4000-8000-ffffffffffff",
+        "workerUnavailableOption": true,
+        "startValue": "2026-09-01",
+        "startType": "date",
+        "endValue": "2026-09-30",
+        "endType": "date",
+        "startError": null,
+        "endError": null,
+        "workerError": "A pessoa selecionada não está mais disponível para esta revisão. Escolha outra pessoa e aplique o período novamente.",
+        "paySummaryCount": 0,
+        "activityTableCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "duplicate and malformed",
+      "status": 200,
+      "ui": {
+        "locale": "pt-BR",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "start": [
+            "not-a-date",
+            "2026-03-01"
+          ],
+          "end": [
+            "2026-03-31"
+          ],
+          "worker": [
+            "01a0e401-66ff-7358-b50b-b45e0399c5d2"
+          ],
+          "lang": [
+            "pt"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "WORKER_PAY_FILTER_DUPLICATE",
+        "text": "Ação necessária Um filtro da revisão de pagamentos foi informado mais de uma vez. Mantenha um valor por campo e aplique o período novamente. Corrigir o campo destacado",
+        "remedy": "Corrigir o campo destacado",
+        "remedyHref": "#worker-pay-start",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 414.78125,
+        "targetBottom": 606.9375,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e401-66ff-7358-b50b-b45e0399c5d2",
+        "workerUnavailableOption": false,
+        "startValue": "not-a-date",
+        "startType": "text",
+        "endValue": "2026-03-31",
+        "endType": "date",
+        "startError": "Um filtro da revisão de pagamentos foi informado mais de uma vez. Mantenha um valor por campo e aplique o período novamente. Informe datas de início e fim válidas para revisar o pagamento da pessoa trabalhadora.",
+        "endError": null,
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "multiple malformed fields",
+      "status": 200,
+      "ui": {
+        "locale": "pt-BR",
+        "width": 390,
+        "height": 844,
+        "scrollY": 62,
+        "query": {
+          "start": [
+            "not-a-date",
+            "2026-03-01"
+          ],
+          "end": [
+            "2026-02-30",
+            "2026-03-31"
+          ],
+          "worker": [
+            "01a0e401-66ff-7358-b50b-b45e0399c5d2"
+          ],
+          "lang": [
+            "pt"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "WORKER_PAY_FILTER_DUPLICATE",
+        "text": "Ação necessária Um filtro da revisão de pagamentos foi informado mais de uma vez. Mantenha um valor por campo e aplique o período novamente. Corrigir o campo destacado",
+        "remedy": "Corrigir o campo destacado",
+        "remedyHref": "#worker-pay-start",
+        "summaryPresent": true,
+        "summaryText": "Revise os campos destacados. De: Um filtro da revisão de pagamentos foi informado mais de uma vez. Mantenha um valor por campo e aplique o período novamente.Até: Um filtro da revisão de pagamentos foi informado mais de uma vez. Mantenha um valor por campo e aplique o período novamente.",
+        "summaryLinks": [
+          "#worker-pay-start",
+          "#worker-pay-end"
+        ],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 602.9375,
+        "targetBottom": 819.53125,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e401-66ff-7358-b50b-b45e0399c5d2",
+        "workerUnavailableOption": false,
+        "startValue": "not-a-date",
+        "startType": "text",
+        "endValue": "2026-02-30",
+        "endType": "text",
+        "startError": "Um filtro da revisão de pagamentos foi informado mais de uma vez. Mantenha um valor por campo e aplique o período novamente. Informe datas de início e fim válidas para revisar o pagamento da pessoa trabalhadora.",
+        "endError": "Um filtro da revisão de pagamentos foi informado mais de uma vez. Mantenha um valor por campo e aplique o período novamente. Informe datas de início e fim válidas para revisar o pagamento da pessoa trabalhadora.",
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0,
+        "errorPageText": null
+      }
+    }
+  ],
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "step": "skill-invalid-native",
+    "code": "ACTION_VALIDATION_SKILL_FIELDS",
+    "retained": true
+  },
+  {
+    "step": "skill-success",
+    "saved": true
+  },
+  {
+    "step": "skill-duplicate-native",
+    "code": "SKILL_CODE_EXISTS",
+    "retained": true,
+    "scrollBefore": 1251,
+    "scrollAfter": 1251
+  },
+  {
+    "step": "manager-role-denied",
+    "code": "SKILL_ADMIN_ACCESS_REQUIRED"
+  }
+]

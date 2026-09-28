@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-19T10:20:12.400Z",
+  "applicationCommit": "e43c640611bf3f50297056719e2a5a185ed9783f",
+  "testFile": "tests/e2e/client-essential-32-step.spec.ts",
+  "testFileSha256": "52dc463fd9e0a5b3581615e630d12bcf90ce4753636a46420ebf2cf08592e77d",
+  "testAssertionChange": "After deployment, step 8 asserted the localized visible label and the seeded worker while retaining the database checks for rule_type PercentageOfEligibleClientLabor and percentage_bps 5500; no application source was changed.",
+  "environment": {
+    "fixture": "synthetic authenticated E2E data",
+    "productionBoundary": "https://j-aautomation.com",
+    "productionBoundaryAccess": "read-only Caddy health check",
+    "deploymentId": "production-vps",
+    "tenantId": "jaautomation"
+  },
+  "operationsEvidence": {
+    "contractSha256": "8420efcbdbd547afcb305b9b55b2ce4000e824711ad26f219da9e869f6861836",
+    "evidenceId": "manuals-i18n-e43c640611-20260919T100852970Z",
+    "capturedAt": "2026-09-19T10:08:52.970Z",
+    "automaticJobRuns": 2
+  },
+  "result": {
+    "status": "PASS",
+    "playwrightTestsPassed": 1,
+    "playwrightTestsFailed": 0,
+    "steps": 32,
+    "stepsFailed": 0,
+    "stepResultsAttachment": "docs/evidence/manuals-i18n-20260919/client-essential-32-step-results.json",
+    "stepResultsSha256": "cef0b540c1e04cc4aa2e25614022ade51a36e70d63f94d282c52f1b856d94d60",
+    "reporterStartTime": "2026-09-19T10:16:16.994Z",
+    "reporterDurationMs": 163781.549,
+    "stepResultsCapturedBytesSha256": "2f79b6bc86963bd891a704a5268a218b8d5cf1c9b9382d415baa2bd83910b513"
+  },
+  "attempts": [
+    {
+      "name": "interrupted",
+      "path": "docs/evidence/manuals-i18n-20260919/browser-acceptance-32-steps-interrupted.txt",
+      "exitCode": 143,
+      "result": "SIGTERM before a test assertion result; external source undetermined",
+      "capturedBytesSha256": "42f489e96bf675e7635a727434d8b56e7cc1409f0ba22f5591c4df885cff8fc6",
+      "sha256": "930ffaf5112f24441894fad5505930c1b298e1626ed783d8c4f180df17a5dc9f"
+    },
+    {
+      "name": "failed-before-assertion-update",
+      "path": "docs/evidence/manuals-i18n-20260919/browser-acceptance-32-steps-failed-before-assertion-update.txt",
+      "exitCode": 1,
+      "result": "31 of 32 steps passed; step 8 expected a raw enum instead of the actual localized visible label",
+      "capturedBytesSha256": "1344696116716c99650e5c70fe0acb0e3f9049b21ad09372c230d2f6c61e1674",
+      "sha256": "f510ebc2519629a6b4e4c79301b5f0cd175874d39e47d59d83e44fedf53904e7"
+    },
+    {
+      "name": "final",
+      "path": "docs/evidence/manuals-i18n-20260919/browser-acceptance-32-steps.txt",
+      "exitCode": 0,
+      "result": "1 Playwright test passed; all 32 steps completed without failures",
+      "capturedBytesSha256": "f0079619a3f4265d8f825e7620bfbdfc9e29b6c0a8910c9763b585162bd86ffe",
+      "sha256": "dd82ac8a944d0dade13244e1c45bb2dcec142e5c67a9369db377494d9a08a2b0"
+    }
+  ]
+}

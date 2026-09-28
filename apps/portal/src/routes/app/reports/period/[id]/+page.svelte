@@ -1,0 +1,2068 @@
+<script lang="ts">
+  import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
+  import { base } from '$app/paths';
+  import { beforeNavigate } from '$app/navigation';
+  import { page } from '$app/stores';
+  import { enhance } from '$app/forms';
+  import type { SubmitFunction } from '@sveltejs/kit';
+  import { onMount, tick, untrack } from 'svelte';
+  import {
+    applyStandaloneDocumentLocale,
+    persistStandaloneLocale,
+    resolveStandaloneLocale,
+    standaloneActionMessage,
+    standaloneText,
+  } from '../../../standalone-locale';
+  import type { PortalLocale } from '$lib/portal-i18n';
+  import { money as formatMoney } from '$lib/portal/portal-format';
+  import {
+    translateControlledValue,
+    type ControlledValueDomain,
+  } from '$lib/i18n/controlled-values';
+  import { Field, FieldGroup, StatusBadge, TableRegion } from '$lib/portal/ui';
+  import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import { beginReportPdfDownload, type ReportPdfAttempt } from '$lib/portal/ui/report-pdf-download';
+  import {
+    documentDownloadFallback,
+    documentDownloadProblem,
+    privateDownloadFilename,
+  } from '$lib/portal/ui/private-document-download';
+  import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
+  import {
+    readSessionItem,
+    removeSessionItem,
+    saveSessionItem,
+  } from '$lib/portal/ui/safe-session-storage';
+  import type { ProblemData } from '$lib/problem/contract';
+  import { reviewCopy, type ReviewLocale } from '../../review/copy';
+
+  type Row = Record<string, unknown>;
+  type FollowupView = Row & {
+    latestEventId: string | null;
+    latestEvent: Row | null;
+    events: readonly Row[];
+  };
+  let { data, form } = $props();
+  const resultForm = $derived(
+    form as
+      | (Partial<ProblemData> & {
+          operation?: string;
+          values?: Record<string, string>;
+          success?: boolean;
+          pendingSignatureDocumentId?: string;
+          pendingSnapshotVersion?: number;
+          pendingSnapshotSha256?: string;
+        })
+      | null
+      | undefined,
+  );
+  const problem = $derived(
+    resultForm?.code && resultForm.messageKey && resultForm.correlationId
+      ? (resultForm as ProblemData)
+      : null,
+  );
+  let localeOverride = $state<PortalLocale | null>(null);
+  const locale = $derived(
+    localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
+  );
+  const t = (key: string): string => standaloneText(locale, key);
+  const controlled = (domain: ControlledValueDomain, value: unknown): string =>
+    translateControlledValue(
+      locale,
+      domain,
+      value === null || value === undefined ? null : String(value),
+    );
+  const report = $derived(data.report as Row);
+  const reportHref = $derived(
+    `${base}/app/reports/period/${encodeURIComponent(String(report.id))}`,
+  );
+  type ReportPdfSurface = 'header' | 'signoff';
+  let reportPdfBusy = $state(false);
+  let reportPdfFailure = $state<{ surface: ReportPdfSurface; problem: ProblemData } | null>(null);
+  let reportPdfAttempt: ReportPdfAttempt | null = null;
+  let reportPdfDisposed = false;
+  function cancelReportPdf(): void {
+    reportPdfAttempt?.cancel();
+    reportPdfAttempt = null;
+    reportPdfBusy = false;
+    reportPdfFailure = null;
+  }
+  beforeNavigate(cancelReportPdf);
+  onMount(() => () => {
+    reportPdfDisposed = true;
+    cancelReportPdf();
+  });
+  async function getReportPdf(mode: 'open' | 'download', surface: ReportPdfSurface): Promise<void> {
+    if (reportPdfBusy || reportPdfDisposed) return;
+    reportPdfBusy = true;
+    reportPdfFailure = null;
+    const attempt = beginReportPdfDownload(String(report.id), mode, {
+      title: t('PDF'),
+      loading: t('Loading'),
+      download: t('Download PDF'),
+      previewFallback: t('problem.report.pdfPreviewFallback'),
+      language: locale === 'pt' ? 'pt-BR' : locale,
+    });
+    reportPdfAttempt = attempt;
+    const failure = await attempt.result;
+    if (reportPdfDisposed || reportPdfAttempt !== attempt) return;
+    reportPdfAttempt = null;
+    reportPdfBusy = false;
+    if (!failure) return;
+    reportPdfFailure = { surface, problem: failure };
+    await tick();
+    if (reportPdfDisposed || reportPdfFailure?.surface !== surface) return;
+    const notice = document.querySelector<HTMLElement>(
+      `[data-period-pdf-problem="${surface}"] [data-ui="problem-notice"]`,
+    );
+    notice?.focus({ preventScroll: true });
+    const bounds = notice?.getBoundingClientRect();
+    if (bounds && (bounds.top < 88 || bounds.bottom > window.innerHeight - 96))
+      notice?.scrollIntoView({ block: 'center', inline: 'nearest' });
+  }
+  function onReportPdfLinkClick(event: MouseEvent, surface: ReportPdfSurface): void {
+    if (event.defaultPrevented || (event.button !== 0 && event.button !== 1)) return;
+    event.preventDefault();
+    void getReportPdf('open', surface);
+  }
+  function onReportPdfRemedyClick(event: MouseEvent, surface: ReportPdfSurface): void {
+    if (!(event.target instanceof Element)) return;
+    const retry = event.target.closest<HTMLAnchorElement>('a[href="#report-pdf-retry"]');
+    if (!retry || !(event.currentTarget instanceof Element) || !event.currentTarget.contains(retry)) return;
+    event.preventDefault();
+    void getReportPdf('download', surface);
+  }
+  const reportPdfRemedyLinks = $derived({
+    sign_in_again: { label: t('problem.remedy.signInAgain'), href: `${base}/app/login` },
+    review_report: { label: t('problem.remedy.reviewReport'), href: `${reportHref}?review=1#period-report-header` },
+    review_reports: { label: t('problem.remedy.reviewReports'), href: `${base}/app/reports` },
+    contact_owner: { label: t('problem.remedy.contactProjectOwner') },
+    retry_download: { label: t('Download PDF'), href: '#report-pdf-retry' },
+  });
+  const remedyLinks = $derived({
+    review_report: {
+      label: t('problem.remedy.reviewUpdatedRecord'),
+      href: `${reportHref}?review=1#period-report-header`,
+    },
+    review_reports: { label: t('problem.remedy.reviewReports'), href: `${base}/app/reports` },
+    review_followup: {
+      label: t('problem.remedy.reviewUpdatedRecord'),
+      href: `${reportHref}?review=1#period-followup`,
+    },
+    review_signoff: {
+      label: t('problem.remedy.reviewUpdatedRecord'),
+      href: `${reportHref}?review=1#customer-signoff`,
+    },
+    contact_project_owner: { label: t('problem.remedy.contactProjectOwner') },
+    sign_in_again: { label: t('problem.remedy.signInAgain'), href: `${base}/app/login` },
+    reattach_signed_pdf: { label: t('problem.remedy.reattachSignedPdf') },
+    wait_for_scan: { label: t('problem.remedy.waitForScan') },
+  });
+  const scrollKey = $derived(
+    `period-report-form-scroll:${String(data.user?.id ?? '')}:${String(report.id)}`,
+  );
+  const signDraftKey = $derived(
+    `period-signoff-draft:${String(data.user?.id ?? '')}:${String(report.id)}:${String(report.snapshotVersion)}:${String(report.snapshotSha256)}`,
+  );
+  let recoveredSignInputs = $state<Record<string, string>>({});
+  function rememberScroll(): void {
+    saveSessionItem(scrollKey, String(window.scrollY));
+  }
+  function rememberSignInputs(): void {
+    const signForm = document.querySelector<HTMLFormElement>('form[data-period-operation="sign"]');
+    if (!signForm) return;
+    const values = new FormData(signForm);
+    const draft = Object.fromEntries(
+      ['conformityId', 'reason', 'signerName', 'signerIdentity', 'signatureDate'].flatMap(
+        (field) => {
+          const value = values.get(field);
+          return typeof value === 'string' ? [[field, value]] : [];
+        },
+      ),
+    );
+    saveSessionItem(signDraftKey, JSON.stringify(draft));
+  }
+  function rememberPageState(): void {
+    rememberScroll();
+    rememberSignInputs();
+  }
+  function showFieldProblems(result: Record<string, unknown> | null | undefined): void {
+    const operation = typeof result?.operation === 'string' ? result.operation : '';
+    const target = document.querySelector<HTMLFormElement>(
+      `form[data-period-operation="${operation}"]`,
+    );
+    const fields = result?.fieldErrors;
+    if (target && fields && typeof fields === 'object' && !Array.isArray(fields))
+      reportFormFieldErrors(target, fields as Record<string, readonly string[]>);
+    const summary = target?.querySelector<HTMLElement>('[data-validation-summary]');
+    (
+      summary ??
+      document.querySelector<HTMLElement>('[data-period-problem] [data-ui="problem-notice"]')
+    )?.focus({
+      preventScroll: true,
+    });
+  }
+  const preservePeriodForm: SubmitFunction = () => {
+    const scrollTop = window.scrollY;
+    return async ({ result, update }) => {
+      await update({ reset: false });
+      if (result.type === 'failure') {
+        await tick();
+        showFieldProblems(result.data);
+        window.scrollTo({ top: scrollTop, behavior: 'instant' });
+      }
+    };
+  };
+  const project = $derived((report.project ?? {}) as Row);
+  const summary = $derived((report.commercialSummary ?? {}) as Row);
+  const finance = $derived(
+    (report.financialSummary ?? {}) as Row & {
+      timeEconomics?: Row[];
+      expenseEconomics?: Row[];
+    },
+  );
+  const calculation = $derived((report.commercialCalculation ?? []) as Row[]);
+  const dailyReports = $derived((report.dailyReports ?? []) as Row[]);
+  const selectedTechnicalReportIds = $derived(
+    Array.isArray(report.selectedTechnicalReportIds)
+      ? report.selectedTechnicalReportIds.filter((id): id is string => typeof id === 'string')
+      : [],
+  );
+  const technicalReports = $derived((report.technicalReports ?? []) as Row[]);
+  const technicalChanges = $derived((report.technicalChanges ?? []) as Row[]);
+  const expenses = $derived((report.expenses ?? []) as Row[]);
+  const timeSummary = $derived((report.timeSummary ?? []) as Row[]);
+  const userRole = $derived(String(data.user?.role ?? 'worker'));
+  const audience = $derived(String(report.audience ?? '').toLowerCase());
+  const internal = $derived(audience === 'internal');
+  const customerAudience = $derived(audience === 'customer');
+  const customerConformity = $derived((report.conformity ?? null) as Row | null);
+  const followup = $derived((report.followup ?? null) as FollowupView | null);
+  const followupCopy = $derived(
+    reviewCopy[(locale === 'pt' ? 'pt' : locale === 'es' ? 'es' : 'en') as ReviewLocale],
+  );
+  const followupFormValues = $derived(
+    (resultForm?.operation === 'recordFollowup' ? resultForm.values : {}) as Row,
+  );
+  const followupFormValue = (name: string, fallback = ''): string => {
+    const value = followupFormValues[name];
+    return value === null || value === undefined || value === '' ? fallback : String(value);
+  };
+  let followupEventType = $state(untrack(() => followupFormValue('eventType', 'shared')));
+  const followupLatestEvent = $derived((followup?.latestEvent ?? null) as Row | null);
+  const followupResponsible = $derived(
+    followupFormValue(
+      'responsibleUserId',
+      String(followupLatestEvent?.responsibleUserId ?? data.user?.id ?? ''),
+    ),
+  );
+  const canManagePeriodFollowup = $derived(
+    customerAudience &&
+      followup !== null &&
+      ['owner_admin', 'finance_admin', 'project_manager'].includes(userRole),
+  );
+  const canManageCustomerSignoff = $derived(
+    userRole === 'owner_admin' || userRole === 'finance_admin',
+  );
+  const canApproveCustomerReport = $derived(
+    customerAudience &&
+      String(report.state) === 'review' &&
+      ['owner_admin', 'finance_admin', 'project_manager'].includes(userRole) &&
+      Number.isInteger(Number(report.snapshotVersion)) &&
+      Number(report.snapshotVersion) > 0 &&
+      /^[a-f0-9]{64}$/u.test(String(report.snapshotSha256 ?? '')),
+  );
+  const reportReadyForSignoff = $derived(
+    ['approved', 'final'].includes(String(report.state)) && Boolean(report.pdfReady),
+  );
+  const hasActiveCustomerConformity = $derived(customerConformity?.status === 'active');
+  const signatureDocumentId = $derived(String(customerConformity?.signatureDocumentId ?? ''));
+  let signaturePreviewBusy = $state(false);
+  let signaturePreviewFailure = $state<{
+    id: string;
+    mode: 'view' | 'download';
+    problem: ProblemData;
+  } | null>(null);
+  let signaturePreviewController: AbortController | null = null;
+  let pendingSignaturePreview: Window | null = null;
+  function cancelSignaturePreview(): void {
+    const controller = signaturePreviewController;
+    signaturePreviewController = null;
+    controller?.abort();
+    pendingSignaturePreview?.close();
+    pendingSignaturePreview = null;
+    signaturePreviewBusy = false;
+  }
+  beforeNavigate(cancelSignaturePreview);
+  const signaturePreviewRemedyLinks = $derived({
+    sign_in_again: {
+      label: t('problem.remedy.signInAgain'),
+      href: `${base}/app/login?lang=${locale}`,
+    },
+    review_documents: {
+      label: t('problem.remedy.reviewDocuments'),
+      href: `${base}/app/documents#document-list`,
+    },
+    contact_owner: { label: t('problem.remedy.contactProjectOwner') },
+  });
+  async function showSignaturePreviewFailure(
+    id: string,
+    mode: 'view' | 'download',
+    failure: ProblemData,
+    controller: AbortController,
+  ): Promise<void> {
+    if (signaturePreviewController !== controller || controller.signal.aborted) return;
+    signaturePreviewFailure = { id, mode, problem: failure };
+    await tick();
+    if (signaturePreviewController !== controller || controller.signal.aborted) return;
+    if (signaturePreviewFailure?.id !== id) return;
+    const notice = document.querySelector<HTMLElement>(
+      '[data-signature-preview-problem] [data-ui="problem-notice"]',
+    );
+    notice?.focus({ preventScroll: true });
+    const bounds = notice?.getBoundingClientRect();
+    if (bounds && (bounds.top < 8 || bounds.bottom > window.innerHeight - 8))
+      notice?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+  async function previewSignature(
+    event: MouseEvent,
+    mode: 'view' | 'download' = 'view',
+  ): Promise<void> {
+    event.preventDefault();
+    if (signaturePreviewBusy || !signatureDocumentId) return;
+    const id = signatureDocumentId;
+    const href = `${base}/app/api/documents/${encodeURIComponent(id)}${mode === 'view' ? '?view=1' : ''}`;
+    const controller = new AbortController();
+    signaturePreviewController = controller;
+    signaturePreviewBusy = true;
+    signaturePreviewFailure = null;
+    let preview: Window | null = null;
+    if (mode === 'view') {
+      try {
+        preview = window.open('about:blank', '_blank');
+      } catch {
+        // A browser policy can throw instead of returning null.
+      }
+      if (preview) preview.opener = null;
+      pendingSignaturePreview = preview;
+      if (!preview) {
+        await showSignaturePreviewFailure(
+          id,
+          'download',
+          documentDownloadFallback('popup'),
+          controller,
+        );
+        if (signaturePreviewController === controller) {
+          signaturePreviewController = null;
+          signaturePreviewBusy = false;
+        }
+        return;
+      }
+    }
+    try {
+      const response = await fetch(href, {
+        method: 'GET',
+        signal: controller.signal,
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { accept: 'application/json, application/pdf' },
+      });
+      if (signaturePreviewController !== controller || controller.signal.aborted) return;
+      const reference = response.headers.get('x-correlation-id') ?? '';
+      if (response.redirected) {
+        const destination = new URL(response.url);
+        preview?.close();
+        await showSignaturePreviewFailure(
+          id,
+          mode,
+          documentDownloadFallback(
+            destination.origin === location.origin && destination.pathname.endsWith('/app/login')
+              ? 'signIn'
+              : 'invalid',
+            reference,
+          ),
+          controller,
+        );
+        return;
+      }
+      if (!response.ok) {
+        const payload = response.headers
+          .get('content-type')
+          ?.toLowerCase()
+          .includes('application/json')
+          ? await response.json().catch(() => null)
+          : null;
+        if (signaturePreviewController !== controller || controller.signal.aborted) return;
+        preview?.close();
+        await showSignaturePreviewFailure(
+          id,
+          mode,
+          documentDownloadProblem(payload, reference) ??
+            documentDownloadFallback(response.status === 401 ? 'signIn' : 'invalid', reference),
+          controller,
+        );
+        return;
+      }
+      const contentType = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase();
+      const disposition = response.headers.get('content-disposition');
+      if (
+        contentType !== 'application/pdf' ||
+        !disposition?.toLowerCase().startsWith(mode === 'view' ? 'inline' : 'attachment')
+      ) {
+        preview?.close();
+        await showSignaturePreviewFailure(
+          id,
+          mode,
+          documentDownloadFallback('invalid', reference),
+          controller,
+        );
+        return;
+      }
+      const file = await response.blob();
+      if (signaturePreviewController !== controller || controller.signal.aborted) return;
+      const declaredLength = response.headers.get('content-length');
+      if (!file.size || (declaredLength && Number(declaredLength) !== file.size)) {
+        preview?.close();
+        await showSignaturePreviewFailure(
+          id,
+          mode,
+          documentDownloadFallback('invalid', reference),
+          controller,
+        );
+        return;
+      }
+      const objectUrl = URL.createObjectURL(file);
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      if (mode === 'view' && preview) {
+        preview.location.replace(objectUrl);
+        if (pendingSignaturePreview === preview) pendingSignaturePreview = null;
+      } else {
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = privateDownloadFilename(
+          disposition,
+          `signed-copy-${display(project.name)}.pdf`,
+        );
+        link.hidden = true;
+        document.body.append(link);
+        link.click();
+        link.remove();
+      }
+    } catch {
+      preview?.close();
+      if (signaturePreviewController === controller && !controller.signal.aborted)
+        await showSignaturePreviewFailure(
+          id,
+          mode,
+          documentDownloadFallback('network'),
+          controller,
+        );
+    } finally {
+      if (signaturePreviewController === controller) {
+        signaturePreviewController = null;
+        signaturePreviewBusy = false;
+      }
+      if (pendingSignaturePreview === preview) pendingSignaturePreview = null;
+    }
+  }
+  const signatureEvidenceStatus = $derived(
+    String(customerConformity?.signatureEvidenceStatus ?? 'missing'),
+  );
+  const savedSignoffEvidence = $derived(
+    (data.pendingSignoffEvidence ?? null) as { id: string; state: 'pending_scan' | 'ready' } | null,
+  );
+  const pendingSignatureDocumentId = $derived(
+    savedSignoffEvidence?.id ??
+      (resultForm?.code === 'PERIOD_SIGNOFF_SCAN_PENDING' &&
+      Number(resultForm.pendingSnapshotVersion) === Number(report.snapshotVersion) &&
+      resultForm.pendingSnapshotSha256 === String(report.snapshotSha256)
+        ? String(resultForm.pendingSignatureDocumentId ?? '')
+        : ''),
+  );
+  const pendingSignoffState = $derived(
+    savedSignoffEvidence?.state ??
+      (pendingSignatureDocumentId && resultForm?.code === 'PERIOD_SIGNOFF_SCAN_PENDING'
+        ? 'pending_scan'
+        : null),
+  );
+  const signatureDateDefault = $derived(
+    String(
+      resultForm?.operation === 'sign'
+        ? (resultForm.values?.signatureDate ?? new Date().toISOString().slice(0, 10))
+        : (recoveredSignInputs.signatureDate ?? new Date().toISOString().slice(0, 10)),
+    ),
+  );
+  const signoffState = $derived(
+    customerConformity?.status === 'active'
+      ? signatureEvidenceStatus === 'verified'
+        ? 'signed'
+        : 'evidence_unavailable'
+      : customerConformity?.status === 'invalidated'
+        ? 'invalid'
+        : reportReadyForSignoff
+          ? 'ready_for_signature'
+          : 'needs_report',
+  );
+  const canCaptureCustomerSignoff = $derived(
+    !internal && canManageCustomerSignoff && reportReadyForSignoff && !hasActiveCustomerConformity,
+  );
+  const canAttachLegacyCustomerSignoffEvidence = $derived(
+    !internal &&
+      canManageCustomerSignoff &&
+      reportReadyForSignoff &&
+      hasActiveCustomerConformity &&
+      signatureEvidenceStatus === 'missing',
+  );
+  const approvedMinutes = $derived(
+    timeSummary.reduce(
+      (total, item) =>
+        total +
+        (['approved', 'locked'].includes(String(item.approvalState))
+          ? Number(item.minutes ?? 0)
+          : 0),
+      0,
+    ),
+  );
+  const operationalSourceCount = $derived(
+    dailyReports.length + technicalReports.length + timeSummary.length,
+  );
+  const display = (value: unknown, fallback = '—') =>
+    value === null || value === undefined || value === '' ? fallback : String(value);
+  const hours = (minutes: unknown) => `${(Number(minutes ?? 0) / 60).toFixed(1)} h`;
+  const signoffLabel = (state: string): string => {
+    switch (state) {
+      case 'ready_for_signature':
+        return t('Ready for signature');
+      case 'signed':
+        return t('Verified evidence');
+      case 'evidence_unavailable':
+        return t('Signed-copy evidence unavailable');
+      case 'invalid':
+        return t('Invalid / superseded');
+      default:
+        return t('Needs report');
+    }
+  };
+  const timestamp = (value: unknown): string => {
+    if (value === null || value === undefined || value === '') return '—';
+    const date = new Date(String(value));
+    if (Number.isNaN(date.valueOf())) return String(value);
+    return new Intl.DateTimeFormat(locale === 'pt' ? 'pt-BR' : locale, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(date);
+  };
+  const money = (
+    minor: unknown,
+    currency = String(summary.currency ?? project.currency ?? 'USD'),
+  ) => formatMoney(minor, currency, locale === 'pt' ? 'pt-BR' : locale);
+  const reportLink = (id: unknown) => `${base}/app/reports/${String(id)}`;
+  const followupEventLabel = (value: unknown): string => {
+    const key = String(value ?? '');
+    return followupCopy.followupTypes[key] ?? key.replaceAll('_', ' ');
+  };
+  const followupEventVariant = (event: Row | null): 'warning' | 'info' =>
+    event?.stale ? 'warning' : 'info';
+  const followupRetryKey = (): string => {
+    const sequence = Number(followupLatestEvent?.sequenceNo ?? 0) + 1;
+    return `${String(report.id)}-event-${sequence}`;
+  };
+  const followupHistoryCards = (events: readonly Row[]) =>
+    events.map((event) => ({
+      id: display(event.id),
+      cells: [
+        { label: followupCopy.eventType, value: followupEventLabel(event.eventType) },
+        { label: followupCopy.eventDateShort, value: display(event.eventDate ?? event.createdAt) },
+        { label: followupCopy.version, value: `v${display(event.snapshotVersion)}` },
+        { label: followupCopy.hash, value: display(event.snapshotSha256) },
+        { label: followupCopy.responsible, value: display(event.responsibleUserId) },
+        { label: followupCopy.state, value: event.stale ? followupCopy.stale : followupCopy.ready },
+      ],
+    }));
+  const printReport = (): void => {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement)
+      document.activeElement.blur();
+    window.print();
+  };
+  onMount(() => {
+    window.addEventListener('pagehide', cancelSignaturePreview);
+    localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
+    persistStandaloneLocale(locale);
+    applyStandaloneDocumentLocale(locale);
+    if (pendingSignatureDocumentId) {
+      try {
+        const stored = JSON.parse(readSessionItem(signDraftKey) ?? '{}') as unknown;
+        if (stored && typeof stored === 'object' && !Array.isArray(stored))
+          recoveredSignInputs = Object.fromEntries(
+            Object.entries(stored).filter(
+              (entry): entry is [string, string] =>
+                [
+                  'conformityId',
+                  'reason',
+                  'signerName',
+                  'signerIdentity',
+                  'signatureDate',
+                ].includes(entry[0]) && typeof entry[1] === 'string',
+            ),
+          );
+      } catch {
+        removeSessionItem(signDraftKey);
+      }
+    } else removeSessionItem(signDraftKey);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === 'ja.portal.locale' || event.key === 'ja-portal-locale')
+        localeOverride = resolveStandaloneLocale(event.newValue);
+    };
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('pagehide', rememberPageState);
+    return () => {
+      cancelSignaturePreview();
+      window.removeEventListener('pagehide', cancelSignaturePreview);
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('pagehide', rememberPageState);
+    };
+  });
+  let focusedProblemId = '';
+  $effect(() => {
+    const id = problem?.correlationId;
+    if (!id || id === focusedProblemId) return;
+    focusedProblemId = id;
+    void tick().then(() => {
+      requestAnimationFrame(() => {
+        showFieldProblems(resultForm);
+        const saved = readSessionItem(scrollKey);
+        if (saved !== null) {
+          const previous = Number(saved);
+          if (Number.isFinite(previous)) window.scrollTo({ top: previous, behavior: 'instant' });
+        }
+        removeSessionItem(scrollKey);
+      });
+    });
+  });
+  $effect(() => applyStandaloneDocumentLocale(locale));
+</script>
+
+<svelte:head><title>{t('Period report')} · {display(project.number)}</title></svelte:head>
+
+<main class="record-detail-page">
+  <nav class="detail-nav">
+    <a href={`${base}/app/reports`} data-origin-back>← {t('Reports')}</a><a
+      href={`${base}/app/projects/${String(project.id)}`}>{t('Open project')}</a
+    ><button type="button" class="no-print print-trigger" onclick={printReport}
+      ><PrintIcon /> {t('Print Report')}</button
+    >
+  </nav>
+
+  {#if problem}
+    <div data-period-problem>
+      <ProblemNotice
+        {problem}
+        {locale}
+        kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        status={`${t('Current status')}: ${controlled('status', report.state)}`}
+        {remedyLinks}
+      />
+    </div>
+  {:else if standaloneActionMessage(locale, form)}
+    <p class="action-message no-print" role="status" aria-live="polite">
+      {standaloneActionMessage(locale, form)}
+    </p>
+  {/if}
+
+  <header class="record-detail-header" id="period-report-header">
+    <div>
+      <p class="portal-kicker">
+        {display(project.number)} / {controlled('recordType', report.reportType)}
+      </p>
+      <h1>{display(project.name, t('Project period report'))}</h1>
+      <p>
+        {display(project.clientName)} · {display(report.periodStart)} → {display(report.periodEnd)}
+      </p>
+    </div>
+    <div class="record-detail-actions">
+      <span class="project-state" data-report-lifecycle-state={String(report.state ?? '')}
+        >{controlled('status', report.audience)} · {controlled('status', report.state)}</span
+      >
+      {#if report.pdfReady}<a
+          class="preview-link"
+          href={`${base}/app/api/reports/${String(report.id)}/pdf`}
+          target="_blank"
+          rel="noreferrer"
+          aria-disabled={reportPdfBusy}
+          onclick={(event) => onReportPdfLinkClick(event, 'header')}
+          onauxclick={(event) => onReportPdfLinkClick(event, 'header')}
+          >{t('Open PDF')}</a
+        >{/if}
+    </div>
+  </header>
+  {#if reportPdfFailure?.surface === 'header'}
+    <div data-period-pdf-problem="header" onclick={(event) => onReportPdfRemedyClick(event, 'header')} role="presentation">
+      <ProblemNotice
+        problem={reportPdfFailure.problem}
+        {locale}
+        status={`${t('Current status')}: ${controlled('status', report.state)}`}
+        remedyLinks={reportPdfRemedyLinks}
+      />
+    </div>
+  {/if}
+
+  {#if customerAudience}
+    <section class="detail-panel customer-signoff" id="customer-signoff" data-customer-signoff>
+      <header class="customer-signoff__header">
+        <div>
+          <p class="portal-kicker">{t('Reports')} / {t('Client Sign-off')}</p>
+          <h2>{t('Customer signed-copy evidence')}</h2>
+          <p class="customer-signoff__lede">
+            {t(
+              'A verified signed PDF copy is required for this exact report version. It contains no financial information.',
+            )}
+          </p>
+        </div>
+        <span
+          class="customer-signoff__status"
+          data-signoff-state={signoffState}
+          role="status"
+          aria-live="polite">{signoffLabel(signoffState)}</span
+        >
+      </header>
+
+      <div class="customer-signoff__body">
+        {#if canApproveCustomerReport}
+          <form
+            method="POST"
+            action="?/approve"
+            class="customer-signoff__form customer-signoff__approval-form"
+            data-period-report-approval
+            data-period-operation="approve"
+            use:enhance={preservePeriodForm}
+            use:formValidation
+            onsubmit={rememberScroll}
+            aria-describedby="customer-report-approval-help"
+          >
+            <div>
+              <h3>{t('Approve customer report')}</h3>
+              <p id="customer-report-approval-help" class="form-help">
+                {t(
+                  'Approve the operational hours and activity in this immutable report snapshot. Customer conformity remains a separate step.',
+                )}
+              </p>
+            </div>
+            <input type="hidden" name="expectedSnapshotVersion" value={report.snapshotVersion} />
+            <input type="hidden" name="expectedSnapshotSha256" value={report.snapshotSha256} />
+            <button type="submit">{t('Approve customer report')}</button>
+          </form>
+        {/if}
+
+        {#if signoffState === 'needs_report'}
+          <div class="customer-signoff__notice" data-signoff-notice="needs-report">
+            <strong>{t('Needs report')}</strong>
+            <p>
+              {t(
+                'A finalized customer-safe report and a ready PDF are required before customer sign-off can be captured.',
+              )}
+            </p>
+            <p>
+              {t('Current source records')}: {dailyReports.length}
+              {t('Daily')} · {technicalReports.length}
+              {t('Technical / PLC')} · {timeSummary.length}
+              {t('Time entries')}.
+            </p>
+            {#if ['owner_admin', 'finance_admin'].includes(userRole)}
+              <a
+                class="preview-link"
+                href={`${base}/app/reports?view=signoff&project=${encodeURIComponent(String(project.id))}`}
+                >{t('Refresh period reports')}</a
+              >
+            {:else}
+              <a
+                class="preview-link"
+                href={`${base}/app/reports?view=daily&project=${encodeURIComponent(String(project.id))}`}
+                >{t('Create source report')}</a
+              >
+            {/if}
+          </div>
+        {:else if signoffState === 'ready_for_signature'}
+          <div class="customer-signoff__notice" data-signoff-notice="ready">
+            <strong>{t('Ready for signature')}</strong>
+            <p>{t('The approved report version is ready for customer conformity.')}</p>
+          </div>
+        {:else if signoffState === 'invalid'}
+          <div class="customer-signoff__notice" data-signoff-notice="invalid">
+            <strong>{t('Invalid / superseded')}</strong>
+            <p>
+              {t(
+                'The previous conformity was retained for audit and is no longer the active sign-off for this report version.',
+              )}
+            </p>
+          </div>
+        {:else if signoffState === 'evidence_unavailable'}
+          <div class="customer-signoff__notice" data-signoff-notice="evidence-unavailable">
+            <strong>{t('Signed-copy evidence unavailable')}</strong>
+            <p>
+              {t(
+                'This historical conformity has no currently verified signed-copy evidence. It remains in the audit record but cannot support a future invoice issue.',
+              )}
+            </p>
+          </div>
+        {:else if customerConformity}
+          <div class="customer-signoff__notice" data-signoff-notice="signed">
+            <strong>{t('Verified evidence')}</strong>
+            <p>{t('Verified signed-copy evidence is bound to this immutable report version.')}</p>
+          </div>
+        {/if}
+
+        {#if customerConformity?.status === 'active'}
+          <dl class="customer-signoff__facts">
+            <div>
+              <dt>{t('Signer')}</dt>
+              <dd>{display(customerConformity.signerName)}</dd>
+            </div>
+            <div>
+              <dt>{t('Signer identity')}</dt>
+              <dd>{display(customerConformity.signerIdentity)}</dd>
+            </div>
+            <div>
+              <dt>{t('Signed at')}</dt>
+              <dd>{timestamp(customerConformity.signedAt)}</dd>
+            </div>
+            <div>
+              <dt>{t('Evidence verified at')}</dt>
+              <dd>{timestamp(customerConformity.verifiedAt)}</dd>
+            </div>
+            <div>
+              <dt>{t('Report version')}</dt>
+              <dd>
+                {customerConformity.snapshotVersion
+                  ? `v${display(customerConformity.snapshotVersion)}`
+                  : t('Immutable version binding')}
+              </dd>
+            </div>
+            <div>
+              <dt>{t('Report hash')}</dt>
+              <dd><code>{display(report.snapshotSha256)}</code></dd>
+            </div>
+          </dl>
+          {#if canManageCustomerSignoff && signatureEvidenceStatus === 'verified' && signatureDocumentId}
+            <p class="customer-signoff__evidence-link">
+              <a
+                href={`${base}/app/api/documents/${signatureDocumentId}?view=1`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-disabled={signaturePreviewBusy}
+                onclick={(event) => previewSignature(event)}
+                onauxclick={(event) => {
+                  if (event.button === 1) void previewSignature(event);
+                }}>{t('Open verified signed-copy evidence')}</a
+              >
+            </p>
+            {#if signaturePreviewFailure?.id === signatureDocumentId}
+              <div data-signature-preview-problem>
+                <ProblemNotice
+                  problem={signaturePreviewFailure.problem}
+                  {locale}
+                  remedyLinks={signaturePreviewRemedyLinks}
+                />
+                {#if signaturePreviewFailure.problem.remedies.some((remedy) => remedy.id === 'retry_download')}
+                  <button
+                    type="button"
+                    class="preview-link"
+                    disabled={signaturePreviewBusy}
+                    onclick={(event) =>
+                      previewSignature(event, signaturePreviewFailure?.mode ?? 'download')}
+                    >{signaturePreviewFailure.mode === 'view'
+                      ? t('Open verified signed-copy evidence')
+                      : t('Download')}</button
+                  >
+                {/if}
+              </div>
+            {/if}
+          {/if}
+          <p class="customer-signoff__immutable">
+            <span aria-hidden="true">✓</span>
+            {t('Signed record is immutable. Any correction requires a new report version.')}
+          </p>
+        {/if}
+
+        {#if report.pdfReady}
+          <div class="customer-signoff__preview">
+            <a
+              class="customer-signoff__pdf"
+              href={`${base}/app/api/reports/${String(report.id)}/pdf`}
+              target="_blank"
+              rel="noreferrer"
+              aria-disabled={reportPdfBusy}
+              onclick={(event) => onReportPdfLinkClick(event, 'signoff')}
+              onauxclick={(event) => onReportPdfLinkClick(event, 'signoff')}
+              >{t('Preview customer-safe PDF')}</a
+            >
+            <span>{t('Only approved hours and activities are included.')}</span>
+          </div>
+          {#if reportPdfFailure?.surface === 'signoff'}
+            <div data-period-pdf-problem="signoff" onclick={(event) => onReportPdfRemedyClick(event, 'signoff')} role="presentation">
+              <ProblemNotice
+                problem={reportPdfFailure.problem}
+                {locale}
+                status={`${t('Current status')}: ${controlled('status', report.state)}`}
+                remedyLinks={reportPdfRemedyLinks}
+              />
+            </div>
+          {/if}
+        {/if}
+
+        {#if canCaptureCustomerSignoff}
+          <form
+            method="POST"
+            action="?/sign"
+            enctype="multipart/form-data"
+            class="customer-signoff__form"
+            data-signoff-form
+            data-period-operation="sign"
+            use:enhance={preservePeriodForm}
+            use:formValidation
+            onsubmit={rememberPageState}
+          >
+            <div>
+              <h3>{t('Capture verified signed-copy evidence')}</h3>
+              <p class="form-help">
+                {t(
+                  'Upload the signed customer PDF for this exact report version and enter the signer details. The server records the verification time.',
+                )}
+              </p>
+            </div>
+            <p class="form-help">
+              {t('Exact report binding')}: v{display(report.snapshotVersion)} ·
+              <code>{display(report.snapshotSha256)}</code>
+            </p>
+            {#if pendingSignatureDocumentId}
+              <input
+                type="hidden"
+                name="pendingSignatureDocumentId"
+                value={pendingSignatureDocumentId}
+              />
+              <p
+                class="customer-signoff__notice"
+                data-signoff-recovered-evidence
+                data-signoff-scan-pending={pendingSignoffState === 'pending_scan' ? '' : undefined}
+              >
+                {pendingSignoffState === 'pending_scan'
+                  ? t(
+                      'The uploaded signed PDF is awaiting its security scan. Retry after the scan completes; do not upload it again.',
+                    )
+                  : t(
+                      'Your signed PDF is ready. Review the signer details and complete sign-off without uploading it again.',
+                    )}
+              </p>
+            {/if}
+            <label>
+              {t('Signed PDF copy')}
+              <input
+                name="signatureFile"
+                type="file"
+                accept="application/pdf,.pdf"
+                required={!pendingSignatureDocumentId}
+                disabled={Boolean(pendingSignatureDocumentId)}
+                aria-describedby="customer-signoff-file-help"
+              />
+            </label>
+            <p id="customer-signoff-file-help" class="form-help">
+              {t('Required. Upload the complete signed PDF copy (maximum 20 MB).')}
+            </p>
+            <label>
+              {t('Signer name')}
+              <input
+                name="signerName"
+                type="text"
+                required
+                maxlength="200"
+                autocomplete="name"
+                value={resultForm?.operation === 'sign'
+                  ? (resultForm.values?.signerName ?? '')
+                  : (recoveredSignInputs.signerName ?? '')}
+                aria-describedby="customer-signoff-signer-help"
+              />
+            </label>
+            <p id="customer-signoff-signer-help" class="form-help">
+              {t('Required. Use the name provided by the customer signer.')}
+            </p>
+            <label>
+              {t('Signer identity')} <span class="optional-label">({t('optional')})</span>
+              <input
+                name="signerIdentity"
+                type="text"
+                maxlength="320"
+                autocomplete="email"
+                value={resultForm?.operation === 'sign'
+                  ? (resultForm.values?.signerIdentity ?? '')
+                  : (recoveredSignInputs.signerIdentity ?? '')}
+              />
+            </label>
+            <label>
+              {t('Customer signature date')}
+              <input
+                name="signatureDate"
+                type="date"
+                required
+                max={new Date().toISOString().slice(0, 10)}
+                value={signatureDateDefault}
+              />
+            </label>
+            <button type="submit"
+              >{pendingSignatureDocumentId
+                ? pendingSignoffState === 'pending_scan'
+                  ? t('Retry after security scan')
+                  : t('Complete sign-off with saved PDF')
+                : t('Record verified signed-copy evidence')}</button
+            >
+          </form>
+        {/if}
+
+        {#if canAttachLegacyCustomerSignoffEvidence}
+          <form
+            method="POST"
+            action="?/sign"
+            enctype="multipart/form-data"
+            class="customer-signoff__form"
+            data-signoff-evidence-attachment
+            data-period-operation="sign"
+            use:enhance={preservePeriodForm}
+            use:formValidation
+            onsubmit={rememberPageState}
+          >
+            <div>
+              <h3>{t('Attach verified signed-copy evidence')}</h3>
+              <p class="form-help">
+                {t(
+                  'This preserves the historical conformity and attaches a newly verified private signed PDF to the exact immutable report version.',
+                )}
+              </p>
+            </div>
+            <input type="hidden" name="conformityId" value={customerConformity?.id} />
+            {#if pendingSignatureDocumentId}
+              <input
+                type="hidden"
+                name="pendingSignatureDocumentId"
+                value={pendingSignatureDocumentId}
+              />
+              <p
+                class="customer-signoff__notice"
+                data-signoff-recovered-evidence
+                data-signoff-scan-pending={pendingSignoffState === 'pending_scan' ? '' : undefined}
+              >
+                {pendingSignoffState === 'pending_scan'
+                  ? t(
+                      'The uploaded signed PDF is awaiting its security scan. Retry after the scan completes; do not upload it again.',
+                    )
+                  : t(
+                      'Your signed PDF is ready. Review the attachment reason and complete sign-off without uploading it again.',
+                    )}
+              </p>
+            {/if}
+            <p class="form-help">
+              {t('Exact report binding')}: v{display(report.snapshotVersion)} ·
+              <code>{display(report.snapshotSha256)}</code>
+            </p>
+            <label>
+              {t('Signed PDF copy')}
+              <input
+                name="signatureFile"
+                type="file"
+                accept="application/pdf,.pdf"
+                required={!pendingSignatureDocumentId}
+                disabled={Boolean(pendingSignatureDocumentId)}
+                aria-describedby="customer-signoff-attachment-file-help"
+              />
+            </label>
+            <p id="customer-signoff-attachment-file-help" class="form-help">
+              {t('Required. Upload the complete signed PDF copy (maximum 20 MB).')}
+            </p>
+            <label>
+              {t('Reason for evidence attachment')}
+              <textarea name="reason" required maxlength="2000" rows="3"
+                >{resultForm?.operation === 'sign'
+                  ? (resultForm.values?.reason ?? '')
+                  : recoveredSignInputs.conformityId === String(customerConformity?.id ?? '')
+                    ? (recoveredSignInputs.reason ?? '')
+                    : ''}</textarea
+              >
+            </label>
+            <p class="form-help">
+              {t(
+                'The original signer details and signed date remain unchanged in the historical record.',
+              )}
+            </p>
+            <button type="submit"
+              >{pendingSignatureDocumentId
+                ? pendingSignoffState === 'pending_scan'
+                  ? t('Retry after security scan')
+                  : t('Attach saved signed-copy evidence')
+                : t('Attach verified signed-copy evidence')}</button
+            >
+          </form>
+        {/if}
+
+        {#if customerConformity?.status === 'active' && canManageCustomerSignoff}
+          <details
+            class="customer-signoff__invalidate no-print"
+            data-signoff-invalidation
+            open={resultForm?.operation === 'invalidateSignoff'}
+          >
+            <summary>{t('Invalidate sign-off')}</summary>
+            <div>
+              <p class="form-help">
+                {t(
+                  'Use this only when the customer confirmation no longer matches the report. The signed record remains available in the audit history.',
+                )}
+              </p>
+              <form
+                method="POST"
+                action="?/invalidateSignoff"
+                class="customer-signoff__form"
+                data-period-operation="invalidateSignoff"
+                use:enhance={preservePeriodForm}
+                use:formValidation
+                onsubmit={rememberScroll}
+              >
+                <input type="hidden" name="conformityId" value={customerConformity.id} />
+                <label>
+                  {t('Reason for invalidation')}
+                  <textarea name="reason" required maxlength="2000" rows="3"
+                    >{resultForm?.operation === 'invalidateSignoff'
+                      ? (resultForm.values?.reason ?? '')
+                      : ''}</textarea
+                  >
+                </label>
+                <button type="submit" class="customer-signoff__danger-action">
+                  {t('Confirm invalidation')}
+                </button>
+              </form>
+            </div>
+          </details>
+        {/if}
+      </div>
+    </section>
+  {/if}
+
+  {#if canManagePeriodFollowup && followup}
+    <section class="detail-panel period-followup" id="period-followup" data-period-followup>
+      <header class="period-followup__header">
+        <div>
+          <p class="portal-kicker">{followupCopy.period} / {followupCopy.followup}</p>
+          <h2>{followupCopy.followup}</h2>
+          <p class="period-followup__lede">{followupCopy.followupHelp}</p>
+        </div>
+        {#if followupLatestEvent}
+          <StatusBadge
+            variant={followupEventVariant(followupLatestEvent)}
+            text={followupLatestEvent.stale
+              ? followupCopy.stale
+              : followupEventLabel(followupLatestEvent.eventType)}
+          />
+        {/if}
+      </header>
+
+      <div class="period-followup__body">
+        <p class="period-followup__binding">
+          {followupCopy.exactBinding}: v{display(followup.snapshotVersion)} ·
+          <code>{display(followup.snapshotSha256)}</code>
+          {#if !followup.pdfReady}
+            · {followupCopy.pdfRequired}
+          {/if}
+        </p>
+
+        {#if followupLatestEvent}
+          <div class="period-followup__latest" data-period-followup-latest>
+            <strong
+              >{followupCopy.latestEvent}: {followupEventLabel(
+                followupLatestEvent.eventType,
+              )}</strong
+            >
+            <span
+              >{display(followupLatestEvent.eventDate ?? followupLatestEvent.createdAt)} ·
+              {followupCopy.responsible}: {display(followupLatestEvent.responsibleUserId)}</span
+            >
+            {#if followupLatestEvent.stale}<p>{followupCopy.stale}</p>{/if}
+          </div>
+        {:else}
+          <p class="empty">{followupCopy.noEvents}</p>
+        {/if}
+
+        <details class="period-followup__history" data-period-followup-history>
+          <summary>{followupCopy.history} ({followup.events.length})</summary>
+          <TableRegion
+            label={followupCopy.history}
+            mobileMode="cards"
+            cardRows={followupHistoryCards(followup.events)}
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th>{followupCopy.eventType}</th>
+                  <th>{followupCopy.eventDateShort}</th>
+                  <th>{followupCopy.version}</th>
+                  <th>{followupCopy.hash}</th>
+                  <th>{followupCopy.responsible}</th>
+                  <th>{followupCopy.state}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each followup.events as event}
+                  <tr>
+                    <td>{followupEventLabel(event.eventType)}</td>
+                    <td>{display(event.eventDate ?? event.createdAt)}</td>
+                    <td>v{display(event.snapshotVersion)}</td>
+                    <td><code>{display(event.snapshotSha256)}</code></td>
+                    <td>{display(event.responsibleUserId)}</td>
+                    <td>{event.stale ? followupCopy.stale : followupCopy.ready}</td>
+                  </tr>
+                {:else}
+                  <tr><td colspan="6">{followupCopy.noEvents}</td></tr>
+                {/each}
+              </tbody>
+            </table>
+          </TableRegion>
+        </details>
+
+        <form
+          method="POST"
+          action="?/recordFollowup"
+          class="period-followup__form"
+          data-period-operation="recordFollowup"
+          use:enhance={preservePeriodForm}
+          use:formValidation
+          onsubmit={rememberScroll}
+        >
+          <p class="form-help">{followupCopy.dispatchAttestation}</p>
+          <input type="hidden" name="expectedSnapshotVersion" value={followup.snapshotVersion} />
+          <input type="hidden" name="expectedSnapshotSha256" value={followup.snapshotSha256} />
+          <input
+            type="hidden"
+            name="expectedLatestEventId"
+            value={followupFormValue('expectedLatestEventId', followup.latestEventId ?? '')}
+          />
+          <input
+            type="hidden"
+            name="idempotencyKey"
+            value={followupFormValue('idempotencyKey', followupRetryKey())}
+          />
+          <FieldGroup columns="auto">
+            <Field id="period-followup-event-type" label={followupCopy.eventType} required>
+              <select
+                id="period-followup-event-type"
+                name="eventType"
+                bind:value={followupEventType}
+                required
+              >
+                {#each Object.entries(followupCopy.followupTypes) as [value, label]}
+                  <option {value}>{label}</option>
+                {/each}
+              </select>
+            </Field>
+            <Field
+              id="period-followup-method"
+              label={followupCopy.method}
+              required={['shared', 'exported'].includes(followupEventType)}
+            >
+              <input
+                id="period-followup-method"
+                name="method"
+                type="text"
+                maxlength="200"
+                value={followupFormValue('method')}
+                required={['shared', 'exported'].includes(followupEventType)}
+              />
+            </Field>
+            <Field
+              id="period-followup-date"
+              label={followupCopy.eventDate}
+              required={['shared', 'exported'].includes(followupEventType)}
+            >
+              <input
+                id="period-followup-date"
+                name="eventDate"
+                type="date"
+                value={followupFormValue('eventDate')}
+                required={['shared', 'exported'].includes(followupEventType)}
+              />
+            </Field>
+            <Field
+              id="period-followup-reference"
+              label={followupCopy.reference}
+              required={['shared', 'exported'].includes(followupEventType)}
+            >
+              <input
+                id="period-followup-reference"
+                name="reference"
+                type="text"
+                maxlength="500"
+                value={followupFormValue('reference')}
+                required={['shared', 'exported'].includes(followupEventType)}
+              />
+            </Field>
+            <Field
+              id="period-followup-signatory"
+              label={followupCopy.signatoryName}
+              required={followupEventType === 'awaiting_signatory'}
+            >
+              <input
+                id="period-followup-signatory"
+                name="signatoryName"
+                type="text"
+                maxlength="200"
+                value={followupFormValue('signatoryName')}
+                required={followupEventType === 'awaiting_signatory'}
+              />
+            </Field>
+            <Field
+              id="period-followup-reason"
+              label={followupCopy.reason}
+              required={['returned', 'disputed'].includes(followupEventType)}
+            >
+              <textarea
+                id="period-followup-reason"
+                name="reason"
+                maxlength="2000"
+                rows="3"
+                required={['returned', 'disputed'].includes(followupEventType)}
+                >{followupFormValue('reason')}</textarea
+              >
+            </Field>
+            <Field id="period-followup-next" label={followupCopy.nextFollowUp}>
+              <input
+                id="period-followup-next"
+                name="nextFollowUpOn"
+                type="date"
+                value={followupFormValue('nextFollowUpOn')}
+              />
+            </Field>
+          </FieldGroup>
+          <input type="hidden" name="responsibleUserId" value={followupResponsible} />
+          <button type="submit">{followupCopy.record}</button>
+        </form>
+      </div>
+    </section>
+  {/if}
+
+  {#if internal}
+    <section class="record-detail-grid report-calculation-grid">
+      <article class="record-fact">
+        <span>{t('Actual hours')}</span><strong>{hours(summary.actualMinutes)}</strong>
+      </article>
+      <article class="record-fact">
+        <span>{t('Approved hours')}</span><strong>{hours(summary.approvedMinutes)}</strong>
+      </article>
+      <article class="record-fact">
+        <span>{t('Billable hours')}</span><strong>{hours(summary.billableMinutes)}</strong>
+      </article>
+      <article class="record-fact">
+        <span>{t('Calculated bill candidate')}</span><strong
+          >{money(summary.candidateSubtotalMinor)}</strong
+        >
+      </article>
+      <article class="record-fact">
+        <span>{t('Already invoiced')}</span><strong>{money(summary.invoicedNetMinor)}</strong>
+      </article>
+      <article class="record-fact">
+        <span>{t('Approved unbilled WIP')}</span><strong
+          >{money(summary.approvedUnbilledWipMinor)}</strong
+        >
+      </article>
+      <article class="record-fact">
+        <span>{t('Direct cost')}</span><strong>{money(finance.approvedCostMinor)}</strong>
+      </article>
+      <article class="record-fact">
+        <span>{t('Contribution')}</span><strong>{money(finance.contributionMarginMinor)}</strong>
+      </article>
+      <article class="record-fact">
+        <span>{t('Contribution margin')}</span><strong
+          >{(Number(finance.contributionMarginBps ?? 0) / 100).toFixed(1)}%</strong
+        >
+      </article>
+    </section>
+
+    <section class="detail-panel report-breakdown">
+      <div class="panel-title">
+        <div>
+          <h2>{t('How this report was calculated')}</h2>
+          <p class="form-help">
+            {t(
+              'Values are recalculated from approved source records, effective client rates, internal cost rules, compensation rules, daily minimums, milestones and expense treatments. Refresh after changing source data.',
+            )}
+          </p>
+        </div>
+        <span>{controlled('billingStream', summary.billingModel)}</span>
+      </div>
+      <TableRegion
+        class="table-wrap report-period-table"
+        mobileMode="scroll"
+        label={t('How this report was calculated')}
+      >
+        <table>
+          <thead
+            ><tr
+              ><th>{t('Stream')}</th><th>{t('Calculation basis')}</th><th>{t('Minutes')}</th><th
+                >{t('Amount')}</th
+              ></tr
+            ></thead
+          >
+          <tbody>
+            {#each calculation as line}
+              <tr>
+                <td>{controlled('billingStream', line.type)}</td>
+                <td>{display(line.basis)}</td>
+                <td
+                  >{line.minutes === null || line.minutes === undefined
+                    ? '—'
+                    : hours(line.minutes)}</td
+                >
+                <td>{money(line.amountMinor)}</td>
+              </tr>
+            {:else}<tr><td colspan="4">{t('No calculated commercial lines.')}</td></tr>{/each}
+          </tbody>
+        </table>
+      </TableRegion>
+      <p class="form-help">
+        {t('Operational value')}: {money(summary.operationalRevenueCandidateMinor)} · {t('Paid')}: {money(
+          summary.paidMinor,
+        )} · {t('Receivable')}: {money(summary.receivableMinor)}
+      </p>
+    </section>
+  {:else}
+    <section class="record-detail-grid report-operational-summary">
+      <article class="record-fact">
+        <span>{t('Approved hours')}</span><strong>{hours(approvedMinutes)}</strong>
+      </article>
+    </section>
+  {/if}
+
+  {#if internal}
+    <section class="detail-panel report-breakdown">
+      <div class="panel-title">
+        <div>
+          <h2>{t('Internal financial detail')}</h2>
+          <p class="form-help">
+            {t(
+              'Internal loaded cost, worker compensation and margin remain restricted to Finance, Owner and Auditor roles.',
+            )}
+          </p>
+        </div>
+      </div>
+      <div class="record-detail-grid">
+        <article class="record-fact">
+          <span>{t('Labor cost')}</span><strong>{money(finance.directLaborCostMinor)}</strong>
+        </article>
+        <article class="record-fact">
+          <span>{t('Worker compensation')}</span><strong
+            >{money(finance.workerCompensationMinor)}</strong
+          >
+        </article>
+        <article class="record-fact">
+          <span>{t('Travel cost')}</span><strong>{money(finance.travelCostMinor)}</strong>
+        </article>
+        <article class="record-fact">
+          <span>{t('Other direct cost')}</span><strong>{money(finance.otherDirectCostMinor)}</strong
+          >
+        </article>
+        <article class="record-fact">
+          <span>{t('Missing rate rules')}</span><strong
+            >{display(finance.missingRateCount, '0')}</strong
+          >
+        </article>
+      </div>
+      <TableRegion
+        class="table-wrap report-period-table"
+        mobileMode="scroll"
+        label={t('Internal financial detail')}
+      >
+        <table>
+          <thead
+            ><tr
+              ><th>{t('Date')}</th><th>{t('Worker')}</th><th>{t('Category')}</th><th
+                >{t('Hours')}</th
+              ><th>{t('Client value')}</th><th>{t('Loaded cost')}</th><th>{t('Compensation')}</th
+              ></tr
+            ></thead
+          >
+          <tbody>
+            {#each finance.timeEconomics ?? [] as line}
+              <tr
+                ><td>{display(line.workDate)}</td><td>{display(line.workerName)}</td><td
+                  >{controlled('timeCategory', line.category)}</td
+                ><td>{hours(line.actualMinutes)}</td><td>{money(line.clientRevenueMinor)}</td><td
+                  >{money(line.internalCostMinor)}</td
+                ><td>{money(line.workerCompensationMinor)}</td></tr
+              >
+            {:else}<tr><td colspan="7">{t('No time economics in this period.')}</td></tr>{/each}
+          </tbody>
+        </table>
+      </TableRegion>
+    </section>
+  {/if}
+
+  <div class="project-columns">
+    <section class="detail-panel">
+      <div class="panel-title">
+        <h2>{t('Daily reports')}</h2>
+        <span>{dailyReports.length}</span>
+      </div>
+      {#each dailyReports as item}
+        <a class="record-card-link" href={item.id ? reportLink(item.id) : `${base}/app/reports`}
+          ><strong>{display(item.date)}</strong><small
+            >{display(item.worker)} · {display(item.summary)}</small
+          ></a
+        >
+      {:else}<div class="empty">{t('No daily reports in this period.')}</div>{/each}
+    </section>
+    <section class="detail-panel">
+      <div class="panel-title">
+        <h2>{t('Time entries')}</h2>
+        <span>{timeSummary.length}</span>
+      </div>
+      {#each timeSummary as item}<article>
+          <div>
+            <strong>{display(item.date)} · {controlled('timeCategory', item.category)}</strong
+            ><small
+              >{display(item.worker ?? item.workerDisplay)} · {display(item.activitySummary)} · {controlled(
+                'status',
+                item.approvalState,
+              )}</small
+            >
+            {#if typeof item.startTime === 'string' && typeof item.endTime === 'string'}
+              <small
+                >{item.startTime}–{item.endTime}{#if typeof item.breakMinutes === 'number'}
+                  · {t('Break')}: {item.breakMinutes} {t('min')}{/if}</small
+              >
+            {/if}
+          </div>
+          <b>{hours(item.minutes)}</b>
+        </article>{:else}<div class="empty">{t('No time entries in this period.')}</div>{/each}
+    </section>
+  </div>
+
+  <div class="project-columns">
+    <section class="detail-panel">
+      <div class="panel-title">
+        <h2>{t('Technical / PLC records')}</h2>
+        <span>{technicalReports.length + technicalChanges.length}</span>
+      </div>
+      {#each technicalReports as item}<a
+          class="record-card-link"
+          href={item.id ? reportLink(item.id) : `${base}/app/reports`}
+          ><strong>{display(item.system)}</strong><small
+            >{display(item.site)} · {display(item.changes)}</small
+          ></a
+        >{/each}
+      {#each technicalChanges as item}<article>
+          <div>
+            <strong>{display(item.component)}</strong><small
+              >{display(item.changeMade)} · {controlled('status', item.approvalState)}</small
+            >
+          </div>
+        </article>{/each}
+      {#if technicalReports.length === 0 && technicalChanges.length === 0}<div class="empty">
+          {t('No technical records in this period.')}
+        </div>{/if}
+    </section>
+    {#if internal}
+      <section class="detail-panel">
+        <div class="panel-title">
+          <h2>{t('Expenses included')}</h2>
+          <span>{expenses.length}</span>
+        </div>
+        {#each expenses as item}<article>
+            <div>
+              <strong
+                >{display(item.date)} · {display(
+                  item.vendor,
+                  display(item.description, controlled('expenseCategory', item.category)),
+                )}</strong
+              ><small
+                >{controlled('expenseCategory', item.category)} · {controlled(
+                  'billingStream',
+                  item.treatment,
+                )}</small
+              >
+            </div>
+            <b
+              >{item.amount === null || item.amount === undefined
+                ? '—'
+                : money(item.amount, String(item.currency ?? summary.currency))}</b
+            >
+          </article>{:else}<div class="empty">{t('No expenses in this period.')}</div>{/each}
+      </section>
+    {/if}
+  </div>
+
+  {#if internal && String(report.id)}
+    <section class="detail-panel report-refresh-panel">
+      <div class="panel-title">
+        <div>
+          <h2>{t('Recalculate snapshot')}</h2>
+          <p class="form-help">
+            {t(
+              'This updates the report from the current database inputs and regenerates the PDF through the normal report action.',
+            )}
+          </p>
+        </div>
+      </div>
+      {#if operationalSourceCount === 0}
+        <div class="customer-signoff__notice" role="status">
+          <strong>{t('No reviewed operational sources in this period')}</strong>
+          <p>
+            {t(
+              'This period has no Daily, Technical / PLC or time source records. Create or review the missing operational records before recalculating the period file.',
+            )}
+          </p>
+          <a
+            class="preview-link"
+            href={`${base}/app/approvals?project=${encodeURIComponent(String(project.id))}`}
+            >{t('Review pending records')}</a
+          >
+        </div>
+      {/if}
+      <form
+        method="POST"
+        action="?/refresh"
+        class="admin-form-grid"
+        data-period-operation="refresh"
+        use:enhance={preservePeriodForm}
+        use:formValidation
+        onsubmit={rememberScroll}
+      >
+        <input type="hidden" name="projectId" value={project.id} />
+        <input type="hidden" name="periodStart" value={report.periodStart} />
+        <input type="hidden" name="periodEnd" value={report.periodEnd} />
+        <input
+          type="hidden"
+          name="contentMode"
+          value={report.contentMode ?? 'hours_activity_all_technical'}
+        />
+        {#if report.contentMode === 'hours_activity_selected_technical'}
+          {#each selectedTechnicalReportIds as technicalReportId}
+            <input type="hidden" name="technicalReportIds" value={technicalReportId} />
+          {/each}
+        {/if}
+        <label
+          >{t('Language')}<select
+            name="reportLocale"
+            value={resultForm?.operation === 'refresh'
+              ? (resultForm.values?.reportLocale ?? locale)
+              : locale}
+            ><option value="en">{t('English')}</option><option value="es">{t('Español')}</option
+            ><option value="pt">{t('Português')}</option></select
+          ></label
+        >
+        <button>{t('Recalculate report')}</button>
+      </form>
+    </section>
+  {/if}
+
+  {#if customerAudience}
+    <section class="detail-panel customer-signoff-preview-panel">
+      <div class="signature-block">
+        <div class="signature-field">
+          <span>{t('Client Representative Signature')}</span>
+          <div class="signature-line">____________________________________</div>
+          <small>{t('Name & Title')}</small>
+        </div>
+        <div class="signature-field">
+          <span>{t('Date')}</span>
+          <div class="signature-line">__________________</div>
+        </div>
+      </div>
+    </section>
+  {/if}
+
+  {#if ['owner_admin', 'finance_admin'].includes(String(data.user.role))}
+    <div class="no-print report-localized-pdf-slot">
+      <LocalizedPdfPanel
+        ownerType="period_report_revision"
+        ownerId={String(report.id)}
+        {locale}
+        title={t('PDF')}
+      />
+    </div>
+  {:else}<p class="no-print">
+      {t(
+        'Finance prepares the reviewed period PDF after approving the source records. Use Daily or Technical / PLC to submit your own work; customer sign-off confirms the reviewed period.',
+      )}
+    </p>{/if}
+</main>
+
+<style>
+  .customer-signoff {
+    margin-top: 1rem;
+    border: 1px solid #dbdbd8;
+    border-top: 0.3rem solid #706e66;
+    box-shadow: 0 0.55rem 1.4rem rgb(19 49 70 / 0.05);
+  }
+
+  .customer-signoff__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eaeae8;
+  }
+
+  .customer-signoff__header h2 {
+    margin: 0.25rem 0 0.4rem;
+    color: #2f2e2b;
+  }
+
+  .customer-signoff__lede,
+  .customer-signoff__notice p,
+  .customer-signoff__immutable,
+  .customer-signoff__preview span {
+    margin: 0;
+    color: #6c6a62;
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+
+  .customer-signoff__lede {
+    max-width: 68ch;
+  }
+
+  .customer-signoff__status {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    flex: 0 0 auto;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid #d6a340;
+    border-radius: 999px;
+    color: #704c0b;
+    background: #fff8e6;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+  }
+
+  .customer-signoff__status[data-signoff-state='ready_for_signature'] {
+    border-color: #c1c0bb;
+    color: #4b4a44;
+    background: #f7f6f6;
+  }
+
+  .customer-signoff__status[data-signoff-state='signed'] {
+    border-color: #b9b7b2;
+    color: #4e4d47;
+    background: #f7f7f7;
+  }
+
+  .customer-signoff__status[data-signoff-state='invalid'] {
+    border-color: #d99595;
+    color: #8a3030;
+    background: #fff2f1;
+  }
+
+  .customer-signoff__body {
+    display: grid;
+    gap: 1rem;
+    padding-top: 1rem;
+  }
+
+  .customer-signoff__notice {
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.85rem 1rem;
+    border-left: 0.3rem solid #d69a26;
+    border-radius: 0 0.55rem 0.55rem 0;
+    background: #fffaf0;
+  }
+
+  .customer-signoff__notice strong {
+    color: #60470d;
+    font-size: 0.8rem;
+  }
+
+  .customer-signoff__notice[data-signoff-notice='ready'] {
+    border-left-color: #706e66;
+    background: #f9f9f9;
+  }
+
+  .customer-signoff__notice[data-signoff-notice='ready'] strong {
+    color: #585751;
+  }
+
+  .customer-signoff__notice[data-signoff-notice='signed'] {
+    border-left-color: #89877e;
+    background: #f1fbf6;
+  }
+
+  .customer-signoff__notice[data-signoff-notice='signed'] strong {
+    color: #4e4d47;
+  }
+
+  .customer-signoff__notice[data-signoff-notice='invalid'] {
+    border-left-color: #b94b45;
+    background: #fff7f6;
+  }
+
+  .customer-signoff__notice[data-signoff-notice='invalid'] strong {
+    color: #8a3030;
+  }
+
+  .customer-signoff__facts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.8rem 1.25rem;
+    margin: 0;
+    padding: 0.25rem 0 0;
+  }
+
+  .customer-signoff__facts div {
+    min-width: 0;
+  }
+
+  .customer-signoff__facts dt {
+    color: #88867d;
+    font:
+      700 0.62rem Consolas,
+      monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .customer-signoff__facts dd {
+    margin: 0.3rem 0 0;
+    overflow-wrap: anywhere;
+    color: #383733;
+    font-size: 0.8rem;
+  }
+
+  .customer-signoff__immutable {
+    display: flex;
+    gap: 0.45rem;
+    align-items: flex-start;
+    color: #4e4d47;
+  }
+
+  .customer-signoff__preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 0.95rem;
+    border-top: 1px solid #eaeae8;
+  }
+
+  .customer-signoff__pdf,
+  .customer-signoff__form button,
+  .customer-signoff__invalidate summary {
+    min-height: 2.75rem;
+  }
+
+  .customer-signoff__pdf {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #706e66;
+    border-radius: 0.5rem;
+    color: #585751;
+    background: #f9f9f9;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  .customer-signoff__pdf:hover,
+  .customer-signoff__pdf:focus-visible {
+    color: #42413c;
+    border-color: #585751;
+    background: #f2f2f1;
+  }
+
+  .customer-signoff__pdf:focus-visible,
+  .customer-signoff__form button:focus-visible,
+  .customer-signoff__invalidate summary:focus-visible {
+    outline: 3px solid #53524c;
+    outline-offset: 2px;
+  }
+
+  .customer-signoff__form {
+    display: grid;
+    gap: 0.9rem;
+    max-width: 42rem;
+    padding: 1rem;
+    border: 1px solid #e6e6e4;
+    border-radius: 0.7rem;
+    background: #fbfbfa;
+  }
+
+  .customer-signoff__form h3 {
+    margin: 0 0 0.25rem;
+    color: #2f2e2b;
+    font-size: 1rem;
+  }
+
+  .customer-signoff__form label {
+    display: grid;
+    gap: 0.4rem;
+    color: #5e5c56;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.055em;
+  }
+
+  .customer-signoff__form input,
+  .customer-signoff__form textarea {
+    width: 100%;
+    min-height: 2.75rem;
+    box-sizing: border-box;
+    padding: 0.65rem 0.7rem;
+    border: 1px solid #e1e0de;
+    border-radius: 0.52rem;
+    color: #3a3935;
+    background: #fff;
+    font: inherit;
+    font-size: 0.82rem;
+  }
+
+  .customer-signoff__form textarea {
+    min-height: 5.5rem;
+    resize: vertical;
+  }
+
+  .customer-signoff__form input:focus,
+  .customer-signoff__form textarea:focus {
+    border-color: #99978f;
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(78 168 159 / 0.12);
+  }
+
+  .customer-signoff__form input:focus-visible,
+  .customer-signoff__form textarea:focus-visible {
+    outline: 3px solid #53524c;
+    outline-offset: 2px;
+  }
+
+  .customer-signoff__form button {
+    width: max-content;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid #585751;
+    border-radius: 0.5rem;
+    color: #fff;
+    background: #706e66;
+    font-size: 0.76rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .customer-signoff__form button:hover,
+  .customer-signoff__form button:focus-visible {
+    background: #585751;
+  }
+
+  .optional-label {
+    color: #88867d;
+    font-weight: 600;
+    letter-spacing: normal;
+  }
+
+  .customer-signoff__invalidate {
+    border-top: 1px solid #eaeae8;
+    padding-top: 0.9rem;
+  }
+
+  .customer-signoff__invalidate summary {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #d99595;
+    border-radius: 0.5rem;
+    color: #8a3030;
+    background: #fff7f6;
+    font-size: 0.76rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .customer-signoff__invalidate[open] summary {
+    margin-bottom: 0.9rem;
+  }
+
+  .customer-signoff__danger-action {
+    border-color: #a53b36 !important;
+    background: #b94b45 !important;
+  }
+
+  .customer-signoff__danger-action:hover,
+  .customer-signoff__danger-action:focus-visible {
+    background: #963b36 !important;
+  }
+
+  @media (max-width: 760px) {
+    .customer-signoff__header,
+    .customer-signoff__preview {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .customer-signoff__status {
+      align-self: flex-start;
+    }
+
+    .customer-signoff__facts {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .customer-signoff__form button,
+    .customer-signoff__pdf {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .customer-signoff-preview-panel {
+    margin-top: 1.5rem;
+    padding: 1.75rem 2rem;
+    background: #ffffff;
+    border: 1px solid #dbdbd8;
+    border-radius: 0.5rem;
+  }
+
+  .signature-block {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 3rem;
+    flex-wrap: wrap;
+  }
+
+  .signature-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .signature-field > span {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #2f2e2b;
+  }
+
+  .signature-line {
+    font-family: monospace;
+    font-size: 1rem;
+    color: #6c6a62;
+    letter-spacing: 0.05em;
+  }
+
+  .signature-field > small {
+    font-size: 0.78rem;
+    color: #67675f;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .customer-signoff,
+    .customer-signoff * {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+</style>

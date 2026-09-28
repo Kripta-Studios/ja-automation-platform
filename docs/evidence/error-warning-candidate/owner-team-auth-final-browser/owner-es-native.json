@@ -1,0 +1,32 @@
+{
+  "candidateCommit": "70838ac14b1f5f99ce94160607c75ae1199fe09b",
+  "role": "owner",
+  "locale": "es",
+  "viewport": 1440,
+  "transportStatus": 400,
+  "ui": {
+    "url": "/j-aautomation/app/projects?view=team&lang=es&worker=:record&/setWorkforceProfile",
+    "locale": "es-ES",
+    "formPresent": true,
+    "profile": "external_technician",
+    "supplier": "",
+    "summaryText": "Corrige los siguientes campos: Proveedor: Elige un proveedor antes de asignar el perfil de Coordinador de proveedor o Técnico externo.",
+    "focusedSummary": true
+  },
+  "noWrite": {
+    "before": {
+      "profiles": 0,
+      "users": 8,
+      "audits": 331
+    },
+    "after": {
+      "profiles": 0,
+      "users": 8,
+      "audits": 331
+    }
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": []
+  }
+}

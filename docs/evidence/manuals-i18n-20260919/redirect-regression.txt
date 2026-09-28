@@ -1,0 +1,8 @@
+
+ RUN  v4.1.11 /home/kripta/ja-automation-platform-vps-hotfix
+
+
+ Test Files  4 passed (4)
+      Tests  55 passed (55)
+   Start at  11:28:55
+   Duration  2.22s (transform 1.04s, setup 0ms, import 1.51s, tests 1.52s, environment 0ms)

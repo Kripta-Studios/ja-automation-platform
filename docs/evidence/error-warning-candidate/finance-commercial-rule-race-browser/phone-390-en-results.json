@@ -1,0 +1,74 @@
+{
+  "commit": "d17af6e",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "locale": "en",
+  "roles": [
+    "owner",
+    "finance"
+  ],
+  "fixture": "QA project and rate created through UI; rate deactivated through Owner UI after two Finance forms opened",
+  "deactivation": {
+    "status": 200
+  },
+  "native": {
+    "status": 409,
+    "codeInResponse": true,
+    "genericInResponse": false
+  },
+  "visible": {
+    "code": "FINANCE_ASSIGNMENT_COMMERCIAL_RULE_UNAVAILABLE",
+    "wording": "Action needed A selected commercial rule no longer covers this person's full assignment scope and dates. Review customer billing, worker pay, and internal cost rules, then choose an available rule. Review customer labor ratesReview worker compensation rulesReview internal cost rules",
+    "remedies": [
+      {
+        "text": "Review customer labor rates",
+        "task": "Client labor rates"
+      },
+      {
+        "text": "Review worker compensation rules",
+        "task": "Compensation statement rules"
+      },
+      {
+        "text": "Review internal cost rules",
+        "task": "Assignment budget context / internal loaded cost"
+      }
+    ],
+    "routeView": "commercial",
+    "language": "en-US",
+    "editorOpen": true,
+    "selectedRateRetained": true,
+    "selectedOptionDisabled": false,
+    "expectedVersion": "1",
+    "focusedNotice": true,
+    "active": {
+      "tag": "ASIDE",
+      "id": "",
+      "name": null,
+      "ui": "problem-notice",
+      "financeProblem": false,
+      "className": "ui-problem-notice svelte-b84mwg"
+    },
+    "top": 86,
+    "bottom": 439,
+    "safeTop": 78,
+    "safeBottom": 756,
+    "scrollY": 1851,
+    "overflow": false
+  },
+  "enhanced": {
+    "transportStatus": 200,
+    "actionStatus": 409,
+    "type": "failure",
+    "codeInResponse": true,
+    "genericInResponse": false
+  },
+  "unchangedAssignment": true,
+  "unchangedAssignmentAudit": true,
+  "diagnostics": {
+    "owner": [],
+    "financeNative": [],
+    "financeEnhanced": []
+  }
+}

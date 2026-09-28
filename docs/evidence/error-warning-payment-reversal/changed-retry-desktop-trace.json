@@ -1,0 +1,14 @@
+{
+  "viewport": "desktop",
+  "locale": "es",
+  "paymentCreatedInBrowser": true,
+  "staleConflict": 409,
+  "nativeConflict": 409,
+  "typedCode": "WORKER_PAYMENT_REVERSAL_RETRY_CONFLICT",
+  "dateRetained": true,
+  "reasonRetained": true,
+  "focusAndVisibility": true,
+  "exactRetryIdempotent": true,
+  "reversalEvents": 1,
+  "consoleErrors": 0
+}

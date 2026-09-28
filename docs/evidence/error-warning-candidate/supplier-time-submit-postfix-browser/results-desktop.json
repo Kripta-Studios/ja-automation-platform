@@ -1,0 +1,179 @@
+{
+  "candidateCommit": "d3b724e00795d2e94b07691ea33beafc9b9fc600",
+  "productDiffSha256": "d557b013d1813b3a1428402864aacfab86c447cf2cb4d9c4145271c502cf68cc",
+  "role": "supplierCoordinator",
+  "viewport": "1440x900",
+  "locale": "pt",
+  "fixture": "fresh disposable database; role/grant scaffold; Time drafts created through rendered Supplier forms",
+  "cases": [
+    {
+      "kind": "changed-draft",
+      "before": {
+        "scrollY": 0,
+        "audits": 2
+      },
+      "response": {
+        "transportStatus": 409,
+        "contentType": "text/html",
+        "code": "SUPPLIER_TIME_SUBMISSION_CHANGED",
+        "genericPhrase": false
+      },
+      "visible": {
+        "code": "SUPPLIER_TIME_SUBMISSION_CHANGED",
+        "wording": "Ação necessária Este rascunho de horas mudou antes do envio. Revise a versão atual antes de tentar novamente. Esta solicitação não enviou nenhum rascunho de horas. Revisar o registro atualizado",
+        "remedies": ["Revisar o registro atualizado"],
+        "focusedNotice": true,
+        "activeTag": "aside",
+        "activeTop": 373,
+        "activeBottom": 528,
+        "noticeTop": 373,
+        "noticeBottom": 528,
+        "headerBottom": 72,
+        "scrollY": 437,
+        "viewportHeight": 900,
+        "workspace": "report",
+        "locale": "pt",
+        "selectedCount": 0,
+        "selectedPayloadCount": 0,
+        "submittedFormPresent": true,
+        "staleSubmitDisabled": true,
+        "recovery": [
+          {
+            "text": "<synthetic-worker> · 2026-09-22 · Estado atual: Rascunho Revisar o registro atualizado",
+            "href": "?projectId=<synthetic-project-id>&from=2026-09-22&to=2026-09-22&lang=pt&workspaceAction=report#supplier-report",
+            "reload": true
+          }
+        ],
+        "mainRemedy": "?projectId=<synthetic-project-id>&from=2026-09-01&to=2026-09-30&lang=pt&workspaceAction=report#supplier-workspace",
+        "mainRemedyReload": true
+      },
+      "enhanced": {
+        "transportStatus": 200,
+        "actionType": "failure",
+        "actionStatus": 409,
+        "code": "SUPPLIER_TIME_SUBMISSION_CHANGED",
+        "operation": "submitTime",
+        "currentStates": [
+          {
+            "state": "draft",
+            "workDate": "2026-09-22"
+          }
+        ],
+        "remedyIds": ["review_time_drafts"]
+      },
+      "unchanged": true
+    },
+    {
+      "kind": "already-submitted",
+      "before": {
+        "scrollY": 0,
+        "audits": 2
+      },
+      "response": {
+        "transportStatus": 409,
+        "contentType": "text/html",
+        "code": "SUPPLIER_TIME_SUBMISSION_STATE_BLOCKED",
+        "genericPhrase": false
+      },
+      "visible": {
+        "code": "SUPPLIER_TIME_SUBMISSION_STATE_BLOCKED",
+        "wording": "Ação necessária Este registro de horas já não é um rascunho, portanto esta solicitação não o enviou. Revise o estado atual e as opções de correção. Esta solicitação não enviou nenhum rascunho de horas. Revisar o registro atualizado",
+        "remedies": ["Revisar o registro atualizado"],
+        "focusedNotice": true,
+        "activeTag": "aside",
+        "activeTop": 373,
+        "activeBottom": 528,
+        "noticeTop": 373,
+        "noticeBottom": 528,
+        "headerBottom": 72,
+        "scrollY": 437,
+        "viewportHeight": 900,
+        "workspace": "report",
+        "locale": "pt",
+        "selectedCount": 0,
+        "selectedPayloadCount": 0,
+        "submittedFormPresent": true,
+        "staleSubmitDisabled": true,
+        "recovery": [
+          {
+            "text": "<synthetic-worker> · 2026-09-23 · Estado atual: Enviado Revisar o registro atualizado",
+            "href": "?projectId=<synthetic-project-id>&from=2026-09-23&to=2026-09-23&lang=pt&workspaceAction=report#supplier-report",
+            "reload": true
+          }
+        ],
+        "mainRemedy": "?projectId=<synthetic-project-id>&from=2026-09-01&to=2026-09-30&lang=pt&workspaceAction=report#supplier-workspace",
+        "mainRemedyReload": true
+      },
+      "enhanced": {
+        "transportStatus": 200,
+        "actionType": "failure",
+        "actionStatus": 409,
+        "code": "SUPPLIER_TIME_SUBMISSION_STATE_BLOCKED",
+        "operation": "submitTime",
+        "currentStates": [
+          {
+            "state": "submitted",
+            "workDate": "2026-09-23"
+          }
+        ],
+        "remedyIds": ["review_time_drafts"]
+      },
+      "unchanged": true
+    },
+    {
+      "kind": "moved-date",
+      "before": {
+        "audits": 2,
+        "scrollY": 0
+      },
+      "response": {
+        "transportStatus": 409,
+        "contentType": "text/html",
+        "code": "SUPPLIER_TIME_SUBMISSION_CHANGED",
+        "genericPhrase": false
+      },
+      "visible": {
+        "code": "SUPPLIER_TIME_SUBMISSION_CHANGED",
+        "wording": "Ação necessária Este rascunho de horas mudou antes do envio. Revise a versão atual antes de tentar novamente. Esta solicitação não enviou nenhum rascunho de horas. Revisar o registro atualizado",
+        "remedies": ["Revisar o registro atualizado"],
+        "focusedNotice": true,
+        "activeTag": "aside",
+        "activeTop": 373,
+        "activeBottom": 528,
+        "noticeTop": 373,
+        "noticeBottom": 528,
+        "headerBottom": 72,
+        "scrollY": 437,
+        "viewportHeight": 900,
+        "workspace": "report",
+        "locale": "pt",
+        "selectedCount": 0,
+        "selectedPayloadCount": 0,
+        "submittedFormPresent": true,
+        "staleSubmitDisabled": true,
+        "recovery": [
+          {
+            "text": "<synthetic-worker> · 2026-10-01 · Estado atual: Rascunho Revisar o registro atualizado",
+            "href": "?projectId=<synthetic-project-id>&from=2026-10-01&to=2026-10-01&lang=pt&workspaceAction=report#supplier-report",
+            "reload": true
+          }
+        ],
+        "mainRemedy": "?projectId=<synthetic-project-id>&from=2026-10-01&to=2026-10-01&lang=pt&workspaceAction=report#supplier-report",
+        "mainRemedyReload": true
+      },
+      "remedyReloadedDocument": true,
+      "loadedMovedDraftVersion": "2",
+      "unchanged": true
+    }
+  ],
+  "diagnostics": {
+    "tabA": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "tabB": {
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  }
+}

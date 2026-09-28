@@ -1,0 +1,12 @@
+{
+  "projectId": "01a0cfae-9005-76a9-871a-8cf4edf877dd",
+  "url": "https://j-aautomation.com/j-aautomation/app/expenses?project=01a0cfae-9005-76a9-871a-8cf4edf877dd",
+  "responses": [
+    {
+      "url": "https://j-aautomation.com/j-aautomation/app/expenses?/createExpense",
+      "status": 200
+    }
+  ],
+  "alerts": [],
+  "visibleText": "J&A / Expenses and receipts\n\nExpenses and receipts\nPrint report\nSearch workspace\nSearch\n\nWORKER OPERATIONS\n\nExpenses and reimbursements\n\nRecord the receipt and operational facts. Finance handles later classification.\n\n22\n＋\nRecord expense\nNeeds attention\n5\nDraft or review state\nReimbursement\n16\nPending or scheduled\nRequired receipt missing\n0\nReview supporting evidence before approval\nSearch expenses\nProject\nAll projects\nC-0001-P-001 — Body Shop Line 4 Controls Upgrade · Demo\nC-0001-P-001 — Body Shop Line 4 Controls Upgrade · Demo\nC-0001-P-002 — Remote Controls Support Retainer · Demo\nC-0002-P-001 — High-Speed Palletizer Commissioning · Demo\nC-0003-P-001 — Caustic Recovery Skid Integration · Demo\nC-0029-P-001 — TEST — Role access installation\nC-0030-P-001 — JA QA Project 1790190716520\nStatus\nAll statuses\nNeeds attention\nDraft\nSubmitted\nApproved\nNeeds changes\nFilter expenses\nApply filters\nPeriod\nToday\nThis week\nThis month\nLast month\n\nActive filters: 1\n1 matching records\n\nClear filters\nProject:\nC-0030-P-001 — JA QA Project 1790190716520\n×\nExport filtered results\n\nDownload exactly the expenses currently selected by the register filters.\n\nDownload PDF\nDownload Excel\nDownload CSV\nCreate report with another scope\nRecent expenses\nQA parking test\n$4.50\n2026-09-23 · C-0030-P-001 · Parking\nOPEN RECORD →\nReceipt not required\nDraft\nReimbursement: Pending\nEdit\nSubmit\nDelete"
+}

@@ -1,0 +1,45 @@
+{
+  "viewport": "desktop-1440",
+  "artifactStatus": 503,
+  "artifactCode": "ACCOUNTING_PACK_EXPORT_SERVICE_UNAVAILABLE",
+  "remedyId": "review_accounting_pack",
+  "noticeFocused": true,
+  "noticeVisible": true,
+  "locationPreserved": true,
+  "readyFilterPreserved": true,
+  "scrollBefore": 381,
+  "scrollAfter": 381,
+  "jobAndRecordCountsUnchanged": true,
+  "retryPostCount": 0,
+  "recoveredDownloadStatus": 200,
+  "failedResponses": [
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/accounting-pack/<pack-id>/xlsx",
+      "status": 503
+    }
+  ],
+  "consoleErrorCount": 4,
+  "consoleErrorExamples": [
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+  ],
+  "pageErrors": []
+}

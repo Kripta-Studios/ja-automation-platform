@@ -1,0 +1,140 @@
+{
+  "candidateCommit": "9b0a4ffe48b6de479101320dc5b27cb2f4844cb3",
+  "role": "finance",
+  "width": 390,
+  "height": 844,
+  "locale": "pt",
+  "scenarios": [
+    {
+      "name": "invalid",
+      "status": 200,
+      "ui": {
+        "query": {
+          "periodStart": [
+            "2026-02-30"
+          ],
+          "periodEnd": [
+            "2026-03-01"
+          ],
+          "lang": [
+            "pt"
+          ]
+        },
+        "locale": "pt-BR",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 0,
+        "code": "PROJECT_CALCULATION_PERIOD_DATE_INVALID",
+        "text": "Ação necessária Informe datas de início e fim válidas para o período de cálculo deste projeto. Corrigir o campo destacado",
+        "adjacentStart": "Informe datas de início e fim válidas para o período de cálculo deste projeto.",
+        "adjacentEnd": null,
+        "remedy": "Corrigir o campo destacado",
+        "remedyHref": null,
+        "startValue": "2026-02-30",
+        "endValue": "2026-03-01",
+        "activeTag": "aside",
+        "focusIsNotice": true,
+        "noticeTop": 372.40625,
+        "noticeBottom": 500.96875,
+        "headerBottom": 69.59375,
+        "totalCount": 0,
+        "personCount": 0,
+        "canonicalNoteCount": 0
+      }
+    },
+    {
+      "name": "reversed",
+      "status": 200,
+      "ui": {
+        "query": {
+          "periodStart": [
+            "2026-09-20"
+          ],
+          "periodEnd": [
+            "2026-09-19"
+          ],
+          "lang": [
+            "pt"
+          ]
+        },
+        "locale": "pt-BR",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 0,
+        "code": "PROJECT_CALCULATION_PERIOD_RANGE_REVERSED",
+        "text": "Ação necessária A data de fim do período é anterior à de início. Escolha uma data de fim igual ou posterior à de início. Corrigir o campo destacado",
+        "adjacentStart": null,
+        "adjacentEnd": "A data de fim do período é anterior à de início. Escolha uma data de fim igual ou posterior à de início.",
+        "remedy": "Corrigir o campo destacado",
+        "remedyHref": null,
+        "startValue": "2026-09-20",
+        "endValue": "2026-09-19",
+        "activeTag": "aside",
+        "focusIsNotice": true,
+        "noticeTop": 372.40625,
+        "noticeBottom": 521.265625,
+        "headerBottom": 69.59375,
+        "totalCount": 0,
+        "personCount": 0,
+        "canonicalNoteCount": 0
+      }
+    },
+    {
+      "name": "duplicate",
+      "status": 200,
+      "ui": {
+        "query": {
+          "periodStart": [
+            "2026-09-01",
+            "2026-09-02"
+          ],
+          "periodEnd": [
+            "2026-09-30"
+          ],
+          "lang": [
+            "pt"
+          ]
+        },
+        "locale": "pt-BR",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 0,
+        "code": "PROJECT_CALCULATION_PERIOD_DATE_DUPLICATE",
+        "text": "Ação necessária Uma data do período de cálculo foi informada mais de uma vez. Mantenha uma data de início e uma de fim. Corrigir o campo destacado",
+        "adjacentStart": "Uma data do período de cálculo foi informada mais de uma vez. Mantenha uma data de início e uma de fim.",
+        "adjacentEnd": null,
+        "remedy": "Corrigir o campo destacado",
+        "remedyHref": null,
+        "startValue": "2026-09-01",
+        "endValue": "2026-09-30",
+        "activeTag": "aside",
+        "focusIsNotice": true,
+        "noticeTop": 372.40625,
+        "noticeBottom": 521.265625,
+        "headerBottom": 69.59375,
+        "totalCount": 0,
+        "personCount": 0,
+        "canonicalNoteCount": 0
+      }
+    }
+  ],
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 document",
+      "200 document",
+      "200 document"
+    ]
+  }
+}

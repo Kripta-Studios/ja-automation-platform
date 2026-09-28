@@ -1,0 +1,19 @@
+{
+  "date": "2026-09-27",
+  "fixture": "disposable candidate",
+  "role": "owner",
+  "route": "report detail",
+  "firstEditObservedVersion": 2,
+  "secondPost": 500,
+  "genericVisible": true,
+  "recordUnchanged": true,
+  "auditUnchanged": true,
+  "pageErrors": 0,
+  "unexpectedConsole": 0,
+  "priorModifiedAuditPresent": true,
+  "responseContentType": "text/html",
+  "responseContainsSafeGeneric": true,
+  "serverConstraint": "notification.user_id, notification.kind, notification.subject_id",
+  "freshReportCreatedViaUi": true,
+  "freshReportPost": 200
+}

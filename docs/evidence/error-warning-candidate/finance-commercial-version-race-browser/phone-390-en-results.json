@@ -1,0 +1,150 @@
+{
+  "commit": "695d3cf",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "locale": "en",
+  "fixture": "QA project/assignment and two rates created through rendered forms; two Finance saves and four stale submissions",
+  "baseline": {
+    "version": 1,
+    "flags": [
+      0,
+      0
+    ],
+    "audit": 1
+  },
+  "fallback": {
+    "bResponse": 200,
+    "native": {
+      "status": 409,
+      "codeInResponse": true,
+      "genericInResponse": false
+    },
+    "enhanced": {
+      "transportStatus": 200,
+      "actionStatus": 409,
+      "type": "failure",
+      "codeInResponse": true,
+      "genericInResponse": false
+    },
+    "visible": {
+      "code": "FINANCE_ASSIGNMENT_COMMERCIAL_VERSION_CHANGED",
+      "notice": "Action needed This person's commercial choices changed while the form was open. Your changes were not saved. Review the current saved choices before deciding whether to submit yours. This person's current saved commercial choices may differ from what you submitted. Review updated record",
+      "remedies": [
+        {
+          "label": "Review updated record",
+          "href": "/j-aautomation/app/finance?view=commercial&project=[qa-id]&lang=en&asOf=2026-09-28&category=regular#commercial-person-[qa-id]"
+        }
+      ],
+      "comparison": [
+        {
+          "field": "Global worker pay fallback",
+          "current": "Current saved commercial choices: On",
+          "attempted": "Your attempted choices: Off",
+          "outcome": "Different from your submitted choice"
+        },
+        {
+          "field": "Global internal cost fallback",
+          "current": "Current saved commercial choices: Off",
+          "attempted": "Your attempted choices: On",
+          "outcome": "Different from your submitted choice"
+        }
+      ],
+      "routeView": "commercial",
+      "language": "en-US",
+      "editorOpen": true,
+      "expectedVersion": "2",
+      "attempted": {
+        "compensation": "no",
+        "internalCost": "yes",
+        "clientRule": null
+      },
+      "focusOnNotice": true,
+      "activeTag": "ASIDE",
+      "top": 178,
+      "bottom": 516,
+      "safeTop": 78,
+      "safeBottom": 756,
+      "scrollY": 2366,
+      "overflow": false
+    },
+    "savedVersion": 2,
+    "savedFlags": [
+      1,
+      0
+    ],
+    "reviewReloadedCurrent": true
+  },
+  "references": {
+    "bResponse": 200,
+    "native": {
+      "status": 409,
+      "codeInResponse": true,
+      "genericInResponse": false
+    },
+    "enhanced": {
+      "transportStatus": 200,
+      "actionStatus": 409,
+      "type": "failure",
+      "codeInResponse": true,
+      "genericInResponse": false
+    },
+    "visible": {
+      "code": "FINANCE_ASSIGNMENT_COMMERCIAL_VERSION_CHANGED",
+      "notice": "Action needed This person's commercial choices changed while the form was open. Your changes were not saved. Review the current saved choices before deciding whether to submit yours. This person's current saved commercial choices may differ from what you submitted. Review updated record",
+      "remedies": [
+        {
+          "label": "Review updated record",
+          "href": "/j-aautomation/app/finance?view=commercial&project=[qa-id]&lang=en&asOf=2026-09-28&category=regular#commercial-person-[qa-id]"
+        }
+      ],
+      "comparison": [
+        {
+          "field": "Customer hourly rule",
+          "current": "Current saved commercial choices: $71.25 · 2026-09-28 → open-ended",
+          "attempted": "Your attempted choices: $75.50 · 2026-09-28 → open-ended",
+          "outcome": "Different from your submitted choice"
+        },
+        {
+          "field": "Worker compensation rule",
+          "current": "Current saved commercial choices: Resolve by project and date",
+          "attempted": "Your attempted choices: Resolve by project and date",
+          "outcome": "Matches your submitted choice"
+        },
+        {
+          "field": "Internal cost rule",
+          "current": "Current saved commercial choices: Resolve by project and date",
+          "attempted": "Your attempted choices: Resolve by project and date",
+          "outcome": "Matches your submitted choice"
+        }
+      ],
+      "routeView": "commercial",
+      "language": "en-US",
+      "editorOpen": true,
+      "expectedVersion": "3",
+      "attempted": {
+        "compensation": null,
+        "internalCost": null,
+        "clientRule": "[qa-id]"
+      },
+      "focusOnNotice": true,
+      "activeTag": "ASIDE",
+      "top": 85,
+      "bottom": 423,
+      "safeTop": 78,
+      "safeBottom": 756,
+      "scrollY": 1869,
+      "overflow": false
+    },
+    "savedVersion": 3,
+    "currentIsBChoice": true,
+    "noExtraWrite": true
+  },
+  "diagnostics": {
+    "owner": [],
+    "financeA": [],
+    "financeB": [],
+    "financeEnhanced": []
+  }
+}

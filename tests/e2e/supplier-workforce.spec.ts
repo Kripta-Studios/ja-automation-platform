@@ -1,0 +1,361 @@
+import { randomUUID } from 'node:crypto';
+import { test, expect, type Page } from '@playwright/test';
+import { createDatabase, PortalRepository } from '@ja/database';
+import { e2eCredentials, e2eLifecycleFixturesFor, portal, signIn } from './auth.js';
+import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
+
+async function verifyForms(page: Page) {
+  const controls = page.locator(
+    'form:visible input:not([type=hidden]), form:visible select, form:visible textarea, form:visible button',
+  );
+  let labelTextClickVerified = false;
+  for (const control of await controls.all()) {
+    if (!(await control.isVisible())) continue;
+    const choice = await control.evaluate(
+      (element) =>
+        element instanceof HTMLInputElement &&
+        (element.type === 'checkbox' || element.type === 'radio'),
+    );
+    const target = choice ? control.locator('xpath=ancestor::label[1]') : control;
+    if (choice) await expect(target).toHaveCount(1);
+    const box = await target.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
+    if ((await control.evaluate((el) => el.tagName)) !== 'BUTTON') {
+      expect(
+        await control.evaluate((el) => Boolean(el.closest('label')?.textContent?.trim())),
+      ).toBe(true);
+    }
+    if (
+      choice &&
+      (await control.getAttribute('type')) === 'checkbox' &&
+      !labelTextClickVerified &&
+      (await control.isEnabled())
+    ) {
+      const labelText = target.locator('span').first();
+      if (await labelText.count()) {
+        const checked = await control.isChecked();
+        await labelText.click();
+        await expect(control).toBeChecked({ checked: !checked });
+        await labelText.click();
+        await expect(control).toBeChecked({ checked });
+        labelTextClickVerified = true;
+      }
+    }
+  }
+}
+
+async function expectSaved(page: Page): Promise<void> {
+  await expect(page.getByRole('status').first()).toBeVisible();
+}
+
+test('Owner delegates installation; supplier adds technician and submits private operational hours', async ({
+  page,
+  browser,
+}, testInfo) => {
+  test.setTimeout(180_000);
+  const db = createDatabase(readE2EFixturePointer().databasePath);
+  const today = new Date().toISOString().slice(0, 10);
+  let supplierName = `Fornecedor ${randomUUID()}`;
+  let existingSupplier = false;
+  const technicianName = `Técnico ${randomUUID()}`;
+  const note = `Installation verification ${randomUUID()}`;
+  let ownerId: string;
+  let coordinatorId: string;
+  let externalId: string;
+  let projectId: string;
+  let projectName: string;
+  let alternateProjectId: string;
+  try {
+    const user = (email: string) =>
+      db.sqlite.prepare('SELECT id FROM user WHERE email=?').get(email)!.id as string;
+    ownerId = user(e2eCredentials.owner.email);
+    coordinatorId = user(e2eCredentials.worker.email);
+    externalId = user(e2eCredentials.worker2.email);
+    // Serial viewport scenarios share credential accounts. Keep their supplier identity
+    // once canonical history exists, while each scenario uses new installations.
+    const previousSupplier = db.sqlite
+      .prepare(
+        `SELECT s.name FROM supplier_user_profile_period p JOIN supplier s ON s.id=p.supplier_id
+       WHERE p.user_id=? AND p.profile='external_technician' ORDER BY p.starts_at LIMIT 1`,
+      )
+      .get(externalId) as { name: string } | undefined;
+    if (previousSupplier) {
+      supplierName = previousSupplier.name;
+      existingSupplier = true;
+    }
+    // Reset only this scenario's account capabilities between serial viewport runs.
+    db.sqlite
+      .prepare('DELETE FROM supplier_user_profile WHERE user_id IN (?,?)')
+      .run(coordinatorId, externalId);
+    const repository = new PortalRepository(db.sqlite);
+    alternateProjectId = repository.createProject(repository.principalFor(ownerId), {
+      costCenterCode: e2eCostCenter('QA-SUPPLIER-WORKFORCE-SPEC', 20, testInfo.project.name, 1),
+      clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
+      name: `A alternate installation ${randomUUID()}`,
+      timezone: 'UTC',
+      currency: 'USD',
+      billingModel: 'tm',
+      startDate: today,
+      expectedMinutesPerDay: 480,
+    }).id;
+    projectName = `Supplier installation ${randomUUID()}`;
+    projectId = repository.createProject(repository.principalFor(ownerId), {
+      costCenterCode: e2eCostCenter('QA-SUPPLIER-WORKFORCE-SPEC', 20, testInfo.project.name, 2),
+      clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
+      name: projectName,
+      timezone: 'UTC',
+      currency: 'USD',
+      billingModel: 'tm',
+      startDate: today,
+      expectedMinutesPerDay: 480,
+    }).id;
+  } finally {
+    db.sqlite.close();
+  }
+  await signIn(page, 'owner');
+  await page.goto(portal('/supplier?lang=en'));
+  await verifyForms(page);
+  await page.screenshot({ path: testInfo.outputPath('supplier-owner.png'), fullPage: false });
+  await page.getByRole('button', { name: 'Setup and access', exact: true }).click();
+  const create = page.locator('form[action^="?/createSupplier"]');
+  if (!existingSupplier) {
+    await create.getByLabel('Name', { exact: true }).fill(supplierName);
+    await create.getByRole('button').click();
+    await expectSaved(page);
+  }
+  const profile = page.locator('form[action^="?/setProfile"]');
+  await profile.locator('[name=userId]').selectOption(coordinatorId);
+  await profile.locator('[name=supplierId]').selectOption({ label: supplierName });
+  await profile.locator('[name=profile]').selectOption('supplier_coordinator');
+  await profile.getByRole('button').click();
+  await expectSaved(page);
+  await page.getByRole('button', { name: 'Authorize installation', exact: true }).click();
+  const grant = page.locator('form[action^="?/grant"]');
+  await grant.locator('[name=supplierId]').selectOption({ label: supplierName });
+  await grant.locator('[name=projectId]').selectOption(projectId);
+  await grant.locator('[name=coordinatorId]').selectOption(coordinatorId);
+  await grant.getByRole('button').click();
+  await expectSaved(page);
+  await grant.locator('[name=supplierId]').selectOption({ label: supplierName });
+  await grant.locator('[name=projectId]').selectOption(alternateProjectId);
+  await grant.locator('[name=coordinatorId]').selectOption(coordinatorId);
+  await grant.getByRole('button').click();
+  await expectSaved(page);
+  // Existing login-enabled technician receives only operational capabilities.
+  await page.getByRole('button', { name: 'Setup and access', exact: true }).click();
+  await profile.locator('[name=userId]').selectOption(externalId);
+  await profile.locator('[name=supplierId]').selectOption({ label: supplierName });
+  await profile.locator('[name=profile]').selectOption('external_technician');
+  await profile.getByRole('button').click();
+  await expectSaved(page);
+  await page.getByRole('button', { name: 'Personnel', exact: true }).click();
+  const assign = page.locator('form[action^="?/assignTechnician"]');
+  await assign.locator('[name=workerId]').selectOption(externalId);
+  await assign.locator('[name=projectId]').selectOption(projectId);
+  await assign.getByRole('button').click();
+  await expectSaved(page);
+  const coordinatorContext = await browser.newContext({ viewport: page.viewportSize()! });
+  const coordinator = await coordinatorContext.newPage();
+  try {
+    await signIn(coordinator, 'worker');
+    await coordinatorContext.addCookies([
+      { name: 'ja.portal.locale', value: 'pt', url: portal('') },
+    ]);
+    await coordinator.goto(portal(`/supplier?projectId=${projectId}`));
+    await expect(
+      coordinator.getByRole('heading', { name: 'Equipe do meu fornecedor' }),
+    ).toBeVisible();
+    await coordinator.goto(portal(`/supplier?projectId=${projectId}&lang=en`));
+    await expect(coordinator.getByRole('heading', { name: 'My supplier team' })).toBeVisible();
+    await expect(coordinator.locator('form[action^="?/setProfile"]')).toHaveCount(0);
+    await verifyForms(coordinator);
+    await coordinator.screenshot({
+      path: testInfo.outputPath('supplier-team.png'),
+      fullPage: false,
+    });
+    await coordinator.getByRole('button', { name: 'Personnel', exact: true }).click();
+    const add = coordinator.locator('form[action^="?/addTechnician"]');
+    await add.getByLabel('Name', { exact: true }).fill(technicianName);
+    await add.getByRole('button').click();
+    await expectSaved(coordinator);
+    await coordinator.getByRole('button', { name: 'Record team hours', exact: true }).click();
+    let time = coordinator.locator('form[action^="?/createTimeBatch"]');
+    await time.getByLabel(technicianName, { exact: true }).check();
+    await time.getByLabel('Add start and end times').check();
+    await time.getByLabel('Start time').fill('08:00');
+    await time.getByLabel('End time').fill('10:00');
+    await time.getByLabel('Work performed').fill(note);
+    await time.getByRole('button', { name: 'Save selected drafts' }).click();
+    await expectSaved(coordinator);
+    await coordinator.getByRole('button', { name: 'Operational report', exact: true }).click();
+    let entry = coordinator.locator('article').filter({ hasText: note });
+    await entry.getByText('Correct draft', { exact: true }).click();
+    const edit = entry.locator('form[action^="?/updateTime"]');
+    await edit.getByLabel('End time').fill('09:30');
+    await edit.getByRole('button', { name: 'Save draft', exact: true }).click();
+    await expectSaved(coordinator);
+    entry = coordinator.locator('article').filter({ hasText: note });
+    await expect(entry).toContainText('1.5 · Actual hours');
+    await entry.getByRole('button', { name: 'Submit to J&A' }).click();
+    await expect(coordinator.locator('article').filter({ hasText: note })).toContainText(
+      'Submitted',
+    );
+    await coordinator.getByRole('button', { name: 'Record team hours', exact: true }).click();
+    time = coordinator.locator('form[action^="?/createTimeBatch"]');
+    await time.locator(`input[type="checkbox"][value="${externalId}"]`).check();
+    await time.getByLabel('Duration in hours').fill('0.5');
+    await time.getByLabel('Work performed').fill(`External own record ${note}`);
+    await time.getByRole('button', { name: 'Save selected drafts' }).click();
+    await expectSaved(coordinator);
+    const persisted = createDatabase(readE2EFixturePointer().databasePath);
+    let timeId: string;
+    try {
+      timeId = persisted.sqlite
+        .prepare('SELECT id FROM time_entry WHERE activity_summary=?')
+        .get(note)!.id as string;
+    } finally {
+      persisted.sqlite.close();
+    }
+    await page.goto(portal('/approvals'), { waitUntil: 'networkidle' });
+    const approval = page.locator(`[data-approval-row="${timeId}"]`);
+    await expect(approval).toContainText(technicianName);
+    await approval
+      .locator('form[action^="?/approveRecord"]')
+      .getByRole('button', { name: 'Approve', exact: true })
+      .click();
+    await expect(page.getByRole('status').filter({ hasText: /decision recorded/i })).toBeVisible();
+    // Receipts remain an operational input. Compensation and statement routes
+    // are denied to restricted supplier accounts, including direct requests.
+    expect((await coordinator.request.get(portal('/expenses'))).status()).toBe(200);
+    for (const route of ['/pay', '/api/worker-statement'])
+      expect((await coordinator.request.get(portal(route))).status()).toBe(403);
+    // Forged Owner actions remain forbidden for a live supplier session.
+    const forged = await coordinator.request.post(portal('/supplier?/setProfile'), {
+      form: { userId: coordinatorId, profile: 'standard' },
+      headers: { origin: new URL(portal('')).origin, accept: 'text/html' },
+    });
+    expect(forged.status()).toBe(403);
+    await coordinator.goto(portal(`/supplier/report?projectId=${projectId}&lang=en`));
+    await expect(coordinator.getByText(note, { exact: true })).toBeVisible();
+    await expect(coordinator.getByText('Total actual hours: 2')).toBeVisible();
+    const printedReport = await coordinator.pdf({
+      path: testInfo.outputPath('supplier-operational-report.pdf'),
+      format: 'A4',
+      printBackground: true,
+    });
+    expect(printedReport.subarray(0, 4).toString()).toBe('%PDF');
+    const csv = await coordinator.request.get(
+      portal(`/supplier/report.csv?projectId=${projectId}&lang=en`),
+    );
+    expect(csv.status()).toBe(200);
+    expect(await csv.text()).toContain(note);
+    expect(await csv.text()).toContain('Approved');
+    expect(await csv.text()).not.toMatch(/rate_minor|payment|billability|currency|reimbursement/i);
+    let coordinatorOwnTimeId: string;
+    const snapshot = createDatabase(readE2EFixturePointer().databasePath);
+    try {
+      const row = snapshot.sqlite
+        .prepare(
+          'SELECT t.worker_id,r.recorded_by_user_id FROM time_entry t JOIN supplier_time_entry_recorder r ON r.time_entry_id=t.id WHERE t.activity_summary=?',
+        )
+        .get(note)!;
+      const ownRepository = new PortalRepository(snapshot.sqlite);
+      coordinatorOwnTimeId = ownRepository.createTimeEntry(
+        ownRepository.principalFor(
+          coordinatorId,
+          String(
+            snapshot.sqlite
+              .prepare('SELECT id FROM session WHERE user_id=? ORDER BY created_at DESC LIMIT 1')
+              .get(coordinatorId)!.id,
+          ),
+        ),
+        {
+          projectId,
+          workDate: today,
+          category: 'work',
+          minutes: 15,
+          summary: `Coordinator own time ${note}`,
+        },
+      ).id;
+      expect(row.recorded_by_user_id).toBe(coordinatorId);
+      expect(row.worker_id).not.toBe(coordinatorId);
+      expect(
+        snapshot.sqlite.prepare('SELECT 1 FROM account WHERE user_id=?').get(row.worker_id),
+      ).toBeUndefined();
+    } finally {
+      snapshot.sqlite.close();
+    }
+    expect((await coordinator.request.get(portal(`/time/${coordinatorOwnTimeId}`))).status()).toBe(
+      200,
+    );
+    const externalContext = await browser.newContext({ viewport: page.viewportSize()! });
+    try {
+      const external = await externalContext.newPage();
+      await signIn(external, 'worker2');
+      await external.goto(portal(`/supplier/report?projectId=${projectId}&lang=en`));
+      await expect(external.getByText(note, { exact: true })).toHaveCount(0);
+      const detailDb = createDatabase(readE2EFixturePointer().databasePath);
+      let ownId: string;
+      try {
+        ownId = detailDb.sqlite
+          .prepare('SELECT id FROM time_entry WHERE activity_summary=?')
+          .get(`External own record ${note}`)!.id as string;
+      } finally {
+        detailDb.sqlite.close();
+      }
+      for (const route of ['/time/__data.json', `/time/${ownId}/__data.json`]) {
+        const response = await external.request.get(portal(route));
+        expect(response.status()).toBe(200);
+        expect(await response.text()).not.toMatch(
+          /billability_state|invoice_id|client_rate_minor|compensation_amount_minor|internal_cost_minor/,
+        );
+      }
+      await external.goto(portal(`/time/${ownId}?lang=en`));
+      await expect(external.getByText('BILLABILITY', { exact: true })).toHaveCount(0);
+      expect((await external.request.get(portal('/my-pay'))).status()).toBe(403);
+      expect((await external.request.get(portal('/pay'))).status()).toBe(403);
+      expect((await external.request.get(portal('/api/worker-statement'))).status()).toBe(403);
+    } finally {
+      await externalContext.close();
+    }
+    await page.goto(portal(`/supplier?projectId=${projectId}&lang=en`));
+    await page.getByRole('button', { name: 'Authorize installation', exact: true }).click();
+    await page
+      .locator('article')
+      .filter({ hasText: supplierName })
+      .filter({ hasText: projectName })
+      .getByRole('button', { name: 'Revoke access' })
+      .click();
+    expect(
+      (
+        await coordinator.request.get(portal(`/supplier/report.csv?projectId=${projectId}`))
+      ).status(),
+    ).toBe(403);
+    // Revocation also applies to the ordinary personal-time route, not just supplier APIs.
+    expect((await coordinator.request.get(portal(`/time/${coordinatorOwnTimeId}`))).status()).toBe(
+      404,
+    );
+    const ordinaryTime = await coordinator.request.get(portal('/time/__data.json'));
+    expect(ordinaryTime.status()).toBe(200);
+    expect(await ordinaryTime.text()).not.toContain(`Coordinator own time ${note}`);
+    await coordinator.screenshot({
+      path: testInfo.outputPath('supplier-report.png'),
+      fullPage: false,
+    });
+  } finally {
+    await coordinatorContext.close();
+    // Shared login fixtures must retain their ordinary role for later locale/manual tests.
+    // Keep the historical supplier periods and operational records as audit evidence.
+    const cleanup = createDatabase(readE2EFixturePointer().databasePath);
+    try {
+      cleanup.sqlite
+        .prepare('DELETE FROM supplier_user_profile WHERE user_id IN (?,?)')
+        .run(coordinatorId, externalId);
+    } finally {
+      cleanup.sqlite.close();
+    }
+  }
+});

@@ -1,0 +1,13 @@
+{
+  "viewport": "desktop",
+  "code": "BILLING_ISSUER_IDENTIFIER_TOO_LONG",
+  "status": 400,
+  "noticeWidthAtLeast240": true,
+  "noToastOverlap": true,
+  "identifierFieldFocusedAndVisible": true,
+  "formValuesRetained": true,
+  "noFalseIssueBlocker": true,
+  "databaseUnchanged": true,
+  "pageErrorCount": 0,
+  "consoleErrorCount": 0
+}

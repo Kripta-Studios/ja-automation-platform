@@ -1,0 +1,8 @@
+{
+  "code": "REPORT_ATTACHMENT_FILE_INVALID",
+  "status": 400,
+  "role": "worker",
+  "viewport": "phone-390",
+  "screenshot": "invalid-file-phone-390.png",
+  "scope": "isolated notice only; disposable data"
+}

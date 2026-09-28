@@ -1,0 +1,483 @@
+{
+  "target": "deployed production",
+  "testedAtUtc": "2026-09-27T17:34:55.092Z",
+  "mode": "read-only deliberately invalid GET only; no valid export or download",
+  "roles": [
+    {
+      "role": "finance",
+      "viewport": 390,
+      "locale": "en",
+      "login": "signed-in",
+      "discovery": {
+        "reviewStatus": 200,
+        "deployedAssetMarker": null,
+        "projectOptionAvailable": true,
+        "projectDetailStatus": 200,
+        "renderedExportLinkAvailable": true,
+        "ledgerPageStatus": 200,
+        "renderedLedgerExportLinkAvailable": false
+      },
+      "scenarios": [
+        {
+          "name": "project-finance-malformed",
+          "status": 400,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/projects/:record/finance-export",
+            "queryKeys": [
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "periodStart must be a valid ISO calendar date",
+            "visibleText": "400 periodStart must be a valid ISO calendar date",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "project-finance-reversed",
+          "status": 400,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/projects/:record/finance-export",
+            "queryKeys": [
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "Period start must not follow period end",
+            "visibleText": "400 Period start must not follow period end",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "project-finance-duplicate-invalid",
+          "status": 400,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/projects/:record/finance-export",
+            "queryKeys": [
+              "periodStart",
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "periodStart must be a valid ISO calendar date",
+            "visibleText": "400 periodStart must be a valid ISO calendar date",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-malformed",
+          "status": 400,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/csv",
+            "queryKeys": [
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "Period dates must be valid ISO calendar dates",
+            "visibleText": "400 Period dates must be valid ISO calendar dates",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-reversed",
+          "status": 400,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/csv",
+            "queryKeys": [
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "Period start must not follow period end",
+            "visibleText": "400 Period start must not follow period end",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-duplicate-invalid",
+          "status": 400,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/csv",
+            "queryKeys": [
+              "periodStart",
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "One complete period is required",
+            "visibleText": "400 One complete period is required",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-invalid-currency",
+          "status": 400,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/csv",
+            "queryKeys": [
+              "currency"
+            ],
+            "title": "Invalid ledger currency",
+            "visibleText": "400 Invalid ledger currency",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-invalid-report",
+          "status": 400,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/csv",
+            "queryKeys": [
+              "report"
+            ],
+            "title": "Invalid collection report",
+            "visibleText": "400 Invalid collection report",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-xlsx-malformed",
+          "status": 400,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/xlsx",
+            "queryKeys": [
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "Period dates must be valid ISO calendar dates",
+            "visibleText": "400 Period dates must be valid ISO calendar dates",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-xlsx-invalid-currency",
+          "status": 400,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/xlsx",
+            "queryKeys": [
+              "currency"
+            ],
+            "title": "Invalid ledger currency",
+            "visibleText": "400 Invalid ledger currency",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-xlsx-invalid-report",
+          "status": 400,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/xlsx",
+            "queryKeys": [
+              "report"
+            ],
+            "title": "Invalid collection report",
+            "visibleText": "400 Invalid collection report",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 400 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am"
+      ],
+      "pageErrors": [],
+      "downloads": 0
+    },
+    {
+      "role": "auditor",
+      "viewport": 1440,
+      "locale": "es",
+      "login": "signed-in",
+      "discovery": {
+        "reviewStatus": 403,
+        "deployedAssetMarker": null,
+        "ledgerPageStatus": 200,
+        "renderedLedgerExportLinkAvailable": false
+      },
+      "scenarios": [
+        {
+          "name": "project-finance-malformed",
+          "status": 403,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/projects/:record/finance-export",
+            "queryKeys": [
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "Finance role required",
+            "visibleText": "403 Finance role required",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "project-finance-reversed",
+          "status": 403,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/projects/:record/finance-export",
+            "queryKeys": [
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "Finance role required",
+            "visibleText": "403 Finance role required",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "project-finance-duplicate-invalid",
+          "status": 403,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/projects/:record/finance-export",
+            "queryKeys": [
+              "periodStart",
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "Finance role required",
+            "visibleText": "403 Finance role required",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-malformed",
+          "status": 403,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/csv",
+            "queryKeys": [
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "Finance role required",
+            "visibleText": "403 Finance role required",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-reversed",
+          "status": 403,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/csv",
+            "queryKeys": [
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "Finance role required",
+            "visibleText": "403 Finance role required",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-duplicate-invalid",
+          "status": 403,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/csv",
+            "queryKeys": [
+              "periodStart",
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "Finance role required",
+            "visibleText": "403 Finance role required",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-invalid-currency",
+          "status": 403,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/csv",
+            "queryKeys": [
+              "currency"
+            ],
+            "title": "Finance role required",
+            "visibleText": "403 Finance role required",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-invalid-report",
+          "status": 403,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/csv",
+            "queryKeys": [
+              "report"
+            ],
+            "title": "Finance role required",
+            "visibleText": "403 Finance role required",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-xlsx-malformed",
+          "status": 403,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/xlsx",
+            "queryKeys": [
+              "periodStart",
+              "periodEnd"
+            ],
+            "title": "Finance role required",
+            "visibleText": "403 Finance role required",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-xlsx-invalid-currency",
+          "status": 403,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/xlsx",
+            "queryKeys": [
+              "currency"
+            ],
+            "title": "Finance role required",
+            "visibleText": "403 Finance role required",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        },
+        {
+          "name": "ledger-xlsx-invalid-report",
+          "status": 403,
+          "contentType": "text/html; charset=utf-8",
+          "disposition": null,
+          "navigationError": null,
+          "snapshot": {
+            "pathname": "/j-aautomation/app/api/invoice-collection-ledger/xlsx",
+            "queryKeys": [
+              "report"
+            ],
+            "title": "Finance role required",
+            "visibleText": "403 Finance role required",
+            "activeElement": "body",
+            "scrollY": 0
+          }
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am",
+        "Failed to load resource: the server responded with a status of 403 ()",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0Am"
+      ],
+      "pageErrors": [],
+      "downloads": 0
+    }
+  ]
+}

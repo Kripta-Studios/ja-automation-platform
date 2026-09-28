@@ -1,0 +1,42 @@
+{
+  "candidateCommit": "33091be",
+  "role": "manager",
+  "invalid": {
+    "status": 403,
+    "contentType": "application/problem+json",
+    "code": "COLLECTION_LEDGER_EXPORT_ACCESS_DENIED",
+    "messageKey": "problem.collectionsLedgerExport.accessDenied",
+    "fields": [],
+    "remedies": [
+      "contact_owner"
+    ],
+    "hasCorrelationId": true
+  },
+  "valid": {
+    "status": 403,
+    "contentType": "application/problem+json",
+    "code": "COLLECTION_LEDGER_EXPORT_ACCESS_DENIED",
+    "messageKey": "problem.collectionsLedgerExport.accessDenied",
+    "fields": [],
+    "remedies": [
+      "contact_owner"
+    ],
+    "hasCorrelationId": true
+  },
+  "audits": {
+    "before": 340,
+    "after": 340
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json",
+      "403 fetch application/problem+json",
+      "403 fetch application/problem+json"
+    ]
+  }
+}

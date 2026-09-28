@@ -1,0 +1,150 @@
+{
+  "commit": "695d3cf",
+  "viewport": {
+    "width": 430,
+    "height": 932
+  },
+  "locale": "pt",
+  "fixture": "QA project/assignment and two rates created through rendered forms; two Finance saves and four stale submissions",
+  "baseline": {
+    "version": 1,
+    "flags": [
+      0,
+      0
+    ],
+    "audit": 1
+  },
+  "fallback": {
+    "bResponse": 200,
+    "native": {
+      "status": 409,
+      "codeInResponse": true,
+      "genericInResponse": false
+    },
+    "enhanced": {
+      "transportStatus": 200,
+      "actionStatus": 409,
+      "type": "failure",
+      "codeInResponse": true,
+      "genericInResponse": false
+    },
+    "visible": {
+      "code": "FINANCE_ASSIGNMENT_COMMERCIAL_VERSION_CHANGED",
+      "notice": "Ação necessária As opções comerciais desta pessoa mudaram enquanto o formulário estava aberto. As suas alterações não foram guardadas. Reveja as opções atualmente guardadas antes de decidir se pretende enviar as suas. As opções comerciais atualmente guardadas para esta pessoa podem ser diferentes das que enviou. Revisar o registro atualizado",
+      "remedies": [
+        {
+          "label": "Revisar o registro atualizado",
+          "href": "/j-aautomation/app/finance?view=commercial&project=[qa-id]&lang=pt&asOf=2026-09-28&category=regular#commercial-person-[qa-id]"
+        }
+      ],
+      "comparison": [
+        {
+          "field": "Usar remuneração geral do trabalhador se faltar uma regra do projeto",
+          "current": "Opções comerciais atualmente guardadas: Ativado",
+          "attempted": "Opções que tentou guardar: Desativado",
+          "outcome": "É diferente da opção que enviou"
+        },
+        {
+          "field": "Usar custo interno geral se faltar uma regra do projeto",
+          "current": "Opções comerciais atualmente guardadas: Desativado",
+          "attempted": "Opções que tentou guardar: Ativado",
+          "outcome": "É diferente da opção que enviou"
+        }
+      ],
+      "routeView": "commercial",
+      "language": "pt-BR",
+      "editorOpen": true,
+      "expectedVersion": "2",
+      "attempted": {
+        "compensation": "no",
+        "internalCost": "yes",
+        "clientRule": null
+      },
+      "focusOnNotice": true,
+      "activeTag": "ASIDE",
+      "top": 181,
+      "bottom": 519,
+      "safeTop": 78,
+      "safeBottom": 844,
+      "scrollY": 2384,
+      "overflow": false
+    },
+    "savedVersion": 2,
+    "savedFlags": [
+      1,
+      0
+    ],
+    "reviewReloadedCurrent": true
+  },
+  "references": {
+    "bResponse": 200,
+    "native": {
+      "status": 409,
+      "codeInResponse": true,
+      "genericInResponse": false
+    },
+    "enhanced": {
+      "transportStatus": 200,
+      "actionStatus": 409,
+      "type": "failure",
+      "codeInResponse": true,
+      "genericInResponse": false
+    },
+    "visible": {
+      "code": "FINANCE_ASSIGNMENT_COMMERCIAL_VERSION_CHANGED",
+      "notice": "Ação necessária As opções comerciais desta pessoa mudaram enquanto o formulário estava aberto. As suas alterações não foram guardadas. Reveja as opções atualmente guardadas antes de decidir se pretende enviar as suas. As opções comerciais atualmente guardadas para esta pessoa podem ser diferentes das que enviou. Revisar o registro atualizado",
+      "remedies": [
+        {
+          "label": "Revisar o registro atualizado",
+          "href": "/j-aautomation/app/finance?view=commercial&project=[qa-id]&lang=pt&asOf=2026-09-28&category=regular#commercial-person-[qa-id]"
+        }
+      ],
+      "comparison": [
+        {
+          "field": "Regra de tarifa horária do cliente",
+          "current": "Opções comerciais atualmente guardadas: US$ 71,25 · 2026-09-28 → sem data final",
+          "attempted": "Opções que tentou guardar: US$ 75,50 · 2026-09-28 → sem data final",
+          "outcome": "É diferente da opção que enviou"
+        },
+        {
+          "field": "Regra de remuneração do trabalhador",
+          "current": "Opções comerciais atualmente guardadas: Resolver por projeto e data",
+          "attempted": "Opções que tentou guardar: Resolver por projeto e data",
+          "outcome": "Corresponde à opção que enviou"
+        },
+        {
+          "field": "Regra de custo interno",
+          "current": "Opções comerciais atualmente guardadas: Resolver por projeto e data",
+          "attempted": "Opções que tentou guardar: Resolver por projeto e data",
+          "outcome": "Corresponde à opção que enviou"
+        }
+      ],
+      "routeView": "commercial",
+      "language": "pt-BR",
+      "editorOpen": true,
+      "expectedVersion": "3",
+      "attempted": {
+        "compensation": null,
+        "internalCost": null,
+        "clientRule": "[qa-id]"
+      },
+      "focusOnNotice": true,
+      "activeTag": "ASIDE",
+      "top": 275,
+      "bottom": 612,
+      "safeTop": 78,
+      "safeBottom": 844,
+      "scrollY": 1663,
+      "overflow": false
+    },
+    "savedVersion": 3,
+    "currentIsBChoice": true,
+    "noExtraWrite": true
+  },
+  "diagnostics": {
+    "owner": [],
+    "financeA": [],
+    "financeB": [],
+    "financeEnhanced": []
+  }
+}

@@ -1,0 +1,745 @@
+import { inflateRawSync } from 'node:zlib';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+  AssignmentExpensePolicyRepository,
+  PortalRepository,
+  V3Repository,
+  createDatabase,
+} from '@ja/database';
+import type { Principal, Role } from '@ja/domain';
+import {
+  invoiceCollectionLedgerCsv,
+  invoiceCollectionLedgerXlsx,
+  workerStatementCsv,
+  workerStatementPdf,
+  type InvoiceCollectionLedgerRow,
+  type WorkerStatementSnapshot,
+} from '@ja/reporting';
+import { installB5TestDeploymentIdentity } from './fixtures/b5-test-environment.js';
+
+const { GET: workerStatementGet } =
+  await import('../apps/portal/src/routes/app/api/worker-statement/[format]/+server.js');
+const { POST: workerStatementRequestPost } =
+  await import('../apps/portal/src/routes/app/api/worker-statement/+server.js');
+const { GET: invoiceLedgerGet } =
+  await import('../apps/portal/src/routes/app/api/invoice-collection-ledger/[format]/+server.js');
+
+function unzip(bytes: Uint8Array): Map<string, Buffer> {
+  const files = new Map<string, Buffer>();
+  const buffer = Buffer.from(bytes);
+  let offset = 0;
+  while (buffer.readUInt32LE(offset) === 0x04034b50) {
+    const method = buffer.readUInt16LE(offset + 8);
+    const compressedLength = buffer.readUInt32LE(offset + 18);
+    const nameLength = buffer.readUInt16LE(offset + 26);
+    const extraLength = buffer.readUInt16LE(offset + 28);
+    const nameStart = offset + 30;
+    const dataStart = nameStart + nameLength + extraLength;
+    const name = buffer.subarray(nameStart, nameStart + nameLength).toString('utf8');
+    const compressed = buffer.subarray(dataStart, dataStart + compressedLength);
+    files.set(name, method === 8 ? inflateRawSync(compressed) : Buffer.from(compressed));
+    offset = dataStart + compressedLength;
+  }
+  return files;
+}
+
+const statement: WorkerStatementSnapshot = {
+  worker: { id: 'worker', name: 'Own Worker' },
+  periodStart: '2026-08-01',
+  periodEnd: '2026-08-31',
+  currency: 'USD',
+  approvedMinutes: 480,
+  pendingMinutes: 60,
+  estimatedApprovedMinor: '123456789012345',
+  estimatedPendingMinor: '2500',
+  approvedReimbursementMinor: '12345',
+  pendingReimbursementMinor: '500',
+  missingCompensationRules: 0,
+  activities: [
+    {
+      id: 'time-own',
+      projectNumber: 'P-001',
+      projectName: 'Own project',
+      date: '2026-08-11',
+      category: 'work',
+      activitySummary: 'Commissioned own equipment',
+      actualMinutes: 480,
+      approvalState: 'approved',
+    },
+  ],
+  settlements: [
+    {
+      id: 'settlement-own',
+      projectNumber: 'P-001',
+      projectName: 'Own project',
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+      amountMinor: '123456789012345',
+      currency: 'USD',
+      state: 'settled',
+      expectedPaymentOn: '2026-09-01',
+      settledAt: '2026-09-01T12:00:00.000Z',
+    },
+  ],
+  expenses: [
+    {
+      id: 'expense-own',
+      projectNumber: 'P-001',
+      spentOn: '2026-08-12',
+      vendor: '=unsafe-vendor',
+      category: 'hotel',
+      reimbursementAmountMinor: '12345',
+      currency: 'USD',
+      approvalState: 'approved',
+      reimbursementState: 'reimbursed',
+      expectedReimbursementOn: '2026-09-02',
+      reimbursedAt: '2026-09-02T12:00:00.000Z',
+    },
+  ],
+};
+
+const ledger: readonly InvoiceCollectionLedgerRow[] = [
+  {
+    invoiceId: 'invoice-a',
+    invoiceNumber: 'JA-001',
+    clientNumber: 'C-001',
+    clientName: '=unsafe-client',
+    projectNumber: 'P-001',
+    projectName: 'Project A',
+    issueDate: '2026-08-05T10:00:00.000Z',
+    dueDate: '2026-09-04',
+    currency: 'USD',
+    subtotalMinor: '9000',
+    taxMinor: '1000',
+    totalMinor: '10000',
+    grossPaymentsMinor: '8000',
+    paymentReversalsMinor: '3000',
+    netCollectedMinor: '5000',
+    collectedMinor: '5000',
+    outstandingMinor: '5000',
+    directCostKnownMinor: '4000',
+    directCostMinor: null,
+    directCostComplete: false,
+    directCostMissingSourceIds: ['time-missing'],
+    contributionMinor: null,
+    contributionMarginBps: null,
+    paymentStatus: 'partially_paid',
+    billingStatus: 'partially_paid',
+    payments: [
+      {
+        id: 'payment-a',
+        paymentDate: '2026-08-20T09:30:00.000Z',
+        grossAmountMinor: '8000',
+        reversedMinor: '3000',
+        netAmountMinor: '5000',
+      },
+    ],
+    paymentReversals: [
+      {
+        id: 'reversal-a',
+        originalPaymentId: 'payment-a',
+        paymentDate: '2026-08-21T10:00:00.000Z',
+        amountMinor: '3000',
+      },
+    ],
+  },
+  {
+    invoiceId: 'invoice-void',
+    invoiceNumber: 'JA-002',
+    clientNumber: 'C-002',
+    clientName: 'Client B',
+    projectNumber: 'P-002',
+    projectName: 'Project B',
+    currency: 'USD',
+    subtotalMinor: '20000',
+    taxMinor: '0',
+    totalMinor: '20000',
+    grossPaymentsMinor: '25000',
+    paymentReversalsMinor: '0',
+    netCollectedMinor: '25000',
+    collectedMinor: '0',
+    outstandingMinor: '0',
+    directCostKnownMinor: '5000',
+    directCostMinor: '5000',
+    directCostComplete: true,
+    directCostMissingSourceIds: [],
+    contributionMinor: '15000',
+    contributionMarginBps: '7500',
+    paymentStatus: 'void',
+    billingStatus: 'void',
+    payments: [{ id: 'payment-b', grossAmountMinor: '25000', netAmountMinor: '25000' }],
+    paymentReversals: [],
+  },
+];
+
+describe('Client Essential report-family serializers', () => {
+  it('produces an own-only statement CSV and a real PDF without commercial fields', () => {
+    const csv = Buffer.from(workerStatementCsv(statement)).toString('utf8');
+    expect(csv).toContain('123456789012345');
+    expect(csv).toContain('settled');
+    expect(csv).toContain('reimbursed');
+    expect(csv).toContain('Commissioned own equipment');
+    expect(csv).toContain('amountMeaning,amount,amountMinor,actualHours');
+    expect(csv).toContain('Calculated worker expense reimbursement');
+    expect(csv).toContain('Allocated estimated worker compensation');
+    expect(csv).toContain('2026-09-01');
+    expect(csv).toContain('2026-09-02T12:00:00.000Z');
+    expect(csv).toContain("'=unsafe-vendor");
+    expect(csv).not.toMatch(/client.?rate|internal.?cost|contribution|margin|other.?worker/iu);
+
+    const pdf = workerStatementPdf(statement);
+    expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe('%PDF-');
+    expect(pdf.byteLength).toBeGreaterThan(1_000);
+    const directory = mkdtempSync(join(tmpdir(), 'ja-worker-statement-pdf-'));
+    try {
+      const input = join(directory, 'statement.pdf');
+      writeFileSync(input, pdf);
+      const text = execFileSync('pdftotext', ['-layout', input, '-'], { encoding: 'utf8' });
+      expect(text).toMatch(/Estimated pay/i);
+      expect(text).toMatch(/Approved compensation/i);
+      expect(text).toMatch(/Own activity/i);
+      expect(text).toMatch(/Total/i);
+      expect(text).not.toMatch(/not client billing rates/i);
+      expect(text).not.toMatch(/Settlements below are recorded payments/i);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps reversal, void and incomplete-cost truth row-local in CSV and XLSX', () => {
+    const csv = Buffer.from(invoiceCollectionLedgerCsv(ledger)).toString('utf8');
+    const lines = csv.trim().split('\r\n');
+    expect(lines).toHaveLength(3);
+    expect(lines[1]).toContain('8000,3000,5000,5000,5000,4000,,false,time-missing');
+    expect(lines[1]).toContain('reversal-a');
+    expect(lines[2]).toContain('25000,0,25000,0,0,5000,5000,true,,15000,7500,void,void');
+    expect(csv).toContain("'=unsafe-client");
+
+    const files = unzip(invoiceCollectionLedgerXlsx(ledger));
+    expect(files.get('xl/workbook.xml')?.toString()).toContain('Invoice collection ledger');
+    const ledgerSheet = files.get('xl/worksheets/sheet1.xml')?.toString() ?? '';
+    expect(ledgerSheet).toContain('time-missing');
+    expect(ledgerSheet).toContain('reversal-a');
+    expect(ledgerSheet).toContain('r="AA2"');
+    expect(files.get('xl/worksheets/sheet2.xml')?.toString()).toContain('payment-a');
+    expect(files.get('xl/worksheets/sheet3.xml')?.toString()).toContain('reversal-a');
+    expect(files.get('xl/worksheets/sheet2.xml')?.toString()).toMatch(/s="1"><v>\d+<\/v>/u);
+    expect(files.get('xl/worksheets/sheet3.xml')?.toString()).toMatch(/s="1"><v>\d+<\/v>/u);
+    expect(ledgerSheet).toMatch(/s="1"><v>\d+<\/v><\/c>/u);
+    expect(ledgerSheet).toContain('<v>80</v>');
+    expect(ledgerSheet).toContain('<is><t>8000</t></is>');
+  });
+
+  it('uses the native technical report date before creation timestamps', () => {
+    const source = readFileSync(resolve('packages/reporting/src/exports.ts'), 'utf8');
+    expect(source).toContain(
+      'row.report_date ?? row.reportDate ?? row.date ?? row.created_at ?? row.createdAt',
+    );
+  });
+
+  it('exports payment and reversal dates from the canonical ledger field names', () => {
+    const files = unzip(
+      invoiceCollectionLedgerXlsx([
+        {
+          ...ledger[0]!,
+          payments: [
+            {
+              id: 'canonical-payment',
+              received_at: '2026-09-14T10:30:00.000Z',
+              grossAmountMinor: '8000',
+            },
+          ],
+          paymentReversals: [
+            {
+              id: 'canonical-reversal',
+              effectiveAt: '2026-09-16T11:00:00.000Z',
+              amountMinor: '3000',
+            },
+          ],
+          projectId: 'project-reference',
+          expectedCollectionDate: '2026-09-30',
+          balanceAsOf: '2026-09-18',
+          daysOverdue: 14,
+          agingBucket: '1_30',
+        },
+      ]),
+    );
+    expect(files.get('xl/worksheets/sheet1.xml')?.toString()).toContain('project-reference');
+    expect(files.get('xl/worksheets/sheet1.xml')?.toString()).toContain('1_30');
+    expect(files.get('xl/worksheets/sheet2.xml')?.toString()).toContain('2026-09-14T10:30:00.000Z');
+    expect(files.get('xl/worksheets/sheet3.xml')?.toString()).toContain('2026-09-16T11:00:00.000Z');
+    for (const [sheet, day] of [
+      [2, '2026-09-14'],
+      [3, '2026-09-16'],
+    ] as const) {
+      const serial =
+        (Date.parse(`${day}T00:00:00Z`) - Date.parse('1899-12-30T00:00:00Z')) / 86_400_000;
+      expect(files.get(`xl/worksheets/sheet${sheet}.xml`)?.toString()).toContain(
+        `<v>${serial}</v>`,
+      );
+    }
+  });
+});
+
+let directory: string;
+let restoreIdentity: (() => void) | undefined;
+const previousDatabasePath = process.env.JA_DATABASE_PATH;
+
+function seedUser(repository: PortalRepository, role: Role, id: string): Principal {
+  const sqlite = (repository as unknown as { sqlite: ReturnType<typeof createDatabase>['sqlite'] })
+    .sqlite;
+  const now = new Date().toISOString();
+  sqlite
+    .prepare(
+      'INSERT INTO user(id,name,email,role,status,email_verified,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
+    )
+    .run(
+      id,
+      id,
+      role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.test`,
+      role,
+      'active',
+      1,
+      now,
+      now,
+    );
+  const sessionId = `${id}-session`;
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      `${sessionId}-token`,
+      id,
+      new Date(Date.now() + 3_600_000).toISOString(),
+      now,
+      now,
+      now,
+    );
+  return { userId: id, role, projectIds: new Set(), sessionId };
+}
+
+function event(
+  role: Role | null,
+  route: 'worker' | 'ledger',
+  format: string,
+  query = 'periodStart=2026-08-01&periodEnd=2026-08-31',
+) {
+  const id = role ?? 'anonymous';
+  return {
+    locals: {
+      user: role
+        ? {
+            id,
+            name: id,
+            email: role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.test`,
+            role,
+            status: 'active',
+          }
+        : null,
+      session: role ? { id: `${id}-session`, userId: id, expiresAt: new Date() } : null,
+      correlationId: `${id}-correlation`,
+    },
+    params: { format },
+    url: new URL(`http://localhost/app/api/${route}/${format}?${query}`),
+  } as never;
+}
+
+async function requestWorkerStatement(role: Role, query: string): Promise<Response> {
+  const url = new URL(`http://localhost/app/api/worker-statement?${query}`);
+  const request = new Request(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      periodStart: url.searchParams.get('periodStart'),
+      periodEnd: url.searchParams.get('periodEnd'),
+      locale: url.searchParams.get('locale') ?? 'en',
+      requestKey: `reporting-${role}-${Date.now()}`,
+    }),
+  });
+  return workerStatementRequestPost({
+    ...event(role, 'worker', 'csv', query),
+    url,
+    request,
+  } as never);
+}
+
+beforeEach(() => {
+  restoreIdentity = installB5TestDeploymentIdentity();
+  directory = mkdtempSync(join(tmpdir(), 'ja-essential-report-routes-'));
+  process.env.JA_DATABASE_PATH = join(directory, 'app.db');
+  const database = createDatabase();
+  const repository = new PortalRepository(database.sqlite);
+  const principals = new Map<Role, Principal>();
+  for (const role of [
+    'owner_admin',
+    'finance_admin',
+    'project_manager',
+    'worker',
+    'auditor_read_only',
+  ] as const)
+    principals.set(role, seedUser(repository, role, role));
+  const otherWorker = seedUser(repository, 'worker', 'other-worker');
+  const owner = principals.get('owner_admin') as Principal;
+  const client = repository.createClient(owner, {
+    legalName: 'Statement Client',
+    displayName: 'Statement Client',
+    currency: 'USD',
+    timezone: 'UTC',
+    billingAddress: '1 Statement Street',
+    billingEmail: 'billing@example.test',
+    paymentTermsDays: 30,
+  });
+  const project = repository.createProject(owner, {
+    costCenterCode: 'QA-REPORTING-ESSENTIAL-CATALOG-TEST-1',
+    clientId: client.id,
+    name: 'Statement Project',
+    timezone: 'UTC',
+    currency: 'USD',
+    billingModel: 'tm',
+  });
+  const finance = principals.get('finance_admin') as Principal;
+  const legalEntity = repository.createLegalEntity(owner, {
+    code: 'STATEMENT',
+    legalName: 'Statement Test Entity',
+    currency: 'USD',
+    billingAddress: '1 Statement Street',
+    companyIdentifiers: 'STATEMENT-TEST-001',
+  });
+  const v3 = new V3Repository(database.sqlite);
+  const revision = v3.createCanonicalLegalEntityRevision(finance, {
+    legacyLegalEntityId: legalEntity.id,
+    effectiveFrom: '2026-01-01',
+    legalName: 'Statement Test Entity',
+    taxIdentifier: 'STATEMENT-TAX-001',
+    registrationIdentifier: 'STATEMENT-REG-001',
+    addressLine1: '1 Statement Street',
+    locality: 'Test City',
+    region: 'Test Region',
+    postalCode: '10001',
+    countryCode: 'US',
+    baseCurrency: 'USD',
+    timezone: 'UTC',
+    reason: 'Set up the worker statement test project',
+    idempotencyKey: 'reporting-statement:canonical-revision',
+  });
+  v3.assignCanonicalLegalEntityToProject(finance, {
+    projectId: project.id,
+    legalEntityRevisionId: revision.revisionId,
+    effectiveFrom: '2026-01-01',
+    reason: 'Bind the worker statement test project to its legal entity',
+    idempotencyKey: 'reporting-statement:canonical-assignment',
+  });
+  repository.assignWorker(owner, {
+    projectId: project.id,
+    workerId: 'worker',
+    startsOn: '2026-01-01',
+  });
+  repository.assignWorker(owner, {
+    projectId: project.id,
+    workerId: 'other-worker',
+    startsOn: '2026-01-01',
+  });
+  const expensePolicies = new AssignmentExpensePolicyRepository(database.sqlite);
+  for (const workerId of ['worker', 'other-worker']) {
+    const membership = database.sqlite
+      .prepare('SELECT id FROM project_member WHERE project_id=? AND user_id=?')
+      .get(project.id, workerId) as { id: string };
+    expensePolicies.create(finance, {
+      projectMemberId: membership.id,
+      payer: 'worker',
+      category: 'hotel',
+      effectiveFrom: '2026-01-01',
+      workerReimbursement: 'at_cost',
+      clientRecovery: 'at_cost',
+      reason: 'Worker statement test hotel reimbursement',
+    });
+  }
+  const worker = { ...principals.get('worker'), projectIds: new Set([project.id]) } as Principal;
+  const other = { ...otherWorker, projectIds: new Set([project.id]) } as Principal;
+  repository.createTimeEntry(worker, {
+    projectId: project.id,
+    workDate: '2026-08-11',
+    category: 'commissioning',
+    minutes: 420,
+    summary: 'OWN-WORKER-ACTIVITY',
+  });
+  const ownExpense = repository.createExpense(worker, {
+    projectId: project.id,
+    spentOn: '2026-08-12',
+    category: 'hotel',
+    currency: 'USD',
+    amountMinor: 12_345n,
+    clientTreatment: 'reimbursable',
+    vendor: 'OWN-WORKER-VENDOR',
+    description: 'Own reimbursement',
+    whoPaid: 'worker',
+    paymentMethod: 'personal_card',
+    receiptRequired: false,
+  });
+  const classifiedOwnExpense = repository.classifyExpenseCommercially(finance, {
+    expenseId: ownExpense.id,
+    expectedVersion: ownExpense.version,
+    clientTreatment: 'reimbursable',
+    billingTreatment: 'reimbursable_at_cost',
+    markupBps: 0,
+    taxBps: 0,
+    reason: 'Apply the worker hotel reimbursement policy',
+    idempotencyKey: `reporting-own-expense:${ownExpense.id}`,
+  });
+  const plannedOwnExpense = repository.setExpensePlanningDates(finance, {
+    expenseId: ownExpense.id,
+    expectedReimbursementOn: '2026-09-05',
+    expectedRecoveryOn: '2026-09-20',
+    expectedVersion: classifiedOwnExpense.version,
+  });
+  repository.submitExpense(worker, ownExpense.id, plannedOwnExpense.version);
+  repository.operationalApproveExpense(owner, ownExpense.id, 'approved');
+  const otherExpense = repository.createExpense(other, {
+    projectId: project.id,
+    spentOn: '2026-08-13',
+    category: 'hotel',
+    currency: 'USD',
+    amountMinor: 99_999n,
+    clientTreatment: 'reimbursable',
+    vendor: 'OTHER-WORKER-SECRET',
+    description: 'Other reimbursement',
+    whoPaid: 'worker',
+    paymentMethod: 'personal_card',
+    receiptRequired: false,
+  });
+  const classifiedOtherExpense = repository.classifyExpenseCommercially(finance, {
+    expenseId: otherExpense.id,
+    expectedVersion: otherExpense.version,
+    clientTreatment: 'reimbursable',
+    billingTreatment: 'reimbursable_at_cost',
+    markupBps: 0,
+    taxBps: 0,
+    reason: 'Apply the other worker hotel reimbursement policy',
+    idempotencyKey: `reporting-other-expense:${otherExpense.id}`,
+  });
+  repository.submitExpense(other, otherExpense.id, classifiedOtherExpense.version);
+  repository.operationalApproveExpense(owner, otherExpense.id, 'approved');
+  database.sqlite.close();
+});
+
+afterEach(() => {
+  if (previousDatabasePath === undefined) delete process.env.JA_DATABASE_PATH;
+  else process.env.JA_DATABASE_PATH = previousDatabasePath;
+  restoreIdentity?.();
+  restoreIdentity = undefined;
+  rmSync(directory, { recursive: true, force: true });
+});
+
+describe('Client Essential private report routes', () => {
+  it('allows own worker statements and ignores guessed worker IDs while denying finance roles', async () => {
+    const signedOut = workerStatementGet(event(null, 'worker', 'csv')) as Response;
+    expect(signedOut.status).toBe(401);
+    await expect(signedOut.json()).resolves.toMatchObject({
+      code: 'WORKER_STATEMENT_SIGN_IN_REQUIRED',
+      messageKey: 'problem.workerStatement.signInRequired',
+      remedies: [{ id: 'sign_in' }],
+    });
+    for (const role of ['finance_admin', 'owner_admin'] as const) {
+      const denied = workerStatementGet(event(role, 'worker', 'csv')) as Response;
+      expect(denied.status).toBe(403);
+      await expect(denied.json()).resolves.toMatchObject({
+        code: 'WORKER_STATEMENT_ROLE_REQUIRED',
+        messageKey: 'problem.workerStatement.roleRequired',
+        remedies: [{ id: 'review_workspace' }],
+      });
+    }
+    // Since edb04f6, PMs may read their own statement. A guessed worker ID must not
+    // turn that own-only route into another worker's statement download.
+    expect(
+      (
+        workerStatementGet(
+          event(
+            'project_manager',
+            'worker',
+            'csv',
+            'periodStart=2026-08-01&periodEnd=2026-08-31&workerId=worker',
+          ),
+        ) as Response
+      ).status,
+    ).toBe(404);
+
+    const query = 'periodStart=2026-08-01&periodEnd=2026-08-31&workerId=other-worker';
+    const requestResponse = await requestWorkerStatement('worker', query);
+    expect(requestResponse.status).toBe(202);
+    const requestBody = (await requestResponse.json()) as {
+      artifacts: Array<{ artifactId: string; format: string; status: string }>;
+    };
+    const requested = requestBody.artifacts.find((artifact) => artifact.format === 'csv');
+    if (!requested) throw new Error('Worker statement CSV artifact was not requested');
+    expect(requested.status).toBe('queued');
+    expect(
+      (
+        workerStatementGet(
+          event(
+            'project_manager',
+            'worker',
+            'csv',
+            'periodStart=2026-08-01&periodEnd=2026-08-31&workerId=worker',
+          ),
+        ) as Response
+      ).status,
+    ).toBe(404);
+
+    const before = createDatabase();
+    const beforeCounts = {
+      artifacts: (
+        before.sqlite.prepare('SELECT COUNT(*) AS count FROM worker_statement_artifact').get() as {
+          count: number;
+        }
+      ).count,
+      jobs: (before.sqlite.prepare('SELECT COUNT(*) AS count FROM job').get() as { count: number })
+        .count,
+      accessAudits: (
+        before.sqlite
+          .prepare("SELECT COUNT(*) AS count FROM audit_event WHERE action='artifact.access'")
+          .get() as { count: number }
+      ).count,
+    };
+    before.sqlite.close();
+
+    const response = workerStatementGet(event('worker', 'worker', 'csv', query)) as Response;
+    expect(response.status).toBe(202);
+    expect(response.headers.get('retry-after')).toBe('2');
+    const body = (await response.json()) as { artifact: { artifactId: string; status: string } };
+    expect(body.artifact).toMatchObject({ artifactId: requested.artifactId, status: 'queued' });
+
+    const database = createDatabase();
+    const afterCounts = {
+      artifacts: (
+        database.sqlite
+          .prepare('SELECT COUNT(*) AS count FROM worker_statement_artifact')
+          .get() as { count: number }
+      ).count,
+      jobs: (
+        database.sqlite.prepare('SELECT COUNT(*) AS count FROM job').get() as { count: number }
+      ).count,
+      accessAudits: (
+        database.sqlite
+          .prepare("SELECT COUNT(*) AS count FROM audit_event WHERE action='artifact.access'")
+          .get() as { count: number }
+      ).count,
+    };
+    expect(afterCounts).toEqual(beforeCounts);
+    const row = database.sqlite
+      .prepare(
+        'SELECT worker_id,status,snapshot_json FROM worker_statement_artifact WHERE artifact_id=?',
+      )
+      .get(requested.artifactId) as {
+      worker_id: string;
+      status: string;
+      snapshot_json: string;
+    };
+    expect(row.worker_id).toBe('worker');
+    expect(row.status).toBe('queued');
+    expect(row.snapshot_json).toContain('OWN-WORKER-VENDOR');
+    expect(row.snapshot_json).toContain('OWN-WORKER-ACTIVITY');
+    expect(row.snapshot_json).toContain('2026-09-05');
+    expect(row.snapshot_json).not.toContain('OTHER-WORKER-SECRET');
+    expect(row.snapshot_json).not.toContain('2026-09-20');
+    expect(row.snapshot_json).not.toContain('99999');
+    expect(JSON.parse(row.snapshot_json)).toMatchObject({ locale: 'en' });
+    database.sqlite.close();
+  });
+
+  it('binds a supported locale into the immutable Worker Statement and rejects invalid locales', async () => {
+    const localized = await requestWorkerStatement(
+      'worker',
+      'periodStart=2026-08-01&periodEnd=2026-08-31&locale=es',
+    );
+    expect(localized.status).toBe(202);
+    const database = createDatabase();
+    const snapshots = database.sqlite
+      .prepare('SELECT snapshot_json FROM worker_statement_artifact ORDER BY requested_at DESC')
+      .all() as Array<{ snapshot_json: string }>;
+    expect(snapshots.length).toBeGreaterThanOrEqual(2);
+    for (const row of snapshots.slice(0, 2))
+      expect(JSON.parse(row.snapshot_json)).toMatchObject({ locale: 'es' });
+    database.sqlite.close();
+
+    const url = new URL('http://localhost/app/api/worker-statement');
+    const invalid = await workerStatementRequestPost({
+      ...event('worker', 'worker', 'csv'),
+      url,
+      request: new Request(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          periodStart: '2026-08-01',
+          periodEnd: '2026-08-31',
+          locale: 'fr',
+        }),
+      }),
+    } as never);
+    expect(invalid.status).toBe(400);
+    await expect(invalid.json()).resolves.toMatchObject({
+      code: 'WORKER_STATEMENT_LOCALE_INVALID',
+      messageKey: 'problem.workerStatement.localeInvalid',
+      fieldErrors: { locale: ['Choose English, Spanish, or Portuguese.'] },
+    });
+  });
+
+  it('allows Finance and Owner ledger exports while denying PM, worker, auditor and anonymous users', async () => {
+    const signedOut = invoiceLedgerGet(event(null, 'ledger', 'csv')) as Response;
+    expect(signedOut.status).toBe(401);
+    await expect(signedOut.json()).resolves.toMatchObject({
+      code: 'COLLECTION_LEDGER_EXPORT_SIGN_IN_REQUIRED',
+      remedies: [{ id: 'sign_in_again' }],
+    });
+    for (const role of ['project_manager', 'worker', 'auditor_read_only'] as const) {
+      const denied = invoiceLedgerGet(event(role, 'ledger', 'csv')) as Response;
+      expect(denied.status).toBe(403);
+      await expect(denied.json()).resolves.toMatchObject({
+        code: 'COLLECTION_LEDGER_EXPORT_ACCESS_DENIED',
+        remedies: [{ id: 'contact_owner' }],
+      });
+    }
+    for (const role of ['finance_admin', 'owner_admin'] as const) {
+      const response = invoiceLedgerGet(event(role, 'ledger', 'xlsx')) as Response;
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-disposition')).toContain(
+        'ja-invoice-collection-ledger-2026-08-01-2026-08-31.xlsx',
+      );
+      expect(response.headers.get('cache-control')).toBe('private, no-store');
+    }
+  });
+
+  it('rejects missing, duplicated, impossible and reversed periods before export', async () => {
+    for (const [query, code, field] of [
+      ['periodStart=2026-08-01', 'COLLECTION_LEDGER_EXPORT_PERIOD_INCOMPLETE', 'periodEnd'],
+      [
+        'periodStart=2026-08-01&periodStart=2026-08-02&periodEnd=2026-08-31',
+        'COLLECTION_LEDGER_EXPORT_FILTER_DUPLICATE',
+        'periodStart',
+      ],
+      [
+        'periodStart=2026-02-30&periodEnd=2026-03-01',
+        'COLLECTION_LEDGER_EXPORT_PERIOD_DATE_INVALID',
+        'periodStart',
+      ],
+      [
+        'periodStart=2026-09-01&periodEnd=2026-08-31',
+        'COLLECTION_LEDGER_EXPORT_PERIOD_RANGE_REVERSED',
+        'periodEnd',
+      ],
+    ] as const) {
+      const response = invoiceLedgerGet(event('finance_admin', 'ledger', 'csv', query)) as Response;
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        code,
+        fieldErrors: { [field]: [expect.stringMatching(/^problem\.collectionsLedgerExport\./u)] },
+        remedies: [{ id: 'review_ledger_filters' }],
+      });
+    }
+  });
+});

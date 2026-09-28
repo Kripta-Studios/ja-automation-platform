@@ -1,0 +1,24 @@
+# External production-browser screenshots. Root: /home/kripta/ja-automation-platform-vps-hotfix/docs/evidence/production-error-audit
+efaba63d8aaf599c80a7a8e43dd8d15c632d209e55c18062877a0d99ea876c85  role-seeding/owner-assignment-overlap-390.png
+230799e445768fe79ba16574eab67bdf9bfb619cc1af5faeed6d022adedce165  role-seeding/owner-status-conflict-390.png
+b15b17e39cea53f0bb28d765dca74be3c9d729c11ce04c9b193c0bbe48e49e26  role-seeding/pm-worker/pm-closing-direct-link-lost-selection-phone.png
+e0270da9d92bc6746585f30d9597df0c8281923cc82d555ddfd14bcfc6f26b92  role-seeding/pm-worker/pm-planning-empty-project-phone.png
+0b93e9369cfea9807d7464ef2d229e39bb6d87c0d4723fc4d3529bf4b07b7538  role-seeding/pm-worker/pm-qa-project-denied-desktop.png
+97441a675bc954185ba0bbb71be8f66ae6d6dee4f1f8d6d63ee21755c6bb82a3  role-seeding/pm-worker/pm-qa-project-denied-phone.png
+6552ace64e97e25a4195b920a717b1b6da256a6eaf87490695ff33e499864bb3  role-seeding/pm-worker/pm-stale-review-remedy-phone.png
+dc7fd43e053963df07428f59424dfe54f7d74bee759f1f52540f6dec70c04fdf  role-seeding/pm-worker/worker1-expense-correction-submitted-phone.png
+ba716b99d513f065a2bb147c74f61fff635cf940bbf5f41371418af82fc3c473  role-seeding/pm-worker/worker1-qa-project-denied-phone.png
+abea934773f4cd46ceb13fa85de946c98c957c53be9d8725b73765d03283b7fe  role-seeding/pm-worker/worker1-time-submitted-phone.png
+d7bcecd5d602e556d5036fd9511f196b0cbf6e5828d8238aba4aa14420450652  role-seeding/pm-worker/worker2-crew-hours-invalid-phone.png
+0fa79fb8e88a7dbc43d7f422efa89f15d3ccc0fe52ba9e8f57ed784efee71c8a  role-seeding/pm-worker/worker2-crew-no-delegation-phone.png
+f04e56f11bb58f57e0fcc3cce104af0d82356a1fffd5a142daf7b26992ee8a5c  role-seeding/pm-worker/worker2-crew-submitted-desktop.png
+59c93a54bb513cca9e0d4ed9cb3f0929a61a569b8c1d2dddfa936a252737c746  role-seeding/pm-worker/worker2-crew-submitted-phone.png
+abcba0ef3cf19fa4859a92ab7efd5925f7509a3cf067732daf42224a077ffbb0  role-seeding/pm-worker/worker2-duration-invalid-phone.png
+97441a675bc954185ba0bbb71be8f66ae6d6dee4f1f8d6d63ee21755c6bb82a3  role-seeding/pm-worker/worker2-qa-project-denied-phone.png
+a8632014677151bfbdc2b6cdd4631a264cfc9555a2ff7578efddf11ac087fc75  role-seeding/pm-worker/worker2-time-empty-project-desktop.png
+69347eff8a124627f518f44a2c6a34897269cd490af83ceb86198b98bb3544b7  role-seeding/pm-worker/worker2-time-empty-project-phone.png
+42492d2b0d0126c10994077facc55eb57cd94b4fefa0a534a2592d6cc77c9bf8  role-seeding/supplier-technician/coordinator-team-hours-390-redacted.png
+b2f6b4563a315e57800b14785832ae0f59afdd31346853e31e6a4fe138445cc1  role-seeding/supplier-technician/technician-time-1440-redacted.png
+0e2e36a4bc3321ddc570ddf85eb83d3ff016cbeae4f1b322916d54d10d5c4adf  workforce/availability-end-before-start-390.png
+4f1c29afb7d43642d6429835acc42df65bfa0c80883c5493565888881984d438  workforce/time-no-assignment-1440.png
+349359831163343c9386c6b69d55e7e6663085a0b0ab3ca97822a9bb5565edf7  workforce/time-no-assignment-390.png

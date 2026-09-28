@@ -1,0 +1,21 @@
+{
+  "status": "READY",
+  "path": "/tmp/ja-grouped-operations-evidence.json",
+  "evidenceId": "manuals-consolidation-1b2eef4024-20260919T110821084Z",
+  "capturedAt": "2026-09-19T11:08:21.084Z",
+  "tenantId": "jaautomation",
+  "deploymentId": "production-vps",
+  "sha256": "54022825071368523d16b3172c835b378173dabbb8b52053e8567a2deabfda2f",
+  "jobs": {
+    "status": "PASS",
+    "automaticRuns": 2,
+    "manualProcessing": false
+  },
+  "continuity": {
+    "status": "WAIVED",
+    "releaseBlocking": false,
+    "waivedBy": "owner",
+    "localBackup": "PASS",
+    "rollback": "PASS"
+  }
+}

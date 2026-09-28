@@ -1,0 +1,88 @@
+{
+  "at": "2026-09-22T12:55:16.223982+00:00",
+  "services": {
+    "caddy": "active",
+    "stalwart": "active",
+    "jaautomation-backup.timer": "active",
+    "jaautomation-jobs.timer": "active",
+    "jaautomation-zip-deploy.timer": "active",
+    "jaautomation-zip-deploy.path": "active",
+    "home-kripta-musica-new.mount": "active"
+  },
+  "runningContainers": [
+    {
+      "name": "deployment-jobs-1",
+      "status": "Up About a minute"
+    },
+    {
+      "name": "deployment-portal-1",
+      "status": "Up About a minute (healthy)"
+    },
+    {
+      "name": "deployment-site-1",
+      "status": "Up About a minute (healthy)"
+    },
+    {
+      "name": "navidrome-navidrome-1",
+      "status": "Up 3 hours"
+    },
+    {
+      "name": "trace-it-frontend-1",
+      "status": "Up 6 hours (healthy)"
+    },
+    {
+      "name": "trace-it-backend-1",
+      "status": "Up 6 hours (healthy)"
+    },
+    {
+      "name": "trace-it-erp-erp-1",
+      "status": "Up 6 hours (healthy)"
+    },
+    {
+      "name": "trace-it-criminal-records-1",
+      "status": "Up 6 hours (healthy)"
+    },
+    {
+      "name": "trace-it-db-1",
+      "status": "Up 6 hours (healthy)"
+    },
+    {
+      "name": "lois-jobs",
+      "status": "Up 6 hours (healthy)"
+    },
+    {
+      "name": "lois-booking",
+      "status": "Up 6 hours (healthy)"
+    },
+    {
+      "name": "lois-web",
+      "status": "Up 6 hours (healthy)"
+    },
+    {
+      "name": "adlaudem-preview-web-1",
+      "status": "Up 6 hours (healthy)"
+    },
+    {
+      "name": "adlaudem-preview-db-1",
+      "status": "Up 6 hours (healthy)"
+    },
+    {
+      "name": "lois-db",
+      "status": "Up 6 hours (healthy)"
+    }
+  ],
+  "buildCache": {
+    "Active": "0",
+    "Reclaimable": "0B",
+    "Size": "0B",
+    "TotalCount": "0",
+    "Type": "Build Cache"
+  },
+  "reclaimedBuildCache": "6.858GB",
+  "availableGiB": {
+    "sda1": 29.36,
+    "sdb": 58.35
+  },
+  "musicBind": "/dev/sdb[/navidrome-music/new] /home/kripta/musica/new",
+  "scope": "Docker build cache only; no image, volume, mailbox or application data pruning."
+}

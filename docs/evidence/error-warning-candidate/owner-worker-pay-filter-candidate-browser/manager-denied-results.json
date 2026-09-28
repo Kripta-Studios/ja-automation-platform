@@ -1,0 +1,60 @@
+{
+  "candidateCommit": "f3955489afc09a62df1001fe3a7f80ef662407a6",
+  "role": "manager",
+  "status": 403,
+  "ui": {
+    "locale": "en-US",
+    "width": 390,
+    "height": 844,
+    "scrollY": 0,
+    "query": {
+      "start": [
+        "not-a-date"
+      ],
+      "end": [
+        "2026-03-01"
+      ],
+      "worker": [
+        "01a0e401-66ff-7358-b50b-b45e0399c5d2"
+      ],
+      "lang": [
+        "en"
+      ],
+      "viewportScrollY": []
+    },
+    "code": null,
+    "text": null,
+    "remedy": null,
+    "remedyHref": null,
+    "summaryPresent": false,
+    "summaryText": null,
+    "summaryLinks": [],
+    "focusIsTarget": false,
+    "focusedId": "",
+    "targetTop": null,
+    "targetBottom": null,
+    "headerBottom": 69.59375,
+    "workerValue": null,
+    "workerUnavailableOption": false,
+    "startValue": null,
+    "startType": null,
+    "endValue": null,
+    "endType": null,
+    "startError": null,
+    "endError": null,
+    "workerError": null,
+    "paySummaryCount": 0,
+    "activityTableCount": 0,
+    "errorPageText": "← Dashboard Portal Portal Access restricted Your account does not have access to this page. Return to a section available to your role. Back"
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+apps/portal/src/lib/portal/dirty-form-guard.test.ts
+apps/portal/src/lib/portal/report-autosave.test.ts
+tests/e2e/lifecycle-security-b5.spec.ts
+tests/e2e/offline-autosave-b5.spec.ts
+tests/fixtures/b5-lifecycle-security-fixture.ts
+tests/integration/durable-job-security.test.ts
+tests/integration/effective-membership.test.ts
+tests/integration/lifecycle-security.test.ts
+tests/offline/user-tenant-partition.test.ts
+tests/security/audit-immutability.test.ts
+tests/security/b5-route-boundaries.test.ts
+tests/security/http-hardening.test.ts
+tests/security/private-download.test.ts

@@ -1,0 +1,50 @@
+{
+  "candidate": "79c6cd2",
+  "role": "manager",
+  "locale": "es",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "stale": {
+    "responseStatus": 404,
+    "url": "/j-aautomation/app/notifications/:record?/markRead",
+    "documentLanguage": "es-ES",
+    "heading": "Sin resultados",
+    "headingFocused": false,
+    "mainText": "← Abrir mi espacio de trabajo Notificaciones Notificaciones Sin resultados Ningún registro coincide con la búsqueda en su ámbito de acceso. Abrir mi espacio de trabajo",
+    "links": [
+      {
+        "text": "← Abrir mi espacio de trabajo",
+        "href": "/j-aautomation/app/"
+      },
+      {
+        "text": "Abrir mi espacio de trabajo",
+        "href": "/j-aautomation/app/"
+      }
+    ],
+    "scrollY": 0,
+    "scrollWidth": 1440,
+    "innerWidth": 1440
+  },
+  "inboxSuccess": {
+    "responseStatus": 200,
+    "markedRead": true,
+    "rowRemoved": true,
+    "feedbackFocused": true
+  },
+  "network": [
+    {
+      "status": 404,
+      "path": "/j-aautomation/app/notifications/:record",
+      "method": "POST"
+    },
+    {
+      "status": 503,
+      "path": "/j-aautomation/app/api/offline/identity",
+      "method": "GET"
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": []
+}

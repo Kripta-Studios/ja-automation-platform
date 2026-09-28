@@ -1,0 +1,107 @@
+{
+  "candidateCommit": "33091be",
+  "role": "finance",
+  "width": 1440,
+  "height": 900,
+  "locale": "es",
+  "scenarios": [
+    {
+      "name": "invalid",
+      "result": {
+        "status": 400,
+        "contentType": "application/problem+json",
+        "code": "PROJECT_FINANCE_EXPORT_PERIOD_DATE_INVALID",
+        "messageKey": "problem.projectFinanceExport.periodDateInvalid",
+        "fields": [
+          "periodStart"
+        ],
+        "remedies": [
+          "review_finance_period"
+        ],
+        "hasCorrelationId": true
+      }
+    },
+    {
+      "name": "reversed",
+      "result": {
+        "status": 400,
+        "contentType": "application/problem+json",
+        "code": "PROJECT_FINANCE_EXPORT_PERIOD_RANGE_REVERSED",
+        "messageKey": "problem.projectFinanceExport.periodRangeReversed",
+        "fields": [
+          "periodEnd"
+        ],
+        "remedies": [
+          "review_finance_period"
+        ],
+        "hasCorrelationId": true
+      }
+    },
+    {
+      "name": "duplicate",
+      "result": {
+        "status": 400,
+        "contentType": "application/problem+json",
+        "code": "PROJECT_FINANCE_EXPORT_PERIOD_DATE_DUPLICATE",
+        "messageKey": "problem.projectFinanceExport.periodDateDuplicate",
+        "fields": [
+          "periodStart"
+        ],
+        "remedies": [
+          "review_finance_period"
+        ],
+        "hasCorrelationId": true
+      }
+    }
+  ],
+  "audits": {
+    "before": 339,
+    "afterInvalid": 339,
+    "after": 341
+  },
+  "binary": {
+    "status": 200,
+    "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "size": 11743,
+    "signature": "504b0304",
+    "attachment": true
+  },
+  "validDownload": {
+    "name": "ja-C-9902-P-02-finance-2026-09-01-2026-09-30.xlsx",
+    "failure": null
+  },
+  "ui": {
+    "locale": "es-ES",
+    "width": 1440,
+    "height": 900,
+    "scrollY": 551,
+    "selectedTab": "project-tab-billing",
+    "code": "PROJECT_FINANCE_EXPORT_PERIOD_DATE_INVALID",
+    "text": "Se requiere una acción Introduce fechas reales del calendario para esta exportación financiera. Revisar el período financiero",
+    "remedy": "Revisar el período financiero",
+    "remedyHref": "#finance-export-period-fields",
+    "focusIsNotice": true,
+    "noticeTop": 900.421875,
+    "noticeBottom": 1031.6875,
+    "startValue": "2026-09-01",
+    "endValue": "2026-09-30",
+    "startError": "Introduce fechas reales del calendario para esta exportación financiera.",
+    "endError": null
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json",
+      "400 fetch application/problem+json",
+      "400 fetch application/problem+json",
+      "400 fetch application/problem+json",
+      "200 fetch application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "200 fetch application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "400 fetch application/problem+json"
+    ]
+  }
+}

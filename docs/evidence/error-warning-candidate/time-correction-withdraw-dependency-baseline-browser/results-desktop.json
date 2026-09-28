@@ -1,0 +1,76 @@
+{
+  "candidateCommit": "3599b9812ea0172f7e97658020026354e2ba7e7c",
+  "role": "worker",
+  "viewport": "desktop",
+  "locale": "es",
+  "fixture": "fresh disposable database; project, time, approval, correction and linked expense created through rendered UI",
+  "before": {
+    "scrollY": 0,
+    "focusTag": "input"
+  },
+  "enhanced": {
+    "transportStatus": 200,
+    "actionStatus": 409,
+    "type": "failure",
+    "code": "ACTION_ERROR_CONFLICT",
+    "messageKey": "action.error.conflict",
+    "params": {},
+    "remedies": [],
+    "retainedReason": true
+  },
+  "native": {
+    "transportStatus": 409,
+    "contentType": "text/html",
+    "bodyHasCode": false,
+    "bodyHasGenericKey": true,
+    "after": {
+      "code": "ACTION_ERROR_CONFLICT",
+      "text": "Se requiere una acción La acción entra en conflicto con el estado actual del registro. Estado: Borrador",
+      "remedies": [],
+      "noticeFocused": true,
+      "focusTag": "aside",
+      "top": 462,
+      "bottom": 567,
+      "scrollY": 0,
+      "viewportHeight": 900,
+      "reasonVisible": true,
+      "reasonValue": "",
+      "language": "es-ES"
+    }
+  },
+  "noWrite": {
+    "statusBefore": {
+      "approval_state": "draft",
+      "version": 1
+    },
+    "statusAfter": {
+      "approval_state": "draft",
+      "version": 1
+    },
+    "auditDelta": 0,
+    "linkedExpenseStillPointsToCorrection": true
+  },
+  "diagnostics": {
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failures": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "worker": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failures": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "409 /j-aautomation/app/time/:record"
+      ]
+    }
+  }
+}

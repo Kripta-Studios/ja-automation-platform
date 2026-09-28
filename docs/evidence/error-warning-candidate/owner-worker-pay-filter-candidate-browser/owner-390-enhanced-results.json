@@ -1,0 +1,303 @@
+{
+  "candidateCommit": "f3955489afc09a62df1001fe3a7f80ef662407a6",
+  "role": "owner",
+  "startingScroll": 274,
+  "timeline": [
+    {
+      "atMsAfterNoticeVisible": 0,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 274,
+        "query": {
+          "start": [
+            "2026-09-20"
+          ],
+          "end": [
+            "2026-09-18"
+          ],
+          "worker": [
+            "01a0e3ff-abc4-721c-9480-382b968a36ec"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": [
+            "274"
+          ]
+        },
+        "code": "WORKER_PAY_PERIOD_RANGE_REVERSED",
+        "text": "Action needed The end date is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#worker-pay-end",
+        "summaryPresent": false,
+        "summaryText": null,
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 161.78125,
+        "targetBottom": 313.34375,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e3ff-abc4-721c-9480-382b968a36ec",
+        "workerUnavailableOption": false,
+        "startValue": "2026-09-20",
+        "startType": "date",
+        "endValue": "2026-09-18",
+        "endType": "date",
+        "startError": null,
+        "endError": "The end date is before the start. Choose an end date on or after the start date.",
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 50,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 274,
+        "query": {
+          "start": [
+            "2026-09-20"
+          ],
+          "end": [
+            "2026-09-18"
+          ],
+          "worker": [
+            "01a0e3ff-abc4-721c-9480-382b968a36ec"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": [
+            "274"
+          ]
+        },
+        "code": "WORKER_PAY_PERIOD_RANGE_REVERSED",
+        "text": "Action needed The end date is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#worker-pay-end",
+        "summaryPresent": false,
+        "summaryText": null,
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 161.78125,
+        "targetBottom": 313.34375,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e3ff-abc4-721c-9480-382b968a36ec",
+        "workerUnavailableOption": false,
+        "startValue": "2026-09-20",
+        "startType": "date",
+        "endValue": "2026-09-18",
+        "endType": "date",
+        "startError": null,
+        "endError": "The end date is before the start. Choose an end date on or after the start date.",
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 250,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 274,
+        "query": {
+          "start": [
+            "2026-09-20"
+          ],
+          "end": [
+            "2026-09-18"
+          ],
+          "worker": [
+            "01a0e3ff-abc4-721c-9480-382b968a36ec"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": [
+            "274"
+          ]
+        },
+        "code": "WORKER_PAY_PERIOD_RANGE_REVERSED",
+        "text": "Action needed The end date is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#worker-pay-end",
+        "summaryPresent": false,
+        "summaryText": null,
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 161.78125,
+        "targetBottom": 313.34375,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e3ff-abc4-721c-9480-382b968a36ec",
+        "workerUnavailableOption": false,
+        "startValue": "2026-09-20",
+        "startType": "date",
+        "endValue": "2026-09-18",
+        "endType": "date",
+        "startError": null,
+        "endError": "The end date is before the start. Choose an end date on or after the start date.",
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 500,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 274,
+        "query": {
+          "start": [
+            "2026-09-20"
+          ],
+          "end": [
+            "2026-09-18"
+          ],
+          "worker": [
+            "01a0e3ff-abc4-721c-9480-382b968a36ec"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": [
+            "274"
+          ]
+        },
+        "code": "WORKER_PAY_PERIOD_RANGE_REVERSED",
+        "text": "Action needed The end date is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#worker-pay-end",
+        "summaryPresent": false,
+        "summaryText": null,
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 161.78125,
+        "targetBottom": 313.34375,
+        "headerBottom": 69.59375,
+        "workerValue": "01a0e3ff-abc4-721c-9480-382b968a36ec",
+        "workerUnavailableOption": false,
+        "startValue": "2026-09-20",
+        "startType": "date",
+        "endValue": "2026-09-18",
+        "endType": "date",
+        "startError": null,
+        "endError": "The end date is before the start. Choose an end date on or after the start date.",
+        "workerError": null,
+        "paySummaryCount": 0,
+        "activityTableCount": 0
+      }
+    }
+  ],
+  "invalid": {
+    "locale": "en-US",
+    "width": 390,
+    "height": 844,
+    "scrollY": 274,
+    "query": {
+      "start": [
+        "2026-09-20"
+      ],
+      "end": [
+        "2026-09-18"
+      ],
+      "worker": [
+        "01a0e3ff-abc4-721c-9480-382b968a36ec"
+      ],
+      "lang": [
+        "en"
+      ],
+      "viewportScrollY": [
+        "274"
+      ]
+    },
+    "code": "WORKER_PAY_PERIOD_RANGE_REVERSED",
+    "text": "Action needed The end date is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+    "remedy": "Correct the highlighted field",
+    "remedyHref": "#worker-pay-end",
+    "summaryPresent": false,
+    "summaryText": null,
+    "focusIsTarget": true,
+    "focusedId": "",
+    "targetTop": 161.78125,
+    "targetBottom": 313.34375,
+    "headerBottom": 69.59375,
+    "workerValue": "01a0e3ff-abc4-721c-9480-382b968a36ec",
+    "workerUnavailableOption": false,
+    "startValue": "2026-09-20",
+    "startType": "date",
+    "endValue": "2026-09-18",
+    "endType": "date",
+    "startError": null,
+    "endError": "The end date is before the start. Choose an end date on or after the start date.",
+    "workerError": null,
+    "paySummaryCount": 0,
+    "activityTableCount": 0
+  },
+  "corrected": {
+    "locale": "en-US",
+    "width": 390,
+    "height": 844,
+    "scrollY": 0,
+    "query": {
+      "start": [
+        "2026-09-20"
+      ],
+      "end": [
+        "2026-09-21"
+      ],
+      "worker": [
+        "01a0e3ff-abc4-721c-9480-382b968a36ec"
+      ],
+      "lang": [
+        "en"
+      ],
+      "viewportScrollY": [
+        "274"
+      ]
+    },
+    "code": null,
+    "text": null,
+    "remedy": null,
+    "remedyHref": null,
+    "summaryPresent": false,
+    "summaryText": null,
+    "focusIsTarget": false,
+    "focusedId": "",
+    "targetTop": null,
+    "targetBottom": null,
+    "headerBottom": 69.59375,
+    "workerValue": "01a0e3ff-abc4-721c-9480-382b968a36ec",
+    "workerUnavailableOption": false,
+    "startValue": "2026-09-20",
+    "startType": "date",
+    "endValue": "2026-09-21",
+    "endType": "date",
+    "startError": null,
+    "endError": null,
+    "workerError": null,
+    "paySummaryCount": 1,
+    "activityTableCount": 1
+  },
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json"
+    ]
+  }
+}

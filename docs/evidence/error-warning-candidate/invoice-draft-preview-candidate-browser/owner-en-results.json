@@ -1,0 +1,162 @@
+{
+  "candidateCommit": "d9c212ba93625ff9fe37802c771291a1ecfb42de",
+  "roleCase": {
+    "role": "owner",
+    "width": 390,
+    "height": 844,
+    "locale": "en"
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "downloads": 1
+  },
+  "invoiceStateCounts": {
+    "draft": 7,
+    "issued": 1
+  },
+  "successCandidate": {
+    "available": true,
+    "attempts": [
+      {
+        "state": "draft",
+        "status": 200,
+        "contentType": "application/pdf"
+      }
+    ]
+  },
+  "initial": {
+    "path": "/j-aautomation/app/billing/invoices/:record",
+    "lang": "en-US",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 0,
+    "noticeCode": null,
+    "noticeText": null,
+    "noticeTop": null,
+    "noticeBottom": null,
+    "headerBottom": 69.59375,
+    "activeNotice": false,
+    "activeElement": "body",
+    "remedies": [],
+    "actionHref": "/j-aautomation/app/api/invoices/:record/draft-preview?lang=en",
+    "actionVisible": true,
+    "actionDisabled": "false"
+  },
+  "unavailable": {
+    "label": "owner-en-unavailable",
+    "originalScroll": 260,
+    "samePath": true,
+    "network": {
+      "status": 404,
+      "contentType": "application/problem+json; charset=utf-8",
+      "disposition": null,
+      "code": "INVOICE_DRAFT_PREVIEW_INVOICE_UNAVAILABLE",
+      "messageKey": "problem.invoiceDraftPreview.invoiceUnavailable",
+      "remedies": [
+        "review_billing"
+      ]
+    },
+    "ui": {
+      "path": "/j-aautomation/app/billing/invoices/:record",
+      "lang": "en-US",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollY": 260,
+      "noticeCode": "INVOICE_DRAFT_PREVIEW_INVOICE_UNAVAILABLE",
+      "noticeText": "Action needed This invoice is unavailable. Return to Billing and choose an invoice you can access. Review Billing",
+      "noticeTop": 97.890625,
+      "noticeBottom": 249.453125,
+      "headerBottom": 69.59375,
+      "activeNotice": true,
+      "activeElement": "aside",
+      "remedies": [
+        {
+          "text": "Review Billing",
+          "href": "/j-aautomation/app/billing"
+        }
+      ],
+      "actionHref": "/j-aautomation/app/api/invoices/:record/draft-preview?lang=en",
+      "actionVisible": true,
+      "actionDisabled": "false"
+    },
+    "downloadDelta": 0
+  },
+  "issued": {
+    "label": "owner-en-issued",
+    "originalScroll": 260,
+    "samePath": true,
+    "network": {
+      "status": 409,
+      "contentType": "application/problem+json; charset=utf-8",
+      "disposition": null,
+      "code": "INVOICE_DRAFT_PREVIEW_STATE_UNAVAILABLE",
+      "messageKey": "problem.invoiceDraftPreview.stateUnavailable",
+      "remedies": [
+        "review_invoice"
+      ]
+    },
+    "ui": {
+      "path": "/j-aautomation/app/billing/invoices/:record",
+      "lang": "en-US",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollY": 260,
+      "noticeCode": "INVOICE_DRAFT_PREVIEW_STATE_UNAVAILABLE",
+      "noticeText": "Action needed This invoice is now Issued. Draft previews are available only while an invoice is Draft or Approved. Review invoice details",
+      "noticeTop": 97.890625,
+      "noticeBottom": 269.75,
+      "headerBottom": 69.59375,
+      "activeNotice": true,
+      "activeElement": "aside",
+      "remedies": [
+        {
+          "text": "Review invoice details",
+          "href": "/j-aautomation/app/billing/invoices/:record?lang=en"
+        }
+      ],
+      "actionHref": "/j-aautomation/app/api/invoices/:record/draft-preview?lang=en",
+      "actionVisible": true,
+      "actionDisabled": "false"
+    },
+    "downloadDelta": 0
+  },
+  "afterFailures": {
+    "invoices": 8,
+    "audits": 331
+  },
+  "failuresNoWrite": true,
+  "success": {
+    "status": 200,
+    "contentType": "application/pdf",
+    "dispositionMatchesLocale": true,
+    "filenameMatchesLocale": true,
+    "magic": "%PDF-",
+    "ui": {
+      "path": "/j-aautomation/app/billing/invoices/:record",
+      "lang": "en-US",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollY": 260,
+      "noticeCode": null,
+      "noticeText": null,
+      "noticeTop": null,
+      "noticeBottom": null,
+      "headerBottom": 69.59375,
+      "activeNotice": false,
+      "activeElement": "a",
+      "remedies": [],
+      "actionHref": "/j-aautomation/app/api/invoices/:record/draft-preview?lang=en",
+      "actionVisible": true,
+      "actionDisabled": "false"
+    }
+  }
+}

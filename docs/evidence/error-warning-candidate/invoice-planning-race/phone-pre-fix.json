@@ -1,0 +1,99 @@
+[
+  {
+    "action": "setInvoicePlanningDates",
+    "viewport": "phone-390",
+    "locale": "en",
+    "invoiceRef": "24fef28aaf",
+    "approval": {
+      "transportStatus": 200,
+      "actionStatus": null
+    },
+    "issuance": {
+      "transportStatus": 200,
+      "actionStatus": null
+    },
+    "stale": {
+      "transportStatus": 409,
+      "actionStatus": null,
+      "codeInResponse": true,
+      "bodyHasStack": false
+    },
+    "code": "BILLING_PLANNING_INVOICE_LOCKED",
+    "visibleText": "Action needed\n\nproblem.billing.planningInvoiceLocked\n\nReview invoice",
+    "remedy": ["Review invoice"],
+    "remedyHrefs": ["billing"],
+    "formStillVisible": false,
+    "retained": {
+      "planned": false,
+      "expected": false
+    },
+    "attemptedDatePresence": {
+      "anyInput": false,
+      "hiddenInput": false,
+      "visibleText": false
+    },
+    "selectedInvoiceRendered": true,
+    "preSubmit": {
+      "focusedNotice": false,
+      "focusTop": 536,
+      "focusBottom": 580,
+      "viewportHeight": 844,
+      "focusVisible": true,
+      "windowScroll": 3039,
+      "drawerScroll": 393,
+      "drawerOpen": true
+    },
+    "after": {
+      "focusedNotice": true,
+      "focusTop": 129,
+      "focusBottom": 260,
+      "viewportHeight": 844,
+      "focusVisible": true,
+      "windowScroll": 0,
+      "drawerScroll": 0,
+      "drawerOpen": true
+    },
+    "noWrite": true,
+    "currentStateIssued": true,
+    "ownerDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource", "failed-resource", "failed-resource"],
+      "failedResponses": [
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        },
+        {
+          "status": 409,
+          "path": "/j-aautomation/app/billing"
+        },
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        }
+      ]
+    },
+    "financeDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource", "failed-resource", "failed-resource", "failed-resource"],
+      "failedResponses": [
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        },
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        },
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        },
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        }
+      ]
+    }
+  }
+]

@@ -1,0 +1,14 @@
+{
+  "viewport": "desktop",
+  "role": "finance",
+  "locale": "es",
+  "responseStatus": 409,
+  "code": "FINANCE_RULE_ASSIGNMENT_UNAVAILABLE",
+  "translatedCause": true,
+  "translatedRemedy": true,
+  "retainedWorkerProjectRateAndDate": true,
+  "focusedProjectFieldVisible": true,
+  "ruleRowsAdded": 0,
+  "runtimeErrors": [],
+  "screenshot": "desktop.png"
+}

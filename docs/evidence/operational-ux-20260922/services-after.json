@@ -1,0 +1,92 @@
+[
+  {
+    "name": "deployment-jobs-1",
+    "id": "b5554e83af8a",
+    "state": "running",
+    "status": "Up 2 minutes"
+  },
+  {
+    "name": "deployment-portal-1",
+    "id": "7b3097d2ce23",
+    "state": "running",
+    "status": "Up 2 minutes (healthy)"
+  },
+  {
+    "name": "deployment-site-1",
+    "id": "944b07caea45",
+    "state": "running",
+    "status": "Up 2 minutes (healthy)"
+  },
+  {
+    "name": "navidrome-navidrome-1",
+    "id": "0eaa4d40fcd9",
+    "state": "running",
+    "status": "Up 8 hours"
+  },
+  {
+    "name": "trace-it-frontend-1",
+    "id": "9d2cf151fcce",
+    "state": "running",
+    "status": "Up 8 hours (healthy)"
+  },
+  {
+    "name": "trace-it-backend-1",
+    "id": "b320b4d68f86",
+    "state": "running",
+    "status": "Up 8 hours (healthy)"
+  },
+  {
+    "name": "trace-it-erp-erp-1",
+    "id": "c56435fcde6b",
+    "state": "running",
+    "status": "Up 8 hours (healthy)"
+  },
+  {
+    "name": "trace-it-criminal-records-1",
+    "id": "a2eb6d99674d",
+    "state": "running",
+    "status": "Up 8 hours (healthy)"
+  },
+  {
+    "name": "trace-it-db-1",
+    "id": "45cd42a782dd",
+    "state": "running",
+    "status": "Up 8 hours (healthy)"
+  },
+  {
+    "name": "lois-jobs",
+    "id": "0d165c644428",
+    "state": "running",
+    "status": "Up 8 hours (healthy)"
+  },
+  {
+    "name": "lois-booking",
+    "id": "d7b555e209f5",
+    "state": "running",
+    "status": "Up 8 hours (healthy)"
+  },
+  {
+    "name": "lois-web",
+    "id": "159cc02c3121",
+    "state": "running",
+    "status": "Up 8 hours (healthy)"
+  },
+  {
+    "name": "adlaudem-preview-web-1",
+    "id": "82593b4d9cfc",
+    "state": "running",
+    "status": "Up 8 hours (healthy)"
+  },
+  {
+    "name": "adlaudem-preview-db-1",
+    "id": "43301b0ffd75",
+    "state": "running",
+    "status": "Up 8 hours (healthy)"
+  },
+  {
+    "name": "lois-db",
+    "id": "a2bbc453dc1b",
+    "state": "running",
+    "status": "Up 8 hours (healthy)"
+  }
+]

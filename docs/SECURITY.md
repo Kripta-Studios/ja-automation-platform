@@ -2,8 +2,15 @@
 
 - Production users are invite-only. Sessions are cookie-based, secure in production, revocable and
   checked against active user status on protected requests.
-- Password, TOTP and passkey authentication are available. Production MFA enrollment and step-up
-  checks protect sensitive finance, invoice, payment, numbering and accounting actions.
+- Password, TOTP and passkey authentication are available through Better Auth. MFA is optional for
+  every role and operation: an MFA sign-in challenge is shown only to a user who voluntarily enrolled
+  a factor. No finance, invoice, payment, numbering, accounting or destructive action uses step-up
+  authentication.
+- The local account MFA facade (`/j-aautomation/app/api/security/mfa`) owns optional enrollment,
+  verification and transactional disable without a password field. Raw Better Auth MFA management
+  endpoints (`enable`, `disable` and `generate-backup-codes`) are blocked so they cannot bypass the
+  reviewed audit boundary; enrolled users still complete sign-in through Better Auth's native MFA
+  challenge and TOTP/backup-code verification endpoints.
 - Every protected server query applies role, project membership and ownership checks. Route/UI hiding
   is not used as authorization. Workers are restricted to their own time, expenses, reports,
   documents and compensation; finance fields are removed at the repository boundary.
@@ -20,7 +27,7 @@ Known deployment inputs are intentionally external: the production auth secret, 
 SMTP/CRM adapter, malware scanner and encrypted off-site backup credentials. Empty example values do
 not bypass the server checks.
 
-The showcase template is intentionally different: `JA_DEMO_MODE=true` exposes role buttons that
-create short-lived signed demo cookies for synthetic users. It is not password authentication and it
-must never be enabled for customer or production data. See [SHOWCASE_ACCESS.md](SHOWCASE_ACCESS.md)
-for the safe access sheet.
+There is no passwordless showcase exception in the portal. Fixture data is used only by isolated
+development and automated-test databases; those tests provision Better Auth credential hashes and
+use the normal sign-in endpoint. Production starts with a one-time operator-provisioned owner account
+(`pnpm portal:bootstrap-owner`), then uses single-use invitations for every additional user.

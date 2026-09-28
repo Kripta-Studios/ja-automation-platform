@@ -8,22 +8,47 @@ COPY apps/portal ./apps/portal
 COPY packages ./packages
 COPY migrations ./migrations
 COPY deployment ./deployment
+COPY docs/manuals/Employee_Field_Guide_EN.pdf docs/manuals/Employee_Field_Guide_ES.pdf docs/manuals/Employee_Field_Guide_PT-BR.pdf \
+     docs/manuals/Work_Projects_Guide.pdf docs/manuals/Work_Projects_Guide_PT-BR.pdf \
+     docs/manuals/Supplier_Operations_Guide.pdf docs/manuals/Supplier_Operations_Guide_PT-BR.pdf \
+     docs/manuals/Administration_Finance_Guide.pdf docs/manuals/Administration_Finance_Guide_PT-BR.pdf ./manuals/
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @ja/portal build
-RUN pnpm jobs:build
+RUN env \
+    JA_DATABASE_PATH=/tmp/jaautomation-release-build.sqlite \
+    JA_MIGRATIONS_PATH=/workspace/migrations \
+    JA_TENANT_ID=release-build-tenant \
+    JA_DEPLOYMENT_ID=release-build-deployment \
+    JA_DEPLOYMENT_BINDING_SECRET=release-build-binding-secret-2026-08-client-essential \
+    JA_RELEASE_BUILD=1 \
+    pnpm --filter @ja/portal build \
+ && rm -f /tmp/jaautomation-release-build.sqlite /tmp/jaautomation-release-build.sqlite-shm /tmp/jaautomation-release-build.sqlite-wal
+RUN env \
+    JA_DATABASE_PATH=/tmp/jaautomation-release-build.sqlite \
+    JA_MIGRATIONS_PATH=/workspace/migrations \
+    JA_TENANT_ID=release-build-tenant \
+    JA_DEPLOYMENT_ID=release-build-deployment \
+    JA_DEPLOYMENT_BINDING_SECRET=release-build-binding-secret-2026-08-client-essential \
+    JA_RELEASE_BUILD=1 \
+    pnpm jobs:build \
+ && rm -f /tmp/jaautomation-release-build.sqlite /tmp/jaautomation-release-build.sqlite-shm /tmp/jaautomation-release-build.sqlite-wal
 RUN pnpm --filter @ja/portal deploy --prod --legacy /portal
 
 FROM build AS tools
 
 FROM node:24.19.0-bookworm-slim
 ENV NODE_ENV=production PORT=5100 HOST=127.0.0.1
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates chromium && rm -rf /var/lib/apt/lists/* && useradd --system --uid 10001 --create-home jaautomation
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates chromium \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd --gid 10001 jaautomation \
+ && useradd --system --uid 10001 --gid 10001 --create-home jaautomation
 WORKDIR /app
 COPY --from=build --chown=jaautomation:jaautomation /portal ./
 COPY --from=build --chown=jaautomation:jaautomation /workspace/migrations ./migrations
-COPY --from=build --chown=jaautomation:jaautomation /workspace/deployment/jobs-build/jobs-run.mjs ./deployment/jobs-run.mjs
+COPY --from=build --chown=jaautomation:jaautomation /workspace/deployment/jobs-build/ ./deployment/
 COPY --from=build --chown=jaautomation:jaautomation /workspace/packages/reporting/assets ./reporting-assets
-ENV JA_REPORTING_LOGO_PATH=/app/reporting-assets/logo-jaautomation.png
+COPY --from=build --chown=jaautomation:jaautomation /workspace/manuals ./manuals
+ENV JA_REPORTING_LOGO_PATH=/app/reporting-assets/logo-jaautomation.png JA_MANUAL_ROOT=/app/manuals
 USER jaautomation
 EXPOSE 5100
 CMD ["node","build"]

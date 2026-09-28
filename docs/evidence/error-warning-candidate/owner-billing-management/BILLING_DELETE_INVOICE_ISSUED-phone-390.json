@@ -1,0 +1,9 @@
+{
+  "code": "BILLING_DELETE_INVOICE_ISSUED",
+  "viewport": "phone-390",
+  "responseStatus": 409,
+  "route": "/j-aautomation/app/billing",
+  "method": "POST",
+  "screenshot": "BILLING_DELETE_INVOICE_ISSUED-phone-390.png",
+  "scope": "isolated problem notice only; no account or invoice details"
+}

@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "srcBlob": true
+  },
+  "frames": [
+    {
+      "url": "http://127.0.0.1:4174/j-aautomation/app/billing/invoices/[redacted]?lang=en",
+      "mime": "text/html"
+    },
+    {
+      "url": "chrome-error://chromewebdata/",
+      "mime": "text/html"
+    }
+  ],
+  "errors": [
+    "Framing 'blob:http://127.0.0.1:4174/[redacted]' violates the following Content Security Policy directive: \"default-src 'self'\". The request has been blocked. Note that 'frame-src' was not explicitly set, so 'default-src' is used as a fallback.\n"
+  ]
+}

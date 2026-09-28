@@ -1,0 +1,12 @@
+{
+  "scenario": "owner-management-changed",
+  "viewport": "phone-390",
+  "responseStatus": 409,
+  "problemCode": "ACTION_MANAGEMENT_CHANGED",
+  "focused": true,
+  "focusedField": null,
+  "axeViolationCount": 0,
+  "axeRules": [],
+  "screenshot": "owner-management-changed-phone-390.png",
+  "scope": "isolated warning only, without account or record details"
+}

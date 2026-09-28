@@ -1,0 +1,118 @@
+{
+  "candidateHead": "a2b1e9a+diff:515413dd7014",
+  "fixture": "new disposable Playwright database; all business records created by rendered UI",
+  "cases": [
+    {
+      "case": "manager_390_es_stale_time_return",
+      "before": {
+        "top": 490,
+        "bottom": 534,
+        "headerBottom": 70,
+        "viewportHeight": 844,
+        "scrollY": 2958,
+        "focused": true
+      },
+      "after": {
+        "top": 334,
+        "bottom": 510,
+        "headerBottom": 70,
+        "viewportHeight": 844,
+        "scrollY": 381,
+        "focused": true
+      },
+      "transportStatus": 200,
+      "actionStatus": 409,
+      "code": "APPROVAL_RECORD_NOT_SUBMITTED",
+      "currentStatus": "approved",
+      "remedy": "/time/:record",
+      "reasonRetained": true,
+      "tabRetained": true,
+      "auditDeltaAfterStale": 0,
+      "recordStateAfterStale": "approved"
+    },
+    {
+      "case": "owner_1440_pt_invalid_expense_return",
+      "before": {
+        "top": 518,
+        "bottom": 562,
+        "headerBottom": 72,
+        "viewportHeight": 900,
+        "scrollY": 861,
+        "focused": true
+      },
+      "after": {
+        "top": 674,
+        "bottom": 722,
+        "headerBottom": 72,
+        "viewportHeight": 900,
+        "scrollY": 861,
+        "focused": true
+      },
+      "transportStatus": 200,
+      "actionStatus": 400,
+      "code": "APPROVAL_REASON_REQUIRED",
+      "reasonRetained": true,
+      "tabRetained": true,
+      "auditDelta": 0,
+      "recordState": "submitted"
+    },
+    {
+      "case": "manager_390_es_stale_expense_return",
+      "before": {
+        "top": 489,
+        "bottom": 533,
+        "headerBottom": 70,
+        "viewportHeight": 844,
+        "scrollY": 2017,
+        "focused": true
+      },
+      "after": {
+        "top": 334,
+        "bottom": 510,
+        "headerBottom": 70,
+        "viewportHeight": 844,
+        "scrollY": 381,
+        "focused": true
+      },
+      "transportStatus": 200,
+      "actionStatus": 409,
+      "code": "APPROVAL_RECORD_NOT_SUBMITTED",
+      "currentStatus": "needs_changes",
+      "remedy": "/expenses/:record",
+      "reasonRetained": true,
+      "tabRetained": true,
+      "auditDeltaAfterStale": 0,
+      "recordStateAfterStale": "needs_changes"
+    }
+  ],
+  "diagnostics": {
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "badResponses": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "manager": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "badResponses": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "worker": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "badResponses": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    }
+  }
+}

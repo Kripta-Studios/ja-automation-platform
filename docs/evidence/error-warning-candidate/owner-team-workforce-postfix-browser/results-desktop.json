@@ -1,0 +1,135 @@
+{
+  "candidateCommit": "a938eb3a84639d444d0fc3b68592969261edc9b2",
+  "role": "owner",
+  "viewport": "desktop",
+  "locale": "es",
+  "fixture": "preseeded disposable Worker account; no profile mutation permitted by this case",
+  "clientValidation": {
+    "url": "/j-aautomation/app/projects?view=team&worker=:record&lang=es",
+    "editorOpen": true,
+    "formPresent": true,
+    "profileValue": "external_technician",
+    "supplierValue": "",
+    "supplierRequired": true,
+    "supplierValidity": "Please select an item in the list.",
+    "supplierCue": "Se requiere un proveedor para los perfiles de Coordinador de proveedor y Técnico externo.",
+    "fieldError": "Selecciona una opción.",
+    "noticeCode": null,
+    "noticeText": null,
+    "noticeVisible": false,
+    "noticeRemedies": [],
+    "toastText": "Error Sync failed — retry when the connection is stable. ×",
+    "focusedTag": "select",
+    "focusedName": "supplierId",
+    "focusedNotice": false,
+    "focusTop": 724,
+    "focusBottom": 768,
+    "selectedTab": "Especialistas1",
+    "scrollY": 746,
+    "viewportHeight": 900,
+    "language": "es-ES"
+  },
+  "before": {
+    "url": "/j-aautomation/app/projects?view=team&worker=:record&lang=es",
+    "editorOpen": true,
+    "formPresent": true,
+    "profileValue": "external_technician",
+    "supplierValue": "",
+    "supplierRequired": true,
+    "supplierValidity": "Please select an item in the list.",
+    "supplierCue": "Se requiere un proveedor para los perfiles de Coordinador de proveedor y Técnico externo.",
+    "fieldError": "Selecciona una opción.",
+    "noticeCode": null,
+    "noticeText": null,
+    "noticeVisible": false,
+    "noticeRemedies": [],
+    "toastText": "Error Sync failed — retry when the connection is stable. ×",
+    "focusedTag": "select",
+    "focusedName": "supplierId",
+    "focusedNotice": false,
+    "focusTop": 647,
+    "focusBottom": 691,
+    "selectedTab": "Especialistas1",
+    "scrollY": 823,
+    "viewportHeight": 900,
+    "language": "es-ES"
+  },
+  "enhanced": {
+    "transportStatus": 200,
+    "actionStatus": 400,
+    "type": "failure",
+    "code": "ACCESS_WORKFORCE_SUPPLIER_REQUIRED",
+    "messageKey": "problem.access.workforceSupplierRequired",
+    "fieldErrors": {
+      "supplierId": [
+        "problem.access.workforceSupplierRequired"
+      ]
+    },
+    "remedies": [
+      {
+        "id": "review_supplier_profile",
+        "recordId": ":record"
+      }
+    ],
+    "values": {
+      "workerId": ":record",
+      "profile": "external_technician",
+      "supplierId": ""
+    }
+  },
+  "native": {
+    "transportStatus": 400,
+    "code": "ACCESS_WORKFORCE_SUPPLIER_REQUIRED",
+    "genericText": false,
+    "after": {
+      "url": "/j-aautomation/app/projects?view=team&/setWorkforceProfile",
+      "editorOpen": true,
+      "formPresent": true,
+      "profileValue": "external_technician",
+      "supplierValue": "",
+      "supplierRequired": true,
+      "supplierValidity": "Please select an item in the list.",
+      "supplierCue": "Se requiere un proveedor para los perfiles de Coordinador de proveedor y Técnico externo.",
+      "fieldError": "Elige un proveedor antes de asignar el perfil de Coordinador de proveedor o Técnico externo.",
+      "noticeCode": "ACCESS_WORKFORCE_SUPPLIER_REQUIRED",
+      "noticeText": "Se requiere una acción Elige un proveedor antes de asignar el perfil de Coordinador de proveedor o Técnico externo. Revisar el perfil de proveedor",
+      "noticeVisible": false,
+      "noticeRemedies": [
+        {
+          "text": "Revisar el perfil de proveedor",
+          "href": "/j-aautomation/app/projects?view=team&worker=:record"
+        }
+      ],
+      "toastText": "Error Elige un proveedor antes de asignar el perfil de Coordinador de proveedor o Técnico externo. × Error Sync failed — retry when the connection is stable. ×",
+      "focusedTag": "div",
+      "focusedName": null,
+      "focusedNotice": false,
+      "focusTop": 415,
+      "focusBottom": 485,
+      "selectedTab": "Especialistas8",
+      "scrollY": 1085,
+      "viewportHeight": 900,
+      "language": "es-ES"
+    }
+  },
+  "noWrite": {
+    "before": {
+      "profiles": 0,
+      "audits": 6
+    },
+    "after": {
+      "profiles": 0,
+      "audits": 6
+    }
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "http": [
+      "503 /j-aautomation/app/api/offline/identity",
+      "503 /j-aautomation/app/api/offline/identity",
+      "400 /j-aautomation/app/projects",
+      "503 /j-aautomation/app/api/offline/identity"
+    ]
+  }
+}

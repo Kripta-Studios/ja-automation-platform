@@ -1,0 +1,78 @@
+{
+  "schema": "ja.client-essential.operations-evidence.v1",
+  "schemaVersion": 1,
+  "evidenceId": "manuals-consolidation-1b2eef4024-20260919T110821084Z",
+  "capturedAt": "2026-09-19T11:08:21.084Z",
+  "tenantId": "jaautomation",
+  "deploymentId": "production-vps",
+  "jobs": {
+    "status": "PASS",
+    "manualProcessing": false,
+    "runs": [
+      {
+        "id": "jobs-cycle-2026-09-19T11:07:23.823Z",
+        "status": "PASS",
+        "automatic": true,
+        "completedAt": "2026-09-19T11:07:23.823Z"
+      },
+      {
+        "id": "jobs-cycle-2026-09-19T11:07:28.917Z",
+        "status": "PASS",
+        "automatic": true,
+        "completedAt": "2026-09-19T11:07:28.917Z"
+      }
+    ]
+  },
+  "continuity": {
+    "status": "WAIVED",
+    "releaseBlocking": false,
+    "waivedBy": "owner",
+    "waivedAt": "2026-09-06T13:17:12.563Z",
+    "reason": "Owner explicitly waived restoration testing on a separate host as not relevant for this acceptance.",
+    "localBackup": {
+      "status": "PASS",
+      "completedAt": "2026-09-19T11:07:20.783Z"
+    },
+    "rollback": {
+      "status": "PASS",
+      "verifiedAt": "2026-09-19T11:08:21.083Z"
+    }
+  },
+  "verification": {
+    "applicationCommit": "1b2eef40247371e0fd88a11a946cfd92a217a471",
+    "releaseSha256": "4dde0163be758b969f08740e4a64a00ca6690d6e69c0348783931f6a78e92e17",
+    "activeRelease": "/opt/jaautomation/releases/ja-automation-4dde0163be758b969f08740e4a64a00ca6690d6e69c0348783931f6a78e92e17",
+    "archivePath": "/home/kripta/jaautomation-grouped-manuals-1b2eef40247371e0fd88a11a946cfd92a217a471.zip",
+    "backupPath": "/var/backups/jaautomation/2026-09-19T110718988Z-10be1ee6-7fd6-4901-85e3-c5eb2a986dd7",
+    "backupDatabaseSha256": "959f74f3e4558eed919fb8df82d772ce581cce736e5f079ea98566387d7ecb37",
+    "backupDocumentsVerified": 59,
+    "backupSchemaVersion": 49,
+    "jobsVerificationLogSha256": "46c8bb1acd3264308e903576ce2b41c34205dbe9ce67dbfc42b8d64cd55a6e3d",
+    "rollbackRelease": "/opt/jaautomation/releases/ja-automation-6397282be2e6f29976d6ba9386ffbc380dd11e9367a2324392a13286b9edd9f0",
+    "rollbackImages": [
+      {
+        "tag": "ja-automation-site:rollback-20260919110409-4dde0163be75",
+        "id": "sha256:98a4646c5b123eb7209e4836a55976360b03a6e28ae1955079685c8dd3b1913e"
+      },
+      {
+        "tag": "ja-automation-portal:rollback-20260919110409-4dde0163be75",
+        "id": "sha256:70faad48b7dc7ca5f2603fc0223d0faffca7cfe14ce0eeefd8f051fd1de1e910"
+      }
+    ],
+    "preCutoverBackup": {
+      "path": "/var/backups/jaautomation/2026-09-19T110645612Z-e72f0d2f-5560-4c1c-965e-6945cb79a2c2",
+      "databaseSha256": "f826aa9be240ec15b118f5a064be51656186dceb38fbfbd27f18540d3fc92a78",
+      "schemaVersion": 49,
+      "documentCount": 59,
+      "isolatedRestoreVerifiedAt": "2026-09-19T11:07:59.140Z",
+      "isolatedRestoreEvidenceSha256": "a35fdeb3791589f96521b6462fac435bdfebb5dfda018a56a6b85cee6be966b3"
+    },
+    "rollbackScope": "Verified prior release and images plus isolated restore of paired schema-49 database and private documents; live rollback not executed",
+    "liveRollbackExecuted": false,
+    "postCutoverWriteReconciliationRequired": true,
+    "waiverSource": "docs/evidence/client-ready-20260906/operations/PRODUCTION_OPERATIONS_EVIDENCE.json",
+    "waiverOriginalDatePreserved": true,
+    "newOwnerApprovalClaimed": false
+  },
+  "sha256": "54022825071368523d16b3172c835b378173dabbb8b52053e8567a2deabfda2f"
+}

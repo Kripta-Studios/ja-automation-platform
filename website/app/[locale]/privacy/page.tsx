@@ -1,5 +1,6 @@
 import { setRequestLocale } from 'next-intl/server';
 import { contact } from '@/content/company';
+import { localizedAlternates } from '@/lib/i18n/metadata';
 
 type PrivacyCopy = {
   title: string;
@@ -84,7 +85,11 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
         ? (locale.slice(0, 2) as 'en' | 'pt' | 'es')
         : 'en'
     ];
-  return { title: `${selected.title} | J&A Automation`, description: selected.title };
+  return {
+    title: `${selected.title} | J&A Automation`,
+    description: selected.title,
+    alternates: localizedAlternates(locale, '/privacy'),
+  };
 }
 
 export default async function PrivacyPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -105,7 +110,10 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
                 <p>
                   {section.body}{' '}
                   {section.heading.startsWith('4.') && (
-                    <a className="text-ja-red hover:underline" href={`mailto:${contact.email}`}>
+                    <a
+                      className="text-ja-red underline decoration-current underline-offset-2 hover:text-ja-red-dark"
+                      href={`mailto:${contact.email}`}
+                    >
                       {contact.email}
                     </a>
                   )}

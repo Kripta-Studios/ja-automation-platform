@@ -1,0 +1,17 @@
+{
+  "date": "2026-09-27",
+  "fixture": "disposable candidate",
+  "role": "owner",
+  "locale": "en",
+  "viewport": 1440,
+  "approvedCorrectionFormVisible": true,
+  "correctionCreated": true,
+  "correctionDraftUploadVisible": false,
+  "correctionDraftWarning": "You have read-only access to this report. Contact the project manager or owner for changes.",
+  "pageErrors": 0,
+  "unexpectedConsole": 0,
+  "otherHttp": 0,
+  "correctionPost": 303,
+  "withdrawFormVisible": true,
+  "editFormVisible": false
+}

@@ -1,0 +1,156 @@
+{
+  "candidateCommit": "fe6ced96320fd166113d5ad8b2059f7fa208e219",
+  "role": "auditor",
+  "scenarios": [
+    {
+      "name": "valid",
+      "status": 403,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?lang=es",
+        "locale": null,
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "heading": "Acceso restringido",
+        "errorText": "← Panel portal portal Acceso restringido Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+        "formPresent": false,
+        "problemCode": null,
+        "noticeText": null,
+        "noticeCount": 0,
+        "noticeInViewport": false,
+        "noticeBounds": null,
+        "noticeTopRaw": null,
+        "remedyHref": null,
+        "remedyText": null,
+        "focusId": "",
+        "focusDataUi": null,
+        "focusIsNotice": false,
+        "scrollY": 0,
+        "filter": null,
+        "currency": null,
+        "group": null,
+        "from": null,
+        "to": null,
+        "project": null,
+        "fieldErrors": {},
+        "cashGroupCount": 0
+      }
+    },
+    {
+      "name": "invalid-filter",
+      "status": 403,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?filter=bogus&lang=es",
+        "locale": null,
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "heading": "Acceso restringido",
+        "errorText": "← Panel portal portal Acceso restringido Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+        "formPresent": false,
+        "problemCode": null,
+        "noticeText": null,
+        "noticeCount": 0,
+        "noticeInViewport": false,
+        "noticeBounds": null,
+        "noticeTopRaw": null,
+        "remedyHref": null,
+        "remedyText": null,
+        "focusId": "",
+        "focusDataUi": null,
+        "focusIsNotice": false,
+        "scrollY": 0,
+        "filter": null,
+        "currency": null,
+        "group": null,
+        "from": null,
+        "to": null,
+        "project": null,
+        "fieldErrors": {},
+        "cashGroupCount": 0
+      }
+    },
+    {
+      "name": "invalid-date",
+      "status": 403,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?from=2026-02-30&lang=es",
+        "locale": null,
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "heading": "Acceso restringido",
+        "errorText": "← Panel portal portal Acceso restringido Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+        "formPresent": false,
+        "problemCode": null,
+        "noticeText": null,
+        "noticeCount": 0,
+        "noticeInViewport": false,
+        "noticeBounds": null,
+        "noticeTopRaw": null,
+        "remedyHref": null,
+        "remedyText": null,
+        "focusId": "",
+        "focusDataUi": null,
+        "focusIsNotice": false,
+        "scrollY": 0,
+        "filter": null,
+        "currency": null,
+        "group": null,
+        "from": null,
+        "to": null,
+        "project": null,
+        "fieldErrors": {},
+        "cashGroupCount": 0
+      }
+    },
+    {
+      "name": "reversed-date",
+      "status": 403,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?from=2026-09-20&to=2026-09-19&lang=es",
+        "locale": null,
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "heading": "Acceso restringido",
+        "errorText": "← Panel portal portal Acceso restringido Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+        "formPresent": false,
+        "problemCode": null,
+        "noticeText": null,
+        "noticeCount": 0,
+        "noticeInViewport": false,
+        "noticeBounds": null,
+        "noticeTopRaw": null,
+        "remedyHref": null,
+        "remedyText": null,
+        "focusId": "",
+        "focusDataUi": null,
+        "focusIsNotice": false,
+        "scrollY": 0,
+        "filter": null,
+        "currency": null,
+        "group": null,
+        "from": null,
+        "to": null,
+        "project": null,
+        "fieldErrors": {},
+        "cashGroupCount": 0
+      }
+    }
+  ],
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "403 document /j-aautomation/app/finance/cash",
+      "403 document /j-aautomation/app/finance/cash",
+      "403 document /j-aautomation/app/finance/cash",
+      "403 document /j-aautomation/app/finance/cash"
+    ]
+  }
+}

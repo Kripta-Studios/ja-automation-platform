@@ -1,0 +1,162 @@
+{
+  "candidateCommit": "d9c212ba93625ff9fe37802c771291a1ecfb42de",
+  "roleCase": {
+    "role": "owner",
+    "width": 390,
+    "height": 844,
+    "locale": "pt"
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "downloads": 1
+  },
+  "invoiceStateCounts": {
+    "draft": 7,
+    "issued": 1
+  },
+  "successCandidate": {
+    "available": true,
+    "attempts": [
+      {
+        "state": "draft",
+        "status": 200,
+        "contentType": "application/pdf"
+      }
+    ]
+  },
+  "initial": {
+    "path": "/j-aautomation/app/billing/invoices/:record",
+    "lang": "pt-BR",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 0,
+    "noticeCode": null,
+    "noticeText": null,
+    "noticeTop": null,
+    "noticeBottom": null,
+    "headerBottom": 69.59375,
+    "activeNotice": false,
+    "activeElement": "body",
+    "remedies": [],
+    "actionHref": "/j-aautomation/app/api/invoices/:record/draft-preview?lang=pt",
+    "actionVisible": true,
+    "actionDisabled": "false"
+  },
+  "unavailable": {
+    "label": "owner-pt-unavailable",
+    "originalScroll": 260,
+    "samePath": true,
+    "network": {
+      "status": 404,
+      "contentType": "application/problem+json; charset=utf-8",
+      "disposition": null,
+      "code": "INVOICE_DRAFT_PREVIEW_INVOICE_UNAVAILABLE",
+      "messageKey": "problem.invoiceDraftPreview.invoiceUnavailable",
+      "remedies": [
+        "review_billing"
+      ]
+    },
+    "ui": {
+      "path": "/j-aautomation/app/billing/invoices/:record",
+      "lang": "pt-BR",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollY": 260,
+      "noticeCode": "INVOICE_DRAFT_PREVIEW_INVOICE_UNAVAILABLE",
+      "noticeText": "Ação necessária Esta fatura não está disponível. Volte para Faturamento e escolha uma fatura à qual você tenha acesso. Revisar Faturamento",
+      "noticeTop": 97.890625,
+      "noticeBottom": 269.75,
+      "headerBottom": 69.59375,
+      "activeNotice": true,
+      "activeElement": "aside",
+      "remedies": [
+        {
+          "text": "Revisar Faturamento",
+          "href": "/j-aautomation/app/billing"
+        }
+      ],
+      "actionHref": "/j-aautomation/app/api/invoices/:record/draft-preview?lang=pt",
+      "actionVisible": true,
+      "actionDisabled": "false"
+    },
+    "downloadDelta": 0
+  },
+  "issued": {
+    "label": "owner-pt-issued",
+    "originalScroll": 260,
+    "samePath": true,
+    "network": {
+      "status": 409,
+      "contentType": "application/problem+json; charset=utf-8",
+      "disposition": null,
+      "code": "INVOICE_DRAFT_PREVIEW_STATE_UNAVAILABLE",
+      "messageKey": "problem.invoiceDraftPreview.stateUnavailable",
+      "remedies": [
+        "review_invoice"
+      ]
+    },
+    "ui": {
+      "path": "/j-aautomation/app/billing/invoices/:record",
+      "lang": "pt-BR",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollY": 260,
+      "noticeCode": "INVOICE_DRAFT_PREVIEW_STATE_UNAVAILABLE",
+      "noticeText": "Ação necessária Esta fatura agora está Emitida. A prévia só está disponível enquanto a fatura estiver em rascunho ou aprovada. Revisar os detalhes da fatura",
+      "noticeTop": 97.890625,
+      "noticeBottom": 269.75,
+      "headerBottom": 69.59375,
+      "activeNotice": true,
+      "activeElement": "aside",
+      "remedies": [
+        {
+          "text": "Revisar os detalhes da fatura",
+          "href": "/j-aautomation/app/billing/invoices/:record?lang=pt"
+        }
+      ],
+      "actionHref": "/j-aautomation/app/api/invoices/:record/draft-preview?lang=pt",
+      "actionVisible": true,
+      "actionDisabled": "false"
+    },
+    "downloadDelta": 0
+  },
+  "afterFailures": {
+    "invoices": 8,
+    "audits": 331
+  },
+  "failuresNoWrite": true,
+  "success": {
+    "status": 200,
+    "contentType": "application/pdf",
+    "dispositionMatchesLocale": true,
+    "filenameMatchesLocale": true,
+    "magic": "%PDF-",
+    "ui": {
+      "path": "/j-aautomation/app/billing/invoices/:record",
+      "lang": "pt-BR",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollY": 260,
+      "noticeCode": null,
+      "noticeText": null,
+      "noticeTop": null,
+      "noticeBottom": null,
+      "headerBottom": 69.59375,
+      "activeNotice": false,
+      "activeElement": "a",
+      "remedies": [],
+      "actionHref": "/j-aautomation/app/api/invoices/:record/draft-preview?lang=pt",
+      "actionVisible": true,
+      "actionDisabled": "false"
+    }
+  }
+}

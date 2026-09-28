@@ -1,0 +1,19 @@
+{
+  "role": "worker",
+  "code": "EXPENSE_RECEIPT_DUPLICATE_CONTENT",
+  "transportStatus": 200,
+  "actionStatus": 409,
+  "method": "POST",
+  "route": "/j-aautomation/app/expenses",
+  "documentCount": 1,
+  "expenseCount": 1,
+  "scrollBefore": 0,
+  "scrollAfter": 0,
+  "sheetScrollBefore": 0,
+  "sheetScrollAfter": 0,
+  "focus": "[data-operational-form-error]",
+  "pdfPreview": "clicked blob download; original filename and bytes verified",
+  "accountDetails": "redacted",
+  "viewport": "phone-390",
+  "screenshot": "expense-receipt-duplicate-phone-390.png"
+}

@@ -1,0 +1,11 @@
+{
+  "integrity": "ok",
+  "foreignKeys": 1,
+  "documentCount": 59,
+  "foreignKeyViolations": 0,
+  "schemaVersion": 48,
+  "backupPath": "/var/backups/jaautomation/2026-09-19T065609997Z-a356a5fc-cb71-43e2-8db3-ad14186f049a",
+  "backupDatabaseSha256": "9c48e2050c0784291d6c8c480d6721850acb78d729d8a53797d4ccc9873f1307",
+  "verifiedAt": "2026-09-19T06:57:12.563Z",
+  "scope": "Isolated restore outside production"
+}

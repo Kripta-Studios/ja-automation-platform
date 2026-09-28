@@ -1,0 +1,63 @@
+{
+  "capturedAt": "2026-09-26T01:45:49Z",
+  "environment": "production",
+  "browser": "Chromium via Playwright MCP",
+  "authentication": "anonymous",
+  "viewports": [
+    { "width": 390, "height": 844 },
+    { "width": 1440, "height": 900 }
+  ],
+  "checks": [
+    {
+      "page": "https://j-aautomation.com/j-aautomation/en",
+      "viewportWidth": 390,
+      "result": "pass",
+      "observations": [
+        "Page title and main heading rendered; document width equaled viewport width (390 px).",
+        "Open menu button opened the Navigation menu dialog.",
+        "Clicked Employee Portal login in the menu and reached /j-aautomation/app/login."
+      ]
+    },
+    {
+      "page": "https://j-aautomation.com/j-aautomation/app/login",
+      "viewportWidth": 390,
+      "result": "pass",
+      "observations": [
+        "Sign-in heading, email and password inputs, passkey button, language selector, and webmail links rendered; document width equaled viewport width (390 px).",
+        "Selecting Español changed URL to /j-aautomation/app/login?lang=es and translated the title and sign-in controls; selecting English restored the English controls.",
+        "Clicked Continue to workspace with both required inputs empty: URL stayed on the login page, email field received focus and browser validation displayed 'Please fill out this field.' No login POST was observed."
+      ]
+    },
+    {
+      "page": "https://j-aautomation.com/j-aautomation/app/login?lang=en",
+      "viewportWidth": 1440,
+      "result": "pass",
+      "observations": [
+        "Sign-in heading, required email and password inputs, passkey button, language selector, and webmail links rendered; document width equaled viewport width (1440 px)."
+      ]
+    },
+    {
+      "page": "https://j-aautomation.com/j-aautomation/en",
+      "viewportWidth": 1440,
+      "result": "pass",
+      "observations": [
+        "Desktop main navigation, language selector, portal login and contact links rendered; document width equaled viewport width (1440 px).",
+        "Clicked Capabilities in the desktop navigation and reached /j-aautomation/en/capabilities with title 'Industrial Automation Services | J&A Automation'."
+      ]
+    }
+  ],
+  "runtime": {
+    "consoleErrors": 0,
+    "consoleWarnings": 0,
+    "observedMainDocumentStatuses": {
+      "/j-aautomation/en": 200,
+      "/j-aautomation/app/login": 200
+    },
+    "observedFailedRequests": 0,
+    "networkScope": "Playwright MCP captured anonymous public page loads, linked prefetches, assets, and clicked navigation requests during this session; inspected request lists showed HTTP 200 responses."
+  },
+  "limits": [
+    "No production credentials were entered and no authenticated flows or production data writes were exercised.",
+    "This is a public-page smoke check; the isolated authenticated browser QA has separate evidence."
+  ]
+}

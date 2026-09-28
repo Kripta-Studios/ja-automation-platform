@@ -1,0 +1,329 @@
+[
+  {
+    "label": "real-en-PDF",
+    "status": 200,
+    "mime": "application/pdf",
+    "disposition": "attachment",
+    "filenameExtension": "pdf",
+    "filenameIncludesSelectedPeriod": true,
+    "pageUrl": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en"
+  },
+  {
+    "label": "real-en-CSV",
+    "status": 200,
+    "mime": "text/csv",
+    "disposition": "attachment",
+    "filenameExtension": "csv",
+    "filenameIncludesSelectedPeriod": true,
+    "pageUrl": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en"
+  },
+  {
+    "label": "en-401",
+    "text": "Action needed Sign in to view your worker statement. Sign in to view your worker statement.",
+    "focused": true,
+    "top": 502,
+    "bottom": 633,
+    "clearOfNav": true,
+    "scrollY": 0,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en"
+  },
+  {
+    "label": "en-403",
+    "text": "Action needed Worker statements are available only to workers and project managers viewing their own pay. Check statement status",
+    "focused": true,
+    "top": 502,
+    "bottom": 633,
+    "clearOfNav": true,
+    "scrollY": 0,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en"
+  },
+  {
+    "label": "en-404",
+    "text": "Action needed This worker statement is unavailable. Open My Pay to review your statements. Check statement status",
+    "focused": true,
+    "top": 502,
+    "bottom": 633,
+    "clearOfNav": true,
+    "scrollY": 0,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en"
+  },
+  {
+    "label": "en-409",
+    "text": "Action needed This statement could not be prepared. Review its status and retry if offered. Retry statement",
+    "focused": true,
+    "top": 502,
+    "bottom": 610,
+    "clearOfNav": true,
+    "scrollY": 0,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en"
+  },
+  {
+    "label": "en-503",
+    "text": "Action needed Statement generation is temporarily unavailable. Check My Pay for a completed statement before trying again. Check statement status",
+    "focused": true,
+    "top": 502,
+    "bottom": 633,
+    "clearOfNav": true,
+    "scrollY": 0,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en"
+  },
+  {
+    "label": "en-network",
+    "text": "Action needed The statement file could not be reached. Your statement was not changed. Check your connection and use Download again. Retry download",
+    "focused": true,
+    "top": 502,
+    "bottom": 610,
+    "clearOfNav": true,
+    "scrollY": 0,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en"
+  },
+  {
+    "label": "en-invalid",
+    "text": "Action needed The statement file could not be verified. Your statement was not changed. Check its status in My Pay before downloading again. Check statement status",
+    "focused": true,
+    "top": 502,
+    "bottom": 633,
+    "clearOfNav": true,
+    "scrollY": 0,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en"
+  },
+  {
+    "label": "en-console",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 409 (Conflict)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: net::ERR_FAILED"
+    ]
+  },
+  {
+    "label": "real-es-PDF",
+    "status": 200,
+    "mime": "application/pdf",
+    "disposition": "attachment",
+    "filenameExtension": "pdf",
+    "filenameIncludesSelectedPeriod": true,
+    "pageUrl": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=es"
+  },
+  {
+    "label": "real-es-CSV",
+    "status": 200,
+    "mime": "text/csv",
+    "disposition": "attachment",
+    "filenameExtension": "csv",
+    "filenameIncludesSelectedPeriod": true,
+    "pageUrl": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=es"
+  },
+  {
+    "label": "es-401",
+    "text": "Se requiere una acción Inicia sesión para ver tu informe de remuneración. Inicia sesión para ver tu informe de remuneración.",
+    "focused": true,
+    "top": 605,
+    "bottom": 756,
+    "clearOfNav": true,
+    "scrollY": 195,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=es"
+  },
+  {
+    "label": "es-403",
+    "text": "Se requiere una acción Los informes de remuneración solo están disponibles para trabajadores y jefes de proyecto que consultan su propia remuneración. Comprobar estado del informe",
+    "focused": true,
+    "top": 564,
+    "bottom": 756,
+    "clearOfNav": true,
+    "scrollY": 236,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=es"
+  },
+  {
+    "label": "es-404",
+    "text": "Se requiere una acción Este informe de remuneración no está disponible. Abre Mi remuneración para revisar tus informes. Comprobar estado del informe",
+    "focused": true,
+    "top": 564,
+    "bottom": 736,
+    "clearOfNav": true,
+    "scrollY": 236,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=es"
+  },
+  {
+    "label": "es-409",
+    "text": "Se requiere una acción No se pudo preparar este informe. Revisa su estado y vuelve a intentarlo si se ofrece esa opción. Reintentar informe",
+    "focused": true,
+    "top": 564,
+    "bottom": 713,
+    "clearOfNav": true,
+    "scrollY": 236,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=es"
+  },
+  {
+    "label": "es-503",
+    "text": "Se requiere una acción La generación de informes no está disponible temporalmente. Comprueba en Mi remuneración si el informe ya está listo antes de intentarlo de nuevo. Comprobar estado del informe",
+    "focused": true,
+    "top": 564,
+    "bottom": 756,
+    "clearOfNav": true,
+    "scrollY": 236,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=es"
+  },
+  {
+    "label": "es-network",
+    "text": "Se requiere una acción No se pudo acceder al archivo del informe. El informe no cambió. Comprueba la conexión y vuelve a usar Descargar. Volver a intentar la descarga",
+    "focused": true,
+    "top": 564,
+    "bottom": 713,
+    "clearOfNav": true,
+    "scrollY": 236,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=es"
+  },
+  {
+    "label": "es-invalid",
+    "text": "Se requiere una acción No se pudo verificar el archivo del informe. El informe no cambió. Comprueba su estado en Mi remuneración antes de volver a descargarlo. Comprobar estado del informe",
+    "focused": true,
+    "top": 564,
+    "bottom": 756,
+    "clearOfNav": true,
+    "scrollY": 236,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=es"
+  },
+  {
+    "label": "es-console",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 409 (Conflict)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: net::ERR_FAILED"
+    ]
+  },
+  {
+    "label": "real-pt-PDF",
+    "status": 200,
+    "mime": "application/pdf",
+    "disposition": "attachment",
+    "filenameExtension": "pdf",
+    "filenameIncludesSelectedPeriod": true,
+    "pageUrl": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=pt"
+  },
+  {
+    "label": "real-pt-CSV",
+    "status": 200,
+    "mime": "text/csv",
+    "disposition": "attachment",
+    "filenameExtension": "csv",
+    "filenameIncludesSelectedPeriod": true,
+    "pageUrl": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=pt"
+  },
+  {
+    "label": "pt-401",
+    "text": "Ação necessária Entre na sua conta para ver seu demonstrativo de remuneração. Entre na sua conta para ver seu demonstrativo de remuneração.",
+    "focused": true,
+    "top": 605,
+    "bottom": 756,
+    "clearOfNav": true,
+    "scrollY": 195,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=pt"
+  },
+  {
+    "label": "pt-403",
+    "text": "Ação necessária Os demonstrativos de remuneração estão disponíveis apenas para trabalhadores e gerentes de projeto que consultam a própria remuneração. Verificar status do demonstrativo",
+    "focused": true,
+    "top": 564,
+    "bottom": 756,
+    "clearOfNav": true,
+    "scrollY": 236,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=pt"
+  },
+  {
+    "label": "pt-404",
+    "text": "Ação necessária Este demonstrativo de remuneração não está disponível. Abra Minha remuneração para revisar seus demonstrativos. Verificar status do demonstrativo",
+    "focused": true,
+    "top": 564,
+    "bottom": 736,
+    "clearOfNav": true,
+    "scrollY": 236,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=pt"
+  },
+  {
+    "label": "pt-409",
+    "text": "Ação necessária Não foi possível preparar este demonstrativo. Revise o status e tente novamente se essa opção estiver disponível. Tentar demonstrativo novamente",
+    "focused": true,
+    "top": 564,
+    "bottom": 713,
+    "clearOfNav": true,
+    "scrollY": 236,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=pt"
+  },
+  {
+    "label": "pt-503",
+    "text": "Ação necessária A geração de demonstrativos está temporariamente indisponível. Confira em Minha remuneração se o demonstrativo já está pronto antes de tentar novamente. Verificar status do demonstrativo",
+    "focused": true,
+    "top": 564,
+    "bottom": 756,
+    "clearOfNav": true,
+    "scrollY": 236,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=pt"
+  },
+  {
+    "label": "pt-network",
+    "text": "Ação necessária Não foi possível aceder ao arquivo do demonstrativo. O demonstrativo não mudou. Verifique a ligação e use Baixar novamente. Tentar baixar novamente",
+    "focused": true,
+    "top": 564,
+    "bottom": 713,
+    "clearOfNav": true,
+    "scrollY": 236,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=pt"
+  },
+  {
+    "label": "pt-invalid",
+    "text": "Ação necessária Não foi possível verificar o arquivo do demonstrativo. O demonstrativo não mudou. Verifique o status em Minha remuneração antes de baixar novamente. Verificar status do demonstrativo",
+    "focused": true,
+    "top": 564,
+    "bottom": 756,
+    "clearOfNav": true,
+    "scrollY": 236,
+    "overflow": false,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=pt"
+  },
+  {
+    "label": "pt-console",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 409 (Conflict)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: net::ERR_FAILED"
+    ]
+  }
+]

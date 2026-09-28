@@ -1,0 +1,130 @@
+{
+  "commit": "d17af6e",
+  "viewport": {
+    "width": 430,
+    "height": 932
+  },
+  "locale": "pt",
+  "native": {
+    "status": 409,
+    "codeInResponse": true,
+    "genericInResponse": false
+  },
+  "immediately": {
+    "code": "FINANCE_ASSIGNMENT_COMMERCIAL_RULE_UNAVAILABLE",
+    "wording": "Ação necessária Uma das regras comerciais selecionadas já não cobre todo o período e escopo desta atribuição. Revise as regras de cobrança ao cliente, pagamento ao trabalhador e custo interno e escolha uma regra disponível. Rever as taxas de mão de obra do clienteRever as regras de remuneração do trabalhadorRever as regras de custos internos",
+    "remedies": [
+      {
+        "text": "Rever as taxas de mão de obra do cliente",
+        "task": "Client labor rates"
+      },
+      {
+        "text": "Rever as regras de remuneração do trabalhador",
+        "task": "Compensation statement rules"
+      },
+      {
+        "text": "Rever as regras de custos internos",
+        "task": "Assignment budget context / internal loaded cost"
+      }
+    ],
+    "routeView": "commercial",
+    "language": "pt-BR",
+    "editorOpen": true,
+    "selectedRateRetained": true,
+    "selectedOptionDisabled": false,
+    "expectedVersion": "1",
+    "focusedNotice": false,
+    "active": {
+      "tag": "BODY",
+      "id": "",
+      "name": null,
+      "ui": null,
+      "financeProblem": false,
+      "className": null
+    },
+    "top": 1938,
+    "bottom": 2290,
+    "safeTop": 78,
+    "safeBottom": 844,
+    "scrollY": 0,
+    "overflow": false
+  },
+  "afterTwoFrames": {
+    "code": "FINANCE_ASSIGNMENT_COMMERCIAL_RULE_UNAVAILABLE",
+    "wording": "Ação necessária Uma das regras comerciais selecionadas já não cobre todo o período e escopo desta atribuição. Revise as regras de cobrança ao cliente, pagamento ao trabalhador e custo interno e escolha uma regra disponível. Rever as taxas de mão de obra do clienteRever as regras de remuneração do trabalhadorRever as regras de custos internos",
+    "remedies": [
+      {
+        "text": "Rever as taxas de mão de obra do cliente",
+        "task": "Client labor rates"
+      },
+      {
+        "text": "Rever as regras de remuneração do trabalhador",
+        "task": "Compensation statement rules"
+      },
+      {
+        "text": "Rever as regras de custos internos",
+        "task": "Assignment budget context / internal loaded cost"
+      }
+    ],
+    "routeView": "commercial",
+    "language": "pt-BR",
+    "editorOpen": true,
+    "selectedRateRetained": true,
+    "selectedOptionDisabled": false,
+    "expectedVersion": "1",
+    "focusedNotice": true,
+    "active": {
+      "tag": "ASIDE",
+      "id": "",
+      "name": null,
+      "ui": "problem-notice",
+      "financeProblem": false,
+      "className": "ui-problem-notice svelte-b84mwg"
+    },
+    "top": 492,
+    "bottom": 844,
+    "safeTop": 78,
+    "safeBottom": 844,
+    "scrollY": 1446,
+    "overflow": false
+  },
+  "after250Ms": {
+    "code": "FINANCE_ASSIGNMENT_COMMERCIAL_RULE_UNAVAILABLE",
+    "wording": "Ação necessária Uma das regras comerciais selecionadas já não cobre todo o período e escopo desta atribuição. Revise as regras de cobrança ao cliente, pagamento ao trabalhador e custo interno e escolha uma regra disponível. Rever as taxas de mão de obra do clienteRever as regras de remuneração do trabalhadorRever as regras de custos internos",
+    "remedies": [
+      {
+        "text": "Rever as taxas de mão de obra do cliente",
+        "task": "Client labor rates"
+      },
+      {
+        "text": "Rever as regras de remuneração do trabalhador",
+        "task": "Compensation statement rules"
+      },
+      {
+        "text": "Rever as regras de custos internos",
+        "task": "Assignment budget context / internal loaded cost"
+      }
+    ],
+    "routeView": "commercial",
+    "language": "pt-BR",
+    "editorOpen": true,
+    "selectedRateRetained": true,
+    "selectedOptionDisabled": false,
+    "expectedVersion": "1",
+    "focusedNotice": true,
+    "active": {
+      "tag": "ASIDE",
+      "id": "",
+      "name": null,
+      "ui": "problem-notice",
+      "financeProblem": false,
+      "className": "ui-problem-notice svelte-b84mwg"
+    },
+    "top": 492,
+    "bottom": 844,
+    "safeTop": 78,
+    "safeBottom": 844,
+    "scrollY": 1446,
+    "overflow": false
+  }
+}

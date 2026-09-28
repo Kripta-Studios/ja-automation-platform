@@ -1,0 +1,136 @@
+[WebServer] (node:1348703) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+[WebServer] (node:1348717) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+[WebServer] (node:1348753) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ node build
+[WebServer] (node:1348766) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0c5ec-27c8-740b-a728-60e9e1f70160",
+    "01a0c5ec-27c9-74cd-bff5-b49cfcfb8b67",
+    "01a0c5ec-27c9-74cd-bff5-c7b22e5a498d",
+    "01a0c5ec-27ca-751f-a6b0-91dd4aa5a402"
+  ],
+  "invoiceDrafts": [
+    "01a0c5ec-28bd-72ca-adb2-5fa91ef39db1",
+    "01a0c5ec-28c1-7407-b8a0-e3498a3e5876",
+    "01a0c5ec-28c5-745a-bdbe-2ff5ba2136ce"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0c5ec-28cc-77d4-81ee-d1c37aa950e7",
+    "01a0c5ec-28ce-7766-a1cd-74d5b6b0f802",
+    "01a0c5ec-28d2-720b-bf16-f99dc2fc737a"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0c5ec-28cc-77d4-81ee-d1c37aa950e7",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0c5ec-28b4-7238-8d1f-af3cf8ecaa86",
+    "01a0c5ec-28b5-712f-b6ea-b6b067d1c93d"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0c5ec-27c8-740b-a728-60e9e1f70160",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0c5ec-28da-731e-bcc1-a80fc8cc14bf"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0c5ec-27c8-740b-a728-60e9e1f70160",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0c5ec-28dc-772c-ab54-35f02b594098"
+    }
+  ],
+  "periodReportIds": [
+    "01a0c5ec-28dd-759e-896a-839ff861f24d",
+    "01a0c5ec-28dd-759e-896a-85bd564fd433"
+  ],
+  "accountingPackId": "01a0c5ec-2922-77ba-9009-a07c527c9e19",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-82a0f679579930424d83e4cc63b423640fbc46a5",
+  "closeoutId": "01a0c5ec-29c9-77be-839b-89d34419cc8f"
+}
+
+Running 36 tests using 1 worker
+
+(node:1348908) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [phone-360] › tests/e2e/design-refresh.spec.ts:5:1 › refreshed website keeps its menu reachable and loads local typography (5.1s)
+  ✓   2 [phone-360] › tests/e2e/design-refresh.spec.ts:39:1 › workspace fonts load and dashboard summary leaves room for work (4.3s)
+  -   3 [phone-360] › tests/e2e/public-site-accessibility.spec.ts:6:1 › affected public pages meet the WCAG automated contract
+  -   4 [phone-360] › tests/e2e/public-site-accessibility.spec.ts:21:1 › public image assets load when lazy content enters the viewport
+  ✓   5 [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › worker Client Essential surfaces pass axe, responsive and keyboard matrix (12.8s)
+  ✓   6 [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › manager Client Essential surfaces pass axe, responsive and keyboard matrix (10.3s)
+  ✓   7 [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › finance Client Essential surfaces pass axe, responsive and keyboard matrix (11.0s)
+  ✓   8 [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › owner Client Essential surfaces pass axe, responsive and keyboard matrix (14.6s)
+  ✓   9 [phone-360] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › auditor Client Essential surfaces pass axe, responsive and keyboard matrix (14.8s)
+(node:1356143) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  10 [phone-390] › tests/e2e/design-refresh.spec.ts:5:1 › refreshed website keeps its menu reachable and loads local typography (5.0s)
+  ✓  11 [phone-390] › tests/e2e/design-refresh.spec.ts:39:1 › workspace fonts load and dashboard summary leaves room for work (4.1s)
+  -  12 [phone-390] › tests/e2e/public-site-accessibility.spec.ts:6:1 › affected public pages meet the WCAG automated contract
+  -  13 [phone-390] › tests/e2e/public-site-accessibility.spec.ts:21:1 › public image assets load when lazy content enters the viewport
+  ✓  14 [phone-390] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › worker Client Essential surfaces pass axe, responsive and keyboard matrix (42.2s)
+  ✓  15 [phone-390] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › manager Client Essential surfaces pass axe, responsive and keyboard matrix (10.3s)
+  ✓  16 [phone-390] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › finance Client Essential surfaces pass axe, responsive and keyboard matrix (10.8s)
+  ✓  17 [phone-390] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › owner Client Essential surfaces pass axe, responsive and keyboard matrix (13.4s)
+  ✓  18 [phone-390] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › auditor Client Essential surfaces pass axe, responsive and keyboard matrix (12.6s)
+(node:1359516) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  19 [tablet-768] › tests/e2e/design-refresh.spec.ts:5:1 › refreshed website keeps its menu reachable and loads local typography (5.2s)
+  ✓  20 [tablet-768] › tests/e2e/design-refresh.spec.ts:39:1 › workspace fonts load and dashboard summary leaves room for work (4.0s)
+  -  21 [tablet-768] › tests/e2e/public-site-accessibility.spec.ts:6:1 › affected public pages meet the WCAG automated contract
+  -  22 [tablet-768] › tests/e2e/public-site-accessibility.spec.ts:21:1 › public image assets load when lazy content enters the viewport
+  ✓  23 [tablet-768] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › worker Client Essential surfaces pass axe, responsive and keyboard matrix (12.1s)
+  ✓  24 [tablet-768] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › manager Client Essential surfaces pass axe, responsive and keyboard matrix (10.3s)
+  ✓  25 [tablet-768] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › finance Client Essential surfaces pass axe, responsive and keyboard matrix (11.1s)
+  ✓  26 [tablet-768] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › owner Client Essential surfaces pass axe, responsive and keyboard matrix (13.3s)
+  ✓  27 [tablet-768] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › auditor Client Essential surfaces pass axe, responsive and keyboard matrix (13.0s)
+(node:1362066) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  28 [desktop] › tests/e2e/design-refresh.spec.ts:5:1 › refreshed website keeps its menu reachable and loads local typography (5.0s)
+  ✓  29 [desktop] › tests/e2e/design-refresh.spec.ts:39:1 › workspace fonts load and dashboard summary leaves room for work (4.3s)
+  ✓  30 [desktop] › tests/e2e/public-site-accessibility.spec.ts:6:1 › affected public pages meet the WCAG automated contract (7.4s)
+  ✓  31 [desktop] › tests/e2e/public-site-accessibility.spec.ts:21:1 › public image assets load when lazy content enters the viewport (4.4s)
+  ✓  32 [desktop] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › worker Client Essential surfaces pass axe, responsive and keyboard matrix (11.8s)
+  ✓  33 [desktop] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › manager Client Essential surfaces pass axe, responsive and keyboard matrix (9.7s)
+  ✓  34 [desktop] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › finance Client Essential surfaces pass axe, responsive and keyboard matrix (9.6s)
+  ✓  35 [desktop] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › owner Client Essential surfaces pass axe, responsive and keyboard matrix (12.6s)
+  ✓  36 [desktop] › tests/e2e/ui-multirole-accessibility-matrix.spec.ts:429:3 › auditor Client Essential surfaces pass axe, responsive and keyboard matrix (13.0s)
+
+  6 skipped
+  30 passed (5.5m)

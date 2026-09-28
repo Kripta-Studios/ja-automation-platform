@@ -1,0 +1,66 @@
+ux-browser-verified.log
+  ✓   1 [phone-360] › tests/e2e/design-refresh.spec.ts:5:1 › refreshed website keeps its menu reachable and loads local typography (6.0s)
+  ✓   2 [phone-360] › tests/e2e/design-refresh.spec.ts:39:1 › workspace fonts load and dashboard summary leaves room for work (5.5s)
+  ✓   3 [phone-360] › tests/e2e/workspace-navigation.spec.ts:9:1 › section navigation is role scoped, keyboard accessible and responsive (4.3s)
+  ✓   4 [phone-360] › tests/e2e/workspace-navigation.spec.ts:47:1 › date shortcuts preserve filters and chips remove exactly one criterion (8.4s)
+  ✓   5 [phone-360] › tests/e2e/workspace-navigation.spec.ts:79:1 › week jumps cross years and preserve non-date criteria (4.2s)
+  ✓   6 [phone-360] › tests/e2e/workspace-navigation.spec.ts:102:1 › owner and finance can find their destinations in Portuguese (7.2s)
+  ✓   7 [phone-390] › tests/e2e/design-refresh.spec.ts:5:1 › refreshed website keeps its menu reachable and loads local typography (5.3s)
+  ✓   8 [phone-390] › tests/e2e/design-refresh.spec.ts:39:1 › workspace fonts load and dashboard summary leaves room for work (4.7s)
+  ✓   9 [phone-390] › tests/e2e/workspace-navigation.spec.ts:9:1 › section navigation is role scoped, keyboard accessible and responsive (3.4s)
+  ✓  10 [phone-390] › tests/e2e/workspace-navigation.spec.ts:47:1 › date shortcuts preserve filters and chips remove exactly one criterion (5.6s)
+  ✓  11 [phone-390] › tests/e2e/workspace-navigation.spec.ts:79:1 › week jumps cross years and preserve non-date criteria (2.8s)
+  ✓  12 [phone-390] › tests/e2e/workspace-navigation.spec.ts:102:1 › owner and finance can find their destinations in Portuguese (6.1s)
+  ✓  13 [tablet-768] › tests/e2e/design-refresh.spec.ts:5:1 › refreshed website keeps its menu reachable and loads local typography (5.4s)
+  ✓  14 [tablet-768] › tests/e2e/design-refresh.spec.ts:39:1 › workspace fonts load and dashboard summary leaves room for work (5.0s)
+  ✓  15 [tablet-768] › tests/e2e/workspace-navigation.spec.ts:9:1 › section navigation is role scoped, keyboard accessible and responsive (4.0s)
+  ✓  16 [tablet-768] › tests/e2e/workspace-navigation.spec.ts:47:1 › date shortcuts preserve filters and chips remove exactly one criterion (8.8s)
+  ✓  17 [tablet-768] › tests/e2e/workspace-navigation.spec.ts:79:1 › week jumps cross years and preserve non-date criteria (7.1s)
+  ✓  18 [tablet-768] › tests/e2e/workspace-navigation.spec.ts:102:1 › owner and finance can find their destinations in Portuguese (11.8s)
+  ✓  19 [desktop] › tests/e2e/design-refresh.spec.ts:5:1 › refreshed website keeps its menu reachable and loads local typography (7.8s)
+  ✓  20 [desktop] › tests/e2e/design-refresh.spec.ts:39:1 › workspace fonts load and dashboard summary leaves room for work (5.5s)
+  ✓  21 [desktop] › tests/e2e/workspace-navigation.spec.ts:9:1 › section navigation is role scoped, keyboard accessible and responsive (3.9s)
+  ✓  22 [desktop] › tests/e2e/workspace-navigation.spec.ts:47:1 › date shortcuts preserve filters and chips remove exactly one criterion (6.2s)
+  ✓  23 [desktop] › tests/e2e/workspace-navigation.spec.ts:79:1 › week jumps cross years and preserve non-date criteria (3.1s)
+  ✓  24 [desktop] › tests/e2e/workspace-navigation.spec.ts:102:1 › owner and finance can find their destinations in Portuguese (6.9s)
+  24 passed (2.9m)
+
+ux-i18n-final-copy-verified.log
+ Test Files  11 passed (11)
+      Tests  105 passed (105)
+
+ux-manual-source-tests.log
+ Test Files  3 passed (3)
+      Tests  11 passed (11)
+
+ux-role-locales-verified.log
+  ✓  1 [desktop] › tests/e2e/locale-role-workflows.spec.ts:36:1 › seven personas see real accessible routes in EN, ES, and PT-BR (2.0m)
+  ✓  2 [desktop] › tests/e2e/locale-role-workflows.spec.ts:174:1 › the portal locale controls accessible browser validation, not the browser language (4.6s)
+  ✓  3 [desktop] › tests/e2e/locale-role-workflows.spec.ts:222:1 › seven personas keep Help navigation and profile breadcrumb localized in PT-BR (20.7s)
+  ✓  4 [desktop] › tests/e2e/locale-role-workflows.spec.ts:260:1 › a stale Owner edit shows a localized conflict and preserves the correction without replaying it (5.9s)
+  4 passed (2.7m)
+
+ux-deep-locales-browser.log
+{"event":"locale.visible.coverage","visited":78,"untranslated":0}
+  ✓  1 [desktop] › tests/e2e/locale-visible-coverage.spec.ts:7:1 › Owner and Worker route text changes to Spanish and Portuguese without known English UI leftovers (1.3m)
+  1 passed (1.9m)
+
+ux-typecheck-frozen.log
+packages/money typecheck: Done
+packages/domain typecheck: Done
+packages/ui-tokens typecheck: Done
+packages/schemas typecheck: Done
+website typecheck: Done
+packages/billing-engine typecheck: Done
+packages/invoice-templates typecheck: Done
+packages/reporting typecheck: Done
+packages/database typecheck: Done
+apps/portal typecheck: Done
+
+ux-svelte-check.log
+svelte-check found 0 errors and 0 warnings
+
+Scoped ESLint, Prettier and git diff --check passed.
+Counts are per selection and overlap; they are not a sum of unique tests.
+
+Dynamic labels follow-up (767d1f9): 3 files / 23 tests passed. Scoped ESLint passed.

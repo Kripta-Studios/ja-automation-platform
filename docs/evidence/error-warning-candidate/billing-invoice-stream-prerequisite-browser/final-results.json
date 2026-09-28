@@ -1,0 +1,76 @@
+{
+  "candidateCommit": "f699cb3",
+  "source": "disposable-browser-fixture",
+  "financialRowsUnchanged": true,
+  "cases": [
+    {
+      "role": "finance",
+      "locale": "en",
+      "width": 390,
+      "warningCode": "WARNING_BILLING_INVOICE_NEEDS_ACTIVE_STREAM",
+      "warningText": "An invoice draft needs an active billing stream for the selected project. Set up a stream below, then choose Create invoice again.",
+      "selectedProjectRetained": true,
+      "warningFocused": true,
+      "remedyFocusedProject": true,
+      "scrollBefore": 0,
+      "scrollAfter": 995,
+      "noticeWithinViewport": true,
+      "unobscured": {
+        "title": true,
+        "remedy": true
+      },
+      "manualNavigationClearsWarning": true,
+      "otherProjectOpensWizardWithoutStaleWarning": true,
+      "pageWidth": 390,
+      "billingWrites": [],
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "role": "owner",
+      "locale": "es",
+      "width": 1440,
+      "warningCode": "WARNING_BILLING_INVOICE_NEEDS_ACTIVE_STREAM",
+      "warningText": "Un borrador de factura necesita un flujo de facturación activo para el proyecto seleccionado. Configura un flujo a continuación y vuelve a elegir Crear factura.",
+      "selectedProjectRetained": true,
+      "warningFocused": true,
+      "remedyFocusedProject": true,
+      "scrollBefore": 0,
+      "scrollAfter": 484,
+      "noticeWithinViewport": true,
+      "unobscured": {
+        "title": true,
+        "remedy": true
+      },
+      "manualNavigationClearsWarning": true,
+      "otherProjectOpensWizardWithoutStaleWarning": true,
+      "pageWidth": 1440,
+      "billingWrites": [],
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "role": "finance",
+      "locale": "pt",
+      "width": 390,
+      "warningCode": "WARNING_BILLING_INVOICE_NEEDS_ACTIVE_STREAM",
+      "warningText": "Um rascunho de fatura precisa de um fluxo de faturação ativo para o projeto selecionado. Configure um fluxo abaixo e volte a escolher Criar fatura.",
+      "selectedProjectRetained": true,
+      "warningFocused": true,
+      "remedyFocusedProject": true,
+      "scrollBefore": 0,
+      "scrollAfter": 1032,
+      "noticeWithinViewport": true,
+      "unobscured": {
+        "title": true,
+        "remedy": true
+      },
+      "manualNavigationClearsWarning": true,
+      "otherProjectOpensWizardWithoutStaleWarning": true,
+      "pageWidth": 390,
+      "billingWrites": [],
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  ]
+}

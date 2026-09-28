@@ -1,0 +1,47 @@
+{
+  "observedUtcDate": "2026-09-26",
+  "environment": "deployed production portal, browser UI",
+  "sourceCheckoutHead": "8669fa3",
+  "scope": "Owner, isolated QA project; rejected submissions only",
+  "cases": [
+    {
+      "action": "createPlanning",
+      "code": "PLANNING_WINDOW_INVALID",
+      "httpStatus": 400,
+      "widths": [390, 1440],
+      "valuesRetained": true,
+      "recordCreated": false,
+      "focusSummaryOffscreen": [true, true],
+      "screenshots": [
+        {
+          "path": "planning-invalid-window-phone-notice.png",
+          "sha256": "442b11f8527379d85cb851c2ee7dc39af5564158c26fa45031eb72695f8eb64d"
+        },
+        {
+          "path": "planning-invalid-window-desktop-notice.png",
+          "sha256": "3fbb3cb4b2acb2e85c89a6a30626c3761e40a5874e6731629169d97f6d44b8e7"
+        }
+      ]
+    },
+    {
+      "action": "uploadPrivateDocument",
+      "code": "DOCUMENT_FILE_TYPE_OR_SIZE_INVALID",
+      "httpStatus": 400,
+      "widths": [390, 1440],
+      "nonFileValuesRetained": true,
+      "fileClearedWithReattachInstruction": true,
+      "recordCreated": false,
+      "focusSummaryOffscreen": [true, false],
+      "screenshots": [
+        {
+          "path": "document-unsupported-phone-notice.png",
+          "sha256": "9fe6ce225f4f9a03fff7f18d355854ca9538b04841d99e0fd319d8ab1a9e1b74"
+        },
+        {
+          "path": "document-unsupported-desktop-notice.png",
+          "sha256": "410f4bb92b4752e89ee881c1f73314e296f5e018b307bfcd6dc9c35f7c3bf1a6"
+        }
+      ]
+    }
+  ]
+}

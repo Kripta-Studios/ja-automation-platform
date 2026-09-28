@@ -1,0 +1,103 @@
+{
+  "candidateCommit": "4bed1de",
+  "role": "owner",
+  "startScroll": 0,
+  "invalid": {
+    "locale": "en-US",
+    "width": 390,
+    "height": 844,
+    "scrollY": 0,
+    "query": {
+      "project": [
+        "project-cp008-ascension"
+      ],
+      "date": [
+        "not-a-date"
+      ],
+      "lang": [
+        "en"
+      ],
+      "viewportScrollY": [
+        "0"
+      ]
+    },
+    "code": "CREW_DAY_DATE_INVALID",
+    "text": "Action needed Enter a real work date in YYYY-MM-DD format to view crew time. Correct the highlighted field",
+    "remedy": "Correct the highlighted field",
+    "remedyHref": "#crew-filter-date",
+    "summaryPresent": false,
+    "summaryText": null,
+    "summaryLinks": [],
+    "focusIsTarget": true,
+    "focusedId": "",
+    "targetTop": 279.953125,
+    "targetBottom": 431.515625,
+    "headerBottom": 69.59375,
+    "projectValue": "project-cp008-ascension",
+    "projectUnavailableOption": false,
+    "projectError": null,
+    "dateValue": "not-a-date",
+    "dateType": "text",
+    "dateError": "Enter a real work date in YYYY-MM-DD format to view crew time.",
+    "crewEntriesCount": 0,
+    "crewHoursCount": 0,
+    "crewAssignCount": 0,
+    "errorPageText": null
+  },
+  "corrected": {
+    "locale": "en-US",
+    "width": 390,
+    "height": 844,
+    "scrollY": 406,
+    "query": {
+      "project": [
+        "project-cp008-ascension"
+      ],
+      "date": [
+        "2026-09-27"
+      ],
+      "lang": [
+        "en"
+      ],
+      "viewportScrollY": [
+        "0"
+      ]
+    },
+    "code": null,
+    "text": null,
+    "remedy": null,
+    "remedyHref": null,
+    "summaryPresent": false,
+    "summaryText": null,
+    "summaryLinks": [],
+    "focusIsTarget": false,
+    "focusedId": "",
+    "targetTop": null,
+    "targetBottom": null,
+    "headerBottom": 69.59375,
+    "projectValue": "project-cp008-ascension",
+    "projectUnavailableOption": false,
+    "projectError": null,
+    "dateValue": "2026-09-27",
+    "dateType": "date",
+    "dateError": null,
+    "crewEntriesCount": 0,
+    "crewHoursCount": 0,
+    "crewAssignCount": 1,
+    "errorPageText": null
+  },
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json"
+    ]
+  }
+}

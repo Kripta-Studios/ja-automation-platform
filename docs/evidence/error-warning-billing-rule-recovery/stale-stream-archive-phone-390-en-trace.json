@@ -1,0 +1,12 @@
+{
+  "build": "e344f463cf5f3247d507667bdd827d5f16a6b84e140e93d0137bc370f7798c07",
+  "code": "BILLING_ACTIVE_STREAM_UNAVAILABLE",
+  "status": 404,
+  "ruleId": "01a0db1d-a69e-7578-8efe-4e7735489b6c",
+  "scrollBefore": 2878,
+  "scrollAfter": 2878,
+  "maxAfter": 4470,
+  "focusedNotice": true,
+  "locale": "en",
+  "viewport": "phone-390"
+}

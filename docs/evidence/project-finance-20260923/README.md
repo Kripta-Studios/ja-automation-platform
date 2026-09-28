@@ -1,0 +1,7 @@
+# Project, workforce and finance verification
+
+The current deployed portal release observed on 24 September 2026 was `zip-d215671b99323d6d8c4ce34b74b4f8e0`. Authenticated test-role browser checks created and reloaded a synthetic QA client and project with optional budgets and planned end empty. Read-only WebKit checks at phone and tablet sizes loaded the project billing screen. These checks did **not** complete a live people → time → expense → invoice → delivery → payment journey. The clean deployment has no issuing entity or approved invoice-number policy, and the test accounts cannot perform the owner-only setup and chief grant. Physical iPhone/iPad Safari was not tested.
+
+An isolated local browser journey passed steps 1–29 of the Client Essential workflow, including report sign-off, invoice issue, partial ledger collection and Accounting Pack creation. Steps 30–32 remained blocked by missing external operations/Caddy evidence. Separate isolated email coverage confirms queueing, not inbox delivery. Local UI repairs for Project Manager assignment and Finance issuer permissions passed focused desktop/phone tests but were not deployed at the time of these captures.
+
+The detailed live traces, account credentials, record identifiers and cleanup manifests remain on the secured server and are intentionally absent from this public repository. The public [manuals](../../manuals/README.md) contain redacted screenshots and a capture manifest with image hashes.

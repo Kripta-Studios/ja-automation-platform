@@ -1,0 +1,38 @@
+{
+  "financeView": {
+    "approvedExpenseState": "approved",
+    "financeRowVisible": true,
+    "financeRowText": "Alex Rivera · 2026-09-27\nRevisão financeira · :project\nAbrir registro →\nAprovado operacionalmente\nClassifique esta despesa antes da revisão financeira.\nClassificar despesa em Finanças →",
+    "operationalFormCount": 0
+  },
+  "ownerReturn": {
+    "transport": 200,
+    "actionStatus": 200,
+    "recordState": "needs_changes"
+  },
+  "managerStale": {
+    "before": {
+      "scrollY": 2000,
+      "tag": "INPUT",
+      "top": 489.65625,
+      "viewport": 844,
+      "headerBottom": 69.59375
+    },
+    "after": {
+      "scrollY": 2363,
+      "tag": "ASIDE",
+      "top": -1648.03125,
+      "viewport": 844,
+      "headerBottom": 69.59375
+    },
+    "transport": 200,
+    "actionStatus": 409,
+    "networkCode": "APPROVAL_RECORD_NOT_SUBMITTED",
+    "noticeCode": "APPROVAL_RECORD_NOT_SUBMITTED",
+    "noticeText": "Se requiere una acción Este registro ya no está enviado. Revisa su estado actual antes de tomar una decisión. Estado actual: Necesita cambios Revisar el registro actualizado",
+    "reason": "Corrija el proveedor indicado",
+    "detailsOpen": true,
+    "tab": "Gastos\n31",
+    "auditDelta": 1
+  }
+}

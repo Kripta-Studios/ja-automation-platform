@@ -1,0 +1,502 @@
+{
+  "candidateCommit": "4337255b4c8c9cf3406dd62549582076c6d6b4db",
+  "fixtureSetup": "Owner created disposable supplier and assigned two disposable worker profiles via rendered Supplier forms",
+  "scenarios": [
+    {
+      "role": "owner",
+      "locale": "en",
+      "width": 390,
+      "initial": {
+        "url": "/j-aautomation/app/supplier/report?lang=en",
+        "title": "Operational report · J&A",
+        "heading": "Operational report",
+        "formPresent": true,
+        "projectValue": "project-cp008-ascension",
+        "from": {
+          "value": "2026-09-01",
+          "type": "date",
+          "error": null
+        },
+        "to": {
+          "value": "2026-09-27",
+          "type": "date",
+          "error": null
+        },
+        "noticeCode": null,
+        "noticeText": null,
+        "noticeVisible": false,
+        "remedyLinks": [],
+        "focused": "body",
+        "focusedNotice": false,
+        "focusedSummary": false,
+        "reportArticles": 0,
+        "downloadCount": 1,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 0,
+        "language": "en-US"
+      },
+      "reversed": {
+        "ui": {
+          "url": "/j-aautomation/app/supplier/report?viewportScrollY=0&projectId=project-cp008-ascension&supplierId=&from=2026-09-20&to=2026-09-19&lang=en",
+          "title": "Operational report · J&A",
+          "heading": "Operational report",
+          "formPresent": true,
+          "projectValue": "project-cp008-ascension",
+          "from": {
+            "value": "2026-09-20",
+            "type": "date",
+            "error": null
+          },
+          "to": {
+            "value": "2026-09-19",
+            "type": "date",
+            "error": "The report end date is before its start date. Choose an end date on or after the start date."
+          },
+          "noticeCode": "SUPPLIER_REPORT_PERIOD_ORDER_INVALID",
+          "noticeText": "Action needed The report end date is before its start date. Choose an end date on or after the start date. Review the report period",
+          "noticeVisible": true,
+          "remedyLinks": [
+            {
+              "text": "Review the report period",
+              "href": "#supplier-report-period-to"
+            }
+          ],
+          "focused": "aside",
+          "focusedNotice": true,
+          "focusedSummary": false,
+          "reportArticles": 0,
+          "downloadCount": 0,
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "language": "en-US"
+        }
+      },
+      "malformed": {
+        "status": 200,
+        "ui": {
+          "url": "/j-aautomation/app/supplier/report?projectId=project-cp008-ascension&from=2026-13-40&to=2026-09-20&lang=en",
+          "title": "Operational report · J&A",
+          "heading": "Operational report",
+          "formPresent": true,
+          "projectValue": "project-cp008-ascension",
+          "from": {
+            "value": "2026-13-40",
+            "type": "text",
+            "error": "Enter a real date in YYYY-MM-DD format."
+          },
+          "to": {
+            "value": "2026-09-20",
+            "type": "date",
+            "error": null
+          },
+          "noticeCode": "SUPPLIER_REPORT_PERIOD_DATE_INVALID",
+          "noticeText": "Action needed Enter real start and end dates to view the operational report. Use YYYY-MM-DD dates. Review the report period",
+          "noticeVisible": true,
+          "remedyLinks": [
+            {
+              "text": "Review the report period",
+              "href": "#supplier-report-period-from"
+            }
+          ],
+          "focused": "aside",
+          "focusedNotice": true,
+          "focusedSummary": false,
+          "reportArticles": 0,
+          "downloadCount": 0,
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "language": "en-US"
+        }
+      },
+      "noWrite": {
+        "before": {
+          "audits": 334,
+          "supplierProfiles": 2
+        },
+        "after": {
+          "audits": 334,
+          "supplierProfiles": 2
+        }
+      },
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [],
+        "http": [
+          "400 /j-aautomation/app/supplier/report.csv",
+          "400 /j-aautomation/app/supplier/report.csv"
+        ],
+        "reportResponses": [
+          "200 document /j-aautomation/app/supplier/report",
+          "200 document /j-aautomation/app/supplier/report",
+          "200 fetch /j-aautomation/app/supplier/report/__data.json",
+          "200 document /j-aautomation/app/supplier/report",
+          "400 fetch /j-aautomation/app/supplier/report.csv",
+          "400 fetch /j-aautomation/app/supplier/report.csv"
+        ]
+      }
+    },
+    {
+      "role": "supplier_coordinator",
+      "locale": "es",
+      "width": 1440,
+      "initial": {
+        "url": "/j-aautomation/app/supplier/report?lang=es",
+        "title": "Informe operativo · J&A",
+        "heading": "Informe operativo",
+        "formPresent": true,
+        "projectValue": "",
+        "from": {
+          "value": "2026-09-01",
+          "type": "date",
+          "error": null
+        },
+        "to": {
+          "value": "2026-09-27",
+          "type": "date",
+          "error": null
+        },
+        "noticeCode": null,
+        "noticeText": null,
+        "noticeVisible": false,
+        "remedyLinks": [],
+        "focused": "body",
+        "focusedNotice": false,
+        "focusedSummary": false,
+        "reportArticles": 0,
+        "downloadCount": 0,
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scrollY": 0,
+        "language": "es-ES"
+      },
+      "reversed": {
+        "ui": {
+          "url": "/j-aautomation/app/supplier/report?viewportScrollY=0&from=2026-09-20&to=2026-09-19&lang=es",
+          "title": "Informe operativo · J&A",
+          "heading": "Informe operativo",
+          "formPresent": true,
+          "projectValue": "",
+          "from": {
+            "value": "2026-09-20",
+            "type": "date",
+            "error": null
+          },
+          "to": {
+            "value": "2026-09-19",
+            "type": "date",
+            "error": "La fecha de fin del informe es anterior a la de inicio. Elige una fecha de fin igual o posterior a la de inicio."
+          },
+          "noticeCode": "SUPPLIER_REPORT_PERIOD_ORDER_INVALID",
+          "noticeText": "Se requiere una acción La fecha de fin del informe es anterior a la de inicio. Elige una fecha de fin igual o posterior a la de inicio. Revisar el período del informe",
+          "noticeVisible": true,
+          "remedyLinks": [
+            {
+              "text": "Revisar el período del informe",
+              "href": "#supplier-report-period-to"
+            }
+          ],
+          "focused": "aside",
+          "focusedNotice": true,
+          "focusedSummary": false,
+          "reportArticles": 0,
+          "downloadCount": 0,
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollY": 0,
+          "language": "es-ES"
+        }
+      },
+      "malformed": {
+        "status": 200,
+        "ui": {
+          "url": "/j-aautomation/app/supplier/report?from=2026-13-40&to=2026-09-20&lang=es",
+          "title": "Informe operativo · J&A",
+          "heading": "Informe operativo",
+          "formPresent": true,
+          "projectValue": "",
+          "from": {
+            "value": "2026-13-40",
+            "type": "text",
+            "error": "Introduce una fecha real en formato AAAA-MM-DD."
+          },
+          "to": {
+            "value": "2026-09-20",
+            "type": "date",
+            "error": null
+          },
+          "noticeCode": "SUPPLIER_REPORT_PERIOD_DATE_INVALID",
+          "noticeText": "Se requiere una acción Introduce fechas de inicio y fin reales para ver el informe operativo. Usa el formato AAAA-MM-DD. Revisar el período del informe",
+          "noticeVisible": true,
+          "remedyLinks": [
+            {
+              "text": "Revisar el período del informe",
+              "href": "#supplier-report-period-from"
+            }
+          ],
+          "focused": "aside",
+          "focusedNotice": true,
+          "focusedSummary": false,
+          "reportArticles": 0,
+          "downloadCount": 0,
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollY": 0,
+          "language": "es-ES"
+        }
+      },
+      "noWrite": {
+        "before": {
+          "audits": 334,
+          "supplierProfiles": 2
+        },
+        "after": {
+          "audits": 334,
+          "supplierProfiles": 2
+        }
+      },
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [],
+        "http": [],
+        "reportResponses": [
+          "200 document /j-aautomation/app/supplier/report",
+          "200 fetch /j-aautomation/app/supplier/report/__data.json",
+          "200 document /j-aautomation/app/supplier/report"
+        ]
+      }
+    },
+    {
+      "role": "external_technician",
+      "locale": "en",
+      "width": 390,
+      "initial": {
+        "url": "/j-aautomation/app/supplier/report?lang=en",
+        "title": "Operational report · J&A",
+        "heading": "Operational report",
+        "formPresent": true,
+        "projectValue": ":record",
+        "from": {
+          "value": "2026-09-01",
+          "type": "date",
+          "error": null
+        },
+        "to": {
+          "value": "2026-09-27",
+          "type": "date",
+          "error": null
+        },
+        "noticeCode": null,
+        "noticeText": null,
+        "noticeVisible": false,
+        "remedyLinks": [],
+        "focused": "body",
+        "focusedNotice": false,
+        "focusedSummary": false,
+        "reportArticles": 0,
+        "downloadCount": 1,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 0,
+        "language": "en-US"
+      },
+      "reversed": {
+        "ui": {
+          "url": "/j-aautomation/app/supplier/report?viewportScrollY=0&projectId=:record&from=2026-09-20&to=2026-09-19&lang=en",
+          "title": "Operational report · J&A",
+          "heading": "Operational report",
+          "formPresent": true,
+          "projectValue": ":record",
+          "from": {
+            "value": "2026-09-20",
+            "type": "date",
+            "error": null
+          },
+          "to": {
+            "value": "2026-09-19",
+            "type": "date",
+            "error": "The report end date is before its start date. Choose an end date on or after the start date."
+          },
+          "noticeCode": "SUPPLIER_REPORT_PERIOD_ORDER_INVALID",
+          "noticeText": "Action needed The report end date is before its start date. Choose an end date on or after the start date. Review the report period",
+          "noticeVisible": true,
+          "remedyLinks": [
+            {
+              "text": "Review the report period",
+              "href": "#supplier-report-period-to"
+            }
+          ],
+          "focused": "aside",
+          "focusedNotice": true,
+          "focusedSummary": false,
+          "reportArticles": 0,
+          "downloadCount": 0,
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "language": "en-US"
+        }
+      },
+      "malformed": {
+        "status": 200,
+        "ui": {
+          "url": "/j-aautomation/app/supplier/report?projectId=:record&from=2026-13-40&to=2026-09-20&lang=en",
+          "title": "Operational report · J&A",
+          "heading": "Operational report",
+          "formPresent": true,
+          "projectValue": ":record",
+          "from": {
+            "value": "2026-13-40",
+            "type": "text",
+            "error": "Enter a real date in YYYY-MM-DD format."
+          },
+          "to": {
+            "value": "2026-09-20",
+            "type": "date",
+            "error": null
+          },
+          "noticeCode": "SUPPLIER_REPORT_PERIOD_DATE_INVALID",
+          "noticeText": "Action needed Enter real start and end dates to view the operational report. Use YYYY-MM-DD dates. Review the report period",
+          "noticeVisible": true,
+          "remedyLinks": [
+            {
+              "text": "Review the report period",
+              "href": "#supplier-report-period-from"
+            }
+          ],
+          "focused": "aside",
+          "focusedNotice": true,
+          "focusedSummary": false,
+          "reportArticles": 0,
+          "downloadCount": 0,
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "language": "en-US"
+        }
+      },
+      "noWrite": {
+        "before": {
+          "audits": 334,
+          "supplierProfiles": 2
+        },
+        "after": {
+          "audits": 334,
+          "supplierProfiles": 2
+        }
+      },
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [],
+        "http": [],
+        "reportResponses": [
+          "200 document /j-aautomation/app/supplier/report",
+          "200 fetch /j-aautomation/app/supplier/report/__data.json",
+          "200 document /j-aautomation/app/supplier/report"
+        ]
+      }
+    }
+  ],
+  "workspace": {
+    "transportStatus": 200,
+    "ui": {
+      "status": "Suppliers and technicians · J&A",
+      "url": "/j-aautomation/app/supplier?workspaceAction=report&from=2026-09-20&to=2026-09-19&lang=en",
+      "code": "SUPPLIER_REPORT_PERIOD_ORDER_INVALID",
+      "text": "Action needed The report end date is before its start date. Choose an end date on or after the start date. Review the report period",
+      "focused": true,
+      "reportLinkCount": 0
+    }
+  },
+  "directory": {
+    "transportStatus": 200,
+    "ui": {
+      "url": "/j-aautomation/app/supplier?workspaceAction=directory&from=2026-09-20&to=2026-09-19&lang=en",
+      "title": "Suppliers and technicians · J&A",
+      "noticeCount": 0,
+      "noticeText": null,
+      "active": "body",
+      "selectedWorkspace": null
+    }
+  },
+  "missingProjectCsv": {
+    "status": 400,
+    "contentType": "application/problem+json; charset=utf-8",
+    "contentDisposition": null,
+    "body": {
+      "success": false,
+      "code": "SUPPLIER_REPORT_PROJECT_REQUIRED",
+      "messageKey": "problem.supplier.reportProjectRequired",
+      "message": "Choose an operational project before downloading this report.",
+      "params": {},
+      "fieldErrors": {
+        "projectId": [
+          "problem.supplier.reportProjectRequired"
+        ]
+      },
+      "remedies": [
+        {
+          "id": "choose_operational_project"
+        }
+      ],
+      "correlationId": ":record"
+    }
+  },
+  "invalidDateCsv": {
+    "status": 400,
+    "contentType": "application/problem+json; charset=utf-8",
+    "contentDisposition": null,
+    "body": {
+      "success": false,
+      "code": "SUPPLIER_REPORT_PERIOD_DATE_INVALID",
+      "messageKey": "problem.supplier.reportPeriodDateInvalid",
+      "message": "Enter real start and end dates to view the operational report. Use YYYY-MM-DD dates.",
+      "params": {},
+      "fieldErrors": {
+        "from": [
+          "problem.supplier.dateInvalid"
+        ]
+      },
+      "remedies": [
+        {
+          "id": "review_report_period"
+        }
+      ],
+      "correlationId": ":record"
+    }
+  },
+  "unauthorizedCsv": [
+    {
+      "role": "finance",
+      "status": 403,
+      "contentType": "application/json",
+      "body": "{\"message\":\"Supplier workforce access denied\"}"
+    },
+    {
+      "role": "manager",
+      "status": 403,
+      "contentType": "application/json",
+      "body": "{\"message\":\"Supplier workforce access denied\"}"
+    }
+  ]
+}

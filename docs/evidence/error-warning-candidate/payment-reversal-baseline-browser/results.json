@@ -1,0 +1,108 @@
+{
+  "candidateCommit": "81e3b75706610441baa747870af5459e2a57ddbc",
+  "fixture": "fresh disposable database; seeded issued invoice; payment created via rendered form; blocked reversal forms submitted natively",
+  "cases": [
+    {
+      "role": "finance",
+      "viewport": "390x844",
+      "locale": "en",
+      "mode": "native",
+      "kind": "over-remaining",
+      "beforeScroll": {
+        "window": 1392,
+        "drawer": 548
+      },
+      "response": {
+        "transportStatus": 400,
+        "contentType": "text/html",
+        "actionStatus": null,
+        "code": "BILLING_PAYMENT_AMOUNT_INVALID"
+      },
+      "visible": {
+        "code": "BILLING_PAYMENT_AMOUNT_INVALID",
+        "wording": "Action needed The amount must be positive and cannot exceed the available invoice or payment balance. Review the ledger and enter an allowed amount. Review invoice ledger",
+        "remedies": [
+          {
+            "text": "Review invoice ledger",
+            "href": "#invoice-collections"
+          }
+        ],
+        "amount": "99.00",
+        "max": "10.00",
+        "focused": "amount",
+        "activeTop": 695,
+        "activeBottom": 739,
+        "noticeTop": -419,
+        "noticeBottom": -247,
+        "headerBottom": 70,
+        "scrollY": 1392,
+        "drawerScrollTop": 548,
+        "viewportHeight": 844,
+        "urlHasInvoiceFilter": false,
+        "locale": null
+      },
+      "reasonRetained": true,
+      "remedyBehavior": {
+        "href": "#invoice-collections",
+        "sameDocument": true,
+        "path": "/j-aautomation/app/billing",
+        "search": "?/reversePayment",
+        "hash": "#invoice-collections",
+        "drawerOpen": true
+      },
+      "reversalCount": 0
+    },
+    {
+      "role": "finance",
+      "viewport": "390x844",
+      "locale": "en",
+      "mode": "native",
+      "kind": "zero",
+      "beforeScroll": {
+        "window": 1392,
+        "drawer": 548
+      },
+      "response": {
+        "transportStatus": 400,
+        "contentType": "text/html",
+        "actionStatus": null,
+        "code": "BILLING_PAYMENT_AMOUNT_INVALID"
+      },
+      "visible": {
+        "code": "BILLING_PAYMENT_AMOUNT_INVALID",
+        "wording": "Action needed The amount must be positive and cannot exceed the available invoice or payment balance. Review the ledger and enter an allowed amount. Review invoice ledger",
+        "remedies": [
+          {
+            "text": "Review invoice ledger",
+            "href": "#invoice-collections"
+          }
+        ],
+        "amount": "0.00",
+        "max": "10.00",
+        "focused": "amount",
+        "activeTop": 695,
+        "activeBottom": 739,
+        "noticeTop": -419,
+        "noticeBottom": -247,
+        "headerBottom": 70,
+        "scrollY": 1392,
+        "drawerScrollTop": 548,
+        "viewportHeight": 844,
+        "urlHasInvoiceFilter": false,
+        "locale": null
+      },
+      "reasonRetained": true,
+      "reversalCount": 0
+    }
+  ],
+  "diagnostics": {
+    "finance": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  }
+}

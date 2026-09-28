@@ -1,9 +1,22 @@
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  ACCOUNTING_PACK_DATA_TEMPLATE_VERSION,
+  ACCOUNTING_PACK_PDF_TEMPLATE_VERSION,
+  FIELD_REPORT_TEMPLATE_VERSION,
+  INVOICE_TEMPLATE_VERSION,
+  PERIOD_REPORT_TEMPLATE_VERSION,
   REPORT_TEMPLATE_VERSION,
   REPORT_LOCALES,
+  SPREADSHEET_TEMPLATE_VERSION,
+  WORKER_STATEMENT_TEMPLATE_VERSION,
   accountingPackArtifacts,
+  accountingPackPdf,
   invoicePdf,
   periodReportPdf,
 } from '@ja/reporting';
@@ -11,8 +24,68 @@ import {
 const sha256 = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
 const pageCount = (bytes: Uint8Array): number =>
   Buffer.from(bytes).toString('latin1').split('/Type /Page').length - 1;
+const textFromPdf = (bytes: Uint8Array, layout = true): string => {
+  const directory = mkdtempSync(join(tmpdir(), 'ja-reporting-privacy-'));
+  const input = join(directory, 'report.pdf');
+  try {
+    writeFileSync(input, bytes);
+    return execFileSync('pdftotext', [...(layout ? ['-layout'] : []), input, '-'], {
+      encoding: 'utf8',
+    })
+      .replace(/\s+/g, ' ')
+      .trim();
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+};
 
 describe('production reporting artifacts', () => {
+  it('keeps issued families stable while versioning redesigned report and spreadsheet families', () => {
+    expect(INVOICE_TEMPLATE_VERSION).toBe('2026.09.02.2');
+    expect(ACCOUNTING_PACK_PDF_TEMPLATE_VERSION).toBe('2026.09.22.1');
+    expect(ACCOUNTING_PACK_DATA_TEMPLATE_VERSION).toBe('2026.09.02.2');
+    expect(PERIOD_REPORT_TEMPLATE_VERSION).toBe('2026.09.22.1');
+    expect(WORKER_STATEMENT_TEMPLATE_VERSION).toBe('2026.09.22.1');
+    expect(FIELD_REPORT_TEMPLATE_VERSION).toBe('2026.09.22.1');
+    expect(SPREADSHEET_TEMPLATE_VERSION).toBe('2026.09.22.1');
+    expect(REPORT_TEMPLATE_VERSION).toBe(INVOICE_TEMPLATE_VERSION);
+  });
+
+  it('uses source field units for Accounting Pack worker hours', () => {
+    const minutes = textFromPdf(
+      accountingPackPdf({
+        periodStart: '2026-08-01',
+        periodEnd: '2026-08-31',
+        currency: 'USD',
+        totals: {},
+        workerCosts: [
+          { worker: 'Marina', actualApprovedMinutes: 450 },
+          { worker: 'Alex', approved_minutes: 480 },
+        ],
+      }),
+    );
+    expect(minutes).toContain('7.50 h');
+    expect(minutes).toContain('8.00 h');
+    expect(minutes).toContain('15.50 h');
+    expect(minutes).not.toContain('450.00 h');
+
+    const legacyHours = textFromPdf(
+      accountingPackPdf({
+        periodStart: '2026-08-01',
+        periodEnd: '2026-08-31',
+        currency: 'USD',
+        totals: {},
+        workerCosts: [
+          { worker: 'Legacy Fraction', hours: 7.5 },
+          { worker: 'Legacy Sixty', hours: 60 },
+        ],
+      }),
+    );
+    expect(legacyHours).toContain('7.50 h');
+    expect(legacyHours).toContain('60.00 h');
+    expect(legacyHours).toContain('67.50 h');
+  });
+
   it('renders long immutable invoice snapshots as multipage PDFs with traceable template output', () => {
     const pdf = invoicePdf({
       number: 'JA-INV-000001',
@@ -34,7 +107,7 @@ describe('production reporting artifacts', () => {
     expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe('%PDF-');
     expect(pageCount(pdf)).toBeGreaterThan(1);
     expect(sha256(pdf)).toMatch(/^[a-f0-9]{64}$/);
-    expect(REPORT_TEMPLATE_VERSION).toBe('2026.08.19.3');
+    expect(REPORT_TEMPLATE_VERSION).toBe('2026.09.02.2');
   });
 
   it('keeps period and Accounting Pack generation on the same renderer contract', () => {
@@ -72,6 +145,155 @@ describe('production reporting artifacts', () => {
       expect(artifact.bytes.byteLength).toBeGreaterThan(0);
       expect(sha256(artifact.bytes)).toMatch(/^[a-f0-9]{64}$/);
     }
+  });
+
+  it('keeps machine-readable Accounting Pack CSV schemas when the registers are empty', () => {
+    const artifacts = accountingPackArtifacts({
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+      invoiceRegister: [],
+      collections: [],
+      workerCosts: [],
+      expenseRegister: [],
+      totals: { currency: 'USD', revenueMinor: '0', costMinor: '0' },
+    });
+    const invoiceCsv = artifacts.find((artifact) => artifact.type === 'invoice_csv');
+    const expenseCsv = artifacts.find((artifact) => artifact.type === 'expense_csv');
+    expect(new TextDecoder().decode(invoiceCsv?.bytes)).toContain(
+      'invoiceNumber,client,projectNumber,streamType',
+    );
+    expect(new TextDecoder().decode(expenseCsv?.bytes)).toContain(
+      'date,worker,projectNumber,vendor,category',
+    );
+  });
+
+  it('omits commercial calculation and money sections from customer period PDFs while retaining operational records', () => {
+    const pdf = periodReportPdf({
+      project: { number: 'C-0001-P-001', name: 'Commissioning', clientName: 'Client' },
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+      audience: 'customer',
+      locale: 'en',
+      commercialSummary: {
+        currency: 'USD',
+        actualMinutes: 600,
+        approvedMinutes: 540,
+        billableMinutes: 480,
+        candidateSubtotalMinor: '123456',
+      },
+      commercialCalculation: [
+        {
+          type: 'labor',
+          basis: 'SECRET COMMERCIAL BASIS',
+          minutes: 480,
+          amountMinor: '123456',
+        },
+      ],
+      financialSummary: {
+        currency: 'USD',
+        approvedCostMinor: '50000',
+        contributionMarginMinor: '73456',
+      },
+      dailyReports: [
+        {
+          work_date: '2026-08-12',
+          summary: 'Customer-visible operational activity delivered',
+          approval_state: 'approved',
+        },
+      ],
+      technicalReports: [
+        {
+          report_date: '2026-08-13',
+          change_summary: 'PLC validation record retained',
+          approval_state: 'approved',
+        },
+      ],
+      technicalChanges: [
+        {
+          created_at: '2026-08-14T00:00:00.000Z',
+          change_made: 'Operational change reference retained',
+          approval_state: 'approved',
+        },
+      ],
+      sourceCounts: {
+        dailyReports: 1,
+        technicalReports: 1,
+        technicalChanges: 1,
+        timeEntries: 1,
+      },
+    });
+    expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe('%PDF-');
+    const text = textFromPdf(pdf);
+    expect(text).toContain('Customer-visible');
+    // pdftotext preserves the table's status/date column between these two
+    // words; assert the customer-visible source content without coupling the
+    // privacy contract to a particular text-extraction column order.
+    expect(text).toContain('Customer-visible operational');
+    expect(text).toContain('activity');
+    expect(text).toContain('delivered');
+    expect(text).toContain('PLC validation');
+    expect(text).toContain('record retained');
+    expect(text).toContain('Operational change');
+    expect(text).toContain('reference');
+    expect(text).toContain('retained');
+    expect(text).toContain('daily 1');
+    expect(text).toContain('technical 1');
+    expect(text).toContain('changes 1');
+    expect(text).toContain('Client Representative Signature');
+    expect(text).toContain('Name & Title');
+    expect(text).not.toContain('SECRET COMMERCIAL BASIS');
+    expect(text).not.toContain('Calculation basis');
+    expect(text).not.toContain('1,234.56');
+    expect(text).not.toContain('Calculated bill candidate');
+  });
+
+  it('shows safe worker display attribution for same-day customer activity without source IDs or finance', () => {
+    const pdf = periodReportPdf({
+      project: { number: 'C-0001-P-001', name: 'Commissioning', clientName: 'Client' },
+      periodStart: '2026-08-12',
+      periodEnd: '2026-08-12',
+      audience: 'customer',
+      locale: 'en',
+      timeSummary: [
+        {
+          id: 'time-private-1',
+          date: '2026-08-12',
+          workerDisplay: 'Alex Commissioning Engineer',
+          activitySummary: 'Validate safety interlocks',
+          minutes: 60,
+          approvalState: 'approved',
+        },
+        {
+          id: 'time-private-2',
+          date: '2026-08-12',
+          workerDisplay: 'Rui Field Engineer',
+          activitySummary: 'Validate commissioning sequence',
+          minutes: 45,
+          approvalState: 'approved',
+        },
+      ],
+      sourceCounts: { dailyReports: 0, technicalReports: 0, technicalChanges: 0, timeEntries: 2 },
+    });
+    const text = textFromPdf(pdf, false);
+    expect(text).toContain('Alex Commissioning Engineer');
+    expect(text).toContain('Rui Field Engineer');
+    expect(text).not.toContain('time-private-1');
+    expect(text).not.toContain('time-private-2');
+    expect(text).not.toContain('amountMinor');
+  });
+
+  it('keeps invoice PDF layout CSS independent of shared report page styles', () => {
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), '../packages/reporting/src/exports.ts'),
+      'utf8',
+    );
+    expect(source).toContain('function invoiceLayout(');
+    expect(source).toContain('.invoice-parties');
+    expect(source).toContain('.invoice-meta');
+    expect(source).toContain('.invoice-total');
+    expect(source).toContain(
+      'invoiceLayout(rendered.title, rendered.subtitle, number, rendered.body, locale, snapshot)',
+    );
   });
 
   it('supports the selectable English, Brazilian Portuguese and Spanish report locales', () => {

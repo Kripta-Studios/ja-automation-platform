@@ -1,0 +1,197 @@
+{
+  "candidateCommit": "fa8eeb6a975e74344ba9351a6f3f5bd7320b08c2",
+  "role": "finance",
+  "viewport": 390,
+  "startingScroll": 300,
+  "timeline": [
+    {
+      "atMsAfterNoticeVisible": 0,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=772&currency=&filter=all&from=2026-09-20&to=2026-09-19&project=&group=week",
+        "locale": "en",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 472,
+        "bannerBottom": 70,
+        "noticeCode": "FINANCE_CASH_DATE_ORDER_INVALID",
+        "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeTop": 87.6875,
+        "noticeBottom": 259.546875,
+        "summaryText": null,
+        "summaryTop": null,
+        "focusIsNotice": true,
+        "focusIsSummary": false,
+        "remedyHref": "#cash-to",
+        "currency": "",
+        "group": "week",
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "fieldErrors": {
+          "cash-to-error": "The end date is before the start date. Choose an end date on or after the start date."
+        },
+        "groupCount": 0
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 50,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=772&currency=&filter=all&from=2026-09-20&to=2026-09-19&project=&group=week",
+        "locale": "en",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 472,
+        "bannerBottom": 70,
+        "noticeCode": "FINANCE_CASH_DATE_ORDER_INVALID",
+        "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeTop": 87.6875,
+        "noticeBottom": 259.546875,
+        "summaryText": null,
+        "summaryTop": null,
+        "focusIsNotice": true,
+        "focusIsSummary": false,
+        "remedyHref": "#cash-to",
+        "currency": "",
+        "group": "week",
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "fieldErrors": {
+          "cash-to-error": "The end date is before the start date. Choose an end date on or after the start date."
+        },
+        "groupCount": 0
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 250,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=772&currency=&filter=all&from=2026-09-20&to=2026-09-19&project=&group=week",
+        "locale": "en",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 472,
+        "bannerBottom": 70,
+        "noticeCode": "FINANCE_CASH_DATE_ORDER_INVALID",
+        "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeTop": 87.6875,
+        "noticeBottom": 259.546875,
+        "summaryText": null,
+        "summaryTop": null,
+        "focusIsNotice": true,
+        "focusIsSummary": false,
+        "remedyHref": "#cash-to",
+        "currency": "",
+        "group": "week",
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "fieldErrors": {
+          "cash-to-error": "The end date is before the start date. Choose an end date on or after the start date."
+        },
+        "groupCount": 0
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 500,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=772&currency=&filter=all&from=2026-09-20&to=2026-09-19&project=&group=week",
+        "locale": "en",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 472,
+        "bannerBottom": 70,
+        "noticeCode": "FINANCE_CASH_DATE_ORDER_INVALID",
+        "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeTop": 87.6875,
+        "noticeBottom": 259.546875,
+        "summaryText": null,
+        "summaryTop": null,
+        "focusIsNotice": true,
+        "focusIsSummary": false,
+        "remedyHref": "#cash-to",
+        "currency": "",
+        "group": "week",
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "fieldErrors": {
+          "cash-to-error": "The end date is before the start date. Choose an end date on or after the start date."
+        },
+        "groupCount": 0
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 1000,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=772&currency=&filter=all&from=2026-09-20&to=2026-09-19&project=&group=week",
+        "locale": "en",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 472,
+        "bannerBottom": 70,
+        "noticeCode": "FINANCE_CASH_DATE_ORDER_INVALID",
+        "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeTop": 87.6875,
+        "noticeBottom": 259.546875,
+        "summaryText": null,
+        "summaryTop": null,
+        "focusIsNotice": true,
+        "focusIsSummary": false,
+        "remedyHref": "#cash-to",
+        "currency": "",
+        "group": "week",
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "fieldErrors": {
+          "cash-to-error": "The end date is before the start date. Choose an end date on or after the start date."
+        },
+        "groupCount": 0
+      }
+    }
+  ],
+  "final": {
+    "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=772&currency=&filter=all&from=2026-09-20&to=2026-09-19&project=&group=week",
+    "locale": "en",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 472,
+    "bannerBottom": 70,
+    "noticeCode": "FINANCE_CASH_DATE_ORDER_INVALID",
+    "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start date. Correct the highlighted field",
+    "noticeTop": 87.6875,
+    "noticeBottom": 259.546875,
+    "summaryText": null,
+    "summaryTop": null,
+    "focusIsNotice": true,
+    "focusIsSummary": false,
+    "remedyHref": "#cash-to",
+    "currency": "",
+    "group": "week",
+    "from": "2026-09-20",
+    "to": "2026-09-19",
+    "fieldErrors": {
+      "cash-to-error": "The end date is before the start date. Choose an end date on or after the start date."
+    },
+    "groupCount": 0
+  },
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 document /j-aautomation/app/finance/cash",
+      "200 fetch /j-aautomation/app/finance/cash/__data.json"
+    ]
+  }
+}

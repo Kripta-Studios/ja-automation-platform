@@ -1,0 +1,419 @@
+import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { createServer } from 'node:net';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { afterEach, describe, it } from 'vitest';
+import { expect } from '@playwright/test';
+import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
+import { e2eCredentials, seedE2ECredentialAccounts } from '../e2e/auth.js';
+
+const root = process.cwd();
+const fixtures: string[] = [];
+const children: ChildProcess[] = [];
+const browsers: Browser[] = [];
+const contexts: BrowserContext[] = [];
+
+afterEach(async () => {
+  for (const context of contexts.splice(0)) await context.close();
+  for (const browser of browsers.splice(0)) await browser.close();
+  const runningChildren = children.splice(0);
+  for (const child of runningChildren) {
+    if (!child.pid) continue;
+    if (process.platform === 'win32') {
+      try {
+        execFileSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+      } catch {
+        child.kill();
+      }
+    } else child.kill('SIGTERM');
+  }
+  await Promise.all(
+    runningChildren.map(
+      (child) =>
+        new Promise<void>((resolve) => {
+          if (child.exitCode !== null) {
+            resolve();
+            return;
+          }
+          child.once('close', () => resolve());
+          setTimeout(resolve, 5_000);
+        }),
+    ),
+  );
+  for (const fixture of fixtures.splice(0))
+    rmSync(fixture, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+});
+
+async function freePort(): Promise<number> {
+  const server = createServer();
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => resolve());
+  });
+  const address = server.address();
+  if (!address || typeof address === 'string') throw new Error('Could not allocate a test port');
+  const port = address.port;
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  return port;
+}
+
+async function waitForServer(url: string): Promise<void> {
+  const deadline = Date.now() + 90_000;
+  let lastError = 'no response';
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) return;
+      lastError = `HTTP ${response.status}`;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Portal test server did not become ready: ${lastError}`);
+}
+
+async function startPortal(): Promise<string> {
+  const directory = mkdtempSync(join(tmpdir(), 'ja-offline-isolation-'));
+  fixtures.push(directory);
+  const databasePath = join(directory, 'portal.sqlite');
+  const documentRoot = join(directory, 'documents');
+  execFileSync(
+    process.execPath,
+    ['--experimental-strip-types', 'packages/database/src/demo-seed.ts'],
+    {
+      cwd: root,
+      env: {
+        ...process.env,
+        NODE_ENV: 'development',
+        JA_DATABASE_PATH: databasePath,
+        JA_MIGRATIONS_PATH: join(root, 'migrations'),
+        JA_DOCUMENT_ROOT: documentRoot,
+        JA_FIXTURE_RESET_DOCUMENTS: 'false',
+        JA_DEMO_SEED_PRESERVE_DB: 'true',
+        JA_AUTH_SECRET: 'offline-isolation-test-secret',
+        JA_TENANT_ID: 'e2e-client-essential-tenant',
+        JA_DEPLOYMENT_ID: 'e2e-client-essential-deployment',
+        JA_PUBLIC_BASE_PATH: '/j-aautomation',
+        JA_PORTAL_BASE_PATH: '/j-aautomation/app',
+      },
+      stdio: 'ignore',
+    },
+  );
+  const previousTenantId = process.env.JA_TENANT_ID;
+  const previousDeploymentId = process.env.JA_DEPLOYMENT_ID;
+  process.env.JA_TENANT_ID = 'e2e-client-essential-tenant';
+  process.env.JA_DEPLOYMENT_ID = 'e2e-client-essential-deployment';
+  try {
+    await seedE2ECredentialAccounts(databasePath);
+  } finally {
+    if (previousTenantId === undefined) delete process.env.JA_TENANT_ID;
+    else process.env.JA_TENANT_ID = previousTenantId;
+    if (previousDeploymentId === undefined) delete process.env.JA_DEPLOYMENT_ID;
+    else process.env.JA_DEPLOYMENT_ID = previousDeploymentId;
+  }
+  const port = await freePort();
+  const child = spawn(
+    process.execPath,
+    [
+      join(root, 'apps', 'portal', 'node_modules', 'vite', 'bin', 'vite.js'),
+      'dev',
+      '--host',
+      '127.0.0.1',
+      '--port',
+      String(port),
+    ],
+    {
+      cwd: join(root, 'apps', 'portal'),
+      env: {
+        ...process.env,
+        NODE_ENV: 'development',
+        ORIGIN: `http://127.0.0.1:${port}`,
+        JA_DATABASE_PATH: databasePath,
+        JA_MIGRATIONS_PATH: join(root, 'migrations'),
+        JA_DOCUMENT_ROOT: documentRoot,
+        JA_FIXTURE_RESET_DOCUMENTS: 'false',
+        JA_AUTH_SECRET: 'offline-isolation-test-secret',
+        JA_TENANT_ID: 'e2e-client-essential-tenant',
+        JA_DEPLOYMENT_ID: 'e2e-client-essential-deployment',
+        JA_PUBLIC_BASE_PATH: '/j-aautomation',
+        JA_PORTAL_BASE_PATH: '/j-aautomation/app',
+        HOST: '127.0.0.1',
+        PORT: String(port),
+      },
+      stdio: 'ignore',
+    },
+  );
+  children.push(child);
+  const childStartupError = new Promise<never>((_, reject) => {
+    child.once('error', (error) => reject(error));
+  });
+  const baseUrl = `http://127.0.0.1:${port}/j-aautomation/app`;
+  await Promise.race([waitForServer(`${baseUrl}/login`), childStartupError]);
+  return baseUrl;
+}
+
+async function signInAt(
+  page: Page,
+  baseUrl: string,
+  role: keyof typeof e2eCredentials,
+): Promise<void> {
+  const credentials = e2eCredentials[role];
+  await page.goto(`${baseUrl}/login`);
+  await page.waitForLoadState('networkidle');
+  await page.getByLabel('Work email').fill(credentials.email);
+  await page.getByLabel('Password').fill(credentials.password);
+  await page.getByRole('button', { name: 'Continue to workspace' }).click();
+  await page.waitForURL(
+    (url) =>
+      url.pathname === '/j-aautomation/app' ||
+      (url.pathname.startsWith('/j-aautomation/app/') &&
+        url.pathname !== '/j-aautomation/app/login'),
+  );
+  await page.waitForLoadState('networkidle');
+}
+
+async function waitForServiceWorkerCache(page: Page): Promise<void> {
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(async () => {
+          if (!('serviceWorker' in navigator)) return false;
+          await navigator.serviceWorker.ready;
+          return Boolean(await caches.match(location.href));
+        }),
+      { timeout: 10_000 },
+    )
+    .toBe(true);
+}
+
+async function assignmentOptionTexts(page: Page): Promise<string[]> {
+  return page
+    .locator('form[action="?/createTime"] select[name="projectId"] option')
+    .allTextContents();
+}
+
+async function timeFilterOptionTexts(page: Page): Promise<string[]> {
+  return page.locator('form.time-filters select[name="project"] option').allTextContents();
+}
+
+async function openTimeEntryForm(page: Page): Promise<void> {
+  await page.locator('[data-time-primary-cta]').click();
+  await expect(page.locator('form[action="?/createTime"]')).toHaveCount(1);
+}
+
+async function openDailyReportForm(page: Page): Promise<void> {
+  await page.locator('[data-report-primary-cta]').click();
+  await expect(page.locator('form[action="?/createDailyReport"]')).toHaveCount(1);
+}
+
+describe('offline authenticated-user partitioning', () => {
+  it('revokes user A offline state before an offline navigation after logout', async () => {
+    const baseUrl = await startPortal();
+    const browser = await chromium.launch({ headless: true });
+    browsers.push(browser);
+    const context = await browser.newContext();
+    contexts.push(context);
+    const page = await context.newPage();
+
+    await signInAt(page, baseUrl, 'manager');
+    await page.goto(`${baseUrl}/time`);
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('.user-copy b')).toHaveText('Daniel Brooks');
+    await waitForServiceWorkerCache(page);
+
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await page.waitForURL((url) => url.toString() === `${baseUrl}/login`);
+    expect((await context.cookies()).some((cookie) => cookie.name === 'ja_offline_identity')).toBe(
+      false,
+    );
+
+    // The private route was cached while A was signed in. Once A has logged
+    // out, the service worker must not fall back to A's identity when the
+    // browser is offline; a 200 response here would be a private-data leak.
+    await context.setOffline(true);
+    const response = await page.goto(`${baseUrl}/time`).catch(() => null);
+    expect(response?.status() ?? null).not.toBe(200);
+    await expect(page.locator('.user-copy b')).toHaveCount(0);
+  }, 120_000);
+
+  it('does not expose one user’s queued draft after a session changes on the same device', async () => {
+    const baseUrl = await startPortal();
+    const browser = await chromium.launch({ headless: true });
+    browsers.push(browser);
+    const context = await browser.newContext();
+    contexts.push(context);
+    // Prime Worker B's own responses before Worker A's cache is written. The Palletizer project is
+    // assigned to Worker B but not Worker A, so it is a positive partition marker rather than a
+    // vacuous empty-list assertion.
+    const workerBSessionPage = await context.newPage();
+    await signInAt(workerBSessionPage, baseUrl, 'worker2');
+    const workerBOnlyAssignment = 'High-Speed Palletizer Commissioning · Demo';
+    await workerBSessionPage.goto(`${baseUrl}/time`);
+    await workerBSessionPage.waitForLoadState('networkidle');
+    await openTimeEntryForm(workerBSessionPage);
+    const workerBTimeAssignments = await assignmentOptionTexts(workerBSessionPage);
+    expect(
+      workerBTimeAssignments.some((label) => label.includes(workerBOnlyAssignment)),
+      'Worker B fixture must positively contain its private Palletizer assignment before cache isolation is tested',
+    ).toBe(true);
+    await waitForServiceWorkerCache(workerBSessionPage);
+
+    await workerBSessionPage.goto(`${baseUrl}/reports`);
+    await workerBSessionPage.waitForLoadState('networkidle');
+    await openDailyReportForm(workerBSessionPage);
+    const workerBReportForm = workerBSessionPage.locator('form[action="?/createDailyReport"]');
+    await expect(workerBReportForm).toHaveCount(1);
+    await expect(
+      workerBReportForm.locator(`select[name="projectId"] option`).filter({
+        hasText: workerBOnlyAssignment,
+      }),
+    ).toHaveCount(1);
+    await waitForServiceWorkerCache(workerBSessionPage);
+
+    // Save Worker B's session after priming both routes. Restoring only this session cookie later
+    // lets Worker B open its own cached routes offline without re-authenticating online.
+    const workerBCookies = await context.cookies();
+    await workerBSessionPage.close();
+    await context.clearCookies();
+
+    const workerPage = await context.newPage();
+    await signInAt(workerPage, baseUrl, 'worker');
+    await workerPage.goto(`${baseUrl}/time`);
+    await workerPage.waitForLoadState('networkidle');
+    await expect(workerPage.locator('.connection')).toHaveText('Online');
+    await expect(workerPage.locator('.queue')).toHaveCount(0);
+    await expect(workerPage.locator('.sync-message')).toHaveCount(0);
+
+    const workerOnlyAssignment = 'Remote Controls Support Retainer · Demo';
+    await openTimeEntryForm(workerPage);
+    const workerAssignments = await assignmentOptionTexts(workerPage);
+    expect(
+      workerAssignments.some((label) => label.includes(workerOnlyAssignment)),
+      'Worker fixture must visibly contain its private assignment before cache isolation is tested',
+    ).toBe(true);
+    await waitForServiceWorkerCache(workerPage);
+
+    await workerPage.goto(`${baseUrl}/reports`);
+    await workerPage.waitForLoadState('networkidle');
+    const workerPrivateReport =
+      'Startup support, sensor timing investigation and customer handover notes.';
+    await expect(workerPage.getByText(workerPrivateReport, { exact: true })).toBeVisible();
+    await waitForServiceWorkerCache(workerPage);
+    await workerPage.close();
+
+    // The same browser storage now carries the Worker assignment cache and private SSR responses,
+    // but only Worker B's authenticated cookie is restored. A correct partition must not render
+    // either private Worker value from a cached /time or /reports response.
+    await context.clearCookies();
+    await context.addCookies(workerBCookies);
+    await context.setOffline(true);
+    const workerBOfflinePage = await context.newPage();
+    const cachedTimeResponse = await workerBOfflinePage.goto(`${baseUrl}/time`);
+    expect
+      .soft(
+        cachedTimeResponse?.status(),
+        'cached private time response must remain loadable offline',
+      )
+      .toBe(200);
+    await expect.soft(workerBOfflinePage.locator('.user-copy b')).toHaveText('Rafael Santos');
+    const workerBAssignments = await timeFilterOptionTexts(workerBOfflinePage);
+    expect
+      .soft(
+        workerBAssignments.some((label) => label.includes(workerBOnlyAssignment)),
+        'Worker B must retain its own Palletizer assignment marker offline',
+      )
+      .toBe(true);
+    expect
+      .soft(
+        workerBAssignments.some((label) => label.includes(workerOnlyAssignment)),
+        "Worker B must not see Worker A's private cached assignment",
+      )
+      .toBe(false);
+
+    const cachedReportsResponse = await workerBOfflinePage.goto(`${baseUrl}/reports`);
+    expect
+      .soft(
+        cachedReportsResponse?.status(),
+        'cached private report response must remain loadable offline',
+      )
+      .toBe(200);
+    await expect.soft(workerBOfflinePage.locator('.user-copy b')).toHaveText('Rafael Santos');
+    expect
+      .soft(
+        await workerBOfflinePage.getByText(workerPrivateReport, { exact: true }).count(),
+        "Worker B must not see Worker A's private cached report response",
+      )
+      .toBe(0);
+    await workerBOfflinePage.close();
+
+    await context.clearCookies();
+    await context.setOffline(false);
+    const workerQueuePage = await context.newPage();
+    await signInAt(workerQueuePage, baseUrl, 'worker');
+    await workerQueuePage.goto(`${baseUrl}/time`);
+    await workerQueuePage.waitForLoadState('networkidle');
+    await expect(workerQueuePage.locator('.connection')).toHaveText('Online');
+    await expect(workerQueuePage.locator('.queue')).toHaveCount(0);
+    await expect(workerQueuePage.locator('.sync-message')).toHaveCount(0);
+    await openTimeEntryForm(workerQueuePage);
+    await context.setOffline(true);
+    await workerQueuePage.evaluate(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          let attempts = 0;
+          const dispatch = () => {
+            dispatchEvent(new Event('offline'));
+            if (document.querySelector('.connection')?.textContent?.trim() === 'Offline') {
+              resolve();
+              return;
+            }
+            attempts += 1;
+            if (attempts >= 120) {
+              reject(new Error('Portal did not render its offline indicator'));
+              return;
+            }
+            requestAnimationFrame(dispatch);
+          };
+          dispatch();
+        }),
+    );
+    await expect(workerQueuePage.getByText('Offline', { exact: true })).toBeVisible();
+
+    const form = workerQueuePage.locator('form[action="?/createTime"]');
+    await form.locator('select[name="projectId"]').selectOption({ index: 1 });
+    await form.locator('input[name="workDate"]').fill('2026-08-20');
+    await form.locator('select[name="category"]').selectOption('regular');
+    await form.getByLabel('Actual hours').fill('0.5');
+    await expect(form.locator('input[name="minutes"]')).toHaveValue('30');
+    await form.locator('textarea[name="summary"]').fill('Worker-only queued draft');
+    await form.getByRole('button', { name: 'Save draft', exact: true }).click();
+    await expect(workerQueuePage.locator('.connection')).toHaveText('Offline');
+    await expect(workerQueuePage.locator('.queue')).toHaveText('1 Queued');
+    await expect(workerQueuePage.locator('.sync-message')).toHaveText(
+      'Offline — saved on this device',
+    );
+    await workerQueuePage.close();
+
+    await context.clearCookies();
+    await context.setOffline(false);
+    const financePage = await context.newPage();
+    const syncAttributions: string[] = [];
+    financePage.on('request', (request) => {
+      if (request.method() === 'POST' && request.url().endsWith('/app/api/sync'))
+        syncAttributions.push(request.postData() ?? '');
+    });
+    await signInAt(financePage, baseUrl, 'finance');
+    await expect(financePage.locator('.connection')).toHaveText('Online');
+    await expect.soft(financePage.locator('.queue')).toHaveCount(0);
+    // The assertion uses only the visible Finance queue and the real sync request payload. It
+    // does not assume a database name, object-store name, or any other IndexedDB implementation.
+    expect
+      .soft(
+        syncAttributions.some((body) => body.includes('Worker-only queued draft')),
+        'Finance must not submit the Worker mutation for synchronization',
+      )
+      .toBe(false);
+  }, 120_000);
+});

@@ -1,0 +1,507 @@
+{
+  "testedAtUtc": "2026-09-27T16:40:06.570Z",
+  "target": "deployed production",
+  "mode": "read-only GET/filter navigation; no business record action",
+  "roles": [
+    {
+      "role": "finance",
+      "viewport": 390,
+      "locale": "en",
+      "login": "signed-in",
+      "scenarios": [
+        {
+          "case": "valid",
+          "status": 200,
+          "ui": {
+            "path": "/j-aautomation/app/finance/cash",
+            "queryKeys": [
+              "lang"
+            ],
+            "requested": {
+              "currency": null,
+              "filter": null,
+              "from": null,
+              "to": null,
+              "group": null
+            },
+            "title": "Cash calendar | J&A",
+            "heading": "Cash calendar",
+            "guidance": "Obligations and expected movements, grouped by project issuing entity and currency. This is not a bank balance. Expected dates and actual recorded transactions are separate; no ope",
+            "errorText": null,
+            "formPresent": true,
+            "focusedTag": "body",
+            "focusedName": null,
+            "noticeCount": 0,
+            "remedyCount": 0,
+            "filterValue": "all",
+            "currencyValue": "",
+            "groupValue": "week",
+            "fromValue": "",
+            "toValue": "",
+            "groupCount": 0,
+            "viewport": {
+              "width": 390,
+              "height": 844
+            },
+            "language": "en-US"
+          }
+        },
+        {
+          "case": "bad-filter",
+          "status": 400,
+          "ui": {
+            "path": "/j-aautomation/app/finance/cash",
+            "queryKeys": [
+              "filter",
+              "lang"
+            ],
+            "requested": {
+              "currency": null,
+              "filter": "not-a-filter",
+              "from": null,
+              "to": null,
+              "group": null
+            },
+            "title": "Error · J&A Automation",
+            "heading": "Error",
+            "guidance": "Portal",
+            "errorText": "Portal Portal Error The action could not be completed. Try again shortly. Back",
+            "formPresent": false,
+            "focusedTag": "body",
+            "focusedName": null,
+            "noticeCount": 0,
+            "remedyCount": 0,
+            "filterValue": null,
+            "currencyValue": null,
+            "groupValue": null,
+            "fromValue": null,
+            "toValue": null,
+            "groupCount": 0,
+            "viewport": {
+              "width": 390,
+              "height": 844
+            },
+            "language": "en-US"
+          }
+        },
+        {
+          "case": "bad-date",
+          "status": 400,
+          "ui": {
+            "path": "/j-aautomation/app/finance/cash",
+            "queryKeys": [
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "currency": null,
+              "filter": null,
+              "from": "2026-02-30",
+              "to": "2026-03-01",
+              "group": null
+            },
+            "title": "Error · J&A Automation",
+            "heading": "Error",
+            "guidance": "Portal",
+            "errorText": "Portal Portal Error The action could not be completed. Try again shortly. Back",
+            "formPresent": false,
+            "focusedTag": "body",
+            "focusedName": null,
+            "noticeCount": 0,
+            "remedyCount": 0,
+            "filterValue": null,
+            "currencyValue": null,
+            "groupValue": null,
+            "fromValue": null,
+            "toValue": null,
+            "groupCount": 0,
+            "viewport": {
+              "width": 390,
+              "height": 844
+            },
+            "language": "en-US"
+          }
+        },
+        {
+          "case": "reversed-direct",
+          "status": 400,
+          "ui": {
+            "path": "/j-aautomation/app/finance/cash",
+            "queryKeys": [
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "currency": null,
+              "filter": null,
+              "from": "2026-09-20",
+              "to": "2026-09-19",
+              "group": null
+            },
+            "title": "Error · J&A Automation",
+            "heading": "Error",
+            "guidance": "Portal",
+            "errorText": "Portal Portal Error The action could not be completed. Try again shortly. Back",
+            "formPresent": false,
+            "focusedTag": "body",
+            "focusedName": null,
+            "noticeCount": 0,
+            "remedyCount": 0,
+            "filterValue": null,
+            "currencyValue": null,
+            "groupValue": null,
+            "fromValue": null,
+            "toValue": null,
+            "groupCount": 0,
+            "viewport": {
+              "width": 390,
+              "height": 844
+            },
+            "language": "en-US"
+          }
+        },
+        {
+          "case": "unavailable-currency-group",
+          "status": 200,
+          "ui": {
+            "path": "/j-aautomation/app/finance/cash",
+            "queryKeys": [
+              "currency",
+              "group",
+              "lang"
+            ],
+            "requested": {
+              "currency": "ZZZ",
+              "filter": null,
+              "from": null,
+              "to": null,
+              "group": "quarter"
+            },
+            "title": "Cash calendar | J&A",
+            "heading": "Cash calendar",
+            "guidance": "Obligations and expected movements, grouped by project issuing entity and currency. This is not a bank balance. Expected dates and actual recorded transactions are separate; no ope",
+            "errorText": null,
+            "formPresent": true,
+            "focusedTag": "body",
+            "focusedName": null,
+            "noticeCount": 0,
+            "remedyCount": 0,
+            "filterValue": "all",
+            "currencyValue": "",
+            "groupValue": "week",
+            "fromValue": "",
+            "toValue": "",
+            "groupCount": 0,
+            "viewport": {
+              "width": 390,
+              "height": 844
+            },
+            "language": "en-US"
+          }
+        },
+        {
+          "case": "reversed-form",
+          "ui": {
+            "path": "/j-aautomation/app/finance/cash",
+            "queryKeys": [
+              "lang",
+              "currency",
+              "filter",
+              "from",
+              "to",
+              "project",
+              "group"
+            ],
+            "requested": {
+              "currency": "",
+              "filter": "all",
+              "from": "2026-09-20",
+              "to": "2026-09-19",
+              "group": "week"
+            },
+            "title": "Error · J&A Automation",
+            "heading": "Error",
+            "guidance": "Portal",
+            "errorText": "Portal Portal Error The action could not be completed. Try again shortly. Back",
+            "formPresent": false,
+            "focusedTag": "body",
+            "focusedName": null,
+            "noticeCount": 0,
+            "remedyCount": 0,
+            "filterValue": null,
+            "currencyValue": null,
+            "groupValue": null,
+            "fromValue": null,
+            "toValue": null,
+            "groupCount": 0,
+            "viewport": {
+              "width": 390,
+              "height": 844
+            },
+            "language": "en-US"
+          }
+        }
+      ],
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [
+          "Failed to load resource: the server responded with a status of 400 ()",
+          "Failed to load resource: the server responded with a status of 400 ()",
+          "Failed to load resource: the server responded with a status of 400 ()"
+        ],
+        "cashResponses": [
+          "200 document /j-aautomation/app/finance/cash",
+          "400 document /j-aautomation/app/finance/cash",
+          "400 document /j-aautomation/app/finance/cash",
+          "400 document /j-aautomation/app/finance/cash",
+          "200 document /j-aautomation/app/finance/cash",
+          "200 document /j-aautomation/app/finance/cash",
+          "200 fetch /j-aautomation/app/finance/cash/__data.json"
+        ]
+      }
+    },
+    {
+      "role": "auditor",
+      "viewport": 1440,
+      "locale": "es",
+      "login": "signed-in",
+      "scenarios": [
+        {
+          "case": "valid",
+          "status": 403,
+          "ui": {
+            "path": "/j-aautomation/app/finance/cash",
+            "queryKeys": [
+              "lang"
+            ],
+            "requested": {
+              "currency": null,
+              "filter": null,
+              "from": null,
+              "to": null,
+              "group": null
+            },
+            "title": "Error · J&A Automation",
+            "heading": "Error",
+            "guidance": "portal",
+            "errorText": "portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "formPresent": false,
+            "focusedTag": "body",
+            "focusedName": null,
+            "noticeCount": 0,
+            "remedyCount": 0,
+            "filterValue": null,
+            "currencyValue": null,
+            "groupValue": null,
+            "fromValue": null,
+            "toValue": null,
+            "groupCount": 0,
+            "viewport": {
+              "width": 1440,
+              "height": 900
+            },
+            "language": "es-ES"
+          }
+        },
+        {
+          "case": "bad-filter",
+          "status": 400,
+          "ui": {
+            "path": "/j-aautomation/app/finance/cash",
+            "queryKeys": [
+              "filter",
+              "lang"
+            ],
+            "requested": {
+              "currency": null,
+              "filter": "not-a-filter",
+              "from": null,
+              "to": null,
+              "group": null
+            },
+            "title": "Error · J&A Automation",
+            "heading": "Error",
+            "guidance": "portal",
+            "errorText": "portal portal Error La acción no se pudo completar. Inténtalo de nuevo. Atrás",
+            "formPresent": false,
+            "focusedTag": "body",
+            "focusedName": null,
+            "noticeCount": 0,
+            "remedyCount": 0,
+            "filterValue": null,
+            "currencyValue": null,
+            "groupValue": null,
+            "fromValue": null,
+            "toValue": null,
+            "groupCount": 0,
+            "viewport": {
+              "width": 1440,
+              "height": 900
+            },
+            "language": "es-ES"
+          }
+        },
+        {
+          "case": "bad-date",
+          "status": 400,
+          "ui": {
+            "path": "/j-aautomation/app/finance/cash",
+            "queryKeys": [
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "currency": null,
+              "filter": null,
+              "from": "2026-02-30",
+              "to": "2026-03-01",
+              "group": null
+            },
+            "title": "Error · J&A Automation",
+            "heading": "Error",
+            "guidance": "portal",
+            "errorText": "portal portal Error La acción no se pudo completar. Inténtalo de nuevo. Atrás",
+            "formPresent": false,
+            "focusedTag": "body",
+            "focusedName": null,
+            "noticeCount": 0,
+            "remedyCount": 0,
+            "filterValue": null,
+            "currencyValue": null,
+            "groupValue": null,
+            "fromValue": null,
+            "toValue": null,
+            "groupCount": 0,
+            "viewport": {
+              "width": 1440,
+              "height": 900
+            },
+            "language": "es-ES"
+          }
+        },
+        {
+          "case": "reversed-direct",
+          "status": 400,
+          "ui": {
+            "path": "/j-aautomation/app/finance/cash",
+            "queryKeys": [
+              "from",
+              "to",
+              "lang"
+            ],
+            "requested": {
+              "currency": null,
+              "filter": null,
+              "from": "2026-09-20",
+              "to": "2026-09-19",
+              "group": null
+            },
+            "title": "Error · J&A Automation",
+            "heading": "Error",
+            "guidance": "portal",
+            "errorText": "portal portal Error La acción no se pudo completar. Inténtalo de nuevo. Atrás",
+            "formPresent": false,
+            "focusedTag": "body",
+            "focusedName": null,
+            "noticeCount": 0,
+            "remedyCount": 0,
+            "filterValue": null,
+            "currencyValue": null,
+            "groupValue": null,
+            "fromValue": null,
+            "toValue": null,
+            "groupCount": 0,
+            "viewport": {
+              "width": 1440,
+              "height": 900
+            },
+            "language": "es-ES"
+          }
+        },
+        {
+          "case": "unavailable-currency-group",
+          "status": 403,
+          "ui": {
+            "path": "/j-aautomation/app/finance/cash",
+            "queryKeys": [
+              "currency",
+              "group",
+              "lang"
+            ],
+            "requested": {
+              "currency": "ZZZ",
+              "filter": null,
+              "from": null,
+              "to": null,
+              "group": "quarter"
+            },
+            "title": "Error · J&A Automation",
+            "heading": "Error",
+            "guidance": "portal",
+            "errorText": "portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "formPresent": false,
+            "focusedTag": "body",
+            "focusedName": null,
+            "noticeCount": 0,
+            "remedyCount": 0,
+            "filterValue": null,
+            "currencyValue": null,
+            "groupValue": null,
+            "fromValue": null,
+            "toValue": null,
+            "groupCount": 0,
+            "viewport": {
+              "width": 1440,
+              "height": 900
+            },
+            "language": "es-ES"
+          }
+        }
+      ],
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [
+          "Failed to load resource: the server responded with a status of 403 ()",
+          "Failed to load resource: the server responded with a status of 400 ()",
+          "Failed to load resource: the server responded with a status of 400 ()",
+          "Failed to load resource: the server responded with a status of 400 ()",
+          "Failed to load resource: the server responded with a status of 403 ()"
+        ],
+        "cashResponses": [
+          "403 document /j-aautomation/app/finance/cash",
+          "400 document /j-aautomation/app/finance/cash",
+          "400 document /j-aautomation/app/finance/cash",
+          "400 document /j-aautomation/app/finance/cash",
+          "403 document /j-aautomation/app/finance/cash"
+        ]
+      }
+    },
+    {
+      "role": "manager",
+      "viewport": 1440,
+      "locale": "es",
+      "login": "login did not reach workspace",
+      "scenarios": [],
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [],
+        "cashResponses": []
+      }
+    },
+    {
+      "role": "worker",
+      "viewport": 390,
+      "locale": "en",
+      "login": "login did not reach workspace",
+      "scenarios": [],
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [],
+        "cashResponses": []
+      }
+    }
+  ]
+}

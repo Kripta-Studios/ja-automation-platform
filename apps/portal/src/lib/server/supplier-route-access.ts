@@ -1,0 +1,42 @@
+/** Restricted workforce accounts use a positive operational route allowlist.
+ * Object authorization remains mandatory in each allowed handler. */
+export function supplierRouteAllowed(path: string): boolean {
+  const route = path.replace(/\/__data\.json$/u, '').replace(/\/$/u, '') || '/';
+  if (
+    [
+      '/',
+      '/login',
+      '/time',
+      '/crew',
+      '/expenses',
+      '/reports',
+      '/profile',
+      '/help',
+      '/supplier',
+      '/supplier/report',
+      '/supplier/report.csv',
+      '/mfa-enrollment',
+      '/service-worker.js',
+      '/manifest.webmanifest',
+      '/icon-192.png',
+      '/icon-512.png',
+      '/api/expenses/crew-workers',
+      '/api/expenses/time-options',
+    ].includes(route)
+  )
+    return true;
+  if (/^\/(time|expenses|reports)\/[^/]+$/u.test(route)) {
+    // These named routes are management/customer-wide views, not own records.
+    return !['/expenses/export', '/reports/review', '/reports/period', '/reports/export'].includes(
+      route,
+    );
+  }
+  if (/^\/crew\/time\/[^/]+$/u.test(route)) return true;
+  if (/^\/help\/[^/]+(?:\/download)?$/u.test(route)) return true;
+  if (/^\/api\/auth(?:\/|$)/u.test(route)) return true;
+  if (route === '/api/security/mfa') return true;
+  // The localized artifact repository allows workers only their own daily/technical reports.
+  if (/^\/api\/localized-pdf(?:\/|$)/u.test(route)) return true;
+  if (/^\/api\/reports\/[^/]+\/attachments(?:\/|$)/u.test(route)) return true;
+  return false;
+}

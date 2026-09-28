@@ -1,0 +1,15 @@
+{
+  "viewport": "desktop-1440",
+  "persistedStatus": 202,
+  "generationPosts": 1,
+  "oldVariantStatus": "ready",
+  "newVariantStatus": "queued",
+  "uncertainCode": "LOCALIZED_PDF_REQUEST_UNCERTAIN",
+  "visibleText": "Action needed\n\nWe could not confirm whether PDF generation started. Refresh its status before requesting it again; another request will not be sent while its status is unknown.\n\nRefresh",
+  "noticeFocused": true,
+  "noticeVisible": true,
+  "staleReadyStatusShown": false,
+  "statusAfterRefresh": "queued",
+  "pageErrors": 0,
+  "consoleErrorCount": 2
+}

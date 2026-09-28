@@ -1,0 +1,172 @@
+[
+  {
+    "action": "finalizeCloseout",
+    "viewport": "phone-390",
+    "locale": "en",
+    "prepare": {
+      "transportStatus": 200,
+      "actionStatus": 200,
+      "resultType": "success",
+      "bodyHasDraftChanged": false,
+      "bodyHasConfirmationRequired": false,
+      "bodyHasStack": false
+    },
+    "confirm": {
+      "transportStatus": 200,
+      "actionStatus": 200,
+      "resultType": "success",
+      "bodyHasDraftChanged": false,
+      "bodyHasConfirmationRequired": false,
+      "bodyHasStack": false
+    },
+    "refresh": {
+      "transportStatus": 200,
+      "actionStatus": 200,
+      "resultType": "success",
+      "bodyHasDraftChanged": false,
+      "bodyHasConfirmationRequired": false,
+      "bodyHasStack": false
+    },
+    "stale": {
+      "transportStatus": 200,
+      "actionStatus": 409,
+      "resultType": "failure",
+      "bodyHasDraftChanged": false,
+      "bodyHasConfirmationRequired": true,
+      "bodyHasStack": false
+    },
+    "code": "CLOSEOUT_CONFIRMATION_REQUIRED",
+    "visibleText": "Action needed\n\nConfirm the exact current client snapshot before finalizing the closeout.\n\nReview current closeout",
+    "remedy": ["Review current closeout"],
+    "remedyRouteSafe": true,
+    "focus": {
+      "focusedNotice": true,
+      "focusTop": 82,
+      "focusBottom": 233,
+      "headerBottom": 70,
+      "viewportHeight": 844,
+      "focusVisible": true,
+      "scrollY": 314
+    },
+    "scrollBefore": 1433,
+    "projectPageRetained": true,
+    "currentDraftVisible": false,
+    "finalizeFormGone": false,
+    "noWrite": true,
+    "draftStillActive": true,
+    "ownerDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedResponses": []
+    },
+    "financeDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedResponses": []
+    }
+  },
+  {
+    "action": "finalizeCloseout",
+    "viewport": "desktop",
+    "locale": "es",
+    "prepare": {
+      "transportStatus": 200,
+      "actionStatus": 200,
+      "resultType": "success",
+      "bodyHasDraftChanged": false,
+      "bodyHasConfirmationRequired": false,
+      "bodyHasStack": false
+    },
+    "confirm": {
+      "transportStatus": 200,
+      "actionStatus": 200,
+      "resultType": "success",
+      "bodyHasDraftChanged": false,
+      "bodyHasConfirmationRequired": false,
+      "bodyHasStack": false
+    },
+    "refresh": {
+      "transportStatus": 200,
+      "actionStatus": 200,
+      "resultType": "success",
+      "bodyHasDraftChanged": false,
+      "bodyHasConfirmationRequired": false,
+      "bodyHasStack": false
+    },
+    "stale": {
+      "transportStatus": 200,
+      "actionStatus": 409,
+      "resultType": "failure",
+      "bodyHasDraftChanged": false,
+      "bodyHasConfirmationRequired": true,
+      "bodyHasStack": false
+    },
+    "code": "CLOSEOUT_CONFIRMATION_REQUIRED",
+    "visibleText": "Se requiere una acción\n\nConfirma la copia exacta y actual para el cliente antes de finalizar el cierre.\n\nRevisar el cierre actual",
+    "remedy": ["Revisar el cierre actual"],
+    "remedyRouteSafe": true,
+    "focus": {
+      "focusedNotice": true,
+      "focusTop": 84,
+      "focusBottom": 215,
+      "headerBottom": 72,
+      "viewportHeight": 900,
+      "focusVisible": true,
+      "scrollY": 310
+    },
+    "scrollBefore": 779,
+    "projectPageRetained": true,
+    "currentDraftVisible": false,
+    "finalizeFormGone": false,
+    "noWrite": true,
+    "draftStillActive": true,
+    "ownerDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedResponses": []
+    },
+    "financeDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedResponses": []
+    }
+  },
+  {
+    "action": "closeoutRoute",
+    "role": "manager",
+    "viewport": "phone-390",
+    "httpStatus": 403,
+    "accessRestricted": true,
+    "contactOwner": true,
+    "denialText": true,
+    "diagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource"],
+      "failedResponses": [
+        {
+          "status": 403,
+          "path": "/j-aautomation/app/projects/[REDACTED-ID]/closeout"
+        }
+      ]
+    }
+  },
+  {
+    "action": "closeoutRoute",
+    "role": "worker",
+    "viewport": "desktop",
+    "httpStatus": 403,
+    "accessRestricted": true,
+    "contactOwner": true,
+    "denialText": true,
+    "diagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource"],
+      "failedResponses": [
+        {
+          "status": 403,
+          "path": "/j-aautomation/app/projects/[REDACTED-ID]/closeout"
+        }
+      ]
+    }
+  }
+]

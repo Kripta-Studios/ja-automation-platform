@@ -1,0 +1,500 @@
+/* Shared portal surfaces -------------------------------------------------- */
+.timesheet-panel {
+  margin-bottom: 1.15rem;
+  padding: clamp(1.15rem, 2vw, 1.55rem);
+  border: 1px solid #e7e7e5;
+  border-radius: var(--ja-radius);
+  background: #fff;
+  box-shadow: var(--ja-shadow-soft);
+}
+
+.timesheet-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.15rem;
+}
+
+.timesheet-heading h2 {
+  margin: 0.3rem 0 0.35rem;
+  color: #302f2c;
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  letter-spacing: -0.035em;
+}
+
+.timesheet-heading p {
+  max-width: 48rem;
+  margin: 0;
+  color: var(--ja-text-secondary, #575650);
+  font-size: 0.78rem;
+}
+
+.timesheet-guide {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.timesheet-guide div {
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid #e9e9e7;
+  border-radius: 0.6rem;
+  background: #fbfbfa;
+}
+
+.timesheet-guide strong {
+  color: #3c3b37;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.timesheet-guide span {
+  color: var(--ja-text-secondary, #575650);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.timesheet-period,
+.timesheet-copy-body form {
+  display: flex;
+  align-items: end;
+  gap: 0.55rem;
+}
+
+.timesheet-period label {
+  display: grid;
+  gap: 0.3rem;
+  color: #727068;
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.timesheet-period input {
+  min-height: var(--ja-target-min, 2.75rem);
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #e1e1df;
+  border-radius: 0.5rem;
+  color: #373733;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.timesheet-period button,
+.timesheet-copy button {
+  min-height: var(--ja-target-min, 2.75rem);
+  padding: 0.55rem 0.85rem;
+  color: #fff;
+  border: 1px solid #373733;
+  border-radius: 0.5rem;
+  background: #373733;
+  font-size: 0.72rem;
+  font-weight: 760;
+}
+
+.timesheet-period button:hover,
+.timesheet-copy button:hover {
+  background: #53524c;
+}
+
+.timesheet-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e8e7e6;
+  border-radius: 0.6rem;
+}
+
+.timesheet-table {
+  width: 100%;
+  min-width: 46rem;
+  border-collapse: collapse;
+  color: #403f3b;
+  font-size: 0.76rem;
+}
+
+.timesheet-table th,
+.timesheet-table td {
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid #edeceb;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.timesheet-table thead th {
+  color: #63625b;
+  background: #f8f8f7;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.timesheet-table tbody th {
+  color: #302f2c;
+  font-weight: 760;
+}
+
+.timesheet-table tbody th small {
+  display: block;
+  margin-top: 0.15rem;
+  color: #8f8e85;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.timesheet-table tbody tr:last-child th,
+.timesheet-table tbody tr:last-child td,
+.timesheet-table tfoot th,
+.timesheet-table tfoot td {
+  border-bottom: 0;
+}
+
+.timesheet-table tfoot {
+  background: #fafaf9;
+  font-weight: 760;
+}
+
+.timesheet-table .positive {
+  color: #626059;
+}
+
+.timesheet-table .negative,
+.timesheet-exception .timesheet-status {
+  color: #b34538;
+}
+
+.timesheet-status {
+  color: #66645d;
+  font-size: 0.75rem;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.timesheet-copy {
+  margin-top: 0.95rem;
+  border-top: 1px solid #ebeae9;
+  padding-top: 0.85rem;
+}
+
+.timesheet-copy summary {
+  min-height: var(--ja-target-min, 2.75rem);
+  display: inline-flex;
+  align-items: center;
+  color: #53524c;
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 760;
+}
+
+.timesheet-copy-body {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.75rem;
+}
+
+.timesheet-copy-body p {
+  max-width: 44rem;
+  margin: 0;
+  color: var(--ja-text-secondary, #575650);
+  font-size: 0.74rem;
+}
+
+.portal-grid,
+.worker-form,
+.report-workspace,
+.project-columns {
+  gap: 1.15rem;
+}
+
+.portal-grid > section,
+.record-list,
+.worker-form > section,
+.entry-panel,
+.admin-form-grid,
+.filter-form,
+.finance-grid .metric,
+.detail-panel,
+.project-finance,
+.project-contract,
+.report-forms details {
+  border: 1px solid #e7e7e5;
+  border-radius: var(--ja-radius);
+  box-shadow: var(--ja-shadow-soft);
+}
+
+.portal-grid > section,
+.record-list,
+.worker-form > section,
+.entry-panel,
+.detail-panel,
+.project-finance,
+.report-forms details {
+  background: #fff;
+}
+
+.portal-grid > section,
+.record-list,
+.worker-form > section,
+.entry-panel {
+  padding: clamp(1.15rem, 2vw, 1.55rem);
+}
+
+.panel-title {
+  padding-bottom: 0.95rem;
+  border-bottom: 1px solid #eaeae8;
+}
+
+.panel-title h2,
+.entry-panel h2,
+.admin-form-grid h2 {
+  color: #302f2c;
+  font-size: 1.1rem;
+  font-weight: 760;
+  letter-spacing: -0.025em;
+}
+
+.panel-title > span {
+  min-width: 1.65rem;
+  padding: 0.22rem 0.45rem;
+  color: #706f67;
+  border-radius: 999px;
+  background: #f3f3f2;
+  font-size: 0.68rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+.assignment {
+  min-height: 20rem;
+  position: relative;
+  overflow: hidden;
+  color: #fafafa;
+  border: 0 !important;
+  background: linear-gradient(140deg, #393834, #252422) !important;
+  box-shadow: var(--ja-shadow-soft) !important;
+}
+
+.assignment::after {
+  width: 15rem;
+  height: 15rem;
+  position: absolute;
+  right: -5rem;
+  bottom: -8rem;
+  content: '';
+  border: 1px solid rgb(160 231 225 / 0.35);
+  border-radius: 50%;
+}
+
+.assignment > * {
+  position: relative;
+  z-index: 1;
+}
+
+.assignment h2 {
+  max-width: 15ch;
+  margin: 1.8rem 0 0.75rem;
+  color: #fff;
+  font-size: clamp(1.75rem, 3vw, 2.45rem);
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.assignment p {
+  max-width: 34rem;
+  color: #d4d3d0;
+}
+
+.status-chip {
+  color: #d9d8d5;
+  font-family: 'Geist Mono', 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+}
+
+.status-chip b {
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgb(22 156 118 / 0.24);
+}
+
+.quick-actions {
+  position: relative;
+  z-index: 1;
+  margin-top: 1.25rem;
+}
+
+.dashboard-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 0 0 1.15rem;
+}
+
+.dashboard-quick-actions a {
+  margin-top: 0;
+  border: 1px solid #dcdbd8;
+  background: #f8f8f7;
+}
+
+.quick-actions a,
+.preview-link {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.65rem;
+  min-height: var(--ja-target-min, 2.75rem);
+  padding: 0.65rem 0.8rem;
+  color: #2d2c29;
+  border-radius: 0.55rem;
+  background: #ececea;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: none;
+}
+
+.quick-actions a:hover,
+.preview-link:hover {
+  color: #1e1e1c;
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.sync-panel {
+  color: var(--ja-ink);
+  border: 1px solid var(--ja-border-subdued);
+  border-radius: var(--ja-radius);
+  background: var(--ja-surface);
+  box-shadow: var(--ja-shadow-soft);
+}
+.sync-panel .portal-kicker {
+  color: var(--ja-text-muted);
+}
+.sync-panel strong {
+  color: var(--ja-ink);
+  font-weight: 550;
+}
+.sync-panel p {
+  color: var(--ja-text-secondary);
+}
+
+.record-list article {
+  min-height: 4.6rem;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-color: #edeceb;
+}
+
+.record-list article:first-of-type {
+  padding-top: 1.1rem;
+}
+
+.record-list article strong {
+  color: #383733;
+  font-size: 0.84rem;
+}
+
+.record-card-link {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: grid;
+  gap: 0.25rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.record-card-link:hover strong,
+.record-card-link:focus-visible strong {
+  color: #53524c;
+}
+
+.record-card-link::after {
+  content: none;
+  color: #706e66;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.record-card-open {
+  color: #706e66;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.record-card.is-modified {
+  border-left: 0.25rem solid #d97706;
+  padding-left: 0.7rem;
+  padding-right: 1.2rem;
+  background: #fffaf0;
+}
+
+.notification-row.unread {
+  border-left: 0.25rem solid #d71920;
+  padding-left: 0.7rem;
+  padding-right: 1.2rem;
+  background: #fffaf8;
+}
+
+.change-summary {
+  color: #9a5b00;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.record-list article code {
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 50%;
+  word-break: break-all;
+  white-space: pre-wrap;
+  text-align: right;
+  font-size: 0.68rem;
+  color: #6d6c64;
+  line-height: 1.4;
+}
+
+.record-list article small,
+.entry-panel > p {
+  color: #63625b;
+  font-size: 0.73rem;
+}
+
+.record-list article > span {
+  color: #616059;
+  border: 1px solid #dcdbd8;
+  border-radius: 999px;
+  background: #f0fbf6;
+  font-size: 0.61rem;
+  font-weight: 750;
+}
+
+.record-list button,
+.assignment button {
+  margin-top: 0;
+  min-width: var(--ja-target-min, 2.75rem);
+  min-height: var(--ja-target-min, 2.75rem);
+  padding: 0.45rem 0.7rem;
+  color: #3f3e39;
+  border: 1px solid #dfdedb;
+  border-radius: 0.5rem;
+  background: #fff;
+  box-shadow: none;
+  font-size: 0.7rem;
+}
+
+.record-list button:hover,
+.assignment button:hover {
+  color: #fff;
+  border-color: #706e66;
+  background: #706e66;
+}

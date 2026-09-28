@@ -1,0 +1,230 @@
+{
+  "candidateCommit": "08f7128",
+  "fixture": "Project, assignment, time, and expense created through browser UI",
+  "matrix": [
+    {
+      "role": "worker",
+      "locale": "en",
+      "width": 390,
+      "lookupStatus": 200,
+      "initial": {
+        "viewport": 390,
+        "language": "en-US",
+        "focused": "button",
+        "scrollY": 0,
+        "warningVisible": true,
+        "warningWithinSheet": true,
+        "selectedLink": true,
+        "projectSelected": true,
+        "date": "2026-09-25"
+      },
+      "unselectedHidden": true,
+      "reselectedVisible": true,
+      "keyboardNextField": true
+    },
+    {
+      "role": "worker",
+      "locale": "es",
+      "width": 1440,
+      "lookupStatus": 200,
+      "initial": {
+        "viewport": 1440,
+        "language": "es-ES",
+        "focused": "button",
+        "scrollY": 0,
+        "warningVisible": true,
+        "warningWithinSheet": true,
+        "selectedLink": true,
+        "projectSelected": true,
+        "date": "2026-09-25"
+      },
+      "unselectedHidden": true,
+      "reselectedVisible": true
+    },
+    {
+      "role": "worker",
+      "locale": "pt",
+      "width": 390,
+      "lookupStatus": 200,
+      "initial": {
+        "viewport": 390,
+        "language": "pt-BR",
+        "focused": "button",
+        "scrollY": 0,
+        "warningVisible": true,
+        "warningWithinSheet": true,
+        "selectedLink": true,
+        "projectSelected": true,
+        "date": "2026-09-25"
+      },
+      "unselectedHidden": true,
+      "reselectedVisible": true
+    },
+    {
+      "role": "owner",
+      "locale": "en",
+      "width": 1440,
+      "lookupStatus": 200,
+      "initial": {
+        "viewport": 1440,
+        "language": "en-US",
+        "focused": "button",
+        "scrollY": 0,
+        "warningVisible": true,
+        "warningWithinSheet": true,
+        "selectedLink": true,
+        "projectSelected": true,
+        "date": "2026-09-25"
+      },
+      "unselectedHidden": true,
+      "reselectedVisible": true
+    },
+    {
+      "role": "owner",
+      "locale": "es",
+      "width": 390,
+      "lookupStatus": 200,
+      "initial": {
+        "viewport": 390,
+        "language": "es-ES",
+        "focused": "button",
+        "scrollY": 0,
+        "warningVisible": true,
+        "warningWithinSheet": true,
+        "selectedLink": true,
+        "projectSelected": true,
+        "date": "2026-09-25"
+      },
+      "unselectedHidden": true,
+      "reselectedVisible": true
+    },
+    {
+      "role": "owner",
+      "locale": "pt",
+      "width": 1440,
+      "lookupStatus": 200,
+      "initial": {
+        "viewport": 1440,
+        "language": "pt-BR",
+        "focused": "button",
+        "scrollY": 0,
+        "warningVisible": true,
+        "warningWithinSheet": true,
+        "selectedLink": true,
+        "projectSelected": true,
+        "date": "2026-09-25"
+      },
+      "unselectedHidden": true,
+      "reselectedVisible": true
+    }
+  ],
+  "defects": [],
+  "failures": [
+    {
+      "surface": "create",
+      "locale": "es",
+      "lookupStatus": 503,
+      "warningSuppressed": true,
+      "valuesRetained": true,
+      "focusOnError": true,
+      "scrollPreserved": true,
+      "retryStatus": 200,
+      "warningRestored": true
+    },
+    {
+      "surface": "edit",
+      "locale": "en",
+      "lookupStatus": 503,
+      "warningSuppressed": true,
+      "originalLinkRetained": true
+    }
+  ],
+  "saves": [
+    {
+      "role": "worker",
+      "mode": "enhanced",
+      "invalidTransportStatus": 200,
+      "invalidActionStatus": 400,
+      "invalidCode": "EXPENSE_AMOUNT_INVALID",
+      "invalidRemedyTranslated": true,
+      "amountFieldErrorVisible": true,
+      "successStatus": 200,
+      "linkPersisted": true,
+      "state": "draft",
+      "valuesRetainedAfterInvalid": true
+    },
+    {
+      "role": "worker",
+      "locale": "es",
+      "mode": "enhanced-invalid",
+      "actionStatus": 400,
+      "code": "EXPENSE_AMOUNT_INVALID",
+      "translatedRemedyVisible": true,
+      "amountFieldErrorVisible": true,
+      "timeLinkRetained": true
+    },
+    {
+      "role": "worker",
+      "locale": "pt",
+      "mode": "enhanced-invalid",
+      "actionStatus": 400,
+      "code": "EXPENSE_AMOUNT_INVALID",
+      "translatedRemedyVisible": true,
+      "amountFieldErrorVisible": true,
+      "timeLinkRetained": true
+    },
+    {
+      "role": "worker",
+      "mode": "native",
+      "status": 200,
+      "linkPersisted": true,
+      "state": "draft",
+      "unselectedHidden": true,
+      "reselectedVisible": true
+    }
+  ],
+  "diagnostics": {
+    "worker": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "lookups": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        503,
+        200,
+        503
+      ],
+      "actionPosts": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "syncRequests": []
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "lookups": [
+        200,
+        200,
+        200
+      ],
+      "actionPosts": [],
+      "syncRequests": []
+    }
+  },
+  "offlineEmptyQueue": {
+    "enabled": true,
+    "onlineEventDispatched": true,
+    "syncRequests": 0,
+    "falseFailureToastAbsent": true
+  }
+}

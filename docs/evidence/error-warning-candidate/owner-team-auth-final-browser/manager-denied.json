@@ -1,0 +1,63 @@
+{
+  "candidateCommit": "70838ac14b1f5f99ce94160607c75ae1199fe09b",
+  "role": "manager",
+  "locale": "es",
+  "viewport": 1440,
+  "enhanced": {
+    "transportStatus": 200,
+    "contentType": "application/json",
+    "type": "failure",
+    "status": 403,
+    "data": {
+      "code": "ACCESS_TEAM_OWNER_REQUIRED",
+      "actionName": "setWorkforceProfile",
+      "values": {
+        "workerId": ":record",
+        "profile": "external_technician",
+        "supplierId": ""
+      },
+      "remedies": [
+        {
+          "id": "contact_owner"
+        }
+      ],
+      "correlationId": ":record",
+      "success": false,
+      "messageKey": "problem.management.ownerRequired",
+      "params": {},
+      "messageParams": {},
+      "fieldErrors": {},
+      "message": "Owner access is required for this change. Contact an Owner."
+    }
+  },
+  "native": {
+    "transportStatus": 403,
+    "url": "/j-aautomation/app/projects",
+    "redirectLocation": null,
+    "responseCode": "ACCESS_TEAM_OWNER_REQUIRED"
+  },
+  "ui": {
+    "noticeText": "Se requiere una acción Se requiere acceso de Propietario para este cambio. Consulta a un Propietario. Consulta al propietario del proyecto sobre su estado.",
+    "visible": true,
+    "focused": true,
+    "remedyHref": null,
+    "scrollY": 332,
+    "url": "/j-aautomation/app/projects?view=team&lang=es&/setWorkforceProfile"
+  },
+  "noWrite": {
+    "before": {
+      "profiles": 0,
+      "users": 8,
+      "audits": 331
+    },
+    "after": {
+      "profiles": 0,
+      "users": 8,
+      "audits": 331
+    }
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": []
+  }
+}

@@ -1,0 +1,339 @@
+{
+  "candidateCommit": "4bed1de",
+  "role": "owner",
+  "width": 390,
+  "height": 844,
+  "locale": "en",
+  "scenarios": [
+    {
+      "name": "invalid calendar",
+      "status": 200,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            "project-cp008-ascension"
+          ],
+          "date": [
+            "2026-02-30"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_DATE_INVALID",
+        "text": "Action needed Enter a real work date in YYYY-MM-DD format to view crew time. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#crew-filter-date",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 279.953125,
+        "targetBottom": 431.515625,
+        "headerBottom": 69.59375,
+        "projectValue": "project-cp008-ascension",
+        "projectUnavailableOption": false,
+        "projectError": null,
+        "dateValue": "2026-02-30",
+        "dateType": "text",
+        "dateError": "Enter a real work date in YYYY-MM-DD format to view crew time.",
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "invalid text",
+      "status": 200,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            "project-cp008-ascension"
+          ],
+          "date": [
+            "not-a-date"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_DATE_INVALID",
+        "text": "Action needed Enter a real work date in YYYY-MM-DD format to view crew time. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#crew-filter-date",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 279.953125,
+        "targetBottom": 431.515625,
+        "headerBottom": 69.59375,
+        "projectValue": "project-cp008-ascension",
+        "projectUnavailableOption": false,
+        "projectError": null,
+        "dateValue": "not-a-date",
+        "dateType": "text",
+        "dateError": "Enter a real work date in YYYY-MM-DD format to view crew time.",
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "duplicate date",
+      "status": 200,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            "project-cp008-ascension"
+          ],
+          "date": [
+            "2026-09-27",
+            "2026-09-28"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_DATE_DUPLICATE",
+        "text": "Action needed The work date was supplied more than once. Keep one date. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#crew-filter-date",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 279.953125,
+        "targetBottom": 431.515625,
+        "headerBottom": 69.59375,
+        "projectValue": "project-cp008-ascension",
+        "projectUnavailableOption": false,
+        "projectError": null,
+        "dateValue": "2026-09-27",
+        "dateType": "date",
+        "dateError": "The work date was supplied more than once. Keep one date.",
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "duplicate project",
+      "status": 200,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            "project-cp008-ascension",
+            ":record"
+          ],
+          "date": [
+            "2026-09-27"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_PROJECT_DUPLICATE",
+        "text": "Action needed The project filter was supplied more than once. Keep one project selection. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#crew-filter-project",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 279.953125,
+        "targetBottom": 431.515625,
+        "headerBottom": 69.59375,
+        "projectValue": "project-cp008-ascension",
+        "projectUnavailableOption": false,
+        "projectError": "The project filter was supplied more than once. Keep one project selection.",
+        "dateValue": "2026-09-27",
+        "dateType": "date",
+        "dateError": null,
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "stale project",
+      "status": 200,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            ":record"
+          ],
+          "date": [
+            "2026-09-27"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_PROJECT_UNAVAILABLE_OWNER",
+        "text": "Action needed This project is no longer available for crew work. Choose an available project or review its current status. Review projects",
+        "remedy": "Review projects",
+        "remedyHref": "/j-aautomation/app/projects?lang=en",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 279.953125,
+        "targetBottom": 451.8125,
+        "headerBottom": 69.59375,
+        "projectValue": ":record",
+        "projectUnavailableOption": true,
+        "projectError": "This project is no longer available for crew work. Choose an available project or review its current status.",
+        "dateValue": "2026-09-27",
+        "dateType": "date",
+        "dateError": null,
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "combined malformed duplicate",
+      "status": 200,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            "project-cp008-ascension"
+          ],
+          "date": [
+            "not-a-date",
+            "2026-09-27"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_DATE_DUPLICATE",
+        "text": "Action needed The work date was supplied more than once. Keep one date. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#crew-filter-date",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 279.953125,
+        "targetBottom": 431.515625,
+        "headerBottom": 69.59375,
+        "projectValue": "project-cp008-ascension",
+        "projectUnavailableOption": false,
+        "projectError": null,
+        "dateValue": "not-a-date",
+        "dateType": "text",
+        "dateError": "The work date was supplied more than once. Keep one date. Enter a real work date in YYYY-MM-DD format to view crew time.",
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "multi field",
+      "status": 200,
+      "ui": {
+        "locale": "en-US",
+        "width": 390,
+        "height": 844,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            ":record",
+            "project-cp008-ascension"
+          ],
+          "date": [
+            "not-a-date",
+            "2026-09-27"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_PROJECT_DUPLICATE",
+        "text": "Action needed The project filter was supplied more than once. Keep one project selection. Correct the highlighted field",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": "#crew-filter-project",
+        "summaryPresent": true,
+        "summaryText": "Check the highlighted fields Project: The project filter was supplied more than once. Keep one project selection.Work date: The work date was supplied more than once. Keep one date.",
+        "summaryLinks": [
+          "#crew-filter-project",
+          "#crew-filter-date"
+        ],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 501.515625,
+        "targetBottom": 645.296875,
+        "headerBottom": 69.59375,
+        "projectValue": ":record",
+        "projectUnavailableOption": true,
+        "projectError": "The project filter was supplied more than once. Keep one project selection. This project is no longer available for crew work. Choose an available project or review its current status.",
+        "dateValue": "not-a-date",
+        "dateType": "text",
+        "dateError": "The work date was supplied more than once. Keep one date. Enter a real work date in YYYY-MM-DD format to view crew time.",
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    }
+  ],
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json"
+    ]
+  }
+}

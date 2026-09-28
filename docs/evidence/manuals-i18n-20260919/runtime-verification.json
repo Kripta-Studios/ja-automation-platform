@@ -1,0 +1,45 @@
+{
+  "verifiedAt": "2026-09-19T10:09:42.517859+00:00",
+  "applicationCommit": "e43c640611bf3f50297056719e2a5a185ed9783f",
+  "verifyVps": {
+    "status": "PASS",
+    "automaticCyclesObserved": 2,
+    "capturedLogSha256": "713f8c099be0f1c0821a7a8088d51e025c0c80bbe92ca89342f0cab2ac120521",
+    "publishedLog": "verify-vps.txt",
+    "publishedLogSha256": "713f8c099be0f1c0821a7a8088d51e025c0c80bbe92ca89342f0cab2ac120521",
+    "normalization": "Trailing whitespace and EOF blank lines only; operations contract binds original captured log."
+  },
+  "publicBrowser": {
+    "status": "PASS",
+    "checks": 3,
+    "evidence": "production-browser.json"
+  },
+  "manualArtifacts": {
+    "status": "PASS",
+    "runtimePdfCount": 17,
+    "reviewedHashesMatch": true,
+    "unsignedChecks": 2,
+    "evidence": "production-manual-artifacts.json"
+  },
+  "dockerBuildCache": {
+    "command": "docker builder prune -af",
+    "reclaimed": "6.976GB",
+    "after": {
+      "Active": "0",
+      "Reclaimable": "0B",
+      "Size": "0B",
+      "TotalCount": "0",
+      "Type": "Build Cache"
+    },
+    "imagesAndVolumesPruned": false
+  },
+  "backupService": {
+    "result": "success",
+    "exitCode": 0
+  },
+  "deploymentWatcher": {
+    "path": "active",
+    "timer": "active"
+  },
+  "deploymentLogSha256": "0a054e744213a3d75ca1d128b5156e88956dbe07d7916f6adf4509d8698bd59a"
+}

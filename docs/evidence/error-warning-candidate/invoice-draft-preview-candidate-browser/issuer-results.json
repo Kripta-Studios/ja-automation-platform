@@ -1,0 +1,157 @@
+{
+  "candidateCommit": "d9c212ba93625ff9fe37802c771291a1ecfb42de",
+  "roles": [
+    {
+      "role": "owner",
+      "candidates": [
+        {
+          "status": 200,
+          "code": null
+        },
+        {
+          "status": 200,
+          "code": null
+        },
+        {
+          "status": 200,
+          "code": null
+        },
+        {
+          "status": 200,
+          "code": null
+        },
+        {
+          "status": 409,
+          "code": "INVOICE_DRAFT_PREVIEW_ISSUER_MISSING"
+        },
+        {
+          "status": 409,
+          "code": "INVOICE_DRAFT_PREVIEW_ISSUER_MISSING"
+        },
+        {
+          "status": 200,
+          "code": null
+        }
+      ],
+      "setupBlockedDraftAvailable": true,
+      "problem": {
+        "label": "owner-issuer-setup",
+        "originalScroll": 260,
+        "samePath": true,
+        "network": {
+          "status": 409,
+          "contentType": "application/problem+json; charset=utf-8",
+          "disposition": null,
+          "code": "INVOICE_DRAFT_PREVIEW_ISSUER_MISSING",
+          "messageKey": "problem.invoiceDraftPreview.issuerMissing",
+          "remedies": [
+            "review_legal_entity"
+          ]
+        },
+        "ui": {
+          "path": "/j-aautomation/app/billing/invoices/:record",
+          "lang": "en-US",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 260,
+          "noticeCode": "INVOICE_DRAFT_PREVIEW_ISSUER_MISSING",
+          "noticeText": "Action needed This draft has no canonical issuing legal entity for its period. Ask an owner to review the legal entity assignment. Review legal entities",
+          "noticeTop": 97.890625,
+          "noticeBottom": 269.75,
+          "headerBottom": 69.59375,
+          "activeNotice": true,
+          "activeElement": "aside",
+          "remedies": [
+            {
+              "text": "Review legal entities",
+              "href": "/j-aautomation/app/finance?view=commercial&project=:record&lang=en#project-issuing-authority"
+            }
+          ],
+          "actionHref": "/j-aautomation/app/api/invoices/:record/draft-preview?lang=en",
+          "actionVisible": true,
+          "actionDisabled": "false"
+        },
+        "downloadDelta": 0
+      },
+      "remedyNavigation": {
+        "financePage": true,
+        "commercialView": true,
+        "projectRetained": true,
+        "targetPresent": true,
+        "targetVisible": true
+      }
+    },
+    {
+      "role": "finance",
+      "candidates": [
+        {
+          "status": 200,
+          "code": null
+        },
+        {
+          "status": 200,
+          "code": null
+        },
+        {
+          "status": 200,
+          "code": null
+        },
+        {
+          "status": 200,
+          "code": null
+        },
+        {
+          "status": 409,
+          "code": "INVOICE_DRAFT_PREVIEW_ISSUER_MISSING"
+        },
+        {
+          "status": 409,
+          "code": "INVOICE_DRAFT_PREVIEW_ISSUER_MISSING"
+        },
+        {
+          "status": 200,
+          "code": null
+        }
+      ],
+      "setupBlockedDraftAvailable": true,
+      "problem": {
+        "label": "finance-issuer-setup",
+        "originalScroll": 260,
+        "samePath": true,
+        "network": {
+          "status": 409,
+          "contentType": "application/problem+json; charset=utf-8",
+          "disposition": null,
+          "code": "INVOICE_DRAFT_PREVIEW_ISSUER_MISSING",
+          "messageKey": "problem.invoiceDraftPreview.issuerMissing",
+          "remedies": [
+            "contact_owner"
+          ]
+        },
+        "ui": {
+          "path": "/j-aautomation/app/billing/invoices/:record",
+          "lang": "en-US",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 260,
+          "noticeCode": "INVOICE_DRAFT_PREVIEW_ISSUER_MISSING",
+          "noticeText": "Action needed This draft has no canonical issuing legal entity for its period. Ask an owner to review the legal entity assignment. Contact the project owner about its status.",
+          "noticeTop": 97.890625,
+          "noticeBottom": 246.75,
+          "headerBottom": 69.59375,
+          "activeNotice": true,
+          "activeElement": "aside",
+          "remedies": [],
+          "actionHref": "/j-aautomation/app/api/invoices/:record/draft-preview?lang=en",
+          "actionVisible": true,
+          "actionDisabled": "false"
+        },
+        "downloadDelta": 0
+      }
+    }
+  ]
+}

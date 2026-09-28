@@ -2,13 +2,14 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/lib/i18n/navigation';
 import Image from 'next/image';
 import { contact } from '@/content/company';
-import logoImg from '@/public/brand/logo-jaautomation.png';
+import logoImg from '@/public/brand/logo-jaautomation.webp';
 import { portalLoginUrl } from '@/lib/portal';
 
 export async function Footer() {
   const t = await getTranslations('footer');
   const nav = await getTranslations('nav');
   const industries = await getTranslations('industries');
+  const capabilities = await getTranslations('capabilities');
 
   const currentYear = new Date().getFullYear();
 
@@ -18,11 +19,11 @@ export async function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" aria-label="J-Aautomation Home" className="inline-block">
+            <Link href="/" aria-label={nav('siteHome')} className="inline-block">
               <Image
                 src={logoImg}
-                alt="J-Aautomation"
-                width={160}
+                alt={nav('logoAlt')}
+                width={48}
                 height={48}
                 className="h-10 w-auto object-contain brightness-0 invert opacity-90 transition-opacity hover:opacity-100"
               />
@@ -58,6 +59,14 @@ export async function Footer() {
                   className="text-sm text-ja-steel-300 hover:text-white transition-colors"
                 >
                   {t('electricalControls')}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/capabilities/electromechanical-installation"
+                  className="text-sm text-ja-steel-300 hover:text-white transition-colors"
+                >
+                  {capabilities('installation')}
                 </Link>
               </li>
               <li>
@@ -133,6 +142,14 @@ export async function Footer() {
                   {industries('oemGeneral')}
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/industries/warehouse-logistics"
+                  className="text-sm text-ja-steel-300 hover:text-white transition-colors"
+                >
+                  {industries('warehouseLogistics')}
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -201,14 +218,6 @@ export async function Footer() {
             <ul className="space-y-2.5">
               <li>
                 <a
-                  href={`tel:${contact.usPhone.replace(/[^\d+]/g, '')}`}
-                  className="text-sm text-ja-steel-300 hover:text-white transition-colors"
-                >
-                  {contact.usPhone}
-                </a>
-              </li>
-              <li>
-                <a
                   href={`mailto:${contact.email}`}
                   className="text-sm text-ja-steel-300 hover:text-white transition-colors"
                 >
@@ -250,6 +259,7 @@ export async function Footer() {
             </Link>
           </div>
         </div>
+        <p className="mt-5 text-center text-xs text-ja-steel-500">{t('developmentCredit')}</p>
       </div>
     </footer>
   );

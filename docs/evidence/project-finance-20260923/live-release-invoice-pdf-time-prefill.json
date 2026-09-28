@@ -1,0 +1,36 @@
+{
+  "checkedAtUtc": "2026-09-23T19:56:26Z",
+  "origin": "https://j-aautomation.com/j-aautomation",
+  "releaseImage": "ja-automation-portal:zip-edc82bc9c8f4b2d7ea53c75c0e0b1861",
+  "sourceArchiveSha256": "edc82bc9c8f4b2d7ea53c75c0e0b18610bd8c3c1b259eec214013c0501732670",
+  "checks": [
+    {
+      "name": "draft_invoice_pdf_preview",
+      "role": "owner",
+      "invoiceId": "01a0cfc3-3945-737e-b3a6-7f5667fe773e",
+      "result": "PASS",
+      "evidence": {
+        "draftPreviewLinks": 1,
+        "httpStatus": 200,
+        "contentType": "application/pdf",
+        "bytes": 259986,
+        "extractedLine": "2026-09-23 · regular · QA 7.50 €55.00 €412.50",
+        "extractedTotal": "€412.50",
+        "noInvoiceLinesText": false
+      },
+      "scope": "Read-only preview of an existing test draft; no issue or send."
+    },
+    {
+      "name": "project_to_new_time_prefill",
+      "role": "worker",
+      "projectId": "01a0cfae-9005-76a9-871a-8cf4edf877dd",
+      "result": "PASS",
+      "evidence": {
+        "url": "/j-aautomation/app/time?project=01a0cfae-9005-76a9-871a-8cf4edf877dd",
+        "selectedNewTimeProjectId": "01a0cfae-9005-76a9-871a-8cf4edf877dd"
+      },
+      "scope": "Navigation and form preselection; no additional time entry."
+    }
+  ],
+  "deploymentHealth": "portal and site containers healthy; jobs container running; deploy path/timer active"
+}

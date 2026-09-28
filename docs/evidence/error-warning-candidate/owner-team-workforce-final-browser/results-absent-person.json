@@ -1,0 +1,81 @@
+{
+  "candidateCommit": "f17cd4fdf28f862185f9359958c6d6e735d51ff1",
+  "role": "owner",
+  "locale": "es",
+  "viewport": "desktop",
+  "fixture": "syntactically valid absent UUID posted from rendered status form through browser DevTools-style fetch",
+  "response": {
+    "transportStatus": 200,
+    "actionStatus": 409,
+    "type": "failure",
+    "code": "ACCESS_STATUS_PERSON_UNAVAILABLE",
+    "messageKey": "problem.access.statusPersonUnavailable",
+    "remedies": [
+      {
+        "id": "review_user_access"
+      }
+    ],
+    "fieldErrors": {}
+  },
+  "native": {
+    "transportStatus": 409,
+    "visible": {
+      "url": "/j-aautomation/app/projects?view=team&/updateUserStatus",
+      "editorOpen": false,
+      "formPresent": false,
+      "profileValue": null,
+      "supplierValue": null,
+      "supplierRequired": null,
+      "supplierValidity": null,
+      "supplierCue": null,
+      "fieldError": null,
+      "noticeCode": "ACCESS_STATUS_PERSON_UNAVAILABLE",
+      "noticeText": "Se requiere una acción Esta persona ya no está en el directorio del equipo. Revisa el directorio actual antes de cambiar el acceso a la cuenta. Revisar el acceso del usuario",
+      "noticeVisible": true,
+      "noticeRemedies": [
+        {
+          "text": "Revisar el acceso del usuario",
+          "href": "/j-aautomation/app/projects?view=team"
+        }
+      ],
+      "toastText": "Error Esta persona ya no está en el directorio del equipo. Revisa el directorio actual antes de cambiar el acceso a la cuenta. × Error Sync failed — retry when the connection is stable. ×",
+      "focusedTag": "aside",
+      "focusedName": null,
+      "focusedNotice": true,
+      "focusedSummary": false,
+      "focusTop": 0,
+      "focusBottom": 132,
+      "selectedTab": "Especialistas8",
+      "scrollY": 332,
+      "viewportHeight": 900,
+      "language": "es-ES"
+    }
+  },
+  "noWrite": {
+    "before": {
+      "worker": {
+        "status": "active",
+        "version": 1
+      },
+      "audits": 331
+    },
+    "after": {
+      "worker": {
+        "status": "active",
+        "version": 1
+      },
+      "absent": null,
+      "audits": 331
+    }
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "http": [
+      "503 /j-aautomation/app/api/offline/identity",
+      "503 /j-aautomation/app/api/offline/identity",
+      "409 /j-aautomation/app/projects",
+      "503 /j-aautomation/app/api/offline/identity"
+    ]
+  }
+}

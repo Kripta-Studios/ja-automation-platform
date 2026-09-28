@@ -1,0 +1,14 @@
+{
+  "role": "owner",
+  "viewport": "phone-390",
+  "createStatus": 200,
+  "rejectedStatus": 409,
+  "code": "CLIENT_CODE_ALREADY_USED",
+  "fieldError": "clientCode",
+  "focused": "validation summary",
+  "summaryInViewport": true,
+  "scrollAfterReject": 797,
+  "clientRowsWithCode": 1,
+  "rawSqlExposed": false,
+  "pageErrors": 0
+}

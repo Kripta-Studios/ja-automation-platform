@@ -1,0 +1,47 @@
+{
+  "candidateHead": "0b450ae",
+  "role": "project_manager",
+  "route": "/app/approvals?tab=time",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "before": {
+    "width": 390,
+    "scrollWidth": 390,
+    "scrollY": 2032,
+    "active": "validation-summary"
+  },
+  "transitions": [
+    {
+      "locale": "ES",
+      "summary": "Corrige los siguientes campos: Cambio requerido: Completa este campo.",
+      "after": {
+        "width": 390,
+        "scrollWidth": 390,
+        "scrollY": 2032,
+        "active": "validation-summary"
+      }
+    },
+    {
+      "locale": "PT-BR",
+      "summary": "Corrija os seguintes campos: Alteração obrigatória: Preencha este campo.",
+      "after": {
+        "width": 390,
+        "scrollWidth": 390,
+        "scrollY": 2032,
+        "active": "validation-summary"
+      }
+    }
+  ],
+  "summaryNodeRetained": true,
+  "reasonRetained": true,
+  "unsentRejectionReasonRetained": true,
+  "unrelatedReviewStayedClosed": true,
+  "openReviewActionsRetained": true,
+  "activeTabRetained": true,
+  "approvalPosts": [],
+  "fixtureSignInPosts": 1,
+  "pageErrors": [],
+  "consoleErrors": []
+}

@@ -1,0 +1,14 @@
+{
+  "viewport": "phone-390",
+  "locale": "es",
+  "role": "owner_admin",
+  "envelopeStatus": 409,
+  "code": "BILLING_ISSUER_CODE_EXISTS",
+  "field": "code",
+  "remedy": "review_billing_setup",
+  "retainedFields": ["code", "legalName", "currency", "billingAddress"],
+  "focusedField": "code",
+  "adjacentFieldErrorVisible": true,
+  "issuerRowsWithCode": 1,
+  "consoleErrors": 0
+}

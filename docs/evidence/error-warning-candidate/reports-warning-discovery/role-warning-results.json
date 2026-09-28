@@ -1,0 +1,43 @@
+{
+  "date": "2026-09-27",
+  "fixture": "disposable candidate",
+  "creation": {
+    "projectViaUi": true,
+    "assignmentViaUi": true,
+    "draftReportViaUi": true,
+    "projectPost": 200,
+    "assignmentPost": 200,
+    "reportPost": 200
+  },
+  "findings": [
+    {
+      "role": "finance",
+      "locale": "es",
+      "viewport": 1440,
+      "route": "report detail",
+      "reportState": "approved",
+      "visibleWarning": "Este informe está aprobado o finalizado. Los adjuntos son inmutables; crea un borrador de corrección auditado antes de añadir evidencia sustitutiva.",
+      "correctionFormCount": 0,
+      "uploadFormCount": 0,
+      "pageErrors": 0,
+      "unexpectedConsole": 0,
+      "otherHttp": 0
+    },
+    {
+      "role": "worker",
+      "locale": "en",
+      "viewport": 390,
+      "route": "report detail",
+      "reportState": "draft",
+      "visibleHeading": "Owner controls",
+      "visibleWarning": "Deleting removes this draft source record and records the action in the audit trail. Finalized reports cannot be deleted.",
+      "deleteVisible": true,
+      "dialogText": "Delete this report? This cannot be undone.",
+      "confirmationCancelled": true,
+      "recordRetained": true,
+      "pageErrors": 0,
+      "unexpectedConsole": 0,
+      "otherHttp": 0
+    }
+  ]
+}

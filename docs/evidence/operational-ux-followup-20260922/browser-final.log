@@ -1,0 +1,277 @@
+[WebServer] (node:15112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next build
+
+[WebServer] (node:15146) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:15146) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:15293) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:15291) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:15298) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:15475) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+
+[WebServer] (node:15489) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+
+[WebServer] (node:15514) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite build
+
+[WebServer] (node:15546) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+[WebServer] (node:15546) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+[WebServer] 
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+[WebServer] [plugin builtin:vite-reporter] 
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+[WebServer] [PLUGIN_TIMINGS] Your build spent 91% of 3.9s inside plugin hooks (3.5s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-svelte:compile transform (71%, 2.7s, 69 calls)
+[WebServer]   - vite:css transform (55%, 2.1s, 40 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 91% is below.
+[WebServer] Not measurable — 2 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (1468 calls)
+[WebServer]   - vite-plugin-svelte:preprocess transform (69 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+
+[WebServer] (node:15546) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] .svelte-kit/output/server/chunks/auth.js (3652:0): A comment
+[WebServer] 
+[WebServer] "/**
+[WebServer] * Wraps a cipher: validates args, ensures encrypt() can only be called once.
+[WebServer] * Used internally by the exported cipher constructors.
+[WebServer] * Output-buffer support is inferred from the wrapped `encrypt` / `decrypt`
+[WebServer] * arity (`fn.length === 2`), so wrapped output-capable methods must use a normal
+[WebServer] * second parameter, not a default/rest parameter. AAD support is explicit in
+[WebServer] * `params.withAAD`; optional AAD starts after the nonce slot when one is present.
+[WebServer] * @__NO_SIDE_EFFECTS__
+[WebServer] * @param params - Static cipher metadata. See {@link CipherParams}.
+[WebServer] * @param constructor - Cipher constructor.
+[WebServer] * @returns Wrapped constructor with validation.
+[WebServer] */"
+[WebServer] 
+[WebServer] in ".svelte-kit/output/server/chunks/auth.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+
+[WebServer] "node:sqlite" is imported by ".svelte-kit/output/server/chunks/src.js", but could not be resolved – treating it as an external dependency.
+
+[WebServer] Generated an empty chunk: "chunks/env.js".
+
+[WebServer] [PLUGIN_TIMINGS] Your build spent 100% of 12.6s inside plugin hooks (19.5s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-sveltekit-compile writeBundle (68%, 8.5s, 1 call)
+[WebServer]   - vite-plugin-sveltekit-compile closeBundle (58%, 7.3s, 1 call)
+[WebServer]   - vite-plugin-svelte:compile transform (22%, 2.8s, 69 calls)
+[WebServer]   - vite:css transform (9%, 1.2s, 40 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 100% is below.
+[WebServer] Not measurable — 1 hook whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (4503 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+
+[WebServer] (node:16135) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ node build
+
+[WebServer] (node:16168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0ccfc-51bb-774b-9c61-8b22c71cdc4f",
+    "01a0ccfc-51bc-766a-a0ec-0208753be24e",
+    "01a0ccfc-51be-71f8-b90a-69cbbfc765cb",
+    "01a0ccfc-51bf-7779-ac2f-efd15193f67b"
+  ],
+  "invoiceDrafts": [
+    "01a0ccfc-52b9-75da-ba51-e05be1cdd894",
+    "01a0ccfc-52bd-768f-9551-ee8286b95ab9",
+    "01a0ccfc-52c1-7683-9e66-33a1b1f54eb9"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0ccfc-52c8-762b-ac9d-fa869a4e7437",
+    "01a0ccfc-52cb-72f0-8713-ab6b06b321eb",
+    "01a0ccfc-52ce-717b-a13a-37443f2631d1"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0ccfc-52c8-762b-ac9d-fa869a4e7437",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0ccfc-52af-771c-b9b2-df5ccb99e0b7",
+    "01a0ccfc-52b1-77bb-b54a-578e7d3077b6"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0ccfc-51bb-774b-9c61-8b22c71cdc4f",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0ccfc-52d6-767c-ab8e-b16419fccd01"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0ccfc-51bb-774b-9c61-8b22c71cdc4f",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0ccfc-52d9-753b-9945-60f594ab802d"
+    }
+  ],
+  "periodReportIds": [
+    "01a0ccfc-52da-77e1-9613-b17dcfedd78a",
+    "01a0ccfc-52da-77e1-9613-b59a9d16fa67"
+  ],
+  "accountingPackId": "01a0ccfc-5316-7282-bc4a-8d32defab081",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-325119f4f82bfbfed34647db81d11e740de7c38d",
+  "closeoutId": "01a0ccfc-53bc-747a-8369-f1a9c775372d"
+}
+
+Running 68 tests using 1 worker
+
+(node:16222) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/68] [phone-360] › tests/e2e/form-resilience.spec.ts:40:1 › expense validation retains the receipt and values, then creation and editing succeed
+[2/68] [phone-360] › tests/e2e/form-resilience.spec.ts:113:3 › daily report retains all fields after server validation and saves after correction
+[3/68] [phone-360] › tests/e2e/form-resilience.spec.ts:113:3 › technical report retains all fields after server validation and saves after correction
+[4/68] [phone-360] › tests/e2e/form-resilience.spec.ts:164:1 › owner expense save blocks duplicate submits and retains the form after network and server errors
+[5/68] [phone-360] › tests/e2e/form-resilience.spec.ts:232:1 › disabled offline mode keeps expense values and receipt with explicit reconnect feedback
+[6/68] [phone-360] › tests/e2e/manual-current-capture.spec.ts:59:1 › capture fresh synthetic manuals for seven personas and the Spanish worker guide
+[7/68] [phone-360] › tests/e2e/record-browser-state.spec.ts:62:1 › management SPA tabs restore their own search, sort and page without leaking state
+[8/68] [phone-360] › tests/e2e/record-browser-state.spec.ts:103:1 › focused management records override only hiding filters and keep saved ordering
+[9/68] [phone-360] › tests/e2e/record-browser-state.spec.ts:146:1 › billing stream preferences stay scoped to project and signed-in user
+[10/68] [phone-360] › tests/e2e/record-browser-state.spec.ts:199:1 › controlled notification paging preserves server order and resets on its parent filter
+[11/68] [phone-360] › tests/e2e/sheet-change-tracking.spec.ts:4:1 › searching a selector does not dirty a sheet, but selecting a real value does
+[12/68] [phone-360] › tests/e2e/time-form-resilience.spec.ts:35:1 › time blocks duplicate writes, freezes the submitted interval and focuses network failure feedback
+[13/68] [phone-360] › tests/e2e/time-form-resilience.spec.ts:99:1 › time server validation focuses its field and removes the obsolete summary after correction
+[14/68] [phone-360] › tests/e2e/time-form-resilience.spec.ts:120:1 › time cross-field interval corrections and reset clear only obsolete validation without moving focus
+[15/68] [phone-360] › tests/e2e/time-form-resilience.spec.ts:157:1 › time reports disabled offline mode without losing the local interval or attempting a POST
+[16/68] [phone-360] › tests/e2e/time-interval.spec.ts:9:3 › worker: current local date, clock interval, pause and edit
+[17/68] [phone-360] › tests/e2e/time-interval.spec.ts:9:3 › owner: current local date, clock interval, pause and edit
+(node:18447) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[18/68] [phone-390] › tests/e2e/form-resilience.spec.ts:40:1 › expense validation retains the receipt and values, then creation and editing succeed
+[19/68] [phone-390] › tests/e2e/form-resilience.spec.ts:113:3 › daily report retains all fields after server validation and saves after correction
+[20/68] [phone-390] › tests/e2e/form-resilience.spec.ts:113:3 › technical report retains all fields after server validation and saves after correction
+[21/68] [phone-390] › tests/e2e/form-resilience.spec.ts:164:1 › owner expense save blocks duplicate submits and retains the form after network and server errors
+[22/68] [phone-390] › tests/e2e/form-resilience.spec.ts:232:1 › disabled offline mode keeps expense values and receipt with explicit reconnect feedback
+[23/68] [phone-390] › tests/e2e/manual-current-capture.spec.ts:59:1 › capture fresh synthetic manuals for seven personas and the Spanish worker guide
+[24/68] [phone-390] › tests/e2e/record-browser-state.spec.ts:62:1 › management SPA tabs restore their own search, sort and page without leaking state
+[25/68] [phone-390] › tests/e2e/record-browser-state.spec.ts:103:1 › focused management records override only hiding filters and keep saved ordering
+[26/68] [phone-390] › tests/e2e/record-browser-state.spec.ts:146:1 › billing stream preferences stay scoped to project and signed-in user
+[27/68] [phone-390] › tests/e2e/record-browser-state.spec.ts:199:1 › controlled notification paging preserves server order and resets on its parent filter
+[28/68] [phone-390] › tests/e2e/sheet-change-tracking.spec.ts:4:1 › searching a selector does not dirty a sheet, but selecting a real value does
+[29/68] [phone-390] › tests/e2e/time-form-resilience.spec.ts:35:1 › time blocks duplicate writes, freezes the submitted interval and focuses network failure feedback
+[30/68] [phone-390] › tests/e2e/time-form-resilience.spec.ts:99:1 › time server validation focuses its field and removes the obsolete summary after correction
+[31/68] [phone-390] › tests/e2e/time-form-resilience.spec.ts:120:1 › time cross-field interval corrections and reset clear only obsolete validation without moving focus
+[32/68] [phone-390] › tests/e2e/time-form-resilience.spec.ts:157:1 › time reports disabled offline mode without losing the local interval or attempting a POST
+[33/68] [phone-390] › tests/e2e/time-interval.spec.ts:9:3 › worker: current local date, clock interval, pause and edit
+[34/68] [phone-390] › tests/e2e/time-interval.spec.ts:9:3 › owner: current local date, clock interval, pause and edit
+(node:20688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[35/68] [tablet-768] › tests/e2e/form-resilience.spec.ts:40:1 › expense validation retains the receipt and values, then creation and editing succeed
+[36/68] [tablet-768] › tests/e2e/form-resilience.spec.ts:113:3 › daily report retains all fields after server validation and saves after correction
+[37/68] [tablet-768] › tests/e2e/form-resilience.spec.ts:113:3 › technical report retains all fields after server validation and saves after correction
+[38/68] [tablet-768] › tests/e2e/form-resilience.spec.ts:164:1 › owner expense save blocks duplicate submits and retains the form after network and server errors
+[39/68] [tablet-768] › tests/e2e/form-resilience.spec.ts:232:1 › disabled offline mode keeps expense values and receipt with explicit reconnect feedback
+[40/68] [tablet-768] › tests/e2e/manual-current-capture.spec.ts:59:1 › capture fresh synthetic manuals for seven personas and the Spanish worker guide
+[41/68] [tablet-768] › tests/e2e/record-browser-state.spec.ts:62:1 › management SPA tabs restore their own search, sort and page without leaking state
+[42/68] [tablet-768] › tests/e2e/record-browser-state.spec.ts:103:1 › focused management records override only hiding filters and keep saved ordering
+[43/68] [tablet-768] › tests/e2e/record-browser-state.spec.ts:146:1 › billing stream preferences stay scoped to project and signed-in user
+[44/68] [tablet-768] › tests/e2e/record-browser-state.spec.ts:199:1 › controlled notification paging preserves server order and resets on its parent filter
+[45/68] [tablet-768] › tests/e2e/sheet-change-tracking.spec.ts:4:1 › searching a selector does not dirty a sheet, but selecting a real value does
+[46/68] [tablet-768] › tests/e2e/time-form-resilience.spec.ts:35:1 › time blocks duplicate writes, freezes the submitted interval and focuses network failure feedback
+[47/68] [tablet-768] › tests/e2e/time-form-resilience.spec.ts:99:1 › time server validation focuses its field and removes the obsolete summary after correction
+[48/68] [tablet-768] › tests/e2e/time-form-resilience.spec.ts:120:1 › time cross-field interval corrections and reset clear only obsolete validation without moving focus
+[49/68] [tablet-768] › tests/e2e/time-form-resilience.spec.ts:157:1 › time reports disabled offline mode without losing the local interval or attempting a POST
+[50/68] [tablet-768] › tests/e2e/time-interval.spec.ts:9:3 › worker: current local date, clock interval, pause and edit
+[51/68] [tablet-768] › tests/e2e/time-interval.spec.ts:9:3 › owner: current local date, clock interval, pause and edit
+(node:22930) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[52/68] [desktop] › tests/e2e/form-resilience.spec.ts:40:1 › expense validation retains the receipt and values, then creation and editing succeed
+[53/68] [desktop] › tests/e2e/form-resilience.spec.ts:113:3 › daily report retains all fields after server validation and saves after correction
+[54/68] [desktop] › tests/e2e/form-resilience.spec.ts:113:3 › technical report retains all fields after server validation and saves after correction
+[55/68] [desktop] › tests/e2e/form-resilience.spec.ts:164:1 › owner expense save blocks duplicate submits and retains the form after network and server errors
+[56/68] [desktop] › tests/e2e/form-resilience.spec.ts:232:1 › disabled offline mode keeps expense values and receipt with explicit reconnect feedback
+[57/68] [desktop] › tests/e2e/manual-current-capture.spec.ts:59:1 › capture fresh synthetic manuals for seven personas and the Spanish worker guide
+[58/68] [desktop] › tests/e2e/record-browser-state.spec.ts:62:1 › management SPA tabs restore their own search, sort and page without leaking state
+[59/68] [desktop] › tests/e2e/record-browser-state.spec.ts:103:1 › focused management records override only hiding filters and keep saved ordering
+[60/68] [desktop] › tests/e2e/record-browser-state.spec.ts:146:1 › billing stream preferences stay scoped to project and signed-in user
+[61/68] [desktop] › tests/e2e/record-browser-state.spec.ts:199:1 › controlled notification paging preserves server order and resets on its parent filter
+[62/68] [desktop] › tests/e2e/sheet-change-tracking.spec.ts:4:1 › searching a selector does not dirty a sheet, but selecting a real value does
+[63/68] [desktop] › tests/e2e/time-form-resilience.spec.ts:35:1 › time blocks duplicate writes, freezes the submitted interval and focuses network failure feedback
+[64/68] [desktop] › tests/e2e/time-form-resilience.spec.ts:99:1 › time server validation focuses its field and removes the obsolete summary after correction
+[65/68] [desktop] › tests/e2e/time-form-resilience.spec.ts:120:1 › time cross-field interval corrections and reset clear only obsolete validation without moving focus
+[66/68] [desktop] › tests/e2e/time-form-resilience.spec.ts:157:1 › time reports disabled offline mode without losing the local interval or attempting a POST
+[67/68] [desktop] › tests/e2e/time-interval.spec.ts:9:3 › worker: current local date, clock interval, pause and edit
+[68/68] [desktop] › tests/e2e/time-interval.spec.ts:9:3 › owner: current local date, clock interval, pause and edit
+  3 skipped
+  65 passed (8.5m)

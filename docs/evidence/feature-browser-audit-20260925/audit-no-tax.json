@@ -1,0 +1,134 @@
+{
+  "initial": {
+    "url": "http://127.0.0.1:5174/j-aautomation/app/projects/01a0d974-e249-71cd-b55c-7ab277c4370a?tab=billing",
+    "text": "← Projects\n/\nC-0001-P-001\nPrint report\nOperations dashboard\nProject closeout\n\nC-0001 · C-0001-P-001\n\nBody Shop Line 4 Controls Upgrade · Demo\n\nNorthline Mobility · Demo · Detroit Assembly Campus · Demo · US\n\nActive\nEdit project\nACTUAL TIME\n82.5 h\nRecorded operational time\nASSIGNED TEAM\n3\nCurrent project assignment(s)\nREPORTS\n2\nDaily and technical records\nCONTRIBUTION\nUSD 12,820.00\nCanonical project finance projection\nOverview\nTeam\nReports & Files\nCommercial\nBilling\nConfigure this project’s invoices\n\nChoose how approved hours and customer-chargeable expenses become invoices. Worker reimbursement follows the project default unless a person override is set in Finance; customer expense charges remain separate.\n\nStep 1 / 4\n1. Invoice arrangement\nStart from a saved template\nConfigure from scratch\n\nA template fills defaults only. Review the project and each person before saving.\n\nCurrent commercial model: tm_daily_minimum · Current PO cap: USD 190,000.00. Edit project commercial model or cap\n\nOne invoice with two sections\nApproved labor and billable expenses appear on the same invoice, with separate section totals.\nTwo separate invoices\nLabor and expenses use separate invoice drafts and may use different cadence and tax profiles.\nConfiguration effective from\nContinue\n\nFINANCE WORKFLOW\n\nInvoices and advanced settings\nOpen Billing\n\nReview drafts and issued invoices here. Advanced billing rules remain available for Finance.\n\nExpense\nMonthly · USD\nActive\nLabor\nWeekly · USD\nActive\nMilestone\nMilestone · USD\nActive\nCreate invoice draft\nDownload finance export",
+    "buttons": [
+      " Print report",
+      "Edit project",
+      "Overview",
+      "Team",
+      "Reports & Files",
+      "Commercial",
+      "Billing",
+      "Edit project commercial model or cap",
+      "Continue",
+      "Create invoice draft"
+    ]
+  },
+  "continueCount": 1,
+  "step1": {
+    "disabled": false,
+    "text": "← Projects\n/\nC-0001-P-001\nPrint report\nOperations dashboard\nProject closeout\n\nC-0001 · C-0001-P-001\n\nBody Shop Line 4 Controls Upgrade · Demo\n\nNorthline Mobility · Demo · Detroit Assembly Campus · Demo · US\n\nActive\nEdit project\nACTUAL TIME\n82.5 h\nRecorded operational time\nASSIGNED TEAM\n3\nCurrent project assignment(s)\nREPORTS\n2\nDaily and technical records\nCONTRIBUTION\nUSD 12,820.00\nCanonical project finance projection\nOverview\nTeam\nReports & Files\nCommercial\nBilling\nConfigure this project’s invoices\n\nChoose how approved hours and customer-chargeable expenses become invoices. Worker reimbursement follows the project default unless a person override is set in Finance; customer expense charges remain separate.\n\nStep 1 / 4\n1. Invoice arrangement\nStart from a saved template\nConfigure from scratch\n\nA template fills defaults only. Review the project and each person before saving.\n\nCurrent commercial model: tm_daily_minimum · Current PO cap: USD 190,000.00. Edit project commercial model or cap\n\nOne invoice with two sections\nApproved labor and billable expenses appear on the same invoice, with separate section totals.\nTwo separate invoices\nLabor and expenses use separate invoice drafts and may use different cadence and tax profiles.\nConfiguration effective from\nContinue\n\nFINANCE WORKFLOW\n\nInvoices and advanced settings\nOpen Billing\n\nReview drafts and issued invoices here. Advanced billing rules remain available for Finance.\n\nExpense\nMonthly · USD\nActive\nLabor\nWeekly · USD\nActive\nMilestone\nMilestone · USD\nActive\nCreate invoice draft\nDownload finance export"
+  },
+  "step2": {
+    "disabled": false,
+    "text": "← Projects\n/\nC-0001-P-001\nPrint report\nOperations dashboard\nProject closeout\n\nC-0001 · C-0001-P-001\n\nBody Shop Line 4 Controls Upgrade · Demo\n\nNorthline Mobility · Demo · Detroit Assembly Campus · Demo · US\n\nActive\nEdit project\nACTUAL TIME\n82.5 h\nRecorded operational time\nASSIGNED TEAM\n3\nCurrent project assignment(s)\nREPORTS\n2\nDaily and technical records\nCONTRIBUTION\nUSD 12,820.00\nCanonical project finance projection\nOverview\nTeam\nReports & Files\nCommercial\nBilling\nConfigure this project’s invoices\n\nChoose how approved hours and customer-chargeable expenses become invoices. Worker reimbursement follows the project default unless a person override is set in Finance; customer expense charges remain separate.\n\nStep 2 / 4\n2. Billing details\nInvoice issuer (J&A Automation)\nSelect entity\nJ&A Automation · Demonstration Invoice (USD)\nJ&A Automation LLC (USD)\nProject currency\nLabor tax profile\nNo tax profile configured\nLabor billing cadence\nWeekly\nEvery 14 days\nSemi-monthly\nMonthly\nManual\nExpense tax profile\nNo tax profile configured\nExpense billing cadence\nWeekly\nEvery 14 days\nSemi-monthly\nMonthly\nManual\nInvoice layout\nStandard\nDetailed\nSummary\nLine grouping\nBy worker\nBy day\nBy category\nDetailed\nSummary\nBilling contact\nUse client default\nMorgan Lee\nTaylor Brooks\nRecipient email\nPayment terms (days)\nAutomatically prepare drafts for review\n\nInvoices are never issued or sent automatically.\n\nBack\nContinue\n\nFINANCE WORKFLOW\n\nInvoices and advanced settings\nOpen Billing\n\nReview drafts and issued invoices here. Advanced billing rules remain available for Finance.\n\nExpense\nMonthly · USD\nActive\nLabor\nWeekly · USD\nActive\nMilestone\nMilestone · USD\nActive\nCreate invoice draft\nDownload finance export",
+    "selects": [
+      {
+        "value": "01a0d974-e2ee-73e9-a43b-300f5b9dcdf3",
+        "options": [
+          "Select entity",
+          "J&A Automation · Demonstration Invoice (USD)",
+          "J&A Automation LLC (USD)"
+        ]
+      },
+      {
+        "value": "",
+        "options": [
+          "No tax profile configured"
+        ]
+      },
+      {
+        "value": "weekly",
+        "options": [
+          "Weekly",
+          "Every 14 days",
+          "Semi-monthly",
+          "Monthly",
+          "Manual"
+        ]
+      },
+      {
+        "value": "",
+        "options": [
+          "No tax profile configured"
+        ]
+      },
+      {
+        "value": "monthly",
+        "options": [
+          "Weekly",
+          "Every 14 days",
+          "Semi-monthly",
+          "Monthly",
+          "Manual"
+        ]
+      },
+      {
+        "value": "labor-detailed",
+        "options": [
+          "Standard",
+          "Detailed",
+          "Summary"
+        ]
+      },
+      {
+        "value": "summary",
+        "options": [
+          "By worker",
+          "By day",
+          "By category",
+          "Detailed",
+          "Summary"
+        ]
+      },
+      {
+        "value": "",
+        "options": [
+          "Use client default",
+          "Morgan Lee",
+          "Taylor Brooks"
+        ]
+      }
+    ]
+  },
+  "step3": {
+    "text": "pense is not charged to the customer. Worker reimbursement is separate: J&A can reimburse a worker for a $100 expense while charging the customer $0.\n\nExpense treatment applies to the selected payer only. Policies for other payers remain active.\n\nExisting terms on the same date are immutable. Choose a later effective date to change them.\n\nSave person terms\nDaniel Brooks\nApply draft defaults to this person\n\nCurrent customer rate: USD 150.00/h · Worker pay: Configured · Expense policy: Missing\n\nSet who pays expenses and how the customer is charged. Worker reimbursement follows the project default unless Finance sets a person override.\nTerms effective from\nCustomer hourly rate (USD)\nWorker compensation method\nHourly\nDaily\nFixed per billing period\nFixed project amount\nPercentage of eligible client labor\nWorker compensation rate (USD)\nExpense payer\nWorker\nCompany card\nCompany direct\nClient\nThird party\nReimburse worker\nAt cost\nNo reimbursement\nCharge customer for expense\nAt cost\nCost plus markup\nIncluded in labor price\nDo not charge customer\nClient pays directly\n\nNon-billable means the expense is not charged to the customer. Worker reimbursement is separate: J&A can reimburse a worker for a $100 expense while charging the customer $0.\n\nExpense treatment applies to the selected payer only. Policies for other payers remain active.\n\nExisting terms on the same date are immutable. Choose a later effective date to change them.\n\nSave person terms\nRafael Santos\nApply draft defaults to this person\n\nCurrent customer rate: USD 150.00/h · Worker pay: Configured · Expense policy: Missing\n\nSet who pays expenses and how the customer is charged. Worker reimbursement follows the project default unless Finance sets a person override.\nTerms effective from\nCustomer hourly rate (USD)\nWorker compensation method\nHourly\nDaily\nFixed per billing period\nFixed project amount\nPercentage of eligible client labor\nWorker compensation rate (USD)\nExpense payer\nWorker\nCompany card\nCompany direct\nClient\nThird party\nReimburse worker\nAt cost\nNo reimbursement\nCharge customer for expense\nAt cost\nCost plus markup\nIncluded in labor price\nDo not charge customer\nClient pays directly\n\nNon-billable means the expense is not charged to the customer. Worker reimbursement is separate: J&A can reimburse a worker for a $100 expense while charging the customer $0.\n\nExpense treatment applies to the selected payer only. Policies for other payers remain active.\n\nExisting terms on the same date are immutable. Choose a later effective date to change them.\n\nSave person terms\nCommercial setup needs attention\n\nReview these people and save the missing or conflicting terms before preparing their records for billing.\n\nAlex Rivera: Set who pays expenses and how the customer is charged. Worker reimbursement follows the project default unless Finance sets a person override.\nDaniel Brooks: Set who pays expenses and how the customer is charged. Worker reimbursement follows the project default unless Finance sets a person override.\nRafael Santos: Set who pays expenses and how the customer is charged. Worker reimbursement follows the project default unless Finance sets a person override.\nAdvanced commercial rules\nBack\nContinue\n\nFINANCE WORKFLOW\n\nInvoices and advanced settings\nOpen Billing\n\nReview drafts and issued invoices here. Advanced billing rules remain available for Finance.\n\nExpense\nMonthly · USD\nActive\nLabor\nWeekly · USD\nActive\nMilestone\nMilestone · USD\nActive\nCreate invoice draft\nDownload finance export",
+    "disabled": false
+  },
+  "issues": [
+    {
+      "type": "warning",
+      "text": "Avoid using `history.pushState(...)` and `history.replaceState(...)` as these will conflict with SvelteKit's router. Use the `pushState` and `replaceState` imports from `$app/navigation` instead.",
+      "location": {
+        "url": "http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js",
+        "line": 11,
+        "column": 23311,
+        "lineNumber": 11,
+        "columnNumber": 23311
+      }
+    },
+    {
+      "type": "warning",
+      "text": "Avoid using `history.pushState(...)` and `history.replaceState(...)` as these will conflict with SvelteKit's router. Use the `pushState` and `replaceState` imports from `$app/navigation` instead.",
+      "location": {
+        "url": "http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js",
+        "line": 11,
+        "column": 23311,
+        "lineNumber": 11,
+        "columnNumber": 23311
+      }
+    },
+    {
+      "type": "warning",
+      "text": "Avoid using `history.pushState(...)` and `history.replaceState(...)` as these will conflict with SvelteKit's router. Use the `pushState` and `replaceState` imports from `$app/navigation` instead.",
+      "location": {
+        "url": "http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js",
+        "line": 11,
+        "column": 23311,
+        "lineNumber": 11,
+        "columnNumber": 23311
+      }
+    }
+  ]
+}

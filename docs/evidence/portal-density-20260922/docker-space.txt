@@ -1,0 +1,7 @@
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          32        14        19.9GB    8.885GB (44%)
+Containers      17        15        3.486MB   28.67kB (0%)
+Local Volumes   4         4         345.7MB   0B (0%)
+Build Cache     0         0         0B        0B
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       150G  136G  8.1G  95% /

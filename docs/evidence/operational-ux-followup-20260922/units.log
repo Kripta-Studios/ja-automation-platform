@@ -1,0 +1,13 @@
+
+ RUN  v4.1.11 /home/kripta/ja-automation-platform-vps-hotfix
+
+·················································stderr | tests/security/astra-manual-download.test.ts > Help PDF authorization boundary > reports invalid locale and persistent PDF storage failure in the requested language
+{"event":"help.manual.read_failed","manual":"work-projects-reference","locale":"pt","error":"Manual asset is unavailable: work-projects-reference:pt"}
+
+··············
+
+ Test Files  8 passed (8)
+      Tests  63 passed (63)
+   Start at  08:33:49
+   Duration  45.69s (transform 3.95s, setup 0ms, import 5.23s, tests 59.03s, environment 2ms)
+

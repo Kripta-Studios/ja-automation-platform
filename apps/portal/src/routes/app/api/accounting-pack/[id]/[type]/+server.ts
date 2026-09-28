@@ -1,45 +1,129 @@
-import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import { relative, resolve } from 'node:path';
-import { error, type RequestHandler } from '@sveltejs/kit';
+import { randomUUID } from 'node:crypto';
+import type { RequestHandler } from '@sveltejs/kit';
 import { openPortalRepository } from '$lib/server/portal-repository';
+import { servePrivateArtifact } from '$lib/server/private-artifact-access';
+import {
+  accountingPackFormats,
+  accountingPackKnownConflict,
+  accountingPackProblem,
+  type AccountingPackFormat,
+} from '../../accounting-pack-api';
 
-const types = new Set(['pdf', 'xlsx', 'invoice_csv', 'expense_csv', 'json']);
+const types = new Set<string>(accountingPackFormats);
 
 export const GET: RequestHandler = async ({ locals, params }) => {
-  if (!locals.user || !locals.session) error(401, 'Sign in required');
+  const correlationId = locals.correlationId ?? randomUUID();
+  if (!locals.user || !locals.session)
+    return accountingPackProblem('ACCOUNTING_PACK_SIGN_IN_REQUIRED', 'signInRequired', 401, {
+      correlationId,
+    });
   const routeParams = params as { id?: string; type?: string };
   const exportType = routeParams.type;
   const packId = routeParams.id;
-  if (!packId || !exportType || !types.has(exportType)) error(404, 'Export not found');
-  const context = openPortalRepository(locals);
+  if (!packId || !exportType || !types.has(exportType))
+    return accountingPackProblem('ACCOUNTING_PACK_NOT_FOUND', 'notFound', 404, {
+      correlationId,
+    });
+  let context: ReturnType<typeof openPortalRepository> | undefined;
+  let authorizedPack = false;
+  // Keep one reference across the private boundary, route logs and the typed
+  // response. The helper may log the underlying storage failure first.
   try {
-    const metadata = context.v3.accountingPackExport(
-      context.principal,
-      packId,
-      exportType as 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json',
-    );
-    const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
-    const target = resolve(root, metadata.storageKey);
-    const rel = relative(root, target);
-    if (rel.split(/[\\/]/).includes('..') || rel.startsWith('\\'))
-      error(400, 'Invalid export path');
-    const bytes = await readFile(target);
-    if (
-      bytes.byteLength !== metadata.byteLength ||
-      createHash('sha256').update(bytes).digest('hex') !== metadata.sha256
-    )
-      error(409, 'Export integrity check failed');
-    return new Response(bytes, {
-      headers: {
-        'content-type': metadata.mediaType,
-        'content-length': String(bytes.byteLength),
-        'content-disposition': `attachment; filename="${metadata.filename.replace(/[^A-Za-z0-9._-]/g, '_')}"`,
-        'cache-control': 'private, no-store',
-        'x-content-type-options': 'nosniff',
+    context = openPortalRepository(locals);
+    const principal = { ...context.principal, correlationId };
+    const { v3 } = context;
+    let knownCause: unknown;
+    const response = await servePrivateArtifact({
+      sqlite: context.sqlite,
+      principal,
+      kind: 'accounting_pack',
+      id: packId,
+      loadMetadata: () => {
+        // The shared helper invokes this only after object authorization.
+        authorizedPack = true;
+        try {
+          return v3.accountingPackExport(
+            principal,
+            packId,
+            exportType as 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json',
+          );
+        } catch (cause) {
+          knownCause = cause;
+          throw cause;
+        }
       },
     });
+    // The shared service authorizes and audits before a known 409 is localized.
+    if (response.status === 401) {
+      return accountingPackProblem(
+        'ACCOUNTING_PACK_SIGN_IN_REQUIRED',
+        'signInRequired',
+        401,
+        { correlationId },
+      );
+    }
+    if (response.status === 404)
+      return accountingPackProblem('ACCOUNTING_PACK_NOT_FOUND', 'notFound', 404, {
+        correlationId,
+      });
+    if (response.status === 409) {
+      const known = accountingPackKnownConflict(
+        knownCause,
+        packId,
+        exportType as AccountingPackFormat,
+        context.principal.role,
+        correlationId,
+      );
+      if (known) return known;
+      // Artifact integrity or storage failures also stay safe and typed.
+      return accountingPackProblem('ACCOUNTING_PACK_EXPORT_UNAVAILABLE', 'exportUnavailable', 409, {
+        packId,
+        format: exportType as AccountingPackFormat,
+        role: context.principal.role,
+        correlationId,
+      });
+    }
+    if (response.status >= 500) {
+      console.error('Accounting Pack artifact service unavailable', {
+        correlationId,
+        packId,
+        format: exportType,
+        status: response.status,
+      });
+      return accountingPackProblem(
+        'ACCOUNTING_PACK_EXPORT_SERVICE_UNAVAILABLE',
+        'exportServiceUnavailable',
+        503,
+        {
+          ...(authorizedPack ? { packId } : {}),
+          format: exportType as AccountingPackFormat,
+          correlationId,
+        },
+      );
+    }
+    return response;
+  } catch (cause) {
+    console.error('Unexpected Accounting Pack download failure', {
+      correlationId,
+      packId,
+      format: exportType,
+      cause,
+    });
+    return accountingPackProblem(
+      'ACCOUNTING_PACK_EXPORT_SERVICE_UNAVAILABLE',
+      'exportServiceUnavailable',
+      503,
+      {
+        ...(authorizedPack ? { packId } : {}),
+        format: exportType as AccountingPackFormat,
+        correlationId,
+      },
+    );
   } finally {
-    context.sqlite.close();
+    try {
+      context?.sqlite.close();
+    } catch (cause) {
+      console.error('Accounting Pack download repository close failed', { correlationId, cause });
+    }
   }
 };

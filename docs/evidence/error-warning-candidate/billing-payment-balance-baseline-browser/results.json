@@ -1,0 +1,94 @@
+{
+  "candidateCommit": "d06da2b62d53ac34abe5f83b30d80b3712de6646",
+  "fixture": "new disposable database; seeded issued invoice; UI-created partial collections in two authorized roles",
+  "cases": [
+    {
+      "role": "finance",
+      "viewport": "390x844",
+      "locale": "en",
+      "mode": "native",
+      "beforeScrollY": 1392,
+      "response": {
+        "transportStatus": 400,
+        "contentType": "text/html",
+        "code": "BILLING_PAYMENT_AMOUNT_INVALID",
+        "genericPhrase": false
+      },
+      "visible": {
+        "code": "BILLING_PAYMENT_AMOUNT_INVALID",
+        "wording": "Action needed The amount must be positive and cannot exceed the available invoice or payment balance. Review the ledger and enter an allowed amount. Review invoice ledger",
+        "remedy": [
+          "Review invoice ledger"
+        ],
+        "focused": "amount",
+        "focusTop": 129,
+        "focusBottom": 301,
+        "headerBottom": 70,
+        "viewportHeight": 844,
+        "scrollY": 0,
+        "amount": "79800.00",
+        "referenceRetained": true,
+        "formMax": "79799.00"
+      },
+      "remedyBehavior": {
+        "sameDocument": true,
+        "maxBefore": "79799.00",
+        "maxAfter": "79799.00",
+        "hashAfter": "#invoice-collections",
+        "noticeStillPresent": true,
+        "collectionTop": 113,
+        "drawerScrollTop": 794
+      },
+      "paymentCountUnchanged": true
+    },
+    {
+      "role": "owner",
+      "viewport": "1440x900",
+      "locale": "es",
+      "mode": "enhanced",
+      "beforeScrollY": 153,
+      "response": {
+        "transportStatus": 200,
+        "contentType": "application/json",
+        "code": "BILLING_PAYMENT_AMOUNT_INVALID",
+        "genericPhrase": false
+      },
+      "visible": {
+        "code": "BILLING_PAYMENT_AMOUNT_INVALID",
+        "wording": "Se requiere una acción El importe debe ser positivo y no puede superar el saldo disponible de la factura o el pago. Revisa el libro de pagos e introduce un importe permitido. Revisar el libro de la factura",
+        "remedy": [
+          "Revisar el libro de la factura"
+        ],
+        "focused": "amount",
+        "focusTop": -552,
+        "focusBottom": -380,
+        "headerBottom": 72,
+        "viewportHeight": 900,
+        "scrollY": 153,
+        "amount": "79799.00",
+        "referenceRetained": true,
+        "formMax": "79799.00"
+      },
+      "remedyBehavior": {
+        "sameDocument": true,
+        "maxBefore": "79799.00",
+        "maxAfter": "79799.00",
+        "hashAfter": "#invoice-collections",
+        "noticeStillPresent": true,
+        "collectionTop": 116,
+        "drawerScrollTop": 518
+      },
+      "paymentCountUnchanged": true
+    }
+  ],
+  "diagnostics": {
+    "finance": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  }
+}

@@ -1,0 +1,339 @@
+{
+  "candidateCommit": "4bed1de",
+  "role": "owner",
+  "width": 1440,
+  "height": 900,
+  "locale": "es",
+  "scenarios": [
+    {
+      "name": "invalid calendar",
+      "status": 200,
+      "ui": {
+        "locale": "es-ES",
+        "width": 1440,
+        "height": 900,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            "project-cp008-ascension"
+          ],
+          "date": [
+            "2026-02-30"
+          ],
+          "lang": [
+            "es"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_DATE_INVALID",
+        "text": "Se requiere una acción Introduce una fecha de trabajo real en formato AAAA-MM-DD para ver las horas del equipo. Corregir el campo señalado",
+        "remedy": "Corregir el campo señalado",
+        "remedyHref": "#crew-filter-date",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 256.359375,
+        "targetBottom": 387.625,
+        "headerBottom": 72,
+        "projectValue": "project-cp008-ascension",
+        "projectUnavailableOption": false,
+        "projectError": null,
+        "dateValue": "2026-02-30",
+        "dateType": "text",
+        "dateError": "Introduce una fecha de trabajo real en formato AAAA-MM-DD para ver las horas del equipo.",
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "invalid text",
+      "status": 200,
+      "ui": {
+        "locale": "es-ES",
+        "width": 1440,
+        "height": 900,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            "project-cp008-ascension"
+          ],
+          "date": [
+            "not-a-date"
+          ],
+          "lang": [
+            "es"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_DATE_INVALID",
+        "text": "Se requiere una acción Introduce una fecha de trabajo real en formato AAAA-MM-DD para ver las horas del equipo. Corregir el campo señalado",
+        "remedy": "Corregir el campo señalado",
+        "remedyHref": "#crew-filter-date",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 256.359375,
+        "targetBottom": 387.625,
+        "headerBottom": 72,
+        "projectValue": "project-cp008-ascension",
+        "projectUnavailableOption": false,
+        "projectError": null,
+        "dateValue": "not-a-date",
+        "dateType": "text",
+        "dateError": "Introduce una fecha de trabajo real en formato AAAA-MM-DD para ver las horas del equipo.",
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "duplicate date",
+      "status": 200,
+      "ui": {
+        "locale": "es-ES",
+        "width": 1440,
+        "height": 900,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            "project-cp008-ascension"
+          ],
+          "date": [
+            "2026-09-27",
+            "2026-09-28"
+          ],
+          "lang": [
+            "es"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_DATE_DUPLICATE",
+        "text": "Se requiere una acción La fecha de trabajo se ha enviado más de una vez. Conserva una sola fecha. Corregir el campo señalado",
+        "remedy": "Corregir el campo señalado",
+        "remedyHref": "#crew-filter-date",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 256.359375,
+        "targetBottom": 387.625,
+        "headerBottom": 72,
+        "projectValue": "project-cp008-ascension",
+        "projectUnavailableOption": false,
+        "projectError": null,
+        "dateValue": "2026-09-27",
+        "dateType": "date",
+        "dateError": "La fecha de trabajo se ha enviado más de una vez. Conserva una sola fecha.",
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "duplicate project",
+      "status": 200,
+      "ui": {
+        "locale": "es-ES",
+        "width": 1440,
+        "height": 900,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            "project-cp008-ascension",
+            ":record"
+          ],
+          "date": [
+            "2026-09-27"
+          ],
+          "lang": [
+            "es"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_PROJECT_DUPLICATE",
+        "text": "Se requiere una acción El filtro de proyecto se ha enviado más de una vez. Conserva una sola selección de proyecto. Corregir el campo señalado",
+        "remedy": "Corregir el campo señalado",
+        "remedyHref": "#crew-filter-project",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 256.359375,
+        "targetBottom": 387.625,
+        "headerBottom": 72,
+        "projectValue": "project-cp008-ascension",
+        "projectUnavailableOption": false,
+        "projectError": "El filtro de proyecto se ha enviado más de una vez. Conserva una sola selección de proyecto.",
+        "dateValue": "2026-09-27",
+        "dateType": "date",
+        "dateError": null,
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "stale project",
+      "status": 200,
+      "ui": {
+        "locale": "es-ES",
+        "width": 1440,
+        "height": 900,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            ":record"
+          ],
+          "date": [
+            "2026-09-27"
+          ],
+          "lang": [
+            "es"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_PROJECT_UNAVAILABLE_OWNER",
+        "text": "Se requiere una acción Este proyecto ya no está disponible para el trabajo del equipo. Elige un proyecto disponible o revisa su estado actual. Revisar proyectos",
+        "remedy": "Revisar proyectos",
+        "remedyHref": "/j-aautomation/app/projects?lang=es",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 256.359375,
+        "targetBottom": 387.625,
+        "headerBottom": 72,
+        "projectValue": ":record",
+        "projectUnavailableOption": true,
+        "projectError": "Este proyecto ya no está disponible para el trabajo del equipo. Elige un proyecto disponible o revisa su estado actual.",
+        "dateValue": "2026-09-27",
+        "dateType": "date",
+        "dateError": null,
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "combined malformed duplicate",
+      "status": 200,
+      "ui": {
+        "locale": "es-ES",
+        "width": 1440,
+        "height": 900,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            "project-cp008-ascension"
+          ],
+          "date": [
+            "not-a-date",
+            "2026-09-27"
+          ],
+          "lang": [
+            "es"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_DATE_DUPLICATE",
+        "text": "Se requiere una acción La fecha de trabajo se ha enviado más de una vez. Conserva una sola fecha. Corregir el campo señalado",
+        "remedy": "Corregir el campo señalado",
+        "remedyHref": "#crew-filter-date",
+        "summaryPresent": false,
+        "summaryText": null,
+        "summaryLinks": [],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 256.359375,
+        "targetBottom": 387.625,
+        "headerBottom": 72,
+        "projectValue": "project-cp008-ascension",
+        "projectUnavailableOption": false,
+        "projectError": null,
+        "dateValue": "not-a-date",
+        "dateType": "text",
+        "dateError": "La fecha de trabajo se ha enviado más de una vez. Conserva una sola fecha. Introduce una fecha de trabajo real en formato AAAA-MM-DD para ver las horas del equipo.",
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    },
+    {
+      "name": "multi field",
+      "status": 200,
+      "ui": {
+        "locale": "es-ES",
+        "width": 1440,
+        "height": 900,
+        "scrollY": 0,
+        "query": {
+          "project": [
+            ":record",
+            "project-cp008-ascension"
+          ],
+          "date": [
+            "not-a-date",
+            "2026-09-27"
+          ],
+          "lang": [
+            "es"
+          ],
+          "viewportScrollY": []
+        },
+        "code": "CREW_DAY_PROJECT_DUPLICATE",
+        "text": "Se requiere una acción El filtro de proyecto se ha enviado más de una vez. Conserva una sola selección de proyecto. Corregir el campo señalado",
+        "remedy": "Corregir el campo señalado",
+        "remedyHref": "#crew-filter-project",
+        "summaryPresent": true,
+        "summaryText": "Revisa los campos señalados. Proyecto: El filtro de proyecto se ha enviado más de una vez. Conserva una sola selección de proyecto.Fecha de trabajo: La fecha de trabajo se ha enviado más de una vez. Conserva una sola fecha.",
+        "summaryLinks": [
+          "#crew-filter-project",
+          "#crew-filter-date"
+        ],
+        "focusIsTarget": true,
+        "focusedId": "",
+        "targetTop": 436.625,
+        "targetBottom": 580.40625,
+        "headerBottom": 72,
+        "projectValue": ":record",
+        "projectUnavailableOption": true,
+        "projectError": "El filtro de proyecto se ha enviado más de una vez. Conserva una sola selección de proyecto. Este proyecto ya no está disponible para el trabajo del equipo. Elige un proyecto disponible o revisa su estado actual.",
+        "dateValue": "not-a-date",
+        "dateType": "text",
+        "dateError": "La fecha de trabajo se ha enviado más de una vez. Conserva una sola fecha. Introduce una fecha de trabajo real en formato AAAA-MM-DD para ver las horas del equipo.",
+        "crewEntriesCount": 0,
+        "crewHoursCount": 0,
+        "crewAssignCount": 0,
+        "errorPageText": null
+      }
+    }
+  ],
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json"
+    ]
+  }
+}

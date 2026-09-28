@@ -1,0 +1,16 @@
+[
+  {
+    "step": "invalid-amount",
+    "fieldFocused": true
+  },
+  {
+    "step": "payment-success",
+    "paymentAdded": true,
+    "scrollRetained": true
+  },
+  {
+    "step": "stale-payment",
+    "code": "BILLING_PAYMENT_BLOCKED",
+    "unchanged": true
+  }
+]

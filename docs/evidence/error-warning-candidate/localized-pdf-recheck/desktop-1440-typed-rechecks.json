@@ -1,0 +1,20 @@
+{
+  "viewport": "desktop-1440",
+  "persistedGenerateStatuses": [202, 202],
+  "browserGeneratePosts": 2,
+  "signInRecheck": {
+    "status": 401,
+    "code": "PDF_SIGN_IN_REQUIRED",
+    "remedy": "sign_in_again"
+  },
+  "accessRecheck": {
+    "status": 404,
+    "code": "PDF_DOWNLOAD_UNAVAILABLE",
+    "remedy": "refresh_pdf_status"
+  },
+  "noticesFocused": true,
+  "duplicatePost": false,
+  "recheckBodies": "real API responses routed to browser after simulated lost POST",
+  "pageErrors": 0,
+  "consoleErrorCount": 5
+}

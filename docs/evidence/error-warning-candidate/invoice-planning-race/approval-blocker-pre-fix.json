@@ -1,0 +1,37 @@
+[
+  {
+    "action": "approveInvoice",
+    "viewport": "phone-390",
+    "locale": "en",
+    "invoiceRef": "d63b7f9f8d",
+    "approval": {
+      "transportStatus": 409,
+      "actionStatus": null,
+      "codeInResponse": false,
+      "attemptedPlannedInResponse": false,
+      "attemptedExpectedInResponse": false,
+      "bodyHasStack": false
+    },
+    "code": "BILLING_READINESS_STALE_BILLING_CONFIGURATION",
+    "visibleText": "Action needed\n\nBilling configuration or source records changed. Review the current terms; if the invoice is already approved, use Recalculate and review draft, then approve it again.\n\nReview billing setup",
+    "remedy": ["Review billing setup"],
+    "financeDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource", "failed-resource", "failed-resource"],
+      "failedResponses": [
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        },
+        {
+          "status": 409,
+          "path": "/j-aautomation/app/billing"
+        },
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        }
+      ]
+    }
+  }
+]

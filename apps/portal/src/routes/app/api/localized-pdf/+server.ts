@@ -1,0 +1,125 @@
+import { json, type RequestHandler } from '@sveltejs/kit';
+import {
+  isLocalizedPdfLocale,
+  isLocalizedPdfOwnerType,
+  localizedPdfDownloadLocation,
+  mapLocalizedPdfError,
+  normalizedLocalizedPdfLocale,
+  enqueueLocalizedPdfRender,
+  localizedPdfGenerationVersion,
+  localizedPdfProblem,
+  publicLocalizedPdfVariant,
+} from '$lib/server/localized-pdf-api';
+import type { LocalizedPdfOwnerType } from '@ja/database';
+import { localizedPdfTemplateVersion } from '@ja/reporting';
+import { openPortalRepository } from '$lib/server/portal-repository';
+
+function unauthorized(): Response {
+  return json(localizedPdfProblem('signInRequired'), {
+    status: 401,
+    headers: { 'cache-control': 'no-store' },
+  });
+}
+
+export const GET: RequestHandler = ({ locals, url }) => {
+  if (!locals.user || !locals.session) return unauthorized();
+  const ownerTypeValue = url.searchParams.get('ownerType');
+  const ownerId = url.searchParams.get('ownerId');
+  if ((ownerTypeValue && !ownerId) || (!ownerTypeValue && ownerId))
+    return json(localizedPdfProblem('requestInvalid'), { status: 400 });
+  if (ownerTypeValue && !isLocalizedPdfOwnerType(ownerTypeValue))
+    return json(localizedPdfProblem('requestInvalid'), { status: 400 });
+
+  // Keep the database lifecycle local to this request; no metadata is retained in memory.
+  let context: ReturnType<typeof openPortalRepository> | null = null;
+  try {
+    context = openPortalRepository(locals);
+    const variants = context.localizedPdf.listLocalizedPdfVariants(
+      context.principal,
+      ownerTypeValue && ownerId
+        ? { ownerType: ownerTypeValue as LocalizedPdfOwnerType, ownerId }
+        : undefined,
+    );
+    return json(
+      { variants: variants.map(publicLocalizedPdfVariant) },
+      { status: 200, headers: { 'cache-control': 'private, no-store' } },
+    );
+  } catch (cause) {
+    const mapped = mapLocalizedPdfError(cause);
+    if (mapped) return json(mapped.body, { status: mapped.status });
+    const problem = localizedPdfProblem('unexpected');
+    console.error('Localized PDF list failed', { correlationId: problem.correlationId, cause });
+    return json(problem, { status: 503 });
+  } finally {
+    context?.sqlite.close();
+  }
+};
+
+export const POST: RequestHandler = async ({ locals, request, url }) => {
+  if (!locals.user || !locals.session) return unauthorized();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json(localizedPdfProblem('requestInvalid'), { status: 400 });
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body))
+    return json(localizedPdfProblem('requestInvalid'), { status: 400 });
+  const values = body as Record<string, unknown>;
+  if (!isLocalizedPdfOwnerType(values.ownerType))
+    return json(localizedPdfProblem('requestInvalid'), { status: 400 });
+  if (typeof values.ownerId !== 'string' || !values.ownerId.trim())
+    return json(localizedPdfProblem('requestInvalid'), { status: 400 });
+  if (!isLocalizedPdfLocale(values.locale))
+    return json(localizedPdfProblem('requestInvalid'), { status: 400 });
+
+  let context: ReturnType<typeof openPortalRepository> | null = null;
+  try {
+    context = openPortalRepository(locals);
+    const activeContext = context;
+    const enqueueState: { value: { id: string; created: boolean } | null } = { value: null };
+    const variant = context.localizedPdf.requestLocalizedPdf(
+      context.principal,
+      {
+        ownerType: values.ownerType,
+        ownerId: values.ownerId,
+        locale: normalizedLocalizedPdfLocale(values.locale),
+        templateVersion: localizedPdfTemplateVersion(values.ownerType),
+        generationVersion: localizedPdfGenerationVersion(values.ownerType),
+      },
+      (persisted) => {
+        // The repository invokes this hook inside its write transaction. If enqueueing fails,
+        // SQLite rolls back both the variant and the job instead of exposing an orphan request.
+        enqueueState.value = enqueueLocalizedPdfRender(activeContext, persisted);
+      },
+    );
+    const queued = variant.status === 'queued' || variant.status === 'running';
+    const headers: Record<string, string> = {
+      'cache-control': 'private, no-store',
+    };
+    if (queued) {
+      headers.location = localizedPdfDownloadLocation(url, variant.variantId);
+      headers['retry-after'] = '2';
+    }
+    return json(
+      {
+        variant: publicLocalizedPdfVariant(variant),
+        job: enqueueState.value
+          ? { id: enqueueState.value.id, created: enqueueState.value.created }
+          : null,
+      },
+      {
+        status: queued ? 202 : 200,
+        headers,
+      },
+    );
+  } catch (cause) {
+    const mapped = mapLocalizedPdfError(cause);
+    if (mapped) return json(mapped.body, { status: mapped.status });
+    const problem = localizedPdfProblem('unexpected');
+    console.error('Localized PDF request failed', { correlationId: problem.correlationId, cause });
+    return json(problem, { status: 503 });
+  } finally {
+    context?.sqlite.close();
+  }
+};

@@ -1,0 +1,29 @@
+[
+  {
+    "step": "invalid-native",
+    "code": "REPORT_FIELDS_INVALID",
+    "retained": true,
+    "scrollBefore": 480,
+    "scrollAfter": 480,
+    "scrollSettled": 480,
+    "maxScrollAfter": 3816
+  },
+  {
+    "step": "stale-native",
+    "code": "REPORT_DRAFT_CHANGED",
+    "retained": true,
+    "scrollBefore": 480,
+    "scrollAfter": 480,
+    "scrollSettled": 480,
+    "maxScrollAfter": 3710
+  },
+  {
+    "step": "submitted-while-editing",
+    "code": "REPORT_CORRECTION_REQUIRED",
+    "retained": true,
+    "scrollBefore": 480,
+    "scrollAfter": 480,
+    "scrollSettled": 480,
+    "maxScrollAfter": 1698
+  }
+]

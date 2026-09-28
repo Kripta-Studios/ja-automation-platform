@@ -1,0 +1,394 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  closeB5LifecycleSecurityFixture,
+  createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
+} from '../fixtures/b5-lifecycle-security-fixture.js';
+
+const fixtures: Array<ReturnType<typeof createB5LifecycleSecurityFixture>> = [];
+
+afterEach(() => {
+  for (const fixture of fixtures.splice(0)) closeB5LifecycleSecurityFixture(fixture);
+});
+
+function setupInvoice(withCanonicalAssignment = true) {
+  const fixture = createB5LifecycleSecurityFixture();
+  fixtures.push(fixture);
+  const finance = stepUpB5Principal(fixture.sqlite, fixture.finance, 'repository-final-hardening');
+  const legalEntity = fixture.repository.createLegalEntity(fixture.owner, {
+    code: 'REPO-HARDENING',
+    legalName: 'Repository Hardening Entity',
+    currency: 'EUR',
+    billingAddress: 'Repository Hardening address',
+    companyIdentifiers: 'Repository Hardening identifiers',
+  });
+  const canonical = fixture.v3.createCanonicalLegalEntityRevision(finance, {
+    legacyLegalEntityId: legalEntity.id,
+    effectiveFrom: '2026-01-01',
+    legalName: 'Repository Hardening Entity',
+    taxIdentifier: 'ESREPOHARDENING1',
+    addressLine1: 'Repository Hardening address',
+    locality: 'Madrid',
+    postalCode: '28001',
+    countryCode: 'ES',
+    baseCurrency: 'EUR',
+    timezone: 'Europe/Madrid',
+    reason: 'Bind repository hardening fixture to canonical invoice authority',
+    idempotencyKey: 'repository-hardening:canonical-revision',
+  });
+  if (withCanonicalAssignment)
+    fixture.v3.assignCanonicalLegalEntityToProject(finance, {
+      projectId: fixture.project.id,
+      legalEntityRevisionId: canonical.revisionId,
+      effectiveFrom: '2026-01-01',
+      reason: 'Bind repository hardening project to canonical invoice authority',
+      idempotencyKey: 'repository-hardening:canonical-assignment',
+    });
+  fixture.repository.createInvoiceNumberPolicy(fixture.owner, {
+    legalEntityId: legalEntity.id,
+    prefix: 'REPO',
+    digits: 6,
+    effectiveFrom: '2026-01-01',
+    accountantApprovedAt: '2026-01-01T00:00:00.000Z',
+  });
+  const taxProfile = fixture.repository.createTaxProfile(finance, {
+    legalEntityId: legalEntity.id,
+    name: 'No tax',
+    currency: 'EUR',
+    effectiveFrom: '2026-01-01',
+    components: [{ name: 'No tax', basisPoints: 0 }],
+  });
+  const billingRule = fixture.repository.createBillingRule(finance, {
+    projectId: fixture.project.id,
+    legalEntityId: legalEntity.id,
+    streamType: 'labor',
+    cadenceType: 'custom',
+    taxProfileId: taxProfile.id,
+    currency: 'EUR',
+    effectiveFrom: '2026-01-01',
+  });
+  fixture.v3.createClientLaborRate(finance, {
+    projectId: fixture.project.id,
+    workerId: 'b5-worker',
+    currency: 'EUR',
+    hourlyRateMinor: 10_000n,
+    effectiveFrom: '2026-01-01',
+  });
+  const time = fixture.repository.createTimeEntry(fixture.worker, {
+    projectId: fixture.project.id,
+    workDate: '2026-08-03',
+    category: 'regular',
+    minutes: 60,
+    summary: 'Repository hardening source',
+  });
+  fixture.repository.submitTime(fixture.worker, time.id, time.version);
+  fixture.repository.operationalApproveTime(fixture.manager, time.id, 'approved');
+  fixture.repository.financeApproveTime(finance, time.id, true);
+  const draft = fixture.repository.createInvoiceDraft(
+    finance,
+    billingRule.id,
+    '2026-08-01',
+    '2026-08-31',
+  );
+  fixture.repository.approveInvoiceDraft(finance, draft.id);
+  return { ...fixture, finance, canonicalRevisionId: canonical.revisionId, draftId: draft.id };
+}
+
+function issueState(fixture: ReturnType<typeof setupInvoice>) {
+  return fixture.sqlite
+    .prepare(
+      `SELECT state,invoice_number,issued_at,source_lock_at,legal_entity_revision_id
+         FROM invoice WHERE id=?`,
+    )
+    .get(fixture.draftId);
+}
+
+function expectNoIssueWrites(fixture: ReturnType<typeof setupInvoice>) {
+  expect(issueState(fixture)).toEqual({
+    state: 'approved',
+    invoice_number: null,
+    issued_at: null,
+    source_lock_at: null,
+    legal_entity_revision_id: null,
+  });
+  expect(
+    fixture.sqlite
+      .prepare(
+        'SELECT COUNT(*) count FROM invoice_source WHERE invoice_id=? AND locked_at IS NOT NULL',
+      )
+      .get(fixture.draftId),
+  ).toEqual({ count: 0 });
+  expect(
+    fixture.sqlite
+      .prepare(
+        'SELECT COUNT(*) count FROM invoice_commercial_source_manifest WHERE invoice_id=? AND locked_at IS NOT NULL',
+      )
+      .get(fixture.draftId),
+  ).toEqual({ count: 0 });
+  expect(
+    fixture.sqlite
+      .prepare(
+        "SELECT COUNT(*) count FROM outbox_event WHERE topic='invoice.issued' AND aggregate_id=?",
+      )
+      .get(fixture.draftId),
+  ).toEqual({ count: 0 });
+}
+
+describe('PortalRepository final finance hardening', () => {
+  it('blocks draft or approved invoices with historical issue markers without writes or audit events', () => {
+    const fixture = setupInvoice();
+    const issuedAt = '2026-08-20T12:00:00.000Z';
+    fixture.sqlite
+      .prepare(
+        "UPDATE invoice SET state='draft',invoice_number='LEGACY-0001',issued_at=? WHERE id=?",
+      )
+      .run(issuedAt, fixture.draftId);
+    const beforeApproval = fixture.sqlite
+      .prepare('SELECT state,invoice_number,issued_at,version,updated_at FROM invoice WHERE id=?')
+      .get(fixture.draftId);
+    const approvalAudits = fixture.sqlite
+      .prepare(
+        "SELECT COUNT(*) count FROM audit_event WHERE action='invoice.approve' AND entity_id=?",
+      )
+      .get(fixture.draftId);
+
+    expect(() => fixture.repository.approveInvoiceDraft(fixture.finance, fixture.draftId)).toThrow(
+      'Invoice has historical issue markers',
+    );
+    expect(
+      fixture.sqlite
+        .prepare('SELECT state,invoice_number,issued_at,version,updated_at FROM invoice WHERE id=?')
+        .get(fixture.draftId),
+    ).toEqual(beforeApproval);
+    expect(
+      fixture.sqlite
+        .prepare(
+          "SELECT COUNT(*) count FROM audit_event WHERE action='invoice.approve' AND entity_id=?",
+        )
+        .get(fixture.draftId),
+    ).toEqual(approvalAudits);
+
+    fixture.sqlite.prepare("UPDATE invoice SET state='approved' WHERE id=?").run(fixture.draftId);
+    const beforeIssue = fixture.sqlite
+      .prepare('SELECT state,invoice_number,issued_at,version,updated_at FROM invoice WHERE id=?')
+      .get(fixture.draftId);
+    const issueAudits = fixture.sqlite
+      .prepare(
+        "SELECT COUNT(*) count FROM audit_event WHERE action='invoice.issue' AND entity_id=?",
+      )
+      .get(fixture.draftId);
+
+    expect(() => fixture.repository.issueInvoice(fixture.finance, fixture.draftId)).toThrow(
+      'Invoice has historical issue markers',
+    );
+    expect(
+      fixture.sqlite
+        .prepare('SELECT state,invoice_number,issued_at,version,updated_at FROM invoice WHERE id=?')
+        .get(fixture.draftId),
+    ).toEqual(beforeIssue);
+    expect(
+      fixture.sqlite
+        .prepare(
+          "SELECT COUNT(*) count FROM audit_event WHERE action='invoice.issue' AND entity_id=?",
+        )
+        .get(fixture.draftId),
+    ).toEqual(issueAudits);
+  });
+
+  it('continues to issue canonical UUID invoice records', () => {
+    const fixture = setupInvoice();
+
+    expect(fixture.draftId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    expect(fixture.repository.issueInvoice(fixture.finance, fixture.draftId)).toMatchObject({
+      issued: true,
+    });
+  });
+
+  it('does not overwrite a competing Finance time treatment', () => {
+    const fixture = createB5LifecycleSecurityFixture();
+    fixtures.push(fixture);
+    const entry = fixture.repository.createTimeEntry(fixture.worker, {
+      projectId: fixture.project.id,
+      workDate: '2026-08-03',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Concurrent Finance review',
+    });
+    fixture.repository.submitTime(fixture.worker, entry.id, entry.version);
+    fixture.repository.operationalApproveTime(fixture.manager, entry.id, 'approved');
+    fixture.repository.financeApproveTime(fixture.finance, entry.id, false);
+    const before = fixture.sqlite
+      .prepare(
+        'SELECT billability_state,finance_approved_by,finance_approved_at,version FROM time_entry WHERE id=?',
+      )
+      .get(entry.id);
+
+    expect(() => fixture.repository.financeApproveTime(fixture.finance, entry.id, true)).toThrow(
+      'Approved unlocked time required',
+    );
+    expect(
+      fixture.sqlite
+        .prepare(
+          'SELECT billability_state,finance_approved_by,finance_approved_at,version FROM time_entry WHERE id=?',
+        )
+        .get(entry.id),
+    ).toEqual(before);
+  });
+
+  it('fails closed when the project has no canonical legal-entity revision', () => {
+    const fixture = setupInvoice(false);
+
+    expect(() => fixture.repository.issueInvoice(fixture.finance, fixture.draftId)).toThrow(
+      /canonical.*(legal.?entity|revision)|legal.?entity.*canonical/i,
+    );
+    expectNoIssueWrites(fixture);
+  });
+
+  it('rejects an approved invoice whose line projection is empty', () => {
+    const fixture = setupInvoice();
+    fixture.sqlite.prepare('DELETE FROM invoice_line WHERE invoice_id=?').run(fixture.draftId);
+
+    expect(() => fixture.repository.issueInvoice(fixture.finance, fixture.draftId)).toThrow(
+      /invoice.*line|line.*invoice/i,
+    );
+    expectNoIssueWrites(fixture);
+  });
+
+  it('rejects an approved invoice whose commercial manifest is empty', () => {
+    const fixture = setupInvoice();
+    fixture.sqlite
+      .prepare('DELETE FROM invoice_commercial_source_manifest WHERE invoice_id=?')
+      .run(fixture.draftId);
+
+    expect(() => fixture.repository.issueInvoice(fixture.finance, fixture.draftId)).toThrow(
+      /commercial.*manifest|manifest.*commercial/i,
+    );
+    expectNoIssueWrites(fixture);
+  });
+
+  it('rejects a forged commercial source hash without partially issuing', () => {
+    const fixture = setupInvoice();
+    fixture.sqlite
+      .prepare('UPDATE invoice_commercial_source_manifest SET source_hash=? WHERE invoice_id=?')
+      .run('f'.repeat(64), fixture.draftId);
+
+    expect(() => fixture.repository.issueInvoice(fixture.finance, fixture.draftId)).toThrow(
+      /hash|manifest/i,
+    );
+    expectNoIssueWrites(fixture);
+  });
+
+  it('preserves a large minor-unit value exactly through issue snapshots', () => {
+    const fixture = setupInvoice();
+    const high = '9007199254740993';
+    const line = fixture.sqlite
+      .prepare('SELECT id FROM invoice_line WHERE invoice_id=? ORDER BY rowid LIMIT 1')
+      .get(fixture.draftId) as { id: string };
+    const source = fixture.sqlite
+      .prepare('SELECT source_link_id FROM invoice_source WHERE invoice_id=? LIMIT 1')
+      .get(fixture.draftId) as { source_link_id: string };
+    fixture.sqlite
+      .prepare(
+        'SELECT manifest_id FROM invoice_commercial_source_manifest WHERE invoice_id=? LIMIT 1',
+      )
+      .get(fixture.draftId);
+    fixture.sqlite
+      .prepare('UPDATE invoice_line SET subtotal_minor=?,unit_price_minor=? WHERE id=?')
+      .run(high, high, line.id);
+    fixture.sqlite
+      .prepare('UPDATE invoice SET subtotal_minor=?,tax_minor=0,total_minor=? WHERE id=?')
+      .run(high, high, fixture.draftId);
+    fixture.sqlite
+      .prepare(
+        'UPDATE invoice_source SET allocated_net_minor=?,allocated_tax_minor=0,allocated_gross_minor=? WHERE source_link_id=?',
+      )
+      .run(high, high, source.source_link_id);
+    fixture.sqlite
+      .prepare(
+        'UPDATE invoice_commercial_source_manifest SET original_minor=?,allocated_minor=?,remaining_minor=0 WHERE invoice_id=?',
+      )
+      .run(high, high, fixture.draftId);
+
+    const result = fixture.repository.issueInvoice(fixture.finance, fixture.draftId);
+    expect(result.issued).toBe(true);
+    const snapshot = JSON.parse(
+      (
+        fixture.sqlite
+          .prepare('SELECT snapshot_json FROM invoice WHERE id=?')
+          .get(fixture.draftId) as {
+          snapshot_json: string;
+        }
+      ).snapshot_json,
+    ) as {
+      calculation: { subtotalMinor: string; totalMinor: string };
+      lines: Array<{ subtotal_minor: string; unit_price_minor: string }>;
+      sources: Array<{ allocated_net_minor: string }>;
+      commercialSourceManifest: Array<{ allocated_minor: string }>;
+    };
+    expect(snapshot.calculation).toEqual({
+      currency: 'EUR',
+      subtotalMinor: high,
+      taxMinor: '0',
+      totalMinor: high,
+    });
+    expect(snapshot.lines[0]).toMatchObject({ subtotal_minor: high, unit_price_minor: high });
+    expect(snapshot.sources[0]).toMatchObject({ allocated_net_minor: high });
+    expect(snapshot.commercialSourceManifest[0]).toMatchObject({ allocated_minor: high });
+  });
+
+  it('issues a fully canonical invoice with a complete source projection', () => {
+    const fixture = setupInvoice();
+    const result = fixture.repository.issueInvoice(fixture.finance, fixture.draftId);
+    expect(result.issued).toBe(true);
+    expect(
+      fixture.sqlite
+        .prepare('SELECT legal_entity_revision_id FROM invoice WHERE id=?')
+        .get(fixture.draftId),
+    ).toEqual({ legal_entity_revision_id: fixture.canonicalRevisionId });
+  });
+});
+
+describe('Owner invoice draft management', () => {
+  it('discards an approved unissued invoice with lines and releases source reservations', () => {
+    const fixture = setupInvoice();
+    const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'discard-invoice');
+    const sources = fixture.sqlite
+      .prepare('SELECT * FROM invoice_source WHERE invoice_id=?')
+      .all(fixture.draftId);
+    expect(sources.length).toBeGreaterThan(0);
+    fixture.repository.deleteInvoice(owner, fixture.draftId, 'Discard incorrect demo invoice');
+    expect(
+      fixture.sqlite.prepare('SELECT 1 FROM invoice WHERE id=?').get(fixture.draftId),
+    ).toBeUndefined();
+    expect(
+      fixture.sqlite
+        .prepare('SELECT 1 FROM invoice_source WHERE invoice_id=?')
+        .get(fixture.draftId),
+    ).toBeUndefined();
+    expect(fixture.sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
+    const audit = fixture.sqlite
+      .prepare(
+        "SELECT before_json FROM audit_event WHERE action='invoice.delete_draft' AND entity_id=?",
+      )
+      .get(fixture.draftId);
+    expect(String(audit?.before_json)).toContain('sources');
+  });
+  it('rejects deleting issued invoice history without changing its sources', () => {
+    const fixture = setupInvoice();
+    const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'keep-issued-invoice');
+    fixture.repository.issueInvoice(fixture.finance, fixture.draftId);
+    const before = fixture.sqlite
+      .prepare('SELECT * FROM invoice_source WHERE invoice_id=?')
+      .all(fixture.draftId);
+    expect(() =>
+      fixture.repository.deleteInvoice(owner, fixture.draftId, 'Test issued deletion'),
+    ).toThrow(/Issued invoices/);
+    expect(
+      fixture.sqlite
+        .prepare('SELECT * FROM invoice_source WHERE invoice_id=?')
+        .all(fixture.draftId),
+    ).toEqual(before);
+  });
+});

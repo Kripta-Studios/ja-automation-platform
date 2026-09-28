@@ -1,0 +1,30 @@
+[
+  {
+    "step": "document-became-unavailable",
+    "retained": true
+  },
+  {
+    "step": "draft-prepared",
+    "visible": true
+  },
+  {
+    "step": "stale-refresh",
+    "code": "CLOSEOUT_DRAFT_CHANGED"
+  },
+  {
+    "step": "confirmation-required",
+    "code": "CLOSEOUT_CONFIRMATION_CHECK_REQUIRED"
+  },
+  {
+    "step": "stale-client-confirmation",
+    "requiresFreshCheck": true
+  },
+  {
+    "step": "worker-denied",
+    "status": 403
+  },
+  {
+    "step": "reopen-reason-invalid",
+    "retained": true
+  }
+]

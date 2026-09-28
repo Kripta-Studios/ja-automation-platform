@@ -1,0 +1,55 @@
+{
+  "date": "2026-09-27",
+  "baselineCommit": "b19b3d4",
+  "environment": "isolated candidate, two disposable databases, actual Chromium via Playwright MCP",
+  "selectedProject": {
+    "role": "worker",
+    "viewportWidth": 390,
+    "locale": "en",
+    "areas": ["time", "expenses", "daily_reports"],
+    "code": "OPERATIONAL_SELECTED_PROJECT_UNAVAILABLE",
+    "otherAvailableProjects": 3,
+    "unavailableOptionSelectedAndDisabled": true,
+    "dateRetained": true,
+    "roleSafeContactOwnerInstruction": true,
+    "timeAndReportNoticeFocused": true,
+    "expensesExtraLookupStatus": 403,
+    "expensesExtraCode": "EXPENSE_LOOKUP_DESCRIPTION_SCOPE_DENIED",
+    "expensesFocusDivertedToExtraNotice": true
+  },
+  "assignmentDate": {
+    "roles": ["manager", "owner"],
+    "viewportWidths": [1440, 390],
+    "locales": ["es", "pt"],
+    "code": "OPERATIONAL_ASSIGNMENT_UNAVAILABLE_FOR_DATE",
+    "workerProjectDateRetained": true,
+    "currentProjectStatusShown": true,
+    "validDateClearsWarningWithoutClearingSelections": true,
+    "managerContactOwnerInstruction": true,
+    "ownerRemedyDestination": "general assignment list without selected project in URL",
+    "ownerRemedyPromptsUnsavedChanges": true
+  },
+  "emptyWorkerOptions": {
+    "role": "owner",
+    "areas": ["time", "expenses", "daily_reports", "technical_reports"],
+    "viewportWidths": [390, 1440],
+    "locales": ["en", "es", "pt"],
+    "code": "OPERATIONAL_WORKER_OPTIONS_EMPTY",
+    "noticeFocused": true,
+    "workerOptions": 1,
+    "workerOptionIsPlaceholder": true,
+    "remedyOpens": "Profile and security",
+    "actionableOwnerTeamPage": "/app/projects?view=team",
+    "wrongRemedyDestination": true
+  },
+  "notExercised": [
+    "Closing-project transition",
+    "Manager with zero scoped worker options",
+    "form save for blocked states"
+  ],
+  "console": {
+    "unrelatedOfflineIdentity503": true,
+    "expensesDescriptionLookup403": true,
+    "unrelatedFormExceptions": 0
+  }
+}

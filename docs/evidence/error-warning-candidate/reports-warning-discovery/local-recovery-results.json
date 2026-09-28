@@ -1,0 +1,26 @@
+{
+  "date": "2026-09-27",
+  "fixture": "disposable candidate",
+  "locale": "en",
+  "viewport": 390,
+  "diagnostics": {
+    "pageErrors": 0,
+    "unexpectedConsole": 0,
+    "otherHttp": 0
+  },
+  "autosaveIntercepted503": true,
+  "localDraftStored": true,
+  "offlineDidNotWrite": true,
+  "sameVersionRecoveryEnabled": true,
+  "sameVersionCopy": "A local recovery draft is available for review",
+  "recoveredPendingText": true,
+  "restoreDidNotWrite": true,
+  "writerPost": 200,
+  "writerVersionAdvanced": true,
+  "staleVersionRecoveryDisabled": true,
+  "staleCopy": "This local draft belongs to an older report version. Compare it and copy only needed text; it cannot replace the newer record.",
+  "compareContainsPendingText": true,
+  "compareDidNotWrite": true,
+  "discardClearedLocalOnly": true,
+  "noUnexpectedDiagnostics": true
+}

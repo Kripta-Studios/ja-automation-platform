@@ -1,0 +1,43 @@
+{
+  "commit": "f869235",
+  "role": "worker",
+  "ownerApproval": "UI approved",
+  "viewport": 430,
+  "locale": "pt",
+  "firstCorrection": {
+    "submission": 303,
+    "state": "draft"
+  },
+  "staleCorrection": {
+    "submission": 409,
+    "code": "TIME_CORRECTION_ALREADY_EXISTS",
+    "notice": {
+      "url": "/j-aautomation/app/time/:record?/createCorrectionDraft&lang=pt",
+      "documentLang": "pt-BR",
+      "focused": true,
+      "visible": true,
+      "top": 495,
+      "bottom": 691,
+      "scrollY": 0,
+      "overflow": false,
+      "text": "Ação necessária Já existe um rascunho de correção ativo para este registo de horas. Reveja o registo atualizado e abra a correção existente se tiver acesso. Status: Aprovado Revisar registro de horas atualizado"
+    },
+    "expectedLocale": "pt",
+    "languagePreserved": true,
+    "remedy": "review_time",
+    "retained": {
+      "summary": "Second tab conflict attempted work account",
+      "reason": "The first view has more accurate site detail.",
+      "minutes": 195,
+      "site": "QA site B"
+    },
+    "formRemoved": true,
+    "beforeScroll": 959,
+    "correctionRows": 1
+  },
+  "diagnostics": {
+    "worker": [],
+    "secondTab": [],
+    "owner": []
+  }
+}

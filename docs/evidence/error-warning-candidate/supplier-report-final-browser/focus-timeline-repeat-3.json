@@ -1,0 +1,128 @@
+{
+  "candidateCommit": "cb1c6bf5c5b665d5c42072238e0b624dae717f15",
+  "role": "owner",
+  "viewport": 390,
+  "locale": "en",
+  "samples": [
+    {
+      "url": "/j-aautomation/app/supplier/report?viewportScrollY=0&projectId=project-cp008-ascension&supplierId=&from=2026-09-20&to=2026-09-19&lang=en",
+      "active": "body",
+      "activeId": "",
+      "activeUi": null,
+      "noticePresent": true,
+      "noticeConnected": true,
+      "noticeTabindex": "-1",
+      "focusedNotice": false,
+      "noticeVisible": true,
+      "scrollY": 0
+    },
+    {
+      "url": "/j-aautomation/app/supplier/report?viewportScrollY=0&projectId=project-cp008-ascension&supplierId=&from=2026-09-20&to=2026-09-19&lang=en",
+      "active": "body",
+      "activeId": "",
+      "activeUi": null,
+      "noticePresent": true,
+      "noticeConnected": true,
+      "noticeTabindex": "-1",
+      "focusedNotice": false,
+      "noticeVisible": true,
+      "scrollY": 0
+    },
+    {
+      "url": "/j-aautomation/app/supplier/report?viewportScrollY=0&projectId=project-cp008-ascension&supplierId=&from=2026-09-20&to=2026-09-19&lang=en",
+      "active": "body",
+      "activeId": "",
+      "activeUi": null,
+      "noticePresent": true,
+      "noticeConnected": true,
+      "noticeTabindex": "-1",
+      "focusedNotice": false,
+      "noticeVisible": true,
+      "scrollY": 0
+    },
+    {
+      "url": "/j-aautomation/app/supplier/report?viewportScrollY=0&projectId=project-cp008-ascension&supplierId=&from=2026-09-20&to=2026-09-19&lang=en",
+      "active": "body",
+      "activeId": "",
+      "activeUi": null,
+      "noticePresent": true,
+      "noticeConnected": true,
+      "noticeTabindex": "-1",
+      "focusedNotice": false,
+      "noticeVisible": true,
+      "scrollY": 0
+    },
+    {
+      "url": "/j-aautomation/app/supplier/report?viewportScrollY=0&projectId=project-cp008-ascension&supplierId=&from=2026-09-20&to=2026-09-19&lang=en",
+      "active": "body",
+      "activeId": "",
+      "activeUi": null,
+      "noticePresent": true,
+      "noticeConnected": true,
+      "noticeTabindex": "-1",
+      "focusedNotice": false,
+      "noticeVisible": true,
+      "scrollY": 0
+    }
+  ],
+  "manualFocus": {
+    "focusedNotice": true,
+    "active": "aside"
+  },
+  "afterManual": {
+    "active": "aside",
+    "focusedNotice": true
+  },
+  "focusLog": [
+    {
+      "ms": 35,
+      "event": "focusin",
+      "target": "button#[]",
+      "active": "button#[]"
+    },
+    {
+      "ms": 102,
+      "event": "focus-call",
+      "target": "aside#[problem-notice]",
+      "active": "body#[]"
+    },
+    {
+      "ms": 102,
+      "event": "focusin",
+      "target": "aside#[problem-notice]",
+      "active": "aside#[problem-notice]"
+    },
+    {
+      "ms": 102,
+      "event": "focus-return",
+      "target": "aside#[problem-notice]",
+      "active": "aside#[problem-notice]"
+    },
+    {
+      "ms": 1142,
+      "event": "focus-call",
+      "target": "aside#[problem-notice]",
+      "active": "body#[]"
+    },
+    {
+      "ms": 1142,
+      "event": "focusin",
+      "target": "aside#[problem-notice]",
+      "active": "aside#[problem-notice]"
+    },
+    {
+      "ms": 1142,
+      "event": "focus-return",
+      "target": "aside#[problem-notice]",
+      "active": "aside#[problem-notice]"
+    }
+  ],
+  "responses": [
+    "200 document /j-aautomation/app/supplier/report",
+    "200 fetch /j-aautomation/app/supplier/report/__data.json"
+  ],
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": []
+  }
+}

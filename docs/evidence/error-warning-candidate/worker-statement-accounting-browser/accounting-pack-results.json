@@ -1,0 +1,266 @@
+[
+  {
+    "label": "anonymous-get",
+    "status": 401,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_SIGN_IN_REQUIRED",
+    "key": "problem.accountingPack.signInRequired",
+    "remedies": [
+      "sign_in"
+    ],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "anonymous-retry",
+    "status": 401,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_SIGN_IN_REQUIRED",
+    "key": "problem.accountingPack.signInRequired",
+    "remedies": [
+      "sign_in"
+    ],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "owner-ui",
+    "visibleRegister": true,
+    "page": "/j-aautomation/app/accounting"
+  },
+  {
+    "label": "owner-invalid-format",
+    "status": 404,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_NOT_FOUND",
+    "key": "problem.accountingPack.notFound",
+    "remedies": [],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "owner-missing-pack",
+    "status": 404,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_NOT_FOUND",
+    "key": "problem.accountingPack.notFound",
+    "remedies": [],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "owner-get-existing",
+    "status": 409,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_SOURCE_CHANGED",
+    "key": "problem.accountingPack.sourceChanged",
+    "remedies": [
+      "review_accounting_pack"
+    ],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "owner-retry-invalid-key",
+    "status": 400,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_RETRY_KEY_INVALID",
+    "key": "problem.accountingPack.retryKeyInvalid",
+    "remedies": [
+      "review_accounting_pack"
+    ],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": [
+      "idempotencyKey"
+    ]
+  },
+  {
+    "label": "owner-retry-existing",
+    "status": 409,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_SOURCE_CHANGED",
+    "key": "problem.accountingPack.sourceChanged",
+    "remedies": [
+      "review_accounting_pack"
+    ],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "finance-ui",
+    "visibleRegister": true,
+    "page": "/j-aautomation/app/accounting"
+  },
+  {
+    "label": "finance-invalid-format",
+    "status": 404,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_NOT_FOUND",
+    "key": "problem.accountingPack.notFound",
+    "remedies": [],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "finance-missing-pack",
+    "status": 404,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_NOT_FOUND",
+    "key": "problem.accountingPack.notFound",
+    "remedies": [],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "finance-get-existing",
+    "status": 409,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_SOURCE_CHANGED",
+    "key": "problem.accountingPack.sourceChanged",
+    "remedies": [
+      "review_accounting_pack"
+    ],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "finance-retry-invalid-key",
+    "status": 400,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_RETRY_KEY_INVALID",
+    "key": "problem.accountingPack.retryKeyInvalid",
+    "remedies": [
+      "review_accounting_pack"
+    ],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": [
+      "idempotencyKey"
+    ]
+  },
+  {
+    "label": "finance-retry-existing",
+    "status": 409,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_SOURCE_CHANGED",
+    "key": "problem.accountingPack.sourceChanged",
+    "remedies": [
+      "review_accounting_pack"
+    ],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "manager-invalid-format",
+    "status": 404,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_NOT_FOUND",
+    "key": "problem.accountingPack.notFound",
+    "remedies": [],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "manager-missing-pack",
+    "status": 404,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_NOT_FOUND",
+    "key": "problem.accountingPack.notFound",
+    "remedies": [],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "manager-get-existing",
+    "status": 404,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_NOT_FOUND",
+    "key": "problem.accountingPack.notFound",
+    "remedies": [],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "worker-invalid-format",
+    "status": 404,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_NOT_FOUND",
+    "key": "problem.accountingPack.notFound",
+    "remedies": [],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "worker-missing-pack",
+    "status": 404,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_NOT_FOUND",
+    "key": "problem.accountingPack.notFound",
+    "remedies": [],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  },
+  {
+    "label": "worker-get-existing",
+    "status": 404,
+    "contentType": "application/json",
+    "cacheControl": "private, no-store",
+    "headerReferencePresent": true,
+    "code": "ACCOUNTING_PACK_NOT_FOUND",
+    "key": "problem.accountingPack.notFound",
+    "remedies": [],
+    "bodyReferencePresent": true,
+    "headerMatchesBody": true,
+    "fieldErrorNames": []
+  }
+]

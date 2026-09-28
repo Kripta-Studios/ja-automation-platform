@@ -1,0 +1,77 @@
+{
+  "scope": "Grouped manual Help and download browser verification",
+  "sourceDigest": "bca4c47792481c9b23109b957deb8003a1a143115c3eaaab050b18c96c548bf9",
+  "runner": {
+    "workers": 1,
+    "browser": "Chromium",
+    "projects": [
+      "desktop",
+      "phone-360",
+      "phone-390",
+      "tablet-768"
+    ],
+    "testFiles": [
+      "tests/e2e/manual-guide-downloads.spec.ts",
+      "tests/e2e/astra-help.spec.ts"
+    ],
+    "passed": 19,
+    "skippedByProject": 9,
+    "failed": 0,
+    "log": "browser-manual-help.txt"
+  },
+  "checks": {
+    "personaMatrix": {
+      "project": "desktop",
+      "personas": [
+        "auditor",
+        "external-technician",
+        "finance",
+        "manager",
+        "owner",
+        "supplier-coordinator",
+        "worker"
+      ],
+      "locales": [
+        "en",
+        "pt"
+      ],
+      "canonicalAndLegacyAuthorized": 60,
+      "crossGroupDenied": 48,
+      "canonicalPdfSha256": {
+        "administration-finance-reference:en": "dc96b206f811c29205aeedaf56cad2d7fb41bf28e8473fc5d286038feefdea7b",
+        "work-projects-reference:en": "49c2de93b816828fa0cb4dbd5b50584e07a00cd1e3cd84dfccca135236e63bbd",
+        "supplier-operations-reference:en": "4f41df59ea785773cde7d857e43bbe719dd5634beafa904d6e75611d6c5c50a6",
+        "administration-finance-reference:pt": "c23c98705e781d34d03200432f84126a62bdcaf737a74a0afec0f58bea81caa5",
+        "work-projects-reference:pt": "052fb2567a8fd971149e1571d232428a916063bbb093a746dcdfaafb2ee227d0",
+        "supplier-operations-reference:pt": "52c6f3865022266af0471a6f22acd9b7bfc3f0ff1edc10e7b807a41ff1af4097"
+      },
+      "attachment": "browser-matrix-checks.json"
+    },
+    "unauthenticated": "Three canonical IDs and one legacy alias returned 401 in PT.",
+    "quickStart": "Worker retained quick-start access; other personas returned 404.",
+    "roleGuidance": "Seven personas checked for localized EN/PT badges, shared-chapter copy and reading paths; worker ES smoke passed in astra-help.",
+    "retry": "Transient 503 recovered on second GET; persistent PT 503 made three GET attempts and three more after retry; 401 made one GET without retry.",
+    "layout": "Recovery controls checked at 44px minimum and no horizontal overflow in all four projects; Owner three-card layout checked at 390px."
+  },
+  "matrixRerun": {
+    "scope": "Desktop persona matrix only, to persist passed-test attachment",
+    "passed": 1,
+    "skippedByProject": 1,
+    "failed": 0,
+    "log": "browser-matrix-run.txt",
+    "rawReporterSha256": "6a332c5e67dacaf0da8126d3f932e827c3bd505e6bc93914f310ed071bf5ae0a",
+    "rawReporterStoredOutsideRepository": true
+  },
+  "screenshots": [
+    "help-recovery-desktop-pt.png",
+    "help-recovery-phone-360-pt.png",
+    "help-recovery-phone-390-pt.png",
+    "help-recovery-tablet-768-pt.png",
+    "help-owner-390-pt.png"
+  ],
+  "artifactSha256": {
+    "browser-manual-help.txt": "eae676aa94a7467ef400e31667c114ab35b2740bcb9727c04257f92367caadbc",
+    "browser-matrix-run.txt": "98dde54aca2e381b8b1b5ff0cea1eab71fa4b9a1081f0666eb2f234e2e32074c",
+    "browser-matrix-checks.json": "291623e318e8ec73210afd430ed3e3d924e51b97806c20a09758c7c6a3358cce"
+  }
+}

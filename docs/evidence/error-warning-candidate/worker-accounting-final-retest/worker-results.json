@@ -1,0 +1,84 @@
+{
+  "commit": "763be5b",
+  "role": "worker",
+  "viewport": 390,
+  "locale": "en",
+  "originalRequestStatus": 202,
+  "download": {
+    "status": 409,
+    "intercepted": true
+  },
+  "refresh": {
+    "status": 503,
+    "intercepted": true
+  },
+  "samples": {
+    "scrollBeforeClick": 0,
+    "immediate": {
+      "text": "Action needed The file could not be downloaded, and its current status could not be checked. Check My Pay before downloading again or requesting another statement.",
+      "focused": true,
+      "visible": true,
+      "top": 615,
+      "bottom": 756,
+      "safeBottom": 756,
+      "bottomGapPx": -0.422,
+      "headerBottom": 70,
+      "viewportHeight": 844,
+      "overflow": false,
+      "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en",
+      "scrollY": 240
+    },
+    "afterFrames": {
+      "text": "Action needed The file could not be downloaded, and its current status could not be checked. Check My Pay before downloading again or requesting another statement.",
+      "focused": true,
+      "visible": true,
+      "top": 615,
+      "bottom": 756,
+      "safeBottom": 756,
+      "bottomGapPx": -0.422,
+      "headerBottom": 70,
+      "viewportHeight": 844,
+      "overflow": false,
+      "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en",
+      "scrollY": 240
+    },
+    "delayed": {
+      "text": "Action needed The file could not be downloaded, and its current status could not be checked. Check My Pay before downloading again or requesting another statement.",
+      "focused": true,
+      "visible": true,
+      "top": 615,
+      "bottom": 756,
+      "safeBottom": 756,
+      "bottomGapPx": -0.422,
+      "headerBottom": 70,
+      "viewportHeight": 844,
+      "overflow": false,
+      "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en",
+      "scrollY": 240
+    },
+    "afterScreenshot": {
+      "text": "Action needed The file could not be downloaded, and its current status could not be checked. Check My Pay before downloading again or requesting another statement.",
+      "focused": true,
+      "visible": true,
+      "top": 615,
+      "bottom": 756,
+      "safeBottom": 756,
+      "bottomGapPx": -0.422,
+      "headerBottom": 70,
+      "viewportHeight": 844,
+      "overflow": false,
+      "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en",
+      "scrollY": 240
+    }
+  },
+  "readyLinkMasked": true,
+  "retryButtonAbsent": true,
+  "statusButtonClick": {
+    "triggeredSecondRefresh": true,
+    "status": 503,
+    "noticeStayedVisible": true
+  },
+  "downloadIntercepts": 1,
+  "refreshIntercepts": 2,
+  "errors": []
+}

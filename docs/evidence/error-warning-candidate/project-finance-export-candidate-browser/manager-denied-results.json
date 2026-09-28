@@ -1,0 +1,42 @@
+{
+  "candidateCommit": "33091be",
+  "role": "manager",
+  "invalid": {
+    "status": 403,
+    "contentType": "application/problem+json",
+    "code": "PROJECT_FINANCE_EXPORT_FINANCE_ROLE_REQUIRED",
+    "messageKey": "problem.projectFinanceExport.financeRoleRequired",
+    "fields": [],
+    "remedies": [
+      "contact_owner"
+    ],
+    "hasCorrelationId": true
+  },
+  "valid": {
+    "status": 403,
+    "contentType": "application/problem+json",
+    "code": "PROJECT_FINANCE_EXPORT_FINANCE_ROLE_REQUIRED",
+    "messageKey": "problem.projectFinanceExport.financeRoleRequired",
+    "fields": [],
+    "remedies": [
+      "contact_owner"
+    ],
+    "hasCorrelationId": true
+  },
+  "audits": {
+    "before": 341,
+    "after": 341
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json",
+      "403 fetch application/problem+json",
+      "403 fetch application/problem+json"
+    ]
+  }
+}

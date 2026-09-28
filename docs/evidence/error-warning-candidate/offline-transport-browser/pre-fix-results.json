@@ -1,0 +1,18 @@
+{
+  "candidateCommit": "e14f5e8",
+  "browser": "Chromium via Playwright",
+  "fixture": "Disposable SQLite; Owner created project and Worker assignment through the web UI; Worker queued time draft through the web UI",
+  "viewport": "390x844",
+  "role": "worker",
+  "locale": "en",
+  "network": [
+    { "method": "POST", "path": "/j-aautomation/app/api/sync", "status": 503 }
+  ],
+  "observed": [
+    "The offline save confirmation was visible before reconnect.",
+    "After the intercepted 503, the review panel, Check saved records link, and Retry this draft after review button were visible.",
+    "The cause-specific service-unavailable message was absent from the page within five seconds, despite the review panel remaining visible.",
+    "No page exception or console error was captured."
+  ],
+  "diagnosis": "A later automatic sync trigger reads zero queued drafts because the failed draft is needs_review and clears the prior controller message. The test stopped at the visible-message assertion; no manual retry result was inferred from this run."
+}

@@ -1,0 +1,148 @@
+{
+  "candidateFingerprint": "f5b37aa2604a925ec649af83d61802d2866296cd+time-diff:71951924cf6067a0",
+  "fixture": "new disposable E2E database; Owner project/assignment and Worker Time draft created in rendered UI",
+  "cases": [
+    {
+      "name": "worker_390_en_edited_draft_native_stale_submit",
+      "before": {
+        "scrollY": 0,
+        "viewportHeight": 844
+      },
+      "response": {
+        "status": 409,
+        "contentType": "text/html",
+        "hasTypedCode": true,
+        "hasSubmittedParamString": true,
+        "hasGenericPhrase": false
+      },
+      "visible": {
+        "status": "Draft",
+        "submitFormVisible": false,
+        "submitVersion": null,
+        "alerts": [
+          "Action needed This draft changed since you opened it. Review the updated time entry before submitting. Status: Draft Review updated time entry"
+        ],
+        "notices": [
+          {
+            "code": "TIME_SUBMISSION_CHANGED",
+            "text": "Action needed This draft changed since you opened it. Review the updated time entry before submitting. Status: Draft Review updated time entry",
+            "top": 495,
+            "bottom": 671,
+            "focused": true,
+            "links": [
+              {
+                "text": "Review updated time entry",
+                "href": "/j-aautomation/app/time/:record",
+                "hardReload": true
+              }
+            ]
+          }
+        ],
+        "remedyLinks": ["Review updated time entry"],
+        "focusedElement": "aside",
+        "focusedText": "Action needed This draft changed since you opened it. Review the updated time entry before submittin",
+        "focusTop": 495,
+        "focusBottom": 671,
+        "scrollY": 0,
+        "viewportHeight": 844
+      },
+      "stateAfter": "draft",
+      "versionAfter": 2,
+      "auditDeltaAfterStale": 0,
+      "remedyNavigation": {
+        "href": "/j-aautomation/app/time/:record",
+        "freshDocument": true,
+        "version": "2",
+        "noticeGone": true
+      }
+    },
+    {
+      "name": "worker_390_en_already_submitted_native_stale_submit",
+      "response": {
+        "status": 409,
+        "contentType": "text/html",
+        "hasTypedCode": true,
+        "hasSubmittedParamString": true,
+        "hasGenericPhrase": false
+      },
+      "visible": {
+        "status": "Submitted",
+        "submitFormVisible": false,
+        "submitVersion": null,
+        "alerts": [
+          "Action needed This time entry is now Submitted; only drafts can be submitted. Review the updated record. Status: Submitted Review updated time entry"
+        ],
+        "notices": [
+          {
+            "code": "TIME_SUBMISSION_NOT_DRAFT",
+            "text": "Action needed This time entry is now Submitted; only drafts can be submitted. Review the updated record. Status: Submitted Review updated time entry",
+            "top": 495,
+            "bottom": 671,
+            "focused": true,
+            "links": [
+              {
+                "text": "Review updated time entry",
+                "href": "/j-aautomation/app/time/:record",
+                "hardReload": true
+              }
+            ]
+          }
+        ],
+        "remedyLinks": ["Review updated time entry"],
+        "focusedElement": "aside",
+        "focusedText": "Action needed This time entry is now Submitted; only drafts can be submitted. Review the updated rec",
+        "focusTop": 495,
+        "focusBottom": 671,
+        "scrollY": 0,
+        "viewportHeight": 844
+      },
+      "stateAfter": "submitted",
+      "versionAfter": 3,
+      "auditDeltaAfterStale": 0,
+      "actionPayloadProbe": {
+        "transportStatus": 200,
+        "type": "failure",
+        "actionStatus": 409,
+        "code": "TIME_SUBMISSION_NOT_DRAFT",
+        "params": {
+          "status": "submitted"
+        },
+        "auditDelta": 0
+      }
+    },
+    {
+      "name": "owner_1440_es_updated_time_read",
+      "status": "Enviado",
+      "staleSubmitUnavailable": true
+    }
+  ],
+  "diagnostics": {
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "workerTabA": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "409 /j-aautomation/app/time/:record",
+        "409 /j-aautomation/app/time/:record"
+      ]
+    },
+    "workerTabB": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    }
+  }
+}

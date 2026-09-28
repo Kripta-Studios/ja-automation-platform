@@ -1,0 +1,34 @@
+{
+  "candidateCommit": "db135569882e49f323ff8391cd2de7bac0c7c64c",
+  "role": "auditor",
+  "fixture": "Owner created supported stream via UI; direct disposable DB edit modeled historical split, then archived state",
+  "active": {
+    "kind": "warning",
+    "text": "Before you continue This stream’s saved split is not applied. Semi-monthly billing currently covers both halves of each month. Ask Finance to review the stream and invoice period before a draft is created. Contact a finance administrator",
+    "links": []
+  },
+  "denied": {
+    "transportStatus": 200,
+    "actionStatus": 403,
+    "code": "BILLING_READ_ONLY_ROLE",
+    "messageKey": "problem.billing.readOnlyRole",
+    "remedies": [
+      {
+        "id": "contact_finance"
+      }
+    ],
+    "noWrite": true
+  },
+  "archived": {
+    "warningCount": 0,
+    "setupTabPresent": 0
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "http": [
+      "503 /j-aautomation/app/api/offline/identity",
+      "503 /j-aautomation/app/api/offline/identity"
+    ]
+  }
+}

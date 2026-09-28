@@ -1,0 +1,244 @@
+{
+  "candidateCommit": "b8e4c97",
+  "checks": [
+    {
+      "role": "worker",
+      "locale": "en",
+      "width": 390,
+      "failure": 503,
+      "ui": {
+        "language": "en-US",
+        "width": 390,
+        "focus": "button",
+        "scrollY": 0,
+        "panel": true,
+        "scrollWidth": 456,
+        "horizontalOverflow": true,
+        "overflowElements": [
+          {
+            "tag": "div",
+            "className": "",
+            "right": 456
+          },
+          {
+            "tag": "h2",
+            "className": "",
+            "right": 456
+          },
+          {
+            "tag": "p",
+            "className": "",
+            "right": 456
+          },
+          {
+            "tag": "div",
+            "className": "conflict-list",
+            "right": 456
+          },
+          {
+            "tag": "div",
+            "className": "conflict-item",
+            "right": 456
+          },
+          {
+            "tag": "button",
+            "className": "text-button",
+            "right": 443
+          }
+        ]
+      },
+      "preReconnect": {
+        "scrollY": 0,
+        "path": "/j-aautomation/app/time",
+        "focus": "button"
+      },
+      "local": [
+        {
+          "mutationId": "[record]",
+          "entityType": "time",
+          "state": "needs_review",
+          "reviewReason": "service",
+          "summary": "Offline transport 503 [record]"
+        }
+      ],
+      "requestCount": 1
+    },
+    {
+      "role": "worker",
+      "locale": "en",
+      "width": 390,
+      "action": "review controls hit test",
+      "review": {
+        "hit": true,
+        "center": {
+          "x": 268,
+          "y": 533
+        },
+        "topTag": "a"
+      },
+      "retry": {
+        "hit": true,
+        "center": {
+          "x": 332,
+          "y": 533
+        },
+        "topTag": "button"
+      }
+    },
+    {
+      "role": "worker",
+      "locale": "es",
+      "width": 1440,
+      "failure": 503,
+      "ui": {
+        "language": "es-ES",
+        "width": 1440,
+        "focus": "button",
+        "scrollY": 0,
+        "horizontalOverflow": false
+      },
+      "local": [
+        {
+          "mutationId": "[record]",
+          "entityType": "time",
+          "state": "needs_review",
+          "reviewReason": "service",
+          "summary": "Offline transport 503 [record]"
+        }
+      ],
+      "requestCount": 1
+    },
+    {
+      "role": "worker",
+      "locale": "pt",
+      "width": 1440,
+      "failure": 503,
+      "local": [
+        {
+          "mutationId": "[record]",
+          "entityType": "time",
+          "state": "needs_review",
+          "reviewReason": "service",
+          "summary": "Offline transport 503 [record]"
+        }
+      ],
+      "requestCount": 1
+    },
+    {
+      "role": "worker",
+      "locale": "pt",
+      "width": 1440,
+      "action": "reload unresolved 503 review",
+      "local": [
+        {
+          "mutationId": "[record]",
+          "entityType": "time",
+          "state": "needs_review",
+          "reviewReason": "service",
+          "summary": "Offline transport 503 [record]"
+        }
+      ],
+      "causeMessageVisible": true,
+      "reviewLinkVisible": true,
+      "requestCount": 1
+    },
+    {
+      "role": "worker",
+      "locale": "pt",
+      "width": 1440,
+      "action": "manual retry after record review",
+      "outcome": "saved exactly once",
+      "retryStatus": 200,
+      "requestStatuses": [
+        503,
+        200
+      ],
+      "sameMutationId": true
+    },
+    {
+      "role": "worker",
+      "locale": "en",
+      "width": 1440,
+      "failure": 401,
+      "local": [
+        {
+          "mutationId": "[record]",
+          "entityType": "time",
+          "state": "needs_review",
+          "reviewReason": "session",
+          "summary": "Offline transport 401 [record]"
+        }
+      ],
+      "reviewLinkCount": 1,
+      "firstSessionCount": 1,
+      "nextSessionCount": 1,
+      "noUnattendedResubmit": true
+    }
+  ],
+  "network": [
+    {
+      "status": 503,
+      "url": "/app/api/sync",
+      "mutationId": "[record]"
+    },
+    {
+      "status": 200,
+      "url": "/app/api/sync",
+      "mutationId": "[record]"
+    },
+    {
+      "status": 401,
+      "url": "/app/api/sync",
+      "mutationId": "[record]"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [
+    {
+      "phase": "offline save for 401",
+      "message": "Failed to fetch",
+      "stack": "TypeError: Failed to fetch\n    at window.fetch (http://127.0.0.1:4177/j-aautomation/_app/immutable/chunks/BxfV59R3.js:3:352)\n    at Q (http://127.0.0.1:4177/j-aautomation/_app/immutable/chunks/tNxpC9Ru.js:3:14657)\n    at async t (http://127.0.0.1:4177/j-aautomation/_app/immutable/chunks/tNxpC9Ru.js:3:13053)\n    at async Object.apply (http://127.0.0.1:4177/j-aautomation/_app/immutable/chunks/tNxpC9Ru.js:3:18983)\n    at async Nn (http://127.0.0.1:4177/j-aautomation/_app/immutable/chunks/igDBKWfK.js:32:6107)\n    at async Xi (http://127.0.0.1:4177/j-aautomation/_app/immutable/chunks/DxUm2q4h.js:84",
+      "at": "2026-09-27T19:30:25.381Z"
+    }
+  ],
+  "limitations": [],
+  "defects": [
+    {
+      "path": "390 px offline review",
+      "kind": "horizontal overflow",
+      "scrollWidth": 456,
+      "offenders": [
+        {
+          "tag": "div",
+          "className": "",
+          "right": 456
+        },
+        {
+          "tag": "h2",
+          "className": "",
+          "right": 456
+        },
+        {
+          "tag": "p",
+          "className": "",
+          "right": 456
+        },
+        {
+          "tag": "div",
+          "className": "conflict-list",
+          "right": 456
+        },
+        {
+          "tag": "div",
+          "className": "conflict-item",
+          "right": 456
+        },
+        {
+          "tag": "button",
+          "className": "text-button",
+          "right": 443
+        }
+      ]
+    }
+  ]
+}

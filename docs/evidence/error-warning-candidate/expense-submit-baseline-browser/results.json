@@ -1,0 +1,109 @@
+{
+  "candidateCommit": "f5b37aa2604a925ec649af83d61802d2866296cd",
+  "fixture": "new disposable E2E database; Owner project and Worker expense created in rendered UI",
+  "cases": [
+    {
+      "name": "worker_390_en_edited_draft_stale_submit",
+      "before": {
+        "scrollY": 0,
+        "viewportHeight": 844
+      },
+      "after": {
+        "text": "Action needed This expense changed, is no longer a draft, or requires a receipt. Review its current state and attach a receipt if required. Status: Draft Review current expense",
+        "code": "EXPENSE_SUBMISSION_BLOCKED",
+        "focused": true,
+        "top": 544,
+        "bottom": 741,
+        "viewportHeight": 844,
+        "scrollY": 0,
+        "links": [
+          {
+            "text": "Review current expense",
+            "href": "/j-aautomation/app/expenses/:record"
+          }
+        ]
+      },
+      "transportStatus": 200,
+      "actionStatus": 409,
+      "code": "EXPENSE_SUBMISSION_BLOCKED",
+      "messageKey": "problem.expense.submissionBlocked",
+      "params": {},
+      "remedies": [
+        {
+          "id": "review_expense",
+          "recordId": ":record"
+        }
+      ],
+      "remedyHref": "/j-aautomation/app/expenses/:record",
+      "stateAfter": "draft",
+      "versionAfter": 2,
+      "receiptRequired": false,
+      "auditDeltaAfterStale": 0,
+      "remedyNavigation": {
+        "freshDocument": false,
+        "getPaths": [
+          "/j-aautomation/app/expenses/:record/__data.json",
+          "/j-aautomation/app/expenses/:record"
+        ],
+        "version": "1",
+        "noticeStillVisible": true
+      }
+    },
+    {
+      "name": "worker_390_en_already_submitted_stale_submit",
+      "after": {
+        "text": "Action needed This expense changed, is no longer a draft, or requires a receipt. Review its current state and attach a receipt if required. Status: Draft Review current expense",
+        "code": "EXPENSE_SUBMISSION_BLOCKED",
+        "focused": true,
+        "top": 514,
+        "bottom": 710,
+        "viewportHeight": 844,
+        "scrollY": 0,
+        "links": [
+          {
+            "text": "Review current expense",
+            "href": "/j-aautomation/app/expenses/:record"
+          }
+        ]
+      },
+      "transportStatus": 200,
+      "actionStatus": 409,
+      "code": "EXPENSE_SUBMISSION_BLOCKED",
+      "messageKey": "problem.expense.submissionBlocked",
+      "params": {},
+      "remedies": [
+        {
+          "id": "review_expense",
+          "recordId": ":record"
+        }
+      ],
+      "stateAfter": "submitted",
+      "versionAfter": 3,
+      "auditDeltaAfterStale": 0
+    }
+  ],
+  "diagnostics": {
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "workerTabA": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "workerTabB": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": ["503 /j-aautomation/app/api/offline/identity"]
+    }
+  }
+}

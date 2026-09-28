@@ -1,0 +1,160 @@
+[WebServer] (node:337391) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ next build
+[WebServer] (node:337404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:337404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:337517) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:337602) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:337601) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:337600) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:337736) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+[WebServer] (node:337749) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+[WebServer] (node:337791) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite build
+[WebServer] (node:337805) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:337805) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [plugin builtin:vite-reporter]
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[WebServer] [PLUGIN_TIMINGS] Your build spent 90% of 3.4s inside plugin hooks (3.1s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-svelte:compile transform (73%, 2.5s, 63 calls)
+[WebServer] Those rows are 73% of the build; the rest of the 90% is below.
+[WebServer] Not measurable — 2 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (1391 calls)
+[WebServer]   - vite-plugin-svelte:preprocess transform (63 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer]
+[WebServer] (node:337805) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] .svelte-kit/output/server/chunks/auth.js (3652:0): A comment
+[WebServer]
+[WebServer] "/**
+[WebServer] * Wraps a cipher: validates args, ensures encrypt() can only be called once.
+[WebServer] * Used internally by the exported cipher constructors.
+[WebServer] * Output-buffer support is inferred from the wrapped `encrypt` / `decrypt`
+[WebServer] * arity (`fn.length === 2`), so wrapped output-capable methods must use a normal
+[WebServer] * second parameter, not a default/rest parameter. AAD support is explicit in
+[WebServer] * `params.withAAD`; optional AAD starts after the nonce slot when one is present.
+[WebServer] * @__NO_SIDE_EFFECTS__
+[WebServer] * @param params - Static cipher metadata. See {@link CipherParams}.
+[WebServer] * @param constructor - Cipher constructor.
+[WebServer] * @returns Wrapped constructor with validation.
+[WebServer] */"
+[WebServer]
+[WebServer] in ".svelte-kit/output/server/chunks/auth.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+[WebServer] "node:sqlite" is imported by ".svelte-kit/output/server/chunks/src.js", but could not be resolved – treating it as an external dependency.
+[WebServer] Generated an empty chunk: "chunks/env.js".
+[WebServer] [PLUGIN_TIMINGS] Your build spent 100% of 11.9s inside plugin hooks (18.4s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-sveltekit-compile writeBundle (67%, 8.0s, 1 call)
+[WebServer]   - vite-plugin-sveltekit-compile closeBundle (58%, 6.9s, 1 call)
+[WebServer]   - vite-plugin-svelte:compile transform (22%, 2.6s, 63 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 100% is below.
+[WebServer] Not measurable — 1 hook whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (4422 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer]
+[WebServer] (node:338191) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ node build
+[WebServer] (node:338205) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0b944-b219-71ad-ad7f-a3a5baed0c32",
+    "01a0b944-b21a-72ed-a3eb-88b7995a936e",
+    "01a0b944-b21a-72ed-a3eb-9bf8f02c49a5",
+    "01a0b944-b21b-7510-bfa5-3c50937f50f2"
+  ],
+  "invoiceDrafts": [
+    "01a0b944-b30e-753a-87ff-693ee60dd860",
+    "01a0b944-b313-7498-8490-7d87f3346a1b",
+    "01a0b944-b317-773d-bcb3-336a483c687c"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0b944-b31f-77dc-9edc-0d0d665c7299",
+    "01a0b944-b322-7625-b523-81a6280c3439",
+    "01a0b944-b326-7528-ab26-116e847163c5"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0b944-b31f-77dc-9edc-0d0d665c7299",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0b944-b304-75d9-9b6f-25047d92a034",
+    "01a0b944-b306-717b-8971-9afc80a8c639"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0b944-b219-71ad-ad7f-a3a5baed0c32",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0b944-b32f-7735-b033-d0ddd0fc7d8d"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0b944-b219-71ad-ad7f-a3a5baed0c32",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0b944-b332-725b-922b-77dbc78274f9"
+    }
+  ],
+  "periodReportIds": [
+    "01a0b944-b332-725b-922b-7d0025d8b1ff",
+    "01a0b944-b332-725b-922b-831e26cd625b"
+  ],
+  "accountingPackId": "01a0b944-b367-73b5-b92f-8a4825f52145",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-461814be8820fab14858999fbebe518e96f2c0b0",
+  "closeoutId": "01a0b944-b406-767e-823e-50099f5db70b"
+}
+
+Running 1 test using 1 worker
+
+(node:338268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [desktop] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas (1.9m)
+
+  1 passed (2.5m)

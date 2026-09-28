@@ -1,0 +1,191 @@
+{
+  "verifiedAt": "2026-09-19T06:57:12.697633+00:00",
+  "financialTables": {
+    "invoice": {
+      "rows": 14,
+      "unchanged": true
+    },
+    "payment": {
+      "rows": 6,
+      "unchanged": true
+    },
+    "document": {
+      "rows": 14,
+      "unchanged": true
+    },
+    "accounting_pack_revision": {
+      "rows": 1,
+      "unchanged": true
+    },
+    "accounting_pack_revision_snapshot": {
+      "rows": 1,
+      "unchanged": true
+    }
+  },
+  "canonical": [
+    {
+      "variantId": "01a030ca-2ec0-77ac-a375-155f7534a20d",
+      "status": "ready",
+      "sha256": "dcad47249598a45bd4ee8f068a8b0ec4e2a9ee86bb531efc5a0457bb9fea6035",
+      "bytes": 246449,
+      "pages": 2,
+      "hashVerified": true,
+      "jobId": "01a0b6a8-de62-77da-bdcc-4fad774afceb",
+      "attempt": 2,
+      "jobState": "succeeded",
+      "historicalJobId": "01a030ca-2ec2-73b0-a84c-f2fcdc6cef95"
+    },
+    {
+      "variantId": "01a05796-ee82-7779-ad4e-5dc598cadf97",
+      "status": "ready",
+      "sha256": "6ec2d6e2ae92bc61b32db97ed8f98827057f9642b08c6b1bb25783a368ff5e73",
+      "bytes": 246755,
+      "pages": 2,
+      "hashVerified": true,
+      "jobId": "01a0b6a8-de64-704e-bf98-3bb87e51dddf",
+      "attempt": 2,
+      "jobState": "succeeded",
+      "historicalJobId": "01a05796-ee84-70d6-b995-b65dfcae8590"
+    },
+    {
+      "variantId": "01a08b40-de68-70c8-a7a5-63e347a24d07",
+      "status": "ready",
+      "sha256": "3c1141727cca148b598ff0b5978d3bf46a2fda3536307be812a46c4ba95f09c9",
+      "bytes": 256391,
+      "pages": 1,
+      "hashVerified": true,
+      "jobId": "01a0b6a8-de65-746a-a33b-37d6628b7178",
+      "attempt": 2,
+      "jobState": "succeeded",
+      "historicalJobId": "01a08b40-de6a-72b9-8c93-d2aa9191953a"
+    }
+  ],
+  "replacements": [
+    {
+      "oldVariantId": "legacy-period-report:01a01ac1-d772-746d-8d72-c76fa50b4ba0",
+      "newVariantId": "01a0b762-3ecb-7554-be61-7f3b20929d6d",
+      "jobId": "01a0b762-3ecd-760d-94bc-ca167c343c45",
+      "snapshotHash": "ec3706b846c82dc83cbb5c5236a2f20770706e5da2cd76df769ba0a9d1e61d05",
+      "audience": "customer",
+      "status": "ready",
+      "jobState": "succeeded",
+      "sha256": "71ae354a23a59483238af64d36e96e86fccb5bb5d27a4f53f3a6f9106889f5e2",
+      "bytes": 255518,
+      "pages": 2,
+      "hashVerified": true,
+      "forbiddenFinancialLabelHits": []
+    },
+    {
+      "oldVariantId": "legacy-period-report:01a01ac1-d772-746d-8d72-c927965bd8b6",
+      "newVariantId": "01a0b762-3ece-72f9-a7d7-2c163e1dbda9",
+      "jobId": "01a0b762-3ecf-76bc-836e-4b96c6abfcc0",
+      "snapshotHash": "70f5d5fd26353a1a48b38052be028568d5a56d14ee12dce15303ac9f6f7865b1",
+      "audience": "internal",
+      "status": "ready",
+      "jobState": "succeeded",
+      "sha256": "1cd206c412975ca07a7819dae888da9a0fcfebc3b087da060c67bd0d3edb749f",
+      "bytes": 253920,
+      "pages": 3,
+      "hashVerified": true
+    }
+  ],
+  "periods": [
+    {
+      "id": "01a01ac1-d773-77dc-9441-f4841581ffa3",
+      "snapshotVersion": 3,
+      "jobId": "01a0b761-f6d1-7531-a49c-86db494ce5bd",
+      "retryOfJobId": "01a03433-5046-70dc-a8fc-d734630ce112",
+      "jobState": "succeeded",
+      "state": "review",
+      "audience": "customer",
+      "sha256": "1b0464ed14b3707268d2c1c25e08378664cc3945bbba8bb9922da7c4e74d4779",
+      "bytes": 262804,
+      "pages": 4,
+      "hashVerified": true
+    },
+    {
+      "id": "01a01ac1-d773-77dc-9441-f9059eedb019",
+      "snapshotVersion": 3,
+      "jobId": "01a0b761-f6d1-7531-a49c-86db494ce5bd",
+      "retryOfJobId": "01a03433-5046-70dc-a8fc-d734630ce112",
+      "jobState": "succeeded",
+      "state": "review",
+      "audience": "internal",
+      "sha256": "fae57c8f4f3cfa2884e58ea48aa2c83ae97770cc37316f746cc73a41090a7876",
+      "bytes": 262046,
+      "pages": 5,
+      "hashVerified": true
+    },
+    {
+      "id": "01a01ac1-d772-746d-8d72-c76fa50b4ba0",
+      "snapshotVersion": 2,
+      "jobId": "01a0b761-f6f8-712b-bbf6-5d450e5d2ca1",
+      "retryOfJobId": null,
+      "jobState": "succeeded",
+      "state": "review",
+      "audience": "customer",
+      "sha256": "71ae354a23a59483238af64d36e96e86fccb5bb5d27a4f53f3a6f9106889f5e2",
+      "bytes": 255518,
+      "pages": 2,
+      "hashVerified": true
+    },
+    {
+      "id": "01a01ac1-d772-746d-8d72-c927965bd8b6",
+      "snapshotVersion": 2,
+      "jobId": "01a0b761-f6f8-712b-bbf6-5d450e5d2ca1",
+      "retryOfJobId": null,
+      "jobState": "succeeded",
+      "state": "review",
+      "audience": "internal",
+      "sha256": "1cd206c412975ca07a7819dae888da9a0fcfebc3b087da060c67bd0d3edb749f",
+      "bytes": 253920,
+      "pages": 3,
+      "hashVerified": true
+    }
+  ],
+  "historicalJobsAttemptsAndQuarantinesUnchanged": true,
+  "originalFilesUnchanged": 50,
+  "integrity": "ok",
+  "foreignKeyViolations": 0,
+  "schemaVersion": 48,
+  "historicalDeadLetterJobs": 4,
+  "quarantinedLegacyFailedVariants": 2,
+  "auditLinks": [
+    {
+      "id": "01a0b761-f6ab-7348-a12f-6e65834a1396",
+      "action": "period_report.refresh",
+      "entity_type": "project",
+      "entity_id": "01a01ac1-d6f6-711f-bb46-4317ecad036d"
+    },
+    {
+      "id": "01a0b761-f6d2-751f-96ca-496cf7eac9b5",
+      "action": "period_report.refresh",
+      "entity_type": "project",
+      "entity_id": "01a01ac1-d6f6-711f-bb46-4317ecad036d"
+    },
+    {
+      "id": "01a0b761-f6da-7608-9297-c309559707b6",
+      "action": "period_report.refresh",
+      "entity_type": "project",
+      "entity_id": "01a01ac1-d6f6-711f-bb46-4317ecad036d"
+    },
+    {
+      "id": "01a0b761-f6f9-709a-b5f2-e5562c534544",
+      "action": "period_report.refresh",
+      "entity_type": "project",
+      "entity_id": "01a01ac1-d6f6-711f-bb46-4317ecad036d"
+    },
+    {
+      "id": "01a0b761-f6fa-7245-bfbf-b7ee4f46a068",
+      "action": "period_report.refresh",
+      "entity_type": "project",
+      "entity_id": "01a01ac1-d6f6-711f-bb46-4317ecad036d"
+    },
+    {
+      "id": "01a0b762-3ed0-7500-a60a-cfdd32eaf0bf",
+      "action": "period_report.refresh",
+      "entity_type": "project",
+      "entity_id": "01a01ac1-d6f6-711f-bb46-4317ecad036d"
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "candidateCommit": "9b0a4ffe48b6de479101320dc5b27cb2f4844cb3",
+  "role": "owner",
+  "width": 390,
+  "height": 844,
+  "locale": "en",
+  "scenarios": [
+    {
+      "name": "invalid",
+      "status": 200,
+      "ui": {
+        "query": {
+          "periodStart": [
+            "2026-02-30"
+          ],
+          "periodEnd": [
+            "2026-03-01"
+          ],
+          "lang": [
+            "en"
+          ]
+        },
+        "locale": "en-US",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 0,
+        "code": "PROJECT_CALCULATION_PERIOD_DATE_INVALID",
+        "text": "Action needed Enter valid start and end dates for this project's calculation period. Correct the highlighted field",
+        "adjacentStart": "Enter valid start and end dates for this project's calculation period.",
+        "adjacentEnd": null,
+        "remedy": "Correct the highlighted field",
+        "remedyHref": null,
+        "startValue": "2026-02-30",
+        "endValue": "2026-03-01",
+        "activeTag": "aside",
+        "focusIsNotice": true,
+        "noticeTop": 372.40625,
+        "noticeBottom": 500.96875,
+        "headerBottom": 69.59375,
+        "totalCount": 0,
+        "personCount": 0,
+        "canonicalNoteCount": 0
+      }
+    },
+    {
+      "name": "reversed",
+      "status": 200,
+      "ui": {
+        "query": {
+          "periodStart": [
+            "2026-09-20"
+          ],
+          "periodEnd": [
+            "2026-09-19"
+          ],
+          "lang": [
+            "en"
+          ]
+        },
+        "locale": "en-US",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 0,
+        "code": "PROJECT_CALCULATION_PERIOD_RANGE_REVERSED",
+        "text": "Action needed The period end is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+        "adjacentStart": null,
+        "adjacentEnd": "The period end is before the start. Choose an end date on or after the start date.",
+        "remedy": "Correct the highlighted field",
+        "remedyHref": null,
+        "startValue": "2026-09-20",
+        "endValue": "2026-09-19",
+        "activeTag": "aside",
+        "focusIsNotice": true,
+        "noticeTop": 372.40625,
+        "noticeBottom": 521.265625,
+        "headerBottom": 69.59375,
+        "totalCount": 0,
+        "personCount": 0,
+        "canonicalNoteCount": 0
+      }
+    },
+    {
+      "name": "duplicate",
+      "status": 200,
+      "ui": {
+        "query": {
+          "periodStart": [
+            "2026-09-01",
+            "2026-09-02"
+          ],
+          "periodEnd": [
+            "2026-09-30"
+          ],
+          "lang": [
+            "en"
+          ]
+        },
+        "locale": "en-US",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 0,
+        "code": "PROJECT_CALCULATION_PERIOD_DATE_DUPLICATE",
+        "text": "Action needed A calculation period date was supplied more than once. Keep one start date and one end date. Correct the highlighted field",
+        "adjacentStart": "A calculation period date was supplied more than once. Keep one start date and one end date.",
+        "adjacentEnd": null,
+        "remedy": "Correct the highlighted field",
+        "remedyHref": null,
+        "startValue": "2026-09-01",
+        "endValue": "2026-09-30",
+        "activeTag": "aside",
+        "focusIsNotice": true,
+        "noticeTop": 372.40625,
+        "noticeBottom": 521.265625,
+        "headerBottom": 69.59375,
+        "totalCount": 0,
+        "personCount": 0,
+        "canonicalNoteCount": 0
+      }
+    }
+  ],
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 document",
+      "200 document",
+      "200 document"
+    ]
+  }
+}

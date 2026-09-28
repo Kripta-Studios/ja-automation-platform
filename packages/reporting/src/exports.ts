@@ -3,10 +3,37 @@ import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { renderInvoiceTemplate, type InvoiceTemplateSnapshot } from '@ja/invoice-templates';
+import { activityWithInterval, actualTimeInterval } from './time-interval.ts';
+import {
+  ACCOUNTING_PACK_PDF_TEMPLATE_VERSION,
+  FIELD_REPORT_TEMPLATE_VERSION,
+  PERIOD_REPORT_TEMPLATE_VERSION,
+  WORKER_STATEMENT_TEMPLATE_VERSION,
+} from './report-versions.ts';
+import {
+  formatReportDate,
+  formatReportInteger,
+  normalizeReportLocale as normalizeLocale,
+  reportCopy as localizedCopy,
+  reportLocaleTag,
+  translateCalculationBasis,
+  translateCalculationType,
+  translateReportBoolean,
+  translateReportMetric,
+  translateReportStatus,
+  translateWorkerStatementCategory,
+  workerStatementCopy,
+  type ReportLocale,
+} from './report-i18n.ts';
+
+export { REPORT_LOCALES } from './report-i18n.ts';
+export type { ReportLocale } from './report-i18n.ts';
 
 type Cell = string | number | bigint | boolean | null | undefined;
 type Row = Readonly<Record<string, Cell>>;
+type CsvPolicy = Readonly<{ numericColumns?: readonly string[] }>;
 
 const xmlEscape = (value: string): string =>
   value.replace(
@@ -23,18 +50,48 @@ const cellText = (value: Cell): string =>
       ? value.toString()
       : String(value);
 
-export function toCsv(rows: readonly Row[], columns?: readonly string[]): string {
+export function toCsv(
+  rows: readonly Row[],
+  columns?: readonly string[],
+  policy: CsvPolicy = {},
+): string {
   const headers = columns ? [...columns] : [...new Set(rows.flatMap((row) => Object.keys(row)))];
-  const encode = (value: Cell): string => {
-    const text = cellText(value);
+  const numericColumns = new Set(policy.numericColumns ?? []);
+  const encode = (value: Cell, numeric = false): string => {
+    const raw = cellText(value);
+    // CSV has no typed-cell model.  A caller must explicitly declare a numeric
+    // machine column; all other values are spreadsheet text, including IDs and
+    // audit-safe exact minor units. Scientific notation is intentionally never
+    // trusted because spreadsheet readers can interpret it as a formula/value.
+    const decimalText = /^-?\d+(?:\.\d+)?$/u.test(raw);
+    const dangerous =
+      /^[\t\r\n]/u.test(raw) || /^[ ]*[=+@]/u.test(raw) || (raw.startsWith('-') && !decimalText);
+    const numericValue =
+      numeric &&
+      ((typeof value === 'number' && Number.isFinite(value)) ||
+        ((typeof value === 'string' || typeof value === 'bigint') && decimalText));
+    const text = numericValue ? raw : decimalText || dangerous ? `'${raw}` : raw;
     return /[\",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
   };
   return (
     [
-      headers.map(encode).join(','),
-      ...rows.map((row) => headers.map((header) => encode(row[header])).join(',')),
+      headers.map((header) => encode(header)).join(','),
+      ...rows.map((row) =>
+        headers.map((header) => encode(row[header], numericColumns.has(header))).join(','),
+      ),
     ].join('\r\n') + '\r\n'
   );
+}
+
+function excelColumnName(index: number): string {
+  let current = index + 1;
+  let name = '';
+  while (current > 0) {
+    const remainder = (current - 1) % 26;
+    name = String.fromCharCode(65 + remainder) + name;
+    current = Math.floor((current - 1) / 26);
+  }
+  return name;
 }
 
 function crc32(input: Uint8Array): number {
@@ -131,37 +188,146 @@ function zip(files: readonly { name: string; data: Uint8Array }[]): Uint8Array {
   return concat([localBytes, centralBytes, end]);
 }
 
-function worksheet(rows: readonly Row[], columns?: readonly string[]): string {
+type XlsxSheet = Readonly<{
+  name: string;
+  rows: readonly Row[];
+  columns?: readonly string[];
+  /** Reader-facing labels; keys remain stable for row lookup and number formats. */
+  headerLabels?: Readonly<Record<string, string>>;
+  /** Columns whose values are contractually numeric, never identifiers or money minor-unit text. */
+  numericColumns?: readonly string[];
+  /** ISO calendar-date columns represented as real Excel dates. */
+  dateColumns?: readonly string[];
+  /** Major-unit monetary columns. Values remain numeric and receive a reader currency-number style. */
+  moneyColumns?: readonly string[];
+}>;
+
+function readableExportHeader(key: string): string {
+  const words = key
+    .replace(/Minor$/u, ' Minor units')
+    .replace(/([a-z0-9])([A-Z])/gu, '$1 $2')
+    .replace(/\bId\b/gu, 'ID');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+function displayedExportHeader(sheet: XlsxSheet, key: string): string {
+  return sheet.headerLabels ? (sheet.headerLabels[key] ?? readableExportHeader(key)) : key;
+}
+
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/u;
+
+function excelDateSerial(value: string): number | null {
+  const match = ISO_DATE.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const instant = Date.UTC(year, month - 1, day);
+  const parsed = new Date(instant);
+  // Date.parse accepts rollover dates (for example 2026-02-30); exports must not.
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  )
+    return null;
+  // Excel's 1900 date system deliberately includes its historical leap-year bug.
+  return Math.floor(instant / 86_400_000) + 25_569;
+}
+
+function numericXlsxValue(value: Cell): string | null {
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || (Number.isInteger(value) && !Number.isSafeInteger(value)))
+      return null;
+  } else if (typeof value !== 'string' || !/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/u.test(value)) {
+    return null;
+  }
+  const literal = String(value);
+  // Excel retains only 15 significant numeric digits. Preserve larger exact
+  // values as text instead of silently rounding the exported source amount.
+  const coefficient = literal.split(/[eE]/u)[0] ?? '';
+  const digits = coefficient.replace(/[-.]/gu, '').replace(/^0+/u, '');
+  if (digits.length > 15) return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  if (Number.isInteger(parsed) && !Number.isSafeInteger(parsed)) return null;
+  return String(parsed);
+}
+
+function worksheet(sheet: XlsxSheet): string {
+  const { rows, columns } = sheet;
   const headers = columns ? [...columns] : [...new Set(rows.flatMap((row) => Object.keys(row)))];
-  const allRows = [Object.fromEntries(headers.map((header) => [header, header])), ...rows];
+  const numericColumns = new Set(sheet.numericColumns ?? []);
+  const dateColumns = new Set(sheet.dateColumns ?? []);
+  const moneyColumns = new Set(sheet.moneyColumns ?? []);
+  const columnStyles = headers
+    .map((header, index) => {
+      const width = Math.min(
+        48,
+        Math.max(
+          10,
+          displayedExportHeader(sheet, header).length + 2,
+          ...rows.map((row) => Math.min(46, cellText(row[header]).length + 2)),
+        ),
+      );
+      return `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"${moneyColumns.has(header) ? ' style="2"' : ''}/>`;
+    })
+    .join('');
+  const allRows = [
+    Object.fromEntries(headers.map((header) => [header, displayedExportHeader(sheet, header)])),
+    ...rows,
+  ];
   const cells = allRows
     .map((row, rowIndex) => {
       const values = headers
         .map((header, columnIndex) => {
-          const reference = `${String.fromCharCode(65 + (columnIndex % 26))}${rowIndex + 1}`;
-          const value = xmlEscape(cellText(row[header]));
-          return `<c r="${reference}" t="inlineStr"><is><t>${value}</t></is></c>`;
+          const reference = `${excelColumnName(columnIndex)}${rowIndex + 1}`;
+          const source = row[header];
+          // Headers always remain literal strings. A formula is never emitted from a user value.
+          if (rowIndex > 0 && dateColumns.has(header) && typeof source === 'string') {
+            const serial = excelDateSerial(source);
+            if (serial !== null) return `<c r="${reference}" s="1"><v>${serial}</v></c>`;
+          }
+          if (rowIndex > 0 && numericColumns.has(header)) {
+            const numeric = numericXlsxValue(source);
+            if (numeric !== null)
+              return `<c r="${reference}"${moneyColumns.has(header) ? ' s="2"' : ''}><v>${numeric}</v></c>`;
+          }
+          const value = xmlEscape(cellText(source));
+          return `<c r="${reference}"${rowIndex === 0 ? ' s="3"' : ''} t="inlineStr"><is><t>${value}</t></is></c>`;
         })
         .join('');
-      return `<row r="${rowIndex + 1}">${values}</row>`;
+      return `<row r="${rowIndex + 1}"${rowIndex === 0 ? ' ht="32" customHeight="1"' : ''}>${values}</row>`;
     })
     .join('');
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${cells}</sheetData></worksheet>`;
+  const lastColumn = excelColumnName(Math.max(0, headers.length - 1));
+  const lastRow = Math.max(1, rows.length + 1);
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><tabColor rgb="FFC72113"/><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${columnStyles}</cols><sheetData>${cells}</sheetData><autoFilter ref="A1:${lastColumn}${lastRow}"/><printOptions horizontalCentered="0" verticalCentered="0"/><pageMargins left="0.3" right="0.3" top="0.5" bottom="0.5" header="0.2" footer="0.2"/><pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>`;
 }
 
-export function xlsxFromSheets(
-  sheets: readonly { name: string; rows: readonly Row[]; columns?: readonly string[] }[],
-): Uint8Array {
+export function xlsxFromSheets(sheets: readonly XlsxSheet[]): Uint8Array {
   const safeSheets = sheets.length ? sheets : [{ name: 'Sheet1', rows: [] }];
   const sheetEntries = safeSheets.map((sheet, index) => ({
     name: sheet.name.replace(/[\\/:?*\[\]]/g, '').slice(0, 31) || `Sheet${index + 1}`,
-    rows: worksheet(sheet.rows, sheet.columns),
+    rows: worksheet(sheet),
   }));
   const workbookSheets = sheetEntries
     .map(
       (sheet, index) =>
         `<sheet name="${xmlEscape(sheet.name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`,
     )
+    .join('');
+  const definedNames = sheetEntries
+    .map((sheet, index) => {
+      const quotedName = sheet.name.replace(/'/g, "''");
+      const source: XlsxSheet = safeSheets[index] ?? { name: 'Sheet1', rows: [] };
+      const columns = source.columns
+        ? [...source.columns]
+        : [...new Set(source.rows.flatMap((row) => Object.keys(row)))];
+      const lastColumn = excelColumnName(Math.max(0, columns.length - 1));
+      const lastRow = Math.max(1, source.rows.length + 1);
+      return `<definedName name="_xlnm.Print_Area" localSheetId="${index}">'${xmlEscape(quotedName)}'!$A$1:$${lastColumn}$${lastRow}</definedName><definedName name="_xlnm.Print_Titles" localSheetId="${index}">'${xmlEscape(quotedName)}'!$1:$1</definedName>`;
+    })
     .join('');
   const relationships = sheetEntries
     .map(
@@ -177,8 +343,10 @@ export function xlsxFromSheets(
       (_, index) =>
         `<Override PartName="/xl/worksheets/sheet${index + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`,
     ),
+    `<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>`,
   ].join('');
   const textFile = (value: string): Uint8Array => new TextEncoder().encode(value);
+  const styleRelationshipId = `rId${sheetEntries.length + 1}`;
   return zip([
     {
       name: '[Content_Types].xml',
@@ -195,13 +363,19 @@ export function xlsxFromSheets(
     {
       name: 'xl/workbook.xml',
       data: textFile(
-        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${workbookSheets}</sheets></workbook>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${workbookSheets}</sheets><definedNames>${definedNames}</definedNames></workbook>`,
       ),
     },
     {
       name: 'xl/_rels/workbook.xml.rels',
       data: textFile(
-        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relationships}</Relationships>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relationships}<Relationship Id="${styleRelationshipId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
+      ),
+    },
+    {
+      name: 'xl/styles.xml',
+      data: textFile(
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="yyyy-mm-dd"/><numFmt numFmtId="165" formatCode="#,##0.00;[Red]-#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><color rgb="FF24251F"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF24251F"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><bottom style="hair"><color rgb="FFE4E3DC"/></bottom></border><border><bottom style="medium"><color rgb="FFC72113"/></bottom></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment wrapText="1" vertical="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>',
       ),
     },
     ...sheetEntries.map((sheet, index) => ({
@@ -211,157 +385,73 @@ export function xlsxFromSheets(
   ]);
 }
 
-export const REPORT_TEMPLATE_VERSION = '2026.08.19.3';
-export const REPORT_LOCALES = ['en', 'pt', 'es'] as const;
-export type ReportLocale = (typeof REPORT_LOCALES)[number];
+export const REPORT_TEMPLATE_VERSION = '2026.09.02.2';
 
-const normalizeReportLocale = (value: unknown): ReportLocale =>
-  value === 'pt' || value === 'es' ? value : 'en';
+const normalizeReportLocale = (value: unknown): ReportLocale => normalizeLocale(value);
 
-const localeTag = (locale: ReportLocale): string =>
-  locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US';
+const localeTag = (locale: ReportLocale): string => reportLocaleTag(locale);
 
-type ReportLabels = Readonly<{
-  accountingPack: string;
-  totalsByCurrency: string;
-  noTotals: string;
-  projectPeriodReport: string;
-  dailyReports: string;
-  technicalRecords: string;
-  operationalRecord: string;
-  type: string;
-  date: string;
-  detail: string;
-  noReportRecords: string;
-  from: string;
-  billTo: string;
-  invoiceDetail: string;
-  description: string;
-  amount: string;
-  noInvoiceLines: string;
-  subtotal: string;
-  tax: string;
-  total: string;
-  noCurrencyBreakdown: string;
-  dailyReport: string;
-  technicalReport: string;
-  technicalChange: string;
-  laborDetailedInvoice: string;
-  laborSummaryInvoice: string;
-  expenseInvoice: string;
-  fixedMilestoneInvoice: string;
-  creditAdjustment: string;
-}>;
-
-const labels: Record<ReportLocale, ReportLabels> = {
-  en: {
-    accountingPack: 'Accounting Pack',
-    totalsByCurrency: 'Totals by currency',
-    noTotals: 'No totals recorded.',
-    projectPeriodReport: 'Project Period Report',
-    dailyReports: 'Daily reports',
-    technicalRecords: 'Technical records',
-    operationalRecord: 'Operational record',
-    type: 'Type',
-    date: 'Date',
-    detail: 'Detail',
-    noReportRecords: 'No report records.',
-    from: 'From',
-    billTo: 'Bill to',
-    invoiceDetail: 'Invoice detail',
-    description: 'Description',
-    amount: 'Amount',
-    noInvoiceLines: 'No invoice lines.',
-    subtotal: 'Subtotal',
-    tax: 'Tax',
-    total: 'Total',
-    noCurrencyBreakdown: 'No currency breakdown.',
-    dailyReport: 'Daily report',
-    technicalReport: 'Technical report',
-    technicalChange: 'Technical change',
-    laborDetailedInvoice: 'Labor Detailed Invoice',
-    laborSummaryInvoice: 'Labor Summary Invoice',
-    expenseInvoice: 'Expense Invoice',
-    fixedMilestoneInvoice: 'Fixed / Milestone Invoice',
-    creditAdjustment: 'Credit / Adjustment',
-  },
-  pt: {
-    accountingPack: 'Pacote Contábil',
-    totalsByCurrency: 'Totais por moeda',
-    noTotals: 'Nenhum total registrado.',
-    projectPeriodReport: 'Relatório Periódico do Projeto',
-    dailyReports: 'Relatórios diários',
-    technicalRecords: 'Registros técnicos',
-    operationalRecord: 'Registro operacional',
-    type: 'Tipo',
-    date: 'Data',
-    detail: 'Detalhe',
-    noReportRecords: 'Nenhum registro de relatório.',
-    from: 'De',
-    billTo: 'Faturar para',
-    invoiceDetail: 'Detalhes da fatura',
-    description: 'Descrição',
-    amount: 'Valor',
-    noInvoiceLines: 'Nenhuma linha de fatura.',
-    subtotal: 'Subtotal',
-    tax: 'Imposto',
-    total: 'Total',
-    noCurrencyBreakdown: 'Nenhum detalhamento por moeda.',
-    dailyReport: 'Relatório diário',
-    technicalReport: 'Relatório técnico',
-    technicalChange: 'Alteração técnica',
-    laborDetailedInvoice: 'Fatura Detalhada de Mão de Obra',
-    laborSummaryInvoice: 'Fatura Resumida de Mão de Obra',
-    expenseInvoice: 'Fatura de Despesas',
-    fixedMilestoneInvoice: 'Fatura Fixa / por Marco',
-    creditAdjustment: 'Crédito / Ajuste',
-  },
-  es: {
-    accountingPack: 'Paquete Contable',
-    totalsByCurrency: 'Totales por moneda',
-    noTotals: 'No hay totales registrados.',
-    projectPeriodReport: 'Informe Periódico del Proyecto',
-    dailyReports: 'Informes diarios',
-    technicalRecords: 'Registros técnicos',
-    operationalRecord: 'Registro operativo',
-    type: 'Tipo',
-    date: 'Fecha',
-    detail: 'Detalle',
-    noReportRecords: 'No hay registros de informes.',
-    from: 'De',
-    billTo: 'Facturar a',
-    invoiceDetail: 'Detalle de factura',
-    description: 'Descripción',
-    amount: 'Importe',
-    noInvoiceLines: 'No hay líneas de factura.',
-    subtotal: 'Subtotal',
-    tax: 'Impuesto',
-    total: 'Total',
-    noCurrencyBreakdown: 'No hay desglose por moneda.',
-    dailyReport: 'Informe diario',
-    technicalReport: 'Informe técnico',
-    technicalChange: 'Cambio técnico',
-    laborDetailedInvoice: 'Factura Detallada de Mano de Obra',
-    laborSummaryInvoice: 'Factura Resumida de Mano de Obra',
-    expenseInvoice: 'Factura de Gastos',
-    fixedMilestoneInvoice: 'Factura Fija / por Hito',
-    creditAdjustment: 'Crédito / Ajuste',
-  },
-};
-
-const htmlEscape = (value: unknown): string =>
-  String(value ?? '').replace(
+const htmlEscape = (value: unknown): string => {
+  if (value !== null && typeof value === 'object') return '';
+  return String(value ?? '').replace(
     /[&<>"']/g,
     (character) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] ??
       character,
   );
+};
+
+function snapshotText(source: unknown, ...keys: string[]): string {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return '';
+  const row = source as Record<string, unknown>;
+  for (const key of keys) {
+    const value = row[key];
+    if (value === null || value === undefined || typeof value === 'object') continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return '';
+}
+
+function projectIdentity(snapshot: unknown): {
+  number: string;
+  name: string;
+  clientName: string;
+  title: string;
+} {
+  const row = snapshot && typeof snapshot === 'object' ? (snapshot as Record<string, unknown>) : {};
+  const nested =
+    row.project && typeof row.project === 'object' && !Array.isArray(row.project)
+      ? (row.project as Record<string, unknown>)
+      : {};
+  const number =
+    snapshotText(nested, 'number', 'projectNumber', 'project_number') ||
+    snapshotText(row, 'projectNumber', 'project_number');
+  const name =
+    snapshotText(nested, 'name', 'projectName', 'project_name') ||
+    snapshotText(row, 'projectName', 'project_name');
+  const clientName =
+    snapshotText(nested, 'clientName', 'client_name', 'clientNumber', 'client_number') ||
+    snapshotText(row, 'clientName', 'client_name', 'client_number', 'clientNumber');
+  return {
+    number,
+    name,
+    clientName,
+    title: [number, name].filter(Boolean).join(' · '),
+  };
+}
+
+function reportNarrative(snapshot: unknown, ...keys: string[]): string {
+  return snapshotText(snapshot, ...keys);
+}
 
 const companyLogoCandidates = [
   process.env.JA_REPORTING_LOGO_PATH,
   resolve(process.cwd(), 'reporting-assets/logo-jaautomation.png'),
   resolve(process.cwd(), 'packages/reporting/assets/logo-jaautomation.png'),
   resolve(process.cwd(), 'assets/logo-jaautomation.png'),
+  fileURLToPath(new URL('../assets/logo-jaautomation.png', import.meta.url)),
+  fileURLToPath(new URL('../../../Images/logo_jaautomation.png', import.meta.url)),
 ].filter((value): value is string => Boolean(value));
 
 let companyLogoDataUri: string | undefined;
@@ -407,6 +497,23 @@ try {
 } finally { await browser.close(); }
 `;
 
+/**
+ * Chromium writes the current clock into the PDF Info dictionary.  Report
+ * artifacts are content-addressed downstream, so equivalent immutable
+ * snapshots must produce byte-identical documents.  Keep the metadata fields
+ * present for reader compatibility, but pin them to a stable value.  The
+ * replacement has the same byte length, so xref offsets remain valid and no
+ * second PDF writer (with its own nondeterminism) is needed.
+ */
+function stabilizePdfMetadata(bytes: Uint8Array): Uint8Array {
+  const fixedDate = "D:20000101000000+00'00'";
+  const source = Buffer.from(bytes).toString('latin1');
+  const stabilized = source
+    .replace(/\/CreationDate \(D:\d{14}[+-]\d{2}'\d{2}'\)/g, `/CreationDate (${fixedDate})`)
+    .replace(/\/ModDate \(D:\d{14}[+-]\d{2}'\d{2}'\)/g, `/ModDate (${fixedDate})`);
+  return new Uint8Array(Buffer.from(stabilized, 'latin1'));
+}
+
 /** Render the same immutable HTML snapshot in interactive and scheduled jobs. */
 export function renderHtmlToPdf(html: string): Uint8Array {
   const result = spawnSync(process.execPath, ['--input-type=module', '-e', renderScript], {
@@ -417,7 +524,7 @@ export function renderHtmlToPdf(html: string): Uint8Array {
   });
   if (result.status !== 0 || !result.stdout.trim())
     throw new Error(`Chromium PDF rendering failed: ${result.stderr?.trim() || 'no output'}`);
-  return new Uint8Array(Buffer.from(result.stdout.trim(), 'base64'));
+  return stabilizePdfMetadata(new Uint8Array(Buffer.from(result.stdout.trim(), 'base64')));
 }
 
 const pageCss = `
@@ -425,7 +532,7 @@ const pageCss = `
 * { box-sizing: border-box; }
 body { margin: 0; color: #17212b; font: 10pt Arial, sans-serif; line-height: 1.4; }
 h1 { margin: 0 0 5mm; color: #0f2d3d; font-size: 24pt; letter-spacing: -.02em; }
-h2 { margin: 7mm 0 2mm; color: #0f2d3d; font-size: 13pt; border-bottom: 1px solid #d9e1e7; padding-bottom: 1.5mm; }
+h2 { margin: 7mm 0 2mm; color: #0f2d3d; font-size: 13pt; border-bottom: 1px solid #d9e1e7; padding-bottom: 1.5mm; break-after:avoid; page-break-after:avoid; }
 .masthead { display:flex; align-items:flex-start; justify-content:space-between; gap:12mm; border-bottom: 4px solid #e23d2d; padding-bottom: 5mm; margin-bottom: 7mm; }
 .brand-lockup { display:flex; align-items:flex-start; gap:5mm; min-width:0; }
 .brand-logo { width:28mm; height:22mm; object-fit:contain; object-position:left center; flex:0 0 auto; }
@@ -435,23 +542,150 @@ h2 { margin: 7mm 0 2mm; color: #0f2d3d; font-size: 13pt; border-bottom: 1px soli
 .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4mm 10mm; }
 .metric { background:#f1f5f7; border-left:3px solid #e23d2d; padding:3mm; break-inside:avoid; }
 .metric strong { display:block; color:#0f2d3d; font-size:15pt; margin-top:1mm; }
-table { width:100%; border-collapse:collapse; margin-top:3mm; break-inside:auto; }
-thead { display:table-header-group; }
+table { width:100%; max-width:100%; border-collapse:collapse; margin-top:3mm; break-inside:auto; }
+thead, tfoot { display:table-header-group; }
 tr { break-inside:avoid; }
-th { background:#0f2d3d; color:#fff; text-align:left; font-size:8pt; text-transform:uppercase; letter-spacing:.06em; padding:2.4mm; }
-td { border-bottom:1px solid #d9e1e7; padding:2.4mm; vertical-align:top; }
+th { background:#0f2d3d; color:#fff; text-align:left; font-size:8pt; text-transform:uppercase; letter-spacing:.06em; padding:2.4mm; overflow-wrap:anywhere; word-break:break-word; }
+td { border-bottom:1px solid #d9e1e7; padding:2.4mm; vertical-align:top; overflow-wrap:anywhere; word-break:break-word; }
 td.amount, th.amount { text-align:right; white-space:nowrap; }
-.total { margin:6mm 0 0 auto; width:70mm; border-top:3px solid #e23d2d; padding-top:3mm; }
-.total div { display:flex; justify-content:space-between; gap:4mm; padding:1mm 0; }
-.total strong { color:#0f2d3d; font-size:15pt; }
+tfoot td { font-weight:700; background:#f1f5f7; border-top:2px solid #0f2d3d; }
+.metric-stack { margin-top:3mm; }
+.metric-stack + .metric-stack { margin-top:5mm; }
+.metric-stack h3 { margin:0 0 1mm; color:#0f2d3d; font-size:10pt; }
+.metric-stack table { table-layout:fixed; }
+.total { margin:6mm 0 0 auto; width:min(92mm, 100%); max-width:100%; border-top:3px solid #e23d2d; padding-top:3mm; }
+.total div { display:grid; grid-template-columns:minmax(0,1fr) minmax(30mm,1fr); align-items:start; gap:4mm; padding:1mm 0; }
+.total div > :last-child { min-width:0; max-width:100%; text-align:right; overflow-wrap:anywhere; word-break:break-all; }
+.total strong { color:#0f2d3d; font-size:15pt; overflow-wrap:anywhere; word-break:break-all; }
+.report-section { break-inside:auto; page-break-inside:auto; }
 .page-break { break-before: page; }
+.signature-block { margin-top:10mm; display:flex; justify-content:space-between; align-items:flex-end; gap:12mm; break-inside:avoid; page-break-inside:avoid; padding-top:5mm; border-top:1px dashed #cbd5e1; }
+.signature-block > div { display:flex; flex-direction:column; gap:1.5mm; }
+.signature-block span { font-weight:700; font-size:8.5pt; color:#0f2d3d; }
+.signature-line { font-family:monospace; font-size:9pt; color:#64748b; letter-spacing:0.05em; }
+.signature-block small { font-size:7.5pt; color:#64748b; }
 `;
 
-function layout(title: string, subtitle: string, body: string, locale: ReportLocale): string {
-  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="template-version" content="${REPORT_TEMPLATE_VERSION}"><meta name="report-locale" content="${locale}"><style>${pageCss}</style></head><body><header class="masthead"><div class="brand-lockup"><img class="brand-logo" src="${companyLogo()}" alt="J&amp;A Automation logo"><div class="masthead-copy"><div class="eyebrow">J&amp;A Automation</div><h1>${htmlEscape(title)}</h1><div class="muted">${htmlEscape(subtitle)}</div></div></div><div class="muted">Template ${REPORT_TEMPLATE_VERSION}</div></header>${body}</body></html>`;
+function layout(
+  title: string,
+  subtitle: string,
+  body: string,
+  locale: ReportLocale,
+  styles = '',
+  templateVersion = REPORT_TEMPLATE_VERSION,
+): string {
+  const copy = localizedCopy[locale];
+  return `<!doctype html><html lang="${localeTag(locale)}"><head><meta charset="utf-8"><meta name="template-version" content="${templateVersion}"><meta name="report-locale" content="${localeTag(locale)}"><style>${pageCss}${styles}</style></head><body><header class="masthead"><div class="brand-lockup"><img class="brand-logo" src="${companyLogo()}" alt="J&amp;A Automation logo"><div class="masthead-copy"><div class="eyebrow">J&amp;A Automation</div><h1>${htmlEscape(title)}</h1><div class="muted">${htmlEscape(subtitle)}</div></div></div><div class="muted">${htmlEscape(copy.template)} ${templateVersion}</div></header>${body}</body></html>`;
 }
 
-function moneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en'): string {
+// Explicit column allocation keeps narrative text from squeezing dates, statuses and net hours.
+// These styles are opt-in per report; invoice and other historical layouts are unaffected.
+const operationalTableCss = `
+.operational-table { table-layout:fixed; }
+.operational-table th, .operational-table td { padding:1.8mm; word-break:normal; overflow-wrap:break-word; }
+.operational-table th { font-size:8pt; letter-spacing:.02em; }
+.operational-table td { font-size:9pt; }
+.operational-table th.amount, .operational-table td.amount { white-space:normal; overflow-wrap:anywhere; }
+.operational-table .number { text-align:right; white-space:nowrap; }
+`;
+
+const accountingPackCss = `${operationalTableCss}
+@page { size:A4 landscape; margin:12mm 12mm 16mm; }
+.grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:3mm; }
+.metric { min-width:0; padding:2.5mm; }
+.metric strong { font-size:11pt; overflow-wrap:anywhere; }
+`;
+
+const workerStatementCss = `${operationalTableCss}
+@page { size:A4 landscape; margin:12mm 14mm 16mm; }
+body { font-size:9pt; }
+h1 { font-size:20pt; margin-bottom:2mm; }
+h2 { margin-top:4mm; font-size:12pt; }
+.masthead { padding-bottom:3mm; margin-bottom:4mm; gap:6mm; }
+.brand-logo { width:22mm; height:18mm; }
+.grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:3mm; }
+.metric { padding:2.5mm; }
+.metric strong { font-size:13pt; overflow-wrap:anywhere; }
+`;
+
+const periodReportCss = `${operationalTableCss}
+.grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:3mm; }
+.metric { padding:2.5mm; }
+.metric strong { font-size:11pt; overflow-wrap:anywhere; }
+.grid > .metric:first-child, .grid > .metric:nth-child(2) { grid-column:span 3; }
+`;
+
+const fieldReportCss = `
+.grid { gap:3mm 5mm; }
+.metric { min-width:0; padding:2.5mm; }
+.metric strong { font-size:11pt; overflow-wrap:anywhere; word-break:normal; }
+.report-section { overflow-wrap:anywhere; }
+h2 { margin-top:5mm; }
+`;
+
+/**
+ * Invoice-only presentation. Shared report `pageCss` styles `.grid` / `.total` but not
+ * `.invoice-parties`, `.invoice-meta`, or `.invoice-total`, so wrapping invoice HTML in
+ * `layout()` collapsed parties, metadata and totals into unstructured text.
+ */
+const invoiceCss = `
+.invoice-masthead { display:flex; align-items:flex-start; justify-content:space-between; gap:10mm; border-bottom:3px solid #0f2d3d; padding-bottom:5mm; margin-bottom:5mm; }
+.invoice-identity { text-align:right; min-width:0; }
+.invoice-identity h1 { margin:1mm 0 0; font-size:18pt; letter-spacing:-.02em; }
+.invoice-document { min-width:0; }
+.invoice-parties { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8mm; padding:5mm 0 4mm; }
+.invoice-party { display:grid; gap:1.2mm; min-width:0; }
+.invoice-party-label { color:#64748b; font-size:8pt; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+.invoice-party div { margin:0; line-height:1.45; }
+.invoice-meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:5mm; padding:4mm 0; margin:0; border-block:1px solid #d9e1e7; }
+.invoice-field { display:grid; gap:1mm; min-width:0; }
+.invoice-field .label { color:#64748b; font-size:8pt; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.invoice-field .value { margin:0; font-weight:700; overflow-wrap:anywhere; }
+.invoice-document > h2 { margin:6mm 0 2mm; font-size:11pt; }
+.invoice-description-block { margin:0 0 3mm; }
+.invoice-lines { width:100%; max-width:100%; table-layout:fixed; border-collapse:collapse; margin-top:4mm; }
+.invoice-lines th { background:#dbebf7; color:#0d3b66; font-size:8.5pt; font-weight:700; letter-spacing:.03em; border-top:1px solid #b8d5ec; border-bottom:1px solid #b8d5ec; padding:2.2mm 2.8mm; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
+.invoice-lines td { padding:2.2mm 2.8mm; border-bottom:1px solid #e2e8f0; font-size:8.5pt; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
+.invoice-lines th.amount, .invoice-lines td.amount { text-align:right; white-space:nowrap; }
+.qty-total-cell, .total-amount-cell { border:1.5px solid #0d3b66 !important; background:#ffffff; font-weight:700; text-align:right; }
+.invoice-bottom-grid { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:10mm; margin-top:6mm; align-items:start; }
+.invoice-terms-card { font-size:8pt; color:#1e293b; line-height:1.45; }
+.terms-heading { font-size:9.5pt; font-weight:700; color:#0f2d3d; text-decoration:underline; margin-bottom:2mm; }
+.terms-field { margin:0.8mm 0; }
+.terms-notice { margin-top:2.5mm; font-style:italic; color:#64748b; font-size:7.5pt; }
+.invoice-total { margin:0; width:100%; border-top:2px solid #cbd5e1; padding-top:2mm; }
+.invoice-total .total-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(28mm,1fr); align-items:start; gap:4mm; padding:1.2mm 0; }
+.invoice-total .total-row span:last-child, .invoice-total .total-row strong:last-child { text-align:right; overflow-wrap:anywhere; }
+.invoice-total .grand-total strong { color:#0f2d3d; font-size:12pt; }
+.company-contact-masthead { margin-top:1.5mm; font-size:7.5pt; color:#475569; line-height:1.35; }
+`;
+
+function invoiceLayout(
+  title: string,
+  subtitle: string,
+  number: string,
+  body: string,
+  locale: ReportLocale,
+  snapshot: InvoiceTemplateSnapshot,
+): string {
+  const copy = localizedCopy[locale];
+  const company = snapshot.companyInfo ?? snapshot.company_info;
+  const issuerName =
+    snapshotText(snapshot.legalEntity, 'legalName', 'legal_name', 'name') ||
+    snapshotText(company, 'name');
+  const contactLines = [
+    [snapshotText(company, 'division'), snapshotText(company, 'phone')].filter(Boolean).join(' · '),
+    snapshotText(company, 'address') ||
+      snapshotText(snapshot.legalEntity, 'billingAddress', 'billing_address', 'address'),
+    [snapshotText(company, 'email'), snapshotText(company, 'website')].filter(Boolean).join(' · '),
+  ]
+    .filter(Boolean)
+    .map((line) => `<div>${htmlEscape(line)}</div>`)
+    .join('');
+  return `<!doctype html><html lang="${localeTag(locale)}"><head><meta charset="utf-8"><meta name="template-version" content="${REPORT_TEMPLATE_VERSION}"><meta name="invoice-layout" content="structured-v1"><meta name="report-locale" content="${localeTag(locale)}"><style>${pageCss}${invoiceCss}</style></head><body><header class="invoice-masthead"><div class="brand-lockup"><img class="brand-logo" src="${companyLogo()}" alt="J&amp;A Automation logo"><div class="masthead-copy"><div class="eyebrow">${htmlEscape(issuerName || '—')}</div>${contactLines ? `<div class="company-contact-masthead">${contactLines}</div>` : ''}<div class="muted" style="margin-top:1mm;font-size:7pt">${htmlEscape(copy.template)} ${REPORT_TEMPLATE_VERSION}</div></div></div><div class="invoice-identity"><div class="eyebrow">${htmlEscape(title)}</div><h1>${htmlEscape(number)}</h1><div class="muted">${htmlEscape(subtitle)}</div></div></header><article class="invoice-document">${body}</article></body></html>`;
+}
+
+function exactMoneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en'): string {
   const code =
     typeof currency === 'string' && /^[A-Za-z]{3}$/.test(currency) ? currency.toUpperCase() : 'USD';
   let amount: bigint;
@@ -472,10 +706,14 @@ function moneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en
   const absolute = negative ? -amount : amount;
   const scale = 10n ** BigInt(fractionDigits);
   const formatterLocale = localeTag(locale);
+  // A four-digit probe is not grouped in es-ES, so it can incorrectly look
+  // like the locale has no grouping separator. Use a value with two grouping
+  // boundaries and an explicit decimal part instead.
   const decimalParts = new Intl.NumberFormat(formatterLocale, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).formatToParts(1000.5);
+    useGrouping: true,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).formatToParts(1234567.89);
   const groupSeparator = decimalParts.find((part) => part.type === 'group')?.value ?? ',';
   const decimalSeparator = decimalParts.find((part) => part.type === 'decimal')?.value ?? '.';
   const integer = (absolute / scale).toString().replace(/\B(?=(\d{3})+(?!\d))/g, groupSeparator);
@@ -506,13 +744,121 @@ function moneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en
   } catch {
     prefix = `${code} `;
   }
-  return htmlEscape(`${negative ? '-' : ''}${prefix}${integer}${fraction}${suffix}`);
+  return `${negative ? '-' : ''}${prefix}${integer}${fraction}${suffix}`;
+}
+
+function currencyFractionDigits(currency: unknown): number {
+  const code =
+    typeof currency === 'string' && /^[A-Za-z]{3}$/.test(currency) ? currency.toUpperCase() : 'USD';
+  try {
+    return (
+      new Intl.NumberFormat('en-US', { style: 'currency', currency: code }).resolvedOptions()
+        .maximumFractionDigits ?? 2
+    );
+  } catch {
+    return 2;
+  }
+}
+
+/**
+ * Produce an Excel numeric major-unit literal only when its significant minor-unit
+ * precision fits Excel's documented 15-digit numeric precision.  The sibling
+ * `*ExactMinor` column remains the authoritative audit value in every case.
+ */
+function majorAmountCell(currency: unknown, minor: unknown, locale: ReportLocale): Cell {
+  // A blank or malformed source is unknown, not zero.  Returning a blank cell
+  // preserves that distinction for reviewers while the paired ExactMinor value
+  // retains the original audit input.
+  if (
+    minor === null ||
+    minor === undefined ||
+    (typeof minor === 'string' && !/^-?\d+$/u.test(minor)) ||
+    (typeof minor === 'number' && !Number.isSafeInteger(minor)) ||
+    (typeof minor !== 'string' && typeof minor !== 'number' && typeof minor !== 'bigint')
+  )
+    return '';
+  let amount: bigint;
+  try {
+    amount = BigInt(String(minor));
+  } catch {
+    return '';
+  }
+  const absolute = amount < 0n ? -amount : amount;
+  if (absolute !== 0n && absolute.toString().length > 15)
+    return exactMoneyText(currency, minor, locale);
+  const fractionDigits = currencyFractionDigits(currency);
+  const scale = 10n ** BigInt(fractionDigits);
+  const integer = absolute / scale;
+  const fraction = absolute % scale;
+  return `${amount < 0n ? '-' : ''}${integer.toString()}${
+    fractionDigits > 0 ? `.${fraction.toString().padStart(fractionDigits, '0')}` : ''
+  }`;
+}
+
+function moneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en'): string {
+  return htmlEscape(exactMoneyText(currency, minor, locale));
+}
+
+function metricDisplay(
+  key: string,
+  value: unknown,
+  currency: unknown,
+  locale: ReportLocale,
+): string {
+  const normalized = key.toLowerCase();
+  if (normalized.includes('minor')) return exactMoneyText(currency, value, locale);
+  if (normalized.includes('minutes')) return formatReportInteger(value, locale);
+  if (normalized.includes('bps')) {
+    const bps = Number(value ?? 0);
+    if (Number.isFinite(bps))
+      return `${new Intl.NumberFormat(localeTag(locale), { minimumFractionDigits: 1, maximumFractionDigits: 2 }).format(bps / 100)}%`;
+  }
+  return value === null || value === undefined ? '' : String(value);
+}
+
+function metricValue(key: string, value: unknown, currency: unknown, locale: ReportLocale): string {
+  return htmlEscape(metricDisplay(key, value, currency, locale));
 }
 
 export function accountingPackCsv(
   snapshot: Readonly<{ invoiceRegister: readonly Row[] }>,
 ): Uint8Array {
-  return new TextEncoder().encode(toCsv(snapshot.invoiceRegister));
+  const columns = snapshot.invoiceRegister.length
+    ? undefined
+    : [
+        'invoiceNumber',
+        'client',
+        'projectNumber',
+        'streamType',
+        'issueDate',
+        'dueDate',
+        'currency',
+        'version',
+        'netMinor',
+        'taxMinor',
+        'grossMinor',
+      ];
+  return new TextEncoder().encode(
+    toCsv(snapshot.invoiceRegister, columns, {
+      numericColumns: ['version', 'netMinor', 'taxMinor', 'grossMinor'],
+    }),
+  );
+}
+
+function withAccountingAmounts(
+  rows: readonly Row[],
+  fields: readonly Readonly<{ amount: string; minor: string; currency?: string }>[],
+): readonly Row[] {
+  return rows.map((row) => {
+    const output: Record<string, Cell> = { ...row };
+    for (const field of fields)
+      output[field.amount] = majorAmountCell(
+        row[field.currency ?? 'currency'],
+        row[field.minor],
+        'en',
+      );
+    return output;
+  });
 }
 
 export function accountingPackXlsx(
@@ -523,24 +869,1826 @@ export function accountingPackXlsx(
     expenseRegister: readonly Row[];
   }>,
 ): Uint8Array {
+  const invoiceRegister = withAccountingAmounts(snapshot.invoiceRegister, [
+    { amount: 'net', minor: 'netMinor' },
+    { amount: 'tax', minor: 'taxMinor' },
+    { amount: 'gross', minor: 'grossMinor' },
+  ]);
+  const collections = withAccountingAmounts(snapshot.collections, [
+    { amount: 'grossInvoiced', minor: 'grossInvoicedMinor' },
+    { amount: 'amountCollectedInMonth', minor: 'amountCollectedInMonthMinor' },
+    { amount: 'totalCollectedToDate', minor: 'totalCollectedToDateMinor' },
+    { amount: 'outstanding', minor: 'outstandingMinor' },
+  ]);
+  const workerCosts = withAccountingAmounts(snapshot.workerCosts, [
+    { amount: 'approvedCompensation', minor: 'approvedCompensationMinor' },
+    { amount: 'settledCompensation', minor: 'settledCompensationMinor' },
+    { amount: 'internalLoadedLaborCost', minor: 'internalLoadedLaborCostMinor' },
+    { amount: 'reimbursement', minor: 'reimbursementMinor' },
+  ]);
+  const expenseRegister = withAccountingAmounts(snapshot.expenseRegister, [
+    { amount: 'amount', minor: 'amountMinor' },
+    { amount: 'tax', minor: 'taxMinor' },
+    { amount: 'gross', minor: 'grossMinor' },
+    { amount: 'reimbursementAmount', minor: 'reimbursementAmountMinor' },
+    { amount: 'reimbursedAmount', minor: 'reimbursedAmountMinor' },
+    {
+      amount: 'projectCurrencyAmount',
+      minor: 'projectCurrencyAmountMinor',
+      currency: 'projectCurrency',
+    },
+    { amount: 'companyCost', minor: 'companyCostMinor', currency: 'projectCurrency' },
+    { amount: 'billingAmount', minor: 'billingAmountMinor', currency: 'projectCurrency' },
+  ]);
   return xlsxFromSheets([
-    { name: 'Invoice register', rows: snapshot.invoiceRegister },
-    { name: 'Collections', rows: snapshot.collections },
-    { name: 'Worker direct costs', rows: snapshot.workerCosts },
-    { name: 'Expenses', rows: snapshot.expenseRegister },
+    {
+      name: 'Invoice register',
+      rows: invoiceRegister,
+      headerLabels: {
+        invoiceNumber: 'Invoice number',
+        client: 'Customer',
+        project: 'Project number',
+        stream: 'Billing stream',
+        servicePeriod: 'Service period',
+        issueDate: 'Issued date',
+        dueDate: 'Due date',
+        currency: 'Invoice currency',
+        net: 'Client invoiced before tax',
+        tax: 'Tax charged to client',
+        gross: 'Client invoiced including tax',
+        netMinor: 'Invoiced before tax (minor units)',
+        taxMinor: 'Tax charged (minor units)',
+        grossMinor: 'Invoiced including tax (minor units)',
+        status: 'Payment status',
+      },
+      numericColumns: ['version', 'net', 'tax', 'gross'],
+      moneyColumns: ['net', 'tax', 'gross'],
+      dateColumns: ['issueDate', 'dueDate'],
+    },
+    {
+      name: 'Collections',
+      rows: collections,
+      headerLabels: {
+        currency: 'Payment currency',
+        grossInvoiced: 'Invoice total including tax',
+        amountCollectedInMonth: 'Payments collected in this period',
+        totalCollectedToDate: 'Payments collected through report date',
+        outstanding: 'Outstanding client balance',
+        grossInvoicedMinor: 'Invoice total (minor units)',
+        amountCollectedInMonthMinor: 'Period collections (minor units)',
+        totalCollectedToDateMinor: 'Collections to date (minor units)',
+        outstandingMinor: 'Outstanding balance (minor units)',
+      },
+      numericColumns: [
+        'grossInvoiced',
+        'amountCollectedInMonth',
+        'totalCollectedToDate',
+        'outstanding',
+      ],
+      dateColumns: ['paymentDate'],
+      moneyColumns: [
+        'grossInvoiced',
+        'amountCollectedInMonth',
+        'totalCollectedToDate',
+        'outstanding',
+      ],
+    },
+    {
+      name: 'Worker direct costs',
+      rows: workerCosts,
+      headerLabels: {
+        worker: 'Worker',
+        project: 'Project number',
+        currency: 'Project currency',
+        actualApprovedMinutes: 'Approved work minutes',
+        approvedCompensation: 'Calculated worker compensation',
+        settledCompensation: 'Worker compensation paid',
+        internalLoadedLaborCost: 'Internal labor cost',
+        reimbursement: 'Worker reimbursements',
+        approvedCompensationMinor: 'Worker compensation (minor units)',
+        settledCompensationMinor: 'Compensation paid (minor units)',
+        internalLoadedLaborCostMinor: 'Internal labor cost (minor units)',
+        reimbursementMinor: 'Worker reimbursements (minor units)',
+        missingCostRuleCount: 'Missing cost rules',
+      },
+      numericColumns: [
+        'actualApprovedMinutes',
+        'regularMinutes',
+        'standbyMinutes',
+        'overtimeMinutes',
+        'travelMinutes',
+        'missingCostRuleCount',
+        'approvedCompensation',
+        'settledCompensation',
+        'internalLoadedLaborCost',
+        'reimbursement',
+      ],
+      moneyColumns: [
+        'approvedCompensation',
+        'settledCompensation',
+        'internalLoadedLaborCost',
+        'reimbursement',
+      ],
+    },
+    {
+      name: 'Expenses',
+      rows: expenseRegister,
+      headerLabels: {
+        date: 'Expense date',
+        worker: 'Worker',
+        project: 'Project number',
+        vendor: 'Vendor (if provided)',
+        description: 'Expense description',
+        category: 'Expense category',
+        whoPaid: 'Who paid at purchase',
+        currency: 'Currency of receipt',
+        projectCurrency: 'Project currency',
+        amount: 'Amount entered from receipt',
+        tax: 'Recorded tax amount',
+        gross: 'Receipt amount including tax',
+        reimbursementAmount: 'Calculated worker reimbursement',
+        reimbursedAmount: 'Amount actually reimbursed',
+        projectCurrencyAmount: 'Receipt amount in project currency',
+        companyCost: 'Approved company cost',
+        billingAmount: 'Calculated amount to charge client',
+        amountMinor: 'Receipt amount (minor units)',
+        taxMinor: 'Recorded tax (minor units)',
+        grossMinor: 'Receipt gross (minor units)',
+        reimbursementAmountMinor: 'Calculated reimbursement (minor units)',
+        reimbursedAmountMinor: 'Paid reimbursement (minor units)',
+        projectCurrencyAmountMinor: 'Project-currency receipt (minor units)',
+        companyCostMinor: 'Company cost (minor units)',
+        billingAmountMinor: 'Calculated client charge (minor units)',
+        reimbursementStatus: 'Reimbursement status',
+        billingStatus: 'Client billing status',
+        commercialClassificationState: 'Finance classification status',
+      },
+      numericColumns: [
+        'version',
+        'amount',
+        'tax',
+        'gross',
+        'reimbursementAmount',
+        'reimbursedAmount',
+        'projectCurrencyAmount',
+        'companyCost',
+        'billingAmount',
+      ],
+      dateColumns: ['date'],
+      moneyColumns: [
+        'amount',
+        'tax',
+        'gross',
+        'reimbursementAmount',
+        'reimbursedAmount',
+        'projectCurrencyAmount',
+        'companyCost',
+        'billingAmount',
+      ],
+    },
   ]);
 }
 
-type AccountingPackSourceSnapshot = Readonly<{
+/**
+ * Build the synchronous, current-snapshot workbook used by the project finance screen.
+ * Money stays exact: display uses bigint minor units, and a parallel column keeps the
+ * canonical minor-unit string so the workbook cannot introduce binary floating-point rounding.
+ */
+export function projectFinanceXlsx(
+  snapshot: Readonly<{
+    project: Readonly<Record<string, Cell>>;
+    financial: Readonly<Record<string, unknown>>;
+    timeEconomics: readonly Record<string, unknown>[];
+    expenseEconomics: readonly Record<string, unknown>[];
+    invoices?: readonly Record<string, unknown>[];
+    invoiceExpenseLines?: readonly Record<string, unknown>[];
+    milestones?: readonly Record<string, unknown>[];
+    locale?: ReportLocale | string;
+  }>,
+): Uint8Array {
+  const locale = normalizeReportLocale(snapshot.locale);
+  const finance = snapshot.financial;
+  const currency = String(finance.currency ?? snapshot.project.currency ?? '');
+  const labels = projectFinanceCopy(locale);
+  return xlsxFromSheets([
+    {
+      name: labels.summarySheet,
+      rows: projectFinanceSummaryRows(snapshot.project, finance, currency, locale, labels),
+      columns: [
+        'section',
+        'metric',
+        'displayValue',
+        'amount',
+        'hours',
+        'percentage',
+        'exactMinorUnits',
+      ],
+      headerLabels: {
+        section: 'Section',
+        metric: 'What this measures',
+        displayValue: 'Formatted value',
+        amount: 'Amount in project currency',
+        hours: 'Hours',
+        percentage: 'Percent',
+        exactMinorUnits: 'Exact amount in minor units',
+      },
+      numericColumns: ['amount', 'hours', 'percentage'],
+      moneyColumns: ['amount'],
+    },
+    {
+      name: labels.laborSheet,
+      rows: projectFinanceLaborRows(snapshot.timeEconomics, currency, locale),
+      columns: [
+        'worker',
+        'date',
+        'category',
+        'actualHours',
+        'actualMinutes',
+        'billableHours',
+        'billableMinutes',
+        'clientRevenue',
+        'internalCost',
+        'workerCompensation',
+        'billability',
+        'approval',
+        'billingStatus',
+        'invoiceId',
+        'clientRevenueExactMinor',
+        'internalCostExactMinor',
+        'workerCompensationExactMinor',
+      ],
+      headerLabels: {
+        worker: 'Worker',
+        date: 'Work date',
+        category: 'Time category',
+        actualHours: 'Hours recorded',
+        actualMinutes: 'Minutes recorded',
+        billableHours: 'Hours eligible to charge client',
+        billableMinutes: 'Minutes eligible to charge client',
+        clientRevenue: 'Potential amount to charge client',
+        internalCost: 'Calculated internal labor cost',
+        workerCompensation: 'Calculated worker compensation',
+        billability: 'Client billing eligibility',
+        approval: 'Time approval status',
+        billingStatus: 'Billing status',
+        invoiceId: 'Linked invoice ID',
+        clientRevenueExactMinor: 'Potential client charge (minor units)',
+        internalCostExactMinor: 'Internal labor cost (minor units)',
+        workerCompensationExactMinor: 'Worker compensation (minor units)',
+      },
+      numericColumns: [
+        'actualHours',
+        'actualMinutes',
+        'billableHours',
+        'billableMinutes',
+        'clientRevenue',
+        'internalCost',
+        'workerCompensation',
+      ],
+      dateColumns: ['date'],
+      moneyColumns: ['clientRevenue', 'internalCost', 'workerCompensation'],
+    },
+    {
+      name: labels.expenseSheet,
+      rows: projectFinanceExpenseRows(snapshot.expenseEconomics, currency, locale),
+      columns: [
+        'expenseId',
+        'worker',
+        'date',
+        'category',
+        'description',
+        'paidBy',
+        'recordedCurrency',
+        'recordedAmount',
+        'reimbursementAmount',
+        'reimbursedAmount',
+        'reimbursementState',
+        'treatment',
+        'classification',
+        'cost',
+        'actualCost',
+        'revenue',
+        'pendingFinanceRevenue',
+        'approval',
+        'financeApproval',
+        'projection',
+        'invoiceId',
+        'recordedAmountExactMinor',
+        'reimbursementAmountExactMinor',
+        'reimbursedAmountExactMinor',
+        'costExactMinor',
+        'actualCostExactMinor',
+        'revenueExactMinor',
+        'pendingFinanceRevenueExactMinor',
+      ],
+      headerLabels: {
+        expenseId: 'Expense record ID',
+        worker: 'Worker',
+        date: 'Expense date',
+        category: 'Expense category',
+        description: 'Expense description',
+        paidBy: 'Who paid at purchase',
+        recordedCurrency: 'Currency of receipt',
+        recordedAmount: 'Amount entered from receipt',
+        reimbursementAmount: 'Calculated worker reimbursement',
+        reimbursedAmount: 'Amount actually reimbursed',
+        reimbursementState: 'Reimbursement status',
+        treatment: 'Client charge treatment',
+        classification: 'Finance classification status',
+        cost: 'Approved company cost',
+        actualCost: 'Calculated company cost',
+        revenue: 'Finance-approved client charge',
+        pendingFinanceRevenue: 'Client charge awaiting finance approval',
+        approval: 'Expense approval status',
+        financeApproval: 'Finance approval status',
+        projection: 'Finance calculation status',
+        invoiceId: 'Linked invoice ID',
+        recordedAmountExactMinor: 'Receipt amount (minor units)',
+        reimbursementAmountExactMinor: 'Calculated reimbursement (minor units)',
+        reimbursedAmountExactMinor: 'Paid reimbursement (minor units)',
+        costExactMinor: 'Approved company cost (minor units)',
+        actualCostExactMinor: 'Calculated company cost (minor units)',
+        revenueExactMinor: 'Finance-approved client charge (minor units)',
+        pendingFinanceRevenueExactMinor: 'Pending client charge (minor units)',
+      },
+      numericColumns: [
+        'recordedAmount',
+        'reimbursementAmount',
+        'reimbursedAmount',
+        'cost',
+        'actualCost',
+        'revenue',
+        'pendingFinanceRevenue',
+      ],
+      dateColumns: ['date'],
+      moneyColumns: [
+        'recordedAmount',
+        'reimbursementAmount',
+        'reimbursedAmount',
+        'cost',
+        'actualCost',
+        'revenue',
+        'pendingFinanceRevenue',
+      ],
+    },
+    {
+      name: labels.unbilledSheet,
+      rows: projectFinanceUnbilledRows(finance.approvedUnbilledSources, currency, locale),
+      columns: ['sourceType', 'sourceId', 'date', 'workerId', 'amount', 'amountExactMinor'],
+      headerLabels: {
+        sourceType: 'Record type',
+        sourceId: 'Record ID',
+        date: 'Work or expense date',
+        workerId: 'Worker ID',
+        amount: 'Approved amount not yet invoiced',
+        amountExactMinor: 'Unbilled amount (minor units)',
+      },
+      numericColumns: ['amount'],
+      dateColumns: ['date'],
+      moneyColumns: ['amount'],
+    },
+    {
+      name: labels.minimumSheet,
+      rows: projectFinanceMinimumRows(finance.dailyMinimumAdjustments, currency, locale),
+      columns: [
+        'workerId',
+        'date',
+        'adjustmentHours',
+        'adjustmentMinutes',
+        'revenue',
+        'revenueExactMinor',
+      ],
+      headerLabels: {
+        workerId: 'Worker ID',
+        date: 'Work date',
+        adjustmentHours: 'Extra billable hours from daily minimum',
+        adjustmentMinutes: 'Extra billable minutes from daily minimum',
+        revenue: 'Potential client charge from daily minimum',
+        revenueExactMinor: 'Daily minimum charge (minor units)',
+      },
+      numericColumns: ['adjustmentHours', 'adjustmentMinutes', 'revenue'],
+      dateColumns: ['date'],
+      moneyColumns: ['revenue'],
+    },
+    {
+      name: labels.invoiceSheet,
+      rows: projectFinanceInvoiceRows(
+        snapshot.invoices ?? [],
+        snapshot.invoiceExpenseLines ?? [],
+        locale,
+      ),
+      columns: [
+        'invoiceNumber',
+        'stream',
+        'state',
+        'periodStart',
+        'periodEnd',
+        'currency',
+        'total',
+        'expenseLineCount',
+        'expenseTotal',
+        'collected',
+        'issuedAt',
+        'dueAt',
+        'totalExactMinor',
+        'expenseTotalExactMinor',
+        'collectedExactMinor',
+      ],
+      headerLabels: {
+        invoiceNumber: 'Invoice number',
+        stream: 'Billing stream',
+        state: 'Invoice status',
+        periodStart: 'Service period start',
+        periodEnd: 'Service period end',
+        currency: 'Invoice currency',
+        total: 'Invoice total including tax',
+        expenseLineCount: 'Expense lines on invoice',
+        expenseTotal: 'Expense lines charged to client',
+        collected: 'Payments collected',
+        issuedAt: 'Issued date',
+        dueAt: 'Due date',
+        totalExactMinor: 'Invoice total (minor units)',
+        expenseTotalExactMinor: 'Invoiced expense lines (minor units)',
+        collectedExactMinor: 'Collected payments (minor units)',
+      },
+      numericColumns: ['total', 'expenseLineCount', 'expenseTotal', 'collected'],
+      dateColumns: ['periodStart', 'periodEnd'],
+      moneyColumns: ['total', 'expenseTotal', 'collected'],
+    },
+    {
+      name: labels.invoiceExpenseSheet,
+      rows: projectFinanceInvoiceExpenseRows(snapshot.invoiceExpenseLines ?? [], locale),
+      columns: [
+        'invoiceNumber',
+        'invoiceId',
+        'invoiceState',
+        'expenseId',
+        'description',
+        'currency',
+        'amount',
+        'amountExactMinor',
+      ],
+      headerLabels: {
+        invoiceNumber: 'Invoice number',
+        invoiceId: 'Invoice ID',
+        invoiceState: 'Invoice status',
+        expenseId: 'Source expense ID',
+        description: 'Line charged to client',
+        currency: 'Invoice currency',
+        amount: 'Expense amount on invoice',
+        amountExactMinor: 'Invoiced expense (minor units)',
+      },
+      numericColumns: ['amount'],
+      moneyColumns: ['amount'],
+    },
+    {
+      name: labels.milestoneSheet,
+      rows: projectFinanceMilestoneRows(snapshot.milestones ?? [], currency, locale),
+      columns: ['name', 'dueOn', 'state', 'amount', 'amountExactMinor'],
+      headerLabels: {
+        name: 'Milestone',
+        dueOn: 'Due date',
+        state: 'Approval status',
+        amount: 'Milestone amount to charge client',
+        amountExactMinor: 'Milestone amount (minor units)',
+      },
+      numericColumns: ['amount'],
+      dateColumns: ['dueOn'],
+      moneyColumns: ['amount'],
+    },
+    {
+      name: labels.alertSheet,
+      rows: projectFinanceAlertRows(finance),
+      columns: ['code', 'sourceId'],
+      headerLabels: { code: 'Finance alert code', sourceId: 'Affected record ID' },
+    },
+  ]);
+}
+
+type ProjectFinanceCopy = Readonly<{
+  summarySheet: string;
+  laborSheet: string;
+  expenseSheet: string;
+  unbilledSheet: string;
+  minimumSheet: string;
+  invoiceSheet: string;
+  invoiceExpenseSheet: string;
+  milestoneSheet: string;
+  alertSheet: string;
+  project: string;
+  economics: string;
+  collections: string;
+  forecast: string;
+}>;
+
+function projectFinanceCopy(locale: ReportLocale): ProjectFinanceCopy {
+  if (locale === 'es')
+    return {
+      summarySheet: 'Resumen',
+      laborSheet: 'Mano de obra',
+      expenseSheet: 'Gastos',
+      unbilledSheet: 'WIP no facturado',
+      minimumSheet: 'Minimo diario',
+      invoiceSheet: 'Facturas',
+      invoiceExpenseSheet: 'Gastos facturados',
+      milestoneSheet: 'Hitos',
+      alertSheet: 'Alertas',
+      project: 'Proyecto',
+      economics: 'Economia del proyecto',
+      collections: 'Facturacion y cobro',
+      forecast: 'Prevision',
+    };
+  if (locale === 'pt')
+    return {
+      summarySheet: 'Resumo',
+      laborSheet: 'Mao de obra',
+      expenseSheet: 'Despesas',
+      unbilledSheet: 'WIP nao faturado',
+      minimumSheet: 'Minimo diario',
+      invoiceSheet: 'Faturas',
+      invoiceExpenseSheet: 'Despesas faturadas',
+      milestoneSheet: 'Marcos',
+      alertSheet: 'Alertas',
+      project: 'Projeto',
+      economics: 'Economia do projeto',
+      collections: 'Faturamento e cobranca',
+      forecast: 'Previsao',
+    };
+  return {
+    summarySheet: 'Summary',
+    laborSheet: 'Labor',
+    expenseSheet: 'Expenses',
+    unbilledSheet: 'Unbilled WIP',
+    minimumSheet: 'Daily minimum',
+    invoiceSheet: 'Invoices',
+    invoiceExpenseSheet: 'Invoice expenses',
+    milestoneSheet: 'Milestones',
+    alertSheet: 'Alerts',
+    project: 'Project',
+    economics: 'Project economics',
+    collections: 'Billing and collections',
+    forecast: 'Forecast',
+  };
+}
+
+function minutesAsHours(value: unknown): string {
+  const minutes = Number(value);
+  if (!Number.isInteger(minutes)) return '';
+  const sign = minutes < 0 ? '-' : '';
+  const absolute = Math.abs(minutes);
+  const hours = Math.trunc(absolute / 60);
+  const remainder = absolute % 60;
+  const hundredths = Math.round((remainder * 100) / 60);
+  if (hundredths === 100) return `${sign}${hours + 1}.00`;
+  return `${sign}${hours}.${String(hundredths).padStart(2, '0')}`;
+}
+
+function formatBpsExact(value: unknown): string {
+  try {
+    const amount = BigInt(String(value ?? ''));
+    const negative = amount < 0n;
+    const absolute = negative ? -amount : amount;
+    const whole = absolute / 100n;
+    const fraction = absolute % 100n;
+    return `${negative ? '-' : ''}${whole.toString()}.${fraction.toString().padStart(2, '0')}%`;
+  } catch {
+    return '';
+  }
+}
+
+function summaryRow(section: string, metric: string, displayValue: Cell): Row {
+  return {
+    section,
+    metric,
+    displayValue,
+    amount: '',
+    hours: '',
+    percentage: '',
+    exactMinorUnits: '',
+  };
+}
+
+function summaryMoneyRow(
+  section: string,
+  metric: string,
+  currency: string,
+  locale: ReportLocale,
+  exactMinor: string,
+): Row {
+  return {
+    section,
+    metric,
+    displayValue: exactMinor === '' ? '' : exactMoneyText(currency, exactMinor, locale),
+    amount: majorAmountCell(currency, exactMinor, locale),
+    hours: '',
+    percentage: '',
+    exactMinorUnits: exactMinor,
+  };
+}
+
+function summaryHoursRow(section: string, metric: string, minutes: unknown): Row {
+  return {
+    section,
+    metric,
+    displayValue: minutesAsHours(minutes),
+    amount: '',
+    hours: minutesAsHours(minutes),
+    percentage: '',
+    exactMinorUnits: '',
+  };
+}
+
+function summaryPercentageRow(section: string, metric: string, bps: unknown): Row {
+  const valid =
+    (typeof bps === 'string' && /^-?\d+$/u.test(bps)) ||
+    (typeof bps === 'number' && Number.isSafeInteger(bps)) ||
+    typeof bps === 'bigint';
+  const formatted = valid ? formatBpsExact(bps) : '';
+  return {
+    section,
+    metric,
+    displayValue: formatted,
+    amount: '',
+    hours: '',
+    percentage: valid && Number.isFinite(Number(bps)) ? String(Number(bps) / 100) : '',
+    exactMinorUnits: '',
+  };
+}
+
+function projectFinanceSummaryRows(
+  project: Readonly<Record<string, Cell>>,
+  finance: Readonly<Record<string, unknown>>,
+  currency: string,
+  locale: ReportLocale,
+  labels: ProjectFinanceCopy,
+): readonly Row[] {
+  const money = (key: string): string => {
+    const exact = finance[key] == null ? '' : String(finance[key]);
+    return exact;
+  };
+  const text = (key: string): string => (finance[key] == null ? '' : String(finance[key]));
+  const laborRevenue = money('laborRevenueMinor');
+  const expenseRevenue = money('expenseRevenueMinor');
+  const milestoneRevenue = money('milestoneRevenueMinor');
+  const revenue = money('revenueCandidateMinor');
+  const laborCost = money('directLaborCostMinor');
+  const travelCost = money('travelCostMinor');
+  const otherCost = money('otherDirectCostMinor');
+  const directCost = money('approvedCostMinor');
+  const compensation = money('workerCompensationMinor');
+  const contribution = money('contributionMarginMinor');
+  const invoiced = money('invoicedMinor');
+  const invoicedGross = money('invoicedGrossMinor');
+  const collected = money('paidMinor');
+  const receivable = money('receivableMinor');
+  const unbilled = money('approvedUnbilledWipMinor');
+  const unapproved = money('unapprovedWipMinor');
+  const budget = money('budgetMinor');
+  const remaining = money('remainingCapMinor');
+  const travelBudget = money('travelBudgetMinor');
+  const expenseBudget = money('expenseBudgetMinor');
+  const etc = money('estimateToCompleteMinor');
+  const eacCost = money('estimateAtCompletionCostMinor');
+  const eacRevenue = money('estimateAtCompletionRevenueMinor');
+  const finalMargin = money('expectedFinalMarginMinor');
+  return [
+    summaryRow(labels.project, 'Project number', project.project_number ?? ''),
+    summaryRow(labels.project, 'Project name', project.project_name ?? ''),
+    summaryRow(labels.project, 'Client number', project.client_number ?? ''),
+    summaryRow(labels.project, 'Client name', project.client_name ?? ''),
+    summaryRow(labels.project, 'Currency', currency),
+    summaryRow(labels.project, 'Period start', project.period_start ?? ''),
+    summaryRow(labels.project, 'Period end', project.period_end ?? ''),
+    summaryRow(labels.project, 'Billing model', text('billingModel')),
+    summaryRow(labels.project, 'Projection state', text('state')),
+    summaryMoneyRow(
+      labels.economics,
+      'Potential labor charges to client',
+      currency,
+      locale,
+      laborRevenue,
+    ),
+    summaryMoneyRow(
+      labels.economics,
+      'Finance-approved expense charges to client',
+      currency,
+      locale,
+      expenseRevenue,
+    ),
+    summaryMoneyRow(
+      labels.economics,
+      'Approved milestone charges to client',
+      currency,
+      locale,
+      milestoneRevenue,
+    ),
+    summaryMoneyRow(
+      labels.economics,
+      'Potential total charges to client',
+      currency,
+      locale,
+      revenue,
+    ),
+    summaryMoneyRow(labels.economics, 'Internal labor cost', currency, locale, laborCost),
+    summaryMoneyRow(labels.economics, 'Travel cost', currency, locale, travelCost),
+    summaryMoneyRow(labels.economics, 'Other direct cost', currency, locale, otherCost),
+    summaryMoneyRow(labels.economics, 'Approved direct company cost', currency, locale, directCost),
+    summaryMoneyRow(labels.economics, 'Worker compensation', currency, locale, compensation),
+    summaryMoneyRow(labels.economics, 'Contribution', currency, locale, contribution),
+    summaryPercentageRow(labels.economics, 'Contribution margin', finance.contributionMarginBps),
+    summaryHoursRow(labels.economics, 'Actual hours', finance.actualMinutes),
+    summaryHoursRow(labels.economics, 'Approved hours', finance.approvedMinutes),
+    summaryHoursRow(labels.economics, 'Billable hours', finance.billableMinutes),
+    summaryMoneyRow(
+      labels.collections,
+      'Invoiced to client before tax',
+      currency,
+      locale,
+      invoiced,
+    ),
+    summaryMoneyRow(
+      labels.collections,
+      'Invoiced to client including tax',
+      currency,
+      locale,
+      invoicedGross,
+    ),
+    summaryMoneyRow(
+      labels.collections,
+      'Payments collected from client',
+      currency,
+      locale,
+      collected,
+    ),
+    summaryMoneyRow(labels.collections, 'Outstanding client balance', currency, locale, receivable),
+    summaryMoneyRow(
+      labels.collections,
+      'Approved charges not yet invoiced',
+      currency,
+      locale,
+      unbilled,
+    ),
+    summaryMoneyRow(
+      labels.collections,
+      'Potential charges awaiting approval',
+      currency,
+      locale,
+      unapproved,
+    ),
+    summaryMoneyRow(labels.forecast, 'Budget', currency, locale, budget),
+    summaryMoneyRow(labels.forecast, 'Remaining cap', currency, locale, remaining),
+    summaryPercentageRow(labels.forecast, 'Budget consumed', finance.budgetConsumedBps),
+    summaryMoneyRow(labels.forecast, 'Travel budget', currency, locale, travelBudget),
+    summaryMoneyRow(labels.forecast, 'Expense budget', currency, locale, expenseBudget),
+    summaryPercentageRow(
+      labels.forecast,
+      'Expense budget consumed',
+      finance.expenseBudgetConsumedBps,
+    ),
+    summaryMoneyRow(labels.forecast, 'Estimate to complete', currency, locale, etc),
+    summaryMoneyRow(labels.forecast, 'Estimate at completion cost', currency, locale, eacCost),
+    summaryMoneyRow(
+      labels.forecast,
+      'Estimate at completion revenue',
+      currency,
+      locale,
+      eacRevenue,
+    ),
+    summaryMoneyRow(labels.forecast, 'Expected final margin', currency, locale, finalMargin),
+    summaryRow(labels.forecast, 'Forecast basis', text('forecastBasis')),
+    summaryRow(
+      'How to read this file',
+      'Amount entered from receipt',
+      'The source expense amount, even when approval, reimbursement or client billing is not configured.',
+    ),
+    summaryRow(
+      'How to read this file',
+      'Calculated worker reimbursement',
+      'Blank until a reimbursement amount is configured; it is not proof of payment.',
+    ),
+    summaryRow(
+      'How to read this file',
+      'Amount actually reimbursed',
+      'Shown only when the reimbursement is marked reimbursed.',
+    ),
+    summaryRow(
+      'How to read this file',
+      'Potential client charge',
+      'An estimate from the rate or billing rule; check Invoices and Invoice expenses for amounts actually placed on an invoice.',
+    ),
+    summaryRow(
+      'How to read this file',
+      'Zero versus blank',
+      'Zero is a calculated value. Blank means the amount is not configured or not yet available.',
+    ),
+  ];
+}
+
+function projectFinanceLaborRows(
+  rows: readonly Record<string, unknown>[],
+  currency: string,
+  locale: ReportLocale,
+): readonly Row[] {
+  return rows.map((row) => ({
+    worker: String(row.workerName ?? row.worker_name ?? ''),
+    date: String(row.workDate ?? row.work_date ?? ''),
+    category: String(row.category ?? ''),
+    actualHours: minutesAsHours(row.actualMinutes ?? row.actual_minutes ?? row.minutes),
+    actualMinutes:
+      row.actualMinutes == null && row.actual_minutes == null && row.minutes == null
+        ? ''
+        : String(row.actualMinutes ?? row.actual_minutes ?? row.minutes),
+    billableHours: minutesAsHours(row.clientBillableMinutes ?? row.client_billable_minutes),
+    billableMinutes:
+      row.clientBillableMinutes == null && row.client_billable_minutes == null
+        ? ''
+        : String(row.clientBillableMinutes ?? row.client_billable_minutes),
+    clientRevenue: majorAmountCell(
+      currency,
+      row.clientRevenueMinor ?? row.client_revenue_minor,
+      locale,
+    ),
+    internalCost: majorAmountCell(
+      currency,
+      row.internalCostMinor ?? row.internal_cost_minor,
+      locale,
+    ),
+    workerCompensation: majorAmountCell(
+      currency,
+      row.workerCompensationMinor ?? row.worker_compensation_minor,
+      locale,
+    ),
+    billability: String(row.billabilityState ?? row.billability_state ?? ''),
+    approval: translateReportStatus(row.approvalState ?? row.approval_state, locale),
+    billingStatus: String(row.billingStatus ?? row.billing_status ?? ''),
+    invoiceId: String(row.invoiceId ?? row.invoice_id ?? ''),
+    clientRevenueExactMinor: String(row.clientRevenueMinor ?? row.client_revenue_minor ?? ''),
+    internalCostExactMinor: String(row.internalCostMinor ?? row.internal_cost_minor ?? ''),
+    workerCompensationExactMinor: String(
+      row.workerCompensationMinor ?? row.worker_compensation_minor ?? '',
+    ),
+  }));
+}
+
+function projectFinanceExpenseRows(
+  rows: readonly Record<string, unknown>[],
+  currency: string,
+  locale: ReportLocale,
+): readonly Row[] {
+  return rows.map((row) => ({
+    expenseId: String(row.id ?? ''),
+    worker: String(row.workerName ?? row.worker_name ?? ''),
+    date: String(row.spentOn ?? row.spent_on ?? ''),
+    category: String(row.category ?? ''),
+    description: String(row.description ?? ''),
+    paidBy: String(row.paidBy ?? ''),
+    recordedCurrency: String(row.recordedCurrency ?? ''),
+    recordedAmount: majorAmountCell(
+      String(row.recordedCurrency ?? currency),
+      row.recordedAmountMinor,
+      locale,
+    ),
+    reimbursementAmount: majorAmountCell(
+      String(row.recordedCurrency ?? currency),
+      row.reimbursementAmountMinor,
+      locale,
+    ),
+    reimbursedAmount: majorAmountCell(
+      String(row.recordedCurrency ?? currency),
+      row.reimbursedAmountMinor,
+      locale,
+    ),
+    reimbursementState: String(row.reimbursementState ?? ''),
+    treatment: String(row.treatment ?? ''),
+    classification: String(row.classificationState ?? ''),
+    cost: majorAmountCell(currency, row.costMinor, locale),
+    actualCost: majorAmountCell(currency, row.actualCostMinor, locale),
+    revenue: majorAmountCell(currency, row.revenueMinor, locale),
+    pendingFinanceRevenue: majorAmountCell(
+      currency,
+      row.pendingFinanceRevenueMinor ?? row.pendingApprovalRevenueMinor,
+      locale,
+    ),
+    approval: translateReportStatus(row.approvalState, locale),
+    financeApproval: String(row.financeApprovalState ?? ''),
+    projection: String(row.financeProjectionState ?? ''),
+    invoiceId: String(row.invoiceId ?? ''),
+    recordedAmountExactMinor: String(row.recordedAmountMinor ?? ''),
+    reimbursementAmountExactMinor: String(row.reimbursementAmountMinor ?? ''),
+    reimbursedAmountExactMinor: String(row.reimbursedAmountMinor ?? ''),
+    costExactMinor: String(row.costMinor ?? ''),
+    actualCostExactMinor: String(row.actualCostMinor ?? ''),
+    revenueExactMinor: String(row.revenueMinor ?? ''),
+    pendingFinanceRevenueExactMinor: String(
+      row.pendingFinanceRevenueMinor ?? row.pendingApprovalRevenueMinor ?? '',
+    ),
+  }));
+}
+
+function projectFinanceUnbilledRows(
+  sources: unknown,
+  currency: string,
+  locale: ReportLocale,
+): readonly Row[] {
+  if (!Array.isArray(sources)) return [];
+  return sources.map((item) => {
+    const row = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      sourceType: String(row.sourceType ?? ''),
+      sourceId: String(row.sourceId ?? ''),
+      date: String(row.workDate ?? row.spentOn ?? row.dueOn ?? ''),
+      workerId: String(row.workerId ?? ''),
+      amount: majorAmountCell(currency, row.amountMinor, locale),
+      amountExactMinor: String(row.amountMinor ?? ''),
+    };
+  });
+}
+
+function projectFinanceMinimumRows(
+  sources: unknown,
+  currency: string,
+  locale: ReportLocale,
+): readonly Row[] {
+  if (!Array.isArray(sources)) return [];
+  return sources.map((item) => {
+    const row = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      workerId: String(row.workerId ?? ''),
+      date: String(row.workDate ?? ''),
+      adjustmentHours: minutesAsHours(row.adjustmentMinutes),
+      adjustmentMinutes: row.adjustmentMinutes == null ? '' : String(row.adjustmentMinutes),
+      revenue: majorAmountCell(currency, row.revenueMinor, locale),
+      revenueExactMinor: String(row.revenueMinor ?? ''),
+    };
+  });
+}
+
+function projectFinanceInvoiceRows(
+  rows: readonly Record<string, unknown>[],
+  expenseLines: readonly Record<string, unknown>[],
+  locale: ReportLocale,
+): readonly Row[] {
+  return rows.map((row) => {
+    const currency = String(row.currency ?? '');
+    const total = row.total_minor ?? row.totalMinor ?? '';
+    const collected = row.paid_minor ?? row.paidMinor ?? '';
+    const invoiceId = String(row.id ?? row.invoiceId ?? '');
+    const expenses = expenseLines.filter(
+      (line) => String(line.invoice_id ?? line.invoiceId ?? '') === invoiceId,
+    );
+    const expenseTotal = expenses
+      .reduce((sum, line) => sum + BigInt(String(line.amount_minor ?? line.amountMinor ?? '0')), 0n)
+      .toString();
+    return {
+      invoiceNumber: String(row.invoice_number ?? row.invoiceNumber ?? ''),
+      stream: String(row.stream_type ?? row.streamType ?? ''),
+      state: translateReportStatus(row.state, locale),
+      periodStart: String(row.period_start ?? row.periodStart ?? ''),
+      periodEnd: String(row.period_end ?? row.periodEnd ?? ''),
+      currency,
+      total: majorAmountCell(currency, total, locale),
+      expenseLineCount: String(expenses.length),
+      expenseTotal: majorAmountCell(currency, expenseTotal, locale),
+      collected: majorAmountCell(currency, collected, locale),
+      issuedAt: String(row.issued_at ?? row.issuedAt ?? ''),
+      dueAt: String(row.due_at ?? row.dueAt ?? ''),
+      totalExactMinor: String(total ?? ''),
+      expenseTotalExactMinor: expenseTotal,
+      collectedExactMinor: String(collected ?? ''),
+    };
+  });
+}
+
+function projectFinanceInvoiceExpenseRows(
+  lines: readonly Record<string, unknown>[],
+  locale: ReportLocale,
+): readonly Row[] {
+  return lines.map((line) => {
+    const currency = String(line.currency ?? '');
+    const amount = String(line.amount_minor ?? line.amountMinor ?? '0');
+    return {
+      invoiceNumber: String(line.invoice_number ?? line.invoiceNumber ?? ''),
+      invoiceId: String(line.invoice_id ?? line.invoiceId ?? ''),
+      invoiceState: translateReportStatus(line.invoice_state ?? line.invoiceState, locale),
+      expenseId: String(line.expense_id ?? line.expenseId ?? ''),
+      description: String(line.description ?? ''),
+      currency,
+      amount: majorAmountCell(currency, amount, locale),
+      amountExactMinor: amount,
+    };
+  });
+}
+
+function projectFinanceMilestoneRows(
+  rows: readonly Record<string, unknown>[],
+  fallbackCurrency: string,
+  locale: ReportLocale,
+): readonly Row[] {
+  return rows.map((row) => {
+    const currency = String(row.currency ?? fallbackCurrency);
+    const amount = row.amount_minor ?? row.amountMinor ?? '';
+    return {
+      name: String(row.name ?? ''),
+      dueOn: String(row.due_on ?? row.dueOn ?? ''),
+      state: translateReportStatus(row.approval_state ?? row.approvalState, locale),
+      amount: majorAmountCell(currency, amount, locale),
+      amountExactMinor: String(amount ?? ''),
+    };
+  });
+}
+
+function projectFinanceAlertRows(finance: Readonly<Record<string, unknown>>): readonly Row[] {
+  const alerts = Array.isArray(finance.alerts)
+    ? finance.alerts.map((code) => ({ code: String(code), sourceId: '' }))
+    : [];
+  const reasons = Array.isArray(finance.reasons)
+    ? finance.reasons.map((item) => {
+        const row = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+        return { code: String(row.code ?? ''), sourceId: String(row.sourceId ?? '') };
+      })
+    : [];
+  return [...alerts, ...reasons];
+}
+
+export type WorkerStatementSnapshot = Readonly<{
+  locale?: ReportLocale | string;
+  worker: Readonly<{ id: string; name: string }>;
+  periodStart: string;
+  periodEnd: string;
+  currency: string;
+  approvedMinutes: number;
+  pendingMinutes: number;
+  estimatedApprovedMinor: string;
+  estimatedPendingMinor: string;
+  approvedReimbursementMinor: string;
+  pendingReimbursementMinor: string;
+  currencyBreakdown?: readonly Readonly<{
+    currency: string;
+    estimatedApprovedMinor: string;
+    estimatedPendingMinor: string;
+    approvedReimbursementMinor: string;
+    pendingReimbursementMinor: string;
+  }>[];
+  missingCompensationRules: number;
+  activities: readonly Readonly<{
+    id: string;
+    projectNumber: string;
+    projectName: string;
+    date: string;
+    category: string;
+    activitySummary: string;
+    actualMinutes: number;
+    startTime?: string;
+    endTime?: string;
+    breakMinutes?: number;
+    approvalState: string;
+  }>[];
+  settlements: readonly Readonly<{
+    id: string;
+    projectNumber: string;
+    projectName: string;
+    periodStart: string;
+    periodEnd: string;
+    amountMinor: string;
+    currency: string;
+    state: string;
+    paymentState?: string;
+    paidAmountMinor?: string;
+    remainingAmountMinor?: string;
+    actualPaymentOn?: string | null;
+    expectedPaymentOn?: string | null;
+    settledAt?: string | null;
+  }>[];
+  expenses: readonly Readonly<{
+    id: string;
+    projectNumber: string;
+    spentOn: string;
+    vendor: string;
+    category: string;
+    reimbursementAmountMinor: string;
+    currency: string;
+    approvalState: string;
+    reimbursementState: string;
+    expectedReimbursementOn?: string | null;
+    reimbursedAt?: string | null;
+    /** Legacy aliases accepted when rendering historical worker statements. */
+    date?: string | null;
+    project?: string | null;
+    status?: string | null;
+    amountMinor?: string | null;
+  }>[];
+}>;
+
+const workerStatementColumns = [
+  'recordType',
+  'recordId',
+  'workerId',
+  'workerName',
+  'periodStart',
+  'periodEnd',
+  'projectNumber',
+  'projectName',
+  'date',
+  'vendor',
+  'category',
+  'activitySummary',
+  'currency',
+  'amountMeaning',
+  'amount',
+  'amountMinor',
+  'actualHours',
+  'actualMinutes',
+  'approvedHours',
+  'approvedMinutes',
+  'pendingHours',
+  'pendingMinutes',
+  'approvalState',
+  'paymentStatus',
+  'expectedPaymentOn',
+  'settledAt',
+  'actualPaymentOn',
+  'paidAmountMinor',
+  'remainingAmountMinor',
+  'expectedReimbursementOn',
+  'reimbursedAt',
+] as const;
+
+function workerActivityCompensation(snapshot: WorkerStatementSnapshot): bigint[] {
+  // A mixed-currency estimate cannot be allocated to time entries without
+  // inventing an exchange rate or an activity-level compensation basis.
+  if (snapshot.currency === 'MULTI') return snapshot.activities.map(() => 0n);
+  const approvedIndexes: number[] = [];
+  const pendingIndexes: number[] = [];
+  snapshot.activities.forEach((activity, index) => {
+    if (isApprovedRecordState(activity.approvalState)) approvedIndexes.push(index);
+    else pendingIndexes.push(index);
+  });
+  const amounts = snapshot.activities.map(() => 0n);
+  const assign = (indexes: readonly number[], totalMinor: string) => {
+    const shares = allocateMinorAcrossMinutes(
+      indexes.map((index) => snapshot.activities[index]?.actualMinutes ?? 0),
+      totalMinor,
+    );
+    shares.forEach((share, shareIndex) => {
+      const activityIndex = indexes[shareIndex];
+      if (activityIndex === undefined) return;
+      amounts[activityIndex] = share;
+    });
+  };
+  assign(approvedIndexes, snapshot.estimatedApprovedMinor);
+  assign(pendingIndexes, snapshot.estimatedPendingMinor);
+  return amounts;
+}
+
+function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] {
+  const activityCompensation = workerActivityCompensation(snapshot);
+  const mixed = snapshot.currency === 'MULTI';
+  const summaries = snapshot.currencyBreakdown ?? [snapshot];
+  const rows: Row[] = [
+    ...summaries.map((amount) => ({
+      recordType: 'compensation_summary',
+      recordId: `${snapshot.worker.id}:${snapshot.periodStart}:${snapshot.periodEnd}${mixed ? `:${amount.currency}` : ''}`,
+      workerId: snapshot.worker.id,
+      workerName: snapshot.worker.name,
+      periodStart: snapshot.periodStart,
+      periodEnd: snapshot.periodEnd,
+      currency: amount.currency,
+      amountMinor: amount.estimatedApprovedMinor,
+      approvedMinutes: snapshot.approvedMinutes,
+      pendingMinutes: snapshot.pendingMinutes,
+      approvalState: snapshot.missingCompensationRules === 0 ? 'complete' : 'incomplete',
+      paymentStatus: 'estimated_approved',
+    })),
+    ...summaries.map((amount) => ({
+      recordType: 'pending_compensation',
+      recordId: `${snapshot.worker.id}:${snapshot.periodStart}:${snapshot.periodEnd}${mixed ? `:${amount.currency}` : ''}:pending`,
+      workerId: snapshot.worker.id,
+      workerName: snapshot.worker.name,
+      periodStart: snapshot.periodStart,
+      periodEnd: snapshot.periodEnd,
+      currency: amount.currency,
+      amountMinor: amount.estimatedPendingMinor,
+      approvedMinutes: snapshot.approvedMinutes,
+      pendingMinutes: snapshot.pendingMinutes,
+      approvalState: 'pending',
+      paymentStatus: 'estimated_pending',
+    })),
+    ...snapshot.activities.map((activity, index) => ({
+      recordType: 'time_activity',
+      recordId: activity.id,
+      workerId: snapshot.worker.id,
+      workerName: snapshot.worker.name,
+      periodStart: snapshot.periodStart,
+      periodEnd: snapshot.periodEnd,
+      projectNumber: activity.projectNumber,
+      projectName: activity.projectName,
+      date: activity.date,
+      category: activity.category,
+      activitySummary: activity.activitySummary,
+      actualMinutes: activity.actualMinutes,
+      startTime: activity.startTime ?? '',
+      endTime: activity.endTime ?? '',
+      breakMinutes: activity.breakMinutes ?? '',
+      approvalState: activity.approvalState,
+      currency: mixed ? '' : snapshot.currency,
+      amountMinor: mixed ? '' : (activityCompensation[index] ?? 0n).toString(),
+    })),
+    ...snapshot.settlements.map((settlement) => ({
+      recordType: 'compensation_settlement',
+      recordId: settlement.id,
+      workerId: snapshot.worker.id,
+      workerName: snapshot.worker.name,
+      periodStart: settlement.periodStart,
+      periodEnd: settlement.periodEnd,
+      projectNumber: settlement.projectNumber,
+      projectName: settlement.projectName,
+      currency: settlement.currency,
+      amountMinor: settlement.amountMinor,
+      paymentStatus: settlement.paymentState ?? settlement.state,
+      expectedPaymentOn: settlement.expectedPaymentOn ?? '',
+      settledAt: settlement.settledAt ?? '',
+      actualPaymentOn: settlement.actualPaymentOn ?? '',
+      paidAmountMinor: settlement.paidAmountMinor ?? '',
+      remainingAmountMinor: settlement.remainingAmountMinor ?? '',
+    })),
+    ...snapshot.expenses.map((expense) => ({
+      recordType: 'reimbursable_expense',
+      recordId: expense.id,
+      workerId: snapshot.worker.id,
+      workerName: snapshot.worker.name,
+      periodStart: snapshot.periodStart,
+      periodEnd: snapshot.periodEnd,
+      projectNumber: expense.projectNumber,
+      date: expense.spentOn,
+      vendor: expense.vendor,
+      category: expense.category,
+      currency: expense.currency,
+      amountMinor: expense.reimbursementAmountMinor,
+      approvalState: expense.approvalState,
+      paymentStatus: expense.reimbursementState,
+      expectedReimbursementOn: expense.expectedReimbursementOn ?? '',
+      reimbursedAt: expense.reimbursedAt ?? '',
+    })),
+  ];
+  const meanings: Record<string, string> = {
+    compensation_summary: 'Estimated approved worker compensation',
+    pending_compensation: 'Estimated compensation awaiting approval',
+    time_activity: 'Allocated estimated worker compensation',
+    compensation_settlement: 'Worker compensation settlement',
+    reimbursable_expense: 'Calculated worker expense reimbursement',
+  };
+  return rows.map((row) => ({
+    ...row,
+    amountMeaning: meanings[String(row.recordType ?? '')] ?? '',
+    amount: majorAmountCell(String(row.currency ?? ''), row.amountMinor, 'en'),
+    actualHours: row.actualMinutes == null ? '' : minutesAsHours(row.actualMinutes),
+    approvedHours: row.approvedMinutes == null ? '' : minutesAsHours(row.approvedMinutes),
+    pendingHours: row.pendingMinutes == null ? '' : minutesAsHours(row.pendingMinutes),
+  }));
+}
+
+export function workerStatementCsv(snapshot: WorkerStatementSnapshot): Uint8Array {
+  const columns = snapshot.activities.some((activity) => actualTimeInterval(activity))
+    ? [...workerStatementColumns, 'startTime', 'endTime', 'breakMinutes']
+    : workerStatementColumns;
+  return new TextEncoder().encode(
+    toCsv(workerStatementRows(snapshot), columns, {
+      numericColumns: [
+        'amountMinor',
+        'amount',
+        'actualHours',
+        'actualMinutes',
+        'approvedHours',
+        'approvedMinutes',
+        'pendingHours',
+        'pendingMinutes',
+        'breakMinutes',
+      ],
+    }),
+  );
+}
+
+export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Array {
+  const locale = normalizeLocale(snapshot.locale);
+  const copy = workerStatementCopy(locale);
+  const common = localizedCopy[locale];
+  const activityCompensation = workerActivityCompensation(snapshot);
+  const mixed = snapshot.currency === 'MULTI';
+  const activityHoursTotal = sumFiniteNumbers(
+    snapshot.activities.map((activity) => activity.actualMinutes),
+  );
+  const activityAmountTotal = activityCompensation.reduce((sum, amount) => sum + amount, 0n);
+  const settlementAmountTotal = mixed
+    ? 0n
+    : sumMinorUnits(snapshot.settlements.map((row) => row.amountMinor));
+  const expenseAmountTotal = mixed
+    ? 0n
+    : sumMinorUnits(snapshot.expenses.map((row) => row.reimbursementAmountMinor));
+  const summary = (snapshot.currencyBreakdown ?? [snapshot])
+    .flatMap((source) => [
+      [copy.approvedCompensation, source.estimatedApprovedMinor, source.currency],
+      [copy.pendingCompensation, source.estimatedPendingMinor, source.currency],
+      [copy.approvedReimbursements, source.approvedReimbursementMinor, source.currency],
+      [copy.pendingReimbursements, source.pendingReimbursementMinor, source.currency],
+    ])
+    .map(
+      ([label, amount, currency]) =>
+        `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${moneyText(currency, amount, locale)}</strong></div>`,
+    )
+    .join('');
+  const activityRows = snapshot.activities.map((row, index) => {
+    const project =
+      [row.projectNumber, row.projectName].filter(Boolean).join(' · ') ||
+      row.projectNumber ||
+      row.projectName ||
+      '—';
+    return [
+      formatReportDate(row.date, locale) || '—',
+      project,
+      translateWorkerStatementCategory(row.category, locale) || '—',
+      activityWithInterval(row.activitySummary ?? '—', row, locale),
+      minutesAsHours(row.actualMinutes) || String(row.actualMinutes ?? '—'),
+      translateReportStatus(row.approvalState, locale) || '—',
+      mixed ? '—' : exactMoneyText(snapshot.currency, activityCompensation[index] ?? 0n, locale),
+    ];
+  });
+  const settlementRows = snapshot.settlements.map((row) => {
+    const project =
+      [row.projectNumber, row.projectName].filter(Boolean).join(' · ') ||
+      row.projectNumber ||
+      row.projectName ||
+      '—';
+    const period =
+      row.periodStart && row.periodEnd
+        ? `${formatReportDate(row.periodStart, locale)} → ${formatReportDate(row.periodEnd, locale)}`
+        : formatReportDate(row.periodStart, locale) ||
+          formatReportDate(row.periodEnd, locale) ||
+          (snapshot.periodStart && snapshot.periodEnd
+            ? `${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`
+            : '—');
+    const currency = row.currency || snapshot.currency || 'USD';
+    return [
+      project,
+      period,
+      translateReportStatus(row.paymentState ?? row.state, locale) || '—',
+      formatReportDate(row.expectedPaymentOn, locale) || '—',
+      formatReportDate(row.actualPaymentOn, locale) || '—',
+      exactMoneyText(currency, row.amountMinor, locale),
+      exactMoneyText(currency, row.paidAmountMinor ?? '0', locale),
+      exactMoneyText(currency, row.remainingAmountMinor ?? row.amountMinor, locale),
+    ];
+  });
+  const expenseRows = snapshot.expenses.map((row) => [
+    formatReportDate(row.spentOn ?? row.date, locale) || '—',
+    row.projectNumber ?? row.project ?? '—',
+    [row.category, row.vendor?.trim()].filter(Boolean).join(' · ') || '—',
+    translateReportStatus(row.reimbursementState ?? row.status, locale) || '—',
+    formatReportDate(row.expectedReimbursementOn, locale) || '—',
+    formatReportDate(row.reimbursedAt, locale) || '—',
+    exactMoneyText(
+      row.currency || snapshot.currency,
+      row.reimbursementAmountMinor ?? row.amountMinor,
+      locale,
+    ),
+  ]);
+  const activityTable = htmlTable(
+    [
+      common.date,
+      common.project,
+      common.type,
+      copy.activity,
+      common.hours,
+      copy.approval,
+      copy.estimatedPay,
+    ],
+    activityRows,
+    copy.noActivity,
+    {
+      amountIndexes: [6],
+      numberIndexes: [4],
+      columnWidths: [11, 21, 10, 28, 6, 11, 13],
+      footer: activityRows.length
+        ? [
+            common.total,
+            '',
+            '',
+            '',
+            minutesAsHours(activityHoursTotal) || String(activityHoursTotal),
+            '',
+            mixed ? '—' : exactMoneyText(snapshot.currency, activityAmountTotal, locale),
+          ]
+        : undefined,
+    },
+  );
+  const settlementTable = htmlTable(
+    [
+      common.project,
+      copy.period,
+      copy.paymentStatus,
+      copy.expectedPayment,
+      copy.actualPayment,
+      copy.reviewedSettlement,
+      copy.actualPaid,
+      copy.remaining,
+    ],
+    settlementRows,
+    copy.noSettlements,
+    {
+      amountIndexes: [5, 6, 7],
+      columnWidths: [21, 13, 12, 11, 11, 11, 10, 11],
+      footer: settlementRows.length
+        ? [
+            common.total,
+            '',
+            '',
+            '',
+            '',
+            mixed ? '—' : exactMoneyText(snapshot.currency, settlementAmountTotal, locale),
+            '',
+            '',
+          ]
+        : undefined,
+    },
+  );
+  const expenseTable = htmlTable(
+    [
+      common.date,
+      common.project,
+      common.expenseOrVendor,
+      copy.paymentStatus,
+      copy.expectedReimbursement,
+      copy.reimbursed,
+      copy.reimbursementAmount,
+    ],
+    expenseRows,
+    copy.noReimbursableExpenses,
+    {
+      amountIndexes: [6],
+      columnWidths: [11, 20, 24, 12, 12, 10, 11],
+      footer: expenseRows.length
+        ? [
+            common.total,
+            '',
+            '',
+            '',
+            '',
+            '',
+            mixed ? '—' : exactMoneyText(snapshot.currency, expenseAmountTotal, locale),
+          ]
+        : undefined,
+    },
+  );
+  return renderHtmlToPdf(
+    layout(
+      copy.title,
+      `${snapshot.worker.name} · ${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
+      `<section class="grid">${summary}</section><p class="muted">${htmlEscape(common.approvedHours)}: ${htmlEscape(minutesAsHours(snapshot.approvedMinutes) || snapshot.approvedMinutes)} · ${htmlEscape(copy.pendingHours)}: ${htmlEscape(minutesAsHours(snapshot.pendingMinutes) || snapshot.pendingMinutes)}</p><h2>${htmlEscape(copy.ownActivity)}</h2>${activityTable}<h2>${htmlEscape(copy.settlements)}</h2>${settlementTable}<h2>${htmlEscape(copy.ownReimbursableExpenses)}</h2>${expenseTable}`,
+      locale,
+      workerStatementCss,
+      WORKER_STATEMENT_TEMPLATE_VERSION,
+    ),
+  );
+}
+
+export type InvoiceCollectionLedgerRow = Readonly<{
+  invoiceId: string;
+  projectId?: string;
+  clientId?: string;
+  expectedCollectionDate?: string | null;
+  balanceAsOf?: string;
+  daysOverdue?: number | null;
+  agingBucket?: string;
+  invoiceNumber?: string | null;
+  clientNumber: string;
+  clientName: string;
+  projectNumber: string;
+  projectName: string;
+  issueDate?: string | null;
+  dueDate?: string | null;
+  currency: string;
+  subtotalMinor: string;
+  taxMinor: string;
+  totalMinor: string;
+  grossPaymentsMinor: string;
+  paymentReversalsMinor: string;
+  netCollectedMinor: string;
+  collectedMinor: string;
+  outstandingMinor: string;
+  directCostKnownMinor: string;
+  directCostMinor?: string | null;
+  directCostComplete: boolean;
+  directCostMissingSourceIds: readonly string[];
+  contributionMinor?: string | null;
+  contributionMarginBps?: string | null;
+  paymentStatus: string;
+  billingStatus: string;
+  payments: readonly Readonly<Record<string, unknown>>[];
+  paymentReversals: readonly Readonly<Record<string, unknown>>[];
+}>;
+
+const ledgerText = (row: InvoiceCollectionLedgerRow, ...keys: string[]): string => {
+  const source = row as unknown as Record<string, unknown>;
+  for (const key of keys) {
+    const value = source[key];
+    if (value === null || value === undefined || typeof value === 'object') continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return '';
+};
+
+const invoiceCollectionRows = (rows: readonly InvoiceCollectionLedgerRow[]): readonly Row[] =>
+  rows.map((row) => {
+    const currency = ledgerText(row, 'currency') || String(row.currency ?? '');
+    const totalMinor = ledgerText(row, 'totalMinor', 'total_minor') || row.totalMinor;
+    const collectedMinor =
+      ledgerText(row, 'collectedMinor', 'collected_minor') || row.collectedMinor;
+    const outstandingMinor =
+      ledgerText(row, 'outstandingMinor', 'outstanding_minor') || row.outstandingMinor;
+    return {
+      invoiceId: ledgerText(row, 'invoiceId', 'invoice_id') || row.invoiceId,
+      invoiceNumber:
+        ledgerText(row, 'invoiceNumber', 'invoice_number') || String(row.invoiceNumber ?? ''),
+      clientNumber: ledgerText(row, 'clientNumber', 'client_number') || row.clientNumber,
+      clientName: ledgerText(row, 'clientName', 'client_name') || row.clientName,
+      projectNumber: ledgerText(row, 'projectNumber', 'project_number') || row.projectNumber,
+      projectName: ledgerText(row, 'projectName', 'project_name') || row.projectName,
+      issueDate:
+        ledgerText(row, 'issueDate', 'issue_date', 'issuedAt', 'issued_at') ||
+        String(row.issueDate ?? ''),
+      dueDate:
+        ledgerText(row, 'dueDate', 'due_date', 'dueAt', 'due_at') || String(row.dueDate ?? ''),
+      currency,
+      subtotalMinor: ledgerText(row, 'subtotalMinor', 'subtotal_minor') || row.subtotalMinor,
+      taxMinor: ledgerText(row, 'taxMinor', 'tax_minor') || row.taxMinor,
+      totalMinor,
+      grossPaymentsMinor:
+        ledgerText(row, 'grossPaymentsMinor', 'gross_payments_minor') || row.grossPaymentsMinor,
+      paymentReversalsMinor:
+        ledgerText(row, 'paymentReversalsMinor', 'payment_reversals_minor') ||
+        row.paymentReversalsMinor,
+      netCollectedMinor:
+        ledgerText(row, 'netCollectedMinor', 'net_collected_minor') || row.netCollectedMinor,
+      collectedMinor,
+      outstandingMinor,
+      directCostKnownMinor:
+        ledgerText(row, 'directCostKnownMinor', 'direct_cost_known_minor') ||
+        row.directCostKnownMinor,
+      directCostMinor:
+        ledgerText(row, 'directCostMinor', 'direct_cost_minor') ||
+        String(row.directCostMinor ?? ''),
+      directCostComplete: row.directCostComplete,
+      directCostMissingSourceIds: (row.directCostMissingSourceIds ?? []).join(';'),
+      contributionMinor:
+        ledgerText(row, 'contributionMinor', 'contribution_minor') ||
+        String(row.contributionMinor ?? ''),
+      contributionMarginBps:
+        ledgerText(row, 'contributionMarginBps', 'contribution_margin_bps') ||
+        String(row.contributionMarginBps ?? ''),
+      paymentStatus: ledgerText(row, 'paymentStatus', 'payment_status') || row.paymentStatus,
+      billingStatus: ledgerText(row, 'billingStatus', 'billing_status') || row.billingStatus,
+      payments: JSON.stringify(row.payments ?? []),
+      paymentReversals: JSON.stringify(row.paymentReversals ?? []),
+      totalDisplay: exactMoneyText(currency, totalMinor, 'en'),
+      collectedDisplay: exactMoneyText(currency, collectedMinor, 'en'),
+      outstandingDisplay: exactMoneyText(currency, outstandingMinor, 'en'),
+      projectId: ledgerText(row, 'projectId'),
+      clientId: ledgerText(row, 'clientId'),
+      servicePeriodStart: ledgerText(row, 'periodStart'),
+      servicePeriodEnd: ledgerText(row, 'periodEnd'),
+      poNumber: ledgerText(row, 'poNumber'),
+      expectedCollectionDate: ledgerText(row, 'expectedCollectionDate'),
+      balanceAsOf: ledgerText(row, 'balanceAsOf'),
+      daysOverdue: row.daysOverdue ?? '',
+      agingBucket: ledgerText(row, 'agingBucket'),
+    };
+  });
+
+export function invoiceCollectionLedgerCsv(
+  rows: readonly InvoiceCollectionLedgerRow[],
+): Uint8Array {
+  return new TextEncoder().encode(
+    toCsv(invoiceCollectionRows(rows), undefined, {
+      numericColumns: [
+        'subtotalMinor',
+        'taxMinor',
+        'totalMinor',
+        'grossPaymentsMinor',
+        'paymentReversalsMinor',
+        'netCollectedMinor',
+        'collectedMinor',
+        'outstandingMinor',
+        'directCostKnownMinor',
+        'directCostMinor',
+        'contributionMinor',
+        'contributionMarginBps',
+      ],
+    }),
+  );
+}
+
+export function invoiceCollectionLedgerXlsx(
+  rows: readonly InvoiceCollectionLedgerRow[],
+): Uint8Array {
+  const ledgerRows = withAccountingAmounts(
+    invoiceCollectionRows(rows).map((row) => ({
+      ...row,
+      issueDate: String(row.issueDate ?? '').slice(0, 10),
+      dueDate: String(row.dueDate ?? '').slice(0, 10),
+      contributionMarginPercent: /^-?\d+$/u.test(String(row.contributionMarginBps ?? ''))
+        ? String(Number(row.contributionMarginBps) / 100)
+        : '',
+    })),
+    [
+      { amount: 'subtotal', minor: 'subtotalMinor' },
+      { amount: 'tax', minor: 'taxMinor' },
+      { amount: 'total', minor: 'totalMinor' },
+      { amount: 'grossPayments', minor: 'grossPaymentsMinor' },
+      { amount: 'paymentReversalAmount', minor: 'paymentReversalsMinor' },
+      { amount: 'netCollected', minor: 'netCollectedMinor' },
+      { amount: 'collected', minor: 'collectedMinor' },
+      { amount: 'outstanding', minor: 'outstandingMinor' },
+      { amount: 'directCostKnown', minor: 'directCostKnownMinor' },
+      { amount: 'directCost', minor: 'directCostMinor' },
+      { amount: 'contribution', minor: 'contributionMinor' },
+    ],
+  );
+  const payments = withAccountingAmounts(
+    exportRows(
+      rows.flatMap((row) =>
+        (row.payments ?? []).map((payment) => {
+          const paymentTimestamp = String(
+            payment.received_at ?? payment.receivedAt ?? payment.paymentDate ?? '',
+          );
+          return {
+            invoiceId: row.invoiceId,
+            currency: row.currency,
+            ...payment,
+            paymentTimestamp,
+            paymentDate: paymentTimestamp.slice(0, 10),
+          };
+        }),
+      ),
+    ),
+    [
+      { amount: 'grossAmount', minor: 'grossAmountMinor' },
+      { amount: 'reversed', minor: 'reversedMinor' },
+      { amount: 'netAmount', minor: 'netAmountMinor' },
+      { amount: 'amount', minor: 'amountMinor' },
+    ],
+  );
+  const reversals = withAccountingAmounts(
+    exportRows(
+      rows.flatMap((row) =>
+        (row.paymentReversals ?? []).map((reversal) => {
+          const paymentTimestamp = String(
+            reversal.effectiveAt ?? reversal.effective_at ?? reversal.paymentDate ?? '',
+          );
+          return {
+            invoiceId: row.invoiceId,
+            currency: row.currency,
+            ...reversal,
+            paymentTimestamp,
+            paymentDate: paymentTimestamp.slice(0, 10),
+          };
+        }),
+      ),
+    ),
+    [{ amount: 'amount', minor: 'amountMinor' }],
+  );
+  return xlsxFromSheets([
+    {
+      name: 'Invoice collection ledger',
+      rows: ledgerRows,
+      headerLabels: {
+        invoiceNumber: 'Invoice number',
+        clientName: 'Customer',
+        projectNumber: 'Project number',
+        projectName: 'Project name',
+        issueDate: 'Issued date',
+        dueDate: 'Due date',
+        currency: 'Invoice currency',
+        subtotal: 'Amount invoiced before tax',
+        tax: 'Tax invoiced',
+        total: 'Amount invoiced including tax',
+        grossPayments: 'Payments received before reversals',
+        paymentReversalAmount: 'Reversed payments',
+        netCollected: 'Payments retained after reversals',
+        collected: 'Total collected on invoice',
+        outstanding: 'Outstanding client balance',
+        directCostKnown: 'Direct cost with known source amounts',
+        directCost: 'Total direct cost',
+        directCostComplete: 'Direct cost data complete',
+        contribution: 'Invoice contribution after direct cost',
+        contributionMarginPercent: 'Contribution margin percent',
+        paymentStatus: 'Payment status',
+        billingStatus: 'Billing status',
+        subtotalMinor: 'Amount invoiced before tax (minor units)',
+        taxMinor: 'Tax invoiced (minor units)',
+        totalMinor: 'Amount invoiced including tax (minor units)',
+        grossPaymentsMinor: 'Payments received (minor units)',
+        paymentReversalsMinor: 'Reversed payments (minor units)',
+        netCollectedMinor: 'Net payments (minor units)',
+        collectedMinor: 'Total collected (minor units)',
+        outstandingMinor: 'Outstanding balance (minor units)',
+        directCostKnownMinor: 'Known direct cost (minor units)',
+        directCostMinor: 'Direct cost (minor units)',
+        contributionMinor: 'Contribution (minor units)',
+        contributionMarginBps: 'Contribution margin (basis points)',
+      },
+      numericColumns: [
+        'subtotal',
+        'tax',
+        'total',
+        'grossPayments',
+        'paymentReversalAmount',
+        'netCollected',
+        'collected',
+        'outstanding',
+        'directCostKnown',
+        'directCost',
+        'contribution',
+        'contributionMarginPercent',
+      ],
+      moneyColumns: [
+        'subtotal',
+        'tax',
+        'total',
+        'grossPayments',
+        'paymentReversalAmount',
+        'netCollected',
+        'collected',
+        'outstanding',
+        'directCostKnown',
+        'directCost',
+        'contribution',
+      ],
+      dateColumns: ['issueDate', 'dueDate'],
+    },
+    {
+      name: 'Payments',
+      rows: payments,
+      headerLabels: {
+        invoiceId: 'Invoice ID',
+        currency: 'Payment currency',
+        paymentDate: 'Date payment was received',
+        grossAmount: 'Payment received before reversals',
+        reversed: 'Amount reversed',
+        netAmount: 'Payment retained',
+        amount: 'Payment source amount',
+        grossAmountMinor: 'Payment received (minor units)',
+        reversedMinor: 'Reversed amount (minor units)',
+        netAmountMinor: 'Net payment (minor units)',
+        amountMinor: 'Payment source amount (minor units)',
+      },
+      numericColumns: ['grossAmount', 'reversed', 'netAmount', 'amount'],
+      moneyColumns: ['grossAmount', 'reversed', 'netAmount', 'amount'],
+      dateColumns: ['paymentDate', 'paidOn', 'receivedOn'],
+    },
+    {
+      name: 'Reversals',
+      rows: reversals,
+      headerLabels: {
+        invoiceId: 'Invoice ID',
+        currency: 'Payment currency',
+        paymentDate: 'Reversal effective date',
+        amount: 'Amount reversed',
+        amountMinor: 'Reversed amount (minor units)',
+      },
+      numericColumns: ['amount'],
+      moneyColumns: ['amount'],
+      dateColumns: ['paymentDate'],
+    },
+  ]);
+}
+
+export type AccountingPackExportType = 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json';
+
+export type AccountingPackSourceSnapshot = Readonly<{
   periodStart: string;
   periodEnd: string;
   locale?: ReportLocale | string;
+  currency?: string;
   invoiceRegister: readonly Record<string, unknown>[];
   collections: readonly Record<string, unknown>[];
   workerCosts: readonly Record<string, unknown>[];
   expenseRegister: readonly Record<string, unknown>[];
   totals: Record<string, unknown>;
   totalsByCurrency?: readonly Record<string, unknown>[];
+}>;
+
+export type AccountingPackArtifactBuilder = Readonly<{
+  type: AccountingPackExportType;
+  extension: string;
+  build: () => Uint8Array;
+}>;
+
+export type AccountingPackArtifactBuildResult = Readonly<{
+  type: AccountingPackExportType;
+  extension: string;
+  status: 'ready' | 'failed';
+  bytes?: Uint8Array;
+  error?: string;
 }>;
 
 function exportCell(value: unknown): Cell {
@@ -562,12 +2710,7 @@ function exportRows(rows: readonly Record<string, unknown>[]): readonly Row[] {
   );
 }
 
-/** One canonical artifact set for interactive and scheduled Accounting Pack generation. */
-export function accountingPackArtifacts(snapshot: AccountingPackSourceSnapshot): readonly {
-  type: 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json';
-  extension: string;
-  bytes: Uint8Array;
-}[] {
+function normalizeAccountingPackSnapshot(snapshot: AccountingPackSourceSnapshot) {
   const normalized = {
     ...snapshot,
     locale: normalizeReportLocale(snapshot.locale),
@@ -580,21 +2723,136 @@ export function accountingPackArtifacts(snapshot: AccountingPackSourceSnapshot):
     ),
     totalsByCurrency: exportRows(snapshot.totalsByCurrency ?? []),
   };
+  return normalized;
+}
+
+/**
+ * Return lazy format builders for one immutable Accounting Pack snapshot.  Keeping renderers
+ * lazy is important: a missing Chromium executable must not prevent CSV, XLSX, or JSON builders
+ * from being attempted and recorded independently.
+ */
+export function accountingPackArtifactBuilders(
+  snapshot: AccountingPackSourceSnapshot,
+): readonly AccountingPackArtifactBuilder[] {
+  const normalized = normalizeAccountingPackSnapshot(snapshot);
   return [
-    { type: 'pdf', extension: 'pdf', bytes: accountingPackPdf(normalized) },
-    { type: 'xlsx', extension: 'xlsx', bytes: accountingPackXlsx(normalized) },
-    { type: 'invoice_csv', extension: 'csv', bytes: accountingPackCsv(normalized) },
+    {
+      type: 'pdf',
+      extension: 'pdf',
+      build: () => accountingPackPdf(normalized),
+    },
+    {
+      type: 'xlsx',
+      extension: 'xlsx',
+      build: () => accountingPackXlsx(normalized),
+    },
+    {
+      type: 'invoice_csv',
+      extension: 'csv',
+      build: () => accountingPackCsv(normalized),
+    },
     {
       type: 'expense_csv',
       extension: 'csv',
-      bytes: new TextEncoder().encode(toCsv(normalized.expenseRegister)),
+      build: () =>
+        new TextEncoder().encode(
+          toCsv(
+            normalized.expenseRegister,
+            normalized.expenseRegister.length
+              ? undefined
+              : [
+                  'date',
+                  'worker',
+                  'projectNumber',
+                  'vendor',
+                  'category',
+                  'currency',
+                  'projectCurrency',
+                  'amountMinor',
+                  'taxMinor',
+                  'grossMinor',
+                  'projectCurrencyAmountMinor',
+                  'billingAmountMinor',
+                ],
+            {
+              numericColumns: [
+                'version',
+                'amountMinor',
+                'taxMinor',
+                'grossMinor',
+                'projectCurrencyAmountMinor',
+                'billingAmountMinor',
+              ],
+            },
+          ),
+        ),
     },
     {
       type: 'json',
       extension: 'json',
-      bytes: new TextEncoder().encode(JSON.stringify(normalized)),
+      build: () => new TextEncoder().encode(JSON.stringify(normalized)),
     },
   ];
+}
+
+/**
+ * Attempt every Accounting Pack format and retain scoped failure evidence.  Callers that need
+ * the historical all-or-nothing convenience API can use accountingPackArtifacts below; durable
+ * jobs should use this result shape or the lazy builders directly.
+ */
+export function renderAccountingPackArtifacts(
+  snapshot: AccountingPackSourceSnapshot,
+): readonly AccountingPackArtifactBuildResult[] {
+  return accountingPackArtifactBuilders(snapshot).map((builder) => {
+    try {
+      return {
+        type: builder.type,
+        extension: builder.extension,
+        status: 'ready' as const,
+        bytes: builder.build(),
+      };
+    } catch (error) {
+      return {
+        type: builder.type,
+        extension: builder.extension,
+        status: 'failed' as const,
+        error: error instanceof Error ? error.message : 'artifact generation failed',
+      };
+    }
+  });
+}
+
+/** One canonical artifact set for interactive and scheduled Accounting Pack generation. */
+export function accountingPackArtifacts(snapshot: AccountingPackSourceSnapshot): readonly {
+  type: AccountingPackExportType;
+  extension: string;
+  bytes: Uint8Array;
+}[] {
+  const results = renderAccountingPackArtifacts(snapshot);
+  const failures = results
+    .filter((result) => result.status === 'failed')
+    .map((result) => `${result.type}: ${result.error ?? 'artifact generation failed'}`);
+  if (failures.length > 0)
+    throw new Error(`Accounting Pack artifact generation failed: ${failures.join('; ')}`);
+  return results.map((result) => ({
+    type: result.type,
+    extension: result.extension,
+    bytes: result.bytes as Uint8Array,
+  }));
+}
+
+function accountingPackMetricKey(key: string): boolean {
+  const normalized = key.replace(/[_\s]/g, '').toLowerCase();
+  return !/(?:id|ids)$/u.test(normalized) && normalized !== 'locale';
+}
+
+function accountingPackRegisterRows(
+  rows: readonly Record<string, unknown>[] | undefined,
+  columns: readonly { key: string; fallback?: readonly string[] }[],
+): readonly (readonly string[])[] {
+  return (rows ?? []).map((row) =>
+    columns.map((column) => snapshotText(row, column.key, ...(column.fallback ?? []))),
+  );
 }
 
 export function accountingPackPdf(
@@ -602,32 +2860,335 @@ export function accountingPackPdf(
     periodStart: string;
     periodEnd: string;
     locale?: ReportLocale | string;
+    currency?: string;
+    legalEntity?: unknown;
     totals: Row | null;
     totalsByCurrency?: readonly Row[];
+    invoiceRegister?: readonly Record<string, unknown>[];
+    collections?: readonly Record<string, unknown>[];
+    workerCosts?: readonly Record<string, unknown>[];
+    expenseRegister?: readonly Record<string, unknown>[];
   }>,
 ): Uint8Array {
   const locale = normalizeReportLocale(snapshot.locale);
-  const copy = labels[locale];
+  const copy = localizedCopy[locale];
+  const snapshotCurrency = String(snapshot.currency ?? snapshot.totals?.currency ?? 'USD');
+  const legalEntityName =
+    snapshotText(snapshot.legalEntity, 'legalName', 'legal_name', 'code', 'name') ||
+    snapshotText(snapshot.totals, 'legalEntityName', 'legal_entity_name');
   const totals = Object.entries(snapshot.totals ?? {})
+    .filter(([key]) => accountingPackMetricKey(key))
     .map(
       ([key, value]) =>
-        `<div class="metric"><span class="muted">${htmlEscape(key)}</span><strong>${htmlEscape(value)}</strong></div>`,
+        `<div class="metric"><span class="muted">${htmlEscape(translateReportMetric(key, locale))}</span><strong>${metricValue(key, value, snapshotCurrency, locale)}</strong></div>`,
     )
     .join('');
   const byCurrency = (snapshot.totalsByCurrency ?? [])
-    .map(
-      (row) =>
-        `<tr>${Object.values(row)
-          .map((value) => `<td>${htmlEscape(value)}</td>`)
-          .join('')}</tr>`,
-    )
+    .map((row) => {
+      const currency = String(row.currency ?? snapshotCurrency);
+      const metrics = Object.entries(row).filter(([key]) => accountingPackMetricKey(key));
+      const metricRows = metrics.map(([key, value]) => [
+        translateReportMetric(key, locale),
+        metricDisplay(key, value, currency, locale),
+      ]);
+      return `<div class="metric-stack"><h3>${htmlEscape(currency)}</h3>${htmlTable([copy.metric, copy.value], metricRows, copy.noCurrencyBreakdown, { amountIndexes: [1] })}</div>`;
+    })
     .join('');
+  const rowCurrency = (row: Record<string, unknown>): string =>
+    snapshotText(row, 'currency') || snapshotCurrency;
+  const knownMoney = (currency: string, minor: string): string =>
+    minor === '' ? '—' : exactMoneyText(currency, minor, locale);
+  const registerTotal = (
+    rows: readonly Record<string, unknown>[] | undefined,
+    amounts: readonly string[],
+  ): string => {
+    const sources = rows ?? [];
+    const currency = sources[0] ? rowCurrency(sources[0]) : '';
+    if (
+      !currency ||
+      sources.length !== amounts.length ||
+      !sources.every((row) => rowCurrency(row) === currency) ||
+      amounts.some((amount) => amount === '')
+    )
+      return '—';
+    return exactMoneyText(currency, sumMinorUnits(amounts), locale);
+  };
+  const invoiceSource = accountingPackRegisterRows(snapshot.invoiceRegister, [
+    { key: 'invoiceNumber', fallback: ['invoice_number'] },
+    { key: 'client', fallback: ['clientName', 'client_name'] },
+    {
+      key: 'project',
+      fallback: ['projectNumber', 'project_number', 'projectName', 'project_name'],
+    },
+    { key: 'stream', fallback: ['streamType', 'stream_type'] },
+    {
+      key: 'servicePeriod',
+      fallback: ['periodStart', 'period_start', 'issueDate', 'issue_date', 'issuedAt', 'issued_at'],
+    },
+    { key: 'grossMinor', fallback: ['gross_minor', 'totalMinor', 'total_minor', 'netMinor'] },
+  ]);
+  const invoiceRows = invoiceSource.map((row, index) => [
+    row[0] ?? '',
+    row[1] ?? '',
+    row[2] ?? '',
+    row[3] ?? '',
+    row[4] ?? '',
+    knownMoney(rowCurrency(snapshot.invoiceRegister?.[index] ?? {}), row[5] ?? ''),
+  ]);
+  const parseWorkerHours = (rawVal: unknown, sourceUnit: 'minutes' | 'hours'): number => {
+    if (rawVal === undefined || rawVal === null || rawVal === '') return 0;
+    const num = Number(rawVal);
+    if (!Number.isFinite(num)) return 0;
+    return sourceUnit === 'minutes' ? num / 60 : num;
+  };
+
+  const workerHours = (row: Record<string, unknown>): number => {
+    const minutes = snapshotText(
+      row,
+      'actualApprovedMinutes',
+      'actual_approved_minutes',
+      'approvedMinutes',
+      'approved_minutes',
+      'actualMinutes',
+      'actual_minutes',
+      'minutes',
+    );
+    if (minutes !== '') return parseWorkerHours(minutes, 'minutes');
+    return parseWorkerHours(snapshotText(row, 'hours'), 'hours');
+  };
+
+  const workerSource = (snapshot.workerCosts ?? []).map((row) => ({
+    currency: rowCurrency(row),
+    worker: snapshotText(row, 'worker', 'workerName', 'worker_name', 'name'),
+    project: snapshotText(
+      row,
+      'project',
+      'projectNumber',
+      'project_number',
+      'projectName',
+      'project_name',
+    ),
+    hours: workerHours(row),
+    amount: snapshotText(
+      row,
+      'approvedCompensationMinor',
+      'approved_compensation_minor',
+      'compensationMinor',
+      'compensation_minor',
+      'approvedCostMinor',
+      'approved_cost_minor',
+      'amountMinor',
+      'amount_minor',
+      'costMinor',
+      'cost_minor',
+    ),
+  }));
+  const workerRows = workerSource.map((row) => [
+    row.worker,
+    row.project,
+    `${row.hours.toFixed(2)} h`,
+    knownMoney(row.currency, row.amount),
+  ]);
+  const totalWorkerHours = workerSource.reduce((acc, row) => acc + row.hours, 0);
+  const expenseSource = (snapshot.expenseRegister ?? []).map((row) => {
+    const sourceCurrency = snapshotText(row, 'currency') || snapshotCurrency;
+    const projectCurrency =
+      snapshotText(row, 'projectCurrency', 'project_currency') || sourceCurrency;
+    const amountMinor = snapshotText(row, 'amountMinor', 'amount_minor');
+    const taxMinor = snapshotText(row, 'taxMinor', 'tax_minor');
+    let recordedMinor = snapshotText(row, 'grossMinor', 'gross_minor');
+    if (!recordedMinor && amountMinor) {
+      try {
+        recordedMinor = (BigInt(amountMinor) + BigInt(taxMinor || '0')).toString();
+      } catch {
+        recordedMinor = amountMinor;
+      }
+    }
+    return {
+      date: snapshotText(row, 'date', 'spentOn', 'spent_on'),
+      worker: snapshotText(row, 'worker', 'workerName', 'worker_name'),
+      project: snapshotText(row, 'project', 'projectNumber', 'project_number'),
+      expense:
+        [snapshotText(row, 'description', 'category'), snapshotText(row, 'vendor')]
+          .filter(Boolean)
+          .join(' · ') || '—',
+      recordedMinor,
+      companyCostMinor: snapshotText(row, 'companyCostMinor', 'company_cost_minor'),
+      billingAmountMinor: snapshotText(row, 'billingAmountMinor', 'billing_amount_minor'),
+      reimbursementAmountMinor: snapshotText(
+        row,
+        'reimbursementAmountMinor',
+        'reimbursement_amount_minor',
+      ),
+      reimbursedAmountMinor: snapshotText(row, 'reimbursedAmountMinor', 'reimbursed_amount_minor'),
+      sourceCurrency,
+      projectCurrency,
+    };
+  });
+  const expenseMoney = knownMoney;
+  const expenseRows = expenseSource.map((row) => [
+    row.date,
+    row.worker,
+    row.project,
+    row.expense,
+    expenseMoney(row.sourceCurrency, row.recordedMinor),
+    expenseMoney(row.projectCurrency, row.companyCostMinor),
+    expenseMoney(row.projectCurrency, row.billingAmountMinor),
+    `${expenseMoney(row.sourceCurrency, row.reimbursementAmountMinor)} / ${expenseMoney(row.sourceCurrency, row.reimbursedAmountMinor)}`,
+  ]);
+  const expenseTotal = (
+    amountKey:
+      | 'recordedMinor'
+      | 'companyCostMinor'
+      | 'billingAmountMinor'
+      | 'reimbursementAmountMinor'
+      | 'reimbursedAmountMinor',
+    currencyKey: 'sourceCurrency' | 'projectCurrency',
+  ): string => {
+    const currency = expenseSource[0]?.[currencyKey];
+    if (
+      !currency ||
+      !expenseSource.every((row) => row[currencyKey] === currency && row[amountKey] !== '')
+    )
+      return '—';
+    return exactMoneyText(
+      currency,
+      sumMinorUnits(expenseSource.map((row) => row[amountKey])),
+      locale,
+    );
+  };
+  const collectionSource = accountingPackRegisterRows(snapshot.collections, [
+    { key: 'invoiceNumber', fallback: ['invoice_number'] },
+    { key: 'client', fallback: ['clientName', 'client_name'] },
+    { key: 'paymentDate', fallback: ['receivedAt', 'received_at', 'date'] },
+    {
+      key: 'amountCollectedInMonthMinor',
+      fallback: ['amountMinor', 'amount_minor', 'netCollectedMinor'],
+    },
+  ]);
+  const collectionRows = collectionSource.map((row, index) => [
+    row[0] ?? '',
+    row[1] ?? '',
+    row[2] ?? '',
+    knownMoney(rowCurrency(snapshot.collections?.[index] ?? {}), row[3] ?? ''),
+  ]);
   return renderHtmlToPdf(
     layout(
       copy.accountingPack,
-      `${snapshot.periodStart} → ${snapshot.periodEnd}`,
-      `<section class="grid">${totals || `<div class="muted">${copy.noTotals}</div>`}</section><h2>${copy.totalsByCurrency}</h2><table><tbody>${byCurrency || `<tr><td class="muted">${copy.noCurrencyBreakdown}</td></tr>`}</tbody></table>`,
+      `${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
+      [
+        legalEntityName
+          ? `<p class="muted">${htmlEscape(copy.legalEntity)}: ${htmlEscape(legalEntityName)} · ${htmlEscape(String(snapshotCurrency))}</p>`
+          : '',
+        `<section class="grid">${totals || `<div class="muted">${copy.noTotals}</div>`}</section>`,
+        `<h2>${copy.totalsByCurrency}</h2>`,
+        byCurrency || `<p class="muted">${copy.noCurrencyBreakdown}</p>`,
+        `<h2>${copy.invoiceRegister}</h2>`,
+        htmlTable(
+          [
+            copy.invoiceNumber,
+            copy.client,
+            copy.project,
+            copy.stream,
+            copy.invoicePeriodOrDate,
+            copy.invoiceTotalWithTax,
+          ],
+          invoiceRows,
+          copy.noInvoiceLines,
+          {
+            amountIndexes: [5],
+            columnWidths: [15, 18, 18, 15, 17, 17],
+            footer: invoiceRows.length
+              ? [
+                  copy.total,
+                  '',
+                  '',
+                  '',
+                  '',
+                  registerTotal(
+                    snapshot.invoiceRegister,
+                    invoiceSource.map((row) => row[5] ?? ''),
+                  ),
+                ]
+              : undefined,
+          },
+        ),
+        `<h2>${copy.workerCosts}</h2>`,
+        htmlTable(
+          [copy.worker, copy.project, copy.hours, copy.approvedWorkerCompensation],
+          workerRows,
+          copy.noTotals,
+          {
+            amountIndexes: [3],
+            footer: workerRows.length
+              ? [
+                  copy.total,
+                  '',
+                  `${totalWorkerHours.toFixed(2)} h`,
+                  registerTotal(
+                    snapshot.workerCosts,
+                    workerSource.map((row) => row.amount),
+                  ),
+                ]
+              : undefined,
+          },
+        ),
+        `<h2>${copy.expenses}</h2>`,
+        htmlTable(
+          [
+            copy.date,
+            copy.worker,
+            copy.project,
+            copy.expenseOrVendor,
+            copy.recordedExpenseWithTax,
+            copy.companyExpenseCost,
+            copy.clientBillableExpense,
+            copy.workerReimbursementEligiblePaid,
+          ],
+          expenseRows,
+          copy.noTotals,
+          {
+            amountIndexes: [4, 5, 6, 7],
+            columnWidths: [8, 10, 11, 16, 12, 12, 12, 19],
+            footer: expenseRows.length
+              ? [
+                  copy.total,
+                  '',
+                  '',
+                  '',
+                  expenseTotal('recordedMinor', 'sourceCurrency'),
+                  expenseTotal('companyCostMinor', 'projectCurrency'),
+                  expenseTotal('billingAmountMinor', 'projectCurrency'),
+                  `${expenseTotal('reimbursementAmountMinor', 'sourceCurrency')} / ${expenseTotal('reimbursedAmountMinor', 'sourceCurrency')}`,
+                ]
+              : undefined,
+          },
+        ),
+        expenseRows.length ? `<p class="muted">${htmlEscape(copy.unavailableAmountNote)}</p>` : '',
+        `<h2>${copy.collections}</h2>`,
+        htmlTable(
+          [copy.invoiceNumber, copy.client, copy.date, copy.collectedThisPeriod],
+          collectionRows,
+          copy.noTotals,
+          {
+            amountIndexes: [3],
+            footer: collectionRows.length
+              ? [
+                  copy.total,
+                  '',
+                  '',
+                  registerTotal(
+                    snapshot.collections,
+                    collectionSource.map((row) => row[3] ?? ''),
+                  ),
+                ]
+              : undefined,
+          },
+        ),
+      ].join(''),
       locale,
+      accountingPackCss,
+      ACCOUNTING_PACK_PDF_TEMPLATE_VERSION,
     ),
   );
 }
@@ -639,92 +3200,610 @@ export function periodReportPdf(
     periodEnd: string;
     audience?: string;
     locale?: ReportLocale | string;
+    commercialSummary?: Readonly<Record<string, unknown>>;
+    commercialCalculation?: readonly Readonly<Record<string, unknown>>[];
+    financialSummary?: Readonly<Record<string, unknown>>;
     dailyReports?: readonly Row[];
     technicalReports?: readonly Row[];
     technicalChanges?: readonly Row[];
+    timeSummary?: readonly Row[];
+    sourceCounts?: Readonly<Record<string, unknown>>;
     backupArtifacts?: readonly Row[];
   }>,
 ): Uint8Array {
   const locale = normalizeReportLocale(snapshot.locale);
-  const copy = labels[locale];
-  const rows = [
+  const copy = localizedCopy[locale];
+  const project = projectIdentity(snapshot);
+  const customer = snapshot.audience === 'customer';
+  const summary = customer ? {} : (snapshot.commercialSummary ?? {});
+  const finance = customer ? {} : (snapshot.financialSummary ?? {});
+  const currency = summary.currency ?? finance.currency ?? 'USD';
+  const hours = (minutes: unknown): string =>
+    (Number(minutes ?? 0) / 60).toLocaleString(localeTag(locale), {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+  const moneyMetric = (label: string, value: unknown): string =>
+    `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${value === null || value === undefined || value === '' ? '—' : moneyText(currency, value, locale)}</strong></div>`;
+  const hoursMetric = (label: string, value: unknown): string =>
+    `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${value === null || value === undefined || value === '' ? '—' : htmlEscape(`${hours(value)} h`)}</strong></div>`;
+  const timeSummary = snapshot.timeSummary ?? [];
+  const approvedTimeMinutes = timeSummary.reduce(
+    (total, row) =>
+      total +
+      (row.approval_state === 'approved' ||
+      row.approvalState === 'approved' ||
+      row.approval_state === 'locked' ||
+      row.approvalState === 'locked'
+        ? Number(row.minutes ?? 0)
+        : 0),
+    0,
+  );
+  const publicMetrics = customer
+    ? hoursMetric(copy.approvedHours, approvedTimeMinutes)
+    : [
+        hoursMetric(copy.actualHours, summary.actualMinutes),
+        hoursMetric(copy.approvedHours, summary.approvedMinutes),
+        hoursMetric(copy.billableHours, summary.billableMinutes),
+        moneyMetric(copy.candidateSubtotal, summary.candidateSubtotalMinor),
+        moneyMetric(copy.operationalCandidate, summary.operationalRevenueCandidateMinor),
+        moneyMetric(copy.invoiced, summary.invoicedNetMinor),
+        moneyMetric(copy.paid, summary.paidMinor),
+        moneyMetric(copy.receivable, summary.receivableMinor),
+      ].join('');
+  const internalMetrics =
+    !customer && snapshot.audience === 'internal'
+      ? [
+          moneyMetric(copy.directCost, finance.approvedCostMinor),
+          moneyMetric(copy.contribution, finance.contributionMarginMinor),
+          `<div class="metric"><span class="muted">${htmlEscape(copy.contributionMargin)}</span><strong>${finance.contributionMarginBps === null || finance.contributionMarginBps === undefined || finance.contributionMarginBps === '' ? '—' : htmlEscape(`${(Number(finance.contributionMarginBps) / 100).toFixed(1)}%`)}</strong></div>`,
+        ].join('')
+      : '';
+  const calculationLines = customer ? [] : (snapshot.commercialCalculation ?? []);
+  const calculationTableRows = calculationLines.map((line) => [
+    translateCalculationType(line.type, locale),
+    translateCalculationBasis(line.basis, locale),
+    line.minutes === null || line.minutes === undefined ? '—' : `${hours(line.minutes)} h`,
+    exactMoneyText(currency, line.amountMinor, locale),
+  ]);
+  const calculationMinutesTotal = sumFiniteNumbers(calculationLines.map((line) => line.minutes));
+  const calculationAmountTotal = sumMinorUnits(calculationLines.map((line) => line.amountMinor));
+  const sourceCounts = ((customer ? snapshot.sourceCounts : summary.sourceCounts) ??
+    {}) as Readonly<Record<string, unknown>>;
+  const sources = [
+    `${localizedCopy[locale].sourceDaily} ${formatReportInteger(sourceCounts.dailyReports ?? 0, locale)}`,
+    `${localizedCopy[locale].sourceTechnical} ${formatReportInteger(sourceCounts.technicalReports ?? 0, locale)}`,
+    `${localizedCopy[locale].sourceChanges} ${formatReportInteger(sourceCounts.technicalChanges ?? 0, locale)}`,
+    `${localizedCopy[locale].sourceTime} ${formatReportInteger(sourceCounts.timeEntries ?? 0, locale)}`,
+    ...(customer
+      ? []
+      : [
+          `${localizedCopy[locale].sourceExpenses} ${formatReportInteger(sourceCounts.expenses ?? 0, locale)}`,
+        ]),
+  ].join(' · ');
+  const operationalRows = [
     ...(snapshot.dailyReports ?? []).map((row) => ({
       type: copy.dailyReport,
-      date: row.work_date ?? row.workDate,
-      detail: row.summary,
+      date: formatReportDate(row.work_date ?? row.workDate ?? row.date, locale),
+      worker: String(row.workerDisplay ?? row.worker ?? row.workerName ?? row.worker_name ?? ''),
+      detail: String(row.summary ?? ''),
+      minutes: null as number | null,
+      status: row.approval_state ?? row.approvalState,
     })),
     ...(snapshot.technicalReports ?? []).map((row) => ({
       type: copy.technicalReport,
-      date: row.created_at ?? row.createdAt,
-      detail: row.change_summary ?? row.changeSummary,
+      date: formatReportDate(
+        row.report_date ?? row.reportDate ?? row.date ?? row.created_at ?? row.createdAt,
+        locale,
+      ),
+      worker: String(row.workerDisplay ?? row.worker ?? row.workerName ?? row.worker_name ?? ''),
+      detail: String(row.change_summary ?? row.changeSummary ?? ''),
+      minutes: null as number | null,
+      status: row.approval_state ?? row.approvalState,
     })),
     ...(snapshot.technicalChanges ?? []).map((row) => ({
       type: copy.technicalChange,
-      date: row.created_at ?? row.createdAt,
-      detail: row.change_made ?? row.changeMade,
+      date: formatReportDate(row.created_at ?? row.createdAt ?? row.date, locale),
+      worker: String(row.workerDisplay ?? row.worker ?? row.workerName ?? row.worker_name ?? ''),
+      detail: String(row.change_made ?? row.changeMade ?? ''),
+      minutes: null as number | null,
+      status: row.approval_state ?? row.approvalState,
+    })),
+    ...timeSummary.map((row) => ({
+      type: copy.sourceTime,
+      date: formatReportDate(row.work_date ?? row.workDate ?? row.date, locale),
+      worker: String(row.workerDisplay ?? row.worker ?? row.workerName ?? row.worker_name ?? ''),
+      detail: activityWithInterval(
+        String(row.activity_summary ?? row.activitySummary ?? row.category ?? ''),
+        row,
+        locale,
+      ),
+      minutes: Number(row.minutes ?? 0),
+      status: row.approval_state ?? row.approvalState,
     })),
   ];
-  const table = rows
-    .map(
-      (row) =>
-        `<tr><td>${htmlEscape(row.type)}</td><td>${htmlEscape(row.date)}</td><td>${htmlEscape(row.detail)}</td></tr>`,
-    )
-    .join('');
+  const operationalMinutesTotal = sumFiniteNumbers(operationalRows.map((row) => row.minutes ?? 0));
+  const operationalTableRows = operationalRows.map((row) =>
+    customer
+      ? [
+          row.type,
+          row.date,
+          row.worker || '—',
+          row.detail,
+          row.minutes === null ? '—' : `${hours(row.minutes)} h`,
+          translateReportStatus(row.status, locale),
+        ]
+      : [
+          row.type,
+          row.date,
+          row.worker || '—',
+          row.detail,
+          row.minutes === null ? '—' : `${hours(row.minutes)} h`,
+          translateReportStatus(row.status, locale),
+        ],
+  );
+  const operationalHeaders = customer
+    ? [copy.type, copy.date, copy.worker, copy.detail, copy.hours, copy.status]
+    : [copy.type, copy.date, copy.worker, copy.detail, copy.hours, copy.status];
+  const operationalFooter = operationalRows.length
+    ? customer
+      ? [copy.total, '', '', '', `${hours(operationalMinutesTotal)} h`, '']
+      : [copy.total, '', '', '', `${hours(operationalMinutesTotal)} h`, '']
+    : undefined;
+  const operationalTable = htmlTable(
+    operationalHeaders,
+    operationalTableRows,
+    copy.noReportRecords,
+    {
+      footer: operationalFooter,
+      numberIndexes: [4],
+      columnWidths: [13, 14, 16, 32, 9, 16],
+    },
+  );
+  const calculationTable = customer
+    ? ''
+    : htmlTable(
+        [copy.type, copy.calculationBasis, copy.billableHours, copy.amount],
+        calculationTableRows,
+        copy.noCalculation,
+        {
+          amountIndexes: [3],
+          footer: calculationTableRows.length
+            ? [
+                copy.total,
+                '',
+                `${hours(calculationMinutesTotal)} h`,
+                exactMoneyText(currency, calculationAmountTotal, locale),
+              ]
+            : undefined,
+        },
+      );
+  function customerSignatureBlock(locale: ReportLocale): string {
+    const sigLabel =
+      locale === 'es'
+        ? 'Firma del Representante del Cliente'
+        : locale === 'pt'
+          ? 'Assinatura do Representante do Cliente'
+          : 'Client Representative Signature';
+    const nameLabel =
+      locale === 'es' ? 'Nombre y Cargo' : locale === 'pt' ? 'Nome e Cargo' : 'Name & Title';
+    const dateLabel = locale === 'es' ? 'Fecha' : locale === 'pt' ? 'Data' : 'Date';
+
+    return `<div class="signature-block">
+  <div>
+    <span>${htmlEscape(sigLabel)}</span>
+    <div class="signature-line">____________________________________</div>
+    <small>${htmlEscape(nameLabel)}</small>
+  </div>
+  <div>
+    <span>${htmlEscape(dateLabel)}</span>
+    <div class="signature-line">__________________</div>
+  </div>
+</div>`;
+  }
+
   return renderHtmlToPdf(
     layout(
       copy.projectPeriodReport,
-      `${snapshot.project?.number ?? ''} ${snapshot.project?.name ?? ''} · ${snapshot.periodStart} → ${snapshot.periodEnd} · ${snapshot.audience ?? ''}`,
-      `<div class="grid"><div class="metric"><span class="muted">${copy.dailyReports}</span><strong>${snapshot.dailyReports?.length ?? 0}</strong></div><div class="metric"><span class="muted">${copy.technicalRecords}</span><strong>${(snapshot.technicalReports?.length ?? 0) + (snapshot.technicalChanges?.length ?? 0)}</strong></div></div><h2>${copy.operationalRecord}</h2><table><thead><tr><th>${copy.type}</th><th>${copy.date}</th><th>${copy.detail}</th></tr></thead><tbody>${table || `<tr><td colspan="3" class="muted">${copy.noReportRecords}</td></tr>`}</tbody></table>`,
+      `${project.title}${project.title ? ' · ' : ''}${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
+      customer
+        ? `<h2>${copy.operationalRecord}</h2><div class="grid">${reportField(copy.project, project.title)}${reportField(copy.client, project.clientName)}${publicMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p>${operationalTable}${customerSignatureBlock(locale)}`
+        : `<h2>${copy.calculation}</h2><div class="grid">${reportField(copy.project, project.title)}${reportField(copy.client, project.clientName)}${publicMetrics}${internalMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p>${calculationTable}<h2>${copy.operationalRecord}</h2>${operationalTable}`,
       locale,
+      periodReportCss,
+      PERIOD_REPORT_TEMPLATE_VERSION,
     ),
   );
 }
 
-export function invoicePdf(
-  snapshot: Readonly<{
-    number: string;
-    locale?: ReportLocale | string;
-    template?: { id?: string; version?: number };
-    commercial?: { streamType?: string; groupingMode?: string };
-    legalEntity?: { legal_name?: string };
-    client?: { legalName?: string };
-    calculation?: {
-      currency?: string;
-      subtotalMinor?: string;
-      taxMinor?: string;
-      totalMinor?: string;
-    };
-    lines?: readonly Row[];
-  }>,
-): Uint8Array {
+export function invoicePdf(snapshot: InvoiceTemplateSnapshot): Uint8Array {
   const locale = normalizeReportLocale(snapshot.locale);
-  const copy = labels[locale];
-  const rows = (snapshot.lines ?? [])
-    .map(
-      (line) =>
-        `<tr><td>${htmlEscape(line.description)}</td><td class="amount">${moneyText(snapshot.calculation?.currency, line.subtotal_minor, locale)}</td></tr>`,
-    )
+  const rendered = renderInvoiceTemplate(snapshot);
+  const number = String(snapshot.number ?? snapshot.invoiceNumber ?? '');
+  return renderHtmlToPdf(
+    invoiceLayout(rendered.title, rendered.subtitle, number, rendered.body, locale, snapshot),
+  );
+}
+
+type ReportProject = Readonly<{
+  number?: unknown;
+  projectNumber?: unknown;
+  name?: unknown;
+  clientName?: unknown;
+}>;
+
+type DailyReportSnapshot = Readonly<{
+  id?: unknown;
+  project?: ReportProject;
+  projectNumber?: unknown;
+  projectName?: unknown;
+  date?: unknown;
+  workDate?: unknown;
+  work_date?: unknown;
+  worker?: unknown;
+  workerName?: unknown;
+  worker_name?: unknown;
+  summary?: unknown;
+  safetyRelated?: unknown;
+  safety_related?: unknown;
+  approvalState?: unknown;
+  approval_state?: unknown;
+  [key: string]: unknown;
+}>;
+
+type TechnicalReportSnapshot = Readonly<{
+  id?: unknown;
+  project?: ReportProject;
+  projectNumber?: unknown;
+  projectName?: unknown;
+  date?: unknown;
+  reportDate?: unknown;
+  report_date?: unknown;
+  createdAt?: unknown;
+  created_at?: unknown;
+  system?: unknown;
+  systemName?: unknown;
+  system_name?: unknown;
+  site?: unknown;
+  plantSite?: unknown;
+  plant_site?: unknown;
+  area?: unknown;
+  areaLine?: unknown;
+  area_line?: unknown;
+  station?: unknown;
+  stationMachine?: unknown;
+  station_machine?: unknown;
+  systemType?: unknown;
+  system_type?: unknown;
+  plcPlatform?: unknown;
+  plc_platform?: unknown;
+  controller?: unknown;
+  hmiScada?: unknown;
+  hmi_scada?: unknown;
+  networkProtocol?: unknown;
+  network_protocol?: unknown;
+  softwareVersion?: unknown;
+  software_version?: unknown;
+  programReference?: unknown;
+  program_reference?: unknown;
+  changes?: unknown;
+  changeSummary?: unknown;
+  change_summary?: unknown;
+  problemSymptom?: unknown;
+  problem_symptom?: unknown;
+  diagnosisRootCause?: unknown;
+  diagnosis_root_cause?: unknown;
+  changePerformed?: unknown;
+  change_performed?: unknown;
+  safetyRelated?: unknown;
+  safety_related?: unknown;
+  productionImpact?: unknown;
+  production_impact?: unknown;
+  validation?: unknown;
+  validationResult?: unknown;
+  validation_result?: unknown;
+  openRisk?: unknown;
+  open_risk?: unknown;
+  rollbackPlan?: unknown;
+  rollback_plan?: unknown;
+  rollbackInformation?: unknown;
+  rollback_information?: unknown;
+  approvalState?: unknown;
+  approval_state?: unknown;
+  technicalChanges?: readonly Readonly<Record<string, unknown>>[];
+  [key: string]: unknown;
+}>;
+
+function reportField(label: string, value: unknown): string {
+  const text = value !== null && typeof value === 'object' ? '' : String(value ?? '').trim();
+  if (!text) return '';
+  return `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${htmlEscape(text)}</strong></div>`;
+}
+
+function reportParagraph(title: string, value: unknown): string {
+  const text = value !== null && typeof value === 'object' ? '' : String(value ?? '').trim();
+  if (!text) return '';
+  return `<h2>${htmlEscape(title)}</h2><p>${htmlEscape(text)}</p>`;
+}
+
+function sumMinorUnits(values: readonly unknown[]): bigint {
+  return values.reduce<bigint>((sum, value) => {
+    try {
+      return sum + BigInt(String(value ?? 0).trim() || 0);
+    } catch {
+      return sum;
+    }
+  }, 0n);
+}
+
+function sumFiniteNumbers(values: readonly unknown[]): number {
+  return values.reduce<number>((sum, value) => {
+    const amount = Number(value);
+    return Number.isFinite(amount) ? sum + amount : sum;
+  }, 0);
+}
+
+function isApprovedRecordState(value: unknown): boolean {
+  const state = String(value ?? '').toLowerCase();
+  return state === 'approved' || state === 'locked';
+}
+
+function allocateMinorAcrossMinutes(minutes: readonly number[], totalMinor: string): bigint[] {
+  let remaining = 0n;
+  try {
+    remaining = BigInt(String(totalMinor ?? 0));
+  } catch {
+    remaining = 0n;
+  }
+  if (minutes.length === 0) return [];
+  const amounts = minutes.map(() => 0n);
+  if (remaining === 0n) return amounts;
+  const totalMinutes = minutes.reduce((sum, value) => sum + Math.max(0, value), 0);
+  if (totalMinutes <= 0) {
+    amounts[0] = remaining;
+    return amounts;
+  }
+  const pool = remaining;
+  for (let index = 0; index < minutes.length; index += 1) {
+    const share =
+      index === minutes.length - 1
+        ? remaining
+        : (pool * BigInt(Math.max(0, minutes[index] ?? 0))) / BigInt(totalMinutes);
+    amounts[index] = share;
+    remaining -= share;
+  }
+  return amounts;
+}
+
+function htmlTable(
+  headers: readonly string[],
+  rows: readonly (readonly string[])[],
+  empty: string,
+  options?: Readonly<{
+    amountIndexes?: readonly number[];
+    footer?: readonly string[];
+    columnWidths?: readonly number[];
+    numberIndexes?: readonly number[];
+  }>,
+): string {
+  if (rows.length === 0) return `<p class="muted">${htmlEscape(empty)}</p>`;
+  const amountIndexes = new Set(options?.amountIndexes ?? []);
+  const numberIndexes = new Set(options?.numberIndexes ?? []);
+  const cell = (value: string, index: number, tag: 'th' | 'td'): string => {
+    const classes = [
+      amountIndexes.has(index) ? 'amount' : '',
+      numberIndexes.has(index) ? 'number' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+    return `<${tag}${classes ? ` class="${classes}"` : ''}>${htmlEscape(value)}</${tag}>`;
+  };
+  const head = headers.map((header, index) => cell(header, index, 'th')).join('');
+  const body = rows
+    .map((row) => `<tr>${row.map((value, index) => cell(value, index, 'td')).join('')}</tr>`)
     .join('');
-  const legalEntity = snapshot.legalEntity as Record<string, unknown> | undefined;
-  const client = snapshot.client as Record<string, unknown> | undefined;
-  const calculation = snapshot.calculation;
-  const templateId = snapshot.template?.id ?? '';
-  const title =
-    templateId.includes('credit') || templateId.includes('adjustment')
-      ? copy.creditAdjustment
-      : templateId.includes('fixed') || templateId.includes('milestone')
-        ? copy.fixedMilestoneInvoice
-        : templateId.includes('expense')
-          ? copy.expenseInvoice
-          : templateId.includes('summary') || snapshot.commercial?.groupingMode === 'summary'
-            ? copy.laborSummaryInvoice
-            : copy.laborDetailedInvoice;
+  const footer =
+    options?.footer && options.footer.length === headers.length
+      ? `<tfoot><tr>${options.footer.map((value, index) => cell(value, index, 'td')).join('')}</tr></tfoot>`
+      : '';
+  const columns =
+    options?.columnWidths?.length === headers.length
+      ? `<colgroup>${options.columnWidths.map((width) => `<col style="width:${width}%">`).join('')}</colgroup>`
+      : '';
+  return `<table${columns ? ' class="operational-table"' : ''}>${columns}<thead><tr>${head}</tr></thead><tbody>${body}</tbody>${footer}</table>`;
+}
+
+function technicalReportChangeFields(snapshot: TechnicalReportSnapshot): {
+  problemSymptom: unknown;
+  diagnosisRootCause: unknown;
+  changePerformed: unknown;
+} {
+  const explicit = {
+    problemSymptom: snapshot.problemSymptom ?? snapshot.problem_symptom,
+    diagnosisRootCause: snapshot.diagnosisRootCause ?? snapshot.diagnosis_root_cause,
+    changePerformed: snapshot.changePerformed ?? snapshot.change_performed,
+  };
+  if (explicit.problemSymptom || explicit.diagnosisRootCause || explicit.changePerformed)
+    return explicit;
+  const legacy = snapshot.changeSummary ?? snapshot.change_summary ?? snapshot.changes;
+  if (typeof legacy === 'string' && legacy.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(legacy) as Record<string, unknown>;
+      if (parsed.schema === 'ja.technical-report.change.v1')
+        return {
+          problemSymptom: parsed.problemSymptom,
+          diagnosisRootCause: parsed.diagnosisRootCause,
+          changePerformed: parsed.changePerformed,
+        };
+    } catch {
+      // Historical free text remains the change-performed fallback.
+    }
+  }
+  return { problemSymptom: '', diagnosisRootCause: '', changePerformed: legacy };
+}
+
+/** Render one immutable Daily Field Report source record in the requested locale. */
+export function dailyReportPdf(snapshot: DailyReportSnapshot): Uint8Array {
+  const locale = normalizeReportLocale(snapshot.locale);
+  const copy = localizedCopy[locale];
+  const project = projectIdentity(snapshot);
+  const date = snapshot.date ?? snapshot.workDate ?? snapshot.work_date;
+  const status = snapshot.approvalState ?? snapshot.approval_state;
+  const safety = snapshot.safetyRelated ?? snapshot.safety_related;
+  const worker =
+    snapshotText(snapshot, 'workerName', 'worker_name', 'author_name', 'authorName') ||
+    (typeof snapshot.worker === 'string'
+      ? snapshot.worker
+      : snapshotText(snapshot.worker, 'name', 'workerName', 'worker_name'));
+  const fields = [
+    reportField(copy.project, project.title),
+    reportField(copy.client, project.clientName),
+    reportField(copy.date, formatReportDate(date, locale)),
+    reportField(copy.worker, worker),
+    reportField(copy.status, translateReportStatus(status, locale)),
+    reportField(copy.safetyRelated, translateReportBoolean(safety, locale)),
+    reportField(
+      copy.siteShift,
+      reportNarrative(snapshot, 'siteShift', 'site_shift', 'siteName', 'site_name'),
+    ),
+    reportField(
+      copy.downtimeMinutes,
+      reportNarrative(snapshot, 'downtimeMinutes', 'downtime_minutes'),
+    ),
+    reportField(copy.standbyReason, reportNarrative(snapshot, 'standbyReason', 'standby_reason')),
+    reportField(
+      copy.customerContact,
+      reportNarrative(snapshot, 'customerContact', 'customer_contact'),
+    ),
+  ].join('');
   return renderHtmlToPdf(
     layout(
-      `${title} ${snapshot.number}`,
-      `${String(legalEntity?.legal_name ?? legalEntity?.legalName ?? '')} → ${String(client?.legalName ?? '')}`,
-      `<div class="grid"><div><h2>${copy.from}</h2><p>${htmlEscape(legalEntity?.legal_name ?? legalEntity?.legalName)}<br>${htmlEscape(legalEntity?.billingAddress ?? legalEntity?.billing_address)}</p></div><div><h2>${copy.billTo}</h2><p>${htmlEscape(client?.legalName)}<br>${htmlEscape(client?.billingEmail ?? client?.billing_email)}</p></div></div><h2>${copy.invoiceDetail}</h2><table><thead><tr><th>${copy.description}</th><th class="amount">${copy.amount}</th></tr></thead><tbody>${rows || `<tr><td colspan="2" class="muted">${copy.noInvoiceLines}</td></tr>`}</tbody></table><div class="total"><div><span>${copy.subtotal}</span><span>${moneyText(calculation?.currency, calculation?.subtotalMinor, locale)}</span></div><div><span>${copy.tax}</span><span>${moneyText(calculation?.currency, calculation?.taxMinor, locale)}</span></div><div><strong>${copy.total}</strong><strong>${moneyText(calculation?.currency, calculation?.totalMinor, locale)}</strong></div></div>`,
+      copy.dailyReport,
+      `${project.title}${project.title && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
+      `<h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div>${reportParagraph(copy.summary, snapshot.summary)}${reportParagraph(copy.tasksCompleted, reportNarrative(snapshot, 'tasksCompleted', 'tasks_completed'))}${reportParagraph(copy.problemsFound, reportNarrative(snapshot, 'problemsFound', 'problems_found'))}${reportParagraph(copy.correctiveActions, reportNarrative(snapshot, 'correctiveActions', 'corrective_actions'))}${reportParagraph(copy.clientDecisions, reportNarrative(snapshot, 'clientDecisions', 'client_decisions'))}${reportParagraph(copy.openItems, reportNarrative(snapshot, 'openItems', 'open_items'))}${reportParagraph(copy.blockers, reportNarrative(snapshot, 'blockers'))}${reportParagraph(copy.nextDayPlan, reportNarrative(snapshot, 'nextDayPlan', 'next_day_plan'))}`,
       locale,
+      fieldReportCss,
+      FIELD_REPORT_TEMPLATE_VERSION,
+    ),
+  );
+}
+
+/** Render one immutable PLC / Technical Report source record in the requested locale. */
+export function technicalReportPdf(snapshot: TechnicalReportSnapshot): Uint8Array {
+  const locale = normalizeReportLocale(snapshot.locale);
+  const copy = localizedCopy[locale];
+  const project = projectIdentity(snapshot);
+  const date =
+    snapshot.reportDate ??
+    snapshot.report_date ??
+    snapshot.date ??
+    snapshot.createdAt ??
+    snapshot.created_at;
+  const status = snapshot.approvalState ?? snapshot.approval_state;
+  const safety = snapshot.safetyRelated ?? snapshot.safety_related;
+  const changeFields = technicalReportChangeFields(snapshot);
+  const workPerformedBy =
+    snapshot.work_performed_by_name ??
+    snapshot.workerName ??
+    snapshot.worker_name ??
+    snapshot.author_name;
+  const reportCreatedBy =
+    snapshot.report_created_by_name ?? snapshot.created_by_name ?? workPerformedBy;
+  const fields = [
+    reportField(copy.project, project.title),
+    reportField(
+      locale === 'es'
+        ? 'Trabajo realizado por'
+        : locale === 'pt'
+          ? 'Trabalho realizado por'
+          : 'Work performed by',
+      workPerformedBy,
+    ),
+    reportField(
+      locale === 'es'
+        ? 'Correo del trabajador'
+        : locale === 'pt'
+          ? 'E-mail do trabalhador'
+          : 'Worker email',
+      snapshot.work_performed_by_email ?? snapshot.worker_email ?? snapshot.author_email,
+    ),
+    reportField(
+      locale === 'es'
+        ? 'Reporte creado por'
+        : locale === 'pt'
+          ? 'Relatório criado por'
+          : 'Report created by',
+      reportCreatedBy,
+    ),
+    reportField(
+      locale === 'es'
+        ? 'Correo del creador'
+        : locale === 'pt'
+          ? 'E-mail do criador'
+          : 'Creator email',
+      snapshot.report_created_by_email ??
+        snapshot.created_by_email ??
+        snapshot.work_performed_by_email ??
+        snapshot.worker_email ??
+        snapshot.author_email,
+    ),
+    reportField(
+      locale === 'es' ? 'Revisado por' : locale === 'pt' ? 'Revisado por' : 'Reviewed by',
+      snapshot.reviewed_by_name,
+    ),
+    reportField(
+      locale === 'es'
+        ? 'Correo del revisor'
+        : locale === 'pt'
+          ? 'E-mail do revisor'
+          : 'Reviewer email',
+      snapshot.reviewed_by_email,
+    ),
+    reportField(copy.client, project.clientName),
+    reportField(copy.date, formatReportDate(date, locale)),
+    reportField(copy.system, snapshot.system ?? snapshot.systemName ?? snapshot.system_name),
+    reportField(copy.site, snapshot.site ?? snapshot.plantSite ?? snapshot.plant_site),
+    reportField(copy.area, snapshot.area ?? snapshot.areaLine ?? snapshot.area_line),
+    reportField(
+      copy.station,
+      snapshot.station ?? snapshot.stationMachine ?? snapshot.station_machine,
+    ),
+    reportField(copy.status, translateReportStatus(status, locale)),
+    reportField(copy.safetyRelated, translateReportBoolean(safety, locale)),
+  ].join('');
+  const technicalDetails = [
+    [copy.systemType, snapshot.systemType ?? snapshot.system_type],
+    [copy.plcPlatform, snapshot.plcPlatform ?? snapshot.plc_platform],
+    [copy.controller, snapshot.controller],
+    [copy.hmiScada, snapshot.hmiScada ?? snapshot.hmi_scada],
+    [copy.networkProtocol, snapshot.networkProtocol ?? snapshot.network_protocol],
+    [copy.softwareVersion, snapshot.softwareVersion ?? snapshot.software_version],
+    [copy.programReference, snapshot.programReference ?? snapshot.program_reference],
+  ]
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .map(([label, value]) => reportField(String(label), value))
+    .join('');
+  const changes = snapshot.technicalChanges ?? [];
+  const changeRows = changes
+    .map((change) => {
+      const dateValue = change.created_at ?? change.createdAt ?? change.date;
+      const detail = change.change_made ?? change.changeMade ?? change.detail;
+      const changeStatus = change.approval_state ?? change.approvalState;
+      return `<tr><td>${htmlEscape(formatReportDate(dateValue, locale))}</td><td>${htmlEscape(change.component)}</td><td>${htmlEscape(detail)}</td><td>${htmlEscape(translateReportStatus(changeStatus, locale))}</td></tr>`;
+    })
+    .join('');
+  const changesSection =
+    changes.length > 0
+      ? `<h2>${copy.technicalChanges}</h2><table><thead><tr><th>${copy.date}</th><th>${copy.detail}</th><th>${copy.changeSummary}</th><th>${copy.status}</th></tr></thead><tbody>${changeRows}</tbody></table>`
+      : '';
+  return renderHtmlToPdf(
+    layout(
+      copy.technicalReport,
+      `${project.title}${project.title && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
+      `<section class="report-section"><h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div></section>${technicalDetails ? `<section class="report-section"><h2>${copy.technicalRecords}</h2><div class="grid">${technicalDetails}</div></section>` : ''}<section class="report-section"><h2>${copy.changeSummary}</h2><div class="grid">${reportField(copy.problemSymptom, changeFields.problemSymptom)}${reportField(copy.diagnosisRootCause, changeFields.diagnosisRootCause)}${reportField(copy.changePerformed, changeFields.changePerformed)}${reportField(copy.productionImpact, snapshot.productionImpact ?? snapshot.production_impact)}${reportField(copy.validation, snapshot.validation)}${reportField(copy.validationResult, snapshot.validationResult ?? snapshot.validation_result)}${reportField(copy.openRisk, snapshot.openRisk ?? snapshot.open_risk)}${reportField(copy.rollbackPlan, snapshot.rollbackPlan ?? snapshot.rollbackInformation ?? snapshot.rollback_information)}</div></section>${changesSection}`,
+      locale,
+      fieldReportCss,
+      FIELD_REPORT_TEMPLATE_VERSION,
     ),
   );
 }

@@ -1,0 +1,124 @@
+{
+  "candidateCommit": "a21d12d0383b149170da7a6d3faad70bde37a5b2",
+  "fixture": "fresh disposable database, UI-created active project and worker assignment",
+  "roles": {
+    "form": "financeAdmin",
+    "concurrentEdit": "ownerAdmin"
+  },
+  "viewports": {
+    "finance": "390x844 EN",
+    "owner": "1440x900 EN"
+  },
+  "cases": [
+    {
+      "kind": "stale-outside-assignment",
+      "before": {
+        "scrollY": 3793,
+        "assignmentBounds": {
+          "startsOn": "2026-09-01",
+          "endsOn": null
+        }
+      },
+      "currentBounds": {
+        "startsOn": "2026-09-01",
+        "endsOn": "2026-10-15"
+      },
+      "response": {
+        "status": 409,
+        "contentType": "text/html",
+        "code": "FINANCE_POLICY_OUTSIDE_ASSIGNMENT",
+        "remedy": "review_assignment_policy",
+        "genericPhrase": false
+      },
+      "visible": {
+        "routeView": "commercial",
+        "selectedTask": "Person expense policies",
+        "code": "FINANCE_POLICY_OUTSIDE_ASSIGNMENT",
+        "wording": "Action needed The policy dates must stay within this person's project assignment. Review assignment policy",
+        "remedies": [
+          {
+            "text": "Review assignment policy",
+            "pathname": "/j-aautomation/app/finance",
+            "search": "?view=commercial&project=:record",
+            "hash": "#person-expense-policies"
+          }
+        ],
+        "selectedPersonRetained": true,
+        "selectedPersonUnavailable": false,
+        "effectiveFrom": "2026-10-20",
+        "effectiveTo": "",
+        "category": "stale-1790516658410",
+        "reasonRetained": true,
+        "formPresent": true,
+        "focusedTag": "div",
+        "focusedName": null,
+        "focusedNotice": false,
+        "focusTop": 86,
+        "focusBottom": 218,
+        "noticeTop": -2727,
+        "scrollY": 3275,
+        "viewportHeight": 844,
+        "headerBottom": 70
+      },
+      "policyCount": 0
+    },
+    {
+      "kind": "bounded-assignment-no-policy-end",
+      "currentBounds": {
+        "startsOn": "2026-09-01",
+        "endsOn": "2026-10-15"
+      },
+      "response": {
+        "status": 400,
+        "contentType": "text/html",
+        "code": "FINANCE_POLICY_END_REQUIRED",
+        "remedy": null,
+        "genericPhrase": false
+      },
+      "visible": {
+        "routeView": "commercial",
+        "selectedTask": "Person expense policies",
+        "code": "FINANCE_POLICY_END_REQUIRED",
+        "wording": "Action needed This assignment has an end date. Enter a policy end date within it.",
+        "remedies": [],
+        "selectedPersonRetained": true,
+        "selectedPersonUnavailable": false,
+        "effectiveFrom": "2026-10-10",
+        "effectiveTo": "",
+        "category": "end-required-1790516661228",
+        "reasonRetained": true,
+        "formPresent": true,
+        "focusedTag": "input",
+        "focusedName": "effectiveTo",
+        "focusedNotice": false,
+        "focusTop": 85,
+        "focusBottom": 132,
+        "noticeTop": -3242,
+        "scrollY": 3790,
+        "viewportHeight": 844,
+        "headerBottom": 70
+      }
+    },
+    {
+      "kind": "bounded-assignment-enhanced-envelope",
+      "response": {
+        "transportStatus": 200,
+        "envelopeType": "failure",
+        "actionStatus": 400,
+        "contentType": "application/json",
+        "code": "FINANCE_POLICY_END_REQUIRED",
+        "remedy": null
+      }
+    }
+  ],
+  "console": {
+    "finance": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  }
+}

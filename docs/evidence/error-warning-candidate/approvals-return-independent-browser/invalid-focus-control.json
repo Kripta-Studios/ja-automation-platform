@@ -1,0 +1,19 @@
+{
+  "case": "owner_desktop_pt_expense_invalid_reason_without_screenshot",
+  "action": "approveRecord needs_changes",
+  "noticeCode": "APPROVAL_REASON_REQUIRED",
+  "before": { "scrollY": 861, "focusedTag": "INPUT", "focusedTop": 517.90625 },
+  "after1500ms": {
+    "scrollY": 861,
+    "focusedTag": "DIV",
+    "focusedRole": "alert",
+    "focusedTop": 673.84375,
+    "focusedBottom": 722.4375
+  },
+  "viewportHeight": 900,
+  "headerBottom": 72,
+  "reasonRetained": true,
+  "tabRetained": true,
+  "reviewMenuOpen": true,
+  "recordUnchanged": true
+}

@@ -1,0 +1,18 @@
+{
+  "verifiedAt": "2026-09-19T10:04:23.273689+00:00",
+  "schema": 49,
+  "integrity": "ok",
+  "foreignKeyViolations": 0,
+  "financialAndDocumentRows": {
+    "invoice": 14,
+    "payment": 6,
+    "document": 14,
+    "accounting_pack_revision": 1,
+    "accounting_pack_revision_snapshot": 1
+  },
+  "jobs": {
+    "complete": 2230,
+    "dead_letter": 4,
+    "succeeded": 50187
+  }
+}

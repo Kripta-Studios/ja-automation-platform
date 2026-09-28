@@ -1,0 +1,9 @@
+{
+  "code": "BILLING_DELETE_REASON_INVALID",
+  "viewport": "desktop",
+  "responseStatus": 400,
+  "route": "/j-aautomation/app/billing",
+  "method": "POST",
+  "screenshot": "BILLING_DELETE_REASON_INVALID-desktop.png",
+  "scope": "isolated problem notice only; no account or invoice details"
+}

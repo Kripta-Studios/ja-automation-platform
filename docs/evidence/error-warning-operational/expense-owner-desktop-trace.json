@@ -1,0 +1,21 @@
+[
+  {
+    "step": "invalid-amount",
+    "adjacentError": true
+  },
+  {
+    "step": "enhanced-receipt",
+    "actionStatus": 400,
+    "retainedValues": true
+  },
+  {
+    "step": "native-receipt",
+    "httpStatus": 400,
+    "receiptMustReattach": true
+  },
+  {
+    "step": "background-scroll",
+    "before": 0,
+    "after": 0
+  }
+]

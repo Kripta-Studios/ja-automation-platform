@@ -1,0 +1,125 @@
+{
+  "at": "2026-09-22T21:51:44.569Z",
+  "checks": [
+    {
+      "url": "https://j-aautomation.com/j-aautomation/en",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "font": true,
+      "lang": "en",
+      "heading": "Engineering that keeps production moving.",
+      "errors": []
+    },
+    {
+      "url": "https://j-aautomation.com/j-aautomation/app/login?lang=en",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "font": true,
+      "lang": "en-US",
+      "heading": "Run every project with confidence.",
+      "errors": []
+    },
+    {
+      "url": "https://j-aautomation.com/j-aautomation/es",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "font": true,
+      "lang": "es",
+      "heading": "Ingeniería que mantiene la producción en movimiento.",
+      "errors": []
+    },
+    {
+      "url": "https://j-aautomation.com/j-aautomation/app/login?lang=es",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "font": true,
+      "lang": "es-ES",
+      "heading": "Gestiona cada proyecto con confianza.",
+      "errors": []
+    },
+    {
+      "url": "https://j-aautomation.com/j-aautomation/pt",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "font": true,
+      "lang": "pt-BR",
+      "heading": "Engenharia que mantém a produção em movimento.",
+      "errors": []
+    },
+    {
+      "url": "https://j-aautomation.com/j-aautomation/app/login?lang=pt",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "font": true,
+      "lang": "pt-BR",
+      "heading": "Gerencie cada projeto com confiança.",
+      "errors": []
+    },
+    {
+      "url": "https://j-aautomation.com/j-aautomation/en",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "font": true,
+      "lang": "en",
+      "heading": "Engineering that keeps production moving.",
+      "errors": []
+    },
+    {
+      "url": "https://j-aautomation.com/j-aautomation/app/login?lang=en",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "font": true,
+      "lang": "en-US",
+      "heading": "Run every project with confidence.",
+      "errors": []
+    },
+    {
+      "url": "https://j-aautomation.com/j-aautomation/es",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "font": true,
+      "lang": "es",
+      "heading": "Ingeniería que mantiene la producción en movimiento.",
+      "errors": []
+    },
+    {
+      "url": "https://j-aautomation.com/j-aautomation/app/login?lang=es",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "font": true,
+      "lang": "es-ES",
+      "heading": "Gestiona cada proyecto con confianza.",
+      "errors": []
+    },
+    {
+      "url": "https://j-aautomation.com/j-aautomation/pt",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "font": true,
+      "lang": "pt-BR",
+      "heading": "Engenharia que mantém a produção em movimento.",
+      "errors": []
+    },
+    {
+      "url": "https://j-aautomation.com/j-aautomation/app/login?lang=pt",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "font": true,
+      "lang": "pt-BR",
+      "heading": "Gerencie cada projeto com confiança.",
+      "errors": []
+    }
+  ]
+}

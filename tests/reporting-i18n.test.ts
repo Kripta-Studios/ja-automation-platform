@@ -1,0 +1,822 @@
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import {
+  accountingPackPdf,
+  dailyReportPdf,
+  invoicePdf,
+  normalizeReportLocale,
+  periodReportPdf,
+  technicalReportPdf,
+  translateCalculationBasis,
+  translateReportMetric,
+  workerStatementPdf,
+  type WorkerStatementSnapshot,
+} from '@ja/reporting';
+
+type Locale = 'en' | 'es' | 'pt-BR';
+
+const locales: readonly Locale[] = ['en', 'es', 'pt-BR'];
+const textFromPdf = (bytes: Uint8Array, mode: '-layout' | '-raw' = '-layout'): string => {
+  const directory = mkdtempSync(join(tmpdir(), 'ja-reporting-i18n-'));
+  const input = join(directory, 'report.pdf');
+  try {
+    writeFileSync(input, bytes);
+    return execFileSync('pdftotext', [mode, input, '-'], { encoding: 'utf8' });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+};
+
+const expectPdf = (bytes: Uint8Array): string => {
+  expect(Buffer.from(bytes).subarray(0, 5).toString()).toBe('%PDF-');
+  expect(bytes.byteLength).toBeGreaterThan(500);
+  return textFromPdf(bytes).replace(/\s+/g, ' ').trim();
+};
+
+const containsPdfCopy = (text: string, expected: string): boolean =>
+  text
+    .replace(/\s/g, '')
+    .toLocaleLowerCase()
+    .includes(expected.replace(/\s/g, '').toLocaleLowerCase());
+
+const pageCount = (bytes: Uint8Array): number =>
+  Buffer.from(bytes)
+    .toString('latin1')
+    .match(/\/Type \/Page\b/g)?.length ?? 0;
+
+const titles = {
+  invoice: {
+    en: 'Labor Detailed Invoice',
+    es: 'Factura Detallada de Mano de Obra',
+    'pt-BR': 'Fatura Detalhada de Mão de Obra',
+  },
+  period: {
+    en: 'Project Period Report',
+    es: 'Informe Periódico del Proyecto',
+    'pt-BR': 'Relatório Periódico do Projeto',
+  },
+  pack: { en: 'Accounting Pack', es: 'Paquete Contable', 'pt-BR': 'Pacote Contábil' },
+  daily: { en: 'Daily report', es: 'Informe diario', 'pt-BR': 'Relatório diário' },
+  technical: { en: 'Technical report', es: 'Informe técnico', 'pt-BR': 'Relatório técnico' },
+} as const;
+
+const packMetricLabels = {
+  en: [
+    'Labor invoiced',
+    'Expense invoiced',
+    'Milestone / other invoiced',
+    'Total invoiced',
+    'Tax invoiced',
+    'Gross invoiced',
+    'Collected',
+    'Outstanding',
+    'Worker compensation',
+    'Internal labor cost',
+    'Travel cost',
+    'Other direct cost',
+    'Contribution',
+    'Direct cost',
+    'Currency',
+  ],
+  es: [
+    'Mano de obra facturada',
+    'Gastos facturados',
+    'Hitos / otros facturados',
+    'Total facturado',
+    'Impuestos facturados',
+    'Total bruto facturado',
+    'Cobrado',
+    'Pendiente',
+    'Compensación del trabajador',
+    'Coste interno de mano de obra',
+    'Coste de viajes',
+    'Otro coste directo',
+    'Contribución',
+    'Coste directo',
+    'Moneda',
+  ],
+  'pt-BR': [
+    'Mão de obra faturada',
+    'Despesas faturadas',
+    'Marcos / outros faturados',
+    'Total faturado',
+    'Impostos faturados',
+    'Total bruto faturado',
+    'Recebido',
+    'Em aberto',
+    'Remuneração do trabalhador',
+    'Custo interno de mão de obra',
+    'Custo de viagem',
+    'Outro custo direto',
+    'Contribuição',
+    'Custo direto',
+    'Moeda',
+  ],
+} as const;
+
+const englishControlledResidue = [
+  'Labor Detailed Invoice',
+  'Invoice detail',
+  'Bill to',
+  'Accounting Pack',
+  'Totals by currency',
+  'Project Period Report',
+  'Calculation basis',
+  'Daily report',
+  'Technical report',
+  'Template',
+  'Safety-related',
+  'System type',
+  'PLC platform',
+];
+
+const invoiceSnapshot = (locale: Locale) => ({
+  number: `JA-I18N-${locale}`,
+  locale,
+  legalEntity: { legal_name: 'J&A Automation', billing_address: 'Configured address' },
+  client: { legalName: 'Northline Mobility', billingEmail: 'ap@example.com' },
+  calculation: {
+    currency: 'EUR',
+    subtotalMinor: '123456',
+    taxMinor: '24691',
+    totalMinor: '148147',
+  },
+  lines: [
+    {
+      description: 'Startup support, sensor timing investigation and customer handover notes',
+      subtotal_minor: '123456',
+    },
+  ],
+});
+
+const periodSnapshot = (locale: Locale) => ({
+  project: { number: 'C-0001-P-001', name: 'Commissioning', clientName: 'Northline Mobility' },
+  periodStart: '2026-08-01',
+  periodEnd: '2026-08-31',
+  audience: 'internal',
+  locale,
+  commercialSummary: {
+    currency: 'EUR',
+    actualMinutes: 600,
+    approvedMinutes: 540,
+    billableMinutes: 480,
+    candidateSubtotalMinor: '123456',
+    operationalRevenueCandidateMinor: '123456',
+    invoicedNetMinor: '0',
+    paidMinor: '0',
+    receivableMinor: '123456',
+    sourceCounts: {
+      dailyReports: 1,
+      technicalReports: 1,
+      technicalChanges: 1,
+      timeEntries: 1,
+      expenses: 1,
+    },
+  },
+  financialSummary: {
+    currency: 'EUR',
+    approvedCostMinor: '50000',
+    contributionMarginMinor: '73456',
+    contributionMarginBps: 5950,
+  },
+  commercialCalculation: [
+    {
+      type: 'labor',
+      basis: 'approved_billable_minutes_effective_client_labor_rates',
+      minutes: 480,
+      amountMinor: '123456',
+    },
+  ],
+  dailyReports: [
+    {
+      work_date: '2026-08-01',
+      summary: 'Startup support, sensor timing investigation and customer handover notes',
+      approval_state: 'approved',
+    },
+  ],
+  technicalReports: [
+    {
+      created_at: '2026-08-02',
+      change_summary: 'Validated PLC sequence and HMI alarms',
+      approval_state: 'submitted',
+    },
+  ],
+  technicalChanges: [
+    {
+      created_at: '2026-08-03',
+      change_made: 'Adjusted sensor timing',
+      approval_state: 'needs_changes',
+    },
+  ],
+  timeSummary: [
+    {
+      date: '2026-08-01',
+      category: 'work',
+      minutes: 480,
+      activitySummary: 'Commissioned line sensors',
+      worker: 'Alex Rivera',
+      approvalState: 'approved',
+    },
+  ],
+});
+
+const packSnapshot = (locale: Locale) => ({
+  periodStart: '2026-08-01',
+  periodEnd: '2026-08-31',
+  locale,
+  currency: 'EUR',
+  invoiceRegister: [],
+  collections: [],
+  workerCosts: [],
+  expenseRegister: [],
+  totals: {
+    laborInvoicedMinor: '101000',
+    expenseInvoicedMinor: '12000',
+    milestoneOtherInvoicedMinor: '5000',
+    totalInvoicedMinor: '118000',
+    taxInvoicedMinor: '23600',
+    grossInvoicedMinor: '141600',
+    collectedMinor: '100000',
+    outstandingMinor: '41600',
+    workerCompensationMinor: '45000',
+    internalLaborCostMinor: '52000',
+    travelCostMinor: '7000',
+    otherDirectCostMinor: '3000',
+    contributionMinor: '56000',
+    directCostMinor: '52000',
+    currency: 'EUR',
+  },
+  totalsByCurrency: [{ currency: 'EUR', totalInvoicedMinor: '118000', collectedMinor: '100000' }],
+});
+
+const dailySnapshot = (locale: Locale) => ({
+  id: 'daily-1',
+  locale,
+  project: { number: 'C-0001-P-001', name: 'Commissioning' },
+  date: '2026-08-01',
+  worker: 'Antonny Luty',
+  summary: 'Startup support, sensor timing investigation and customer handover notes',
+  safetyRelated: true,
+  approvalState: 'approved',
+});
+
+const technicalSnapshot = (locale: Locale) => ({
+  id: 'technical-1',
+  locale,
+  project: { number: 'C-0001-P-001', name: 'Commissioning' },
+  workerName: 'Alex Rivera',
+  worker_email: 'alex.rivera@example.test',
+  date: '2026-08-02',
+  systemName: 'Line 4 PLC',
+  plantSite: 'Northline plant',
+  areaLine: 'Assembly / Line 4',
+  stationMachine: 'Station 12',
+  systemType: 'PLC',
+  plcPlatform: 'Rockwell Automation',
+  controller: 'ControlLogix',
+  hmiScada: 'FactoryTalk View',
+  networkProtocol: 'EtherNet/IP',
+  softwareVersion: 'v3.7.2',
+  programReference: 'PLC-L4-2026',
+  changeSummary: 'Startup support, sensor timing investigation and customer handover notes',
+  safetyRelated: false,
+  productionImpact: 'No production interruption',
+  validation: 'FAT',
+  validationResult: 'Passed',
+  openRisk: 'None',
+  rollbackPlan: 'Restore PLC backup',
+  approvalState: 'approved',
+  technicalChanges: [
+    {
+      date: '2026-08-03',
+      component: 'Sensor timing',
+      detail: 'Adjusted sequence observation',
+      approvalState: 'approved',
+    },
+  ],
+});
+
+const workerStatementSnapshot = (
+  locale: Locale,
+  profile: 'empty' | 'ordinary' | 'long' = 'ordinary',
+): WorkerStatementSnapshot => {
+  const activities =
+    profile === 'empty'
+      ? []
+      : Array.from({ length: profile === 'long' ? 90 : 1 }, (_, index) => ({
+          id: `time-${index + 1}`,
+          projectNumber: 'P-1',
+          projectName: 'Line',
+          date: '2026-08-12',
+          category: index % 2 === 0 ? 'regular' : 'overtime',
+          activitySummary:
+            profile === 'long'
+              ? `Commissioning activity ${index + 1}: validated sequence, interlocks and handover notes.`
+              : 'Validated sequence, interlocks and handover notes.',
+          actualMinutes: 60,
+          approvalState: 'approved',
+        }));
+  return {
+    locale,
+    worker: { id: 'worker-1', name: 'Álex Worker' },
+    periodStart: '2026-08-01',
+    periodEnd: '2026-08-31',
+    currency: 'USD',
+    approvedMinutes: activities.length * 60,
+    pendingMinutes: 30,
+    estimatedApprovedMinor: '101000',
+    estimatedPendingMinor: '2500',
+    approvedReimbursementMinor: '12345',
+    pendingReimbursementMinor: '0',
+    missingCompensationRules: 0,
+    activities,
+    settlements:
+      profile === 'empty'
+        ? []
+        : [
+            {
+              id: 'settlement-1',
+              projectNumber: 'P-1',
+              projectName: 'Line',
+              periodStart: '2026-08-01',
+              periodEnd: '2026-08-31',
+              amountMinor: '101000',
+              currency: 'USD',
+              state: 'scheduled',
+              expectedPaymentOn: '2026-09-10',
+              settledAt: null,
+            },
+          ],
+    expenses:
+      profile === 'empty'
+        ? []
+        : [
+            {
+              id: 'expense-1',
+              projectNumber: 'P-1',
+              spentOn: '2026-08-12',
+              vendor: 'Viagens São José',
+              category: 'travel',
+              reimbursementAmountMinor: '12345',
+              currency: 'USD',
+              approvalState: 'approved',
+              reimbursementState: 'reimbursed',
+              expectedReimbursementOn: '2026-09-10',
+              reimbursedAt: '2026-09-11T12:00:00.000Z',
+            },
+          ],
+  };
+};
+
+const workerCopy = {
+  en: {
+    title: 'Worker compensation statement',
+    titleParts: ['Worker', 'statement'],
+    approved: 'Approved compensation',
+    activity: 'Own activity',
+    scheduled: 'Scheduled',
+    reimbursed: 'Reimbursed',
+    noActivity: 'No activity in this period.',
+    noSettlements: 'No settlements in this period.',
+    noExpenses: 'No reimbursable expenses in this period.',
+    money: '$1,010.00',
+  },
+  es: {
+    title: 'Estado de compensación del trabajador',
+    titleParts: ['Estado', 'trabajador'],
+    approved: 'Compensación aprobada',
+    activity: 'Actividad propia',
+    scheduled: 'Programado',
+    reimbursed: 'Reembolsado',
+    noActivity: 'No hay actividad en este período.',
+    noSettlements: 'No hay pagos en este período.',
+    noExpenses: 'No hay gastos reembolsables en este período.',
+    money: '1.010,00 US$',
+  },
+  'pt-BR': {
+    title: 'Extrato de remuneração do trabalhador',
+    titleParts: ['Extrato', 'trabalhador'],
+    approved: 'Remuneração aprovada',
+    activity: 'Atividade própria',
+    scheduled: 'Agendado',
+    reimbursed: 'Reembolsado',
+    noActivity: 'Nenhuma atividade neste período.',
+    noSettlements: 'Nenhum pagamento neste período.',
+    noExpenses: 'Nenhuma despesa reembolsável neste período.',
+    money: 'US$ 1.010,00',
+  },
+} as const;
+
+describe('localized report PDF renderers', () => {
+  it.each(['en', 'pt-BR'] as const)(
+    'renders recorded intervals and net hours in %s customer/internal/worker PDFs with duration-only fallback',
+    (locale) => {
+      const base = periodSnapshot(locale);
+      const timeSummary = base.timeSummary.map((row) => ({
+        ...row,
+        minutes: 420,
+        startTime: '08:15',
+        endTime: '16:15',
+        breakMinutes: 60,
+      }));
+      for (const audience of ['customer', 'internal']) {
+        const pdf = periodReportPdf({ ...base, audience, timeSummary });
+        expectPdf(pdf);
+        const text = textFromPdf(pdf, '-raw').replace(/\s+/g, ' ').trim();
+        expect(containsPdfCopy(text, '08:15–16:15')).toBe(true);
+        expect(containsPdfCopy(text, `${locale === 'en' ? 'Break' : 'Intervalo'}: 60 min`)).toBe(
+          true,
+        );
+        expect(text).toContain(locale === 'en' ? '7.0 h' : '7,0 h');
+        expect(text).toContain('Commissioned line sensors');
+      }
+      const worker = workerStatementSnapshot(locale);
+      const workerPdf = workerStatementPdf({
+        ...worker,
+        activities: worker.activities.map((row) => ({
+          ...row,
+          actualMinutes: 420,
+          startTime: '08:15',
+          endTime: '16:15',
+          breakMinutes: 60,
+        })),
+      });
+      expectPdf(workerPdf);
+      const workerText = textFromPdf(workerPdf, '-raw');
+      expect(containsPdfCopy(workerText, '08:15–16:15')).toBe(true);
+      expect(
+        containsPdfCopy(workerText, `${locale === 'en' ? 'Break' : 'Intervalo'}: 60 min`),
+      ).toBe(true);
+      expect(containsPdfCopy(workerText, '7.00')).toBe(true);
+      const legacyPeriod = expectPdf(periodReportPdf(base));
+      const legacyWorker = expectPdf(workerStatementPdf(worker));
+      expect(legacyPeriod).not.toMatch(/08:15|16:15|60 min/u);
+      expect(legacyWorker).not.toMatch(/08:15|16:15|60 min/u);
+      expect(legacyPeriod).toContain('Commissioned line sensors');
+    },
+    60000,
+  );
+
+  it('normalizes full locale aliases while retaining the internal pt code', () => {
+    expect(normalizeReportLocale('en-US')).toBe('en');
+    expect(normalizeReportLocale('es-ES')).toBe('es');
+    expect(normalizeReportLocale('pt-BR')).toBe('pt');
+    expect(
+      translateCalculationBasis('approved_billable_minutes_effective_client_labor_rates', 'pt-BR'),
+    ).toContain('Minutos faturáveis');
+    expect(translateReportMetric('candidateSubtotalMinor', 'pt-BR')).toBe(
+      'Candidato de faturamento calculado',
+    );
+  });
+
+  it('uses the ES thousands separator for four-digit money values', () => {
+    const text = expectPdf(
+      invoicePdf({
+        ...invoiceSnapshot('es'),
+        calculation: {
+          currency: 'EUR',
+          subtotalMinor: '101000',
+          taxMinor: '0',
+          totalMinor: '101000',
+        },
+        lines: [{ description: 'Four digit separator validation', subtotal_minor: '101000' }],
+      }),
+    );
+    expect(containsPdfCopy(text, '1.010,00 €')).toBe(true);
+  });
+
+  it.each(locales)('renders invoice, period and Accounting Pack PDFs in %s', (locale) => {
+    const invoiceText = expectPdf(invoicePdf(invoiceSnapshot(locale)));
+    const periodText = expectPdf(periodReportPdf(periodSnapshot(locale)));
+    const packText = expectPdf(accountingPackPdf(packSnapshot(locale)));
+    const invoiceTitle = titles.invoice[locale];
+    expect(containsPdfCopy(invoiceText, invoiceTitle.split(' ')[0])).toBe(true);
+    expect(containsPdfCopy(invoiceText, invoiceTitle.split(' ').at(-1) ?? invoiceTitle)).toBe(true);
+    const periodTitle = titles.period[locale];
+    expect(containsPdfCopy(periodText, periodTitle.split(' ')[0])).toBe(true);
+    expect(containsPdfCopy(periodText, periodTitle.split(' ').at(-1) ?? periodTitle)).toBe(true);
+    expect(containsPdfCopy(periodText, 'C-0001-P-001')).toBe(true);
+    expect(containsPdfCopy(periodText, 'Northline Mobility')).toBe(true);
+    expect(containsPdfCopy(packText, titles.pack[locale])).toBe(true);
+    expect(containsPdfCopy(periodText, locale === 'en' ? 'Hours' : 'Horas')).toBe(true);
+    expect(
+      containsPdfCopy(
+        packText,
+        locale === 'en' ? 'Metric' : locale === 'es' ? 'Métrica' : 'Métrica',
+      ),
+    ).toBe(true);
+    for (const label of packMetricLabels[locale])
+      expect(containsPdfCopy(packText, label)).toBe(true);
+    // The labor table now keeps the description beside the worker column, so
+    // PDF text extraction can interleave the worker cell between wrapped words.
+    for (const part of ['Startup support', 'sensor', 'timing', 'investigation'])
+      expect(containsPdfCopy(invoiceText, part)).toBe(true);
+    expect(containsPdfCopy(periodText, 'Startup support')).toBe(true);
+    // pdftotext emits the period-report status column between wrapped summary
+    // words. Assert the controlled source terms without coupling this test to
+    // that extractor-specific column order.
+    expect(containsPdfCopy(periodText, 'sensor')).toBe(true);
+    expect(containsPdfCopy(periodText, 'timing')).toBe(true);
+    expect(containsPdfCopy(periodText, 'investigation')).toBe(true);
+    expect(containsPdfCopy(periodText, 'handover notes')).toBe(true);
+    for (const text of [invoiceText, periodText, packText]) {
+      if (locale !== 'en')
+        for (const residue of englishControlledResidue)
+          expect(containsPdfCopy(text, residue)).toBe(false);
+    }
+  });
+
+  it.each(locales)('renders an ordinary Worker Statement in %s', (locale) => {
+    const pdf = workerStatementPdf(workerStatementSnapshot(locale));
+    const text = expectPdf(pdf);
+    const readingOrderText = textFromPdf(pdf, '-raw');
+    const expected = workerCopy[locale];
+    for (const part of expected.titleParts) expect(containsPdfCopy(text, part)).toBe(true);
+    expect(containsPdfCopy(text, expected.approved)).toBe(true);
+    expect(containsPdfCopy(text, expected.activity)).toBe(true);
+    // Layout extraction interleaves adjacent cells between wrapped status words.
+    // Content-stream order retains each full translated word across line breaks.
+    expect(containsPdfCopy(readingOrderText, expected.scheduled), readingOrderText).toBe(true);
+    expect(containsPdfCopy(readingOrderText, expected.reimbursed), readingOrderText).toBe(true);
+    expect(containsPdfCopy(text, expected.money)).toBe(true);
+    expect(text).not.toContain('2026-08-12');
+    if (locale !== 'en') {
+      for (const residue of [
+        'Worker compensation statement',
+        'Approved compensation',
+        'Own activity',
+        'Expected payment',
+        'Payment status',
+      ])
+        expect(containsPdfCopy(text, residue)).toBe(false);
+    }
+  });
+
+  it.each(locales)('renders an empty Worker Statement in %s', (locale) => {
+    const text = expectPdf(workerStatementPdf(workerStatementSnapshot(locale, 'empty')));
+    const expected = workerCopy[locale];
+    expect(containsPdfCopy(text, expected.noActivity)).toBe(true);
+    expect(containsPdfCopy(text, expected.noSettlements)).toBe(true);
+    expect(containsPdfCopy(text, expected.noExpenses)).toBe(true);
+  });
+
+  it('uses the expense category when a worker reimbursement has no vendor', () => {
+    const snapshot = workerStatementSnapshot('en');
+    const pdf = workerStatementPdf({
+      ...snapshot,
+      expenses: snapshot.expenses.map((expense) => ({ ...expense, vendor: '' })),
+    });
+    expectPdf(pdf);
+    const text = textFromPdf(pdf, '-raw');
+    expect(containsPdfCopy(text, 'Expense / vendor')).toBe(true);
+    expect(containsPdfCopy(text, 'Reimbursement amount')).toBe(true);
+    expect(containsPdfCopy(text, 'travel')).toBe(true);
+    expect(containsPdfCopy(text, 'None')).toBe(false);
+  });
+
+  it.each(locales)('renders a long multipage Worker Statement in %s', (locale) => {
+    const pdf = workerStatementPdf(workerStatementSnapshot(locale, 'long'));
+    expect(pageCount(pdf)).toBeGreaterThan(1);
+    const text = expectPdf(pdf);
+    for (const part of workerCopy[locale].titleParts)
+      expect(containsPdfCopy(text, part)).toBe(true);
+    expect(containsPdfCopy(text, '90:')).toBe(true);
+  });
+
+  it('renders repeated identical snapshots to byte-identical PDF artifacts', () => {
+    const first = invoicePdf(invoiceSnapshot('es'));
+    const second = invoicePdf(invoiceSnapshot('es'));
+    const hash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
+    expect(hash(first)).toBe(hash(second));
+    expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true);
+  });
+
+  it('keeps very large exact-money totals readable and present in the PDF text', () => {
+    const hugeMinorUnits = '9'.repeat(54);
+    const text = expectPdf(
+      invoicePdf({
+        ...invoiceSnapshot('es'),
+        calculation: {
+          currency: 'EUR',
+          subtotalMinor: hugeMinorUnits,
+          taxMinor: '0',
+          totalMinor: hugeMinorUnits,
+        },
+        lines: [{ description: 'Large exact-money validation', subtotal_minor: hugeMinorUnits }],
+      }),
+    );
+    expect(containsPdfCopy(text, 'Total')).toBe(true);
+    expect(text.replace(/[^0-9]/g, '')).toContain(hugeMinorUnits);
+  });
+
+  it('does not create an orphan technical-changes heading when there are no changes', () => {
+    const pdf = technicalReportPdf({ ...technicalSnapshot('es'), technicalChanges: [] });
+    expect(pageCount(pdf)).toBeGreaterThan(0);
+    expect(containsPdfCopy(expectPdf(pdf), 'Cambios técnicos')).toBe(false);
+  });
+
+  it.each(locales)('renders Daily Field Report and PLC / Technical Report PDFs in %s', (locale) => {
+    const dailyText = expectPdf(dailyReportPdf(dailySnapshot(locale)));
+    const technicalText = expectPdf(technicalReportPdf(technicalSnapshot(locale)));
+    expect(containsPdfCopy(dailyText, titles.daily[locale])).toBe(true);
+    expect(containsPdfCopy(technicalText, titles.technical[locale])).toBe(true);
+    expect(containsPdfCopy(dailyText, 'C-0001-P-001')).toBe(true);
+    expect(containsPdfCopy(technicalText, 'C-0001-P-001')).toBe(true);
+    expect(containsPdfCopy(technicalText, 'Alex Rivera')).toBe(true);
+    expect(containsPdfCopy(technicalText, 'alex.rivera@example.test')).toBe(true);
+    expect(
+      containsPdfCopy(
+        dailyText,
+        'Startup support, sensor timing investigation and customer handover notes',
+      ),
+    ).toBe(true);
+    expect(containsPdfCopy(technicalText, 'Rockwell Automation')).toBe(true);
+    expect(containsPdfCopy(technicalText, 'EtherNet/IP')).toBe(true);
+    if (locale !== 'en') {
+      for (const residue of englishControlledResidue) {
+        expect(containsPdfCopy(dailyText, residue)).toBe(false);
+        expect(containsPdfCopy(technicalText, residue)).toBe(false);
+      }
+    }
+  });
+
+  it('fills daily/technical project identity from joined source fields', () => {
+    const dailyText = expectPdf(
+      dailyReportPdf({
+        locale: 'en',
+        project_number: 'C-0001-P-002',
+        project_name: 'Remote Controls Support Retainer',
+        client_name: 'Demo',
+        work_date: '2026-08-21',
+        worker_name: 'Alex Rivera',
+        summary: 'Resolved a sequence observation and documented the release recommendation.',
+        tasks_completed: 'Documented the release recommendation.',
+        approval_state: 'approved',
+      }),
+    );
+    expect(containsPdfCopy(dailyText, 'C-0001-P-002')).toBe(true);
+    expect(containsPdfCopy(dailyText, 'Remote Controls Support Retainer')).toBe(true);
+    expect(containsPdfCopy(dailyText, 'Alex Rivera')).toBe(true);
+    expect(containsPdfCopy(dailyText, 'Documented the release recommendation')).toBe(true);
+  });
+
+  it('renders Accounting Pack invoice and worker registers instead of only totals', () => {
+    const text = expectPdf(
+      accountingPackPdf({
+        ...packSnapshot('en'),
+        invoiceRegister: [
+          {
+            invoiceNumber: 'DEMO-2026-00001',
+            client: 'Northline Mobility',
+            project: 'C-0001-P-001',
+            stream: 'labor',
+            servicePeriod: '2026-08-10/2026-08-16',
+            grossMinor: '7980000',
+          },
+        ],
+        workerCosts: [
+          {
+            worker: 'Alex Rivera',
+            project: 'C-0001-P-001',
+            actualApprovedMinutes: 420,
+            approvedCompensationMinor: '1380875',
+          },
+        ],
+      }),
+    );
+    // The register's narrow PDF columns wrap identifiers and client names;
+    // pdftotext inserts other columns between fragments. Each stable source
+    // token must remain visible without asserting a false linear ordering.
+    expect(containsPdfCopy(text, 'DEMO-2026-')).toBe(true);
+    expect(containsPdfCopy(text, '00001')).toBe(true);
+    expect(containsPdfCopy(text, 'Northline')).toBe(true);
+    expect(containsPdfCopy(text, 'Mobility')).toBe(true);
+    expect(containsPdfCopy(text, 'Alex Rivera')).toBe(true);
+    expect(containsPdfCopy(text, 'C-0001-P-001')).toBe(true);
+    expect(containsPdfCopy(text, 'legalEntityId')).toBe(false);
+  });
+
+  it('explains recorded expense, company cost, and client billing separately in the Accounting Pack PDF', () => {
+    const pdf = accountingPackPdf({
+      ...packSnapshot('en'),
+      expenseRegister: [
+        {
+          date: '2026-08-12',
+          worker: 'Alex Rivera',
+          project: 'C-0001-P-001',
+          category: 'meals',
+          vendor: '',
+          currency: 'EUR',
+          projectCurrency: 'USD',
+          amountMinor: '10000',
+          taxMinor: '2000',
+          companyCostMinor: '0',
+          billingAmountMinor: '15000',
+          reimbursementAmountMinor: '5000',
+          reimbursedAmountMinor: null,
+        },
+      ],
+    });
+    expectPdf(pdf);
+    const text = textFromPdf(pdf, '-raw').replace(/\s+/g, ' ').trim();
+    for (const label of [
+      'Recorded expense (incl. tax)',
+      'Company expense cost',
+      'Client billable expense',
+      'Expense / vendor',
+      'Worker reimbursement (eligible / paid)',
+    ])
+      expect(containsPdfCopy(text, label)).toBe(true);
+    expect(containsPdfCopy(text, '€120.00')).toBe(true);
+    expect(containsPdfCopy(text, '$0.00')).toBe(true);
+    expect(containsPdfCopy(text, '$150.00')).toBe(true);
+    expect(containsPdfCopy(text, '€50.00 / —')).toBe(true);
+    expect(containsPdfCopy(text, '0.00 is an actual zero')).toBe(true);
+    expect(containsPdfCopy(text, 'None')).toBe(false);
+  });
+
+  it('renders signed collection rows from the stored Accounting Pack field names', () => {
+    const text = expectPdf(
+      accountingPackPdf({
+        ...packSnapshot('en'),
+        collections: [
+          {
+            invoiceNumber: 'QA-100',
+            client: 'QA Client',
+            paymentDate: '2026-08-12',
+            amountCollectedInMonthMinor: '2161',
+          },
+          {
+            invoiceNumber: 'QA-100',
+            client: 'QA Client',
+            paymentDate: '2026-08-13',
+            amountCollectedInMonthMinor: '-203',
+          },
+        ],
+      }),
+    );
+    expect(containsPdfCopy(text, '21.61')).toBe(true);
+    expect(containsPdfCopy(text, '2.03')).toBe(true);
+    expect(containsPdfCopy(text, '19.58')).toBe(true);
+  });
+
+  it('derives Accounting Pack worker hours from source field units', () => {
+    const minuteText = expectPdf(
+      accountingPackPdf({
+        ...packSnapshot('en'),
+        workerCosts: [
+          {
+            worker: 'Marina Minutes',
+            project: 'P-001',
+            actualApprovedMinutes: 450,
+            approvedCompensationMinor: '10000',
+          },
+          {
+            worker: 'Alex Minutes',
+            project: 'P-002',
+            approved_minutes: 480,
+            approvedCompensationMinor: '10000',
+          },
+        ],
+      }),
+    );
+    expect(containsPdfCopy(minuteText, '7.50 h')).toBe(true);
+    expect(containsPdfCopy(minuteText, '8.00 h')).toBe(true);
+    expect(containsPdfCopy(minuteText, '15.50 h')).toBe(true);
+    expect(minuteText).not.toContain('450.00 h');
+
+    const legacyHoursText = expectPdf(
+      accountingPackPdf({
+        ...packSnapshot('en'),
+        workerCosts: [
+          { worker: 'Legacy Fraction', project: 'P-003', hours: 7.5 },
+          { worker: 'Legacy Sixty', project: 'P-004', hours: 60 },
+        ],
+      }),
+    );
+    expect(containsPdfCopy(legacyHoursText, '7.50 h')).toBe(true);
+    expect(containsPdfCopy(legacyHoursText, '60.00 h')).toBe(true);
+    expect(containsPdfCopy(legacyHoursText, '67.50 h')).toBe(true);
+  });
+
+  it('localizes Accounting Pack credits without exposing a raw metric key', () => {
+    for (const [locale, label] of [
+      ['en', 'Credits'],
+      ['pt-BR', 'Créditos'],
+      ['es', 'Créditos'],
+    ] as const) {
+      const text = expectPdf(
+        accountingPackPdf({
+          ...packSnapshot(locale),
+          totals: { currency: 'USD', creditsMinor: '2500' },
+        }),
+      );
+      expect(containsPdfCopy(text, label)).toBe(true);
+      expect(text).not.toMatch(/creditsMinor|credits_minor/u);
+    }
+  });
+});

@@ -1,0 +1,34 @@
+{
+  "candidateHead": "0b450ae",
+  "role": "auditor_read_only",
+  "route": "/app/approvals",
+  "responseStatus": 403,
+  "heading": "Access restricted",
+  "remedy": "/app/ (role-specific landing page)",
+  "phone": {
+    "width": 390,
+    "scrollWidth": 390,
+    "scrollY": 0,
+    "active": "h1"
+  },
+  "desktop": {
+    "width": 1440,
+    "scrollWidth": 1440,
+    "scrollY": 0,
+    "active": "h1"
+  },
+  "pageErrors": [],
+  "unexpectedConsoleErrors": [],
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/j-aautomation/app/api/auth/sign-in/email",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/approvals",
+      "status": 403
+    }
+  ]
+}

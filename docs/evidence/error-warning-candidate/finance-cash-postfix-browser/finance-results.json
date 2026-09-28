@@ -1,0 +1,515 @@
+{
+  "candidateCommit": "fe6ced96320fd166113d5ad8b2059f7fa208e219",
+  "role": "finance",
+  "scenarios": [
+    {
+      "name": "invalid-filter",
+      "status": 200,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?filter=bogus&from=2026-09-01&to=2026-09-30&lang=en",
+        "locale": "en",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "heading": "Cash calendar",
+        "errorText": null,
+        "formPresent": true,
+        "problemCode": "FINANCE_CASH_FILTER_INVALID",
+        "noticeText": "Action needed This cash view is not available. Choose a filter from the current list. Correct the highlighted field",
+        "noticeCount": 1,
+        "noticeInViewport": true,
+        "noticeBounds": {
+          "top": 560,
+          "bottom": 711
+        },
+        "noticeTopRaw": 559.6875,
+        "bannerBottom": 69.59375,
+        "noticeObscuredByBanner": false,
+        "remedyHref": "#cash-filter",
+        "remedyText": "Correct the highlighted field",
+        "focusId": "",
+        "focusDataUi": "problem-notice",
+        "focusIsNotice": true,
+        "scrollY": 0,
+        "filter": "bogus",
+        "currency": "",
+        "group": "week",
+        "from": "2026-09-01",
+        "to": "2026-09-30",
+        "project": "",
+        "fieldErrors": {
+          "cash-filter-error": "This cash view is not available. Choose a filter from the current list."
+        },
+        "cashGroupCount": 0
+      }
+    },
+    {
+      "name": "invalid-date",
+      "status": 200,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?from=2026-02-30&to=2026-03-01&lang=en",
+        "locale": "en",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "heading": "Cash calendar",
+        "errorText": null,
+        "formPresent": true,
+        "problemCode": "FINANCE_CASH_DATE_INVALID",
+        "noticeText": "Action needed Enter real start and end dates for the cash calendar. Correct the highlighted field",
+        "noticeCount": 1,
+        "noticeInViewport": true,
+        "noticeBounds": {
+          "top": 560,
+          "bottom": 711
+        },
+        "noticeTopRaw": 559.6875,
+        "bannerBottom": 69.59375,
+        "noticeObscuredByBanner": false,
+        "remedyHref": "#cash-from",
+        "remedyText": "Correct the highlighted field",
+        "focusId": "",
+        "focusDataUi": "problem-notice",
+        "focusIsNotice": true,
+        "scrollY": 0,
+        "filter": "all",
+        "currency": "",
+        "group": "week",
+        "from": "2026-02-30",
+        "to": "2026-03-01",
+        "project": "",
+        "fieldErrors": {
+          "cash-from-error": "Enter a valid date."
+        },
+        "cashGroupCount": 0
+      }
+    },
+    {
+      "name": "reversed-date",
+      "status": 200,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?from=2026-09-20&to=2026-09-19&lang=en",
+        "locale": "en",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "heading": "Cash calendar",
+        "errorText": null,
+        "formPresent": true,
+        "problemCode": "FINANCE_CASH_DATE_ORDER_INVALID",
+        "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeCount": 1,
+        "noticeInViewport": true,
+        "noticeBounds": {
+          "top": 560,
+          "bottom": 732
+        },
+        "noticeTopRaw": 559.6875,
+        "bannerBottom": 69.59375,
+        "noticeObscuredByBanner": false,
+        "remedyHref": "#cash-to",
+        "remedyText": "Correct the highlighted field",
+        "focusId": "",
+        "focusDataUi": "problem-notice",
+        "focusIsNotice": true,
+        "scrollY": 0,
+        "filter": "all",
+        "currency": "",
+        "group": "week",
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "project": "",
+        "fieldErrors": {
+          "cash-to-error": "The end date is before the start date. Choose an end date on or after the start date."
+        },
+        "cashGroupCount": 0
+      }
+    },
+    {
+      "name": "corrected-retry",
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=649&currency=&filter=all&from=2026-09-20&to=2026-09-21&project=&group=week",
+        "locale": "en",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "heading": "Cash calendar",
+        "errorText": null,
+        "formPresent": true,
+        "problemCode": null,
+        "noticeText": null,
+        "noticeCount": 0,
+        "noticeInViewport": false,
+        "noticeBounds": null,
+        "noticeTopRaw": null,
+        "bannerBottom": 69.59375,
+        "noticeObscuredByBanner": false,
+        "remedyHref": null,
+        "remedyText": null,
+        "focusId": "",
+        "focusDataUi": null,
+        "focusIsNotice": false,
+        "scrollY": 0,
+        "filter": "all",
+        "currency": "",
+        "group": "week",
+        "from": "2026-09-20",
+        "to": "2026-09-21",
+        "project": "",
+        "fieldErrors": {},
+        "cashGroupCount": 1
+      }
+    },
+    {
+      "name": "unavailable-project",
+      "status": 200,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?project=unavailable-project&from=2026-09-01&lang=en",
+        "locale": "en",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "heading": "Cash calendar",
+        "errorText": null,
+        "formPresent": true,
+        "problemCode": "FINANCE_CASH_PROJECT_UNAVAILABLE",
+        "noticeText": "Action needed The selected project is no longer available in this cash view. Choose a project from the current list or All projects. Correct the highlighted field",
+        "noticeCount": 1,
+        "noticeInViewport": true,
+        "noticeBounds": {
+          "top": 560,
+          "bottom": 752
+        },
+        "noticeTopRaw": 559.6875,
+        "bannerBottom": 69.59375,
+        "noticeObscuredByBanner": false,
+        "remedyHref": "#cash-project",
+        "remedyText": "Correct the highlighted field",
+        "focusId": "",
+        "focusDataUi": "problem-notice",
+        "focusIsNotice": true,
+        "scrollY": 0,
+        "filter": "all",
+        "currency": "",
+        "group": "week",
+        "from": "2026-09-01",
+        "to": "",
+        "project": "unavailable-project",
+        "fieldErrors": {
+          "cash-project-error": "The selected project is no longer available in this cash view. Choose a project from the current list or All projects."
+        },
+        "cashGroupCount": 0
+      }
+    },
+    {
+      "name": "reversed-rendered-form",
+      "navigation": "enhanced GET",
+      "startingScroll": 300,
+      "timeline": [
+        {
+          "atMsAfterNoticeVisible": 0,
+          "ui": {
+            "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=772&currency=&filter=all&from=2026-09-20&to=2026-09-19&project=&group=week",
+            "locale": "en",
+            "viewport": {
+              "width": 390,
+              "height": 844
+            },
+            "heading": "Cash calendar",
+            "errorText": null,
+            "formPresent": true,
+            "problemCode": "FINANCE_CASH_DATE_ORDER_INVALID",
+            "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start date. Correct the highlighted field",
+            "noticeCount": 1,
+            "noticeInViewport": false,
+            "noticeBounds": {
+              "top": 0,
+              "bottom": 172
+            },
+            "noticeTopRaw": -0.3125,
+            "bannerBottom": 69.59375,
+            "noticeObscuredByBanner": true,
+            "remedyHref": "#cash-to",
+            "remedyText": "Correct the highlighted field",
+            "focusId": "",
+            "focusDataUi": "problem-notice",
+            "focusIsNotice": true,
+            "scrollY": 560,
+            "filter": "all",
+            "currency": "",
+            "group": "week",
+            "from": "2026-09-20",
+            "to": "2026-09-19",
+            "project": "",
+            "fieldErrors": {
+              "cash-to-error": "The end date is before the start date. Choose an end date on or after the start date."
+            },
+            "cashGroupCount": 0
+          }
+        },
+        {
+          "atMsAfterNoticeVisible": 50,
+          "ui": {
+            "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=772&currency=&filter=all&from=2026-09-20&to=2026-09-19&project=&group=week",
+            "locale": "en",
+            "viewport": {
+              "width": 390,
+              "height": 844
+            },
+            "heading": "Cash calendar",
+            "errorText": null,
+            "formPresent": true,
+            "problemCode": "FINANCE_CASH_DATE_ORDER_INVALID",
+            "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start date. Correct the highlighted field",
+            "noticeCount": 1,
+            "noticeInViewport": false,
+            "noticeBounds": {
+              "top": 0,
+              "bottom": 172
+            },
+            "noticeTopRaw": -0.3125,
+            "bannerBottom": 69.59375,
+            "noticeObscuredByBanner": true,
+            "remedyHref": "#cash-to",
+            "remedyText": "Correct the highlighted field",
+            "focusId": "",
+            "focusDataUi": "problem-notice",
+            "focusIsNotice": true,
+            "scrollY": 560,
+            "filter": "all",
+            "currency": "",
+            "group": "week",
+            "from": "2026-09-20",
+            "to": "2026-09-19",
+            "project": "",
+            "fieldErrors": {
+              "cash-to-error": "The end date is before the start date. Choose an end date on or after the start date."
+            },
+            "cashGroupCount": 0
+          }
+        },
+        {
+          "atMsAfterNoticeVisible": 250,
+          "ui": {
+            "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=772&currency=&filter=all&from=2026-09-20&to=2026-09-19&project=&group=week",
+            "locale": "en",
+            "viewport": {
+              "width": 390,
+              "height": 844
+            },
+            "heading": "Cash calendar",
+            "errorText": null,
+            "formPresent": true,
+            "problemCode": "FINANCE_CASH_DATE_ORDER_INVALID",
+            "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start date. Correct the highlighted field",
+            "noticeCount": 1,
+            "noticeInViewport": false,
+            "noticeBounds": {
+              "top": 0,
+              "bottom": 172
+            },
+            "noticeTopRaw": -0.3125,
+            "bannerBottom": 69.59375,
+            "noticeObscuredByBanner": true,
+            "remedyHref": "#cash-to",
+            "remedyText": "Correct the highlighted field",
+            "focusId": "",
+            "focusDataUi": "problem-notice",
+            "focusIsNotice": true,
+            "scrollY": 560,
+            "filter": "all",
+            "currency": "",
+            "group": "week",
+            "from": "2026-09-20",
+            "to": "2026-09-19",
+            "project": "",
+            "fieldErrors": {
+              "cash-to-error": "The end date is before the start date. Choose an end date on or after the start date."
+            },
+            "cashGroupCount": 0
+          }
+        },
+        {
+          "atMsAfterNoticeVisible": 500,
+          "ui": {
+            "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=772&currency=&filter=all&from=2026-09-20&to=2026-09-19&project=&group=week",
+            "locale": "en",
+            "viewport": {
+              "width": 390,
+              "height": 844
+            },
+            "heading": "Cash calendar",
+            "errorText": null,
+            "formPresent": true,
+            "problemCode": "FINANCE_CASH_DATE_ORDER_INVALID",
+            "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start date. Correct the highlighted field",
+            "noticeCount": 1,
+            "noticeInViewport": false,
+            "noticeBounds": {
+              "top": 0,
+              "bottom": 172
+            },
+            "noticeTopRaw": -0.3125,
+            "bannerBottom": 69.59375,
+            "noticeObscuredByBanner": true,
+            "remedyHref": "#cash-to",
+            "remedyText": "Correct the highlighted field",
+            "focusId": "",
+            "focusDataUi": "problem-notice",
+            "focusIsNotice": true,
+            "scrollY": 560,
+            "filter": "all",
+            "currency": "",
+            "group": "week",
+            "from": "2026-09-20",
+            "to": "2026-09-19",
+            "project": "",
+            "fieldErrors": {
+              "cash-to-error": "The end date is before the start date. Choose an end date on or after the start date."
+            },
+            "cashGroupCount": 0
+          }
+        },
+        {
+          "atMsAfterNoticeVisible": 1000,
+          "ui": {
+            "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=772&currency=&filter=all&from=2026-09-20&to=2026-09-19&project=&group=week",
+            "locale": "en",
+            "viewport": {
+              "width": 390,
+              "height": 844
+            },
+            "heading": "Cash calendar",
+            "errorText": null,
+            "formPresent": true,
+            "problemCode": "FINANCE_CASH_DATE_ORDER_INVALID",
+            "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start date. Correct the highlighted field",
+            "noticeCount": 1,
+            "noticeInViewport": false,
+            "noticeBounds": {
+              "top": 0,
+              "bottom": 172
+            },
+            "noticeTopRaw": -0.3125,
+            "bannerBottom": 69.59375,
+            "noticeObscuredByBanner": true,
+            "remedyHref": "#cash-to",
+            "remedyText": "Correct the highlighted field",
+            "focusId": "",
+            "focusDataUi": "problem-notice",
+            "focusIsNotice": true,
+            "scrollY": 560,
+            "filter": "all",
+            "currency": "",
+            "group": "week",
+            "from": "2026-09-20",
+            "to": "2026-09-19",
+            "project": "",
+            "fieldErrors": {
+              "cash-to-error": "The end date is before the start date. Choose an end date on or after the start date."
+            },
+            "cashGroupCount": 0
+          }
+        }
+      ],
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?lang=en&viewportScrollY=772&currency=&filter=all&from=2026-09-20&to=2026-09-19&project=&group=week",
+        "locale": "en",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "heading": "Cash calendar",
+        "errorText": null,
+        "formPresent": true,
+        "problemCode": "FINANCE_CASH_DATE_ORDER_INVALID",
+        "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeCount": 1,
+        "noticeInViewport": false,
+        "noticeBounds": {
+          "top": 0,
+          "bottom": 172
+        },
+        "noticeTopRaw": -0.3125,
+        "bannerBottom": 69.59375,
+        "noticeObscuredByBanner": true,
+        "remedyHref": "#cash-to",
+        "remedyText": "Correct the highlighted field",
+        "focusId": "",
+        "focusDataUi": "problem-notice",
+        "focusIsNotice": true,
+        "scrollY": 560,
+        "filter": "all",
+        "currency": "",
+        "group": "week",
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "project": "",
+        "fieldErrors": {
+          "cash-to-error": "The end date is before the start date. Choose an end date on or after the start date."
+        },
+        "cashGroupCount": 0
+      }
+    },
+    {
+      "name": "unsupported-currency-group",
+      "status": 200,
+      "ui": {
+        "url": "/j-aautomation/app/finance/cash?currency=ZZZ&group=quarter&lang=en",
+        "locale": "en",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "heading": "Cash calendar",
+        "errorText": null,
+        "formPresent": true,
+        "problemCode": null,
+        "noticeText": null,
+        "noticeCount": 0,
+        "noticeInViewport": false,
+        "noticeBounds": null,
+        "noticeTopRaw": null,
+        "bannerBottom": 69.59375,
+        "noticeObscuredByBanner": false,
+        "remedyHref": null,
+        "remedyText": null,
+        "focusId": "",
+        "focusDataUi": null,
+        "focusIsNotice": false,
+        "scrollY": 0,
+        "filter": "all",
+        "currency": "ZZZ",
+        "group": "week",
+        "from": "",
+        "to": "",
+        "project": "",
+        "fieldErrors": {},
+        "cashGroupCount": 0
+      }
+    }
+  ],
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 document /j-aautomation/app/finance/cash",
+      "200 document /j-aautomation/app/finance/cash",
+      "200 document /j-aautomation/app/finance/cash",
+      "200 fetch /j-aautomation/app/finance/cash/__data.json",
+      "200 document /j-aautomation/app/finance/cash",
+      "200 document /j-aautomation/app/finance/cash",
+      "200 fetch /j-aautomation/app/finance/cash/__data.json",
+      "200 document /j-aautomation/app/finance/cash"
+    ]
+  }
+}

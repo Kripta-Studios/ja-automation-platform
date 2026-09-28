@@ -1,0 +1,40 @@
+{
+  "date": "2026-09-27",
+  "candidateParent": "103eaf5d470dc0f64a2af10806ff5341c7e78a16",
+  "purpose": "Verify selected-invoice remedy after the list-only navigation defect was corrected",
+  "runtime": "Node 24.19.0, actual Chromium, fresh disposable SQLite fixture",
+  "results": {
+    "passed": 4,
+    "failed": 0,
+    "durationSeconds": 22.7
+  },
+  "cases": [
+    {
+      "role": "finance",
+      "viewport": 390,
+      "locale": "en"
+    },
+    {
+      "role": "finance",
+      "viewport": 390,
+      "locale": "es"
+    },
+    {
+      "role": "finance",
+      "viewport": 390,
+      "locale": "pt"
+    },
+    {
+      "role": "owner",
+      "viewport": 1440,
+      "locale": "pt"
+    }
+  ],
+  "assertions": {
+    "clickedSelectedInvoiceDetail": true,
+    "detailHttp": 200,
+    "invoiceStateVersionAndIssueMarkersUnchanged": true,
+    "pageExceptions": 0
+  },
+  "focusAndContext": "The selected invoice is preserved by navigation to its exact detail route. The previous list-only navigation and cleared-search path is no longer used."
+}

@@ -1,0 +1,80 @@
+{
+  "date": "2026-09-27",
+  "candidate": "post-fix overlay on c4984ee",
+  "fixture": "fresh disposable",
+  "creation": {
+    "projectViaUi": true,
+    "assignmentViaUi": true,
+    "draftReportViaUi": true,
+    "allPosts200": true
+  },
+  "cases": [
+    {
+      "role": "finance",
+      "locale": "es",
+      "viewport": 1440,
+      "status": "approved",
+      "code": "WARNING_REPORT_ATTACHMENT_CONTACT_OWNER",
+      "visibleCopy": "Antes de continuar\n\nEste informe está aprobado o finalizado. Sus adjuntos no se pueden cambiar. Pide al propietario del proyecto que revise la vía de corrección permitida antes de añadir evidencia nueva.\n\nAprobado\n\nConsultar al propietario del proyecto para revisar el acceso",
+      "contactOwnerRemedy": true,
+      "restrictedControlsAbsent": true,
+      "diagnostics": {
+        "pageErrors": 0,
+        "unexpectedConsole": 0,
+        "otherHttpErrors": 0
+      }
+    },
+    {
+      "role": "worker",
+      "locale": "en",
+      "viewport": 390,
+      "heading": "Draft actions",
+      "code": "WARNING_REPORT_DELETE_DRAFT",
+      "visibleCopy": "Before you continue\n\nDeleting this draft removes its source record and records the action in the audit trail. Review the draft fields before deleting it.\n\nReview report fields",
+      "remedyKeyboardFocusable": true,
+      "deleteDialogShown": true,
+      "deleteCancelledNoMutation": true,
+      "diagnostics": {
+        "pageErrors": 0,
+        "unexpectedConsole": 0,
+        "otherHttpErrors": 0
+      }
+    },
+    {
+      "role": "owner",
+      "locale": "en",
+      "viewport": 1440,
+      "approvedWarningCode": "WARNING_REPORT_ATTACHMENT_CORRECTION_AVAILABLE",
+      "correctionPost": 303,
+      "linkedCorrectionUploadVisible": true,
+      "operationalEditAbsent": true,
+      "attachmentPost": 201,
+      "attachmentLinked": true,
+      "operationalFieldsUnchanged": true,
+      "diagnostics": {
+        "pageErrors": 0,
+        "unexpectedConsole": 0,
+        "otherHttpErrors": 0
+      }
+    },
+    {
+      "role": "worker",
+      "locale": "en",
+      "viewport": 390,
+      "firstStatus": 200,
+      "secondStatus": 200,
+      "versionAdvancedTwice": true,
+      "notificationCountStable": true,
+      "notificationIdentityReused": true,
+      "ownerMarkedReadViaUi": true,
+      "ownerNotificationRefreshedUnread": true,
+      "auditEventsForBoth": true,
+      "formValuesAndVersionRetained": true,
+      "diagnostics": {
+        "pageErrors": 0,
+        "unexpectedConsole": 0,
+        "otherHttpErrors": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+file:///home/kripta/ja-automation-platform-vps-hotfix/.tmp/verify-publish-live.mjs:17
+   if(response.status()!==200||metrics.documentWidth>width||errors.length)throw Error(JSON.stringify({name,width,status:response.status(),metrics,errors}));
+                                                                                ^
+
+Error: {"name":"login","width":390,"status":502,"metrics":{"width":390,"documentWidth":390,"font":"\"Times New Roman\"","fonts":[]},"errors":["502 https://j-aautomation.com/j-aautomation/app/login"]}
+    at file:///home/kripta/ja-automation-platform-vps-hotfix/.tmp/verify-publish-live.mjs:17:81
+
+Node.js v24.19.0

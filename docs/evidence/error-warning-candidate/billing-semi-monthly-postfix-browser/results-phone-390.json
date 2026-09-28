@@ -1,0 +1,137 @@
+{
+  "candidateCommit": "db135569882e49f323ff8391cd2de7bac0c7c64c",
+  "role": "finance",
+  "viewport": "phone-390",
+  "locale": "en",
+  "native": false,
+  "fixture": "fresh disposable database; project created through Owner UI",
+  "supported": {
+    "values": [
+      "1_15_16_end"
+    ],
+    "help": "Semi-monthly billing currently covers both halves of each month."
+  },
+  "before": {
+    "scrollY": 2133
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "type": "failure",
+    "actionStatus": 400,
+    "code": "BILLING_SEMI_MONTHLY_RULE_INVALID",
+    "fieldErrors": {
+      "semiMonthlyRule": [
+        "problem.billing.semiMonthlyRuleInvalid"
+      ]
+    },
+    "remedies": [
+      {
+        "id": "review_billing_setup"
+      }
+    ],
+    "values": {
+      "projectId": ":record",
+      "streamType": "labor",
+      "cadenceType": "semi_monthly",
+      "effectiveFrom": "2026-09-27",
+      "anchorDate": "",
+      "legalEntityId": "legal-entity-ja-usa",
+      "taxProfileId": "",
+      "currency": "USD",
+      "templateId": "default",
+      "recipientEmail": "",
+      "billingContactId": "",
+      "paymentTermsDays": "31",
+      "poNumberOverride": "QA SPLIT REVIEW",
+      "groupingMode": "summary",
+      "semiMonthlyRule": "1_15",
+      "viewportScrollY": "2133",
+      "drawerScrollTop": "0"
+    },
+    "generic": false
+  },
+  "after": {
+    "code": "BILLING_SEMI_MONTHLY_RULE_INVALID",
+    "notice": "Action needed Semi-monthly billing currently covers days 1–15 and 16–month end. Choose the supported full-month split. Review billing setup",
+    "noticeTop": -812,
+    "noticeBottom": -640,
+    "noticeVisible": false,
+    "remedy": [
+      {
+        "text": "Review billing setup",
+        "href": "/j-aautomation/app/billing?view=setup"
+      }
+    ],
+    "fieldError": "Semi-monthly billing currently covers days 1–15 and 16–month end. Choose the supported full-month split.",
+    "fieldInvalid": "true",
+    "splitOptions": [
+      {
+        "value": "1_15",
+        "disabled": true,
+        "selected": true,
+        "text": "Previously entered unsupported rule"
+      },
+      {
+        "value": "1_15_16_end",
+        "disabled": false,
+        "selected": false,
+        "text": "Days 1–15 and 16–month end"
+      },
+      {
+        "value": "1_15",
+        "disabled": false,
+        "selected": false,
+        "text": "Old half-month rule"
+      }
+    ],
+    "values": {
+      "projectId": ":record",
+      "streamType": "labor",
+      "cadenceType": "semi_monthly",
+      "effectiveFrom": "2026-09-27",
+      "legalEntityId": "legal-entity-ja-usa",
+      "currency": "USD",
+      "paymentTermsDays": "31",
+      "poNumberOverride": "QA SPLIT REVIEW",
+      "semiMonthlyRule": "1_15"
+    },
+    "activeName": "semiMonthlyRule",
+    "activeTag": "select",
+    "activeTop": 697,
+    "activeBottom": 741,
+    "scrollY": 2133,
+    "viewportHeight": 844,
+    "setupTabSelected": "Configure billing",
+    "lang": "en-US"
+  },
+  "noWrite": {
+    "before": {
+      "billingRules": 0,
+      "audits": 332
+    },
+    "after": {
+      "billingRules": 0,
+      "audits": 332
+    }
+  },
+  "diagnostics": {
+    "actor": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "http": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "http": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    }
+  }
+}

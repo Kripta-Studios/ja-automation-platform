@@ -1,0 +1,135 @@
+{
+  "candidateCommit": "a938eb3a84639d444d0fc3b68592969261edc9b2",
+  "role": "owner",
+  "viewport": "phone-390",
+  "locale": "en",
+  "fixture": "preseeded disposable Worker account; no profile mutation permitted by this case",
+  "clientValidation": {
+    "url": "/j-aautomation/app/projects?view=team&worker=:record&lang=en",
+    "editorOpen": true,
+    "formPresent": true,
+    "profileValue": "external_technician",
+    "supplierValue": "",
+    "supplierRequired": true,
+    "supplierValidity": "Please select an item in the list.",
+    "supplierCue": "A supplier is required for Supplier coordinator and External technician profiles.",
+    "fieldError": "Please select an option.",
+    "noticeCode": null,
+    "noticeText": null,
+    "noticeVisible": false,
+    "noticeRemedies": [],
+    "toastText": "Error Sync failed — retry when the connection is stable. ×",
+    "focusedTag": "select",
+    "focusedName": "supplierId",
+    "focusedNotice": false,
+    "focusTop": 606,
+    "focusBottom": 650,
+    "selectedTab": "Specialists1",
+    "scrollY": 2027,
+    "viewportHeight": 844,
+    "language": "en-US"
+  },
+  "before": {
+    "url": "/j-aautomation/app/projects?view=team&worker=:record&lang=en",
+    "editorOpen": true,
+    "formPresent": true,
+    "profileValue": "external_technician",
+    "supplierValue": "",
+    "supplierRequired": true,
+    "supplierValidity": "Please select an item in the list.",
+    "supplierCue": "A supplier is required for Supplier coordinator and External technician profiles.",
+    "fieldError": "Please select an option.",
+    "noticeCode": null,
+    "noticeText": null,
+    "noticeVisible": false,
+    "noticeRemedies": [],
+    "toastText": "Error Sync failed — retry when the connection is stable. ×",
+    "focusedTag": "select",
+    "focusedName": "supplierId",
+    "focusedNotice": false,
+    "focusTop": 475,
+    "focusBottom": 519,
+    "selectedTab": "Specialists1",
+    "scrollY": 2158,
+    "viewportHeight": 844,
+    "language": "en-US"
+  },
+  "enhanced": {
+    "transportStatus": 200,
+    "actionStatus": 400,
+    "type": "failure",
+    "code": "ACCESS_WORKFORCE_SUPPLIER_REQUIRED",
+    "messageKey": "problem.access.workforceSupplierRequired",
+    "fieldErrors": {
+      "supplierId": [
+        "problem.access.workforceSupplierRequired"
+      ]
+    },
+    "remedies": [
+      {
+        "id": "review_supplier_profile",
+        "recordId": ":record"
+      }
+    ],
+    "values": {
+      "workerId": ":record",
+      "profile": "external_technician",
+      "supplierId": ""
+    }
+  },
+  "native": {
+    "transportStatus": 400,
+    "code": "ACCESS_WORKFORCE_SUPPLIER_REQUIRED",
+    "genericText": false,
+    "after": {
+      "url": "/j-aautomation/app/projects?view=team&/setWorkforceProfile",
+      "editorOpen": true,
+      "formPresent": true,
+      "profileValue": "external_technician",
+      "supplierValue": "",
+      "supplierRequired": true,
+      "supplierValidity": "Please select an item in the list.",
+      "supplierCue": "A supplier is required for Supplier coordinator and External technician profiles.",
+      "fieldError": "Choose a supplier before assigning the Supplier coordinator or External technician profile.",
+      "noticeCode": "ACCESS_WORKFORCE_SUPPLIER_REQUIRED",
+      "noticeText": "Action needed Choose a supplier before assigning the Supplier coordinator or External technician profile. Review supplier profile",
+      "noticeVisible": false,
+      "noticeRemedies": [
+        {
+          "text": "Review supplier profile",
+          "href": "/j-aautomation/app/projects?view=team&worker=:record"
+        }
+      ],
+      "toastText": "Error Choose a supplier before assigning the Supplier coordinator or External technician profile. × Error Sync failed — retry when the connection is stable. ×",
+      "focusedTag": "div",
+      "focusedName": null,
+      "focusedNotice": false,
+      "focusTop": 367,
+      "focusBottom": 478,
+      "selectedTab": "Specialists8",
+      "scrollY": 2230,
+      "viewportHeight": 844,
+      "language": "en-US"
+    }
+  },
+  "noWrite": {
+    "before": {
+      "profiles": 0,
+      "audits": 6
+    },
+    "after": {
+      "profiles": 0,
+      "audits": 6
+    }
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "http": [
+      "503 /j-aautomation/app/api/offline/identity",
+      "503 /j-aautomation/app/api/offline/identity",
+      "400 /j-aautomation/app/projects",
+      "503 /j-aautomation/app/api/offline/identity"
+    ]
+  }
+}

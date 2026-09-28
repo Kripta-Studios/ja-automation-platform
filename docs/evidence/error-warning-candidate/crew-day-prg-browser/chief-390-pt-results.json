@@ -1,0 +1,199 @@
+{
+  "candidateCommit": "0c3934c",
+  "role": "worker",
+  "width": 390,
+  "scenario": "Owner granted and revoked via UI; Chief retained form then submitted",
+  "valid": {
+    "locale": "pt-BR",
+    "width": 390,
+    "height": 844,
+    "scrollY": 0,
+    "query": {
+      "project": [
+        ":record"
+      ],
+      "date": [
+        "2026-09-27"
+      ],
+      "lang": [
+        "pt"
+      ],
+      "filterRefresh": [],
+      "viewportScrollY": []
+    },
+    "code": null,
+    "text": null,
+    "remedy": null,
+    "remedyHref": null,
+    "summaryPresent": false,
+    "summaryText": null,
+    "summaryLinks": [],
+    "focusIsTarget": false,
+    "focusedId": "",
+    "targetTop": null,
+    "targetBottom": null,
+    "headerBottom": 69.59375,
+    "projectValue": ":record",
+    "projectUnavailableOption": false,
+    "projectError": null,
+    "dateValue": "2026-09-27",
+    "dateType": "date",
+    "dateError": null,
+    "crewEntriesCount": 1,
+    "crewHoursCount": 1,
+    "crewAssignCount": 0,
+    "errorPageText": null
+  },
+  "invalid": {
+    "locale": "pt-BR",
+    "width": 390,
+    "height": 844,
+    "scrollY": 0,
+    "query": {
+      "project": [
+        ":record"
+      ],
+      "date": [
+        "not-a-date"
+      ],
+      "lang": [
+        "pt"
+      ],
+      "filterRefresh": [],
+      "viewportScrollY": []
+    },
+    "code": "CREW_DAY_DATE_INVALID",
+    "text": "Ação necessária Introduza uma data de trabalho válida no formato AAAA-MM-DD para ver as horas da equipa. Corrigir o campo destacado",
+    "remedy": "Corrigir o campo destacado",
+    "remedyHref": "#crew-filter-date",
+    "summaryPresent": false,
+    "summaryText": null,
+    "summaryLinks": [],
+    "focusIsTarget": true,
+    "focusedId": "",
+    "targetTop": 279.953125,
+    "targetBottom": 451.8125,
+    "headerBottom": 69.59375,
+    "projectValue": ":record",
+    "projectUnavailableOption": false,
+    "projectError": null,
+    "dateValue": "not-a-date",
+    "dateType": "text",
+    "dateError": "Introduza uma data de trabalho válida no formato AAAA-MM-DD para ver as horas da equipa.",
+    "crewEntriesCount": 0,
+    "crewHoursCount": 0,
+    "crewAssignCount": 0,
+    "errorPageText": null
+  },
+  "corrected": {
+    "locale": "pt-BR",
+    "width": 390,
+    "height": 844,
+    "scrollY": 431,
+    "query": {
+      "project": [
+        ":record"
+      ],
+      "date": [
+        "2026-09-27"
+      ],
+      "lang": [
+        "pt"
+      ],
+      "filterRefresh": [
+        ":record"
+      ],
+      "viewportScrollY": [
+        "0"
+      ]
+    },
+    "code": null,
+    "text": null,
+    "remedy": null,
+    "remedyHref": null,
+    "summaryPresent": false,
+    "summaryText": null,
+    "summaryLinks": [],
+    "focusIsTarget": false,
+    "focusedId": "",
+    "targetTop": null,
+    "targetBottom": null,
+    "headerBottom": 69.59375,
+    "projectValue": ":record",
+    "projectUnavailableOption": false,
+    "projectError": null,
+    "dateValue": "2026-09-27",
+    "dateType": "date",
+    "dateError": null,
+    "crewEntriesCount": 1,
+    "crewHoursCount": 1,
+    "crewAssignCount": 0,
+    "errorPageText": null
+  },
+  "stale": {
+    "locale": "pt-BR",
+    "width": 390,
+    "height": 844,
+    "scrollY": 0,
+    "query": {
+      "project": [
+        ":record"
+      ],
+      "date": [
+        "2026-09-27"
+      ],
+      "lang": [
+        "pt"
+      ],
+      "filterRefresh": [],
+      "viewportScrollY": []
+    },
+    "code": "CREW_DAY_PROJECT_UNAVAILABLE_CHIEF",
+    "text": "Ação necessária O seu acesso à equipa deste projeto mudou, ou o projeto já não está disponível para esse trabalho. Escolha um projeto disponível ou contacte o responsável pelo projeto. Contatar o proprietário do projeto para revisar o acesso",
+    "remedy": "Contatar o proprietário do projeto para revisar o acesso",
+    "remedyHref": null,
+    "summaryPresent": false,
+    "summaryText": null,
+    "summaryLinks": [],
+    "focusIsTarget": true,
+    "focusedId": "",
+    "targetTop": 279.953125,
+    "targetBottom": 470.109375,
+    "headerBottom": 69.59375,
+    "projectValue": ":record",
+    "projectUnavailableOption": true,
+    "projectError": "O seu acesso à equipa deste projeto mudou, ou o projeto já não está disponível para esse trabalho. Escolha um projeto disponível ou contacte o responsável pelo projeto.",
+    "dateValue": "2026-09-27",
+    "dateType": "date",
+    "dateError": null,
+    "crewEntriesCount": 0,
+    "crewHoursCount": 0,
+    "crewAssignCount": 0,
+    "errorPageText": null
+  },
+  "audits": {
+    "beforeInvalid": 332,
+    "beforeStale": 333,
+    "afterStale": 333
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json"
+    ]
+  },
+  "chiefDiagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json"
+    ]
+  }
+}

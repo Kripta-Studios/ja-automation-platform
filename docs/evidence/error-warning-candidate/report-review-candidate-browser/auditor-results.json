@@ -1,0 +1,147 @@
+{
+  "candidateCommit": "41dc838e3f3270fd593d6553d44c0075ec4528a1",
+  "role": "auditor",
+  "viewport": 1440,
+  "locale": "es",
+  "results": [
+    {
+      "name": "valid",
+      "status": 403,
+      "ui": {
+        "path": "/j-aautomation/app/reports/review",
+        "query": {
+          "project": [],
+          "from": [],
+          "to": [],
+          "lang": [
+            "es"
+          ],
+          "viewportScrollY": []
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "locale": null,
+        "scrollY": 0,
+        "formPresent": false,
+        "projectSelected": false,
+        "projectUnavailableOption": false,
+        "from": null,
+        "to": null,
+        "code": null,
+        "noticeText": null,
+        "noticeTop": null,
+        "noticeBottom": null,
+        "headerBottom": 72,
+        "focusIsNotice": false,
+        "focusIsSummary": false,
+        "focusedTag": "body",
+        "remedyHref": null,
+        "remedyText": null,
+        "fieldErrors": {},
+        "reportCount": 0
+      }
+    },
+    {
+      "name": "malformed",
+      "status": 403,
+      "ui": {
+        "path": "/j-aautomation/app/reports/review",
+        "query": {
+          "project": [
+            ":record"
+          ],
+          "from": [
+            "2026-02-30"
+          ],
+          "to": [
+            "2026-03-01"
+          ],
+          "lang": [
+            "es"
+          ],
+          "viewportScrollY": []
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "locale": null,
+        "scrollY": 0,
+        "formPresent": false,
+        "projectSelected": false,
+        "projectUnavailableOption": false,
+        "from": null,
+        "to": null,
+        "code": null,
+        "noticeText": null,
+        "noticeTop": null,
+        "noticeBottom": null,
+        "headerBottom": 72,
+        "focusIsNotice": false,
+        "focusIsSummary": false,
+        "focusedTag": "body",
+        "remedyHref": null,
+        "remedyText": null,
+        "fieldErrors": {},
+        "reportCount": 0
+      }
+    },
+    {
+      "name": "duplicate",
+      "status": 403,
+      "ui": {
+        "path": "/j-aautomation/app/reports/review",
+        "query": {
+          "project": [
+            ":record",
+            ":record"
+          ],
+          "from": [
+            "2026-09-01"
+          ],
+          "to": [
+            "2026-09-30"
+          ],
+          "lang": [
+            "es"
+          ],
+          "viewportScrollY": []
+        },
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "locale": null,
+        "scrollY": 0,
+        "formPresent": false,
+        "projectSelected": false,
+        "projectUnavailableOption": false,
+        "from": null,
+        "to": null,
+        "code": null,
+        "noticeText": null,
+        "noticeTop": null,
+        "noticeBottom": null,
+        "headerBottom": 72,
+        "focusIsNotice": false,
+        "focusIsSummary": false,
+        "focusedTag": "body",
+        "remedyHref": null,
+        "remedyText": null,
+        "fieldErrors": {},
+        "reportCount": 0
+      }
+    }
+  ],
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "403 document",
+      "403 document",
+      "403 document"
+    ]
+  }
+}

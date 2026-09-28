@@ -1,0 +1,41 @@
+{
+  "cdp": "Chromium DevTools Protocol Network and Runtime domains",
+  "storage": [
+    {
+      "date": "2026-11-11",
+      "hasWorkerId": true
+    }
+  ],
+  "reopenedDate": "2026-11-11",
+  "networkSummary": {
+    "responses": 26,
+    "postStatuses": [
+      {
+        "status": 200,
+        "path": "/j-aautomation/app/api/auth/sign-in/email"
+      },
+      {
+        "status": 200,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 200,
+        "path": "/j-aautomation/app/api/auth/get-session"
+      },
+      {
+        "status": 200,
+        "path": "/j-aautomation/app/api/auth/passkey/list-user-passkeys"
+      },
+      {
+        "status": 200,
+        "path": "/j-aautomation/app/time"
+      },
+      {
+        "status": 200,
+        "path": "/j-aautomation/app/time/__data.json"
+      }
+    ],
+    "httpErrors": []
+  },
+  "issues": []
+}

@@ -1,0 +1,10 @@
+{
+  "code": "ACTION_MANAGEMENT_CHANGED",
+  "scenario": "sessionStorage denied",
+  "viewport": "desktop",
+  "responseStatus": 409,
+  "route": "/j-aautomation/app/manage",
+  "method": "POST",
+  "screenshot": "ACTION_MANAGEMENT_CHANGED_STORAGE_BLOCKED-desktop.png",
+  "scope": "isolated problem notice only; no account or invoice details"
+}

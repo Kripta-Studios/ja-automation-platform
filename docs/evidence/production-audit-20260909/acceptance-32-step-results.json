@@ -1,0 +1,323 @@
+{
+  "fixture": {
+    "clientCode": "UAT-CE-20260824",
+    "legalName": "Client Essential UAT 2026",
+    "displayName": "Client Essential UAT · 2026",
+    "projectName": "Client Essential UAT Project · 2026",
+    "costCenter": "UAT-CE-COST-2026",
+    "purchaseOrder": "UAT-CE-PO-2026",
+    "invitationPrefix": "client-essential-uat-20260824",
+    "workerEmail": "client-essential-uat-20260824-worker@example.test",
+    "managerEmail": "client-essential-uat-20260824-manager@example.test",
+    "financeEmail": "client-essential-uat-20260824-finance@example.test"
+  },
+  "steps": [
+    {
+      "number": 1,
+      "requirement": "CORE-01",
+      "title": "Owner invites Worker, PM and Finance users",
+      "role": "owner",
+      "route": "/projects",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 2,
+      "requirement": "CORE-02",
+      "title": "Admin creates a client",
+      "role": "owner",
+      "route": "/projects",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 3,
+      "requirement": "CORE-02",
+      "title": "Admin creates a project",
+      "role": "owner",
+      "route": "/projects",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 4,
+      "requirement": "CORE-03",
+      "title": "Admin configures reference hours and minimum billable rule",
+      "role": "owner",
+      "route": "/projects/:id",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 5,
+      "requirement": "CORE-02",
+      "title": "Admin configures budget, PO, commercial and identifiers",
+      "role": "owner",
+      "route": "/projects/:id",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 6,
+      "requirement": "CORE-02",
+      "title": "Admin assigns active workers with effective dates",
+      "role": "owner",
+      "route": "/projects",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 7,
+      "requirement": "CORE-03",
+      "title": "Admin configures compensation, internal cost, overtime and Travel",
+      "role": "finance",
+      "route": "/finance?view=commercial",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 8,
+      "requirement": "CORE-05",
+      "title": "Percentage-based worker can be configured",
+      "role": "finance",
+      "route": "/finance?view=commercial",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 9,
+      "requirement": "CORE-06",
+      "title": "Reimbursable versus all-in Travel/expenses are configured",
+      "role": "finance",
+      "route": "/finance?view=commercial",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 10,
+      "requirement": "CORE-10",
+      "title": "Labor and expense streams/cadences/tax profiles can differ",
+      "role": "finance",
+      "route": "/billing",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 11,
+      "requirement": "CORE-04",
+      "title": "Worker opens the portal on a phone",
+      "role": "worker",
+      "route": "/",
+      "mutation": false,
+      "viewports": [360, 390]
+    },
+    {
+      "number": 12,
+      "requirement": "CORE-04",
+      "title": "Worker records actual time and Admin correction preserves history",
+      "role": "worker",
+      "route": "/time",
+      "mutation": true,
+      "viewports": [390]
+    },
+    {
+      "number": 13,
+      "requirement": "CORE-05",
+      "title": "Worker sees own pay/status/dates without commercial data",
+      "role": "worker",
+      "route": "/pay",
+      "mutation": false,
+      "viewports": [390]
+    },
+    {
+      "number": 14,
+      "requirement": "CORE-07",
+      "title": "Worker submits a daily report and customer report is zero-money",
+      "role": "worker",
+      "route": "/reports",
+      "mutation": true,
+      "viewports": [390]
+    },
+    {
+      "number": 15,
+      "requirement": "CORE-07",
+      "title": "Worker submits a PLC/technical report with backup attachment",
+      "role": "worker",
+      "route": "/reports",
+      "mutation": true,
+      "viewports": [390]
+    },
+    {
+      "number": 16,
+      "requirement": "CORE-06",
+      "title": "Worker submits an expense with a receipt",
+      "role": "worker",
+      "route": "/expenses",
+      "mutation": true,
+      "viewports": [390]
+    },
+    {
+      "number": 17,
+      "requirement": "CORE-08",
+      "title": "PM approves or rejects operational records",
+      "role": "manager",
+      "route": "/approvals",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 18,
+      "requirement": "CORE-09",
+      "title": "Finance reviews billability, compensation, cost, revenue and dates",
+      "role": "finance",
+      "route": "/finance",
+      "mutation": false,
+      "viewports": [1440]
+    },
+    {
+      "number": 19,
+      "requirement": "CORE-09",
+      "title": "Project finance exposes reconciled economics and source drill-down",
+      "role": "finance",
+      "route": "/projects/:id",
+      "mutation": false,
+      "viewports": [1440]
+    },
+    {
+      "number": 20,
+      "requirement": "CORE-06",
+      "title": "All-in expense affects project cost without entering an expense invoice",
+      "role": "finance",
+      "route": "/finance",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 21,
+      "requirement": "CORE-06",
+      "title": "Reimbursable expense enters billing after approval",
+      "role": "finance",
+      "route": "/finance",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 22,
+      "requirement": "CORE-07/10",
+      "title": "Period close creates customer report and gates labor invoice",
+      "role": "finance",
+      "route": "/reports",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 23,
+      "requirement": "CORE-11",
+      "title": "Finance issues an immutable identified invoice",
+      "role": "finance",
+      "route": "/billing",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 24,
+      "requirement": "CORE-05/12",
+      "title": "Finance records client payments and worker/expense payment states",
+      "role": "finance",
+      "route": "/billing",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 25,
+      "requirement": "CORE-12",
+      "title": "Invoice and collection ledger reconciles",
+      "role": "finance",
+      "route": "/ledger",
+      "mutation": false,
+      "viewports": [1440]
+    },
+    {
+      "number": 26,
+      "requirement": "CORE-13",
+      "title": "Monthly Accounting/Finance export reconciles to source data",
+      "role": "finance",
+      "route": "/accounting",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 27,
+      "requirement": "CORE-13/16",
+      "title": "Pending/failed artifacts are truthful and safely retryable",
+      "role": "finance",
+      "route": "/accounting",
+      "mutation": true,
+      "viewports": [1440]
+    },
+    {
+      "number": 28,
+      "requirement": "CORE-15",
+      "title": "Worker/PM cannot access private Finance data",
+      "role": "worker",
+      "route": "/finance",
+      "mutation": false,
+      "viewports": [390, 768]
+    },
+    {
+      "number": 29,
+      "requirement": "CORE-14",
+      "title": "Critical flows work on phone, tablet and desktop",
+      "role": "system",
+      "route": "/",
+      "mutation": false,
+      "viewports": [360, 390, 768, 1440]
+    },
+    {
+      "number": 30,
+      "requirement": "CORE-16",
+      "title": "Automatic jobs work without manual queue processing",
+      "role": "system",
+      "route": "/health/ready",
+      "mutation": false,
+      "viewports": [1440]
+    },
+    {
+      "number": 31,
+      "requirement": "CORE-17",
+      "title": "Continuity is proven or explicitly waived by the Owner without weakening local safeguards",
+      "role": "system",
+      "route": "/health/ready",
+      "mutation": false,
+      "viewports": [1440]
+    },
+    {
+      "number": 32,
+      "requirement": "CORE-17",
+      "title": "Production deployment starts correctly behind Caddy",
+      "role": "system",
+      "route": "/health/live",
+      "mutation": false,
+      "viewports": [1440]
+    }
+  ],
+  "failures": [
+    {
+      "number": 30,
+      "title": "Automatic jobs work without manual queue processing",
+      "error": "External prerequisite blocked for automatic-jobs: OPERATIONS_EVIDENCE_MISSING — Set JA_E2E_OPERATIONS_EVIDENCE (or JA_E2E_OPERATIONS_EVIDENCE_PATH) to an operator evidence JSON file"
+    },
+    {
+      "number": 31,
+      "title": "Continuity is proven or explicitly waived by the Owner without weakening local safeguards",
+      "error": "External prerequisite blocked for continuity-backup: OPERATIONS_EVIDENCE_MISSING — Set JA_E2E_OPERATIONS_EVIDENCE (or JA_E2E_OPERATIONS_EVIDENCE_PATH) to an operator evidence JSON file"
+    }
+  ],
+  "operationsEvidence": {
+    "status": "BLOCKED",
+    "prerequisite": "automatic-jobs",
+    "code": "OPERATIONS_EVIDENCE_MISSING",
+    "message": "Set JA_E2E_OPERATIONS_EVIDENCE (or JA_E2E_OPERATIONS_EVIDENCE_PATH) to an operator evidence JSON file"
+  },
+  "status": "NOT_READY"
+}

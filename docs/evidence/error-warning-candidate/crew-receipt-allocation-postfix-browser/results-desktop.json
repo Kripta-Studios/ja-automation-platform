@@ -1,0 +1,129 @@
+{
+  "productCommit": "3599b9812ea0172f7e97658020026354e2ba7e7c",
+  "role": "crewChief",
+  "viewport": "desktop",
+  "locale": "es",
+  "fixture": "fresh disposable DB; project, delegations, time, receipt created through rendered UI",
+  "cases": [
+    {
+      "kind": "allocated-after-open",
+      "before": {
+        "code": null,
+        "wording": "",
+        "remedy": [],
+        "formPresent": true,
+        "receiptOptionPresent": true,
+        "selectedReceipt": true,
+        "chosenRows": [true, true],
+        "amounts": ["7.00", "5.50"],
+        "attemptedSplitVisible": false,
+        "attemptedAmounts": [],
+        "savedGroupVisible": false,
+        "savedAmounts": [],
+        "savedAnchor": null,
+        "focusedTag": "input",
+        "focusedNotice": false,
+        "focusTop": 498,
+        "noticeTop": null,
+        "headerBottom": 72,
+        "scrollY": 1424,
+        "viewportHeight": 900,
+        "selectedProject": true,
+        "selectedDate": "2026-09-27",
+        "locale": "es",
+        "documentLanguage": "es-ES"
+      },
+      "savedResponse": {
+        "transportStatus": 200,
+        "contentType": "application/json"
+      },
+      "saved": {
+        "groupCount": 1,
+        "totalMinor": 1250,
+        "allocationCount": 2,
+        "amountsMinor": [450, 800],
+        "auditCount": 1
+      },
+      "enhanced": {
+        "transportStatus": 200,
+        "contentType": "application/json",
+        "envelopeType": "failure",
+        "actionStatus": 409,
+        "code": "CREW_RECEIPT_ALREADY_ALLOCATED",
+        "remedy": "review_saved_allocation"
+      },
+      "native": {
+        "status": 409,
+        "contentType": "text/html",
+        "code": "CREW_RECEIPT_ALREADY_ALLOCATED",
+        "remedy": "review_saved_allocation"
+      },
+      "after": {
+        "code": "CREW_RECEIPT_ALREADY_ALLOCATED",
+        "wording": "Se requiere una acción Este recibo ya está repartido. Revisa el reparto guardado antes de hacer otro cambio. Revisar el reparto guardado del recibo",
+        "remedy": [
+          {
+            "label": "Revisar el reparto guardado del recibo",
+            "pathname": "/j-aautomation/app/crew",
+            "search": "?project=:record&date=2026-09-27&receipt=:record&review=1",
+            "hash": "#crew-allocation-:record"
+          }
+        ],
+        "formPresent": false,
+        "receiptOptionPresent": false,
+        "selectedReceipt": false,
+        "chosenRows": [false, false],
+        "amounts": [null, null],
+        "attemptedSplitVisible": true,
+        "attemptedAmounts": ["5.50", "7.00"],
+        "savedGroupVisible": true,
+        "savedAmounts": ["8.00", "4.50"],
+        "savedAnchor": "crew-allocation-:record",
+        "focusedTag": "div",
+        "focusedNotice": true,
+        "focusTop": 407,
+        "noticeTop": 407,
+        "headerBottom": 72,
+        "scrollY": 1424,
+        "viewportHeight": 900,
+        "selectedProject": true,
+        "selectedDate": "2026-09-27",
+        "locale": "es",
+        "documentLanguage": "es-ES"
+      },
+      "finalState": {
+        "groupCount": 1,
+        "totalMinor": 1250,
+        "allocationCount": 2,
+        "amountsMinor": [450, 800],
+        "auditCount": 1
+      }
+    },
+    {
+      "kind": "review-saved-allocation-remedy",
+      "reviewed": {
+        "localeInUrl": null,
+        "documentLanguage": "es-ES",
+        "hash": "#crew-allocation-:record",
+        "anchorPresent": true,
+        "savedAllocationVisible": true,
+        "savedHeadingText": "Distribuciones de recibos guardadas",
+        "receiptParameterPresent": true
+      }
+    }
+  ],
+  "console": {
+    "chiefA": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "chiefB": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  }
+}

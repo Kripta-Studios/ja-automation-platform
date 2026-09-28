@@ -1,0 +1,136 @@
+[
+  {
+    "action": "createPlanning",
+    "viewport": "phone-390",
+    "locale": "en",
+    "httpStatus": 400,
+    "code": "PLANNING_WINDOW_INVALID",
+    "responseHasCode": true,
+    "noticeText": "Action needed\n\nThe shift end must be after its start.\n\nReview the planning fields",
+    "fieldErrorText": "The shift end must be after its start.",
+    "retained": {
+      "project": true,
+      "worker": true,
+      "start": true,
+      "end": true,
+      "site": true
+    },
+    "scrollBefore": 1074,
+    "recovery": {
+      "focusedSummary": true,
+      "focusTop": 86,
+      "focusBottom": 155,
+      "headerBottom": 70,
+      "viewportHeight": 844,
+      "focusVisible": true,
+      "scrollY": 1041,
+      "noticeTop": 194
+    },
+    "scheduleCountBefore": "4",
+    "scheduleCountAfter": "4",
+    "pageErrors": [],
+    "consoleErrors": ["failed-resource", "failed-resource", "failed-resource"],
+    "databaseWriteCount": 0
+  },
+  {
+    "action": "uploadPrivateDocument",
+    "viewport": "phone-390",
+    "locale": "en",
+    "httpStatus": 400,
+    "code": "DOCUMENT_FILE_TYPE_OR_SIZE_INVALID",
+    "responseHasCode": true,
+    "noticeText": "Action needed\n\nChoose a supported PDF, ZIP, image, or text file no larger than 50 MB.\n\nCorrect the highlighted fields",
+    "fieldErrorText": "Choose a supported PDF, ZIP, image, or text file no larger than 50 MB.",
+    "retained": {
+      "project": true,
+      "type": true,
+      "description": true,
+      "disclosureOpen": true,
+      "fileCleared": true,
+      "reattachInstruction": true
+    },
+    "scrollBefore": 555,
+    "recovery": {
+      "focusedSummary": true,
+      "focusTop": 86,
+      "focusBottom": 177,
+      "headerBottom": 70,
+      "viewportHeight": 844,
+      "focusVisible": true,
+      "scrollY": 420,
+      "noticeTop": 193
+    },
+    "documentCountBefore": "13 files",
+    "documentCountAfter": "13 files",
+    "pageErrors": [],
+    "consoleErrors": ["failed-resource", "failed-resource", "failed-resource"],
+    "databaseWriteCount": 0
+  },
+  {
+    "action": "createPlanning",
+    "viewport": "desktop-1440",
+    "locale": "es",
+    "httpStatus": 400,
+    "code": "PLANNING_WINDOW_INVALID",
+    "responseHasCode": true,
+    "noticeText": "Se requiere una acción\n\nLa fecha y hora de fin deben ser posteriores al inicio.\n\nRevisar campos de planificación",
+    "fieldErrorText": "La fecha y hora de fin deben ser posteriores al inicio.",
+    "retained": {
+      "project": true,
+      "worker": true,
+      "start": true,
+      "end": true,
+      "site": true
+    },
+    "scrollBefore": 866,
+    "recovery": {
+      "focusedSummary": true,
+      "focusTop": 198,
+      "focusBottom": 247,
+      "headerBottom": 72,
+      "viewportHeight": 900,
+      "focusVisible": true,
+      "scrollY": 866,
+      "noticeTop": 285
+    },
+    "scheduleCountBefore": null,
+    "scheduleCountAfter": null,
+    "pageErrors": [],
+    "consoleErrors": ["failed-resource", "failed-resource", "failed-resource"],
+    "databaseWriteCount": 0
+  },
+  {
+    "action": "uploadPrivateDocument",
+    "viewport": "desktop-1440",
+    "locale": "es",
+    "httpStatus": 400,
+    "code": "DOCUMENT_FILE_TYPE_OR_SIZE_INVALID",
+    "responseHasCode": true,
+    "noticeText": "Se requiere una acción\n\nElige un archivo PDF, ZIP, imagen o texto compatible de 50 MB como máximo.\n\nCorrige los campos señalados",
+    "fieldErrorText": "Elige un archivo PDF, ZIP, imagen o texto compatible de 50 MB como máximo.",
+    "retained": {
+      "project": true,
+      "type": true,
+      "description": true,
+      "disclosureOpen": true,
+      "fileCleared": true,
+      "reattachInstruction": true
+    },
+    "scrollBefore": 0,
+    "recovery": {
+      "focusedSummary": true,
+      "focusTop": 88,
+      "focusBottom": 137,
+      "headerBottom": 72,
+      "viewportHeight": 900,
+      "focusVisible": true,
+      "scrollY": 395,
+      "noticeTop": 153
+    },
+    "documentCountBefore": null,
+    "documentCountAfter": null,
+    "pageErrors": [],
+    "consoleErrors": ["failed-resource", "failed-resource", "failed-resource"],
+    "databaseWriteCount": 0
+  }
+]

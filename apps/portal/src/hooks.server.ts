@@ -1,16 +1,111 @@
+import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import { building } from '$app/environment';
-import { auth } from '$lib/server/auth';
+import { auth, revokeSessionsUnlessUserIsActive } from '$lib/server/auth';
 import { createDatabase } from '@ja/database';
-import { readDemoToken } from '$lib/server/demo-session';
+import { supplierRouteAllowed } from '$lib/server/supplier-route-access';
 import { createHash, randomUUID } from 'node:crypto';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import type { Handle } from '@sveltejs/kit';
+import { documentLanguage, portalText, type PortalLocale } from '$lib/portal-i18n';
+import type { ProblemData } from '$lib/problem/contract';
+import {
+  isWebmailOnlyUser,
+  webmailOnlyUserIdForEmail,
+  webmailOnlyUserIdForResetToken,
+} from '$lib/server/webmail-password';
 
-const publicBase = process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation';
-const portalBase = process.env.JA_PORTAL_BASE_PATH ?? `${publicBase}/app`;
+function normalizeBasePath(value: string | undefined, fallback: string): string {
+  const candidate = (value?.trim() || fallback).split(/[?#]/u, 1)[0] ?? fallback;
+  const withoutOuterSlashes = candidate.replace(/^\/+|\/+$/gu, '');
+  return withoutOuterSlashes ? `/${withoutOuterSlashes}` : '';
+}
+
+const publicBase = normalizeBasePath(process.env.JA_PUBLIC_BASE_PATH, '/j-aautomation');
+const portalBase = normalizeBasePath(process.env.JA_PORTAL_BASE_PATH, `${publicBase || ''}/app`);
 const production = process.env.NODE_ENV === 'production';
 const portalCsp =
-  "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo='; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'";
+  "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; frame-src 'self' blob:; object-src 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo='; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'";
+
+function requestLocale(event: Parameters<Handle>[0]['event']): PortalLocale {
+  return resolvePortalLocalePreference(
+    event.url.searchParams.get('lang'),
+    event.cookies.get('ja.portal.locale'),
+    event.cookies.get('ja-portal-locale'),
+  );
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/gu, (character) => {
+    switch (character) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      default:
+        return '&#39;';
+    }
+  });
+}
+
+/** Keep this guard before route loading while giving denied document requests a usable remedy. */
+function operationalAccessDeniedResponse(
+  profile: 'external_technician' | 'supplier_coordinator',
+  locale: PortalLocale,
+  acceptsHtml: boolean,
+  correlationId: string,
+): Response {
+  const destination = profile === 'supplier_coordinator' ? 'supplier' : 'time';
+  const href = `${portalBase}/${destination}?lang=${locale}`;
+  const code = 'OPERATIONAL_ACCOUNT_ROUTE_RESTRICTED';
+  if (!acceptsHtml)
+    return new Response(
+      JSON.stringify({
+        code,
+        messageKey: 'problem.operational.routeRestricted',
+        params: {},
+        fieldErrors: {},
+        remedies: [{ id: 'return_to_work', href }, { id: 'contact_owner' }],
+        correlationId,
+      }),
+      { status: 403, headers: { 'content-type': 'application/json; charset=utf-8' } },
+    );
+
+  const title = escapeHtml(portalText(locale, 'Access restricted'));
+  const explanation = escapeHtml(portalText(locale, 'problem.operational.routeRestricted'));
+  const contact = escapeHtml(portalText(locale, 'Contact an owner'));
+  const destinationLabel = escapeHtml(
+    portalText(locale, destination === 'supplier' ? 'Supplier' : 'Time'),
+  );
+  const language = documentLanguage(locale);
+  return new Response(
+    `<!doctype html><html lang="${language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · J&A Automation</title></head><body><main><h1 tabindex="-1">${title}</h1><p>${explanation}</p><p>${contact}</p><a href="${escapeHtml(href)}">${destinationLabel}</a></main></body></html>`,
+    { status: 403, headers: { 'content-type': 'text/html; charset=utf-8' } },
+  );
+}
+
+async function applyServerDocumentLocale(
+  response: Response,
+  locale: PortalLocale,
+): Promise<Response> {
+  if (!response.headers.get('content-type')?.includes('text/html')) return response;
+  const body = await response.text();
+  const language = documentLanguage(locale);
+  const html = body.replace(/<html\b([^>]*)>/i, (_match, attributes: string) => {
+    const withoutLanguage = attributes.replace(/\s+lang\s*=\s*(['"])[^'\"]*\1/i, '');
+    return `<html lang="${language}"${withoutLanguage}>`;
+  });
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  return new Response(html, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
 
 function applySecurityHeaders(
   response: Response,
@@ -20,7 +115,12 @@ function applySecurityHeaders(
 ): Response {
   response.headers.set('x-correlation-id', correlationId);
   response.headers.set('x-content-type-options', 'nosniff');
-  response.headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+  response.headers.set(
+    'referrer-policy',
+    path.startsWith(`${portalBase}/invite/`) || path === `${portalBase}/api/invitations/accept`
+      ? 'no-referrer'
+      : 'strict-origin-when-cross-origin',
+  );
   response.headers.set('permissions-policy', 'camera=(self), microphone=(), geolocation=()');
   response.headers.set('x-frame-options', 'DENY');
   response.headers.set('cross-origin-opener-policy', 'same-origin');
@@ -33,7 +133,58 @@ function applySecurityHeaders(
   return response;
 }
 
-function authRateLimit(event: Parameters<Handle>[0]['event']): Response | null {
+function requestLogPath(path: string): string {
+  const invitationPrefix = `${portalBase}/invite/`;
+  return path.startsWith(invitationPrefix) ? `${invitationPrefix}[REDACTED]` : path;
+}
+
+/**
+ * Keep the historical public login URL useful after the portal acquired its
+ * `/app` boundary.  The redirect is deliberately exact: API paths and any
+ * other public route must continue through the normal SvelteKit handler.
+ */
+function legacyLoginRedirect(event: Parameters<Handle>[0]['event']): Response | null {
+  const legacyPath = publicBase ? `${publicBase}/login` : '/login';
+  const canonicalPath = portalBase ? `${portalBase}/login` : '/login';
+  if (event.url.pathname !== legacyPath || legacyPath === canonicalPath) return null;
+
+  const target = new URL(canonicalPath, event.url.origin);
+  // URL.search is already encoded by the platform; assigning it preserves
+  // repeated keys and avoids interpreting user input as a redirect target.
+  target.search = event.url.search;
+  // Construct the response explicitly instead of using Response.redirect:
+  // Node's redirect helper exposes immutable headers, while the common
+  // security-header path must add the correlation and cache headers below.
+  return new Response(null, {
+    status: 307,
+    headers: { location: target.toString() },
+  });
+}
+
+/**
+ * Keep common, user-guessable portal URLs useful without creating duplicate
+ * section implementations. The match is exact so nested resources and API
+ * endpoints always continue through SvelteKit's normal authorization path.
+ */
+function canonicalPortalAliasRedirect(event: Parameters<Handle>[0]['event']): Response | null {
+  const aliases: Readonly<Record<string, Readonly<{ path: string; view?: string }>>> = {
+    [`${portalBase}/invoices`]: { path: `${portalBase}/billing` },
+    [`${portalBase}/settings`]: { path: `${portalBase}/audit` },
+    [`${portalBase}/team`]: { path: `${portalBase}/projects`, view: 'team' },
+    [`${portalBase}/clients`]: { path: `${portalBase}/projects`, view: 'clients' },
+  };
+  const alias = aliases[event.url.pathname];
+  if (!alias) return null;
+  const target = new URL(alias.path, event.url.origin);
+  target.search = event.url.search;
+  if (alias.view) target.searchParams.set('view', alias.view);
+  return new Response(null, { status: 307, headers: { location: target.toString() } });
+}
+
+function authRateLimit(
+  event: Parameters<Handle>[0]['event'],
+  correlationId: string,
+): Response | null {
   if (event.request.method === 'GET' || event.request.method === 'HEAD') return null;
   const address = event.getClientAddress();
   const endpoint = event.url.pathname.replace(/[^A-Za-z0-9/_-]/g, '_');
@@ -42,6 +193,7 @@ function authRateLimit(event: Parameters<Handle>[0]['event']): Response | null {
   try {
     const now = Date.now();
     const windowMs = 15 * 60_000;
+    sqlite.exec('BEGIN IMMEDIATE');
     const row = sqlite
       .prepare('SELECT window_started_at,request_count FROM rate_limit_bucket WHERE bucket_key=?')
       .get(bucketKey) as { window_started_at: string; request_count: number } | undefined;
@@ -51,26 +203,96 @@ function authRateLimit(event: Parameters<Handle>[0]['event']): Response | null {
           'INSERT INTO rate_limit_bucket(bucket_key,window_started_at,request_count) VALUES(?,?,1) ON CONFLICT(bucket_key) DO UPDATE SET window_started_at=excluded.window_started_at,request_count=1',
         )
         .run(bucketKey, new Date(now).toISOString());
+      sqlite.exec('COMMIT');
       return null;
     }
-    if (row.request_count >= 10)
-      return new Response(JSON.stringify({ error: 'Too many authentication attempts' }), {
+    const configuredMaximum = Number.parseInt(process.env.JA_AUTH_RATE_LIMIT_MAX ?? '', 10);
+    const maximumAttempts =
+      Number.isSafeInteger(configuredMaximum) &&
+      configuredMaximum >= 1 &&
+      configuredMaximum <= 10_000
+        ? configuredMaximum
+        : 10;
+    if (row.request_count >= maximumAttempts) {
+      sqlite.exec('COMMIT');
+      const retryAfterSeconds = Math.max(
+        1,
+        Math.ceil((windowMs - (now - Date.parse(row.window_started_at))) / 1000),
+      );
+      const signIn = event.url.pathname.startsWith(`${portalBase}/api/auth/sign-in/`);
+      const problem: ProblemData & { error: string } = {
+        error: 'Too many authentication attempts',
+        code: signIn ? 'AUTH_SIGN_IN_RATE_LIMITED' : 'AUTH_REQUEST_RATE_LIMITED',
+        messageKey: signIn ? 'problem.auth.signInRateLimited' : 'problem.auth.requestRateLimited',
+        params: { retryAfterSeconds },
+        fieldErrors: {},
+        remedies: [{ id: 'wait_and_retry' }],
+        correlationId,
+      };
+      return new Response(JSON.stringify(problem), {
         status: 429,
         headers: {
           'content-type': 'application/json',
           'cache-control': 'no-store',
-          'retry-after': String(
-            Math.max(1, Math.ceil((windowMs - (now - Date.parse(row.window_started_at))) / 1000)),
-          ),
+          'retry-after': String(retryAfterSeconds),
         },
       });
+    }
     sqlite
       .prepare('UPDATE rate_limit_bucket SET request_count=request_count+1 WHERE bucket_key=?')
       .run(bucketKey);
+    sqlite.exec('COMMIT');
     return null;
+  } catch (error) {
+    try {
+      sqlite.exec('ROLLBACK');
+    } catch {
+      // Preserve the original rate-limit failure.
+    }
+    throw error;
   } finally {
     sqlite.close();
   }
+}
+
+async function denyWebmailPasswordMutation(
+  event: Parameters<Handle>[0]['event'],
+): Promise<Response | null> {
+  const suffix = event.url.pathname.slice(`${portalBase}/api/auth`.length);
+  if (suffix === '/change-password' || suffix === '/set-password') {
+    const session = await auth.api.getSession({ headers: event.request.headers });
+    if (!session?.user?.id || !isWebmailOnlyUser(session.user.id)) return null;
+  } else if (suffix === '/request-password-reset') {
+    const body = (await event.request
+      .clone()
+      .json()
+      .catch(() => null)) as { email?: unknown } | null;
+    if (typeof body?.email !== 'string' || !webmailOnlyUserIdForEmail(body.email)) return null;
+  } else if (suffix === '/reset-password') {
+    const body = (await event.request
+      .clone()
+      .json()
+      .catch(() => null)) as { token?: unknown } | null;
+    const token =
+      typeof body?.token === 'string' ? body.token : event.url.searchParams.get('token');
+    if (!token || !webmailOnlyUserIdForResetToken(token)) return null;
+  } else return null;
+
+  return new Response(
+    suffix === '/request-password-reset'
+      ? JSON.stringify({
+          status: true,
+          message: 'If this email exists in our system, check your email for the reset link',
+        })
+      : JSON.stringify({
+          code: 'WEBMAIL_PASSWORD_MANAGED_EXTERNALLY',
+          message: 'Password changes for this account are managed by Webmail.',
+        }),
+    {
+      status: suffix === '/request-password-reset' ? 200 : 403,
+      headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
+    },
+  );
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -81,9 +303,13 @@ export const handle: Handle = async ({ event, resolve }) => {
     : randomUUID();
   event.locals.correlationId = correlationId;
   const path = event.url.pathname;
+  const legacyLogin = legacyLoginRedirect(event);
+  if (legacyLogin) return applySecurityHeaders(legacyLogin, false, path, correlationId);
+  const portalAlias = canonicalPortalAliasRedirect(event);
+  if (portalAlias) return applySecurityHeaders(portalAlias, true, path, correlationId);
   const isPortal = path === portalBase || path.startsWith(`${portalBase}/`);
   const isAuth = path.startsWith(`${portalBase}/api/auth/`);
-  const isDemo = path === `${portalBase}/demo-login`;
+  const isInvitationAccept = path === `${portalBase}/api/invitations/accept`;
   if (path.endsWith('/api/auth/sign-up/email'))
     return applySecurityHeaders(
       new Response(JSON.stringify({ error: 'A valid single-use invitation is required.' }), {
@@ -94,22 +320,20 @@ export const handle: Handle = async ({ event, resolve }) => {
       path,
       correlationId,
     );
-  if (isAuth && event.request.method !== 'GET' && event.request.method !== 'HEAD') {
-    const limited = authRateLimit(event);
-    if (limited) return applySecurityHeaders(limited, isPortal, path, correlationId);
-  }
-  if (
-    isPortal &&
-    event.request.method !== 'GET' &&
-    event.request.method !== 'HEAD' &&
-    !isAuth &&
-    !isDemo
-  ) {
+  if (isPortal && event.request.method !== 'GET' && event.request.method !== 'HEAD' && !isAuth) {
     const origin = event.request.headers.get('origin');
     const referer = event.request.headers.get('referer');
+    let refererOrigin: string | null = null;
+    if (referer) {
+      try {
+        refererOrigin = new URL(referer).origin;
+      } catch {
+        refererOrigin = null;
+      }
+    }
     if (
       (origin && origin !== event.url.origin) ||
-      (!origin && (!referer || !referer.startsWith(event.url.origin)))
+      (!origin && (!refererOrigin || refererOrigin !== event.url.origin))
     ) {
       return applySecurityHeaders(
         new Response('Origin check failed', {
@@ -122,63 +346,68 @@ export const handle: Handle = async ({ event, resolve }) => {
       );
     }
   }
+  if (
+    (isAuth || isInvitationAccept) &&
+    event.request.method !== 'GET' &&
+    event.request.method !== 'HEAD'
+  ) {
+    const limited = authRateLimit(event, correlationId);
+    if (limited) return applySecurityHeaders(limited, isPortal, path, correlationId);
+    if (isAuth) {
+      const deniedPasswordMutation = await denyWebmailPasswordMutation(event);
+      if (deniedPasswordMutation)
+        return applySecurityHeaders(deniedPasswordMutation, isPortal, path, correlationId);
+    }
+  }
   if (!building && isPortal) {
-    const demoUserId = readDemoToken(event.cookies.get('ja_demo_session'));
-    if (demoUserId) {
+    const current = await auth.api.getSession({ headers: event.request.headers });
+    let currentUser: App.Locals['user'] = null;
+    if (current?.session && current.user) {
+      currentUser = revokeSessionsUnlessUserIsActive(current.session.userId);
+    }
+    const active = currentUser !== null;
+    event.locals.session = active ? (current?.session ?? null) : null;
+    event.locals.user = currentUser;
+    if (currentUser) {
       const { sqlite } = createDatabase();
       try {
-        const demoUser = sqlite
-          .prepare(
-            "SELECT id,name,email,role,status,mfa_enrolled mfaEnrolled,mfa_required mfaRequired FROM user WHERE id=? AND status='active'",
-          )
-          .get(demoUserId) as unknown as App.Locals['user'];
-        event.locals.user = demoUser ?? null;
-        event.locals.session = demoUser
-          ? {
-              id: `demo-${demoUser.id}`,
-              userId: demoUser.id,
-              expiresAt: new Date(Date.now() + 3600000),
-            }
-          : null;
+        const profile = sqlite
+          .prepare('SELECT profile FROM supplier_user_profile WHERE user_id=?')
+          .get(currentUser.id) as
+          | { profile: 'external_technician' | 'supplier_coordinator' }
+          | undefined;
+        if (profile) {
+          event.locals.user!.workforceProfile = profile.profile;
+          const route = path.slice(portalBase.length);
+          if (!supplierRouteAllowed(route))
+            return applySecurityHeaders(
+              operationalAccessDeniedResponse(
+                profile.profile,
+                requestLocale(event),
+                (event.request.method === 'GET' || event.request.method === 'HEAD') &&
+                  event.request.headers.get('accept')?.includes('text/html') === true,
+                correlationId,
+              ),
+              true,
+              path,
+              correlationId,
+            );
+          if (route === '' || route === '/' || route === '/__data.json')
+            return applySecurityHeaders(
+              new Response(null, {
+                status: 303,
+                headers: {
+                  location: `${portalBase}/${profile.profile === 'supplier_coordinator' ? 'supplier' : 'time'}?lang=${requestLocale(event)}`,
+                },
+              }),
+              true,
+              path,
+              correlationId,
+            );
+        }
       } finally {
         sqlite.close();
       }
-    } else {
-      const current = await auth.api.getSession({ headers: event.request.headers });
-      let currentUser: App.Locals['user'] = null;
-      if (current?.session && current.user) {
-        const { sqlite } = createDatabase();
-        try {
-          currentUser =
-            (sqlite
-              .prepare(
-                "SELECT id,name,email,role,status,mfa_enrolled mfaEnrolled,mfa_required mfaRequired FROM user WHERE id=? AND status='active'",
-              )
-              .get(current.session.userId) as App.Locals['user'] | undefined) ?? null;
-        } finally {
-          sqlite.close();
-        }
-      }
-      const active = currentUser !== null;
-      event.locals.session = active ? (current?.session ?? null) : null;
-      event.locals.user = currentUser;
-      if (
-        active &&
-        production &&
-        currentUser?.mfaRequired &&
-        !currentUser?.mfaEnrolled &&
-        !path.endsWith('/profile') &&
-        !path.startsWith(`${portalBase}/api/security/mfa`)
-      )
-        return applySecurityHeaders(
-          new Response('MFA enrollment is required for this account', {
-            status: 403,
-            headers: { 'cache-control': 'no-store' },
-          }),
-          true,
-          path,
-          correlationId,
-        );
     }
   } else {
     event.locals.session = null;
@@ -196,13 +425,14 @@ export const handle: Handle = async ({ event, resolve }) => {
           event: 'http.request.error',
           correlationId,
           method: event.request.method,
-          path,
+          path: requestLogPath(path),
           durationMs: Date.now() - startedAt,
           error: caught instanceof Error ? caught.message : 'unknown error',
         }),
       );
     throw caught;
   }
+  if (isPortal) response = await applyServerDocumentLocale(response, requestLocale(event));
   applySecurityHeaders(response, isPortal, path, correlationId);
   if (production || process.env.JA_JSON_LOGS === 'true')
     console.log(
@@ -212,7 +442,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         event: 'http.request',
         correlationId,
         method: event.request.method,
-        path,
+        path: requestLogPath(path),
         status: response.status,
         durationMs: Date.now() - startedAt,
         userId: event.locals.user?.id,

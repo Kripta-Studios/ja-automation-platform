@@ -1,0 +1,55 @@
+{
+  "candidateCommit": "4bed1de",
+  "role": "finance",
+  "status": 403,
+  "ui": {
+    "locale": "en-US",
+    "width": 390,
+    "height": 844,
+    "scrollY": 0,
+    "query": {
+      "project": [
+        ":record"
+      ],
+      "date": [
+        "not-a-date"
+      ],
+      "lang": [
+        "en"
+      ],
+      "viewportScrollY": []
+    },
+    "code": null,
+    "text": null,
+    "remedy": null,
+    "remedyHref": null,
+    "summaryPresent": false,
+    "summaryText": null,
+    "summaryLinks": [],
+    "focusIsTarget": false,
+    "focusedId": "",
+    "targetTop": null,
+    "targetBottom": null,
+    "headerBottom": 69.59375,
+    "projectValue": null,
+    "projectUnavailableOption": false,
+    "projectError": null,
+    "dateValue": null,
+    "dateType": null,
+    "dateError": null,
+    "crewEntriesCount": 0,
+    "crewHoursCount": 0,
+    "crewAssignCount": 0,
+    "errorPageText": "← Dashboard Portal Portal Access restricted Your account does not have access to this page. Return to a section available to your role. Back"
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json"
+    ]
+  }
+}

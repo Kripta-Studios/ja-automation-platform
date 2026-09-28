@@ -1,0 +1,99 @@
+{
+  "candidateCommit": "7e17795c4e763b950d8c8c5a494638262b492140",
+  "fixture": "fresh disposable DB and Owner UI-created project; fixture client and active issuer",
+  "cases": [
+    {
+      "role": "financeAdmin",
+      "viewport": "390x844 EN",
+      "transport": "enhanced",
+      "currency": "USD",
+      "before": {
+        "scrollY": 1815
+      },
+      "network": {
+        "transportStatus": 200,
+        "contentType": "application/json",
+        "envelopeType": "failure",
+        "actionStatus": 400,
+        "code": "ACTION_ERROR_INVALID",
+        "messageKey": "action.error.invalid",
+        "genericPhrase": true
+      },
+      "visible": {
+        "routeView": "setup",
+        "locale": "en-US",
+        "code": "ACTION_ERROR_INVALID",
+        "wording": "Action needed Check the submitted values and try again.",
+        "remedies": [],
+        "fieldErrors": [],
+        "values": {
+          "projectIdRetained": true,
+          "legalEntityIdRetained": true,
+          "cadenceType": "semi_monthly",
+          "semiMonthlyRule": "1_14_15_end",
+          "effectiveFrom": "2026-10-01",
+          "paymentTermsDays": "30"
+        },
+        "formPresent": true,
+        "focusedTag": "aside",
+        "focusedName": null,
+        "focusTop": 381,
+        "noticeTop": 381,
+        "scrollY": 940,
+        "viewportHeight": 844
+      },
+      "savedRuleCount": 0
+    },
+    {
+      "role": "ownerAdmin",
+      "viewport": "1440x900 ES",
+      "transport": "native",
+      "before": {
+        "scrollY": 650
+      },
+      "network": {
+        "transportStatus": 400,
+        "contentType": "text/html",
+        "envelopeType": null,
+        "actionStatus": null,
+        "code": "ACTION_ERROR_INVALID",
+        "messageKey": "action.error.invalid",
+        "genericPhrase": true
+      },
+      "visible": {
+        "routeView": null,
+        "locale": "es-ES",
+        "code": "ACTION_ERROR_INVALID",
+        "wording": "Se requiere una acción Los datos no son válidos.",
+        "remedies": [],
+        "fieldErrors": [],
+        "values": {
+          "projectIdRetained": true,
+          "legalEntityIdRetained": true,
+          "cadenceType": "semi_monthly",
+          "semiMonthlyRule": "1_14_15_end",
+          "effectiveFrom": "2026-10-01",
+          "paymentTermsDays": "30"
+        },
+        "formPresent": true,
+        "focusedTag": "aside",
+        "focusedName": null,
+        "focusTop": 218,
+        "noticeTop": 218,
+        "scrollY": 650,
+        "viewportHeight": 900
+      },
+      "savedRuleCount": 0
+    }
+  ],
+  "console": {
+    "finance": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  }
+}

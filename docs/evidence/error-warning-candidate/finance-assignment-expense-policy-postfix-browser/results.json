@@ -1,0 +1,259 @@
+{
+  "candidateCommit": "86031e6",
+  "productDiffSha256": "8d056f82141d18eabd22850260150c48583d7495299a51c4284ece3cfe618780",
+  "fixture": "fresh disposable database, UI-created active project and worker assignment",
+  "roles": {
+    "form": "financeAdmin",
+    "concurrentEdit": "ownerAdmin"
+  },
+  "viewports": {
+    "finance": "390x844 EN",
+    "owner": "1440x900 PT for concurrent assignment edit"
+  },
+  "cases": [
+    {
+      "kind": "stale-outside-assignment",
+      "before": {
+        "scrollY": 3973,
+        "assignmentBounds": {
+          "startsOn": "2026-09-01",
+          "endsOn": null
+        },
+        "warning": "Before you continue Assignment dates for Alex Rivera: 2026-09-01 — Open assignment. Keep the policy dates within this assignment before saving.    "
+      },
+      "currentBounds": {
+        "startsOn": "2026-09-01",
+        "endsOn": "2026-10-15"
+      },
+      "response": {
+        "status": 409,
+        "contentType": "text/html",
+        "code": "FINANCE_POLICY_OUTSIDE_ASSIGNMENT",
+        "remedy": "review_assignment_policy",
+        "genericPhrase": false
+      },
+      "visible": {
+        "routeView": "commercial",
+        "selectedTask": "Person expense policies",
+        "code": "FINANCE_POLICY_OUTSIDE_ASSIGNMENT",
+        "wording": "Action needed The proposed policy dates fall outside the worker's current project assignment. Compare them with its start and end dates, then adjust the policy or review the assignment. Assignment for Alex Rivera: Active. Start: 2026-09-01. End: 2026-10-15. Review assignments",
+        "remedies": [
+          {
+            "text": "Review assignments",
+            "pathname": "/j-aautomation/app/projects",
+            "search": "?project=:record&assignment=:record",
+            "hash": "#assignment-history"
+          }
+        ],
+        "selectedPersonRetained": true,
+        "selectedPersonUnavailable": false,
+        "selectedPersonLabel": "Alex Rivera",
+        "payer": "worker",
+        "workerReimbursement": "at_cost",
+        "clientRecovery": "included",
+        "effectiveFrom": "2026-10-20",
+        "effectiveTo": "",
+        "category": "stale-1790518044949",
+        "reasonRetained": true,
+        "formPresent": true,
+        "focusedTag": "div",
+        "focusedName": null,
+        "focusedNotice": true,
+        "focusTop": 265,
+        "focusBottom": 579,
+        "noticeTop": 265,
+        "noticeBottom": 563,
+        "warning": "Before you continue Assignment dates for Alex Rivera: 2026-09-01 — 2026-10-15. Keep the policy dates within this assignment before saving.",
+        "scrollY": 3077,
+        "viewportHeight": 844,
+        "headerBottom": 70
+      },
+      "policyCount": 0
+    },
+    {
+      "kind": "stale-outside-assignment-enhanced-envelope",
+      "response": {
+        "transportStatus": 200,
+        "envelopeType": "failure",
+        "actionStatus": 409,
+        "code": "FINANCE_POLICY_OUTSIDE_ASSIGNMENT",
+        "remedy": "review_assignment_policy"
+      }
+    },
+    {
+      "kind": "assignment-remedy-navigation",
+      "historyVisible": true,
+      "historyFocused": true,
+      "currentEndDateVisible": true
+    },
+    {
+      "kind": "bounded-assignment-no-policy-end",
+      "currentBounds": {
+        "startsOn": "2026-09-01",
+        "endsOn": "2026-10-15"
+      },
+      "response": {
+        "status": 400,
+        "contentType": "text/html",
+        "code": "FINANCE_POLICY_END_REQUIRED",
+        "remedy": "review_assignment_policy",
+        "genericPhrase": false
+      },
+      "visible": {
+        "routeView": "commercial",
+        "selectedTask": "Person expense policies",
+        "code": "FINANCE_POLICY_END_REQUIRED",
+        "wording": "Action needed The worker assignment has an end date. Enter a policy end date no later than that limit and not before the policy start. Assignment for Alex Rivera: Active. Start: 2026-09-01. End: 2026-10-15. Review assignments",
+        "remedies": [
+          {
+            "text": "Review assignments",
+            "pathname": "/j-aautomation/app/projects",
+            "search": "?project=:record&assignment=:record",
+            "hash": "#assignment-history"
+          }
+        ],
+        "selectedPersonRetained": true,
+        "selectedPersonUnavailable": false,
+        "selectedPersonLabel": "Alex Rivera",
+        "payer": "worker",
+        "workerReimbursement": "at_cost",
+        "clientRecovery": "included",
+        "effectiveFrom": "2026-10-10",
+        "effectiveTo": "",
+        "category": "end-required-1790518048598",
+        "reasonRetained": true,
+        "formPresent": true,
+        "focusedTag": "div",
+        "focusedName": null,
+        "focusedNotice": true,
+        "focusTop": 285,
+        "focusBottom": 558,
+        "noticeTop": 285,
+        "noticeBottom": 542,
+        "warning": "Before you continue Assignment dates for Alex Rivera: 2026-09-01 — 2026-10-15. Keep the policy dates within this assignment before saving.",
+        "scrollY": 3015,
+        "viewportHeight": 844,
+        "headerBottom": 70
+      }
+    },
+    {
+      "kind": "bounded-assignment-enhanced-envelope",
+      "response": {
+        "transportStatus": 200,
+        "envelopeType": "failure",
+        "actionStatus": 400,
+        "contentType": "application/json",
+        "code": "FINANCE_POLICY_END_REQUIRED",
+        "remedy": "review_assignment_policy"
+      }
+    },
+    {
+      "kind": "owner-desktop-portuguese-bounded-policy",
+      "response": {
+        "status": 400,
+        "contentType": "text/html",
+        "code": "FINANCE_POLICY_END_REQUIRED",
+        "remedy": "review_assignment_policy",
+        "genericPhrase": false
+      },
+      "visible": {
+        "routeView": "commercial",
+        "selectedTask": "Person expense policies",
+        "code": "FINANCE_POLICY_END_REQUIRED",
+        "wording": "Ação necessária A atribuição do trabalhador tem data de término. Informe uma data de término da política que não ultrapasse esse limite nem anteceda a data de início. Atribuição de Alex Rivera: Ativo. Início: 2026-09-01. Fim: 2026-10-15. Revisar atribuições",
+        "remedies": [
+          {
+            "text": "Revisar atribuições",
+            "pathname": "/j-aautomation/app/projects",
+            "search": "?project=:record&assignment=:record",
+            "hash": "#assignment-history"
+          }
+        ],
+        "selectedPersonRetained": true,
+        "selectedPersonUnavailable": false,
+        "selectedPersonLabel": "Alex Rivera",
+        "payer": "worker",
+        "workerReimbursement": "at_cost",
+        "clientRecovery": "included",
+        "effectiveFrom": "2026-10-10",
+        "effectiveTo": "",
+        "category": "owner-pt-1790518050685",
+        "reasonRetained": true,
+        "formPresent": true,
+        "focusedTag": "div",
+        "focusedName": null,
+        "focusedNotice": true,
+        "focusTop": 354,
+        "focusBottom": 546,
+        "noticeTop": 354,
+        "noticeBottom": 530,
+        "warning": "Antes de continuar Datas da atribuição de Alex Rivera: 2026-09-01 — 2026-10-15. Ajuste as datas da política a esta atribuição antes de salvar.",
+        "scrollY": 2407,
+        "viewportHeight": 900,
+        "headerBottom": 72
+      }
+    },
+    {
+      "kind": "removed-assignment-stale-policy",
+      "before": {
+        "scrollY": 3973,
+        "auditAfterRemoval": 335
+      },
+      "response": {
+        "status": 409,
+        "contentType": "text/html",
+        "code": "FINANCE_POLICY_ASSIGNMENT_UNAVAILABLE",
+        "remedy": "review_assignment_policy",
+        "genericPhrase": false
+      },
+      "visible": {
+        "routeView": "commercial",
+        "selectedTask": "Person expense policies",
+        "code": "FINANCE_POLICY_ASSIGNMENT_UNAVAILABLE",
+        "wording": "Action needed The selected worker has no eligible assignment for this project. Review current assignments before saving the policy. Assignment for Alex Rivera: Inactive. Start: 2026-09-01. End: 2026-09-26. Review assignments",
+        "remedies": [
+          {
+            "text": "Review assignments",
+            "pathname": "/j-aautomation/app/projects",
+            "search": "?project=:record&assignment=:record",
+            "hash": "#assignment-history"
+          }
+        ],
+        "selectedPersonRetained": true,
+        "selectedPersonUnavailable": true,
+        "selectedPersonLabel": "No eligible current assignment is available for Alex Rivera on this project. Review assignments or choose another worker before saving the policy.",
+        "payer": "worker",
+        "workerReimbursement": "at_cost",
+        "clientRecovery": "included",
+        "effectiveFrom": "2026-10-10",
+        "effectiveTo": "",
+        "category": "removed-1790518052520",
+        "reasonRetained": true,
+        "formPresent": true,
+        "focusedTag": "div",
+        "focusedName": null,
+        "focusedNotice": true,
+        "focusTop": 285,
+        "focusBottom": 558,
+        "noticeTop": 285,
+        "noticeBottom": 542,
+        "warning": null,
+        "scrollY": 2040,
+        "viewportHeight": 844,
+        "headerBottom": 70
+      },
+      "policyCount": 0
+    }
+  ],
+  "finalPolicyCount": 0,
+  "console": {
+    "finance": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  }
+}

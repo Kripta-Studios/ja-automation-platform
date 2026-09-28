@@ -1,0 +1,48 @@
+{
+  "candidateProductCommit": "8b16ce8",
+  "database": "disposable SQLite fixture",
+  "document": "synthetic text/plain finance-class private file",
+  "runs": [
+    {
+      "viewport": "390x844",
+      "locale": ["en", "pt"],
+      "roles": ["owner", "finance", "worker"],
+      "realResponses": [
+        { "state": "signed-out", "status": 401, "code": "DOCUMENT_DOWNLOAD_SIGN_IN_REQUIRED" },
+        { "state": "worker-denied", "status": 404, "code": "DOCUMENT_DOWNLOAD_UNAVAILABLE" },
+        { "state": "finance-view", "status": 200, "mediaType": "text/plain", "disposition": "inline" },
+        { "state": "finance-download", "status": 200, "disposition": "attachment" },
+        { "state": "authorized-file-missing", "status": 409, "code": "DOCUMENT_DOWNLOAD_FILE_MISSING" }
+      ],
+      "interceptedResponses": [
+        { "status": 401, "code": "DOCUMENT_DOWNLOAD_SIGN_IN_REQUIRED" },
+        { "status": 404, "code": "DOCUMENT_DOWNLOAD_UNAVAILABLE" },
+        { "status": 503, "code": "DOCUMENT_DOWNLOAD_SERVICE_UNAVAILABLE" }
+      ],
+      "popupBlockedGetCount": 0,
+      "focusedInlineNotice": true,
+      "noticeAboveFixedNavigation": true,
+      "rawJsonTabAfterFailure": false,
+      "unexpectedConsoleErrors": 0,
+      "pageExceptions": 0
+    },
+    {
+      "viewport": "1440x900",
+      "locale": ["es"],
+      "roles": ["owner", "finance", "worker"],
+      "realResponses": [
+        { "state": "signed-out", "status": 401, "code": "DOCUMENT_DOWNLOAD_SIGN_IN_REQUIRED" },
+        { "state": "worker-denied", "status": 404, "code": "DOCUMENT_DOWNLOAD_UNAVAILABLE" },
+        { "state": "finance-view", "status": 200, "mediaType": "text/plain", "disposition": "inline" },
+        { "state": "finance-download", "status": 200, "disposition": "attachment" }
+      ],
+      "interceptedResponses": [
+        { "status": 503, "code": "DOCUMENT_DOWNLOAD_SERVICE_UNAVAILABLE" }
+      ],
+      "focusedInlineNotice": true,
+      "rawJsonTabAfterFailure": false,
+      "unexpectedConsoleErrors": 0,
+      "pageExceptions": 0
+    }
+  ]
+}

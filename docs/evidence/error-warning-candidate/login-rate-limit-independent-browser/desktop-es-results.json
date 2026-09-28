@@ -1,0 +1,45 @@
+{
+  "candidate": "264b3c9",
+  "locale": "es",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "statusCodes": [
+    401,
+    401,
+    429
+  ],
+  "typed429": {
+    "error": "Too many authentication attempts",
+    "code": "AUTH_SIGN_IN_RATE_LIMITED",
+    "messageKey": "problem.auth.signInRateLimited",
+    "retryAfterSeconds": 900,
+    "paramsMatchHeader": true,
+    "fieldErrorsEmpty": true,
+    "remedies": [
+      {
+        "id": "wait_and_retry"
+      }
+    ],
+    "headerCorrelationMatchesBody": true
+  },
+  "noticeText": "Demasiados intentos de inicio de sesión. Vuelve a intentarlo en 15:00.",
+  "noticeFocused": true,
+  "noticeBox": {
+    "x": 944.984375,
+    "y": 401.984375,
+    "width": 356.421875,
+    "height": 38.375
+  },
+  "valuesRetained": true,
+  "submitDisabled": true,
+  "postsAfterForcedDisabledClick": 3,
+  "layout": {
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "documentLanguage": "es-ES"
+  },
+  "pageErrorCount": 0,
+  "unexpectedConsoleErrorCount": 0
+}

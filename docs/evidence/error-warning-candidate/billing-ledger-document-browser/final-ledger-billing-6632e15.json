@@ -1,0 +1,293 @@
+[
+  {
+    "scenario": "billing-no-tax",
+    "role": "owner",
+    "width": 1440,
+    "locale": "en",
+    "formVisible": true,
+    "projectOptions": 34,
+    "notice": {
+      "text": "Before you continue No tax profile is selected. Drafts from this stream will add no tax. Review the correct tax treatment before saving. Create a tax profile",
+      "links": [
+        {
+          "label": "Create a tax profile",
+          "href": "#billing-tax-setup-action"
+        }
+      ],
+      "rect": {
+        "top": 644.5625,
+        "bottom": 816.421875,
+        "left": 1023.0625,
+        "right": 1371.609375
+      },
+      "safeBottom": 892,
+      "inClearViewport": true,
+      "focused": false
+    },
+    "retained": {
+      "project": true,
+      "stream": true,
+      "email": true
+    },
+    "taxRemedy": {
+      "targetVisible": true,
+      "hash": "#billing-tax-setup-action",
+      "projectRetained": true,
+      "emailRetained": true
+    },
+    "urlPath": "/j-aautomation/app/billing",
+    "errors": [],
+    "network": [
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      }
+    ]
+  },
+  {
+    "scenario": "ledger-filtered-empty",
+    "role": "owner",
+    "width": 1440,
+    "locale": "en",
+    "baseNotice": [],
+    "ledgerRows": 2,
+    "notice": {
+      "text": "Before you continue No issued invoices match the current filters, so there is nothing to export. Clear filters or review Billing. Clear ledger filters Review Billing",
+      "links": [
+        {
+          "label": "Clear ledger filters",
+          "href": "/j-aautomation/app/ledger?q="
+        },
+        {
+          "label": "Review Billing",
+          "href": "/j-aautomation/app/billing"
+        }
+      ],
+      "rect": {
+        "top": 384.53125,
+        "bottom": 515.796875,
+        "left": 285,
+        "right": 1388.609375
+      },
+      "safeBottom": 892,
+      "inClearViewport": true,
+      "focused": true
+    },
+    "retainedSearch": true,
+    "urlPath": "/j-aautomation/app/ledger",
+    "scrollY": 829,
+    "errors": [],
+    "network": [
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      }
+    ]
+  },
+  {
+    "scenario": "billing-no-tax",
+    "role": "finance",
+    "width": 390,
+    "locale": "es",
+    "formVisible": true,
+    "projectOptions": 34,
+    "notice": {
+      "text": "Antes de continuar No se ha seleccionado un perfil fiscal. Los borradores de este flujo no añadirán impuestos. Revisa el tratamiento fiscal correcto antes de guardar. Crear un perfil fiscal",
+      "links": [
+        {
+          "label": "Crear un perfil fiscal",
+          "href": "#billing-tax-setup-action"
+        }
+      ],
+      "rect": {
+        "top": 404.375,
+        "bottom": 596.53125,
+        "left": 33,
+        "right": 357
+      },
+      "safeBottom": 764,
+      "inClearViewport": true,
+      "focused": false
+    },
+    "retained": {
+      "project": true,
+      "stream": true,
+      "email": true
+    },
+    "taxRemedy": {
+      "targetVisible": true,
+      "hash": "#billing-tax-setup-action",
+      "projectRetained": true,
+      "emailRetained": true
+    },
+    "urlPath": "/j-aautomation/app/billing",
+    "errors": [],
+    "network": [
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      }
+    ]
+  },
+  {
+    "scenario": "ledger-filtered-empty",
+    "role": "finance",
+    "width": 390,
+    "locale": "es",
+    "baseNotice": [],
+    "ledgerRows": 2,
+    "notice": {
+      "text": "Antes de continuar Ninguna factura emitida coincide con los filtros actuales, así que no hay nada que exportar. Borra los filtros o revisa Facturación. Borrar los filtros del registro Revisar Facturación",
+      "links": [
+        {
+          "label": "Borrar los filtros del registro",
+          "href": "/j-aautomation/app/ledger?q="
+        },
+        {
+          "label": "Revisar Facturación",
+          "href": "/j-aautomation/app/billing"
+        }
+      ],
+      "rect": {
+        "top": 336.03125,
+        "bottom": 507.890625,
+        "left": 16,
+        "right": 374
+      },
+      "safeBottom": 764,
+      "inClearViewport": true,
+      "focused": true
+    },
+    "retainedSearch": true,
+    "urlPath": "/j-aautomation/app/ledger",
+    "scrollY": 1643,
+    "errors": [],
+    "network": [
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      }
+    ]
+  },
+  {
+    "scenario": "billing-no-tax",
+    "role": "owner",
+    "width": 390,
+    "locale": "pt",
+    "formVisible": true,
+    "projectOptions": 34,
+    "notice": {
+      "text": "Antes de continuar Nenhum perfil fiscal foi selecionado. Os rascunhos deste fluxo não adicionarão impostos. Reveja o tratamento fiscal correto antes de guardar. Criar um perfil fiscal",
+      "links": [
+        {
+          "label": "Criar um perfil fiscal",
+          "href": "#billing-tax-setup-action"
+        }
+      ],
+      "rect": {
+        "top": 403.78125,
+        "bottom": 595.9375,
+        "left": 33,
+        "right": 357
+      },
+      "safeBottom": 764,
+      "inClearViewport": true,
+      "focused": false
+    },
+    "retained": {
+      "project": true,
+      "stream": true,
+      "email": true
+    },
+    "taxRemedy": {
+      "targetVisible": true,
+      "hash": "#billing-tax-setup-action",
+      "projectRetained": true,
+      "emailRetained": true
+    },
+    "urlPath": "/j-aautomation/app/billing",
+    "errors": [],
+    "network": [
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      }
+    ]
+  },
+  {
+    "scenario": "ledger-filtered-empty",
+    "role": "owner",
+    "width": 390,
+    "locale": "pt",
+    "baseNotice": [],
+    "ledgerRows": 2,
+    "notice": {
+      "text": "Antes de continuar Nenhuma fatura emitida corresponde aos filtros atuais, por isso não há nada para exportar. Limpe os filtros ou reveja Faturação. Limpar os filtros do registo Rever Faturação",
+      "links": [
+        {
+          "label": "Limpar os filtros do registo",
+          "href": "/j-aautomation/app/ledger?q="
+        },
+        {
+          "label": "Rever Faturação",
+          "href": "/j-aautomation/app/billing"
+        }
+      ],
+      "rect": {
+        "top": 336.03125,
+        "bottom": 507.890625,
+        "left": 16,
+        "right": 374
+      },
+      "safeBottom": 764,
+      "inClearViewport": true,
+      "focused": true
+    },
+    "retainedSearch": true,
+    "urlPath": "/j-aautomation/app/ledger",
+    "scrollY": 1643,
+    "errors": [],
+    "network": [
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      }
+    ]
+  }
+]

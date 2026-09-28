@@ -1,0 +1,1365 @@
+<script lang="ts">
+  import { base } from '$app/paths';
+  import { afterNavigate, beforeNavigate } from '$app/navigation';
+  import { page } from '$app/stores';
+  import { enhance } from '$app/forms';
+  import type { SubmitFunction } from '@sveltejs/kit';
+  import { onMount, tick } from 'svelte';
+  import {
+    Field,
+    FieldGroup,
+    FormCard,
+    SectionCard,
+    StatusBadge,
+    TableRegion,
+  } from '$lib/portal/ui';
+  import type { PortalLocale } from '$lib/portal-i18n';
+  import {
+    applyStandaloneDocumentLocale,
+    persistStandaloneLocale,
+    resolveStandaloneLocale,
+    standaloneText,
+  } from '../../standalone-locale';
+  import { reviewCopy, type ReviewLocale } from './copy';
+  import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import { beginReportPdfDownload, type ReportPdfAttempt } from '$lib/portal/ui/report-pdf-download';
+  import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
+  import {
+    readSessionItem,
+    removeSessionItem,
+    saveSessionItem,
+  } from '$lib/portal/ui/safe-session-storage';
+  import type { ProblemData } from '$lib/problem/contract';
+
+  type Row = Record<string, unknown>;
+  type ReviewReport = Row & {
+    reportId: string;
+    projectId: string;
+    periodStart: string;
+    periodEnd: string;
+    reportType: string;
+    state: string;
+    snapshotVersion: number;
+    snapshotSha256: string;
+    pdfReady: boolean;
+    conformityState: 'accepted' | 'signed_issue' | 'not_accepted';
+    sources: readonly Row[];
+    followup: Row & {
+      latestEventId: string | null;
+      latestEvent: Row | null;
+      events: readonly Row[];
+    };
+  };
+
+  const eventTypes = ['shared', 'exported', 'awaiting_signatory', 'returned', 'disputed'] as const;
+
+  let { data, form } = $props();
+  const resultForm = $derived(
+    form as
+      | (Partial<ProblemData> & {
+          operation?: string;
+          values?: Record<string, string>;
+          success?: boolean;
+        })
+      | null
+      | undefined,
+  );
+  const problem = $derived(
+    resultForm?.code && resultForm.messageKey && resultForm.correlationId
+      ? (resultForm as ProblemData)
+      : null,
+  );
+  let localeOverride = $state<PortalLocale | null>(null);
+  let selectedEvents = $state<Record<string, string>>({});
+  const locale = $derived(
+    localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
+  );
+  const copy = $derived(
+    reviewCopy[(locale === 'pt' ? 'pt' : locale === 'es' ? 'es' : 'en') as ReviewLocale],
+  );
+  let reportPdfBusyId = $state('');
+  let reportPdfFailure = $state<{ id: string; problem: ProblemData } | null>(null);
+  let reportPdfAttempt: ReportPdfAttempt | null = null;
+  let reportPdfDisposed = false;
+  function cancelReportPdf(): void {
+    reportPdfAttempt?.cancel();
+    reportPdfAttempt = null;
+    reportPdfBusyId = '';
+    reportPdfFailure = null;
+  }
+  beforeNavigate(cancelReportPdf);
+  onMount(() => () => {
+    reportPdfDisposed = true;
+    cancelReportPdf();
+  });
+  async function getReportPdf(id: string, mode: 'open' | 'download'): Promise<void> {
+    if (reportPdfBusyId || reportPdfDisposed) return;
+    reportPdfBusyId = id;
+    reportPdfFailure = null;
+    const attempt = beginReportPdfDownload(id, mode, {
+      title: standaloneText(locale, 'PDF'),
+      loading: standaloneText(locale, 'Loading'),
+      download: standaloneText(locale, 'Download PDF'),
+      previewFallback: standaloneText(locale, 'problem.report.pdfPreviewFallback'),
+      language: locale === 'pt' ? 'pt-BR' : locale,
+    });
+    reportPdfAttempt = attempt;
+    const failure = await attempt.result;
+    if (reportPdfDisposed || reportPdfAttempt !== attempt) return;
+    reportPdfAttempt = null;
+    reportPdfBusyId = '';
+    if (!failure) return;
+    reportPdfFailure = { id, problem: failure };
+    await tick();
+    if (reportPdfDisposed || reportPdfFailure?.id !== id) return;
+    const notice = document.querySelector<HTMLElement>(
+      `[data-review-pdf-problem="${CSS.escape(id)}"] [data-ui="problem-notice"]`,
+    );
+    notice?.focus({ preventScroll: true });
+    const bounds = notice?.getBoundingClientRect();
+    if (bounds && (bounds.top < 88 || bounds.bottom > window.innerHeight - 96))
+      notice?.scrollIntoView({ block: 'center', inline: 'nearest' });
+  }
+  function onReportPdfLinkClick(event: MouseEvent, id: string): void {
+    if (event.defaultPrevented || (event.button !== 0 && event.button !== 1)) return;
+    event.preventDefault();
+    void getReportPdf(id, 'open');
+  }
+  function onReportPdfRemedyClick(event: MouseEvent, id: string): void {
+    if (!(event.target instanceof Element)) return;
+    const retry = event.target.closest<HTMLAnchorElement>('a[href="#report-pdf-retry"]');
+    if (!retry || !(event.currentTarget instanceof Element) || !event.currentTarget.contains(retry)) return;
+    event.preventDefault();
+    void getReportPdf(id, 'download');
+  }
+  const reports = $derived((data.review?.reports ?? []) as ReviewReport[]);
+  const projects = $derived((data.projects ?? []) as Row[]);
+  const responsibleUsers = $derived((data.responsibleUsers ?? []) as Row[]);
+  const finance = $derived(
+    (data.finance ?? { billing: [], invoices: [] }) as Row & {
+      billing?: readonly Row[];
+      invoices?: readonly Row[];
+    },
+  );
+  const values = $derived((resultForm?.values ?? {}) as Record<string, unknown>);
+  const filterProblem = $derived((data.filterProblem ?? null) as ProblemData | null);
+  const filterFields = $derived(Object.keys(filterProblem?.fieldErrors ?? {}));
+  const firstFilterField = $derived(filterFields[0] ?? 'project');
+  const fromDateInvalid = $derived(
+    filterProblem?.fieldErrors.from?.[0] === 'problem.reports.reviewPeriodDateInvalid',
+  );
+  const toDateInvalid = $derived(
+    filterProblem?.fieldErrors.to?.[0] === 'problem.reports.reviewPeriodDateInvalid',
+  );
+  let filterProblemContainer = $state<HTMLDivElement>();
+  function filterError(name: string): string | undefined {
+    const key = filterProblem?.fieldErrors[name]?.[0];
+    return key ? standaloneText(locale, key) : undefined;
+  }
+  function filterFieldLabel(name: string): string {
+    return name === 'project' ? copy.project : name === 'from' ? copy.from : copy.to;
+  }
+  function rememberFilterScroll(event: SubmitEvent): void {
+    const input = (event.currentTarget as HTMLFormElement).elements.namedItem('viewportScrollY');
+    if (input instanceof HTMLInputElement)
+      input.value = String(Math.max(0, Math.round(window.scrollY)));
+  }
+  function focusFilterProblem(): void {
+    const container = filterProblemContainer;
+    if (!container || !filterProblem) return;
+    void tick().then(() =>
+      requestAnimationFrame(() => {
+        if (!container.isConnected) return;
+        const target =
+          container.querySelector<HTMLElement>('[data-ui="validation-summary"]') ??
+          container.querySelector<HTMLElement>('[data-ui="problem-notice"]');
+        if (!target) return;
+        const scroll = $page.url.searchParams.get('viewportScrollY');
+        if (scroll && /^\d{1,7}$/u.test(scroll)) window.scrollTo(0, Number(scroll));
+        if (document.activeElement !== target && !target.contains(document.activeElement))
+          target.focus({ preventScroll: true });
+        const bounds = target.getBoundingClientRect();
+        if (bounds.top < 72 || bounds.bottom > window.innerHeight - 72)
+          target.scrollIntoView({ block: 'nearest' });
+      }),
+    );
+  }
+  $effect(() => {
+    if (filterProblem && filterProblemContainer) focusFilterProblem();
+  });
+  afterNavigate(() => {
+    if (filterProblem) setTimeout(focusFilterProblem, 0);
+  });
+  const feedback = $derived.by(() => {
+    if (resultForm?.success && resultForm.messageKey === 'action.reports.periodFollowupRecorded')
+      return copy.recorded;
+    return '';
+  });
+
+  const display = (value: unknown, fallback = '—'): string =>
+    value === null || value === undefined || value === '' ? fallback : String(value);
+  const submittedValue = (reportId: string, name: string, fallback = ''): string => {
+    if (values.periodReportId !== reportId) return fallback;
+    const value = values[name];
+    return value === null || value === undefined || value === '' ? fallback : String(value);
+  };
+  const eventType = (reportId: string): string =>
+    selectedEvents[reportId] ?? submittedValue(reportId, 'eventType', 'shared');
+
+  const scrollKey = $derived(
+    `period-review-scroll:${String(data.user?.id ?? '')}:${String(data.selectedProjectId ?? '')}:${String(data.periodStart ?? '')}:${String(data.periodEnd ?? '')}`,
+  );
+  function rememberScroll(): void {
+    saveSessionItem(scrollKey, String(window.scrollY));
+  }
+  function showFieldProblems(result: typeof resultForm): void {
+    const reportId = result?.values?.periodReportId;
+    const target = reportId
+      ? Array.from(document.querySelectorAll<HTMLFormElement>('form[data-followup-form]')).find(
+          (item) => item.dataset.followupForm === reportId,
+        )
+      : undefined;
+    if (target && result?.fieldErrors) reportFormFieldErrors(target, result.fieldErrors);
+    const summary = target?.querySelector<HTMLElement>('[data-validation-summary]');
+    const namedFields = Object.keys(result?.fieldErrors ?? {});
+    const firstField =
+      namedFields.length === 1
+        ? Array.from(
+            target?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+              'input,select,textarea',
+            ) ?? [],
+          ).find((control) => control.name === namedFields[0] && control.type !== 'hidden')
+        : undefined;
+    (
+      firstField ??
+      (namedFields.length > 1 ? summary : null) ??
+      target
+        ?.closest('[data-followup-card]')
+        ?.querySelector<HTMLElement>('[data-ui="problem-notice"]') ??
+      document.querySelector<HTMLElement>('[data-review-global-problem] [data-ui="problem-notice"]')
+    )?.focus({ preventScroll: true });
+  }
+  const preserveFollowupForm: SubmitFunction = () => {
+    const scrollTop = window.scrollY;
+    return async ({ result, update }) => {
+      await update({ reset: false });
+      if (result.type === 'failure') {
+        await tick();
+        showFieldProblems(result.data as typeof resultForm);
+        window.scrollTo({ top: scrollTop, behavior: 'instant' });
+      }
+    };
+  };
+  const eventLabel = (value: unknown): string => {
+    const key = String(value ?? '');
+    const labels = copy.followupTypes;
+    return labels[key] ?? (key ? key.replaceAll('_', ' ') : '—');
+  };
+  const reasonLabel = (value: unknown): string => {
+    const key = String(value ?? '');
+    return copy.reasonLabels[key] ?? key.replaceAll('_', ' ');
+  };
+  const statusLabel = (value: unknown): string => {
+    const key = String(value ?? '').toLowerCase();
+    if (key === 'accepted') return copy.accepted;
+    if (key === 'signed_issue') return copy.signedIssue;
+    if (key === 'not_accepted') return copy.notAccepted;
+    if (key === 'ready') return copy.readyForBilling;
+    if (key === 'incomplete') return copy.incomplete;
+    if (key === 'already_closed') return copy.alreadyClosed;
+    return display(value);
+  };
+  const statusVariant = (value: unknown): 'success' | 'warning' | 'danger' | 'info' | 'neutral' => {
+    const key = String(value ?? '').toLowerCase();
+    if (['accepted', 'ready'].includes(key)) return 'success';
+    if (['incomplete', 'signed_issue', 'not_accepted'].includes(key)) return 'warning';
+    if (key === 'disputed') return 'danger';
+    return 'info';
+  };
+  const linkFor = (href: unknown): string => {
+    const value = String(href ?? '');
+    return value.startsWith('/') ? `${base}${value}` : value;
+  };
+  const sourceLabel = (source: Row): string => `${display(source.type)} · ${display(source.id)}`;
+  const reportHistoryCards = (report: ReviewReport) =>
+    report.followup.events.map((event) => ({
+      id: display(event.id),
+      cells: [
+        { label: copy.eventType, value: eventLabel(event.eventType) },
+        { label: copy.eventDateShort, value: display(event.eventDate ?? event.createdAt) },
+        { label: copy.version, value: `v${display(event.snapshotVersion)}` },
+        { label: copy.hash, value: display(event.snapshotSha256) },
+        { label: copy.responsible, value: display(event.responsibleUserId) },
+        { label: copy.state, value: event.stale ? copy.stale : copy.ready },
+      ],
+    }));
+  function selectEvent(reportId: string, event: Event): void {
+    const control = event.currentTarget;
+    if (!(control instanceof HTMLSelectElement)) return;
+    selectedEvents = { ...selectedEvents, [reportId]: control.value };
+  }
+  function isDispatchEvent(reportId: string): boolean {
+    return ['shared', 'exported'].includes(eventType(reportId));
+  }
+  function isSignatoryEvent(reportId: string): boolean {
+    return eventType(reportId) === 'awaiting_signatory';
+  }
+  function isReturnEvent(reportId: string): boolean {
+    return ['returned', 'disputed'].includes(eventType(reportId));
+  }
+  function defaultRetryKey(report: ReviewReport): string {
+    const sequence = Number(report.followup.latestEvent?.sequenceNo ?? 0) + 1;
+    return `${report.reportId}-event-${sequence}`;
+  }
+  function applyLocale(next: PortalLocale): void {
+    localeOverride = next;
+    persistStandaloneLocale(next);
+    applyStandaloneDocumentLocale(next);
+  }
+  onMount(() => {
+    const resolved = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
+    applyLocale(resolved);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === 'ja.portal.locale' || event.key === 'ja-portal-locale')
+        localeOverride = resolveStandaloneLocale(event.newValue);
+    };
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('pagehide', rememberScroll);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('pagehide', rememberScroll);
+    };
+  });
+  let focusedProblemId = '';
+  $effect(() => {
+    const id = problem?.correlationId;
+    if (!id || id === focusedProblemId) return;
+    focusedProblemId = id;
+    void tick().then(() =>
+      requestAnimationFrame(() => {
+        showFieldProblems(resultForm);
+        const saved = readSessionItem(scrollKey);
+        if (saved !== null && Number.isFinite(Number(saved)))
+          window.scrollTo({ top: Number(saved), behavior: 'instant' });
+        removeSessionItem(scrollKey);
+      }),
+    );
+  });
+  $effect(() => applyStandaloneDocumentLocale(locale));
+</script>
+
+<svelte:head><title>{copy.title} | J&amp;A</title></svelte:head>
+
+<main class="period-review-page" data-period-review lang={locale === 'pt' ? 'pt-BR' : locale}>
+  <nav class="review-nav">
+    <a href={`${base}/app/reports?lang=${locale}`} data-origin-back>← {copy.back}</a>
+  </nav>
+
+  <header class="review-header">
+    <div>
+      <p class="review-kicker">{copy.period}</p>
+      <h1>{copy.title}</h1>
+      <p>{copy.intro}</p>
+    </div>
+    <label class="review-language">
+      <span>{standaloneText(locale, 'Language')}</span>
+      <select
+        aria-label={standaloneText(locale, 'Language')}
+        value={locale}
+        onchange={(event) =>
+          applyLocale(((event.currentTarget as HTMLSelectElement).value as PortalLocale) ?? 'en')}
+      >
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="pt">Português</option>
+      </select>
+    </label>
+  </header>
+
+  {#if feedback}
+    <p class="review-feedback" role="status" aria-live="polite">{feedback}</p>
+  {/if}
+  {#if problem && !reports.some((report) => report.reportId === values.periodReportId)}
+    <div data-review-global-problem>
+      <ProblemNotice
+        {problem}
+        remedyLinks={{
+          review_reports: {
+            label: standaloneText(locale, 'problem.remedy.reviewReports'),
+            href: `${base}/app/reports`,
+          },
+          review_report: {
+            label: standaloneText(locale, 'problem.remedy.reviewReport'),
+            href: `${base}/app/reports/period/${encodeURIComponent(String(values.periodReportId ?? ''))}?review=1#period-report-header`,
+          },
+          review_followup: {
+            label: standaloneText(locale, 'problem.remedy.reviewUpdatedRecord'),
+            href: `${base}/app/reports`,
+          },
+          contact_project_owner: {
+            label: standaloneText(locale, 'problem.remedy.contactProjectOwner'),
+          },
+          sign_in_again: {
+            label: standaloneText(locale, 'problem.remedy.signInAgain'),
+            href: `${base}/app/login`,
+          },
+        }}
+      />
+    </div>
+  {/if}
+
+  <FormCard title={copy.period} class="review-filter-card">
+    {#if filterProblem}
+      <div data-review-filter-problem bind:this={filterProblemContainer}>
+        <ProblemNotice
+          problem={filterProblem}
+          remedyLinks={{
+            correct_field: {
+              label: standaloneText(locale, 'problem.remedy.correctField'),
+              href: `#review-${firstFilterField}`,
+            },
+          }}
+        />
+        <p class="review-help">
+          {standaloneText(locale, 'problem.reports.reviewFilterNotApplied')}
+        </p>
+        {#if filterFields.length > 1}
+          <div class="review-filter-summary" data-ui="validation-summary" tabindex="-1">
+            <strong>{standaloneText(locale, 'Check the highlighted fields')}</strong>
+            <ul>
+              {#each filterFields as name}
+                <li>
+                  <a href={`#review-${name}`}>{filterFieldLabel(name)}: {filterError(name)}</a>
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+      </div>
+    {/if}
+    <form
+      method="GET"
+      action={`${base}/app/reports/review`}
+      use:formValidation
+      onsubmit={rememberFilterScroll}
+    >
+      <input type="hidden" name="lang" value={locale} />
+      <input type="hidden" name="viewportScrollY" value="" />
+      <FieldGroup columns="auto">
+        <Field id="review-project" label={copy.project} error={filterError('project')} required>
+          <select
+            id="review-project"
+            name="project"
+            value={data.selectedProjectId ?? ''}
+            aria-invalid={filterError('project') ? 'true' : undefined}
+            aria-describedby={filterError('project') ? 'review-project-error' : undefined}
+            required
+          >
+            <option value="">{copy.selectProject}</option>
+            {#if data.selectedProjectId && !projects.some((project) => project.id === data.selectedProjectId)}
+              <option value={data.selectedProjectId} disabled
+                >{standaloneText(
+                  locale,
+                  'Previously selected project is no longer available',
+                )}</option
+              >
+            {/if}
+            {#each projects as project}
+              <option value={display(project.id)}
+                >{display(project.label, display(project.name))}</option
+              >
+            {/each}
+          </select>
+        </Field>
+        <Field id="review-from" label={copy.from} error={filterError('from')} required>
+          <input
+            id="review-from"
+            name="from"
+            type={fromDateInvalid ? 'text' : 'date'}
+            inputmode={fromDateInvalid ? 'numeric' : undefined}
+            value={data.periodStart ?? ''}
+            aria-invalid={filterError('from') ? 'true' : undefined}
+            aria-describedby={filterError('from') ? 'review-from-error' : undefined}
+            required
+          />
+        </Field>
+        <Field id="review-to" label={copy.to} error={filterError('to')} required>
+          <input
+            id="review-to"
+            name="to"
+            type={toDateInvalid ? 'text' : 'date'}
+            inputmode={toDateInvalid ? 'numeric' : undefined}
+            value={data.periodEnd ?? ''}
+            aria-invalid={filterError('to') ? 'true' : undefined}
+            aria-describedby={filterError('to') ? 'review-to-error' : undefined}
+            required
+          />
+        </Field>
+      </FieldGroup>
+      <button type="submit">{copy.apply}</button>
+    </form>
+    {#if !data.review && !filterProblem}
+      <p class="review-help">{copy.choosePeriod}</p>
+    {/if}
+  </FormCard>
+
+  {#if data.review}
+    <section class="period-context" aria-label={copy.period}>
+      <div>
+        <span>{copy.period}</span>
+        <strong>{display(data.periodStart)} → {display(data.periodEnd)}</strong>
+      </div>
+      <p>{copy.periodNotAccepted}</p>
+    </section>
+
+    <SectionCard title={copy.reportQueue} data-review-queue>
+      {#if reports.length === 0}
+        <p class="empty-state">{copy.noReports}</p>
+      {:else}
+        <div class="review-report-list">
+          {#each reports as report}
+            <article class="review-report-card" data-period-review-report={report.reportId}>
+              <header class="review-report-heading">
+                <div>
+                  <p class="review-kicker">{display(report.reportType)}</p>
+                  <h3>{display(report.periodStart)} → {display(report.periodEnd)}</h3>
+                </div>
+                <StatusBadge
+                  variant={statusVariant(report.conformityState)}
+                  text={statusLabel(report.conformityState)}
+                />
+              </header>
+
+              <dl class="review-facts">
+                <div>
+                  <dt>{copy.reportId}</dt>
+                  <dd><code>{display(report.reportId)}</code></dd>
+                </div>
+                <div>
+                  <dt>{copy.state}</dt>
+                  <dd>{display(report.state)}</dd>
+                </div>
+                <div>
+                  <dt>{copy.version}</dt>
+                  <dd>v{display(report.snapshotVersion)}</dd>
+                </div>
+                <div>
+                  <dt>{copy.hash}</dt>
+                  <dd><code>{display(report.snapshotSha256)}</code></dd>
+                </div>
+                <div>
+                  <dt>{copy.pdf}</dt>
+                  <dd>
+                    <StatusBadge
+                      variant={report.pdfReady ? 'success' : 'warning'}
+                      text={report.pdfReady ? copy.ready : copy.unavailable}
+                    />
+                  </dd>
+                </div>
+                <div>
+                  <dt>{copy.conformity}</dt>
+                  <dd>{statusLabel(report.conformityState)}</dd>
+                </div>
+              </dl>
+
+              <div class="review-report-actions">
+                <a
+                  href={`${base}/app/reports/period/${encodeURIComponent(report.reportId)}?lang=${locale}`}
+                  >{copy.openReport} →</a
+                >
+                {#if report.pdfReady}
+                  <a
+                    href={`${base}/app/api/reports/${encodeURIComponent(report.reportId)}/pdf`}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-disabled={reportPdfBusyId === report.reportId}
+                    onclick={(event) => onReportPdfLinkClick(event, report.reportId)}
+                    onauxclick={(event) => onReportPdfLinkClick(event, report.reportId)}
+                    >{copy.openPdf} ↗</a
+                  >
+                {/if}
+              </div>
+              {#if reportPdfFailure?.id === report.reportId}
+                <div data-review-pdf-problem={report.reportId} onclick={(event) => onReportPdfRemedyClick(event, report.reportId)} role="presentation">
+                  <ProblemNotice
+                    problem={reportPdfFailure.problem}
+                    {locale}
+                    status={`${copy.state}: ${display(report.state)}`}
+                    remedyLinks={{
+                      sign_in_again: { label: standaloneText(locale, 'problem.remedy.signInAgain'), href: `${base}/app/login` },
+                      review_report: { label: standaloneText(locale, 'problem.remedy.reviewReport'), href: `${base}/app/reports/period/${encodeURIComponent(report.reportId)}?review=1#period-report-header` },
+                      review_reports: { label: standaloneText(locale, 'problem.remedy.reviewReports'), href: `${base}/app/reports` },
+                      contact_owner: { label: standaloneText(locale, 'problem.remedy.contactProjectOwner') },
+                      retry_download: { label: standaloneText(locale, 'Download PDF'), href: '#report-pdf-retry' },
+                    }}
+                  />
+                </div>
+              {/if}
+
+              <section class="review-sources" aria-label={copy.sourceCoverage}>
+                <div class="review-section-heading">
+                  <h4>{copy.sourceCoverage}</h4>
+                  <span>{report.sources.length}</span>
+                </div>
+                <p class="review-help">{copy.sourceIdsBelong}</p>
+                <ul>
+                  {#each report.sources as source}
+                    <li data-source-link={source.id}>
+                      <a href={linkFor(source.href)}>{sourceLabel(source)} ↗</a>
+                    </li>
+                  {:else}
+                    <li>{copy.noSources}</li>
+                  {/each}
+                </ul>
+              </section>
+
+              <section
+                class="review-followup"
+                data-followup-history
+                data-followup-card
+                id={`followup-${report.reportId}`}
+              >
+                <div class="review-section-heading">
+                  <div>
+                    <h4>{copy.followup}</h4>
+                    <p class="review-help">{copy.followupHelp}</p>
+                  </div>
+                  {#if report.followup.latestEvent}
+                    <StatusBadge
+                      variant={report.followup.latestEvent.stale ? 'warning' : 'info'}
+                      text={report.followup.latestEvent.stale
+                        ? copy.stale
+                        : eventLabel(report.followup.latestEvent.eventType)}
+                    />
+                  {/if}
+                </div>
+
+                {#if report.followup.latestEvent}
+                  <div class="latest-event">
+                    <strong
+                      >{copy.latestEvent}: {eventLabel(
+                        report.followup.latestEvent.eventType,
+                      )}</strong
+                    >
+                    <span
+                      >{display(
+                        report.followup.latestEvent.eventDate ??
+                          report.followup.latestEvent.createdAt,
+                      )} · {copy.responsible}: {display(
+                        report.followup.latestEvent.responsibleUserId,
+                      )}</span
+                    >
+                    {#if report.followup.latestEvent.stale}<p class="stale-note">
+                        {copy.stale}
+                      </p>{/if}
+                  </div>
+                {:else}
+                  <p class="empty-state">{copy.noEvents}</p>
+                {/if}
+
+                <details class="history-details">
+                  <summary>{copy.history} ({report.followup.events.length})</summary>
+                  <TableRegion
+                    label={copy.history}
+                    mobileMode="cards"
+                    cardRows={reportHistoryCards(report)}
+                  >
+                    <table>
+                      <thead
+                        ><tr
+                          ><th>{copy.eventType}</th><th>{copy.eventDateShort}</th><th
+                            >{copy.version}</th
+                          ><th>{copy.hash}</th><th>{copy.responsible}</th><th>{copy.state}</th></tr
+                        ></thead
+                      >
+                      <tbody>
+                        {#each report.followup.events as event}
+                          <tr>
+                            <td>{eventLabel(event.eventType)}</td>
+                            <td>{display(event.eventDate ?? event.createdAt)}</td>
+                            <td>v{display(event.snapshotVersion)}</td>
+                            <td><code>{display(event.snapshotSha256)}</code></td>
+                            <td>{display(event.responsibleUserId)}</td>
+                            <td>{event.stale ? copy.stale : copy.ready}</td>
+                          </tr>
+                        {:else}
+                          <tr><td colspan="6">{copy.noEvents}</td></tr>
+                        {/each}
+                      </tbody>
+                    </table>
+                  </TableRegion>
+                </details>
+
+                {#if problem && values.periodReportId === report.reportId}
+                  <ProblemNotice
+                    {problem}
+                    status={`${copy.state}: ${display(report.state)} · ${copy.version}: v${display(report.snapshotVersion)}`}
+                    remedyLinks={{
+                      review_followup: {
+                        label: standaloneText(locale, 'problem.remedy.reviewUpdatedRecord'),
+                        href: `${base}/app/reports/period/${encodeURIComponent(report.reportId)}?review=1#period-followup`,
+                      },
+                      review_report: {
+                        label: standaloneText(locale, 'problem.remedy.reviewReport'),
+                        href: `${base}/app/reports/period/${encodeURIComponent(report.reportId)}?review=1#period-report-header`,
+                      },
+                      review_signoff: {
+                        label: standaloneText(locale, 'problem.remedy.reviewUpdatedRecord'),
+                        href: `${base}/app/reports/period/${encodeURIComponent(report.reportId)}?review=1#customer-signoff`,
+                      },
+                      review_reports: {
+                        label: standaloneText(locale, 'problem.remedy.reviewReports'),
+                        href: `${base}/app/reports`,
+                      },
+                      contact_project_owner: {
+                        label: standaloneText(locale, 'problem.remedy.contactProjectOwner'),
+                      },
+                      sign_in_again: {
+                        label: standaloneText(locale, 'problem.remedy.signInAgain'),
+                        href: `${base}/app/login`,
+                      },
+                    }}
+                  />
+                {/if}
+                <FormCard title={copy.followupForm} class="followup-form">
+                  <p class="review-help">{copy.dispatchAttestation}</p>
+                  {#if /^[a-f0-9]{64}$/.test(report.snapshotSha256 ?? '')}
+                    <form
+                      method="POST"
+                      action={`?/recordFollowup&${new URLSearchParams({ project: data.selectedProjectId ?? '', from: data.periodStart ?? '', to: data.periodEnd ?? '', lang: locale })}`}
+                      data-followup-form={report.reportId}
+                      use:formValidation
+                      use:enhance={preserveFollowupForm}
+                      onsubmit={rememberScroll}
+                    >
+                      <input type="hidden" name="periodReportId" value={report.reportId} />
+                      <input
+                        type="hidden"
+                        name="expectedSnapshotVersion"
+                        value={report.snapshotVersion}
+                      />
+                      <input
+                        type="hidden"
+                        name="expectedSnapshotSha256"
+                        value={report.snapshotSha256}
+                      />
+                      <input
+                        type="hidden"
+                        name="expectedLatestEventId"
+                        value={report.followup.latestEventId ?? ''}
+                      />
+                      <FieldGroup columns="auto">
+                        <Field id={`event-type-${report.reportId}`} label={copy.eventType} required>
+                          <select
+                            id={`event-type-${report.reportId}`}
+                            name="eventType"
+                            value={eventType(report.reportId)}
+                            onchange={(event) => selectEvent(report.reportId, event)}
+                            required
+                          >
+                            {#each eventTypes as type}
+                              <option value={type}>{copy.followupTypes[type]}</option>
+                            {/each}
+                          </select>
+                        </Field>
+                        <Field
+                          id={`responsible-${report.reportId}`}
+                          label={copy.responsible}
+                          required
+                        >
+                          <select
+                            id={`responsible-${report.reportId}`}
+                            name="responsibleUserId"
+                            value={submittedValue(report.reportId, 'responsibleUserId')}
+                            required
+                          >
+                            <option value="">{copy.responsible}</option>
+                            {#each responsibleUsers as user}
+                              <option value={display(user.id)}
+                                >{display(user.name, display(user.id))} · {display(
+                                  user.role,
+                                )}</option
+                              >
+                            {/each}
+                          </select>
+                        </Field>
+                        <input
+                          type="hidden"
+                          name="idempotencyKey"
+                          value={submittedValue(
+                            report.reportId,
+                            'idempotencyKey',
+                            defaultRetryKey(report),
+                          )}
+                        />
+                        <Field id={`next-followup-${report.reportId}`} label={copy.nextFollowUp}>
+                          <input
+                            id={`next-followup-${report.reportId}`}
+                            name="nextFollowUpOn"
+                            type="date"
+                            value={submittedValue(report.reportId, 'nextFollowUpOn')}
+                          />
+                        </Field>
+                        <Field
+                          id={`method-${report.reportId}`}
+                          label={copy.method}
+                          help={isDispatchEvent(report.reportId)
+                            ? copy.requiredForDispatch
+                            : undefined}
+                        >
+                          <input
+                            id={`method-${report.reportId}`}
+                            name="method"
+                            type="text"
+                            maxlength="200"
+                            value={submittedValue(report.reportId, 'method')}
+                            required={isDispatchEvent(report.reportId)}
+                          />
+                        </Field>
+                        <Field id={`event-date-${report.reportId}`} label={copy.eventDate}>
+                          <input
+                            id={`event-date-${report.reportId}`}
+                            name="eventDate"
+                            type="date"
+                            value={submittedValue(report.reportId, 'eventDate')}
+                            required={isDispatchEvent(report.reportId)}
+                          />
+                        </Field>
+                        <Field id={`reference-${report.reportId}`} label={copy.reference}>
+                          <input
+                            id={`reference-${report.reportId}`}
+                            name="reference"
+                            type="text"
+                            maxlength="500"
+                            value={submittedValue(report.reportId, 'reference')}
+                            required={isDispatchEvent(report.reportId)}
+                          />
+                        </Field>
+                        <Field
+                          id={`signatory-${report.reportId}`}
+                          label={copy.signatoryName}
+                          help={isSignatoryEvent(report.reportId)
+                            ? copy.requiredForSignatory
+                            : undefined}
+                        >
+                          <input
+                            id={`signatory-${report.reportId}`}
+                            name="signatoryName"
+                            type="text"
+                            maxlength="200"
+                            value={submittedValue(report.reportId, 'signatoryName')}
+                            required={isSignatoryEvent(report.reportId)}
+                          />
+                        </Field>
+                        <Field
+                          id={`reason-${report.reportId}`}
+                          label={copy.reason}
+                          help={isReturnEvent(report.reportId) ? copy.requiredForReturn : undefined}
+                        >
+                          <textarea
+                            id={`reason-${report.reportId}`}
+                            name="reason"
+                            maxlength="2000"
+                            rows="3"
+                            required={isReturnEvent(report.reportId)}
+                            >{submittedValue(report.reportId, 'reason')}</textarea
+                          >
+                        </Field>
+                      </FieldGroup>
+                      <p class="review-help">{copy.exactBinding}</p>
+                      <p class="review-help">{copy.pdfRequired}</p>
+                      {#if !report.pdfReady}
+                        <p class="review-warning">{copy.pdfRequired}</p>
+                      {/if}
+                      <button type="submit">{copy.record}</button>
+                    </form>
+                  {:else}
+                    <p class="review-warning">{copy.unavailable} · {copy.pdfRequired}</p>
+                    <a
+                      href={`${base}/app/reports/period/${encodeURIComponent(report.reportId)}?lang=${locale}`}
+                      >{copy.openReport} →</a
+                    >
+                  {/if}
+                </FormCard>
+              </section>
+            </article>
+          {/each}
+        </div>
+      {/if}
+    </SectionCard>
+
+    <SectionCard title={copy.financeReadiness} data-finance-readiness>
+      {#if data.userRole === 'project_manager'}
+        <p class="restricted-note">{copy.noFinanceAmounts}</p>
+      {:else if finance.billing?.length}
+        <p class="review-help">{copy.sourceIdsBelong}</p>
+        <div class="readiness-list">
+          {#each finance.billing ?? [] as stream}
+            {@const readiness = (stream.readiness ?? {}) as Row}
+            <article class="readiness-card">
+              <header>
+                <div>
+                  <h3>{display(stream.streamType)}</h3>
+                  <p>{copy.cadence}: {display(stream.cadenceType)}</p>
+                </div>
+                <StatusBadge
+                  variant={statusVariant(readiness.state)}
+                  text={statusLabel(readiness.state)}
+                />
+              </header>
+              {#if Array.isArray(readiness.reasons) && readiness.reasons.length}
+                <ul>
+                  {#each readiness.reasons as reason}
+                    {@const sourceHref = reason.sourceHref}
+                    <li data-readiness-reason={reason.code}>
+                      <span
+                        >{copy.reasonLabels[String(reason.code)] ?? reasonLabel(reason.code)}</span
+                      >
+                      {#if sourceHref}<a href={linkFor(sourceHref)}
+                          >{copy.openSource} · {display(reason.sourceId)} ↗</a
+                        >{:else if reason.code === 'period_cutoff_mismatch'}<small
+                          >{copy.cadenceMismatch}</small
+                        >{/if}
+                    </li>
+                  {/each}
+                </ul>
+              {:else}
+                <p>{copy.readyForBilling}</p>
+              {/if}
+            </article>
+          {/each}
+        </div>
+      {:else}
+        <p class="restricted-note">{copy.financeRestricted}</p>
+      {/if}
+      <div class="invoice-section">
+        <h3>{copy.invoiceDrafts}</h3>
+        {#if finance.invoices?.length}
+          <ul>
+            {#each finance.invoices ?? [] as invoice}
+              <li>
+                <span>{copy.invoice} · {display(invoice.invoiceNumber, display(invoice.id))}</span
+                ><small
+                  >{display(invoice.streamType)} · {display(invoice.state)} · {display(
+                    invoice.periodStart,
+                  )} → {display(invoice.periodEnd)}</small
+                >
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p>{copy.noInvoices}</p>
+        {/if}
+      </div>
+    </SectionCard>
+  {/if}
+</main>
+
+<style>
+  .period-review-page {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: clamp(1rem, 4vw, 2.75rem);
+    display: grid;
+    gap: 1rem;
+    color: #383733;
+  }
+
+  .review-nav a,
+  .review-report-actions a,
+  .review-sources a,
+  .readiness-card a {
+    color: #585751;
+    font-weight: 750;
+  }
+
+  .period-review-page :global([data-ui='field-group'][data-columns='auto']) {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  }
+
+  .period-review-page > :global(*) {
+    min-width: 0;
+  }
+  .period-review-page :global(*) {
+    box-sizing: border-box;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .review-header,
+  .review-report-heading,
+  .review-section-heading,
+  .readiness-card header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .review-header {
+    padding: 0.5rem 0 0.75rem;
+  }
+
+  .review-header h1 {
+    max-width: 48rem;
+    margin: 0;
+    color: #2f2e2b;
+    font-size: clamp(1.65rem, 4vw, 2.45rem);
+    line-height: 1.08;
+  }
+
+  .review-header p {
+    max-width: 54rem;
+    margin: 0.65rem 0 0;
+    line-height: 1.55;
+  }
+
+  .review-kicker {
+    margin: 0 0 0.35rem;
+    color: #7a7870;
+    font:
+      700 0.7rem Consolas,
+      monospace;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .review-language {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 8rem;
+    color: #6c6a62;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  :global(.review-filter-card) form,
+  :global(.followup-form) form {
+    display: grid;
+    min-width: 0;
+    gap: 1rem;
+  }
+
+  .review-filter-summary {
+    margin: 0.75rem 0 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d8b8b8;
+    border-radius: 0.5rem;
+    background: #fffafa;
+  }
+
+  .review-filter-summary:focus-visible {
+    outline: 2px solid #706e66;
+    outline-offset: 2px;
+  }
+
+  .review-filter-summary ul {
+    margin: 0.4rem 0 0;
+    padding-inline-start: 1.25rem;
+  }
+
+  .review-filter-summary a {
+    display: inline-block;
+    min-height: 2.75rem;
+    padding-block: 0.6rem;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  :global(.review-filter-card) button,
+  :global(.followup-form) button {
+    min-height: 2.75rem;
+    width: max-content;
+    padding: 0.65rem 1rem;
+    border: 1px solid #585751;
+    border-radius: 0.5rem;
+    color: #fff;
+    background: #706e66;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  :global(.review-filter-card) button:hover,
+  :global(.review-filter-card) button:focus-visible,
+  :global(.followup-form) button:hover,
+  :global(.followup-form) button:focus-visible {
+    background: #585751;
+  }
+
+  .review-feedback {
+    margin: 0;
+    padding: 0.8rem 1rem;
+    border-left: 0.3rem solid #706e66;
+    border-radius: 0 0.5rem 0.5rem 0;
+    background: #f9f9f9;
+  }
+
+  .review-help,
+  .review-warning,
+  .restricted-note,
+  .stale-note {
+    margin: 0.35rem 0 0;
+    color: #6c6a62;
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  .review-warning,
+  .stale-note {
+    color: #7a5410;
+  }
+
+  .period-context {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid #e3e2e0;
+    border-radius: 0.65rem;
+    background: #fbfbfa;
+  }
+
+  .period-context div {
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .period-context span {
+    color: #7a7870;
+    font:
+      700 0.68rem Consolas,
+      monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .period-context p {
+    max-width: 45rem;
+    margin: 0;
+    color: #6b4e12;
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  .review-report-list,
+  .readiness-list {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .review-report-card,
+  .readiness-card {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid #e3e2e0;
+    border-radius: 0.65rem;
+    background: #fff;
+  }
+
+  .review-report-heading h3,
+  .readiness-card h3,
+  .invoice-section h3 {
+    margin: 0;
+    color: #2f2e2b;
+    font-size: 1.05rem;
+  }
+
+  .review-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 0.8rem 1rem;
+    margin: 0;
+  }
+
+  .review-facts div {
+    min-width: 0;
+    padding: 0.7rem;
+    border-radius: 0.45rem;
+    background: #f6f6f5;
+  }
+
+  dt {
+    color: #7a7870;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  dd {
+    margin: 0.3rem 0 0;
+    overflow-wrap: anywhere;
+    font-size: 0.82rem;
+  }
+
+  code {
+    overflow-wrap: anywhere;
+    font-size: 0.72rem;
+  }
+
+  .review-report-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem 1.25rem;
+  }
+
+  .review-sources,
+  .review-followup,
+  .invoice-section {
+    display: grid;
+    gap: 0.65rem;
+    padding-top: 0.95rem;
+    border-top: 1px solid #eaeae8;
+  }
+
+  .review-section-heading h4 {
+    margin: 0;
+    color: #2f2e2b;
+    font-size: 0.95rem;
+  }
+
+  .review-section-heading > span {
+    color: #7a7870;
+    font-weight: 750;
+  }
+
+  .review-sources ul,
+  .readiness-card ul,
+  .invoice-section ul {
+    display: grid;
+    gap: 0.45rem;
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+
+  .review-sources li,
+  .readiness-card li,
+  .invoice-section li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+    line-height: 1.45;
+  }
+
+  .latest-event {
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.75rem;
+    border-left: 0.25rem solid #706e66;
+    border-radius: 0 0.45rem 0.45rem 0;
+    background: #f9f9f9;
+  }
+
+  .latest-event span {
+    color: #6c6a62;
+    font-size: 0.78rem;
+  }
+
+  .history-details summary {
+    width: max-content;
+    padding: 0.6rem 0;
+    color: #585751;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  :global(.followup-form) {
+    margin-top: 0.35rem;
+    background: #fbfbfa;
+  }
+
+  :global(.followup-form) :global(.ui-card-heading) {
+    font-size: 1rem;
+  }
+
+  :global(.followup-form input),
+  :global(.followup-form select),
+  :global(.followup-form textarea),
+  :global(.review-filter-card input),
+  :global(.review-filter-card select),
+  .review-language select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 2.75rem;
+    padding: 0.62rem 0.7rem;
+    border: 1px solid #e1e0de;
+    border-radius: 0.5rem;
+    color: #3a3935;
+    background: #fff;
+    font: inherit;
+  }
+
+  :global(.followup-form) textarea {
+    min-height: 5.75rem;
+    resize: vertical;
+  }
+
+  .readiness-card header p,
+  .invoice-section p {
+    margin: 0.3rem 0 0;
+    color: #6c6a62;
+    font-size: 0.8rem;
+  }
+
+  .readiness-card li,
+  .invoice-section li {
+    flex-wrap: wrap;
+  }
+
+  .readiness-card li span,
+  .invoice-section li span {
+    min-width: min(100%, 20rem);
+  }
+
+  .readiness-card small,
+  .invoice-section small {
+    display: block;
+    color: #6c6a62;
+  }
+
+  .empty-state {
+    margin: 0;
+    color: #6c6a62;
+  }
+
+  @media (max-width: 700px) {
+    .review-header,
+    .period-context,
+    .review-report-heading,
+    .review-section-heading,
+    .readiness-card header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .review-language {
+      width: 100%;
+    }
+
+    :global(.review-filter-card) button,
+    :global(.followup-form) button {
+      width: 100%;
+    }
+
+    .review-sources li,
+    .readiness-card li,
+    .invoice-section li {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .period-review-page,
+    .period-review-page * {
+      scroll-behavior: auto !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+</style>

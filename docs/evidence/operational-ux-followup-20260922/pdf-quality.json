@@ -1,0 +1,111 @@
+{
+  "validatedAt": "2026-09-23T06:45:30.203578+00:00",
+  "scope": "Nine active manuals refreshed for operational recovery, agenda and inbox",
+  "sourceDigest": "7f0e5cf951c12d6e3871ee95ee6ed6a0eeee3a78c92611b33187c1c581377c32",
+  "sourceCommit": "728e523e50468f9efbff783fb9d9e827b0e2920b",
+  "captureManifestSha256": "e821bbacdc7a3a5d12e5872db38b95ae6b73b5ae3575a926c245bce00e2937ba",
+  "screenshots": 153,
+  "captureChecks": 261,
+  "checkedPdfs": 9,
+  "manuals": [
+    {
+      "file": "Work_Projects_Guide.pdf",
+      "pages": 18,
+      "bytes": 1838535,
+      "sha256": "76027871b3e28405b106057f07318b98de6f35d11e72b7c3758441f48db4735e",
+      "embeddedFonts": 9,
+      "images": 16,
+      "extractedWords": 2851,
+      "source": "Functional_Guide_work-projects_EN.md",
+      "sourceSha256": "349bebc165e7e566be9ed38c503f37160c757e3ad5ce061e650d49aa7b806283"
+    },
+    {
+      "file": "Supplier_Operations_Guide.pdf",
+      "pages": 15,
+      "bytes": 1620498,
+      "sha256": "5621c0352b9afe9d2644b717281e6400cde4fbc00aa7868293cfd1373b5f16d8",
+      "embeddedFonts": 9,
+      "images": 13,
+      "extractedWords": 2428,
+      "source": "Functional_Guide_supplier-operations_EN.md",
+      "sourceSha256": "a68e7d63ab4a7d40b3bfdc32b48c0b3c063169f64f5ccc1d28dfcd387673a672"
+    },
+    {
+      "file": "Administration_Finance_Guide.pdf",
+      "pages": 14,
+      "bytes": 1925818,
+      "sha256": "293c0cd2989ec0ba1df991cb28789e312f6a92600d5a9502ef0b4beeab3d7807",
+      "embeddedFonts": 9,
+      "images": 13,
+      "extractedWords": 2657,
+      "source": "Functional_Guide_administration-finance_EN.md",
+      "sourceSha256": "ca741c63016bb3b4f1e82adedbf205b7a3aafca955854a3700549fb7e4d97cd3"
+    },
+    {
+      "file": "Employee_Field_Guide_EN.pdf",
+      "pages": 18,
+      "bytes": 1576703,
+      "sha256": "6260bcc3185d98f2a269b7bb8308510c0615246d0e895623d8a464b579df9ed5",
+      "embeddedFonts": 8,
+      "images": 16,
+      "extractedWords": 1790,
+      "source": "Employee_Field_Guide_EN.md",
+      "sourceSha256": "1491a64b16773515d91d2607dffd6085932dc66429604e3091f4910ec33b2c9e"
+    },
+    {
+      "file": "Employee_Field_Guide_PT-BR.pdf",
+      "pages": 18,
+      "bytes": 1632918,
+      "sha256": "df5a445753ae5931d9542ef5bd5e91a9cdf38a78103c2c6e06cb3689da347000",
+      "embeddedFonts": 8,
+      "images": 16,
+      "extractedWords": 1929,
+      "source": "Employee_Field_Guide_PT-BR.md",
+      "sourceSha256": "d5d72dcb09273d983267703545a3c229670ed9f9fea2dfb5cd3b787b482e138a"
+    },
+    {
+      "file": "Employee_Field_Guide_ES.pdf",
+      "pages": 18,
+      "bytes": 1603408,
+      "sha256": "f17553dae22b644ed5021264c05b8ea35915b73bd62eabdf354980617562ce1d",
+      "embeddedFonts": 8,
+      "images": 16,
+      "extractedWords": 1990,
+      "source": "Employee_Field_Guide_ES.md",
+      "sourceSha256": "8bf550a47c7b02e685de9c817421adbe3ecb6fa47b9e143c64d92aaa07d0af8d"
+    },
+    {
+      "file": "Work_Projects_Guide_PT-BR.pdf",
+      "pages": 18,
+      "bytes": 1893558,
+      "sha256": "a8a4afbd0b0d55991f61103035afff651913d555f1f7c3b827e2ff2de9f82d25",
+      "embeddedFonts": 9,
+      "images": 16,
+      "extractedWords": 2998,
+      "source": "Functional_Guide_work-projects_PT-BR.md",
+      "sourceSha256": "ba3a011dd982a387ab1cda2586c272375f7fb8565fbea9d39cd57f43d1e13e46"
+    },
+    {
+      "file": "Supplier_Operations_Guide_PT-BR.pdf",
+      "pages": 16,
+      "bytes": 1673306,
+      "sha256": "72e93bb69e1be9fdd8309fa63c6dcb89431fdf87527a2e0aac0077e6a96685a6",
+      "embeddedFonts": 9,
+      "images": 13,
+      "extractedWords": 2562,
+      "source": "Functional_Guide_supplier-operations_PT-BR.md",
+      "sourceSha256": "9cc3157c5774a186ccabe783357468b5d4279f60ab003e5c38a295071b9984c9"
+    },
+    {
+      "file": "Administration_Finance_Guide_PT-BR.pdf",
+      "pages": 14,
+      "bytes": 1976802,
+      "sha256": "c1572a758e2d74c0c30d53290a442c46398bff0d904caa2d1ccd16397bed7ae3",
+      "embeddedFonts": 9,
+      "images": 13,
+      "extractedWords": 2775,
+      "source": "Functional_Guide_administration-finance_PT-BR.md",
+      "sourceSha256": "a1bd01276fe2d756364b5c97603abe8735aca8cde558e9d4d7afd2d38630bc7e"
+    }
+  ]
+}

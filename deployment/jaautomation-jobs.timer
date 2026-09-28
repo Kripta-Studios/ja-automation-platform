@@ -1,5 +1,5 @@
 [Unit]
-Description=Run J&A Automation jobs every five minutes
+Description=Keep the J&A Automation jobs worker running
 
 [Timer]
 OnBootSec=2min

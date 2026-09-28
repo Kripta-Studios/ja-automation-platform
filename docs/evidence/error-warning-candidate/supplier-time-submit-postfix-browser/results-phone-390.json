@@ -1,0 +1,228 @@
+{
+  "candidateCommit": "d3b724e00795d2e94b07691ea33beafc9b9fc600",
+  "productDiffSha256": "d557b013d1813b3a1428402864aacfab86c447cf2cb4d9c4145271c502cf68cc",
+  "role": "supplierCoordinator",
+  "viewport": "390x844",
+  "locale": "en",
+  "fixture": "fresh disposable database; role/grant scaffold; Time drafts created through rendered Supplier forms",
+  "cases": [
+    {
+      "kind": "changed-draft",
+      "before": {
+        "scrollY": 0,
+        "audits": 2
+      },
+      "response": {
+        "transportStatus": 409,
+        "contentType": "text/html",
+        "code": "SUPPLIER_TIME_SUBMISSION_CHANGED",
+        "genericPhrase": false
+      },
+      "visible": {
+        "code": "SUPPLIER_TIME_SUBMISSION_CHANGED",
+        "wording": "Action needed This time draft changed before submission. Review its current version before trying again. This request did not submit any time drafts. Review updated record",
+        "remedies": ["Review updated record"],
+        "focusedNotice": true,
+        "activeTag": "aside",
+        "activeTop": 334,
+        "activeBottom": 510,
+        "noticeTop": 334,
+        "noticeBottom": 510,
+        "headerBottom": 70,
+        "scrollY": 775,
+        "viewportHeight": 844,
+        "workspace": "report",
+        "locale": "en",
+        "selectedCount": 0,
+        "selectedPayloadCount": 0,
+        "submittedFormPresent": true,
+        "staleSubmitDisabled": true,
+        "recovery": [
+          {
+            "text": "<synthetic-worker> · 2026-09-22 · Current status: Draft Review updated record",
+            "href": "?projectId=<synthetic-project-id>&from=2026-09-22&to=2026-09-22&lang=en&workspaceAction=report#supplier-report",
+            "reload": true
+          }
+        ],
+        "mainRemedy": "?projectId=<synthetic-project-id>&from=2026-09-01&to=2026-09-30&lang=en&workspaceAction=report#supplier-workspace",
+        "mainRemedyReload": true
+      },
+      "enhanced": {
+        "transportStatus": 200,
+        "actionType": "failure",
+        "actionStatus": 409,
+        "code": "SUPPLIER_TIME_SUBMISSION_CHANGED",
+        "operation": "submitTime",
+        "currentStates": [
+          {
+            "state": "draft",
+            "workDate": "2026-09-22"
+          }
+        ],
+        "remedyIds": ["review_time_drafts"]
+      },
+      "unchanged": true
+    },
+    {
+      "kind": "already-submitted",
+      "before": {
+        "scrollY": 0,
+        "audits": 2
+      },
+      "response": {
+        "transportStatus": 409,
+        "contentType": "text/html",
+        "code": "SUPPLIER_TIME_SUBMISSION_STATE_BLOCKED",
+        "genericPhrase": false
+      },
+      "visible": {
+        "code": "SUPPLIER_TIME_SUBMISSION_STATE_BLOCKED",
+        "wording": "Action needed This time entry is no longer a draft, so this request did not submit it. Review its current status and correction options. This request did not submit any time drafts. Review updated record",
+        "remedies": ["Review updated record"],
+        "focusedNotice": true,
+        "activeTag": "aside",
+        "activeTop": 323,
+        "activeBottom": 520,
+        "noticeTop": 323,
+        "noticeBottom": 520,
+        "headerBottom": 70,
+        "scrollY": 809,
+        "viewportHeight": 844,
+        "workspace": "report",
+        "locale": "en",
+        "selectedCount": 0,
+        "selectedPayloadCount": 0,
+        "submittedFormPresent": true,
+        "staleSubmitDisabled": true,
+        "recovery": [
+          {
+            "text": "<synthetic-worker> · 2026-09-23 · Current status: Submitted Review updated record",
+            "href": "?projectId=<synthetic-project-id>&from=2026-09-23&to=2026-09-23&lang=en&workspaceAction=report#supplier-report",
+            "reload": true
+          }
+        ],
+        "mainRemedy": "?projectId=<synthetic-project-id>&from=2026-09-01&to=2026-09-30&lang=en&workspaceAction=report#supplier-workspace",
+        "mainRemedyReload": true
+      },
+      "enhanced": {
+        "transportStatus": 200,
+        "actionType": "failure",
+        "actionStatus": 409,
+        "code": "SUPPLIER_TIME_SUBMISSION_STATE_BLOCKED",
+        "operation": "submitTime",
+        "currentStates": [
+          {
+            "state": "submitted",
+            "workDate": "2026-09-23"
+          }
+        ],
+        "remedyIds": ["review_time_drafts"]
+      },
+      "unchanged": true
+    },
+    {
+      "kind": "moved-date",
+      "before": {
+        "audits": 2,
+        "scrollY": 0
+      },
+      "response": {
+        "transportStatus": 409,
+        "contentType": "text/html",
+        "code": "SUPPLIER_TIME_SUBMISSION_CHANGED",
+        "genericPhrase": false
+      },
+      "visible": {
+        "code": "SUPPLIER_TIME_SUBMISSION_CHANGED",
+        "wording": "Action needed This time draft changed before submission. Review its current version before trying again. This request did not submit any time drafts. Review updated record",
+        "remedies": ["Review updated record"],
+        "focusedNotice": true,
+        "activeTag": "aside",
+        "activeTop": 334,
+        "activeBottom": 510,
+        "noticeTop": 334,
+        "noticeBottom": 510,
+        "headerBottom": 70,
+        "scrollY": 775,
+        "viewportHeight": 844,
+        "workspace": "report",
+        "locale": "en",
+        "selectedCount": 0,
+        "selectedPayloadCount": 0,
+        "submittedFormPresent": true,
+        "staleSubmitDisabled": true,
+        "recovery": [
+          {
+            "text": "<synthetic-worker> · 2026-10-01 · Current status: Draft Review updated record",
+            "href": "?projectId=<synthetic-project-id>&from=2026-10-01&to=2026-10-01&lang=en&workspaceAction=report#supplier-report",
+            "reload": true
+          }
+        ],
+        "mainRemedy": "?projectId=<synthetic-project-id>&from=2026-10-01&to=2026-10-01&lang=en&workspaceAction=report#supplier-report",
+        "mainRemedyReload": true
+      },
+      "remedyReloadedDocument": true,
+      "loadedMovedDraftVersion": "2",
+      "unchanged": true
+    },
+    {
+      "kind": "batch-atomic-conflict",
+      "before": {
+        "firstAudits": 1,
+        "secondAudits": 2
+      },
+      "response": {
+        "transportStatus": 409,
+        "contentType": "text/html",
+        "code": "SUPPLIER_TIME_SUBMISSION_CHANGED",
+        "genericPhrase": false
+      },
+      "visible": {
+        "code": "SUPPLIER_TIME_SUBMISSION_CHANGED",
+        "wording": "Action needed This time draft changed before submission. Review its current version before trying again. This request did not submit any time drafts. Review updated record",
+        "remedies": ["Review updated record"],
+        "focusedNotice": true,
+        "activeTag": "aside",
+        "activeTop": 334,
+        "activeBottom": 510,
+        "noticeTop": 334,
+        "noticeBottom": 510,
+        "headerBottom": 70,
+        "scrollY": 775,
+        "viewportHeight": 844,
+        "workspace": "report",
+        "locale": "en",
+        "selectedCount": 2,
+        "selectedPayloadCount": 2,
+        "submittedFormPresent": true,
+        "staleSubmitDisabled": true,
+        "recovery": [
+          {
+            "text": "<synthetic-worker> · 2026-09-25 · Current status: Draft Review updated record",
+            "href": "?projectId=<synthetic-project-id>&from=2026-09-25&to=2026-09-25&lang=en&workspaceAction=report#supplier-report",
+            "reload": true
+          },
+          {
+            "text": "<synthetic-worker> · 2026-09-26 · Current status: Draft Review updated record",
+            "href": "?projectId=<synthetic-project-id>&from=2026-09-26&to=2026-09-26&lang=en&workspaceAction=report#supplier-report",
+            "reload": true
+          }
+        ],
+        "mainRemedy": "?projectId=<synthetic-project-id>&from=2026-09-01&to=2026-09-30&lang=en&workspaceAction=report#supplier-workspace",
+        "mainRemedyReload": true
+      },
+      "bothRemainDrafts": true,
+      "noAdditionalAudit": true
+    }
+  ],
+  "diagnostics": {
+    "tabA": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "tabB": {
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  }
+}

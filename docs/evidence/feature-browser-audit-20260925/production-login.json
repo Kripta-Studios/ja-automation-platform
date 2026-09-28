@@ -1,0 +1,15 @@
+{
+  "url": "https://j-aautomation.com/j-aautomation/app/login",
+  "title": "Sign in | Employee portal",
+  "loginVisible": true,
+  "issues": [],
+  "requests": [
+    "308 /j-aautomation/app/",
+    "303 /j-aautomation/app",
+    "200 /j-aautomation/app/login",
+    "200 /j-aautomation/app/logo.png",
+    "200 /j-aautomation/app/fonts/geist-latin.woff2",
+    "200 /j-aautomation/app/fonts/geist-mono-latin.woff2",
+    "200 /j-aautomation/app/icon-192.png"
+  ]
+}

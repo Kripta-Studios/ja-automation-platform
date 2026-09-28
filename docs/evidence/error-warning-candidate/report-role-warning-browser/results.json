@@ -1,0 +1,57 @@
+{
+  "date": "2026-09-27",
+  "environment": "isolated candidate, fresh disposable Playwright database, actual Chromium",
+  "baseCommit": "c4984ee",
+  "runner": {
+    "substantivePassed": 8,
+    "viewportSkips": 8,
+    "workers": 1,
+    "viewports": [390, 1440]
+  },
+  "cases": [
+    {
+      "role": "Worker",
+      "state": "own draft",
+      "locales": ["en", "pt"],
+      "code": "WARNING_REPORT_DELETE_DRAFT",
+      "draftPresentAfterWarning": true,
+      "remedy": "review_report_fields"
+    },
+    {
+      "role": "Finance",
+      "state": "approved report",
+      "locales": ["en", "es"],
+      "code": "WARNING_REPORT_ATTACHMENT_CONTACT_OWNER",
+      "localizedCurrentStatus": true,
+      "uploadAndCorrectionControlsAbsent": true,
+      "remedy": "contact_project_owner"
+    },
+    {
+      "role": "Owner",
+      "state": "approved report, correction available",
+      "locales": ["es", "en"],
+      "code": "WARNING_REPORT_ATTACHMENT_CORRECTION_AVAILABLE",
+      "localizedCurrentStatus": true,
+      "correctionFormLinkPresent": true,
+      "remedy": "request_report_correction"
+    },
+    {
+      "role": "Owner",
+      "state": "approved report, existing correction",
+      "locales": ["en", "pt"],
+      "code": "WARNING_REPORT_ATTACHMENT_REVIEW_HISTORY",
+      "localizedCurrentStatus": true,
+      "historyLinkPresent": true,
+      "remedy": "review_report_history"
+    },
+    {
+      "role": "Manager",
+      "state": "linked correction draft",
+      "locales": ["en", "pt"],
+      "newEvidenceUploadHttpStatus": 201,
+      "correctionAttachmentLinksAfterUpload": 1,
+      "operationalEditFormAbsent": true
+    }
+  ],
+  "productionChecked": false
+}

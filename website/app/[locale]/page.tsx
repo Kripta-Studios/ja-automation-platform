@@ -10,25 +10,36 @@ import {
   Gauge,
   HardHat,
   GraduationCap,
+  Wrench,
+  Headphones,
 } from 'lucide-react';
-import assemblyImg from '@/public/images/capabilities/assembly-engines.jpg';
-import logoImg from '@/public/brand/logo-jaautomation.png';
+import assemblyImg from '@/public/images/capabilities/assembly-engines.webp';
+import logoImg from '@/public/brand/logo-jaautomation.webp';
 import { HeroCrossfade } from '@/components/hero/HeroCrossfade';
 import { ClientExperience } from '@/components/home/ClientExperience';
 import { IndustryShowcase } from '@/components/home/IndustryShowcase';
+import { LinesMotif } from '@/components/ui/LinesMotif';
 import { services } from '@/content/services';
 import { featuredProjects } from '@/content/projects';
 import { contact, teamRoles } from '@/content/company';
 import { technologies, technologyGroups } from '@/content/technologies';
+import {
+  projectCapabilityKeys,
+  projectIndustryKeys,
+  translateProject,
+  translateServiceTags,
+} from '@/lib/i18n/content';
 
 const iconMap: Record<string, React.ReactNode> = {
   Cpu: <Cpu size={24} />,
   Bot: <Bot size={24} />,
   MonitorPlay: <MonitorPlay size={24} />,
   Zap: <Zap size={24} />,
+  Wrench: <Wrench size={24} />,
   Gauge: <Gauge size={24} />,
   HardHat: <HardHat size={24} />,
   GraduationCap: <GraduationCap size={24} />,
+  Headphones: <Headphones size={24} />,
 };
 
 const capabilityKeys: Record<string, string> = {
@@ -36,9 +47,11 @@ const capabilityKeys: Record<string, string> = {
   robotics: 'robotics',
   simulation: 'simulation',
   'electrical-controls': 'electricalControls',
+  installation: 'installation',
   'motion-process': 'motionProcess',
   commissioning: 'commissioning',
   'training-consulting': 'supportTraining',
+  support: 'technicalSupport',
 };
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
@@ -57,41 +70,41 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const aquarex = await getTranslations('aquarexTeaser');
   const careers = await getTranslations('careersTeaser');
   const final = await getTranslations('finalCta');
+  const imageAlt = await getTranslations('imageAlts');
+  const projectFilters = await getTranslations('projectFilters');
+  const projectCatalog = await getTranslations('projectCatalog');
+  const serviceTags = await getTranslations('serviceTags');
+  const contactText = await getTranslations('contact');
+  const featuredProjectCopy = featuredProjects.map((project) =>
+    translateProject(project, projectCatalog),
+  );
 
   return (
     <>
       {/* ═══ HERO ═══ */}
-      <section id="home" className="relative">
-        <HeroCrossfade />
-        <div className="absolute inset-0 z-10 flex items-center pt-24 lg:pt-28">
-          <div className="container-ja">
-            <div className="max-w-2xl">
-              <Image
-                src={logoImg}
-                alt="J&A Automation Industrial Solutions"
-                className="mb-6 h-28 w-auto drop-shadow-[0_8px_24px_rgba(0,0,0,0.35)] sm:h-32 lg:h-40"
-                priority
-                sizes="(max-width: 640px) 112px, (max-width: 1024px) 128px, 160px"
-              />
-              <p className="eyebrow text-white/70 mb-5">{hero('eyebrow')}</p>
-              <h1 className="heading-display text-white mb-6">{hero('h1')}</h1>
-              <p className="text-lg text-white/80 leading-relaxed mb-8 max-w-xl">{hero('body')}</p>
-              <div className="translate-y-5 lg:translate-y-8">
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-                  <Link href="/contact?intent=project" className="btn btn-primary">
-                    {hero('cta')}
-                  </Link>
-                  <Link href="/capabilities" className="btn btn-secondary-dark">
-                    {hero('ctaSecondary')}
-                  </Link>
-                </div>
-                <Link
-                  href="/contact?intent=support"
-                  className="inline-flex items-center gap-2 text-sm text-white/60 transition-colors hover:text-white/90"
-                >
-                  {hero('supportLink')}
-                </Link>
-              </div>
+      <section id="home" className="home-intro">
+        <div className="container-ja home-intro-grid">
+          <div className="home-intro-copy">
+            <p className="eyebrow">{hero('eyebrow')}</p>
+            <h1 className="heading-display">{hero('h1')}</h1>
+            <p className="text-lead">{hero('body')}</p>
+            <div className="home-intro-actions">
+              <Link href="/contact?intent=project" className="btn btn-primary">
+                {hero('cta')} <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+              <Link href="/capabilities" className="btn btn-secondary">
+                {hero('ctaSecondary')}
+              </Link>
+            </div>
+            <Link href="/contact?intent=support" className="home-support-link">
+              {hero('supportLink')} <ArrowRight size={14} aria-hidden="true" />
+            </Link>
+          </div>
+          <div className="home-intro-media">
+            <HeroCrossfade />
+            <div className="home-intro-caption">
+              <Image src={logoImg} alt={imageAlt('logo')} className="h-12 w-auto" />
+              <span>{proof('since')}</span>
             </div>
           </div>
         </div>
@@ -123,7 +136,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div>
               <p className="eyebrow mb-4">{intro('eyebrow')}</p>
-              <div className="lines-motif mb-6" aria-hidden="true" />
+              <LinesMotif className="mb-6" />
               <h2 className="heading-2 mb-6">{intro('h2')}</h2>
               <p className="text-lead mb-4">{intro('p1')}</p>
               <p className="text-body text-ja-steel-700 mb-8">{intro('p2')}</p>
@@ -134,7 +147,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             <div className="relative rounded-[14px] overflow-hidden aspect-[16/10]">
               <Image
                 src={assemblyImg}
-                alt="State of the art automated assembly line"
+                alt={imageAlt('assembly')}
                 fill
                 className="object-cover transition-transform duration-700 hover:scale-105"
                 sizes="(max-width: 768px) 100vw, 50vw"
@@ -171,7 +184,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     {cap(`${key}Desc`)}
                   </p>
                   <div className="flex flex-wrap gap-1.5 mt-auto">
-                    {service.tags.map((tag) => (
+                    {translateServiceTags(service.tags, serviceTags).map((tag) => (
                       <span key={tag} className="chip">
                         {tag}
                       </span>
@@ -191,6 +204,60 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       </section>
 
       <ClientExperience />
+
+      {/* ═══ SELECTED PROJECT EXPERIENCE ═══ */}
+      <section id="works" className="section-padding bg-white">
+        <div className="container-ja">
+          <p className="eyebrow mb-4">{proj('eyebrow')}</p>
+          <h2 className="heading-2 mb-4 max-w-3xl">{proj('h2')}</h2>
+          <p className="text-lead mb-12 max-w-2xl">{proj('lead')}</p>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {featuredProjectCopy.map((project) => (
+              <div key={project.id} className="card">
+                <div className="flex justify-between items-start mb-3">
+                  <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs tracking-wider text-ja-steel-500 uppercase">
+                    {projectFilters(projectIndustryKeys[project.industry])}
+                  </span>
+                  <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs text-ja-steel-500">
+                    {project.displayDate}
+                  </span>
+                </div>
+                <h3 className="text-lg font-semibold mb-1">
+                  {project.client ? `${project.client} — ${project.title}` : project.title}
+                </h3>
+                {project.location && (
+                  <p className="text-xs text-ja-steel-500 mb-3">{project.location}</p>
+                )}
+                <p className="text-sm text-ja-steel-700 mb-4 leading-relaxed line-clamp-3">
+                  {project.scope}
+                </p>
+                {project.outcome && (
+                  <p className="text-sm text-ja-success font-medium mb-4">{project.outcome}</p>
+                )}
+                <div className="flex flex-wrap gap-1.5 mt-auto">
+                  {project.technologies.slice(0, 3).map((t) => (
+                    <span key={t} className="chip">
+                      {t}
+                    </span>
+                  ))}
+                  {project.capabilities.slice(0, 2).map((c) => (
+                    <span key={c} className="chip">
+                      {projectFilters(projectCapabilityKeys[c])}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 text-center">
+            <Link href="/projects" className="text-cta">
+              {proj('cta')} <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <section id="technology" className="section-padding bg-ja-graphite text-white">
         <div className="container-ja">
@@ -252,15 +319,20 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               </Link>
             </div>
             <div className="border border-ja-line bg-ja-surface p-7 sm:p-9">
-              <p className="eyebrow-steel mb-5">Field + remote coverage</p>
+              <p className="eyebrow-steel mb-5">{remote('coverageEyebrow')}</p>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-                {['PLC / HMI', 'Robotics', 'Drives + motion', 'Production startup'].map((item) => (
+                {[
+                  'coveragePlcHmi',
+                  'coverageRobotics',
+                  'coverageDrivesMotion',
+                  'coverageProductionStartup',
+                ].map((key) => (
                   <div
-                    key={item}
+                    key={key}
                     className="flex items-center gap-3 border-b border-ja-line pb-3 text-sm font-semibold"
                   >
                     <span className="h-2 w-2 bg-ja-red" aria-hidden="true" />
-                    {item}
+                    {remote(key)}
                   </div>
                 ))}
               </div>
@@ -280,7 +352,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 {team('cta')} <ArrowRight size={16} />
               </Link>
             </div>
-            <div className="grid grid-cols-2 gap-px border border-ja-line bg-ja-line sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-px border border-ja-line bg-ja-line sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
               {teamRoles.map((role) => (
                 <div key={role.labelKey} className="bg-white p-5 sm:p-6">
                   <strong className="block text-3xl font-semibold text-ja-red">{role.count}</strong>
@@ -329,62 +401,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </div>
       </section>
 
-      {/* ═══ SELECTED PROJECT EXPERIENCE ═══ */}
-      <section id="works" className="section-padding bg-white">
-        <div className="container-ja">
-          <p className="eyebrow mb-4">{proj('eyebrow')}</p>
-          <h2 className="heading-2 mb-4 max-w-3xl">{proj('h2')}</h2>
-          <p className="text-lead mb-12 max-w-2xl">{proj('lead')}</p>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {featuredProjects.map((project) => (
-              <div key={project.id} className="card">
-                <div className="flex justify-between items-start mb-3">
-                  <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs tracking-wider text-ja-steel-500 uppercase">
-                    {project.industry
-                      .replace('-', ' / ')
-                      .replace('food / beverage', 'Food & Beverage')}
-                  </span>
-                  <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs text-ja-steel-500">
-                    {project.displayDate}
-                  </span>
-                </div>
-                <h3 className="text-lg font-semibold mb-1">
-                  {project.client ? `${project.client} — ${project.title}` : project.title}
-                </h3>
-                {project.location && (
-                  <p className="text-xs text-ja-steel-500 mb-3">{project.location}</p>
-                )}
-                <p className="text-sm text-ja-steel-700 mb-4 leading-relaxed line-clamp-3">
-                  {project.scope}
-                </p>
-                {project.outcome && (
-                  <p className="text-sm text-ja-success font-medium mb-4">{project.outcome}</p>
-                )}
-                <div className="flex flex-wrap gap-1.5 mt-auto">
-                  {project.technologies.slice(0, 3).map((t) => (
-                    <span key={t} className="chip">
-                      {t}
-                    </span>
-                  ))}
-                  {project.capabilities.slice(0, 2).map((c) => (
-                    <span key={c} className="chip">
-                      {c.replace(/-/g, ' ')}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-10 text-center">
-            <Link href="/projects" className="text-cta">
-              {proj('cta')} <ArrowRight size={16} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* ═══ FINAL CONVERSION BAND ═══ */}
       <section id="contact" className="section-padding bg-ja-graphite relative overflow-hidden">
         <div id="question" className="absolute top-0" aria-hidden="true" />
@@ -408,18 +424,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               {contact.email}
             </a>
             <a
-              href={`tel:${contact.usPhone.replace(/[^\d+]/g, '')}`}
-              className="text-ja-steel-300 hover:text-white transition-colors"
-            >
-              {contact.usPhone}
-            </a>
-            <a
               href={contact.linkedinUrl}
               target="_blank"
               rel="noreferrer"
               className="font-medium text-sky-400 underline decoration-sky-400/40 underline-offset-4 transition-colors hover:text-sky-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-400"
             >
-              {contact.primaryName} · {contact.primaryTitle}
+              {contact.primaryName} · {contactText('primaryTitle')}
             </a>
           </div>
         </div>

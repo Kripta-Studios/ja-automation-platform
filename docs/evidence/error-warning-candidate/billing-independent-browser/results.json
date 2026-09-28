@@ -1,0 +1,52 @@
+{
+  "date": "2026-09-27",
+  "environment": "isolated candidate, disposable database, actual Chromium via Playwright MCP",
+  "baseCommit": "103eaf5",
+  "archivePhone": {
+    "locales": ["en", "es", "pt"],
+    "viewportWidth": 390,
+    "documentWidth": 390,
+    "noticeWidth": 264,
+    "remedyHeight": 44,
+    "actionHeight": 44,
+    "code": "WARNING_BILLING_ARCHIVE_STREAM",
+    "passed": true
+  },
+  "archiveDesktop": {
+    "locale": "es",
+    "viewportWidth": 1440,
+    "documentWidth": 1440,
+    "noticeWidth": 646,
+    "actionEnabled": true,
+    "passed": true
+  },
+  "financeLinkedDraft": {
+    "locale": "en",
+    "viewportWidth": 390,
+    "code": "BILLING_DISCARD_LINKED_FINANCE",
+    "discardDisabled": true,
+    "remedyDestination": "invoices list",
+    "remedyClickClearsSearch": true,
+    "remedyClickResetsScroll": true,
+    "remedyClickFocusesBody": true,
+    "defect": "Review invoice does not navigate to selected invoice detail"
+  },
+  "historicalInvoice": {
+    "code": "BILLING_INVOICE_HISTORICAL_ISSUE_MARKERS",
+    "financePhoneLocales": ["en", "es", "pt"],
+    "financeDesktopLocales": ["es", "pt"],
+    "ownerDesktopLocales": ["pt"],
+    "noticeFocused": true,
+    "planningApprovalDiscardFormsAbsent": true,
+    "detailRemedyPresent": true,
+    "directPostStatus": 409,
+    "directPostStableCodePresent": true,
+    "recordUnchanged": true,
+    "auditCountUnchanged": true,
+    "passed": true
+  },
+  "console": {
+    "billingFormExceptions": 0,
+    "unrelatedOfflineIdentity503": true
+  }
+}

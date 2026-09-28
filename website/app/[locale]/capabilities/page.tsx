@@ -9,17 +9,23 @@ import {
   Gauge,
   HardHat,
   GraduationCap,
+  Wrench,
+  Headphones,
 } from 'lucide-react';
 import { services } from '@/content/services';
+import { translateServiceTags } from '@/lib/i18n/content';
+import { localizedAlternates } from '@/lib/i18n/metadata';
 
 const iconMap: Record<string, React.ReactNode> = {
   Cpu: <Cpu size={24} />,
   Bot: <Bot size={24} />,
   MonitorPlay: <MonitorPlay size={24} />,
   Zap: <Zap size={24} />,
+  Wrench: <Wrench size={24} />,
   Gauge: <Gauge size={24} />,
   HardHat: <HardHat size={24} />,
   GraduationCap: <GraduationCap size={24} />,
+  Headphones: <Headphones size={24} />,
 };
 
 const capabilityKeys: Record<string, string> = {
@@ -27,9 +33,11 @@ const capabilityKeys: Record<string, string> = {
   robotics: 'robotics',
   simulation: 'simulation',
   'electrical-controls': 'electricalControls',
+  installation: 'installation',
   'motion-process': 'motionProcess',
   commissioning: 'commissioning',
   'training-consulting': 'supportTraining',
+  support: 'technicalSupport',
 };
 
 type CapabilityMessageKey =
@@ -37,9 +45,11 @@ type CapabilityMessageKey =
   | 'robotics'
   | 'simulation'
   | 'electricalControls'
+  | 'installation'
   | 'motionProcess'
   | 'commissioning'
-  | 'supportTraining';
+  | 'supportTraining'
+  | 'technicalSupport';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -47,6 +57,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title: t('capabilitiesTitle'),
     description: t('capabilitiesDescription'),
+    alternates: localizedAlternates(locale, '/capabilities'),
   };
 }
 
@@ -59,6 +70,7 @@ export default async function CapabilitiesPage({
   setRequestLocale(locale);
 
   const t = await getTranslations('capabilities');
+  const serviceTags = await getTranslations('serviceTags');
 
   return (
     <div className="pt-20">
@@ -85,7 +97,7 @@ export default async function CapabilitiesPage({
                     {t(`${key}Desc` as `${CapabilityMessageKey}Desc`)}
                   </p>
                   <div className="flex flex-wrap gap-2 mb-8">
-                    {service.tags.map((tag) => (
+                    {translateServiceTags(service.tags, serviceTags).map((tag) => (
                       <span key={tag} className="chip">
                         {tag}
                       </span>
@@ -95,7 +107,7 @@ export default async function CapabilitiesPage({
                     href={`/capabilities/${service.slug}`}
                     className="text-cta mt-auto inline-flex"
                   >
-                    Explore capability <ArrowRight size={16} />
+                    {t('explore')} <ArrowRight size={16} />
                   </Link>
                 </div>
               );

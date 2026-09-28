@@ -1,0 +1,155 @@
+{
+  "candidateCommit": "0a0cee42913ba5d14a0584a1296116b67f07917d",
+  "role": "owner",
+  "width": 390,
+  "height": 844,
+  "locale": "en",
+  "scenarios": [
+    {
+      "name": "invalid",
+      "status": 200,
+      "ui": {
+        "path": "/j-aautomation/app/projects/:record",
+        "query": {
+          "periodStart": [
+            "2026-02-30"
+          ],
+          "periodEnd": [
+            "2026-03-01"
+          ],
+          "tab": [
+            "commercial"
+          ],
+          "lang": [
+            "en"
+          ]
+        },
+        "locale": "en-US",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 3,
+        "code": "PROJECT_DETAIL_PERIOD_DATE_INVALID",
+        "noticeText": "Action needed Enter a valid start and end date for this project's finance period. Correct the highlighted field",
+        "noticeTop": 715.09375,
+        "noticeBottom": 843.65625,
+        "noticeVisible": true,
+        "focusIsNotice": true,
+        "focusedTag": "aside",
+        "focusedId": "",
+        "remedyText": null,
+        "periodFormPresent": true,
+        "startValue": "2026-02-30",
+        "endValue": "2026-03-01",
+        "startError": "Enter a valid start and end date for this project's finance period.",
+        "endError": null,
+        "selectedTab": "project-tab-commercial",
+        "financeSummaryCount": 0,
+        "correctionCount": 1
+      }
+    },
+    {
+      "name": "reversed",
+      "status": 200,
+      "ui": {
+        "path": "/j-aautomation/app/projects/:record",
+        "query": {
+          "periodStart": [
+            "2026-09-20"
+          ],
+          "periodEnd": [
+            "2026-09-19"
+          ],
+          "tab": [
+            "commercial"
+          ],
+          "lang": [
+            "en"
+          ]
+        },
+        "locale": "en-US",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 3,
+        "code": "PROJECT_DETAIL_PERIOD_RANGE_REVERSED",
+        "noticeText": "Action needed The period end is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeTop": 715.09375,
+        "noticeBottom": 843.65625,
+        "noticeVisible": true,
+        "focusIsNotice": true,
+        "focusedTag": "aside",
+        "focusedId": "",
+        "remedyText": null,
+        "periodFormPresent": true,
+        "startValue": "2026-09-20",
+        "endValue": "2026-09-19",
+        "startError": null,
+        "endError": "The period end is before the start. Choose an end date on or after the start date.",
+        "selectedTab": "project-tab-commercial",
+        "financeSummaryCount": 0,
+        "correctionCount": 1
+      }
+    },
+    {
+      "name": "duplicate",
+      "status": 200,
+      "ui": {
+        "path": "/j-aautomation/app/projects/:record",
+        "query": {
+          "periodStart": [
+            "2026-09-01",
+            "2026-09-02"
+          ],
+          "periodEnd": [
+            "2026-09-30"
+          ],
+          "tab": [
+            "commercial"
+          ],
+          "lang": [
+            "en"
+          ]
+        },
+        "locale": "en-US",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 23,
+        "code": "PROJECT_DETAIL_PERIOD_DATE_DUPLICATE",
+        "noticeText": "Action needed A finance period date was supplied more than once. Keep one start date and one end date, then review the period. Correct the highlighted field",
+        "noticeTop": 695.09375,
+        "noticeBottom": 843.953125,
+        "noticeVisible": true,
+        "focusIsNotice": true,
+        "focusedTag": "aside",
+        "focusedId": "",
+        "remedyText": null,
+        "periodFormPresent": true,
+        "startValue": "2026-09-01",
+        "endValue": "2026-09-30",
+        "startError": "A finance period date was supplied more than once. Keep one start date and one end date, then review the period.",
+        "endError": null,
+        "selectedTab": "project-tab-commercial",
+        "financeSummaryCount": 0,
+        "correctionCount": 1
+      }
+    }
+  ],
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 document",
+      "200 document",
+      "200 document"
+    ]
+  }
+}

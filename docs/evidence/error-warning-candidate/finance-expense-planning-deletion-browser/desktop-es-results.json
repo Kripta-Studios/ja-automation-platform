@@ -1,0 +1,49 @@
+{
+  "commit": "85b696d",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "locale": "es",
+  "roles": ["owner", "finance"],
+  "fixture": "Owner UI created a QA draft; Finance held planning edit; Owner UI deleted draft",
+  "attempted": {
+    "reimbursement": "2026-09-29",
+    "recovery": "2026-09-30"
+  },
+  "network": {
+    "status": 404,
+    "codeInResponse": true,
+    "genericInResponse": false,
+    "valuesInResponse": true
+  },
+  "visible": {
+    "code": "FINANCE_EXPENSE_PLANNING_RECORD_UNAVAILABLE",
+    "text": "Se requiere una acción Este gasto ya no está disponible. No se guardó ninguna fecha de planificación. Revisa la lista actual de gastos de Finanzas y elige un gasto disponible. Revisar gastos actuales",
+    "recap": "Fechas que introdujiste Reembolso previsto 2026-09-29 Recuperación prevista del cliente 2026-09-30",
+    "remedy": {
+      "text": "Revisar gastos actuales",
+      "path": "/j-aautomation/app/finance",
+      "view": "commercial",
+      "lang": "es"
+    },
+    "focused": true,
+    "top": 88,
+    "bottom": 357,
+    "safeTop": 80,
+    "safeBottom": 884,
+    "routeView": "commercial",
+    "language": "es-ES",
+    "expenseCardCount": 0,
+    "overflow": false
+  },
+  "noExpenseOrAuditWrite": true,
+  "review": {
+    "financeCommercialList": true,
+    "localePreserved": true
+  },
+  "diagnostics": {
+    "owner": [],
+    "finance": []
+  }
+}

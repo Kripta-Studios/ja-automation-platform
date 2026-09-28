@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>J&A Automation — Plataforma Digital de Operaciones</title>
+<meta name="description" content="Presentación del proyecto de nueva web corporativa y aplicación completa de operaciones para J&A Automation." />
+<style>
+:root{
+  --bg:#071014;
+  --bg2:#0b171c;
+  --panel:#0f2026;
+  --panel2:#13282f;
+  --text:#eef7f7;
+  --muted:#9bb0b5;
+  --line:rgba(255,255,255,.09);
+  --accent:#62e2bd;
+  --accent2:#7cc9ff;
+  --warn:#ffc970;
+  --white:#fff;
+  --shadow:0 30px 80px rgba(0,0,0,.28);
+  --radius:26px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 15% 10%, rgba(98,226,189,.09), transparent 26rem),
+    radial-gradient(circle at 90% 20%, rgba(124,201,255,.08), transparent 28rem),
+    linear-gradient(180deg,var(--bg),#091318 48%,#060c0f);
+  line-height:1.55;
+}
+a{color:inherit}
+button{font:inherit}
+.shell{width:min(1180px,calc(100% - 36px));margin:auto}
+.topbar{
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:blur(16px);
+  background:rgba(7,16,20,.72);
+  border-bottom:1px solid var(--line);
+}
+.topbar .shell{
+  height:68px;display:flex;align-items:center;justify-content:space-between;gap:20px
+}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.01em}
+.mark{
+  width:34px;height:34px;border:1px solid rgba(98,226,189,.4);border-radius:10px;
+  display:grid;place-items:center;color:var(--accent);
+  background:linear-gradient(145deg,rgba(98,226,189,.12),rgba(124,201,255,.06))
+}
+.nav{display:flex;gap:7px;flex-wrap:wrap}
+.nav a{
+  text-decoration:none;color:var(--muted);font-size:13px;padding:8px 10px;border-radius:9px
+}
+.nav a:hover{background:rgba(255,255,255,.05);color:var(--white)}
+.hero{
+  min-height:calc(100vh - 68px);display:grid;align-items:center;padding:72px 0 58px
+}
+.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:50px;align-items:center}
+.kicker{
+  display:inline-flex;align-items:center;gap:10px;
+  color:var(--accent);font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase
+}
+.dot{width:8px;height:8px;border-radius:99px;background:var(--accent);box-shadow:0 0 26px var(--accent)}
+h1,h2,h3,p{margin-top:0}
+h1{font-size:clamp(48px,7.4vw,100px);line-height:.92;letter-spacing:-.055em;margin:18px 0 26px}
+.hero p{font-size:clamp(18px,2vw,24px);color:#bfd0d4;max-width:760px}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:34px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  border-radius:13px;padding:12px 16px;text-decoration:none;font-weight:800;font-size:14px;
+  border:1px solid var(--line)
+}
+.btn.primary{background:var(--accent);color:#04100d;border-color:transparent}
+.btn.secondary{background:rgba(255,255,255,.035);color:var(--white)}
+.hero-card{
+  position:relative;padding:24px;border:1px solid var(--line);border-radius:32px;
+  background:linear-gradient(160deg,rgba(255,255,255,.065),rgba(255,255,255,.018));
+  box-shadow:var(--shadow);overflow:hidden
+}
+.hero-card:before{
+  content:"";position:absolute;inset:-30% 30% 55% -15%;
+  background:radial-gradient(circle,rgba(98,226,189,.16),transparent 66%);pointer-events:none
+}
+.metric-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}
+.metric{
+  padding:17px;border-radius:18px;background:#09161a;border:1px solid var(--line)
+}
+.metric strong{font-size:26px;display:block}
+.metric span{font-size:12px;color:var(--muted)}
+.flow{display:grid;gap:10px;margin-top:18px}
+.flow div{
+  padding:11px 13px;border:1px solid var(--line);background:rgba(255,255,255,.025);
+  border-radius:12px;color:#d8e6e8;font-size:13px
+}
+section{padding:90px 0;border-top:1px solid rgba(255,255,255,.055)}
+.section-head{display:grid;grid-template-columns:.8fr 1.2fr;gap:40px;margin-bottom:42px}
+.eyebrow{color:var(--accent);font-size:12px;font-weight:900;letter-spacing:.18em;text-transform:uppercase}
+h2{font-size:clamp(34px,5vw,64px);line-height:1.02;letter-spacing:-.04em;margin:8px 0}
+.lead{color:#b9c9cd;font-size:18px;max-width:760px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}
+.card{
+  position:relative;padding:24px;border-radius:var(--radius);
+  border:1px solid var(--line);
+  background:linear-gradient(160deg,rgba(255,255,255,.052),rgba(255,255,255,.017))
+}
+.card h3{font-size:20px;letter-spacing:-.02em;margin-bottom:8px}
+.card p{color:var(--muted);font-size:14px;margin-bottom:0}
+.icon{
+  width:42px;height:42px;display:grid;place-items:center;border-radius:13px;
+  background:rgba(98,226,189,.09);border:1px solid rgba(98,226,189,.18);
+  margin-bottom:18px;color:var(--accent);font-weight:900
+}
+.list{padding:0;margin:18px 0 0;list-style:none;display:grid;gap:9px}
+.list li{color:#c6d4d7;font-size:14px;display:flex;gap:10px}
+.list li:before{content:"→";color:var(--accent);font-weight:900}
+.mock{
+  padding:18px;border:1px solid var(--line);border-radius:24px;background:#071115;
+  box-shadow:var(--shadow)
+}
+.mock-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;color:#8fa2a7;font-size:12px}
+.mock-content{display:grid;gap:10px}
+.mock-stat{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:13px;background:#0c1b20;border:1px solid var(--line)}
+.mock-stat b{font-size:16px}
+.tag{display:inline-flex;padding:5px 8px;border-radius:8px;background:rgba(98,226,189,.1);color:var(--accent);font-size:11px;font-weight:800}
+.tag.blue{background:rgba(124,201,255,.1);color:var(--accent2)}
+.tag.warn{background:rgba(255,201,112,.1);color:var(--warn)}
+.process{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.step{
+  min-height:170px;padding:19px;border:1px solid var(--line);border-radius:22px;
+  background:rgba(255,255,255,.026)
+}
+.step-num{font-size:11px;color:var(--accent);font-weight:900;letter-spacing:.16em}
+.step h3{margin:26px 0 8px;font-size:18px}
+.step p{font-size:13px;color:var(--muted)}
+.callout{
+  margin-top:24px;padding:24px 26px;border-radius:22px;
+  border:1px solid rgba(98,226,189,.18);
+  background:linear-gradient(90deg,rgba(98,226,189,.07),rgba(124,201,255,.035));
+}
+.callout strong{color:var(--accent)}
+.arch{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:14px}
+.arch-box{padding:24px;border:1px solid var(--line);border-radius:22px;background:#0a171b}
+.arch-arrow{color:var(--accent);font-size:24px}
+.price-section{padding-bottom:120px}
+.price-wrap{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:32px}
+.price{
+  padding:34px;border-radius:30px;border:1px solid var(--line);
+  background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.018));
+  position:relative;overflow:hidden
+}
+.price.featured{border-color:rgba(98,226,189,.38);box-shadow:0 30px 90px rgba(98,226,189,.08)}
+.price .label{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.13em;font-weight:900}
+.price .amount{font-size:clamp(48px,7vw,82px);font-weight:900;letter-spacing:-.055em;line-height:1;margin:18px 0 10px}
+.price p{color:#bacacc}
+.price ul{padding-left:18px;color:#d7e3e5}
+.total{
+  margin-top:18px;padding:26px 30px;border-radius:26px;background:var(--accent);color:#04100d;
+  display:flex;justify-content:space-between;align-items:end;gap:20px
+}
+.total span{font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:.1em}
+.total strong{font-size:clamp(42px,7vw,78px);letter-spacing:-.055em;line-height:1}
+.footer{padding:34px 0 55px;color:#7e9297;font-size:12px;border-top:1px solid var(--line)}
+.small-note{font-size:12px;color:#7f9499;margin-top:12px}
+.presenter{position:fixed;right:18px;bottom:18px;z-index:70;display:flex;gap:8px}
+.presenter button{
+  width:42px;height:42px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(8,18,22,.88);color:#dbe8ea;cursor:pointer;backdrop-filter:blur(10px)
+}
+.presenter button:hover{border-color:rgba(98,226,189,.35);color:var(--accent)}
+@media (max-width:900px){
+  .hero-grid,.section-head,.grid-2,.price-wrap{grid-template-columns:1fr}
+  .grid-3{grid-template-columns:1fr 1fr}
+  .grid-4{grid-template-columns:1fr 1fr}
+  .process{grid-template-columns:1fr 1fr}
+  .arch{grid-template-columns:1fr}
+  .arch-arrow{transform:rotate(90deg);text-align:center}
+  .nav{display:none}
+}
+@media (max-width:620px){
+  .shell{width:min(100% - 24px,1180px)}
+  section{padding:66px 0}
+  .grid-3,.grid-4,.process{grid-template-columns:1fr}
+  h1{font-size:52px}
+  .metric-row{grid-template-columns:1fr 1fr}
+  .total{align-items:flex-start;flex-direction:column}
+}
+@media print{
+  body{background:#fff;color:#111}
+  .topbar,.presenter{display:none}
+  section,.hero{page-break-after:always;min-height:100vh;padding:40px 0;border:none}
+  .card,.mock,.price,.arch-box,.step{box-shadow:none;background:#fff;color:#111;border-color:#ddd}
+  .card p,.step p,.lead,.hero p,.price p,.small-note,.mock-top{color:#555}
+  .total{background:#eee;color:#111}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="shell">
+    <div class="brand"><span class="mark">J&A</span> J&A Automation · Plataforma Digital</div>
+    <nav class="nav">
+      <a href="#vision">Visión</a>
+      <a href="#website">Web</a>
+      <a href="#app">App</a>
+      <a href="#field">Campo</a>
+      <a href="#finance">Finanzas</a>
+      <a href="#architecture">Tecnología</a>
+      <a href="#pricing">Coste</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="shell hero-grid">
+    <div>
+      <div class="kicker"><span class="dot"></span> Propuesta de Proyecto</div>
+      <h1>Una única plataforma digital para J&A Automation.</h1>
+      <p>Una nueva web corporativa y una aplicación completa de operaciones para proyectos, trabajadores, trabajo de campo, informes PLC, gastos, presupuestos, facturación y gestión.</p>
+      <div class="hero-cta">
+        <a class="btn primary" href="#vision">Ver el proyecto ↓</a>
+        <a class="btn secondary" href="#pricing">Ver inversión</a>
+      </div>
+    </div>
+    <div class="hero-card">
+      <div class="mock-top"><span>J&A OPERATIONS</span><span class="tag">VISTA DE PROYECTO</span></div>
+      <div class="metric-row">
+        <div class="metric"><strong>12</strong><span>Proyectos activos</span></div>
+        <div class="metric"><strong>284 h</strong><span>Periodo actual</span></div>
+        <div class="metric"><strong>47,8 k€</strong><span>Facturable acumulado</span></div>
+        <div class="metric"><strong>51,6%</strong><span>Margen de contribución</span></div>
+      </div>
+      <div class="flow">
+        <div>Trabajador → Horas · Informe diario · PLC · Gastos</div>
+        <div>Administración → Aprobación · Coste · Presupuesto · Billing</div>
+        <div>Dirección → Ingresos · Margen · Previsión · Factura</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="vision">
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">01 · Visión</div><h2>De procesos dispersos a un único sistema de operaciones.</h2></div>
+      <p class="lead">El objetivo es centralizar tanto la imagen externa de J&A como la gestión interna de sus proyectos: desde la primera asignación de personal hasta la factura final.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card"><div class="icon">01</div><h3>Presencia profesional</h3><p>Una web moderna y multilingüe que comunique con claridad las capacidades de J&A en automatización industrial.</p></div>
+      <div class="card"><div class="icon">02</div><h3>Operaciones de campo</h3><p>Los trabajadores gestionan asignaciones, horas, informes, actividad PLC y gastos desde móvil, tablet u ordenador.</p></div>
+      <div class="card"><div class="icon">03</div><h3>Control del negocio</h3><p>Dirección obtiene visibilidad sobre costes, presupuestos, trabajo facturable, rentabilidad y preparación de facturas.</p></div>
+    </div>
+    <div class="callout"><strong>Idea central:</strong> la información se introduce una sola vez, donde ocurre el trabajo, y después alimenta automáticamente los informes, el control de costes y la facturación.</div>
+  </div>
+</section>
+
+<section id="website">
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">02 · Web corporativa</div><h2>Una imagen digital a la altura de J&A.</h2></div>
+      <p class="lead">La nueva web debe presentar a J&A como una empresa internacional de automatización industrial seria, moderna y técnicamente sólida.</p>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Áreas principales</h3>
+        <ul class="list">
+          <li>Homepage con identidad industrial fuerte</li>
+          <li>Capacidades y servicios</li>
+          <li>Industrias y experiencia en proyectos</li>
+          <li>Área de Aquarex</li>
+          <li>Sobre J&A Automation</li>
+          <li>Empleo y contacto</li>
+          <li>Privacidad y términos</li>
+          <li>Acceso al Employee Portal</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Diseñada para 2026</h3>
+        <ul class="list">
+          <li>Responsive en desktop, móvil y iPad</li>
+          <li>Estructura en inglés, portugués y español</li>
+          <li>Rápida, accesible y preparada para SEO</li>
+          <li>Uso de imágenes y recursos reales de J&A</li>
+          <li>Sin apariencia genérica de SaaS o plantilla</li>
+          <li>Fácil de mantener y ampliar</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="app">
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">03 · Aplicación interna</div><h2>El espacio diario de trabajo de la empresa.</h2></div>
+      <p class="lead">Una aplicación privada para trabajadores, responsables de proyecto, administración y finanzas, con permisos específicos según el rol.</p>
+    </div>
+    <div class="grid-4">
+      <div class="card"><div class="icon">C</div><h3>Clientes</h3><p>Datos de cliente, facturación, contactos e historial de proyectos.</p></div>
+      <div class="card"><div class="icon">P</div><h3>Proyectos</h3><p>Numeración, calendarios, equipos, presupuestos, reglas comerciales y estado.</p></div>
+      <div class="card"><div class="icon">W</div><h3>Trabajadores</h3><p>Asignaciones, horas previstas, skills, disponibilidad e información individual.</p></div>
+      <div class="card"><div class="icon">F</div><h3>Finanzas</h3><p>Costes, trabajo facturable, gastos, márgenes, periodos de billing y borradores de factura.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="field">
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">04 · Experiencia del trabajador</div><h2>Pensada para cómo se trabaja realmente en automatización.</h2></div>
+      <p class="lead">La experiencia del trabajador será mobile-first: abrir el proyecto del día, registrar el trabajo real, documentar lo ocurrido y seguir trabajando.</p>
+    </div>
+    <div class="grid-2">
+      <div class="mock">
+        <div class="mock-top"><span>TRABAJADOR · HOY</span><span class="tag">MÓVIL</span></div>
+        <div class="mock-content">
+          <div class="mock-stat"><span>Proyecto</span><b>Body Shop · Línea 4</b></div>
+          <div class="mock-stat"><span>Previsto</span><b>10:00 h</b></div>
+          <div class="mock-stat"><span>Registrado</span><b>7:30 h</b></div>
+          <div class="mock-stat"><span>Trabajo regular</span><b>4:30 h</b></div>
+          <div class="mock-stat"><span>Standby</span><b>2:00 h</b></div>
+          <div class="mock-stat"><span>Commissioning</span><b>1:00 h</b></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Acciones diarias</h3>
+        <ul class="list">
+          <li>Ver asignación y horario previsto del día</li>
+          <li>Registrar horas reales, nunca autocompletadas</li>
+          <li>Separar trabajo regular, commissioning, standby, viaje y overtime</li>
+          <li>Crear informes diarios</li>
+          <li>Crear informes PLC / técnicos</li>
+          <li>Añadir gastos y recibos</li>
+          <li>Consultar su propio progreso y compensación estimada</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">05 · Horas y reglas comerciales</div><h2>Planificación, compensación y facturación son conceptos distintos.</h2></div>
+      <p class="lead">Una jornada de 10 horas puede tener significados diferentes a nivel operativo y comercial. La plataforma separa esos conceptos para reflejar correctamente la realidad.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card"><span class="tag">PLANIFICACIÓN</span><h3 style="margin-top:16px">Jornada prevista</h3><p>La planificación puede asumir por defecto 10 horas al día, de lunes a sábado. Eso no significa inventar horas reales trabajadas.</p></div>
+      <div class="card"><span class="tag blue">CLIENTE</span><h3 style="margin-top:16px">Mínimo facturable</h3><p>Un contrato puede establecer un mínimo diario facturable aunque parte del día sea espera, standby u otro tipo de actividad.</p></div>
+      <div class="card"><span class="tag warn">TRABAJADOR</span><h3 style="margin-top:16px">Garantía de compensación</h3><p>La compensación del trabajador puede seguir una regla diferente a la que se usa para facturar al cliente.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">06 · Informes y PLC</div><h2>Reporting técnico pensado para proyectos industriales.</h2></div>
+      <p class="lead">En lugar de simples notas, la aplicación recogerá información estructurada que pueda convertirse en documentación interna y en informes para el cliente.</p>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Informe diario</h3>
+        <ul class="list">
+          <li>Trabajo realizado y tareas completadas</li>
+          <li>Problemas, bloqueos y motivos de standby</li>
+          <li>Acciones correctivas y decisiones del cliente</li>
+          <li>Puntos abiertos y plan para el día siguiente</li>
+          <li>Adjuntos y relación con las horas registradas</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Informe PLC / técnico</h3>
+        <ul class="list">
+          <li>Planta, línea, estación y máquina</li>
+          <li>PLC, HMI, SCADA, robot o plataforma</li>
+          <li>Problema y causa raíz</li>
+          <li>Cambio realizado y motivo</li>
+          <li>Validación, impacto en producción y safety flag</li>
+          <li>Backups, versiones y hashes de archivos</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">07 · Gastos</div><h2>Los costes de viaje y proyecto quedan visibles desde el momento en que ocurren.</h2></div>
+      <p class="lead">Los trabajadores pueden adjuntar recibos desde el campo mientras la plataforma controla quién pagó, cómo afecta al proyecto y si ese gasto debe o no llegar al cliente.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card"><h3>Captura</h3><p>Hotel, coche de alquiler, combustible, peajes, vuelos, comidas, materiales y otros gastos asociados al proyecto.</p></div>
+      <div class="card"><h3>¿Quién pagó?</h3><p>Trabajador, tarjeta de J&A, pago directo de J&A, cliente o un tercero.</p></div>
+      <div class="card"><h3>Tratamiento comercial</h3><p>Reembolsable a coste, reembolsable con markup, incluido en all-in, no facturable, pagado por cliente o allowance/per diem.</p></div>
+    </div>
+    <div class="callout"><strong>Ejemplo:</strong> en un proyecto all-in, un hotel reduce el margen interno de J&A pero no aparece automáticamente en la factura. En un proyecto reembolsable, el mismo gasto aprobado puede pasar al stream de gastos facturables.</div>
+  </div>
+</section>
+
+<section id="finance">
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">08 · Finanzas del proyecto</div><h2>Saber cuánto está produciendo realmente cada proyecto.</h2></div>
+      <p class="lead">Dirección podrá ver conjuntamente la situación operativa y económica sin esperar a reconciliar varias hojas de cálculo independientes.</p>
+    </div>
+    <div class="grid-2">
+      <div class="mock">
+        <div class="mock-top"><span>VISTA FINANCIERA DEL PROYECTO</span><span class="tag">EJEMPLO</span></div>
+        <div class="mock-content">
+          <div class="mock-stat"><span>Presupuesto / PO</span><b>120.000 €</b></div>
+          <div class="mock-stat"><span>Facturable acumulado</span><b>47.850 €</b></div>
+          <div class="mock-stat"><span>Trabajo no facturado</span><b>8.420 €</b></div>
+          <div class="mock-stat"><span>Coste laboral</span><b>21.300 €</b></div>
+          <div class="mock-stat"><span>Viajes y gastos</span><b>6.140 €</b></div>
+          <div class="mock-stat"><span>Margen de contribución</span><b>51,6%</b></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Visibilidad para dirección</h3>
+        <ul class="list">
+          <li>Ingresos / PO / presupuesto de proyecto</li>
+          <li>Horas planificadas y reales</li>
+          <li>Coste directo del trabajador</li>
+          <li>Hotel, coche y viajes</li>
+          <li>Trabajo aprobado pendiente de facturar</li>
+          <li>Facturas y cobros</li>
+          <li>Margen de contribución y porcentaje</li>
+          <li>Estimate at Completion y margen final previsto</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">09 · Billing y facturación</div><h2>Del trabajo aprobado a un borrador de factura profesional.</h2></div>
+      <p class="lead">Las horas y los gastos podrán seguir reglas, periodos e impuestos distintos, manteniendo siempre trazabilidad con los registros originales del proyecto.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card"><h3>Modelos de facturación</h3><p>Hourly/T&M, mínimo diario, all-in, capped T&M, fixed milestone, híbrido y no facturable.</p></div>
+      <div class="card"><h3>Periodos</h3><p>Semanal, cada 14 días, semimensual, mensual, rango personalizado, milestone o manual.</p></div>
+      <div class="card"><h3>Streams separados</h3><p>Horas y gastos pueden usar perfiles fiscales distintos, plantillas distintas y facturas separadas.</p></div>
+    </div>
+    <div class="callout"><strong>Principio de seguridad:</strong> la aplicación puede preparar automáticamente informes y borradores, pero la emisión y el envío final de una factura siguen siendo acciones controladas.</div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">10 · Flujo completo</div><h2>Un único flujo continuo de datos.</h2></div>
+      <p class="lead">El verdadero valor aparece cuando todos los módulos están conectados y la misma información sirve para operar, analizar y facturar.</p>
+    </div>
+    <div class="process">
+      <div class="step"><div class="step-num">PASO 01</div><h3>Crear proyecto</h3><p>Cliente, número, calendario, tarifas, presupuesto y reglas comerciales.</p></div>
+      <div class="step"><div class="step-num">PASO 02</div><h3>Asignar equipo</h3><p>Trabajadores, fechas, horas previstas, planta y capacidades requeridas.</p></div>
+      <div class="step"><div class="step-num">PASO 03</div><h3>Ejecutar</h3><p>Horas reales, informes diarios, trabajo PLC y gastos registrados en campo.</p></div>
+      <div class="step"><div class="step-num">PASO 04</div><h3>Revisar</h3><p>Aprobaciones, costes, presupuesto, margen y elementos pendientes.</p></div>
+      <div class="step"><div class="step-num">PASO 05</div><h3>Facturar</h3><p>Cierre de periodo, informes y borradores de facturas de horas y gastos.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">11 · Móvil y PWA</div><h2>La aplicación debe funcionar donde ocurre el trabajo.</h2></div>
+      <p class="lead">El portal estará diseñado para teléfono, tablet y desktop. La versión completa podrá incluir modo instalable y borradores offline para situaciones de campo con mala conectividad.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card"><h3>Móvil</h3><p>Flujo rápido del trabajador: asignación, horas, informe, PLC, recibo y datos personales del proyecto.</p></div>
+      <div class="card"><h3>iPad</h3><p>Más espacio para proyectos e informes técnicos sin perder comodidad en planta.</p></div>
+      <div class="card"><h3>Desktop</h3><p>Tablas densas, dashboards, finanzas, billing, planificación y documentos.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">12 · Seguridad y permisos</div><h2>La información comercial y laboral permanece separada.</h2></div>
+      <p class="lead">La plataforma final se diseñará con autorización en servidor y visibilidad específica por rol.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card"><h3>Trabajador</h3><p>Sus proyectos, horas, informes, gastos y compensación estimada propia, pero no tarifas al cliente ni margen de la empresa.</p></div>
+      <div class="card"><h3>Project Management</h3><p>Operaciones, aprobaciones, reporting y la información comercial necesaria de los proyectos asignados.</p></div>
+      <div class="card"><h3>Finanzas / Administración</h3><p>Tarifas, costes internos, impuestos, facturas, pagos, presupuestos, márgenes y reporting financiero.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">13 · Tecnología</div><h2>Una arquitectura ligera para la escala real de J&A.</h2></div>
+      <p class="lead">El objetivo es mantener la solución sencilla de operar en el VPS actual, sin añadir infraestructura innecesaria.</p>
+    </div>
+    <div class="arch">
+      <div class="arch-box"><span class="tag">PÚBLICO</span><h3 style="margin-top:14px">Web estática</h3><p>SvelteKit · multilingüe · rápida · servida directamente por Caddy.</p></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-box"><span class="tag blue">PRIVADO</span><h3 style="margin-top:14px">Portal de operaciones</h3><p>SvelteKit / Node · TypeScript · aplicación web responsive.</p></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-box"><span class="tag warn">DATOS</span><h3 style="margin-top:14px">SQLite + archivos</h3><p>Drizzle ORM · almacenamiento privado · backups y trazabilidad.</p></div>
+    </div>
+    <div class="callout">Pensada para el <strong>VPS Ubuntu + Caddy</strong> existente, evitando microservicios, Kubernetes, Redis o bases de datos pesadas cuando no son necesarias.</div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">14 · Estrategia de entrega</div><h2>Mostrar valor rápidamente y después completar el producto.</h2></div>
+      <p class="lead">El desarrollo puede comenzar con un MVP muy pulido que demuestre la visión completa, para después incorporar progresivamente hardening, automatización y funcionalidades avanzadas.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card"><span class="tag">FASE 1</span><h3 style="margin-top:16px">Web corporativa</h3><p>Nueva presencia pública, diseño industrial, responsive, estructura multilingüe y acceso al portal.</p></div>
+      <div class="card"><span class="tag blue">FASE 2</span><h3 style="margin-top:16px">MVP de la plataforma</h3><p>Proyectos, trabajadores, horas, informes, PLC, gastos, finanzas de proyecto y demostración de facturación.</p></div>
+      <div class="card"><span class="tag warn">FASE 3</span><h3 style="margin-top:16px">Aplicación completa</h3><p>Seguridad completa, aprobaciones, automatización, PWA/offline, ciclo completo de billing, backups, operaciones y despliegue.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing" class="price-section">
+  <div class="shell">
+    <div class="section-head">
+      <div><div class="eyebrow">15 · Coste del proyecto</div><h2>Inversión.</h2></div>
+      <p class="lead">La propuesta económica cubre la web corporativa y la aplicación completa descrita en esta presentación.</p>
+    </div>
+    <div class="price-wrap">
+      <div class="price">
+        <div class="label">Web corporativa</div>
+        <div class="amount">1.000 €</div>
+        <p>Nueva web pública de J&A Automation.</p>
+        <ul>
+          <li>Diseño responsive</li>
+          <li>Empresa, capacidades y proyectos</li>
+          <li>Estructura multilingüe</li>
+          <li>Contacto, empleo y acceso al portal</li>
+          <li>Preparada para despliegue</li>
+        </ul>
+      </div>
+      <div class="price featured">
+        <div class="label">Aplicación completa</div>
+        <div class="amount">4.000 €</div>
+        <p>Plataforma interna completa de J&A descrita en esta propuesta.</p>
+        <ul>
+          <li>Proyectos, clientes y trabajadores</li>
+          <li>Horas, informes y actividad PLC</li>
+          <li>Gastos y recibos</li>
+          <li>Presupuestos y finanzas de proyecto</li>
+          <li>Billing y facturas</li>
+          <li>Portal responsive para trabajadores y administración</li>
+        </ul>
+      </div>
+    </div>
+    <div class="total">
+      <div>
+        <span>Inversión total del proyecto</span>
+        <div class="small-note" style="color:#184036">Web + aplicación completa</div>
+      </div>
+      <strong>5.000 €</strong>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="shell">J&A Automation — Plataforma Digital de Operaciones · Presentación de proyecto · 2026</div>
+</footer>
+
+<div class="presenter" aria-label="Navegación de la presentación">
+  <button title="Sección anterior" onclick="move(-1)">↑</button>
+  <button title="Sección siguiente" onclick="move(1)">↓</button>
+</div>
+
+<script>
+const sections=[...document.querySelectorAll('main > section')];
+function currentIndex(){
+  const y=window.scrollY+window.innerHeight*.36;
+  let idx=0;
+  sections.forEach((s,i)=>{if(s.offsetTop<=y) idx=i});
+  return idx;
+}
+function move(dir){
+  const next=Math.max(0,Math.min(sections.length-1,currentIndex()+dir));
+  sections[next].scrollIntoView({behavior:'smooth',block:'start'});
+}
+window.addEventListener('keydown',e=>{
+  if(['ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();move(1)}
+  if(['ArrowUp','PageUp'].includes(e.key)){e.preventDefault();move(-1)}
+  if(e.key==='Home')sections[0].scrollIntoView({behavior:'smooth'});
+  if(e.key==='End')sections[sections.length-1].scrollIntoView({behavior:'smooth'});
+});
+</script>
+</body>
+</html>

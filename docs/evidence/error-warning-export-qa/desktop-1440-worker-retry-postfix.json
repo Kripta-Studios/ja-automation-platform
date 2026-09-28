@@ -1,0 +1,36 @@
+{
+  "viewport": "desktop-1440",
+  "failedNoticeText": "Action needed\n\nThe statement could not be rendered. Retry this artifact if Retry is offered; otherwise contact the owner or finance team.\n\nRetry statement",
+  "failedNoticeFocused": true,
+  "failedNoticeVisible": true,
+  "failedDownloadStatus": 409,
+  "failedDownloadCode": "WORKER_STATEMENT_RENDER_FAILED",
+  "retryStatus": 202,
+  "retriedArtifactStatus": "queued",
+  "scrollBeforeRetry": 0,
+  "scrollAfterRetry": 0,
+  "failedResponses": [
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrorCount": 3,
+  "consoleErrorExamples": [
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+  ]
+}

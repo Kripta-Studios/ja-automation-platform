@@ -1,0 +1,39 @@
+{
+  "candidateCommit": "d9c212ba93625ff9fe37802c771291a1ecfb42de",
+  "manager": {
+    "status": 403,
+    "contentType": "application/problem+json; charset=utf-8",
+    "payload": {
+      "success": false,
+      "code": "INVOICE_DRAFT_PREVIEW_ACCESS_DENIED",
+      "messageKey": "problem.invoiceDraftPreview.accessDenied",
+      "message": "This role cannot download invoice previews. Ask the owner to review your access.",
+      "params": {},
+      "fieldErrors": {},
+      "remedies": [
+        {
+          "id": "contact_owner"
+        }
+      ],
+      "correlationId": ":record"
+    }
+  },
+  "signedOut": {
+    "status": 401,
+    "contentType": "application/problem+json; charset=utf-8",
+    "payload": {
+      "success": false,
+      "code": "INVOICE_DRAFT_PREVIEW_SIGN_IN_REQUIRED",
+      "messageKey": "problem.invoiceDraftPreview.signInRequired",
+      "message": "Sign in again before downloading this invoice preview.",
+      "params": {},
+      "fieldErrors": {},
+      "remedies": [
+        {
+          "id": "sign_in_again"
+        }
+      ],
+      "correlationId": ":record"
+    }
+  }
+}

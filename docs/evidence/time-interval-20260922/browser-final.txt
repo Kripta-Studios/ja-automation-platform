@@ -1,0 +1,116 @@
+[WebServer] (node:607566) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+[WebServer] (node:607579) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+[WebServer] (node:607665) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ node build
+[WebServer] (node:607678) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0c921-f592-763c-b2fb-155086361fd3",
+    "01a0c921-f593-779d-8fe3-bfa89ee56318",
+    "01a0c921-f593-779d-8fe3-cd15855b36fd",
+    "01a0c921-f594-7311-bec2-3fb5769ff88f"
+  ],
+  "invoiceDrafts": [
+    "01a0c921-f69c-74ac-840c-8ab583087143",
+    "01a0c921-f6a0-75a7-80c5-4948f6cedbfb",
+    "01a0c921-f6a4-75ac-86a8-9077fa1d811a"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0c921-f6ad-775c-a548-c46faa07bb38",
+    "01a0c921-f6af-753b-9bcb-12d6f02d7f1e",
+    "01a0c921-f6b3-761c-a269-fb22d3eea46f"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0c921-f6ad-775c-a548-c46faa07bb38",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0c921-f693-73fb-a819-bfdbd612e04b",
+    "01a0c921-f694-70ac-ba32-4b088da64877"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0c921-f592-763c-b2fb-155086361fd3",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0c921-f6bb-7626-bf1d-2e6b083d1b3b"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0c921-f592-763c-b2fb-155086361fd3",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0c921-f6be-742b-b0ef-be798776ca96"
+    }
+  ],
+  "periodReportIds": [
+    "01a0c921-f6bf-7099-a031-7c1122202cf6",
+    "01a0c921-f6bf-7099-a031-82f6f1fbd32e"
+  ],
+  "accountingPackId": "01a0c921-f70d-725a-be17-b553697d9b9c",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-300cf119e389c2907c801f789673441825bed945",
+  "closeoutId": "01a0c921-f795-765a-a51a-86e826db77a1"
+}
+
+Running 16 tests using 1 worker
+
+(node:607839) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   1 [phone-360] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas
+  ✓   2 [phone-360] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface (4.7s)
+  ✓   3 [phone-360] › tests/e2e/owner-record-management.spec.ts:77:1 › Worker cannot open Owner data management (2.1s)
+  ✓   4 [phone-360] › tests/e2e/owner-record-management.spec.ts:84:1 › project pickers search ignoring case and accents and retain selected values (3.0s)
+(node:608248) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   5 [phone-390] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas
+  ✓   6 [phone-390] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface (4.4s)
+  ✓   7 [phone-390] › tests/e2e/owner-record-management.spec.ts:77:1 › Worker cannot open Owner data management (2.1s)
+  ✓   8 [phone-390] › tests/e2e/owner-record-management.spec.ts:84:1 › project pickers search ignoring case and accents and retain selected values (3.3s)
+(node:608596) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   9 [tablet-768] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas
+  ✓  10 [tablet-768] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface (4.4s)
+  ✓  11 [tablet-768] › tests/e2e/owner-record-management.spec.ts:77:1 › Worker cannot open Owner data management (1.9s)
+  ✓  12 [tablet-768] › tests/e2e/owner-record-management.spec.ts:84:1 › project pickers search ignoring case and accents and retain selected values (2.8s)
+(node:608977) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  13 [desktop] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas (2.4m)
+  ✓  14 [desktop] › tests/e2e/owner-record-management.spec.ts:7:1 › Owner reopens, edits and deletes an approved expense from the interface (4.3s)
+  ✓  15 [desktop] › tests/e2e/owner-record-management.spec.ts:77:1 › Worker cannot open Owner data management (2.1s)
+  ✓  16 [desktop] › tests/e2e/owner-record-management.spec.ts:84:1 › project pickers search ignoring case and accents and retain selected values (3.1s)
+
+  3 skipped
+  13 passed (3.2m)

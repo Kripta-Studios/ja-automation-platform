@@ -1,0 +1,140 @@
+{
+  "candidateCommit": "9b0a4ffe48b6de479101320dc5b27cb2f4844cb3",
+  "role": "finance",
+  "width": 1440,
+  "height": 900,
+  "locale": "es",
+  "scenarios": [
+    {
+      "name": "invalid",
+      "status": 200,
+      "ui": {
+        "query": {
+          "periodStart": [
+            "2026-02-30"
+          ],
+          "periodEnd": [
+            "2026-03-01"
+          ],
+          "lang": [
+            "es"
+          ]
+        },
+        "locale": "es-ES",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scrollY": 0,
+        "code": "PROJECT_CALCULATION_PERIOD_DATE_INVALID",
+        "text": "Se requiere una acción Introduce fechas de inicio y fin válidas para el período de cálculo de este proyecto. Corregir el campo señalado",
+        "adjacentStart": "Introduce fechas de inicio y fin válidas para el período de cálculo de este proyecto.",
+        "adjacentEnd": null,
+        "remedy": "Corregir el campo señalado",
+        "remedyHref": null,
+        "startValue": "2026-02-30",
+        "endValue": "2026-03-01",
+        "activeTag": "aside",
+        "focusIsNotice": true,
+        "noticeTop": 398.796875,
+        "noticeBottom": 507.0625,
+        "headerBottom": 72,
+        "totalCount": 0,
+        "personCount": 0,
+        "canonicalNoteCount": 0
+      }
+    },
+    {
+      "name": "reversed",
+      "status": 200,
+      "ui": {
+        "query": {
+          "periodStart": [
+            "2026-09-20"
+          ],
+          "periodEnd": [
+            "2026-09-19"
+          ],
+          "lang": [
+            "es"
+          ]
+        },
+        "locale": "es-ES",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scrollY": 0,
+        "code": "PROJECT_CALCULATION_PERIOD_RANGE_REVERSED",
+        "text": "Se requiere una acción La fecha de fin del período es anterior a la de inicio. Elige una fecha de fin igual o posterior a la de inicio. Corregir el campo señalado",
+        "adjacentStart": null,
+        "adjacentEnd": "La fecha de fin del período es anterior a la de inicio. Elige una fecha de fin igual o posterior a la de inicio.",
+        "remedy": "Corregir el campo señalado",
+        "remedyHref": null,
+        "startValue": "2026-09-20",
+        "endValue": "2026-09-19",
+        "activeTag": "aside",
+        "focusIsNotice": true,
+        "noticeTop": 398.796875,
+        "noticeBottom": 507.0625,
+        "headerBottom": 72,
+        "totalCount": 0,
+        "personCount": 0,
+        "canonicalNoteCount": 0
+      }
+    },
+    {
+      "name": "duplicate",
+      "status": 200,
+      "ui": {
+        "query": {
+          "periodStart": [
+            "2026-09-01",
+            "2026-09-02"
+          ],
+          "periodEnd": [
+            "2026-09-30"
+          ],
+          "lang": [
+            "es"
+          ]
+        },
+        "locale": "es-ES",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scrollY": 0,
+        "code": "PROJECT_CALCULATION_PERIOD_DATE_DUPLICATE",
+        "text": "Se requiere una acción Una fecha del período de cálculo aparece más de una vez. Deja una fecha de inicio y una de fin. Corregir el campo señalado",
+        "adjacentStart": "Una fecha del período de cálculo aparece más de una vez. Deja una fecha de inicio y una de fin.",
+        "adjacentEnd": null,
+        "remedy": "Corregir el campo señalado",
+        "remedyHref": null,
+        "startValue": "2026-09-01",
+        "endValue": "2026-09-30",
+        "activeTag": "aside",
+        "focusIsNotice": true,
+        "noticeTop": 398.796875,
+        "noticeBottom": 507.0625,
+        "headerBottom": 72,
+        "totalCount": 0,
+        "personCount": 0,
+        "canonicalNoteCount": 0
+      }
+    }
+  ],
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 document",
+      "200 document",
+      "200 document"
+    ]
+  }
+}

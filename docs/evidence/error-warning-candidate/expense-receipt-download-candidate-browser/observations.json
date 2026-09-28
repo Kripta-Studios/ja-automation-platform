@@ -1,0 +1,140 @@
+{
+  "candidate": "e89e7fa",
+  "fixture": "disposable UI-created project, assignment, expense and synthetic PDF",
+  "cases": [
+    {
+      "role": "worker",
+      "locale": "en",
+      "width": 390,
+      "case": "actual-success",
+      "status": 200,
+      "popupKind": "blank",
+      "noticeCode": null,
+      "originalPageRetained": true
+    },
+    {
+      "role": "worker",
+      "locale": "en",
+      "width": 390,
+      "case": "intercepted-409",
+      "code": "DOCUMENT_DOWNLOAD_FILE_MISSING",
+      "text": "Action needed The receipt file is missing. Ask an owner to review the expense record before trying again. Status: Draft Contact the project owner to review access",
+      "links": [],
+      "focused": true,
+      "lang": "en-US",
+      "viewportWidth": 390,
+      "noticeBottom": 844,
+      "bottomNavTop": null,
+      "noticeAboveNav": true,
+      "horizontalOverflow": false,
+      "pathKind": "expense-detail",
+      "noRawJsonTab": true
+    },
+    {
+      "role": "worker",
+      "locale": "es",
+      "width": 390,
+      "case": "intercepted-401",
+      "code": "DOCUMENT_DOWNLOAD_SIGN_IN_REQUIRED",
+      "text": "Se requiere una acción Tu sesión terminó. Inicia sesión de nuevo y vuelve a este gasto para abrir su recibo. Estado: Borrador Volver a iniciar sesión",
+      "links": [
+        {
+          "text": "Volver a iniciar sesión",
+          "hrefKind": "login"
+        }
+      ],
+      "focused": true,
+      "lang": "es-ES",
+      "viewportWidth": 390,
+      "noticeBottom": 844,
+      "bottomNavTop": null,
+      "noticeAboveNav": true,
+      "horizontalOverflow": false,
+      "pathKind": "expense-detail"
+    },
+    {
+      "role": "worker",
+      "locale": "pt",
+      "width": 390,
+      "case": "intercepted-503",
+      "code": "DOCUMENT_DOWNLOAD_SERVICE_UNAVAILABLE",
+      "text": "Ação necessária Não foi possível preparar a pré-visualização do recibo. A despesa não foi alterada; tente mais tarde. Referência: qa-receipt-ref-123. Status: Rascunho Tentar Ver novamente",
+      "links": [
+        {
+          "text": "Tentar Ver novamente",
+          "hrefKind": "same-page"
+        }
+      ],
+      "focused": true,
+      "lang": "pt-BR",
+      "viewportWidth": 390,
+      "noticeBottom": 844,
+      "bottomNavTop": null,
+      "noticeAboveNav": true,
+      "horizontalOverflow": false,
+      "pathKind": "expense-detail"
+    },
+    {
+      "role": "worker",
+      "locale": "en",
+      "width": 390,
+      "case": "browser-blocked-popup",
+      "code": "DOCUMENT_PREVIEW_POPUP_BLOCKED",
+      "text": "Action needed Your browser blocked the receipt preview. Allow pop-ups for this site and choose View again. Status: Draft Try View again",
+      "links": [
+        {
+          "text": "Try View again",
+          "hrefKind": "same-page"
+        }
+      ],
+      "focused": true,
+      "lang": "en-US",
+      "viewportWidth": 390,
+      "noticeBottom": 844,
+      "bottomNavTop": null,
+      "noticeAboveNav": true,
+      "horizontalOverflow": false,
+      "pathKind": "expense-detail",
+      "receiptGets": 0
+    },
+    {
+      "role": "owner",
+      "locale": "pt",
+      "width": 1440,
+      "case": "intercepted-404",
+      "code": "DOCUMENT_DOWNLOAD_UNAVAILABLE",
+      "text": "Ação necessária Este recibo não está disponível para esta despesa ou para seu acesso atual. Revise a despesa e consulte um proprietário se ainda precisar dele. Status: Rascunho Revisar despesa atual",
+      "links": [
+        {
+          "text": "Revisar despesa atual",
+          "hrefKind": "expense"
+        }
+      ],
+      "focused": true,
+      "lang": "pt-BR",
+      "viewportWidth": 1440,
+      "noticeBottom": 900,
+      "bottomNavTop": null,
+      "noticeAboveNav": true,
+      "horizontalOverflow": false,
+      "pathKind": "expense-detail"
+    },
+    {
+      "role": "worker2",
+      "case": "actual-cross-worker-denial",
+      "status": 404,
+      "code": "DOCUMENT_DOWNLOAD_UNAVAILABLE"
+    }
+  ],
+  "stage": "worker2-real-404",
+  "diagnostics": {
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "worker": {
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  }
+}

@@ -1,0 +1,260 @@
+{
+  "candidateCommit": "41dc838e3f3270fd593d6553d44c0075ec4528a1",
+  "role": "finance",
+  "width": 390,
+  "height": 844,
+  "locale": "en",
+  "projectOptionAvailable": true,
+  "scenarios": [
+    {
+      "name": "invalid-date",
+      "status": 200,
+      "ui": {
+        "path": "/j-aautomation/app/reports/review",
+        "query": {
+          "project": [
+            ":record"
+          ],
+          "from": [
+            "2026-02-30"
+          ],
+          "to": [
+            "2026-03-01"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "locale": "en",
+        "scrollY": 0,
+        "formPresent": true,
+        "projectSelected": true,
+        "projectUnavailableOption": false,
+        "from": "2026-02-30",
+        "to": "2026-03-01",
+        "code": "REPORT_REVIEW_PERIOD_DATE_INVALID",
+        "noticeText": "Action needed Enter real start and end dates for the review period. Correct the highlighted field",
+        "noticeTop": 524.71875,
+        "noticeBottom": 676.28125,
+        "headerBottom": 69.59375,
+        "focusIsNotice": true,
+        "focusIsSummary": false,
+        "focusedTag": "aside",
+        "remedyHref": "#review-from",
+        "remedyText": "Correct the highlighted field",
+        "fieldErrors": {
+          "review-from-error": "Enter real start and end dates for the review period."
+        },
+        "reportCount": 0
+      }
+    },
+    {
+      "name": "reversed",
+      "status": 200,
+      "ui": {
+        "path": "/j-aautomation/app/reports/review",
+        "query": {
+          "project": [
+            ":record"
+          ],
+          "from": [
+            "2026-09-20"
+          ],
+          "to": [
+            "2026-09-19"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "locale": "en",
+        "scrollY": 0,
+        "formPresent": true,
+        "projectSelected": true,
+        "projectUnavailableOption": false,
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "code": "REPORT_REVIEW_PERIOD_RANGE_REVERSED",
+        "noticeText": "Action needed The end date is before the start. Choose an end date on or after the start date. Correct the highlighted field",
+        "noticeTop": 524.71875,
+        "noticeBottom": 676.28125,
+        "headerBottom": 69.59375,
+        "focusIsNotice": true,
+        "focusIsSummary": false,
+        "focusedTag": "aside",
+        "remedyHref": "#review-to",
+        "remedyText": "Correct the highlighted field",
+        "fieldErrors": {
+          "review-to-error": "The end date is before the start. Choose an end date on or after the start date."
+        },
+        "reportCount": 0
+      }
+    },
+    {
+      "name": "duplicate",
+      "status": 200,
+      "ui": {
+        "path": "/j-aautomation/app/reports/review",
+        "query": {
+          "project": [
+            ":record"
+          ],
+          "from": [
+            "2026-09-01",
+            "2026-09-02"
+          ],
+          "to": [
+            "2026-09-30"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "locale": "en",
+        "scrollY": 0,
+        "formPresent": true,
+        "projectSelected": true,
+        "projectUnavailableOption": false,
+        "from": "2026-09-01",
+        "to": "2026-09-30",
+        "code": "REPORT_REVIEW_PERIOD_DATE_DUPLICATE",
+        "noticeText": "Action needed A review period date was supplied more than once. Keep one start and one end date. Correct the highlighted field",
+        "noticeTop": 524.71875,
+        "noticeBottom": 696.578125,
+        "headerBottom": 69.59375,
+        "focusIsNotice": true,
+        "focusIsSummary": false,
+        "focusedTag": "aside",
+        "remedyHref": "#review-from",
+        "remedyText": "Correct the highlighted field",
+        "fieldErrors": {
+          "review-from-error": "A review period date was supplied more than once. Keep one start and one end date."
+        },
+        "reportCount": 0
+      }
+    },
+    {
+      "name": "unavailable-project",
+      "status": 200,
+      "ui": {
+        "path": "/j-aautomation/app/reports/review",
+        "query": {
+          "project": [
+            ":record"
+          ],
+          "from": [
+            "2026-09-01"
+          ],
+          "to": [
+            "2026-09-30"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "locale": "en",
+        "scrollY": 0,
+        "formPresent": true,
+        "projectSelected": true,
+        "projectUnavailableOption": true,
+        "from": "2026-09-01",
+        "to": "2026-09-30",
+        "code": "REPORT_REVIEW_PROJECT_UNAVAILABLE",
+        "noticeText": "Action needed The selected project is no longer available for review. Choose one from the current list. Correct the highlighted field",
+        "noticeTop": 524.71875,
+        "noticeBottom": 696.578125,
+        "headerBottom": 69.59375,
+        "focusIsNotice": true,
+        "focusIsSummary": false,
+        "focusedTag": "aside",
+        "remedyHref": "#review-project",
+        "remedyText": "Correct the highlighted field",
+        "fieldErrors": {
+          "review-project-error": "The selected project is no longer available for review. Choose one from the current list."
+        },
+        "reportCount": 0
+      }
+    },
+    {
+      "name": "project-required",
+      "status": 200,
+      "ui": {
+        "path": "/j-aautomation/app/reports/review",
+        "query": {
+          "project": [],
+          "from": [
+            "2026-09-01"
+          ],
+          "to": [
+            "2026-09-30"
+          ],
+          "lang": [
+            "en"
+          ],
+          "viewportScrollY": []
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "locale": "en",
+        "scrollY": 0,
+        "formPresent": true,
+        "projectSelected": false,
+        "projectUnavailableOption": false,
+        "from": "2026-09-01",
+        "to": "2026-09-30",
+        "code": "REPORT_REVIEW_PROJECT_REQUIRED",
+        "noticeText": "Action needed Select a project from the current list before loading its review period. Correct the highlighted field",
+        "noticeTop": 524.71875,
+        "noticeBottom": 676.28125,
+        "headerBottom": 69.59375,
+        "focusIsNotice": true,
+        "focusIsSummary": false,
+        "focusedTag": "aside",
+        "remedyHref": "#review-project",
+        "remedyText": "Correct the highlighted field",
+        "fieldErrors": {
+          "review-project-error": "Select a project from the current list before loading its review period."
+        },
+        "reportCount": 0
+      }
+    }
+  ],
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 document",
+      "200 document",
+      "200 document",
+      "200 document",
+      "200 document",
+      "200 document"
+    ]
+  }
+}

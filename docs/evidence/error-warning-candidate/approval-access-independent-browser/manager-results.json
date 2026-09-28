@@ -1,0 +1,61 @@
+{
+  "candidateCommit": "0b450ae",
+  "role": "project_manager",
+  "route": "/approvals?tab=time",
+  "transitions": [
+    {
+      "locale": "en",
+      "summary": "Please correct the following fields: Required change: Please complete this field.",
+      "inline": "Please complete this field.",
+      "before": {
+        "viewport": 390,
+        "scrollWidth": 390,
+        "scrollY": 2032,
+        "focus": "input",
+        "focusName": "reason",
+        "language": "en-US"
+      }
+    },
+    {
+      "locale": "es",
+      "summary": "Corrige los siguientes campos: Cambio requerido: Completa este campo.",
+      "inline": "Completa este campo.",
+      "state": {
+        "viewport": 390,
+        "scrollWidth": 390,
+        "scrollY": 2032,
+        "focus": "input",
+        "focusName": "reason",
+        "language": "es-ES"
+      }
+    },
+    {
+      "locale": "pt",
+      "summary": "Corrija os seguintes campos: Alteração obrigatória: Preencha este campo.",
+      "inline": "Preencha este campo.",
+      "state": {
+        "viewport": 390,
+        "scrollWidth": 390,
+        "scrollY": 2032,
+        "focus": "input",
+        "focusName": "reason",
+        "language": "pt-BR"
+      }
+    }
+  ],
+  "summaryNodeRetained": true,
+  "reviewStayedOpen": true,
+  "unsentValuesRetained": true,
+  "tabStayedTime": true,
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      {
+        "method": "POST",
+        "path": "/j-aautomation/app/api/auth/sign-in/email",
+        "status": 200
+      }
+    ]
+  }
+}

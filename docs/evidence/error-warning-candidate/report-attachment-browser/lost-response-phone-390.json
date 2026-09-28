@@ -1,0 +1,9 @@
+{
+  "code": "REPORT_ATTACHMENT_UPLOAD_UNCERTAIN",
+  "role": "worker",
+  "interceptedPosts": 1,
+  "persistedCount": 3,
+  "viewport": "phone-390",
+  "screenshot": "lost-response-phone-390.png",
+  "scope": "isolated notice only; disposable data"
+}

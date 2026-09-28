@@ -1,0 +1,15 @@
+{
+  "request": {
+    "actionPath": "/j-aautomation/app/expenses/01a0da52-fd88-769c-ad83-630042050d96",
+    "actionQuery": "?/createCorrectionDraft",
+    "spentOn": "2026-09-25",
+    "hasLinkedTime": true,
+    "linkMatchesOriginal": true
+  },
+  "responseStatus": 303,
+  "created": {
+    "spentOn": "2026-09-25",
+    "hasLinkedTime": true,
+    "linkMatchesOriginal": true
+  }
+}

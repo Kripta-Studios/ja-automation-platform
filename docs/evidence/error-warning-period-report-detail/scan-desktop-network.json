@@ -1,0 +1,22 @@
+[
+  {
+    "status": 200,
+    "path": "/j-aautomation/app/api/auth/sign-in/email"
+  },
+  {
+    "status": 200,
+    "path": "/j-aautomation/app/reports/period/01a0da69-7daf-72ce-bf7c-bb3725472dce"
+  },
+  {
+    "status": 200,
+    "path": "/j-aautomation/app/reports/period/01a0da69-7daf-72ce-bf7c-bb3725472dce"
+  },
+  {
+    "status": 200,
+    "path": "/j-aautomation/app/reports/period/01a0da69-7daf-72ce-bf7c-bb3725472dce"
+  },
+  {
+    "status": 200,
+    "path": "/j-aautomation/app/reports/period/01a0da69-7daf-72ce-bf7c-bb3725472dce"
+  }
+]

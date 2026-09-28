@@ -64,7 +64,39 @@ export const offlineMutationSchema = z.object({
 export const currencySchema = z.enum(['USD', 'BRL', 'EUR']);
 export const reportLocaleSchema = z.enum(['en', 'pt', 'es']);
 export const uuidSchema = z.uuid();
+export const isValidIanaTimeZone = (value: string): boolean => {
+  const timeZone = value.trim();
+  if (!timeZone || timeZone.length > 100 || /^[+-]\d/.test(timeZone)) return false;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone }).format(0);
+    return true;
+  } catch (error) {
+    if (error instanceof RangeError) return false;
+    throw error;
+  }
+};
+export const clientTimeZoneSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .refine(isValidIanaTimeZone, 'problem.client.timezoneInvalid');
+// Imported clients retain stable, non-UUID IDs. The repository checks that
+// these IDs refer to an active client before accepting a mutation.
+export const clientRecordIdSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/);
+// Imported projects also retain stable non-UUID IDs (for example
+// project-cp020-dfw). Repository authorization verifies the referenced row.
+export const projectRecordIdSchema = clientRecordIdSchema;
 export const minorUnitsSchema = z.string().regex(/^\d+$/, 'Use non-negative integer minor units');
+const optionalMinorUnitsSchema = z
+  .union([z.literal(''), minorUnitsSchema])
+  .optional()
+  .transform((value) => (value ? BigInt(value) : undefined));
 const isoDateSchema = z.iso.date();
 const requiredText = (maximum: number) => z.string().trim().min(1).max(maximum);
 const optionalText = (maximum: number) =>
@@ -77,67 +109,131 @@ const optionalText = (maximum: number) =>
 const integerFromForm = (minimum: number, maximum: number) =>
   z.coerce.number().int().min(minimum).max(maximum);
 
-export const clientInputSchema = z.object({
-  legalName: z.string().trim().min(2).max(300),
-  displayName: z.string().trim().min(2).max(160),
-  currency: currencySchema,
-  timezone: z.string().trim().min(1).max(100),
-  billingEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
-  paymentTermsDays: z.coerce.number().int().min(0).max(365).default(30),
-});
+export const clientInputSchema = z
+  .object({
+    clientCode: optionalText(40),
+    legalName: z.string().trim().min(2).max(300),
+    displayName: z.string().trim().min(2).max(160),
+    currency: currencySchema,
+    timezone: clientTimeZoneSchema,
+    billingEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
+    billingContactName: z.preprocess(
+      (value) => (typeof value === 'string' && !value.trim() ? undefined : value),
+      z.string().trim().min(2).max(160).optional(),
+    ),
+    billingAddress: z.string().trim().min(5).max(2000),
+    paymentTermsDays: z.coerce.number().int().min(0).max(365).default(30),
+    poReference: z.string().trim().max(200).optional(),
+    notes: z.string().trim().max(5000).optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (!value.billingEmail && !value.billingContactName) {
+      context.addIssue({
+        code: 'custom',
+        path: ['billingEmail'],
+        message: 'A billing contact name or billing email is required',
+      });
+    }
+  });
 
-export const projectInputSchema = z.object({
-  clientId: uuidSchema,
-  name: z.string().trim().min(2).max(200),
-  description: z.string().trim().max(5000).optional(),
-  projectAlias: z.string().trim().max(120).optional(),
-  timezone: z.string().trim().min(1).max(100),
-  currency: currencySchema,
-  billingModel: z.enum([
-    'tm',
-    'tm_daily_minimum',
-    'all_in',
-    'capped_tm',
-    'milestone',
-    'hybrid',
-    'internal',
-  ]),
-  siteName: z.string().trim().max(200).optional(),
-  country: z.string().trim().max(100).optional(),
-  expectedMinutesPerDay: z.coerce.number().int().min(0).max(1440).default(600),
-  clientDailyMinimumMinutes: z
-    .union([z.literal(''), z.coerce.number().int().min(0).max(1440)])
-    .optional()
-    .transform((value) => (value === '' ? undefined : value)),
-  poNumber: z.string().trim().max(100).optional(),
-  contractNumber: z.string().trim().max(160).optional(),
-  startDate: z.union([z.literal(''), z.iso.date()]).optional(),
-  plannedEndDate: z.union([z.literal(''), z.iso.date()]).optional(),
-  budgetType: z
-    .enum(['none', 'revenue', 'purchase_order', 'labor', 'travel', 'combined'])
-    .default('none'),
-  revenueBudgetMinor: minorUnitsSchema
-    .optional()
-    .transform((value) => (value ? BigInt(value) : undefined)),
-  poCapMinor: minorUnitsSchema.optional().transform((value) => (value ? BigInt(value) : undefined)),
-  fixedPriceMinor: minorUnitsSchema
-    .optional()
-    .transform((value) => (value ? BigInt(value) : undefined)),
-  laborBudgetMinutes: z.coerce.number().int().nonnegative().optional(),
-  travelBudgetMinor: minorUnitsSchema
-    .optional()
-    .transform((value) => (value ? BigInt(value) : undefined)),
-  otherCostBudgetMinor: minorUnitsSchema
-    .optional()
-    .transform((value) => (value ? BigInt(value) : undefined)),
-  weeklyCloseEnabled: z.coerce.boolean().default(false),
-  dailyReportRequired: z.coerce.boolean().default(false),
-  technicalReportingRequired: z.coerce.boolean().default(false),
-  notes: z.string().trim().max(5000).optional(),
-});
+/**
+ * The client editor is deliberately an allowlisted partial update.  Identity
+ * and optimistic-concurrency fields remain mandatory so a browser cannot
+ * submit an unversioned or over-posted client mutation.
+ */
+export const clientUpdateInputSchema = z
+  .object({
+    clientId: clientRecordIdSchema,
+    version: z.coerce.number().int().positive(),
+    clientCode: z
+      .union([z.literal(''), z.string().trim().max(40)])
+      .optional()
+      .transform((value) => (value === '' ? null : value)),
+    legalName: z.string().trim().min(2).max(300).optional(),
+    displayName: z.string().trim().min(2).max(160).optional(),
+    currency: currencySchema.optional(),
+    timezone: clientTimeZoneSchema.optional(),
+    billingEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
+    billingContactName: z.union([z.literal(''), z.string().trim().min(2).max(160)]).optional(),
+    billingAddress: z.string().trim().min(5).max(2000).optional(),
+    paymentTermsDays: z.coerce.number().int().min(0).max(365).optional(),
+    poReference: z.string().trim().max(200).optional(),
+    notes: z.string().trim().max(5000).optional(),
+  })
+  .strict();
+
+export const projectInputSchema = z
+  .object({
+    clientId: clientRecordIdSchema,
+    /** Required for new Essential projects; legacy rows remain nullable in storage. */
+    costCenterCode: z.string().trim().min(1).max(120),
+    name: z.string().trim().min(2).max(200),
+    description: z.string().trim().max(5000).optional(),
+    projectAlias: z.string().trim().max(120).optional(),
+    timezone: z.string().trim().min(1).max(100),
+    currency: currencySchema,
+    billingModel: z.enum([
+      'tm',
+      'tm_daily_minimum',
+      'all_in',
+      'capped_tm',
+      'milestone',
+      'hybrid',
+      'internal',
+    ]),
+    siteName: z.string().trim().max(200).optional(),
+    country: z.string().trim().max(100).optional(),
+    expectedHoursPerDay: z.union([z.literal(''), z.coerce.number().min(0).max(24)]).optional(),
+    expectedMinutesPerDay: z.coerce.number().int().min(0).max(1440).default(600),
+    clientDailyMinimumHours: z.union([z.literal(''), z.coerce.number().min(0).max(24)]).optional(),
+    clientDailyMinimumMinutes: z
+      .union([z.literal(''), z.coerce.number().int().min(0).max(1440)])
+      .optional(),
+    poNumber: z.string().trim().max(100).optional(),
+    contractNumber: z.string().trim().max(160).optional(),
+    projectManagerId: z.union([z.literal(''), uuidSchema]).optional(),
+    startDate: z.union([z.literal(''), z.iso.date()]).optional(),
+    plannedEndDate: z.union([z.literal(''), z.iso.date()]).optional(),
+    budgetType: z
+      .enum(['none', 'revenue', 'purchase_order', 'labor', 'travel', 'expense', 'combined'])
+      .default('none'),
+    revenueBudgetMinor: optionalMinorUnitsSchema,
+    poCapMinor: optionalMinorUnitsSchema,
+    fixedPriceMinor: optionalMinorUnitsSchema,
+    laborBudgetMinutes: z
+      .union([z.literal(''), z.coerce.number().int().nonnegative()])
+      .optional()
+      .transform((value) => (value === '' ? undefined : value)),
+    travelBudgetMinor: optionalMinorUnitsSchema,
+    expenseBudgetMinor: optionalMinorUnitsSchema,
+    otherCostBudgetMinor: optionalMinorUnitsSchema,
+    weeklyCloseEnabled: z.coerce.boolean().default(false),
+    dailyReportRequired: z.coerce.boolean().default(false),
+    technicalReportingRequired: z.coerce.boolean().default(false),
+    notes: z.string().trim().max(5000).optional(),
+  })
+  .strict()
+  .transform((data) => {
+    const expectedMinutes =
+      data.expectedHoursPerDay !== undefined && data.expectedHoursPerDay !== ''
+        ? Math.round(Number(data.expectedHoursPerDay) * 60)
+        : data.expectedMinutesPerDay;
+    const clientDailyMinimumMinutes =
+      data.clientDailyMinimumHours !== undefined && data.clientDailyMinimumHours !== ''
+        ? Math.round(Number(data.clientDailyMinimumHours) * 60)
+        : data.clientDailyMinimumMinutes === '' || data.clientDailyMinimumMinutes === undefined
+          ? undefined
+          : data.clientDailyMinimumMinutes;
+    return {
+      ...data,
+      expectedMinutesPerDay: expectedMinutes,
+      clientDailyMinimumMinutes,
+    };
+  });
 
 export const clientContactInputSchema = z.object({
-  clientId: uuidSchema,
+  clientId: clientRecordIdSchema,
   name: z.string().trim().min(2).max(160),
   email: z.union([z.literal(''), z.email().max(254)]).optional(),
   phone: z.string().trim().max(60).optional(),
@@ -178,16 +274,27 @@ export const workerSkillInputSchema = z.object({
   proficiency: z.coerce.number().int().min(1).max(5),
 });
 
-export const availabilityInputSchema = z.object({
-  workerId: uuidSchema,
-  startsAt: z.iso.datetime(),
-  endsAt: z.iso.datetime(),
-  availability: z.enum(['available', 'unavailable', 'tentative']),
-  note: z.string().trim().max(1000).optional(),
-});
+export const availabilityInputSchema = z
+  .object({
+    id: uuidSchema.optional(),
+    version: z.coerce.number().int().positive().optional(),
+    workerId: uuidSchema,
+    startsAt: z.iso.datetime(),
+    endsAt: z.iso.datetime(),
+    availability: z.enum(['available', 'unavailable', 'tentative']),
+    note: z.string().trim().max(1000).optional(),
+  })
+  .refine((input) => (input.id !== undefined) === (input.version !== undefined), {
+    message: 'Availability id and version are required together',
+    path: ['version'],
+  })
+  .refine((input) => Date.parse(input.endsAt) > Date.parse(input.startsAt), {
+    message: 'Availability end must follow start',
+    path: ['endsAt'],
+  });
 
 export const assignmentInputSchema = z.object({
-  projectId: uuidSchema,
+  projectId: projectRecordIdSchema,
   workerId: z.string().min(1).max(100),
   startsOn: z.iso.date(),
   endsOn: z.union([z.literal(''), z.iso.date()]).optional(),
@@ -197,65 +304,255 @@ export const assignmentInputSchema = z.object({
     .transform((value) => (value === '' ? undefined : value)),
 });
 
-export const timeInputSchema = z.object({
-  projectId: uuidSchema,
-  workDate: z.iso.date(),
-  category: z.enum([
-    'regular',
-    'commissioning',
-    'overtime',
-    'weekend_holiday',
-    'travel',
-    'standby',
-    'remote_support',
-    'training',
-    'internal',
-  ]),
-  activityCode: z.string().trim().max(100).optional(),
-  minutes: z.coerce.number().int().min(0).max(1440),
-  summary: z.string().trim().min(3).max(5000),
-});
+const optionalClockTime = z
+  .union([z.literal(''), z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, 'Use HH:mm')])
+  .optional()
+  .transform((value) => value || undefined);
+
+export const timeInputSchema = z
+  .object({
+    projectId: uuidSchema,
+    workDate: z.iso.date(),
+    category: z.enum([
+      'regular',
+      'commissioning',
+      'overtime',
+      'weekend_holiday',
+      'travel',
+      'standby',
+      'remote_support',
+      'training',
+      'internal',
+    ]),
+    activityCode: z.string().trim().max(100).optional(),
+    minutes: z
+      .union([z.literal(''), z.coerce.number().int().min(0).max(1440)])
+      .optional()
+      .transform((value) => (value === '' ? undefined : value)),
+    startTime: optionalClockTime,
+    endTime: optionalClockTime,
+    breakMinutes: z
+      .union([z.literal(''), z.coerce.number().int().min(0).max(1440)])
+      .optional()
+      .transform((value) => (value === '' ? undefined : value)),
+    summary: z.string().trim().min(3).max(5000),
+  })
+  .superRefine((input, context) => {
+    const hasStart = input.startTime !== undefined;
+    const hasEnd = input.endTime !== undefined;
+    if (hasStart !== hasEnd) {
+      context.addIssue({
+        code: 'custom',
+        path: [hasStart ? 'endTime' : 'startTime'],
+        message: 'Start and end time are required together',
+      });
+      return;
+    }
+    if (!hasStart || !hasEnd) {
+      if (input.minutes === undefined) {
+        context.addIssue({
+          code: 'custom',
+          path: ['minutes'],
+          message: 'Minutes are required when no time interval is provided',
+        });
+      }
+      if (input.breakMinutes !== undefined && input.breakMinutes !== 0) {
+        context.addIssue({
+          code: 'custom',
+          path: ['breakMinutes'],
+          message: 'Break minutes require a time interval',
+        });
+      }
+      return;
+    }
+    const startTime = input.startTime as string;
+    const endTime = input.endTime as string;
+    const startMinutes = Number(startTime.slice(0, 2)) * 60 + Number(startTime.slice(3));
+    const endMinutes = Number(endTime.slice(0, 2)) * 60 + Number(endTime.slice(3));
+    const breakMinutes = input.breakMinutes ?? 0;
+    if (endMinutes <= startMinutes) {
+      context.addIssue({
+        code: 'custom',
+        path: ['endTime'],
+        message: 'End time must be later on the same day',
+      });
+    } else if (breakMinutes >= endMinutes - startMinutes) {
+      context.addIssue({
+        code: 'custom',
+        path: ['breakMinutes'],
+        message: 'Break must leave positive working time',
+      });
+    }
+  })
+  .transform((input) => {
+    if (input.startTime === undefined || input.endTime === undefined) {
+      const {
+        startTime: _startTime,
+        endTime: _endTime,
+        breakMinutes: _breakMinutes,
+        ...legacy
+      } = input;
+      return {
+        ...legacy,
+        minutes: input.minutes as number,
+        startTime: undefined,
+        endTime: undefined,
+        breakMinutes: undefined,
+      };
+    }
+    const startMinutes =
+      Number(input.startTime.slice(0, 2)) * 60 + Number(input.startTime.slice(3));
+    const endMinutes = Number(input.endTime.slice(0, 2)) * 60 + Number(input.endTime.slice(3));
+    const breakMinutes = input.breakMinutes ?? 0;
+    return {
+      ...input,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      breakMinutes,
+      minutes: endMinutes - startMinutes - breakMinutes,
+    };
+  });
 
 export const versionedRecordSchema = z.object({
   id: uuidSchema,
   version: z.coerce.number().int().positive(),
 });
 
-export const expenseInputSchema = z.object({
-  projectId: uuidSchema,
-  spentOn: z.iso.date(),
-  vendor: z.string().trim().min(1).max(200),
-  category: z.enum([
-    'hotel',
-    'rental_car',
-    'fuel',
-    'tolls',
-    'parking',
-    'airfare',
-    'ground_transport',
-    'meals',
-    'per_diem',
-    'materials',
-    'tools',
-    'shipping',
-    'phone_data',
-    'visa_permit',
-    'other',
-  ]),
-  description: z.string().trim().min(3).max(5000),
-  currency: currencySchema,
-  amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
-  projectCurrencyAmountMinor: minorUnitsSchema
-    .optional()
-    .transform((value) => (value ? BigInt(value) : undefined)),
-  fxRateBps: z.coerce.number().int().positive().optional(),
-  taxAmountMinor: minorUnitsSchema
-    .optional()
-    .transform((value) => (value ? BigInt(value) : undefined)),
-  whoPaid: z.enum(['worker', 'company_card', 'company_direct', 'client', 'third_party']),
-  clientTreatment: z.enum(['all_in', 'reimbursable', 'non_billable']),
-  billingTreatment: z
-    .enum([
+export const expenseInputSchema = z
+  .object({
+    projectId: uuidSchema,
+    spentOn: z.iso.date(),
+    occurredTimeLocal: z
+      .union([z.literal(''), z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)])
+      .optional()
+      .transform((value) => value || undefined),
+    timeEntryId: z
+      .union([z.literal(''), uuidSchema])
+      .optional()
+      .transform((value) => value || undefined),
+    vendor: z.string().trim().max(200).default(''),
+    category: z.enum([
+      'hotel',
+      'rental_car',
+      'fuel',
+      'tolls',
+      'parking',
+      'airfare',
+      'ground_transport',
+      'meals',
+      'per_diem',
+      'materials',
+      'tools',
+      'shipping',
+      'phone_data',
+      'visa_permit',
+      'other',
+    ]),
+    description: z.string().trim().min(3).max(5000),
+    currency: currencySchema,
+    amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
+    whoPaid: z.enum(['worker', 'company_card', 'company_direct', 'client', 'third_party']),
+    paymentMethod: z.string().trim().max(80).optional(),
+    receiptRequired: z.coerce.boolean().default(false),
+    receiptDocumentId: z.union([z.literal(''), uuidSchema]).optional(),
+  })
+  .strict();
+
+export const approvalDecisionSchema = z
+  .object({
+    id: uuidSchema,
+    type: z.enum(['time', 'expense']),
+    decision: z.enum(['approved', 'needs_changes', 'rejected']),
+    reason: z.string().trim().max(1000).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.decision !== 'approved' && !value.reason)
+      context.addIssue({
+        code: 'custom',
+        path: ['reason'],
+        message: 'A reason is required',
+      });
+  });
+
+export const financeDecisionSchema = z.object({
+  id: uuidSchema,
+  type: z.enum(['time', 'expense']),
+  billable: z.enum(['yes', 'no']).optional(),
+});
+
+const commercialPolicyBooleanSchema = z
+  .union([z.boolean(), z.enum(['true', 'false', '1', '0', 'on', 'off'])])
+  .transform((value) => value === true || value === 'true' || value === '1' || value === 'on');
+
+export const projectCommercialPolicyInputSchema = z
+  .object({
+    projectId: projectRecordIdSchema,
+    effectiveFrom: z.iso.date(),
+    overtimeEnabled: commercialPolicyBooleanSchema,
+    overtimeThresholdMinutes: z.preprocess(
+      (value) => (value === '' || value === undefined ? null : value),
+      z.union([z.null(), z.coerce.number().int().min(1).max(1440)]),
+    ),
+    travelClientBillable: commercialPolicyBooleanSchema,
+    customerSignoffRequired: commercialPolicyBooleanSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.overtimeEnabled && value.overtimeThresholdMinutes === null)
+      context.addIssue({
+        code: 'custom',
+        path: ['overtimeThresholdMinutes'],
+        message: 'An overtime threshold is required when overtime is enabled',
+      });
+    if (!value.overtimeEnabled && value.overtimeThresholdMinutes !== null)
+      context.addIssue({
+        code: 'custom',
+        path: ['overtimeThresholdMinutes'],
+        message: 'The overtime threshold must be empty when overtime is disabled',
+      });
+  });
+
+export const projectLegalEntityAssignmentInputSchema = z
+  .object({
+    projectId: uuidSchema,
+    legalEntityRevisionId: z
+      .string()
+      .trim()
+      .regex(/^ce-legal-entity-revision-[0-9a-f]{40}$/u),
+    effectiveFrom: isoDateSchema,
+    effectiveTo: z.preprocess(
+      (value) => (value === '' || value === undefined ? undefined : value),
+      isoDateSchema.optional(),
+    ),
+    reason: z.string().trim().min(5).max(2000),
+    idempotencyKey: z.string().trim().min(8).max(240),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.effectiveTo !== undefined && value.effectiveTo <= value.effectiveFrom)
+      context.addIssue({
+        code: 'custom',
+        path: ['effectiveTo'],
+        message: 'Effective to must follow effective from',
+      });
+  });
+
+const nullablePlanningDateSchema = z.preprocess(
+  (value) => (value === '' ? null : value),
+  z.union([z.null(), isoDateSchema]),
+);
+
+/**
+ * Finance-only commercial interpretation of operational expense truth.
+ * This contract is intentionally strict so Worker/PM or forged browser
+ * fields cannot cross the server action boundary.
+ */
+export const expenseCommercialClassificationInputSchema = z
+  .object({
+    expenseId: uuidSchema,
+    expectedVersion: z.coerce.number().int().positive(),
+    clientTreatment: z.enum(['all_in', 'reimbursable', 'non_billable']),
+    billingTreatment: z.enum([
       'reimbursable_at_cost',
       'reimbursable_plus_markup',
       'all_in',
@@ -263,26 +560,80 @@ export const expenseInputSchema = z.object({
       'client_direct',
       'allowance_per_diem',
       'informational',
-    ])
-    .optional(),
-  markupBps: z.coerce.number().int().min(0).max(100_000).optional(),
-  paymentMethod: z.string().trim().max(80).optional(),
-  receiptRequired: z.coerce.boolean().default(false),
-  receiptDocumentId: z.union([z.literal(''), uuidSchema]).optional(),
-});
+    ]),
+    markupBps: z.coerce.number().int().min(0).max(10_000).default(0),
+    taxBps: z.coerce.number().int().min(0).max(100_000).default(0),
+    reason: z.string().trim().min(1).max(2000),
+    idempotencyKey: z.string().trim().min(8).max(240),
+    overrideExpensePolicy: z
+      .enum(['true'])
+      .optional()
+      .transform((value) => value === 'true'),
+  })
+  .strict();
 
-export const approvalDecisionSchema = z.object({
-  id: uuidSchema,
-  type: z.enum(['time', 'expense']),
-  decision: z.enum(['approved', 'needs_changes', 'rejected']),
-  reason: z.string().trim().max(1000).optional(),
-});
+export const expensePlanningDatesInputSchema = z
+  .object({
+    expenseId: uuidSchema,
+    expectedReimbursementOn: nullablePlanningDateSchema,
+    expectedRecoveryOn: nullablePlanningDateSchema,
+    expectedVersion: z.coerce.number().int().positive(),
+  })
+  .strict();
 
-export const financeDecisionSchema = z.object({
-  id: uuidSchema,
-  type: z.enum(['time', 'expense']),
-  billable: z.enum(['yes', 'no']).optional(),
-});
+export const compensationSettlementPlanningInputSchema = z
+  .object({
+    settlementId: uuidSchema,
+    expectedPaymentOn: nullablePlanningDateSchema,
+    expectedPreviousPaymentOn: nullablePlanningDateSchema,
+  })
+  .strict();
+
+export const compensationPaymentInputSchema = z
+  .object({
+    settlementId: uuidSchema,
+    payeeKind: z.enum(['person', 'supplier']),
+    payeeId: uuidSchema,
+    amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
+    currency: currencySchema,
+    paidOn: isoDateSchema,
+    reference: z.string().trim().min(1).max(200),
+    note: z.string().trim().max(2000).optional(),
+    idempotencyKey: z.string().trim().min(8).max(240),
+  })
+  .strict();
+
+export const compensationPaymentReversalInputSchema = z
+  .object({
+    paymentEventId: uuidSchema,
+    reversedOn: isoDateSchema,
+    reason: z.string().trim().min(3).max(2000),
+    idempotencyKey: z.string().trim().min(8).max(240),
+  })
+  .strict();
+
+/**
+ * Invoice records created before UUID adoption use a scoped, lower-case
+ * `invoice-…` identifier (for example, `invoice-cp020-013`).  Keep that
+ * compatibility at the invoice boundary only; other record identifiers stay
+ * UUID-only.
+ */
+export const invoiceRecordIdSchema = z.union([
+  uuidSchema,
+  z
+    .string()
+    .regex(/^invoice-[a-z0-9]+(?:-[a-z0-9]+)*$/u)
+    .max(100),
+]);
+
+export const invoicePlanningDatesInputSchema = z
+  .object({
+    invoiceId: invoiceRecordIdSchema,
+    plannedIssueOn: nullablePlanningDateSchema,
+    expectedCollectionOn: nullablePlanningDateSchema,
+    expectedVersion: z.coerce.number().int().positive(),
+  })
+  .strict();
 
 export const invoicePeriodSchema = z.object({
   billingRuleId: uuidSchema,
@@ -292,8 +643,12 @@ export const invoicePeriodSchema = z.object({
 
 export const billingRuleInputSchema = z.object({
   projectId: uuidSchema,
-  legalEntityId: uuidSchema,
+  legalEntityId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/),
   streamType: z.enum(['labor', 'expense', 'milestone', 'other']),
+  includeExpenses: z
+    .union([z.boolean(), z.enum(['true', 'false', 'on', '1', '0'])])
+    .transform((value) => value === true || value === 'true' || value === 'on' || value === '1')
+    .default(false),
   cadenceType: z.enum([
     'weekly',
     'every_14_days',
@@ -304,7 +659,10 @@ export const billingRuleInputSchema = z.object({
     'manual',
   ]),
   anchorDate: z.union([z.literal(''), isoDateSchema]).optional(),
-  taxProfileId: uuidSchema,
+  taxProfileId: z
+    .union([z.literal(''), uuidSchema])
+    .optional()
+    .transform((value) => value || undefined),
   currency: currencySchema,
   templateId: z.string().trim().min(1).max(100).default('default'),
   recipientEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
@@ -325,7 +683,7 @@ export const billingRuleInputSchema = z.object({
 });
 
 export const invoiceIdSchema = z.object({
-  invoiceId: uuidSchema,
+  invoiceId: invoiceRecordIdSchema,
   reportLocale: reportLocaleSchema.default('en'),
 });
 
@@ -378,7 +736,7 @@ export const compensationRuleInputSchema = z.object({
       'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME',
     ])
     .default('NONE'),
-  overtimeMultiplierBps: z.coerce.number().int().min(0).optional(),
+  overtimeMultiplierBps: z.coerce.number().int().min(0).max(100000).optional(),
   overtimeRateMinor: minorUnitsSchema
     .optional()
     .transform((value) => (value ? BigInt(value) : undefined)),
@@ -405,15 +763,9 @@ export const clientLaborRateInputSchema = z.object({
   effectiveFrom: z.iso.date(),
   effectiveTo: z.union([z.literal(''), z.iso.date()]).optional(),
   overtimeMethod: z
-    .enum([
-      'NONE',
-      'FIXED_RATE',
-      'BASE_RATE_MULTIPLIER',
-      'FIXED_ADDITION_PER_HOUR',
-      'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME',
-    ])
+    .enum(['NONE', 'FIXED_RATE', 'BASE_RATE_MULTIPLIER', 'FIXED_ADDITION_PER_HOUR'])
     .default('BASE_RATE_MULTIPLIER'),
-  overtimeMultiplierBps: z.coerce.number().int().min(0).optional(),
+  overtimeMultiplierBps: z.coerce.number().int().min(0).max(100000).optional(),
   overtimeRateMinor: minorUnitsSchema
     .optional()
     .transform((value) => (value ? BigInt(value) : undefined)),
@@ -429,15 +781,9 @@ export const internalCostRuleInputSchema = z.object({
   effectiveFrom: z.iso.date(),
   effectiveTo: z.union([z.literal(''), z.iso.date()]).optional(),
   overtimeMethod: z
-    .enum([
-      'NONE',
-      'FIXED_RATE',
-      'BASE_RATE_MULTIPLIER',
-      'FIXED_ADDITION_PER_HOUR',
-      'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME',
-    ])
+    .enum(['NONE', 'FIXED_RATE', 'BASE_RATE_MULTIPLIER', 'FIXED_ADDITION_PER_HOUR'])
     .default('BASE_RATE_MULTIPLIER'),
-  overtimeMultiplierBps: z.coerce.number().int().min(0).optional(),
+  overtimeMultiplierBps: z.coerce.number().int().min(0).max(100000).optional(),
   overtimeRateMinor: minorUnitsSchema
     .optional()
     .transform((value) => (value ? BigInt(value) : undefined)),
@@ -466,7 +812,7 @@ export const accountingPackPeriodSchema = z.object({
   reportLocale: reportLocaleSchema.default('en'),
 });
 export const voidInvoiceSchema = z.object({
-  invoiceId: uuidSchema,
+  invoiceId: invoiceRecordIdSchema,
   reason: z.string().trim().min(5).max(2000),
   idempotencyKey: z.string().trim().min(8).max(200),
 });
@@ -481,7 +827,7 @@ export const legalEntityInputSchema = z.object({
   legalName: z.string().trim().min(2).max(300),
   currency: currencySchema,
   billingAddress: z.string().trim().min(5).max(2000),
-  companyIdentifiers: z.string().trim().min(2).max(1000),
+  companyIdentifiers: z.string().trim().max(1000).default(''),
 });
 
 export const invoiceNumberPolicyInputSchema = z.object({
@@ -507,12 +853,12 @@ export const invitationAcceptSchema = z.object({
   password: z.string().min(12).max(200),
 });
 export const sendInvoiceSchema = z.object({
-  invoiceId: uuidSchema,
+  invoiceId: invoiceRecordIdSchema,
   idempotencyKey: z.string().trim().min(8).max(200),
 });
 
 export const invoiceAdjustmentSchema = z.object({
-  originalInvoiceId: uuidSchema,
+  originalInvoiceId: invoiceRecordIdSchema,
   adjustmentType: z.enum(['credit', 'debit', 'correction']),
   amountMinor: z
     .string()
@@ -522,11 +868,23 @@ export const invoiceAdjustmentSchema = z.object({
 });
 
 export const paymentInputSchema = z.object({
-  invoiceId: uuidSchema,
+  invoiceId: invoiceRecordIdSchema,
   amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
   currency: currencySchema,
   receivedAt: z.iso.datetime(),
-  reference: z.string().trim().max(200).optional(),
+  // A payment must remain traceable in the ledger.  The v3 repository accepts
+  // this as its immutable payment reference, so do not allow an empty note to
+  // cross the action boundary.
+  reference: z.string().trim().min(1).max(200),
+  idempotencyKey: z.string().trim().min(8).max(200),
+});
+
+export const paymentReversalInputSchema = z.object({
+  paymentId: uuidSchema,
+  amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
+  effectiveOn: isoDateSchema,
+  reasonCode: z.enum(['bank_return', 'duplicate', 'entry_correction', 'other']),
+  reason: z.string().trim().min(1).max(2000),
   idempotencyKey: z.string().trim().min(8).max(200),
 });
 
@@ -548,9 +906,43 @@ export const dailyReportInputSchema = z.object({
   customerContact: optionalText(200),
 });
 
+export type TechnicalReportChangeFields = Readonly<{
+  problemSymptom: string;
+  diagnosisRootCause: string;
+  changePerformed: string;
+}>;
+
+const TECHNICAL_REPORT_CHANGE_SCHEMA = 'ja.technical-report.change.v1';
+
+export function encodeTechnicalReportChange(fields: TechnicalReportChangeFields): string {
+  return JSON.stringify({ schema: TECHNICAL_REPORT_CHANGE_SCHEMA, ...fields });
+}
+
+export function decodeTechnicalReportChange(value: unknown): TechnicalReportChangeFields | null {
+  if (typeof value !== 'string' || !value.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    if (
+      parsed.schema !== TECHNICAL_REPORT_CHANGE_SCHEMA ||
+      typeof parsed.problemSymptom !== 'string' ||
+      typeof parsed.diagnosisRootCause !== 'string' ||
+      typeof parsed.changePerformed !== 'string'
+    )
+      return null;
+    return {
+      problemSymptom: parsed.problemSymptom,
+      diagnosisRootCause: parsed.diagnosisRootCause,
+      changePerformed: parsed.changePerformed,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export const technicalReportInputSchema = z
   .object({
     projectId: uuidSchema,
+    reportDate: isoDateSchema,
     systemName: requiredText(200),
     plantSite: optionalText(200),
     areaLine: optionalText(200),
@@ -562,7 +954,13 @@ export const technicalReportInputSchema = z
     networkProtocol: optionalText(160),
     softwareVersion: optionalText(160),
     programReference: optionalText(300),
-    changeSummary: requiredText(5000),
+    // `changeSummary` remains accepted for historical clients. New portal
+    // submissions use the three explicit Client Essential fields below and
+    // persist them as one versioned, atomically reviewed source value.
+    changeSummary: optionalText(20000),
+    problemSymptom: optionalText(5000),
+    diagnosisRootCause: optionalText(5000),
+    changePerformed: optionalText(5000),
     safetyRelated: z.boolean().default(false),
     productionImpact: optionalText(3000),
     validation: optionalText(5000),
@@ -571,6 +969,19 @@ export const technicalReportInputSchema = z
     rollbackPlan: optionalText(5000),
   })
   .superRefine((value, context) => {
+    const structured = [value.problemSymptom, value.diagnosisRootCause, value.changePerformed];
+    if (!value.changeSummary && structured.some((entry) => !entry))
+      for (const [index, path] of [
+        [0, 'problemSymptom'],
+        [1, 'diagnosisRootCause'],
+        [2, 'changePerformed'],
+      ] as const)
+        if (!structured[index])
+          context.addIssue({
+            code: 'custom',
+            path: [path],
+            message: 'Problem, diagnosis, and change performed are required',
+          });
     if (value.safetyRelated && !value.validation)
       context.addIssue({
         code: 'custom',
@@ -583,7 +994,18 @@ export const technicalReportInputSchema = z
         path: ['rollbackPlan'],
         message: 'Safety-related changes require rollback detail',
       });
-  });
+  })
+  .transform((value) => ({
+    ...value,
+    changeSummary:
+      value.problemSymptom && value.diagnosisRootCause && value.changePerformed
+        ? encodeTechnicalReportChange({
+            problemSymptom: value.problemSymptom,
+            diagnosisRootCause: value.diagnosisRootCause,
+            changePerformed: value.changePerformed,
+          })
+        : (value.changeSummary as string),
+  }));
 
 export const technicalChangeInputSchema = z
   .object({
@@ -625,22 +1047,25 @@ export const technicalChangeDecisionSchema = z.object({
 export const planningAssignmentInputSchema = z.object({
   projectId: uuidSchema,
   workerId: uuidSchema,
-  startsAt: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
-    .transform((value) => `${value}:00.000Z`),
-  endsAt: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
-    .transform((value) => `${value}:00.000Z`),
+  startsAt: z.iso.datetime(),
+  endsAt: z.iso.datetime(),
   plannedMinutes: integerFromForm(1, 10080),
   site: optionalText(200),
   requiredSkill: optionalText(160),
 });
 
-export const reportDecisionSchema = z.object({
-  type: z.enum(['daily', 'technical']),
-  id: uuidSchema,
-  decision: z.enum(['approved', 'needs_changes']),
-  reason: optionalText(2000),
-});
+export const reportDecisionSchema = z
+  .object({
+    type: z.enum(['daily', 'technical']),
+    id: uuidSchema,
+    decision: z.enum(['approved', 'needs_changes']),
+    reason: optionalText(2000),
+  })
+  .superRefine((value, context) => {
+    if (value.decision === 'needs_changes' && !value.reason)
+      context.addIssue({
+        code: 'custom',
+        path: ['reason'],
+        message: 'A reason is required',
+      });
+  });

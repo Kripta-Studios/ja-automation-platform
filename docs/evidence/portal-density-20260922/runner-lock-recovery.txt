@@ -1,0 +1,25 @@
+[WebServer] (node:247050) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+[WebServer] (node:247087) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+[WebServer] (node:247190) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ node build
+[WebServer] (node:247203) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+Error: Another Playwright run owns the E2E fixture lock
+
+   at environment.ts:190
+
+  188 |       stale = true;
+  189 |     }
+> 190 |     if (!stale) throw new Error('Another Playwright run owns the E2E fixture lock');
+      |                       ^
+  191 |     unlinkSync(resolve(lockPath));
+  192 |     const descriptor = openSync(resolve(lockPath), 'wx');
+  193 |     closeSync(descriptor);
+    at acquireE2EFixtureLock (/home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/environment.ts:190:23)
+    at globalSetup (/home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/global-setup.ts:35:3)
+

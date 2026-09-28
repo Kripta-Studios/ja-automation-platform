@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "results": [
+    {
+      "width": 390,
+      "documentWidth": 390,
+      "artifacts": 86,
+      "portuguese": 24,
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "documentWidth": 1440,
+      "artifacts": 86,
+      "portuguese": 24,
+      "errors": []
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "code": "REPORT_ATTACHMENT_DUPLICATE_CONTENT",
+  "status": 409,
+  "role": "worker",
+  "persistedCount": 2,
+  "viewport": "desktop",
+  "screenshot": "duplicate-content-desktop.png",
+  "scope": "isolated notice only; disposable data"
+}

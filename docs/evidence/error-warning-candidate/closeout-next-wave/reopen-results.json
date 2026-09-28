@@ -1,0 +1,41 @@
+{
+  "action": "reopen",
+  "viewport": "phone-390",
+  "locale": "en",
+  "confirm": {
+    "transportStatus": 200,
+    "actionStatus": 200,
+    "resultType": "success",
+    "typed": false
+  },
+  "finalize": {
+    "transportStatus": 200,
+    "actionStatus": 200,
+    "resultType": "success",
+    "typed": false
+  },
+  "invalid": {
+    "transportStatus": 200,
+    "actionStatus": 400,
+    "resultType": "failure",
+    "typed": true
+  },
+  "code": "CLOSEOUT_REOPEN_REASON_REQUIRED",
+  "visibleText": "Action needed\n\nEnter a reason of 1 to 2000 characters before reopening.\n\nEnter a reason",
+  "invalidReasonRetained": true,
+  "invalidFocus": {
+    "tag": "DIV",
+    "id": "validation-reopen-6-summary",
+    "top": 776,
+    "scrollY": 292
+  },
+  "noWriteOnInvalid": true,
+  "valid": {
+    "transportStatus": 200,
+    "actionStatus": 200,
+    "resultType": "success",
+    "typed": false
+  },
+  "reopened": true,
+  "pageErrors": []
+}

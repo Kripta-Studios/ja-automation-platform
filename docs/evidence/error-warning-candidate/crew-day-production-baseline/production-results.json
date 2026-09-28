@@ -1,0 +1,888 @@
+{
+  "target": "deployed production",
+  "mode": "read-only browser GET and filter navigation; no business mutation",
+  "testedAtUtc": "2026-09-27T18:00:23.715Z",
+  "roles": [
+    {
+      "role": "owner",
+      "viewport": 390,
+      "locale": "en",
+      "login": "signed-in",
+      "projectOptionAvailable": true,
+      "scenarios": [
+        {
+          "name": "base",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "crew-day",
+            "errorText": null,
+            "filterFormPresent": true,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": true,
+            "selectedProjectAvailable": true,
+            "dateValue": "2026-09-27",
+            "dateType": "date",
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "invalid-text-date",
+          "status": 400,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [
+                ":record"
+              ],
+              "date": [
+                "not-a-date"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Dashboard Portal Portal Error The action could not be completed. Try again shortly. Back",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "invalid-calendar-date",
+          "status": 400,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [
+                ":record"
+              ],
+              "date": [
+                "2026-02-30"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Dashboard Portal Portal Error The action could not be completed. Try again shortly. Back",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "duplicate-date",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [
+                ":record"
+              ],
+              "date": [
+                "2026-09-01",
+                "not-a-date"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "crew-day",
+            "errorText": null,
+            "filterFormPresent": true,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": true,
+            "selectedProjectAvailable": true,
+            "dateValue": "2026-09-01",
+            "dateType": "date",
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "inaccessible-project",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [
+                ":record"
+              ],
+              "date": [
+                "2026-09-01"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Dashboard Portal Portal Error Your account does not have access to this page. Return to a section available to your role. Back",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "duplicate-project",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [
+                ":record",
+                ":record"
+              ],
+              "date": [
+                "2026-09-01"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "crew-day",
+            "errorText": null,
+            "filterFormPresent": true,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": true,
+            "selectedProjectAvailable": true,
+            "dateValue": "2026-09-01",
+            "dateType": "date",
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        }
+      ],
+      "diagnostics": {
+        "pageErrorCount": 0,
+        "consoleErrorCount": 3,
+        "crewResponses": [
+          "200 document",
+          "400 document",
+          "400 document",
+          "200 document",
+          "403 document",
+          "200 document"
+        ]
+      }
+    },
+    {
+      "role": "manager",
+      "viewport": 1440,
+      "locale": "es",
+      "login": "signed-in",
+      "projectOptionAvailable": false,
+      "scenarios": [
+        {
+          "name": "base",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "invalid-text-date",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [
+                "not-a-date"
+              ],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "invalid-calendar-date",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [
+                "2026-02-30"
+              ],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "duplicate-date",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [
+                "2026-09-01",
+                "not-a-date"
+              ],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "inaccessible-project",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [
+                ":record"
+              ],
+              "date": [
+                "2026-09-01"
+              ],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        }
+      ],
+      "diagnostics": {
+        "pageErrorCount": 0,
+        "consoleErrorCount": 5,
+        "crewResponses": [
+          "403 document",
+          "403 document",
+          "403 document",
+          "403 document",
+          "403 document"
+        ]
+      }
+    },
+    {
+      "role": "worker2",
+      "viewport": 390,
+      "locale": "en",
+      "login": "signed-in",
+      "projectOptionAvailable": true,
+      "scenarios": [
+        {
+          "name": "base",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "crew-day",
+            "errorText": null,
+            "filterFormPresent": true,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": true,
+            "selectedProjectAvailable": true,
+            "dateValue": "2026-09-27",
+            "dateType": "date",
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "invalid-text-date",
+          "status": 400,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [
+                ":record"
+              ],
+              "date": [
+                "not-a-date"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Dashboard Portal Portal Error The action could not be completed. Try again shortly. Back",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "invalid-calendar-date",
+          "status": 400,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [
+                ":record"
+              ],
+              "date": [
+                "2026-02-30"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Dashboard Portal Portal Error The action could not be completed. Try again shortly. Back",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "duplicate-date",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [
+                ":record"
+              ],
+              "date": [
+                "2026-09-01",
+                "not-a-date"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "crew-day",
+            "errorText": null,
+            "filterFormPresent": true,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": true,
+            "selectedProjectAvailable": true,
+            "dateValue": "2026-09-01",
+            "dateType": "date",
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "inaccessible-project",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [
+                ":record"
+              ],
+              "date": [
+                "2026-09-01"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Dashboard Portal Portal Error Your account does not have access to this page. Return to a section available to your role. Back",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "duplicate-project",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [
+                ":record",
+                ":record"
+              ],
+              "date": [
+                "2026-09-01"
+              ],
+              "lang": [
+                "en"
+              ]
+            },
+            "pageKind": "crew-day",
+            "errorText": null,
+            "filterFormPresent": true,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": true,
+            "selectedProjectAvailable": true,
+            "dateValue": "2026-09-01",
+            "dateType": "date",
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        }
+      ],
+      "diagnostics": {
+        "pageErrorCount": 0,
+        "consoleErrorCount": 3,
+        "crewResponses": [
+          "200 document",
+          "400 document",
+          "400 document",
+          "200 document",
+          "403 document",
+          "200 document"
+        ]
+      }
+    },
+    {
+      "role": "worker3",
+      "viewport": 1440,
+      "locale": "es",
+      "login": "signed-in",
+      "projectOptionAvailable": false,
+      "scenarios": [
+        {
+          "name": "base",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "crew-day",
+            "errorText": null,
+            "filterFormPresent": true,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": "2026-09-27",
+            "dateType": "date",
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "invalid-text-date",
+          "status": 400,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [
+                "not-a-date"
+              ],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error La acción no se pudo completar. Inténtalo de nuevo. Atrás",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "invalid-calendar-date",
+          "status": 400,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [
+                "2026-02-30"
+              ],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error La acción no se pudo completar. Inténtalo de nuevo. Atrás",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "duplicate-date",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [
+                "2026-09-01",
+                "not-a-date"
+              ],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "crew-day",
+            "errorText": null,
+            "filterFormPresent": true,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": "2026-09-01",
+            "dateType": "date",
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "inaccessible-project",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [
+                ":record"
+              ],
+              "date": [
+                "2026-09-01"
+              ],
+              "lang": [
+                "es"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Panel portal portal Error Tu cuenta no tiene acceso a esta página. Vuelve a una sección disponible para tu perfil. Atrás",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        }
+      ],
+      "diagnostics": {
+        "pageErrorCount": 0,
+        "consoleErrorCount": 3,
+        "crewResponses": [
+          "200 document",
+          "400 document",
+          "400 document",
+          "200 document",
+          "403 document"
+        ]
+      }
+    },
+    {
+      "role": "worker1",
+      "viewport": 390,
+      "locale": "pt",
+      "login": "signed-in",
+      "projectOptionAvailable": false,
+      "scenarios": [
+        {
+          "name": "base",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [],
+              "lang": [
+                "pt"
+              ]
+            },
+            "pageKind": "crew-day",
+            "errorText": null,
+            "filterFormPresent": true,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": "2026-09-27",
+            "dateType": "date",
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "invalid-text-date",
+          "status": 400,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [
+                "not-a-date"
+              ],
+              "lang": [
+                "pt"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Painel portal portal Erro Não foi possível concluir a ação. Tente novamente. Voltar",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "invalid-calendar-date",
+          "status": 400,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [
+                "2026-02-30"
+              ],
+              "lang": [
+                "pt"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Painel portal portal Erro Não foi possível concluir a ação. Tente novamente. Voltar",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "duplicate-date",
+          "status": 200,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [],
+              "date": [
+                "2026-09-01",
+                "not-a-date"
+              ],
+              "lang": [
+                "pt"
+              ]
+            },
+            "pageKind": "crew-day",
+            "errorText": null,
+            "filterFormPresent": true,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": "2026-09-01",
+            "dateType": "date",
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        },
+        {
+          "name": "inaccessible-project",
+          "status": 403,
+          "ui": {
+            "pathname": "/j-aautomation/app/crew",
+            "query": {
+              "project": [
+                ":record"
+              ],
+              "date": [
+                "2026-09-01"
+              ],
+              "lang": [
+                "pt"
+              ]
+            },
+            "pageKind": "error",
+            "errorText": "← Painel portal portal Erro Sua conta não tem acesso a esta página. Volte a uma seção disponível para seu perfil. Voltar",
+            "filterFormPresent": false,
+            "noticePresent": false,
+            "noticeCode": null,
+            "selectedProjectPresent": false,
+            "selectedProjectAvailable": false,
+            "dateValue": null,
+            "dateType": null,
+            "focusedTag": "body",
+            "scrollY": 0,
+            "crewEntryCount": 0
+          }
+        }
+      ],
+      "diagnostics": {
+        "pageErrorCount": 0,
+        "consoleErrorCount": 3,
+        "crewResponses": [
+          "200 document",
+          "400 document",
+          "400 document",
+          "200 document",
+          "403 document"
+        ]
+      }
+    }
+  ]
+}

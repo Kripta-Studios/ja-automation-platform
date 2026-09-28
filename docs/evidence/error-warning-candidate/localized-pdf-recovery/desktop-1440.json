@@ -1,0 +1,40 @@
+{
+  "viewport": "desktop-1440",
+  "ownerType": "daily_report",
+  "requestedLocales": ["es", "pt"],
+  "lostGenerate": {
+    "persistedStatus": 202,
+    "browserGeneratePosts": 1,
+    "statusAfterReconciliation": "queued"
+  },
+  "lostRetry": {
+    "persistedStatus": 202,
+    "browserRetryPosts": 1,
+    "retryDecisions": 1,
+    "attempt": 2,
+    "uncertainCode": "LOCALIZED_PDF_RETRY_UNCERTAIN",
+    "visibleText": "Action needed\n\nWe could not confirm whether the PDF retry started. Refresh its status before trying again; another retry will not start while its status is unknown.\n\nRefresh",
+    "noticeFocused": true,
+    "noticeVisible": true,
+    "statusAfterRefresh": "queued"
+  },
+  "staleReadyDownload": {
+    "responseStatus": 409,
+    "code": "PDF_DOWNLOAD_INTEGRITY",
+    "visibleText": "Action needed\n\nThe PDF failed its integrity check and download was blocked. Ask an authorized owner to review the artifact.\n\nStatus: Failed\n\nRefresh\nReview this document’s current record",
+    "currentStatus": "failed",
+    "integrityIncidents": 1,
+    "noticeFocused": true,
+    "noticeVisible": true
+  },
+  "pageErrors": 0,
+  "consoleErrorCount": 5,
+  "consoleErrorKinds": [
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: the server responded with a status of 409 (Conflict)"
+  ],
+  "unexpectedHttpErrors": []
+}

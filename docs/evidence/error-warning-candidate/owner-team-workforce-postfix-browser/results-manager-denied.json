@@ -1,0 +1,32 @@
+{
+  "candidateCommit": "a938eb3a84639d444d0fc3b68592969261edc9b2",
+  "role": "manager",
+  "locale": "es",
+  "viewport": "desktop",
+  "response": {
+    "transportStatus": 200,
+    "actionStatus": 403,
+    "type": "failure",
+    "code": "ACTION_ERROR_FORBIDDEN",
+    "messageKey": "action.error.forbidden",
+    "remedies": [],
+    "fieldErrors": {}
+  },
+  "noWrite": {
+    "before": {
+      "profiles": 0,
+      "audits": 6
+    },
+    "after": {
+      "profiles": 0,
+      "audits": 6
+    }
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "http": [
+      "503 /j-aautomation/app/api/offline/identity"
+    ]
+  }
+}

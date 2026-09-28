@@ -4,7 +4,8 @@ export type Industry =
   | 'food-beverage'
   | 'energy-process'
   | 'cosmetics-packaging'
-  | 'general-industry';
+  | 'general-industry'
+  | 'warehouse-logistics';
 
 // ─── Capability ────────────────────────────────────────────────────────────
 export type Capability =
@@ -14,6 +15,7 @@ export type Capability =
   | 'simulation'
   | 'motion-process'
   | 'commissioning'
+  | 'installation'
   | 'support'
   | 'training-consulting';
 
@@ -22,6 +24,7 @@ export type Project = {
   id: string;
   slug: string;
   title: string;
+  kind?: 'project' | 'event';
   client?: string;
   location?: string;
   startYear?: number;
@@ -55,7 +58,6 @@ export type ContactConfig = {
   primaryName: string;
   primaryTitle: string;
   email: string;
-  usPhone: string;
   whatsappUrl?: string;
   linkedinUrl: string;
   careersEmail?: string;

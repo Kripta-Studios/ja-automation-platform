@@ -1,0 +1,118 @@
+[
+  {
+    "role": "finance",
+    "viewport": "desktop-1440",
+    "locale": "es",
+    "facts": {
+      "code": "BILLING_DISCARD_LINKED_FINANCE",
+      "kind": "error",
+      "text": "Se requiere una acción\n\nFinanzas no puede descartar este borrador porque tiene líneas de factura o registros de origen vinculados. Revisa la factura y la vía de corrección permitida, o pide al propietario que revise el caso.\n\nRevisar factura",
+      "links": [
+        {
+          "text": "Revisar factura",
+          "href": "/j-aautomation/app/billing?view=invoices"
+        }
+      ],
+      "geometry": {
+        "top": 592,
+        "bottom": 764,
+        "headerBottom": 72,
+        "viewportHeight": 900,
+        "visible": true,
+        "focused": true,
+        "scrollY": 680
+      }
+    },
+    "discardDisabled": true,
+    "noPreSubmitWrite": true,
+    "diagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource"],
+      "failedResponses": [503]
+    }
+  },
+  {
+    "role": "owner",
+    "viewport": "phone-390",
+    "locale": "en",
+    "facts": {
+      "code": "WARNING_BILLING_DISCARD_DRAFT",
+      "kind": "warning",
+      "text": "Before you continue\n\nDiscarding this draft may release reserved source records and return the billing period to Ready. Review the invoice, its sources, and the period before continuing.\n\nReview invoice",
+      "links": [
+        {
+          "text": "Review invoice",
+          "href": "/j-aautomation/app/billing?view=invoices"
+        }
+      ],
+      "geometry": {
+        "top": 466,
+        "bottom": 658,
+        "headerBottom": 70,
+        "viewportHeight": 844,
+        "visible": true,
+        "focused": false,
+        "scrollY": 3081
+      }
+    },
+    "noPreSubmitWrite": true,
+    "post": {
+      "status": 400,
+      "hasStack": false,
+      "problemCode": "BILLING_INVOICE_SELECTION_INVALID"
+    },
+    "deleted": false,
+    "diagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource", "failed-resource"],
+      "failedResponses": [503, 400]
+    }
+  },
+  {
+    "role": "owner",
+    "action": "approved",
+    "error": "SyntaxError: Unexpected end of JSON input",
+    "diagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource", "failed-resource"],
+      "failedResponses": [503, 503]
+    }
+  },
+  {
+    "role": "finance",
+    "viewport": "phone-390",
+    "locale": "pt",
+    "facts": {
+      "code": "WARNING_BILLING_ARCHIVE_STREAM",
+      "kind": "warning",
+      "text": "Antes de continuar\n\nArquivar desativa este fluxo de faturamento para períodos futuros. Antes, as faturas aprovadas que o utilizam devem ser emitidas ou recalculadas. Revise essas faturas antes de continuar.\n\nRevisar fatura",
+      "links": [
+        {
+          "text": "Revisar fatura",
+          "href": "/j-aautomation/app/billing?view=invoices"
+        }
+      ],
+      "geometry": {
+        "top": 143,
+        "bottom": 701,
+        "headerBottom": 70,
+        "viewportHeight": 844,
+        "visible": true,
+        "focused": false,
+        "scrollY": 3519
+      }
+    },
+    "noPreSubmitWrite": true,
+    "post": {
+      "status": 200,
+      "hasStack": false,
+      "problemCode": null
+    },
+    "archived": true,
+    "diagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource"],
+      "failedResponses": [503]
+    }
+  }
+]

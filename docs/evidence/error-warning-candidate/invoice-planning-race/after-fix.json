@@ -1,0 +1,222 @@
+[
+  {
+    "action": "setInvoicePlanningDates",
+    "viewport": "phone-390",
+    "locale": "es",
+    "invoiceRef": "a447ed1f54",
+    "approval": {
+      "transportStatus": 200,
+      "actionStatus": null
+    },
+    "issuance": {
+      "transportStatus": 200,
+      "actionStatus": null
+    },
+    "stale": {
+      "transportStatus": 409,
+      "actionStatus": null,
+      "codeInResponse": true,
+      "attemptedPlannedInResponse": true,
+      "attemptedExpectedInResponse": true,
+      "bodyHasStack": false
+    },
+    "code": "BILLING_PLANNING_INVOICE_LOCKED",
+    "visibleText": "Se requiere una acción\n\nEsta factura se emitió mientras la editabas. No se pueden cambiar las fechas de planificación de una factura emitida. Revisa la factura actual.\n\nEmitida\n\nRevisar factura",
+    "remedy": ["Revisar factura"],
+    "remedyHrefs": ["billing"],
+    "noticeCount": 1,
+    "currentStatusText": "Emitida",
+    "attemptNote": "Las fechas que intentaste guardar siguen visibles abajo, pero no se guardaron.",
+    "formStillVisible": true,
+    "fieldsetDisabled": false,
+    "disabledDetails": {
+      "fieldsetAttribute": true,
+      "fieldsetProperty": true,
+      "plannedInputDisabled": true,
+      "expectedInputDisabled": true
+    },
+    "saveButtonCount": 0,
+    "retained": {
+      "planned": true,
+      "expected": true
+    },
+    "attemptedDatePresence": {
+      "anyInput": true,
+      "hiddenInput": false,
+      "visibleText": false
+    },
+    "selectedInvoiceRendered": true,
+    "preSubmit": {
+      "focusedNotice": false,
+      "focusTop": 536,
+      "focusBottom": 580,
+      "viewportHeight": 844,
+      "focusVisible": true,
+      "windowScroll": 3532,
+      "drawerScroll": 393,
+      "drawerOpen": true
+    },
+    "after": {
+      "focusedNotice": true,
+      "focusTop": 326,
+      "focusBottom": 542,
+      "viewportHeight": 844,
+      "focusVisible": true,
+      "windowScroll": 3532,
+      "drawerScroll": 393,
+      "drawerOpen": true
+    },
+    "noWrite": true,
+    "currentStateIssued": true,
+    "ownerDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource", "failed-resource", "failed-resource"],
+      "failedResponses": [
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        },
+        {
+          "status": 409,
+          "path": "/j-aautomation/app/billing"
+        },
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        }
+      ]
+    },
+    "financeDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource", "failed-resource", "failed-resource", "failed-resource"],
+      "failedResponses": [
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        },
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        },
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        },
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        }
+      ]
+    }
+  },
+  {
+    "action": "setInvoicePlanningDates",
+    "viewport": "desktop-1440",
+    "locale": "es",
+    "invoiceRef": "e867c358d3",
+    "approval": {
+      "transportStatus": 200,
+      "actionStatus": null
+    },
+    "issuance": {
+      "transportStatus": 200,
+      "actionStatus": null
+    },
+    "stale": {
+      "transportStatus": 409,
+      "actionStatus": null,
+      "codeInResponse": true,
+      "attemptedPlannedInResponse": true,
+      "attemptedExpectedInResponse": true,
+      "bodyHasStack": false
+    },
+    "code": "BILLING_PLANNING_INVOICE_LOCKED",
+    "visibleText": "Se requiere una acción\n\nEsta factura se emitió mientras la editabas. No se pueden cambiar las fechas de planificación de una factura emitida. Revisa la factura actual.\n\nEmitida\n\nRevisar factura",
+    "remedy": ["Revisar factura"],
+    "remedyHrefs": ["billing"],
+    "noticeCount": 1,
+    "currentStatusText": "Emitida",
+    "attemptNote": "Las fechas que intentaste guardar siguen visibles abajo, pero no se guardaron.",
+    "formStillVisible": true,
+    "fieldsetDisabled": false,
+    "disabledDetails": {
+      "fieldsetAttribute": true,
+      "fieldsetProperty": true,
+      "plannedInputDisabled": true,
+      "expectedInputDisabled": true
+    },
+    "saveButtonCount": 0,
+    "retained": {
+      "planned": true,
+      "expected": true
+    },
+    "attemptedDatePresence": {
+      "anyInput": true,
+      "hiddenInput": false,
+      "visibleText": false
+    },
+    "selectedInvoiceRendered": true,
+    "preSubmit": {
+      "focusedNotice": false,
+      "focusTop": 539,
+      "focusBottom": 583,
+      "viewportHeight": 900,
+      "focusVisible": true,
+      "windowScroll": 680,
+      "drawerScroll": 0,
+      "drawerOpen": true
+    },
+    "after": {
+      "focusedNotice": true,
+      "focusTop": 430,
+      "focusBottom": 626,
+      "viewportHeight": 900,
+      "focusVisible": true,
+      "windowScroll": 680,
+      "drawerScroll": 0,
+      "drawerOpen": true
+    },
+    "noWrite": true,
+    "currentStateIssued": true,
+    "ownerDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource", "failed-resource", "failed-resource"],
+      "failedResponses": [
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        },
+        {
+          "status": 409,
+          "path": "/j-aautomation/app/billing"
+        },
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        }
+      ]
+    },
+    "financeDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource", "failed-resource", "failed-resource", "failed-resource"],
+      "failedResponses": [
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        },
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        },
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        },
+        {
+          "status": 503,
+          "path": "/j-aautomation/app/api/offline/identity"
+        }
+      ]
+    }
+  }
+]

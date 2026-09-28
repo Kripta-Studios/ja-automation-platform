@@ -1,0 +1,12 @@
+{
+  "scenario": "owner-management-changed",
+  "viewport": "desktop",
+  "responseStatus": 409,
+  "problemCode": "ACTION_MANAGEMENT_CHANGED",
+  "focused": true,
+  "focusedField": null,
+  "axeViolationCount": 0,
+  "axeRules": [],
+  "screenshot": "owner-management-changed-desktop.png",
+  "scope": "isolated warning only, without account or record details"
+}

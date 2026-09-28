@@ -1,0 +1,32 @@
+{
+  "applicationCommit": "7b369598d23a7a74b872d05a0cc0682597d7f2a6",
+  "archivePath": "/home/kripta/jaautomation-planning-7b369598d23a7a74b872d05a0cc0682597d7f2a6.zip",
+  "archiveSha256": "eb9094bf75957c4c68559161e34a34d634bb0826ddc22638f14f77fdab27c6de",
+  "startedAt": "2026-09-19T08:41:15.405054+00:00",
+  "previousRelease": "/opt/jaautomation/releases/ja-automation-e5d9583d2f8a2b7de3266d3841f54264927f3ec32e6b236c71415dcf351ac6bd",
+  "deployedAt": "2026-09-19T08:44:17+00:00",
+  "verifiedAt": "2026-09-19T08:45:35.252157+00:00",
+  "activeRelease": "/opt/jaautomation/releases/ja-automation-eb9094bf75957c4c68559161e34a34d634bb0826ddc22638f14f77fdab27c6de",
+  "identicalSourceFiles": 1753,
+  "rollbackImageTags": [
+    "ja-automation-site:rollback-20260919084127-eb9094bf7595",
+    "ja-automation-portal:rollback-20260919084127-eb9094bf7595"
+  ],
+  "containers": [
+    {
+      "name": "deployment-site-1",
+      "running": true,
+      "health": "healthy"
+    },
+    {
+      "name": "deployment-portal-1",
+      "running": true,
+      "health": "healthy"
+    },
+    {
+      "name": "deployment-jobs-1",
+      "running": true,
+      "health": null
+    }
+  ]
+}

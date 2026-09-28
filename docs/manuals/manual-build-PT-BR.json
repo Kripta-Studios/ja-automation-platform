@@ -1,0 +1,3927 @@
+{
+  "generatedAt": "2026-09-23T06:45:23.808Z",
+  "environment": "synthetic",
+  "sourceCommit": "728e523e50468f9efbff783fb9d9e827b0e2920b",
+  "sourceDigest": "7f0e5cf951c12d6e3871ee95ee6ed6a0eeee3a78c92611b33187c1c581377c32",
+  "captureManifest": "docs/manuals/validation/current-capture.json",
+  "captureManifestSha256": "e821bbacdc7a3a5d12e5872db38b95ae6b73b5ae3575a926c245bce00e2937ba",
+  "capturedAt": "2026-09-23T06:45:05.797Z",
+  "checks": [
+    {
+      "name": "capture:owner:en:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:en:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:owner:en:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:en:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:en:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/planning?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:en:planning-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:owner:en:planning-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:en:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:owner:en:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/projects?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:en:project-actions",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/notifications?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:en:activity-inbox",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:owner:pt:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:owner:pt:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/planning?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:planning-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:owner:pt:planning-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:owner:pt:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/projects?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:project-actions",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/notifications?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:activity-inbox",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:owner:pt:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:finance:en:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:finance:en:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:finance:en:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:finance",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=commercial&lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:configuration-task",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/notifications?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:activity-inbox",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:finance:pt:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:finance:pt:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:finance:pt:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:finance",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=commercial&lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:configuration-task",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/notifications?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:activity-inbox",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:finance:pt:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:manager:en:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:en:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:manager:en:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:en:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:en:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/planning?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:en:planning-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:manager:en:planning-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:en:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:manager:en:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/notifications?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:en:activity-inbox",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:manager:pt:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:manager:pt:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/planning?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:pt:planning-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:manager:pt:planning-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:pt:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:manager:pt:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/notifications?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:pt:activity-inbox",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:manager:pt:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:auditor:en:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:en:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:auditor:en:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:en:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:en:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/audit?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:en:audit",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/notifications?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:en:activity-inbox",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:auditor:pt:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:auditor:pt:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/audit?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:pt:audit",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/notifications?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:pt:activity-inbox",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/finance?view=overview",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:auditor:pt:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:en:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:en:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:en:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/projects?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:projects-month",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/expenses?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:register-filters",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/notifications?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:activity-inbox",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/reports?view=technical&lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:time-entry",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:en:project-picker",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:es:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=es",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:es:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:es:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=es",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:es:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=es",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:es:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=es",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:es:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:es:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/projects?lang=es",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:es:projects-month",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/expenses?lang=es",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:es:register-filters",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/notifications?lang=es",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:es:activity-inbox",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/reports?view=technical&lang=es",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=es",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:es:time-entry",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:es:project-picker",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=es",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:es:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:pt:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:pt:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:availability-month",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:pt:availability-editor",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/projects?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:projects-month",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/expenses?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:register-filters",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/notifications?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:activity-inbox",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/reports?view=technical&lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:time-entry",
+      "status": "passed"
+    },
+    {
+      "name": "capture:worker:pt:project-picker",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:worker:pt:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:supplier-coordinator:en:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/supplier?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:en:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:supplier-coordinator:en:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:en:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:en:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/supplier?projectId=01a0cd02-40e9-723b-9d13-aaaacaf9f09b&lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:en:supplier-team",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/supplier?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:supplier-coordinator:pt:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/supplier?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:supplier-coordinator:pt:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/supplier?projectId=01a0cd02-40e9-723b-9d13-aaaacaf9f09b&lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:pt:supplier-team",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/supplier?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:supplier-coordinator:pt:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:external-technician:en:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:en:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:external-technician:en:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:en:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:en:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:en:time",
+      "status": "passed"
+    },
+    {
+      "name": "capture:external-technician:en:register-filters",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=en",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:en:home-phone",
+      "status": "passed"
+    },
+    {
+      "name": "capture:external-technician:pt:public-home",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:pt:home",
+      "status": "passed"
+    },
+    {
+      "name": "capture:external-technician:pt:section-navigator",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/help?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:pt:help",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/profile?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:pt:profile",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:pt:time",
+      "status": "passed"
+    },
+    {
+      "name": "capture:external-technician:pt:register-filters",
+      "status": "passed"
+    },
+    {
+      "name": "navigation:/j-aautomation/app/time?lang=pt",
+      "status": "passed",
+      "httpStatus": 200
+    },
+    {
+      "name": "capture:external-technician:pt:home-phone",
+      "status": "passed"
+    }
+  ],
+  "screenshots": [
+    {
+      "persona": "owner",
+      "locale": "en",
+      "key": "public-home",
+      "role": "owner",
+      "route": "/en",
+      "path": "docs/manuals/screenshots/current/owner/en/public-home.png",
+      "sha256": "a4932ac86fb752c9e3f1dcbe6897c80cadddd1904000eb09bdb28ff0d1fd74cd",
+      "capturedAt": "2026-09-23T06:42:11.886Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "key": "home",
+      "role": "owner",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/home.png",
+      "sha256": "b7a4f0eecc6e7e4ee35268a72e65eab8f909fe897152f6d7d767eb343bb8bafc",
+      "capturedAt": "2026-09-23T06:42:14.870Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "key": "section-navigator",
+      "role": "owner",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/section-navigator.png",
+      "sha256": "287c24a91f9077b1b700c5ba1325eb4246843223536c918419a871ce43d79f3f",
+      "capturedAt": "2026-09-23T06:42:15.130Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "key": "help",
+      "role": "owner",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/help.png",
+      "sha256": "13a591bf237ace5bfd9a5dddc860f740d26f9ffa0db5dc6305c1673b4777f16c",
+      "capturedAt": "2026-09-23T06:42:15.973Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "key": "profile",
+      "role": "owner",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/profile.png",
+      "sha256": "8f026788bbdf76074d8eb7ce6cf504fb6d4dd8fd30b3b9e16078b0bff53dbaa1",
+      "capturedAt": "2026-09-23T06:42:17.038Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "key": "planning-month",
+      "role": "owner",
+      "route": "/app/planning?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/planning-month.png",
+      "sha256": "d5e58f9f5bea9ed97542ae3dc5ac2e3d8b1693f61a4b5d3f0d4b7f170b41fa4e",
+      "capturedAt": "2026-09-23T06:42:18.205Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "key": "planning-editor",
+      "role": "owner",
+      "route": "/app/planning?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/planning-editor.png",
+      "sha256": "728a5dbf1b3dd6bc0633fcd3f226989107021b19164302a111cfe386a22e9f65",
+      "capturedAt": "2026-09-23T06:42:18.468Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "key": "availability-month",
+      "role": "owner",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/availability-month.png",
+      "sha256": "ed33c6097edf3b6ddb3490dbd4cd739c708f6d80ceabcc83234342ddb016cf7b",
+      "capturedAt": "2026-09-23T06:42:19.652Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "key": "availability-editor",
+      "role": "owner",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/availability-editor.png",
+      "sha256": "ce2c4ec391305d15cfb226c5d13ed70034a1737d865f6c712a44c55094a14e3f",
+      "capturedAt": "2026-09-23T06:42:19.934Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "key": "project-actions",
+      "role": "owner",
+      "route": "/app/projects?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/project-actions.png",
+      "sha256": "b3413d7cebcc2804b4e9297fcc933b57bd4797caea9e724315a6099cd0ceddcd",
+      "capturedAt": "2026-09-23T06:42:21.351Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "key": "activity-inbox",
+      "role": "owner",
+      "route": "/app/notifications?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/activity-inbox.png",
+      "sha256": "f5deec8026f3165e0b7d4261ec528b2e4c7ba5bf8579d72f1f3e0cf0c87daa18",
+      "capturedAt": "2026-09-23T06:42:22.449Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "en",
+      "key": "home-phone",
+      "role": "owner",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/owner/en/home-phone.png",
+      "sha256": "6e38b90644f06936c56380e45d045e8996bc03f14b14020f8ee585dd10bcd7e2",
+      "capturedAt": "2026-09-23T06:42:23.489Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "public-home",
+      "role": "owner",
+      "route": "/pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/public-home.png",
+      "sha256": "362ee1b32a2ce70b0c0305e909b90bb3f5f9675fa151cbcbbbd0ce3960a911db",
+      "capturedAt": "2026-09-23T06:42:25.152Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "home",
+      "role": "owner",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/home.png",
+      "sha256": "e6bbd41c134c74446a8596381df6a4f289717bdd49aa7c201417c5d627657dcb",
+      "capturedAt": "2026-09-23T06:42:28.220Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "section-navigator",
+      "role": "owner",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/section-navigator.png",
+      "sha256": "49151020893058fc33068b4ad930137f7685b751e550b97f74143a1f5e898542",
+      "capturedAt": "2026-09-23T06:42:28.490Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "help",
+      "role": "owner",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/help.png",
+      "sha256": "cb9294bcb4b9613e583b2f52cdca5a2e77267b4a5e788f5e75b304766fbe7c26",
+      "capturedAt": "2026-09-23T06:42:29.411Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "profile",
+      "role": "owner",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/profile.png",
+      "sha256": "f8cdc76a86acb138f68c252b9a9e92f7cb910190844b6ff4e2d6b103a0c30f6c",
+      "capturedAt": "2026-09-23T06:42:30.535Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "planning-month",
+      "role": "owner",
+      "route": "/app/planning?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/planning-month.png",
+      "sha256": "dfa2d2784261bd01445d7bc30c7dd16ab7ea13b5cfc8a5b12c952f129a9cbecf",
+      "capturedAt": "2026-09-23T06:42:31.657Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "planning-editor",
+      "role": "owner",
+      "route": "/app/planning?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/planning-editor.png",
+      "sha256": "ff6ede4bfc841efc199b8f311a2c5248d9595bc749c8b606aa04ed1f024e6195",
+      "capturedAt": "2026-09-23T06:42:31.944Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "availability-month",
+      "role": "owner",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/availability-month.png",
+      "sha256": "976aef080739a2a77e99619ff4e6ee37e7a74b85e315b93279359b482e8f6a30",
+      "capturedAt": "2026-09-23T06:42:33.099Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "availability-editor",
+      "role": "owner",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/availability-editor.png",
+      "sha256": "0bed8cfe634d74fff3b82670c6693556f39ca493e1fc103bee338a869c8d8874",
+      "capturedAt": "2026-09-23T06:42:33.388Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "project-actions",
+      "role": "owner",
+      "route": "/app/projects?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/project-actions.png",
+      "sha256": "9f17af80f4a4033674598c7835312e74c2f6e2133a34865690f98363e91f92cf",
+      "capturedAt": "2026-09-23T06:42:34.791Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "activity-inbox",
+      "role": "owner",
+      "route": "/app/notifications?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/activity-inbox.png",
+      "sha256": "8fb98cacae2aeb2b57efe9c3d9c2aa46d8cf0a194d05b5798a2720d482c35e99",
+      "capturedAt": "2026-09-23T06:42:35.853Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "owner",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "owner",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/owner/pt/home-phone.png",
+      "sha256": "557d3952286cdbb7fca87da9812cbfa29e7ab79898ca70bd1a43a20fefc8eb7a",
+      "capturedAt": "2026-09-23T06:42:36.883Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "public-home",
+      "role": "finance",
+      "route": "/en",
+      "path": "docs/manuals/screenshots/current/finance/en/public-home.png",
+      "sha256": "a4932ac86fb752c9e3f1dcbe6897c80cadddd1904000eb09bdb28ff0d1fd74cd",
+      "capturedAt": "2026-09-23T06:42:38.562Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "home",
+      "role": "finance",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/finance/en/home.png",
+      "sha256": "be62a7ba7885ac74d2b776a0a7ebadf0af172eb852e911a697633459cb5c2605",
+      "capturedAt": "2026-09-23T06:42:41.700Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "section-navigator",
+      "role": "finance",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/finance/en/section-navigator.png",
+      "sha256": "f2ca6080448bdd96aeb1931010f70712f8295f127188bc58e61c18320a7bcf5f",
+      "capturedAt": "2026-09-23T06:42:42.091Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "help",
+      "role": "finance",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/finance/en/help.png",
+      "sha256": "33b3c4baad561f5ec76ca61e4f6809eeafde04b60029ba158f175fcbca851f3f",
+      "capturedAt": "2026-09-23T06:42:42.974Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "profile",
+      "role": "finance",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/finance/en/profile.png",
+      "sha256": "8ef17485f9ec4e98cbf91709d1ec8c160fc8ee89073d5cbdb8994a4ead530546",
+      "capturedAt": "2026-09-23T06:42:44.067Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "availability-month",
+      "role": "finance",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/finance/en/availability-month.png",
+      "sha256": "ed33c6097edf3b6ddb3490dbd4cd739c708f6d80ceabcc83234342ddb016cf7b",
+      "capturedAt": "2026-09-23T06:42:45.180Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "availability-editor",
+      "role": "finance",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/finance/en/availability-editor.png",
+      "sha256": "ce2c4ec391305d15cfb226c5d13ed70034a1737d865f6c712a44c55094a14e3f",
+      "capturedAt": "2026-09-23T06:42:45.430Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "finance",
+      "role": "finance",
+      "route": "/app/finance?lang=en",
+      "path": "docs/manuals/screenshots/current/finance/en/finance.png",
+      "sha256": "96920292e5e1264259ba060b3b639d7f73a5773371190cb6365da0edae0b4170",
+      "capturedAt": "2026-09-23T06:42:46.510Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "configuration-task",
+      "role": "finance",
+      "route": "/app/finance?view=commercial&lang=en",
+      "path": "docs/manuals/screenshots/current/finance/en/configuration-task.png",
+      "sha256": "9918af07c66136e29341a6ac31f0e81f39d1f01fa325cdb0a1354c3add6571ec",
+      "capturedAt": "2026-09-23T06:42:47.675Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "activity-inbox",
+      "role": "finance",
+      "route": "/app/notifications?lang=en",
+      "path": "docs/manuals/screenshots/current/finance/en/activity-inbox.png",
+      "sha256": "0caf32a059b7fdec9da03753565aa73cbf698f89b431edc519ab4adc8ca5dfb5",
+      "capturedAt": "2026-09-23T06:42:48.700Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "en",
+      "key": "home-phone",
+      "role": "finance",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/finance/en/home-phone.png",
+      "sha256": "146e6199159c9eee979d8e760dd1c907a16401591e19fb5b83ac42ec5b511bf8",
+      "capturedAt": "2026-09-23T06:42:49.760Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "public-home",
+      "role": "finance",
+      "route": "/pt",
+      "path": "docs/manuals/screenshots/current/finance/pt/public-home.png",
+      "sha256": "362ee1b32a2ce70b0c0305e909b90bb3f5f9675fa151cbcbbbd0ce3960a911db",
+      "capturedAt": "2026-09-23T06:42:51.186Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "home",
+      "role": "finance",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/finance/pt/home.png",
+      "sha256": "7dcf0ea777b447fb67dfb02e75aaaa9134586fc287e5865a0c2648d966cccb53",
+      "capturedAt": "2026-09-23T06:42:54.504Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "section-navigator",
+      "role": "finance",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/finance/pt/section-navigator.png",
+      "sha256": "c36d635aa5b239adc216772fc01c749f09b0e67c023f053131b4fa48e2b6161a",
+      "capturedAt": "2026-09-23T06:42:54.801Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "help",
+      "role": "finance",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/finance/pt/help.png",
+      "sha256": "99c49d7e6269abeaba49400a7f1afa3ed5f5b246fc182b062c40ee103e9c63c5",
+      "capturedAt": "2026-09-23T06:42:55.662Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "profile",
+      "role": "finance",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/finance/pt/profile.png",
+      "sha256": "08ca32804f821cc8002ca4377b1e6327c177241abf1d47d34bac7ab71cdfa410",
+      "capturedAt": "2026-09-23T06:42:56.708Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "availability-month",
+      "role": "finance",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/finance/pt/availability-month.png",
+      "sha256": "976aef080739a2a77e99619ff4e6ee37e7a74b85e315b93279359b482e8f6a30",
+      "capturedAt": "2026-09-23T06:42:57.750Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "availability-editor",
+      "role": "finance",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/finance/pt/availability-editor.png",
+      "sha256": "0bed8cfe634d74fff3b82670c6693556f39ca493e1fc103bee338a869c8d8874",
+      "capturedAt": "2026-09-23T06:42:57.972Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "finance",
+      "role": "finance",
+      "route": "/app/finance?lang=pt",
+      "path": "docs/manuals/screenshots/current/finance/pt/finance.png",
+      "sha256": "79efb0d488d10a30a6877f9bd7348f292d5cd29c64ca41f7656e6681ecb7ec7b",
+      "capturedAt": "2026-09-23T06:42:59.053Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "configuration-task",
+      "role": "finance",
+      "route": "/app/finance?view=commercial&lang=pt",
+      "path": "docs/manuals/screenshots/current/finance/pt/configuration-task.png",
+      "sha256": "f8f3d7c472b61d2bad62fd2bacc6602eeaf82ac2cf915d34a71795ebcd4f5524",
+      "capturedAt": "2026-09-23T06:43:00.281Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "activity-inbox",
+      "role": "finance",
+      "route": "/app/notifications?lang=pt",
+      "path": "docs/manuals/screenshots/current/finance/pt/activity-inbox.png",
+      "sha256": "58fb72b669054c8efe2cd77664b072e79d86f943aacbf3351bde6b1fa4fe3201",
+      "capturedAt": "2026-09-23T06:43:01.237Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "finance",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "finance",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/finance/pt/home-phone.png",
+      "sha256": "5846de61d8ff149482abdd90ff6de695facf85b3d830a5699a432ee51e63369c",
+      "capturedAt": "2026-09-23T06:43:02.268Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "public-home",
+      "role": "manager",
+      "route": "/en",
+      "path": "docs/manuals/screenshots/current/manager/en/public-home.png",
+      "sha256": "a4932ac86fb752c9e3f1dcbe6897c80cadddd1904000eb09bdb28ff0d1fd74cd",
+      "capturedAt": "2026-09-23T06:43:03.787Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "home",
+      "role": "manager",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/home.png",
+      "sha256": "488f0ea58c1230755285200f8af48f04e1815534f2e86832da58415f0c84d40e",
+      "capturedAt": "2026-09-23T06:43:06.789Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "section-navigator",
+      "role": "manager",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/section-navigator.png",
+      "sha256": "24b05428cb36e39fa6722408c03e5e7b9b6af11a5bec7b613d95638b5364fddb",
+      "capturedAt": "2026-09-23T06:43:06.968Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "help",
+      "role": "manager",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/help.png",
+      "sha256": "1be95d77aaf8e19a296dd698023dbd15ae66261e0790e78f7275a47e295aae37",
+      "capturedAt": "2026-09-23T06:43:07.798Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "profile",
+      "role": "manager",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/profile.png",
+      "sha256": "6de08f21984c943fcea60471e4dd0dee9b86a16e3b4603088191b3d7ff81ed5f",
+      "capturedAt": "2026-09-23T06:43:08.821Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "planning-month",
+      "role": "manager",
+      "route": "/app/planning?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/planning-month.png",
+      "sha256": "d5e58f9f5bea9ed97542ae3dc5ac2e3d8b1693f61a4b5d3f0d4b7f170b41fa4e",
+      "capturedAt": "2026-09-23T06:43:10.003Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "planning-editor",
+      "role": "manager",
+      "route": "/app/planning?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/planning-editor.png",
+      "sha256": "dabe88d0aa40c658b0d95b2746817e62c2ec071af315ba5a104673d97affe744",
+      "capturedAt": "2026-09-23T06:43:10.323Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "availability-month",
+      "role": "manager",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/availability-month.png",
+      "sha256": "6cad4a37b5dfecb9b801f09b6d818c41fbae922168c10267add61c2f2e47023f",
+      "capturedAt": "2026-09-23T06:43:11.520Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "availability-editor",
+      "role": "manager",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/availability-editor.png",
+      "sha256": "ce2c4ec391305d15cfb226c5d13ed70034a1737d865f6c712a44c55094a14e3f",
+      "capturedAt": "2026-09-23T06:43:11.768Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "activity-inbox",
+      "role": "manager",
+      "route": "/app/notifications?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/activity-inbox.png",
+      "sha256": "2c576af9a2f52154d4b05872822eb2f575529adadd90043b697469fa64617084",
+      "capturedAt": "2026-09-23T06:43:12.767Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "en",
+      "key": "home-phone",
+      "role": "manager",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/manager/en/home-phone.png",
+      "sha256": "5f6abb0475cabaddfbb788659ad79a5ac2ed422a37461fc970321f21e56bc471",
+      "capturedAt": "2026-09-23T06:43:13.788Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "public-home",
+      "role": "manager",
+      "route": "/pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/public-home.png",
+      "sha256": "362ee1b32a2ce70b0c0305e909b90bb3f5f9675fa151cbcbbbd0ce3960a911db",
+      "capturedAt": "2026-09-23T06:43:15.367Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "home",
+      "role": "manager",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/home.png",
+      "sha256": "2dd88ca042e06b564d77845b6a8315c9090d1f6353bd9628d000f88b598b7802",
+      "capturedAt": "2026-09-23T06:43:18.297Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "section-navigator",
+      "role": "manager",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/section-navigator.png",
+      "sha256": "11cfdca8a3289b771f4c514e8abd1e8d955ef79d188039fa880be693bf406486",
+      "capturedAt": "2026-09-23T06:43:18.504Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "help",
+      "role": "manager",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/help.png",
+      "sha256": "71f7fc5b75708b423012668dc88922294e225e6612e5aa576c5966918700417c",
+      "capturedAt": "2026-09-23T06:43:19.360Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "profile",
+      "role": "manager",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/profile.png",
+      "sha256": "d85b181c8fc8b189a9cded0ffff407e9afd6666d9b1cbe549bec19915b74fcc5",
+      "capturedAt": "2026-09-23T06:43:20.380Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "planning-month",
+      "role": "manager",
+      "route": "/app/planning?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/planning-month.png",
+      "sha256": "dfa2d2784261bd01445d7bc30c7dd16ab7ea13b5cfc8a5b12c952f129a9cbecf",
+      "capturedAt": "2026-09-23T06:43:21.475Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "planning-editor",
+      "role": "manager",
+      "route": "/app/planning?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/planning-editor.png",
+      "sha256": "a5b8743202c74b4a6f7b14bd9c991762815bd2e25c0a09d2f7af51912c5c97d0",
+      "capturedAt": "2026-09-23T06:43:21.746Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "availability-month",
+      "role": "manager",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/availability-month.png",
+      "sha256": "5e1586c4898730830226fc2bdb1fce7a6805d78a2d5d61837e1f4c535978c13e",
+      "capturedAt": "2026-09-23T06:43:22.861Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "availability-editor",
+      "role": "manager",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/availability-editor.png",
+      "sha256": "0bed8cfe634d74fff3b82670c6693556f39ca493e1fc103bee338a869c8d8874",
+      "capturedAt": "2026-09-23T06:43:23.111Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "activity-inbox",
+      "role": "manager",
+      "route": "/app/notifications?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/activity-inbox.png",
+      "sha256": "9e9a87b9ee1bd2899d2828743883c792529eee0f8e78dd80f34935e639bf8726",
+      "capturedAt": "2026-09-23T06:43:24.063Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "manager",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "manager",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/manager/pt/home-phone.png",
+      "sha256": "33a60a27d7447f58c9e66d178bd2be5e2ff0ce6d0645262febad978a218ccd14",
+      "capturedAt": "2026-09-23T06:43:25.058Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "key": "public-home",
+      "role": "auditor",
+      "route": "/en",
+      "path": "docs/manuals/screenshots/current/auditor/en/public-home.png",
+      "sha256": "a4932ac86fb752c9e3f1dcbe6897c80cadddd1904000eb09bdb28ff0d1fd74cd",
+      "capturedAt": "2026-09-23T06:43:26.596Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "key": "home",
+      "role": "auditor",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/auditor/en/home.png",
+      "sha256": "4349dedc154c82b08d833db79e415879a265e3c23f79a5aa874ee57d00762f96",
+      "capturedAt": "2026-09-23T06:43:29.666Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "key": "section-navigator",
+      "role": "auditor",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/auditor/en/section-navigator.png",
+      "sha256": "db0b3d7e3d157c1f1739ccceb77aed99a24e77903e7ea74339638c4a707fdd39",
+      "capturedAt": "2026-09-23T06:43:29.863Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "key": "help",
+      "role": "auditor",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/auditor/en/help.png",
+      "sha256": "45b642ba21bde2a97ff4428c17568c3f79206416167955bcc9b4d4a46ca9c767",
+      "capturedAt": "2026-09-23T06:43:30.691Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "key": "profile",
+      "role": "auditor",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/auditor/en/profile.png",
+      "sha256": "9186a665ac71f482ac4682fbcc2fa0aa39cf57249f2207dfdcfd66750c811084",
+      "capturedAt": "2026-09-23T06:43:31.720Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "key": "audit",
+      "role": "auditor",
+      "route": "/app/audit?lang=en",
+      "path": "docs/manuals/screenshots/current/auditor/en/audit.png",
+      "sha256": "b022a898ed192656b43d003e0e67f247a81e7962aadba419aedd80208e87f715",
+      "capturedAt": "2026-09-23T06:43:32.805Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "key": "activity-inbox",
+      "role": "auditor",
+      "route": "/app/notifications?lang=en",
+      "path": "docs/manuals/screenshots/current/auditor/en/activity-inbox.png",
+      "sha256": "5a963280a27133e72033a757af0cb5470a1c6b1055a43e2ab4016588e2a9557d",
+      "capturedAt": "2026-09-23T06:43:33.819Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "en",
+      "key": "home-phone",
+      "role": "auditor",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/auditor/en/home-phone.png",
+      "sha256": "6cd2a06af5e6baa8e8f7aca46c8389840fbac39105dd511e67e5b6c79c547742",
+      "capturedAt": "2026-09-23T06:43:34.869Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "key": "public-home",
+      "role": "auditor",
+      "route": "/pt",
+      "path": "docs/manuals/screenshots/current/auditor/pt/public-home.png",
+      "sha256": "362ee1b32a2ce70b0c0305e909b90bb3f5f9675fa151cbcbbbd0ce3960a911db",
+      "capturedAt": "2026-09-23T06:43:36.370Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "key": "home",
+      "role": "auditor",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/auditor/pt/home.png",
+      "sha256": "6cd5e00ff0df51ba424bc6799ea959100e215e0367aee73bf5007a8810b963b7",
+      "capturedAt": "2026-09-23T06:43:39.407Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "key": "section-navigator",
+      "role": "auditor",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/auditor/pt/section-navigator.png",
+      "sha256": "0cb94ef6dd35ff6f5c109f4df95b2c5aa7c4f5a7c655835bf2bca37f77c4b5c2",
+      "capturedAt": "2026-09-23T06:43:39.670Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "key": "help",
+      "role": "auditor",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/auditor/pt/help.png",
+      "sha256": "73495ef6be7036aac787ce62e027599b2a4df97c8d1313e728cb70dd6ceba2ef",
+      "capturedAt": "2026-09-23T06:43:40.513Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "key": "profile",
+      "role": "auditor",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/auditor/pt/profile.png",
+      "sha256": "ab7ef981cdcf9dc2045721305e7fc8d25cced6e302d37766a76bcea3a16658d1",
+      "capturedAt": "2026-09-23T06:43:41.571Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "key": "audit",
+      "role": "auditor",
+      "route": "/app/audit?lang=pt",
+      "path": "docs/manuals/screenshots/current/auditor/pt/audit.png",
+      "sha256": "1a797c4bb5a512d8d93c998e21b72dd69654a7240b5de58ee6de95848a9d82ea",
+      "capturedAt": "2026-09-23T06:43:42.679Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "key": "activity-inbox",
+      "role": "auditor",
+      "route": "/app/notifications?lang=pt",
+      "path": "docs/manuals/screenshots/current/auditor/pt/activity-inbox.png",
+      "sha256": "d50f5d65a6fd8e58d54fb8c2f4f6419102e85e124fe9738fac047585cd6aadb5",
+      "capturedAt": "2026-09-23T06:43:43.704Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "auditor",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "auditor",
+      "route": "/app/finance?view=overview",
+      "path": "docs/manuals/screenshots/current/auditor/pt/home-phone.png",
+      "sha256": "8b86fdd6f18a6fa574e0b4452771cd8a4eff3060d711f96d81df93d697924c9d",
+      "capturedAt": "2026-09-23T06:43:44.843Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "public-home",
+      "role": "worker",
+      "route": "/en",
+      "path": "docs/manuals/screenshots/current/worker/en/public-home.png",
+      "sha256": "a4932ac86fb752c9e3f1dcbe6897c80cadddd1904000eb09bdb28ff0d1fd74cd",
+      "capturedAt": "2026-09-23T06:43:46.652Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "home",
+      "role": "worker",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/home.png",
+      "sha256": "f4b55b02d37984e075582ac010455fed3005cdc317daaf1f5d5f1c5ce8e25405",
+      "capturedAt": "2026-09-23T06:43:49.777Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "section-navigator",
+      "role": "worker",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/section-navigator.png",
+      "sha256": "4258f006e9c3d91891cd828785ca2db8dfd35eb84a8f404f812890f4be993e91",
+      "capturedAt": "2026-09-23T06:43:50.035Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "help",
+      "role": "worker",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/help.png",
+      "sha256": "e9ae80f6fc67df509bb66ffe5c11f3a1291ba5c9089296d31001ce8a1a769e03",
+      "capturedAt": "2026-09-23T06:43:50.902Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "profile",
+      "role": "worker",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/profile.png",
+      "sha256": "2a15d36001cc62c5cb21241b30561301598aa950cf95cf458f3446ba656ced9d",
+      "capturedAt": "2026-09-23T06:43:51.989Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "availability-month",
+      "role": "worker",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/availability-month.png",
+      "sha256": "fce01fda738d56997d12dd2640f7b18a174df62b394b613071957d915022d6b1",
+      "capturedAt": "2026-09-23T06:43:53.063Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "availability-editor",
+      "role": "worker",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/availability-editor.png",
+      "sha256": "ce2c4ec391305d15cfb226c5d13ed70034a1737d865f6c712a44c55094a14e3f",
+      "capturedAt": "2026-09-23T06:43:53.317Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "projects-month",
+      "role": "worker",
+      "route": "/app/projects?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/projects-month.png",
+      "sha256": "00958bffd68c5e35263501184d536310af11f4a5fc6c4cf77f13a3e510167100",
+      "capturedAt": "2026-09-23T06:43:54.607Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "register-filters",
+      "role": "worker",
+      "route": "/app/expenses?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/register-filters.png",
+      "sha256": "0febb3ac51bf84accc1dd16c44a6812446e127dc9dc71073bb46a8527071bf74",
+      "capturedAt": "2026-09-23T06:43:55.829Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "activity-inbox",
+      "role": "worker",
+      "route": "/app/notifications?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/activity-inbox.png",
+      "sha256": "203f9558158255b9f4eba21c632440322ecd7ebe57b86e9683039c875db14ed9",
+      "capturedAt": "2026-09-23T06:43:56.952Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "time-entry",
+      "role": "worker",
+      "route": "/app/time?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/time-entry.png",
+      "sha256": "c3006ec3638dd5ac1364d601612b3686643a9e8e2b24ba94f0ac10750db78009",
+      "capturedAt": "2026-09-23T06:43:59.693Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "project-picker",
+      "role": "worker",
+      "route": "/app/time?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/project-picker.png",
+      "sha256": "e27750c22e6445fe6795ab015ed8578f33a0fe76c0b97194eea904c949c5511e",
+      "capturedAt": "2026-09-23T06:43:59.896Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "en",
+      "key": "home-phone",
+      "role": "worker",
+      "route": "/app?lang=en",
+      "path": "docs/manuals/screenshots/current/worker/en/home-phone.png",
+      "sha256": "e26c12e511c194c251cacd0fcefe0cd2b07cbdaf192496da35a3dde3323e62f6",
+      "capturedAt": "2026-09-23T06:44:01.051Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "es",
+      "key": "public-home",
+      "role": "worker",
+      "route": "/es",
+      "path": "docs/manuals/screenshots/current/worker/es/public-home.png",
+      "sha256": "02c61043c435b6fa741c0976b89e5eff2d9bb2568dc2482fc90865e9b659e165",
+      "capturedAt": "2026-09-23T06:44:02.742Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "es",
+      "key": "home",
+      "role": "worker",
+      "route": "/app?lang=es",
+      "path": "docs/manuals/screenshots/current/worker/es/home.png",
+      "sha256": "9143783791e55b9593a6ddb9db31311fa266824697108a0fbd832f8faec48228",
+      "capturedAt": "2026-09-23T06:44:05.700Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "es",
+      "key": "section-navigator",
+      "role": "worker",
+      "route": "/app?lang=es",
+      "path": "docs/manuals/screenshots/current/worker/es/section-navigator.png",
+      "sha256": "19195d431b50348d7cc50dd7f183cd5ee2c49a0b44bf3daf596e31496c54a457",
+      "capturedAt": "2026-09-23T06:44:05.964Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "es",
+      "key": "help",
+      "role": "worker",
+      "route": "/app/help?lang=es",
+      "path": "docs/manuals/screenshots/current/worker/es/help.png",
+      "sha256": "c9414b86e1680a0d0bc5b71fb7563fd19ce8cf8c812bc50b5d7e6427613e8c74",
+      "capturedAt": "2026-09-23T06:44:06.833Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "es",
+      "key": "profile",
+      "role": "worker",
+      "route": "/app/profile?lang=es",
+      "path": "docs/manuals/screenshots/current/worker/es/profile.png",
+      "sha256": "3e60a3af5d67c5b34b902fcb19caf0c31cbed177a6f61d6ff9a7056ab21ccb13",
+      "capturedAt": "2026-09-23T06:44:08.003Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "es",
+      "key": "availability-month",
+      "role": "worker",
+      "route": "/app/profile?lang=es",
+      "path": "docs/manuals/screenshots/current/worker/es/availability-month.png",
+      "sha256": "88a74266043728e0724dac0d292591495a3c4e6877ff194f3137b3d8c27fb41b",
+      "capturedAt": "2026-09-23T06:44:09.106Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "es",
+      "key": "availability-editor",
+      "role": "worker",
+      "route": "/app/profile?lang=es",
+      "path": "docs/manuals/screenshots/current/worker/es/availability-editor.png",
+      "sha256": "2868b96a9ed27fca6086b222b94e300d5d1c390188fdcf7b56841df7e166b84d",
+      "capturedAt": "2026-09-23T06:44:09.310Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "es",
+      "key": "projects-month",
+      "role": "worker",
+      "route": "/app/projects?lang=es",
+      "path": "docs/manuals/screenshots/current/worker/es/projects-month.png",
+      "sha256": "72d11b983c0249f10a89b6e3647eed208ec0c6745ec9283976ed53b7692837a5",
+      "capturedAt": "2026-09-23T06:44:10.535Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "es",
+      "key": "register-filters",
+      "role": "worker",
+      "route": "/app/expenses?lang=es",
+      "path": "docs/manuals/screenshots/current/worker/es/register-filters.png",
+      "sha256": "c11fe684df9d7d18a3d2f8e6b668dd082181684df19b8624a1f8de49ebcc00f4",
+      "capturedAt": "2026-09-23T06:44:11.700Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "es",
+      "key": "activity-inbox",
+      "role": "worker",
+      "route": "/app/notifications?lang=es",
+      "path": "docs/manuals/screenshots/current/worker/es/activity-inbox.png",
+      "sha256": "4825430917697dada8da36ea715346cc89646ef06aa28dfb5fe358d07971fe23",
+      "capturedAt": "2026-09-23T06:44:12.705Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "es",
+      "key": "time-entry",
+      "role": "worker",
+      "route": "/app/time?lang=es",
+      "path": "docs/manuals/screenshots/current/worker/es/time-entry.png",
+      "sha256": "c4c89be014b30ca51f78d338e59fbc50b2b9c0ea9d5c49c1a9f577a4d05b6135",
+      "capturedAt": "2026-09-23T06:44:14.998Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "es",
+      "key": "project-picker",
+      "role": "worker",
+      "route": "/app/time?lang=es",
+      "path": "docs/manuals/screenshots/current/worker/es/project-picker.png",
+      "sha256": "0f9d7891486edfd523cffc253c7e716fa5cb5ac2dc37f8d648ad13110722edb3",
+      "capturedAt": "2026-09-23T06:44:15.232Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "es",
+      "key": "home-phone",
+      "role": "worker",
+      "route": "/app?lang=es",
+      "path": "docs/manuals/screenshots/current/worker/es/home-phone.png",
+      "sha256": "0a561cbbf36890c27474a6388e95de99782af1713efe5ed0a12e553309f54713",
+      "capturedAt": "2026-09-23T06:44:16.287Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "public-home",
+      "role": "worker",
+      "route": "/pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/public-home.png",
+      "sha256": "362ee1b32a2ce70b0c0305e909b90bb3f5f9675fa151cbcbbbd0ce3960a911db",
+      "capturedAt": "2026-09-23T06:44:18.067Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "home",
+      "role": "worker",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/home.png",
+      "sha256": "6f6562e30c48bac2e67874c8ccd3438a40a94598c8571f4e091ae5f4be5d0a43",
+      "capturedAt": "2026-09-23T06:44:21.070Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "section-navigator",
+      "role": "worker",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/section-navigator.png",
+      "sha256": "5758ecd8142d82e7487443175b0c1ebe70c778b4ca3d8651868abc751e7d600b",
+      "capturedAt": "2026-09-23T06:44:21.288Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "help",
+      "role": "worker",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/help.png",
+      "sha256": "4c8c48ec5f408d447d07f46c793ff1a8831aeeff3b5c397dcba04476b6e57b71",
+      "capturedAt": "2026-09-23T06:44:22.129Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "profile",
+      "role": "worker",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/profile.png",
+      "sha256": "91ed1ef3278e683b1d9749241f9031ac73df346b58d81834952d327e5e953b29",
+      "capturedAt": "2026-09-23T06:44:23.162Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "availability-month",
+      "role": "worker",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/availability-month.png",
+      "sha256": "609c21dbf3f7f585459ede73547f1931acd2117893628790ccfe3175f121759f",
+      "capturedAt": "2026-09-23T06:44:24.264Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "availability-editor",
+      "role": "worker",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/availability-editor.png",
+      "sha256": "0bed8cfe634d74fff3b82670c6693556f39ca493e1fc103bee338a869c8d8874",
+      "capturedAt": "2026-09-23T06:44:24.447Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "projects-month",
+      "role": "worker",
+      "route": "/app/projects?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/projects-month.png",
+      "sha256": "ac0728a871cb03a8bd920b0b34c1166bf649fa5ef6cf299aebf33e148d30af2e",
+      "capturedAt": "2026-09-23T06:44:25.701Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "register-filters",
+      "role": "worker",
+      "route": "/app/expenses?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/register-filters.png",
+      "sha256": "19493e460fdc4413c7bd40c7d1fa842126254954c7fcf4d7087ce58fd4f57c6e",
+      "capturedAt": "2026-09-23T06:44:26.864Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "activity-inbox",
+      "role": "worker",
+      "route": "/app/notifications?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/activity-inbox.png",
+      "sha256": "648988cb9c5c67b939ab43a3cd2233de241e978da8fd802c6dade5967d337037",
+      "capturedAt": "2026-09-23T06:44:27.884Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "time-entry",
+      "role": "worker",
+      "route": "/app/time?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/time-entry.png",
+      "sha256": "660711c45cbbf2b6f81fa78e913b3e514e1a2ae611cf9b4b75eafbe5b4c1ac2d",
+      "capturedAt": "2026-09-23T06:44:30.366Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "project-picker",
+      "role": "worker",
+      "route": "/app/time?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/project-picker.png",
+      "sha256": "592b4d8d6a8cd998bc427866f6cdf225a8613c699477cb803dfe127da1aaf7a7",
+      "capturedAt": "2026-09-23T06:44:30.586Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "worker",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "worker",
+      "route": "/app?lang=pt",
+      "path": "docs/manuals/screenshots/current/worker/pt/home-phone.png",
+      "sha256": "4388074ad0f7505ed7f2a07a6a71456c02a3431ed4239f3c1889e00294aff107",
+      "capturedAt": "2026-09-23T06:44:31.676Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "key": "public-home",
+      "role": "supplier-coordinator",
+      "route": "/en",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/en/public-home.png",
+      "sha256": "a4932ac86fb752c9e3f1dcbe6897c80cadddd1904000eb09bdb28ff0d1fd74cd",
+      "capturedAt": "2026-09-23T06:44:33.296Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "key": "home",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?lang=en",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/en/home.png",
+      "sha256": "be89f2e5749e975f6756aed75bde1ca3922bb9c6d250042ecf929b2e64a745c6",
+      "capturedAt": "2026-09-23T06:44:35.914Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "key": "section-navigator",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?lang=en",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/en/section-navigator.png",
+      "sha256": "d143ab3a2274a9e3968ee19defb7b577e166d0bd845b5ad8e3a5ed51ed58bbc4",
+      "capturedAt": "2026-09-23T06:44:36.116Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "key": "help",
+      "role": "supplier-coordinator",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/en/help.png",
+      "sha256": "f4b15c5b8c3768e9ab18a45cd44e326d183b71ad9920a07b8b386120dd5fc04e",
+      "capturedAt": "2026-09-23T06:44:36.969Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "key": "profile",
+      "role": "supplier-coordinator",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/en/profile.png",
+      "sha256": "1c57b112687d4c883ca6f4b72ad24b7134fbc3fa286ca741a389eec5d12fdc62",
+      "capturedAt": "2026-09-23T06:44:38.047Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "key": "supplier-team",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?projectId=01a0cd02-40e9-723b-9d13-aaaacaf9f09b&lang=en",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/en/supplier-team.png",
+      "sha256": "be89f2e5749e975f6756aed75bde1ca3922bb9c6d250042ecf929b2e64a745c6",
+      "capturedAt": "2026-09-23T06:44:38.893Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "en",
+      "key": "home-phone",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?lang=en",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/en/home-phone.png",
+      "sha256": "f81bac46ea8456a3bae7db26016e5a68631749a989fdb8435fb162e129875651",
+      "capturedAt": "2026-09-23T06:44:39.765Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "key": "public-home",
+      "role": "supplier-coordinator",
+      "route": "/pt",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/public-home.png",
+      "sha256": "362ee1b32a2ce70b0c0305e909b90bb3f5f9675fa151cbcbbbd0ce3960a911db",
+      "capturedAt": "2026-09-23T06:44:41.332Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "key": "home",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?lang=pt",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/home.png",
+      "sha256": "40865d902cd8729475010fb9b97bbbe364f15e4a94197f792aab6ba665402d5d",
+      "capturedAt": "2026-09-23T06:44:43.992Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "key": "section-navigator",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?lang=pt",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/section-navigator.png",
+      "sha256": "715bf9e78dbce57f323d6c55345c04f41f4530028bb7772b669af00e62f68303",
+      "capturedAt": "2026-09-23T06:44:44.282Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "key": "help",
+      "role": "supplier-coordinator",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/help.png",
+      "sha256": "bf134f58c538bad1cd3842adbc8cd8d260f19c513eca65d9220567473c4fed1f",
+      "capturedAt": "2026-09-23T06:44:45.050Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "key": "profile",
+      "role": "supplier-coordinator",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/profile.png",
+      "sha256": "9eb05336907d23c08dadf8aac5ecabdf62ce5af9590ea4c7910e21515c46a104",
+      "capturedAt": "2026-09-23T06:44:46.129Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "key": "supplier-team",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?projectId=01a0cd02-40e9-723b-9d13-aaaacaf9f09b&lang=pt",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/supplier-team.png",
+      "sha256": "40865d902cd8729475010fb9b97bbbe364f15e4a94197f792aab6ba665402d5d",
+      "capturedAt": "2026-09-23T06:44:46.982Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "supplier-coordinator",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "supplier-coordinator",
+      "route": "/app/supplier?lang=pt",
+      "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/home-phone.png",
+      "sha256": "b997cbaf6ffd41d6d5739dd261afa0ee0f98d9306fbb2f6894b49bb5db233879",
+      "capturedAt": "2026-09-23T06:44:47.892Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "key": "public-home",
+      "role": "external-technician",
+      "route": "/en",
+      "path": "docs/manuals/screenshots/current/external-technician/en/public-home.png",
+      "sha256": "a4932ac86fb752c9e3f1dcbe6897c80cadddd1904000eb09bdb28ff0d1fd74cd",
+      "capturedAt": "2026-09-23T06:44:49.297Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "key": "home",
+      "role": "external-technician",
+      "route": "/app/time?lang=en",
+      "path": "docs/manuals/screenshots/current/external-technician/en/home.png",
+      "sha256": "707962e855aaf945551c7d641c66f6970adf8219effa687dbfe1030d1fe2b8a0",
+      "capturedAt": "2026-09-23T06:44:52.412Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "key": "section-navigator",
+      "role": "external-technician",
+      "route": "/app/time?lang=en",
+      "path": "docs/manuals/screenshots/current/external-technician/en/section-navigator.png",
+      "sha256": "d486206bb23ee9db18726515a0ffc9db36ee08e8acc8cf8e4065ad052d353908",
+      "capturedAt": "2026-09-23T06:44:52.651Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "key": "help",
+      "role": "external-technician",
+      "route": "/app/help?lang=en",
+      "path": "docs/manuals/screenshots/current/external-technician/en/help.png",
+      "sha256": "90b7eac4ae6d666c1a716f66511ce9dc64b62f0f0d41cecd1ca9b97eb251057c",
+      "capturedAt": "2026-09-23T06:44:53.470Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "key": "profile",
+      "role": "external-technician",
+      "route": "/app/profile?lang=en",
+      "path": "docs/manuals/screenshots/current/external-technician/en/profile.png",
+      "sha256": "ede5ea6c58bd3568b34dcb13d71f18de7f8517988db7336f7e251b0d8e8228dc",
+      "capturedAt": "2026-09-23T06:44:54.497Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "key": "time",
+      "role": "external-technician",
+      "route": "/app/time?lang=en",
+      "path": "docs/manuals/screenshots/current/external-technician/en/time.png",
+      "sha256": "707962e855aaf945551c7d641c66f6970adf8219effa687dbfe1030d1fe2b8a0",
+      "capturedAt": "2026-09-23T06:44:55.524Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "key": "register-filters",
+      "role": "external-technician",
+      "route": "/app/time?lang=en",
+      "path": "docs/manuals/screenshots/current/external-technician/en/register-filters.png",
+      "sha256": "6bc0cb3ff729a623c2eb1e0524479bf74c0e38298d74d04292dcf57cd924135b",
+      "capturedAt": "2026-09-23T06:44:55.667Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "en",
+      "key": "home-phone",
+      "role": "external-technician",
+      "route": "/app/time?lang=en",
+      "path": "docs/manuals/screenshots/current/external-technician/en/home-phone.png",
+      "sha256": "76523213aa6c060b36a38b47f4bc1383dbd421800482e15a3ed332d63182c1e9",
+      "capturedAt": "2026-09-23T06:44:56.667Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "key": "public-home",
+      "role": "external-technician",
+      "route": "/pt",
+      "path": "docs/manuals/screenshots/current/external-technician/pt/public-home.png",
+      "sha256": "362ee1b32a2ce70b0c0305e909b90bb3f5f9675fa151cbcbbbd0ce3960a911db",
+      "capturedAt": "2026-09-23T06:44:58.122Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "key": "home",
+      "role": "external-technician",
+      "route": "/app/time?lang=pt",
+      "path": "docs/manuals/screenshots/current/external-technician/pt/home.png",
+      "sha256": "5ac78a68646b1d14947b68e377f06f232b9ed27807cbe9dc1e48b4fd8170e79c",
+      "capturedAt": "2026-09-23T06:45:01.144Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "key": "section-navigator",
+      "role": "external-technician",
+      "route": "/app/time?lang=pt",
+      "path": "docs/manuals/screenshots/current/external-technician/pt/section-navigator.png",
+      "sha256": "56f6a7131142f118eff90291e63f49da96d85f41ab5f385bc758378b060b972b",
+      "capturedAt": "2026-09-23T06:45:01.361Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "key": "help",
+      "role": "external-technician",
+      "route": "/app/help?lang=pt",
+      "path": "docs/manuals/screenshots/current/external-technician/pt/help.png",
+      "sha256": "f05fe850f58f43ad24dfde8bb5da2a3e197b858c5b492402c6912fe5e1f351b7",
+      "capturedAt": "2026-09-23T06:45:02.222Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "key": "profile",
+      "role": "external-technician",
+      "route": "/app/profile?lang=pt",
+      "path": "docs/manuals/screenshots/current/external-technician/pt/profile.png",
+      "sha256": "efc325d962168974ca634ad725c6b8c0b8266edd458e55f901847dd6487c6830",
+      "capturedAt": "2026-09-23T06:45:03.175Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "key": "time",
+      "role": "external-technician",
+      "route": "/app/time?lang=pt",
+      "path": "docs/manuals/screenshots/current/external-technician/pt/time.png",
+      "sha256": "5ac78a68646b1d14947b68e377f06f232b9ed27807cbe9dc1e48b4fd8170e79c",
+      "capturedAt": "2026-09-23T06:45:04.241Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "key": "register-filters",
+      "role": "external-technician",
+      "route": "/app/time?lang=pt",
+      "path": "docs/manuals/screenshots/current/external-technician/pt/register-filters.png",
+      "sha256": "592266fe60e6b5374d12bae49f952ba17a32300014a59f59421e245222f023fe",
+      "capturedAt": "2026-09-23T06:45:04.401Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "persona": "external-technician",
+      "locale": "pt",
+      "key": "home-phone",
+      "role": "external-technician",
+      "route": "/app/time?lang=pt",
+      "path": "docs/manuals/screenshots/current/external-technician/pt/home-phone.png",
+      "sha256": "0926ce183bf4bcbf05d5a291d1671763d4ca116fa7ef482b5dbaf55770fbc38b",
+      "capturedAt": "2026-09-23T06:45:05.428Z",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "work-projects-reference",
+      "file": "Work_Projects_Guide_PT-BR.pdf",
+      "source": "Functional_Guide_work-projects_PT-BR.md",
+      "sourceSha256": "ba3a011dd982a387ab1cda2586c272375f7fb8565fbea9d39cd57f43d1e13e46",
+      "sha256": "a8a4afbd0b0d55991f61103035afff651913d555f1f7c3b827e2ff2de9f82d25",
+      "bytes": 1893558,
+      "captures": [
+        {
+          "persona": "worker",
+          "locale": "pt",
+          "key": "section-navigator",
+          "role": "worker",
+          "route": "/app?lang=pt",
+          "path": "docs/manuals/screenshots/current/worker/pt/section-navigator.png",
+          "sha256": "5758ecd8142d82e7487443175b0c1ebe70c778b4ca3d8651868abc751e7d600b",
+          "capturedAt": "2026-09-23T06:44:21.288Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "worker",
+          "locale": "pt",
+          "key": "public-home",
+          "role": "worker",
+          "route": "/pt",
+          "path": "docs/manuals/screenshots/current/worker/pt/public-home.png",
+          "sha256": "362ee1b32a2ce70b0c0305e909b90bb3f5f9675fa151cbcbbbd0ce3960a911db",
+          "capturedAt": "2026-09-23T06:44:18.067Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "worker",
+          "locale": "pt",
+          "key": "register-filters",
+          "role": "worker",
+          "route": "/app/expenses?lang=pt",
+          "path": "docs/manuals/screenshots/current/worker/pt/register-filters.png",
+          "sha256": "19493e460fdc4413c7bd40c7d1fa842126254954c7fcf4d7087ce58fd4f57c6e",
+          "capturedAt": "2026-09-23T06:44:26.864Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "worker",
+          "locale": "pt",
+          "key": "home",
+          "role": "worker",
+          "route": "/app?lang=pt",
+          "path": "docs/manuals/screenshots/current/worker/pt/home.png",
+          "sha256": "6f6562e30c48bac2e67874c8ccd3438a40a94598c8571f4e091ae5f4be5d0a43",
+          "capturedAt": "2026-09-23T06:44:21.070Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "manager",
+          "locale": "pt",
+          "key": "home",
+          "role": "manager",
+          "route": "/app?lang=pt",
+          "path": "docs/manuals/screenshots/current/manager/pt/home.png",
+          "sha256": "2dd88ca042e06b564d77845b6a8315c9090d1f6353bd9628d000f88b598b7802",
+          "capturedAt": "2026-09-23T06:43:18.297Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "worker",
+          "locale": "pt",
+          "key": "help",
+          "role": "worker",
+          "route": "/app/help?lang=pt",
+          "path": "docs/manuals/screenshots/current/worker/pt/help.png",
+          "sha256": "4c8c48ec5f408d447d07f46c793ff1a8831aeeff3b5c397dcba04476b6e57b71",
+          "capturedAt": "2026-09-23T06:44:22.129Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "worker",
+          "locale": "pt",
+          "key": "availability-editor",
+          "role": "worker",
+          "route": "/app/profile?lang=pt",
+          "path": "docs/manuals/screenshots/current/worker/pt/availability-editor.png",
+          "sha256": "0bed8cfe634d74fff3b82670c6693556f39ca493e1fc103bee338a869c8d8874",
+          "capturedAt": "2026-09-23T06:44:24.447Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "worker",
+          "locale": "pt",
+          "key": "availability-month",
+          "role": "worker",
+          "route": "/app/profile?lang=pt",
+          "path": "docs/manuals/screenshots/current/worker/pt/availability-month.png",
+          "sha256": "609c21dbf3f7f585459ede73547f1931acd2117893628790ccfe3175f121759f",
+          "capturedAt": "2026-09-23T06:44:24.264Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "worker",
+          "locale": "pt",
+          "key": "projects-month",
+          "role": "worker",
+          "route": "/app/projects?lang=pt",
+          "path": "docs/manuals/screenshots/current/worker/pt/projects-month.png",
+          "sha256": "ac0728a871cb03a8bd920b0b34c1166bf649fa5ef6cf299aebf33e148d30af2e",
+          "capturedAt": "2026-09-23T06:44:25.701Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "manager",
+          "locale": "pt",
+          "key": "planning-month",
+          "role": "manager",
+          "route": "/app/planning?lang=pt",
+          "path": "docs/manuals/screenshots/current/manager/pt/planning-month.png",
+          "sha256": "dfa2d2784261bd01445d7bc30c7dd16ab7ea13b5cfc8a5b12c952f129a9cbecf",
+          "capturedAt": "2026-09-23T06:43:21.475Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "manager",
+          "locale": "pt",
+          "key": "planning-editor",
+          "role": "manager",
+          "route": "/app/planning?lang=pt",
+          "path": "docs/manuals/screenshots/current/manager/pt/planning-editor.png",
+          "sha256": "a5b8743202c74b4a6f7b14bd9c991762815bd2e25c0a09d2f7af51912c5c97d0",
+          "capturedAt": "2026-09-23T06:43:21.746Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "manager",
+          "locale": "pt",
+          "key": "profile",
+          "role": "manager",
+          "route": "/app/profile?lang=pt",
+          "path": "docs/manuals/screenshots/current/manager/pt/profile.png",
+          "sha256": "d85b181c8fc8b189a9cded0ffff407e9afd6666d9b1cbe549bec19915b74fcc5",
+          "capturedAt": "2026-09-23T06:43:20.380Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "manager",
+          "locale": "pt",
+          "key": "help",
+          "role": "manager",
+          "route": "/app/help?lang=pt",
+          "path": "docs/manuals/screenshots/current/manager/pt/help.png",
+          "sha256": "71f7fc5b75708b423012668dc88922294e225e6612e5aa576c5966918700417c",
+          "capturedAt": "2026-09-23T06:43:19.360Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "worker",
+          "locale": "pt",
+          "key": "time-entry",
+          "role": "worker",
+          "route": "/app/time?lang=pt",
+          "path": "docs/manuals/screenshots/current/worker/pt/time-entry.png",
+          "sha256": "660711c45cbbf2b6f81fa78e913b3e514e1a2ae611cf9b4b75eafbe5b4c1ac2d",
+          "capturedAt": "2026-09-23T06:44:30.366Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "worker",
+          "locale": "pt",
+          "key": "project-picker",
+          "role": "worker",
+          "route": "/app/time?lang=pt",
+          "path": "docs/manuals/screenshots/current/worker/pt/project-picker.png",
+          "sha256": "592b4d8d6a8cd998bc427866f6cdf225a8613c699477cb803dfe127da1aaf7a7",
+          "capturedAt": "2026-09-23T06:44:30.586Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "worker",
+          "locale": "pt",
+          "key": "activity-inbox",
+          "role": "worker",
+          "route": "/app/notifications?lang=pt",
+          "path": "docs/manuals/screenshots/current/worker/pt/activity-inbox.png",
+          "sha256": "648988cb9c5c67b939ab43a3cd2233de241e978da8fd802c6dade5967d337037",
+          "capturedAt": "2026-09-23T06:44:27.884Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        }
+      ]
+    },
+    {
+      "id": "supplier-operations-reference",
+      "file": "Supplier_Operations_Guide_PT-BR.pdf",
+      "source": "Functional_Guide_supplier-operations_PT-BR.md",
+      "sourceSha256": "9cc3157c5774a186ccabe783357468b5d4279f60ab003e5c38a295071b9984c9",
+      "sha256": "72e93bb69e1be9fdd8309fa63c6dcb89431fdf87527a2e0aac0077e6a96685a6",
+      "bytes": 1673306,
+      "captures": [
+        {
+          "persona": "supplier-coordinator",
+          "locale": "pt",
+          "key": "section-navigator",
+          "role": "supplier-coordinator",
+          "route": "/app/supplier?lang=pt",
+          "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/section-navigator.png",
+          "sha256": "715bf9e78dbce57f323d6c55345c04f41f4530028bb7772b669af00e62f68303",
+          "capturedAt": "2026-09-23T06:44:44.282Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "supplier-coordinator",
+          "locale": "pt",
+          "key": "public-home",
+          "role": "supplier-coordinator",
+          "route": "/pt",
+          "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/public-home.png",
+          "sha256": "362ee1b32a2ce70b0c0305e909b90bb3f5f9675fa151cbcbbbd0ce3960a911db",
+          "capturedAt": "2026-09-23T06:44:41.332Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "external-technician",
+          "locale": "pt",
+          "key": "register-filters",
+          "role": "external-technician",
+          "route": "/app/time?lang=pt",
+          "path": "docs/manuals/screenshots/current/external-technician/pt/register-filters.png",
+          "sha256": "592266fe60e6b5374d12bae49f952ba17a32300014a59f59421e245222f023fe",
+          "capturedAt": "2026-09-23T06:45:04.401Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "supplier-coordinator",
+          "locale": "pt",
+          "key": "home",
+          "role": "supplier-coordinator",
+          "route": "/app/supplier?lang=pt",
+          "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/home.png",
+          "sha256": "40865d902cd8729475010fb9b97bbbe364f15e4a94197f792aab6ba665402d5d",
+          "capturedAt": "2026-09-23T06:44:43.992Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "external-technician",
+          "locale": "pt",
+          "key": "home",
+          "role": "external-technician",
+          "route": "/app/time?lang=pt",
+          "path": "docs/manuals/screenshots/current/external-technician/pt/home.png",
+          "sha256": "5ac78a68646b1d14947b68e377f06f232b9ed27807cbe9dc1e48b4fd8170e79c",
+          "capturedAt": "2026-09-23T06:45:01.144Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "supplier-coordinator",
+          "locale": "pt",
+          "key": "help",
+          "role": "supplier-coordinator",
+          "route": "/app/help?lang=pt",
+          "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/help.png",
+          "sha256": "bf134f58c538bad1cd3842adbc8cd8d260f19c513eca65d9220567473c4fed1f",
+          "capturedAt": "2026-09-23T06:44:45.050Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "external-technician",
+          "locale": "pt",
+          "key": "help",
+          "role": "external-technician",
+          "route": "/app/help?lang=pt",
+          "path": "docs/manuals/screenshots/current/external-technician/pt/help.png",
+          "sha256": "f05fe850f58f43ad24dfde8bb5da2a3e197b858c5b492402c6912fe5e1f351b7",
+          "capturedAt": "2026-09-23T06:45:02.222Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "supplier-coordinator",
+          "locale": "pt",
+          "key": "supplier-team",
+          "role": "supplier-coordinator",
+          "route": "/app/supplier?projectId=01a0cd02-40e9-723b-9d13-aaaacaf9f09b&lang=pt",
+          "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/supplier-team.png",
+          "sha256": "40865d902cd8729475010fb9b97bbbe364f15e4a94197f792aab6ba665402d5d",
+          "capturedAt": "2026-09-23T06:44:46.982Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "supplier-coordinator",
+          "locale": "pt",
+          "key": "profile",
+          "role": "supplier-coordinator",
+          "route": "/app/profile?lang=pt",
+          "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/profile.png",
+          "sha256": "9eb05336907d23c08dadf8aac5ecabdf62ce5af9590ea4c7910e21515c46a104",
+          "capturedAt": "2026-09-23T06:44:46.129Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "supplier-coordinator",
+          "locale": "pt",
+          "key": "home-phone",
+          "role": "supplier-coordinator",
+          "route": "/app/supplier?lang=pt",
+          "path": "docs/manuals/screenshots/current/supplier-coordinator/pt/home-phone.png",
+          "sha256": "b997cbaf6ffd41d6d5739dd261afa0ee0f98d9306fbb2f6894b49bb5db233879",
+          "capturedAt": "2026-09-23T06:44:47.892Z",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          }
+        },
+        {
+          "persona": "external-technician",
+          "locale": "pt",
+          "key": "time",
+          "role": "external-technician",
+          "route": "/app/time?lang=pt",
+          "path": "docs/manuals/screenshots/current/external-technician/pt/time.png",
+          "sha256": "5ac78a68646b1d14947b68e377f06f232b9ed27807cbe9dc1e48b4fd8170e79c",
+          "capturedAt": "2026-09-23T06:45:04.241Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "external-technician",
+          "locale": "pt",
+          "key": "profile",
+          "role": "external-technician",
+          "route": "/app/profile?lang=pt",
+          "path": "docs/manuals/screenshots/current/external-technician/pt/profile.png",
+          "sha256": "efc325d962168974ca634ad725c6b8c0b8266edd458e55f901847dd6487c6830",
+          "capturedAt": "2026-09-23T06:45:03.175Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "external-technician",
+          "locale": "pt",
+          "key": "home-phone",
+          "role": "external-technician",
+          "route": "/app/time?lang=pt",
+          "path": "docs/manuals/screenshots/current/external-technician/pt/home-phone.png",
+          "sha256": "0926ce183bf4bcbf05d5a291d1671763d4ca116fa7ef482b5dbaf55770fbc38b",
+          "capturedAt": "2026-09-23T06:45:05.428Z",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          }
+        }
+      ]
+    },
+    {
+      "id": "administration-finance-reference",
+      "file": "Administration_Finance_Guide_PT-BR.pdf",
+      "source": "Functional_Guide_administration-finance_PT-BR.md",
+      "sourceSha256": "a1bd01276fe2d756364b5c97603abe8735aca8cde558e9d4d7afd2d38630bc7e",
+      "sha256": "c1572a758e2d74c0c30d53290a442c46398bff0d904caa2d1ccd16397bed7ae3",
+      "bytes": 1976802,
+      "captures": [
+        {
+          "persona": "owner",
+          "locale": "pt",
+          "key": "section-navigator",
+          "role": "owner",
+          "route": "/app?lang=pt",
+          "path": "docs/manuals/screenshots/current/owner/pt/section-navigator.png",
+          "sha256": "49151020893058fc33068b4ad930137f7685b751e550b97f74143a1f5e898542",
+          "capturedAt": "2026-09-23T06:42:28.490Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "owner",
+          "locale": "pt",
+          "key": "public-home",
+          "role": "owner",
+          "route": "/pt",
+          "path": "docs/manuals/screenshots/current/owner/pt/public-home.png",
+          "sha256": "362ee1b32a2ce70b0c0305e909b90bb3f5f9675fa151cbcbbbd0ce3960a911db",
+          "capturedAt": "2026-09-23T06:42:25.152Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "finance",
+          "locale": "pt",
+          "key": "configuration-task",
+          "role": "finance",
+          "route": "/app/finance?view=commercial&lang=pt",
+          "path": "docs/manuals/screenshots/current/finance/pt/configuration-task.png",
+          "sha256": "f8f3d7c472b61d2bad62fd2bacc6602eeaf82ac2cf915d34a71795ebcd4f5524",
+          "capturedAt": "2026-09-23T06:43:00.281Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "owner",
+          "locale": "pt",
+          "key": "project-actions",
+          "role": "owner",
+          "route": "/app/projects?lang=pt",
+          "path": "docs/manuals/screenshots/current/owner/pt/project-actions.png",
+          "sha256": "9f17af80f4a4033674598c7835312e74c2f6e2133a34865690f98363e91f92cf",
+          "capturedAt": "2026-09-23T06:42:34.791Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "owner",
+          "locale": "pt",
+          "key": "home",
+          "role": "owner",
+          "route": "/app?lang=pt",
+          "path": "docs/manuals/screenshots/current/owner/pt/home.png",
+          "sha256": "e6bbd41c134c74446a8596381df6a4f289717bdd49aa7c201417c5d627657dcb",
+          "capturedAt": "2026-09-23T06:42:28.220Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "owner",
+          "locale": "pt",
+          "key": "planning-month",
+          "role": "owner",
+          "route": "/app/planning?lang=pt",
+          "path": "docs/manuals/screenshots/current/owner/pt/planning-month.png",
+          "sha256": "dfa2d2784261bd01445d7bc30c7dd16ab7ea13b5cfc8a5b12c952f129a9cbecf",
+          "capturedAt": "2026-09-23T06:42:31.657Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "owner",
+          "locale": "pt",
+          "key": "planning-editor",
+          "role": "owner",
+          "route": "/app/planning?lang=pt",
+          "path": "docs/manuals/screenshots/current/owner/pt/planning-editor.png",
+          "sha256": "ff6ede4bfc841efc199b8f311a2c5248d9595bc749c8b606aa04ed1f024e6195",
+          "capturedAt": "2026-09-23T06:42:31.944Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "owner",
+          "locale": "pt",
+          "key": "help",
+          "role": "owner",
+          "route": "/app/help?lang=pt",
+          "path": "docs/manuals/screenshots/current/owner/pt/help.png",
+          "sha256": "cb9294bcb4b9613e583b2f52cdca5a2e77267b4a5e788f5e75b304766fbe7c26",
+          "capturedAt": "2026-09-23T06:42:29.411Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "finance",
+          "locale": "pt",
+          "key": "finance",
+          "role": "finance",
+          "route": "/app/finance?lang=pt",
+          "path": "docs/manuals/screenshots/current/finance/pt/finance.png",
+          "sha256": "79efb0d488d10a30a6877f9bd7348f292d5cd29c64ca41f7656e6681ecb7ec7b",
+          "capturedAt": "2026-09-23T06:42:59.053Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "finance",
+          "locale": "pt",
+          "key": "profile",
+          "role": "finance",
+          "route": "/app/profile?lang=pt",
+          "path": "docs/manuals/screenshots/current/finance/pt/profile.png",
+          "sha256": "08ca32804f821cc8002ca4377b1e6327c177241abf1d47d34bac7ab71cdfa410",
+          "capturedAt": "2026-09-23T06:42:56.708Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "auditor",
+          "locale": "pt",
+          "key": "audit",
+          "role": "auditor",
+          "route": "/app/audit?lang=pt",
+          "path": "docs/manuals/screenshots/current/auditor/pt/audit.png",
+          "sha256": "1a797c4bb5a512d8d93c998e21b72dd69654a7240b5de58ee6de95848a9d82ea",
+          "capturedAt": "2026-09-23T06:43:42.679Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "auditor",
+          "locale": "pt",
+          "key": "help",
+          "role": "auditor",
+          "route": "/app/help?lang=pt",
+          "path": "docs/manuals/screenshots/current/auditor/pt/help.png",
+          "sha256": "73495ef6be7036aac787ce62e027599b2a4df97c8d1313e728cb70dd6ceba2ef",
+          "capturedAt": "2026-09-23T06:43:40.513Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "persona": "owner",
+          "locale": "pt",
+          "key": "activity-inbox",
+          "role": "owner",
+          "route": "/app/notifications?lang=pt",
+          "path": "docs/manuals/screenshots/current/owner/pt/activity-inbox.png",
+          "sha256": "8fb98cacae2aeb2b57efe9c3d9c2aa46d8cf0a194d05b5798a2720d482c35e99",
+          "capturedAt": "2026-09-23T06:42:35.853Z",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        }
+      ]
+    }
+  ]
+}

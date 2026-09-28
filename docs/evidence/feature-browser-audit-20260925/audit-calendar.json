@@ -1,0 +1,37 @@
+{
+  "selectedDay": "2026-10-01\nLog time on this day\n\nNo time recorded for this day.",
+  "createPrefill": {
+    "worker": "01a0d974-e210-72dd-9a30-c1e4b889a0d3",
+    "date": "2026-10-01"
+  },
+  "afterCreate": [
+    {
+      "id": "01a0d980-5042-77db-8ebb-a861a05708c2",
+      "work_date": "2026-10-01",
+      "activity_summary": "Browser QA calendar create",
+      "approval_state": "draft",
+      "minutes": 90
+    }
+  ],
+  "calendarAfterCreate": "2026-10-01\nLog time on this day\nC-0001-P-001 · 1.50h · Draft\nEdit draft\nDelete draft",
+  "editDialog": "J&A AUTOMATION\n\nEdit time entry\n\nOperational entry only. Commercial rules are applied separately.\n\n×\nClose time form\nUpdate actual work\nThe project and date remain bound to the original entry.\nOperational category\nWork\nOvertime\nTravel\nStandby\nCommissioning\nWeekend / holiday\nRemote support\nTraining\nInternal\n\nThis record has a duration but no recorded start and end times.\n\nAdd start and end times\nActual hours\n\nActual duration: 1.5 h\n\nEnter decimal hours, for example 7.5.\n\nActivity summary\nCancel\nSave changes",
+  "afterEdit": [
+    {
+      "id": "01a0d980-5042-77db-8ebb-a861a05708c2",
+      "work_date": "2026-10-01",
+      "activity_summary": "Browser QA calendar edited",
+      "approval_state": "draft",
+      "minutes": 150
+    }
+  ],
+  "calendarAfterEdit": "2026-10-01\nLog time on this day\nC-0001-P-001 · 2.50h · Draft\nEdit draft\nDelete draft",
+  "afterDelete": [],
+  "calendarAfterDelete": "2026-10-01\nLog time on this day\n\nNo time recorded for this day.",
+  "issues": [],
+  "posts": [
+    "200 /j-aautomation/app/api/auth/sign-in/email",
+    "200 /j-aautomation/app/time",
+    "200 /j-aautomation/app/time",
+    "200 /j-aautomation/app/time"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "code": "ACTION_MANAGEMENT_CHANGED",
+  "viewport": "desktop",
+  "responseStatus": 409,
+  "route": "/j-aautomation/app/manage",
+  "method": "POST",
+  "screenshot": "ACTION_MANAGEMENT_CHANGED-desktop.png",
+  "scope": "isolated problem notice only; no account or invoice details"
+}

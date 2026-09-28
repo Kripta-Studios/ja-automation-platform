@@ -1,0 +1,50 @@
+{
+  "candidate": "e89e7fa",
+  "case": "focused-real-success-and-duplicate-content",
+  "success": {
+    "status": 200,
+    "contentType": "application/pdf",
+    "inlineDisposition": true,
+    "hasFilename": true,
+    "popupKindAfter4s": "blank",
+    "inlineCodes": [],
+    "popupCount": 2,
+    "popupDOM": {
+      "readyState": "complete",
+      "title": "",
+      "firstTag": null,
+      "childCount": 0
+    },
+    "downloads": {
+      "opener": 0,
+      "popup": 1
+    }
+  },
+  "duplicate": {
+    "transportStatus": 200,
+    "actionType": "failure",
+    "actionStatus": 409,
+    "code": "EXPENSE_RECEIPT_DUPLICATE_CONTENT",
+    "remedies": [
+      "review_expenses"
+    ],
+    "visibleText": "Action needed This receipt file matches existing private content. No new expense was saved. Review expenses you can access or contact the project owner. Review expenses list",
+    "focus": {
+      "tag": "DIV",
+      "id": "",
+      "className": "operational-form-error svelte-90hvho",
+      "role": null,
+      "summary": false,
+      "insideExpenseForm": false,
+      "textPrefix": "Action needed This receipt file matches existing private content. No new expense was saved. Review e",
+      "noticeFocused": false
+    },
+    "retained": {
+      "vendor": true,
+      "amount": "9.25",
+      "project": true,
+      "file": true
+    },
+    "noNewExpense": true
+  }
+}

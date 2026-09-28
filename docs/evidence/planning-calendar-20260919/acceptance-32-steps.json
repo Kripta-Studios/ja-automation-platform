@@ -1,0 +1,29 @@
+{
+  "schema": "ja.client-essential.acceptance-receipt.v1",
+  "applicationCommit": "7b369598d23a7a74b872d05a0cc0682597d7f2a6",
+  "testFile": "tests/e2e/client-essential-32-step.spec.ts",
+  "testFileSha256": "5309f23ea5550e233b695d7f43231f3d8ec79b8cc3d8ab527f5df521bf62438d",
+  "status": "PASS",
+  "aggregate": {
+    "passed": 1,
+    "total": 1
+  },
+  "steps": {
+    "passed": 32,
+    "total": 32,
+    "basis": "The single serial test executes canonical steps 1–32, collects every step failure, and ends with expect(failures).toEqual([])."
+  },
+  "execution": {
+    "businessData": "isolated synthetic E2E fixture",
+    "publicBoundary": "https://j-aautomation.com",
+    "log": "docs/evidence/planning-calendar-20260919/client-essential-32-step.log",
+    "logSha256": "2c3503296d70d27102ebb1a620e06a45701cce92a8e9b0626c86531e1329116e"
+  },
+  "operationsEvidence": {
+    "path": "docs/evidence/planning-calendar-20260919/operations-evidence.json",
+    "contractSha256": "d7e303b2c714147fa848a0408ce193106224f8da1cafe618e77c25fdbceb5b11",
+    "tenantId": "jaautomation",
+    "deploymentId": "production-vps"
+  },
+  "attachment": "Playwright did not retain client-essential-32-step-results.json after the passing run; this receipt records only the aggregate result and the strict test assertion."
+}

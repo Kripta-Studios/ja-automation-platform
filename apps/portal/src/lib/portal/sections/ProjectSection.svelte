@@ -1,0 +1,1240 @@
+<script lang="ts">
+  import { tick } from 'svelte';
+  import { page } from '$app/stores';
+  import type { ProblemData } from '$lib/problem/contract';
+  import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
+  import PlanningCalendar from '../ui/PlanningCalendar.svelte';
+  import ExpertiseWorkerSelect from './ExpertiseWorkerSelect.svelte';
+  import RecordBrowser from '../ui/RecordBrowser.svelte';
+  import { ProblemNotice, SectionCard, StatusBadge, TableRegion } from '../ui';
+  import { formValidation, reportFormFieldErrors } from '../ui/form-validation';
+  import type { TableCardRow } from '../ui';
+  import type { PortalActionResult, PortalRow } from '../portal-data';
+  import { operationalSearchText } from './operational-register';
+
+  /**
+   * Project-section actions are deliberately supplied by the route seam. The
+   * section does not infer a transition, create route, or commercial policy.
+   * For example, a lifecycle action may pass `fields: { status: 'closed' }`.
+   * Values remain scalar so route-specific hidden inputs cannot carry nested
+   * untrusted objects into a form submission.
+   */
+  export type ProjectLifecycleAction = {
+    label: string;
+    action: string;
+    fields?: Readonly<Record<string, string | number>>;
+    destructive?: boolean;
+  };
+
+  export type ProjectSectionCapabilities = {
+    canCreateProject?: boolean;
+    canTransitionProject?: boolean;
+    canManageClients?: boolean;
+    canManageAssignments?: boolean;
+  };
+
+  export type ProjectSectionPrimaryAction = {
+    label: string;
+    href?: string;
+    scope?: 'operational' | 'management';
+    onactivate?: () => void;
+  };
+
+  type ProjectSectionProps = {
+    base: string;
+    locale?: string;
+    projects: PortalRow[];
+    clients?: PortalRow[];
+    workers?: PortalRow[];
+    assignments?: PortalRow[];
+    expertise?: PortalRow[];
+    workerExpertise?: PortalRow[];
+    role?: string;
+    capabilities?: ProjectSectionCapabilities;
+    primaryAction?: ProjectSectionPrimaryAction;
+    getProjectLifecycleActions?: (
+      project: PortalRow,
+    ) => readonly ProjectLifecycleAction[] | undefined;
+    translate: (value: string) => string;
+    controlledValue?: (domain: 'status', value: unknown) => string;
+    form?: PortalActionResult;
+  };
+
+  let {
+    base,
+    locale = 'en',
+    projects,
+    clients = [],
+    workers = [],
+    assignments = [],
+    expertise = [],
+    workerExpertise = [],
+    role = '',
+    capabilities = {},
+    primaryAction,
+    getProjectLifecycleActions,
+    translate,
+    controlledValue,
+    form,
+  }: ProjectSectionProps = $props();
+
+  const assignmentFormData = $derived(
+    form as
+      | (ProblemData & {
+          actionName?: string;
+          values?: Readonly<Record<string, unknown>>;
+          fields?: Readonly<Record<string, readonly string[]>>;
+        })
+      | null
+      | undefined,
+  );
+  const assignmentValues = $derived(
+    assignmentFormData?.actionName === 'assignWorker' ? assignmentFormData.values : undefined,
+  );
+  let search = $derived($page.url.searchParams.get('q')?.trim() ?? '');
+  let statusFilter = $derived($page.url.searchParams.get('status')?.trim() ?? '');
+  let selectedAssignmentProjectId = $derived(
+    typeof assignmentValues?.projectId === 'string'
+      ? assignmentValues.projectId
+      : ($page.url.searchParams.get('project') ?? ''),
+  );
+  let assignmentForm: HTMLFormElement | undefined = $state();
+  const normalizedLocale = $derived(normalizePortalLocale(locale));
+
+  const isOwnerOrFinance = $derived(role === 'owner_admin' || role === 'finance_admin');
+  const canCreateProject = $derived(isOwnerOrFinance && capabilities.canCreateProject === true);
+  const canTransitionProject = $derived(
+    isOwnerOrFinance && capabilities.canTransitionProject === true,
+  );
+  const canManageClients = $derived(isOwnerOrFinance && capabilities.canManageClients === true);
+  const canManageAssignments = $derived(
+    role === 'project_manager' && capabilities.canManageAssignments === true,
+  );
+  const normalizedSearch = $derived(operationalSearchText(search).trim());
+
+  function value(row: PortalRow, ...keys: string[]): string {
+    for (const key of keys) {
+      const candidate = row[key];
+      if (candidate !== null && candidate !== undefined && String(candidate).trim()) {
+        return String(candidate);
+      }
+    }
+    return '';
+  }
+
+  function projectId(row: PortalRow): string {
+    return value(row, 'id', 'project_id');
+  }
+
+  function projectName(row: PortalRow): string {
+    return value(row, 'name', 'project_name') || translate('Unnamed project');
+  }
+
+  function projectNumber(row: PortalRow): string {
+    return value(row, 'project_number', 'projectNumber') || translate('No project number');
+  }
+
+  function projectStatus(row: PortalRow): string {
+    return value(row, 'status') || 'active';
+  }
+
+  function statusLabel(status: string): string {
+    return controlledValue?.('status', status) || translate(status);
+  }
+
+  function statusVariant(status: string): 'success' | 'warning' | 'danger' | 'info' | 'neutral' {
+    switch (status) {
+      case 'active':
+        return 'success';
+      case 'planned':
+        return 'info';
+      case 'paused':
+      case 'closing':
+        return 'warning';
+      case 'closed':
+      case 'archived':
+        return 'neutral';
+      default:
+        return 'neutral';
+    }
+  }
+
+  function clientLabel(row: PortalRow): string {
+    return value(row, 'client_display_name', 'client_name', 'client_number');
+  }
+
+  function projectReference(row: PortalRow): string {
+    return value(row, 'cost_center', 'project_cost_center', 'po_reference');
+  }
+
+  function projectSchedule(row: PortalRow): string {
+    const start = value(row, 'start_date', 'planned_start_date');
+    const end = value(row, 'planned_end_date', 'end_date');
+    const timezone = value(row, 'timezone', 'site_timezone');
+    const dates = start || end ? `${start || '—'} → ${end || translate('Open target')}` : '';
+    return [dates, timezone].filter(Boolean).join(' · ');
+  }
+
+  const visibleProjects = $derived.by(() => {
+    return (projects ?? []).filter((project) => {
+      const searchable = [
+        projectNumber(project),
+        projectName(project),
+        clientLabel(project),
+        projectReference(project),
+      ]
+        .join(' ')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/gu, '')
+        .toLocaleLowerCase();
+      const matchesSearch = !normalizedSearch || searchable.includes(normalizedSearch);
+      const matchesStatus =
+        !statusFilter ||
+        (statusFilter === 'attention'
+          ? ['paused', 'closing'].includes(projectStatus(project))
+          : projectStatus(project) === statusFilter);
+      return matchesSearch && matchesStatus;
+    });
+  });
+
+  const activeCount = $derived(
+    (projects ?? []).filter((project) => projectStatus(project) === 'active').length,
+  );
+  const plannedCount = $derived(
+    (projects ?? []).filter((project) => projectStatus(project) === 'planned').length,
+  );
+  const attentionCount = $derived(
+    (projects ?? []).filter((project) => ['paused', 'closing'].includes(projectStatus(project)))
+      .length,
+  );
+  const assignableProjects = $derived(
+    (projects ?? []).filter(
+      (project) =>
+        ['active', 'planned', 'paused'].includes(projectStatus(project)) &&
+        Boolean(projectId(project)),
+    ),
+  );
+  const assignableProjectIds = $derived(new Set(assignableProjects.map(projectId)));
+  const assignmentProblem = $derived(
+    assignmentFormData?.actionName === 'assignWorker' && assignmentFormData.code
+      ? assignmentFormData
+      : undefined,
+  );
+  const assignmentRecordProblem = $derived(
+    assignmentFormData?.code &&
+      ['updateAssignment', 'removeAssignment', 'deleteAssignment'].includes(
+        assignmentFormData.actionName ?? '',
+      )
+      ? assignmentFormData
+      : undefined,
+  );
+  const assignmentRecordValues = $derived(
+    assignmentRecordProblem ? assignmentFormData?.values : undefined,
+  );
+  const selectedAssignmentProject = $derived(
+    (projects ?? []).find((project) => projectId(project) === selectedAssignmentProjectId),
+  );
+  const unavailableSelectedProject = $derived.by(() => {
+    if (!selectedAssignmentProjectId || assignableProjectIds.has(selectedAssignmentProjectId))
+      return null;
+    if (selectedAssignmentProject) return selectedAssignmentProject;
+    if (
+      assignmentProblem?.code === 'PROJECT_ASSIGNMENT_BLOCKED_STATUS' &&
+      assignmentValues?.projectId === selectedAssignmentProjectId
+    )
+      return {
+        id: selectedAssignmentProjectId,
+        name: String(assignmentProblem.params.projectName ?? ''),
+        status: String(assignmentProblem.params.status ?? ''),
+      } satisfies PortalRow;
+    return null;
+  });
+  const blockedAssignmentStatus = $derived(
+    unavailableSelectedProject &&
+      !['active', 'planned', 'paused'].includes(projectStatus(unavailableSelectedProject)),
+  );
+  const blockedAssignmentWarning = $derived(
+    blockedAssignmentStatus && unavailableSelectedProject
+      ? ({
+          code: 'PROJECT_ASSIGNMENT_BLOCKED_STATUS',
+          messageKey: 'problem.project.assignmentBlockedStatus',
+          params: {
+            projectName: projectName(unavailableSelectedProject),
+            status: statusLabel(projectStatus(unavailableSelectedProject)),
+          },
+          fieldErrors: {},
+          remedies: [{ id: 'contact_project_owner' }],
+          correlationId: '',
+        } satisfies ProblemData)
+      : null,
+  );
+  const displayedAssignmentProblem = $derived(
+    assignmentProblem
+      ? {
+          ...assignmentProblem,
+          params: {
+            ...assignmentProblem.params,
+            ...(assignmentProblem.params.status
+              ? { status: statusLabel(String(assignmentProblem.params.status)) }
+              : {}),
+          },
+        }
+      : null,
+  );
+
+  $effect(() => {
+    if (assignmentFormData?.actionName !== 'assignWorker' || !assignmentForm) return;
+    const errors = assignmentFormData.fieldErrors ?? assignmentFormData.fields;
+    if (errors) reportFormFieldErrors(assignmentForm, errors);
+  });
+  let focusedAssignmentProblemId = '';
+  $effect(() => {
+    const correlationId = assignmentProblem?.correlationId;
+    if (!correlationId || correlationId === focusedAssignmentProblemId || !assignmentForm) return;
+    focusedAssignmentProblemId = correlationId;
+    void tick().then(() => {
+      const target =
+        assignmentForm?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        assignmentForm?.querySelector<HTMLElement>('[data-ui="problem-notice"][data-kind="error"]');
+      target?.focus({ preventScroll: true });
+      target?.scrollIntoView({ block: 'center', inline: 'nearest' });
+    });
+  });
+  let focusedAssignmentRecordProblemId = '';
+  $effect(() => {
+    const problem = assignmentRecordProblem;
+    const correlationId = problem?.correlationId;
+    if (!correlationId || correlationId === focusedAssignmentRecordProblemId) return;
+    focusedAssignmentRecordProblemId = correlationId;
+    void tick().then(() => {
+      const assignmentId = String(problem.values?.assignmentId ?? '');
+      const form = Array.from(
+        document.querySelectorAll<HTMLFormElement>(
+          `#project-assignment-list form[action*="/${problem.actionName}"]`,
+        ),
+      ).find(
+        (candidate) =>
+          candidate.querySelector<HTMLInputElement>('input[name="assignmentId"]')?.value ===
+          assignmentId,
+      );
+      const errors = problem.fieldErrors ?? problem.fields;
+      if (form && errors) reportFormFieldErrors(form, errors);
+      const target =
+        form?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        document.querySelector<HTMLElement>(
+          '#project-assignment-list [data-ui="problem-notice"][data-kind="error"]',
+        );
+      target?.focus({ preventScroll: true });
+      target?.scrollIntoView({ block: 'center', inline: 'nearest' });
+    });
+  });
+  const activeAssignments = $derived(
+    (assignments ?? []).filter(
+      (assignment) =>
+        value(assignment, 'status') === 'active' &&
+        assignableProjectIds.has(value(assignment, 'project_id')),
+    ),
+  );
+
+  const projectCardRows = $derived.by((): TableCardRow[] =>
+    projectPage.map((project) => {
+      const id = projectId(project);
+      const label = `${projectNumber(project)} · ${projectName(project)}`;
+      return {
+        id,
+        cells: [
+          {
+            label: translate('Project'),
+            value: label,
+          },
+          { label: translate('Client'), value: clientLabel(project) || translate('Not assigned') },
+          { label: translate('Status'), value: statusLabel(projectStatus(project)) },
+          {
+            label: translate('Schedule'),
+            value: projectSchedule(project) || translate('Not scheduled'),
+          },
+        ],
+        ...(id
+          ? {
+              href: projectHref(project),
+              linkLabel: translate('Open project'),
+              linkAriaLabel: `${translate('Open project')}: ${label}`,
+            }
+          : {}),
+      };
+    }),
+  );
+
+  const showPrimaryAction = $derived(
+    Boolean(
+      primaryAction &&
+      (primaryAction.href || primaryAction.onactivate) &&
+      (primaryAction.scope !== 'management' || isOwnerOrFinance) &&
+      (primaryAction.scope !== 'management' || canCreateProject),
+    ),
+  );
+
+  function projectHref(row: PortalRow): string {
+    return `${base}/app/projects/${encodeURIComponent(projectId(row))}`;
+  }
+
+  function lifecycleActions(row: PortalRow): readonly ProjectLifecycleAction[] {
+    return getProjectLifecycleActions?.(row) ?? [];
+  }
+
+  function lifecycleFields(action: ProjectLifecycleAction): Array<[string, string | number]> {
+    const entries = Object.entries(action.fields ?? {}) as Array<[string, unknown]>;
+    return entries.filter((entry): entry is [string, string | number] => {
+      const [name, fieldValue] = entry;
+      return (
+        /^[A-Za-z][A-Za-z0-9_-]*$/.test(name) &&
+        (typeof fieldValue === 'string' ||
+          (typeof fieldValue === 'number' && Number.isFinite(fieldValue)))
+      );
+    });
+  }
+
+  function lifecycleAssignmentWarning(
+    project: PortalRow,
+    action: ProjectLifecycleAction,
+  ): ProblemData | null {
+    const targetStatus = action.fields?.status;
+    if (targetStatus !== 'closing' && targetStatus !== 'closed') return null;
+    return {
+      code: 'WARNING_PROJECT_LIFECYCLE_ASSIGNMENTS',
+      messageKey: 'problem.warning.projectLifecycleAssignments',
+      message: `${projectName(project)}: ${statusLabel(targetStatus)} prevents new assignments. Review the project and assignments before continuing.`,
+      params: { projectName: projectName(project), status: targetStatus },
+      fieldErrors: {},
+      remedies: [{ id: 'review_project' }, { id: 'review_assignments' }],
+      correlationId: '',
+    };
+  }
+
+  function activatePrimaryAction(): void {
+    primaryAction?.onactivate?.();
+  }
+  let projectPage = $state<typeof visibleProjects>([]);
+</script>
+
+<div class="project-section" data-ui="project-section">
+  <header class="project-section__context">
+    <div>
+      <p class="project-section__eyebrow">{translate('Project workspace')}</p>
+      <h2>{translate('Projects')}</h2>
+      <p>{translate('Review project identity, status, schedule and operational scope.')}</p>
+    </div>
+  </header>
+
+  <div class="project-section__attention" aria-label={translate('Project attention summary')}>
+    <a
+      class="project-section__attention-card"
+      aria-current={statusFilter === 'active' ? 'page' : undefined}
+      href={`${base}/app/projects?status=active#section-card-authorized-projects-title`}
+    >
+      <span>{translate('Active')}</span>
+      <strong>{activeCount}</strong>
+      <small>{translate('Operational projects')}</small>
+    </a>
+    <a
+      class="project-section__attention-card"
+      aria-current={statusFilter === 'planned' ? 'page' : undefined}
+      href={`${base}/app/projects?status=planned#section-card-authorized-projects-title`}
+    >
+      <span>{translate('Planned')}</span>
+      <strong>{plannedCount}</strong>
+      <small>{translate('Preparing to start')}</small>
+    </a>
+    <a
+      class="project-section__attention-card project-section__attention-card--notice"
+      aria-current={statusFilter === 'attention' ? 'page' : undefined}
+      href={`${base}/app/projects?status=attention#section-card-authorized-projects-title`}
+    >
+      <span>{translate('Needs attention')}</span>
+      <strong>{attentionCount}</strong>
+      <small>{translate('Paused or closing')}</small>
+    </a>
+  </div>
+
+  <form
+    class="project-section__filters"
+    method="GET"
+    action={`${base}/app/projects`}
+    aria-label={translate('Filter projects')}
+  >
+    <input type="hidden" name="lang" value={locale} />
+    <label>
+      <span>{translate('Search projects')}</span>
+      <input
+        name="q"
+        bind:value={search}
+        type="search"
+        placeholder={translate('Project, client or reference')}
+      />
+    </label>
+    <label>
+      <span>{translate('Status')}</span>
+      <select name="status" bind:value={statusFilter}>
+        <option value="">{translate('All statuses')}</option>
+        <option value="active">{translate('Active')}</option>
+        <option value="planned">{translate('Planned')}</option>
+        <option value="attention">{translate('Needs attention')}</option>
+        <option value="paused">{translate('Paused')}</option>
+        <option value="closing">{translate('Closing')}</option>
+        <option value="closed">{translate('Closed')}</option>
+        <option value="archived">{translate('Archived')}</option>
+      </select>
+    </label>
+    <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
+    <a class="secondary-button" href={`${base}/app/projects?lang=${locale}&q=&status=`}
+      >{translate('Clear filters')}</a
+    >
+  </form>
+
+  <details class="admin-details" data-project-calendar>
+    <summary class="secondary-button">{translate('Project calendar')}</summary>
+    <PlanningCalendar
+      {translate}
+      {locale}
+      events={visibleProjects
+        .filter((project) => value(project, 'start_date'))
+        .map((project) => ({
+          id: projectId(project),
+          title: `${projectNumber(project)} · ${projectName(project)}`,
+          startsAt: value(project, 'start_date'),
+          endsAt: value(project, 'planned_end_date') || undefined,
+          href: `${base}/app/projects/${projectId(project)}`,
+        }))}
+    />
+    <p class="form-help">
+      {translate('Open a project from the calendar to review its dates, team and planning.')}
+    </p>
+  </details>
+
+  <SectionCard title={translate('Authorized projects')} class="project-section__list-surface">
+    <RecordBrowser
+      rows={visibleProjects}
+      bind:visible={projectPage}
+      {translate}
+      label="Project"
+      filtersEnabled={false}
+      showEmpty={false}
+    />
+    {#if !visibleProjects.length}
+      <div class="project-section__empty" role="status">
+        <strong>{translate('No projects found')}</strong>
+        <span>{translate('Try another filter or add an authorized project.')}</span>
+      </div>
+    {:else}
+      <TableRegion
+        ariaLabel={translate('Authorized projects list')}
+        mobileMode="cards"
+        cardRows={projectCardRows}
+      >
+        <table class="project-section__table">
+          <caption class="sr-only">{translate('Authorized projects')}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{translate('Project')}</th>
+              <th scope="col">{translate('Client')}</th>
+              <th scope="col">{translate('Status')}</th>
+              <th scope="col">{translate('Schedule')}</th>
+              {#if canTransitionProject}<th scope="col">{translate('Actions')}</th>{/if}
+            </tr>
+          </thead>
+          <tbody>
+            {#each projectPage as project}
+              {@const status = projectStatus(project)}
+              {@const actions = lifecycleActions(project)}
+              <tr data-project-row={projectId(project)}>
+                <td>
+                  {#if projectId(project)}
+                    <a class="project-section__project-link" href={projectHref(project)}>
+                      <strong>{projectNumber(project)}</strong>
+                      <span>{projectName(project)}</span>
+                    </a>
+                    {#if canManageAssignments && assignableProjectIds.has(projectId(project))}
+                      <a
+                        class="project-section__assign-link"
+                        href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(projectId(project))}#project-assignment`}
+                        >{translate('Assign worker')}</a
+                      >
+                    {/if}
+                  {:else}
+                    <strong>{projectNumber(project)}</strong>
+                    <span>{projectName(project)}</span>
+                  {/if}
+                </td>
+                <td>
+                  <span>{clientLabel(project) || translate('Not assigned')}</span>
+                  {#if projectReference(project)}<small>{projectReference(project)}</small>{/if}
+                </td>
+                <td>
+                  <StatusBadge variant={statusVariant(status)} text={statusLabel(status)} />
+                </td>
+                <td>{projectSchedule(project) || translate('Not scheduled')}</td>
+                {#if canTransitionProject}
+                  <td>
+                    {#if actions.length > 0}
+                      <details class="project-section__actions">
+                        <summary>{translate('Actions')}</summary>
+                        <div>
+                          {#each actions as action}
+                            {@const warning = lifecycleAssignmentWarning(project, action)}
+                            <form method="POST" action={action.action}>
+                              <input type="hidden" name="projectId" value={projectId(project)} />
+                              <input
+                                type="hidden"
+                                name="version"
+                                value={value(project, 'version') || '1'}
+                              />
+                              {#each lifecycleFields(action) as [name, fieldValue]}
+                                <input type="hidden" {name} value={String(fieldValue)} />
+                              {/each}
+                              {#if warning}
+                                <ProblemNotice
+                                  problem={warning}
+                                  kind="warning"
+                                  remedyLinks={{
+                                    review_project: {
+                                      label: portalText(
+                                        normalizedLocale,
+                                        'problem.remedy.reviewProjectStatus',
+                                      ),
+                                      href: projectHref(project),
+                                    },
+                                    review_assignments: {
+                                      label: portalText(
+                                        normalizedLocale,
+                                        'problem.remedy.reviewAssignments',
+                                      ),
+                                      href: `${base}/app/projects#assignment-history`,
+                                    },
+                                  }}
+                                />
+                              {/if}
+                              <label>
+                                <span>{translate('Reason')}</span>
+                                <input name="reason" required />
+                              </label>
+                              <button
+                                class={action.destructive ? 'danger' : 'secondary-button'}
+                                type="submit"
+                              >
+                                {action.label}
+                              </button>
+                            </form>
+                          {/each}
+                          {#if isOwnerOrFinance}
+                            <form
+                              method="POST"
+                              action="?/deleteProject"
+                              onsubmit={(event) => {
+                                if (
+                                  !confirm(
+                                    translate(
+                                      'Delete this project? This will permanently remove it if it has no financial activity.',
+                                    ),
+                                  )
+                                ) {
+                                  event.preventDefault();
+                                }
+                              }}
+                            >
+                              <input type="hidden" name="projectId" value={projectId(project)} />
+                              <button class="danger" type="submit">
+                                {translate('Delete project')}
+                              </button>
+                            </form>
+                          {/if}
+                        </div>
+                      </details>
+                    {/if}
+                  </td>
+                {/if}
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </TableRegion>
+    {/if}
+  </SectionCard>
+
+  {#if canManageAssignments && (assignableProjects.length > 0 || unavailableSelectedProject)}
+    <section class="project-section__assignments" aria-label={translate('Project assignments')}>
+      <details
+        id="project-assignment"
+        class="admin-details"
+        data-project-workflow="assign-worker"
+        open={$page.url.searchParams.get('action') === 'assign-worker' ||
+          assignmentFormData?.actionName === 'assignWorker'}
+      >
+        <summary class="secondary-button">{translate('Assign worker')}</summary>
+        <form
+          bind:this={assignmentForm}
+          use:formValidation
+          method="POST"
+          action="?/assignWorker"
+          class="project-section__assignment-form"
+        >
+          <h3>{translate('Assign worker')}</h3>
+          {#if displayedAssignmentProblem}
+            <ProblemNotice
+              problem={displayedAssignmentProblem}
+              status={displayedAssignmentProblem.params.status
+                ? portalText(normalizedLocale, 'Current status: {status}', {
+                    status: String(displayedAssignmentProblem.params.status),
+                  })
+                : undefined}
+              remedyLinks={{
+                correct_fields: {
+                  label: portalText(normalizedLocale, 'problem.remedy.correctFields'),
+                },
+                contact_project_owner: {
+                  label: portalText(normalizedLocale, 'problem.remedy.contactOwner'),
+                },
+                review_assignments: {
+                  label: portalText(normalizedLocale, 'problem.remedy.reviewAssignments'),
+                  href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+                },
+                choose_available_worker: {
+                  label: portalText(normalizedLocale, 'problem.remedy.chooseAvailableWorker'),
+                },
+              }}
+            />
+          {:else if blockedAssignmentWarning}
+            <ProblemNotice
+              problem={blockedAssignmentWarning}
+              kind="warning"
+              status={portalText(normalizedLocale, 'Current status: {status}', {
+                status: String(blockedAssignmentWarning.params.status),
+              })}
+              remedyLinks={{
+                contact_project_owner: {
+                  label: portalText(normalizedLocale, 'problem.remedy.contactOwner'),
+                },
+              }}
+            />
+          {/if}
+          <label>
+            <span>{translate('Project')}</span>
+            <select name="projectId" required bind:value={selectedAssignmentProjectId}>
+              <option value="">{translate('Select project')}</option>
+              {#each assignableProjects as project}
+                <option value={projectId(project)}
+                  >{projectNumber(project)} · {projectName(project)}</option
+                >
+              {/each}
+              {#if unavailableSelectedProject}
+                <option value={projectId(unavailableSelectedProject)} disabled>
+                  {portalText(normalizedLocale, 'problem.project.unavailableOption', {
+                    projectName: projectName(unavailableSelectedProject),
+                    status: statusLabel(projectStatus(unavailableSelectedProject)),
+                  })}
+                </option>
+              {/if}
+            </select>
+          </label>
+          <ExpertiseWorkerSelect
+            {workers}
+            {expertise}
+            {workerExpertise}
+            selectedWorkerId={typeof assignmentValues?.workerId === 'string'
+              ? assignmentValues.workerId
+              : ($page.url.searchParams.get('worker') ?? '')}
+            {translate}
+          />
+          <label>
+            <span>{translate('Starts on')}</span>
+            <input
+              name="startsOn"
+              type="date"
+              value={String(assignmentValues?.startsOn ?? '')}
+              required
+            />
+          </label>
+          <label>
+            <span>{translate('Ends on (optional)')}</span>
+            <input name="endsOn" type="date" value={String(assignmentValues?.endsOn ?? '')} />
+          </label>
+          <p class="form-help project-section__assignment-help">
+            {translate(
+              'If a worker is not listed, ask the owner to assign them to a project you manage first.',
+            )}
+          </p>
+          <button type="submit" disabled={workers.length === 0 || Boolean(blockedAssignmentStatus)}
+            >{translate('Assign')}</button
+          >
+        </form>
+      </details>
+
+      {#if activeAssignments.length > 0}
+        <details
+          id="project-assignment-list"
+          class="admin-details"
+          data-project-workflow="manage-assignment"
+          open={$page.url.searchParams.get('action') === 'update-assignment' ||
+            Boolean(assignmentRecordProblem)}
+        >
+          <summary class="secondary-button">{translate('Update assignment')}</summary>
+          <div class="project-section__assignment-list">
+            {#if assignmentRecordProblem}
+              <ProblemNotice
+                problem={assignmentRecordProblem}
+                remedyLinks={{
+                  correct_fields: {
+                    label: portalText(normalizedLocale, 'problem.remedy.correctFields'),
+                  },
+                  review_assignments: {
+                    label: portalText(normalizedLocale, 'problem.remedy.reviewAssignments'),
+                    href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+                  },
+                }}
+              />
+            {/if}
+            {#each activeAssignments as assignment (value(assignment, 'id'))}
+              <div class="project-section__assignment-item">
+                <h3>{value(assignment, 'project_number')} · {value(assignment, 'worker_name')}</h3>
+                <form
+                  method="POST"
+                  action="?/updateAssignment"
+                  class="project-section__assignment-form"
+                >
+                  <input type="hidden" name="assignmentId" value={value(assignment, 'id')} />
+                  <input type="hidden" name="version" value={value(assignment, 'version') || '1'} />
+                  <label>
+                    <span>{translate('Starts on')}</span>
+                    <input
+                      name="startsOn"
+                      type="date"
+                      value={assignmentRecordValues?.assignmentId === value(assignment, 'id')
+                        ? String(assignmentRecordValues.startsOn ?? '')
+                        : value(assignment, 'starts_on')}
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span>{translate('Ends on')}</span>
+                    <input
+                      name="endsOn"
+                      type="date"
+                      value={assignmentRecordValues?.assignmentId === value(assignment, 'id')
+                        ? String(assignmentRecordValues.endsOn ?? '')
+                        : value(assignment, 'ends_on')}
+                    />
+                  </label>
+                  <button type="submit">{translate('Update assignment')}</button>
+                </form>
+                <details>
+                  <summary class="secondary-button">{translate('Remove assignment')}</summary>
+                  <form
+                    method="POST"
+                    action="?/removeAssignment"
+                    class="project-section__assignment-form"
+                  >
+                    <input type="hidden" name="assignmentId" value={value(assignment, 'id')} />
+                    <input
+                      type="hidden"
+                      name="version"
+                      value={value(assignment, 'version') || '1'}
+                    />
+                    <label>
+                      <span>{translate('Removal reason')}</span>
+                      <input name="reason" required maxlength="2000" />
+                    </label>
+                    <button type="submit" class="danger">{translate('Remove assignment')}</button>
+                  </form>
+                </details>
+              </div>
+            {/each}
+          </div>
+        </details>
+      {/if}
+    </section>
+  {/if}
+
+  {#if showPrimaryAction && primaryAction}
+    <div class="project-section__post-list-action">
+      {#if primaryAction.href}
+        <a class="primary-button project-section__primary" href={primaryAction.href}>
+          {primaryAction.label}
+        </a>
+      {:else}
+        <button
+          class="primary-button project-section__primary"
+          type="button"
+          onclick={activatePrimaryAction}
+        >
+          {primaryAction.label}
+        </button>
+      {/if}
+    </div>
+  {/if}
+
+  {#if canManageClients && clients.length > 0}
+    <SectionCard title={translate('Clients')} collapsible class="project-section__client-surface">
+      <div class="project-section__clients" data-client-directory>
+        {#each clients as client}
+          <article
+            class="project-section__client"
+            data-client-id={value(client, 'id', 'client_id')}
+          >
+            <div>
+              <strong>{value(client, 'client_number') || translate('No client number')}</strong>
+              <span
+                >{value(client, 'display_name', 'legal_name') || translate('Unnamed client')}</span
+              >
+            </div>
+            <StatusBadge
+              variant={statusVariant(value(client, 'status') || 'active')}
+              text={statusLabel(value(client, 'status') || 'active')}
+            />
+          </article>
+        {/each}
+      </div>
+    </SectionCard>
+  {/if}
+</div>
+
+<style>
+  .project-section {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .project-section__context {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.25rem;
+  }
+
+  .project-section__eyebrow {
+    margin: 0 0 0.35rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .project-section__context h2 {
+    margin: 0;
+    color: var(--portal-ink, #20201d);
+    font-size: clamp(1.55rem, 2vw, 2rem);
+    letter-spacing: -0.025em;
+  }
+
+  .project-section__context p:last-child {
+    max-width: 42rem;
+    margin: 0.4rem 0 0;
+    color: var(--portal-muted, #67675f);
+  }
+
+  .project-section__primary {
+    flex: 0 0 auto;
+    min-height: 2.75rem;
+  }
+
+  .project-section__post-list-action {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .project-section__assignments,
+  .project-section__assignment-list {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .project-section__assignment-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: 0.8rem;
+    padding: 1rem 0;
+  }
+
+  .project-section__assignment-form h3,
+  .project-section__assignment-help {
+    grid-column: 1 / -1;
+  }
+
+  .project-section__assignment-form label {
+    display: grid;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+
+  .project-section__assignment-form select,
+  .project-section__assignment-form input,
+  .project-section__assignment-form button {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 2.75rem;
+  }
+
+  .project-section__assignment-item {
+    border-top: 1px solid var(--portal-border, #d9ddd8);
+    padding-top: 0.8rem;
+  }
+
+  .project-section__assign-link {
+    display: inline-block;
+    margin-top: 0.3rem;
+    min-height: 2.75rem;
+    padding-block: 0.6rem;
+  }
+
+  .project-section__attention {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .project-section__attention-card {
+    display: grid;
+    gap: 0.22rem;
+    min-height: 6rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.75rem;
+    background: var(--portal-surface, #fff);
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+  }
+
+  .project-section__attention-card:hover,
+  .project-section__attention-card:focus-visible,
+  .project-section__attention-card[aria-current='page'] {
+    border-color: var(--portal-accent, #706e66);
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #706e66) 20%, transparent);
+    outline-offset: 1px;
+  }
+
+  .project-section__attention-card--notice {
+    border-color: color-mix(
+      in srgb,
+      var(--portal-warning, #b7791f) 38%,
+      var(--portal-border, #dfdedc)
+    );
+  }
+
+  .project-section__attention-card span,
+  .project-section__attention-card small {
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+  }
+
+  .project-section__attention-card strong {
+    color: var(--portal-ink, #20201d);
+    font-size: 1.45rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .project-section__filters {
+    display: grid;
+    grid-template-columns: minmax(16rem, 2fr) minmax(12rem, 1fr);
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--portal-surface, #fff) 92%, var(--portal-wash, #f2f2f1));
+  }
+
+  .project-section__filters label,
+  .project-section__actions label {
+    display: grid;
+    gap: 0.35rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+    font-weight: 650;
+  }
+
+  .project-section__filters input,
+  .project-section__filters select,
+  .project-section__actions input {
+    min-height: var(--ja-target-min, 2.75rem);
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--portal-border-strong, #c4c4bf);
+    border-radius: 0.5rem;
+    background: var(--portal-surface, #fff);
+    color: var(--portal-ink, #20201d);
+    font: inherit;
+  }
+
+  .project-section__table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .project-section__table th,
+  .project-section__table td {
+    padding: 0.85rem 0.75rem;
+    border-bottom: 1px solid var(--portal-border, #dfdedc);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .project-section__table th {
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .project-section__table td {
+    color: var(--portal-ink, #20201d);
+    font-size: 0.9rem;
+  }
+
+  .project-section__table td > span,
+  .project-section__table td > small,
+  .project-section__project-link {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .project-section__table td > small {
+    margin-top: 0.25rem;
+    color: var(--portal-muted, #67675f);
+  }
+
+  .project-section__project-link {
+    color: var(--portal-ink, #20201d);
+    text-decoration: none;
+  }
+
+  .project-section__project-link strong {
+    color: var(--portal-accent, #53524c);
+  }
+
+  .project-section__project-link:focus-visible,
+  .project-section__actions summary:focus-visible,
+  .project-section__filters input:focus-visible,
+  .project-section__filters select:focus-visible,
+  .project-section__actions input:focus-visible,
+  .project-section__actions button:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #53524c) 32%, transparent);
+    outline-offset: 2px;
+  }
+
+  .project-section__actions {
+    position: relative;
+    min-width: 9rem;
+  }
+
+  .project-section__actions summary {
+    min-height: var(--ja-target-min, 2.75rem);
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--portal-border-strong, #c4c4bf);
+    border-radius: 0.45rem;
+    color: var(--portal-ink, #20201d);
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 700;
+    list-style: none;
+  }
+
+  .project-section__actions summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .project-section__actions > div {
+    display: grid;
+    gap: 0.7rem;
+    min-width: 15rem;
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.6rem;
+    background: var(--portal-surface, #fff);
+    box-shadow: 0 0.4rem 1.2rem rgb(15 23 42 / 9%);
+  }
+
+  .project-section__actions form {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .project-section__actions button {
+    min-height: var(--ja-target-min, 2.75rem);
+  }
+
+  .project-section__empty span {
+    color: var(--portal-muted, #67675f);
+  }
+
+  .project-section__empty {
+    display: grid;
+    gap: 0.3rem;
+    padding: 1.25rem 0.5rem;
+    text-align: center;
+  }
+
+  .project-section__clients {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.75rem;
+  }
+
+  .project-section__client {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.9rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.6rem;
+  }
+
+  .project-section__client > div {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .project-section__client span {
+    color: var(--portal-muted, #67675f);
+  }
+
+  @media (max-width: 52rem) {
+    .project-section__context {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .project-section__primary {
+      width: 100%;
+    }
+
+    .project-section__post-list-action {
+      justify-content: stretch;
+    }
+
+    .project-section__filters {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 36rem) {
+    .project-section__attention {
+      grid-template-columns: 1fr;
+    }
+
+    .project-section__attention-card {
+      min-height: auto;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .project-section * {
+      scroll-behavior: auto;
+    }
+  }
+</style>

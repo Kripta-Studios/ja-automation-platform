@@ -1,0 +1,122 @@
+{
+  "commit": "3bd5ecf",
+  "viewport": 1440,
+  "locale": "es",
+  "roles": [
+    "worker",
+    "owner"
+  ],
+  "nativeInvalid": {
+    "actionPosts": 0,
+    "summaryLinks": 2,
+    "inlineSummary": "Corrige los siguientes campos:Resumen de actividad: Completa este campo.Motivo de la corrección: Completa este campo."
+  },
+  "reason": {
+    "status": 400,
+    "code": "TIME_CORRECTION_REASON_INVALID",
+    "notice": {
+      "code": "TIME_CORRECTION_REASON_INVALID",
+      "text": "Se requiere una acción Explica la corrección con entre 3 y 2.000 caracteres. Estado: Aprobado Introducir un motivo",
+      "focused": true,
+      "visible": true,
+      "top": 462,
+      "bottom": 618,
+      "safeTop": 80,
+      "safeBottom": 884,
+      "scrollY": 0,
+      "locale": "es-ES",
+      "overflow": false,
+      "url": "/j-aautomation/app/time/:record?/createCorrectionDraft&lang=es"
+    },
+    "field": {
+      "workDate": "2026-09-28",
+      "reason": "   ",
+      "summary": "Corrected work account from the browser",
+      "dateInvalid": null,
+      "reasonInvalid": "true",
+      "dateError": "",
+      "reasonError": "Explica la corrección con entre 3 y 2.000 caracteres.",
+      "summaryText": "Corrige los siguientes campos: Motivo de la corrección: Explica la corrección con entre 3 y 2.000 caracteres.",
+      "summaryLinks": 0
+    }
+  },
+  "workerOutsideAssignment": {
+    "status": 403,
+    "code": "TIME_CORRECTION_CORRECTED_DATE_ACCESS_REQUIRED",
+    "notice": {
+      "code": "TIME_CORRECTION_CORRECTED_DATE_ACCESS_REQUIRED",
+      "text": "Se requiere una acción Tu asignación de proyecto no cubre la fecha de trabajo corregida. Revisa la fecha o pide al responsable del proyecto que revise tu asignación. Estado: Aprobado Consultar al propietario del proyecto para revisar el acceso",
+      "focused": true,
+      "visible": true,
+      "top": 462,
+      "bottom": 595,
+      "safeTop": 80,
+      "safeBottom": 884,
+      "scrollY": 0,
+      "locale": "es-ES",
+      "overflow": false,
+      "url": "/j-aautomation/app/time/:record?/createCorrectionDraft&lang=es"
+    },
+    "field": {
+      "workDate": "2026-09-27",
+      "reason": "A valid reason for the corrected work.",
+      "summary": "Corrected work account from the browser",
+      "dateInvalid": "true",
+      "reasonInvalid": null,
+      "dateError": "Tu asignación de proyecto no cubre la fecha de trabajo corregida. Revisa la fecha o pide al responsable del proyecto que revise tu asignación.",
+      "reasonError": "",
+      "summaryText": "Corrige los siguientes campos: Fecha: Tu asignación de proyecto no cubre la fecha de trabajo corregida. Revisa la fecha o pide al responsable del proyecto que revise tu asignación.",
+      "summaryLinks": 0
+    }
+  },
+  "ownerOutsideAssignment": {
+    "status": 409,
+    "code": "TIME_CORRECTION_DATE_ASSIGNMENT_REQUIRED",
+    "notice": {
+      "code": "TIME_CORRECTION_DATE_ASSIGNMENT_REQUIRED",
+      "text": "Se requiere una acción La asignación activa del trabajador no cubre la fecha de trabajo corregida. Revisa la fecha y pide al responsable del proyecto que revise la asignación antes de intentarlo de nuevo. Estado: Aprobado Consultar al propietario del proyecto para revisar el acceso",
+      "focused": true,
+      "visible": true,
+      "top": 462,
+      "bottom": 615,
+      "safeTop": 80,
+      "safeBottom": 884,
+      "scrollY": 0,
+      "locale": "es-ES",
+      "overflow": false,
+      "url": "/j-aautomation/app/time/:record?/createCorrectionDraft&lang=es"
+    },
+    "field": {
+      "workDate": "2026-09-27",
+      "reason": "Owner verified the original work account.",
+      "summary": "Owner corrected work account",
+      "dateInvalid": "true",
+      "reasonInvalid": null,
+      "dateError": "La asignación activa del trabajador no cubre la fecha de trabajo corregida. Revisa la fecha y pide al responsable del proyecto que revise la asignación antes de intentarlo de nuevo.",
+      "reasonError": "",
+      "summaryText": "Corrige los siguientes campos: Fecha: La asignación activa del trabajador no cubre la fecha de trabajo corregida. Revisa la fecha y pide al responsable del proyecto que revise la asignación antes de intentarlo de nuevo.",
+      "summaryLinks": 0
+    }
+  },
+  "correction": {
+    "creation": 303,
+    "links": {
+      "worker": {
+        "count": 1,
+        "opened": true,
+        "localeRetained": true,
+        "detailStatus": "Borrador"
+      },
+      "owner": {
+        "count": 1,
+        "opened": true,
+        "localeRetained": true,
+        "detailStatus": "Borrador"
+      }
+    }
+  },
+  "diagnostics": {
+    "worker": [],
+    "owner": []
+  }
+}

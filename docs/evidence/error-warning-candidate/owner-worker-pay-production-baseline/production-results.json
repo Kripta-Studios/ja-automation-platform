@@ -1,0 +1,31 @@
+{
+  "target": "deployed production",
+  "testedAtUtc": "2026-09-27T18:06:32.670Z",
+  "mode": "read-only GET only; no pay action",
+  "roles": [
+    {
+      "role": "finance",
+      "viewport": 1440,
+      "locale": "es",
+      "login": {
+        "state": "login did not reach workspace",
+        "path": "/j-aautomation/app/login",
+        "notice": []
+      },
+      "scenarios": [],
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [
+          "Failed to load resource: the server responded with a status of 429 ()"
+        ],
+        "responses": [],
+        "loginResponses": [
+          {
+            "status": 429,
+            "contentType": "application/json"
+          }
+        ]
+      }
+    }
+  ]
+}

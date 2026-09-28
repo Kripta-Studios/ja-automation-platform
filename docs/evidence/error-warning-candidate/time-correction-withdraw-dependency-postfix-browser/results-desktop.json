@@ -1,0 +1,140 @@
+{
+  "candidateCommit": "9581660e4cc3eae99bc8cd03c6157391e1567575",
+  "role": "worker",
+  "viewport": "desktop",
+  "locale": "es",
+  "fixture": "fresh disposable database; project, time, approval, correction and linked expense created through rendered UI in two Worker tabs",
+  "warning": {
+    "worker": {
+      "code": "TIME_CORRECTION_WITHDRAW_LINKED_EXPENSE",
+      "kind": "warning",
+      "text": "Antes de continuar Este borrador de corrección está vinculado a un gasto guardado, por lo que no se puede retirar. Revisa ese gasto y solicita una corrección auditada si los registros deben cambiar. Estado: Borrador Revisar el gasto vinculado",
+      "remedies": [
+        {
+          "text": "Revisar el gasto vinculado",
+          "href": "/j-aautomation/app/expenses/:record?lang=es"
+        }
+      ],
+      "noticeFocused": false,
+      "focusTag": "body",
+      "top": 617,
+      "bottom": 792,
+      "scrollY": 0,
+      "viewportHeight": 900,
+      "formPresent": false,
+      "reasonValue": null,
+      "enteredReasonText": "",
+      "language": "es-ES"
+    },
+    "remedyHref": "/j-aautomation/app/expenses/:record?lang=es",
+    "owner": {
+      "code": "TIME_CORRECTION_WITHDRAW_LINKED_EXPENSE",
+      "kind": "warning",
+      "text": "Antes de continuar Este borrador de corrección está vinculado a un gasto guardado, por lo que no se puede retirar. Revisa ese gasto y solicita una corrección auditada si los registros deben cambiar. Estado: Borrador Revisar el gasto vinculado",
+      "remedies": [
+        {
+          "text": "Revisar el gasto vinculado",
+          "href": "/j-aautomation/app/expenses/:record?lang=es"
+        }
+      ],
+      "noticeFocused": false,
+      "focusTag": "body",
+      "top": 499,
+      "bottom": 675,
+      "scrollY": 0,
+      "viewportHeight": 900,
+      "formPresent": false,
+      "reasonValue": null,
+      "enteredReasonText": "",
+      "language": "es-ES"
+    },
+    "ownerRemedyNavigated": true
+  },
+  "before": {
+    "scrollY": 437,
+    "focusTag": "input"
+  },
+  "enhanced": {
+    "transportStatus": 200,
+    "actionStatus": 409,
+    "type": "failure",
+    "code": "TIME_CORRECTION_WITHDRAW_LINKED_EXPENSE",
+    "messageKey": "problem.time.correctionWithdrawLinkedExpense",
+    "params": {},
+    "remedies": [
+      {
+        "id": "review_linked_expense",
+        "recordId": ":record"
+      }
+    ],
+    "retainedReason": true
+  },
+  "native": {
+    "transportStatus": 409,
+    "contentType": "text/html",
+    "bodyHasCode": true,
+    "bodyHasGenericKey": false,
+    "after": {
+      "code": "TIME_CORRECTION_WITHDRAW_LINKED_EXPENSE",
+      "kind": "error",
+      "text": "Se requiere una acción Este borrador de corrección está vinculado a un gasto guardado, por lo que no se puede retirar. Revisa ese gasto y solicita una corrección auditada si los registros deben cambiar. Estado: Borrador Revisar el gasto vinculado",
+      "remedies": [
+        {
+          "text": "Revisar el gasto vinculado",
+          "href": "/j-aautomation/app/expenses/:record?lang=es"
+        }
+      ],
+      "noticeFocused": true,
+      "focusTag": "aside",
+      "top": 617,
+      "bottom": 792,
+      "scrollY": 0,
+      "viewportHeight": 900,
+      "formPresent": false,
+      "reasonValue": null,
+      "enteredReasonText": "Motivo de retirada que introdujiste: QA withdrawal because corrected hours were entered in error.",
+      "language": "es-ES"
+    }
+  },
+  "noWrite": {
+    "statusBefore": {
+      "approval_state": "draft",
+      "version": 1
+    },
+    "statusAfter": {
+      "approval_state": "draft",
+      "version": 1
+    },
+    "auditDelta": 0,
+    "linkedExpenseStillPointsToCorrection": true
+  },
+  "diagnostics": {
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failures": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "worker": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failures": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "409 /j-aautomation/app/time/:record"
+      ]
+    },
+    "secondTab": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failures": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    }
+  }
+}

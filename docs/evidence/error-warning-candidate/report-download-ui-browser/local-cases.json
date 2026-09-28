@@ -1,0 +1,59 @@
+{
+  "candidate": "e89e7fa",
+  "disposable": true,
+  "results": [
+    {
+      "name": "worker-en-390-invalid-response",
+      "code": "REPORT_ATTACHMENT_DOWNLOAD_INVALID_RESPONSE",
+      "text": "Action needed\n\nThe attachment response could not be verified. The report was not changed. Review current attachments before trying again.\n\nReview updated report",
+      "state": {
+        "focused": true,
+        "top": 445.640625,
+        "bottom": 637.796875,
+        "viewport": 844,
+        "scrollY": 3764,
+        "horizontalOverflow": false,
+        "bottomNav": null
+      },
+      "screenshot": "worker-en-390-invalid-response.png"
+    },
+    {
+      "name": "worker-en-390-network-failure",
+      "code": "REPORT_ATTACHMENT_DOWNLOAD_NETWORK_UNAVAILABLE",
+      "text": "Action needed\n\nThe attachment could not be reached. The report was not changed. Check your connection and try the download again.",
+      "state": {
+        "focused": true,
+        "top": 445.640625,
+        "bottom": 567.109375,
+        "viewport": 844,
+        "scrollY": 3764,
+        "horizontalOverflow": false,
+        "bottomNav": null
+      },
+      "screenshot": "worker-en-390-network-failure.png"
+    },
+    {
+      "name": "worker-en-390-real-signout",
+      "code": "REPORT_ATTACHMENT_SIGN_IN_REQUIRED",
+      "text": "Action needed\n\nYour session ended. Sign in again and review current attachments before continuing.\n\nSign in again",
+      "state": {
+        "focused": true,
+        "top": 445.640625,
+        "bottom": 617.5,
+        "viewport": 844,
+        "scrollY": 3764,
+        "horizontalOverflow": false,
+        "bottomNav": null
+      },
+      "screenshot": "worker-en-390-real-signout.png",
+      "network": {
+        "status": 401,
+        "code": "REPORT_ATTACHMENT_SIGN_IN_REQUIRED",
+        "messageKey": "problem.reportAttachment.signInRequired",
+        "remedies": [
+          "sign_in_again"
+        ]
+      }
+    }
+  ]
+}

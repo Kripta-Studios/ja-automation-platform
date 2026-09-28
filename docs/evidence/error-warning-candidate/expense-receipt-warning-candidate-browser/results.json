@@ -1,0 +1,613 @@
+{
+  "candidateCommit": "cacd8d0aefb48e23d59cc98e2d8758e452f7a55a",
+  "fixture": "Owner created active project and worker assignment through UI",
+  "roles": [
+    {
+      "role": "owner",
+      "locale": "en",
+      "viewport": 390,
+      "initial": {
+        "path": "/j-aautomation/app/expenses",
+        "queryKeys": [
+          "lang",
+          "project"
+        ],
+        "lang": "en-US",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 0,
+        "formVisible": true,
+        "warningVisible": true,
+        "warningText": "Before you continue Receipt evidence may be needed before this expense can be approved. If you have a receipt, attach an image or PDF before saving. You can save this draft without one. Attach a receipt before saving if available.",
+        "warningTop": 675.34375,
+        "warningBottom": 844.5,
+        "receiptEmpty": true,
+        "receiptSelected": false,
+        "payer": "worker",
+        "projectSelected": true,
+        "workerSelected": true,
+        "category": "parking",
+        "vendorPreserved": true,
+        "date": "2026-09-25",
+        "amount": "8.75",
+        "vendorEntered": true,
+        "descriptionEntered": true,
+        "saveEnabled": true,
+        "focusedTag": "input",
+        "problemCode": null,
+        "problemText": null
+      },
+      "toggle": {
+        "image": {
+          "path": "/j-aautomation/app/expenses",
+          "queryKeys": [
+            "lang",
+            "project"
+          ],
+          "lang": "en-US",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "formVisible": true,
+          "warningVisible": false,
+          "warningText": null,
+          "warningTop": null,
+          "warningBottom": null,
+          "receiptEmpty": false,
+          "receiptSelected": true,
+          "payer": "worker",
+          "projectSelected": true,
+          "workerSelected": true,
+          "category": "parking",
+          "vendorPreserved": true,
+          "date": "2026-09-25",
+          "amount": "8.75",
+          "vendorEntered": true,
+          "descriptionEntered": true,
+          "saveEnabled": true,
+          "focusedTag": "input",
+          "problemCode": null,
+          "problemText": null
+        },
+        "pdf": {
+          "path": "/j-aautomation/app/expenses",
+          "queryKeys": [
+            "lang",
+            "project"
+          ],
+          "lang": "en-US",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "formVisible": true,
+          "warningVisible": false,
+          "warningText": null,
+          "warningTop": null,
+          "warningBottom": null,
+          "receiptEmpty": false,
+          "receiptSelected": true,
+          "payer": "worker",
+          "projectSelected": true,
+          "workerSelected": true,
+          "category": "parking",
+          "vendorPreserved": true,
+          "date": "2026-09-25",
+          "amount": "8.75",
+          "vendorEntered": true,
+          "descriptionEntered": true,
+          "saveEnabled": true,
+          "focusedTag": "input",
+          "problemCode": null,
+          "problemText": null
+        },
+        "cleared": {
+          "path": "/j-aautomation/app/expenses",
+          "queryKeys": [
+            "lang",
+            "project"
+          ],
+          "lang": "en-US",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "formVisible": true,
+          "warningVisible": true,
+          "warningText": "Before you continue Receipt evidence may be needed before this expense can be approved. If you have a receipt, attach an image or PDF before saving. You can save this draft without one. Attach a receipt before saving if available.",
+          "warningTop": 675.34375,
+          "warningBottom": 844.5,
+          "receiptEmpty": true,
+          "receiptSelected": false,
+          "payer": "worker",
+          "projectSelected": true,
+          "workerSelected": true,
+          "category": "parking",
+          "vendorPreserved": true,
+          "date": "2026-09-25",
+          "amount": "8.75",
+          "vendorEntered": true,
+          "descriptionEntered": true,
+          "saveEnabled": true,
+          "focusedTag": "input",
+          "problemCode": null,
+          "problemText": null
+        }
+      },
+      "enhancedFailure": {
+        "transportStatus": 200,
+        "type": "failure",
+        "actionStatus": 400,
+        "code": "EXPENSE_AMOUNT_INVALID",
+        "messageKey": "problem.expense.amountInvalid",
+        "params": {},
+        "fieldErrors": {
+          "amount": [
+            "problem.expense.amountInvalid"
+          ]
+        },
+        "remedies": [
+          {
+            "id": "review_expense"
+          }
+        ],
+        "ui": {
+          "path": "/j-aautomation/app/expenses",
+          "queryKeys": [
+            "lang",
+            "project"
+          ],
+          "lang": "en-US",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "formVisible": true,
+          "warningVisible": true,
+          "warningText": "Before you continue Receipt evidence may be needed before this expense can be approved. If you have a receipt, attach an image or PDF before saving. You can save this draft without one. Attach a receipt before saving if available.",
+          "warningTop": 821.59375,
+          "warningBottom": 990.75,
+          "receiptEmpty": true,
+          "receiptSelected": false,
+          "payer": "worker",
+          "projectSelected": true,
+          "workerSelected": true,
+          "category": "parking",
+          "vendorPreserved": true,
+          "date": "2026-09-25",
+          "amount": "0",
+          "vendorEntered": true,
+          "descriptionEntered": true,
+          "saveEnabled": true,
+          "focusedTag": "div",
+          "problemCode": "EXPENSE_AMOUNT_INVALID",
+          "problemText": "Action needed Enter an expense amount greater than zero. Review updated record"
+        },
+        "noWrite": true
+      },
+      "success": {
+        "transportStatus": 200,
+        "type": "success",
+        "actionStatus": 200,
+        "state": "draft",
+        "receiptRequired": 0
+      },
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [],
+        "expensePosts": [
+          {
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "status": 200,
+            "contentType": "application/json"
+          }
+        ]
+      }
+    },
+    {
+      "role": "worker",
+      "locale": "es",
+      "viewport": 1440,
+      "initial": {
+        "path": "/j-aautomation/app/expenses",
+        "queryKeys": [
+          "lang",
+          "project"
+        ],
+        "lang": "es-ES",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scrollY": 0,
+        "formVisible": true,
+        "warningVisible": true,
+        "warningText": "Antes de continuar Puede que se necesite un recibo antes de aprobar este gasto. Si tienes uno, adjunta una imagen o un PDF antes de guardar. Puedes guardar este borrador sin recibo. Adjunta un recibo antes de guardar si lo tienes.",
+        "warningTop": 703.296875,
+        "warningBottom": 852.15625,
+        "receiptEmpty": true,
+        "receiptSelected": false,
+        "payer": "worker",
+        "projectSelected": true,
+        "workerSelected": false,
+        "category": "parking",
+        "vendorPreserved": true,
+        "date": "2026-09-25",
+        "amount": "8.75",
+        "vendorEntered": true,
+        "descriptionEntered": true,
+        "saveEnabled": true,
+        "focusedTag": "input",
+        "problemCode": null,
+        "problemText": null
+      },
+      "toggle": {
+        "image": {
+          "path": "/j-aautomation/app/expenses",
+          "queryKeys": [
+            "lang",
+            "project"
+          ],
+          "lang": "es-ES",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollY": 0,
+          "formVisible": true,
+          "warningVisible": false,
+          "warningText": null,
+          "warningTop": null,
+          "warningBottom": null,
+          "receiptEmpty": false,
+          "receiptSelected": true,
+          "payer": "worker",
+          "projectSelected": true,
+          "workerSelected": false,
+          "category": "parking",
+          "vendorPreserved": true,
+          "date": "2026-09-25",
+          "amount": "8.75",
+          "vendorEntered": true,
+          "descriptionEntered": true,
+          "saveEnabled": true,
+          "focusedTag": "input",
+          "problemCode": null,
+          "problemText": null
+        },
+        "pdf": {
+          "path": "/j-aautomation/app/expenses",
+          "queryKeys": [
+            "lang",
+            "project"
+          ],
+          "lang": "es-ES",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollY": 0,
+          "formVisible": true,
+          "warningVisible": false,
+          "warningText": null,
+          "warningTop": null,
+          "warningBottom": null,
+          "receiptEmpty": false,
+          "receiptSelected": true,
+          "payer": "worker",
+          "projectSelected": true,
+          "workerSelected": false,
+          "category": "parking",
+          "vendorPreserved": true,
+          "date": "2026-09-25",
+          "amount": "8.75",
+          "vendorEntered": true,
+          "descriptionEntered": true,
+          "saveEnabled": true,
+          "focusedTag": "input",
+          "problemCode": null,
+          "problemText": null
+        },
+        "cleared": {
+          "path": "/j-aautomation/app/expenses",
+          "queryKeys": [
+            "lang",
+            "project"
+          ],
+          "lang": "es-ES",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollY": 0,
+          "formVisible": true,
+          "warningVisible": true,
+          "warningText": "Antes de continuar Puede que se necesite un recibo antes de aprobar este gasto. Si tienes uno, adjunta una imagen o un PDF antes de guardar. Puedes guardar este borrador sin recibo. Adjunta un recibo antes de guardar si lo tienes.",
+          "warningTop": 703.015625,
+          "warningBottom": 851.875,
+          "receiptEmpty": true,
+          "receiptSelected": false,
+          "payer": "worker",
+          "projectSelected": true,
+          "workerSelected": false,
+          "category": "parking",
+          "vendorPreserved": true,
+          "date": "2026-09-25",
+          "amount": "8.75",
+          "vendorEntered": true,
+          "descriptionEntered": true,
+          "saveEnabled": true,
+          "focusedTag": "input",
+          "problemCode": null,
+          "problemText": null
+        }
+      },
+      "nativeFailure": {
+        "status": 400,
+        "contentType": "text/html",
+        "ui": {
+          "path": "/j-aautomation/app/expenses",
+          "queryKeys": [
+            "/createExpense"
+          ],
+          "lang": "es-ES",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollY": 0,
+          "formVisible": true,
+          "warningVisible": true,
+          "warningText": "Antes de continuar Puede que se necesite un recibo antes de aprobar este gasto. Si tienes uno, adjunta una imagen o un PDF antes de guardar. Puedes guardar este borrador sin recibo. Adjunta un recibo antes de guardar si lo tienes.",
+          "warningTop": 1653.546875,
+          "warningBottom": 1802.40625,
+          "receiptEmpty": true,
+          "receiptSelected": false,
+          "payer": "worker",
+          "projectSelected": true,
+          "workerSelected": false,
+          "category": "parking",
+          "vendorPreserved": true,
+          "date": "2026-09-25",
+          "amount": "0",
+          "vendorEntered": true,
+          "descriptionEntered": true,
+          "saveEnabled": false,
+          "focusedTag": "div",
+          "problemCode": "EXPENSE_AMOUNT_INVALID",
+          "problemText": "Se requiere una acción Introduce un importe de gasto mayor que cero. Revisar el registro actualizado"
+        },
+        "noWrite": true
+      },
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [],
+        "expensePosts": [
+          {
+            "status": 400,
+            "contentType": "text/html"
+          },
+          {
+            "status": 200,
+            "contentType": "application/json"
+          }
+        ]
+      },
+      "successAttempt": {
+        "transportStatus": 200,
+        "type": "success",
+        "actionStatus": 200,
+        "ui": {
+          "path": "/j-aautomation/app/expenses",
+          "queryKeys": [
+            "/createExpense"
+          ],
+          "lang": "es-ES",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollY": 0,
+          "formVisible": true,
+          "warningVisible": true,
+          "warningText": "Antes de continuar Puede que se necesite un recibo antes de aprobar este gasto. Si tienes uno, adjunta una imagen o un PDF antes de guardar. Puedes guardar este borrador sin recibo. Adjunta un recibo antes de guardar si lo tienes.",
+          "warningTop": 621.015625,
+          "warningBottom": 769.875,
+          "receiptEmpty": true,
+          "receiptSelected": false,
+          "payer": "worker",
+          "projectSelected": true,
+          "workerSelected": false,
+          "category": "parking",
+          "vendorPreserved": true,
+          "date": "2026-09-25",
+          "amount": "8.75",
+          "vendorEntered": true,
+          "descriptionEntered": true,
+          "saveEnabled": false,
+          "focusedTag": "body",
+          "problemCode": null,
+          "problemText": null
+        },
+        "saved": true
+      },
+      "success": {
+        "transportStatus": 200,
+        "type": "success",
+        "actionStatus": 200,
+        "state": "draft",
+        "receiptRequired": 0
+      }
+    },
+    {
+      "role": "owner",
+      "locale": "pt",
+      "viewport": 390,
+      "initial": {
+        "path": "/j-aautomation/app/expenses",
+        "queryKeys": [
+          "lang",
+          "project"
+        ],
+        "lang": "pt-BR",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 0,
+        "formVisible": true,
+        "warningVisible": true,
+        "warningText": "Antes de continuar Pode ser necessário um recibo antes da aprovação desta despesa. Se tiver um, anexe uma imagem ou PDF antes de salvar. Você pode salvar este rascunho sem recibo. Anexe um recibo antes de salvar, se tiver um.",
+        "warningTop": 1756.640625,
+        "warningBottom": 1925.796875,
+        "receiptEmpty": true,
+        "receiptSelected": false,
+        "payer": "worker",
+        "projectSelected": true,
+        "workerSelected": false,
+        "category": "hotel",
+        "vendorPreserved": false,
+        "date": "2026-09-27",
+        "amount": "",
+        "vendorEntered": false,
+        "descriptionEntered": false,
+        "saveEnabled": true,
+        "focusedTag": "button",
+        "problemCode": null,
+        "problemText": null
+      },
+      "toggle": {
+        "image": {
+          "path": "/j-aautomation/app/expenses",
+          "queryKeys": [
+            "lang",
+            "project"
+          ],
+          "lang": "pt-BR",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "formVisible": true,
+          "warningVisible": false,
+          "warningText": null,
+          "warningTop": null,
+          "warningBottom": null,
+          "receiptEmpty": false,
+          "receiptSelected": true,
+          "payer": "worker",
+          "projectSelected": true,
+          "workerSelected": false,
+          "category": "hotel",
+          "vendorPreserved": false,
+          "date": "2026-09-27",
+          "amount": "",
+          "vendorEntered": false,
+          "descriptionEntered": false,
+          "saveEnabled": true,
+          "focusedTag": "button",
+          "problemCode": null,
+          "problemText": null
+        },
+        "pdf": {
+          "path": "/j-aautomation/app/expenses",
+          "queryKeys": [
+            "lang",
+            "project"
+          ],
+          "lang": "pt-BR",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "formVisible": true,
+          "warningVisible": false,
+          "warningText": null,
+          "warningTop": null,
+          "warningBottom": null,
+          "receiptEmpty": false,
+          "receiptSelected": true,
+          "payer": "worker",
+          "projectSelected": true,
+          "workerSelected": false,
+          "category": "hotel",
+          "vendorPreserved": false,
+          "date": "2026-09-27",
+          "amount": "",
+          "vendorEntered": false,
+          "descriptionEntered": false,
+          "saveEnabled": true,
+          "focusedTag": "button",
+          "problemCode": null,
+          "problemText": null
+        },
+        "cleared": {
+          "path": "/j-aautomation/app/expenses",
+          "queryKeys": [
+            "lang",
+            "project"
+          ],
+          "lang": "pt-BR",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollY": 0,
+          "formVisible": true,
+          "warningVisible": true,
+          "warningText": "Antes de continuar Pode ser necessário um recibo antes da aprovação desta despesa. Se tiver um, anexe uma imagem ou PDF antes de salvar. Você pode salvar este rascunho sem recibo. Anexe um recibo antes de salvar, se tiver um.",
+          "warningTop": 1756.640625,
+          "warningBottom": 1925.796875,
+          "receiptEmpty": true,
+          "receiptSelected": false,
+          "payer": "worker",
+          "projectSelected": true,
+          "workerSelected": false,
+          "category": "hotel",
+          "vendorPreserved": false,
+          "date": "2026-09-27",
+          "amount": "",
+          "vendorEntered": false,
+          "descriptionEntered": false,
+          "saveEnabled": true,
+          "focusedTag": "button",
+          "problemCode": null,
+          "problemText": null
+        }
+      },
+      "noJavaScriptFileSelected": {
+        "warningVisible": true,
+        "warningText": "Antes de continuar Pode ser necessário um recibo antes da aprovação desta despesa. Se tiver um, anexe uma imagem ou PDF antes de salvar. Você pode salvar este rascunho sem recibo.   Anexe um recibo antes de salvar, se tiver um. ",
+        "selectedFilename": "C:\\fakepath\\qa-receipt.pdf",
+        "saveEnabled": true
+      },
+      "noSubmit": true,
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [],
+        "expensePosts": [
+          {
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "status": 200,
+            "contentType": "application/json"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "candidateCommit": "2d5c9eaa2dfd8f183268aaf4821c5e051c55e7c0",
+  "fixture": "fresh disposable database; Owner project/assignment and Worker Daily report created in rendered UI",
+  "cases": [
+    {
+      "name": "worker_390_en_edited_draft_native_stale_submit",
+      "before": {
+        "scrollY": 803,
+        "viewportHeight": 844
+      },
+      "native": {
+        "status": 409,
+        "contentType": "text/html",
+        "hasTypedCode": true,
+        "hasGenericPhrase": false
+      },
+      "visible": {
+        "status": "Draft",
+        "submitVisible": true,
+        "submitVersion": "2",
+        "notice": {
+          "code": "REPORT_SUBMISSION_CHANGED",
+          "text": "Action needed This report changed or is no longer a draft. Review the current version before submitting. Review updated report",
+          "focused": true,
+          "top": 285,
+          "bottom": 436,
+          "links": [
+            {
+              "text": "Review updated report",
+              "href": "/j-aautomation/app/reports/:record",
+              "hardReload": false
+            }
+          ]
+        },
+        "alerts": [
+          "Action needed This report changed or is no longer a draft. Review the current version before submitting. Review updated report"
+        ],
+        "focusTag": "aside",
+        "scrollY": 803,
+        "viewportHeight": 844
+      },
+      "enhancedProbe": {
+        "transportStatus": 200,
+        "type": "failure",
+        "actionStatus": 409,
+        "code": "REPORT_SUBMISSION_CHANGED",
+        "messageKey": "problem.report.submissionChanged",
+        "params": {},
+        "remedies": [
+          {
+            "id": "review_report"
+          }
+        ]
+      },
+      "stateAfter": {
+        "approval_state": "draft",
+        "version": 2,
+        "summary": "Updated daily facts in Tab B"
+      },
+      "auditDelta": 0,
+      "remedyNavigation": {
+        "href": "/j-aautomation/app/reports/:record",
+        "beforeOrigin": 1790511186561.7,
+        "afterOrigin": 1790511186561.7,
+        "freshDocument": false,
+        "beforeVersion": "2",
+        "afterVersion": "2",
+        "currentDatabaseVersion": 3,
+        "loadedLatestVersion": false,
+        "noticeAfter": 0
+      }
+    }
+  ],
+  "diagnostics": {
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "workerTabA": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "409 /j-aautomation/app/reports/:record"
+      ]
+    },
+    "workerTabB": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    }
+  }
+}

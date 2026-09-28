@@ -1,0 +1,12 @@
+[
+  {
+    "method": "GET",
+    "status": 200,
+    "path": "/j-aautomation/app/api/expenses/time-options"
+  },
+  {
+    "method": "GET",
+    "status": 200,
+    "path": "/j-aautomation/app/api/expenses/time-options"
+  }
+]

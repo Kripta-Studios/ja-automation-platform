@@ -1,0 +1,154 @@
+{
+  "candidateFingerprint": "2d5c9eaa2dfd8f183268aaf4821c5e051c55e7c0+reports-diff:05847ca8fb89aff36fea34af345205ac36f6f21852b7475cd5250c9cf479d576",
+  "fixture": "fresh disposable database; Owner project/assignment and Worker Daily report created in rendered UI",
+  "cases": [
+    {
+      "name": "worker_390_en_edited_draft_native_stale_submit",
+      "before": {
+        "scrollY": 803,
+        "viewportHeight": 844
+      },
+      "native": {
+        "status": 409,
+        "contentType": "text/html",
+        "hasTypedCode": true,
+        "hasGenericPhrase": false
+      },
+      "visible": {
+        "status": "Draft",
+        "submitVisible": false,
+        "submitVersion": null,
+        "notice": {
+          "code": "REPORT_SUBMISSION_CHANGED",
+          "text": "Action needed This report changed since you opened it. Review the updated version before submitting. Status: Draft Review updated report",
+          "focused": true,
+          "top": 285,
+          "bottom": 461,
+          "links": [
+            {
+              "text": "Review updated report",
+              "href": "/j-aautomation/app/reports/:record",
+              "hardReload": true
+            }
+          ]
+        },
+        "alerts": [
+          "Action needed This report changed since you opened it. Review the updated version before submitting. Status: Draft Review updated report"
+        ],
+        "focusTag": "aside",
+        "scrollY": 803,
+        "viewportHeight": 844,
+        "stickyHeaderBottom": 70
+      },
+      "enhancedProbe": {
+        "transportStatus": 200,
+        "type": "failure",
+        "actionStatus": 409,
+        "code": "REPORT_SUBMISSION_CHANGED",
+        "messageKey": "problem.report.submissionChanged",
+        "params": {},
+        "remedies": [
+          {
+            "id": "review_report"
+          }
+        ]
+      },
+      "stateAfter": {
+        "approval_state": "draft",
+        "version": 2,
+        "summary": "Updated daily facts in Tab B"
+      },
+      "auditDelta": 0,
+      "remedyNavigation": {
+        "href": "/j-aautomation/app/reports/:record",
+        "beforeOrigin": 1790511966696.5,
+        "afterOrigin": 1790511968175.8,
+        "freshDocument": true,
+        "beforeVersion": null,
+        "afterVersion": "3",
+        "currentDatabaseVersion": 3,
+        "loadedLatestVersion": true,
+        "noticeAfter": 0
+      }
+    },
+    {
+      "name": "worker_390_en_already_submitted_native_stale_submit",
+      "response": {
+        "status": 409,
+        "contentType": "text/html",
+        "hasTypedCode": true
+      },
+      "visible": {
+        "status": "Submitted",
+        "submitVisible": false,
+        "submitVersion": null,
+        "notice": {
+          "code": "REPORT_SUBMISSION_STATE_BLOCKED",
+          "text": "Action needed This report is now Submitted. Only Draft or Needs changes reports can be submitted. Review its current status. Status: Submitted Review updated report",
+          "focused": true,
+          "top": 316,
+          "bottom": 512,
+          "links": [
+            {
+              "text": "Review updated report",
+              "href": "/j-aautomation/app/reports/:record",
+              "hardReload": true
+            }
+          ]
+        },
+        "alerts": [
+          "Action needed This report is now Submitted. Only Draft or Needs changes reports can be submitted. Review its current status. Status: Submitted Review updated report"
+        ],
+        "focusTag": "aside",
+        "scrollY": 772,
+        "viewportHeight": 844,
+        "stickyHeaderBottom": 70
+      },
+      "enhancedProbe": {
+        "transportStatus": 200,
+        "actionStatus": 409,
+        "code": "REPORT_SUBMISSION_STATE_BLOCKED",
+        "params": {
+          "status": "submitted"
+        }
+      },
+      "recordState": {
+        "approval_state": "submitted",
+        "version": 4,
+        "summary": "Second update after stale notice"
+      },
+      "auditDeltaAfterStale": 0
+    },
+    {
+      "name": "owner_1440_es_submitted_report_read",
+      "status": "Enviado",
+      "staleSubmitUnavailable": true
+    }
+  ],
+  "diagnostics": {
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "workerTabA": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "409 /j-aautomation/app/reports/:record",
+        "409 /j-aautomation/app/reports/:record"
+      ]
+    },
+    "workerTabB": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    }
+  }
+}

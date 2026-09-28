@@ -1,0 +1,10 @@
+{
+  "code": "REPORT_ATTACHMENT_STALE_VERSION",
+  "status": 409,
+  "role": "worker",
+  "openedVersion": 1,
+  "currentVersion": 2,
+  "viewport": "phone-390",
+  "screenshot": "stale-report-phone-390.png",
+  "scope": "isolated notice only; disposable data"
+}

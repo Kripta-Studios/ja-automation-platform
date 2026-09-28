@@ -1,0 +1,155 @@
+{
+  "candidateFingerprint": "f1be29ff369810fef5fc5dbb22b400cd8af78503+reversal-diff:1d86c96b40ee9b43d03364b7637fbbfef24c47ec4d7e0edfc160a234d363ffc4",
+  "fixture": "fresh disposable database; seeded issued invoice; payment created via rendered form; blocked reversal forms submitted natively",
+  "cases": [
+    {
+      "role": "finance",
+      "viewport": "390x844",
+      "locale": "en",
+      "mode": "native",
+      "kind": "over-remaining",
+      "beforeScroll": {
+        "window": 1392,
+        "drawer": 548
+      },
+      "response": {
+        "transportStatus": 409,
+        "contentType": "text/html",
+        "actionStatus": null,
+        "code": "BILLING_REVERSAL_EXCEEDS_REMAINING"
+      },
+      "enhancedProbe": {
+        "transportStatus": 200,
+        "type": "failure",
+        "actionStatus": 409,
+        "code": "BILLING_REVERSAL_EXCEEDS_REMAINING",
+        "messageKey": "problem.billing.reversalExceedsRemaining",
+        "params": {
+          "remainingMinor": "1000",
+          "currency": "USD"
+        },
+        "remedies": [
+          {
+            "id": "review_ledger"
+          }
+        ]
+      },
+      "visible": {
+        "code": "BILLING_REVERSAL_EXCEEDS_REMAINING",
+        "wording": "Action needed This reversal exceeds the amount still available to reverse from this payment. Review its current history and enter an amount within the remaining balance. Amount available to reverse: $10.00 Review invoice ledger",
+        "remedies": [
+          {
+            "text": "Review invoice ledger",
+            "href": "/j-aautomation/app/billing?view=invoices&invoice=:record#invoice-collections",
+            "hardReload": true
+          }
+        ],
+        "currentReversibleDisplay": "Amount available to reverse: $10.00",
+        "amount": "99.00",
+        "max": "10.00",
+        "focused": "notice",
+        "activeTop": 129,
+        "activeBottom": 345,
+        "noticeTop": 129,
+        "noticeBottom": 345,
+        "headerBottom": 70,
+        "scrollY": 1392,
+        "drawerScrollTop": 0,
+        "viewportHeight": 844,
+        "urlHasInvoiceFilter": false,
+        "locale": null
+      },
+      "reasonRetained": true,
+      "remedyBehavior": {
+        "href": "/j-aautomation/app/billing?view=invoices&invoice=:invoice#invoice-collections",
+        "freshDocument": true,
+        "path": "/j-aautomation/app/billing",
+        "search": "?view=invoices&invoice=:record",
+        "hash": "#invoice-collections",
+        "drawerOpen": true,
+        "noticePresent": false,
+        "maxAfter": "10.00"
+      },
+      "reversalCount": 0
+    },
+    {
+      "role": "finance",
+      "viewport": "390x844",
+      "locale": "en",
+      "mode": "native",
+      "kind": "zero",
+      "beforeScroll": {
+        "window": 1392,
+        "drawer": 548
+      },
+      "response": {
+        "transportStatus": 400,
+        "contentType": "text/html",
+        "actionStatus": null,
+        "code": "BILLING_REVERSAL_POSITIVE_REQUIRED"
+      },
+      "enhancedProbe": {
+        "transportStatus": 200,
+        "type": "failure",
+        "actionStatus": 400,
+        "code": "BILLING_REVERSAL_POSITIVE_REQUIRED",
+        "messageKey": "problem.billing.reversalPositiveRequired",
+        "params": {},
+        "remedies": [
+          {
+            "id": "review_ledger"
+          }
+        ]
+      },
+      "visible": {
+        "code": "BILLING_REVERSAL_POSITIVE_REQUIRED",
+        "wording": "Action needed Enter a reversal amount greater than zero before recording it. Review invoice ledger",
+        "remedies": [
+          {
+            "text": "Review invoice ledger",
+            "href": "#invoice-collections",
+            "hardReload": false
+          }
+        ],
+        "currentReversibleDisplay": null,
+        "amount": "0.00",
+        "max": "10.00",
+        "focused": "amount",
+        "activeTop": 675,
+        "activeBottom": 719,
+        "noticeTop": -419,
+        "noticeBottom": -268,
+        "headerBottom": 70,
+        "scrollY": 1392,
+        "drawerScrollTop": 548,
+        "viewportHeight": 844,
+        "urlHasInvoiceFilter": false,
+        "locale": null
+      },
+      "reasonRetained": true,
+      "reversalCount": 0
+    }
+  ],
+  "diagnostics": {
+    "finance": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "409 /j-aautomation/app/billing",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "400 /j-aautomation/app/billing",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": ["503 /j-aautomation/app/api/offline/identity"]
+    }
+  }
+}

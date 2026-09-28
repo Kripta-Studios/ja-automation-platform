@@ -1,0 +1,84 @@
+{
+  "checkedAt": "2026-09-22T15:24:58.007150+00:00",
+  "sourceCommit": "767d1f9",
+  "scope": "workspace navigation and EN/ES/PT-BR text review",
+  "responsive": {
+    "tests": 24,
+    "widths": [
+      360,
+      390,
+      768,
+      1440
+    ]
+  },
+  "translations": {
+    "tests": 105,
+    "files": 11,
+    "catalogKeysPerLocale": 2739,
+    "websiteStringsPerLocale": 754
+  },
+  "manualSourceAndFinancialCopy": {
+    "tests": 11,
+    "files": 3
+  },
+  "roleLocaleBrowser": {
+    "tests": 4,
+    "personas": 7,
+    "locales": [
+      "en",
+      "es",
+      "pt-BR"
+    ],
+    "routes": 105
+  },
+  "deepLocaleBrowser": {
+    "tests": 1,
+    "routes": 78,
+    "knownEnglishLeftovers": 0
+  },
+  "svelteCheck": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "typecheck": "passed",
+  "lint": "passed",
+  "format": "passed",
+  "diffcheck": "passed",
+  "limitations": "Selections overlap. This is not a repeat of the entire contractual 32-step acceptance journey.",
+  "dynamicLabelFollowup": {
+    "tests": 23,
+    "files": 3,
+    "checks": [
+      "all nine operational categories registered and translated",
+      "all section and view headings registered and translated",
+      "travel and standby conditional labels registered and translated"
+    ],
+    "sourceCommit": "767d1f9"
+  },
+  "manualCapture": {
+    "sourceCommit": "767d1f9c73021f68f5b423fd028eba6636ac3a2d",
+    "sourceDigest": "916613d2b46bdca19b36087061a7320b92eabe0af18248d340c08a0819ff65f0",
+    "screenshots": 142,
+    "checks": 239,
+    "status": "passed"
+  },
+  "manualDownloads": {
+    "testsPassed": 3,
+    "desktopSkip": "390px-only case passed in separate phone project",
+    "scope": [
+      "persisted persona permissions and legacy URLs",
+      "transient PDF retry and persistent localized recovery",
+      "expired session 401 sign-in without retry"
+    ],
+    "phone390": "passed"
+  },
+  "examples": {
+    "artifacts": 86,
+    "browserPrintPdfs": 30,
+    "galleryWidths": [
+      390,
+      1440
+    ],
+    "status": "passed"
+  }
+}

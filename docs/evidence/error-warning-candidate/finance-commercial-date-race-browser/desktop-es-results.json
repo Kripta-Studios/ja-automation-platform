@@ -1,0 +1,60 @@
+{
+  "commit": "61c9bce",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "locale": "es",
+  "roles": [
+    "owner",
+    "finance"
+  ],
+  "fixture": "Owner UI moved one QA assignment start beyond Finance selected asOf while Finance form stayed open",
+  "originalStart": "2026-09-28",
+  "movedStart": "2026-09-29",
+  "ownerUpdate": {
+    "status": 200
+  },
+  "attempted": {
+    "internalCost": "yes",
+    "expectedVersion": "1"
+  },
+  "network": {
+    "status": 409,
+    "codeInResponse": true,
+    "genericInResponse": false
+  },
+  "visible": {
+    "code": "FINANCE_ASSIGNMENT_COMMERCIAL_VERSION_CHANGED",
+    "text": "Se requiere una acción Las opciones comerciales de esta persona cambiaron mientras el formulario estaba abierto. Tus cambios no se guardaron. Revisa las opciones guardadas actualmente antes de decidir si quieres enviar las tuyas. Esta asignación no aparece para la fecha de trabajo seleccionada. Revisa sus fechas actuales en el equipo del proyecto y elige una fecha dentro de la asignación para ver sus opciones comerciales. Revisar fechas de la asignación",
+    "remedy": {
+      "text": "Revisar fechas de la asignación",
+      "path": "/j-aautomation/app/projects/[qa-id]",
+      "tab": "team",
+      "lang": null,
+      "hash": "#team-title"
+    },
+    "role": "alert",
+    "focused": true,
+    "top": 88,
+    "bottom": 284,
+    "safeTop": 80,
+    "safeBottom": 884,
+    "scrollY": 374,
+    "routeView": "commercial",
+    "language": "es-ES",
+    "openAssignmentEditorCount": 0,
+    "overflow": false
+  },
+  "review": {
+    "openedProjectTeam": true,
+    "currentDateVisible": true,
+    "localePreserved": "es-ES",
+    "noWrite": true
+  },
+  "assignmentUnchangedAfterFailure": true,
+  "diagnostics": {
+    "owner": [],
+    "finance": []
+  }
+}

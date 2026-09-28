@@ -18,6 +18,18 @@ export const normalizeLocalDateTime = (value: unknown): unknown => {
   return Number.isNaN(parsed.valueOf()) ? value : parsed.toISOString();
 };
 
+/**
+ * Convert a business calendar date into a truthful effective instant.
+ * Today's date must not be projected into the future, while a completed
+ * historical date uses its final millisecond so same-day lifecycle events
+ * remain causally ordered.
+ */
+export const dateOnlyToEffectiveInstant = (value: unknown, now: Date = new Date()): unknown => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const currentInstant = now.toISOString();
+  return value === currentInstant.slice(0, 10) ? currentInstant : `${value}T23:59:59.999Z`;
+};
+
 export function receiptSignature(mediaType: string, bytes: Uint8Array): boolean {
   const startsWith = (...values: number[]) =>
     values.every((value, index) => bytes[index] === value);

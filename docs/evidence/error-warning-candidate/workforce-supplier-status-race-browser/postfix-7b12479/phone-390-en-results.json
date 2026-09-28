@@ -1,0 +1,122 @@
+{
+  "commit": "7b12479",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "locale": "en",
+  "role": "owner in two tabs",
+  "fixture": "Two QA suppliers created through UI; selected supplier deactivated through UI while Worker profile form stayed open",
+  "before": {
+    "profile": null,
+    "workerAuditCount": 6,
+    "scrollY": 2027
+  },
+  "network": {
+    "status": 409,
+    "codeInResponse": true,
+    "genericInResponse": false,
+    "valuesInResponse": true
+  },
+  "visible": {
+    "code": "ACCESS_WORKFORCE_SUPPLIER_INACTIVE",
+    "noticeText": "Action needed The selected supplier is no longer active. This workforce profile was not saved. Review supplier status or choose an active supplier. Review supplier status",
+    "fieldError": "The selected supplier is no longer active. This workforce profile was not saved. Review supplier status or choose an active supplier.",
+    "focused": true,
+    "active": {
+      "tag": "aside",
+      "name": null,
+      "dataUi": "problem-notice",
+      "className": "ui-problem-notice svelte-b84mwg"
+    },
+    "top": 452,
+    "bottom": 644,
+    "noticeRect": {
+      "left": 48,
+      "top": 452,
+      "right": 342,
+      "bottom": 644
+    },
+    "toastRect": {
+      "left": 12,
+      "top": 660,
+      "right": 378,
+      "bottom": 768
+    },
+    "toastOverlap": {
+      "width": 293,
+      "height": 0
+    },
+    "safeTop": 78,
+    "safeBottom": 756,
+    "scrollY": 1961,
+    "viewportWidth": 390,
+    "overflow": false,
+    "selectedTab": "Specialists1",
+    "editorOpen": true,
+    "workerQueryRetained": true,
+    "profileValue": "external_technician",
+    "supplierValue": "[qa-id]",
+    "inactiveOption": {
+      "label": "Previously selected supplier is inactive or unavailable",
+      "disabled": true
+    },
+    "remedy": {
+      "text": "Review supplier status",
+      "path": "/j-aautomation/app/supplier",
+      "query": "?workspaceAction=directory&directoryStatus=inactive&lang=en"
+    },
+    "language": "en-US"
+  },
+  "toastTiming": {
+    "shortlyAfterFailure": {
+      "width": 293,
+      "height": 0
+    },
+    "afterTwoSeconds": {
+      "noticeRect": {
+        "left": 48,
+        "top": 452,
+        "right": 342,
+        "bottom": 644
+      },
+      "toastRect": {
+        "left": 12,
+        "top": 660,
+        "right": 378,
+        "bottom": 768
+      },
+      "overlap": {
+        "width": 293,
+        "height": 0
+      }
+    },
+    "afterNineSeconds": {
+      "noticeRect": {
+        "left": 48,
+        "top": 452,
+        "right": 342,
+        "bottom": 644
+      },
+      "toastRect": null,
+      "overlap": {
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "review": {
+    "inactiveSupplierVisible": true,
+    "localePreserved": true
+  },
+  "noWriteOnConflict": true,
+  "recovery": {
+    "activeSupplierSaveStatus": 200,
+    "profileSaved": true,
+    "oneAuditWrite": true
+  },
+  "diagnostics": {
+    "ownerA": [],
+    "ownerB": []
+  }
+}

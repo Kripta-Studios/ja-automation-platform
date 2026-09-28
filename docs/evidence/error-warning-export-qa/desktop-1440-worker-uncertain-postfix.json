@@ -1,0 +1,21 @@
+{
+  "viewport": "desktop-1440",
+  "upstreamStatus": 202,
+  "postCount": 1,
+  "requestKeyPresent": true,
+  "statusCheckResponseLost": true,
+  "artifactCount": 2,
+  "statusLinkRetainedPeriod": true,
+  "noticeFocused": true,
+  "noticeVisible": true,
+  "scrollBeforeStatusCheck": 0,
+  "scrollAfterStatusCheck": 0,
+  "pageErrors": [],
+  "failedResponses": [
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    }
+  ]
+}

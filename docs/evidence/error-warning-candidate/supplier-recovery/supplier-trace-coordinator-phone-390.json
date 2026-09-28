@@ -1,0 +1,10 @@
+{
+  "role": "supplierCoordinator",
+  "viewport": "phone-390",
+  "code": "SUPPLIER_BATCH_TECHNICIAN_DAILY_LIMIT",
+  "noticeFocusedAndVisible": true,
+  "actualHoursRetained": true,
+  "categoryAndSummaryRetained": true,
+  "requestIdRetained": true,
+  "technicianSelectionRetained": true
+}

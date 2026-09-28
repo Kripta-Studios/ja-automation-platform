@@ -1,0 +1,122 @@
+[
+  {
+    "viewport": "phone-390",
+    "locale": "en",
+    "action": "staleExpectedPaymentDate",
+    "ownerEntryRetainedBeforeSubmit": true,
+    "previousTokenWasBlank": true,
+    "financeSave": {
+      "transportStatus": 200,
+      "bodyHasChangedCode": false,
+      "bodyHasStack": false
+    },
+    "financeValueSaved": true,
+    "staleSubmit": {
+      "transportStatus": 409,
+      "bodyHasChangedCode": true,
+      "bodyHasStack": false
+    },
+    "code": "FINANCE_SETTLEMENT_PLANNING_CHANGED",
+    "noticeText": "Action needed\n\nThis worker compensation settlement changed while its expected payment date was being saved. Review the current settlement before trying again.\n\nReview worker compensation settlement",
+    "remedyText": ["Review worker compensation settlement"],
+    "conflictLabelsAndValuesShown": true,
+    "oldAttemptDisabled": true,
+    "oldAttemptRetained": true,
+    "noRetryButton": true,
+    "statusStillSettled": true,
+    "noStaleOverwrite": true,
+    "noStaleAudit": true,
+    "ownerStillOnProject": true,
+    "ownerViewRetained": true,
+    "ownerSourceRetained": true,
+    "scrollBefore": 3910,
+    "focus": {
+      "activeTag": "DIV",
+      "activeIsSummary": false,
+      "focusTop": 85,
+      "focusBottom": 273,
+      "headerBottom": 70,
+      "viewportHeight": 844,
+      "scrollY": 442,
+      "focusVisible": true
+    },
+    "freshPreviousTokenMatchesCurrent": true,
+    "freshSave": {
+      "transportStatus": 200,
+      "bodyHasChangedCode": false,
+      "bodyHasStack": false
+    },
+    "freshValueSaved": true,
+    "freshAuditAddedOne": true,
+    "ownerDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource", "failed-resource", "failed-resource", "failed-resource"],
+      "failedResponses": [503, 409, 503, 503]
+    },
+    "financeDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource", "failed-resource"],
+      "failedResponses": [503, 503]
+    }
+  },
+  {
+    "viewport": "desktop-1440",
+    "locale": "es",
+    "action": "staleExpectedPaymentDate",
+    "ownerEntryRetainedBeforeSubmit": true,
+    "previousTokenWasBlank": true,
+    "financeSave": {
+      "transportStatus": 200,
+      "bodyHasChangedCode": false,
+      "bodyHasStack": false
+    },
+    "financeValueSaved": true,
+    "staleSubmit": {
+      "transportStatus": 409,
+      "bodyHasChangedCode": true,
+      "bodyHasStack": false
+    },
+    "code": "FINANCE_SETTLEMENT_PLANNING_CHANGED",
+    "noticeText": "Se requiere una acción\n\nEsta liquidación cambió mientras se guardaba la fecha prevista de pago. Revisa la liquidación actual antes de volver a intentarlo.\n\nRevisar la liquidación del trabajador",
+    "remedyText": ["Revisar la liquidación del trabajador"],
+    "conflictLabelsAndValuesShown": true,
+    "oldAttemptDisabled": true,
+    "oldAttemptRetained": true,
+    "noRetryButton": true,
+    "statusStillSettled": true,
+    "noStaleOverwrite": true,
+    "noStaleAudit": true,
+    "ownerStillOnProject": true,
+    "ownerViewRetained": true,
+    "ownerSourceRetained": true,
+    "scrollBefore": 2066,
+    "focus": {
+      "activeTag": "DIV",
+      "activeIsSummary": false,
+      "focusTop": 88,
+      "focusBottom": 235,
+      "headerBottom": 72,
+      "viewportHeight": 900,
+      "scrollY": 374,
+      "focusVisible": true
+    },
+    "freshPreviousTokenMatchesCurrent": true,
+    "freshSave": {
+      "transportStatus": 200,
+      "bodyHasChangedCode": false,
+      "bodyHasStack": false
+    },
+    "freshValueSaved": true,
+    "freshAuditAddedOne": true,
+    "ownerDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource", "failed-resource", "failed-resource", "failed-resource"],
+      "failedResponses": [503, 409, 503, 503]
+    },
+    "financeDiagnostics": {
+      "pageErrors": [],
+      "consoleErrors": ["failed-resource", "failed-resource"],
+      "failedResponses": [503, 503]
+    }
+  }
+]

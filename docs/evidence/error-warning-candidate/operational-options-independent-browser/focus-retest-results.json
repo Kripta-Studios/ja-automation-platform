@@ -1,0 +1,41 @@
+{
+  "date": "2026-09-27",
+  "environment": "third fresh disposable no-worker database, actual Chromium via Playwright MCP",
+  "candidate": "isolated operational overlay with Team anchor focus and scroll fix",
+  "expenseSpanishPhone": {
+    "viewportWidth": 390,
+    "sourceNoticeFocused": true,
+    "destinationLocale": "es",
+    "destinationDataStatus": 200,
+    "destinationTitle": "Acceso del equipo",
+    "destinationSectionFocused": true,
+    "destinationSectionTabIndex": -1,
+    "sectionTopPx": 88.47,
+    "headingTopPx": 130.56,
+    "stickyHeaderBottomPx": 69.59,
+    "createUserAndInactiveControlsPresent": true,
+    "documentWidth": 390,
+    "expenseLookupRequests": 0,
+    "passed": true
+  },
+  "technicalReportPortugueseDesktop": {
+    "viewportWidth": 1440,
+    "sourceNoticeFocused": true,
+    "destinationLocale": "pt",
+    "destinationDataStatus": 200,
+    "destinationTitle": "Acesso da equipe",
+    "destinationSectionFocused": true,
+    "destinationSectionTabIndex": -1,
+    "sectionTopPx": 88.47,
+    "headingTopPx": 130.56,
+    "stickyHeaderBottomPx": 72,
+    "createUserAndInactiveControlsPresent": true,
+    "documentWidth": 1440,
+    "passed": true
+  },
+  "console": {
+    "unrelatedOfflineIdentity503": true,
+    "expenseLookup403": false,
+    "otherFormExceptions": 0
+  }
+}

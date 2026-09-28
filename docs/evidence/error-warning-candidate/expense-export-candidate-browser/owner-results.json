@@ -1,0 +1,54 @@
+{
+  "candidateCommit": "de773448ae030f1a19bf323580460be3571356c2",
+  "role": "owner",
+  "viewport": 1440,
+  "locale": "es",
+  "status": 400,
+  "contentType": "application/problem+json; charset=utf-8",
+  "invalid": {
+    "path": "/j-aautomation/app/expenses",
+    "queryKeys": [
+      "lang"
+    ],
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "scrollY": 773,
+    "locale": "es-ES",
+    "disclosureOpen": true,
+    "from": "2026-09-20",
+    "to": "2026-09-19",
+    "csvLinkDates": {
+      "from": "2026-09-20",
+      "to": "2026-09-19"
+    },
+    "code": "EXPENSE_EXPORT_DATE_ORDER_INVALID",
+    "noticeText": "Se requiere una acción La fecha de fin es anterior a la de inicio. Elige una fecha de fin igual o posterior a la de inicio. Revisar los filtros de exportación",
+    "noticeTop": 559.453125,
+    "noticeBottom": 690.71875,
+    "headerBottom": 72,
+    "focusIsNotice": true,
+    "focusedTag": "aside",
+    "remedyText": "Revisar los filtros de exportación",
+    "remedyHref": "#expense-export-fields",
+    "toFieldError": "La fecha de fin es anterior a la de inicio. Elige una fecha de fin igual o posterior a la de inicio.",
+    "problemCount": 1
+  },
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      {
+        "status": 400,
+        "contentType": "application/problem+json; charset=utf-8",
+        "resourceType": "fetch"
+      }
+    ],
+    "downloads": []
+  }
+}

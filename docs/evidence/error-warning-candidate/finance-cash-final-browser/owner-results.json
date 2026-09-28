@@ -1,0 +1,101 @@
+{
+  "candidateCommit": "fa8eeb6a975e74344ba9351a6f3f5bd7320b08c2",
+  "role": "owner",
+  "width": 1440,
+  "height": 900,
+  "locale": "es",
+  "combined": {
+    "url": "/j-aautomation/app/finance/cash?currency=ZZZ&group=quarter&from=2026-09-01&lang=es",
+    "locale": "es",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "scrollY": 0,
+    "bannerBottom": 72,
+    "noticeCode": "FINANCE_CASH_CURRENCY_INVALID",
+    "noticeText": "Se requiere una acción Elige USD, EUR o BRL para el filtro de moneda de caja. Corregir el campo señalado",
+    "noticeTop": 512.90625,
+    "noticeBottom": 644.171875,
+    "summaryText": "Revisa los campos señalados. Moneda: Elige USD, EUR o BRL para el filtro de moneda de caja.Agrupar por: Elige la agrupación semanal o mensual para el calendario de caja.",
+    "summaryTop": 660.171875,
+    "focusIsNotice": false,
+    "focusIsSummary": true,
+    "remedyHref": "#cash-currency",
+    "currency": "ZZZ",
+    "group": "quarter",
+    "from": "2026-09-01",
+    "to": "",
+    "fieldErrors": {
+      "cash-currency-error": "Elige USD, EUR o BRL para el filtro de moneda de caja.",
+      "cash-group-error": "Elige la agrupación semanal o mensual para el calendario de caja."
+    },
+    "groupCount": 0
+  },
+  "groupOnly": {
+    "url": "/j-aautomation/app/finance/cash?group=quarter&lang=es",
+    "locale": "es",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "scrollY": 0,
+    "bannerBottom": 72,
+    "noticeCode": "FINANCE_CASH_GROUP_INVALID",
+    "noticeText": "Se requiere una acción Elige la agrupación semanal o mensual para el calendario de caja. Corregir el campo señalado",
+    "noticeTop": 512.90625,
+    "noticeBottom": 644.171875,
+    "summaryText": null,
+    "summaryTop": null,
+    "focusIsNotice": true,
+    "focusIsSummary": false,
+    "remedyHref": "#cash-group",
+    "currency": "",
+    "group": "quarter",
+    "from": "",
+    "to": "",
+    "fieldErrors": {
+      "cash-group-error": "Elige la agrupación semanal o mensual para el calendario de caja."
+    },
+    "groupCount": 0
+  },
+  "corrected": {
+    "url": "/j-aautomation/app/finance/cash?lang=es&viewportScrollY=604&currency=USD&filter=all&from=&to=&project=&group=month",
+    "locale": "es",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "scrollY": 0,
+    "bannerBottom": 72,
+    "noticeCode": null,
+    "noticeText": null,
+    "noticeTop": null,
+    "noticeBottom": null,
+    "summaryText": null,
+    "summaryTop": null,
+    "focusIsNotice": false,
+    "focusIsSummary": false,
+    "remedyHref": null,
+    "currency": "USD",
+    "group": "month",
+    "from": "",
+    "to": "",
+    "fieldErrors": {},
+    "groupCount": 2
+  },
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 document /j-aautomation/app/finance/cash",
+      "200 document /j-aautomation/app/finance/cash",
+      "200 document /j-aautomation/app/finance/cash",
+      "200 fetch /j-aautomation/app/finance/cash/__data.json"
+    ]
+  }
+}

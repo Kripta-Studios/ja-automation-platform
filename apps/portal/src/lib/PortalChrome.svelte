@@ -1,10 +1,21 @@
 <script lang="ts">
+  import { onMount, tick } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
+  import { page } from '$app/stores';
   import { portalLocales, type PortalLocale } from './portal-i18n';
-  import type { NavItem } from './portal-navigation';
+  import { translateControlledValue } from './i18n/controlled-values';
+  import {
+    accountNavigationFor,
+    activeNavItem,
+    portalGlobalNavigationForRole,
+    type NavItem,
+  } from './portal-navigation';
+  import SectionNavigator from './portal/ui/SectionNavigator.svelte';
+  import PortalNavIcon from './PortalNavIcon.svelte';
 
   type ChromeData = {
     section: string;
-    user: { name: string; role?: string };
+    user: { name: string; role?: string; workforceProfile?: string };
   };
 
   let {
@@ -24,7 +35,6 @@
     syncMessage,
     locale,
     translate,
-    href,
     itemHref,
     initials,
     logout,
@@ -48,7 +58,6 @@
     syncMessage: string;
     locale: PortalLocale;
     translate: (value: string) => string;
-    href: (section: string) => string;
     itemHref: (item: NavItem) => string;
     initials: (name: string) => string;
     logout: () => Promise<void>;
@@ -56,6 +65,18 @@
     onMenuToggle: () => void;
     onCloseMenu: () => void;
   } = $props();
+
+  let accountOpen = $state(false);
+  let drawer: HTMLElement | null = null;
+  let menuToggle: HTMLButtonElement | null = null;
+  let mobileDrawer = $state(false);
+  let drawerWasOpen = false;
+  let previousFocus: HTMLElement | null = null;
+  let restoreDrawerFocus = true;
+  let rootHadScrollLockClass = false;
+  let bodyHadScrollLockClass = false;
+
+  const drawerScrollLockClass = 'portal-drawer-open';
 
   const navIconPaths: Record<string, string> = {
     Today: 'M3 10.75 12 3l9 7.75V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.25Z',
@@ -82,91 +103,404 @@
     'My Pay': 'M4 7h16v10H4zM4 10h16M8 14h2',
   };
 
+  const helpCopy = {
+    en: { label: 'Help', detail: 'Field guides and task instructions' },
+    es: { label: 'Ayuda', detail: 'Guías de campo e instrucciones de tareas' },
+    pt: { label: 'Ajuda', detail: 'Guias de campo e instruções de tarefas' },
+  } as const;
+
   const iconPath = (item: NavItem): string => navIconPaths[item.label] ?? 'M5 12h14M12 5l7 7-7 7';
+  const globalNavigation = $derived(
+    portalGlobalNavigationForRole(data.user.role, data.user.workforceProfile),
+  );
+  const notificationsItem = $derived(
+    globalNavigation.find((item) => item.section === 'notifications'),
+  );
+  const accountNavigation = $derived(
+    accountNavigationFor(
+      {
+        primary: navigation,
+        secondary: secondaryNavigation,
+        admin: visibleAdmin,
+        security: securityAdmin,
+      },
+      globalNavigation,
+    ),
+  );
+  const sectionDestinations = $derived.by(() => {
+    const visible = [
+      ...navigation,
+      ...secondaryNavigation,
+      ...(showAdmin && (isManager || isFinance) ? visibleAdmin : []),
+      ...(showAdmin && canAudit ? securityAdmin : []),
+      ...globalNavigation,
+      { section: 'help', label: 'Help', icon: '?' },
+    ];
+    const seen = new SvelteSet<string>();
+    return visible.filter((item) => {
+      const href = itemHref(item);
+      if (seen.has(href)) return false;
+      seen.add(href);
+      return true;
+    });
+  });
+  const roleLabel = (value: string | undefined): string => {
+    const normalized =
+      value === 'owner_admin'
+        ? 'owner'
+        : value === 'finance_admin'
+          ? 'finance'
+          : value === 'project_manager'
+            ? 'manager'
+            : value === 'auditor_read_only'
+              ? 'admin'
+              : (value ?? 'worker');
+    return translateControlledValue(locale, 'role', normalized);
+  };
+
+  const focusableSelector =
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+  function drawerFocusableElements(): HTMLElement[] {
+    return drawer
+      ? Array.from(drawer.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+          (element) =>
+            element.getAttribute('aria-hidden') !== 'true' &&
+            getComputedStyle(element).display !== 'none' &&
+            getComputedStyle(element).visibility !== 'hidden',
+        )
+      : [];
+  }
+
+  function closeDrawer(followingLink = false): void {
+    restoreDrawerFocus = !followingLink;
+    onCloseMenu();
+  }
+
+  function toggleNavigation(event?: MouseEvent): void {
+    event?.preventDefault();
+    onMenuToggle();
+  }
+
+  function handleSkipLinkClick(event: MouseEvent): void {
+    const link = event.currentTarget as HTMLAnchorElement;
+    const targetSelector = link.getAttribute('href');
+    if (!targetSelector?.startsWith('#')) return;
+
+    const target = document.querySelector<HTMLElement>(targetSelector);
+    if (!target) return;
+
+    event.preventDefault();
+    if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+    target.focus();
+  }
+
+  function handleDrawerKeydown(event: KeyboardEvent): void {
+    if (!menuOpen || !mobileDrawer) return;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDrawer();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+    const focusable = drawerFocusableElements();
+    if (focusable.length === 0) {
+      event.preventDefault();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!first || !last) return;
+    const active = document.activeElement;
+    if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function applyDrawerScrollLock(): void {
+    const root = document.documentElement;
+    const body = document.body;
+    rootHadScrollLockClass = root.classList.contains(drawerScrollLockClass);
+    bodyHadScrollLockClass = body.classList.contains(drawerScrollLockClass);
+    root.classList.add(drawerScrollLockClass);
+    body.classList.add(drawerScrollLockClass);
+    drawerWasOpen = true;
+    restoreDrawerFocus = true;
+  }
+
+  function releaseDrawerScrollLock(): void {
+    if (!drawerWasOpen) return;
+
+    const root = document.documentElement;
+    const body = document.body;
+    if (!rootHadScrollLockClass) root.classList.remove(drawerScrollLockClass);
+    if (!bodyHadScrollLockClass) body.classList.remove(drawerScrollLockClass);
+    rootHadScrollLockClass = false;
+    bodyHadScrollLockClass = false;
+    drawerWasOpen = false;
+  }
+
+  const currentNavItem = $derived(
+    activeNavItem(sectionDestinations, {
+      base,
+      section: data.section,
+      url: $page.url,
+      role: data.user.role,
+      itemHref,
+    }),
+  );
+  const itemIsCurrent = (item: NavItem): boolean => currentNavItem === item;
+
+  onMount(() => {
+    const media = window.matchMedia('(max-width: 63.99rem)');
+    const updateMobileDrawer = (): void => {
+      mobileDrawer = media.matches;
+    };
+    updateMobileDrawer();
+    media.addEventListener('change', updateMobileDrawer);
+    document.addEventListener('keydown', handleDrawerKeydown);
+    const skipLink = document.querySelector<HTMLAnchorElement>('a.skip-link[href^="#"]');
+    skipLink?.addEventListener('click', handleSkipLinkClick);
+
+    return () => {
+      media.removeEventListener('change', updateMobileDrawer);
+      document.removeEventListener('keydown', handleDrawerKeydown);
+      skipLink?.removeEventListener('click', handleSkipLinkClick);
+      releaseDrawerScrollLock();
+    };
+  });
+
+  $effect(() => {
+    const open = menuOpen && mobileDrawer;
+    if (typeof document === 'undefined') return;
+
+    if (open && !drawerWasOpen) {
+      previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      applyDrawerScrollLock();
+      void tick().then(() => {
+        if (!drawerWasOpen) return;
+        drawerFocusableElements()[0]?.focus();
+      });
+      return;
+    }
+
+    if (!open && drawerWasOpen) {
+      releaseDrawerScrollLock();
+      const focusTarget = previousFocus;
+      previousFocus = null;
+      if (restoreDrawerFocus) {
+        if (focusTarget && document.contains(focusTarget)) focusTarget.focus({ preventScroll: true });
+        else menuToggle?.focus({ preventScroll: true });
+      }
+      restoreDrawerFocus = true;
+    }
+  });
 </script>
 
-<aside class:open={menuOpen}>
-  <a class="portal-brand" href={`${base}/app/`}
+<button
+  type="button"
+  class:visible={menuOpen && mobileDrawer}
+  class="nav-backdrop"
+  aria-label={translate('Close navigation')}
+  aria-hidden={menuOpen && mobileDrawer ? undefined : 'true'}
+  tabindex="-1"
+  onclick={() => closeDrawer()}
+></button>
+
+<aside
+  id="portal-navigation"
+  class:open={menuOpen}
+  bind:this={drawer}
+  aria-label={translate('Portal navigation')}
+  role={mobileDrawer ? 'dialog' : undefined}
+  aria-modal={mobileDrawer ? 'true' : undefined}
+  aria-hidden={mobileDrawer && !menuOpen ? 'true' : undefined}
+  inert={mobileDrawer && !menuOpen ? true : undefined}
+>
+  <a class="portal-brand" href={`${base}/app/`} onclick={() => closeDrawer(true)}
     ><img src={`${base}/app/logo.png`} alt="J&A Automation" /></a
   >
-  <nav aria-label="Primary navigation">
+  <nav aria-label={translate('Primary navigation')}>
     {#each navigation as item}
       <a
-        class:active={data.section === item.section}
+        class:active={itemIsCurrent(item)}
         href={itemHref(item)}
-        title={item.label}
-        onclick={onCloseMenu}
+        title={translate(item.label)}
+        aria-current={itemIsCurrent(item) ? 'page' : undefined}
+        onclick={() => closeDrawer(true)}
       >
         <span class="nav-icon" aria-hidden="true"
-          ><svg viewBox="0 0 24 24" focusable="false"><path d={iconPath(item)} /></svg></span
-        ><span>{item.label}</span>
+          ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
+        ><span class="nav-label">{translate(item.label)}</span>
       </a>
     {/each}
-    <small>SECONDARY</small>
+    <small class="nav-heading">{translate('SECONDARY')}</small>
     {#each secondaryNavigation as item}
       <a
-        class:active={data.section === item.section}
+        class:active={itemIsCurrent(item)}
         href={itemHref(item)}
-        title={item.label}
-        onclick={onCloseMenu}
+        title={translate(item.label)}
+        aria-current={itemIsCurrent(item) ? 'page' : undefined}
+        onclick={() => closeDrawer(true)}
       >
         <span class="nav-icon" aria-hidden="true"
-          ><svg viewBox="0 0 24 24" focusable="false"><path d={iconPath(item)} /></svg></span
-        ><span>{item.label}</span>
+          ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
+        ><span class="nav-label">{translate(item.label)}</span>
       </a>
     {/each}
   </nav>
-  {#if showAdmin}
+  {#if showAdmin && (visibleAdmin.length > 0 || (canAudit && securityAdmin.length > 0))}
     <div class="admin-nav">
       {#if isManager || isFinance}
-        <small>ADMINISTRATION</small>
+        {#if visibleAdmin.length > 0}<small class="nav-heading">{translate('ADMINISTRATION')}</small
+          >{/if}
         {#each visibleAdmin as item}
           <a
-            class:active={data.section === item.section}
+            class:active={itemIsCurrent(item)}
             href={itemHref(item)}
-            title={item.label}
-            onclick={onCloseMenu}
+            title={translate(item.label)}
+            aria-current={itemIsCurrent(item) ? 'page' : undefined}
+            onclick={() => closeDrawer(true)}
           >
             <span class="nav-icon" aria-hidden="true"
-              ><svg viewBox="0 0 24 24" focusable="false"><path d={iconPath(item)} /></svg></span
-            ><span>{item.label}</span>
+              ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
+            ><span class="nav-label">{translate(item.label)}</span>
           </a>
         {/each}
       {/if}
-      {#if canAudit}
-        <small>SECURITY</small>
+      {#if canAudit && securityAdmin.length > 0}
+        <small class="nav-heading">{translate('SECURITY')}</small>
         {#each securityAdmin as item}
           <a
-            class:active={data.section === item.section}
+            class:active={itemIsCurrent(item)}
             href={itemHref(item)}
-            title={item.label}
-            onclick={onCloseMenu}
+            title={translate(item.label)}
+            aria-current={itemIsCurrent(item) ? 'page' : undefined}
+            onclick={() => closeDrawer(true)}
           >
             <span class="nav-icon" aria-hidden="true"
-              ><svg viewBox="0 0 24 24" focusable="false"><path d={iconPath(item)} /></svg></span
-            ><span>{item.label}</span>
+              ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
+            ><span class="nav-label">{translate(item.label)}</span>
           </a>
         {/each}
       {/if}
     </div>
   {/if}
-  <button class="signout" onclick={logout}>Sign out</button>
+  <a
+    href="https://webmail.j-aautomation.com/"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="portal-external-nav-link"
+    title={translate('Company Webmail')}
+  >
+    <span class="nav-icon" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+      </svg>
+    </span>
+    <span class="nav-label">{translate('Company Webmail')}</span>
+    <span class="nav-external-arrow" aria-hidden="true">↗</span>
+  </a>
+  <button class="signout" onclick={logout}>{translate('Sign out')}</button>
 </aside>
 
 <header>
   <div class="header-status">
     <button
+      bind:this={menuToggle}
+      type="button"
       class="menu-button"
-      aria-label="Toggle navigation"
+      aria-label={translate('Toggle navigation')}
+      aria-controls="portal-navigation"
       aria-expanded={menuOpen}
-      onclick={onMenuToggle}
+      onclick={toggleNavigation}
+      onkeydown={(event) => {
+        if (event.key === 'Tab' && !event.shiftKey && !mobileDrawer) {
+          event.preventDefault();
+          drawer?.querySelector<HTMLElement>('nav a')?.focus();
+        }
+      }}
     >
       <span></span><span></span>
     </button>
-    <span class:offline={!online} class="connection"><i></i>{online ? 'Online' : 'Offline'}</span>
-    {#if queue > 0}<span class="queue">{queue} queued</span>{/if}
-    {#if syncMessage}<span class="sync-message" role="status">{syncMessage}</span>{/if}
+    <span class:offline={!online} class="connection"
+      ><i></i>{online ? translate('Online') : translate('Offline')}</span
+    >
+    {#if queue > 0}<span class="queue">{queue} {translate('queued')}</span>{/if}
+    {#if syncMessage}<span class="sync-message" role="status">{translate(syncMessage)}</span>{/if}
   </div>
+  <SectionNavigator
+    items={sectionDestinations}
+    itemHref={(item) => {
+      const target = new URL(itemHref(item), $page.url);
+      target.searchParams.set('lang', locale);
+      return `${target.pathname}${target.search}`;
+    }}
+    {translate}
+  />
+  {#if notificationsItem}
+    <a
+      class="portal-notifications-link"
+      class:active={itemIsCurrent(notificationsItem)}
+      href={itemHref(notificationsItem)}
+      title={translate('Notifications')}
+      aria-label={translate('Notifications')}
+      aria-current={itemIsCurrent(notificationsItem) ? 'page' : undefined}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        width="20"
+        height="20"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"><path d={navIconPaths.Notifications} /></svg
+      >
+    </a>
+  {/if}
+  <a
+    href="https://webmail.j-aautomation.com/"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="portal-webmail-link"
+    title={translate('Company Webmail')}
+    aria-label={translate('Company Webmail')}
+  >
+    <svg
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+    </svg>
+    <span class="webmail-text">{translate('Webmail')}</span>
+  </a>
   <label class="locale-switcher">
     <span class="visually-hidden">{translate('Language')}</span>
     <select aria-label={translate('Language')} value={locale} onchange={changeLocale}>
@@ -177,9 +511,140 @@
       {/each}
     </select>
   </label>
-  <a class="user" href={href('profile')}>
-    <span class="user-avatar" aria-hidden="true">{initials(data.user.name)}</span>
-    <span class="user-copy"><b>{data.user.name}</b><small>{data.user.role ?? 'worker'}</small></span
+  <div class="account-menu-wrap">
+    <button
+      type="button"
+      class="user account-trigger"
+      aria-label={translate('Account options')}
+      aria-haspopup="menu"
+      aria-expanded={accountOpen}
+      aria-controls="account-menu"
+      onclick={() => (accountOpen = !accountOpen)}
+      onkeydown={(event) => {
+        if (event.key === 'Escape') accountOpen = false;
+      }}
     >
-  </a>
+      <span class="user-avatar" aria-hidden="true">{initials(data.user.name)}</span>
+      <span class="user-copy"
+        ><b>{data.user.name}</b><small>{roleLabel(data.user.role)}</small></span
+      >
+      <span class="account-chevron" aria-hidden="true">
+        <svg viewBox="0 0 16 16" focusable="false">
+          <path d={accountOpen ? 'm3.5 9.5 4.5-4 4.5 4' : 'm3.5 6.5 4.5 4 4.5-4'} />
+        </svg>
+      </span>
+    </button>
+    {#if accountOpen}
+      <div
+        id="account-menu"
+        class="account-menu"
+        role="menu"
+        aria-label={translate('Account options')}
+      >
+        <div class="account-menu-summary" role="presentation">
+          <span class="portal-kicker">{translate('SIGNED IN')}</span>
+          <strong>{data.user.name}</strong>
+          <small>{roleLabel(data.user.role)} {translate('workspace access')}</small>
+        </div>
+        {#each accountNavigation as item}
+          {@const accountDetail =
+            item.section === 'pay'
+              ? 'Compensation, expenses and pay history'
+              : item.section === 'documents'
+                ? 'Private files shared with your workspace'
+                : item.section === 'profile'
+                  ? 'Personal details, MFA and availability'
+                  : ''}
+          {@const accountIcon =
+            item.section === 'pay' ? '€' : item.section === 'documents' ? '□' : '◎'}
+          <a
+            role="menuitem"
+            href={itemHref(item)}
+            aria-current={itemIsCurrent(item) ? 'page' : undefined}
+            onclick={() => (accountOpen = false)}
+          >
+            <span class="account-menu-icon" aria-hidden="true">
+              {#if item.section === 'notifications'}
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"><path d={navIconPaths.Notifications} /></svg
+                >
+              {:else}{accountIcon}{/if}
+            </span>
+            <span
+              ><b>{translate(item.label)}</b>{#if accountDetail}<small
+                  >{translate(accountDetail)}</small
+                >{/if}</span
+            >
+          </a>
+        {/each}
+        <div class="account-menu-divider" role="separator"></div>
+        <a role="menuitem" href={`${base}/app/help`} onclick={() => (accountOpen = false)}>
+          <span class="account-menu-icon" aria-hidden="true">?</span>
+          <span><b>{helpCopy[locale].label}</b><small>{helpCopy[locale].detail}</small></span>
+        </a>
+        <div class="account-menu-divider" role="separator"></div>
+        <a
+          role="menuitem"
+          href="https://webmail.j-aautomation.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          onclick={() => (accountOpen = false)}
+        >
+          <span class="account-menu-icon" aria-hidden="true">✉</span>
+          <span
+            ><b>{translate('Company Webmail')}</b><small>webmail.j-aautomation.com ↗</small></span
+          >
+        </a>
+        <div class="account-menu-divider" role="separator"></div>
+        <button type="button" class="account-signout" role="menuitem" onclick={logout}>
+          <span class="account-menu-icon" aria-hidden="true">↪</span>
+          <span
+            ><b>{translate('Log out')}</b><small
+              >{translate('End this session on this device')}</small
+            ></span
+          >
+        </button>
+      </div>
+    {/if}
+  </div>
 </header>
+
+<style>
+  .portal-notifications-link {
+    box-sizing: border-box;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--ja-border-subdued, #d6d5d2);
+    border-radius: 0.65rem;
+    color: var(--ja-ink, #24251f);
+    background: white;
+    text-decoration: none;
+  }
+
+  .portal-notifications-link:hover,
+  .portal-notifications-link.active {
+    background: var(--ja-canvas, #f6f6f1);
+  }
+
+  .portal-notifications-link:focus-visible {
+    outline: 2px solid var(--ja-accent, #2349b5);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 520px) {
+    /* The fully labelled inbox remains in Account and Go to section on phones. */
+    .portal-notifications-link {
+      display: none;
+    }
+  }
+</style>

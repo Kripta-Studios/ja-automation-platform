@@ -1,0 +1,191 @@
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { projects } from './projects.ts';
+import { lifecycle } from './shared.ts';
+
+export const invoices = sqliteTable(
+  'invoice',
+  {
+    id: text('id').primaryKey(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id),
+    invoiceNumber: text('invoice_number').unique(),
+    streamType: text('stream_type').notNull(),
+    state: text('state').notNull().default('draft'),
+    currency: text('currency').notNull(),
+    subtotalMinor: integer('subtotal_minor').notNull().default(0),
+    taxMinor: integer('tax_minor').notNull().default(0),
+    totalMinor: integer('total_minor').notNull().default(0),
+    issuedAt: text('issued_at'),
+    plannedIssueOn: text('planned_issue_on'),
+    expectedCollectionOn: text('expected_collection_on'),
+    snapshotJson: text('snapshot_json'),
+    billingRuleId: text('billing_rule_id'),
+    periodStart: text('period_start'),
+    periodEnd: text('period_end'),
+    dueAt: text('due_at'),
+    calculationHash: text('calculation_hash'),
+    sentAt: text('sent_at'),
+    pdfStatus: text('pdf_status'),
+    pdfStorageKey: text('pdf_storage_key'),
+    pdfSha256: text('pdf_sha256'),
+    pdfGeneratedAt: text('pdf_generated_at'),
+    sourceLockAt: text('source_lock_at'),
+    voidedAt: text('voided_at'),
+    pdfByteLength: integer('pdf_byte_length'),
+    tenantId: text('tenant_id'),
+    deploymentId: text('deployment_id'),
+    legalEntityRevisionId: text('legal_entity_revision_id'),
+    configurationRevisionId: text('configuration_revision_id'),
+    predecessorSubjectHash: text('predecessor_subject_hash'),
+    invoiceSubjectHash: text('invoice_subject_hash'),
+    version: integer('version').notNull().default(1),
+    ...lifecycle,
+  },
+  (table) => [
+    index('invoice_project_idx').on(table.projectId),
+    uniqueIndex('invoice_number_unique').on(table.invoiceNumber),
+  ],
+);
+
+export const invoiceLines = sqliteTable('invoice_line', {
+  id: text('id').primaryKey(),
+  invoiceId: text('invoice_id').notNull(),
+  description: text('description').notNull(),
+  quantityNumerator: integer('quantity_numerator').notNull(),
+  quantityDenominator: integer('quantity_denominator').notNull(),
+  unitPriceMinor: integer('unit_price_minor').notNull(),
+  subtotalMinor: integer('subtotal_minor').notNull(),
+  sourceType: text('source_type').notNull(),
+  sourceId: text('source_id').notNull(),
+  snapshotJson: text('snapshot_json').notNull(),
+  taxMinor: integer('tax_minor'),
+  groupingKey: text('grouping_key'),
+  lineNumber: integer('line_number'),
+  lineKind: text('line_kind'),
+  unitAmountMinor: integer('unit_amount_minor'),
+  netAmountMinor: integer('net_amount_minor'),
+  taxBps: integer('tax_bps'),
+  taxAmountMinor: integer('tax_amount_minor'),
+  grossAmountMinor: integer('gross_amount_minor'),
+  sourceBucketKey: text('source_bucket_key'),
+  roundingRank: integer('rounding_rank'),
+  createdAt: text('created_at'),
+});
+
+export const invoiceSources = sqliteTable('invoice_source', {
+  sourceLinkId: text('source_link_id').primaryKey(),
+  invoiceId: text('invoice_id').notNull(),
+  invoiceLineId: text('invoice_line_id'),
+  sourceType: text('source_type').notNull(),
+  sourceId: text('source_id').notNull(),
+  sourceVersion: integer('source_version').notNull(),
+  sourceHash: text('source_hash').notNull(),
+  allocatedNetMinor: integer('allocated_net_minor').notNull(),
+  allocatedTaxMinor: integer('allocated_tax_minor').notNull(),
+  allocatedGrossMinor: integer('allocated_gross_minor').notNull(),
+  createdAt: text('created_at').notNull(),
+  lockedAt: text('locked_at'),
+});
+
+export const invoiceApprovedSupersessions = sqliteTable('invoice_approved_supersession', {
+  priorInvoiceId: text('prior_invoice_id')
+    .primaryKey()
+    .references(() => invoices.id),
+  replacementInvoiceId: text('replacement_invoice_id')
+    .notNull()
+    .unique()
+    .references(() => invoices.id),
+  priorApprovalVersion: integer('prior_approval_version').notNull(),
+  sourceLinksJson: text('source_links_json').notNull(),
+  sourceLinksSha256: text('source_links_sha256').notNull(),
+  priorSnapshotSha256: text('prior_snapshot_sha256').notNull(),
+  priorLinesSha256: text('prior_lines_sha256').notNull(),
+  reason: text('reason').notNull(),
+  actorId: text('actor_id').notNull(),
+  supersededAt: text('superseded_at').notNull(),
+});
+
+export const invoiceCommercialSourceManifest = sqliteTable(
+  'invoice_commercial_source_manifest',
+  {
+    manifestId: text('manifest_id').primaryKey(),
+    invoiceId: text('invoice_id').notNull(),
+    sourceType: text('source_type').notNull(),
+    sourceId: text('source_id').notNull(),
+    sourceVersion: integer('source_version'),
+    disposition: text('disposition').notNull(),
+    originalMinor: integer('original_minor'),
+    allocatedMinor: integer('allocated_minor'),
+    remainingMinor: integer('remaining_minor'),
+    reasonCode: text('reason_code').notNull(),
+    sourceHash: text('source_hash'),
+    createdAt: text('created_at').notNull(),
+    lockedAt: text('locked_at'),
+  },
+  (table) => [
+    uniqueIndex('invoice_commercial_source_manifest_source_unique').on(
+      table.invoiceId,
+      table.sourceType,
+      table.sourceId,
+    ),
+  ],
+);
+
+export const payments = sqliteTable('payment', {
+  id: text('id').primaryKey(),
+  invoiceId: text('invoice_id').notNull(),
+  amountMinor: integer('amount_minor').notNull(),
+  currency: text('currency').notNull(),
+  receivedAt: text('received_at').notNull(),
+  reference: text('reference'),
+  createdAt: text('created_at').notNull(),
+  idempotencyKey: text('idempotency_key'),
+  tenantId: text('tenant_id'),
+  deploymentId: text('deployment_id'),
+  legalEntityRevisionId: text('legal_entity_revision_id'),
+  method: text('method'),
+  externalReference: text('external_reference'),
+  priorPaymentHash: text('prior_payment_hash'),
+  paymentPayloadHash: text('payment_payload_hash'),
+  paymentHash: text('payment_hash'),
+  actorId: text('actor_id'),
+  commandId: text('command_id'),
+});
+
+export const invoiceEvents = sqliteTable('invoice_event', {
+  id: text('id').primaryKey(),
+  invoiceId: text('invoice_id').notNull(),
+  eventType: text('event_type').notNull(),
+  amountMinor: integer('amount_minor'),
+  reason: text('reason').notNull(),
+  actorId: text('actor_id').notNull(),
+  occurredAt: text('occurred_at').notNull(),
+  idempotencyKey: text('idempotency_key').notNull().unique(),
+  eventSequence: integer('event_sequence'),
+  effectiveAt: text('effective_at'),
+  reasonCode: text('reason_code'),
+  reasonText: text('reason_text'),
+  priorEventHash: text('prior_event_hash'),
+  eventPayloadHash: text('event_payload_hash'),
+  commandId: text('command_id'),
+  createdAt: text('created_at'),
+});
+
+export const invoiceAdjustments = sqliteTable('invoice_adjustment', {
+  id: text('id').primaryKey(),
+  originalInvoiceId: text('original_invoice_id').notNull(),
+  adjustmentInvoiceId: text('adjustment_invoice_id').notNull().unique(),
+  adjustmentType: text('adjustment_type').notNull(),
+  reason: text('reason').notNull(),
+  createdBy: text('created_by').notNull(),
+  createdAt: text('created_at').notNull(),
+  tenantId: text('tenant_id'),
+  deploymentId: text('deployment_id'),
+  currency: text('currency'),
+  amountMinor: integer('amount_minor'),
+  effectiveAt: text('effective_at'),
+  priorAdjustmentHash: text('prior_adjustment_hash'),
+  adjustmentHash: text('adjustment_hash'),
+  idempotencyKey: text('idempotency_key'),
+});

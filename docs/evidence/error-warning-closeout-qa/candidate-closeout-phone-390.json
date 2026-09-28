@@ -1,0 +1,29 @@
+{
+  "project": "disposable lifecycle fixture",
+  "viewport": "phone-390",
+  "invalid": {
+    "http": 400,
+    "code": "CLOSEOUT_CONFIRMATION_CHECK_REQUIRED",
+    "scrollBefore": 500,
+    "scrollAfter": 314,
+    "geometry": {
+      "top": 81.59375,
+      "bottom": 233.15625,
+      "headerBottom": 69.59375,
+      "viewportBottom": 844
+    }
+  },
+  "stale": {
+    "http": 409,
+    "code": "CLOSEOUT_DRAFT_CHANGED",
+    "scrollBefore": 500,
+    "scrollAfter": 314,
+    "geometry": {
+      "top": 81.59375,
+      "bottom": 253.453125,
+      "headerBottom": 69.59375,
+      "viewportBottom": 844
+    }
+  },
+  "pageErrors": []
+}

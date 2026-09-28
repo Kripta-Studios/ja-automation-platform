@@ -4,6 +4,7 @@ import {
   calculateTaxComponents,
   chooseMostSpecificRate,
   laborSubtotal,
+  lastCompletePeriodForCadence,
   overtimeRate,
   percentageOfEligibleClientLabor,
 } from '@ja/billing-engine';
@@ -87,5 +88,12 @@ describe('billing engine financial boundaries', () => {
       },
     ]);
     expect(selected?.id).toBe('category');
+  });
+
+  it('returns the last complete weekly cadence period before today', () => {
+    expect(lastCompletePeriodForCadence('weekly', '2026-09-02')).toEqual({
+      start: '2026-08-24',
+      end: '2026-08-30',
+    });
   });
 });

@@ -1,0 +1,16 @@
+[
+  {
+    "step": "native-file-required",
+    "code": "DOCUMENT_FILE_REQUIRED",
+    "scrollBefore": 45,
+    "scrollAfter": 45
+  },
+  {
+    "step": "native-upload-success",
+    "saved": true
+  },
+  {
+    "step": "manager-finance-scope-denied",
+    "code": "DOCUMENT_FINANCE_ROLE_REQUIRED"
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "clientName": "JA QA Client 88243623",
+  "projectName": "JA QA Project 88243623",
+  "responses": [
+    {
+      "status": 400,
+      "url": "/j-aautomation/app/projects?/createClient"
+    },
+    {
+      "status": 400,
+      "url": "/j-aautomation/app/projects?/createProject"
+    }
+  ],
+  "projectVisible": 0,
+  "pageUrl": "https://j-aautomation.com/j-aautomation/app/projects?/createProject",
+  "errorText": [],
+  "checkedAt": "2026-09-23T18:30:48.273Z",
+  "image": "ja-automation-portal:zip-97502e4a6676a5a7c91435e42522c3b3"
+}

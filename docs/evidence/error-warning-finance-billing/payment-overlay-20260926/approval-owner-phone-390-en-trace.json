@@ -1,0 +1,19 @@
+[
+  {
+    "step": "approval-success",
+    "state": "approved"
+  },
+  {
+    "step": "invalid-reason",
+    "fieldFocused": true
+  },
+  {
+    "step": "stale-approval",
+    "code": "APPROVAL_RECORD_NOT_SUBMITTED",
+    "tabRetained": true
+  },
+  {
+    "step": "worker-permission",
+    "unchanged": true
+  }
+]

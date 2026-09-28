@@ -1,0 +1,215 @@
+[WebServer] (node:266014) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next build
+
+[WebServer] (node:266027) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:266027) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:266133) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:266131) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:266138) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:266226) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ next start --port 4173 --hostname 127.0.0.1
+
+[WebServer] (node:266239) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+
+[WebServer] (node:266261) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite build
+
+[WebServer] (node:266303) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:266303) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] [plugin builtin:vite-reporter]
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+[WebServer] (node:266303) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] .svelte-kit/output/server/chunks/auth.js (3652:0): A comment
+[WebServer]
+[WebServer] "/**
+[WebServer] * Wraps a cipher: validates args, ensures encrypt() can only be called once.
+[WebServer] * Used internally by the exported cipher constructors.
+[WebServer] * Output-buffer support is inferred from the wrapped `encrypt` / `decrypt`
+[WebServer] * arity (`fn.length === 2`), so wrapped output-capable methods must use a normal
+[WebServer] * second parameter, not a default/rest parameter. AAD support is explicit in
+[WebServer] * `params.withAAD`; optional AAD starts after the nonce slot when one is present.
+[WebServer] * @__NO_SIDE_EFFECTS__
+[WebServer] * @param params - Static cipher metadata. See {@link CipherParams}.
+[WebServer] * @param constructor - Cipher constructor.
+[WebServer] * @returns Wrapped constructor with validation.
+[WebServer] */"
+[WebServer]
+[WebServer] in ".svelte-kit/output/server/chunks/auth.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+
+[WebServer] "node:sqlite" is imported by ".svelte-kit/output/server/chunks/src.js", but could not be resolved – treating it as an external dependency.
+
+[WebServer] Generated an empty chunk: "chunks/env.js".
+
+[WebServer] [PLUGIN_TIMINGS] Your build spent 100% of 11.2s inside plugin hooks (17.4s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-sveltekit-compile writeBundle (68%, 7.7s, 1 call)
+[WebServer]   - vite-plugin-sveltekit-compile closeBundle (58%, 6.5s, 1 call)
+[WebServer]   - vite-plugin-svelte:compile transform (22%, 2.5s, 63 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 100% is below.
+[WebServer] Not measurable — 1 hook whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (4421 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer]
+
+[WebServer] (node:266640) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ node build
+
+[WebServer] (node:266653) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a0b90e-768f-706b-b793-d26ae293ad6d",
+    "01a0b90e-7690-7595-b9cd-9129fed4d97f",
+    "01a0b90e-7691-707f-ac54-1477d1607ea6",
+    "01a0b90e-7691-707f-ac54-27ca0724e6c1"
+  ],
+  "invoiceDrafts": [
+    "01a0b90e-7777-717b-bea3-5e0b42b6ffe8",
+    "01a0b90e-777b-741b-ad77-00c8dc600a45",
+    "01a0b90e-777f-7110-9d30-daf000e612ec"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a0b90e-7787-7588-8c70-aa493db892b6",
+    "01a0b90e-778a-72fa-9ca8-7b107aaaafeb",
+    "01a0b90e-778d-7388-ac8f-208d6775bca0"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a0b90e-7787-7588-8c70-aa493db892b6",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a0b90e-776d-760c-b078-4df246318732",
+    "01a0b90e-776f-74e2-b995-1bebb19951cf"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0b90e-768f-706b-b793-d26ae293ad6d",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a0b90e-7797-7075-a3e2-8bcbe3382d13"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a0b90e-768f-706b-b793-d26ae293ad6d",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a0b90e-7799-767d-a9c3-fa11d2b0a27a"
+    }
+  ],
+  "periodReportIds": [
+    "01a0b90e-779a-772e-b73d-d43f591cc594",
+    "01a0b90e-779a-772e-b73d-da99befd9f9f"
+  ],
+  "accountingPackId": "01a0b90e-77e0-76b9-bcc3-6ad55864491d",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-01b1a340b142c81d0f7863d0657c881aabcb73f8",
+  "closeoutId": "01a0b90e-7868-7407-bc2e-aa435f19930d"
+}
+
+Running 2 tests using 1 worker
+
+(node:266686) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/2] [desktop] › tests/e2e/locale-role-workflows.spec.ts:214:1 › seven personas keep Help navigation and profile breadcrumb localized in PT-BR
+  1) [desktop] › tests/e2e/locale-role-workflows.spec.ts:214:1 › seven personas keep Help navigation and profile breadcrumb localized in PT-BR
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('a[href$="/app/help"]').first()
+    Expected substring: "Ajuda"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('a[href$="/app/help"]').first()
+
+
+      237 |       expect(response?.status(), persona).toBe(200);
+      238 |       await expect(page.locator('html')).toHaveAttribute('lang', 'pt-BR');
+    > 239 |       await expect(page.locator('a[href$="/app/help"]').first()).toContainText('Ajuda');
+          |                                                                  ^
+      240 |       if (!standalone)
+      241 |         await expect(page.locator('.portal-kicker').first()).toContainText(/perfil/i);
+      242 |     } finally {
+        at /home/kripta/ja-automation-platform-vps-hotfix/tests/e2e/locale-role-workflows.spec.ts:239:66
+
+    Error Context: test-results/locale-role-workflows-seve-0ce5a-eadcrumb-localized-in-PT-BR-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/locale-role-workflows-seve-0ce5a-eadcrumb-localized-in-PT-BR-desktop/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/locale-role-workflows-seve-0ce5a-eadcrumb-localized-in-PT-BR-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:266922) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[2/2] [desktop] › tests/e2e/manual-current-capture.spec.ts:53:1 › capture fresh synthetic EN and PT-BR manuals for seven personas
+  1 failed
+    [desktop] › tests/e2e/locale-role-workflows.spec.ts:214:1 › seven personas keep Help navigation and profile breadcrumb localized in PT-BR
+  1 passed (2.6m)

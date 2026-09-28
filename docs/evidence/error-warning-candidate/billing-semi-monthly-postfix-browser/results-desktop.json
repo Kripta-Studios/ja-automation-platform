@@ -1,0 +1,107 @@
+{
+  "candidateCommit": "db135569882e49f323ff8391cd2de7bac0c7c64c",
+  "role": "owner",
+  "viewport": "desktop",
+  "locale": "es",
+  "native": true,
+  "fixture": "fresh disposable database; project created through Owner UI",
+  "supported": {
+    "values": [
+      "1_15_16_end"
+    ],
+    "help": "La facturación quincenal actualmente cubre las dos mitades de cada mes."
+  },
+  "before": {
+    "scrollY": 703
+  },
+  "response": {
+    "status": 400,
+    "contentType": "text/html",
+    "type": null,
+    "actionStatus": null,
+    "code": "BILLING_SEMI_MONTHLY_RULE_INVALID",
+    "fieldErrors": null,
+    "remedies": null,
+    "values": null,
+    "generic": false
+  },
+  "after": {
+    "code": "BILLING_SEMI_MONTHLY_RULE_INVALID",
+    "notice": "Se requiere una acción La facturación quincenal actualmente cubre los días 1–15 y del 16 al fin de mes. Elige la división de mes completo disponible. Revisar la configuración de facturación",
+    "noticeTop": -67,
+    "noticeBottom": 65,
+    "noticeVisible": true,
+    "remedy": [
+      {
+        "text": "Revisar la configuración de facturación",
+        "href": "/j-aautomation/app/billing?view=setup"
+      }
+    ],
+    "fieldError": "La facturación quincenal actualmente cubre los días 1–15 y del 16 al fin de mes. Elige la división de mes completo disponible.",
+    "fieldInvalid": "true",
+    "splitOptions": [
+      {
+        "value": "",
+        "disabled": true,
+        "selected": true,
+        "text": "Elige la división de mes completo"
+      },
+      {
+        "value": "1_15_16_end",
+        "disabled": false,
+        "selected": false,
+        "text": "Días 1–15 y del 16 al fin de mes"
+      }
+    ],
+    "values": {
+      "projectId": ":record",
+      "streamType": "labor",
+      "cadenceType": "semi_monthly",
+      "effectiveFrom": "2026-09-27",
+      "legalEntityId": "legal-entity-ja-usa",
+      "currency": "USD",
+      "paymentTermsDays": "31",
+      "poNumberOverride": "QA SPLIT REVIEW",
+      "semiMonthlyRule": ""
+    },
+    "activeName": "semiMonthlyRule",
+    "activeTag": "select",
+    "activeTop": 630,
+    "activeBottom": 674,
+    "scrollY": 935,
+    "viewportHeight": 900,
+    "setupTabSelected": "Configurar facturación",
+    "lang": "es-ES"
+  },
+  "noWrite": {
+    "before": {
+      "billingRules": 0,
+      "audits": 333
+    },
+    "after": {
+      "billingRules": 0,
+      "audits": 333
+    }
+  },
+  "diagnostics": {
+    "actor": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "http": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "400 /j-aautomation/app/billing",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": [],
+      "http": [
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity",
+        "503 /j-aautomation/app/api/offline/identity"
+      ]
+    }
+  }
+}

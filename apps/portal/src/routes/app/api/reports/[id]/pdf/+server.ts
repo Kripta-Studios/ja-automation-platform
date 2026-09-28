@@ -1,42 +1,43 @@
-import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import { relative, resolve } from 'node:path';
-import { base } from '$app/paths';
-import { error, redirect, type RequestHandler } from '@sveltejs/kit';
+import { randomUUID } from 'node:crypto';
+import type { RequestHandler } from '@sveltejs/kit';
 import { openPortalRepository } from '$lib/server/portal-repository';
+import {
+  privateArtifactProblem,
+  servePrivateArtifact,
+} from '$lib/server/private-artifact-access';
 
 export const GET: RequestHandler = async ({ locals, params }) => {
-  if (!locals.user) redirect(303, `${base}/app/login`);
-  if (!params.id) error(400, 'Report id is required');
-  const context = openPortalRepository(locals);
+  const correlationId = locals.correlationId || randomUUID();
+  if (!locals.user || !locals.session)
+    return privateArtifactProblem('period_report', 'signInRequired', correlationId);
+  if (!params.id) return privateArtifactProblem('period_report', 'unavailable', correlationId);
+  let context: ReturnType<typeof openPortalRepository> | undefined;
   try {
-    const metadata = context.v3.periodReportPdfMetadata(context.principal, params.id);
-    const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
-    const target = resolve(root, metadata.storageKey);
-    const relativePath = relative(root, target);
-    if (
-      !relativePath ||
-      relativePath.split(/[\\/]/).includes('..') ||
-      relativePath.startsWith('\\') ||
-      relativePath.startsWith('/')
-    )
-      error(400, 'Invalid report path');
-    const bytes = await readFile(target);
-    if (
-      bytes.byteLength !== metadata.byteLength ||
-      createHash('sha256').update(bytes).digest('hex') !== metadata.sha256
-    )
-      error(500, 'Report integrity check failed');
-    return new Response(bytes, {
-      headers: {
-        'content-type': 'application/pdf',
-        'content-length': String(bytes.byteLength),
-        'content-disposition': `attachment; filename="${metadata.filename.replace(/[^A-Za-z0-9._-]/g, '_')}"`,
-        'cache-control': 'private, no-store',
-        'x-content-type-options': 'nosniff',
-      },
+    context = openPortalRepository(locals);
+    const repository = context;
+    return await servePrivateArtifact({
+      sqlite: repository.sqlite,
+      principal: repository.principal,
+      kind: 'period_report',
+      id: params.id,
+      expectedMediaType: 'application/pdf',
+      // Assigned-project customer reports are protected by the repository
+      // object-scope check and download audit. Internal reports remain
+      loadMetadata: () => ({
+        ...repository.v3.periodReportPdfMetadata(repository.principal, params.id!),
+        mediaType: 'application/pdf',
+      }),
     });
+  } catch (cause) {
+    console.error('Unexpected report PDF download failure', {
+      correlationId,
+      error:
+        cause instanceof Error
+          ? { name: cause.name, message: cause.message, stack: cause.stack }
+          : 'unknown error',
+    });
+    return privateArtifactProblem('period_report', 'serviceUnavailable', correlationId);
   } finally {
-    context.sqlite.close();
+    context?.sqlite.close();
   }
 };

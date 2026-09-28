@@ -1,0 +1,122 @@
+{
+  "commit": "d7abf93",
+  "viewport": 390,
+  "locale": "en",
+  "roles": [
+    "worker",
+    "owner"
+  ],
+  "nativeInvalid": {
+    "actionPosts": 0,
+    "summaryLinks": 2,
+    "inlineSummary": "Please correct the following fields:Activity summary: Please complete this field.Correction reason: Please complete this field."
+  },
+  "reason": {
+    "status": 400,
+    "code": "TIME_CORRECTION_REASON_INVALID",
+    "notice": {
+      "code": "TIME_CORRECTION_REASON_INVALID",
+      "text": "Action needed Explain the correction in 3 to 2,000 characters. Status: Approved Enter a reason",
+      "focused": true,
+      "visible": true,
+      "top": 495,
+      "bottom": 650,
+      "safeTop": 78,
+      "safeBottom": 828,
+      "scrollY": 0,
+      "locale": "en-US",
+      "overflow": false,
+      "url": "/j-aautomation/app/time/:record?/createCorrectionDraft&lang=en"
+    },
+    "field": {
+      "workDate": "2026-09-28",
+      "reason": "   ",
+      "summary": "Corrected work account from the browser",
+      "dateInvalid": null,
+      "reasonInvalid": "true",
+      "dateError": "",
+      "reasonError": "Explain the correction in 3 to 2,000 characters.",
+      "summaryText": "Please correct the following fields: Correction reason: Explain the correction in 3 to 2,000 characters.",
+      "summaryLinks": 0
+    }
+  },
+  "workerOutsideAssignment": {
+    "status": 403,
+    "code": "REPORT_ASSIGNMENT_REQUIRED",
+    "notice": {
+      "code": "REPORT_ASSIGNMENT_REQUIRED",
+      "text": "Action needed An effective project assignment must cover the report date. Contact the project owner to review access. Status: Approved Contact the project owner to review access",
+      "focused": true,
+      "visible": true,
+      "top": 495,
+      "bottom": 668,
+      "safeTop": 78,
+      "safeBottom": 828,
+      "scrollY": 0,
+      "locale": "en-US",
+      "overflow": false,
+      "url": "/j-aautomation/app/time/:record?/createCorrectionDraft&lang=en"
+    },
+    "field": {
+      "workDate": "2026-09-27",
+      "reason": "A valid reason for the corrected work.",
+      "summary": "Final correction original [qa-id]",
+      "dateInvalid": null,
+      "reasonInvalid": null,
+      "dateError": "",
+      "reasonError": "",
+      "summaryText": "",
+      "summaryLinks": 0
+    }
+  },
+  "ownerOutsideAssignment": {
+    "status": 409,
+    "code": "TIME_CORRECTION_DATE_ASSIGNMENT_REQUIRED",
+    "notice": {
+      "code": "TIME_CORRECTION_DATE_ASSIGNMENT_REQUIRED",
+      "text": "Action needed The worker’s active assignment does not cover the corrected work date. Review the date and ask the project owner to review the assignment before trying again. Status: Approved Contact the project owner to review access",
+      "focused": true,
+      "visible": true,
+      "top": 495,
+      "bottom": 688,
+      "safeTop": 78,
+      "safeBottom": 828,
+      "scrollY": 0,
+      "locale": "en-US",
+      "overflow": false,
+      "url": "/j-aautomation/app/time/:record?/createCorrectionDraft&lang=en"
+    },
+    "field": {
+      "workDate": "2026-09-27",
+      "reason": "Owner verified the original work account.",
+      "summary": "Owner corrected work account",
+      "dateInvalid": "true",
+      "reasonInvalid": null,
+      "dateError": "The worker’s active assignment does not cover the corrected work date. Review the date and ask the project owner to review the assignment before trying again.",
+      "reasonError": "",
+      "summaryText": "Please correct the following fields: Date: The worker’s active assignment does not cover the corrected work date. Review the date and ask the project owner to review the assignment before trying again.",
+      "summaryLinks": 0
+    }
+  },
+  "correction": {
+    "creation": 303,
+    "links": {
+      "worker": {
+        "count": 1,
+        "opened": true,
+        "localeRetained": true,
+        "detailStatus": "Draft"
+      },
+      "owner": {
+        "count": 1,
+        "opened": true,
+        "localeRetained": true,
+        "detailStatus": "Draft"
+      }
+    }
+  },
+  "diagnostics": {
+    "worker": [],
+    "owner": []
+  }
+}

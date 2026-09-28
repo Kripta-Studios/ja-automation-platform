@@ -1,14 +1,34 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
-import { AccessDeniedError, PortalRepository, createDatabase } from '@ja/database';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import {
+  AccessDeniedError,
+  AssignmentExpensePolicyRepository,
+  PortalRepository,
+  V3Repository,
+  createDatabase,
+} from '@ja/database';
 import type { Principal, Role } from '@ja/domain';
+import { installB5TestDeploymentIdentity } from '../fixtures/b5-test-environment.js';
 
 const directories: string[] = [];
-afterEach(() =>
-  directories.splice(0).forEach((directory) => rmSync(directory, { recursive: true, force: true })),
-);
+const databases: Array<ReturnType<typeof createDatabase>['sqlite']> = [];
+let restoreDeploymentIdentity: (() => void) | undefined;
+beforeAll(() => {
+  restoreDeploymentIdentity = installB5TestDeploymentIdentity();
+});
+afterAll(() => restoreDeploymentIdentity?.());
+afterEach(() => {
+  for (const sqlite of databases.splice(0)) {
+    try {
+      sqlite.close();
+    } catch {
+      // A passing test may already have closed the handle; cleanup must remain idempotent.
+    }
+  }
+  directories.splice(0).forEach((directory) => rmSync(directory, { recursive: true, force: true }));
+});
 
 function seedUser(
   sqlite: ReturnType<typeof createDatabase>['sqlite'],
@@ -20,7 +40,37 @@ function seedUser(
     .prepare(
       'INSERT INTO user(id,name,email,role,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
     )
-    .run(id, id, `${id}@example.com`, role, 'active', timestamp, timestamp);
+    .run(
+      id,
+      id,
+      role === 'owner_admin' ? 'antonny.luty@j-aautomation.com' : `${id}@example.com`,
+      role,
+      'active',
+      timestamp,
+      timestamp,
+    );
+}
+
+function stepUpFinance(
+  sqlite: ReturnType<typeof createDatabase>['sqlite'],
+  principal: Principal,
+): Principal {
+  const now = new Date().toISOString();
+  const sessionId = 'portal-workflow-finance-step-up';
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      `${sessionId}-token`,
+      principal.userId,
+      new Date(Date.now() + 3_600_000).toISOString(),
+      now,
+      now,
+      now,
+    );
+  return { ...principal, sessionId };
 }
 
 describe('V3 operational and billing workflow', () => {
@@ -28,7 +78,9 @@ describe('V3 operational and billing workflow', () => {
     const directory = mkdtempSync(join(tmpdir(), 'ja-workflow-'));
     directories.push(directory);
     const { sqlite } = createDatabase(join(directory, 'app.db'));
+    databases.push(sqlite);
     const repository = new PortalRepository(sqlite);
+    const v3 = new V3Repository(sqlite);
     seedUser(sqlite, 'owner', 'owner_admin');
     seedUser(sqlite, 'finance', 'finance_admin');
     seedUser(sqlite, 'manager', 'project_manager');
@@ -36,7 +88,11 @@ describe('V3 operational and billing workflow', () => {
     seedUser(sqlite, 'outsider', 'worker');
 
     const owner: Principal = { userId: 'owner', role: 'owner_admin', projectIds: new Set() };
-    const finance: Principal = { userId: 'finance', role: 'finance_admin', projectIds: new Set() };
+    const finance = stepUpFinance(sqlite, {
+      userId: 'finance',
+      role: 'finance_admin',
+      projectIds: new Set(),
+    });
 
     const client = repository.createClient(owner, {
       legalName: 'Example Manufacturing LLC',
@@ -44,10 +100,12 @@ describe('V3 operational and billing workflow', () => {
       currency: 'USD',
       timezone: 'America/New_York',
       billingEmail: 'ap@example.com',
+      billingAddress: 'Example Manufacturing billing address',
       paymentTermsDays: 30,
     });
     expect(client.clientNumber).toBe('C-0001');
     const project = repository.createProject(owner, {
+      costCenterCode: 'QA-PORTAL-WORKFLOW-TEST-1',
       clientId: client.id,
       name: 'Controls commissioning',
       timezone: 'America/New_York',
@@ -58,17 +116,65 @@ describe('V3 operational and billing workflow', () => {
       poNumber: 'PO-APPROVED',
     });
     expect(project.projectNumber).toBe('C-0001-P-001');
+    const canonicalLegacyEntity = repository.createLegalEntity(owner, {
+      code: 'JA-CANONICAL',
+      legalName: 'J&A Automation Canonical Entity',
+      currency: 'USD',
+      billingAddress: 'Canonical billing address',
+      companyIdentifiers: 'Canonical company identifiers',
+    });
+    const canonicalRevision = v3.createCanonicalLegalEntityRevision(finance, {
+      legacyLegalEntityId: canonicalLegacyEntity.id,
+      effectiveFrom: '2026-01-01',
+      legalName: 'J&A Automation Canonical Entity S.L.',
+      taxIdentifier: 'ESCANONICAL123',
+      registrationIdentifier: 'CANONICAL-REG-001',
+      addressLine1: 'Canonical billing address',
+      locality: 'Madrid',
+      region: 'Madrid',
+      postalCode: '28001',
+      countryCode: 'ES',
+      baseCurrency: 'USD',
+      timezone: 'America/New_York',
+      reason: 'Bind portal workflow expense classification to canonical authority',
+      idempotencyKey: 'portal-workflow:canonical-entity:revision',
+    });
+    v3.assignCanonicalLegalEntityToProject(finance, {
+      projectId: project.id,
+      legalEntityRevisionId: canonicalRevision.revisionId,
+      effectiveFrom: '2026-01-01',
+      reason: 'Bind portal workflow project to canonical authority',
+      idempotencyKey: 'portal-workflow:canonical-entity:assignment',
+    });
     repository.assignWorker(owner, {
       projectId: project.id,
       workerId: 'manager',
       startsOn: '2026-08-01',
       canReview: true,
     });
-    repository.assignWorker(owner, {
+    const workerAssignment = repository.assignWorker(owner, {
       projectId: project.id,
       workerId: 'worker',
       startsOn: '2026-08-01',
       plannedMinutes: 12_000,
+    });
+    new AssignmentExpensePolicyRepository(sqlite).create(finance, {
+      projectMemberId: workerAssignment.id,
+      payer: 'worker',
+      category: 'hotel',
+      effectiveFrom: '2026-08-01',
+      workerReimbursement: 'at_cost',
+      clientRecovery: 'at_cost',
+      reason: 'Portal workflow hotel recovery terms',
+    });
+    new AssignmentExpensePolicyRepository(sqlite).create(finance, {
+      projectMemberId: workerAssignment.id,
+      payer: 'company_direct',
+      category: 'rental_car',
+      effectiveFrom: '2026-08-01',
+      workerReimbursement: 'none',
+      clientRecovery: 'included',
+      reason: 'Portal workflow vehicle included terms',
     });
     const manager = repository.principalFor('manager');
     const worker = repository.principalFor('worker');
@@ -138,10 +244,19 @@ describe('V3 operational and billing workflow', () => {
       currency: 'USD',
       amountMinor: 25_000n,
       whoPaid: 'worker',
-      clientTreatment: 'reimbursable',
       receiptRequired: false,
     });
-    repository.submitExpense(worker, expense.id, expense.version);
+    const classifiedExpense = repository.classifyExpenseCommercially(finance, {
+      expenseId: expense.id,
+      expectedVersion: expense.version,
+      clientTreatment: 'reimbursable',
+      billingTreatment: 'reimbursable_at_cost',
+      markupBps: 0,
+      taxBps: 0,
+      reason: 'Finance classified project lodging for reimbursement at cost',
+      idempotencyKey: 'portal-workflow:expense-classification:lodging:v1',
+    });
+    repository.submitExpense(worker, expense.id, classifiedExpense.version);
     repository.operationalApproveExpense(manager, expense.id, 'approved');
     repository.financeApproveExpense(finance, expense.id);
 
@@ -154,10 +269,19 @@ describe('V3 operational and billing workflow', () => {
       currency: 'USD',
       amountMinor: 10_000n,
       whoPaid: 'company',
-      clientTreatment: 'all_in',
       receiptRequired: false,
     });
-    repository.submitExpense(worker, allIn.id, allIn.version);
+    const classifiedAllIn = repository.classifyExpenseCommercially(finance, {
+      expenseId: allIn.id,
+      expectedVersion: allIn.version,
+      clientTreatment: 'all_in',
+      billingTreatment: 'all_in',
+      markupBps: 0,
+      taxBps: 0,
+      reason: 'Finance classified the company-paid rental as all-in project cost',
+      idempotencyKey: 'portal-workflow:expense-classification:all-in:v1',
+    });
+    repository.submitExpense(worker, allIn.id, classifiedAllIn.version);
     repository.operationalApproveExpense(manager, allIn.id, 'approved');
     repository.financeApproveExpense(finance, allIn.id);
 
@@ -167,15 +291,8 @@ describe('V3 operational and billing workflow', () => {
     expect(pay.approvedReimbursementMinor).toBe('25000');
     expect(() => repository.workerPay(outsider, '2026-08-01', '2026-08-16')).not.toThrow();
 
-    const entity = repository.createLegalEntity(owner, {
-      code: 'JA-US',
-      legalName: 'J&A Automation LLC',
-      currency: 'USD',
-      billingAddress: 'Approved billing address',
-      companyIdentifiers: 'Approved company identifiers',
-    });
     repository.createInvoiceNumberPolicy(owner, {
-      legalEntityId: entity.id,
+      legalEntityId: canonicalLegacyEntity.id,
       prefix: 'JA-US',
       digits: 6,
       effectiveFrom: '2026-01-01',
@@ -195,7 +312,7 @@ describe('V3 operational and billing workflow', () => {
     });
     const laborRule = repository.createBillingRule(finance, {
       projectId: project.id,
-      legalEntityId: entity.id,
+      legalEntityId: canonicalLegacyEntity.id,
       streamType: 'labor',
       cadenceType: 'fourteen_day',
       anchorDate: '2026-08-03',
@@ -205,13 +322,25 @@ describe('V3 operational and billing workflow', () => {
     });
     const expenseRule = repository.createBillingRule(finance, {
       projectId: project.id,
-      legalEntityId: entity.id,
+      legalEntityId: canonicalLegacyEntity.id,
       streamType: 'expense',
       cadenceType: 'monthly',
       taxProfileId: expenseTax.id,
       currency: 'USD',
       effectiveFrom: '2026-08-01',
     });
+    expect(() =>
+      repository.createBillingRule(finance, {
+        projectId: project.id,
+        legalEntityId: canonicalLegacyEntity.id,
+        streamType: 'labor',
+        cadenceType: 'monthly',
+        taxProfileId: laborTax.id,
+        currency: 'USD',
+        effectiveFrom: '2026-08-01',
+        templateId: 'free-text-template',
+      }),
+    ).toThrow(/unsupported invoice template/i);
 
     expect(
       repository.billingReadiness(finance, laborRule.id, '2026-08-03', '2026-08-16').state,
@@ -225,6 +354,15 @@ describe('V3 operational and billing workflow', () => {
     repository.approveInvoiceDraft(finance, laborDraft.id);
     const issuedLabor = repository.issueInvoice(finance, laborDraft.id);
     expect(issuedLabor.invoiceNumber).toBe('JA-US-2026-000001');
+    expect(
+      JSON.parse(
+        (
+          sqlite.prepare('SELECT snapshot_json FROM invoice WHERE id=?').get(laborDraft.id) as {
+            snapshot_json: string;
+          }
+        ).snapshot_json,
+      ).template,
+    ).toMatchObject({ id: 'labor-detailed', version: 1 });
     expect(repository.issueInvoice(finance, laborDraft.id)).toEqual({
       invoiceNumber: issuedLabor.invoiceNumber,
       issued: false,
@@ -239,16 +377,30 @@ describe('V3 operational and billing workflow', () => {
     repository.approveInvoiceDraft(finance, expenseDraft.id);
     const issuedExpense = repository.issueInvoice(finance, expenseDraft.id);
     expect(issuedExpense.invoiceNumber).toBe('JA-US-2026-000002');
+    expect(
+      JSON.parse(
+        (
+          sqlite.prepare('SELECT snapshot_json FROM invoice WHERE id=?').get(expenseDraft.id) as {
+            snapshot_json: string;
+          }
+        ).snapshot_json,
+      ).template,
+    ).toMatchObject({ id: 'expenses-detailed', version: 1 });
     const expenseSources = sqlite
       .prepare("SELECT source_id FROM invoice_source WHERE invoice_id=? AND source_type='expense'")
       .all(expenseDraft.id) as Array<{ source_id: string }>;
     expect(expenseSources.map((row) => row.source_id)).toEqual([expense.id]);
 
+    const paymentReceivedAt = (
+      sqlite.prepare('SELECT issued_at FROM invoice WHERE id=?').get(laborDraft.id) as {
+        issued_at: string;
+      }
+    ).issued_at;
     const firstPayment = repository.recordPayment(finance, {
       invoiceId: laborDraft.id,
       amountMinor: 50_000n,
       currency: 'USD',
-      receivedAt: '2026-09-01T00:00:00.000Z',
+      receivedAt: paymentReceivedAt,
       reference: 'BANK-1',
       idempotencyKey: 'payment-bank-1',
     });
@@ -257,7 +409,8 @@ describe('V3 operational and billing workflow', () => {
         invoiceId: laborDraft.id,
         amountMinor: 50_000n,
         currency: 'USD',
-        receivedAt: '2026-09-01T00:00:00.000Z',
+        receivedAt: paymentReceivedAt,
+        reference: 'BANK-1',
         idempotencyKey: 'payment-bank-1',
       }),
     ).toEqual({ id: firstPayment.id, created: false });
@@ -289,8 +442,11 @@ describe('V3 operational and billing workflow', () => {
       displayName: 'Timesheet Client',
       currency: 'USD',
       timezone: 'America/New_York',
+      billingEmail: 'billing-timesheet@example.com',
+      billingAddress: 'Timesheet Client billing address',
     });
     const project = repository.createProject(owner, {
+      costCenterCode: 'QA-PORTAL-WORKFLOW-TEST-2',
       clientId: client.id,
       name: 'Weekly layout project',
       timezone: 'America/New_York',

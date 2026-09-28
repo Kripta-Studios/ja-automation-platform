@@ -1,0 +1,63 @@
+{
+  "viewport": "desktop-1440",
+  "failedDownloadStatus": 409,
+  "failedDownloadCode": "ACCOUNTING_PACK_EXPORT_FAILED_RETRYABLE",
+  "retryStatus": 202,
+  "retryCreated": true,
+  "queuedFormats": ["pdf"],
+  "readySiblingUnchanged": true,
+  "alertVisible": true,
+  "failedResponses": [
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    }
+  ],
+  "pageErrors": []
+}

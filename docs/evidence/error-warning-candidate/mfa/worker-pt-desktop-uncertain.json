@@ -1,0 +1,11 @@
+{
+  "role": "worker",
+  "locale": "pt",
+  "viewport": "desktop",
+  "status": 503,
+  "code": "MFA_CHANGE_STATE_UNCERTAIN",
+  "noticeFocused": true,
+  "reviewLink": true,
+  "scrollDelta": 244,
+  "screenshotScope": "notice only; no setup URI, recovery code, cookie, or credential"
+}

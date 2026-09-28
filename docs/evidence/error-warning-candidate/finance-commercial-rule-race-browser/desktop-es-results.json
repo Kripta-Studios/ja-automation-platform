@@ -1,0 +1,74 @@
+{
+  "commit": "d17af6e",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "locale": "es",
+  "roles": [
+    "owner",
+    "finance"
+  ],
+  "fixture": "QA project and rate created through UI; rate deactivated through Owner UI after two Finance forms opened",
+  "deactivation": {
+    "status": 200
+  },
+  "native": {
+    "status": 409,
+    "codeInResponse": true,
+    "genericInResponse": false
+  },
+  "visible": {
+    "code": "FINANCE_ASSIGNMENT_COMMERCIAL_RULE_UNAVAILABLE",
+    "wording": "Se requiere una acción Una de las reglas comerciales seleccionadas ya no cubre todo el período y ámbito de esta asignación. Revisa las reglas de facturación al cliente, pago al trabajador y coste interno, y elige una regla disponible. Revisar las tarifas laborales del clienteRevisar las reglas de remuneración del trabajadorRevisar las reglas de costes internos",
+    "remedies": [
+      {
+        "text": "Revisar las tarifas laborales del cliente",
+        "task": "Client labor rates"
+      },
+      {
+        "text": "Revisar las reglas de remuneración del trabajador",
+        "task": "Compensation statement rules"
+      },
+      {
+        "text": "Revisar las reglas de costes internos",
+        "task": "Assignment budget context / internal loaded cost"
+      }
+    ],
+    "routeView": "commercial",
+    "language": "es-ES",
+    "editorOpen": true,
+    "selectedRateRetained": true,
+    "selectedOptionDisabled": false,
+    "expectedVersion": "1",
+    "focusedNotice": true,
+    "active": {
+      "tag": "ASIDE",
+      "id": "",
+      "name": null,
+      "ui": "problem-notice",
+      "financeProblem": false,
+      "className": "ui-problem-notice svelte-b84mwg"
+    },
+    "top": 492,
+    "bottom": 784,
+    "safeTop": 80,
+    "safeBottom": 884,
+    "scrollY": 1186,
+    "overflow": false
+  },
+  "enhanced": {
+    "transportStatus": 200,
+    "actionStatus": 409,
+    "type": "failure",
+    "codeInResponse": true,
+    "genericInResponse": false
+  },
+  "unchangedAssignment": true,
+  "unchangedAssignmentAudit": true,
+  "diagnostics": {
+    "owner": [],
+    "financeNative": [],
+    "financeEnhanced": []
+  }
+}

@@ -1,0 +1,184 @@
+[
+  {
+    "scenario": "report-open-popup",
+    "role": "owner",
+    "locale": "en",
+    "width": 1440,
+    "fallbackLinkVisible": true,
+    "iframeCount": 1,
+    "pageCount": 2,
+    "stillReport": true,
+    "network": [
+      {
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment"
+      }
+    ],
+    "errors": [],
+    "popupErrors": [
+      "Framing 'blob:http://127.0.0.1:4174/[redacted-id]' violates the following Content Security Policy directive: \"default-src 'self'\". The request has been blocked. Note that 'frame-src' was not explicitly set, so 'default-src' is used as a fallback.\n"
+    ]
+  },
+  {
+    "scenario": "typed-ui-failure",
+    "source": "intercepted",
+    "role": "owner",
+    "locale": "en",
+    "width": 1440,
+    "status": 401,
+    "notice": {
+      "code": "REPORT_PDF_SIGN_IN_REQUIRED",
+      "text": "Action needed Your session ended. Sign in again, then return to the report to open its PDF. Current status: Review required Sign in again",
+      "focused": true,
+      "rect": {
+        "top": 512.359375,
+        "bottom": 667.921875,
+        "left": 276.796875,
+        "right": 1411.203125
+      },
+      "links": [
+        {
+          "label": "Sign in again",
+          "href": "/j-aautomation/app/login"
+        }
+      ]
+    },
+    "requests": 1,
+    "pageCountBefore": 1,
+    "pageCountAfter": 1,
+    "stillReport": true,
+    "scrollBefore": 0,
+    "scrollAfter": 0,
+    "network": [
+      {
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment"
+      },
+      {
+        "status": 401,
+        "contentType": "application/json"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "scenario": "typed-ui-failure",
+    "source": "intercepted",
+    "role": "finance",
+    "locale": "es",
+    "width": 390,
+    "status": 404,
+    "notice": {
+      "code": "REPORT_PDF_UNAVAILABLE",
+      "text": "Se requiere una acción El PDF de este informe no está disponible para este registro o con tu acceso actual. Revisa los informes a los que puedes acceder o consulta con el responsable del proyecto si aún lo necesitas. Estado actual: Revisión requerida Revisar la lista de informes",
+      "focused": true,
+      "rect": {
+        "top": 313.421875,
+        "bottom": 529.875,
+        "left": 16,
+        "right": 374
+      },
+      "links": [
+        {
+          "label": "Revisar la lista de informes",
+          "href": "/j-aautomation/app/reports"
+        }
+      ]
+    },
+    "requests": 1,
+    "pageCountBefore": 1,
+    "pageCountAfter": 1,
+    "stillReport": true,
+    "scrollBefore": 0,
+    "scrollAfter": 282,
+    "network": [
+      {
+        "status": 404,
+        "contentType": "application/json"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "scenario": "typed-ui-failure",
+    "source": "intercepted",
+    "role": "owner",
+    "locale": "pt",
+    "width": 390,
+    "status": 409,
+    "notice": {
+      "code": "REPORT_PDF_NOT_READY",
+      "text": "Ação necessária O PDF deste relatório ainda está a ser preparado. Reveja o estado atual do relatório e tente novamente quando estiver pronto. Situação atual: Revisão necessária Revisar o relatório atualizado",
+      "focused": true,
+      "rect": {
+        "top": 323.421875,
+        "bottom": 519.578125,
+        "left": 16,
+        "right": 374
+      },
+      "links": [
+        {
+          "label": "Revisar o relatório atualizado",
+          "href": "/j-aautomation/app/reports/period/[redacted-id]?review=1#period-report-header"
+        }
+      ]
+    },
+    "requests": 1,
+    "pageCountBefore": 1,
+    "pageCountAfter": 1,
+    "stillReport": true,
+    "scrollBefore": 0,
+    "scrollAfter": 272,
+    "network": [
+      {
+        "status": 409,
+        "contentType": "application/json"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "scenario": "typed-ui-failure",
+    "source": "intercepted",
+    "role": "owner",
+    "locale": "pt",
+    "width": 390,
+    "status": 503,
+    "notice": {
+      "code": "REPORT_PDF_SERVICE_UNAVAILABLE",
+      "text": "Ação necessária Não foi possível preparar o PDF deste relatório. O relatório não foi alterado; tente novamente mais tarde. Referência: qa-report-pdf-reference. Situação atual: Revisão necessária Baixar PDF",
+      "focused": true,
+      "rect": {
+        "top": 323.421875,
+        "bottom": 519.578125,
+        "left": 16,
+        "right": 374
+      },
+      "links": [
+        {
+          "label": "Baixar PDF",
+          "href": "#report-pdf-retry"
+        }
+      ]
+    },
+    "requests": 1,
+    "pageCountBefore": 1,
+    "pageCountAfter": 1,
+    "stillReport": true,
+    "scrollBefore": 272,
+    "scrollAfter": 272,
+    "network": [
+      {
+        "status": 409,
+        "contentType": "application/json"
+      },
+      {
+        "status": 503,
+        "contentType": "application/json"
+      }
+    ],
+    "errors": []
+  }
+]

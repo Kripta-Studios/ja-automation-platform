@@ -1,0 +1,75 @@
+{
+  "candidate": "e89e7fa",
+  "disposable": true,
+  "results": [
+    {
+      "role": "worker",
+      "locale": "en",
+      "width": 390,
+      "status": 409,
+      "code": "REPORT_ATTACHMENT_DOWNLOAD_NOT_READY",
+      "text": "Action needed\n\nThis attachment is not ready to download. It may still be processing or may no longer be attached. Review its current status on the report.\n\nReview updated report",
+      "remedyHrefs": [
+        "/j-aautomation/app/reports/[redacted]"
+      ],
+      "focused": true,
+      "noticeTop": 445.640625,
+      "noticeBottom": 637.796875,
+      "bottomNavTop": null,
+      "scrollY": 3764,
+      "viewportHeight": 844,
+      "horizontalOverflow": false,
+      "pageErrors": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 409 (Conflict)"
+      ],
+      "screenshot": "worker-en-390-409.png"
+    },
+    {
+      "role": "manager",
+      "locale": "es",
+      "width": 1440,
+      "status": 404,
+      "code": "REPORT_ATTACHMENT_DOWNLOAD_NOT_FOUND",
+      "text": "Se requiere una acción\n\nNo se encontró este adjunto del informe o no se puede abrir. Revisa los adjuntos a los que tienes acceso en el informe actual.\n\nRevisar el informe actualizado",
+      "remedyHrefs": [
+        "/j-aautomation/app/reports/[redacted]"
+      ],
+      "focused": true,
+      "noticeTop": 504.40625,
+      "noticeBottom": 635.671875,
+      "bottomNavTop": null,
+      "scrollY": 2472,
+      "viewportHeight": 900,
+      "horizontalOverflow": false,
+      "pageErrors": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "screenshot": "manager-es-1440-404.png"
+    },
+    {
+      "role": "owner",
+      "locale": "pt-BR",
+      "width": 390,
+      "status": 500,
+      "code": "REPORT_ATTACHMENT_DOWNLOAD_UNEXPECTED",
+      "text": "Ação necessária\n\nNão foi possível confirmar este download. Revise o relatório antes de tentar novamente. Referência: qa-reference-redacted.\n\nRevisar o relatório atualizado",
+      "remedyHrefs": [
+        "/j-aautomation/app/reports/[redacted]"
+      ],
+      "focused": true,
+      "noticeTop": 445.421875,
+      "noticeBottom": 637.578125,
+      "bottomNavTop": null,
+      "scrollY": 3959,
+      "viewportHeight": 844,
+      "horizontalOverflow": false,
+      "pageErrors": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
+      "screenshot": "owner-pt-BR-390-500.png"
+    }
+  ]
+}

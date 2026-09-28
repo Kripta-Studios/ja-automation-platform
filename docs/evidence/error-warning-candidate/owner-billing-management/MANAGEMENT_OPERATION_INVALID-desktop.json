@@ -1,0 +1,9 @@
+{
+  "code": "MANAGEMENT_OPERATION_INVALID",
+  "viewport": "desktop",
+  "responseStatus": 400,
+  "route": "/j-aautomation/app/manage",
+  "method": "POST",
+  "screenshot": "MANAGEMENT_OPERATION_INVALID-desktop.png",
+  "scope": "isolated problem notice only; no account or invoice details"
+}

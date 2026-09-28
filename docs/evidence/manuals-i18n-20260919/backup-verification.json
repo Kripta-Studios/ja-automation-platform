@@ -1,0 +1,38 @@
+{
+  "backupPath": "/var/backups/jaautomation/2026-09-19T100747306Z-a4f8d999-4a97-45cf-88dd-5978910ec434",
+  "verifiedAt": "2026-09-19T10:08:19.247Z",
+  "createdAt": "2026-09-19T10:07:49.799Z",
+  "databaseSha256": "a3674268a930287866460d0930e4ddb69b0d3afb6141946716dbf71cc938dddf",
+  "integrity": "ok",
+  "foreignKeyViolations": 0,
+  "documentCount": 59,
+  "history": {
+    "snapshotCount": 22,
+    "observedDays": 11,
+    "requiredDays": 30,
+    "coverageComplete": false,
+    "missingDays": [
+      "2026-09-08",
+      "2026-09-07",
+      "2026-09-06",
+      "2026-09-05",
+      "2026-09-04",
+      "2026-09-03",
+      "2026-09-02",
+      "2026-09-01",
+      "2026-08-31",
+      "2026-08-30",
+      "2026-08-29",
+      "2026-08-28",
+      "2026-08-27",
+      "2026-08-26",
+      "2026-08-25",
+      "2026-08-24",
+      "2026-08-23",
+      "2026-08-22",
+      "2026-08-21"
+    ],
+    "scope": "Manifest dates only; integrity verified for latest snapshot"
+  },
+  "schemaVersion": 49
+}

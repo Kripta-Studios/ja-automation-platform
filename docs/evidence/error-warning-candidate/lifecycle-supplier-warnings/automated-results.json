@@ -1,0 +1,36 @@
+{
+  "date": "2026-09-27",
+  "candidateParent": "13dd71a26c037905e0c73a3cfcd7aacdf485dfcb",
+  "test": "tests/e2e/project-supplier-warning-browser.spec.ts",
+  "runtime": "Node 24.19.0; actual Chromium; fresh disposable SQLite fixture",
+  "viewports": [390, 1440],
+  "results": {
+    "substantivePassed": 5,
+    "intentionalViewportSkipped": 5,
+    "failed": 0,
+    "durationSeconds": 37.6
+  },
+  "cases": [
+    "Owner project Begin close and Close, 390 px, Spanish",
+    "Finance project Begin close and Close, 1440 px, English",
+    "Owner project Begin close and Close, 1440 px, Portuguese",
+    "Supplier Coordinator single and batch submission, 390 px, Spanish",
+    "Supplier Coordinator single and batch submission, 1440 px, Portuguese"
+  ],
+  "assertions": [
+    "localized warning before action",
+    "warning and full document within viewport",
+    "role-appropriate remedy destination",
+    "no write before explicit submit",
+    "expected state transition only after submit"
+  ],
+  "overflowDiagnostic": {
+    "beforeOpeningPx": 1440,
+    "openedMenuBeforeFixPx": 2303,
+    "hiddenWarningPx": 1440,
+    "openedMenuAfterScopedFixPx": 1440
+  },
+  "limits": [
+    "Manual browser run completed lifecycle only before host interruption. Supplier evidence comes from the automated actual-Chromium suite."
+  ]
+}

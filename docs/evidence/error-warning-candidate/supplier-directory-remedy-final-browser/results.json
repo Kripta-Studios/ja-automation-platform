@@ -1,0 +1,107 @@
+{
+  "candidateCommit": "0daba56d0bcec493e1d72a6e2e3c2595b152de1d",
+  "viewport": 390,
+  "locale": "en",
+  "role": "owner",
+  "scenarios": [
+    {
+      "tab": "directory",
+      "transportStatus": 200,
+      "ui": {
+        "url": "/j-aautomation/app/supplier?workspaceAction=directory&from=2026-09-20&to=2026-09-19&lang=en",
+        "activeTabIndex": 0,
+        "activeTabText": "Directory",
+        "noticeCount": 1,
+        "noticeText": "Action needed The report end date is before its start date. Choose an end date on or after the start date. Review the report period",
+        "focusedNotice": true,
+        "noticeVisible": true,
+        "remedyText": "Review the report period",
+        "remedyHref": "?projectId=project-cp008-ascension&from=2026-09-20&to=2026-09-19&lang=en&workspaceAction=report#supplier-workspace",
+        "scrollY": 0,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    },
+    {
+      "remedyNavigation": {
+        "url": "/j-aautomation/app/supplier?projectId=project-cp008-ascension&from=2026-09-20&to=2026-09-19&lang=en&workspaceAction=report",
+        "activeTabText": "Operational report",
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "projectId": "project-cp008-ascension",
+        "language": "en",
+        "noticeCount": 1,
+        "focusedNotice": true
+      }
+    },
+    {
+      "backToDirectory": {
+        "url": "/j-aautomation/app/supplier?projectId=project-cp008-ascension&from=2026-09-20&to=2026-09-19&lang=en&workspaceAction=directory",
+        "noticeCount": 1,
+        "activeTab": "Directory"
+      }
+    },
+    {
+      "tab": "setup",
+      "transportStatus": 200,
+      "ui": {
+        "url": "/j-aautomation/app/supplier?workspaceAction=setup&from=2026-09-20&to=2026-09-19&lang=en",
+        "activeTabIndex": 1,
+        "activeTabText": "Setup and access",
+        "noticeCount": 1,
+        "noticeText": "Action needed The report end date is before its start date. Choose an end date on or after the start date. Review the report period",
+        "focusedNotice": true,
+        "noticeVisible": true,
+        "remedyText": "Review the report period",
+        "remedyHref": "?projectId=project-cp008-ascension&from=2026-09-20&to=2026-09-19&lang=en&workspaceAction=report#supplier-workspace",
+        "scrollY": 0,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    },
+    {
+      "tab": "authorize",
+      "transportStatus": 200,
+      "ui": {
+        "url": "/j-aautomation/app/supplier?workspaceAction=authorize&from=2026-09-20&to=2026-09-19&lang=en",
+        "activeTabIndex": 2,
+        "activeTabText": "Authorize installation",
+        "noticeCount": 1,
+        "noticeText": "Action needed The report end date is before its start date. Choose an end date on or after the start date. Review the report period",
+        "focusedNotice": true,
+        "noticeVisible": true,
+        "remedyText": "Review the report period",
+        "remedyHref": "?projectId=project-cp008-ascension&from=2026-09-20&to=2026-09-19&lang=en&workspaceAction=report#supplier-workspace",
+        "scrollY": 0,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    }
+  ],
+  "noWrite": {
+    "before": {
+      "audits": 331,
+      "supplierProfiles": 0
+    },
+    "after": {
+      "audits": 331,
+      "supplierProfiles": 0
+    }
+  },
+  "responses": [
+    "200 document /j-aautomation/app/supplier",
+    "200 fetch /j-aautomation/app/supplier/__data.json",
+    "200 document /j-aautomation/app/supplier",
+    "200 document /j-aautomation/app/supplier"
+  ],
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": []
+  }
+}

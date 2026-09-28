@@ -1,0 +1,15 @@
+[
+  {
+    "step": "temporary-lookup-failure",
+    "code": "EXPENSE_LOOKUP_UNAVAILABLE",
+    "retainedProjectWorkerDateTimeAndDescription": true,
+    "focusedNotice": true,
+    "scrollBefore": 0,
+    "scrollAfter": 0
+  },
+  {
+    "step": "retry",
+    "status": 200,
+    "selectedLinkedHoursRetained": true
+  }
+]

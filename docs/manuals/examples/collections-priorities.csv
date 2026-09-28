@@ -1,0 +1,3 @@
+balanceAsOf,invoiceId,invoiceNumber,clientName,projectName,currency,outstandingMinor,dueDate,expectedCollectionDate,daysOverdue,reason
+2026-11-15,example-invoice-milestone,EXAMPLE-MILESTONE-001,EXAMPLE — Example Manufacturing Ltd,EXAMPLE — Packaging Cell Commissioning,USD,'250000,2026-10-15,2026-10-15,'31,Overdue invoice
+2026-11-15,example-invoice-labor,EXAMPLE-LABOR-001,EXAMPLE — Example Manufacturing Ltd,EXAMPLE — Packaging Cell Commissioning,USD,'43750,2026-10-30,2026-10-30,'16,Overdue invoice

@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-27",
+  "candidateParent": "103eaf5d470dc0f64a2af10806ff5341c7e78a16",
+  "test": "tests/e2e/billing-discard-archive-warning-browser.spec.ts",
+  "runtime": "Node 24.19.0, actual Chromium, fresh disposable SQLite fixture",
+  "results": {
+    "substantivePassed": 8,
+    "intentionalViewportSkipped": 8,
+    "failed": 0,
+    "durationSeconds": 54.0
+  },
+  "coverage": [
+    "Finance linked source and line discard blockers",
+    "Finance permitted unlinked UUID draft discard",
+    "Owner approved draft discard",
+    "mobile and desktop archive warning geometry",
+    "legacy text-ID issue-marker guard for Owner and Finance",
+    "native guarded approval 409 with no invoice or audit write"
+  ],
+  "limits": [
+    "The separate manual baseline found a narrow mobile archive notice and list-only Review invoice link. The mobile card layout and selected-detail remedy were checked after fixes in independent and focused browser runs."
+  ]
+}

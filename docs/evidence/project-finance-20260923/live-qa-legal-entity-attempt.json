@@ -1,0 +1,10 @@
+{
+  "responses": [
+    {
+      "url": "https://j-aautomation.com/j-aautomation/app/billing?/createLegalEntity",
+      "status": 200
+    }
+  ],
+  "alerts": [],
+  "text": "to approve, issue, collect, or correct. Adjustment is a new draft, never an edit of the issued bill.\n\n14\nSearch\nStatus\nAll\nDraft\nIssued\nPaid\npartially_paid\nSort by\nNeeds attention first\nOldest first\nNewest first\nName\nStatus\n← Previous\n1–8 / 14\nNext →\n\nScroll horizontally to review all columns.\n\nInvoice register\nINVOICE\tCLIENT\tPROJECT\tDATES\tAMOUNT\tOUTSTANDING\tSTATUS\tPDF\tACTIONS\nDraft invoice\tC-0003 · BlueRiver Process · Demo\tC-0003-P-001 · PO: DEMO-PO-8842\t— / —\t$2,640.00\t—\tDraft\tPDF · Queued\tManage\nDraft invoice\tC-0001 · Northline Mobility · Demo\tC-0001-P-001 · PO: DEMO-PO-24017\t— / —\t$307.80\t—\tDraft\tPDF · Queued\tManage\nDraft invoice\tC-0001 · Northline Mobility · Demo\tC-0001-P-001 · PO: DEMO-PO-24017\t— / —\t$5,040.00\t—\tDraft\tPDF · Queued\tManage\nDraft invoice\tC-0001 · Northline Mobility · Demo\tC-0001-P-001 · PO: DEMO-PO-24017\t— / —\t$5,512.50\t—\tDraft\tPDF · Queued\tManage\nDraft invoice\tC-0001 · Northline Mobility · Demo\tC-0001-P-002 · PO: DEMO-PO-24022\t— / —\t$5,250.00\t—\tDraft\tPDF · Queued\tManage\nDEMO--2026-00003\tC-0001 · Northline Mobility · Demo\tC-0001-P-002 · PO: DEMO-PO-24022\t2026-09-10 13:50 / —\t$2,550.00\t$2,550.00\tIssued\tPDF · Ready Download PDF\tManage\nDEMO--2026-00005\tC-0002 · Harbor Packaging · Demo\tC-0002-P-001 · PO: DEMO-PO-11804\t2026-09-10 13:50 / —\t$77.75\t$38.88\tPartially paid\tPDF · Ready Download PDF\tManage\nDEMO--2026-00008\tC-0003 · BlueRiver Process · Demo\tC-0003-P-001 · PO: DEMO-PO-8842\t2026-09-10 13:50 / —\t$80.25\t$40.13\tPartially paid\tPDF · Ready Download PDF\tManage"
+}

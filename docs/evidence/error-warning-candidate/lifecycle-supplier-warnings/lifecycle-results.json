@@ -1,0 +1,154 @@
+[
+  {
+    "role": "owner",
+    "viewport": "phone-390",
+    "locale": "en",
+    "begin": {
+      "code": "WARNING_PROJECT_LIFECYCLE_ASSIGNMENTS",
+      "kind": "warning",
+      "text": "Before you continue\n\nNew assignments are unavailable while Lifecycle Project · phone-390 is Closing or Closed. Review assignments and project status before changing it to Closing.\n\nReview project status\nReview assignments",
+      "geometry": {
+        "top": 462,
+        "bottom": 653,
+        "headerBottom": 70,
+        "viewportHeight": 844,
+        "visible": true,
+        "focused": false
+      },
+      "links": [
+        {
+          "text": "Review project status",
+          "href": "/j-aautomation/app/projects/[REDACTED-ID]"
+        },
+        {
+          "text": "Review assignments",
+          "href": "/j-aautomation/app/projects?action=update-assignment&project=[REDACTED-ID]#project-assignment-list"
+        }
+      ],
+      "noPreSubmitWrite": true,
+      "post": {
+        "status": 200,
+        "hasProblem": false,
+        "hasStack": false
+      },
+      "statusAfter": "closing"
+    },
+    "close": {
+      "code": "WARNING_PROJECT_LIFECYCLE_ASSIGNMENTS",
+      "kind": "warning",
+      "text": "Before you continue\n\nNew assignments are unavailable while Lifecycle Project · phone-390 is Closing or Closed. Review assignments and project status before changing it to Closed.\n\nReview project status\nReview assignments",
+      "geometry": {
+        "top": 462,
+        "bottom": 653,
+        "headerBottom": 70,
+        "viewportHeight": 844,
+        "visible": true,
+        "focused": false
+      },
+      "links": [
+        {
+          "text": "Review project status",
+          "href": "/j-aautomation/app/projects/[REDACTED-ID]"
+        },
+        {
+          "text": "Review assignments",
+          "href": "/j-aautomation/app/projects?action=update-assignment&project=[REDACTED-ID]#project-assignment-list"
+        }
+      ],
+      "noPreSubmitWrite": true,
+      "post": {
+        "status": 200,
+        "hasProblem": false,
+        "hasStack": false
+      },
+      "statusAfter": "closed"
+    },
+    "diagnostics": {
+      "pageErrors": [],
+      "consoleErrors": [
+        "failed-resource",
+        "failed-resource"
+      ],
+      "failedResponses": [
+        503,
+        503
+      ]
+    }
+  },
+  {
+    "role": "finance",
+    "viewport": "desktop-1440",
+    "locale": "es",
+    "begin": {
+      "code": "WARNING_PROJECT_LIFECYCLE_ASSIGNMENTS",
+      "kind": "warning",
+      "text": "Antes de continuar\n\nNo se pueden crear nuevas asignaciones mientras Lifecycle Project · desktop esté En cierre o Cerrado. Revisa las asignaciones y el estado del proyecto antes de cambiarlo a En cierre.\n\nRevisar el estado del proyecto\nRevisar asignaciones",
+      "geometry": {
+        "top": 749,
+        "bottom": 900,
+        "headerBottom": 72,
+        "viewportHeight": 900,
+        "visible": true,
+        "focused": false
+      },
+      "links": [
+        {
+          "text": "Revisar el estado del proyecto",
+          "href": "/j-aautomation/app/projects/[REDACTED-ID]"
+        },
+        {
+          "text": "Revisar asignaciones",
+          "href": "/j-aautomation/app/projects#assignment-history"
+        }
+      ],
+      "noPreSubmitWrite": true,
+      "post": {
+        "status": 200,
+        "hasProblem": false,
+        "hasStack": false
+      },
+      "statusAfter": "closing"
+    },
+    "close": {
+      "code": "WARNING_PROJECT_LIFECYCLE_ASSIGNMENTS",
+      "kind": "warning",
+      "text": "Antes de continuar\n\nNo se pueden crear nuevas asignaciones mientras Lifecycle Project · desktop esté En cierre o Cerrado. Revisa las asignaciones y el estado del proyecto antes de cambiarlo a Cerrado.\n\nRevisar el estado del proyecto\nRevisar asignaciones",
+      "geometry": {
+        "top": 749,
+        "bottom": 900,
+        "headerBottom": 72,
+        "viewportHeight": 900,
+        "visible": true,
+        "focused": false
+      },
+      "links": [
+        {
+          "text": "Revisar el estado del proyecto",
+          "href": "/j-aautomation/app/projects/[REDACTED-ID]"
+        },
+        {
+          "text": "Revisar asignaciones",
+          "href": "/j-aautomation/app/projects#assignment-history"
+        }
+      ],
+      "noPreSubmitWrite": true,
+      "post": {
+        "status": 200,
+        "hasProblem": false,
+        "hasStack": false
+      },
+      "statusAfter": "closed"
+    },
+    "diagnostics": {
+      "pageErrors": [],
+      "consoleErrors": [
+        "failed-resource",
+        "failed-resource"
+      ],
+      "failedResponses": [
+        503,
+        503
+      ]
+    }
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "status": 503,
+    "path": "/j-aautomation/app/api/offline/identity"
+  },
+  {
+    "status": 400,
+    "path": "/j-aautomation/app/notifications"
+  },
+  {
+    "status": 503,
+    "path": "/j-aautomation/app/api/offline/identity"
+  },
+  {
+    "status": 503,
+    "path": "/j-aautomation/app/api/offline/identity"
+  },
+  {
+    "status": 404,
+    "path": "/j-aautomation/app/notifications"
+  },
+  {
+    "status": 503,
+    "path": "/j-aautomation/app/api/offline/identity"
+  },
+  {
+    "status": 503,
+    "path": "/j-aautomation/app/api/offline/identity"
+  }
+]

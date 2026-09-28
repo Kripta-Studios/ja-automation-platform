@@ -1,0 +1,43 @@
+{
+  "commit": "f869235",
+  "role": "worker",
+  "ownerApproval": "UI approved",
+  "viewport": 390,
+  "locale": "en",
+  "firstCorrection": {
+    "submission": 303,
+    "state": "draft"
+  },
+  "staleCorrection": {
+    "submission": 409,
+    "code": "TIME_CORRECTION_ALREADY_EXISTS",
+    "notice": {
+      "url": "/j-aautomation/app/time/:record?/createCorrectionDraft&lang=en",
+      "documentLang": "en-US",
+      "focused": true,
+      "visible": true,
+      "top": 495,
+      "bottom": 691,
+      "scrollY": 0,
+      "overflow": false,
+      "text": "Action needed An active correction draft now exists for this time record. Review the updated record and open the existing correction if you have access. Status: Approved Review updated time entry"
+    },
+    "expectedLocale": "en",
+    "languagePreserved": true,
+    "remedy": "review_time",
+    "retained": {
+      "summary": "Second tab conflict attempted work account",
+      "reason": "The first view has more accurate site detail.",
+      "minutes": 195,
+      "site": "QA site B"
+    },
+    "formRemoved": true,
+    "beforeScroll": 1027,
+    "correctionRows": 1
+  },
+  "diagnostics": {
+    "worker": [],
+    "secondTab": [],
+    "owner": []
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "viewport": "tablet-768",
+  "code": "BILLING_ISSUER_IDENTIFIER_TOO_LONG",
+  "status": 400,
+  "activeCasesPassed": 1,
+  "crossProjectCasesSkipped": 2,
+  "noticeWidthAtLeast240": true,
+  "noticeHorizontallyVisible": true,
+  "noToastOverlap": true,
+  "identifierFieldFocusedAndVisible": true,
+  "formValuesRetained": true,
+  "noFalseIssueBlocker": true,
+  "databaseUnchanged": true,
+  "pageErrorCount": 0,
+  "consoleErrorCount": 0
+}

@@ -1,0 +1,20 @@
+{
+  "perDiem": {
+    "worker": "Rafael Santos",
+    "project": "C-0002-P-001",
+    "description": "Perdiem",
+    "currencyInitial": "USD",
+    "currencyChanged": "EUR"
+  },
+  "hoursOnly": {
+    "worker": "Alex Rivera",
+    "project": "C-0001-P-002",
+    "description": "Only hours",
+    "currencyInitial": "USD"
+  },
+  "requests": [
+    "200 /j-aautomation/app/api/expenses/description-default",
+    "200 /j-aautomation/app/api/expenses/description-default"
+  ],
+  "issues": []
+}

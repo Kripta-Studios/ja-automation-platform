@@ -1,0 +1,263 @@
+[
+  {
+    "scenario": "billing-no-tax",
+    "role": "owner",
+    "width": 1440,
+    "locale": "en",
+    "formVisible": true,
+    "projectOptions": 41,
+    "notice": {
+      "text": "Before you continue problem.warning.billingStreamNoTaxProfile problem.remedy.createTaxProfile",
+      "links": [
+        {
+          "label": "problem.remedy.createTaxProfile",
+          "href": "#billing-tax-setup-action"
+        }
+      ],
+      "rect": {
+        "top": 684.5625,
+        "bottom": 815.828125,
+        "left": 1023.0625,
+        "right": 1371.609375
+      },
+      "focused": false
+    },
+    "retained": {
+      "project": true,
+      "stream": true,
+      "email": true
+    },
+    "urlPath": "/j-aautomation/app/billing",
+    "errors": [],
+    "network": [
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      }
+    ]
+  },
+  {
+    "scenario": "ledger-filtered-empty",
+    "role": "owner",
+    "width": 1440,
+    "locale": "en",
+    "baseNotice": [],
+    "ledgerRows": 2,
+    "notice": {
+      "text": "Before you continue problem.warning.collectionsLedgerExportFilteredEmpty problem.remedy.clearLedgerFilters problem.remedy.reviewBilling",
+      "links": [
+        {
+          "label": "problem.remedy.clearLedgerFilters",
+          "href": "/j-aautomation/app/ledger?q="
+        },
+        {
+          "label": "problem.remedy.reviewBilling",
+          "href": "/j-aautomation/app/billing"
+        }
+      ],
+      "rect": {
+        "top": 359.359375,
+        "bottom": 490.625,
+        "left": 285,
+        "right": 1388.609375
+      },
+      "focused": false
+    },
+    "retainedSearch": true,
+    "urlPath": "/j-aautomation/app/ledger",
+    "scrollY": 0,
+    "errors": [],
+    "network": [
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      }
+    ]
+  },
+  {
+    "scenario": "billing-no-tax",
+    "role": "finance",
+    "width": 390,
+    "locale": "es",
+    "formVisible": true,
+    "projectOptions": 41,
+    "notice": {
+      "text": "Antes de continuar problem.warning.billingStreamNoTaxProfile problem.remedy.createTaxProfile",
+      "links": [
+        {
+          "label": "problem.remedy.createTaxProfile",
+          "href": "#billing-tax-setup-action"
+        }
+      ],
+      "rect": {
+        "top": 465.375,
+        "bottom": 596.640625,
+        "left": 33,
+        "right": 357
+      },
+      "focused": false
+    },
+    "retained": {
+      "project": true,
+      "stream": true,
+      "email": true
+    },
+    "urlPath": "/j-aautomation/app/billing",
+    "errors": [],
+    "network": [
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      }
+    ]
+  },
+  {
+    "scenario": "ledger-filtered-empty",
+    "role": "finance",
+    "width": 390,
+    "locale": "es",
+    "baseNotice": [],
+    "ledgerRows": 2,
+    "notice": {
+      "text": "Antes de continuar problem.warning.collectionsLedgerExportFilteredEmpty problem.remedy.clearLedgerFilters problem.remedy.reviewBilling",
+      "links": [
+        {
+          "label": "problem.remedy.clearLedgerFilters",
+          "href": "/j-aautomation/app/ledger?q="
+        },
+        {
+          "label": "problem.remedy.reviewBilling",
+          "href": "/j-aautomation/app/billing"
+        }
+      ],
+      "rect": {
+        "top": -718.734375,
+        "bottom": -516.78125,
+        "left": 16,
+        "right": 374
+      },
+      "focused": false
+    },
+    "retainedSearch": true,
+    "urlPath": "/j-aautomation/app/ledger",
+    "scrollY": 1160,
+    "errors": [],
+    "network": [
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      }
+    ]
+  },
+  {
+    "scenario": "billing-no-tax",
+    "role": "owner",
+    "width": 390,
+    "locale": "pt",
+    "formVisible": true,
+    "projectOptions": 41,
+    "notice": {
+      "text": "Antes de continuar problem.warning.billingStreamNoTaxProfile problem.remedy.createTaxProfile",
+      "links": [
+        {
+          "label": "problem.remedy.createTaxProfile",
+          "href": "#billing-tax-setup-action"
+        }
+      ],
+      "rect": {
+        "top": 464.78125,
+        "bottom": 596.046875,
+        "left": 33,
+        "right": 357
+      },
+      "focused": false
+    },
+    "retained": {
+      "project": true,
+      "stream": true,
+      "email": true
+    },
+    "urlPath": "/j-aautomation/app/billing",
+    "errors": [],
+    "network": [
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      }
+    ]
+  },
+  {
+    "scenario": "ledger-filtered-empty",
+    "role": "owner",
+    "width": 390,
+    "locale": "pt",
+    "baseNotice": [],
+    "ledgerRows": 2,
+    "notice": {
+      "text": "Antes de continuar problem.warning.collectionsLedgerExportFilteredEmpty problem.remedy.clearLedgerFilters problem.remedy.reviewBilling",
+      "links": [
+        {
+          "label": "problem.remedy.clearLedgerFilters",
+          "href": "/j-aautomation/app/ledger?q="
+        },
+        {
+          "label": "problem.remedy.reviewBilling",
+          "href": "/j-aautomation/app/billing"
+        }
+      ],
+      "rect": {
+        "top": -718.734375,
+        "bottom": -516.78125,
+        "left": 16,
+        "right": 374
+      },
+      "focused": false
+    },
+    "retainedSearch": true,
+    "urlPath": "/j-aautomation/app/ledger",
+    "scrollY": 1160,
+    "errors": [],
+    "network": [
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      },
+      {
+        "status": 503,
+        "path": "/j-aautomation/app/api/offline/identity"
+      }
+    ]
+  }
+]

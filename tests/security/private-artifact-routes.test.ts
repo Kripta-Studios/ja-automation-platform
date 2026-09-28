@@ -1,0 +1,473 @@
+import { createHash } from 'node:crypto';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { V3AccessDeniedError, V3ConflictError, V3ValidationError } from '@ja/database';
+import { servePrivateArtifact } from '../../apps/portal/src/lib/server/private-artifact-access.js';
+import {
+  closeB5LifecycleSecurityFixture,
+  createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
+  type B5LifecycleSecurityFixture,
+} from '../fixtures/b5-lifecycle-security-fixture.js';
+
+const fixtures: B5LifecycleSecurityFixture[] = [];
+const roots: string[] = [];
+
+afterEach(() => {
+  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+  for (const fixture of fixtures.splice(0)) closeB5LifecycleSecurityFixture(fixture);
+  delete process.env.JA_DOCUMENT_ROOT;
+});
+
+function fixture(): B5LifecycleSecurityFixture {
+  const value = createB5LifecycleSecurityFixture();
+  fixtures.push(value);
+  return value;
+}
+
+function reportFixture(
+  value: B5LifecycleSecurityFixture,
+  reportId = 'private-report-1',
+  sessionUserId = value.worker.userId,
+) {
+  const now = new Date().toISOString();
+  value.sqlite
+    .prepare(
+      `INSERT INTO period_report(
+         id,project_id,period_start,period_end,audience,report_type,state,snapshot_json,
+         pdf_storage_key,pdf_sha256,pdf_byte_length,created_by,created_at,updated_at
+       ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    )
+    .run(
+      reportId,
+      value.project.id,
+      '2026-08-01',
+      '2026-08-15',
+      'customer',
+      'period',
+      'review',
+      '{}',
+      'reports/private-report.pdf',
+      'a'.repeat(64),
+      32,
+      value.owner.userId,
+      now,
+      now,
+    );
+  const sessionId = 'private-download-session';
+  value.sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      'private-download-token',
+      sessionUserId,
+      new Date(Date.now() + 60 * 60_000).toISOString(),
+      now,
+      now,
+      now,
+    );
+  return { reportId, sessionId };
+}
+
+function pdfBytes(): Buffer {
+  return Buffer.from('%PDF-1.7\n1 0 obj\nendobj\n%%EOF\n', 'ascii');
+}
+
+function installFile(root: string, storageKey: string, bytes: Buffer): void {
+  const target = join(root, ...storageKey.split('/'));
+  mkdirSync(join(target, '..'), { recursive: true });
+  writeFileSync(target, bytes);
+}
+
+describe('legacy private artifact download boundary', () => {
+  it('returns 401 before accounting-pack lookup when the session was revoked', async () => {
+    const value = fixture();
+    const principal = stepUpB5Principal(value.sqlite, value.finance, 'accounting-pack-download');
+    value.sqlite.prepare('DELETE FROM session WHERE id=?').run(principal.sessionId);
+    const loadMetadata = vi.fn(() => {
+      throw new Error('revoked caller must not reach metadata');
+    });
+    const response = await servePrivateArtifact({
+      sqlite: value.sqlite,
+      principal: { ...principal, correlationId: 'revoked-accounting-pack-reference' },
+      kind: 'accounting_pack',
+      id: 'unqueried-pack',
+      loadMetadata,
+    });
+    expect(response.status).toBe(401);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('x-correlation-id')).toBe('revoked-accounting-pack-reference');
+    expect(await response.json()).toEqual({ error: 'Unauthorized' });
+    expect(loadMetadata).not.toHaveBeenCalled();
+  });
+
+  it('keeps the accounting-pack service failure reference in its log and response header', async () => {
+    const sqlite = {
+      prepare: () => {
+        throw new Error('private database adapter failed');
+      },
+    } as unknown as Parameters<typeof servePrivateArtifact>[0]['sqlite'];
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const response = await servePrivateArtifact({
+        sqlite,
+        principal: {
+          userId: 'finance-1',
+          role: 'finance_admin',
+          projectIds: new Set(),
+          sessionId: 'session-1',
+          correlationId: 'accounting-service-reference',
+        },
+        kind: 'accounting_pack',
+        id: 'pack-1',
+        loadMetadata: () => {
+          throw new Error('metadata must not be loaded');
+        },
+      });
+      expect(response.status).toBe(500);
+      expect(response.headers.get('x-correlation-id')).toBe('accounting-service-reference');
+      expect(await response.json()).toEqual({ error: 'Private artifact is unavailable' });
+      expect(log).toHaveBeenCalledWith(
+        'Unexpected private artifact download failure',
+        expect.objectContaining({ correlationId: 'accounting-service-reference' }),
+      );
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it('authorizes by project before invoking metadata and emits hardened headers/audit', async () => {
+    const value = fixture();
+    const { reportId, sessionId } = reportFixture(value);
+    const root = mkdtempSync(join(process.env.TEMP ?? process.env.TMP ?? '.', 'ja-private-route-'));
+    roots.push(root);
+    process.env.JA_DOCUMENT_ROOT = root;
+    const bytes = pdfBytes();
+    installFile(root, 'reports/private-report.pdf', bytes);
+    const loadMetadata = vi.fn(() => ({
+      storageKey: 'reports/private-report.pdf',
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+      byteLength: bytes.byteLength,
+      mediaType: 'application/pdf',
+      filename: 'period résumé report.pdf',
+    }));
+    const principal = { ...value.worker, sessionId };
+    const response = await servePrivateArtifact({
+      sqlite: value.sqlite,
+      principal,
+      kind: 'period_report',
+      id: reportId,
+      loadMetadata,
+    });
+    expect(response.status).toBe(200);
+    expect(loadMetadata).toHaveBeenCalledOnce();
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('pragma')).toBe('no-cache');
+    expect(response.headers.get('expires')).toBe('0');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(response.headers.get('cross-origin-resource-policy')).toBe('same-origin');
+    expect(response.headers.get('content-security-policy')).toBe('sandbox');
+    expect(response.headers.get('content-disposition')).toContain(
+      "filename*=UTF-8''period%20r%C3%A9sum%C3%A9%20report.pdf",
+    );
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
+    const audit = value.sqlite
+      .prepare(
+        `SELECT action,entity_type,entity_id,tenant_id,deployment_id,details_json
+         FROM audit_event WHERE action='artifact.access' ORDER BY occurred_at DESC LIMIT 1`,
+      )
+      .get() as Record<string, string>;
+    expect(audit).toMatchObject({
+      action: 'artifact.access',
+      entity_type: 'period_report',
+      entity_id: reportId,
+      tenant_id: 'test-tenant',
+      deployment_id: 'test-deployment',
+    });
+    expect(audit.details_json).toContain('"outcome":"authorized"');
+  });
+
+  it('conceals an out-of-scope object and never invokes the metadata loader', async () => {
+    const value = fixture();
+    const { reportId, sessionId } = reportFixture(value, 'private-report-1', value.outsider.userId);
+    const loadMetadata = vi.fn(() => {
+      throw new Error('must not be called');
+    });
+    const response = await servePrivateArtifact({
+      sqlite: value.sqlite,
+      principal: { ...value.outsider, sessionId },
+      kind: 'period_report',
+      id: reportId,
+      loadMetadata,
+    });
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({
+      error: 'File unavailable',
+      code: 'REPORT_PDF_UNAVAILABLE',
+      messageKey: 'problem.report.pdfUnavailable',
+      remedies: [{ id: 'contact_owner' }],
+    });
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('x-correlation-id')).toBeTruthy();
+    expect(loadMetadata).not.toHaveBeenCalled();
+    expect(
+      value.sqlite
+        .prepare("SELECT count(*) AS count FROM audit_event WHERE action='artifact.access'")
+        .get(),
+    ).toEqual({ count: 0 });
+  });
+
+  it('serves a live session without a second password confirmation and still rejects traversal/tamper', async () => {
+    const value = fixture();
+    const { reportId, sessionId } = reportFixture(value);
+    const bytes = pdfBytes();
+    const stale = new Date(Date.now() - 11 * 60_000).toISOString();
+    value.sqlite.prepare('UPDATE session SET step_up_at=? WHERE id=?').run(stale, sessionId);
+    const liveSession = await servePrivateArtifact({
+      sqlite: value.sqlite,
+      principal: { ...value.worker, sessionId },
+      kind: 'period_report',
+      id: reportId,
+      loadMetadata: () => ({
+        storageKey: 'reports/private-report.pdf',
+        sha256: createHash('sha256').update(bytes).digest('hex'),
+        byteLength: bytes.byteLength,
+        mediaType: 'application/pdf',
+        filename: 'report.pdf',
+      }),
+    });
+    expect(liveSession.status).not.toBe(403);
+
+    const traversal = await servePrivateArtifact({
+      sqlite: value.sqlite,
+      principal: { ...value.worker, sessionId },
+      kind: 'period_report',
+      id: reportId,
+      loadMetadata: () => ({
+        storageKey: '../escape.pdf',
+        sha256: 'a'.repeat(64),
+        byteLength: bytes.byteLength,
+        mediaType: 'application/pdf',
+        filename: 'report.pdf',
+      }),
+    });
+    expect(traversal.status).toBe(409);
+    expect(await traversal.json()).toMatchObject({
+      code: 'REPORT_PDF_INTEGRITY_BLOCKED',
+      messageKey: 'problem.report.pdfIntegrityBlocked',
+      remedies: [{ id: 'review_report' }],
+    });
+
+    const root = mkdtempSync(join(process.env.TEMP ?? process.env.TMP ?? '.', 'ja-private-route-'));
+    roots.push(root);
+    process.env.JA_DOCUMENT_ROOT = root;
+    installFile(root, 'reports/private-report.pdf', bytes);
+    const tampered = await servePrivateArtifact({
+      sqlite: value.sqlite,
+      principal: { ...value.worker, sessionId },
+      kind: 'period_report',
+      id: reportId,
+      loadMetadata: () => ({
+        storageKey: 'reports/private-report.pdf',
+        sha256: 'b'.repeat(64),
+        byteLength: bytes.byteLength,
+        mediaType: 'application/pdf',
+        filename: 'report.pdf',
+      }),
+    });
+    expect(tampered.status).toBe(409);
+    expect(
+      value.sqlite
+        .prepare(
+          "SELECT details_json FROM audit_event WHERE action='artifact.access' ORDER BY occurred_at DESC LIMIT 1",
+        )
+        .get(),
+    ).toMatchObject({ details_json: expect.stringContaining('"outcome":"integrity"') });
+  });
+
+  it('rejects a symlinked artifact instead of following it', async () => {
+    const value = fixture();
+    const { reportId, sessionId } = reportFixture(value);
+    const root = mkdtempSync(join(process.env.TEMP ?? process.env.TMP ?? '.', 'ja-private-route-'));
+    roots.push(root);
+    process.env.JA_DOCUMENT_ROOT = root;
+    mkdirSync(join(root, 'reports'), { recursive: true });
+    const outside = join(root, 'outside.pdf');
+    writeFileSync(outside, pdfBytes());
+    try {
+      symlinkSync(outside, join(root, 'reports', 'private-report.pdf'));
+    } catch {
+      return;
+    }
+    const response = await servePrivateArtifact({
+      sqlite: value.sqlite,
+      principal: { ...value.worker, sessionId },
+      kind: 'period_report',
+      id: reportId,
+      loadMetadata: () => ({
+        storageKey: 'reports/private-report.pdf',
+        sha256: createHash('sha256').update(pdfBytes()).digest('hex'),
+        byteLength: pdfBytes().byteLength,
+        mediaType: 'application/pdf',
+        filename: 'report.pdf',
+      }),
+    });
+    expect(response.status).toBe(409);
+    expect(
+      value.sqlite
+        .prepare("SELECT count(*) AS count FROM audit_event WHERE action='artifact.access'")
+        .get(),
+    ).toEqual({ count: 1 });
+  });
+
+  it('serves generated snapshot bytes instead of the stored file', async () => {
+    const value = fixture();
+    const { reportId, sessionId } = reportFixture(value);
+    const root = mkdtempSync(join(process.env.TEMP ?? process.env.TMP ?? '.', 'ja-private-route-'));
+    roots.push(root);
+    process.env.JA_DOCUMENT_ROOT = root;
+    const stored = pdfBytes();
+    installFile(root, 'reports/private-report.pdf', stored);
+    const generated = Buffer.from('%PDF-1.7\ngenerated-layout\n%%EOF\n', 'ascii');
+    const response = await servePrivateArtifact({
+      sqlite: value.sqlite,
+      principal: { ...value.worker, sessionId },
+      kind: 'period_report',
+      id: reportId,
+      loadMetadata: () => ({
+        storageKey: 'reports/private-report.pdf',
+        sha256: createHash('sha256').update(stored).digest('hex'),
+        byteLength: stored.byteLength,
+        mediaType: 'application/pdf',
+        filename: 'report.pdf',
+      }),
+      generateBytes: () => generated,
+    });
+    expect(response.status).toBe(200);
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(generated);
+  });
+
+  it('reports readiness separately from integrity and never exposes raw repository conflicts', async () => {
+    const value = fixture();
+    const { reportId, sessionId } = reportFixture(value);
+    const notReady = await servePrivateArtifact({
+      sqlite: value.sqlite,
+      principal: { ...value.worker, sessionId },
+      kind: 'period_report',
+      id: reportId,
+      loadMetadata: () => {
+        throw new V3ValidationError('Period report PDF is not ready');
+      },
+    });
+    expect(notReady.status).toBe(409);
+    expect(await notReady.json()).toMatchObject({
+      code: 'REPORT_PDF_NOT_READY',
+      messageKey: 'problem.report.pdfNotReady',
+      error: 'File is not ready',
+    });
+
+    const integrity = await servePrivateArtifact({
+      sqlite: value.sqlite,
+      principal: { ...value.worker, sessionId },
+      kind: 'period_report',
+      id: reportId,
+      loadMetadata: () => {
+        throw new V3ConflictError('Sensitive internal detail must not reach the browser');
+      },
+    });
+    expect(integrity.status).toBe(409);
+    const body = await integrity.json();
+    expect(body).toMatchObject({
+      code: 'REPORT_PDF_INTEGRITY_BLOCKED',
+      messageKey: 'problem.report.pdfIntegrityBlocked',
+    });
+    expect(JSON.stringify(body)).not.toContain('Sensitive internal detail');
+  });
+
+  it('checks the live session again immediately before generated bytes are audited or returned', async () => {
+    const value = fixture();
+    const { reportId, sessionId } = reportFixture(value);
+    const generated = pdfBytes();
+    const response = await servePrivateArtifact({
+      sqlite: value.sqlite,
+      principal: { ...value.worker, sessionId },
+      kind: 'period_report',
+      id: reportId,
+      loadMetadata: () => ({
+        storageKey: 'reports/private-report.pdf',
+        sha256: createHash('sha256').update(generated).digest('hex'),
+        byteLength: generated.byteLength,
+        mediaType: 'application/pdf',
+        filename: 'report.pdf',
+      }),
+      generateBytes: () => {
+        value.sqlite.prepare('DELETE FROM session WHERE id=?').run(sessionId);
+        return generated;
+      },
+    });
+    expect(response.status).toBe(401);
+    expect(await response.json()).toMatchObject({
+      code: 'REPORT_PDF_SIGN_IN_REQUIRED',
+      messageKey: 'problem.report.pdfSignInRequired',
+      remedies: [{ id: 'sign_in_again' }],
+    });
+    expect(
+      value.sqlite
+        .prepare("SELECT count(*) AS count FROM audit_event WHERE action='artifact.access'")
+        .get(),
+    ).toEqual({ count: 0 });
+  });
+
+  it('does not conceal a revoked session as a metadata access denial', async () => {
+    const value = fixture();
+    const { reportId, sessionId } = reportFixture(value);
+    const response = await servePrivateArtifact({
+      sqlite: value.sqlite,
+      principal: { ...value.worker, sessionId },
+      kind: 'period_report',
+      id: reportId,
+      loadMetadata: () => {
+        value.sqlite.prepare('DELETE FROM session WHERE id=?').run(sessionId);
+        throw new V3AccessDeniedError('Repository access denied');
+      },
+    });
+    expect(response.status).toBe(401);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      code: 'REPORT_PDF_SIGN_IN_REQUIRED',
+      messageKey: 'problem.report.pdfSignInRequired',
+    });
+    expect(response.headers.get('x-correlation-id')).toBe(body.correlationId);
+  });
+
+  it('returns a correlated service problem for an unexpected metadata failure', async () => {
+    const value = fixture();
+    const { reportId, sessionId } = reportFixture(value);
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const response = await servePrivateArtifact({
+        sqlite: value.sqlite,
+        principal: { ...value.worker, sessionId },
+        kind: 'period_report',
+        id: reportId,
+        loadMetadata: () => {
+          throw new Error('storage adapter timeout with internal diagnostic');
+        },
+      });
+      expect(response.status).toBe(503);
+      const body = await response.json();
+      expect(body).toMatchObject({
+        code: 'REPORT_PDF_SERVICE_UNAVAILABLE',
+        messageKey: 'problem.report.pdfServiceUnavailable',
+        remedies: [{ id: 'retry_download' }],
+      });
+      expect(JSON.stringify(body)).not.toContain('storage adapter timeout');
+      expect(errorSpy).toHaveBeenCalledOnce();
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+});

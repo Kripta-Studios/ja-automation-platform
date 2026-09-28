@@ -1,0 +1,200 @@
+{
+  "candidateCommit": "a2b1e9a",
+  "fixture": "fresh-disposable-local-preview",
+  "cases": [
+    {
+      "name": "manager_phone_es_time_approval",
+      "warnings": [
+        {
+          "code": "WARNING_OPERATIONAL_APPROVAL_FINANCE_SEPARATE",
+          "text": "Antes de continuar Aprobar confirma los datos del tiempo o gasto y pasa este registro a la revisión de Finanzas. No decide la facturación al cliente ni el reembolso al trabajador. Revisar este registro",
+          "kind": "warning",
+          "links": [
+            {
+              "text": "Revisar este registro",
+              "href": "/j-aautomation/app/time/:record"
+            }
+          ]
+        },
+        {
+          "code": "WARNING_OPERATIONAL_RETURN_FACTUAL_CORRECTION",
+          "text": "",
+          "kind": "warning",
+          "links": [
+            {
+              "text": "Revisar este registro",
+              "href": "/j-aautomation/app/time/:record"
+            }
+          ]
+        }
+      ],
+      "returnWarning": [],
+      "submit": {
+        "http": 200,
+        "type": "success",
+        "status": 200,
+        "code": null
+      },
+      "before": "submitted",
+      "after": "approved",
+      "auditDelta": 1,
+      "focus": {
+        "tag": "BODY",
+        "role": null,
+        "id": null,
+        "top": -1892,
+        "headerBottom": 69.59375,
+        "scrollY": 1892
+      },
+      "tab": "Horas\n36",
+      "diagnostics": {
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedResponses": []
+      }
+    },
+    {
+      "name": "owner_desktop_pt_time_approval",
+      "warnings": [
+        {
+          "code": "WARNING_OPERATIONAL_APPROVAL_FINANCE_SEPARATE",
+          "text": "Antes de continuar A aprovação confirma os fatos das horas ou despesas e encaminha este registro para a revisão de Finanças. Ela não decide a cobrança ao cliente nem o reembolso ao trabalhador. Revisar este registro",
+          "kind": "warning",
+          "links": [
+            {
+              "text": "Revisar este registro",
+              "href": "/j-aautomation/app/time/:record"
+            }
+          ]
+        },
+        {
+          "code": "WARNING_OPERATIONAL_RETURN_FACTUAL_CORRECTION",
+          "text": "",
+          "kind": "warning",
+          "links": [
+            {
+              "text": "Revisar este registro",
+              "href": "/j-aautomation/app/time/:record"
+            }
+          ]
+        }
+      ],
+      "submit": {
+        "http": 200,
+        "type": "success",
+        "status": 200,
+        "code": null
+      },
+      "after": "approved",
+      "auditDelta": 1,
+      "focus": {
+        "tag": "BODY",
+        "role": null,
+        "id": null,
+        "top": -802,
+        "headerBottom": 72,
+        "scrollY": 802
+      },
+      "tab": "Horas\n36",
+      "diagnostics": {
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedResponses": []
+      }
+    },
+    {
+      "name": "manager_phone_es_stale_return_after_owner_approval",
+      "beforeFocus": {
+        "tag": "INPUT",
+        "role": null,
+        "id": null,
+        "top": 513.65625,
+        "headerBottom": 69.59375,
+        "scrollY": 1976
+      },
+      "submit": {
+        "http": 200,
+        "type": "failure",
+        "status": 409,
+        "code": null
+      },
+      "noticeCode": "APPROVAL_RECORD_NOT_SUBMITTED",
+      "noticeText": "Se requiere una acción Este registro ya no está enviado. Revisa su estado actual antes de tomar una decisión. Estado actual: Aprobado Revisar el registro actualizado",
+      "links": [
+        {
+          "text": "Revisar el registro actualizado",
+          "href": "/j-aautomation/app/time/:record"
+        }
+      ],
+      "reason": "Corrija la duración real en sitio",
+      "detailsOpen": true,
+      "tab": "Horas\n36",
+      "afterFocus": {
+        "tag": "ASIDE",
+        "role": "alert",
+        "id": null,
+        "top": 333.96875,
+        "headerBottom": 69.59375,
+        "scrollY": 381
+      },
+      "recordState": "approved",
+      "auditDeltaAfterStale": 0,
+      "diagnostics": {
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedResponses": []
+      }
+    },
+    {
+      "name": "owner_desktop_pt_expense_invalid_reason",
+      "beforeFocus": {
+        "tag": "INPUT",
+        "role": null,
+        "id": null,
+        "top": 517.90625,
+        "headerBottom": 72,
+        "scrollY": 861
+      },
+      "submit": {
+        "http": 200,
+        "type": "failure",
+        "status": 400,
+        "code": null
+      },
+      "noticeCode": "APPROVAL_REASON_REQUIRED",
+      "noticeText": "Ação necessária Informe um motivo antes de devolver ou rejeitar este registro. Situação atual: Enviado Motivo de revisão",
+      "reason": "   ",
+      "detailsOpen": true,
+      "tab": "Despesas\n31",
+      "afterFocus": {
+        "tag": "DIV",
+        "role": "alert",
+        "id": "validation-approverecord-2-summary",
+        "top": 1416.84375,
+        "headerBottom": 72,
+        "scrollY": 118
+      },
+      "recordState": "submitted",
+      "auditDelta": 0,
+      "diagnostics": {
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedResponses": []
+      }
+    },
+    {
+      "name": "finance_desktop_pt_operational_access",
+      "rowVisible": false,
+      "operationalButtons": [],
+      "financeNote": [
+        "A revisão financeira começa após a aprovação operacional. Finanças deve confirmar a faturabilidade ou o tratamento da despesa antes que um registro avance para faturamento, reembolso ou liquidação; ela não reescreve os fatos operacionais."
+      ],
+      "financeReviewVisible": true,
+      "diagnostics": {
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedResponses": []
+      }
+    }
+  ]
+}

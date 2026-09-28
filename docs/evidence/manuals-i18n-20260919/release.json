@@ -1,0 +1,32 @@
+{
+  "applicationCommit": "e43c640611bf3f50297056719e2a5a185ed9783f",
+  "archivePath": "/home/kripta/jaautomation-manuals-e43c640611bf3f50297056719e2a5a185ed9783f.zip",
+  "archiveSha256": "6397282be2e6f29976d6ba9386ffbc380dd11e9367a2324392a13286b9edd9f0",
+  "startedAt": "2026-09-19T10:04:25.148261+00:00",
+  "previousRelease": "/opt/jaautomation/releases/ja-automation-eb9094bf75957c4c68559161e34a34d634bb0826ddc22638f14f77fdab27c6de",
+  "deployedAt": "2026-09-19T10:07:32+00:00",
+  "verifiedAt": "2026-09-19T10:08:09.397584+00:00",
+  "activeRelease": "/opt/jaautomation/releases/ja-automation-6397282be2e6f29976d6ba9386ffbc380dd11e9367a2324392a13286b9edd9f0",
+  "identicalSourceFiles": 1924,
+  "rollbackImageTags": [
+    "ja-automation-site:rollback-20260919100438-6397282be2e6",
+    "ja-automation-portal:rollback-20260919100438-6397282be2e6"
+  ],
+  "containers": [
+    {
+      "name": "deployment-site-1",
+      "running": true,
+      "health": "healthy"
+    },
+    {
+      "name": "deployment-portal-1",
+      "running": true,
+      "health": "healthy"
+    },
+    {
+      "name": "deployment-jobs-1",
+      "running": true,
+      "health": null
+    }
+  ]
+}

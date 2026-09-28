@@ -1,0 +1,61 @@
+{
+  "viewport": "phone-390",
+  "requestStatus": 202,
+  "artifactStates": [
+    {
+      "format": "pdf",
+      "status": "queued"
+    },
+    {
+      "format": "csv",
+      "status": "queued"
+    }
+  ],
+  "initialBadge": "Worker statement\n\nDownload your own activity, compensation, settlement, and reimbursement statement for this period.\n\nGenerate report\nPDF · Queued\nCSV · Queued\n\nThe statement is being prepared. Its status will update here.",
+  "queuedDetailStatus": 200,
+  "prematureRetryStatus": 409,
+  "prematureRetryHasTypedCode": true,
+  "invalidPeriodStatus": 400,
+  "invalidPeriodHasTypedCode": true,
+  "otherWorkerDownloadStatus": 404,
+  "malformedDownloadStatus": 404,
+  "ownerListStatus": 403,
+  "financeListStatus": 403,
+  "pageErrors": [],
+  "failedResponses": [
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "path": "/j-aautomation/app/api/offline/identity",
+      "status": 503
+    }
+  ],
+  "consoleErrorCount": 14,
+  "consoleErrorExamples": [
+    "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo=''. Either the ",
+    "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo=''. Either the ",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'unsafe-hashes' 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo=''. Either the ",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+  ],
+  "pageHorizontalOverflow": false
+}

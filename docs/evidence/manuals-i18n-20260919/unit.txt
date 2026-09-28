@@ -1,0 +1,9 @@
+$ vitest run --exclude '**/tests/integration/**' --exclude '**/tests/e2e/**' --exclude '**/tests/reporting-artifacts.test.ts'
+
+ RUN  v4.1.11 /home/kripta/ja-automation-platform-vps-hotfix
+
+
+ Test Files  162 passed (162)
+      Tests  1123 passed (1123)
+   Start at  11:34:29
+   Duration  276.44s (transform 5.59s, setup 0ms, import 31.68s, tests 770.13s, environment 19ms)

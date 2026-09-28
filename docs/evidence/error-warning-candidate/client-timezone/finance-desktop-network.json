@@ -1,0 +1,12 @@
+{
+  "role": "finance",
+  "viewport": "desktop",
+  "rejectedStatus": 400,
+  "rejectedCode": "CLIENT_TIMEZONE_INVALID",
+  "fieldError": "timezone",
+  "focused": "validation summary",
+  "clientRowsAfterReject": 0,
+  "pageErrors": 0,
+  "consoleErrors": 4,
+  "expectedOfflineIdentity503": 3
+}

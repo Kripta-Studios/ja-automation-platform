@@ -1,0 +1,56 @@
+{
+  "candidateCommit": "bb999a9",
+  "source": "disposable-browser-fixture",
+  "cases": [
+    {
+      "role": "finance",
+      "locale": "en",
+      "width": 390,
+      "successText": "Billing stream saved.",
+      "unrelatedStreamDidNotClearWarning": true,
+      "warningRemovedAfterTargetStream": true,
+      "successStatusAnnounced": true,
+      "focus": {
+        "tag": "BODY",
+        "connected": true
+      },
+      "activeStreamCount": 1,
+      "invoiceCountUnchanged": true,
+      "billingWrites": [
+        {
+          "operation": "createBillingRule",
+          "status": 200
+        },
+        {
+          "operation": "createBillingRule",
+          "status": 200
+        }
+      ],
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "role": "owner",
+      "locale": "es",
+      "width": 1440,
+      "successText": "Flujo de facturación guardado.",
+      "unrelatedStreamDidNotClearWarning": false,
+      "warningRemovedAfterTargetStream": true,
+      "successStatusAnnounced": true,
+      "focus": {
+        "tag": "BODY",
+        "connected": true
+      },
+      "activeStreamCount": 1,
+      "invoiceCountUnchanged": true,
+      "billingWrites": [
+        {
+          "operation": "createBillingRule",
+          "status": 200
+        }
+      ],
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  ]
+}

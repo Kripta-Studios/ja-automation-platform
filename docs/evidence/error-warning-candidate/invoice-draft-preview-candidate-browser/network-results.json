@@ -1,0 +1,62 @@
+{
+  "candidateCommit": "d9c212ba93625ff9fe37802c771291a1ecfb42de",
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "downloads": 1
+  },
+  "failure": {
+    "requests": 1,
+    "ui": {
+      "path": "/j-aautomation/app/billing/invoices/:record",
+      "lang": "en-US",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollY": 0,
+      "noticeCode": "INVOICE_DRAFT_PREVIEW_NETWORK_UNAVAILABLE",
+      "noticeText": "Action needed The preview download could not be confirmed. Nothing was changed; retry the download. Retry preview",
+      "noticeTop": 357.890625,
+      "noticeBottom": 529.75,
+      "headerBottom": 69.59375,
+      "activeNotice": true,
+      "activeElement": "aside",
+      "remedies": [
+        {
+          "text": "Retry preview",
+          "href": "#invoice-draft-preview-action"
+        }
+      ],
+      "actionHref": "/j-aautomation/app/api/invoices/:record/draft-preview?lang=en",
+      "actionVisible": true,
+      "actionDisabled": "false"
+    },
+    "downloads": 0
+  },
+  "retry": {
+    "requests": 1,
+    "filenameMatches": true,
+    "ui": {
+      "path": "/j-aautomation/app/billing/invoices/:record",
+      "lang": "en-US",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollY": 0,
+      "noticeCode": null,
+      "noticeText": null,
+      "noticeTop": null,
+      "noticeBottom": null,
+      "headerBottom": 69.59375,
+      "activeNotice": false,
+      "activeElement": "body",
+      "remedies": [],
+      "actionHref": "/j-aautomation/app/api/invoices/:record/draft-preview?lang=en",
+      "actionVisible": true,
+      "actionDisabled": "false"
+    },
+    "downloads": 1
+  }
+}

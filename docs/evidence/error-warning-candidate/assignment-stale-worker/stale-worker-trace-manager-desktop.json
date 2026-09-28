@@ -1,0 +1,10 @@
+{
+  "role": "manager",
+  "viewport": "desktop",
+  "code": "PROJECT_ASSIGNMENT_WORKER_UNAVAILABLE",
+  "retainedProjectWorkerDates": true,
+  "staleWorkerResubmissionBlocked": true,
+  "replacementAssignmentCreated": true,
+  "consoleErrorCount": 4,
+  "pageErrorCount": 0
+}

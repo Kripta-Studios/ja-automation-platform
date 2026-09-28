@@ -1,0 +1,105 @@
+{
+  "productCommit": "bcdd0fd9a9a1813751b256f5c9088f09778648a9",
+  "role": "crewChief",
+  "viewport": "desktop",
+  "locale": "es",
+  "fixture": "fresh disposable DB; project, delegations, time, receipt created through rendered UI",
+  "cases": [
+    {
+      "kind": "allocated-after-open",
+      "before": {
+        "code": null,
+        "wording": "",
+        "remedy": [],
+        "formPresent": true,
+        "receiptOptionPresent": true,
+        "selectedReceipt": true,
+        "chosenRows": [true, true],
+        "amounts": ["7.00", "5.50"],
+        "savedGroupVisible": false,
+        "focusedTag": "input",
+        "focusedNotice": false,
+        "focusTop": 498,
+        "noticeTop": null,
+        "scrollY": 1424,
+        "viewportHeight": 900,
+        "selectedProject": true,
+        "selectedDate": "2026-09-27",
+        "locale": "es"
+      },
+      "savedResponse": {
+        "transportStatus": 200,
+        "contentType": "application/json"
+      },
+      "saved": {
+        "groupCount": 1,
+        "totalMinor": 1250,
+        "allocationCount": 2,
+        "amountsMinor": [450, 800],
+        "auditCount": 1
+      },
+      "enhanced": {
+        "transportStatus": 200,
+        "contentType": "application/json",
+        "envelopeType": "failure",
+        "actionStatus": 409,
+        "code": "CREW_RECEIPT_UNAVAILABLE",
+        "remedy": "review_receipts"
+      },
+      "native": {
+        "status": 409,
+        "contentType": "text/html",
+        "code": "CREW_RECEIPT_UNAVAILABLE",
+        "remedy": "review_receipts"
+      },
+      "after": {
+        "code": "CREW_RECEIPT_UNAVAILABLE",
+        "wording": "Se requiere una acción El recibo ya no es un borrador sin repartir que hayas introducido. Revisa los recibos actuales. Revisar los recibos y repartos actuales",
+        "remedy": [
+          {
+            "label": "Revisar los recibos y repartos actuales",
+            "pathname": "/j-aautomation/app/crew",
+            "search": "?project=:record&date=2026-09-27&review=1",
+            "hash": "#crew-receipts"
+          }
+        ],
+        "formPresent": false,
+        "receiptOptionPresent": false,
+        "selectedReceipt": false,
+        "chosenRows": [false, false],
+        "amounts": [null, null],
+        "savedGroupVisible": true,
+        "focusedTag": "div",
+        "focusedNotice": true,
+        "focusTop": 88,
+        "noticeTop": 88,
+        "scrollY": 168,
+        "viewportHeight": 900,
+        "selectedProject": true,
+        "selectedDate": "2026-09-27",
+        "locale": "es"
+      },
+      "finalState": {
+        "groupCount": 1,
+        "totalMinor": 1250,
+        "allocationCount": 2,
+        "amountsMinor": [450, 800],
+        "auditCount": 1
+      }
+    }
+  ],
+  "console": {
+    "chiefA": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "chiefB": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  }
+}

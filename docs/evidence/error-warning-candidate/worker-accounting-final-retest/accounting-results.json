@@ -1,0 +1,35 @@
+{
+  "commit": "763be5b",
+  "role": "finance",
+  "viewport": 390,
+  "locale": "en",
+  "packCreation": {
+    "status": 200,
+    "viaBrowser": true
+  },
+  "failedExport": {
+    "viaDurableWorker": true,
+    "format": "PDF"
+  },
+  "retry": {
+    "status": 503,
+    "intercepted": true,
+    "jobCountUnchanged": true,
+    "notice": {
+      "text": "PDF: The retry was not queued because Accounting Pack access is temporarily unavailable. Review the packs you can access before trying again. Reference: qa-accounting-ref-0001. Check pack status",
+      "focused": true,
+      "visible": true,
+      "overflow": false,
+      "scrollY": 1488,
+      "url": "/j-aautomation/app/accounting?lang=en"
+    }
+  },
+  "unknownRetry": {
+    "status": 500,
+    "intercepted": true,
+    "noticeText": "PDF: The retry may already be queued. Check this pack status before trying again. Check pack status",
+    "jobCountUnchanged": true
+  },
+  "posts": 2,
+  "errors": []
+}

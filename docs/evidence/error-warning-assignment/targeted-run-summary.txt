@@ -1,0 +1,7 @@
+Running 4 tests using 1 worker
+[1/4] [phone-390] › tests/e2e/error-warning-assignment.spec.ts:147:3 › owner assignment form explains status and retains inputs after a status race
+[2/4] [phone-390] › tests/e2e/error-warning-assignment.spec.ts:147:3 › manager assignment form explains status and retains inputs after a status race
+[3/4] [desktop] › tests/e2e/error-warning-assignment.spec.ts:147:3 › owner assignment form explains status and retains inputs after a status race
+[4/4] [desktop] › tests/e2e/error-warning-assignment.spec.ts:147:3 › manager assignment form explains status and retains inputs after a status race
+  2 skipped
+  2 passed (1.1m)

@@ -1,0 +1,87 @@
+[
+  {
+    "label": "anonymous-direct",
+    "status": 401,
+    "code": "WORKER_STATEMENT_SIGN_IN_REQUIRED",
+    "key": "problem.workerStatement.signInRequired",
+    "remedies": [
+      "sign_in"
+    ],
+    "reference": true,
+    "cacheControl": "private, no-store"
+  },
+  {
+    "label": "worker-my-pay",
+    "status": true,
+    "url": "/j-aautomation/app/pay"
+  },
+  {
+    "label": "worker-statement-list",
+    "status": 200,
+    "reference": false
+  },
+  {
+    "label": "worker-middle-click-404",
+    "text": "Action needed This worker statement is unavailable. Open My Pay to review your statements. Check statement status",
+    "focus": true,
+    "bottom": 756,
+    "navTop": 772,
+    "url": "/j-aautomation/app/pay?start=2026-08-01&end=2026-08-31&lang=en",
+    "pageCountBefore": 1,
+    "pageCountAfter": 1,
+    "rawJsonTab": false
+  },
+  {
+    "label": "worker-stale-ready-after-409-and-refresh-503",
+    "notice": "Action needed This statement could not be prepared. Review its status and retry if offered. Retry statement",
+    "visibleReadyPdf": true,
+    "retryStatementButton": false,
+    "focusedNotice": true
+  },
+  {
+    "label": "worker-artifactPending-409",
+    "text": "Action needed\n\nThis statement is still being prepared. Check its status again shortly.\n\nCheck statement status",
+    "focused": true
+  },
+  {
+    "label": "worker-integrityFailed-409",
+    "text": "Action needed\n\nThis statement file did not pass its integrity check. Request help from the owner or finance team.\n\nContact the project owner about its status.",
+    "focused": true
+  },
+  {
+    "label": "owner-foreign-artifact",
+    "status": 404,
+    "code": "WORKER_STATEMENT_NOT_FOUND",
+    "key": "problem.workerStatement.notFound"
+  },
+  {
+    "label": "manager-my-pay",
+    "status": true,
+    "url": "/j-aautomation/app/pay"
+  },
+  {
+    "label": "manager-statement-list",
+    "status": 200,
+    "reference": false
+  },
+  {
+    "label": "owner-statement-list",
+    "status": 403,
+    "code": "WORKER_STATEMENT_ROLE_REQUIRED",
+    "key": "problem.workerStatement.roleRequired",
+    "remedies": [
+      "review_workspace"
+    ],
+    "reference": true
+  },
+  {
+    "label": "finance-statement-list",
+    "status": 403,
+    "code": "WORKER_STATEMENT_ROLE_REQUIRED",
+    "key": "problem.workerStatement.roleRequired",
+    "remedies": [
+      "review_workspace"
+    ],
+    "reference": true
+  }
+]

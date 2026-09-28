@@ -1,0 +1,380 @@
+[
+  {
+    "source": "post-csp",
+    "scenario": "invoice-inline",
+    "role": "owner",
+    "locale": "en",
+    "width": 1440,
+    "frameProtocols": [
+      {
+        "protocol": "http:",
+        "mime": "text/html"
+      },
+      {
+        "protocol": "",
+        "mime": "text/html"
+      }
+    ],
+    "frameVisible": true,
+    "cspErrors": [],
+    "allErrors": [],
+    "network": [
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      }
+    ],
+    "retainedInvoice": true
+  },
+  {
+    "source": "post-csp",
+    "scenario": "invoice-open",
+    "role": "owner",
+    "locale": "en",
+    "width": 1440,
+    "frameProtocols": [
+      {
+        "protocol": "about:",
+        "mime": "text/html"
+      },
+      {
+        "protocol": "about:",
+        "mime": "text/html"
+      }
+    ],
+    "fallbackVisible": true,
+    "popupErrors": [],
+    "allErrors": [],
+    "network": [
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      },
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      }
+    ],
+    "pageCount": 2,
+    "retainedInvoice": true
+  },
+  {
+    "source": "post-csp",
+    "scenario": "invoice-download",
+    "role": "owner",
+    "locale": "en",
+    "width": 1440,
+    "filenamePdf": true,
+    "network": [
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      },
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      },
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      }
+    ],
+    "allErrors": []
+  },
+  {
+    "source": "post-csp",
+    "scenario": "report-open",
+    "role": "owner",
+    "locale": "en",
+    "width": 1440,
+    "frameProtocols": [
+      {
+        "protocol": "about:",
+        "mime": "text/html"
+      },
+      {
+        "protocol": "about:",
+        "mime": "text/html"
+      }
+    ],
+    "fallbackVisible": true,
+    "popupErrors": [],
+    "allErrors": [],
+    "network": [
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      },
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      },
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      },
+      {
+        "kind": "report",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      }
+    ],
+    "pageCount": 2,
+    "retainedReport": true
+  },
+  {
+    "source": "post-csp",
+    "scenario": "invoice-inline",
+    "role": "finance",
+    "locale": "es",
+    "width": 390,
+    "frameProtocols": [
+      {
+        "protocol": "http:",
+        "mime": "text/html"
+      },
+      {
+        "protocol": "",
+        "mime": "text/html"
+      }
+    ],
+    "frameVisible": true,
+    "cspErrors": [],
+    "allErrors": [],
+    "network": [
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      }
+    ],
+    "retainedInvoice": true
+  },
+  {
+    "source": "post-csp",
+    "scenario": "invoice-open",
+    "role": "finance",
+    "locale": "es",
+    "width": 390,
+    "frameProtocols": [
+      {
+        "protocol": "about:",
+        "mime": "text/html"
+      },
+      {
+        "protocol": "about:",
+        "mime": "text/html"
+      }
+    ],
+    "fallbackVisible": true,
+    "popupErrors": [],
+    "allErrors": [],
+    "network": [
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      },
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      }
+    ],
+    "pageCount": 2,
+    "retainedInvoice": true
+  },
+  {
+    "source": "post-csp",
+    "scenario": "report-open",
+    "role": "finance",
+    "locale": "es",
+    "width": 390,
+    "frameProtocols": [
+      {
+        "protocol": "about:",
+        "mime": "text/html"
+      },
+      {
+        "protocol": "about:",
+        "mime": "text/html"
+      }
+    ],
+    "fallbackVisible": true,
+    "popupErrors": [],
+    "allErrors": [],
+    "network": [
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      },
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      },
+      {
+        "kind": "report",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      }
+    ],
+    "pageCount": 2,
+    "retainedReport": true
+  },
+  {
+    "source": "post-csp",
+    "scenario": "invoice-inline",
+    "role": "owner",
+    "locale": "pt",
+    "width": 390,
+    "frameProtocols": [
+      {
+        "protocol": "http:",
+        "mime": "text/html"
+      },
+      {
+        "protocol": "",
+        "mime": "text/html"
+      }
+    ],
+    "frameVisible": true,
+    "cspErrors": [],
+    "allErrors": [],
+    "network": [
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      }
+    ],
+    "retainedInvoice": true
+  },
+  {
+    "source": "post-csp",
+    "scenario": "invoice-open",
+    "role": "owner",
+    "locale": "pt",
+    "width": 390,
+    "frameProtocols": [
+      {
+        "protocol": "about:",
+        "mime": "text/html"
+      },
+      {
+        "protocol": "about:",
+        "mime": "text/html"
+      }
+    ],
+    "fallbackVisible": true,
+    "popupErrors": [],
+    "allErrors": [],
+    "network": [
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      },
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      }
+    ],
+    "pageCount": 2,
+    "retainedInvoice": true
+  },
+  {
+    "source": "post-csp",
+    "scenario": "report-open",
+    "role": "owner",
+    "locale": "pt",
+    "width": 390,
+    "frameProtocols": [
+      {
+        "protocol": "about:",
+        "mime": "text/html"
+      },
+      {
+        "protocol": "about:",
+        "mime": "text/html"
+      }
+    ],
+    "fallbackVisible": true,
+    "popupErrors": [],
+    "allErrors": [],
+    "network": [
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      },
+      {
+        "kind": "invoice",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      },
+      {
+        "kind": "report",
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment",
+        "lengthPresent": true
+      }
+    ],
+    "pageCount": 2,
+    "retainedReport": true
+  }
+]

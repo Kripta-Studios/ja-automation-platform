@@ -1,0 +1,11 @@
+{
+  "role": "owner",
+  "locale": "en",
+  "viewport": "phone-390",
+  "status": 503,
+  "code": "MFA_CHANGE_STATE_UNCERTAIN",
+  "noticeFocused": true,
+  "reviewLink": true,
+  "scrollDelta": 285,
+  "screenshotScope": "notice only; no setup URI, recovery code, cookie, or credential"
+}

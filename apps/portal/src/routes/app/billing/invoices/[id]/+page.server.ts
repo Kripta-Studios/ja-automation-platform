@@ -1,6 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { openPortalRepository } from '$lib/server/portal-repository';
-import type { PageServerLoad } from './$types';
+import { billingActions } from '$lib/server/actions/billing-actions';
+import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals, params }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
@@ -11,8 +12,16 @@ export const load: PageServerLoad = ({ locals, params }) => {
       preview: context.repository.invoicePreview(context.principal, params.id),
     };
   } catch {
-    error(404, 'Invoice preview not found');
+    error(404, 'detail.invoice.notFound');
   } finally {
     context.sqlite.close();
   }
+};
+
+export const actions: Actions = {
+  updateInvoiceDraftDetails: (event) =>
+    billingActions.updateInvoiceDraftDetails({
+      ...event,
+      params: { ...event.params, section: 'billing' },
+    }),
 };

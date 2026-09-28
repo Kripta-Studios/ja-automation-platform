@@ -1,0 +1,129 @@
+{
+  "at": "2026-09-22T10:45:59.410865+00:00",
+  "services": {
+    "caddy": "active",
+    "stalwart": "active",
+    "home-kripta-musica-new.mount": "active",
+    "jaautomation-backup.timer": "active",
+    "jaautomation-jobs.timer": "active",
+    "jaautomation-zip-deploy.timer": "active",
+    "jaautomation-zip-deploy.path": "active"
+  },
+  "containers": [
+    {
+      "name": "deployment-jobs-1",
+      "state": "running",
+      "health": null,
+      "restartCount": 0
+    },
+    {
+      "name": "deployment-portal-1",
+      "state": "running",
+      "health": "healthy",
+      "restartCount": 0
+    },
+    {
+      "name": "deployment-site-1",
+      "state": "running",
+      "health": "healthy",
+      "restartCount": 0
+    },
+    {
+      "name": "navidrome-navidrome-1",
+      "state": "running",
+      "health": null,
+      "restartCount": 0
+    },
+    {
+      "name": "trace-it-frontend-1",
+      "state": "running",
+      "health": "healthy",
+      "restartCount": 0
+    },
+    {
+      "name": "trace-it-backend-1",
+      "state": "running",
+      "health": "healthy",
+      "restartCount": 0
+    },
+    {
+      "name": "trace-it-erp-erp-1",
+      "state": "running",
+      "health": "healthy",
+      "restartCount": 0
+    },
+    {
+      "name": "trace-it-criminal-records-1",
+      "state": "running",
+      "health": "healthy",
+      "restartCount": 0
+    },
+    {
+      "name": "trace-it-db-1",
+      "state": "running",
+      "health": "healthy",
+      "restartCount": 0
+    },
+    {
+      "name": "lois-jobs",
+      "state": "running",
+      "health": "healthy",
+      "restartCount": 0
+    },
+    {
+      "name": "lois-booking",
+      "state": "running",
+      "health": "healthy",
+      "restartCount": 0
+    },
+    {
+      "name": "lois-web",
+      "state": "running",
+      "health": "healthy",
+      "restartCount": 0
+    },
+    {
+      "name": "adlaudem-preview-web-1",
+      "state": "running",
+      "health": "healthy",
+      "restartCount": 0
+    },
+    {
+      "name": "adlaudem-preview-db-1",
+      "state": "running",
+      "health": "healthy",
+      "restartCount": 0
+    },
+    {
+      "name": "lois-db",
+      "state": "running",
+      "health": "healthy",
+      "restartCount": 0
+    }
+  ],
+  "cacheReclaimed": "9.57GB",
+  "dockerSystemDf": "TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE\nImages          23        15        16.74GB   8.952GB (53%)\nContainers      17        15        237.6kB   28.67kB (12%)\nLocal Volumes   4         4         345.7MB   0B (0%)\nBuild Cache     0         0         0B        0B\n",
+  "freeDisk": {
+    "/": {
+      "availableBytes": 35025620992,
+      "availableGiB": 32.62
+    },
+    "/srv/mail": {
+      "availableBytes": 62666993664,
+      "availableGiB": 58.36
+    }
+  },
+  "jobsAutomaticCyclesVerified": 2,
+  "limits": [
+    "No production account login or real email delivery test",
+    "Synchronous readiness latency remains",
+    "Pre-existing mail PhishTank and DNSSEC/DANE warnings",
+    "Historical backup coverage remains partial; see backup-after.json",
+    "Four historical dead-letter jobs and two failed localized PDF records predate deployment"
+  ],
+  "caddyErrorObservation": {
+    "since": "2026-09-22T10:38:00Z",
+    "until": "2026-09-22T10:46:28.311882+00:00",
+    "errors": 0
+  }
+}

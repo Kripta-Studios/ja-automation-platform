@@ -1,0 +1,215 @@
+{
+  "candidateCommit": "41dc838e3f3270fd593d6553d44c0075ec4528a1",
+  "role": "finance",
+  "viewport": 390,
+  "startingScroll": 1427,
+  "timeline": [
+    {
+      "atMsAfterNoticeVisible": 0,
+      "ui": {
+        "path": "/j-aautomation/app/expenses",
+        "queryKeys": [
+          "lang"
+        ],
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 1892,
+        "locale": "en-US",
+        "disclosureOpen": true,
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "code": "EXPENSE_EXPORT_DATE_ORDER_INVALID",
+        "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start. Review export filters",
+        "noticeTop": 87.6875,
+        "noticeBottom": 239.25,
+        "headerBottom": 69.59375,
+        "focusIsNotice": true,
+        "toFieldError": "The end date is before the start date. Choose an end date on or after the start.",
+        "remedyText": "Review export filters"
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 50,
+      "ui": {
+        "path": "/j-aautomation/app/expenses",
+        "queryKeys": [
+          "lang"
+        ],
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 1892,
+        "locale": "en-US",
+        "disclosureOpen": true,
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "code": "EXPENSE_EXPORT_DATE_ORDER_INVALID",
+        "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start. Review export filters",
+        "noticeTop": 87.6875,
+        "noticeBottom": 239.25,
+        "headerBottom": 69.59375,
+        "focusIsNotice": true,
+        "toFieldError": "The end date is before the start date. Choose an end date on or after the start.",
+        "remedyText": "Review export filters"
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 250,
+      "ui": {
+        "path": "/j-aautomation/app/expenses",
+        "queryKeys": [
+          "lang"
+        ],
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 1892,
+        "locale": "en-US",
+        "disclosureOpen": true,
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "code": "EXPENSE_EXPORT_DATE_ORDER_INVALID",
+        "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start. Review export filters",
+        "noticeTop": 87.6875,
+        "noticeBottom": 239.25,
+        "headerBottom": 69.59375,
+        "focusIsNotice": true,
+        "toFieldError": "The end date is before the start date. Choose an end date on or after the start.",
+        "remedyText": "Review export filters"
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 500,
+      "ui": {
+        "path": "/j-aautomation/app/expenses",
+        "queryKeys": [
+          "lang"
+        ],
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 1892,
+        "locale": "en-US",
+        "disclosureOpen": true,
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "code": "EXPENSE_EXPORT_DATE_ORDER_INVALID",
+        "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start. Review export filters",
+        "noticeTop": 87.6875,
+        "noticeBottom": 239.25,
+        "headerBottom": 69.59375,
+        "focusIsNotice": true,
+        "toFieldError": "The end date is before the start date. Choose an end date on or after the start.",
+        "remedyText": "Review export filters"
+      }
+    },
+    {
+      "atMsAfterNoticeVisible": 1000,
+      "ui": {
+        "path": "/j-aautomation/app/expenses",
+        "queryKeys": [
+          "lang"
+        ],
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollY": 1892,
+        "locale": "en-US",
+        "disclosureOpen": true,
+        "from": "2026-09-20",
+        "to": "2026-09-19",
+        "code": "EXPENSE_EXPORT_DATE_ORDER_INVALID",
+        "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start. Review export filters",
+        "noticeTop": 87.6875,
+        "noticeBottom": 239.25,
+        "headerBottom": 69.59375,
+        "focusIsNotice": true,
+        "toFieldError": "The end date is before the start date. Choose an end date on or after the start.",
+        "remedyText": "Review export filters"
+      }
+    }
+  ],
+  "invalid": {
+    "path": "/j-aautomation/app/expenses",
+    "queryKeys": [
+      "lang"
+    ],
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 1892,
+    "locale": "en-US",
+    "disclosureOpen": true,
+    "from": "2026-09-20",
+    "to": "2026-09-19",
+    "code": "EXPENSE_EXPORT_DATE_ORDER_INVALID",
+    "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start. Review export filters",
+    "noticeTop": 87.6875,
+    "noticeBottom": 239.25,
+    "headerBottom": 69.59375,
+    "focusIsNotice": true,
+    "toFieldError": "The end date is before the start date. Choose an end date on or after the start.",
+    "remedyText": "Review export filters"
+  },
+  "corrected": {
+    "path": "/j-aautomation/app/expenses",
+    "queryKeys": [
+      "lang"
+    ],
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 2437,
+    "locale": "en-US",
+    "disclosureOpen": true,
+    "from": "2026-09-20",
+    "to": "2026-09-21",
+    "code": null,
+    "noticeText": null,
+    "noticeTop": null,
+    "noticeBottom": null,
+    "headerBottom": 69.59375,
+    "focusIsNotice": false,
+    "toFieldError": null,
+    "remedyText": null
+  },
+  "failure": {
+    "status": 400,
+    "contentType": "application/problem+json; charset=utf-8"
+  },
+  "success": {
+    "status": 200,
+    "contentType": "text/csv; charset=utf-8",
+    "filename": "Expenses_2026-09-20_2026-09-21.csv",
+    "csvHeader": "Date,Client,Project,Worker,Vendor,Category,Description,Currency,Recorded amount,Payer,Status"
+  },
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      {
+        "status": 400,
+        "contentType": "application/problem+json; charset=utf-8"
+      },
+      {
+        "status": 200,
+        "contentType": "text/csv; charset=utf-8"
+      }
+    ],
+    "downloads": [
+      "csv"
+    ]
+  }
+}

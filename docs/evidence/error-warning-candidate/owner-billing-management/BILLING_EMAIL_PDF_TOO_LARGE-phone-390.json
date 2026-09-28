@@ -1,0 +1,9 @@
+{
+  "code": "BILLING_EMAIL_PDF_TOO_LARGE",
+  "viewport": "phone-390",
+  "responseStatus": 409,
+  "route": "/j-aautomation/app/billing",
+  "method": "POST",
+  "screenshot": "BILLING_EMAIL_PDF_TOO_LARGE-phone-390.png",
+  "scope": "isolated problem notice only; no account or invoice details"
+}

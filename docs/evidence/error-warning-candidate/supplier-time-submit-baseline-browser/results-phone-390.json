@@ -1,0 +1,85 @@
+{
+  "candidateCommit": "a21d12d0383b149170da7a6d3faad70bde37a5b2",
+  "role": "supplierCoordinator",
+  "viewport": "390x844",
+  "locale": "en",
+  "fixture": "fresh disposable database; role/grant scaffold; Time drafts created through rendered Supplier forms",
+  "cases": [
+    {
+      "kind": "changed-draft",
+      "before": {
+        "scrollY": 0,
+        "audits": 2
+      },
+      "response": {
+        "transportStatus": 409,
+        "contentType": "text/html",
+        "code": "ACTION_ERROR_CONFLICT",
+        "genericPhrase": true
+      },
+      "visible": {
+        "code": "ACTION_ERROR_CONFLICT",
+        "wording": "Action needed This action conflicts with the current record state.",
+        "remedies": [],
+        "focusedNotice": false,
+        "activeTag": "aside",
+        "activeTop": 461,
+        "activeBottom": 654,
+        "noticeTop": -621,
+        "noticeBottom": -540,
+        "headerBottom": 70,
+        "scrollY": 1004,
+        "viewportHeight": 844,
+        "workspace": "report",
+        "locale": "en",
+        "selectedCount": 0,
+        "selectedPayloadCount": 0,
+        "submittedFormPresent": true
+      },
+      "unchanged": true
+    },
+    {
+      "kind": "already-submitted",
+      "before": {
+        "scrollY": 0,
+        "audits": 2
+      },
+      "response": {
+        "transportStatus": 409,
+        "contentType": "text/html",
+        "code": "ACTION_ERROR_CONFLICT",
+        "genericPhrase": true
+      },
+      "visible": {
+        "code": "ACTION_ERROR_CONFLICT",
+        "wording": "Action needed This action conflicts with the current record state.",
+        "remedies": [],
+        "focusedNotice": true,
+        "activeTag": "aside",
+        "activeTop": 0,
+        "activeBottom": 81,
+        "noticeTop": 0,
+        "noticeBottom": 81,
+        "headerBottom": 70,
+        "scrollY": 383,
+        "viewportHeight": 844,
+        "workspace": "report",
+        "locale": "en",
+        "selectedCount": 0,
+        "selectedPayloadCount": 0,
+        "submittedFormPresent": true
+      },
+      "unchanged": true
+    }
+  ],
+  "diagnostics": {
+    "tabA": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "tabB": {
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  }
+}

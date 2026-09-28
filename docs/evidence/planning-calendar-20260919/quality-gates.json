@@ -1,0 +1,71 @@
+{
+  "applicationCommit": "7b369598d23a7a74b872d05a0cc0682597d7f2a6",
+  "recordedAt": "2026-09-19T08:41:39.320834+00:00",
+  "unit": {
+    "status": "PASS",
+    "files": 158,
+    "passed": 1074,
+    "durationSeconds": 287.43,
+    "scopeNote": "Full unit run preceded the final own-profile guard correction; the final correction is covered by the 17-case targeted run and subsequent browser/integration runs."
+  },
+  "finalWorkforceTargeted": {
+    "status": "PASS",
+    "files": 1,
+    "passed": 17,
+    "durationSeconds": 33.26
+  },
+  "integration": {
+    "status": "PASS",
+    "files": 70,
+    "passed": 527,
+    "durationSeconds": 1077.94
+  },
+  "browserCalendar": {
+    "status": "PASS",
+    "passed": 48,
+    "roles": ["worker", "project_manager", "owner_admin", "finance_admin", "auditor_read_only"],
+    "widths": [360, 390, 768, 1440],
+    "log": "browser-matrix.log"
+  },
+  "browserSupplier": {
+    "status": "PASS",
+    "passed": 2,
+    "profiles": ["owner", "supplier_coordinator", "external_technician"],
+    "widths": [390, 1440],
+    "log": "supplier-regression.log"
+  },
+  "staticChecks": {
+    "workspaceTypecheck": "PASS (10 packages)",
+    "svelteCheck": "PASS (0 errors, 0 warnings)",
+    "eslint": "PASS",
+    "changedFileFormatting": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "independentReview": {
+    "status": "PASS",
+    "scope": [
+      "record ownership",
+      "live project scope",
+      "optimistic edits",
+      "transactional audit",
+      "UTC conversions",
+      "validated locale",
+      "own profile without an assignment",
+      "realistic schema upgrade"
+    ]
+  },
+  "privateVerificationLogSha256": {
+    "ja-calendar-types-release.log": "37152ab60dd9b2fda3cda379856b18fb2c10cfae9135701378c07aa6a01c7d95",
+    "ja-calendar-svelte-final.log": "e04bd69095dc2862891381c145321aeb2d893c7b5138a95080771669c60b01e6",
+    "ja-calendar-lint-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ja-calendar-last-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ja-calendar-self-profile.log": "c92558d54a1300096ca7c774a0a19a17d2168473d05c7cad2b578d20bce05a9a",
+    "ja-calendar-format-release.log": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+  },
+  "postDeploymentAcceptance": {
+    "status": "PASS",
+    "aggregateTests": 1,
+    "strictSteps": 32,
+    "evidence": "acceptance-32-steps.json"
+  }
+}

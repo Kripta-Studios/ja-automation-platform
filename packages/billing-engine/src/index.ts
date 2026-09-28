@@ -11,9 +11,20 @@ import {
 export type DateRange = Readonly<{ start: string; end: string }>;
 const DAY = 86_400_000;
 
-function utcDate(value: string): Date {
+/**
+ * Calendar dates are business identifiers, not JavaScript date suggestions.
+ * Date.parse/new Date normalize impossible dates (for example 2026-02-30),
+ * so accept a value only when UTC serialization round-trips exactly.
+ */
+export function isStrictIsoCalendarDate(value: string): boolean {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00.000Z`);
-  if (Number.isNaN(date.valueOf())) throw new RangeError(`Invalid date: ${value}`);
+  return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
+}
+
+function utcDate(value: string): Date {
+  if (!isStrictIsoCalendarDate(value)) throw new RangeError(`Invalid date: ${value}`);
+  const date = new Date(`${value}T00:00:00.000Z`);
   return date;
 }
 
@@ -106,6 +117,10 @@ export function periodForCadence(
   dateValue: string,
   options: Readonly<{ anchorDate?: string; weekStartsOn?: number; monthlyCutoffDay?: number }> = {},
 ): DateRange | null {
+  // Even non-periodic cadences receive a business date at this boundary.
+  // Validate it before returning null so an impossible date cannot be
+  // silently accepted merely because the cadence is manual/custom.
+  utcDate(dateValue);
   switch (cadence) {
     case 'weekly':
       return weeklyPeriod(dateValue, options.weekStartsOn ?? 1);
@@ -123,6 +138,18 @@ export function periodForCadence(
     case 'manual':
       return null;
   }
+}
+
+export function lastCompletePeriodForCadence(
+  cadence: BillingCadence,
+  dateValue: string,
+  options: Readonly<{ anchorDate?: string; weekStartsOn?: number; monthlyCutoffDay?: number }> = {},
+): DateRange | null {
+  const current = periodForCadence(cadence, dateValue, options);
+  if (!current) return null;
+  if (current.end < dateValue) return current;
+  const previousDate = iso(addDays(utcDate(current.start), -1));
+  return periodForCadence(cadence, previousDate, options) ?? current;
 }
 
 export function billableMinutesForDailyMinimum(
@@ -203,7 +230,11 @@ export function overtimeRate(
         throw new RangeError('Fixed overtime rate is required');
       return options.fixedRateMinor;
     case 'BASE_RATE_MULTIPLIER':
-      if (!Number.isInteger(options.multiplierBps) || (options.multiplierBps ?? 0) < 0)
+      if (
+        !Number.isInteger(options.multiplierBps) ||
+        (options.multiplierBps ?? 0) < 0 ||
+        (options.multiplierBps ?? 100_001) > 100_000
+      )
         throw new RangeError('Overtime multiplier is required');
       return divideRounded(baseRateMinor * BigInt(options.multiplierBps ?? 0), 10_000n);
     case 'FIXED_ADDITION_PER_HOUR':

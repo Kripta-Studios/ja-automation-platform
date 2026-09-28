@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "alerts": [],
+  "dialog": [],
+  "invoiceId": "01a0cfc3-3945-737e-b3a6-7f5667fe773e",
+  "browserPreview": {
+    "hours": "7.50",
+    "rate": "EUR 55.00",
+    "total": "EUR 412.50"
+  },
+  "localizedPdf": {
+    "variantId": "01a0cfc4-0ce3-73bf-9c3f-12af4c2b9e9f",
+    "status": "ready",
+    "httpStatus": 200,
+    "bytes": 256206,
+    "sha256": "f61ec9e41c8882527fd12be6ff02a63eac97a4e6c1654ba2da184d096919c54d",
+    "extractedLineText": "No invoice lines.",
+    "extractedTotal": "EUR 412.50",
+    "acceptance": "FAIL: PDF omits the approved time line shown in the browser preview"
+  }
+}

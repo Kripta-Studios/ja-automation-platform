@@ -1,0 +1,12 @@
+{
+  "scenario": "supplier-daily-limit",
+  "viewport": "phone-390",
+  "responseStatus": 400,
+  "problemCode": "SUPPLIER_BATCH_TECHNICIAN_DAILY_LIMIT",
+  "focused": true,
+  "focusedField": null,
+  "axeViolationCount": 0,
+  "axeRules": [],
+  "screenshot": "supplier-daily-limit-phone-390.png",
+  "scope": "isolated warning only, without account or record details"
+}

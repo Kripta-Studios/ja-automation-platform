@@ -1,0 +1,942 @@
+{
+  "at": "2026-09-23T11:34:49.902710+00:00",
+  "beforeCache": [
+    {
+      "ID": "6v7o5cejhtbu6ifpyqgvbz23g",
+      " Parents": [
+        "n1quvy82e3vvfu2xx8nq52oj7"
+      ],
+      "Type": "regular",
+      "Description": "[stage-2 3/8] WORKDIR /app",
+      "InUse": false,
+      "Shared": false,
+      "Size": 8285,
+      "CreatedAt": "2026-09-23T06:49:20.090060432Z",
+      "LastUsedAt": "2026-09-23T06:51:23.365647888Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "06ev6i26g7ck486gc18v3mvww",
+      "Type": "regular",
+      "Description": "",
+      "InUse": false,
+      "Shared": false,
+      "Size": 28232655,
+      "CreatedAt": "2026-09-23T06:48:36.625766804Z",
+      "LastUsedAt": "2026-09-23T06:48:36.659863714Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "hr0uq2tq99gd12d382gzfd6rv",
+      " Parents": [
+        "sdvex0ppjv7uqmdkh3ixsg75p"
+      ],
+      "Type": "regular",
+      "Description": "[build  5/15] COPY packages/billing-engine/package.json ./packages/billing-engine/package.json",
+      "InUse": false,
+      "Shared": false,
+      "Size": 20480,
+      "CreatedAt": "2026-09-23T06:48:39.383992277Z",
+      "LastUsedAt": "2026-09-23T06:50:57.03535631Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "tjafnls5q74fvgmhhiavj532q",
+      " Parents": [
+        "m1y2wkyc1rmz6ds10xh1vltwj"
+      ],
+      "Type": "regular",
+      "Description": "mount / from exec /bin/sh -c pnpm install --frozen-lockfile --filter @ja/site...",
+      "InUse": false,
+      "Shared": false,
+      "Size": 1043173376,
+      "CreatedAt": "2026-09-23T06:48:56.650655752Z",
+      "LastUsedAt": "2026-09-23T06:50:57.022642866Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "y2psdjx6ql2xu71hmedwzpeun",
+      " Parents": [
+        "qaihucsvb2213pe9ax2pybjgf"
+      ],
+      "Type": "regular",
+      "Description": "mount / from exec /bin/sh -c mkdir -p ./website/.next/cache && chown -R jasite:jasite ./website/.next/cache",
+      "InUse": false,
+      "Shared": false,
+      "Size": 32937,
+      "CreatedAt": "2026-09-23T06:50:30.1091836Z",
+      "LastUsedAt": "2026-09-23T06:50:56.998953217Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "xdeeampbexbnn4jevwmxck321",
+      " Parents": [
+        "psa9fn0dbtf1jtijdrh62ame7"
+      ],
+      "Type": "regular",
+      "Description": "mount / from exec /bin/sh -c corepack enable && corepack prepare pnpm@11.22.0 --activate",
+      "InUse": false,
+      "Shared": false,
+      "Size": 41549824,
+      "CreatedAt": "2026-09-23T06:48:39.789727785Z",
+      "LastUsedAt": "2026-09-23T06:51:23.325444915Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "nfjvv3jmc9r23c2ig8y73a8az",
+      " Parents": [
+        "ym23db767tqsg7p92tckrq9nl"
+      ],
+      "Type": "regular",
+      "Description": "",
+      "InUse": false,
+      "Shared": false,
+      "Size": 1712981,
+      "CreatedAt": "2026-09-23T06:48:36.744799915Z",
+      "LastUsedAt": "2026-09-23T06:48:36.81672294Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "psa9fn0dbtf1jtijdrh62ame7",
+      " Parents": [
+        "oxmego6n730fj7br61ms7zdqe"
+      ],
+      "Type": "regular",
+      "Description": "[build  2/15] WORKDIR /workspace",
+      "InUse": false,
+      "Shared": false,
+      "Size": 8192,
+      "CreatedAt": "2026-09-23T06:48:37.307682593Z",
+      "LastUsedAt": "2026-09-23T06:51:23.363990942Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "of7ogoa3rzdseartpapl65ylz",
+      " Parents": [
+        "ral69pov05p2yocq6xo4mvt2z"
+      ],
+      "Type": "regular",
+      "Description": "[build 10/15] COPY packages/reporting/package.json ./packages/reporting/package.json",
+      "InUse": false,
+      "Shared": false,
+      "Size": 24576,
+      "CreatedAt": "2026-09-23T06:48:39.650822898Z",
+      "LastUsedAt": "2026-09-23T06:50:57.03978254Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "sbs2odym4ouzlrqxm47evdffk",
+      " Parents": [
+        "tjafnls5q74fvgmhhiavj532q"
+      ],
+      "Type": "regular",
+      "Description": "mount / from exec /bin/sh -c pnpm --filter @ja/site build",
+      "InUse": false,
+      "Shared": false,
+      "Size": 292888576,
+      "CreatedAt": "2026-09-23T06:49:26.677988532Z",
+      "LastUsedAt": "2026-09-23T06:50:57.009307604Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "sonojalg3sjw6f0arjc6d6jjg",
+      "Type": "source.local",
+      "Description": "local source for dockerfile",
+      "InUse": false,
+      "Shared": false,
+      "Size": 8192,
+      "CreatedAt": "2026-09-23T06:48:35.098328176Z",
+      "LastUsedAt": "2026-09-23T06:50:57.032805245Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "vsswz6wtnztwpwj51rnb4j5oq",
+      " Parents": [
+        "hls18meoeknqvtgiw0nznofd8"
+      ],
+      "Type": "regular",
+      "Description": "[stage-2 7/8] COPY --from=build --chown=jaautomation:jaautomation /workspace/packages/reporting/assets ./reporting-assets",
+      "InUse": false,
+      "Shared": false,
+      "Size": 602970,
+      "CreatedAt": "2026-09-23T06:50:35.183629163Z",
+      "LastUsedAt": "2026-09-23T06:51:23.356693987Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "9sy2nxn05dl619rz9nt0gki43",
+      "Type": "source.local",
+      "Description": "local source for context",
+      "InUse": false,
+      "Shared": false,
+      "Size": 12718080,
+      "CreatedAt": "2026-09-23T06:48:36.661608561Z",
+      "LastUsedAt": "2026-09-23T06:50:57.070857755Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "sdvex0ppjv7uqmdkh3ixsg75p",
+      " Parents": [
+        "hsrs18vqwq6adzlnra1xrtq29"
+      ],
+      "Type": "regular",
+      "Description": "[build  4/15] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./",
+      "InUse": false,
+      "Shared": false,
+      "Size": 286720,
+      "CreatedAt": "2026-09-23T06:48:39.329706532Z",
+      "LastUsedAt": "2026-09-23T06:50:57.04894705Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "vj16cx6tvc5v1sh3v0ppizwo5",
+      " Parents": [
+        "fmxnhzgke7ouiyyczjb58dbba"
+      ],
+      "Type": "regular",
+      "Description": "[build  8/13] COPY deployment ./deployment",
+      "InUse": false,
+      "Shared": false,
+      "Size": 344064,
+      "CreatedAt": "2026-09-23T06:48:40.175601776Z",
+      "LastUsedAt": "2026-09-23T06:51:23.315917935Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "qaihucsvb2213pe9ax2pybjgf",
+      " Parents": [
+        "pg830vdi6bmxks7clg4pxqq11"
+      ],
+      "Type": "regular",
+      "Description": "[stage-1 7/8] COPY --from=build --chown=jasite:jasite /tmp/site-runtime/node_modules ./website/node_modules",
+      "InUse": false,
+      "Shared": false,
+      "Size": 604704773,
+      "CreatedAt": "2026-09-23T06:50:29.656577841Z",
+      "LastUsedAt": "2026-09-23T06:50:57.029374382Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "kheabkiiksnfjocc3i6dalpc5",
+      " Parents": [
+        "hr0uq2tq99gd12d382gzfd6rv"
+      ],
+      "Type": "regular",
+      "Description": "[build  6/15] COPY packages/database/package.json ./packages/database/package.json",
+      "InUse": false,
+      "Shared": false,
+      "Size": 24576,
+      "CreatedAt": "2026-09-23T06:48:39.437230723Z",
+      "LastUsedAt": "2026-09-23T06:50:57.061170634Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "8lejryyf3tn4fxfzu2w01n1e8",
+      " Parents": [
+        "g6t6tj08e14pus9o9p5lzp95n"
+      ],
+      "Type": "regular",
+      "Description": "[stage-2 5/8] COPY --from=build --chown=jaautomation:jaautomation /workspace/migrations ./migrations",
+      "InUse": false,
+      "Shared": false,
+      "Size": 938414,
+      "CreatedAt": "2026-09-23T06:50:35.08353092Z",
+      "LastUsedAt": "2026-09-23T06:51:23.320905915Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "lov464tiaqg69vdgp11l2yaki",
+      " Parents": [
+        "36frdaumxlvj7l4sl3eciac8d"
+      ],
+      "Type": "regular",
+      "Description": "mount / from exec /bin/sh -c env     JA_DATABASE_PATH=/tmp/jaautomation-release-build.sqlite     JA_MIGRATIONS_PATH=/workspace/migrations     JA_TENANT_ID=release-build-tenant     JA_DEPLOYMENT_ID=release-build-deployment     JA_DEPLOYMENT_BINDING_SECRET=release-build-binding-secret-2026-08-client-essential     JA_RELEASE_BUILD=1     pnpm jobs:build  && rm -f /tmp/jaautomation-release-build.sqlite /tmp/jaautomation-release-build.sqlite-shm /tmp/jaautomation-release-build.sqlite-wal",
+      "InUse": false,
+      "Shared": false,
+      "Size": 1785856,
+      "CreatedAt": "2026-09-23T06:49:27.336717Z",
+      "LastUsedAt": "2026-09-23T06:51:23.353634864Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "1fs6aoetfwu5do41ep5acyjbl",
+      "Type": "source.local",
+      "Description": "local source for dockerfile",
+      "InUse": false,
+      "Shared": false,
+      "Size": 8192,
+      "CreatedAt": "2026-09-23T06:48:35.153855429Z",
+      "LastUsedAt": "2026-09-23T06:51:23.359465771Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "a4x0mkuqhvxxuercl3k4h1f9q",
+      " Parents": [
+        "jan3x6ioteafcs79a7c7iq9yx"
+      ],
+      "Type": "regular",
+      "Description": "[stage-1 5/8] COPY --from=build --chown=jasite:jasite /workspace/website/.next/standalone/website ./website",
+      "InUse": false,
+      "Shared": false,
+      "Size": 107770356,
+      "CreatedAt": "2026-09-23T06:50:22.365218241Z",
+      "LastUsedAt": "2026-09-23T06:50:57.06342503Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "5uls6jw1mb07a0m28ilem63p5",
+      "Type": "source.local",
+      "Description": "local source for context",
+      "InUse": false,
+      "Shared": false,
+      "Size": 8192,
+      "CreatedAt": "2026-09-23T06:48:36.51885674Z",
+      "LastUsedAt": "2026-09-23T06:50:57.018695455Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "hsrs18vqwq6adzlnra1xrtq29",
+      " Parents": [
+        "psa9fn0dbtf1jtijdrh62ame7"
+      ],
+      "Type": "regular",
+      "Description": "mount / from exec /bin/sh -c corepack enable && corepack prepare pnpm@11.22.0 --activate",
+      "InUse": false,
+      "Shared": false,
+      "Size": 41553920,
+      "CreatedAt": "2026-09-23T06:48:39.258462536Z",
+      "LastUsedAt": "2026-09-23T06:50:57.066537264Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "n12r81ja7o9dwvlcl01cx622u",
+      " Parents": [
+        "of7ogoa3rzdseartpapl65ylz"
+      ],
+      "Type": "regular",
+      "Description": "[build 11/15] COPY packages/schemas/package.json ./packages/schemas/package.json",
+      "InUse": false,
+      "Shared": false,
+      "Size": 24576,
+      "CreatedAt": "2026-09-23T06:48:39.694439992Z",
+      "LastUsedAt": "2026-09-23T06:50:57.043223303Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "tbkdhkjpaeg0rm023dnq5ek48",
+      "Type": "source.local",
+      "Description": "local source for context",
+      "InUse": false,
+      "Shared": false,
+      "Size": 8192,
+      "CreatedAt": "2026-09-23T06:48:36.525318999Z",
+      "LastUsedAt": "2026-09-23T06:51:23.342728477Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "o2e4meyphsgy7wkrvcii20h2j",
+      " Parents": [
+        "n6r5i6sw3uldi0razm6oeri60"
+      ],
+      "Type": "regular",
+      "Description": "mount / from exec /bin/sh -c pnpm install --frozen-lockfile",
+      "InUse": false,
+      "Shared": false,
+      "Size": 943534080,
+      "CreatedAt": "2026-09-23T06:48:56.011817139Z",
+      "LastUsedAt": "2026-09-23T06:51:23.329112158Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "n6r5i6sw3uldi0razm6oeri60",
+      " Parents": [
+        "vj16cx6tvc5v1sh3v0ppizwo5"
+      ],
+      "Type": "regular",
+      "Description": "[build  9/13] COPY docs/manuals/Employee_Field_Guide_EN.pdf docs/manuals/Employee_Field_Guide_ES.pdf docs/manuals/Employee_Field_Guide_PT-BR.pdf      docs/manuals/Work_Projects_Guide.pdf docs/manuals/Work_Projects_Guide_PT-BR.pdf      docs/manuals/Supplier_Operations_Guide.pdf docs/manuals/Supplier_Operations_Guide_PT-BR.pdf      docs/manuals/Administration_Finance_Guide.pdf docs/manuals/Administration_Finance_Guide_PT-BR.pdf ./manuals/",
+      "InUse": false,
+      "Shared": false,
+      "Size": 15769600,
+      "CreatedAt": "2026-09-23T06:48:40.288111369Z",
+      "LastUsedAt": "2026-09-23T06:51:23.355117022Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "1t59p9fh0as58d5x1921x0x3p",
+      " Parents": [
+        "6oh2ap222pq2117xhmgpsrvzm"
+      ],
+      "Type": "regular",
+      "Description": "[build  8/15] COPY packages/invoice-templates/package.json ./packages/invoice-templates/package.json",
+      "InUse": false,
+      "Shared": false,
+      "Size": 24576,
+      "CreatedAt": "2026-09-23T06:48:39.530765779Z",
+      "LastUsedAt": "2026-09-23T06:50:57.02586895Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "zcqen5sxljss3fzjt6n8dcvwa",
+      " Parents": [
+        "b2lqe0h45ahkt0gcjmcufwnw2"
+      ],
+      "Type": "regular",
+      "Description": "[build  6/13] COPY packages ./packages",
+      "InUse": false,
+      "Shared": false,
+      "Size": 3108864,
+      "CreatedAt": "2026-09-23T06:48:40.074095085Z",
+      "LastUsedAt": "2026-09-23T06:51:23.352129507Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "n1quvy82e3vvfu2xx8nq52oj7",
+      " Parents": [
+        "oxmego6n730fj7br61ms7zdqe"
+      ],
+      "Type": "regular",
+      "Description": "mount / from exec /bin/sh -c apt-get update  && apt-get install -y --no-install-recommends ca-certificates chromium  && rm -rf /var/lib/apt/lists/*  && groupadd --gid 10001 jaautomation  && useradd --system --uid 10001 --gid 10001 --create-home jaautomation",
+      "InUse": false,
+      "Shared": false,
+      "Size": 978424898,
+      "CreatedAt": "2026-09-23T06:49:19.836524949Z",
+      "LastUsedAt": "2026-09-23T06:51:23.32309174Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "m1y2wkyc1rmz6ds10xh1vltwj",
+      " Parents": [
+        "n12r81ja7o9dwvlcl01cx622u"
+      ],
+      "Type": "regular",
+      "Description": "[build 12/15] COPY website ./website",
+      "InUse": false,
+      "Shared": false,
+      "Size": 12382208,
+      "CreatedAt": "2026-09-23T06:48:39.793572627Z",
+      "LastUsedAt": "2026-09-23T06:50:57.00683582Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "g6t6tj08e14pus9o9p5lzp95n",
+      " Parents": [
+        "6v7o5cejhtbu6ifpyqgvbz23g"
+      ],
+      "Type": "regular",
+      "Description": "[stage-2 4/8] COPY --from=build --chown=jaautomation:jaautomation /portal ./",
+      "InUse": false,
+      "Shared": false,
+      "Size": 723898989,
+      "CreatedAt": "2026-09-23T06:50:34.790593555Z",
+      "LastUsedAt": "2026-09-23T06:51:23.31892844Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "b2lqe0h45ahkt0gcjmcufwnw2",
+      " Parents": [
+        "v7o5vy26djolvv0ovbbbudn2t"
+      ],
+      "Type": "regular",
+      "Description": "[build  5/13] COPY apps/portal ./apps/portal",
+      "InUse": false,
+      "Shared": false,
+      "Size": 4816896,
+      "CreatedAt": "2026-09-23T06:48:39.988117996Z",
+      "LastUsedAt": "2026-09-23T06:51:23.337528849Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "oxmego6n730fj7br61ms7zdqe",
+      " Parents": [
+        "nfjvv3jmc9r23c2ig8y73a8az"
+      ],
+      "Type": "regular",
+      "Description": "",
+      "InUse": false,
+      "Shared": false,
+      "Size": 450,
+      "CreatedAt": "2026-09-23T06:48:36.795359937Z",
+      "LastUsedAt": "2026-09-23T06:51:23.348343806Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "yrtyp7iocrskjd4983s7pze1r",
+      " Parents": [
+        "d6kneif6a29o3q4us638ncouw"
+      ],
+      "Type": "regular",
+      "Description": "[stage-1 3/8] WORKDIR /app",
+      "InUse": false,
+      "Shared": false,
+      "Size": 8285,
+      "CreatedAt": "2026-09-23T06:48:37.73821224Z",
+      "LastUsedAt": "2026-09-23T06:50:57.024462642Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "qfhtci7mwqw3hmgvnwwv6aklo",
+      " Parents": [
+        "06ev6i26g7ck486gc18v3mvww"
+      ],
+      "Type": "regular",
+      "Description": "",
+      "InUse": false,
+      "Shared": false,
+      "Size": 3323,
+      "CreatedAt": "2026-09-23T06:48:36.649463272Z",
+      "LastUsedAt": "2026-09-23T06:48:36.70802043Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "v7o5vy26djolvv0ovbbbudn2t",
+      " Parents": [
+        "xdeeampbexbnn4jevwmxck321"
+      ],
+      "Type": "regular",
+      "Description": "[build  4/13] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./",
+      "InUse": false,
+      "Shared": false,
+      "Size": 286720,
+      "CreatedAt": "2026-09-23T06:48:39.880179425Z",
+      "LastUsedAt": "2026-09-23T06:51:23.327321561Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "hls18meoeknqvtgiw0nznofd8",
+      " Parents": [
+        "8lejryyf3tn4fxfzu2w01n1e8"
+      ],
+      "Type": "regular",
+      "Description": "[stage-2 6/8] COPY --from=build --chown=jaautomation:jaautomation /workspace/deployment/jobs-build/ ./deployment/",
+      "InUse": false,
+      "Shared": false,
+      "Size": 2074589,
+      "CreatedAt": "2026-09-23T06:50:35.137890108Z",
+      "LastUsedAt": "2026-09-23T06:51:23.34640448Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "36frdaumxlvj7l4sl3eciac8d",
+      " Parents": [
+        "o2e4meyphsgy7wkrvcii20h2j"
+      ],
+      "Type": "regular",
+      "Description": "mount / from exec /bin/sh -c env     JA_DATABASE_PATH=/tmp/jaautomation-release-build.sqlite     JA_MIGRATIONS_PATH=/workspace/migrations     JA_TENANT_ID=release-build-tenant     JA_DEPLOYMENT_ID=release-build-deployment     JA_DEPLOYMENT_BINDING_SECRET=release-build-binding-secret-2026-08-client-essential     JA_RELEASE_BUILD=1     pnpm --filter @ja/portal build  && rm -f /tmp/jaautomation-release-build.sqlite /tmp/jaautomation-release-build.sqlite-shm /tmp/jaautomation-release-build.sqlite-wal",
+      "InUse": false,
+      "Shared": false,
+      "Size": 42848256,
+      "CreatedAt": "2026-09-23T06:49:25.873981118Z",
+      "LastUsedAt": "2026-09-23T06:51:23.350503421Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "fmxnhzgke7ouiyyczjb58dbba",
+      " Parents": [
+        "zcqen5sxljss3fzjt6n8dcvwa"
+      ],
+      "Type": "regular",
+      "Description": "[build  7/13] COPY migrations ./migrations",
+      "InUse": false,
+      "Shared": false,
+      "Size": 847872,
+      "CreatedAt": "2026-09-23T06:48:40.109998322Z",
+      "LastUsedAt": "2026-09-23T06:51:23.344606434Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ym23db767tqsg7p92tckrq9nl",
+      " Parents": [
+        "qfhtci7mwqw3hmgvnwwv6aklo"
+      ],
+      "Type": "regular",
+      "Description": "",
+      "InUse": false,
+      "Shared": false,
+      "Size": 50502756,
+      "CreatedAt": "2026-09-23T06:48:36.69630031Z",
+      "LastUsedAt": "2026-09-23T06:48:36.762072306Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "rrw5x9akvuje4hmbtzp9w0orc",
+      "Type": "source.local",
+      "Description": "local source for context",
+      "InUse": false,
+      "Shared": false,
+      "Size": 25133056,
+      "CreatedAt": "2026-09-23T06:48:36.632481212Z",
+      "LastUsedAt": "2026-09-23T06:51:23.369308841Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "ral69pov05p2yocq6xo4mvt2z",
+      " Parents": [
+        "1t59p9fh0as58d5x1921x0x3p"
+      ],
+      "Type": "regular",
+      "Description": "[build  9/15] COPY packages/money/package.json ./packages/money/package.json",
+      "InUse": false,
+      "Shared": false,
+      "Size": 24576,
+      "CreatedAt": "2026-09-23T06:48:39.584841854Z",
+      "LastUsedAt": "2026-09-23T06:50:57.020604391Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "pg830vdi6bmxks7clg4pxqq11",
+      " Parents": [
+        "a4x0mkuqhvxxuercl3k4h1f9q"
+      ],
+      "Type": "regular",
+      "Description": "[stage-1 6/8] COPY --from=build --chown=jasite:jasite /workspace/website/.next/static ./website/.next/static",
+      "InUse": false,
+      "Shared": false,
+      "Size": 4567387,
+      "CreatedAt": "2026-09-23T06:50:26.458907548Z",
+      "LastUsedAt": "2026-09-23T06:50:57.027617956Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "6oh2ap222pq2117xhmgpsrvzm",
+      " Parents": [
+        "kheabkiiksnfjocc3i6dalpc5"
+      ],
+      "Type": "regular",
+      "Description": "[build  7/15] COPY packages/domain/package.json ./packages/domain/package.json",
+      "InUse": false,
+      "Shared": false,
+      "Size": 24576,
+      "CreatedAt": "2026-09-23T06:48:39.491672577Z",
+      "LastUsedAt": "2026-09-23T06:50:57.004441505Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "k419xv5nobatuhrzv9juaq20d",
+      " Parents": [
+        "lov464tiaqg69vdgp11l2yaki"
+      ],
+      "Type": "regular",
+      "Description": "mount / from exec /bin/sh -c pnpm --filter @ja/portal deploy --prod --legacy /portal",
+      "InUse": false,
+      "Shared": false,
+      "Size": 962134016,
+      "CreatedAt": "2026-09-23T06:49:27.369634137Z",
+      "LastUsedAt": "2026-09-23T06:51:23.334737955Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "sdfwciyzhuu4lyxnzo6jzgbts",
+      " Parents": [
+        "vsswz6wtnztwpwj51rnb4j5oq"
+      ],
+      "Type": "regular",
+      "Description": "[stage-2 8/8] COPY --from=build --chown=jaautomation:jaautomation /workspace/manuals ./manuals",
+      "InUse": false,
+      "Shared": false,
+      "Size": 29914256,
+      "CreatedAt": "2026-09-23T06:50:35.264915085Z",
+      "LastUsedAt": "2026-09-23T06:51:23.360775749Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "kgtbbbf1wwd1yzaexletvmfgq",
+      " Parents": [
+        "sbs2odym4ouzlrqxm47evdffk"
+      ],
+      "Type": "regular",
+      "Description": "mount / from exec /bin/sh -c pnpm --filter @ja/site deploy --prod --legacy /tmp/site-runtime",
+      "InUse": false,
+      "Shared": false,
+      "Size": 939474944,
+      "CreatedAt": "2026-09-23T06:49:26.806527547Z",
+      "LastUsedAt": "2026-09-23T06:50:57.013558856Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "jan3x6ioteafcs79a7c7iq9yx",
+      " Parents": [
+        "yrtyp7iocrskjd4983s7pze1r"
+      ],
+      "Type": "regular",
+      "Description": "[stage-1 4/8] COPY --from=build --chown=jasite:jasite /workspace/website/public ./website/public",
+      "InUse": false,
+      "Shared": false,
+      "Size": 23017458,
+      "CreatedAt": "2026-09-23T06:50:21.691599483Z",
+      "LastUsedAt": "2026-09-23T06:50:57.015485121Z",
+      "UsageCount": 1
+    },
+    {
+      "ID": "d6kneif6a29o3q4us638ncouw",
+      " Parents": [
+        "oxmego6n730fj7br61ms7zdqe"
+      ],
+      "Type": "regular",
+      "Description": "mount / from exec /bin/sh -c useradd --system --uid 10002 --create-home jasite",
+      "InUse": false,
+      "Shared": false,
+      "Size": 68805,
+      "CreatedAt": "2026-09-23T06:48:37.642184927Z",
+      "LastUsedAt": "2026-09-23T06:50:57.045259209Z",
+      "UsageCount": 1
+    }
+  ],
+  "authorizedIds": [
+    "06ev6i26g7ck486gc18v3mvww",
+    "1fs6aoetfwu5do41ep5acyjbl",
+    "1t59p9fh0as58d5x1921x0x3p",
+    "36frdaumxlvj7l4sl3eciac8d",
+    "5uls6jw1mb07a0m28ilem63p5",
+    "6oh2ap222pq2117xhmgpsrvzm",
+    "6v7o5cejhtbu6ifpyqgvbz23g",
+    "8lejryyf3tn4fxfzu2w01n1e8",
+    "9sy2nxn05dl619rz9nt0gki43",
+    "a4x0mkuqhvxxuercl3k4h1f9q",
+    "b2lqe0h45ahkt0gcjmcufwnw2",
+    "d6kneif6a29o3q4us638ncouw",
+    "fmxnhzgke7ouiyyczjb58dbba",
+    "g6t6tj08e14pus9o9p5lzp95n",
+    "hls18meoeknqvtgiw0nznofd8",
+    "hr0uq2tq99gd12d382gzfd6rv",
+    "hsrs18vqwq6adzlnra1xrtq29",
+    "jan3x6ioteafcs79a7c7iq9yx",
+    "k419xv5nobatuhrzv9juaq20d",
+    "kgtbbbf1wwd1yzaexletvmfgq",
+    "kheabkiiksnfjocc3i6dalpc5",
+    "lov464tiaqg69vdgp11l2yaki",
+    "m1y2wkyc1rmz6ds10xh1vltwj",
+    "n12r81ja7o9dwvlcl01cx622u",
+    "n1quvy82e3vvfu2xx8nq52oj7",
+    "n6r5i6sw3uldi0razm6oeri60",
+    "nfjvv3jmc9r23c2ig8y73a8az",
+    "o2e4meyphsgy7wkrvcii20h2j",
+    "of7ogoa3rzdseartpapl65ylz",
+    "oxmego6n730fj7br61ms7zdqe",
+    "pg830vdi6bmxks7clg4pxqq11",
+    "psa9fn0dbtf1jtijdrh62ame7",
+    "qaihucsvb2213pe9ax2pybjgf",
+    "qfhtci7mwqw3hmgvnwwv6aklo",
+    "ral69pov05p2yocq6xo4mvt2z",
+    "rrw5x9akvuje4hmbtzp9w0orc",
+    "sbs2odym4ouzlrqxm47evdffk",
+    "sdfwciyzhuu4lyxnzo6jzgbts",
+    "sdvex0ppjv7uqmdkh3ixsg75p",
+    "sonojalg3sjw6f0arjc6d6jjg",
+    "tbkdhkjpaeg0rm023dnq5ek48",
+    "tjafnls5q74fvgmhhiavj532q",
+    "v7o5vy26djolvv0ovbbbudn2t",
+    "vj16cx6tvc5v1sh3v0ppizwo5",
+    "vsswz6wtnztwpwj51rnb4j5oq",
+    "xdeeampbexbnn4jevwmxck321",
+    "y2psdjx6ql2xu71hmedwzpeun",
+    "ym23db767tqsg7p92tckrq9nl",
+    "yrtyp7iocrskjd4983s7pze1r",
+    "zcqen5sxljss3fzjt6n8dcvwa"
+  ],
+  "beforeDisk": {
+    "total": 160970244096,
+    "used": 146255716352,
+    "free": 8123129856
+  },
+  "beforeProtected": {
+    "images": [
+      "sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0 postgres:<none>",
+      "sha256:07690e185d7d9a5c51e1211eb5299b7d35da0b3a7ea79c42d4a216347c760141 ghcr.io/martinhdeez/trace-it/backend:<none>",
+      "sha256:18fa8316172ae296fcb6918c32368e472fac38a7a77f7faacbdc22f2fb35192f ja-automation-site:rollback-20260922104147-079e1eebe07d",
+      "sha256:18fa8316172ae296fcb6918c32368e472fac38a7a77f7faacbdc22f2fb35192f ja-automation-site:zip-370f46e5a798f59ab437bede05b2eb83",
+      "sha256:1bf371aefa4682e0a2147a54bc68831978a5fe6417fa4da9ab490e338fa4bd49 ja-automation-site:rollback-20260922142313-c1285f14e4a9",
+      "sha256:1bf371aefa4682e0a2147a54bc68831978a5fe6417fa4da9ab490e338fa4bd49 ja-automation-site:zip-3d43a7ce49587ef3c34393615e5094f6",
+      "sha256:24340b851aea6c8f65dd85841914118124f43cf626024caa071a86e1f096d517 ja-automation-site:rollback-20260922124854-3d43a7ce4958",
+      "sha256:24340b851aea6c8f65dd85841914118124f43cf626024caa071a86e1f096d517 ja-automation-site:zip-079e1eebe07dcac9e8ffc5fd06fe4e20",
+      "sha256:26d24bbf4dda035d854cee1a2d4ab06945b87e9d2774577cd6accc3af1394b44 ghcr.io/martinhdeez/trace-it/erp:<none>",
+      "sha256:425295601e5c0147395c7dd268afef3861608f4e2a46040b8cebb23a1808b4ca lois-booking:production",
+      "sha256:490b0ab60f2e459c9232a8f050b47319e4b92133642a8ad412a1fdb6c19e0f15 ja-automation-site:rollback-20260922214739-b30ae7b55a3f",
+      "sha256:490b0ab60f2e459c9232a8f050b47319e4b92133642a8ad412a1fdb6c19e0f15 ja-automation-site:zip-f65e3d9aa8b0014bf1735533f0027c07",
+      "sha256:518266d179042ded1525b42e09ce824f2869286be7f714de643c0d86596d95a8 ja-automation-site:rollback-20260922154511-f65e3d9aa8b0",
+      "sha256:518266d179042ded1525b42e09ce824f2869286be7f714de643c0d86596d95a8 ja-automation-site:zip-c1285f14e4a94148bbfc36a8df403b7a",
+      "sha256:558b04e36a665b594794bb3ac1db175ee296484800c6b925c3b205bfcc2d4a85 adlaudem-preview:3b888c1",
+      "sha256:5d40745b0a352f86ef652c755047de91a345fe3946a60d7c492a0e310c5420e6 lois-perruqueiros-lois-web:latest",
+      "sha256:6da3a2dc3b7bc93ddad6d4779e817f9ab8a3311007d40fe5b425a658385e4d49 ja-automation-portal:zip-97502e4a6676a5a7c91435e42522c3b3",
+      "sha256:7091461db634ee9fb32ee522a712a24b275fc779e8d6400c051b6fe490d95218 ghcr.io/martinhdeez/trace-it/frontend:<none>",
+      "sha256:85f7b7b062fc234e9ae5e7703d573773095d664845cd6323c59da3584088c9c1 ja-automation-portal:rollback-20260922214739-b30ae7b55a3f",
+      "sha256:85f7b7b062fc234e9ae5e7703d573773095d664845cd6323c59da3584088c9c1 ja-automation-portal:zip-f65e3d9aa8b0014bf1735533f0027c07",
+      "sha256:8bba9e08c2ae8ff5b7f77bd69066bef197553c5876ed1016b5de0c22ab34e024 ghcr.io/martinhdeez/trace-it/backend:<none>",
+      "sha256:90479685252749cb58d0beddd9e6cd6310ef62840fe2150b66b0815bc124e005 ja-automation-portal:rollback-20260922102644-370f46e5a798",
+      "sha256:90479685252749cb58d0beddd9e6cd6310ef62840fe2150b66b0815bc124e005 ja-automation-portal:zip-0ba62783814af13aa36f3f9c0e6a6d33",
+      "sha256:9570bf3235922c0d20c8db72f96da8b957a7dfb6777c0fd28d54f9dd5451e740 ja-automation-portal:rollback-20260923064834-97502e4a6676",
+      "sha256:9570bf3235922c0d20c8db72f96da8b957a7dfb6777c0fd28d54f9dd5451e740 ja-automation-portal:zip-b30ae7b55a3f8afbe25aeae50e627f0b",
+      "sha256:97f38aad3827d1bd3f59b151d1640fed36ea2afd54bf97171aa7ef1a877aa8ea ja-automation-site:rollback-20260922092827-0ba62783814a",
+      "sha256:97f38aad3827d1bd3f59b151d1640fed36ea2afd54bf97171aa7ef1a877aa8ea ja-automation-site:zip-f693b66f52e5e0700ac02a7f9ea14151",
+      "sha256:9fa40b3d8dec43ceb2213d1fa551da3dcfef6ac6d19c2e534efb92527c2bafd2 deluan/navidrome:latest",
+      "sha256:a33a811d41dd451252b0e99eeff3e61cc9c01fff16ae41919ca2109d1e132128 ja-automation-site:zip-97502e4a6676a5a7c91435e42522c3b3",
+      "sha256:a62d5910876475dd2e8a2e5775cb17eb553c876714b82968b549424a0db32b2c ja-automation-site:rollback-20260922102644-370f46e5a798",
+      "sha256:a62d5910876475dd2e8a2e5775cb17eb553c876714b82968b549424a0db32b2c ja-automation-site:zip-0ba62783814af13aa36f3f9c0e6a6d33",
+      "sha256:ab6102b2f1eeb78a679ce0fee9af33efbd4cf62b254f030b3b028abee00fb4cd ghcr.io/martinhdeez/trace-it/backend:<none>",
+      "sha256:cacd1d0209ec5fab6ab97a1b948a60d4273ac84f6cafe74bc6846a7333b4e2c6 ja-automation-site:rollback-20260923064834-97502e4a6676",
+      "sha256:cacd1d0209ec5fab6ab97a1b948a60d4273ac84f6cafe74bc6846a7333b4e2c6 ja-automation-site:zip-b30ae7b55a3f8afbe25aeae50e627f0b",
+      "sha256:d152c971640d27629c1e13fdf2162ac2f60bba35afc34f8bf0f98fbed7de52a6 ghcr.io/martinhdeez/trace-it/backend:<none>",
+      "sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2 postgres:18-alpine",
+      "sha256:d5ae4839392480609069ce7b8da5b4f04d46451f71ae09da8d097d2e30af9a68 ja-automation-portal:rollback-20260922104147-079e1eebe07d",
+      "sha256:d5ae4839392480609069ce7b8da5b4f04d46451f71ae09da8d097d2e30af9a68 ja-automation-portal:zip-370f46e5a798f59ab437bede05b2eb83",
+      "sha256:d812c4748991274cb08d8220a476e059a6a0d1df6d298e839749903fcc140051 ja-automation-portal:rollback-20260922142313-c1285f14e4a9",
+      "sha256:d812c4748991274cb08d8220a476e059a6a0d1df6d298e839749903fcc140051 ja-automation-portal:zip-3d43a7ce49587ef3c34393615e5094f6",
+      "sha256:e1d483b86dd202b43e6653cbdeaeaff92dec7d8caf60683c01c372778cf7a87c ghcr.io/martinhdeez/trace-it/erp:<none>",
+      "sha256:e60cb61b6cc775f6fce441d5be3e15c906ec483d8d4f451db22c5ea081adccb1 ja-automation-portal:rollback-20260922092827-0ba62783814a",
+      "sha256:e60cb61b6cc775f6fce441d5be3e15c906ec483d8d4f451db22c5ea081adccb1 ja-automation-portal:zip-f693b66f52e5e0700ac02a7f9ea14151",
+      "sha256:efedf3595f1d6f415c08568ba171029bf54052e754cc9f030e3f2412b21f3d67 postgres:16-bookworm",
+      "sha256:f117f5faa653e4ef15e15f061f476f5a82e4b794df39594415745183172a84d4 ja-automation-portal:rollback-20260922124854-3d43a7ce4958",
+      "sha256:f117f5faa653e4ef15e15f061f476f5a82e4b794df39594415745183172a84d4 ja-automation-portal:zip-079e1eebe07dcac9e8ffc5fd06fe4e20",
+      "sha256:f38b63ba76486a801b9d479ff81141c057cf34f0a347e9fa76208e3cb725b8c9 ja-automation-portal:rollback-20260922154511-f65e3d9aa8b0",
+      "sha256:f38b63ba76486a801b9d479ff81141c057cf34f0a347e9fa76208e3cb725b8c9 ja-automation-portal:zip-c1285f14e4a94148bbfc36a8df403b7a",
+      "sha256:fe3d2792b63d681bc1ac5adc49d43416defe8515864cb13a4599fbfbcd11974b ghcr.io/martinhdeez/trace-it/frontend:<none>"
+    ],
+    "containers": [
+      "0d165c644428 lois-jobs",
+      "0eaa4d40fcd9 navidrome-navidrome-1",
+      "159cc02c3121 lois-web",
+      "43301b0ffd75 adlaudem-preview-db-1",
+      "45cd42a782dd trace-it-db-1",
+      "53cde10e2485 deployment-portal-1",
+      "82593b4d9cfc adlaudem-preview-web-1",
+      "9a13270c1097 trace-it-mail-ingestion-1",
+      "9d2cf151fcce trace-it-frontend-1",
+      "9f395274746f deployment-jobs-1",
+      "a2bbc453dc1b lois-db",
+      "a2eb6d99674d trace-it-criminal-records-1",
+      "b320b4d68f86 trace-it-backend-1",
+      "b82bf417d21b trace-it-mail-pdf-test-db",
+      "c56435fcde6b trace-it-erp-erp-1",
+      "d7b555e209f5 lois-booking",
+      "de3abaeaa1b0 deployment-site-1"
+    ],
+    "volumes": [
+      "adlaudem-preview_db_data",
+      "lois-perruqueiros_lois-db-data",
+      "trace-it_database",
+      "trace-it_ingestion"
+    ],
+    "current": "/opt/jaautomation/releases/ja-automation-97502e4a6676a5a7c91435e42522c3b3fecc10132d0edc4846f2101f6fdfced4",
+    "releases": [
+      "ja-automation-079e1eebe07dcac9e8ffc5fd06fe4e20b6f6d23cf7a10d3c5776dc44befbd12c",
+      "ja-automation-0ba62783814af13aa36f3f9c0e6a6d3394499b12cad478dde89aec79f5dc672f",
+      "ja-automation-370f46e5a798f59ab437bede05b2eb833c27c4bf545214637688773b6ce30940",
+      "ja-automation-3d43a7ce49587ef3c34393615e5094f6ed025629e97659aa535a333c9e8adb90",
+      "ja-automation-97502e4a6676a5a7c91435e42522c3b3fecc10132d0edc4846f2101f6fdfced4",
+      "ja-automation-b30ae7b55a3f8afbe25aeae50e627f0b2c717439a898326932406cc197536d02",
+      "ja-automation-c1285f14e4a94148bbfc36a8df403b7a1c7ffc4eb0fb9c51edd36cb84829c251",
+      "ja-automation-f65e3d9aa8b0014bf1735533f0027c0747495fb509810e0823e65f6bd4f2b31a",
+      "ja-automation-f693b66f52e5e0700ac02a7f9ea1415178fb4626a412c7a5389cc3f9a2601f34"
+    ]
+  },
+  "scope": "Only enumerated unused, unshared build cache; no images, volumes, containers or releases",
+  "command": [
+    "docker",
+    "builder",
+    "prune",
+    "--all",
+    "--force",
+    "--filter",
+    "id=^(06ev6i26g7ck486gc18v3mvww|1fs6aoetfwu5do41ep5acyjbl|1t59p9fh0as58d5x1921x0x3p|36frdaumxlvj7l4sl3eciac8d|5uls6jw1mb07a0m28ilem63p5|6oh2ap222pq2117xhmgpsrvzm|6v7o5cejhtbu6ifpyqgvbz23g|8lejryyf3tn4fxfzu2w01n1e8|9sy2nxn05dl619rz9nt0gki43|a4x0mkuqhvxxuercl3k4h1f9q|b2lqe0h45ahkt0gcjmcufwnw2|d6kneif6a29o3q4us638ncouw|fmxnhzgke7ouiyyczjb58dbba|g6t6tj08e14pus9o9p5lzp95n|hls18meoeknqvtgiw0nznofd8|hr0uq2tq99gd12d382gzfd6rv|hsrs18vqwq6adzlnra1xrtq29|jan3x6ioteafcs79a7c7iq9yx|k419xv5nobatuhrzv9juaq20d|kgtbbbf1wwd1yzaexletvmfgq|kheabkiiksnfjocc3i6dalpc5|lov464tiaqg69vdgp11l2yaki|m1y2wkyc1rmz6ds10xh1vltwj|n12r81ja7o9dwvlcl01cx622u|n1quvy82e3vvfu2xx8nq52oj7|n6r5i6sw3uldi0razm6oeri60|nfjvv3jmc9r23c2ig8y73a8az|o2e4meyphsgy7wkrvcii20h2j|of7ogoa3rzdseartpapl65ylz|oxmego6n730fj7br61ms7zdqe|pg830vdi6bmxks7clg4pxqq11|psa9fn0dbtf1jtijdrh62ame7|qaihucsvb2213pe9ax2pybjgf|qfhtci7mwqw3hmgvnwwv6aklo|ral69pov05p2yocq6xo4mvt2z|rrw5x9akvuje4hmbtzp9w0orc|sbs2odym4ouzlrqxm47evdffk|sdfwciyzhuu4lyxnzo6jzgbts|sdvex0ppjv7uqmdkh3ixsg75p|sonojalg3sjw6f0arjc6d6jjg|tbkdhkjpaeg0rm023dnq5ek48|tjafnls5q74fvgmhhiavj532q|v7o5vy26djolvv0ovbbbudn2t|vj16cx6tvc5v1sh3v0ppizwo5|vsswz6wtnztwpwj51rnb4j5oq|xdeeampbexbnn4jevwmxck321|y2psdjx6ql2xu71hmedwzpeun|ym23db767tqsg7p92tckrq9nl|yrtyp7iocrskjd4983s7pze1r|zcqen5sxljss3fzjt6n8dcvwa)$"
+  ],
+  "exitCode": 0,
+  "stdout": "Deleted build cache objects:\nk419xv5nobatuhrzv9juaq20d\nsdfwciyzhuu4lyxnzo6jzgbts\nkgtbbbf1wwd1yzaexletvmfgq\n5uls6jw1mb07a0m28ilem63p5\ny2psdjx6ql2xu71hmedwzpeun\n1fs6aoetfwu5do41ep5acyjbl\n9sy2nxn05dl619rz9nt0gki43\nsonojalg3sjw6f0arjc6d6jjg\ntbkdhkjpaeg0rm023dnq5ek48\nrrw5x9akvuje4hmbtzp9w0orc\nvsswz6wtnztwpwj51rnb4j5oq\nlov464tiaqg69vdgp11l2yaki\nsbs2odym4ouzlrqxm47evdffk\nqaihucsvb2213pe9ax2pybjgf\ntjafnls5q74fvgmhhiavj532q\nhls18meoeknqvtgiw0nznofd8\n36frdaumxlvj7l4sl3eciac8d\npg830vdi6bmxks7clg4pxqq11\nm1y2wkyc1rmz6ds10xh1vltwj\no2e4meyphsgy7wkrvcii20h2j\na4x0mkuqhvxxuercl3k4h1f9q\n8lejryyf3tn4fxfzu2w01n1e8\ng6t6tj08e14pus9o9p5lzp95n\njan3x6ioteafcs79a7c7iq9yx\nn12r81ja7o9dwvlcl01cx622u\nn6r5i6sw3uldi0razm6oeri60\n6v7o5cejhtbu6ifpyqgvbz23g\nyrtyp7iocrskjd4983s7pze1r\nvj16cx6tvc5v1sh3v0ppizwo5\nof7ogoa3rzdseartpapl65ylz\nfmxnhzgke7ouiyyczjb58dbba\nn1quvy82e3vvfu2xx8nq52oj7\nd6kneif6a29o3q4us638ncouw\nral69pov05p2yocq6xo4mvt2z\n1t59p9fh0as58d5x1921x0x3p\nzcqen5sxljss3fzjt6n8dcvwa\nb2lqe0h45ahkt0gcjmcufwnw2\n6oh2ap222pq2117xhmgpsrvzm\nkheabkiiksnfjocc3i6dalpc5\nv7o5vy26djolvv0ovbbbudn2t\nxdeeampbexbnn4jevwmxck321\nhr0uq2tq99gd12d382gzfd6rv\nsdvex0ppjv7uqmdkh3ixsg75p\nhsrs18vqwq6adzlnra1xrtq29\npsa9fn0dbtf1jtijdrh62ame7\noxmego6n730fj7br61ms7zdqe\nnfjvv3jmc9r23c2ig8y73a8az\nym23db767tqsg7p92tckrq9nl\nqfhtci7mwqw3hmgvnwwv6aklo\n06ev6i26g7ck486gc18v3mvww\n\nTotal reclaimed space: 6.941GB\n",
+  "stderr": "DEPRECATED: The legacy builder is deprecated and will be removed in a future release.\n            Install the buildx component to build images with BuildKit:\n            https://docs.docker.com/go/buildx/\n\n",
+  "afterCache": [],
+  "afterDisk": {
+    "total": 160970244096,
+    "used": 139967164416,
+    "free": 14411681792
+  },
+  "afterProtected": {
+    "images": [
+      "sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0 postgres:<none>",
+      "sha256:07690e185d7d9a5c51e1211eb5299b7d35da0b3a7ea79c42d4a216347c760141 ghcr.io/martinhdeez/trace-it/backend:<none>",
+      "sha256:18fa8316172ae296fcb6918c32368e472fac38a7a77f7faacbdc22f2fb35192f ja-automation-site:rollback-20260922104147-079e1eebe07d",
+      "sha256:18fa8316172ae296fcb6918c32368e472fac38a7a77f7faacbdc22f2fb35192f ja-automation-site:zip-370f46e5a798f59ab437bede05b2eb83",
+      "sha256:1bf371aefa4682e0a2147a54bc68831978a5fe6417fa4da9ab490e338fa4bd49 ja-automation-site:rollback-20260922142313-c1285f14e4a9",
+      "sha256:1bf371aefa4682e0a2147a54bc68831978a5fe6417fa4da9ab490e338fa4bd49 ja-automation-site:zip-3d43a7ce49587ef3c34393615e5094f6",
+      "sha256:24340b851aea6c8f65dd85841914118124f43cf626024caa071a86e1f096d517 ja-automation-site:rollback-20260922124854-3d43a7ce4958",
+      "sha256:24340b851aea6c8f65dd85841914118124f43cf626024caa071a86e1f096d517 ja-automation-site:zip-079e1eebe07dcac9e8ffc5fd06fe4e20",
+      "sha256:26d24bbf4dda035d854cee1a2d4ab06945b87e9d2774577cd6accc3af1394b44 ghcr.io/martinhdeez/trace-it/erp:<none>",
+      "sha256:425295601e5c0147395c7dd268afef3861608f4e2a46040b8cebb23a1808b4ca lois-booking:production",
+      "sha256:490b0ab60f2e459c9232a8f050b47319e4b92133642a8ad412a1fdb6c19e0f15 ja-automation-site:rollback-20260922214739-b30ae7b55a3f",
+      "sha256:490b0ab60f2e459c9232a8f050b47319e4b92133642a8ad412a1fdb6c19e0f15 ja-automation-site:zip-f65e3d9aa8b0014bf1735533f0027c07",
+      "sha256:518266d179042ded1525b42e09ce824f2869286be7f714de643c0d86596d95a8 ja-automation-site:rollback-20260922154511-f65e3d9aa8b0",
+      "sha256:518266d179042ded1525b42e09ce824f2869286be7f714de643c0d86596d95a8 ja-automation-site:zip-c1285f14e4a94148bbfc36a8df403b7a",
+      "sha256:558b04e36a665b594794bb3ac1db175ee296484800c6b925c3b205bfcc2d4a85 adlaudem-preview:3b888c1",
+      "sha256:5d40745b0a352f86ef652c755047de91a345fe3946a60d7c492a0e310c5420e6 lois-perruqueiros-lois-web:latest",
+      "sha256:6da3a2dc3b7bc93ddad6d4779e817f9ab8a3311007d40fe5b425a658385e4d49 ja-automation-portal:zip-97502e4a6676a5a7c91435e42522c3b3",
+      "sha256:7091461db634ee9fb32ee522a712a24b275fc779e8d6400c051b6fe490d95218 ghcr.io/martinhdeez/trace-it/frontend:<none>",
+      "sha256:85f7b7b062fc234e9ae5e7703d573773095d664845cd6323c59da3584088c9c1 ja-automation-portal:rollback-20260922214739-b30ae7b55a3f",
+      "sha256:85f7b7b062fc234e9ae5e7703d573773095d664845cd6323c59da3584088c9c1 ja-automation-portal:zip-f65e3d9aa8b0014bf1735533f0027c07",
+      "sha256:8bba9e08c2ae8ff5b7f77bd69066bef197553c5876ed1016b5de0c22ab34e024 ghcr.io/martinhdeez/trace-it/backend:<none>",
+      "sha256:90479685252749cb58d0beddd9e6cd6310ef62840fe2150b66b0815bc124e005 ja-automation-portal:rollback-20260922102644-370f46e5a798",
+      "sha256:90479685252749cb58d0beddd9e6cd6310ef62840fe2150b66b0815bc124e005 ja-automation-portal:zip-0ba62783814af13aa36f3f9c0e6a6d33",
+      "sha256:9570bf3235922c0d20c8db72f96da8b957a7dfb6777c0fd28d54f9dd5451e740 ja-automation-portal:rollback-20260923064834-97502e4a6676",
+      "sha256:9570bf3235922c0d20c8db72f96da8b957a7dfb6777c0fd28d54f9dd5451e740 ja-automation-portal:zip-b30ae7b55a3f8afbe25aeae50e627f0b",
+      "sha256:97f38aad3827d1bd3f59b151d1640fed36ea2afd54bf97171aa7ef1a877aa8ea ja-automation-site:rollback-20260922092827-0ba62783814a",
+      "sha256:97f38aad3827d1bd3f59b151d1640fed36ea2afd54bf97171aa7ef1a877aa8ea ja-automation-site:zip-f693b66f52e5e0700ac02a7f9ea14151",
+      "sha256:9fa40b3d8dec43ceb2213d1fa551da3dcfef6ac6d19c2e534efb92527c2bafd2 deluan/navidrome:latest",
+      "sha256:a33a811d41dd451252b0e99eeff3e61cc9c01fff16ae41919ca2109d1e132128 ja-automation-site:zip-97502e4a6676a5a7c91435e42522c3b3",
+      "sha256:a62d5910876475dd2e8a2e5775cb17eb553c876714b82968b549424a0db32b2c ja-automation-site:rollback-20260922102644-370f46e5a798",
+      "sha256:a62d5910876475dd2e8a2e5775cb17eb553c876714b82968b549424a0db32b2c ja-automation-site:zip-0ba62783814af13aa36f3f9c0e6a6d33",
+      "sha256:ab6102b2f1eeb78a679ce0fee9af33efbd4cf62b254f030b3b028abee00fb4cd ghcr.io/martinhdeez/trace-it/backend:<none>",
+      "sha256:cacd1d0209ec5fab6ab97a1b948a60d4273ac84f6cafe74bc6846a7333b4e2c6 ja-automation-site:rollback-20260923064834-97502e4a6676",
+      "sha256:cacd1d0209ec5fab6ab97a1b948a60d4273ac84f6cafe74bc6846a7333b4e2c6 ja-automation-site:zip-b30ae7b55a3f8afbe25aeae50e627f0b",
+      "sha256:d152c971640d27629c1e13fdf2162ac2f60bba35afc34f8bf0f98fbed7de52a6 ghcr.io/martinhdeez/trace-it/backend:<none>",
+      "sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2 postgres:18-alpine",
+      "sha256:d5ae4839392480609069ce7b8da5b4f04d46451f71ae09da8d097d2e30af9a68 ja-automation-portal:rollback-20260922104147-079e1eebe07d",
+      "sha256:d5ae4839392480609069ce7b8da5b4f04d46451f71ae09da8d097d2e30af9a68 ja-automation-portal:zip-370f46e5a798f59ab437bede05b2eb83",
+      "sha256:d812c4748991274cb08d8220a476e059a6a0d1df6d298e839749903fcc140051 ja-automation-portal:rollback-20260922142313-c1285f14e4a9",
+      "sha256:d812c4748991274cb08d8220a476e059a6a0d1df6d298e839749903fcc140051 ja-automation-portal:zip-3d43a7ce49587ef3c34393615e5094f6",
+      "sha256:e1d483b86dd202b43e6653cbdeaeaff92dec7d8caf60683c01c372778cf7a87c ghcr.io/martinhdeez/trace-it/erp:<none>",
+      "sha256:e60cb61b6cc775f6fce441d5be3e15c906ec483d8d4f451db22c5ea081adccb1 ja-automation-portal:rollback-20260922092827-0ba62783814a",
+      "sha256:e60cb61b6cc775f6fce441d5be3e15c906ec483d8d4f451db22c5ea081adccb1 ja-automation-portal:zip-f693b66f52e5e0700ac02a7f9ea14151",
+      "sha256:efedf3595f1d6f415c08568ba171029bf54052e754cc9f030e3f2412b21f3d67 postgres:16-bookworm",
+      "sha256:f117f5faa653e4ef15e15f061f476f5a82e4b794df39594415745183172a84d4 ja-automation-portal:rollback-20260922124854-3d43a7ce4958",
+      "sha256:f117f5faa653e4ef15e15f061f476f5a82e4b794df39594415745183172a84d4 ja-automation-portal:zip-079e1eebe07dcac9e8ffc5fd06fe4e20",
+      "sha256:f38b63ba76486a801b9d479ff81141c057cf34f0a347e9fa76208e3cb725b8c9 ja-automation-portal:rollback-20260922154511-f65e3d9aa8b0",
+      "sha256:f38b63ba76486a801b9d479ff81141c057cf34f0a347e9fa76208e3cb725b8c9 ja-automation-portal:zip-c1285f14e4a94148bbfc36a8df403b7a",
+      "sha256:fe3d2792b63d681bc1ac5adc49d43416defe8515864cb13a4599fbfbcd11974b ghcr.io/martinhdeez/trace-it/frontend:<none>"
+    ],
+    "containers": [
+      "0d165c644428 lois-jobs",
+      "0eaa4d40fcd9 navidrome-navidrome-1",
+      "159cc02c3121 lois-web",
+      "43301b0ffd75 adlaudem-preview-db-1",
+      "45cd42a782dd trace-it-db-1",
+      "53cde10e2485 deployment-portal-1",
+      "82593b4d9cfc adlaudem-preview-web-1",
+      "9a13270c1097 trace-it-mail-ingestion-1",
+      "9d2cf151fcce trace-it-frontend-1",
+      "9f395274746f deployment-jobs-1",
+      "a2bbc453dc1b lois-db",
+      "a2eb6d99674d trace-it-criminal-records-1",
+      "b320b4d68f86 trace-it-backend-1",
+      "b82bf417d21b trace-it-mail-pdf-test-db",
+      "c56435fcde6b trace-it-erp-erp-1",
+      "d7b555e209f5 lois-booking",
+      "de3abaeaa1b0 deployment-site-1"
+    ],
+    "volumes": [
+      "adlaudem-preview_db_data",
+      "lois-perruqueiros_lois-db-data",
+      "trace-it_database",
+      "trace-it_ingestion"
+    ],
+    "current": "/opt/jaautomation/releases/ja-automation-97502e4a6676a5a7c91435e42522c3b3fecc10132d0edc4846f2101f6fdfced4",
+    "releases": [
+      "ja-automation-079e1eebe07dcac9e8ffc5fd06fe4e20b6f6d23cf7a10d3c5776dc44befbd12c",
+      "ja-automation-0ba62783814af13aa36f3f9c0e6a6d3394499b12cad478dde89aec79f5dc672f",
+      "ja-automation-370f46e5a798f59ab437bede05b2eb833c27c4bf545214637688773b6ce30940",
+      "ja-automation-3d43a7ce49587ef3c34393615e5094f6ed025629e97659aa535a333c9e8adb90",
+      "ja-automation-97502e4a6676a5a7c91435e42522c3b3fecc10132d0edc4846f2101f6fdfced4",
+      "ja-automation-b30ae7b55a3f8afbe25aeae50e627f0b2c717439a898326932406cc197536d02",
+      "ja-automation-c1285f14e4a94148bbfc36a8df403b7a1c7ffc4eb0fb9c51edd36cb84829c251",
+      "ja-automation-f65e3d9aa8b0014bf1735533f0027c0747495fb509810e0823e65f6bd4f2b31a",
+      "ja-automation-f693b66f52e5e0700ac02a7f9ea1415178fb4626a412c7a5389cc3f9a2601f34"
+    ]
+  },
+  "protectedUnchanged": true,
+  "allSelectedRemoved": true
+}

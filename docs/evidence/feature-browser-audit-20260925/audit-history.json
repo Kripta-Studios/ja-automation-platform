@@ -1,0 +1,28 @@
+{
+  "signin": [
+    {
+      "kind": "warn",
+      "url": "http://127.0.0.1:5174/j-aautomation/app",
+      "stack": "Error\n    at console.warn (<anonymous>:2:223)\n    at console.warn (http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js:12:23312)\n    at t (http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js:6:121)\n    at history.replaceState (http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js:6:456)\n    at Module.xn (http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js:12:455)"
+    },
+    {
+      "kind": "replaceState",
+      "url": "http://127.0.0.1:5174/j-aautomation/app",
+      "next": "",
+      "stack": "Error\n    at history.<computed> (<anonymous>:2:458)\n    at history.replaceState (http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js:6:462)\n    at Module.xn (http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js:12:455)"
+    }
+  ],
+  "project": [
+    {
+      "kind": "warn",
+      "url": "http://127.0.0.1:5174/j-aautomation/app/projects/01a0d974-e249-71cd-b55c-7ab277c4370a?tab=billing",
+      "stack": "Error\n    at console.warn (<anonymous>:2:223)\n    at console.warn (http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js:12:23312)\n    at t (http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js:6:121)\n    at history.replaceState (http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js:6:456)\n    at Module.xn (http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js:12:455)"
+    },
+    {
+      "kind": "replaceState",
+      "url": "http://127.0.0.1:5174/j-aautomation/app/projects/01a0d974-e249-71cd-b55c-7ab277c4370a?tab=billing",
+      "next": "",
+      "stack": "Error\n    at history.<computed> (<anonymous>:2:458)\n    at history.replaceState (http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js:6:462)\n    at Module.xn (http://127.0.0.1:5174/j-aautomation/_app/immutable/chunks/D3bwAE4i.js:12:455)"
+    }
+  ]
+}

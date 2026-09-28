@@ -1,0 +1,474 @@
+[
+  {
+    "locale": "en",
+    "code": "WARNING_BILLING_ARCHIVE_STREAM",
+    "text": "Before you continue\n\nArchiving disables this billing stream for future periods. Approved invoices using it must be issued or recalculated first. Review those invoices before continuing.\n\nReview invoice",
+    "dom": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollY": 3786,
+      "ancestors": [
+        {
+          "tag": "aside",
+          "className": "ui-problem-notice svelte-b84mwg",
+          "display": "block",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": 273,
+            "y": 194,
+            "width": 117,
+            "height": 457,
+            "right": 390
+          }
+        },
+        {
+          "tag": "div",
+          "className": "billing-section__rule-actions svelte-1txr3jh",
+          "display": "grid",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "116.922px",
+          "flexDirection": "row",
+          "rect": {
+            "x": 259,
+            "y": -733,
+            "width": 146,
+            "height": 1572,
+            "right": 405
+          }
+        },
+        {
+          "tag": "details",
+          "className": "billing-section__rule-editor svelte-1txr3jh",
+          "display": "block",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": 259,
+            "y": -798,
+            "width": 146,
+            "height": 1637,
+            "right": 405
+          }
+        },
+        {
+          "tag": "td",
+          "className": "svelte-1txr3jh",
+          "display": "table-cell",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": 247,
+            "y": -1378,
+            "width": 168,
+            "height": 2227,
+            "right": 416
+          }
+        },
+        {
+          "tag": "tr",
+          "className": "svelte-1txr3jh",
+          "display": "table-row",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": -8,
+            "y": -1378,
+            "width": 424,
+            "height": 2227,
+            "right": 416
+          }
+        },
+        {
+          "tag": "tbody",
+          "className": "svelte-1txr3jh",
+          "display": "table-row-group",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": -8,
+            "y": -2668,
+            "width": 424,
+            "height": 6744,
+            "right": 416
+          }
+        },
+        {
+          "tag": "table",
+          "className": "billing-section__table svelte-1txr3jh",
+          "display": "table",
+          "minWidth": "auto",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": -8,
+            "y": -2729,
+            "width": 424,
+            "height": 6806,
+            "right": 416
+          }
+        },
+        {
+          "tag": "div",
+          "className": "billing-section__rule-list svelte-1txr3jh",
+          "display": "grid",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "423.531px",
+          "flexDirection": "row",
+          "rect": {
+            "x": -8,
+            "y": -2729,
+            "width": 327,
+            "height": 6806,
+            "right": 320
+          }
+        },
+        {
+          "tag": "section",
+          "className": "ui-card-surface billing-section__rules",
+          "display": "block",
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": -23,
+            "y": -3151,
+            "width": 358,
+            "height": 7243,
+            "right": 335
+          }
+        },
+        {
+          "tag": "div",
+          "className": "billing-section svelte-1txr3jh",
+          "display": "grid",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "358px",
+          "flexDirection": "row",
+          "rect": {
+            "x": -23,
+            "y": -3512,
+            "width": 358,
+            "height": 7605,
+            "right": 335
+          }
+        },
+        {
+          "tag": "main",
+          "className": "",
+          "display": "block",
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": -39,
+            "y": -3716,
+            "width": 390,
+            "height": 7899,
+            "right": 351
+          }
+        },
+        {
+          "tag": "div",
+          "className": "portal-layout",
+          "display": "grid",
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "overflowX": "visible",
+          "gridTemplateColumns": "390px",
+          "flexDirection": "row",
+          "rect": {
+            "x": -39,
+            "y": -3786,
+            "width": 390,
+            "height": 7969,
+            "right": 351
+          }
+        },
+        {
+          "tag": "div",
+          "className": "sveltekit-body",
+          "display": "contents",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "right": 0
+          }
+        }
+      ]
+    },
+    "pageErrors": []
+  },
+  {
+    "locale": "es",
+    "code": "WARNING_BILLING_ARCHIVE_STREAM",
+    "text": "Antes de continuar\n\nArchivar desactiva este flujo de facturación para períodos futuros. Antes, las facturas aprobadas que lo usan deben emitirse o recalcularse. Revisa esas facturas antes de continuar.\n\nRevisar factura",
+    "dom": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollY": 4039,
+      "ancestors": [
+        {
+          "tag": "aside",
+          "className": "ui-problem-notice svelte-b84mwg",
+          "display": "block",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": 268,
+            "y": 184,
+            "width": 122,
+            "height": 477,
+            "right": 390
+          }
+        },
+        {
+          "tag": "div",
+          "className": "billing-section__rule-actions svelte-1txr3jh",
+          "display": "grid",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "121.75px",
+          "flexDirection": "row",
+          "rect": {
+            "x": 254,
+            "y": -782,
+            "width": 151,
+            "height": 1652,
+            "right": 405
+          }
+        },
+        {
+          "tag": "details",
+          "className": "billing-section__rule-editor svelte-1txr3jh",
+          "display": "block",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": 254,
+            "y": -848,
+            "width": 151,
+            "height": 1717,
+            "right": 405
+          }
+        },
+        {
+          "tag": "td",
+          "className": "svelte-1txr3jh",
+          "display": "table-cell",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": 243,
+            "y": -1488,
+            "width": 173,
+            "height": 2369,
+            "right": 416
+          }
+        },
+        {
+          "tag": "tr",
+          "className": "svelte-1txr3jh",
+          "display": "table-row",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": -20,
+            "y": -1488,
+            "width": 436,
+            "height": 2369,
+            "right": 416
+          }
+        },
+        {
+          "tag": "tbody",
+          "className": "svelte-1txr3jh",
+          "display": "table-row-group",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": -20,
+            "y": -2900,
+            "width": 436,
+            "height": 7312,
+            "right": 416
+          }
+        },
+        {
+          "tag": "table",
+          "className": "billing-section__table svelte-1txr3jh",
+          "display": "table",
+          "minWidth": "auto",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": -20,
+            "y": -2961,
+            "width": 436,
+            "height": 7373,
+            "right": 416
+          }
+        },
+        {
+          "tag": "div",
+          "className": "billing-section__rule-list svelte-1txr3jh",
+          "display": "grid",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "435.547px",
+          "flexDirection": "row",
+          "rect": {
+            "x": -20,
+            "y": -2961,
+            "width": 327,
+            "height": 7373,
+            "right": 308
+          }
+        },
+        {
+          "tag": "section",
+          "className": "ui-card-surface billing-section__rules",
+          "display": "block",
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": -35,
+            "y": -3383,
+            "width": 358,
+            "height": 7810,
+            "right": 323
+          }
+        },
+        {
+          "tag": "div",
+          "className": "billing-section svelte-1txr3jh",
+          "display": "grid",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "358px",
+          "flexDirection": "row",
+          "rect": {
+            "x": -35,
+            "y": -3765,
+            "width": 358,
+            "height": 8193,
+            "right": 323
+          }
+        },
+        {
+          "tag": "main",
+          "className": "",
+          "display": "block",
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": -51,
+            "y": -3969,
+            "width": 390,
+            "height": 8487,
+            "right": 339
+          }
+        },
+        {
+          "tag": "div",
+          "className": "portal-layout",
+          "display": "grid",
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "overflowX": "visible",
+          "gridTemplateColumns": "390px",
+          "flexDirection": "row",
+          "rect": {
+            "x": -51,
+            "y": -4039,
+            "width": 390,
+            "height": 8557,
+            "right": 339
+          }
+        },
+        {
+          "tag": "div",
+          "className": "sveltekit-body",
+          "display": "contents",
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "gridTemplateColumns": "none",
+          "flexDirection": "row",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "right": 0
+          }
+        }
+      ]
+    },
+    "pageErrors": []
+  }
+]

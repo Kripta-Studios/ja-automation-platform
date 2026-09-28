@@ -1,0 +1,149 @@
+{
+  "at": "2026-09-22T15:49:49.031Z",
+  "results": [
+    {
+      "name": "public-en",
+      "width": 390,
+      "status": 200,
+      "documentWidth": 390,
+      "font": "geist, \"geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+      "fonts": [
+        "geist",
+        "geistMono"
+      ],
+      "errors": []
+    },
+    {
+      "name": "public-pt",
+      "width": 390,
+      "status": 200,
+      "documentWidth": 390,
+      "font": "geist, \"geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+      "fonts": [
+        "geist",
+        "geistMono"
+      ],
+      "errors": []
+    },
+    {
+      "name": "public-es",
+      "width": 390,
+      "status": 200,
+      "documentWidth": 390,
+      "font": "geist, \"geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+      "fonts": [
+        "geist",
+        "geistMono"
+      ],
+      "errors": []
+    },
+    {
+      "name": "login-en",
+      "width": 390,
+      "status": 200,
+      "documentWidth": 390,
+      "font": "Geist, ui-sans-serif, system-ui, sans-serif",
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "errors": []
+    },
+    {
+      "name": "login-es",
+      "width": 390,
+      "status": 200,
+      "documentWidth": 390,
+      "font": "Geist, ui-sans-serif, system-ui, sans-serif",
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "errors": []
+    },
+    {
+      "name": "login-pt",
+      "width": 390,
+      "status": 200,
+      "documentWidth": 390,
+      "font": "Geist, ui-sans-serif, system-ui, sans-serif",
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "errors": []
+    },
+    {
+      "name": "public-en",
+      "width": 1440,
+      "status": 200,
+      "documentWidth": 1440,
+      "font": "geist, \"geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+      "fonts": [
+        "geist",
+        "geistMono"
+      ],
+      "errors": []
+    },
+    {
+      "name": "public-pt",
+      "width": 1440,
+      "status": 200,
+      "documentWidth": 1440,
+      "font": "geist, \"geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+      "fonts": [
+        "geist",
+        "geistMono"
+      ],
+      "errors": []
+    },
+    {
+      "name": "public-es",
+      "width": 1440,
+      "status": 200,
+      "documentWidth": 1440,
+      "font": "geist, \"geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+      "fonts": [
+        "geist",
+        "geistMono"
+      ],
+      "errors": []
+    },
+    {
+      "name": "login-en",
+      "width": 1440,
+      "status": 200,
+      "documentWidth": 1440,
+      "font": "Geist, ui-sans-serif, system-ui, sans-serif",
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "errors": []
+    },
+    {
+      "name": "login-es",
+      "width": 1440,
+      "status": 200,
+      "documentWidth": 1440,
+      "font": "Geist, ui-sans-serif, system-ui, sans-serif",
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "errors": []
+    },
+    {
+      "name": "login-pt",
+      "width": 1440,
+      "status": 200,
+      "documentWidth": 1440,
+      "font": "Geist, ui-sans-serif, system-ui, sans-serif",
+      "fonts": [
+        "Geist",
+        "Geist Mono"
+      ],
+      "errors": []
+    }
+  ]
+}

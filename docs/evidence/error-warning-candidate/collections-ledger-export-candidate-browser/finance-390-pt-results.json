@@ -1,0 +1,117 @@
+{
+  "candidateCommit": "33091be",
+  "role": "finance",
+  "width": 390,
+  "height": 844,
+  "locale": "pt",
+  "scenarios": [
+    {
+      "name": "invalid",
+      "result": {
+        "status": 400,
+        "contentType": "application/problem+json",
+        "code": "COLLECTION_LEDGER_EXPORT_PERIOD_DATE_INVALID",
+        "messageKey": "problem.collectionsLedgerExport.periodDateInvalid",
+        "fields": [
+          "periodStart"
+        ],
+        "remedies": [
+          "review_ledger_filters"
+        ],
+        "hasCorrelationId": true
+      }
+    },
+    {
+      "name": "reversed",
+      "result": {
+        "status": 400,
+        "contentType": "application/problem+json",
+        "code": "COLLECTION_LEDGER_EXPORT_PERIOD_RANGE_REVERSED",
+        "messageKey": "problem.collectionsLedgerExport.periodRangeReversed",
+        "fields": [
+          "periodEnd"
+        ],
+        "remedies": [
+          "review_ledger_filters"
+        ],
+        "hasCorrelationId": true
+      }
+    },
+    {
+      "name": "duplicate",
+      "result": {
+        "status": 400,
+        "contentType": "application/problem+json",
+        "code": "COLLECTION_LEDGER_EXPORT_FILTER_DUPLICATE",
+        "messageKey": "problem.collectionsLedgerExport.filterDuplicate",
+        "fields": [
+          "periodStart"
+        ],
+        "remedies": [
+          "review_ledger_filters"
+        ],
+        "hasCorrelationId": true
+      }
+    }
+  ],
+  "audits": {
+    "before": 337,
+    "afterInvalid": 337,
+    "after": 340
+  },
+  "csv": {
+    "status": 200,
+    "contentType": "text/csv",
+    "size": 1030,
+    "signature": "696e766f",
+    "attachment": true
+  },
+  "xlsx": {
+    "status": 200,
+    "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "size": 5266,
+    "signature": "504b0304",
+    "attachment": true
+  },
+  "ui": {
+    "locale": "pt-BR",
+    "width": 390,
+    "height": 844,
+    "scrollY": 172,
+    "code": "COLLECTION_LEDGER_EXPORT_FILTER_DUPLICATE",
+    "text": "Ação necessária Um filtro do registro foi informado mais de uma vez. Mantenha um valor por filtro. Revisar os filtros do registro",
+    "remedy": "Revisar os filtros do registro",
+    "remedyHref": "#collections-ledger-filters",
+    "focusIsNotice": true,
+    "noticeTop": 692.09375,
+    "noticeBottom": 843.65625,
+    "searchLength": 4,
+    "searchError": "Um filtro do registro foi informado mais de uma vez. Mantenha um valor por filtro.",
+    "issueLink": "#collections-ledger-field-q"
+  },
+  "issueFocus": "collections-ledger-field-q",
+  "validDownload": {
+    "name": "ja-invoice-collection-ledger-all.csv",
+    "failure": null
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      "200 fetch application/json",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json",
+      "400 fetch application/problem+json",
+      "400 fetch application/problem+json",
+      "400 fetch application/problem+json",
+      "200 fetch text/csv",
+      "200 fetch application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "503 fetch application/json",
+      "200 fetch application/json",
+      "200 fetch application/json",
+      "400 fetch application/problem+json",
+      "200 fetch text/csv"
+    ]
+  }
+}

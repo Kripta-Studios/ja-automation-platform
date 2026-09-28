@@ -1,0 +1,99 @@
+{
+  "candidateCommit": "de773448ae030f1a19bf323580460be3571356c2",
+  "role": "finance",
+  "viewport": 390,
+  "startingScroll": 1427,
+  "invalid": {
+    "path": "/j-aautomation/app/expenses",
+    "queryKeys": [
+      "lang"
+    ],
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 1980,
+    "locale": "en-US",
+    "disclosureOpen": true,
+    "from": "2026-09-20",
+    "to": "2026-09-19",
+    "csvLinkDates": {
+      "from": "2026-09-20",
+      "to": "2026-09-19"
+    },
+    "code": "EXPENSE_EXPORT_DATE_ORDER_INVALID",
+    "noticeText": "Action needed The end date is before the start date. Choose an end date on or after the start. Review export filters",
+    "noticeTop": -0.3125,
+    "noticeBottom": 151.25,
+    "headerBottom": 69.59375,
+    "focusIsNotice": true,
+    "focusedTag": "aside",
+    "remedyText": "Review export filters",
+    "remedyHref": "#expense-export-fields",
+    "toFieldError": "The end date is before the start date. Choose an end date on or after the start.",
+    "problemCount": 1
+  },
+  "corrected": {
+    "path": "/j-aautomation/app/expenses",
+    "queryKeys": [
+      "lang"
+    ],
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollY": 2437,
+    "locale": "en-US",
+    "disclosureOpen": true,
+    "from": "2026-09-20",
+    "to": "2026-09-21",
+    "csvLinkDates": {
+      "from": "2026-09-20",
+      "to": "2026-09-21"
+    },
+    "code": null,
+    "noticeText": null,
+    "noticeTop": null,
+    "noticeBottom": null,
+    "headerBottom": 69.59375,
+    "focusIsNotice": false,
+    "focusedTag": "a",
+    "remedyText": null,
+    "remedyHref": null,
+    "toFieldError": null,
+    "problemCount": 0
+  },
+  "failure": {
+    "status": 400,
+    "contentType": "application/problem+json; charset=utf-8"
+  },
+  "success": {
+    "status": 200,
+    "contentType": "text/csv; charset=utf-8",
+    "filename": "Expenses_2026-09-20_2026-09-21.csv",
+    "csvHeader": "Date,Client,Project,Worker,Vendor,Category,Description,Currency,Recorded amount,Payer,Status"
+  },
+  "audits": {
+    "before": 331,
+    "after": 331
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "responses": [
+      {
+        "status": 400,
+        "contentType": "application/problem+json; charset=utf-8",
+        "resourceType": "fetch"
+      },
+      {
+        "status": 200,
+        "contentType": "text/csv; charset=utf-8",
+        "resourceType": "fetch"
+      }
+    ],
+    "downloads": [
+      "csv"
+    ]
+  }
+}

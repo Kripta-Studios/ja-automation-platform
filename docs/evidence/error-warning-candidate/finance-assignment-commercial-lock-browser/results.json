@@ -1,0 +1,228 @@
+{
+  "candidateCommit": "aa469a8",
+  "fixture": "fresh disposable database, project/rate/time created through rendered forms",
+  "viewports": [
+    "Finance EN 390",
+    "Finance ES 1440",
+    "Finance PT 390",
+    "Owner 1440",
+    "Worker 390",
+    "Manager 1440"
+  ],
+  "cases": [
+    {
+      "kind": "fallback-after-concurrent-worker-time-en-390",
+      "workerTimeState": "draft",
+      "attemptedFallback": {
+        "projectMemberId": ":record",
+        "expectedVersion": "1",
+        "allowGlobalCompensation": "yes",
+        "allowGlobalInternalCost": "yes"
+      },
+      "response": {
+        "status": 409,
+        "contentType": "text/html",
+        "code": "FINANCE_ASSIGNMENT_COMMERCIAL_LOCKED_BY_TIME",
+        "generic": false
+      },
+      "visible": {
+        "routeView": "commercial",
+        "language": "en-US",
+        "code": "FINANCE_ASSIGNMENT_COMMERCIAL_LOCKED_BY_TIME",
+        "wording": "Action needed Time has been recorded for this person on this assignment. Changing its commercial choices could change how past work is paid, billed, or costed. Configure date-effective worker pay, customer billing, or internal cost rules for future work instead. Time recorded; assignment commercial choices are locked. Review worker compensation rulesReview customer labor ratesReview internal cost rules",
+        "remedies": [
+          {
+            "text": "Review worker compensation rules",
+            "path": "/j-aautomation/app/finance",
+            "task": "Compensation statement rules",
+            "hash": "#finance-rule-registers"
+          },
+          {
+            "text": "Review customer labor rates",
+            "path": "/j-aautomation/app/finance",
+            "task": "Client labor rates",
+            "hash": "#finance-rule-registers"
+          },
+          {
+            "text": "Review internal cost rules",
+            "path": "/j-aautomation/app/finance",
+            "task": "Assignment budget context / internal loaded cost",
+            "hash": "#finance-rule-registers"
+          }
+        ],
+        "editorOpen": true,
+        "focusedNotice": true,
+        "top": 178,
+        "bottom": 656,
+        "headerBottom": 70,
+        "viewportHeight": 844,
+        "scrollY": 2155,
+        "fields": {
+          "projectMemberId": ":record",
+          "expectedVersion": "1",
+          "allowGlobalCompensation": "yes",
+          "allowGlobalInternalCost": "yes"
+        }
+      }
+    },
+    {
+      "kind": "dated-pay-rule-remedy-click",
+      "taskSelected": true,
+      "routeView": "commercial",
+      "hash": "#finance-rule-registers"
+    },
+    {
+      "kind": "rule-reference-after-recorded-time-es-1440",
+      "attemptedReferences": {
+        "projectMemberId": ":record",
+        "expectedVersion": "1",
+        "clientBillRuleId": ":record",
+        "workerCompensationRuleId": "",
+        "internalCostRuleId": ""
+      },
+      "response": {
+        "status": 409,
+        "contentType": "text/html",
+        "code": "FINANCE_ASSIGNMENT_COMMERCIAL_LOCKED_BY_TIME",
+        "generic": false
+      },
+      "visible": {
+        "routeView": "commercial",
+        "language": "es-ES",
+        "code": "FINANCE_ASSIGNMENT_COMMERCIAL_LOCKED_BY_TIME",
+        "wording": "Se requiere una acción Ya se han registrado horas para esta persona en esta asignación. Cambiar sus opciones comerciales podría modificar cómo se paga, factura o contabiliza el coste del trabajo anterior. Configura reglas con fecha de vigencia para el pago al trabajador, la facturación al cliente o el coste interno del trabajo futuro. Ya hay horas registradas; las opciones comerciales de la asignación están bloqueadas. Revisar las reglas de remuneración del trabajadorRevisar las tarifas laborales del clienteRevisar las reglas de costes internos",
+        "remedies": [
+          {
+            "text": "Revisar las reglas de remuneración del trabajador",
+            "path": "/j-aautomation/app/finance",
+            "task": "Compensation statement rules",
+            "hash": "#finance-rule-registers"
+          },
+          {
+            "text": "Revisar las tarifas laborales del cliente",
+            "path": "/j-aautomation/app/finance",
+            "task": "Client labor rates",
+            "hash": "#finance-rule-registers"
+          },
+          {
+            "text": "Revisar las reglas de costes internos",
+            "path": "/j-aautomation/app/finance",
+            "task": "Assignment budget context / internal loaded cost",
+            "hash": "#finance-rule-registers"
+          }
+        ],
+        "editorOpen": true,
+        "focusedNotice": true,
+        "top": 491,
+        "bottom": 868,
+        "headerBottom": 72,
+        "viewportHeight": 900,
+        "scrollY": 1187,
+        "fields": {
+          "projectMemberId": ":record",
+          "expectedVersion": "1",
+          "clientBillRuleId": ":record",
+          "workerCompensationRuleId": "",
+          "internalCostRuleId": ""
+        }
+      }
+    },
+    {
+      "kind": "enhanced-action-envelope",
+      "response": {
+        "transportStatus": 200,
+        "actionStatus": 409,
+        "type": "failure",
+        "code": "FINANCE_ASSIGNMENT_COMMERCIAL_LOCKED_BY_TIME",
+        "generic": false
+      }
+    },
+    {
+      "kind": "fallback-after-recorded-time-pt-390",
+      "response": {
+        "status": 409,
+        "contentType": "text/html",
+        "code": "FINANCE_ASSIGNMENT_COMMERCIAL_LOCKED_BY_TIME",
+        "generic": false
+      },
+      "visible": {
+        "routeView": "commercial",
+        "language": "pt-BR",
+        "code": "FINANCE_ASSIGNMENT_COMMERCIAL_LOCKED_BY_TIME",
+        "wording": "Ação necessária Já foram registadas horas para esta pessoa nesta atribuição. Alterar as opções comerciais pode mudar a forma como o trabalho anterior é pago, faturado ou contabilizado como custo. Configure regras com data de vigência para o pagamento ao trabalhador, a faturação ao cliente ou o custo interno do trabalho futuro. Já existem horas registadas; as opções comerciais da atribuição estão bloqueadas. Rever as regras de remuneração do trabalhadorRever as taxas de mão de obra do clienteRever as regras de custos internos",
+        "remedies": [
+          {
+            "text": "Rever as regras de remuneração do trabalhador",
+            "path": "/j-aautomation/app/finance",
+            "task": "Compensation statement rules",
+            "hash": "#finance-rule-registers"
+          },
+          {
+            "text": "Rever as taxas de mão de obra do cliente",
+            "path": "/j-aautomation/app/finance",
+            "task": "Client labor rates",
+            "hash": "#finance-rule-registers"
+          },
+          {
+            "text": "Rever as regras de custos internos",
+            "path": "/j-aautomation/app/finance",
+            "task": "Assignment budget context / internal loaded cost",
+            "hash": "#finance-rule-registers"
+          }
+        ],
+        "editorOpen": true,
+        "focusedNotice": true,
+        "top": 117,
+        "bottom": 657,
+        "headerBottom": 70,
+        "viewportHeight": 844,
+        "scrollY": 2295,
+        "fields": {
+          "projectMemberId": ":record",
+          "expectedVersion": "1",
+          "allowGlobalCompensation": "yes",
+          "allowGlobalInternalCost": "no"
+        }
+      }
+    },
+    {
+      "kind": "manager-restricted-view",
+      "formCount": 0,
+      "roleSafe": true
+    },
+    {
+      "kind": "manager-action-permission",
+      "response": {
+        "transportStatus": 200,
+        "code": "FINANCE_ROLE_REQUIRED",
+        "leakedFinanceLock": false,
+        "generic": false
+      }
+    }
+  ],
+  "finalAssignment": {
+    "version": 1,
+    "client_bill_rule_id": null,
+    "allow_global_compensation_fallback": 0,
+    "allow_global_internal_cost_fallback": 0
+  },
+  "auditUnchanged": true,
+  "diagnostics": {
+    "finance": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "owner": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "worker": {
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    "manager": {
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  }
+}

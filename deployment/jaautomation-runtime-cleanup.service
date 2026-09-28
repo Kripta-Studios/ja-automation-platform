@@ -1,0 +1,9 @@
+[Unit]
+Description=Remove old J&A releases and Docker build cache
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/jaautomation-runtime-cleanup
+TimeoutStartSec=900

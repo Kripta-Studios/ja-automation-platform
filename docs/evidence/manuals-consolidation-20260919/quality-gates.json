@@ -1,0 +1,88 @@
+{
+  "recordedAt": "2026-09-19T10:55:50.563278+00:00",
+  "runtimeSourceDigest": "bca4c47792481c9b23109b957deb8003a1a143115c3eaaab050b18c96c548bf9",
+  "unitAndSecurity": {
+    "files": 4,
+    "passed": 16,
+    "scope": "catalog groups and aliases, persisted role/profile and live-session download authorization, retry and help-workflow localization"
+  },
+  "typecheck": {
+    "status": "PASS",
+    "workspacePackages": 10
+  },
+  "lint": {
+    "status": "PASS",
+    "scope": "workspace"
+  },
+  "browserCapture": {
+    "status": "PASS",
+    "screenshots": 90,
+    "personaLocalePairs": 14,
+    "checks": 168,
+    "scope": "Actual compiled app and authenticated synthetic isolated fixture, not production customer sessions"
+  },
+  "pdfValidation": {
+    "status": "PASS",
+    "count": 9,
+    "sharedReferences": 6,
+    "quickGuides": 3,
+    "allChapterDestinationsValid": true,
+    "roleOrientationOnPageOne": true,
+    "embeddedFonts": true,
+    "allTextInsidePageBounds": true,
+    "sourceAndOutputHashesMatch": true,
+    "evidence": "docs/manuals/validation/pdf-quality.json"
+  },
+  "logs": {
+    "capture": {
+      "path": "docs/evidence/manuals-consolidation-20260919/capture.txt",
+      "capturedBytesSha256": "c62a83138d12a37aaab4f4bbd989e9076befd0281f166b93046fad9d121564e1",
+      "sha256": "94e90b87712a88e88469dd002751fd9345abb759eb04f8bbbef8f7e7de095c8f"
+    },
+    "unit-security": {
+      "path": "docs/evidence/manuals-consolidation-20260919/unit-security.txt",
+      "capturedBytesSha256": "21936d05549612b2adf7a196f46b7c4319efcb5a5fffa4d0b237cf50d1eb37ef",
+      "sha256": "eabb830747c417f2290b2746e296587748443af1e4b309e52e00819297522c52"
+    },
+    "typecheck": {
+      "path": "docs/evidence/manuals-consolidation-20260919/typecheck.txt",
+      "capturedBytesSha256": "bae41094687a12bd065dcf3bbec5d811b86ec56d201b1463bac3da1942dac1a6",
+      "sha256": "bae41094687a12bd065dcf3bbec5d811b86ec56d201b1463bac3da1942dac1a6"
+    },
+    "lint": {
+      "path": "docs/evidence/manuals-consolidation-20260919/lint.txt",
+      "capturedBytesSha256": "050c69da23536758722729aeda55a8d0fb9d557495ef6d33d70873a3b64a71c1",
+      "sha256": "050c69da23536758722729aeda55a8d0fb9d557495ef6d33d70873a3b64a71c1"
+    },
+    "pdf-generation": {
+      "path": "docs/evidence/manuals-consolidation-20260919/pdf-generation.txt",
+      "capturedBytesSha256": "1c1242170d4075dac3784af1d1ae9d99f5f24c3414ac24910747c989bc32aa00",
+      "sha256": "1c1242170d4075dac3784af1d1ae9d99f5f24c3414ac24910747c989bc32aa00"
+    },
+    "svelte": {
+      "path": "docs/evidence/manuals-consolidation-20260919/svelte.txt",
+      "capturedBytesSha256": "e04bd69095dc2862891381c145321aeb2d893c7b5138a95080771669c60b01e6",
+      "sha256": "e04bd69095dc2862891381c145321aeb2d893c7b5138a95080771669c60b01e6"
+    }
+  },
+  "logNormalization": "Only trailing whitespace and EOF blank lines normalized; raw and published hashes recorded.",
+  "svelte": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "browserHelp": {
+    "passed": 19,
+    "failed": 0,
+    "intentionalProjectSkips": 9,
+    "viewports": [360, 390, 768, 1440],
+    "personas": 7,
+    "locales": ["en", "pt"],
+    "matrixAuthorizedDownloads": 60,
+    "matrixCrossFamilyDenials": 48,
+    "focusedMatrixRepeatForAttachment": {
+      "passed": 1,
+      "skipped": 1
+    },
+    "evidence": "browser-verification.json"
+  }
+}

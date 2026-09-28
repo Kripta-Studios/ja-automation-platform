@@ -1,0 +1,93 @@
+{
+  "candidateCommit": "70838ac14b1f5f99ce94160607c75ae1199fe09b",
+  "role": "signed-out",
+  "locale": "en",
+  "viewport": 390,
+  "status": {
+    "transportStatus": 200,
+    "contentType": "application/json",
+    "type": "failure",
+    "status": 401,
+    "data": {
+      "code": "ACCESS_TEAM_SESSION_REQUIRED",
+      "actionName": "updateUserStatus",
+      "values": {
+        "userId": ":record",
+        "status": "offboarded"
+      },
+      "remedies": [
+        {
+          "id": "sign_in_again"
+        }
+      ],
+      "correlationId": ":record",
+      "success": false,
+      "messageKey": "problem.access.teamSessionExpired",
+      "params": {},
+      "messageParams": {},
+      "fieldErrors": {},
+      "message": "Your session expired before this team change. Sign in again and review the current team directory before retrying."
+    }
+  },
+  "create": {
+    "transportStatus": 200,
+    "contentType": "application/json",
+    "type": "failure",
+    "status": 401,
+    "data": {
+      "code": "ACCESS_TEAM_SESSION_REQUIRED",
+      "actionName": "createLocalPortalUser",
+      "values": {
+        "existingUserId": "",
+        "name": "",
+        "email": "invalid",
+        "role": "",
+        "supplierId": "",
+        "phone": "",
+        "company": "",
+        "contactName": "",
+        "notes": ""
+      },
+      "remedies": [
+        {
+          "id": "sign_in_again"
+        }
+      ],
+      "correlationId": ":record",
+      "success": false,
+      "messageKey": "problem.access.teamSessionExpired",
+      "params": {},
+      "messageParams": {},
+      "fieldErrors": {},
+      "message": "Your session expired before this team change. Sign in again and review the current team directory before retrying."
+    }
+  },
+  "native": {
+    "transportStatus": 303,
+    "url": "/j-aautomation/app/login",
+    "redirectLocation": "/j-aautomation/app/login",
+    "responseCode": null
+  },
+  "ui": {
+    "path": "/j-aautomation/app/login",
+    "title": "Sign in | Employee portal",
+    "signInVisible": true,
+    "bodyText": " PRIVATE OPERATIONS PLATFORM Run every project with confidence. One secure workspace for field operations, project delivery, technical records and finance. Built around the way J&A Automation works. 01Field work, time and expenses 02Projects, reports"
+  },
+  "noWrite": {
+    "before": {
+      "profiles": 0,
+      "users": 8,
+      "audits": 331
+    },
+    "after": {
+      "profiles": 0,
+      "users": 8,
+      "audits": 331
+    }
+  },
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": []
+  }
+}

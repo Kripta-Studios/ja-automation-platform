@@ -1,0 +1,186 @@
+{
+  "candidateCommit": "e96843d",
+  "checks": [
+    {
+      "role": "worker",
+      "locale": "en",
+      "width": 390,
+      "failure": 503,
+      "ui": {
+        "language": "en-US",
+        "width": 390,
+        "focus": "button",
+        "scrollY": 0,
+        "panel": true,
+        "scrollWidth": 390,
+        "horizontalOverflow": false,
+        "overflowElements": []
+      },
+      "preReconnect": {
+        "scrollY": 0,
+        "path": "/j-aautomation/app/time",
+        "focus": "button"
+      },
+      "local": [
+        {
+          "mutationId": "[record]",
+          "entityType": "time",
+          "state": "needs_review",
+          "reviewReason": "service",
+          "summary": "Offline transport 503 [record]"
+        }
+      ],
+      "requestCount": 1
+    },
+    {
+      "role": "worker",
+      "locale": "en",
+      "width": 390,
+      "action": "review controls hit test",
+      "review": {
+        "hit": true,
+        "center": {
+          "x": 111,
+          "y": 545
+        },
+        "topTag": "a"
+      },
+      "retry": {
+        "hit": true,
+        "center": {
+          "x": 147,
+          "y": 589
+        },
+        "topTag": "button"
+      }
+    },
+    {
+      "role": "worker",
+      "locale": "es",
+      "width": 1440,
+      "failure": 503,
+      "ui": {
+        "language": "es-ES",
+        "width": 1440,
+        "focus": "button",
+        "scrollY": 0,
+        "horizontalOverflow": false
+      },
+      "local": [
+        {
+          "mutationId": "[record]",
+          "entityType": "time",
+          "state": "needs_review",
+          "reviewReason": "service",
+          "summary": "Offline transport 503 [record]"
+        }
+      ],
+      "requestCount": 1
+    },
+    {
+      "role": "worker",
+      "locale": "pt",
+      "width": 1440,
+      "failure": 503,
+      "local": [
+        {
+          "mutationId": "[record]",
+          "entityType": "time",
+          "state": "needs_review",
+          "reviewReason": "service",
+          "summary": "Offline transport 503 [record]"
+        }
+      ],
+      "requestCount": 1
+    },
+    {
+      "role": "worker",
+      "locale": "pt",
+      "width": 1440,
+      "action": "reload unresolved 503 review",
+      "local": [
+        {
+          "mutationId": "[record]",
+          "entityType": "time",
+          "state": "needs_review",
+          "reviewReason": "service",
+          "summary": "Offline transport 503 [record]"
+        }
+      ],
+      "causeMessageVisible": true,
+      "reviewLinkVisible": true,
+      "requestCount": 1
+    },
+    {
+      "role": "worker",
+      "locale": "pt",
+      "width": 1440,
+      "action": "manual retry after record review",
+      "outcome": "saved exactly once",
+      "retryStatus": 200,
+      "requestStatuses": [
+        503,
+        200
+      ],
+      "sameMutationId": true
+    },
+    {
+      "role": "worker",
+      "locale": "en",
+      "width": 1440,
+      "failure": 401,
+      "local": [
+        {
+          "mutationId": "[record]",
+          "entityType": "time",
+          "state": "needs_review",
+          "reviewReason": "session",
+          "summary": "Offline transport 401 [record]"
+        }
+      ],
+      "reviewLinkCount": 1,
+      "firstSessionCount": 1,
+      "nextSessionCount": 1,
+      "noUnattendedResubmit": true
+    }
+  ],
+  "network": [
+    {
+      "status": 503,
+      "url": "/app/api/sync",
+      "mutationId": "[record]"
+    },
+    {
+      "status": 200,
+      "url": "/app/api/sync",
+      "mutationId": "[record]"
+    },
+    {
+      "status": 401,
+      "url": "/app/api/sync",
+      "mutationId": "[record]"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "failedRequests": [
+    {
+      "phase": "locale changes and review of 503",
+      "method": "GET",
+      "path": "/j-aautomation/app/time/__data.json",
+      "failure": {
+        "errorText": "net::ERR_ABORTED"
+      }
+    }
+  ],
+  "actionPostRequests": [],
+  "limitations": [],
+  "defects": [
+    {
+      "path": "503 offline sync toast",
+      "kind": "wrong severity label",
+      "observed": "Success toast while sync service is unavailable",
+      "evidence": "pre-toast-severity-worker-390-en-503-review.png"
+    }
+  ]
+}

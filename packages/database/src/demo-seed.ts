@@ -2,23 +2,63 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { newId, type Principal, type Role } from '@ja/domain';
-import { createDatabase, PortalRepository, V3Repository } from './index.ts';
+import {
+  AssignmentExpensePolicyRepository,
+  createDatabase,
+  PortalRepository,
+  V3Repository,
+} from './index.ts';
+import {
+  assertSyntheticDeploymentConfiguration,
+  canonicalFixtureDirectoryPath,
+  canonicalFixturePath,
+  requiredFixtureSentinel,
+} from '../../../scripts/isolated-test-guards.ts';
 
-const path = process.env.JA_DATABASE_PATH ?? resolve(process.cwd(), 'data/demo.db');
+if (!process.env.JA_DATABASE_PATH?.trim())
+  throw new Error('JA_DATABASE_PATH must be explicit for the disposable demo seed.');
+assertSyntheticDeploymentConfiguration();
+const path = canonicalFixturePath(process.env.JA_DATABASE_PATH, { requireExisting: false });
 if (existsSync(path) && process.env.JA_DEMO_SEED_PRESERVE_DB !== 'true') rmSync(path);
 mkdirSync(dirname(path), { recursive: true });
 const { sqlite } = createDatabase(path);
 const repository = new PortalRepository(sqlite);
 const v3 = new V3Repository(sqlite);
 const timestamp = '2026-08-18T12:00:00.000Z';
-const ownerAdminEmail = 'antonny.luty@j-aautomation.com';
+const ownerAdminEmail = 'owner@demo.jaautomation.test';
+const demoServiceActorId = 'demo-client-essential-service-actor';
+const demoServiceActorName = 'Client Essential demo service actor';
+const demoServiceActorCapabilities = [
+  'artifact.invoice.render',
+  'artifact.report.render',
+  'billing.draft.generate',
+  'artifact.accounting_pack.render',
+  'storage.temporary.cleanup',
+  'artifact.localized_pdf.render',
+  'artifact.worker_statement.render',
+  'document.scan',
+  'outbox.deliver',
+  'alert.dispatch',
+  'email.send',
+  'backup.verify',
+] as const;
 const configuredDocumentRoot = process.env.JA_DOCUMENT_ROOT;
-const demoDocumentRoot = resolve(
-  configuredDocumentRoot ?? resolve(process.cwd(), 'data/documents'),
+const resetDocuments = process.env.JA_FIXTURE_RESET_DOCUMENTS === 'true';
+if (resetDocuments && !configuredDocumentRoot)
+  throw new Error('JA_DOCUMENT_ROOT must be explicit when resetting fixture documents.');
+const requestedDocumentRoot = resolve(
+  configuredDocumentRoot ?? resolve(dirname(path), 'documents'),
 );
+const fixtureSentinel = resetDocuments ? requiredFixtureSentinel() : undefined;
+const demoDocumentRoot = canonicalFixtureDirectoryPath(requestedDocumentRoot, {
+  roots: [dirname(path)],
+  token: fixtureSentinel,
+  requireToken: resetDocuments,
+  requireExisting: false,
+});
 if (
   process.env.JA_DEMO_SEED_PRESERVE_DB !== 'true' &&
-  (!configuredDocumentRoot || process.env.JA_DEMO_MODE === 'true') &&
+  resetDocuments &&
   existsSync(demoDocumentRoot)
 )
   rmSync(demoDocumentRoot, { recursive: true, force: true });
@@ -77,12 +117,12 @@ const syntheticPdf = (title: string, lines: readonly string[]): Buffer => {
 };
 
 const users = [
-  ['admin', 'Antonny Nascimento', ownerAdminEmail, 'owner_admin'],
-  ['finance', 'Elena Costa', 'finance@demo.jaautomation.local', 'finance_admin'],
-  ['manager', 'Daniel Brooks', 'pm@demo.jaautomation.local', 'project_manager'],
-  ['worker', 'Alex Rivera', 'worker@demo.jaautomation.local', 'worker'],
-  ['worker2', 'Rafael Santos', 'rafael@demo.jaautomation.local', 'worker'],
-  ['worker3', 'Maya Chen', 'maya@demo.jaautomation.local', 'worker'],
+  ['admin', 'Demo Owner', ownerAdminEmail, 'owner_admin'],
+  ['finance', 'Elena Costa', 'finance@demo.jaautomation.test', 'finance_admin'],
+  ['manager', 'Daniel Brooks', 'pm@demo.jaautomation.test', 'project_manager'],
+  ['worker', 'Alex Rivera', 'worker@demo.jaautomation.test', 'worker'],
+  ['worker2', 'Rafael Santos', 'rafael@demo.jaautomation.test', 'worker'],
+  ['worker3', 'Maya Chen', 'maya@demo.jaautomation.test', 'worker'],
 ] as const;
 const userIds = new Map<string, string>();
 for (const [key, name, email, role] of users) {
@@ -100,7 +140,116 @@ const principal = (key: string, role: Role, projectIds: string[] = []): Principa
   projectIds: new Set(projectIds),
 });
 const owner = principal('admin', 'owner_admin');
-const finance = principal('finance', 'finance_admin');
+const ownerSessionId = newId();
+const ownerSessionCreatedAt = new Date().toISOString();
+sqlite
+  .prepare(
+    'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+  )
+  .run(
+    ownerSessionId,
+    newId(),
+    owner.userId,
+    new Date(Date.now() + 60 * 60_000).toISOString(),
+    ownerSessionCreatedAt,
+    ownerSessionCreatedAt,
+    null,
+  );
+const ownerLive = { ...owner, sessionId: ownerSessionId } satisfies Principal;
+
+// The demo database must exercise the same fail-closed service-actor contract
+// as a deployed instance.  Keep this fixture identity explicit and stable:
+// scheduled jobs may only run through this deployment-scoped actor, never a
+// human Finance session and never a production fallback.
+const deploymentIdentity = sqlite
+  .prepare('SELECT tenant_id,deployment_id FROM deployment_identity WHERE singleton=1')
+  .get() as { tenant_id: string; deployment_id: string } | undefined;
+if (!deploymentIdentity) throw new Error('Missing seeded deployment identity');
+sqlite
+  .prepare(
+    `INSERT OR IGNORE INTO service_actor(
+       id,tenant_id,deployment_id,name,status,capabilities_json,created_at,updated_at,version
+     ) VALUES(?,?,?,?,?,?,?,?,?)`,
+  )
+  .run(
+    demoServiceActorId,
+    deploymentIdentity.tenant_id,
+    deploymentIdentity.deployment_id,
+    demoServiceActorName,
+    'active',
+    JSON.stringify(demoServiceActorCapabilities),
+    timestamp,
+    timestamp,
+    1,
+  );
+sqlite
+  .prepare(
+    `INSERT OR IGNORE INTO deployment_service_actor_binding(
+       singleton,tenant_id,deployment_id,service_actor_id,bound_at,bound_by_user_id,version
+     ) VALUES(?,?,?,?,?,?,?)`,
+  )
+  .run(
+    1,
+    deploymentIdentity.tenant_id,
+    deploymentIdentity.deployment_id,
+    demoServiceActorId,
+    timestamp,
+    owner.userId,
+    1,
+  );
+const configuredDemoServiceActor = sqlite
+  .prepare(
+    `SELECT s.tenant_id,s.deployment_id,s.name,s.status,s.capabilities_json,
+            b.service_actor_id,b.bound_by_user_id
+       FROM service_actor s
+       JOIN deployment_service_actor_binding b
+         ON b.singleton=1 AND b.service_actor_id=s.id
+      WHERE s.id=?`,
+  )
+  .get(demoServiceActorId) as
+  | {
+      tenant_id: string;
+      deployment_id: string;
+      name: string;
+      status: string;
+      capabilities_json: string;
+      service_actor_id: string;
+      bound_by_user_id: string;
+    }
+  | undefined;
+if (
+  !configuredDemoServiceActor ||
+  configuredDemoServiceActor.tenant_id !== deploymentIdentity.tenant_id ||
+  configuredDemoServiceActor.deployment_id !== deploymentIdentity.deployment_id ||
+  configuredDemoServiceActor.name !== demoServiceActorName ||
+  configuredDemoServiceActor.status !== 'active' ||
+  configuredDemoServiceActor.service_actor_id !== demoServiceActorId ||
+  configuredDemoServiceActor.bound_by_user_id !== owner.userId ||
+  configuredDemoServiceActor.capabilities_json !== JSON.stringify(demoServiceActorCapabilities)
+)
+  throw new Error('Seeded service actor binding is not the configured Client Essential fixture');
+
+// This synthetic Finance session exercises ordinary authentication only.
+const financeSessionId = newId();
+const financeSessionCreatedAt = new Date().toISOString();
+const financeSessionExpiresAt = new Date(Date.now() + 60 * 60_000).toISOString();
+sqlite
+  .prepare(
+    'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
+  )
+  .run(
+    financeSessionId,
+    newId(),
+    userIds.get('finance')!,
+    financeSessionExpiresAt,
+    financeSessionCreatedAt,
+    financeSessionCreatedAt,
+    null,
+  );
+const finance = {
+  ...principal('finance', 'finance_admin'),
+  sessionId: financeSessionId,
+} satisfies Principal;
 
 const automotive = repository.createClient(owner, {
   legalName: 'Northline Mobility (Demo)',
@@ -108,6 +257,7 @@ const automotive = repository.createClient(owner, {
   currency: 'USD',
   timezone: 'America/Detroit',
   billingEmail: 'ap@northline.demo',
+  billingAddress: 'Northline Mobility, Demo billing address',
 });
 const packaging = repository.createClient(owner, {
   legalName: 'Harbor Packaging Group (Demo)',
@@ -115,6 +265,7 @@ const packaging = repository.createClient(owner, {
   currency: 'USD',
   timezone: 'America/New_York',
   billingEmail: 'billing@harbor.demo',
+  billingAddress: 'Harbor Packaging Group, Demo billing address',
 });
 const processClient = repository.createClient(owner, {
   legalName: 'BlueRiver Process Systems (Demo)',
@@ -122,6 +273,7 @@ const processClient = repository.createClient(owner, {
   currency: 'USD',
   timezone: 'America/Chicago',
   billingEmail: 'finance@blueriver.demo',
+  billingAddress: 'BlueRiver Process Systems, Demo billing address',
 });
 repository.createClientContact(owner, {
   clientId: automotive.id,
@@ -169,6 +321,7 @@ repository.createClientContact(owner, {
   isBillingContact: true,
 });
 const line = repository.createProject(owner, {
+  costCenterCode: 'QA-DEMO-SEED-1',
   clientId: automotive.id,
   name: 'Body Shop Line 4 Controls Upgrade · Demo',
   timezone: 'America/Detroit',
@@ -181,6 +334,7 @@ const line = repository.createProject(owner, {
   poNumber: 'DEMO-PO-24017',
 });
 const palletizer = repository.createProject(owner, {
+  costCenterCode: 'QA-DEMO-SEED-2',
   clientId: packaging.id,
   name: 'High-Speed Palletizer Commissioning · Demo',
   timezone: 'America/New_York',
@@ -192,6 +346,7 @@ const palletizer = repository.createProject(owner, {
   poNumber: 'DEMO-PO-11804',
 });
 const recovery = repository.createProject(owner, {
+  costCenterCode: 'QA-DEMO-SEED-3',
   clientId: processClient.id,
   name: 'Caustic Recovery Skid Integration · Demo',
   timezone: 'America/Chicago',
@@ -203,6 +358,7 @@ const recovery = repository.createProject(owner, {
   poNumber: 'DEMO-PO-8842',
 });
 const support = repository.createProject(owner, {
+  costCenterCode: 'QA-DEMO-SEED-4',
   clientId: automotive.id,
   name: 'Remote Controls Support Retainer · Demo',
   timezone: 'America/Detroit',
@@ -222,6 +378,58 @@ for (const [id, budget, minutes] of [
   sqlite
     .prepare('UPDATE project SET budget_minor=?,planned_minutes=? WHERE id=?')
     .run(budget, minutes, id);
+
+// Keep the assignment-budget view representative of the distinct commercial
+// contexts supported by the repository. Values are integer USD cents/minutes;
+// they are deliberately set through the project workflow so the demo exercises
+// the same validation and audit path as an administrator edit.
+for (const input of [
+  {
+    projectId: line.id,
+    revenueBudgetMinor: 18500000n,
+    poCapMinor: 19000000n,
+    laborBudgetMinutes: 72000,
+    travelBudgetMinor: 1800000n,
+    otherCostBudgetMinor: 650000n,
+    budgetType: 'revenue_cap',
+    plannedMinutes: 72000,
+    plannedEndDate: '2026-12-31',
+  },
+  {
+    projectId: palletizer.id,
+    revenueBudgetMinor: 9200000n,
+    fixedPriceMinor: 7600000n,
+    laborBudgetMinutes: 36000,
+    travelBudgetMinor: 1250000n,
+    otherCostBudgetMinor: 300000n,
+    budgetType: 'fixed_price',
+    plannedMinutes: 36000,
+    plannedEndDate: '2026-11-30',
+  },
+  {
+    projectId: recovery.id,
+    revenueBudgetMinor: 14200000n,
+    poCapMinor: 15000000n,
+    laborBudgetMinutes: 48000,
+    travelBudgetMinor: 2200000n,
+    otherCostBudgetMinor: 900000n,
+    budgetType: 'purchase_order_cap',
+    plannedMinutes: 48000,
+    plannedEndDate: '2027-01-31',
+  },
+  {
+    projectId: support.id,
+    revenueBudgetMinor: 4800000n,
+    poCapMinor: 5000000n,
+    laborBudgetMinutes: 18000,
+    travelBudgetMinor: 600000n,
+    otherCostBudgetMinor: 150000n,
+    budgetType: 'retainer_cap',
+    plannedMinutes: 18000,
+    plannedEndDate: '2026-12-31',
+  },
+] as const)
+  repository.updateProject(owner, input);
 for (const [projectId, timezone] of [
   [line.id, 'America/Detroit'],
   [palletizer.id, 'America/New_York'],
@@ -236,7 +444,7 @@ for (const [projectId, timezone] of [
     wednesdayMinutes: 600,
     thursdayMinutes: 600,
     fridayMinutes: 600,
-    saturdayMinutes: 360,
+    saturdayMinutes: 600,
     sundayMinutes: 0,
     effectiveFrom: '2026-07-01',
   });
@@ -253,14 +461,26 @@ const assignments = [
   [recovery.id, 'worker3', false],
   [support.id, 'worker', false],
 ] as const;
-for (const [projectId, key, canReview] of assignments)
-  repository.assignWorker(owner, {
+for (const [projectId, key, canReview] of assignments) {
+  const assignment = repository.assignWorker(owner, {
     projectId,
     workerId: userIds.get(key)!,
     startsOn: '2026-07-01',
     plannedMinutes: projectId === line.id ? 24000 : 12000,
     canReview,
   });
+  const assignmentRow = sqlite
+    .prepare('SELECT id,version FROM project_member WHERE id=?')
+    .get(assignment.id) as { id: string; version: number };
+  // These synthetic projects intentionally use the global pay and loaded-cost
+  // rules below. New real assignments keep the safer default-off setting.
+  v3.setAssignmentCommercialFallback(finance, {
+    projectMemberId: assignmentRow.id,
+    allowGlobalCompensation: true,
+    allowGlobalInternalCost: true,
+    expectedVersion: assignmentRow.version,
+  });
+}
 const projectIdsByUser = (key: string) =>
   assignments.filter((row) => row[1] === key).map((row) => row[0]);
 const worker = principal('worker', 'worker', projectIdsByUser('worker'));
@@ -274,6 +494,19 @@ const skills = [
   ['ROBOT-SAFE', 'Robotics safety'],
   ['HMI-SCADA', 'HMI and SCADA'],
   ['ELEC-DESIGN', 'Electrical controls design'],
+  ['CONTROLLOGIX', 'ControlLogix programming'],
+  ['SAFETY-PLC', 'Safety PLC validation'],
+  ['SERVO-MOTION', 'Servo and motion control'],
+  ['VFD-DRIVES', 'Variable-frequency drives'],
+  ['VISION-SYSTEMS', 'Machine vision systems'],
+  ['INSTRUMENTATION', 'Industrial instrumentation'],
+  ['PROCESS-CONTROLS', 'Process controls'],
+  ['ETHERNET-IP', 'EtherNet/IP diagnostics'],
+  ['PROFINET', 'PROFINET commissioning'],
+  ['SCADA-HIST', 'SCADA historian integration'],
+  ['FAT-SAT', 'FAT/SAT test execution'],
+  ['STARTUP-HANDOVER', 'Startup and customer handover'],
+  ['TECH-DOCS', 'Technical documentation'],
 ] as const;
 const skillIds = new Map<string, string>();
 for (const [code, name] of skills)
@@ -281,10 +514,21 @@ for (const [code, name] of skills)
 for (const [workerKey, skillCode, proficiency] of [
   ['worker', 'PLC-COMM', 5],
   ['worker', 'IND-NET', 4],
+  ['worker', 'CONTROLLOGIX', 5],
+  ['worker', 'SAFETY-PLC', 4],
+  ['worker', 'STARTUP-HANDOVER', 5],
+  ['worker', 'TECH-DOCS', 4],
   ['worker2', 'IND-NET', 5],
   ['worker2', 'ELEC-DESIGN', 4],
+  ['worker2', 'SERVO-MOTION', 5],
+  ['worker2', 'VFD-DRIVES', 4],
+  ['worker2', 'FAT-SAT', 4],
   ['worker3', 'ROBOT-SAFE', 5],
   ['worker3', 'HMI-SCADA', 4],
+  ['worker3', 'VISION-SYSTEMS', 5],
+  ['worker3', 'INSTRUMENTATION', 4],
+  ['worker3', 'PROCESS-CONTROLS', 4],
+  ['worker3', 'SCADA-HIST', 3],
 ] as const)
   repository.setWorkerSkill(owner, {
     workerId: userIds.get(workerKey)!,
@@ -311,6 +555,27 @@ repository.setWorkerAvailability(owner, {
   endsAt: '2026-08-23T23:59:00.000Z',
   availability: 'unavailable',
   note: 'Planned personal leave; synthetic showcase record.',
+});
+repository.setWorkerAvailability(owner, {
+  workerId: worker.userId,
+  startsAt: '2026-08-10T00:00:00.000Z',
+  endsAt: '2026-08-11T23:59:00.000Z',
+  availability: 'tentative',
+  note: 'Customer release window was being confirmed.',
+});
+repository.setWorkerAvailability(owner, {
+  workerId: worker2.userId,
+  startsAt: '2026-08-24T00:00:00.000Z',
+  endsAt: '2026-08-31T23:59:00.000Z',
+  availability: 'available',
+  note: 'Available for the next palletizer maintenance window.',
+});
+repository.setWorkerAvailability(owner, {
+  workerId: worker3.userId,
+  startsAt: '2026-08-24T00:00:00.000Z',
+  endsAt: '2026-08-31T23:59:00.000Z',
+  availability: 'tentative',
+  note: 'Tentative pending process-plant shutdown planning.',
 });
 
 for (const [key, rate] of [
@@ -341,6 +606,48 @@ for (const [key, rate] of [
     notes: 'Synthetic loaded internal cost rule.',
   });
 }
+for (const [key, rate] of [['manager', 5200n]] as const) {
+  v3.createCompensationRule(finance, {
+    workerId: userIds.get(key)!,
+    currency: 'USD',
+    rateMinor: rate,
+    rateBasis: 'hourly',
+    ruleType: 'Hourly',
+    overtimeMethod: 'BASE_RATE_MULTIPLIER',
+    overtimeMultiplierBps: 15000,
+    travelMethod: 'BASE',
+    standbyMethod: 'BASE',
+    effectiveFrom: '2026-01-01',
+    notes: 'Synthetic showcase management compensation rule.',
+  });
+  v3.createInternalCostRule(finance, {
+    workerId: userIds.get(key)!,
+    currency: 'USD',
+    hourlyRateMinor: rate + 1800n,
+    effectiveFrom: '2026-01-01',
+    overtimeMethod: 'BASE_RATE_MULTIPLIER',
+    overtimeMultiplierBps: 12500,
+    notes: 'Synthetic loaded management cost rule.',
+  });
+}
+for (const [workerId, projectId, rateMinor] of [
+  [worker.userId, line.id, 4600n],
+  [worker2.userId, palletizer.id, 4900n],
+] as const)
+  v3.createCompensationRule(finance, {
+    workerId,
+    projectId,
+    currency: 'USD',
+    rateMinor,
+    rateBasis: 'hourly',
+    ruleType: 'Hourly',
+    overtimeMethod: 'BASE_RATE_MULTIPLIER',
+    overtimeMultiplierBps: 15000,
+    travelMethod: 'BASE',
+    standbyMethod: 'BASE',
+    effectiveFrom: '2026-07-01',
+    notes: 'Synthetic project-specific compensation rule.',
+  });
 for (const projectId of [line.id, palletizer.id, recovery.id, support.id])
   v3.createClientLaborRate(finance, {
     projectId,
@@ -443,6 +750,141 @@ const pending = repository.createTimeEntry(worker, {
 });
 repository.submitTime(worker, pending.id, pending.version);
 
+// Current-week showcase data makes the weekly timesheet legible: approved days,
+// a submitted day with a shortfall, and category-level context instead of one
+// isolated placeholder row.
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-17',
+  'regular',
+  480,
+  'Completed planned Line 4 startup checks and operator handover.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-17',
+  'standby',
+  120,
+  'Waited for production clearance before the live-cycle window.',
+);
+const submittedStandby = repository.createTimeEntry(worker, {
+  projectId: line.id,
+  workDate: '2026-08-18',
+  category: 'standby',
+  minutes: 120,
+  summary: 'Held for a customer production window after sensor timing checks.',
+});
+repository.submitTime(worker, submittedStandby.id, submittedStandby.version);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-19',
+  'commissioning',
+  480,
+  'Validated restart sequence and confirmed interlock recovery.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-19',
+  'remote_support',
+  120,
+  'Remote support for the evening shift diagnostic review.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-20',
+  'regular',
+  600,
+  'Completed production observation and closed the remaining startup notes.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-21',
+  'regular',
+  480,
+  'Completed final point-to-point checks and signed the handover checklist.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-21',
+  'travel',
+  120,
+  'Travel between the controls office and the customer line.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-22',
+  'commissioning',
+  540,
+  'Saturday commissioning window for final sequence validation.',
+);
+addApprovedTime(
+  worker,
+  line.id,
+  '2026-08-22',
+  'standby',
+  60,
+  'Held for the production restart confirmation.',
+);
+
+// Keep the operational screens useful for every seeded identity. These rows
+// are deliberately deterministic and already approved so the demo can show
+// the complete review/pay/reporting lifecycle without a manual setup step.
+const scopedDemoUsers = [
+  ['manager', palletizer.id, 'America/New_York', 480],
+  ['worker', recovery.id, 'America/Chicago', 420],
+  ['worker2', palletizer.id, 'America/New_York', 390],
+  ['worker3', recovery.id, 'America/Chicago', 450],
+] as const;
+const scopedDemoDates = [
+  '2026-08-03',
+  '2026-08-06',
+  '2026-08-10',
+  '2026-08-14',
+  '2026-08-18',
+  '2026-08-21',
+];
+for (const [userKey, projectId, projectTimezone, baseMinutes] of scopedDemoUsers) {
+  for (const [index, workDate] of scopedDemoDates.entries()) {
+    const id = newId();
+    const createdAt = `${workDate}T18:00:00.000Z`;
+    sqlite
+      .prepare(
+        `INSERT INTO time_entry(
+          id,project_id,worker_id,work_date,category,minutes,project_timezone,activity_summary,
+          approval_state,billability_state,created_at,updated_at,submitted_at,approved_by,approved_at,
+          finance_approved_by,finance_approved_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        id,
+        projectId,
+        userIds.get(userKey)!,
+        workDate,
+        index % 3 === 0 ? 'commissioning' : index % 3 === 1 ? 'regular' : 'travel',
+        baseMinutes + index * 15,
+        projectTimezone,
+        `Synthetic period-close entry for ${userKey} · ${workDate}.`,
+        'approved',
+        'billable',
+        createdAt,
+        createdAt,
+        createdAt,
+        owner.userId,
+        createdAt,
+        finance.userId,
+        createdAt,
+      );
+  }
+}
+
 const daily = repository.createDailyReport(worker, {
   projectId: line.id,
   workDate: '2026-08-11',
@@ -463,7 +905,7 @@ const daily = repository.createDailyReport(worker, {
 repository.submitReport(worker, 'daily', daily.id, daily.version);
 repository.reviewReport(manager, 'daily', daily.id, 'approved');
 const pendingDaily = repository.createDailyReport(worker, {
-  projectId: line.id,
+  projectId: support.id,
   workDate: '2026-08-18',
   siteShift: 'Body shop · first shift',
   summary: 'Startup support and sensor timing investigation.',
@@ -477,9 +919,45 @@ const pendingDaily = repository.createDailyReport(worker, {
   nextDayPlan: 'Close issue after trend review.',
   safetyRelated: false,
 });
-repository.submitReport(worker, 'daily', pendingDaily.id, pendingDaily.version);
+const updatedPendingDaily = repository.updateDailyReport(worker, {
+  projectId: support.id,
+  workDate: '2026-08-18',
+  siteShift: 'Body shop · first shift',
+  summary: 'Startup support, sensor timing investigation and customer handover notes.',
+  tasksCompleted: 'Cleared timing faults and documented affected devices.',
+  problemsFound: 'Two prox sensors showed inconsistent transition timing.',
+  correctiveActions: 'Adjusted debounce parameters within the approved range.',
+  clientDecisions: '',
+  downtimeMinutes: 0,
+  standbyReason: '',
+  blockers: '',
+  openItems: 'Monitor through afternoon production.',
+  nextDayPlan: 'Close issue after trend review.',
+  safetyRelated: false,
+  customerContact: '',
+  id: pendingDaily.id,
+  version: pendingDaily.version,
+});
+repository.submitReport(worker, 'daily', updatedPendingDaily.id, updatedPendingDaily.version);
+const submittedDaily = repository.createDailyReport(worker2, {
+  projectId: palletizer.id,
+  workDate: '2026-08-19',
+  siteShift: 'Commissioning bay · second shift',
+  summary: 'Palletizer layer transition review submitted for project approval.',
+  tasksCompleted: 'Verified layer timing, guard signals and restart behavior.',
+  problemsFound: 'No blocking issues found during the planned validation run.',
+  correctiveActions: 'Recorded an observation for the next maintenance window.',
+  clientDecisions: 'Customer requested the observation remain open until handover.',
+  downtimeMinutes: 0,
+  blockers: '',
+  openItems: 'Confirm maintenance window date.',
+  nextDayPlan: 'Review handover checklist with the plant lead.',
+  safetyRelated: false,
+});
+repository.submitReport(worker2, 'daily', submittedDaily.id, submittedDaily.version);
 const plc = repository.createTechnicalReport(worker, {
   projectId: line.id,
+  reportDate: '2026-08-11',
   systemName: 'Line 4 Main Conveyor',
   plantSite: 'Detroit Assembly Campus · Demo',
   areaLine: 'Body Shop / Line 4',
@@ -536,6 +1014,90 @@ const submittedTechnicalChange = v3.createTechnicalChange(worker2, {
 });
 v3.submitTechnicalChange(worker2, submittedTechnicalChange.id, submittedTechnicalChange.version);
 
+for (const [projectId, workDate, siteShift, summary] of [
+  [
+    recovery.id,
+    '2026-08-15',
+    'Process plant · day shift',
+    'Skid integration checks and permissive verification completed.',
+  ],
+  [
+    recovery.id,
+    '2026-08-20',
+    'Process plant · afternoon shift',
+    'Alarm propagation and pump rotation evidence captured for handover.',
+  ],
+  [
+    support.id,
+    '2026-08-16',
+    'Remote support · morning window',
+    'Remote diagnostic review completed with the customer controls lead.',
+  ],
+  [
+    support.id,
+    '2026-08-21',
+    'Remote support · evening window',
+    'Resolved a sequence observation and documented the release recommendation.',
+  ],
+] as const) {
+  const report = repository.createDailyReport(worker, {
+    projectId,
+    workDate,
+    siteShift,
+    summary,
+    tasksCompleted:
+      'Reviewed source records, validated the operating sequence and updated the handover notes.',
+    problemsFound: 'No blocking issue remains in the synthetic showcase record.',
+    correctiveActions: 'Recorded the validation result and next observation window.',
+    clientDecisions: 'Customer engineering contact accepted the next validation step.',
+    downtimeMinutes: 0,
+    blockers: '',
+    openItems: 'Retain the record for the next period close.',
+    nextDayPlan: 'Review the evidence during the next operational checkpoint.',
+    safetyRelated: false,
+    customerContact: 'Demo plant controls lead',
+  });
+  repository.submitReport(worker, 'daily', report.id, report.version);
+  repository.reviewReport(
+    projectId === recovery.id ? manager : owner,
+    'daily',
+    report.id,
+    'approved',
+  );
+}
+
+for (const [projectId, systemName, controller] of [
+  [recovery.id, 'Caustic recovery skid controls', 'ControlLogix 5570'],
+  [support.id, 'Remote support diagnostic package', 'CompactLogix 5380'],
+] as const) {
+  const report = repository.createTechnicalReport(worker, {
+    projectId,
+    reportDate: projectId === recovery.id ? '2026-08-15' : '2026-08-16',
+    systemName,
+    plantSite: projectId === recovery.id ? recovery.id : support.id,
+    systemType: 'Process automation controls',
+    plcPlatform: 'Rockwell Automation',
+    controller,
+    networkProtocol: 'EtherNet/IP',
+    softwareVersion: 'Studio 5000 v35',
+    programReference: `DEMO-${systemName.replaceAll(' ', '-').toUpperCase()}`,
+    changeSummary: 'Documented a controlled configuration adjustment and its validation evidence.',
+    safetyRelated: false,
+    productionImpact: 'No production bypasses introduced; validation remains traceable.',
+    validation: 'Dry-cycle validation and operator confirmation completed.',
+    validationResult: 'Passed for the synthetic showcase period.',
+    openRisk: 'Retain the next observation window in the project register.',
+    rollbackPlan: 'Restore the registered pre-change backup if the observation regresses.',
+  });
+  repository.submitReport(worker, 'technical', report.id, report.version);
+  repository.reviewReport(
+    projectId === recovery.id ? manager : owner,
+    'technical',
+    report.id,
+    'approved',
+  );
+}
+
 const approvedMilestone = repository.createProjectMilestone(owner, {
   projectId: line.id,
   name: 'Controls validation package',
@@ -553,6 +1115,57 @@ const submittedMilestone = repository.createProjectMilestone(owner, {
   dueOn: '2026-08-20',
 });
 repository.submitProjectMilestone(owner, submittedMilestone.id, submittedMilestone.version);
+for (const [projectId, name, amountMinor, dueOn] of [
+  [recovery.id, 'Skid integration acceptance', 275000n, '2026-08-22'],
+  [support.id, 'Remote support monthly close', 185000n, '2026-08-28'],
+] as const) {
+  const milestone = repository.createProjectMilestone(owner, {
+    projectId,
+    name,
+    description:
+      'Synthetic commercial milestone included to exercise project close and billing views.',
+    amountMinor,
+    dueOn,
+  });
+  repository.submitProjectMilestone(owner, milestone.id, milestone.version);
+  repository.reviewProjectMilestone(finance, milestone.id, 'approved');
+}
+
+// Commercial classification is fail-closed against the canonical legal-entity
+// authority. Seed that authority before creating any expense that enters the
+// operational/Finance approval workflow.
+const entity = repository.createLegalEntity(owner, {
+  code: 'DEMO',
+  legalName: 'J&A Automation · Demonstration Invoice',
+  currency: 'USD',
+  billingAddress: 'Demonstration record · not for payment',
+  companyIdentifiers: 'TEST DEMO',
+});
+const canonicalEntity = v3.createCanonicalLegalEntityRevision(finance, {
+  legacyLegalEntityId: entity.id,
+  effectiveFrom: '2026-08-01',
+  legalName: 'J&A Automation · Demonstration Invoice',
+  taxIdentifier: 'TEST-DEMO-TAX',
+  registrationIdentifier: 'TEST-DEMO-REGISTRATION',
+  addressLine1: 'Demonstration record · not for payment',
+  locality: 'Detroit',
+  region: 'Michigan',
+  postalCode: '48201',
+  countryCode: 'US',
+  baseCurrency: 'USD',
+  timezone: 'UTC',
+  reason: 'Canonical legal-entity authority for deterministic Client Essential evidence',
+  idempotencyKey: 'demo:canonical-legal-entity:2026-08-01',
+});
+for (const project of [line, palletizer, recovery, support]) {
+  v3.assignCanonicalLegalEntityToProject(finance, {
+    projectId: project.id,
+    legalEntityRevisionId: canonicalEntity.revisionId,
+    effectiveFrom: '2026-08-01',
+    reason: 'Bind the deterministic project to its canonical legal-entity authority',
+    idempotencyKey: `demo:project-legal-entity:${project.id}:2026-08-01`,
+  });
+}
 
 const receipt = (
   actor: Principal,
@@ -578,6 +1191,35 @@ const receipt = (
       "UPDATE document SET description=?,scan_status='clean',scanned_at=?,scan_provider=? WHERE id=?",
     )
     .run(`Synthetic showcase document: ${title}`, timestamp, 'demo-seed', registered.id);
+  return registered.id;
+};
+
+const syntheticPrivateDocument = (
+  actor: Principal,
+  projectId: string,
+  filename: string,
+  title: string,
+  type: string,
+  lines: readonly string[],
+) => {
+  const bytes = syntheticPdf(title, lines);
+  const id = newId();
+  const storageKey = `plc-backups/${id}.pdf`;
+  writeFileSync(resolve(demoDocumentRoot, storageKey), bytes, { flag: 'wx' });
+  const registered = repository.registerPrivateDocument(actor, {
+    projectId,
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    mediaType: 'application/pdf',
+    byteLength: bytes.byteLength,
+    storageKey,
+    originalFilename: filename,
+    description: `Synthetic showcase document: ${title}`,
+    artifactType: type,
+    sensitivity: 'customer_private',
+  });
+  sqlite
+    .prepare("UPDATE document SET scan_status='clean',scanned_at=?,scan_provider=? WHERE id=?")
+    .run(timestamp, 'demo-seed', registered.id);
   return registered.id;
 };
 const addExpense = (
@@ -610,6 +1252,32 @@ const addExpense = (
     description: string;
   },
 ) => {
+  const member = sqlite
+    .prepare('SELECT id FROM project_member WHERE project_id=? AND user_id=?')
+    .get(projectId, actor.userId) as { id: string } | undefined;
+  if (!member) throw new Error('Synthetic expense worker needs a project assignment');
+  const existingPolicy = sqlite
+    .prepare(
+      "SELECT id FROM assignment_expense_policy WHERE project_member_id=? AND payer='worker' AND category=? AND effective_from='2026-07-01'",
+    )
+    .get(member.id, input.category);
+  if (!existingPolicy)
+    new AssignmentExpensePolicyRepository(sqlite).create(finance, {
+      projectMemberId: member.id,
+      payer: 'worker',
+      category: input.category,
+      effectiveFrom: '2026-07-01',
+      workerReimbursement: 'at_cost',
+      clientRecovery:
+        input.treatment === 'all_in'
+          ? 'included'
+          : input.billingTreatment === 'reimbursable_plus_markup'
+            ? 'markup'
+            : 'at_cost',
+      markupBps:
+        input.billingTreatment === 'reimbursable_plus_markup' ? input.markupBps : undefined,
+      reason: 'Explicit synthetic fixture expense policy',
+    });
   const filename =
     input.category === 'airfare'
       ? 'airfare-ticket-demo.pdf'
@@ -641,7 +1309,19 @@ const addExpense = (
     receiptRequired: true,
     receiptDocumentId: documentId,
   });
-  repository.submitExpense(actor, record.id, record.version);
+  const classified = repository.classifyExpenseCommercially(finance, {
+    expenseId: record.id,
+    expectedVersion: record.version,
+    clientTreatment: input.treatment,
+    billingTreatment:
+      input.billingTreatment ?? (input.treatment === 'all_in' ? 'all_in' : 'reimbursable_at_cost'),
+    markupBps: input.markupBps ?? 0,
+    taxBps: 0,
+    reason: 'Synthetic demo commercial classification',
+    overrideExpensePolicy: input.billingTreatment === 'allowance_per_diem',
+    idempotencyKey: `demo-expense-classification:${record.id}`,
+  });
+  repository.submitExpense(actor, record.id, classified.version);
   repository.operationalApproveExpense(owner, record.id, 'approved');
   repository.financeApproveExpense(finance, record.id);
 };
@@ -738,6 +1418,84 @@ addExpense(worker, recovery.id, {
   treatment: 'reimbursable',
   description: 'Site access tolls and parking charge.',
 });
+const scopedDemoExpenses = [
+  ['admin', line.id],
+  ['finance', line.id],
+  ['manager', palletizer.id],
+  ['worker', recovery.id],
+  ['worker2', palletizer.id],
+  ['worker3', recovery.id],
+] as const;
+const expenseDates = ['2026-08-02', '2026-08-07', '2026-08-11', '2026-08-16', '2026-08-20'];
+for (const [userIndex, [userKey, projectId]] of scopedDemoExpenses.entries()) {
+  for (const [dateIndex, spentOn] of expenseDates.entries()) {
+    const amountMinor = 4200 + userIndex * 700 + dateIndex * 550;
+    const createdAt = `${spentOn}T19:00:00.000Z`;
+    sqlite
+      .prepare(
+        `INSERT INTO expense(
+          id,project_id,worker_id,spent_on,category,currency,amount_minor,client_treatment,
+          vendor,description,who_paid,receipt_required,approval_state,reimbursement_state,
+          submitted_at,approved_by,approved_at,finance_approved_by,finance_approved_at,
+          tax_amount_minor,payment_method,project_currency_amount_minor,fx_rate_bps,
+          billing_treatment,billing_state,billing_amount_minor,reimbursement_amount_minor,
+          created_at,updated_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        newId(),
+        projectId,
+        userIds.get(userKey)!,
+        spentOn,
+        dateIndex % 2 === 0 ? 'ground_transport' : 'meals',
+        'USD',
+        amountMinor,
+        'reimbursable',
+        `Demo ${userKey} travel desk`,
+        `Synthetic reimbursable expense for ${userKey} · ${spentOn}.`,
+        'worker',
+        0,
+        'approved',
+        'approved',
+        createdAt,
+        owner.userId,
+        createdAt,
+        finance.userId,
+        createdAt,
+        0,
+        'Demo corporate card',
+        amountMinor,
+        10000,
+        'reimbursable_at_cost',
+        'unlocked',
+        amountMinor,
+        amountMinor,
+        createdAt,
+        createdAt,
+      );
+  }
+}
+
+// Settlement status is produced by the Finance workflow from approved,
+// billable time and the compensation rules above. Keeping this as a real
+// domain call makes the fixture useful for both the worker statement and the
+// finance settlement register; it also remains safe to rerun because the
+// repository upserts the same worker/project/period key.
+const demoSettlements = [
+  ...v3.settleCompensation(finance, {
+    workerId: worker.userId,
+    projectId: line.id,
+    periodStart: '2026-08-10',
+    periodEnd: '2026-08-16',
+  }),
+  ...v3.settleCompensation(finance, {
+    workerId: worker2.userId,
+    projectId: palletizer.id,
+    periodStart: '2026-08-10',
+    periodEnd: '2026-08-16',
+  }),
+];
+
 repository.createPlanningAssignment(owner, {
   projectId: line.id,
   workerId: worker.userId,
@@ -745,7 +1503,7 @@ repository.createPlanningAssignment(owner, {
   endsAt: '2026-08-18T22:00:00.000Z',
   plannedMinutes: 600,
   site: 'Detroit Assembly Campus · Demo',
-  requiredSkill: 'ControlLogix commissioning',
+  requiredSkill: 'ControlLogix programming',
 });
 repository.createPlanningAssignment(owner, {
   projectId: line.id,
@@ -756,17 +1514,28 @@ repository.createPlanningAssignment(owner, {
   site: 'Detroit Assembly Campus · Demo',
   requiredSkill: 'Industrial networks',
 });
-
-const entity = repository.createLegalEntity(owner, {
-  code: 'DEMO',
-  legalName: 'J&A Automation · Demonstration Invoice',
-  currency: 'USD',
-  billingAddress: 'Demonstration record · not for payment',
-  companyIdentifiers: 'TEST DEMO',
+repository.createPlanningAssignment(owner, {
+  projectId: recovery.id,
+  workerId: worker3.userId,
+  startsAt: '2026-08-20T13:00:00.000Z',
+  endsAt: '2026-08-20T21:00:00.000Z',
+  plannedMinutes: 480,
+  site: 'Lake County Process Plant · Demo',
+  requiredSkill: 'HMI and SCADA',
 });
+repository.createPlanningAssignment(owner, {
+  projectId: support.id,
+  workerId: worker.userId,
+  startsAt: '2026-08-21T14:00:00.000Z',
+  endsAt: '2026-08-21T20:00:00.000Z',
+  plannedMinutes: 360,
+  site: 'Remote / Detroit · Demo',
+  requiredSkill: 'PLC commissioning',
+});
+
 repository.createInvoiceNumberPolicy(owner, {
   legalEntityId: entity.id,
-  prefix: 'DEMO-',
+  prefix: 'DEMO',
   digits: 5,
   effectiveFrom: '2026-01-01',
   accountantApprovedAt: timestamp,
@@ -830,6 +1599,85 @@ const milestoneInvoice = repository.createInvoiceDraft(
   '2026-08-01',
   '2026-08-31',
 );
+const additionalBillingRules = new Map<
+  string,
+  { labor: string; expense: string; milestone: string }
+>();
+for (const [projectId, recipientEmail] of [
+  [palletizer.id, 'billing@harbor.demo'],
+  [recovery.id, 'finance@blueriver.demo'],
+  [support.id, 'ap@northline.demo'],
+] as const) {
+  const labor = repository.createBillingRule(finance, {
+    projectId,
+    legalEntityId: entity.id,
+    streamType: 'labor',
+    cadenceType: 'weekly',
+    taxProfileId: laborTax.id,
+    currency: 'USD',
+    effectiveFrom: '2026-01-01',
+    recipientEmail,
+  });
+  const expense = repository.createBillingRule(finance, {
+    projectId,
+    legalEntityId: entity.id,
+    streamType: 'expense',
+    cadenceType: 'monthly',
+    taxProfileId: expenseTax.id,
+    currency: 'USD',
+    effectiveFrom: '2026-01-01',
+    recipientEmail,
+  });
+  const milestone = repository.createBillingRule(finance, {
+    projectId,
+    legalEntityId: entity.id,
+    streamType: 'milestone',
+    cadenceType: 'milestone',
+    taxProfileId: laborTax.id,
+    currency: 'USD',
+    effectiveFrom: '2026-01-01',
+    recipientEmail,
+  });
+  additionalBillingRules.set(projectId, {
+    labor: labor.id,
+    expense: expense.id,
+    milestone: milestone.id,
+  });
+}
+const billingRulesFor = (projectId: string) => {
+  const rules = additionalBillingRules.get(projectId);
+  if (!rules) throw new Error(`Missing seeded billing rules for project ${projectId}`);
+  return rules;
+};
+
+// Give the invoice register useful breadth across projects and lifecycle
+// states. Drafts remain editable previews, while one labor invoice completes
+// the approved -> issued workflow and therefore exposes a real immutable
+// invoice state in the showcase.
+const additionalInvoiceDrafts = [
+  repository.createInvoiceDraft(
+    finance,
+    billingRulesFor(palletizer.id).labor,
+    '2026-08-10',
+    '2026-08-16',
+  ),
+  repository.createInvoiceDraft(
+    finance,
+    billingRulesFor(recovery.id).expense,
+    '2026-08-01',
+    '2026-08-31',
+  ),
+  repository.createInvoiceDraft(
+    finance,
+    billingRulesFor(support.id).milestone,
+    '2026-08-01',
+    '2026-08-31',
+  ),
+];
+const [palletizerInvoiceDraft] = additionalInvoiceDrafts;
+if (!palletizerInvoiceDraft) throw new Error('Missing seeded palletizer invoice draft');
+repository.approveInvoiceDraft(finance, palletizerInvoiceDraft.id);
+const issuedPalletizerInvoice = repository.issueInvoice(finance, palletizerInvoiceDraft.id, 'en');
 
 const closedLaborPeriod = v3.closeBillingPeriod(
   finance,
@@ -852,7 +1700,12 @@ const periodReports = v3.refreshPeriodReports(finance, {
   reportLocale: 'en',
 });
 const accountingPack = v3.createAccountingPack(finance, '2026-08-01', '2026-08-31', 'en');
-const closeout = repository.createProjectCloseout(owner, line.id);
+const canonicalRevisionMetadata = (accountingPack.reconciliation as Record<string, unknown>)
+  .canonicalRevision as { revisions?: Array<{ revisionId?: string }> } | undefined;
+const canonicalAccountingPackRevisionId = canonicalRevisionMetadata?.revisions?.[0]?.revisionId;
+if (!canonicalAccountingPackRevisionId)
+  throw new Error('Seeded Accounting Pack did not create its canonical revision');
+const closeout = repository.createProjectCloseout(ownerLive, line.id);
 sqlite
   .prepare(
     'INSERT OR IGNORE INTO notification(id,user_id,kind,subject_id,created_at) VALUES(?,?,?,?,?)',
@@ -863,17 +1716,665 @@ sqlite
     'INSERT OR IGNORE INTO notification(id,user_id,kind,subject_id,created_at) VALUES(?,?,?,?,?)',
   )
   .run(newId(), owner.userId, 'report_submitted', pendingDaily.id, timestamp);
+
+// Add private project documents
+syntheticPrivateDocument(owner, line.id, 'PLC_Backup_V1.pdf', 'PLC Backup Archive', 'PLC backup', [
+  'Date: 2026-08-15',
+  'Project: P-0042',
+  'System: Main Conveyor',
+  'Status: Verified',
+  'This is a synthetic backup file generated for showcase.',
+]);
+
+syntheticPrivateDocument(
+  owner,
+  line.id,
+  'Safety_Manual.pdf',
+  'Safety Protocols & Guidelines',
+  'engineering report',
+  ['Date: 2026-08-01', 'Project: P-0042', 'Confidential safety guidelines.', 'Do not distribute.'],
+);
+
+// ---------------------------------------------------------------------------
+// Real J&A Automation Clients, Projects & IMPC Invoices (Production Seed Data)
+// ---------------------------------------------------------------------------
+const realProjectCatalog = [
+  {
+    folder: '005',
+    code: 'VAL',
+    clientNumber: 'C-0005',
+    projectNumber: 'CP005',
+    clientName: 'Valiant',
+    projectName: 'Valiant',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '006',
+    code: 'RAM',
+    clientNumber: 'C-0006',
+    projectNumber: 'CP006',
+    clientName: 'RAM',
+    projectName: 'RAM',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '007',
+    code: 'MINO',
+    clientNumber: 'C-0007',
+    projectNumber: 'CP007',
+    clientName: 'Mino Automation',
+    projectName: 'Mino Automation',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '008',
+    code: 'ASC',
+    clientNumber: 'C-0008',
+    projectNumber: 'CP008',
+    clientName: 'Ascension',
+    projectName: 'Ascension',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '009',
+    code: 'KHS',
+    clientNumber: 'C-0009',
+    projectNumber: 'CP009',
+    clientName: 'KHS',
+    projectName: 'KHS',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '010',
+    code: 'WWC',
+    clientNumber: 'C-0010',
+    projectNumber: 'CP010',
+    clientName: 'WWC',
+    projectName: 'WWC',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '011',
+    code: 'INPRO',
+    clientNumber: 'C-0011',
+    projectNumber: 'CP011',
+    clientName: 'InPro',
+    projectName: 'InPro',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '012',
+    code: 'NIAG',
+    clientNumber: 'C-0012',
+    projectNumber: 'CP012',
+    clientName: 'Niagara',
+    projectName: 'Niagara',
+    timezone: 'America/New_York',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '013',
+    code: 'FORERUN',
+    clientNumber: 'C-0013',
+    projectNumber: 'CP013',
+    clientName: 'Forerunner',
+    projectName: 'Forerunner',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '014',
+    code: 'EMPACK',
+    clientNumber: 'C-0014',
+    projectNumber: 'CP014',
+    clientName: 'Empack',
+    projectName: 'Empack',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '015',
+    code: 'CAP',
+    clientNumber: 'C-0015',
+    projectNumber: 'CP015',
+    clientName: 'CAP Automation Gmbh',
+    projectName: 'CAP Automation Gmbh',
+    timezone: 'Europe/Berlin',
+    country: 'DE',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '016',
+    code: 'CASTOR',
+    clientNumber: 'C-0016',
+    projectNumber: 'CP016',
+    clientName: 'Castor Engineering',
+    projectName: 'Castor Engineering',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '017',
+    code: 'JOINER',
+    clientNumber: 'C-0017',
+    projectNumber: 'CP017',
+    clientName: 'Joiner',
+    projectName: 'Joiner',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '018',
+    code: 'SOCAPS',
+    clientNumber: 'C-0018',
+    projectNumber: 'CP018',
+    clientName: 'Socaps',
+    projectName: 'Socaps',
+    timezone: 'America/New_York',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '019',
+    code: 'PENREC',
+    clientNumber: 'C-0019',
+    projectNumber: 'CP019',
+    clientName: 'Peninsula Recycling',
+    projectName: 'Peninsula Recycling',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '020',
+    code: 'IMPC',
+    clientNumber: 'C-0020',
+    projectNumber: 'CP020',
+    clientName: 'IMPC Gmbh',
+    projectName: 'BBS Mexico',
+    poNumber: 'BBS Mexico',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Niedersachsenstr. 43, 71640 Ludwigsburg, DE',
+    billingEmail: 'field.operations@j-aautomation.com',
+    secondProject: {
+      projectNumber: 'CP020-DFW',
+      projectName: 'Junkers DFW',
+      poNumber: 'Junkers DFW',
+      timezone: 'America/Chicago',
+      country: 'US',
+    },
+    contacts: [
+      {
+        name: 'Hans Schwiedop',
+        email: 'field.operations@j-aautomation.com',
+        phone: '+49 7141 0000',
+        role: 'General Manager',
+        isPrimary: 1,
+        isBillingContact: 0,
+      },
+      {
+        name: 'Stephan Hauser',
+        email: 'field.operations@j-aautomation.com',
+        phone: '+49 7141 0001',
+        role: 'General Manager',
+        isPrimary: 0,
+        isBillingContact: 1,
+      },
+    ],
+  },
+  {
+    folder: '021',
+    code: 'BASTIAN',
+    clientNumber: 'C-0021',
+    projectNumber: 'CP021',
+    clientName: 'Bastian Solutions',
+    projectName: 'Bastian Solutions',
+    timezone: 'America/Indiana/Indianapolis',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '022',
+    code: 'ZEPPELIN',
+    clientNumber: 'C-0022',
+    projectNumber: 'CP022',
+    clientName: 'Zeppelin Systems',
+    projectName: 'Zeppelin Systems',
+    timezone: 'America/Chicago',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '023',
+    code: 'OXFORD',
+    clientNumber: 'C-0023',
+    projectNumber: 'CP023',
+    clientName: 'Oxford',
+    projectName: 'Oxford',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+  {
+    folder: '024',
+    code: 'DAMON',
+    clientNumber: 'C-0024',
+    projectNumber: 'CP024',
+    clientName: 'Damon',
+    projectName: 'Damon',
+    timezone: 'America/Detroit',
+    country: 'US',
+    billingAddress: 'Pending billing address',
+  },
+];
+
+const insertClient = sqlite.prepare(`
+  INSERT INTO client (
+    id, client_number, client_code, legal_name, display_name, status, currency,
+    timezone, billing_email, billing_address, payment_terms_days, po_reference,
+    created_at, updated_at, version
+  ) VALUES (?, ?, ?, ?, ?, 'active', 'USD', ?, ?, ?, 30, ?, ?, ?, 1)
+  ON CONFLICT(id) DO UPDATE SET
+    client_number=excluded.client_number,
+    legal_name=excluded.legal_name,
+    display_name=excluded.display_name,
+    updated_at=excluded.updated_at
+`);
+
+const insertProject = sqlite.prepare(`
+  INSERT INTO project (
+    id, project_number, name, client_id, po_number, status, billing_model,
+    currency, timezone, country, created_at, updated_at, version
+  ) VALUES (?, ?, ?, ?, ?, 'active', 'time_and_materials', 'USD', ?, ?, ?, ?, 1)
+  ON CONFLICT(id) DO UPDATE SET
+    project_number=excluded.project_number,
+    name=excluded.name,
+    updated_at=excluded.updated_at
+`);
+
+const insertSchedule = sqlite.prepare(`
+  INSERT INTO schedule (
+    id, project_id, timezone, monday_minutes, tuesday_minutes, wednesday_minutes,
+    thursday_minutes, friday_minutes, saturday_minutes, sunday_minutes, effective_from, version
+  ) VALUES (?, ?, ?, 480, 480, 480, 480, 480, 0, 0, '2026-01-01', 1)
+  ON CONFLICT(id) DO NOTHING
+`);
+
+const insertContact = sqlite.prepare(`
+  INSERT INTO client_contact (
+    id, client_id, name, email, phone, role, is_billing_contact, is_primary, created_at, updated_at, version
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+  ON CONFLICT(id) DO NOTHING
+`);
+
+let projectCp020Id = 'project-cp020-bbs-mexico';
+let projectCp020DfwId = 'project-cp020-dfw-junkers';
+
+for (const entry of realProjectCatalog) {
+  const clientId = `client-${entry.folder}-${entry.code.toLowerCase()}`;
+  const projectId = `project-${entry.projectNumber.toLowerCase()}-${entry.projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  if (entry.folder === '020') projectCp020Id = projectId;
+
+  insertClient.run(
+    clientId,
+    entry.clientNumber,
+    entry.code,
+    entry.clientName,
+    entry.clientName,
+    entry.timezone,
+    entry.billingEmail ?? 'field.operations@j-aautomation.com',
+    entry.billingAddress,
+    entry.poNumber ?? entry.projectName,
+    timestamp,
+    timestamp,
+  );
+
+  insertProject.run(
+    projectId,
+    entry.projectNumber,
+    entry.projectName,
+    clientId,
+    entry.poNumber ?? null,
+    entry.timezone,
+    entry.country,
+    timestamp,
+    timestamp,
+  );
+
+  insertSchedule.run(newId(), projectId, entry.timezone);
+
+  if (entry.secondProject) {
+    projectCp020DfwId = `project-${entry.secondProject.projectNumber.toLowerCase()}`;
+    insertProject.run(
+      projectCp020DfwId,
+      entry.secondProject.projectNumber,
+      entry.secondProject.projectName,
+      clientId,
+      entry.secondProject.poNumber,
+      entry.secondProject.timezone,
+      entry.secondProject.country,
+      timestamp,
+      timestamp,
+    );
+    insertSchedule.run(newId(), projectCp020DfwId, entry.secondProject.timezone);
+  }
+
+  if (entry.contacts) {
+    for (const contact of entry.contacts) {
+      insertContact.run(
+        newId(),
+        clientId,
+        contact.name,
+        contact.email,
+        contact.phone,
+        contact.role,
+        contact.isBillingContact,
+        contact.isPrimary,
+        timestamp,
+        timestamp,
+      );
+    }
+  }
+}
+
+// Keep sequence counter past C-0024 so newly created portal clients start at C-0025
+sqlite
+  .prepare(
+    "INSERT INTO number_sequence(scope,scope_id,next_value,version) VALUES('client','global',25,1) ON CONFLICT(scope,scope_id) DO UPDATE SET next_value=max(next_value,25)",
+  )
+  .run();
+
+// Real Legal Entity & IMPC Invoices
+const jaEntityId =
+  (
+    sqlite.prepare("SELECT id FROM legal_entity WHERE code = 'JA-USA'").get() as
+      | { id: string }
+      | undefined
+  )?.id ?? 'legal-entity-ja-usa';
+sqlite
+  .prepare(
+    `
+    INSERT INTO legal_entity (id, code, legal_name, currency, billing_address, company_identifiers, status, created_at, updated_at, version)
+    VALUES (?, 'JA-USA', 'J&A Automation LLC', 'USD', '112 Birkshire Dr, Georgetown TX 78626', 'USA division', 'active', ?, ?, 1)
+    ON CONFLICT(id) DO NOTHING
+  `,
+  )
+  .run(jaEntityId, timestamp, timestamp);
+
+const zeroTaxProfileId = 'tax-profile-zero-usd';
+sqlite
+  .prepare(
+    `
+    INSERT INTO tax_profile (id, name, currency, effective_from, status, version)
+    VALUES (?, 'Zero Tax Profile · 0%', 'USD', '2026-01-01', 'active', 1)
+    ON CONFLICT(id) DO NOTHING
+  `,
+  )
+  .run(zeroTaxProfileId);
+
+const ruleCp020LaborId = 'rule-cp020-labor';
+sqlite
+  .prepare(
+    `
+    INSERT INTO billing_rule (id, project_id, legal_entity_id, tax_profile_id, stream_type, template_id, cadence_type, currency, enabled, effective_from, grouping_mode, created_at, updated_at, version)
+    VALUES (?, ?, ?, ?, 'labor', 'labor-detailed', 'monthly', 'USD', 1, '2026-01-01', 'summary', ?, ?, 1)
+    ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at
+  `,
+  )
+  .run(ruleCp020LaborId, projectCp020Id, jaEntityId, zeroTaxProfileId, timestamp, timestamp);
+
+const ruleCp020ExpenseId = 'rule-cp020-expense';
+sqlite
+  .prepare(
+    `
+    INSERT INTO billing_rule (id, project_id, legal_entity_id, tax_profile_id, stream_type, template_id, cadence_type, currency, enabled, effective_from, grouping_mode, created_at, updated_at, version)
+    VALUES (?, ?, ?, ?, 'expense', 'expenses-detailed', 'monthly', 'USD', 1, '2026-01-01', 'summary', ?, ?, 1)
+    ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at
+  `,
+  )
+  .run(ruleCp020ExpenseId, projectCp020Id, jaEntityId, zeroTaxProfileId, timestamp, timestamp);
+
+const defaultCompany = {
+  name: 'J&A Automation LLC',
+  division: 'USA division',
+  phone: '+1 (864) 208 4684',
+  address: '112 Birkshire Dr, Georgetown TX 78626',
+  email: 'field.operations@j-aautomation.com',
+  website: 'www.j-aautomation.com',
+};
+
+const defaultTerms = {
+  bankSwiftNumber: 'WFBIUS6S',
+  bankAccountNumber: '8769915615',
+  bankName: 'Wells Fargo Bank',
+  beneficiary: 'J&A Automation LLC',
+  pastDueNotice:
+    'Past Due account subject to service charge of 1.5% per month and/or maximum permitted by law',
+};
+
+// 1. Invoice CP020-013 (Labor Detailed - 8 workers)
+const invoiceCp020_013Id = 'invoice-cp020-013';
+const inv013Lines = [
+  { description: 'Gabriel Hours CW31 and CW32', num: 263, den: 2, rate: 7000, subtotal: 920500 },
+  { description: 'Maico Hours CW31 and CW32', num: 263, den: 2, rate: 5500, subtotal: 723250 },
+  { description: 'Victor Hours CW31 and CW32', num: 543, den: 4, rate: 5500, subtotal: 746625 },
+  { description: 'Andrew Hours CW31 and CW32', num: 673, den: 5, rate: 5500, subtotal: 740300 },
+  { description: 'Lucas Hours CW31 and CW32', num: 1261, den: 10, rate: 5500, subtotal: 693550 },
+  { description: 'Luiz Hours CW31 and CW32', num: 130, den: 1, rate: 5500, subtotal: 715000 },
+  { description: 'Fernando Hours CW31 and CW32', num: 139, den: 1, rate: 5500, subtotal: 764500 },
+  { description: 'Alejandro Hours CW31 and CW32', num: 80, den: 1, rate: 5500, subtotal: 440000 },
+];
+
+const inv013Snapshot = {
+  template: { id: 'labor-detailed', version: 1 },
+  number: 'CP020-013',
+  invoiceNumber: 'CP020-013',
+  purchaseNo: 'BBS Mexico',
+  issueDate: '8/10/2026',
+  dueDate: '9/10/2026',
+  currency: 'USD',
+  companyInfo: defaultCompany,
+  termsAndInstructions: defaultTerms,
+  discountMinor: '0',
+  legalEntity: {
+    legalName: 'J&A Automation LLC',
+    billingAddress: '112 Birkshire Dr, Georgetown TX 78626',
+  },
+  client: {
+    legalName: 'IMPC Gmbh',
+    contact: { name: 'Hans Schwiedop' },
+    billingAddress: 'Niedersachsenstr. 43, 71640 Ludwigsburg, DE',
+    billingEmail: 'field.operations@j-aautomation.com',
+  },
+  project: { number: 'CP020', name: 'BBS Mexico', poNumber: 'BBS Mexico' },
+  calculation: { currency: 'USD', subtotalMinor: '5743725', taxMinor: '0', totalMinor: '5743725' },
+  lines: inv013Lines.map((l) => ({
+    description: l.description,
+    quantity_numerator: l.num,
+    quantity_denominator: l.den,
+    qty: (l.num / l.den).toFixed(2),
+    quantity: (l.num / l.den).toFixed(2),
+    hours: (l.num / l.den).toFixed(2),
+    unit_price_minor: l.rate.toString(),
+    subtotal_minor: l.subtotal.toString(),
+    amount_minor: l.subtotal.toString(),
+  })),
+  updatedAt: timestamp,
+};
+
+sqlite
+  .prepare(
+    `
+    INSERT INTO invoice (
+      id, project_id, billing_rule_id, invoice_number, stream_type, state, currency,
+      subtotal_minor, tax_minor, total_minor, period_start, period_end, issued_at,
+      snapshot_json, created_at, updated_at, version
+    ) VALUES (?, ?, ?, 'CP020-013', 'labor', 'draft', 'USD', 5743725, 0, 5743725, '2026-08-01', '2026-08-14', '2026-08-10T12:00:00.000Z', ?, ?, ?, 1)
+    ON CONFLICT(id) DO UPDATE SET
+      invoice_number=excluded.invoice_number,
+      subtotal_minor=excluded.subtotal_minor,
+      total_minor=excluded.total_minor,
+      snapshot_json=excluded.snapshot_json,
+      updated_at=excluded.updated_at
+  `,
+  )
+  .run(
+    invoiceCp020_013Id,
+    projectCp020Id,
+    ruleCp020LaborId,
+    JSON.stringify(inv013Snapshot),
+    timestamp,
+    timestamp,
+  );
+
+sqlite.prepare('DELETE FROM invoice_line WHERE invoice_id=?').run(invoiceCp020_013Id);
+for (const line of inv013Lines) {
+  sqlite
+    .prepare(
+      `
+      INSERT INTO invoice_line (
+        id, invoice_id, description, quantity_numerator, quantity_denominator,
+        unit_price_minor, subtotal_minor, source_type, source_id, snapshot_json, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'time', ?, ?, ?)
+    `,
+    )
+    .run(
+      newId(),
+      invoiceCp020_013Id,
+      line.description,
+      line.num,
+      line.den,
+      line.rate,
+      line.subtotal,
+      newId(),
+      JSON.stringify(line),
+      timestamp,
+    );
+}
+
+// 2. Invoice CP020-014 (Expenses & Josafa Labor Detailed)
+const invoiceCp020_014Id = 'invoice-cp020-014';
+const inv014Lines = [
+  { description: 'Josafa Hours', num: 13737, den: 100, rate: 5000, subtotal: 686850 },
+  { description: 'Flight', num: 1, den: 1, rate: 165503, subtotal: 165503 },
+  { description: 'Uber', num: 1, den: 1, rate: 18652, subtotal: 18652 },
+  { description: 'Luggage', num: 1, den: 1, rate: 6508, subtotal: 6508 },
+  { description: 'Hotel', num: 1, den: 1, rate: 165662, subtotal: 165662 },
+  { description: 'Car rental', num: 1, den: 1, rate: 162016, subtotal: 162016 },
+  { description: 'Fuel', num: 1, den: 1, rate: 11140, subtotal: 11140 },
+  { description: 'Per diem', num: 25, den: 1, rate: 4800, subtotal: 120000 },
+];
+
+const inv014Snapshot = {
+  template: { id: 'expenses-detailed', version: 1 },
+  number: 'CP020-014',
+  invoiceNumber: 'CP020-014',
+  purchaseNo: 'Junkers DFW',
+  issueDate: '8/14/2026',
+  dueDate: '9/14/2026',
+  currency: 'USD',
+  companyInfo: defaultCompany,
+  termsAndInstructions: defaultTerms,
+  discountMinor: '0',
+  legalEntity: {
+    legalName: 'J&A Automation LLC',
+    billingAddress: '112 Birkshire Dr, Georgetown TX 78626',
+  },
+  client: {
+    legalName: 'IMPC Gmbh',
+    contact: { name: 'Stephan Hauser' },
+    billingAddress: 'Niedersachsenstr. 43, 71640 Ludwigsburg, DE',
+    billingEmail: 'field.operations@j-aautomation.com',
+  },
+  project: { number: 'CP020', name: 'BBS Mexico', poNumber: 'Junkers DFW' },
+  calculation: { currency: 'USD', subtotalMinor: '1336331', taxMinor: '0', totalMinor: '1336331' },
+  lines: inv014Lines.map((l) => ({
+    description: l.description,
+    quantity_numerator: l.num,
+    quantity_denominator: l.den,
+    qty: (l.num / l.den).toFixed(2),
+    quantity: (l.num / l.den).toFixed(2),
+    hours: (l.num / l.den).toFixed(2),
+    unit_price_minor: l.rate.toString(),
+    subtotal_minor: l.subtotal.toString(),
+    amount_minor: l.subtotal.toString(),
+  })),
+  updatedAt: timestamp,
+};
+
+sqlite
+  .prepare(
+    `
+    INSERT INTO invoice (
+      id, project_id, billing_rule_id, invoice_number, stream_type, state, currency,
+      subtotal_minor, tax_minor, total_minor, period_start, period_end, issued_at,
+      snapshot_json, created_at, updated_at, version
+    ) VALUES (?, ?, ?, 'CP020-014', 'expense', 'draft', 'USD', 1336331, 0, 1336331, '2026-08-01', '2026-08-14', '2026-08-14T12:00:00.000Z', ?, ?, ?, 1)
+    ON CONFLICT(id) DO UPDATE SET
+      invoice_number=excluded.invoice_number,
+      subtotal_minor=excluded.subtotal_minor,
+      total_minor=excluded.total_minor,
+      snapshot_json=excluded.snapshot_json,
+      updated_at=excluded.updated_at
+  `,
+  )
+  .run(
+    invoiceCp020_014Id,
+    projectCp020Id,
+    ruleCp020ExpenseId,
+    JSON.stringify(inv014Snapshot),
+    timestamp,
+    timestamp,
+  );
+
+sqlite.prepare('DELETE FROM invoice_line WHERE invoice_id=?').run(invoiceCp020_014Id);
+for (const line of inv014Lines) {
+  sqlite
+    .prepare(
+      `
+      INSERT INTO invoice_line (
+        id, invoice_id, description, quantity_numerator, quantity_denominator,
+        unit_price_minor, subtotal_minor, source_type, source_id, snapshot_json, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'expense', ?, ?, ?)
+    `,
+    )
+    .run(
+      newId(),
+      invoiceCp020_014Id,
+      line.description,
+      line.num,
+      line.den,
+      line.rate,
+      line.subtotal,
+      newId(),
+      JSON.stringify(line),
+      timestamp,
+    );
+}
+
 console.log(
   JSON.stringify(
     {
-      database: path,
-      demoUsers: Object.fromEntries(users.map(([key, , email]) => [key, email])),
-      demoUserIds: Object.fromEntries(users.map(([key]) => [key, userIds.get(key)])),
-      ownerAdmin: {
-        name: 'Antonny Nascimento',
-        email: ownerAdminEmail,
-        role: 'owner_admin',
-      },
       counts: {
         clients: (sqlite.prepare('SELECT count(*) count FROM client').get() as { count: number })
           .count,
@@ -913,6 +2414,35 @@ console.log(
             count: number;
           }
         ).count,
+        invoices: (sqlite.prepare('SELECT count(*) count FROM invoice').get() as { count: number })
+          .count,
+        issuedInvoices: (
+          sqlite
+            .prepare(
+              "SELECT count(*) count FROM invoice WHERE state IN ('issued','sent','paid','partially_paid','overdue')",
+            )
+            .get() as { count: number }
+        ).count,
+        billingRules: (
+          sqlite.prepare('SELECT count(*) count FROM billing_rule WHERE enabled=1').get() as {
+            count: number;
+          }
+        ).count,
+        skills: (sqlite.prepare('SELECT count(*) count FROM skill').get() as { count: number })
+          .count,
+        workerSkills: (
+          sqlite.prepare('SELECT count(*) count FROM worker_skill').get() as { count: number }
+        ).count,
+        availabilities: (
+          sqlite.prepare('SELECT count(*) count FROM worker_availability').get() as {
+            count: number;
+          }
+        ).count,
+        settlements: (
+          sqlite.prepare('SELECT count(*) count FROM compensation_settlement').get() as {
+            count: number;
+          }
+        ).count,
         periodReports: (
           sqlite.prepare('SELECT count(*) count FROM period_report').get() as { count: number }
         ).count,
@@ -924,9 +2454,16 @@ console.log(
       },
       projects: [line.id, palletizer.id, recovery.id, support.id],
       invoiceDrafts: [laborInvoice.id, expenseInvoice.id, milestoneInvoice.id],
+      additionalInvoiceDrafts: additionalInvoiceDrafts.map((invoice) => invoice.id),
+      issuedPalletizerInvoice: {
+        id: palletizerInvoiceDraft.id,
+        invoiceNumber: issuedPalletizerInvoice.invoiceNumber,
+      },
+      settlementIds: demoSettlements.map((settlement) => settlement.id),
       closedPeriods: [closedLaborPeriod, closedExpensePeriod],
       periodReportIds: periodReports.map((report) => report.id),
       accountingPackId: accountingPack.id,
+      canonicalAccountingPackRevisionId,
       closeoutId: closeout.id,
     },
     null,

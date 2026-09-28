@@ -1,0 +1,248 @@
+[
+  {
+    "scenario": "invoice-inline-preview",
+    "role": "owner",
+    "locale": "en",
+    "width": 1440,
+    "iframeVisible": true,
+    "originalPageRetained": true,
+    "network": [
+      {
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment"
+      }
+    ],
+    "errors": [
+      "Framing 'blob:http://127.0.0.1:4174/[redacted-id]' violates the following Content Security Policy directive: \"default-src 'self'\". The request has been blocked. Note that 'frame-src' was not explicitly set, so 'default-src' is used as a fallback.\n"
+    ]
+  },
+  {
+    "scenario": "invoice-open-popup",
+    "role": "owner",
+    "locale": "en",
+    "width": 1440,
+    "fallbackLinkVisible": true,
+    "iframeCount": 1,
+    "pageCount": 2,
+    "network": [
+      {
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment"
+      },
+      {
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment"
+      }
+    ],
+    "errors": [
+      "Framing 'blob:http://127.0.0.1:4174/[redacted-id]' violates the following Content Security Policy directive: \"default-src 'self'\". The request has been blocked. Note that 'frame-src' was not explicitly set, so 'default-src' is used as a fallback.\n"
+    ]
+  },
+  {
+    "scenario": "invoice-download",
+    "role": "owner",
+    "locale": "en",
+    "width": 1440,
+    "filenamePdf": true,
+    "network": [
+      {
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment"
+      },
+      {
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment"
+      },
+      {
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment"
+      }
+    ],
+    "errors": [
+      "Framing 'blob:http://127.0.0.1:4174/[redacted-id]' violates the following Content Security Policy directive: \"default-src 'self'\". The request has been blocked. Note that 'frame-src' was not explicitly set, so 'default-src' is used as a fallback.\n"
+    ]
+  },
+  {
+    "scenario": "typed-ui-failure",
+    "source": "intercepted",
+    "role": "owner",
+    "locale": "en",
+    "width": 1440,
+    "status": 401,
+    "expectedCode": "INVOICE_PDF_SIGN_IN_REQUIRED",
+    "notice": {
+      "text": "Action needed Your session ended. Sign in again, then return to the invoice to open its PDF. Sign in again",
+      "code": "INVOICE_PDF_SIGN_IN_REQUIRED",
+      "focused": true,
+      "rect": {
+        "top": 358.6875,
+        "bottom": 489.953125,
+        "left": 309,
+        "right": 1379
+      },
+      "links": [
+        {
+          "label": "Sign in again",
+          "href": "/j-aautomation/app/login?lang=en"
+        }
+      ]
+    },
+    "requests": 1,
+    "contextPagesBefore": 1,
+    "contextPagesAfter": 1,
+    "stillInvoice": true,
+    "scrollBefore": 0,
+    "scrollAfter": 0,
+    "network": [
+      {
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment"
+      },
+      {
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment"
+      },
+      {
+        "status": 200,
+        "contentType": "application/pdf",
+        "disposition": "attachment"
+      },
+      {
+        "status": 401,
+        "contentType": "application/json"
+      }
+    ],
+    "errors": [
+      "Framing 'blob:http://127.0.0.1:4174/[redacted-id]' violates the following Content Security Policy directive: \"default-src 'self'\". The request has been blocked. Note that 'frame-src' was not explicitly set, so 'default-src' is used as a fallback.\n"
+    ]
+  },
+  {
+    "scenario": "typed-ui-failure",
+    "source": "intercepted",
+    "role": "finance",
+    "locale": "es",
+    "width": 390,
+    "status": 404,
+    "expectedCode": "INVOICE_PDF_UNAVAILABLE",
+    "notice": {
+      "text": "Se requiere una acción El PDF de esta factura no está disponible para este registro o con tu acceso actual. Revisa la factura y consulta con Finanzas si aún lo necesitas. Revisar Facturación",
+      "code": "INVOICE_PDF_UNAVAILABLE",
+      "focused": true,
+      "rect": {
+        "top": 401.890625,
+        "bottom": 594.046875,
+        "left": 33,
+        "right": 357
+      },
+      "links": [
+        {
+          "label": "Revisar Facturación",
+          "href": "/j-aautomation/app/billing"
+        }
+      ]
+    },
+    "requests": 1,
+    "contextPagesBefore": 1,
+    "contextPagesAfter": 1,
+    "stillInvoice": true,
+    "scrollBefore": 0,
+    "scrollAfter": 0,
+    "network": [
+      {
+        "status": 404,
+        "contentType": "application/json"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "scenario": "typed-ui-failure",
+    "source": "intercepted",
+    "role": "owner",
+    "locale": "pt",
+    "width": 390,
+    "status": 409,
+    "expectedCode": "INVOICE_PDF_NOT_READY",
+    "notice": {
+      "text": "Ação necessária O PDF desta fatura ainda está a ser preparado. Reveja o estado atual da fatura e tente novamente quando estiver pronto. Revisar os detalhes da fatura",
+      "code": "INVOICE_PDF_NOT_READY",
+      "focused": true,
+      "rect": {
+        "top": 401.890625,
+        "bottom": 573.75,
+        "left": 33,
+        "right": 357
+      },
+      "links": [
+        {
+          "label": "Revisar os detalhes da fatura",
+          "href": "/j-aautomation/app/billing/invoices/[redacted-id]?lang=pt"
+        }
+      ]
+    },
+    "requests": 1,
+    "contextPagesBefore": 1,
+    "contextPagesAfter": 1,
+    "stillInvoice": true,
+    "scrollBefore": 0,
+    "scrollAfter": 0,
+    "network": [
+      {
+        "status": 409,
+        "contentType": "application/json"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "scenario": "typed-ui-failure",
+    "source": "intercepted",
+    "role": "owner",
+    "locale": "pt",
+    "width": 390,
+    "status": 503,
+    "expectedCode": "INVOICE_PDF_SERVICE_UNAVAILABLE",
+    "notice": {
+      "text": "Ação necessária Não foi possível preparar o PDF desta fatura. A fatura não foi alterada; tente novamente mais tarde. Referência: qa-invoice-pdf-reference. Baixar PDF",
+      "code": "INVOICE_PDF_SERVICE_UNAVAILABLE",
+      "focused": true,
+      "rect": {
+        "top": 401.890625,
+        "bottom": 594.046875,
+        "left": 33,
+        "right": 357
+      },
+      "links": [
+        {
+          "label": "Baixar PDF",
+          "href": "#invoice-issued-pdf-download"
+        }
+      ]
+    },
+    "requests": 1,
+    "contextPagesBefore": 1,
+    "contextPagesAfter": 1,
+    "stillInvoice": true,
+    "scrollBefore": 0,
+    "scrollAfter": 0,
+    "network": [
+      {
+        "status": 409,
+        "contentType": "application/json"
+      },
+      {
+        "status": 503,
+        "contentType": "application/json"
+      }
+    ],
+    "errors": []
+  }
+]

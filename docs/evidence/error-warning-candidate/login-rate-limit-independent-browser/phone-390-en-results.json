@@ -1,0 +1,45 @@
+{
+  "candidate": "264b3c9",
+  "locale": "en",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "statusCodes": [
+    401,
+    401,
+    429
+  ],
+  "typed429": {
+    "error": "Too many authentication attempts",
+    "code": "AUTH_SIGN_IN_RATE_LIMITED",
+    "messageKey": "problem.auth.signInRateLimited",
+    "retryAfterSeconds": 900,
+    "paramsMatchHeader": true,
+    "fieldErrorsEmpty": true,
+    "remedies": [
+      {
+        "id": "wait_and_retry"
+      }
+    ],
+    "headerCorrelationMatchesBody": true
+  },
+  "noticeText": "Too many sign-in attempts. Try again in 15:00.",
+  "noticeFocused": true,
+  "noticeBox": {
+    "x": 42.59375,
+    "y": 411.96875,
+    "width": 304.8125,
+    "height": 19.1875
+  },
+  "valuesRetained": true,
+  "submitDisabled": true,
+  "postsAfterForcedDisabledClick": 3,
+  "layout": {
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "documentLanguage": "en-US"
+  },
+  "pageErrorCount": 0,
+  "unexpectedConsoleErrorCount": 0
+}

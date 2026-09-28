@@ -1,0 +1,62 @@
+{
+  "candidateCommit": "d9c212ba93625ff9fe37802c771291a1ecfb42de",
+  "diagnostics": {
+    "pageErrors": [],
+    "consoleErrors": [],
+    "downloads": 0
+  },
+  "afterApprove": {
+    "state": "approved",
+    "visibleProblemCodes": []
+  },
+  "afterIssue": {
+    "state": "issued",
+    "visibleProblemCodes": []
+  },
+  "stale": {
+    "network": {
+      "status": 409,
+      "contentType": "application/problem+json; charset=utf-8",
+      "disposition": null,
+      "code": "INVOICE_DRAFT_PREVIEW_STATE_UNAVAILABLE",
+      "messageKey": "problem.invoiceDraftPreview.stateUnavailable",
+      "remedies": [
+        "review_invoice"
+      ]
+    },
+    "ui": {
+      "path": "/j-aautomation/app/billing/invoices/:record",
+      "lang": "en-US",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollY": 0,
+      "noticeCode": "INVOICE_DRAFT_PREVIEW_STATE_UNAVAILABLE",
+      "noticeText": "Action needed This invoice is now Issued. Draft previews are available only while an invoice is Draft or Approved. Review invoice details",
+      "noticeTop": 357.890625,
+      "noticeBottom": 529.75,
+      "headerBottom": 69.59375,
+      "activeNotice": true,
+      "activeElement": "aside",
+      "remedies": [
+        {
+          "text": "Review invoice details",
+          "href": "/j-aautomation/app/billing/invoices/:record?lang=en"
+        }
+      ],
+      "actionHref": "/j-aautomation/app/api/invoices/:record/draft-preview?lang=en",
+      "actionVisible": true,
+      "actionDisabled": "false"
+    },
+    "before": {
+      "invoices": 8,
+      "audits": 333
+    },
+    "after": {
+      "invoices": 8,
+      "audits": 333
+    },
+    "downloads": 0
+  }
+}

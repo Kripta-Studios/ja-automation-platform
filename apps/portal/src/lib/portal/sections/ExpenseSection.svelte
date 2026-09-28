@@ -708,6 +708,25 @@
   const editRow = $derived.by(
     () => records.find((row) => String(row.id) === editExpenseId) as Row | undefined,
   );
+  const expenseProblemContext = $derived.by(() => {
+    const row = surface === 'edit' ? editRow : undefined;
+    const projectId = String(row?.project_id ?? createProject);
+    const project = availableProjects.find((item) => String(item.id) === projectId);
+    const workerId = String(row?.worker_id ?? createWorker ?? data.user.id);
+    const worker = data.workers?.find((item) => String(item.id) === workerId);
+    return [
+      project
+        ? [project.project_number, project.name].filter(Boolean).join(' · ')
+        : String(row?.project_name ?? row?.project_number ?? ''),
+      String(
+        worker?.name ??
+          (workerId === String(data.user.id) ? data.user.name : (row?.worker_name ?? '')),
+      ),
+      String(row?.spent_on ?? createDate),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  });
   const selectedTimeLinkVerified = $derived.by(() => {
     if (!linkedTimeLookupSucceeded || linkedTimeLoading || timeLookupProblem) return false;
     if (surface === 'create')
@@ -933,7 +952,8 @@
         value: workerFilter
           ? String(
               data.workers?.find((row) => String(row.id) === workerFilter)?.name ??
-                (workerFilter === data.user.id ? data.user.name : workerFilter),
+                records.find((row) => String(row.worker_id) === workerFilter)?.worker_name ??
+                (workerFilter === data.user.id ? data.user.name : translate('Unavailable')),
             )
           : '',
       },
@@ -985,7 +1005,11 @@
         value: projectFilter
           ? project
             ? `${project.project_number} — ${project.name}`
-            : projectFilter
+            : String(
+                records.find((row) => String(row.project_id) === projectFilter)?.project_name ??
+                  records.find((row) => String(row.project_id) === projectFilter)?.project_number ??
+                  translate('Unavailable'),
+              )
           : '',
       },
       {
@@ -1953,6 +1977,7 @@
         <ProblemNotice
           problem={surfaceProblem}
           kind={surfaceProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+          status={expenseProblemContext || undefined}
           remedyLinks={{
             correct_field: {
               label: portalText(warningLocale, 'problem.remedy.correctField'),

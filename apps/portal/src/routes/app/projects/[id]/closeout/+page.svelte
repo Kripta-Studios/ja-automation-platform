@@ -245,7 +245,11 @@
               {@const document = eligible.find((candidate) => String(candidate.id) === id)}
               <li>
                 {document
-                  ? String(document.safe_filename ?? document.original_filename ?? document.id)
+                  ? String(
+                      document.safe_filename ??
+                        document.original_filename ??
+                        t('Document name unavailable'),
+                    )
                   : portalText(locale, 'problem.closeout.documentNoLongerAvailable')}
               </li>
             {/each}
@@ -274,13 +278,17 @@
                 value={String(document.id)}
                 checked={selected('prepare', String(document.id))}
               />
-              {String(document.safe_filename ?? document.original_filename ?? document.id)} · {documentLabel(
-                document.artifact_type,
-              )} · {documentLabel(document.sensitivity)}</label
+              {String(
+                document.safe_filename ??
+                  document.original_filename ??
+                  t('Document name unavailable'),
+              )} · {documentLabel(document.artifact_type)} · {documentLabel(
+                document.sensitivity,
+              )}</label
             >{/each}
-          {#each unavailableSelection('prepare') as id}<label
+          {#each unavailableSelection('prepare') as id (id)}<label
               ><input type="checkbox" checked disabled />
-              {id} · {portalText(locale, 'problem.closeout.documentUnavailable')}</label
+              {portalText(locale, 'problem.closeout.documentUnavailable')}</label
             >{/each}
         </div>
         <button type="submit">{t.prepareAction}</button>
@@ -465,13 +473,15 @@
                 value={String(document.id)}
                 checked={selected('refresh', String(document.id), true)}
               />
-              {String(document.safe_filename ?? document.original_filename ?? document.id)} · {documentLabel(
-                document.artifact_type,
-              )}</label
+              {String(
+                document.safe_filename ??
+                  document.original_filename ??
+                  t('Document name unavailable'),
+              )} · {documentLabel(document.artifact_type)}</label
             >{/each}
-          {#each unavailableSelection('refresh', true) as id}<label
+          {#each unavailableSelection('refresh', true) as id (id)}<label
               ><input type="checkbox" checked disabled />
-              {id} · {portalText(locale, 'problem.closeout.documentUnavailable')}</label
+              {portalText(locale, 'problem.closeout.documentUnavailable')}</label
             >{/each}
         </fieldset>
         <button type="submit">{t.replace}</button>

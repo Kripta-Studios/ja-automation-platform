@@ -376,7 +376,7 @@
 
   function directCostValue(row: Row): string {
     return value(row, 'directCostComplete', 'direct_cost_complete') === 'false'
-      ? translate('Unavailable — missing source IDs')
+      ? translate('Source records need review before direct cost is complete.')
       : moneyValue(row, 'directCostMinor', 'direct_cost_minor');
   }
 
@@ -418,7 +418,7 @@
       date: value(reversal, 'effectiveAt', 'effective_at'),
       amountMinor: value(reversal, 'amountMinor', 'amount_minor'),
       currency: value(reversal, 'currency') || value(row, 'currency') || 'USD',
-      reference: value(reversal, 'commandId', 'command_id', 'id') || translate('No reference'),
+      reference: translate('No reference'),
       detail:
         value(reversal, 'reason') ||
         value(reversal, 'reasonCode', 'reason_code') ||
@@ -472,7 +472,7 @@
 
   const cardRows = $derived.by((): TableCardRow[] =>
     ledgerPage.map((row) => {
-      const invoice = value(row, 'invoiceNumber', 'invoice_number', 'invoiceId') || '—';
+      const invoice = value(row, 'invoiceNumber', 'invoice_number') || translate('Invoice');
       const status = value(row, 'paymentStatus', 'payment_status');
       return {
         id: value(row, 'invoiceId', 'id') || invoice,
@@ -1046,7 +1046,7 @@
               <td>
                 <a class="collections-ledger__invoice-link" href={invoiceHref(row)}>
                   <strong
-                    >{value(row, 'invoiceNumber', 'invoice_number', 'invoiceId') || '—'}</strong
+                    >{value(row, 'invoiceNumber', 'invoice_number') || translate('Invoice')}</strong
                   >
                 </a>
                 <small
@@ -1059,7 +1059,13 @@
               <td>
                 <span>{value(row, 'clientNumber', 'client_number') || '—'}</span>
                 <small>{value(row, 'clientName', 'client_name') || '—'}</small>
-                <small>{value(row, 'projectNumber', 'project_number') || '—'}</small>
+                <small
+                  >{value(row, 'projectName', 'project_name') || '—'} · {value(
+                    row,
+                    'projectNumber',
+                    'project_number',
+                  ) || '—'}</small
+                >
               </td>
               <td>{streamLabel(row)}</td>
               <td>

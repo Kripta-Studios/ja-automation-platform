@@ -51,7 +51,9 @@
   >
     <option value="">{translate('All expertise')}</option>
     {#each availableExpertise as item (String(item.id))}
-      <option value={String(item.id)}>{String(item.name || item.code || item.id)}</option>
+      <option value={String(item.id)}
+        >{String(item.name || item.code || translate('Expertise'))}</option
+      >
     {/each}
   </select>
 </label>
@@ -72,7 +74,9 @@
       </option>
     {/if}
     {#each availableWorkers as worker (String(worker.id))}
-      <option value={String(worker.id)}>{String(worker.name || worker.id)}</option>
+      <option value={String(worker.id)}
+        >{String(worker.name || worker.email || translate('Worker'))}</option
+      >
     {/each}
   </select>
   {#if unavailableSelectedWorker}

@@ -1,6 +1,74 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
   status: ['estado', 'estado'],
+  Sections: ['Secciones', 'Seções'],
+  'Project register': ['Registro de proyectos', 'Cadastro de projetos'],
+  'Filter collections': ['Filtrar cobros', 'Filtrar cobranças'],
+  Workers: ['Trabajadores', 'Trabalhadores'],
+  'Review source expense': ['Revisar el gasto de origen', 'Revisar a despesa de origem'],
+  'Use existing authorized finance rules for this worker and assignment dates': [
+    'Usar las reglas financieras autorizadas que ya cubren a este trabajador y estas fechas',
+    'Usar as regras financeiras autorizadas que já cobrem este trabalhador e estas datas',
+  ],
+  'Both internal cost and compensation rules must cover every assignment date in the project currency.':
+    [
+      'Las reglas de coste interno y remuneración deben cubrir todas las fechas de la asignación en la moneda del proyecto.',
+      'As regras de custo interno e remuneração devem cobrir todas as datas da atribuição na moeda do projeto.',
+    ],
+  'Supplier directory': ['Directorio de proveedores', 'Cadastro de fornecedores'],
+  'Supplier setup': ['Configuración de proveedores', 'Configuração de fornecedores'],
+  'Supplier access': ['Acceso de proveedores', 'Acesso de fornecedores'],
+  'Supplier personnel': ['Personal de proveedores', 'Pessoal de fornecedores'],
+  'Supplier time': ['Horas de proveedores', 'Horas dos fornecedores'],
+  'Supplier report': ['Informe de proveedores', 'Relatório de fornecedores'],
+  'Create the project first. Then assign workers with their authorized cost, compensation, and effective dates before reviewing the project.':
+    [
+      'Crea primero el proyecto. Después asigna a los trabajadores con su coste autorizado, remuneración y fechas de vigencia antes de revisar el proyecto.',
+      'Crie primeiro o projeto. Depois atribua os trabalhadores com custo autorizado, remuneração e datas de vigência antes de revisar o projeto.',
+    ],
+  'Create the project first. Then assign each worker with authorized internal cost, compensation, and effective dates.':
+    [
+      'Crea primero el proyecto. Después asigna a cada trabajador con el coste interno autorizado, la remuneración y las fechas de vigencia.',
+      'Crie primeiro o projeto. Depois atribua cada trabalhador com custo interno autorizado, remuneração e datas de vigência.',
+    ],
+  'Internal hourly cost': ['Coste interno por hora', 'Custo interno por hora'],
+  'Compensation rate': ['Tarifa de remuneración', 'Valor da remuneração'],
+  'Compensation basis': ['Base de remuneración', 'Base da remuneração'],
+  'Finance effective from': ['Vigencia financiera desde', 'Vigência financeira a partir de'],
+  'Finance effective to (optional)': [
+    'Vigencia financiera hasta (opcional)',
+    'Vigência financeira até (opcional)',
+  ],
+  'Finance notes (optional)': ['Notas financieras (opcional)', 'Notas financeiras (opcional)'],
+  'Enter private project-currency cost and compensation terms for this assignment.': [
+    'Introduce las condiciones privadas de coste y remuneración en la moneda del proyecto para esta asignación.',
+    'Informe as condições privadas de custo e remuneração na moeda do projeto para esta atribuição.',
+  ],
+  'Enter the authorized internal hourly cost and worker compensation in this project’s currency. Check the effective dates before assigning.':
+    [
+      'Introduce el coste interno por hora y la remuneración del trabajador autorizados en la moneda de este proyecto. Comprueba las fechas de vigencia antes de asignarlo.',
+      'Informe o custo interno por hora e a remuneração do trabalhador autorizados na moeda deste projeto. Confira as datas de vigência antes de atribuí-lo.',
+    ],
+  'Finance or an owner must set the internal cost and worker compensation before finance review. This form does not show private rates.':
+    [
+      'Finanzas o un propietario debe establecer el coste interno y la remuneración del trabajador antes de la revisión financiera. Este formulario no muestra tarifas privadas.',
+      'A equipe de Finanças ou um proprietário deve definir o custo interno e a remuneração do trabalhador antes da revisão financeira. Este formulário não mostra valores privados.',
+    ],
+  'Before you assign this worker, ask an owner or Finance to set cost and compensation terms for these dates. The assignment may be blocked until setup is complete.':
+    [
+      'Antes de asignar a este trabajador, pide a un propietario o a Finanzas que configure el coste y la remuneración para estas fechas. La asignación puede quedar bloqueada hasta completar la configuración.',
+      'Antes de atribuir este trabalhador, peça a um proprietário ou à equipe de Finanças que configure custo e remuneração para estas datas. A atribuição pode ser bloqueada até a configuração estar completa.',
+    ],
+  'Before you assign this worker, ask the project owner to set cost and compensation terms for these dates. The assignment is blocked until setup is complete.':
+    [
+      'Antes de asignar a este trabajador, pide al propietario del proyecto que configure el coste y la remuneración para estas fechas. La asignación queda bloqueada hasta completar la configuración.',
+      'Antes de atribuir este trabalhador, peça ao proprietário do projeto para configurar custo e remuneração para estas datas. A atribuição fica bloqueada até a configuração estar completa.',
+    ],
+  'The assignment requires internal cost and compensation covering these dates. If they are missing, ask the project owner to set them before trying again.':
+    [
+      'La asignación requiere un coste interno y una remuneración que cubran estas fechas. Si faltan, pide al propietario del proyecto que los configure antes de volver a intentarlo.',
+      'A atribuição exige custo interno e remuneração que cubram estas datas. Se estiverem ausentes, peça ao proprietário do projeto para configurá-los antes de tentar novamente.',
+    ],
   'The export failed during generation. Other formats may still be ready.': [
     'La exportación falló durante la generación. Otros formatos aún pueden estar disponibles.',
     'A exportação falhou durante a geração. Outros formatos ainda podem estar disponíveis.',
@@ -2396,6 +2464,24 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'Un registro de origen financiero necesita revisión de la proyección.',
     'Um registro de origem financeira precisa de revisão da projeção.',
   ],
+  'A planned worker needs a rate before the forecast is complete.': [
+    'Un trabajador planificado necesita una tarifa para completar la previsión.',
+    'Um trabalhador planeado precisa de uma tarifa para concluir a previsão.',
+  ],
+  'Document name unavailable': [
+    'Nombre del documento no disponible',
+    'Nome do documento indisponível',
+  ],
+  'Record name unavailable': ['Nombre del registro no disponible', 'Nome do registro indisponível'],
+  'Source records need review before direct cost is complete.': [
+    'Hay que revisar los registros de origen antes de completar el coste directo.',
+    'É preciso rever os registros de origem antes de concluir o custo direto.',
+  ],
+  'The selected project is unavailable for this form. Its access, status, or assignment dates may have changed.':
+    [
+      'El proyecto seleccionado no está disponible en este formulario. Puede que hayan cambiado el acceso, el estado o las fechas de asignación.',
+      'O projeto selecionado está indisponível neste formulário. O acesso, o estado ou as datas de atribuição podem ter mudado.',
+    ],
   'Capture actual work': ['Registrar trabajo real', 'Registrar trabalho real'],
   'Capture conformity': ['Registrar conformidad', 'Registrar conformidade'],
   'Capture field activity, technical changes and customer confirmation in one register.': [

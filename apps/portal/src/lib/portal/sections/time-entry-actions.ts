@@ -56,6 +56,15 @@ export function weekDates(weekStart: string): string[] {
   });
 }
 
+/** Resolve any valid ISO date to the Monday of its calendar week. */
+export function weekStartForDate(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(value)) return null;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) return null;
+  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
+  return date.toISOString().slice(0, 10);
+}
+
 export function monthCalendarDates(month: string): string[] {
   if (!/^\d{4}-(?:0[1-9]|1[0-2])$/u.test(month)) return [];
   const first = new Date(`${month}-01T00:00:00.000Z`);

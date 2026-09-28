@@ -6,6 +6,7 @@ import {
   monthCalendarDates,
   nextIsoDate,
   weekDates,
+  weekStartForDate,
 } from '../../apps/portal/src/lib/portal/sections/time-entry-actions.js';
 
 describe('time entry form helpers', () => {
@@ -50,6 +51,10 @@ describe('time entry form helpers', () => {
   });
 
   it('uses stable seven-day weeks and Monday-first month calendar cells', () => {
+    expect(weekStartForDate('2026-09-27')).toBe('2026-09-21');
+    expect(weekStartForDate('2026-09-28')).toBe('2026-09-28');
+    expect(weekStartForDate('2027-01-01')).toBe('2026-12-28');
+    expect(weekStartForDate('2026-02-30')).toBeNull();
     expect(weekDates('2026-09-21')).toEqual([
       '2026-09-21',
       '2026-09-22',

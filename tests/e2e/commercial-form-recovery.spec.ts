@@ -102,6 +102,8 @@ for (const scenario of ['phone-390', 'desktop']) {
     await form.locator('#finance-comp-percentage').fill('37.5');
     await form.locator('#finance-comp-overtime-rate').fill('12.34');
     await form.locator('[name="effectiveFrom"]').fill('2026-09-26');
+    await form.locator('[name="effectiveTo"]').fill('2026-10-31');
+    await form.locator('[name="notes"]').fill('Provisional review; confirm actual rate.');
     // This bypasses an old client max constraint while keeping a normal submit
     // event, exercising the server's typed field error and native recovery.
     await form.locator('[name="dailyGuaranteeMinutes"]').evaluate((input: HTMLInputElement) => {
@@ -120,6 +122,10 @@ for (const scenario of ['phone-390', 'desktop']) {
     await expect(form.locator('#finance-comp-percentage')).toHaveValue('37.5');
     await expect(form.locator('[name="percentageBps"]')).toHaveValue('3750');
     await expect(form.locator('#finance-comp-overtime-rate')).toHaveValue('12.34');
+    await expect(form.locator('[name="effectiveTo"]')).toHaveValue('2026-10-31');
+    await expect(form.locator('[name="notes"]')).toHaveValue(
+      'Provisional review; confirm actual rate.',
+    );
     await expect(form.locator('[name="overtimeRateMinor"]')).toHaveValue('1234');
     await expect(form.locator('[name="dailyGuaranteeMinutes"]')).toHaveValue('1441');
     await expect(form.locator('[name="dailyGuaranteeMinutes"]')).toHaveAttribute(
@@ -340,6 +346,8 @@ for (const scenario of ['phone-390', 'desktop']) {
       await form.locator('#finance-internal-cost').fill('54.25');
       await form.locator('[name="costMethod"]').fill('M'.repeat(81));
       await form.locator('[name="effectiveFrom"]').fill('2026-09-26');
+      await form.locator('[name="effectiveTo"]').fill('2026-10-31');
+      await form.locator('[name="notes"]').fill('Provisional review; confirm actual cost.');
       const beforeCount = tableCount('internal_cost_rule');
       const beforeScroll = await submitInvalid(page, form, 'Save internal cost');
       await assertCommercialFailure(
@@ -351,6 +359,10 @@ for (const scenario of ['phone-390', 'desktop']) {
       await expect(form.locator('#finance-internal-cost')).toHaveValue('54.25');
       await expect(form.locator('[name="hourlyRateMinor"]')).toHaveValue('5425');
       await expect(form.locator('[name="costMethod"]')).toHaveValue('M'.repeat(81));
+      await expect(form.locator('[name="effectiveTo"]')).toHaveValue('2026-10-31');
+      await expect(form.locator('[name="notes"]')).toHaveValue(
+        'Provisional review; confirm actual cost.',
+      );
       await assertFieldRecovery(page, form, 'costMethod', beforeScroll);
       expect(tableCount('internal_cost_rule')).toBe(beforeCount);
     });

@@ -3,6 +3,7 @@ import { translate } from '../../apps/portal/src/lib/i18n/catalog';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -19,8 +20,13 @@ function fixture() {
   fixtures.push(value);
   openPortalRepository.mockReturnValue({
     repository: value.repository,
+    v3: value.v3,
     principal: value.owner,
-    sqlite: { close: vi.fn() },
+    sqlite: {
+      close: vi.fn(),
+      exec: value.sqlite.exec.bind(value.sqlite),
+      prepare: value.sqlite.prepare.bind(value.sqlite),
+    },
   });
   return value;
 }
@@ -40,7 +46,7 @@ afterEach(() => {
 });
 
 describe('Project editing through actual HTML form payloads', () => {
-  it('accepts an imported project ID when assigning a worker', async () => {
+  it('accepts an imported project ID at the form boundary, then checks its project dates', async () => {
     const value = fixture();
     const assign = vi
       .spyOn(value.repository, 'assignWorker')
@@ -53,7 +59,10 @@ describe('Project editing through actual HTML form payloads', () => {
         endsOn: '',
       }),
     );
-    expect(result).toMatchObject({ success: true });
+    expect(result).toMatchObject({
+      status: 400,
+      data: { code: 'ASSIGNMENT_START_OUTSIDE_PROJECT_DATES' },
+    });
     expect(assign).toHaveBeenCalledWith(
       value.owner,
       expect.objectContaining({ projectId: 'project-cp020-dfw', workerId: 'b5-outsider' }),
@@ -155,6 +164,23 @@ describe('Project editing through actual HTML form payloads', () => {
       endsOn: '2099-12-31',
       plannedMinutes: 60,
       canReview: true,
+    });
+    const owner = stepUpB5Principal(value.sqlite, value.owner, 'assignment-open-end');
+    value.v3.createInternalCostRule(owner, {
+      workerId: 'b5-outsider',
+      projectId: value.project.id,
+      currency: 'EUR',
+      hourlyRateMinor: 2800n,
+      effectiveFrom: '2026-01-01',
+    });
+    value.v3.createCompensationRule(owner, {
+      workerId: 'b5-outsider',
+      projectId: value.project.id,
+      currency: 'EUR',
+      ruleType: 'Hourly',
+      rateBasis: 'hourly',
+      rateMinor: 2000n,
+      effectiveFrom: '2026-01-01',
     });
     expect(
       await projectActions.updateAssignment(

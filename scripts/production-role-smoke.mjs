@@ -78,6 +78,8 @@ try {
     try {
       for (let attempt = 0; attempt < 2; attempt += 1) {
         await page.goto(`${base}/login?lang=en`, { waitUntil: 'domcontentloaded' });
+        stage = 'wait for interactive login form';
+        await page.locator('form.login-card[data-hydrated="true"]').waitFor({ timeout: 15_000 });
         stage = 'fill login form';
         await page.getByLabel('Work email').fill(account.email);
         await page.getByLabel('Password').fill(account.password);

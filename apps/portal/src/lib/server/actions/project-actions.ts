@@ -10,10 +10,27 @@ import {
   versionedRecordSchema,
 } from '@ja/schemas';
 import { z } from 'zod';
-import { AccessDeniedError, ConflictError, ValidationError } from '@ja/database';
+import {
+  AccessDeniedError,
+  ConflictError,
+  V3ConflictError,
+  V3ValidationError,
+  ValidationError,
+} from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
 import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
+import {
+  AssignmentFinanceInputError,
+  AssignmentFinanceRuleOverlapError,
+  AssignmentFinanceSetupRequiredError,
+  assignmentStartWithinProjectDates,
+  hasAssignmentFinanceCoverage,
+  hasOverlappingAssignmentFinanceRule,
+  parseAssignmentFinanceTerms,
+  rateMinor,
+  withAssignmentFinanceTransaction,
+} from './assignment-finance';
 
 const initialProjectPeopleSchema = z.object({
   initialWorkerIds: z.array(uuidSchema).max(100),
@@ -559,6 +576,15 @@ const knownProjectRules: Record<string, KnownProjectRule> = {
     remedy: 'review_assignments',
     field: 'endsOn',
   },
+  'Worker assignment start date must be within project dates': {
+    status: 400,
+    code: 'ASSIGNMENT_START_OUTSIDE_PROJECT_DATES',
+    messageKey: 'problem.assignment.startOutsideProjectDates',
+    message:
+      'The assignment start must fall within the project dates. Review the project schedule and choose another start date.',
+    remedy: 'review_project_dates',
+    field: 'startsOn',
+  },
   'Immediate removal cannot use a future end date': {
     status: 400,
     code: 'ASSIGNMENT_REMOVAL_FUTURE_DATE',
@@ -1010,6 +1036,18 @@ export const projectActions = {
           correlationId: locals.correlationId,
         },
       );
+    if (people.data.initialWorkerIds.length > 0)
+      return inputFailure(
+        'PROJECT_INITIAL_WORKERS_REQUIRE_FINANCE_SETUP',
+        'problem.project.initialWorkersRequireFinanceSetup',
+        'Create the project first, then add each worker with authorized internal cost, compensation, and effective dates.',
+        { initialWorkerIds: ['problem.project.initialWorkersRequireFinanceSetup'] },
+        {
+          values: retainedValues,
+          actionName: 'createProject',
+          correlationId: locals.correlationId,
+        },
+      );
     const context = openPortalRepository(locals);
     try {
       const result = context.repository.createProject(context.principal, {
@@ -1197,10 +1235,20 @@ export const projectActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     const values = Object.fromEntries(
-      ['projectId', 'workerId', 'startsOn', 'endsOn', 'plannedMinutes'].map((key) => [
-        key,
-        typeof object[key] === 'string' ? object[key] : '',
-      ]),
+      [
+        'projectId',
+        'workerId',
+        'startsOn',
+        'endsOn',
+        'plannedMinutes',
+        'internalCostHourlyRate',
+        'compensationRate',
+        'compensationBasis',
+        'financeEffectiveFrom',
+        'financeEffectiveTo',
+        'financeNotes',
+        'useExistingFinanceRules',
+      ].map((key) => [key, typeof object[key] === 'string' ? object[key] : '']),
     );
     const parsed = assignmentInputSchema.safeParse(object);
     if (!parsed.success) {
@@ -1213,10 +1261,195 @@ export const projectActions = {
       );
     }
     const context = openPortalRepository(locals);
+    const responseValues =
+      context.principal.role === 'owner_admin'
+        ? values
+        : Object.fromEntries(
+            ['projectId', 'workerId', 'startsOn', 'endsOn', 'plannedMinutes'].map((key) => [
+              key,
+              values[key],
+            ]),
+          );
     try {
-      context.repository.assignWorker(context.principal, parsed.data);
-      return actionSuccess('action.projects.assignmentCreated', {}, 'Assignment created');
+      if (context.principal.role !== 'owner_admin') {
+        // Managers cannot read or submit private pay terms. Existing rules must
+        // cover the full assignment before an operational assignment is saved.
+        withAssignmentFinanceTransaction(context.sqlite, () => {
+          context.repository.assignWorker(context.principal, parsed.data);
+          if (
+            !assignmentStartWithinProjectDates(
+              context.sqlite,
+              parsed.data.projectId,
+              parsed.data.startsOn,
+            )
+          )
+            throw new ValidationError('Worker assignment start date must be within project dates');
+          const project = context.sqlite
+            .prepare('SELECT currency FROM project WHERE id=?')
+            .get(parsed.data.projectId) as { currency: string } | undefined;
+          if (
+            !project ||
+            !hasAssignmentFinanceCoverage(
+              context.sqlite,
+              parsed.data.projectId,
+              parsed.data.workerId,
+              project.currency,
+              parsed.data.startsOn,
+              parsed.data.endsOn,
+            )
+          )
+            throw new AssignmentFinanceSetupRequiredError();
+        });
+        return actionSuccess(
+          'action.projects.assignmentCreated',
+          {},
+          'Assignment created. Existing finance rules cover these dates.',
+        );
+      }
+
+      withAssignmentFinanceTransaction(context.sqlite, () => {
+        context.repository.assignWorker(context.principal, parsed.data);
+        if (
+          !assignmentStartWithinProjectDates(
+            context.sqlite,
+            parsed.data.projectId,
+            parsed.data.startsOn,
+          )
+        )
+          throw new ValidationError('Worker assignment start date must be within project dates');
+        const project = context.sqlite
+          .prepare('SELECT currency FROM project WHERE id=?')
+          .get(parsed.data.projectId) as { currency: 'EUR' | 'USD' | 'BRL' } | undefined;
+        if (!project) throw new ValidationError('Project not found');
+        if (object.useExistingFinanceRules === 'on') {
+          if (
+            !hasAssignmentFinanceCoverage(
+              context.sqlite,
+              parsed.data.projectId,
+              parsed.data.workerId,
+              project.currency,
+              parsed.data.startsOn,
+              parsed.data.endsOn,
+            )
+          )
+            throw new AssignmentFinanceSetupRequiredError();
+          return;
+        }
+        const finance = parseAssignmentFinanceTerms(object, parsed.data);
+        if (!finance.ok) throw new AssignmentFinanceInputError(finance.kind, finance.fields);
+        if (
+          hasOverlappingAssignmentFinanceRule(
+            context.sqlite,
+            parsed.data.projectId,
+            parsed.data.workerId,
+            parsed.data.startsOn,
+            parsed.data.endsOn,
+          )
+        )
+          throw new AssignmentFinanceRuleOverlapError();
+        const effectiveTo = finance.terms.financeEffectiveTo || undefined;
+        const notes = finance.terms.financeNotes || undefined;
+        context.v3.createInternalCostRule(context.principal, {
+          workerId: parsed.data.workerId,
+          projectId: parsed.data.projectId,
+          currency: project.currency,
+          hourlyRateMinor: rateMinor(finance.terms.internalCostHourlyRate),
+          effectiveFrom: finance.terms.financeEffectiveFrom,
+          effectiveTo,
+          costMethod: 'loaded_hourly',
+          notes,
+        });
+        context.v3.createCompensationRule(context.principal, {
+          workerId: parsed.data.workerId,
+          projectId: parsed.data.projectId,
+          currency: project.currency,
+          ruleType: finance.terms.compensationBasis === 'daily' ? 'Daily' : 'Hourly',
+          rateBasis: finance.terms.compensationBasis,
+          rateMinor: rateMinor(finance.terms.compensationRate),
+          effectiveFrom: finance.terms.financeEffectiveFrom,
+          effectiveTo,
+          notes,
+        });
+      });
+      if (object.useExistingFinanceRules === 'on')
+        return actionSuccess(
+          'action.projects.assignmentCreated',
+          {},
+          'Assignment created using existing authorized finance rules.',
+        );
+      return actionSuccess(
+        'action.projects.assignmentCreatedWithFinance',
+        {},
+        'Assignment, internal hourly cost, and worker compensation saved for the project.',
+      );
     } catch (error) {
+      if (error instanceof AssignmentFinanceSetupRequiredError)
+        return actionFail(
+          409,
+          'problem.assignment.financeSetupRequired',
+          {},
+          context.principal.role === 'owner_admin'
+            ? 'Existing internal cost and compensation rules do not cover these dates. Review the project finance rules or enter new authorized terms.'
+            : 'This worker needs project finance setup before assignment. Ask the project owner to set internal cost and compensation rules for these dates.',
+          {
+            code: 'ASSIGNMENT_FINANCE_SETUP_REQUIRED',
+            actionName: 'assignWorker',
+            values: responseValues,
+            remedies: [
+              context.principal.role === 'owner_admin'
+                ? { id: 'review_finance_rules', projectId: parsed.data.projectId }
+                : { id: 'contact_project_owner' },
+            ],
+            correlationId: locals.correlationId,
+          },
+        );
+      if (error instanceof AssignmentFinanceInputError) {
+        const dates = error.kind === 'dates';
+        const messageKey = dates
+          ? 'problem.assignment.financeDatesMismatch'
+          : 'problem.assignment.financeTermsRequired';
+        return inputFailure(
+          dates ? 'ASSIGNMENT_FINANCE_DATES_MISMATCH' : 'ASSIGNMENT_FINANCE_TERMS_REQUIRED',
+          messageKey,
+          dates
+            ? 'Finance effective dates must match the assignment start and end dates so the whole assignment is covered.'
+            : 'Enter the authorized internal hourly cost, worker compensation rate and basis, and effective dates before assigning this worker.',
+          Object.fromEntries(error.fields.map((field) => [field, [messageKey]])),
+          {
+            actionName: 'assignWorker',
+            values: responseValues,
+            correlationId: locals.correlationId,
+          },
+        );
+      }
+      if (error instanceof AssignmentFinanceRuleOverlapError)
+        return actionFail(
+          409,
+          'problem.assignment.financeRuleOverlap',
+          {},
+          'A finance rule already covers this worker and project during these dates. Review the existing rule before assigning.',
+          {
+            code: 'ASSIGNMENT_FINANCE_RULE_OVERLAP',
+            actionName: 'assignWorker',
+            values: responseValues,
+            remedies: [{ id: 'review_finance_rules', projectId: parsed.data.projectId }],
+            correlationId: locals.correlationId,
+          },
+        );
+      if (error instanceof V3ValidationError || error instanceof V3ConflictError)
+        return actionFail(
+          error instanceof V3ConflictError ? 409 : 400,
+          'problem.assignment.financeSaveBlocked',
+          {},
+          'The assignment and finance rules were not saved. Review the worker, project, dates, and existing rules before trying again.',
+          {
+            code: 'ASSIGNMENT_FINANCE_SAVE_BLOCKED',
+            actionName: 'assignWorker',
+            values: responseValues,
+            remedies: [{ id: 'review_finance_rules', projectId: parsed.data.projectId }],
+            correlationId: locals.correlationId,
+          },
+        );
       const domainCode = error instanceof Error ? (error as Error & { code?: string }).code : null;
       if (domainCode === 'PROJECT_ASSIGNMENT_OVERLAP')
         return actionFail(
@@ -1227,7 +1460,7 @@ export const projectActions = {
           {
             code: domainCode,
             actionName: 'assignWorker',
-            values,
+            values: responseValues,
             remedies: [{ id: 'review_assignments', projectId: parsed.data.projectId }],
             correlationId: locals.correlationId,
           },
@@ -1241,7 +1474,7 @@ export const projectActions = {
           {
             code: 'PROJECT_ASSIGNMENT_WORKER_UNAVAILABLE',
             actionName: 'assignWorker',
-            values,
+            values: responseValues,
             fieldErrors: { workerId: ['Choose an active worker.'] },
             remedies: [{ id: 'choose_available_worker' }],
             correlationId: locals.correlationId,
@@ -1253,13 +1486,13 @@ export const projectActions = {
       return (
         knownProjectFailure(error, {
           actionName: 'assignWorker',
-          values,
+          values: responseValues,
           projectId: parsed.data.projectId,
           correlationId: locals.correlationId,
         }) ??
         actionFailure(error, {
           actionName: 'assignWorker',
-          values,
+          values: responseValues,
           correlationId: locals.correlationId,
           ...(blockedStatus
             ? {
@@ -1714,13 +1947,77 @@ export const projectActions = {
 
     const context = openPortalRepository(locals);
     try {
-      context.repository.updateAssignment(context.principal, id, input);
+      withAssignmentFinanceTransaction(context.sqlite, () => {
+        const before = context.sqlite
+          .prepare('SELECT starts_on,ends_on FROM project_member WHERE id=?')
+          .get(id) as { starts_on: string; ends_on: string | null } | undefined;
+        context.repository.updateAssignment(context.principal, id, input);
+        const after = context.sqlite
+          .prepare(
+            `SELECT pm.starts_on,pm.ends_on,pm.project_id,pm.user_id,p.currency
+             FROM project_member pm JOIN project p ON p.id=pm.project_id WHERE pm.id=?`,
+          )
+          .get(id) as
+          | {
+              starts_on: string;
+              ends_on: string | null;
+              project_id: string;
+              user_id: string;
+              currency: string;
+            }
+          | undefined;
+        if (
+          before &&
+          after &&
+          (before.starts_on !== after.starts_on || before.ends_on !== after.ends_on)
+        ) {
+          if (!assignmentStartWithinProjectDates(context.sqlite, after.project_id, after.starts_on))
+            throw new ValidationError('Worker assignment start date must be within project dates');
+          if (
+            !hasAssignmentFinanceCoverage(
+              context.sqlite,
+              after.project_id,
+              after.user_id,
+              after.currency,
+              after.starts_on,
+              after.ends_on ?? undefined,
+            )
+          )
+            throw new AssignmentFinanceSetupRequiredError();
+        }
+      });
       return actionSuccess('action.projects.assignmentUpdated', {}, 'Assignment updated');
     } catch (error) {
+      if (error instanceof AssignmentFinanceSetupRequiredError) {
+        const assignment = context.sqlite
+          .prepare('SELECT project_id FROM project_member WHERE id=?')
+          .get(id) as { project_id: string } | undefined;
+        return actionFail(
+          409,
+          'problem.assignment.financeCoverageRequired',
+          {},
+          'Internal cost and compensation rules do not cover the proposed assignment dates. Ask the project owner to review the rules before changing the dates.',
+          {
+            code: 'ASSIGNMENT_FINANCE_COVERAGE_REQUIRED',
+            actionName: 'updateAssignment',
+            values: extras.values,
+            remedies: [
+              context.principal.role === 'owner_admin'
+                ? { id: 'review_finance_rules', projectId: assignment?.project_id }
+                : { id: 'contact_project_owner' },
+            ],
+            correlationId: locals.correlationId,
+          },
+        );
+      }
+      const assignment = context.sqlite
+        .prepare('SELECT project_id FROM project_member WHERE id=?')
+        .get(id) as { project_id: string } | undefined;
       return (
         knownProjectFailure(error, {
           correlationId: locals.correlationId,
           recordId: id,
+          projectId: assignment?.project_id,
           actionName: 'updateAssignment',
           values: extras.values,
         }) ?? actionFailure(error, extras)

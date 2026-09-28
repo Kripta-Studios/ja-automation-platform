@@ -26,15 +26,21 @@ test('project manager assigns an already-visible worker to an authorized project
         }
       ).id,
     );
-    workerId = String(
-      (
-        setup.sqlite
-          .prepare('SELECT id FROM user WHERE email=?')
-          .get(e2eCredentials.worker.email) as {
-          id: string;
-        }
-      ).id,
-    );
+    workerId = randomUUID();
+    const createdAt = new Date().toISOString();
+    setup.sqlite
+      .prepare(
+        `INSERT INTO user
+      (id,name,email,email_verified,role,status,mfa_enrolled,created_at,updated_at)
+      VALUES (?,?,?,1,'worker','active',0,?,?)`,
+      )
+      .run(
+        workerId,
+        `Unconfigured worker ${workerId}`,
+        `unconfigured-${workerId}@example.test`,
+        createdAt,
+        createdAt,
+      );
     const repo = new PortalRepository(setup.sqlite);
     const ownerId = String(
       (
@@ -82,8 +88,6 @@ test('project manager assigns an already-visible worker to an authorized project
     '[data-project-workflow="assign-worker"] form[action="?/assignWorker"]',
   );
   await expect(form).toBeVisible();
-  await expect(section.locator(`[data-project-row="${targetProjectId}"]`)).toHaveCount(1);
-  await expect(section.locator(`[data-project-row="${otherProjectId}"]`)).toHaveCount(0);
   await expect(form.locator('select[name="projectId"]')).toHaveValue(targetProjectId);
   await expect(
     form.locator(`select[name="projectId"] option[value="${otherProjectId}"]`),
@@ -91,6 +95,38 @@ test('project manager assigns an already-visible worker to an authorized project
   await expect(form.locator(`select[name="workerId"] option[value="${workerId}"]`)).toHaveCount(1);
   await form.locator('select[name="workerId"]').selectOption(workerId);
   await form.locator('input[name="startsOn"]').fill(today);
+  const uncoveredResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' && response.url().includes('?/assignWorker'),
+  );
+  await form.getByRole('button', { name: 'Assign', exact: true }).click();
+  const uncovered = await uncoveredResponse;
+  expect(uncovered.status()).toBe(409);
+  await expect(
+    page.locator('[data-project-workflow="assign-worker"] [data-ui="problem-notice"]'),
+  ).toHaveAttribute('data-problem-code', 'ASSIGNMENT_FINANCE_SETUP_REQUIRED');
+  const coverage = createDatabase(databasePath);
+  try {
+    const now = new Date().toISOString();
+    coverage.sqlite
+      .prepare(
+        `INSERT INTO internal_cost_rule
+      (id,worker_id,project_id,currency,hourly_rate_minor,effective_from,effective_to,created_at,updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?)`,
+      )
+      .run(randomUUID(), workerId, targetProjectId, 'USD', 3000, today, null, now, now);
+    coverage.sqlite
+      .prepare(
+        `INSERT INTO compensation_rule
+      (id,worker_id,project_id,currency,rate_minor,rate_basis,effective_from,effective_to,created_at,updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      )
+      .run(randomUUID(), workerId, targetProjectId, 'USD', 2000, 'hourly', today, null, now, now);
+  } finally {
+    coverage.sqlite.close();
+  }
+  await expect(form.locator('select[name="workerId"]')).toHaveValue(workerId);
+  await expect(form.locator('input[name="startsOn"]')).toHaveValue(today);
   await form.getByRole('button', { name: 'Assign', exact: true }).click();
 
   const forged = await page.request.post(portal('/projects?/assignWorker'), {

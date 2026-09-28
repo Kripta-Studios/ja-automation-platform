@@ -101,7 +101,8 @@
   function onReportPdfRemedyClick(event: MouseEvent, id: string): void {
     if (!(event.target instanceof Element)) return;
     const retry = event.target.closest<HTMLAnchorElement>('a[href="#report-pdf-retry"]');
-    if (!retry || !(event.currentTarget instanceof Element) || !event.currentTarget.contains(retry)) return;
+    if (!retry || !(event.currentTarget instanceof Element) || !event.currentTarget.contains(retry))
+      return;
     event.preventDefault();
     void getReportPdf(id, 'download');
   }
@@ -248,6 +249,32 @@
   let periodProjectId = $state(nativeReportValue('projectId'));
   let periodFrom = $state(nativeReportValue('periodStart'));
   let periodTo = $state(nativeReportValue('periodEnd'));
+  function visibleReportProjectName(id: string): string {
+    if (!id) return '';
+    const project = availableProjects.find((row) => String(row.id) === id);
+    if (project) return [project.name, project.project_number].filter(Boolean).join(' · ');
+    const report = [...records, ...periodReports].find((row) => rowText(row, 'project_id') === id);
+    return report
+      ? [rowText(report, 'project_name'), rowText(report, 'project_number')]
+          .filter(Boolean)
+          .join(' · ')
+      : '';
+  }
+  const reportProblemContext = $derived.by(() => {
+    const projectId = surface === 'generate' ? periodProjectId : createProject;
+    const project = availableProjects.find((row) => String(row.id) === projectId);
+    const workerId = String(surfaceProblem?.values?.workerId ?? nativeReportValue('workerId'));
+    const worker = data.workers?.find((row) => String(row.id) === workerId);
+    return [
+      project
+        ? [project.name, project.project_number].filter(Boolean).join(' · ')
+        : visibleReportProjectName(projectId),
+      String(worker?.name ?? (workerId === String(data.user.id) ? data.user.name : '')),
+      surface === 'generate' ? [periodFrom, periodTo].filter(Boolean).join(' → ') : createDate,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  });
   let periodContentMode = $state<
     'hours_only' | 'hours_activity' | 'hours_activity_selected_technical'
   >(
@@ -572,10 +599,7 @@
         ? {
             removeHref: registerHref({ project: '' }),
             label: translate('Project'),
-            value: String(
-              availableProjects.find((project) => String(project.id) === projectFilter)?.name ??
-                projectFilter,
-            ),
+            value: visibleReportProjectName(projectFilter) || translate('Unavailable'),
           }
         : null,
       statusFilter
@@ -589,7 +613,10 @@
         ? {
             removeHref: registerHref({ worker: '' }),
             label: translate('Worker'),
-            value: workerOptions.find(([id]) => id === workerFilter)?.[1] ?? workerFilter,
+            value:
+              workerOptions.find(([id]) => id === workerFilter)?.[1] ||
+              String(data.workers?.find((row) => String(row.id) === workerFilter)?.name ?? '') ||
+              translate('Unavailable'),
           }
         : null,
       clientFilter
@@ -1337,7 +1364,11 @@
                 href={`${base}/app/reports/period/${String(report.id)}`}
               >
                 <span class="report-register-type">{translate('Client sign-off')}</span>
-                <strong>{rowText(report, 'project_number') || translate('Project')}</strong>
+                <strong
+                  >{[rowText(report, 'project_name'), rowText(report, 'project_number')]
+                    .filter(Boolean)
+                    .join(' · ') || translate('Project')}</strong
+                >
                 <small>{rowText(report, 'period_start')} → {rowText(report, 'period_end')}</small>
                 <span class="report-signoff-status">
                   <span class="report-signoff-symbol" aria-hidden="true"
@@ -1354,7 +1385,11 @@
                 aria-disabled="true"
               >
                 <span class="report-register-type">{translate('Client sign-off')}</span>
-                <strong>{rowText(report, 'project_number') || translate('Project')}</strong>
+                <strong
+                  >{[rowText(report, 'project_name'), rowText(report, 'project_number')]
+                    .filter(Boolean)
+                    .join(' · ') || translate('Project')}</strong
+                >
                 <small>{rowText(report, 'period_start')} → {rowText(report, 'period_end')}</small>
                 <span class="report-signoff-status">
                   <span class="report-signoff-symbol" aria-hidden="true"
@@ -1504,15 +1539,37 @@
               >{translate('PDF')}</a
             >
             {#if reportPdfFailure?.id === String(report.id)}
-              <div data-period-pdf-problem={String(report.id)} onclick={(event) => onReportPdfRemedyClick(event, String(report.id))} role="presentation">
+              <div
+                data-period-pdf-problem={String(report.id)}
+                onclick={(event) => onReportPdfRemedyClick(event, String(report.id))}
+                role="presentation"
+              >
                 <ProblemNotice
                   problem={reportPdfFailure.problem}
                   locale={reportLocale}
+                  status={[
+                    rowText(report, 'project_name') || rowText(report, 'project_number'),
+                    rowText(report, 'period_start'),
+                    rowText(report, 'period_end'),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                   remedyLinks={{
-                    sign_in_again: { label: portalText(reportLocale, 'problem.remedy.signInAgain'), href: `${base}/app/login` },
-                    review_report: { label: portalText(reportLocale, 'problem.remedy.reviewReport'), href: `${base}/app/reports/period/${encodeURIComponent(String(report.id))}` },
-                    review_reports: { label: portalText(reportLocale, 'problem.remedy.reviewReports'), href: `${base}/app/reports` },
-                    contact_owner: { label: portalText(reportLocale, 'problem.remedy.contactProjectOwner') },
+                    sign_in_again: {
+                      label: portalText(reportLocale, 'problem.remedy.signInAgain'),
+                      href: `${base}/app/login`,
+                    },
+                    review_report: {
+                      label: portalText(reportLocale, 'problem.remedy.reviewReport'),
+                      href: `${base}/app/reports/period/${encodeURIComponent(String(report.id))}`,
+                    },
+                    review_reports: {
+                      label: portalText(reportLocale, 'problem.remedy.reviewReports'),
+                      href: `${base}/app/reports`,
+                    },
+                    contact_owner: {
+                      label: portalText(reportLocale, 'problem.remedy.contactProjectOwner'),
+                    },
                     retry_download: { label: translate('Download PDF'), href: '#report-pdf-retry' },
                   }}
                 />
@@ -1554,6 +1611,7 @@
       <ProblemNotice
         problem={surfaceProblem}
         kind={surfaceProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        status={reportProblemContext || undefined}
         remedyLinks={{
           review_report: {
             label: translate('Review updated report'),

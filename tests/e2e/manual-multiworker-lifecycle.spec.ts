@@ -208,7 +208,13 @@ async function switchRole(
   sessions.set(role, await page.context().cookies());
 }
 
-async function assignWorker(page: Page, projectId: string, workerId: string): Promise<void> {
+async function assignWorker(
+  page: Page,
+  projectId: string,
+  workerId: string,
+  compensationRate: string,
+  compensationBasis: 'hourly' | 'daily',
+): Promise<void> {
   await page.goto(portal('/projects'), { waitUntil: 'networkidle' });
   await page.locator('.workspace-actions-disclosure > summary').click();
   await page.getByRole('button', { name: 'Assign Worker', exact: true }).click();
@@ -220,48 +226,13 @@ async function assignWorker(page: Page, projectId: string, workerId: string): Pr
   await form.locator('select[name="workerId"]').selectOption(workerId);
   await expect(form.locator('input[name="assignmentRole"]')).toHaveValue('worker');
   await form.locator('input[name="startsOn"]').fill(workDate);
+  await form.locator('input[name="internalCostHourlyRate"]').fill('30.00');
+  await form.locator('input[name="compensationRate"]').fill(compensationRate);
+  await form.locator('select[name="compensationBasis"]').selectOption(compensationBasis);
   await submitAction(page, 'assignWorker', () =>
     form.getByRole('button', { name: 'Assign' }).click(),
   );
   await expect(page.getByRole('status').filter({ hasText: /assignment created/i })).toBeVisible();
-}
-
-async function createCompensationRule(
-  page: Page,
-  projectId: string,
-  workerId: string,
-  input: Readonly<{
-    decimalRate: string;
-    ruleType: 'Hourly' | 'Daily';
-    rateBasis: 'hourly' | 'daily';
-  }>,
-): Promise<void> {
-  await page.goto(portal('/finance?view=commercial'), { waitUntil: 'networkidle' });
-  await page
-    .getByLabel('Commercial policies', { exact: true })
-    .selectOption({ label: 'Worker compensation' });
-  const form = page.locator('form[action="?/createCompensationRule"]');
-  await expect(form).toBeVisible();
-  await form.locator('select[name="workerId"]').selectOption(workerId);
-  await form.locator('select[name="projectId"]').selectOption(projectId);
-  await form.locator('select[name="currency"]').selectOption('USD');
-  await form.locator('select[name="ruleType"]').selectOption('PercentageOfEligibleClientLabor');
-  await expect(form.locator('#finance-comp-percentage')).toBeVisible();
-  await form.locator('select[name="ruleType"]').selectOption(input.ruleType);
-  await expect(form.locator('input[name="percentageBps"]')).toHaveCount(0);
-  await form.locator('select[name="rateBasis"]').selectOption(input.rateBasis);
-  const visibleRate = form.locator('input[data-minor-target="rateMinor"]');
-  await visibleRate.fill(input.decimalRate);
-  await expect(form.locator('input[name="rateMinor"]')).toHaveValue(
-    input.decimalRate === '25.00' ? '2500' : '18000',
-  );
-  await form.locator('input[name="effectiveFrom"]').fill(workDate);
-  await submitAction(page, 'createCompensationRule', () =>
-    form.getByRole('button', { name: 'Save compensation rule' }).click(),
-  );
-  await expect(
-    page.getByRole('status').filter({ hasText: /compensation rule saved/i }),
-  ).toBeVisible();
 }
 
 async function clearOptionalAssignmentFields(page: Page, project: IsolatedProject): Promise<void> {
@@ -306,7 +277,10 @@ async function recordAndSubmitOwnTime(
   worker: Worker,
   summary: string,
 ): Promise<string> {
-  await page.goto(portal('/time'), { waitUntil: 'networkidle' });
+  await page.goto(
+    portal(`/time?from=${workDate}&to=${workDate}&q=${encodeURIComponent(summary)}#time-records`),
+    { waitUntil: 'networkidle' },
+  );
   await page.locator('[data-time-primary-cta]').click();
   const form = page.locator('form[data-time-entry-surface]').first();
   await expect(form).toBeVisible();
@@ -376,8 +350,8 @@ test.describe('Manual evidence · two workers on one project retain distinct com
     >();
 
     await switchRole(page, 'owner', sessions);
-    await assignWorker(page, project.id, project.hourlyWorker.id);
-    await assignWorker(page, project.id, project.dailyWorker.id);
+    await assignWorker(page, project.id, project.hourlyWorker.id, '25.00', 'hourly');
+    await assignWorker(page, project.id, project.dailyWorker.id, '180.00', 'daily');
     const assignments = readProjectAssignments(project.id);
     expect(assignments).toHaveLength(2);
     expect(assignments).toEqual(
@@ -399,17 +373,6 @@ test.describe('Manual evidence · two workers on one project retain distinct com
       ]),
     );
     await clearOptionalAssignmentFields(page, project);
-    await createCompensationRule(page, project.id, project.hourlyWorker.id, {
-      decimalRate: '25.00',
-      ruleType: 'Hourly',
-      rateBasis: 'hourly',
-    });
-    await createCompensationRule(page, project.id, project.dailyWorker.id, {
-      decimalRate: '180.00',
-      ruleType: 'Daily',
-      rateBasis: 'daily',
-    });
-
     const rules = readCompensationRules(project.id);
     expect(rules).toEqual(
       expect.arrayContaining([

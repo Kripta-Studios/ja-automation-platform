@@ -8,6 +8,7 @@
     accountNavigationFor,
     activeNavItem,
     portalGlobalNavigationForRole,
+    subsectionsForNavItem,
     type NavItem,
   } from './portal-navigation';
   import SectionNavigator from './portal/ui/SectionNavigator.svelte';
@@ -67,6 +68,7 @@
   } = $props();
 
   let accountOpen = $state(false);
+  let expandedSubsections = $state('');
   let drawer: HTMLElement | null = null;
   let menuToggle: HTMLButtonElement | null = null;
   let mobileDrawer = $state(false);
@@ -77,6 +79,7 @@
   let bodyHadScrollLockClass = false;
 
   const drawerScrollLockClass = 'portal-drawer-open';
+  const pendingSubsectionsKey = 'ja-portal-pending-subsections';
 
   const navIconPaths: Record<string, string> = {
     Today: 'M3 10.75 12 3l9 7.75V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.25Z',
@@ -257,8 +260,72 @@
     }),
   );
   const itemIsCurrent = (item: NavItem): boolean => currentNavItem === item;
+  const subsectionId = (item: NavItem): string =>
+    `nav-subsections-${item.section}-${item.label.toLowerCase().replace(/[^a-z0-9]+/gu, '-')}`;
+  const subsectionKey = (item: NavItem): string => `${item.section}:${item.label}`;
+
+  function toggleSubsections(item: NavItem): void {
+    const key = subsectionKey(item);
+    expandedSubsections = expandedSubsections === key ? '' : key;
+  }
+
+  function navigateSection(item: NavItem): void {
+    if (subsectionsForNavItem(item, itemHref(item), data.user.role).length > 1) {
+      expandedSubsections = subsectionKey(item);
+      try {
+        sessionStorage.setItem(pendingSubsectionsKey, subsectionKey(item));
+      } catch {
+        // A restricted browser can still follow the page link normally.
+      }
+    }
+    closeDrawer(true);
+  }
+
+  function handleSubsectionKeydown(event: KeyboardEvent, item: NavItem): void {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    event.stopPropagation();
+    expandedSubsections = '';
+    document.getElementById(`${subsectionId(item)}-toggle`)?.focus();
+  }
+
+  $effect(() => {
+    const hash = $page.url.hash;
+    if (!hash) return;
+    const known = sectionDestinations.some((item) =>
+      subsectionsForNavItem(item, itemHref(item), data.user.role).some(
+        (subsection) => new URL(subsection.href, $page.url).hash === hash,
+      ),
+    );
+    if (!known) return;
+    void tick().then(() => {
+      const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+      if (!target) return;
+      for (
+        let ancestor = target.closest('details');
+        ancestor;
+        ancestor = ancestor.parentElement?.closest('details') ?? null
+      )
+        ancestor.open = true;
+      if (
+        !target.hasAttribute('tabindex') &&
+        !['SUMMARY', 'A', 'BUTTON', 'INPUT'].includes(target.tagName)
+      )
+        target.setAttribute('tabindex', '-1');
+      target.scrollIntoView({ block: 'start' });
+      target.focus({ preventScroll: true });
+    });
+  });
 
   onMount(() => {
+    try {
+      const pending = sessionStorage.getItem(pendingSubsectionsKey);
+      if (pending && currentNavItem && pending === subsectionKey(currentNavItem))
+        expandedSubsections = pending;
+      sessionStorage.removeItem(pendingSubsectionsKey);
+    } catch {
+      // Navigation stays available when session storage is blocked.
+    }
     const media = window.matchMedia('(max-width: 63.99rem)');
     const updateMobileDrawer = (): void => {
       mobileDrawer = media.matches;
@@ -296,13 +363,64 @@
       const focusTarget = previousFocus;
       previousFocus = null;
       if (restoreDrawerFocus) {
-        if (focusTarget && document.contains(focusTarget)) focusTarget.focus({ preventScroll: true });
+        if (focusTarget && document.contains(focusTarget))
+          focusTarget.focus({ preventScroll: true });
         else menuToggle?.focus({ preventScroll: true });
       }
       restoreDrawerFocus = true;
     }
   });
 </script>
+
+{#snippet navigationRow(item: NavItem)}
+  {@const subsections = subsectionsForNavItem(item, itemHref(item), data.user.role)}
+  <div class="nav-entry">
+    <div class="nav-entry-main">
+      <a
+        class:active={itemIsCurrent(item)}
+        href={itemHref(item)}
+        title={translate(item.label)}
+        aria-current={itemIsCurrent(item) ? 'page' : undefined}
+        onclick={() => navigateSection(item)}
+      >
+        <span class="nav-icon" aria-hidden="true"
+          ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
+        ><span class="nav-label">{translate(item.label)}</span>
+      </a>
+      {#if subsections.length > 1}
+        <button
+          id={`${subsectionId(item)}-toggle`}
+          type="button"
+          class="nav-subsection-toggle"
+          aria-label={`${translate('Sections')}: ${translate(item.label)}`}
+          aria-controls={subsectionId(item)}
+          aria-expanded={expandedSubsections === subsectionKey(item)}
+          onclick={() => toggleSubsections(item)}><span aria-hidden="true">⌄</span></button
+        >
+      {/if}
+    </div>
+    {#if subsections.length > 1}
+      <div
+        id={subsectionId(item)}
+        class="nav-subsections"
+        role="group"
+        aria-label={`${translate('Sections')}: ${translate(item.label)}`}
+        hidden={expandedSubsections !== subsectionKey(item)}
+      >
+        {#if expandedSubsections === subsectionKey(item)}
+          {#each subsections as subsection}
+            <a
+              href={subsection.href}
+              onclick={() => closeDrawer(true)}
+              onkeydown={(event) => handleSubsectionKeydown(event, item)}
+              >{translate(subsection.label)}</a
+            >
+          {/each}
+        {/if}
+      </div>
+    {/if}
+  </div>
+{/snippet}
 
 <button
   type="button"
@@ -329,31 +447,11 @@
   >
   <nav aria-label={translate('Primary navigation')}>
     {#each navigation as item}
-      <a
-        class:active={itemIsCurrent(item)}
-        href={itemHref(item)}
-        title={translate(item.label)}
-        aria-current={itemIsCurrent(item) ? 'page' : undefined}
-        onclick={() => closeDrawer(true)}
-      >
-        <span class="nav-icon" aria-hidden="true"
-          ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
-        ><span class="nav-label">{translate(item.label)}</span>
-      </a>
+      {@render navigationRow(item)}
     {/each}
     <small class="nav-heading">{translate('SECONDARY')}</small>
     {#each secondaryNavigation as item}
-      <a
-        class:active={itemIsCurrent(item)}
-        href={itemHref(item)}
-        title={translate(item.label)}
-        aria-current={itemIsCurrent(item) ? 'page' : undefined}
-        onclick={() => closeDrawer(true)}
-      >
-        <span class="nav-icon" aria-hidden="true"
-          ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
-        ><span class="nav-label">{translate(item.label)}</span>
-      </a>
+      {@render navigationRow(item)}
     {/each}
   </nav>
   {#if showAdmin && (visibleAdmin.length > 0 || (canAudit && securityAdmin.length > 0))}
@@ -362,33 +460,13 @@
         {#if visibleAdmin.length > 0}<small class="nav-heading">{translate('ADMINISTRATION')}</small
           >{/if}
         {#each visibleAdmin as item}
-          <a
-            class:active={itemIsCurrent(item)}
-            href={itemHref(item)}
-            title={translate(item.label)}
-            aria-current={itemIsCurrent(item) ? 'page' : undefined}
-            onclick={() => closeDrawer(true)}
-          >
-            <span class="nav-icon" aria-hidden="true"
-              ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
-            ><span class="nav-label">{translate(item.label)}</span>
-          </a>
+          {@render navigationRow(item)}
         {/each}
       {/if}
       {#if canAudit && securityAdmin.length > 0}
         <small class="nav-heading">{translate('SECURITY')}</small>
         {#each securityAdmin as item}
-          <a
-            class:active={itemIsCurrent(item)}
-            href={itemHref(item)}
-            title={translate(item.label)}
-            aria-current={itemIsCurrent(item) ? 'page' : undefined}
-            onclick={() => closeDrawer(true)}
-          >
-            <span class="nav-icon" aria-hidden="true"
-              ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
-            ><span class="nav-label">{translate(item.label)}</span>
-          </a>
+          {@render navigationRow(item)}
         {/each}
       {/if}
     </div>

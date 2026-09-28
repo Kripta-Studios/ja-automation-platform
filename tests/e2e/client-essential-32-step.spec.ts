@@ -219,13 +219,12 @@ async function selectFirstValue(select: import('@playwright/test').Locator): Pro
 }
 
 async function projectDetailPath(page: Page, projectName: string): Promise<string> {
-  const href = await page
-    .locator('.project-list-link')
-    .filter({ hasText: projectName })
-    .locator('a')
-    .first()
+  const setup = page.locator('[data-project-setup-next]');
+  await expect(setup, `Created project ${projectName} must show its setup steps`).toBeVisible();
+  const href = await setup
+    .getByRole('link', { name: 'Review project configuration' })
     .getAttribute('href');
-  if (!href) throw new Error(`Created project ${projectName} is not present in the project list`);
+  if (!href) throw new Error(`Created project ${projectName} has no review link`);
   const url = new URL(href, page.url());
   const prefix = '/j-aautomation/app';
   if (!url.pathname.startsWith(prefix)) throw new Error(`Unexpected project href ${url.pathname}`);
@@ -475,7 +474,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await form.locator('input[name="dailyReportRequired"]').check();
         await form.locator('input[name="technicalReportingRequired"]').check();
         await form.getByRole('button', { name: 'Create project', exact: true }).click();
-        await expectActionMessage(page, /project|created/i);
+        await expect(page.locator('[data-project-setup-next]')).toContainText('Project created');
         uatProjectPath = await projectDetailPath(page, fixture.mutation.projectName);
         uatProjectId = uatProjectPath.split('/').filter(Boolean).pop() ?? '';
         expect(uatProjectId).toMatch(/^[0-9a-f-]{36}$/i);
@@ -560,8 +559,12 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await expect(form.locator('input[name="assignmentRole"]')).toHaveValue('worker');
         await form.locator('input[name="startsOn"]').fill('2026-08-01');
         await form.locator('input[name="endsOn"]').fill('2026-12-31');
-        await form.getByRole('button', { name: 'Assign', exact: true }).click();
-        await expectActionMessage(page, /assignment|created/i);
+        await form.locator('input[name="internalCostHourlyRate"]').fill('30.00');
+        await form.locator('input[name="compensationRate"]').fill('20.00');
+        await form.locator('select[name="compensationBasis"]').selectOption('hourly');
+        await submitAction(page, 'assignWorker', () =>
+          form.getByRole('button', { name: 'Assign', exact: true }).click(),
+        );
         await navigate(page, uatProjectPath);
         await page.getByRole('tab', { name: 'Team', exact: true }).click();
         await expect(page.getByText(seeded.worker.name, { exact: true })).toBeVisible();
@@ -606,7 +609,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           ['Client labor rate', 'createClientLaborRate'],
         ] as const) {
           await openFinanceConfiguration(page, action);
-          await expect(page.locator(`form[action="?/${formAction}"]`)).toBeVisible();
+          await expect(page.locator(`form[action^="?/${formAction}"]`)).toBeVisible();
         }
 
         await navigate(
@@ -636,7 +639,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           page,
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
-        const clientRate = page.locator('form[action="?/createClientLaborRate"]');
+        const clientRate = page.locator('form[action^="?/createClientLaborRate"]');
         await openFinanceConfiguration(page, 'Client labor rates');
         const existingClientRates = await page
           .locator('[aria-label="Client labor rates"] .record-list-item')
@@ -659,7 +662,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           page.locator('[aria-label="Client labor rates"] .record-list-item'),
         ).toHaveCount(existingClientRates + 1);
 
-        const internalCost = page.locator('form[action="?/createInternalCostRule"]');
+        const internalCost = page.locator('form[action^="?/createInternalCostRule"]');
         await openFinanceConfiguration(page, 'Assignment budget context / internal loaded cost');
         const existingInternalCosts = await page
           .locator('[aria-label="Internal cost rules"] .record-list-item')
@@ -699,7 +702,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           page,
           `/finance?view=commercial&project=${encodeURIComponent(uatProjectId)}`,
         );
-        const form = page.locator('form[action="?/createCompensationRule"]').first();
+        const form = page.locator('form[action^="?/createCompensationRule"]').first();
         await openFinanceConfiguration(page, 'Worker compensation');
         await expect(form).toBeVisible();
         await selectOptionContaining(form.locator('select[name="workerId"]'), seeded.worker.name);
@@ -744,8 +747,25 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         // The client rule is category-scoped (regular), so the date/category
         // resolver selects it; the explicit selector only lists broad rules.
         await expect(references.locator('select[name="clientBillRuleId"]')).toHaveValue('');
-        await selectFirstValue(references.locator('select[name="workerCompensationRuleId"]'));
-        await selectFirstValue(references.locator('select[name="internalCostRuleId"]'));
+        const percentageRule = fixtureRows(
+          'SELECT id FROM compensation_rule WHERE project_id=? AND worker_id=? AND rule_type=?',
+          uatProjectId,
+          seeded.worker.id,
+          'PercentageOfEligibleClientLabor',
+        )[0] as { id: string } | undefined;
+        const loadedCostRule = fixtureRows(
+          'SELECT id FROM internal_cost_rule WHERE project_id=? AND worker_id=? AND hourly_rate_minor=?',
+          uatProjectId,
+          seeded.worker.id,
+          6500,
+        )[0] as { id: string } | undefined;
+        if (!percentageRule || !loadedCostRule) throw new Error('New commercial rules are missing');
+        await references
+          .locator('select[name="workerCompensationRuleId"]')
+          .selectOption(percentageRule.id);
+        await references
+          .locator('select[name="internalCostRuleId"]')
+          .selectOption(loadedCostRule.id);
         await submitAction(page, 'setAssignmentCommercialRuleReferences', () =>
           references.getByRole('button', { name: 'Save person rules' }).click(),
         );
@@ -817,7 +837,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           page.locator('[aria-label="Person expense policy history"] .record-list-item'),
         ).toHaveCount(2);
         await openFinanceConfiguration(page, 'Client labor rate');
-        await expect(page.locator('form[action="?/createClientLaborRate"]')).toBeVisible();
+        await expect(page.locator('form[action^="?/createClientLaborRate"]')).toBeVisible();
         // The seeded closed project has immutable invoiced expenses. Inspect a
         // genuinely editable fixture source rather than expecting a forbidden CTA.
         const editable = fixtureRows(
@@ -912,8 +932,9 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
           await form.locator('input[name="paymentTermsDays"]').fill('30');
           await form.locator('input[name="poNumberOverride"]').fill(fixture.mutation.purchaseOrder);
           await assertRoleSession(page, 'finance');
-          await form.getByRole('button', { name: 'Save billing stream', exact: true }).click();
-          await expectActionMessage(page, /billing stream|saved|created/i);
+          await submitAction(page, 'createBillingRule', () =>
+            form.getByRole('button', { name: 'Save billing stream', exact: true }).click(),
+          );
           await navigate(page, `/billing?view=streams&project=${encodeURIComponent(uatProjectId)}`);
           const createdId = (
             await page

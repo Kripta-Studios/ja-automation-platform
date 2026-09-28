@@ -120,6 +120,41 @@
       (finance?.financeProjectionState === 'incomplete' || finance?.state === 'incomplete'),
   );
   const financeProjectionReasons = $derived(finance?.reasons ?? []);
+  const provisionalRuleMarker = 'Owner-requested provisional estimate';
+  const provisionalCopy = {
+    en: {
+      title: 'Provisional finance rates need confirmation',
+      explanation:
+        'These owner-requested estimates are visible for review. Confirm the actual internal cost and worker compensation before final financial review.',
+    },
+    es: {
+      title: 'Las tarifas financieras provisionales requieren confirmación',
+      explanation:
+        'Estas estimaciones solicitadas por el propietario están visibles para su revisión. Confirme el coste interno real y la remuneración del trabajador antes de la revisión financiera final.',
+    },
+    pt: {
+      title: 'As taxas financeiras provisórias precisam de confirmação',
+      explanation:
+        'Estas estimativas solicitadas pelo proprietário estão visíveis para revisão. Confirme o custo interno real e a remuneração do trabalhador antes da revisão financeira final.',
+    },
+  } as const;
+  const provisionalRules = $derived.by(() => {
+    const projectId = String(data.selectedProjectId ?? '');
+    if (
+      !authorizedFinance ||
+      !projectId ||
+      !availableProjects.some((project) => String(project.id) === projectId)
+    )
+      return [];
+    return [
+      ...(data.internalCostRules ?? []).map((rule) => ({ kind: 'internal' as const, rule })),
+      ...(data.compensationRules ?? []).map((rule) => ({ kind: 'compensation' as const, rule })),
+    ].filter(
+      ({ rule }) =>
+        value(rule, 'projectId', 'project_id') === projectId &&
+        value(rule, 'notes').startsWith(provisionalRuleMarker),
+    );
+  });
   const authorizedFinance = $derived(
     financeRoles.includes(String(data.user.role) as (typeof financeRoles)[number]),
   );
@@ -1154,9 +1189,55 @@
       projectionReasonMessages[String(reason.code ?? '').trim()] ??
       'A finance source record needs projection review.';
     const sourceId = String(reason.sourceId ?? '').trim();
-    return sourceId
-      ? `${translate(message)} · ${translate('Source record')}: ${sourceId}`
-      : translate(message);
+    const timeSource = projectionTimeSource(sourceId);
+    const expenseSource = projectionExpenseSource(sourceId);
+    const source = timeSource ?? expenseSource;
+    const selectedProject = availableProjects.find(
+      (project) => String(project.id) === String(data.selectedProjectId),
+    );
+    const project = selectedProject ? projectName(selectedProject) : '';
+    const worker = source ? value(source, 'workerName', 'worker_name') : '';
+    const workDate = timeSource
+      ? value(timeSource, 'workDate', 'work_date')
+      : expenseSource
+        ? value(expenseSource, 'spentOn', 'spent_on')
+        : '';
+    const description = expenseSource ? value(expenseSource, 'description') : '';
+    const timeCategory = timeSource ? categoryLabel(timeSource.category) : '';
+    const context = [
+      project ? `${translate('Project')}: ${project}` : '',
+      description ? `${translate('Expense')}: ${description}` : '',
+      worker ? `${translate('Worker')}: ${worker}` : '',
+      workDate ? `${translate('Work date')}: ${workDate}` : '',
+      timeCategory ? `${translate('Category')}: ${timeCategory}` : '',
+    ].filter(Boolean);
+    return `${translate(message)}${context.length ? ` · ${context.join(' · ')}` : ''}`;
+  }
+
+  function projectionTimeSource(sourceId: string): Record<string, unknown> | null {
+    if (!sourceId) return null;
+    return finance?.timeEconomics?.find((row) => value(row, 'id') === sourceId) ?? null;
+  }
+
+  function projectionExpenseSource(sourceId: string): Record<string, unknown> | null {
+    if (!sourceId) return null;
+    return finance?.expenseEconomics?.find((row) => value(row, 'id') === sourceId) ?? null;
+  }
+
+  function projectionRuleHref(
+    task: 'Internal loaded cost' | 'Worker compensation' | 'Client labor rate',
+    reason: FinanceProjectionReason,
+  ): string {
+    const query = new URLSearchParams({ view: 'commercial', task, lang: locale });
+    if (data.selectedProjectId) query.set('project', data.selectedProjectId);
+    if (projectionTimeSource(String(reason.sourceId ?? '').trim()))
+      query.set('sourceRecord', String(reason.sourceId));
+    return `${base}/app/finance?${query.toString()}#finance-configuration-task`;
+  }
+
+  function projectionExpenseSourceHref(reason: FinanceProjectionReason): string {
+    const source = projectionExpenseSource(String(reason.sourceId ?? '').trim());
+    return source ? sourceRecordHref(source, 'expenses') : projectWorkflowHref('expenses');
   }
 
   function rowStatusVariant(
@@ -1602,9 +1683,87 @@
         {#if financeProjectionReasons.length}
           <ul aria-label={translate('Projection completeness reasons')}>
             {#each financeProjectionReasons as reason}
-              <li>{projectionReasonText(reason)}</li>
+              <li data-source-record-id={reason.sourceId || undefined}>
+                {projectionReasonText(reason)}
+                {#if canWriteFinance && reason.code === 'missing_client_rate'}
+                  <a href={projectionRuleHref('Client labor rate', reason)}
+                    >{translate('Open finance configuration')}: {translate('Client labor rate')}</a
+                  >
+                {:else if canWriteFinance && reason.code === 'missing_internal_cost'}
+                  <a href={projectionRuleHref('Internal loaded cost', reason)}
+                    >{translate('Open finance configuration')}: {translate(
+                      'Internal loaded cost',
+                    )}</a
+                  >
+                {:else if canWriteFinance && reason.code === 'missing_compensation_rule'}
+                  <a href={projectionRuleHref('Worker compensation', reason)}
+                    >{translate('Open finance configuration')}: {translate(
+                      'Worker compensation',
+                    )}</a
+                  >
+                {:else if canWriteFinance && reason.code === 'missing_expense_finance_projection'}
+                  <a href={financeHref('economic', 'expenses', '#expense-classification')}
+                    >{translate('Review expense classification')}</a
+                  >
+                {:else if canWriteFinance && reason.code === 'missing_expense_currency_conversion'}
+                  <a href={projectionExpenseSourceHref(reason)}
+                    >{translate('Review source expense')}</a
+                  >
+                {/if}
+              </li>
             {/each}
           </ul>
+        {/if}
+        {#if !canWriteFinance && financeProjectionReasons.length}
+          <p>{translate('Contact Finance or an owner')}</p>
+        {/if}
+      </section>
+    {/if}
+
+    {#if provisionalRules.length}
+      <section
+        class="finance-overview__projection-warning"
+        data-provisional-finance-warning
+        role="status"
+        aria-labelledby={`provisional-finance-warning-${componentId}`}
+      >
+        <strong id={`provisional-finance-warning-${componentId}`}
+          >{provisionalCopy[locale].title}</strong
+        >
+        <p>{provisionalCopy[locale].explanation}</p>
+        <ul>
+          {#each provisionalRules as { kind, rule } (value(rule, 'id'))}
+            <li>
+              {translate(kind === 'internal' ? 'Internal loaded cost' : 'Worker compensation')} ·
+              {value(rule, 'workerName', 'worker_name') || translate('Assigned person')} ·
+              {translate('Effective from')}: {value(rule, 'effectiveFrom', 'effective_from')} →
+              {value(rule, 'effectiveTo', 'effective_to') || translate('open-ended')}
+            </li>
+          {/each}
+        </ul>
+        {#if canWriteFinance && data.selectedProjectId}
+          <nav aria-label={translate('Open finance configuration')}>
+            {#if provisionalRules.some(({ kind }) => kind === 'internal')}
+              <a
+                href={financeProjectReviewHref(base, data.selectedProjectId, 'commercial', {
+                  task: 'Assignment budget context / internal loaded cost',
+                  lang: locale,
+                  hash: '#finance-rule-registers',
+                })}>{translate('Internal loaded cost')}</a
+              >
+            {/if}
+            {#if provisionalRules.some(({ kind }) => kind === 'compensation')}
+              <a
+                href={financeProjectReviewHref(base, data.selectedProjectId, 'commercial', {
+                  task: 'Compensation statement rules',
+                  lang: locale,
+                  hash: '#finance-rule-registers',
+                })}>{translate('Worker compensation')}</a
+              >
+            {/if}
+          </nav>
+        {:else}
+          <p>{translate('Contact Finance or an owner')}</p>
         {/if}
       </section>
     {/if}
@@ -3579,6 +3738,24 @@
 
   .finance-overview__projection-warning li {
     overflow-wrap: anywhere;
+  }
+
+  .finance-overview__projection-warning li a {
+    display: block;
+    width: fit-content;
+    margin-top: 0.2rem;
+  }
+
+  .finance-overview__projection-reference {
+    display: block;
+    color: var(--portal-muted, #67675f);
+    overflow-wrap: anywhere;
+  }
+
+  .finance-overview__projection-warning nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.85rem;
   }
 
   .finance-overview__attention {

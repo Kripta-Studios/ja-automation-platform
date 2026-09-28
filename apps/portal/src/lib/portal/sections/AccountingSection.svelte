@@ -88,6 +88,9 @@
   const finalizePackProblem = $derived(
     actionForm?.billingOperation === 'finalizeAccountingPack' ? packProblem : null,
   );
+  const failedFinalizePack = $derived(
+    (data.packs ?? []).find((pack) => String(pack.id) === packValues.packId),
+  );
   const packRemedyLinks = $derived({
     review_accounting_pack: {
       label: translate('Review accounting pack'),
@@ -379,6 +382,14 @@
 
   {#if finalizePackProblem}
     <div data-accounting-finalize-problem>
+      {#if failedFinalizePack}
+        <p class="accounting-section__problem-context">
+          <strong>{translate('Accounting Pack')}</strong> · {translate('Period')}:
+          {String(failedFinalizePack.period_start ?? '')} → {String(
+            failedFinalizePack.period_end ?? '',
+          )}
+        </p>
+      {/if}
       <ProblemNotice
         problem={finalizePackProblem}
         kind={finalizePackProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
@@ -624,6 +635,11 @@
     max-width: 48rem;
     margin: 0.4rem 0 0;
     color: var(--portal-muted, #67675f);
+  }
+
+  .accounting-section__problem-context {
+    margin: 0 0 0.5rem;
+    color: var(--portal-ink, #20201d);
   }
 
   .accounting-section__attention {

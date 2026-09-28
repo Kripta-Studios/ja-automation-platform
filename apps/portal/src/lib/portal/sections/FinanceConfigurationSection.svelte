@@ -63,6 +63,13 @@
     }
     return '';
   };
+  const selectedProjectCurrency = $derived(
+    rowValue(
+      availableProjects.find((project) => String(project.id) === String(data.selectedProjectId)) ??
+        {},
+      'currency',
+    ) || 'USD',
+  );
 
   function expenseRecoveryLabel(value: string): string {
     const labels: Record<string, string> = {
@@ -85,8 +92,27 @@
     const number = rowValue(project, 'projectNumber', 'project_number');
     const name = rowValue(project, 'name', 'projectName', 'project_name');
     if (number && name && number !== name) return `${number} — ${name}`;
-    return number || name || rowValue(project, 'id');
+    return number || name || translate('Unnamed project');
   };
+
+  function ruleWorkerLabel(rule: Row): string {
+    const workerId = rowValue(rule, 'workerId', 'worker_id');
+    const worker = (data.workers ?? []).find((candidate) => String(candidate.id) === workerId);
+    return (
+      rowValue(rule, 'workerName', 'worker_name') ||
+      (worker ? rowValue(worker, 'name') : '') ||
+      translate('Assigned person')
+    );
+  }
+
+  function ruleProjectLabel(rule: Row): string {
+    const projectId = rowValue(rule, 'projectId', 'project_id');
+    const project = availableProjects.find((candidate) => String(candidate.id) === projectId);
+    return project
+      ? projectLabel(project)
+      : rowValue(rule, 'projectName', 'project_name', 'projectNumber', 'project_number') ||
+          translate('Unnamed project');
+  }
 
   function minorToDecimal(value: unknown): string {
     const raw = String(value ?? '').trim();
@@ -457,6 +483,27 @@
     createInternalCostRule: 'Internal loaded cost',
   };
   let selectedAction = $state(configurationActions[0]);
+  const linkedProjectionSource = $derived.by(() => {
+    const task = $page.url.searchParams.get('task');
+    const sourceId = $page.url.searchParams.get('sourceRecord');
+    const projectId = $page.url.searchParams.get('project');
+    if (
+      !sourceId ||
+      !projectId ||
+      projectId !== data.selectedProjectId ||
+      !['Worker compensation', 'Internal loaded cost', 'Client labor rate'].includes(task ?? '')
+    )
+      return null;
+    return data.finance?.timeEconomics?.find((row) => String(row.id ?? '') === sourceId) ?? null;
+  });
+  const linkedProjectionWorkerId = $derived.by(() => {
+    const workerId = String(linkedProjectionSource?.workerId ?? '').trim();
+    return data.workers?.some((worker) => String(worker.id) === workerId) ? workerId : '';
+  });
+  const linkedProjectionDate = $derived.by(() => {
+    const workDate = String(linkedProjectionSource?.workDate ?? '').trim();
+    return /^\d{4}-\d{2}-\d{2}$/u.test(workDate) ? workDate : '';
+  });
   $effect(() => {
     const failed = failedConfigurationAction;
     if (failed?.success === false && failed.actionName && actionTask[failed.actionName]) {
@@ -1889,15 +1936,7 @@
               {#each data.compensationRules as rule}
                 <article class="record-list-item">
                   <div>
-                    <strong
-                      >{rowValue(
-                        rule,
-                        'workerName',
-                        'worker_name',
-                        'workerId',
-                        'worker_id',
-                      )}</strong
-                    >
+                    <strong>{ruleWorkerLabel(rule)}</strong>
                     <small>
                       {compensationRuleLabel(rowValue(rule, 'ruleType', 'rule_type'))} · {moneyLabel(
                         rule,
@@ -2071,15 +2110,7 @@
               {#each data.clientLaborRates as rule}
                 <article class="record-list-item">
                   <div>
-                    <strong
-                      >{rowValue(
-                        rule,
-                        'projectNumber',
-                        'project_number',
-                        'projectId',
-                        'project_id',
-                      )}</strong
-                    >
+                    <strong>{ruleProjectLabel(rule)}</strong>
                     <small>
                       {controlledValue('category', rowValue(rule, 'category')) ||
                         translate('All categories')} · {moneyLabel(
@@ -2220,15 +2251,7 @@
               {#each data.internalCostRules as rule}
                 <article class="record-list-item">
                   <div>
-                    <strong
-                      >{rowValue(
-                        rule,
-                        'workerName',
-                        'worker_name',
-                        'workerId',
-                        'worker_id',
-                      )}</strong
-                    >
+                    <strong>{ruleWorkerLabel(rule)}</strong>
                     <small>
                       {moneyLabel(rule, 'hourlyRateMinor', 'hourly_rate_minor')} ·
                       {rowValue(rule, 'effectiveFrom', 'effective_from')} →
@@ -2507,7 +2530,8 @@
                     <option
                       value={worker.id}
                       selected={String(worker.id) ===
-                        failedValue('createCompensationRule', 'workerId')}
+                        (failedValue('createCompensationRule', 'workerId') ??
+                          linkedProjectionWorkerId)}
                       >{worker.name} · {controlledValue('role', worker.role)}</option
                     >
                   {/each}
@@ -2542,8 +2566,8 @@
                     <option
                       value={currency}
                       selected={currency ===
-                        (failedValue('createCompensationRule', 'currency') ?? 'USD')}
-                      >{currency}</option
+                        (failedValue('createCompensationRule', 'currency') ??
+                          selectedProjectCurrency)}>{currency}</option
                     >
                   {/each}
                 </select>
@@ -2812,9 +2836,27 @@
                   id="finance-comp-effective"
                   name="effectiveFrom"
                   type="date"
-                  value={failedValue('createCompensationRule', 'effectiveFrom') ?? ''}
+                  value={failedValue('createCompensationRule', 'effectiveFrom') ??
+                    linkedProjectionDate}
                   required
                 />
+              </Field>
+              <Field
+                id="finance-comp-effective-to"
+                label={translate('Effective to')}
+                data-field="effectiveTo"
+              >
+                <input
+                  id="finance-comp-effective-to"
+                  name="effectiveTo"
+                  type="date"
+                  value={failedValue('createCompensationRule', 'effectiveTo') ?? ''}
+                />
+              </Field>
+              <Field id="finance-comp-notes" label={translate('Notes')} data-field="notes">
+                <textarea id="finance-comp-notes" name="notes" maxlength="2000" rows="3"
+                  >{failedValue('createCompensationRule', 'notes') ?? ''}</textarea
+                >
               </Field>
             </FieldGroup>
             <div class="form-actions">
@@ -2860,7 +2902,8 @@
                     <option
                       value={worker.id}
                       selected={String(worker.id) ===
-                        failedValue('createClientLaborRate', 'workerId')}>{worker.name}</option
+                        (failedValue('createClientLaborRate', 'workerId') ??
+                          linkedProjectionWorkerId)}>{worker.name}</option
                     >
                   {/each}
                 </select>
@@ -2887,8 +2930,8 @@
                     <option
                       value={currency}
                       selected={currency ===
-                        (failedValue('createClientLaborRate', 'currency') ?? 'USD')}
-                      >{currency}</option
+                        (failedValue('createClientLaborRate', 'currency') ??
+                          selectedProjectCurrency)}>{currency}</option
                     >
                   {/each}
                 </select>
@@ -2995,7 +3038,8 @@
                   id="finance-client-effective"
                   name="effectiveFrom"
                   type="date"
-                  value={failedValue('createClientLaborRate', 'effectiveFrom') ?? ''}
+                  value={failedValue('createClientLaborRate', 'effectiveFrom') ??
+                    linkedProjectionDate}
                   required
                 />
               </Field>
@@ -3058,7 +3102,8 @@
                     <option
                       value={worker.id}
                       selected={String(worker.id) ===
-                        failedValue('createInternalCostRule', 'workerId')}>{worker.name}</option
+                        (failedValue('createInternalCostRule', 'workerId') ??
+                          linkedProjectionWorkerId)}>{worker.name}</option
                     >
                   {/each}
                 </select>
@@ -3073,8 +3118,8 @@
                     <option
                       value={currency}
                       selected={currency ===
-                        (failedValue('createInternalCostRule', 'currency') ?? 'USD')}
-                      >{currency}</option
+                        (failedValue('createInternalCostRule', 'currency') ??
+                          selectedProjectCurrency)}>{currency}</option
                     >
                   {/each}
                 </select>
@@ -3195,9 +3240,27 @@
                   id="finance-internal-effective"
                   name="effectiveFrom"
                   type="date"
-                  value={failedValue('createInternalCostRule', 'effectiveFrom') ?? ''}
+                  value={failedValue('createInternalCostRule', 'effectiveFrom') ??
+                    linkedProjectionDate}
                   required
                 />
+              </Field>
+              <Field
+                id="finance-internal-effective-to"
+                label={translate('Effective to')}
+                data-field="effectiveTo"
+              >
+                <input
+                  id="finance-internal-effective-to"
+                  name="effectiveTo"
+                  type="date"
+                  value={failedValue('createInternalCostRule', 'effectiveTo') ?? ''}
+                />
+              </Field>
+              <Field id="finance-internal-notes" label={translate('Notes')} data-field="notes">
+                <textarea id="finance-internal-notes" name="notes" maxlength="2000" rows="3"
+                  >{failedValue('createInternalCostRule', 'notes') ?? ''}</textarea
+                >
               </Field>
             </FieldGroup>
             <div class="form-actions">

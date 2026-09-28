@@ -677,7 +677,6 @@
               {allocationProblem?.code === 'UNEXPECTED_ERROR'
                 ? t('Receipt expense')
                 : t('Selected receipt is no longer available')}
-              · {String(form?.values?.expenseId ?? '')}
             </p>
           {/if}
           <ul class="grant-list">

@@ -60,6 +60,69 @@ beforeEach(() => {
 });
 
 describe('time action prechecks', () => {
+  it('accepts a native week-table POST with exact dates and decimal hours', async () => {
+    const createTimeBatch = vi.fn().mockReturnValue({ created: [{ id: recordId }] });
+    vi.mocked(openPortalRepository).mockReturnValue({
+      principal: { userId: 'owner-1', role: 'owner_admin' },
+      repository: { createTimeBatch },
+      sqlite: { close },
+    } as unknown as ReturnType<typeof openPortalRepository>);
+    const dates = Array.from({ length: 7 }, (_, index) => {
+      const day = new Date('2026-09-21T00:00:00Z');
+      day.setUTCDate(day.getUTCDate() + index);
+      return [`workDate_${index}`, day.toISOString().slice(0, 10)];
+    });
+    const form = {
+      batchForm: 'week_table',
+      weekStart: '2026-09-21',
+      workerId: 'worker-2',
+      projectId,
+      hours_0: '7.5',
+      category_0: 'regular',
+      summary_0: 'Field repair',
+      ...Object.fromEntries(dates),
+    };
+    const saved = await timeAction('createTimeBatch', form);
+    expect(saved).toMatchObject({ success: true, messageKey: 'action.time.batchDraftsSaved' });
+    expect(createTimeBatch).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'owner_admin' }),
+      'worker-2',
+      [
+        {
+          projectId,
+          workDate: '2026-09-21',
+          category: 'regular',
+          minutes: 450,
+          summary: 'Field repair',
+        },
+      ],
+    );
+    const changedDate = await timeAction('createTimeBatch', { ...form, workDate_0: '2026-09-22' });
+    expect(changedDate).toMatchObject({
+      status: 400,
+      data: {
+        code: 'TIME_BATCH_ENTRIES_INVALID',
+        values: { weekStart: '2026-09-21', hours_0: '7.5', summary_0: 'Field repair' },
+      },
+    });
+    expect(createTimeBatch).toHaveBeenCalledTimes(1);
+    const invalidHours = await timeAction('createTimeBatch', { ...form, hours_0: '24.01' });
+    expect(invalidHours).toMatchObject({
+      status: 400,
+      data: {
+        code: 'TIME_BATCH_ENTRY_INVALID',
+        values: {
+          batchForm: 'week_table',
+          weekStart: '2026-09-21',
+          workDate_0: '2026-09-21',
+          hours_0: '24.01',
+          summary_0: 'Field repair',
+        },
+      },
+    });
+    expect(createTimeBatch).toHaveBeenCalledTimes(1);
+  });
+
   it('identifies a malformed batch without retaining arbitrary JSON keys', async () => {
     const malformed = await timeAction('createTimeBatch', { entries: '{private-data' });
     expect(malformed).toMatchObject({

@@ -68,7 +68,6 @@
     type ProjectLifecycleAction,
   } from './portal/sections/ProjectSection.svelte';
   import ExpertiseWorkerSelect from './portal/sections/ExpertiseWorkerSelect.svelte';
-  import ProjectPeoplePicker from './portal/sections/ProjectPeoplePicker.svelte';
   import ProjectBudgetInput from './portal/sections/ProjectBudgetInput.svelte';
   import ProjectSetupNextSteps from './portal/sections/ProjectSetupNextSteps.svelte';
   import ApprovalSection from './portal/sections/ApprovalSection.svelte';
@@ -308,6 +307,8 @@
       projectWorkflow = requested as ProjectWorkflow;
   });
   $effect(() => {
+    if ((form as { actionName?: string } | undefined)?.actionName === 'createProject')
+      projectWorkflow = 'new-project';
     if (form?.messageKey === 'action.validation.projectFields') projectWorkflow = 'new-project';
     if (form?.messageKey === 'action.projects.projectCreated') projectWorkflow = 'new-project';
     if (form?.messageKey === 'action.validation.clientFields') projectWorkflow = 'new-client';
@@ -475,9 +476,9 @@
     documentTransferFailure = { id, mode, problem };
     await tick();
     if (documentTransferFailure?.id !== id) return;
-    const notice = document.getElementById('document-download-problem')?.querySelector<HTMLElement>(
-      '[data-ui="problem-notice"]',
-    );
+    const notice = document
+      .getElementById('document-download-problem')
+      ?.querySelector<HTMLElement>('[data-ui="problem-notice"]');
     notice?.focus({ preventScroll: true });
     const bounds = notice?.getBoundingClientRect();
     if (!bounds) return;
@@ -534,7 +535,10 @@
         method: 'GET',
         credentials: 'same-origin',
         cache: 'no-store',
-        headers: { accept: 'application/json, application/octet-stream, application/pdf, image/*, text/plain' },
+        headers: {
+          accept:
+            'application/json, application/octet-stream, application/pdf, image/*, text/plain',
+        },
       });
       const reference = response.headers.get('x-correlation-id') ?? '';
       if (response.redirected) {
@@ -1070,19 +1074,25 @@
   }
   const projectFieldErrors = $derived.by(() => {
     const result = form as
-      | { messageKey?: unknown; fields?: Record<string, string[] | undefined> }
+      | {
+          actionName?: string;
+          messageKey?: unknown;
+          fields?: Record<string, string[] | undefined>;
+          fieldErrors?: Record<string, string[] | undefined>;
+        }
       | null
       | undefined;
-    return result?.messageKey === 'action.validation.projectFields' && result.fields
-      ? result.fields
-      : {};
+    if (result?.actionName === 'createProject') return result.fieldErrors ?? result.fields ?? {};
+    return result?.messageKey === 'action.validation.projectFields' ? (result.fields ?? {}) : {};
   });
   const projectFormValues = $derived.by(() => {
     const result = form as
-      | { messageKey?: unknown; values?: Record<string, unknown> }
+      | { actionName?: string; messageKey?: unknown; values?: Record<string, unknown> }
       | null
       | undefined;
-    return result?.messageKey === 'action.validation.projectFields' && result.values
+    return (result?.actionName === 'createProject' ||
+      result?.messageKey === 'action.validation.projectFields') &&
+      result.values
       ? result.values
       : {};
   });
@@ -1200,11 +1210,6 @@
       ];
     return eligible;
   };
-  const initialProjectWorkerIds = $derived(
-    Array.isArray(projectFormValues.initialWorkerIds)
-      ? projectFormValues.initialWorkerIds.filter((id): id is string => typeof id === 'string')
-      : [],
-  );
   const createdProject = $derived.by(() => {
     const result = form as
       | { success?: boolean; messageKey?: string; messageParams?: Record<string, unknown> }
@@ -1547,6 +1552,12 @@
   const assignmentSelectedProject = $derived(
     availableProjects.find((project) => String(project.id) === assignmentSelectedProjectId),
   );
+  const assignmentProjectCurrency = $derived(String(assignmentSelectedProject?.currency ?? ''));
+  let ownerAssignmentStartsOn = $state(assignmentFormValue('startsOn'));
+  let ownerAssignmentEndsOn = $state(assignmentFormValue('endsOn'));
+  let ownerUseExistingFinanceRules = $state(
+    assignmentFormValue('useExistingFinanceRules') === 'on',
+  );
   const assignmentProjectOptions = $derived(
     assignmentSelectedProject &&
       !activeProjects.some((project) => String(project.id) === assignmentSelectedProjectId)
@@ -1636,6 +1647,16 @@
         } satisfies ProblemData)
       : undefined,
   );
+  const assignmentRemedyProjectId = $derived.by(() => {
+    if (assignmentEditForm?.actionName === 'updateAssignment') {
+      const assignmentId = String(assignmentEditForm.values?.assignmentId ?? '');
+      const record = (data.assignments ?? []).find(
+        (assignment) => String(assignment.id) === assignmentId,
+      );
+      return String(record?.project_id ?? '');
+    }
+    return assignmentSelectedProjectId;
+  });
   const assignmentRemedyLinks = $derived({
     correct_fields: {
       label: portalText(locale, 'problem.remedy.correctFields'),
@@ -1652,6 +1673,12 @@
     review_assignments: {
       label: portalText(locale, 'problem.remedy.reviewAssignments'),
       href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+    },
+    review_finance_rules: {
+      label: translate('Open finance configuration'),
+      href: assignmentRemedyProjectId
+        ? `${base}/app/finance?view=commercial&project=${encodeURIComponent(assignmentRemedyProjectId)}`
+        : undefined,
     },
     choose_available_worker: {
       label: portalText(locale, 'problem.remedy.chooseAvailableWorker'),
@@ -2197,23 +2224,35 @@
         return;
       }
       if (!response.ok) {
-        const payload = response.headers.get('content-type')?.toLowerCase().includes('application/json')
+        const payload = response.headers
+          .get('content-type')
+          ?.toLowerCase()
+          .includes('application/json')
           ? await response.json().catch(() => null)
           : null;
         if (controller.signal.aborted) return;
         const problem =
           workerStatementDownloadProblem(payload, reference) ??
-          workerStatementDownloadFallback(response.status === 401 ? 'signIn' : 'invalid', reference);
+          workerStatementDownloadFallback(
+            response.status === 401 ? 'signIn' : 'invalid',
+            reference,
+          );
         if (response.status === 409) {
           workerStatementStatusUnknownIds = [
             ...new Set([...workerStatementStatusUnknownIds, artifact.artifactId]),
           ];
-          const refreshed = await loadWorkerStatementArtifacts({ quiet: true, signal: controller.signal });
+          const refreshed = await loadWorkerStatementArtifacts({
+            quiet: true,
+            signal: controller.signal,
+          });
           if (controller.signal.aborted) return;
           const current = workerStatementArtifact(artifact.format);
           workerStatementDownloadFailedFormat = artifact.format;
           workerStatementDownloadFailedArtifactId = artifact.artifactId;
-          if (!refreshed.ok || (current?.artifactId === artifact.artifactId && current.status === 'ready')) {
+          if (
+            !refreshed.ok ||
+            (current?.artifactId === artifact.artifactId && current.status === 'ready')
+          ) {
             await showWorkerStatementProblem(
               workerStatementDownloadFallback('statusUnknown', reference),
               'download',
@@ -2237,7 +2276,10 @@
       if (!verified) {
         workerStatementDownloadFailedFormat = artifact.format;
         workerStatementDownloadFailedArtifactId = artifact.artifactId;
-        await showWorkerStatementProblem(workerStatementDownloadFallback('invalid', reference), 'download');
+        await showWorkerStatementProblem(
+          workerStatementDownloadFallback('invalid', reference),
+          'download',
+        );
         return;
       }
       const objectUrl = URL.createObjectURL(verified.file);
@@ -2277,7 +2319,10 @@
       if (controller.signal.aborted) return;
       const current = workerStatementArtifact(format);
       if (!result.ok || (current?.artifactId === artifactId && current.status === 'ready')) {
-        await showWorkerStatementProblem(workerStatementDownloadFallback('statusUnknown'), 'download');
+        await showWorkerStatementProblem(
+          workerStatementDownloadFallback('statusUnknown'),
+          'download',
+        );
       } else {
         await showWorkerStatementProblem(
           refreshedWorkerStatementDownloadProblem(artifactId, current),
@@ -2314,7 +2359,9 @@
       }
       applyWorkerStatementArtifacts(payload.artifacts);
       workerStatementStatusUnknownIds = workerStatementStatusUnknownIds.filter((id) =>
-        workerStatementArtifacts.some((artifact) => artifact.artifactId === id && artifact.status === 'ready'),
+        workerStatementArtifacts.some(
+          (artifact) => artifact.artifactId === id && artifact.status === 'ready',
+        ),
       );
       const pending = workerStatementArtifacts.some(
         (artifact) => artifact.status === 'queued' || artifact.status === 'running',
@@ -2322,18 +2369,23 @@
       const failed = (['pdf', 'csv'] as WorkerStatementFormat[])
         .map((format) => workerStatementArtifact(format))
         .find((artifact) => artifact?.status === 'failed');
-      if (!options.quiet && failed && workerStatementProblem?.code !== failedWorkerStatementProblem(failed).code)
+      if (
+        !options.quiet &&
+        failed &&
+        workerStatementProblem?.code !== failedWorkerStatementProblem(failed).code
+      )
         await showWorkerStatementProblem(failedWorkerStatementProblem(failed));
       else if (!options.quiet && !failed) workerStatementProblem = null;
       return { ok: true, pending };
     } catch {
-      if (!options.quiet) await showWorkerStatementProblem(
-        statementProblem(
-          'WORKER_STATEMENT_NETWORK_UNCERTAIN',
-          'problem.workerStatement.networkUncertain',
-          'We could not confirm whether the statement request completed. Check the statement status before requesting again.',
-        ),
-      );
+      if (!options.quiet)
+        await showWorkerStatementProblem(
+          statementProblem(
+            'WORKER_STATEMENT_NETWORK_UNCERTAIN',
+            'problem.workerStatement.networkUncertain',
+            'We could not confirm whether the statement request completed. Check the statement status before requesting again.',
+          ),
+        );
       return { ok: false, pending: false };
     }
   }
@@ -3287,6 +3339,7 @@
         >{/if}
       <div class="document-workspace">
         <SectionCard
+          id="document-upload"
           collapsible
           title={translate('Register a private artifact')}
           class="document-upload-panel"
@@ -3476,8 +3529,7 @@
                   onclick={(event) => transferPrivateDocument(event, document, 'view')}
                   onauxclick={(event) => {
                     if (event.button === 1) void transferPrivateDocument(event, document, 'view');
-                  }}
-                  >{translate('View')}</a
+                  }}>{translate('View')}</a
                 >
                 <a
                   class="preview-link"
@@ -3485,9 +3537,9 @@
                   aria-disabled={documentTransferBusy}
                   onclick={(event) => transferPrivateDocument(event, document, 'download')}
                   onauxclick={(event) => {
-                    if (event.button === 1) void transferPrivateDocument(event, document, 'download');
-                  }}
-                  >{translate('Download')}</a
+                    if (event.button === 1)
+                      void transferPrivateDocument(event, document, 'download');
+                  }}>{translate('Download')}</a
                 >
                 {#if data.user.role === 'owner_admin' || (data.user.role !== 'auditor_read_only' && (data.user.id === document.owner_id || document.can_archive === true))}
                   <details
@@ -3539,7 +3591,12 @@
                       type="button"
                       class="preview-link"
                       disabled={documentTransferBusy}
-                      onclick={(event) => transferPrivateDocument(event, document, documentTransferFailure?.mode ?? 'download')}
+                      onclick={(event) =>
+                        transferPrivateDocument(
+                          event,
+                          document,
+                          documentTransferFailure?.mode ?? 'download',
+                        )}
                       >{documentTransferFailure.mode === 'view'
                         ? translate('View')
                         : documentTransferFailure.problem.code === 'DOCUMENT_PREVIEW_POPUP_BLOCKED'
@@ -3548,7 +3605,11 @@
                     >
                   {/if}
                   {#if documentTransferFailure.problem.correlationId && documentTransferFailure.problem.code === 'DOCUMENT_DOWNLOAD_INVALID_RESPONSE'}
-                    <small>{portalText(locale, 'problem.error.reference', { correlationId: documentTransferFailure.problem.correlationId })}</small>
+                    <small
+                      >{portalText(locale, 'problem.error.reference', {
+                        correlationId: documentTransferFailure.problem.correlationId,
+                      })}</small
+                    >
                   {/if}
                 </div>
               {/if}
@@ -3613,15 +3674,16 @@
                   onclick={(event) => void downloadWorkerStatement(event, artifact)}
                   onauxclick={(event) => {
                     if (event.button === 1) void downloadWorkerStatement(event, artifact);
-                  }}
-                  >{translate(format.toUpperCase())} · {translate('Ready')}</a
+                  }}>{translate(format.toUpperCase())} · {translate('Ready')}</a
                 >
               {:else if artifact}
                 <span
                   class="state-tag"
                   data-ui="status-badge"
                   data-variant={artifact.status === 'failed' ? 'danger' : 'warning'}
-                  >{translate(format.toUpperCase())} · {workerStatementStatusUnknownIds.includes(artifact.artifactId)
+                  >{translate(format.toUpperCase())} · {workerStatementStatusUnknownIds.includes(
+                    artifact.artifactId,
+                  )
                     ? portalText(locale, 'problem.workerStatement.checkStatus')
                     : controlledValue('artifactState', artifact.status)}</span
                 >
@@ -3644,10 +3706,10 @@
             problem={workerStatementProblem.code === 'WORKER_STATEMENT_DOWNLOAD_STATUS_UNKNOWN'
               ? { ...workerStatementProblem, remedies: [] }
               : workerStatementProblem}
-            locale={locale}
+            {locale}
             kind={!workerStatementDownloadFailure &&
             (workerStatementProblem.code === 'WORKER_STATEMENT_NETWORK_UNCERTAIN' ||
-            workerStatementProblem.code === 'WORKER_STATEMENT_SERVICE_UNAVAILABLE')
+              workerStatementProblem.code === 'WORKER_STATEMENT_SERVICE_UNAVAILABLE')
               ? 'service'
               : 'error'}
             remedyLinks={{
@@ -4143,7 +4205,7 @@
       />
     {:else if data.section === 'projects'}
       <div class="management-stack">
-        <details class="admin-details" data-project-calendar>
+        <details id="project-calendar" class="admin-details" data-project-calendar>
           <summary class="secondary-button">{translate('Project calendar')}</summary>
           <PlanningCalendar
             {translate}
@@ -4483,7 +4545,7 @@
                 <h2>{translate('Create project')}</h2>
                 <p class="form-help wide-field">
                   {translate(
-                    'Set up the project and choose its people. After saving, configure each person’s commercial terms and review the project.',
+                    'Create the project first. Then assign workers with their authorized cost, compensation, and effective dates before reviewing the project.',
                   )}
                 </p>
                 {#if Object.keys(projectFieldErrors).length > 0}
@@ -4559,28 +4621,11 @@
                   ></label
                 >
                 <h3 class="wide-field">{translate('2 · People')}</h3>
-                {#if canManageAssignmentControls}
-                  <ProjectPeoplePicker
-                    workers={data.workers ?? []}
-                    expertise={data.allSkills ?? []}
-                    workerExpertise={data.workerSkills ?? []}
-                    selectedWorkerIds={initialProjectWorkerIds}
-                    {translate}
-                  />
-                  <label class="wide-field"
-                    >{translate('Worker assignment start date (optional)')}<input
-                      name="initialWorkersStartOn"
-                      type="date"
-                      value={projectFormValue('initialWorkersStartOn')}
-                    /><small class="form-help"
-                      >{translate('Defaults to the project start date.')}</small
-                    ></label
-                  >
-                {:else}
-                  <p class="form-help wide-field">
-                    {translate('An owner can assign people after this project is created.')}
-                  </p>
-                {/if}
+                <p class="form-help wide-field">
+                  {translate(
+                    'Create the project first. Then assign each worker with authorized internal cost, compensation, and effective dates.',
+                  )}
+                </p>
                 <h3 class="wide-field">
                   {translate('3 · Commercial defaults')}
                 </h3>
@@ -4802,16 +4847,138 @@
                     >{translate('Starts on')}<input
                       name="startsOn"
                       type="date"
-                      value={assignmentFormValue('startsOn')}
+                      bind:value={ownerAssignmentStartsOn}
                       required
                     /></label
                   ><label
                     >{translate('Ends on (optional)')}<input
                       name="endsOn"
                       type="date"
-                      value={assignmentFormValue('endsOn')}
+                      bind:value={ownerAssignmentEndsOn}
                     /></label
-                  ><button disabled={assignmentProjectUnavailable}>{translate('Assign')}</button>
+                  >
+                  {#if data.user.role === 'owner_admin'}
+                    <h3 class="wide-field">{translate('Finance configuration')}</h3>
+                    <p class="form-help wide-field">
+                      {translate(
+                        'Enter the authorized internal hourly cost and worker compensation in this project’s currency. Check the effective dates before assigning.',
+                      )}
+                    </p>
+                    <p class="form-help wide-field">
+                      {translate('Project currency')}: {assignmentProjectCurrency ||
+                        translate('Select project')}
+                    </p>
+                    <label class="check wide-field">
+                      <input
+                        name="useExistingFinanceRules"
+                        type="checkbox"
+                        value="on"
+                        bind:checked={ownerUseExistingFinanceRules}
+                      />
+                      {translate(
+                        'Use existing authorized finance rules for this worker and assignment dates',
+                      )}
+                    </label>
+                    {#if ownerUseExistingFinanceRules}
+                      <p class="form-help wide-field">
+                        {translate(
+                          'Both internal cost and compensation rules must cover every assignment date in the project currency.',
+                        )}
+                        {#if assignmentSelectedProjectId}
+                          <a
+                            href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(assignmentSelectedProjectId)}`}
+                            target="_blank"
+                            rel="noopener noreferrer">{translate('Open finance configuration')}</a
+                          >
+                        {/if}
+                      </p>
+                    {/if}
+                    <label>
+                      {translate('Internal hourly cost')} ({assignmentProjectCurrency ||
+                        translate('Project currency')})
+                      <input
+                        name="internalCostHourlyRate"
+                        type="text"
+                        inputmode="decimal"
+                        autocomplete="off"
+                        placeholder="0.00"
+                        value={assignmentFormValue('internalCostHourlyRate')}
+                        required={!ownerUseExistingFinanceRules}
+                        disabled={ownerUseExistingFinanceRules}
+                      />
+                    </label>
+                    <label>
+                      {translate('Worker compensation method')}
+                      <select
+                        name="compensationBasis"
+                        required={!ownerUseExistingFinanceRules}
+                        disabled={ownerUseExistingFinanceRules}
+                      >
+                        <option
+                          value="hourly"
+                          selected={assignmentFormValue('compensationBasis', 'hourly') === 'hourly'}
+                          >{translate('Hourly')}</option
+                        >
+                        <option
+                          value="daily"
+                          selected={assignmentFormValue('compensationBasis') === 'daily'}
+                          >{translate('Daily')}</option
+                        >
+                      </select>
+                    </label>
+                    <label>
+                      {translate('Compensation rate')} ({assignmentProjectCurrency ||
+                        translate('Project currency')})
+                      <input
+                        name="compensationRate"
+                        type="text"
+                        inputmode="decimal"
+                        autocomplete="off"
+                        placeholder="0.00"
+                        value={assignmentFormValue('compensationRate')}
+                        required={!ownerUseExistingFinanceRules}
+                        disabled={ownerUseExistingFinanceRules}
+                      />
+                    </label>
+                    <label>
+                      {translate('Finance effective from')}
+                      <input
+                        name="financeEffectiveFrom"
+                        type="date"
+                        value={ownerAssignmentStartsOn}
+                        readonly
+                        required={!ownerUseExistingFinanceRules}
+                        disabled={ownerUseExistingFinanceRules}
+                      />
+                    </label>
+                    <label>
+                      {translate('Finance effective to (optional)')}
+                      <input
+                        name="financeEffectiveTo"
+                        type="date"
+                        value={ownerAssignmentEndsOn}
+                        readonly
+                        disabled={ownerUseExistingFinanceRules}
+                      />
+                    </label>
+                    <label class="wide-field">
+                      {translate('Finance notes (optional)')}
+                      <textarea
+                        name="financeNotes"
+                        maxlength="2000"
+                        rows="3"
+                        disabled={ownerUseExistingFinanceRules}
+                        >{assignmentFormValue('financeNotes')}</textarea
+                      >
+                    </label>
+                  {:else}
+                    <p class="form-help wide-field">
+                      {translate(
+                        'Before you assign this worker, ask the project owner to set cost and compensation terms for these dates. The assignment is blocked until setup is complete.',
+                      )}
+                    </p>
+                  {/if}
+                  <button disabled={assignmentProjectUnavailable}>{translate('Assign')}</button>
                 </form>
               </section>
             {/if}

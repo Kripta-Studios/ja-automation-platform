@@ -61,6 +61,11 @@ test('owner filters active workers by expertise and assignment persists', async 
     const created = db.prepare('SELECT id FROM project WHERE name=?').get(projectName) as {
       id: string;
     };
+    const createdStartDate = (
+      db.prepare('SELECT start_date FROM project WHERE id=?').get(created.id) as {
+        start_date: string;
+      }
+    ).start_date;
 
     await page.goto(portal('/projects?action=assign-worker&project=project-removed-stale-id'));
     await expect(
@@ -86,6 +91,10 @@ test('owner filters active workers by expertise and assignment persists', async 
         desktop: '2026-09-22',
       }[testInfo.project.name] ?? '';
     await importedForm.locator('input[name="startsOn"]').fill(importedStartDate);
+    await importedForm.locator('input[name="endsOn"]').fill(importedStartDate);
+    await importedForm.locator('input[name="internalCostHourlyRate"]').fill('30.00');
+    await importedForm.locator('input[name="compensationRate"]').fill('20.00');
+    await importedForm.locator('select[name="compensationBasis"]').selectOption('hourly');
     await importedForm.getByRole('button', { name: 'Assign', exact: true }).click();
     await expect
       .poll(
@@ -124,7 +133,10 @@ test('owner filters active workers by expertise and assignment persists', async 
     }
     await workerSelect.selectOption(match.worker_id);
     await form.locator('select[name="projectId"]').selectOption(created.id);
-    await form.locator('input[name="startsOn"]').fill('2026-09-23');
+    await form.locator('input[name="startsOn"]').fill(createdStartDate);
+    await form.locator('input[name="internalCostHourlyRate"]').fill('30.00');
+    await form.locator('input[name="compensationRate"]').fill('20.00');
+    await form.locator('select[name="compensationBasis"]').selectOption('hourly');
     await form.getByRole('button', { name: 'Assign', exact: true }).click();
 
     await expect

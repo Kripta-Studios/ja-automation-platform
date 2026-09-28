@@ -241,7 +241,7 @@
                   row.safe_filename ??
                   row.original_filename ??
                   data.workers.find((worker) => worker.id === row.worker_id)?.name ??
-                  row.id,
+                  t('Record name unavailable'),
               )}
             </h2>
             <p>
@@ -301,7 +301,7 @@
                     row.summary ||
                     row.system_name ||
                     row.activity_summary ||
-                    row.id,
+                    t('Record name unavailable'),
                 )}</strong
               ><StatusBadge text={controlled('status', row.approval_state)} />
             </header>

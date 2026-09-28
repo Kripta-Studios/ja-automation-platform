@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -19,8 +20,14 @@ function fixture() {
   fixtures.push(value);
   openPortalRepository.mockReturnValue({
     repository: value.repository,
-    principal: value.owner,
-    sqlite: { ...value.sqlite, close: vi.fn(), prepare: value.sqlite.prepare.bind(value.sqlite) },
+    v3: value.v3,
+    principal: stepUpB5Principal(value.sqlite, value.owner, 'assignment-problems'),
+    sqlite: {
+      ...value.sqlite,
+      close: vi.fn(),
+      prepare: value.sqlite.prepare.bind(value.sqlite),
+      exec: value.sqlite.exec.bind(value.sqlite),
+    },
   });
   return value;
 }
@@ -127,6 +134,11 @@ describe('known project and workforce blockers', () => {
           workerId: 'b5-outsider',
           startsOn: '2026-09-25',
           endsOn: '2026-10-25',
+          internalCostHourlyRate: '28.00',
+          compensationRate: '20.00',
+          compensationBasis: 'hourly',
+          financeEffectiveFrom: '2026-09-25',
+          financeEffectiveTo: '2026-10-25',
         }),
       ),
     ).toMatchObject({

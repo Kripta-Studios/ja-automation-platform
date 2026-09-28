@@ -2050,10 +2050,7 @@
               >{#if failedProjectValues.projectManagerId && !(data.workers ?? []).some((worker) => String(worker.id) === failedProjectValues.projectManagerId)}<option
                   value={failedProjectValues.projectManagerId}
                   selected
-                  disabled
-                  >{failedProjectValues.projectManagerId} · {t(
-                    'problem.projectDetail.optionUnavailable',
-                  )}</option
+                  disabled>{t('problem.projectDetail.optionUnavailable')}</option
                 >{/if}
               >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager'}<option
                     value={worker.id}
@@ -2271,8 +2268,7 @@
             >{#if selectedDraftRuleId && !billingRules.some((rule) => String(rule.id) === selectedDraftRuleId)}<option
                 value={selectedDraftRuleId}
                 selected
-                disabled
-                >{selectedDraftRuleId} · {t('problem.projectDetail.optionUnavailable')}</option
+                disabled>{t('problem.projectDetail.optionUnavailable')}</option
               >{/if}
             >{#each billingRules as rule}<option value={rule.id}
                 >{controlled('billingStream', rule.stream_type)} · {controlled(

@@ -335,6 +335,18 @@
         assignableProjectIds.has(value(assignment, 'project_id')),
     ),
   );
+  const assignmentRecordContext = $derived.by(() => {
+    const assignmentId = String(assignmentRecordValues?.assignmentId ?? '');
+    const assignment = (assignments ?? []).find((row) => value(row, 'id') === assignmentId);
+    if (!assignment) return '';
+    return [
+      value(assignment, 'project_number'),
+      value(assignment, 'project_name'),
+      value(assignment, 'worker_name'),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  });
 
   const projectCardRows = $derived.by((): TableCardRow[] =>
     projectPage.map((project) => {
@@ -757,6 +769,14 @@
             <span>{translate('Ends on (optional)')}</span>
             <input name="endsOn" type="date" value={String(assignmentValues?.endsOn ?? '')} />
           </label>
+          <div class="form-help project-section__assignment-finance-handoff" role="status">
+            <strong>{translate('Finance configuration')}</strong>
+            <p>
+              {translate(
+                'The assignment requires internal cost and compensation covering these dates. If they are missing, ask the project owner to set them before trying again.',
+              )}
+            </p>
+          </div>
           <p class="form-help project-section__assignment-help">
             {translate(
               'If a worker is not listed, ask the owner to assign them to a project you manage first.',
@@ -781,6 +801,7 @@
             {#if assignmentRecordProblem}
               <ProblemNotice
                 problem={assignmentRecordProblem}
+                status={assignmentRecordContext || undefined}
                 remedyLinks={{
                   correct_fields: {
                     label: portalText(normalizedLocale, 'problem.remedy.correctFields'),
@@ -788,6 +809,9 @@
                   review_assignments: {
                     label: portalText(normalizedLocale, 'problem.remedy.reviewAssignments'),
                     href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+                  },
+                  contact_project_owner: {
+                    label: portalText(normalizedLocale, 'problem.remedy.contactOwner'),
                   },
                 }}
               />
@@ -956,8 +980,20 @@
   }
 
   .project-section__assignment-form h3,
+  .project-section__assignment-finance-handoff,
   .project-section__assignment-help {
     grid-column: 1 / -1;
+  }
+
+  .project-section__assignment-finance-handoff {
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--portal-border, #d9ddd8);
+    border-radius: 0.5rem;
+    background: var(--portal-surface, #fff);
+  }
+
+  .project-section__assignment-finance-handoff p {
+    margin: 0.3rem 0 0;
   }
 
   .project-section__assignment-form label {

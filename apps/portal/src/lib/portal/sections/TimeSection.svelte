@@ -26,6 +26,7 @@
     monthCalendarDates,
     nextIsoDate,
     weekDates,
+    weekStartForDate,
   } from './time-entry-actions';
   import {
     operationalMatches,
@@ -66,8 +67,12 @@
       : {};
   const nativeTimeValue = (field: string): string =>
     typeof nativeTimeValues[field] === 'string' ? String(nativeTimeValues[field]) : '';
+  const nativeBatchFailure = Boolean(
+    nativeTimeForm?.code && nativeTimeValue('batchForm') === 'week_table',
+  );
   const nativeTimeSurface: 'create' | 'edit' | null =
     nativeTimeForm?.code &&
+    !nativeBatchFailure &&
     !nativeTimeValue('recordType') &&
     !nativeTimeValue('originalId') &&
     !nativeTimeValue('entries')
@@ -106,10 +111,13 @@
   let surfaceError = $state('');
   let surfaceProblem = $state<ProblemData | null>(nativeTimeSurface ? nativeTimeForm : null);
   let weekProblem = $state<ProblemData | null>(
-    nativeTimeForm?.code && nativeTimeValue('weekStart') ? nativeTimeForm : null,
+    nativeTimeForm?.code && nativeTimeValue('weekStart') && !nativeBatchFailure
+      ? nativeTimeForm
+      : null,
   );
   let batchProblem = $state<ProblemData | null>(
-    nativeTimeForm?.code && nativeTimeValue('entries') && !nativeTimeValue('weekStart')
+    nativeBatchFailure ||
+      (nativeTimeForm?.code && nativeTimeValue('entries') && !nativeTimeValue('weekStart'))
       ? nativeTimeForm
       : null,
   );
@@ -151,10 +159,20 @@
   let createWorker = $state(nativeTimeValue('workerId'));
   let createExpenseEnabled = $state(nativeTimeValue('withExpense') === 'on');
   let createRequestId = $state(nativeTimeValue('requestId'));
-  let batchWorker = $state('');
-  let batchProject = $state('');
+  let batchWorker = $state(nativeBatchFailure ? nativeTimeValue('workerId') : '');
+  let batchProject = $state(nativeBatchFailure ? nativeTimeValue('projectId') : '');
+  let selectedBatchWeekStart = $state('');
+  const batchWeekStart = $derived(
+    selectedBatchWeekStart ||
+      (nativeBatchFailure ? nativeTimeValue('weekStart') : '') ||
+      data.weekStart ||
+      '',
+  );
+  type BatchDayInput = { hours: string; category: string; summary: string };
+  let batchInputs = $state<Record<string, BatchDayInput>>({});
   let batchError = $state('');
   let batchSaving = $state(false);
+  let batchDetailsOpen = $state(nativeBatchFailure || $page.url.searchParams.get('batch') === '1');
   let weekSubmitWorker = $state(nativeTimeValue('workerId'));
   let weekSubmitError = $state('');
   let weekSubmitting = $state(false);
@@ -219,11 +237,14 @@
         page: registerPage,
       });
   });
+  $effect(() => {
+    if (nativeBatchFailure || $page.url.searchParams.get('batch') === '1') batchDetailsOpen = true;
+  });
 
   const records = $derived(data.records ?? []);
   const calendarRecords = $derived(data.calendarRecords ?? records);
   const ownerMode = $derived(data.user.role === 'owner_admin');
-  const batchDates = $derived(weekDates(data.weekStart ?? ''));
+  const batchDates = $derived(weekDates(batchWeekStart));
   const calendarDates = $derived(monthCalendarDates(calendarMonth));
   const calendarDayRecords = $derived(
     calendarRecords.filter(
@@ -234,23 +255,63 @@
     ),
   );
   const batchProjects = $derived(
-    availableProjects.filter((project) =>
-      (data.timeAssignments ?? []).some(
-        (assignment) =>
-          String(assignment.project_id) === String(project.id) &&
-          String(assignment.worker_id) === batchWorker &&
-          batchDates.some(
-            (date) =>
-              String(assignment.starts_on ?? '') <= date &&
-              (!assignment.ends_on || String(assignment.ends_on) >= date),
+    !batchWorker
+      ? availableProjects
+      : availableProjects.filter((project) =>
+          (data.timeAssignments ?? []).some(
+            (assignment) =>
+              String(assignment.project_id) === String(project.id) &&
+              String(assignment.worker_id) === batchWorker &&
+              batchDates.some(
+                (date) =>
+                  String(assignment.starts_on ?? '') <= date &&
+                  (!assignment.ends_on || String(assignment.ends_on) >= date),
+              ),
           ),
-      ),
-    ),
+        ),
   );
-  $effect(() => {
-    if (batchProject && !batchProjects.some((project) => String(project.id) === batchProject))
-      batchProject = '';
-  });
+  const batchProjectUnavailable = $derived(
+    Boolean(batchProject) && !batchProjects.some((project) => String(project.id) === batchProject),
+  );
+  function updateBatchDay(
+    date: string,
+    index: number,
+    field: keyof BatchDayInput,
+    value: string,
+  ): void {
+    batchInputs[date] = {
+      ...(batchInputs[date] ?? {
+        hours: restoredBatchDayValue(date, index, 'hours'),
+        category: restoredBatchDayValue(date, index, 'category') || 'regular',
+        summary: restoredBatchDayValue(date, index, 'summary'),
+      }),
+      [field]: value,
+    };
+  }
+  function restoredBatchDayValue(date: string, index: number, field: keyof BatchDayInput): string {
+    if (!nativeBatchFailure || nativeTimeValue(`workDate_${index}`) !== date) return '';
+    return nativeTimeValue(`${field}_${index}`) || (field === 'category' ? 'regular' : '');
+  }
+  function setBatchWeek(value: string): string | null {
+    const monday = weekStartForDate(value);
+    if (monday) selectedBatchWeekStart = monday;
+    return monday;
+  }
+  function selectBatchWeek(event: Event): void {
+    const input = event.currentTarget as HTMLInputElement;
+    const monday = setBatchWeek(input.value);
+    if (!monday) {
+      input.value = batchWeekStart;
+      return;
+    }
+    input.value = monday;
+  }
+  function submitBatchWeekPicker(event: SubmitEvent): void {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const input = form.elements.namedItem('week') as HTMLInputElement | null;
+    if (input) selectBatchWeek({ currentTarget: input } as unknown as Event);
+  }
   const weekWorkerId = $derived(ownerMode ? weekSubmitWorker : String(data.user.id));
   const weekDrafts = $derived(
     (data.weekDraftRecords ?? records)
@@ -419,6 +480,38 @@
   const editRow = $derived.by(
     () => records.find((row) => String(row.id) === editTimeId) as Row | undefined,
   );
+  function visibleWorkerName(id: string): string {
+    if (!id) return '';
+    return String(
+      data.workers?.find((worker) => String(worker.id) === id)?.name ??
+        records.find((row) => String(row.worker_id) === id)?.worker_name ??
+        (id === String(data.user.id) ? data.user.name : ''),
+    );
+  }
+  function visibleProjectName(id: string): string {
+    if (!id) return '';
+    const project = availableProjects.find((row) => String(row.id) === id);
+    if (project) return [project.project_number, project.name].filter(Boolean).join(' · ');
+    const row = records.find((item) => String(item.project_id) === id);
+    return row ? [row.project_number, row.project_name].filter(Boolean).join(' · ') : '';
+  }
+  const timeProblemContext = $derived.by(() => {
+    const row = surface === 'edit' ? editRow : undefined;
+    const projectId = String(row?.project_id ?? createProject);
+    const workerId = String(row?.worker_id ?? selectedCreateWorker);
+    return [
+      visibleProjectName(projectId) || String(row?.project_name ?? row?.project_number ?? ''),
+      visibleWorkerName(workerId) || String(row?.worker_name ?? ''),
+      String(row?.work_date ?? createDate),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  });
+  const batchProblemContext = $derived(
+    [visibleProjectName(batchProject), visibleWorkerName(batchWorker), batchDates[0], batchDates[6]]
+      .filter(Boolean)
+      .join(' · '),
+  );
   const totalActualMinutes = $derived(
     records
       .filter(
@@ -479,9 +572,7 @@
       {
         removeHref: filterHref({ worker: '' }),
         label: translate('Worker'),
-        value: workerId
-          ? String(data.workers?.find((row) => String(row.id) === workerId)?.name ?? workerId)
-          : '',
+        value: workerId ? visibleWorkerName(workerId) || translate('Unavailable') : '',
       },
       { removeHref: filterHref({ client: '' }), label: translate('Client'), value: clientFilter },
       {
@@ -514,7 +605,7 @@
         value: projectId
           ? project
             ? `${project.project_number} — ${project.name}`
-            : projectId
+            : visibleProjectName(projectId) || translate('Unavailable')
           : '',
       },
       {
@@ -570,14 +661,21 @@
 
   const submitBatch: SubmitFunction = ({ formData, cancel }) => {
     batchProblem = null;
+    if (batchProjectUnavailable) {
+      batchError = translate(
+        'The selected project is unavailable for this form. Its access, status, or assignment dates may have changed.',
+      );
+      cancel();
+      return;
+    }
     const workerId = String(formData.get('workerId') ?? '');
     const projectId = String(formData.get('projectId') ?? '');
     const entries: Array<Record<string, string | number>> = [];
     for (const [index, date] of batchDates.entries()) {
       const enteredHours = String(formData.get(`hours_${index}`) ?? '').trim();
-      if (!enteredHours) continue;
-      const minutes = decimalHoursToMinutes(enteredHours);
       const summary = String(formData.get(`summary_${index}`) ?? '').trim();
+      if (!enteredHours && !summary) continue;
+      const minutes = decimalHoursToMinutes(enteredHours);
       if (minutes === null || !summary || !workerId || !projectId) {
         batchError = translate(
           'Enter a worker, assigned project, valid decimal hours and activity for every filled day.',
@@ -864,6 +962,9 @@
           <div tabindex="-1" data-time-week-problem>
             <ProblemNotice
               problem={weekProblem}
+              status={[visibleWorkerName(weekWorkerId), data.weekStart, data.weekEnd]
+                .filter(Boolean)
+                .join(' · ')}
               remedyLinks={{
                 review_week: {
                   label: translate('Review updated week'),
@@ -1012,15 +1113,41 @@
       </div>
     </section>
 
-    <details class="time-owner-batch">
-      <summary>{translate('Enter a week in a table')}</summary>
+    <details class="time-owner-batch" bind:open={batchDetailsOpen}>
+      <summary id="time-owner-batch-title">{translate('Enter a week in a table')}</summary>
       <div class="time-owner-batch-body">
         <p>
           {translate(
             'Add daily hours for one assigned worker and project. Blank days are skipped. The whole batch saves as drafts or nothing saves.',
           )}
         </p>
+        <form
+          class="time-batch-week-form"
+          method="GET"
+          action={`${base}/app/time#time-owner-batch-title`}
+          onsubmit={submitBatchWeekPicker}
+        >
+          <input type="hidden" name="batch" value="1" />
+          <div class="time-batch-week-control">
+            <label>
+              <span>{translate('Week of')}</span>
+              <input
+                type="date"
+                name="week"
+                value={batchWeekStart}
+                onchange={selectBatchWeek}
+                data-batch-week-picker
+              />
+            </label>
+            <span class="time-batch-week-range" aria-live="polite">
+              {batchDates[0]} → {batchDates[6]}
+            </span>
+            <button type="submit">{translate('Open week')}</button>
+          </div>
+        </form>
         <form method="POST" action="?/createTimeBatch" use:enhance={submitBatch}>
+          <input type="hidden" name="batchForm" value="week_table" />
+          <input type="hidden" name="weekStart" value={batchWeekStart} />
           <div class="time-batch-top-controls">
             <label
               ><span>{translate('Worker')}</span>
@@ -1035,6 +1162,13 @@
               ><span>{translate('Assigned project')}</span>
               <select name="projectId" required bind:value={batchProject}>
                 <option value="">{translate('Select assignment')}</option>
+                {#if batchProjectUnavailable}
+                  <option value={batchProject} disabled>
+                    {visibleProjectName(batchProject) || translate('Project')} — {translate(
+                      'Unavailable',
+                    )}
+                  </option>
+                {/if}
                 {#each batchProjects as project}
                   <option value={String(project.id)}
                     >{project.project_number} — {project.name}</option
@@ -1043,10 +1177,18 @@
               </select>
             </label>
           </div>
+          {#if batchProjectUnavailable}
+            <p class="time-batch-project-warning" role="status">
+              {translate(
+                'The selected project is unavailable for this form. Its access, status, or assignment dates may have changed.',
+              )}
+            </p>
+          {/if}
           <div class="time-batch-rows">
-            {#each batchDates as date, index}
+            {#each batchDates as date, index (date)}
               <div class="time-batch-row">
                 <strong>{date}</strong>
+                <input type="hidden" name={`workDate_${index}`} value={date} />
                 <label
                   ><span>{translate('Hours')}</span><input
                     name={`hours_${index}`}
@@ -1056,11 +1198,20 @@
                     step="0.01"
                     inputmode="decimal"
                     placeholder="7.5"
+                    value={batchInputs[date]?.hours ?? restoredBatchDayValue(date, index, 'hours')}
+                    oninput={(event) =>
+                      updateBatchDay(date, index, 'hours', event.currentTarget.value)}
                   /></label
                 >
                 <label
                   ><span>{translate('Category')}</span>
-                  <select name={`category_${index}`}>
+                  <select
+                    name={`category_${index}`}
+                    value={batchInputs[date]?.category ??
+                      (restoredBatchDayValue(date, index, 'category') || 'regular')}
+                    onchange={(event) =>
+                      updateBatchDay(date, index, 'category', event.currentTarget.value)}
+                  >
                     {#each filterCategories as category}<option value={category.value}
                         >{translate(category.label)}</option
                       >{/each}
@@ -1071,6 +1222,10 @@
                     name={`summary_${index}`}
                     maxlength="5000"
                     placeholder={translate('Work completed')}
+                    value={batchInputs[date]?.summary ??
+                      restoredBatchDayValue(date, index, 'summary')}
+                    oninput={(event) =>
+                      updateBatchDay(date, index, 'summary', event.currentTarget.value)}
                   /></label
                 >
               </div>
@@ -1080,6 +1235,7 @@
             <div tabindex="-1" data-time-batch-problem>
               <ProblemNotice
                 problem={batchProblem}
+                status={batchProblemContext}
                 remedyLinks={{
                   review_time: {
                     label: translate('Review time entries'),
@@ -1388,6 +1544,7 @@
       <ProblemNotice
         problem={surfaceProblem}
         kind={surfaceProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+        status={timeProblemContext || undefined}
         remedyLinks={{
           review_time: {
             label: translate('Review updated time entry'),
@@ -1777,6 +1934,11 @@
   .time-primary-action-top {
     justify-content: flex-start;
   }
+  .time-primary-action-top .time-primary-action {
+    min-height: 5.5rem;
+    padding: 1.3rem 2.5rem;
+    font-size: 1.25rem;
+  }
   .operational-action-copy {
     color: var(--ja-steel, #77756d);
     margin: -0.4rem 0 0;
@@ -1915,6 +2077,28 @@
   }
   .time-batch-top-controls {
     justify-content: flex-start;
+  }
+  .time-batch-week-control {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.75rem 1rem;
+  }
+  .time-batch-week-control label {
+    display: grid;
+    gap: 0.35rem;
+    min-width: min(100%, 12rem);
+  }
+  .time-batch-week-control input {
+    width: 100%;
+    min-height: 2.75rem;
+  }
+  .time-batch-week-range {
+    color: var(--ja-steel, #77756d);
+    padding-bottom: 0.7rem;
+  }
+  .time-batch-project-warning {
+    color: var(--ja-red-dark, #8f1d14) !important;
   }
   .time-batch-top-controls label {
     flex: 1 1 15rem;

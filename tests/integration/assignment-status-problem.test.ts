@@ -34,8 +34,13 @@ function event(form: Record<string, string>) {
 function context(value: B5LifecycleSecurityFixture, principal = value.owner) {
   openPortalRepository.mockReturnValue({
     repository: value.repository,
+    v3: value.v3,
     principal,
-    sqlite: { close: vi.fn() },
+    sqlite: {
+      close: vi.fn(),
+      exec: value.sqlite.exec.bind(value.sqlite),
+      prepare: value.sqlite.prepare.bind(value.sqlite),
+    },
   });
 }
 

@@ -260,7 +260,11 @@
     INVOICE_PDF_SERVICE_UNAVAILABLE: 'problem.invoice.pdfServiceUnavailable',
   };
   const invoicePdfRemedyIds = new Set([
-    'sign_in_again', 'review_invoice', 'review_billing', 'contact_finance', 'retry_download',
+    'sign_in_again',
+    'review_invoice',
+    'review_billing',
+    'contact_finance',
+    'retry_download',
   ]);
   const invoicePdfRemedyLinks = $derived({
     sign_in_again: { label: translate('Sign in again'), href: `${base}/app/login` },
@@ -270,17 +274,37 @@
         ? `${base}/app/billing/invoices/${encodeURIComponent(invoicePdfFailure.id)}`
         : `${base}/app/billing?view=invoices`,
     },
-    review_billing: { label: translate('Review billing setup'), href: `${base}/app/billing?view=invoices` },
+    review_billing: {
+      label: translate('Review billing setup'),
+      href: `${base}/app/billing?view=invoices`,
+    },
     contact_finance: { label: translate('Contact a finance administrator') },
     retry_download: { label: translate('Download PDF'), href: '#invoice-pdf-retry' },
   });
-  function invoicePdfFallback(kind: 'network' | 'invalid' | 'signIn' | 'popup', reference = ''): ProblemData {
-    const definition = ({
-      network: ['INVOICE_PDF_NETWORK_UNAVAILABLE', 'problem.invoice.pdfNetworkUnavailable', 'retry_download'],
-      invalid: ['INVOICE_PDF_INVALID_RESPONSE', 'problem.invoice.pdfInvalidResponse', 'review_invoice'],
-      signIn: ['INVOICE_PDF_SIGN_IN_REQUIRED', 'problem.invoice.pdfSignInRequired', 'sign_in_again'],
-      popup: ['INVOICE_PDF_POPUP_BLOCKED', 'problem.invoice.pdfPopupBlocked', 'retry_download'],
-    } as const)[kind];
+  function invoicePdfFallback(
+    kind: 'network' | 'invalid' | 'signIn' | 'popup',
+    reference = '',
+  ): ProblemData {
+    const definition = (
+      {
+        network: [
+          'INVOICE_PDF_NETWORK_UNAVAILABLE',
+          'problem.invoice.pdfNetworkUnavailable',
+          'retry_download',
+        ],
+        invalid: [
+          'INVOICE_PDF_INVALID_RESPONSE',
+          'problem.invoice.pdfInvalidResponse',
+          'review_invoice',
+        ],
+        signIn: [
+          'INVOICE_PDF_SIGN_IN_REQUIRED',
+          'problem.invoice.pdfSignInRequired',
+          'sign_in_again',
+        ],
+        popup: ['INVOICE_PDF_POPUP_BLOCKED', 'problem.invoice.pdfPopupBlocked', 'retry_download'],
+      } as const
+    )[kind];
     return {
       code: definition[0],
       messageKey: definition[1],
@@ -314,10 +338,12 @@
     problem: ProblemData,
     controller: AbortController,
   ): Promise<void> {
-    if (invoicePdfDisposed || invoicePdfController !== controller || controller.signal.aborted) return;
+    if (invoicePdfDisposed || invoicePdfController !== controller || controller.signal.aborted)
+      return;
     invoicePdfFailure = { id, surface, problem };
     await tick();
-    if (invoicePdfDisposed || invoicePdfController !== controller || controller.signal.aborted) return;
+    if (invoicePdfDisposed || invoicePdfController !== controller || controller.signal.aborted)
+      return;
     const notice = document.querySelector<HTMLElement>(
       `[data-invoice-pdf-problem="${surface}"] [data-ui="problem-notice"]`,
     );
@@ -354,7 +380,8 @@
       link.href = url;
       link.download = filename;
       link.textContent = translate('Download PDF');
-      link.style.cssText = 'display: inline-block; margin: .5rem 0 1rem; min-height: 2.75rem; color: #0645ad';
+      link.style.cssText =
+        'display: inline-block; margin: .5rem 0 1rem; min-height: 2.75rem; color: #0645ad';
       const frame = doc.createElement('iframe');
       frame.title = translate('PDF');
       frame.style.cssText = 'display: block; width: 100%; height: 78vh; border: 1px solid #d6d5d2';
@@ -366,10 +393,20 @@
       return false;
     }
   }
-  function onInvoicePdfRemedyClick(event: MouseEvent, id: string, surface: 'table' | 'drawer'): void {
+  function onInvoicePdfRemedyClick(
+    event: MouseEvent,
+    id: string,
+    surface: 'table' | 'drawer',
+  ): void {
     if (!(event.target instanceof Element)) return;
     const retry = event.target.closest<HTMLAnchorElement>('a[href="#invoice-pdf-retry"]');
-    if (!retry || !event.currentTarget || !(event.currentTarget instanceof Element) || !event.currentTarget.contains(retry)) return;
+    if (
+      !retry ||
+      !event.currentTarget ||
+      !(event.currentTarget instanceof Element) ||
+      !event.currentTarget.contains(retry)
+    )
+      return;
     event.preventDefault();
     void getInvoicePdf(id, 'download', surface);
   }
@@ -383,7 +420,11 @@
     event.preventDefault();
     void getInvoicePdf(id, mode, surface);
   }
-  async function getInvoicePdf(id: string, mode: 'open' | 'download', surface: 'table' | 'drawer'): Promise<void> {
+  async function getInvoicePdf(
+    id: string,
+    mode: 'open' | 'download',
+    surface: 'table' | 'drawer',
+  ): Promise<void> {
     if (invoicePdfBusyId || invoicePdfDisposed) return;
     const controller = new AbortController();
     invoicePdfController = controller;
@@ -395,7 +436,9 @@
       try {
         popup = window.open('about:blank', '_blank');
         if (popup && !prepareInvoicePdfPopup(popup)) popup = null;
-      } catch { /* Browser popup policy. */ }
+      } catch {
+        /* Browser popup policy. */
+      }
       invoicePdfPopup = popup;
       if (!popup) {
         await showInvoicePdfFailure(id, surface, invoicePdfFallback('popup'), controller);
@@ -404,7 +447,8 @@
         return;
       }
     }
-    const current = () => !invoicePdfDisposed && invoicePdfController === controller && !controller.signal.aborted;
+    const current = () =>
+      !invoicePdfDisposed && invoicePdfController === controller && !controller.signal.aborted;
     try {
       const response = await fetch(`${base}/app/api/invoices/${encodeURIComponent(id)}/pdf`, {
         method: 'GET',
@@ -413,41 +457,88 @@
         signal: controller.signal,
         headers: { accept: 'application/pdf, application/json' },
       });
-      if (!current()) { popup?.close(); return; }
+      if (!current()) {
+        popup?.close();
+        return;
+      }
       const reference = response.headers.get('x-correlation-id') ?? '';
       if (response.redirected) {
         const destination = new URL(response.url);
         popup?.close();
-        await showInvoicePdfFailure(id, surface,
-          invoicePdfFallback(destination.origin === location.origin && destination.pathname.endsWith('/app/login') ? 'signIn' : 'invalid', reference), controller);
+        await showInvoicePdfFailure(
+          id,
+          surface,
+          invoicePdfFallback(
+            destination.origin === location.origin && destination.pathname.endsWith('/app/login')
+              ? 'signIn'
+              : 'invalid',
+            reference,
+          ),
+          controller,
+        );
         return;
       }
       if (!response.ok) {
-        const payload = response.headers.get('content-type')?.toLowerCase().includes('application/json')
-          ? await response.json().catch(() => null) : null;
-        if (!current()) { popup?.close(); return; }
+        const payload = response.headers
+          .get('content-type')
+          ?.toLowerCase()
+          .includes('application/json')
+          ? await response.json().catch(() => null)
+          : null;
+        if (!current()) {
+          popup?.close();
+          return;
+        }
         popup?.close();
-        await showInvoicePdfFailure(id, surface,
-          typedPrivateDownloadProblem(payload, invoicePdfMessageKeys, invoicePdfRemedyIds, reference) ??
-            invoicePdfFallback(response.status === 401 ? 'signIn' : 'invalid', reference), controller);
+        await showInvoicePdfFailure(
+          id,
+          surface,
+          typedPrivateDownloadProblem(
+            payload,
+            invoicePdfMessageKeys,
+            invoicePdfRemedyIds,
+            reference,
+          ) ?? invoicePdfFallback(response.status === 401 ? 'signIn' : 'invalid', reference),
+          controller,
+        );
         return;
       }
       const type = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase();
       const disposition = response.headers.get('content-disposition');
       if (type !== 'application/pdf' || !disposition?.toLowerCase().startsWith('attachment')) {
         popup?.close();
-        await showInvoicePdfFailure(id, surface, invoicePdfFallback('invalid', reference), controller);
+        await showInvoicePdfFailure(
+          id,
+          surface,
+          invoicePdfFallback('invalid', reference),
+          controller,
+        );
         return;
       }
       const file = await response.blob();
-      if (!current()) { popup?.close(); return; }
-      const length = response.headers.get('content-length');
-      if (file.size < 8 || (length && Number(length) !== file.size) || await file.slice(0, 5).text() !== '%PDF-') {
+      if (!current()) {
         popup?.close();
-        await showInvoicePdfFailure(id, surface, invoicePdfFallback('invalid', reference), controller);
         return;
       }
-      if (!current()) { popup?.close(); return; }
+      const length = response.headers.get('content-length');
+      if (
+        file.size < 8 ||
+        (length && Number(length) !== file.size) ||
+        (await file.slice(0, 5).text()) !== '%PDF-'
+      ) {
+        popup?.close();
+        await showInvoicePdfFailure(
+          id,
+          surface,
+          invoicePdfFallback('invalid', reference),
+          controller,
+        );
+        return;
+      }
+      if (!current()) {
+        popup?.close();
+        return;
+      }
       const url = URL.createObjectURL(file);
       const releaseUrl = () => {
         clearTimeout(timer);
@@ -457,7 +548,9 @@
       const timer = window.setTimeout(releaseUrl, mode === 'open' ? 3_600_000 : 60_000);
       invoicePdfObjectUrls.push({ url, timer, external: mode === 'open' });
       if (mode === 'open' && popup) {
-        if (showInvoicePdfPopup(popup, url, privateDownloadFilename(disposition, `invoice-${id}.pdf`))) {
+        if (
+          showInvoicePdfPopup(popup, url, privateDownloadFilename(disposition, `invoice-${id}.pdf`))
+        ) {
           popup.addEventListener('pagehide', releaseUrl, { once: true });
           invoicePdfPopup = null;
           invoicePdfOpenedId = id;
@@ -475,7 +568,8 @@
       }
     } catch {
       popup?.close();
-      if (current()) await showInvoicePdfFailure(id, surface, invoicePdfFallback('network'), controller);
+      if (current())
+        await showInvoicePdfFailure(id, surface, invoicePdfFallback('network'), controller);
     } finally {
       if (invoicePdfPopup === popup) invoicePdfPopup = null;
       if (invoicePdfController === controller) {
@@ -1868,11 +1962,18 @@
   }
 
   function invoiceProjectIdentity(invoice: Row): string {
+    const projectId = rowValue(invoice, 'project_id', 'projectId');
+    const project = (data.projects ?? []).find(
+      (candidate) => rowValue(candidate, 'id') === projectId,
+    );
+    const projectName =
+      rowValue(invoice, 'project_name', 'projectName') ||
+      rowValue(project, 'name', 'project_name', 'projectName');
     const projectNumber = rowValue(invoice, 'project_number', 'projectNumber');
     const costCenter = rowValue(invoice, 'cost_center_code', 'costCenterCode');
     const poNumber = rowValue(invoice, 'po_number', 'poNumber');
     return [
-      projectNumber,
+      [projectNumber, projectName].filter(Boolean).join(' · '),
       costCenter ? `${translate('Cost center')}: ${costCenter}` : '',
       poNumber ? `PO: ${poNumber}` : '',
     ]
@@ -1912,9 +2013,34 @@
   }
 
   function invoiceTitle(invoice: Row): string {
-    if (invoiceState(invoice) === 'superseded')
-      return `${translate('Superseded approved invoice')} · ${rowValue(invoice, 'id').slice(0, 8)}`;
+    if (invoiceState(invoice) === 'superseded') {
+      const number = rowValue(invoice, 'invoice_number', 'invoiceNumber');
+      const project = invoiceProjectIdentity(invoice);
+      const period = [
+        rowValue(invoice, 'period_start', 'periodStart'),
+        rowValue(invoice, 'period_end', 'periodEnd'),
+      ]
+        .filter(Boolean)
+        .join(' – ');
+      return [translate('Superseded approved invoice'), number || project, period]
+        .filter(Boolean)
+        .join(' · ');
+    }
     return rowValue(invoice, 'invoice_number', 'invoiceNumber') || translate('Draft invoice');
+  }
+
+  function paymentLabel(payment: LedgerPayment | undefined): string {
+    if (!payment) return translate('Payment');
+    const reference = String(payment.reference ?? '').trim();
+    if (
+      reference &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(reference)
+    )
+      return `${translate('Payment')} · ${reference}`;
+    const received = dateValue(payment.received_at);
+    return received && received !== '—'
+      ? `${translate('Payment')} · ${received}`
+      : translate('Payment');
   }
 
   function paymentStatus(ledger: BillingLedgerRow | undefined): string {
@@ -3801,12 +3927,18 @@
                           download
                           aria-label={`${translate('Download PDF')}: ${invoiceTitle(invoice)}`}
                           aria-disabled={Boolean(invoicePdfBusyId)}
-                          onclick={(event) => onInvoicePdfLinkClick(event, invoiceId, 'download', 'table')}
-                          onauxclick={(event) => onInvoicePdfLinkClick(event, invoiceId, 'download', 'table')}
+                          onclick={(event) =>
+                            onInvoicePdfLinkClick(event, invoiceId, 'download', 'table')}
+                          onauxclick={(event) =>
+                            onInvoicePdfLinkClick(event, invoiceId, 'download', 'table')}
                           >{translate('Download PDF')}</a
                         >
                         {#if invoicePdfFailure?.id === invoiceId && invoicePdfFailure.surface === 'table'}
-                          <div data-invoice-pdf-problem="table" onclick={(event) => onInvoicePdfRemedyClick(event, invoiceId, 'table')} role="presentation">
+                          <div
+                            data-invoice-pdf-problem="table"
+                            onclick={(event) => onInvoicePdfRemedyClick(event, invoiceId, 'table')}
+                            role="presentation"
+                          >
                             <ProblemNotice
                               problem={invoicePdfFailure.problem}
                               kind="error"
@@ -4125,12 +4257,7 @@
                       )}
                       <article class="billing-section__payment-row">
                         <div>
-                          <strong
-                            >{translate('Payment')} · {String(payment.id ?? '—').slice(
-                              0,
-                              12,
-                            )}</strong
-                          >
+                          <strong>{paymentLabel(payment)}</strong>
                           <small>
                             {formatMoney(
                               payment.grossAmountMinor,
@@ -4297,9 +4424,13 @@
                           >
                           <tbody>
                             {#each ledger.paymentReversals ?? [] as reversal}
+                              {@const originalPayment = (ledger.payments ?? []).find(
+                                (payment) =>
+                                  String(payment.id ?? '') ===
+                                  String(reversal.originalPaymentId ?? ''),
+                              )}
                               <tr
-                                ><td>{String(reversal.originalPaymentId ?? '—').slice(0, 12)}</td
-                                ><td
+                                ><td>{paymentLabel(originalPayment)}</td><td
                                   >{formatMoney(
                                     reversal.amountMinor,
                                     String(reversal.currency ?? currency),
@@ -4338,7 +4469,11 @@
                     </span>
                     {#if pdfStatus === 'ready'}
                       {#if invoicePdfFailure?.id === invoiceId && invoicePdfFailure.surface === 'drawer'}
-                        <div data-invoice-pdf-problem="drawer" onclick={(event) => onInvoicePdfRemedyClick(event, invoiceId, 'drawer')} role="presentation">
+                        <div
+                          data-invoice-pdf-problem="drawer"
+                          onclick={(event) => onInvoicePdfRemedyClick(event, invoiceId, 'drawer')}
+                          role="presentation"
+                        >
                           <ProblemNotice
                             problem={invoicePdfFailure.problem}
                             kind="error"
@@ -4354,8 +4489,10 @@
                         rel="noopener noreferrer"
                         aria-label={`${translate('Open PDF')}: ${invoiceTitle(invoice)}`}
                         aria-disabled={Boolean(invoicePdfBusyId)}
-                        onclick={(event) => onInvoicePdfLinkClick(event, invoiceId, 'open', 'drawer')}
-                        onauxclick={(event) => onInvoicePdfLinkClick(event, invoiceId, 'open', 'drawer')}
+                        onclick={(event) =>
+                          onInvoicePdfLinkClick(event, invoiceId, 'open', 'drawer')}
+                        onauxclick={(event) =>
+                          onInvoicePdfLinkClick(event, invoiceId, 'open', 'drawer')}
                         >{translate('Open PDF')}</a
                       >
                       <a
@@ -4364,8 +4501,10 @@
                         download
                         aria-label={`${translate('Download PDF')}: ${invoiceTitle(invoice)}`}
                         aria-disabled={Boolean(invoicePdfBusyId)}
-                        onclick={(event) => onInvoicePdfLinkClick(event, invoiceId, 'download', 'drawer')}
-                        onauxclick={(event) => onInvoicePdfLinkClick(event, invoiceId, 'download', 'drawer')}
+                        onclick={(event) =>
+                          onInvoicePdfLinkClick(event, invoiceId, 'download', 'drawer')}
+                        onauxclick={(event) =>
+                          onInvoicePdfLinkClick(event, invoiceId, 'download', 'drawer')}
                         >{translate('Download PDF')}</a
                       >
                       {#if invoicePdfOpenedId === invoiceId}

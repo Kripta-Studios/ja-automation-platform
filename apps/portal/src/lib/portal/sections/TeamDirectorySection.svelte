@@ -170,6 +170,12 @@
       ? problemPayload.values.userId
       : null,
   );
+  const problemPersonName = $derived.by(() => {
+    const id =
+      failedWorkerProfileId ?? failedWorkforceProfileId ?? failedStatusUserId ?? problemRecordId;
+    const person = workers.find((candidate) => workerId(candidate) === id);
+    return person ? workerName(person) : String(problemPayload?.values?.name ?? '').trim();
+  });
   let creatingUser = $state(false);
   let invitationCopied = $state(false);
   let mailboxSearch = $state('');
@@ -374,6 +380,13 @@
     if (failedWorkforceProfileId === id && typeof problemPayload?.values?.supplierId === 'string')
       return problemPayload.values.supplierId;
     return value(worker, 'supplier_id');
+  }
+
+  function workforceProblemContext(worker: PortalRow): string {
+    const supplierId = workforceSupplierValue(worker);
+    const supplier = suppliers.find((candidate) => String(candidate.id ?? '') === supplierId);
+    const supplierName = supplier ? value(supplier, 'name') : '';
+    return [workerName(worker), supplierName].filter(Boolean).join(' · ');
   }
 
   function unavailableWorkforceSupplier(worker: PortalRow): string {
@@ -775,6 +788,7 @@
   {#if problemPayload && !workforceSupplierProblemInForm && !(failedStatusUserId && canManageTeam && workers.some((worker) => workerId(worker) === failedStatusUserId))}
     <ProblemNotice
       problem={problemPayload}
+      status={problemPersonName || undefined}
       remedyLinks={{
         review_owner_access: {
           label: portalText(problemLocale, 'problem.remedy.reviewOwnerAccess'),
@@ -1218,6 +1232,7 @@
                   <div data-status-problem>
                     <ProblemNotice
                       problem={problemPayload}
+                      status={workerName(worker)}
                       remedyLinks={{
                         review_user_access: {
                           label: portalText(problemLocale, 'problem.remedy.reviewUserAccess'),
@@ -1348,6 +1363,7 @@
                         <ProblemNotice
                           problem={problemPayload}
                           locale={problemLocale}
+                          status={workforceProblemContext(worker)}
                           remedyLinks={canonicalOwner
                             ? {
                                 review_supplier_status: {

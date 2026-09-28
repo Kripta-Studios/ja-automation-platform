@@ -153,6 +153,19 @@
         href: `${base}/app/finance?view=commercial&expense=${encodeURIComponent(classify.recordId)}#expense-classification`,
       };
     }
+    const financeRules = approvalProblem?.remedies.find(
+      (item) => item.id === 'review_finance_rules',
+    );
+    if (
+      financeRules?.projectId &&
+      canSeeFinanceReview &&
+      ['owner_admin', 'finance_admin'].includes(String(data.user.role))
+    ) {
+      links.review_finance_rules = {
+        label: translate('Open finance configuration'),
+        href: `${base}/app/finance?view=commercial&project=${encodeURIComponent(financeRules.projectId)}`,
+      };
+    }
     return links;
   });
   let search = $state('');
@@ -519,6 +532,26 @@
   function value(row: Row, key: string): string {
     const raw = row[key];
     return raw === null || raw === undefined ? '' : String(raw);
+  }
+
+  function projectName(row: Row): string {
+    const direct = value(row, 'project_name') || value(row, 'project_number');
+    if (direct) return direct;
+    const project = (data.projects ?? []).find(
+      (candidate) => value(candidate, 'id') === value(row, 'project_id'),
+    );
+    return project
+      ? value(project, 'name') || value(project, 'project_number') || translate('Project')
+      : translate('Project');
+  }
+
+  function workerName(row: Row): string {
+    const direct = value(row, 'worker_name');
+    if (direct) return direct;
+    const worker = (data.workers ?? []).find(
+      (candidate) => value(candidate, 'id') === value(row, 'worker_id'),
+    );
+    return worker ? value(worker, 'name') || translate('Worker') : translate('Worker');
   }
 
   function reviewActionKey(kind: 'report' | 'record' | 'milestone', row: Row): string {
@@ -927,7 +960,7 @@
         ><option value="">{translate('All projects')}</option
         >{#each Array.from(new Map(operationalRows
               .filter((row) => value(row, 'project_id'))
-              .map( (row) => [value(row, 'project_id'), value(row, 'project_name') || value(row, 'project_id')], )).entries()) as [id, label]}<option
+              .map( (row) => [value(row, 'project_id'), projectName(row)], )).entries()) as [id, label]}<option
             value={id}>{label}</option
           >{/each}</select
       ></label
@@ -940,7 +973,7 @@
         ><option value="">{translate('All workers')}</option
         >{#each Array.from(new Map(operationalRows
               .filter((row) => value(row, 'worker_id'))
-              .map( (row) => [value(row, 'worker_id'), value(row, 'worker_name') || value(row, 'worker_id')], )).entries()) as [id, label]}<option
+              .map( (row) => [value(row, 'worker_id'), workerName(row)], )).entries()) as [id, label]}<option
             value={id}>{label}</option
           >{/each}</select
       ></label
@@ -1015,10 +1048,7 @@
                       'date',
                     )}</strong
                   >
-                  <small
-                    >{stageLabel(row.review_stage)} · {value(row, 'project_name') ||
-                      value(row, 'project_id')}</small
-                  >
+                  <small>{stageLabel(row.review_stage)} · {projectName(row)}</small>
                   <span>{translate('Open record →')}</span>
                 </a>
                 <div class="approval-row-status">
@@ -1237,9 +1267,7 @@
               <a class="approval-record-link" href={recordHref(row)}
                 ><strong
                   >{value(row, 'worker_name') || value(row, 'type')} · {value(row, 'date')}</strong
-                ><small>{value(row, 'project_name') || value(row, 'project_id')}</small><span
-                  >{translate('Open record →')}</span
-                ></a
+                ><small>{projectName(row)}</small><span>{translate('Open record →')}</span></a
               ><StatusBadge
                 variant={statusVariant(row.approval_state)}
                 text={controlledValue('status', row.approval_state) || value(row, 'approval_state')}
@@ -1411,7 +1439,7 @@
                       'date',
                     )}</strong
                   >
-                  <small>{translate('Finance review')} · {value(row, 'project_id')}</small>
+                  <small>{translate('Finance review')} · {projectName(row)}</small>
                   <span>{translate('Open record →')}</span>
                 </a>
                 <StatusBadge variant="warning" text={translate('Approved operationally')} />

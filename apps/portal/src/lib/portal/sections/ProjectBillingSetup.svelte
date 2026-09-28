@@ -110,6 +110,14 @@
   );
   const failedValues = $derived(setupFailure?.values ?? {});
   const personFailedValues = $derived(personFailure?.values ?? {});
+  const failedPerson = $derived(people.find((person) => person.id === personFailedValues.workerId));
+  const namedPersonFailureMessage = $derived(
+    people.reduce(
+      (message, person) =>
+        person.id && person.name ? message.replaceAll(person.id, person.name) : message,
+      personFailure?.message ?? '',
+    ),
+  );
   const failedBatchRows = $derived.by(() => {
     try {
       const rows = JSON.parse(personFailedValues.rows ?? '[]');
@@ -879,8 +887,12 @@
             )}
           </p>
           {#if personFailure}<div class="warning" role="alert">
-              <strong>{t('Check person terms fields')}</strong>{#if personFailure.message}<p>
-                  {personFailure.message}
+              <strong>{t('Check person terms fields')}</strong>
+              {#if failedPerson}
+                <p>{failedPerson.name}</p>
+              {/if}
+              {#if namedPersonFailureMessage}<p>
+                  {namedPersonFailureMessage}
                 </p>{/if}
             </div>{/if}
           {#if canEdit && people.length > 1}

@@ -73,6 +73,82 @@
   const t = (key: string, params?: Record<string, string | number>) =>
     standaloneText(locale, key, params);
   const category = (value: string) => translateControlledValue(locale, 'category', value);
+  const issueMessages: Record<string, string> = {
+    missing_client_rate: 'Client rate is missing for a source record.',
+    missing_internal_cost: 'Internal cost is missing for a source record.',
+    missing_compensation_rule: 'Worker compensation rule is missing for a source record.',
+    missing_expense_finance_projection:
+      'Expense finance projection is missing for a source record.',
+    missing_expense_currency_conversion:
+      'Expense currency conversion is missing for a source record.',
+    missing_person_forecast_rate: 'A planned worker needs a rate before the forecast is complete.',
+  };
+  function issueDisplay(issue: Explanation['issues'][number]): {
+    message: string;
+    context: string;
+  } {
+    const sourceId = String(issue.sourceId ?? '');
+    const person = explanation?.people.find(
+      (candidate) =>
+        candidate.workerId === sourceId ||
+        candidate.time.some((row) => String(row.id ?? '') === sourceId) ||
+        candidate.expenses.some((row) => String(row.id ?? '') === sourceId),
+    );
+    const time = person?.time.find((row) => String(row.id ?? '') === sourceId);
+    const expense = person?.expenses.find((row) => String(row.id ?? '') === sourceId);
+    const context = time
+      ? `${person?.workerName ?? ''} · ${String(time.workDate ?? '')}`
+      : expense
+        ? `${String(expense.description ?? '')} · ${person?.workerName ?? ''} · ${String(expense.spentOn ?? '')}`
+        : (person?.workerName ?? project.name);
+    return { message: t(issueMessages[issue.code] ?? issue.code.replaceAll('_', ' ')), context };
+  }
+  function issueRemedy(issue: Explanation['issues'][number]): { label: string; href?: string } {
+    if (data.user.role === 'auditor_read_only') return { label: t('Contact Finance or an owner') };
+    const sourceId = String(issue.sourceId ?? '');
+    if (
+      issue.code === 'missing_expense_finance_projection' ||
+      issue.code === 'missing_expense_currency_conversion'
+    ) {
+      const expense = explanation?.people
+        .flatMap((person) => person.expenses)
+        .find((row) => String(row.id ?? '') === sourceId);
+      if (issue.code === 'missing_expense_currency_conversion' && expense)
+        return {
+          label: t('Review source expense'),
+          href: `${base}/app/expenses/${encodeURIComponent(sourceId)}`,
+        };
+      return {
+        label: t('Review expense classification'),
+        href: `${base}/app/finance?view=economic&project=${encodeURIComponent(project.id)}&source=expenses#expense-classification`,
+      };
+    }
+    const tasks: Record<string, string> = {
+      missing_client_rate: 'Client labor rate',
+      missing_internal_cost: 'Internal loaded cost',
+      missing_compensation_rule: 'Worker compensation',
+      missing_person_forecast_rate: 'Client labor rate',
+    };
+    const task = tasks[issue.code];
+    if (!task) return { label: t('Contact Finance or an owner') };
+    const query = new URLSearchParams({
+      view: 'commercial',
+      project: project.id,
+      task,
+      lang: locale,
+    });
+    if (
+      sourceId &&
+      explanation?.people.some((person) =>
+        person.time.some((row) => String(row.id ?? '') === sourceId),
+      )
+    )
+      query.set('sourceRecord', sourceId);
+    return {
+      label: `${t('Open finance configuration')}: ${t(task)}`,
+      href: `${base}/app/finance?${query.toString()}#finance-configuration-task`,
+    };
+  }
   onMount(() => {
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'));
     persistStandaloneLocale(locale);
@@ -449,11 +525,15 @@
       <section class="issues" aria-label={t('Configuration issues')}>
         <h2>{t('Configuration that still needs attention')}</h2>
         <ul>
-          {#each explanation.issues as issue}<li>
-              {t(issue.code.replaceAll('_', ' '))}{issue.sourceId
-                ? t(' · source {id}', { id: issue.sourceId })
-                : ''}
-            </li>{/each}
+          {#each explanation.issues as issue}
+            {@const readable = issueDisplay(issue)}
+            {@const remedy = issueRemedy(issue)}
+            <li>
+              {readable.message} · {readable.context}
+              {#if remedy.href}<a href={remedy.href}>{remedy.label}</a>
+              {:else}<span>{remedy.label}</span>{/if}
+            </li>
+          {/each}
         </ul>
       </section>
     {/if}

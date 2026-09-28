@@ -26,6 +26,188 @@ export type PortalNavigation = {
   security: readonly NavItem[];
 };
 
+export type NavSubsection = { label: string; href: string };
+
+/**
+ * Only link to sections that the destination renders for this role. The
+ * ordinary row remains the page link; these are optional shortcuts into its
+ * existing tabs and stable element IDs.
+ */
+export function subsectionsForNavItem(
+  item: NavItem,
+  href: string,
+  role?: string | null,
+): readonly NavSubsection[] {
+  const link = (label: string, hash?: string, params?: Record<string, string>): NavSubsection => {
+    const target = new URL(href, 'https://portal.invalid');
+    for (const [key, value] of Object.entries(params ?? {})) target.searchParams.set(key, value);
+    if (hash) target.hash = hash;
+    return { label, href: `${target.pathname}${target.search}${target.hash}` };
+  };
+  const owner = role === 'owner_admin';
+  const finance = role === 'finance_admin' || owner;
+
+  if (item.section === 'today' && role === 'worker')
+    return [
+      link('Your workday', '#agenda-heading'),
+      link('Upcoming assignments', '#upcoming-assignments-heading'),
+    ];
+  if (item.section === 'today' && (owner || role === 'project_manager'))
+    return [
+      link('Field operations overview', '#dashboard-overview'),
+      link('Active project board', '#dashboard-project-board'),
+    ];
+  if (item.section === 'time') {
+    return [
+      ...(owner ? [link('Enter a week in a table', '#time-owner-batch-title')] : []),
+      link('Filter time entries', '#time-filters'),
+      link('Recent time entries', '#time-records'),
+    ];
+  }
+  if (item.section === 'expenses')
+    return [
+      link('Filter expenses', '#expense-register-filters'),
+      link('Recent expenses', '#expense-records'),
+    ];
+  if (item.section === 'reports')
+    return [
+      link('Daily', '#report-panel-daily', { view: 'daily' }),
+      link('Technical / PLC', '#report-panel-technical', { view: 'technical' }),
+      link('Client Sign-off', '#report-panel-signoff', { view: 'signoff' }),
+    ];
+  if (item.section === 'projects' && item.label === 'Projects')
+    return role === 'project_manager'
+      ? [link('Authorized projects'), link('Assign worker', undefined, { action: 'assign-worker' })]
+      : owner || role === 'finance_admin'
+        ? [
+            link('Project calendar', '#project-calendar'),
+            link('Project register', '#project-register'),
+            ...(owner ? [link('Assignment history', '#assignment-history')] : []),
+          ]
+        : [];
+  if (item.section === 'projects' && item.label === 'Clients')
+    return [
+      link('Filter clients', '#client-directory-filters'),
+      link('Clients', '#client-directory-list'),
+    ];
+  if (item.section === 'projects' && item.label === 'Team')
+    return [
+      link('Specialists', '#team-panel-specialists', { directory: 'specialists' }),
+      link('Search team', '#team-search', { directory: 'specialists' }),
+    ];
+  if (item.section === 'approvals')
+    return [
+      link('Time', '#approval-queue', { tab: 'time' }),
+      link('Expenses', '#approval-queue', { tab: 'expenses' }),
+      link('Reports', '#approval-queue', { tab: 'reports' }),
+    ];
+  if (item.section === 'planning')
+    return [
+      link('Planning', '#planning-day-agenda'),
+      ...(owner || role === 'project_manager'
+        ? [link('Publish assignment', '#planning-create-form')]
+        : []),
+      ...(owner ? [link('Manage worker expertise', '#planning-skills')] : []),
+    ];
+  if (item.section === 'documents')
+    return [
+      link('Register a private artifact', '#document-upload'),
+      link('Documents', '#document-list'),
+    ];
+  if (item.section === 'supplier' && item.label !== 'Operational report') {
+    const workspace = (label: string, action: string): NavSubsection =>
+      link(label, '#supplier-workspace', { workspaceAction: action });
+    return owner
+      ? [
+          workspace('Supplier directory', 'directory'),
+          workspace('Supplier setup', 'setup'),
+          workspace('Supplier access', 'authorize'),
+          workspace('Supplier personnel', 'personnel'),
+          workspace('Supplier report', 'report'),
+        ]
+      : [
+          workspace('Supplier personnel', 'personnel'),
+          workspace('Supplier time', 'time'),
+          workspace('Supplier report', 'report'),
+        ];
+  }
+  if (item.section === 'supplier' && item.label === 'Operational report')
+    return [
+      link('Project', '#supplier-report-project'),
+      link('Operational report', '#supplier-report'),
+    ];
+  if (item.section === 'crew')
+    return owner
+      ? [link('Assign a crew chief', '#crew-assign'), link('Crew delegations', '#crew-delegations')]
+      : [link('Project', '#crew-project'), link('Work date', '#crew-date')];
+  if (item.section === 'manage' && owner)
+    return [
+      link('Operational records', undefined, { type: 'expense' }),
+      link('Planning', undefined, { area: 'planning_assignment' }),
+      link('Availability', undefined, { area: 'worker_availability' }),
+      link('Documents', undefined, { area: 'document' }),
+      link('Technical changes', undefined, { area: 'technical_change' }),
+      link('Milestones', undefined, { area: 'project_milestone' }),
+    ];
+  if (item.section === 'finance' && item.label === 'Finance Overview')
+    return [
+      link('Forecast and budget control', '#finance-alerts'),
+      link('Source records', '#finance-source-records', { view: 'economic' }),
+    ];
+  if (item.section === 'finance' && item.label === 'Economic Review')
+    return [
+      link('Portfolio views', '#finance-source-records', { source: 'portfolio' }),
+      link('Workers', '#finance-source-records', { source: 'workers' }),
+      link('Time', '#finance-source-records', { source: 'time' }),
+      link('Expenses', '#finance-source-records', { source: 'expenses' }),
+      link('Compensation settlements', '#worker-payments', { source: 'settlements' }),
+    ];
+  if (item.section === 'finance' && item.label === 'Commercial Configuration' && finance)
+    return [
+      link('How labor terms are selected', '#commercial-terms-summary'),
+      link('Worker compensation', '#finance-rule-registers', {
+        task: 'Worker compensation',
+      }),
+      link('Internal loaded cost', '#finance-rule-registers', {
+        task: 'Internal loaded cost',
+      }),
+      link('Project issuing authority', '#project-issuing-authority', {
+        task: 'Project issuing authority',
+      }),
+      link('Project commercial and time policy', '#project-commercial-policy', {
+        task: 'Project commercial and time policy',
+      }),
+    ];
+  if (item.section === 'billing')
+    return [
+      link('Invoices', undefined, { view: 'invoices' }),
+      link('Billing streams', undefined, { view: 'streams' }),
+      ...(finance ? [link('Configure billing', undefined, { view: 'setup' })] : []),
+    ];
+  if (item.section === 'ledger')
+    return [
+      link('Filter collections', '#collections-ledger-filters'),
+      link('Collections / Ledger', '#collections-ledger-register'),
+    ];
+  if (item.section === 'accounting')
+    return [
+      ...(finance ? [link('Generate monthly Accounting Pack', '#accounting-generate')] : []),
+      link('Accounting Pack register', '#accounting-register'),
+    ];
+  if (item.section === 'pay')
+    return [
+      link('Worker statement', '#pay-export-title'),
+      link('Own activity detail', '#pay-activity-title'),
+      link('Reimbursement status', '#pay-reimbursements-title'),
+    ];
+  if (item.section === 'profile')
+    return [
+      link('Expertise and availability', '#profile-skills'),
+      link('Profile & security', '#account-mfa'),
+    ];
+  return [];
+}
+
 /**
  * Resolve the authenticated user's landing destination. Finance roles do not
  * have an operational Today destination in their allowlist, so the portal

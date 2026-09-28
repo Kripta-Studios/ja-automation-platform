@@ -89,6 +89,7 @@ function makeProjects(
     );
     setStatus.run('closing', now, projects.closing);
     setStatus.run('closed', now, projects.closed);
+    if (persona === 'manager') seedFinanceCoverage(database, projects.success, workerId);
     return { projects, workerId, databasePath };
   } finally {
     database.sqlite.close();
@@ -119,12 +120,39 @@ function countAssignments(databasePath: string, projectId: string, workerId: str
   }
 }
 
-async function fillAssignment(page: Page, workerId: string) {
+function seedFinanceCoverage(
+  database: ReturnType<typeof createDatabase>,
+  projectId: string,
+  workerId: string,
+) {
+  const now = new Date().toISOString();
+  database.sqlite
+    .prepare(
+      `INSERT INTO internal_cost_rule
+    (id,worker_id,project_id,currency,hourly_rate_minor,effective_from,effective_to,created_at,updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?)`,
+    )
+    .run(randomUUID(), workerId, projectId, 'USD', 3000, startDate, endDate, now, now);
+  database.sqlite
+    .prepare(
+      `INSERT INTO compensation_rule
+    (id,worker_id,project_id,currency,rate_minor,rate_basis,effective_from,effective_to,created_at,updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`,
+    )
+    .run(randomUUID(), workerId, projectId, 'USD', 2000, 'hourly', startDate, endDate, now, now);
+}
+
+async function fillAssignment(page: Page, workerId: string, persona: Persona) {
   const { form } = assignmentForm(page);
   await expect(form).toBeVisible();
   await form.locator('select[name="workerId"]').selectOption(workerId);
   await form.locator('input[name="startsOn"]').fill(startDate);
   await form.locator('input[name="endsOn"]').fill(endDate);
+  if (persona === 'owner') {
+    await form.locator('input[name="internalCostHourlyRate"]').fill('30.00');
+    await form.locator('input[name="compensationRate"]').fill('20.00');
+    await form.locator('select[name="compensationBasis"]').selectOption('hourly');
+  }
   return form;
 }
 
@@ -162,7 +190,7 @@ for (const persona of ['owner', 'manager'] as const) {
 
     // The normal path should still work, with a short confirmation and one new row.
     await page.goto(openUrl(projects.success));
-    let form = await fillAssignment(page, workerId);
+    let form = await fillAssignment(page, workerId, persona);
     await expect(form.locator('select[name="projectId"]')).toHaveValue(projects.success);
     await form.getByRole('button', { name: 'Assign', exact: true }).click();
     await expect.poll(() => countAssignments(databasePath, projects.success, workerId)).toBe(1);
@@ -172,7 +200,7 @@ for (const persona of ['owner', 'manager'] as const) {
     // Native required-field validation should be beside the field, keep the other
     // values, and focus the bad field or linked summary without a network request.
     await page.goto(openUrl(projects.invalid));
-    form = await fillAssignment(page, workerId);
+    form = await fillAssignment(page, workerId, persona);
     await form.locator('input[name="startsOn"]').fill('');
     let actionRequests = 0;
     const countRequest = (request: { url(): string }) => {
@@ -232,6 +260,11 @@ for (const persona of ['owner', 'manager'] as const) {
         ).toBeEnabled();
         await blockedForm.locator('select[name="workerId"]').selectOption(workerId);
         await blockedForm.locator('input[name="startsOn"]').fill(startDate);
+        if (persona === 'owner') {
+          await blockedForm.locator('input[name="internalCostHourlyRate"]').fill('30.00');
+          await blockedForm.locator('input[name="compensationRate"]').fill('20.00');
+          await blockedForm.locator('select[name="compensationBasis"]').selectOption('hourly');
+        }
         await blockedForm.getByRole('button', { name: 'Assign', exact: true }).click();
         await expect
           .poll(() => countAssignments(databasePath, recoveryProjectId, workerId))
@@ -245,7 +278,7 @@ for (const persona of ['owner', 'manager'] as const) {
     // Change the database after the form is open. The backend must use current
     // state, and the failed native action must keep all entered values.
     await page.goto(openUrl(projects.stale));
-    form = await fillAssignment(page, workerId);
+    form = await fillAssignment(page, workerId, persona);
     const scrollBefore = await page.evaluate(() => window.scrollY);
     setProjectStatus(databasePath, projects.stale, 'closing');
     const responsePromise = page.waitForResponse((response: Response) =>
@@ -265,6 +298,13 @@ for (const persona of ['owner', 'manager'] as const) {
     await expect(reopenedForm.locator('select[name="workerId"]')).toHaveValue(workerId);
     await expect(reopenedForm.locator('input[name="startsOn"]')).toHaveValue(startDate);
     await expect(reopenedForm.locator('input[name="endsOn"]')).toHaveValue(endDate);
+    if (persona === 'owner') {
+      await expect(reopenedForm.locator('input[name="internalCostHourlyRate"]')).toHaveValue(
+        '30.00',
+      );
+      await expect(reopenedForm.locator('input[name="compensationRate"]')).toHaveValue('20.00');
+      await expect(reopenedForm.locator('select[name="compensationBasis"]')).toHaveValue('hourly');
+    }
     const maskedScreenshot = await reopenedPanel.screenshot({
       mask: [reopenedForm.locator('select[name="workerId"]')],
     });

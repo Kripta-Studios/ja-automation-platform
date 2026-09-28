@@ -57,7 +57,9 @@
     <select bind:value={expertiseId}>
       <option value="">{translate('All expertise')}</option>
       {#each expertise as item (String(item.id))}
-        <option value={String(item.id)}>{String(item.name || item.code || item.id)}</option>
+        <option value={String(item.id)}
+          >{String(item.name || item.code || translate('Expertise'))}</option
+        >
       {/each}
     </select>
   </label>
@@ -77,7 +79,7 @@
           value={String(worker.id)}
           checked={selectedWorkerIds.includes(String(worker.id))}
         />
-        <span>{String(worker.name || worker.id)}</span>
+        <span>{String(worker.name || worker.email || translate('Worker'))}</span>
       </label>
     {/each}
     {#if visibleWorkerIds.size === 0}

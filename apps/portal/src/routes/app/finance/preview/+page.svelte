@@ -105,6 +105,36 @@
       manual: t.custom,
       milestone: t.custom,
     })[String(cadence)] ?? String(cadence);
+  const projectionReasonMessages: Record<string, string> = {
+    missing_client_rate: 'Client rate is missing for a source record.',
+    missing_internal_cost: 'Internal cost is missing for a source record.',
+    missing_compensation_rule: 'Worker compensation rule is missing for a source record.',
+    missing_expense_finance_projection:
+      'Expense finance projection is missing for a source record.',
+    missing_expense_currency_conversion:
+      'Expense currency conversion is missing for a source record.',
+  };
+  function projectionReason(reason: { code: string; sourceId: string | null }) {
+    const id = String(reason.sourceId ?? '');
+    const time = data.savedAgreementCheck?.timeEconomics.find((row) => row.id === id);
+    const expense = data.savedAgreementCheck?.expenseEconomics.find((row) => row.id === id);
+    return {
+      message: portalText(
+        locale,
+        projectionReasonMessages[reason.code] ?? 'A finance source record needs projection review.',
+      ),
+      context: time
+        ? `${time.workerName} · ${time.workDate}`
+        : expense
+          ? `${expense.description} · ${expense.workerName} · ${expense.spentOn}`
+          : (data.agreement?.name ?? ''),
+      href: time
+        ? `${base}/app/time/${encodeURIComponent(id)}`
+        : expense
+          ? `${base}/app/expenses/${encodeURIComponent(id)}`
+          : '',
+    };
+  }
 </script>
 
 <svelte:head><title>{t.title} | J&A</title></svelte:head>
@@ -215,9 +245,14 @@
           {#if data.savedAgreementCheck.reasons.length}
             <p class="saved-check__warning">{t.savedCheckBlocked}</p>
             <ul>
-              {#each data.savedAgreementCheck.reasons as reason}<li>
-                  <code>{reason.code}</code> · {reason.sourceId}
-                </li>{/each}
+              {#each data.savedAgreementCheck.reasons as reason}
+                {@const readable = projectionReason(reason)}
+                <li>
+                  {readable.message} · {readable.context}
+                  {#if readable.href}<a href={readable.href}>{portalText(locale, 'Open record')}</a
+                    >{/if}
+                </li>
+              {/each}
             </ul>
           {:else}
             <p>{t.savedCheckReady}</p>

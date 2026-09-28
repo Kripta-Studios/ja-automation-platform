@@ -69,6 +69,43 @@ function seedScenario(persona: Persona, viewport: string) {
         startsOn: new Date().toISOString().slice(0, 10),
       });
     }
+    if (persona === 'manager') {
+      database.sqlite
+        .prepare(
+          `INSERT INTO internal_cost_rule
+        (id,worker_id,project_id,currency,hourly_rate_minor,effective_from,effective_to,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          randomUUID(),
+          replacementWorkerId,
+          targetProjectId,
+          'USD',
+          3000,
+          '2026-10-01',
+          '2026-10-15',
+          now,
+          now,
+        );
+      database.sqlite
+        .prepare(
+          `INSERT INTO compensation_rule
+        (id,worker_id,project_id,currency,rate_minor,rate_basis,effective_from,effective_to,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          randomUUID(),
+          replacementWorkerId,
+          targetProjectId,
+          'USD',
+          2000,
+          'hourly',
+          '2026-10-01',
+          '2026-10-15',
+          now,
+          now,
+        );
+    }
     return { databasePath, targetProjectId, staleWorkerId, replacementWorkerId };
   } finally {
     database.sqlite.close();
@@ -127,6 +164,11 @@ for (const persona of ['owner', 'manager'] as const) {
     await workerSelect.selectOption(scenario.staleWorkerId);
     await form.locator('input[name="startsOn"]').fill('2026-10-01');
     await form.locator('input[name="endsOn"]').fill('2026-10-15');
+    if (persona === 'owner') {
+      await form.locator('input[name="internalCostHourlyRate"]').fill('30.00');
+      await form.locator('input[name="compensationRate"]').fill('20.00');
+      await form.locator('select[name="compensationBasis"]').selectOption('hourly');
+    }
     const scrollBefore = await page.evaluate(() => window.scrollY);
 
     deactivateWorker(scenario.databasePath, scenario.staleWorkerId);
@@ -171,6 +213,10 @@ for (const persona of ['owner', 'manager'] as const) {
     );
     await expect(failedForm.locator('input[name="startsOn"]')).toHaveValue('2026-10-01');
     await expect(failedForm.locator('input[name="endsOn"]')).toHaveValue('2026-10-15');
+    if (persona === 'owner') {
+      await expect(failedForm.locator('input[name="internalCostHourlyRate"]')).toHaveValue('30.00');
+      await expect(failedForm.locator('input[name="compensationRate"]')).toHaveValue('20.00');
+    }
     expect(
       await failedWorkerSelect.evaluate((select: HTMLSelectElement) => select.validity.valid),
     ).toBe(false);

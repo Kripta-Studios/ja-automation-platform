@@ -1116,12 +1116,9 @@ export class V3Repository {
       throw new V3ValidationError('Overtime percentage basis points are required');
     if (projectId) {
       this.assertProjectAccess(principal, projectId);
-      this.assertWorkerProjectMembership(
-        input.workerId,
-        projectId,
-        input.effectiveFrom,
-        effectiveTo ?? input.effectiveFrom,
-      );
+      // Finance may stage authorized project terms before a worker joins, or
+      // extend coverage before an assignment's dates are changed. Settlement
+      // still checks membership against actual source work.
       const project = this.sqlite
         .prepare('SELECT currency FROM project WHERE id=?')
         .get(projectId) as { currency: V3Currency } | undefined;
@@ -1359,12 +1356,8 @@ export class V3Repository {
     if (input.overtimeMethod === 'FIXED_ADDITION_PER_HOUR' && input.overtimeRateMinor === undefined)
       throw new V3ValidationError('An internal overtime addition is required');
     if (projectId) {
-      this.assertWorkerProjectMembership(
-        input.workerId,
-        projectId,
-        input.effectiveFrom,
-        effectiveTo ?? input.effectiveFrom,
-      );
+      // Permit date-effective cost setup before the operational assignment;
+      // project access, active-worker and currency checks remain mandatory.
       const project = this.sqlite
         .prepare('SELECT currency FROM project WHERE id=?')
         .get(projectId) as { currency: V3Currency } | undefined;

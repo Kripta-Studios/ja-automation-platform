@@ -10,6 +10,7 @@ import {
 } from './action-message';
 import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
 import { mondayOf } from '$lib/server/portal-week';
+import { decimalHoursToMinutes, weekDates } from '$lib/portal/sections/time-entry-actions';
 import type { ZodError } from 'zod';
 
 export const parseTimeUpdateForm = (input: Record<string, unknown>) =>
@@ -43,12 +44,18 @@ const timeValueFields = new Set([
   'targetWeekStart',
   'weekStart',
   'entries',
+  'batchForm',
 ]);
 
 function safeTimeValues(values: Record<string, unknown>): Record<string, string> {
   return Object.fromEntries(
     Object.entries(values).flatMap(([key, value]) => {
-      if (!timeValueFields.has(key) || typeof value !== 'string') return [];
+      if (
+        (!timeValueFields.has(key) && !/^(?:workDate|hours|category|summary)_[0-6]$/u.test(key)) ||
+        typeof value !== 'string' ||
+        (value.length > 5000 && key !== 'entries')
+      )
+        return [];
       if (key !== 'entries') return [[key, value]];
       try {
         const rows = JSON.parse(value) as unknown;
@@ -572,17 +579,96 @@ export const timeActions = {
     const object = await formObject(request);
     const workerId = String(object.workerId ?? '');
     let rawEntries: unknown;
-    try {
-      rawEntries = JSON.parse(String(object.entries ?? ''));
-    } catch {
-      return timePrecheckFailure(
-        'TIME_BATCH_ENTRIES_INVALID',
-        'problem.time.batchEntriesInvalid',
-        'The batch entries could not be read. Review the daily drafts and save again.',
-        object,
-        'entries',
-        'review_week',
-      );
+    if (object.batchForm === 'week_table') {
+      const weekStart = object.weekStart;
+      if (!realIsoDate(weekStart) || mondayOf(weekStart) !== weekStart)
+        return timePrecheckFailure(
+          'TIME_WEEK_START_INVALID',
+          'problem.time.weekStartInvalid',
+          'Select a week that starts on Monday, then review its drafts before submitting.',
+          object,
+          'weekStart',
+          'review_week',
+        );
+      const dates = weekDates(weekStart);
+      if (dates.some((date, index) => object[`workDate_${index}`] !== date))
+        return timePrecheckFailure(
+          'TIME_BATCH_ENTRIES_INVALID',
+          'problem.time.batchEntriesInvalid',
+          'The batch dates changed. Review the selected week and daily drafts before saving.',
+          object,
+          'entries',
+          'review_week',
+        );
+      if (typeof object.entries === 'string' && object.entries) {
+        try {
+          rawEntries = JSON.parse(object.entries);
+        } catch {
+          return timePrecheckFailure(
+            'TIME_BATCH_ENTRIES_INVALID',
+            'problem.time.batchEntriesInvalid',
+            'The batch entries could not be read. Review the daily drafts and save again.',
+            object,
+            'entries',
+            'review_week',
+          );
+        }
+      } else {
+        const entries: Array<Record<string, unknown>> = [];
+        for (const [index, date] of dates.entries()) {
+          const hours = String(object[`hours_${index}`] ?? '').trim();
+          const summary = String(object[`summary_${index}`] ?? '').trim();
+          if (!hours && !summary) continue;
+          const minutes = decimalHoursToMinutes(hours);
+          if (minutes === null)
+            return timePrecheckFailure(
+              'TIME_BATCH_ENTRY_INVALID',
+              'problem.time.batchEntryInvalid',
+              'Enter valid decimal hours for each filled day before saving the batch.',
+              object,
+              `hours_${index}`,
+              'review_week',
+            );
+          entries.push({
+            projectId: object.projectId,
+            workDate: date,
+            category: object[`category_${index}`] ?? 'regular',
+            minutes,
+            summary,
+          });
+        }
+        rawEntries = entries;
+      }
+      if (
+        Array.isArray(rawEntries) &&
+        rawEntries.some(
+          (entry) =>
+            !entry ||
+            typeof entry !== 'object' ||
+            !dates.includes(String((entry as Record<string, unknown>).workDate ?? '')),
+        )
+      )
+        return timePrecheckFailure(
+          'TIME_BATCH_ENTRY_INVALID',
+          'problem.time.batchEntryInvalid',
+          'A daily entry is outside the selected week. Review the dates before saving.',
+          object,
+          'entries',
+          'review_week',
+        );
+    } else {
+      try {
+        rawEntries = JSON.parse(String(object.entries ?? ''));
+      } catch {
+        return timePrecheckFailure(
+          'TIME_BATCH_ENTRIES_INVALID',
+          'problem.time.batchEntriesInvalid',
+          'The batch entries could not be read. Review the daily drafts and save again.',
+          object,
+          'entries',
+          'review_week',
+        );
+      }
     }
     if (!Array.isArray(rawEntries) || rawEntries.length < 1 || rawEntries.length > 31)
       return timePrecheckFailure(

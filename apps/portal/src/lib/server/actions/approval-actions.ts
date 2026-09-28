@@ -3,6 +3,7 @@ import { AccessDeniedError, ConflictError, ValidationError } from '@ja/database'
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess, type ActionMessageKey } from './action-message';
 import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
+import { withAssignmentFinanceTransaction } from './assignment-finance';
 
 const approvalValueFields = new Set(['id', 'type', 'decision', 'reason', 'billable']);
 
@@ -368,13 +369,107 @@ export const approvalActions = {
             },
           );
       }
-      if (parsed.data.type === 'time')
-        context.repository.financeApproveTime(
-          context.principal,
-          parsed.data.id,
-          parsed.data.billable === 'yes',
-        );
-      else context.repository.financeApproveExpense(context.principal, parsed.data.id);
+      if (parsed.data.type === 'time') {
+        if (!['owner_admin', 'finance_admin'].includes(context.principal.role))
+          return actionFail(
+            403,
+            'problem.finance.roleRequired',
+            {},
+            'Finance access is required for this review.',
+            {
+              code: 'FINANCE_ROLE_REQUIRED',
+              actionName: 'financeApprove',
+              remedies: [{ id: 'contact_finance_owner' }],
+              values,
+            },
+          );
+        const openedContext = context;
+        const decision = withAssignmentFinanceTransaction(openedContext.sqlite, () => {
+          const source = openedContext.sqlite
+            .prepare(
+              `SELECT te.project_id projectId,te.worker_id workerId,te.work_date workDate,
+                      p.currency,p.name projectName,u.name workerName
+                 FROM time_entry te
+                 JOIN project p ON p.id=te.project_id
+                 JOIN user u ON u.id=te.worker_id
+                WHERE te.id=? AND te.approval_state='approved'
+                  AND te.billability_state='pending' AND te.finance_approved_at IS NULL
+                  AND te.invoice_id IS NULL AND te.billing_status='unlocked'`,
+            )
+            .get(parsed.data.id) as
+            | {
+                projectId: string;
+                workerId: string;
+                workDate: string;
+                currency: string;
+                projectName: string;
+                workerName: string;
+              }
+            | undefined;
+          if (source) {
+            const covered = (table: 'internal_cost_rule' | 'compensation_rule'): boolean =>
+              Boolean(
+                openedContext.sqlite
+                  .prepare(
+                    `SELECT 1 FROM ${table} WHERE worker_id=? AND currency=?
+                      AND (project_id=? OR project_id IS NULL)
+                      AND effective_from<=?
+                      AND (effective_to IS NULL OR effective_to>=?) LIMIT 1`,
+                  )
+                  .get(
+                    source.workerId,
+                    source.currency,
+                    source.projectId,
+                    source.workDate,
+                    source.workDate,
+                  ),
+              );
+            const costMissing = !covered('internal_cost_rule');
+            const compensationMissing = !covered('compensation_rule');
+            if (costMissing || compensationMissing) {
+              const messageKey = costMissing
+                ? compensationMissing
+                  ? 'problem.approval.timeCostAndCompensationRequired'
+                  : 'problem.approval.timeCostRequired'
+                : 'problem.approval.timeCompensationRequired';
+              const code = costMissing
+                ? compensationMissing
+                  ? 'FINANCE_REVIEW_COST_AND_COMPENSATION_REQUIRED'
+                  : 'FINANCE_REVIEW_INTERNAL_COST_REQUIRED'
+                : 'FINANCE_REVIEW_COMPENSATION_REQUIRED';
+              const fallback = costMissing
+                ? compensationMissing
+                  ? 'Internal cost and worker compensation are missing for this approved time. Set both before Finance review.'
+                  : 'Internal cost is missing for this approved time. Set it before Finance review.'
+                : 'Worker compensation is missing for this approved time. Set it before Finance review.';
+              return actionFail(
+                409,
+                messageKey,
+                {
+                  workerName: source.workerName,
+                  projectName: source.projectName,
+                  workDate: source.workDate,
+                },
+                fallback,
+                {
+                  code,
+                  actionName: 'financeApprove',
+                  values,
+                  remedies: [{ id: 'review_finance_rules', projectId: source.projectId }],
+                  correlationId: locals.correlationId,
+                },
+              );
+            }
+          }
+          openedContext.repository.financeApproveTime(
+            openedContext.principal,
+            parsed.data.id,
+            parsed.data.billable === 'yes',
+          );
+          return null;
+        });
+        if (decision) return decision;
+      } else context.repository.financeApproveExpense(context.principal, parsed.data.id);
       return actionSuccess('action.approval.financeReviewRecorded', {}, 'Finance review recorded');
     } catch (error) {
       return approvalFailure(

@@ -14,6 +14,30 @@ const copy = {
 // send credentials to an authentication service or create a real session.
 test.use({ trace: 'off', screenshot: 'off', video: 'off' });
 
+test('login never puts credentials in the URL before hydration', async ({ browser }, info) => {
+  test.skip(info.project.name !== 'phone-390');
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    await page.goto(portal('/login?lang=en'));
+    const form = page.locator('form.login-card');
+    await expect(form).toHaveAttribute('method', /post/i);
+    await expect(form).toHaveAttribute('data-hydrated', 'false');
+    await expect(form.locator('button.login-submit')).toBeDisabled();
+    await page.locator('input[name=email]').fill('qa@example.test');
+    await page.locator('input[name=password]').fill('synthetic-password');
+    await page.route('**/app/login*', (route) => route.fulfill({ status: 200, body: 'Handled' }));
+    const request = page.waitForRequest((item) => item.url().includes('/app/login'));
+    await form.evaluate((element: HTMLFormElement) => element.submit());
+    const submitted = await request;
+    expect(submitted.method()).toBe('POST');
+    expect(new URL(submitted.url()).searchParams.has('email')).toBe(false);
+    expect(new URL(submitted.url()).searchParams.has('password')).toBe(false);
+  } finally {
+    await context.close();
+  }
+});
+
 async function submitRateLimitedLogin(page: Page, locale: string, retryAfter?: string) {
   let posts = 0;
   await page.route(endpoint, async (route) => {

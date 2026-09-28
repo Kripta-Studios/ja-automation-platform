@@ -21,6 +21,7 @@
   const t = (key: string, params?: Readonly<Record<string, string | number>>): string =>
     standaloneText(locale, key, params);
   let loginState = $state<'idle' | 'sending' | 'error'>('idle');
+  let hydrated = $state(false);
   let message = $state('');
   let retryDeadline = $state<number | null>(null);
   let retrySeconds = $state(0);
@@ -143,6 +144,7 @@
       }
     };
     window.addEventListener('storage', onStorage);
+    hydrated = true;
     return () => {
       window.clearInterval(retryTimer);
       window.removeEventListener('storage', onStorage);
@@ -210,7 +212,7 @@
         <span class="webmail-btn-arrow" aria-hidden="true">↗</span>
       </a>
     </div>
-    <form class="login-card" onsubmit={login}>
+    <form class="login-card" method="POST" data-hydrated={hydrated} onsubmit={login}>
       <div class="login-brand mobile-brand" aria-hidden="true">
         <img src={`${base}/app/logo.png`} alt="J&A Automation" />
       </div>
@@ -246,7 +248,7 @@
           aria-label={t('Password')}
           required
         /></label
-      ><button class="login-submit" disabled={loginState === 'sending' || rateLimited}
+      ><button class="login-submit" disabled={!hydrated || loginState === 'sending' || rateLimited}
         >{loginState === 'sending' ? t('Verifying access…') : t('Continue to workspace')}
         <span aria-hidden="true">→</span></button
       >
@@ -254,7 +256,7 @@
         type="button"
         class="login-passkey"
         onclick={passkeyLogin}
-        disabled={loginState === 'sending'}
+        disabled={!hydrated || loginState === 'sending'}
       >
         {t('Sign in with a passkey')}
       </button>

@@ -97,7 +97,7 @@
 </script>
 
 {#if data.dashboard}
-  <div class="dashboard-hero">
+  <div id="dashboard-overview" class="dashboard-hero">
     <div>
       <span class="portal-kicker">{translate('OPERATIONS CONTROL')}</span>
       <h2>{translate('Field operations overview')}</h2>
@@ -158,7 +158,7 @@
       </a>
     {/if}
   </div>
-  <section class="record-list dashboard-projects">
+  <section id="dashboard-project-board" class="record-list dashboard-projects">
     <div class="panel-title">
       <h2>{translate('Active project board')}</h2>
       <span>{availableProjects.length} {translate('records')}</span>

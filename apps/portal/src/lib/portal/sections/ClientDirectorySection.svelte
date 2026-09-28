@@ -129,6 +129,7 @@
   </header>
 
   <form
+    id="client-directory-filters"
     class="client-directory__filter"
     aria-label={translate('Filter clients')}
     onsubmit={(event) => event.preventDefault()}
@@ -143,7 +144,7 @@
     </label>
   </form>
 
-  <div class="client-directory__list">
+  <div id="client-directory-list" class="client-directory__list">
     <RecordBrowser
       rows={visibleClients}
       bind:visible={clientPage}

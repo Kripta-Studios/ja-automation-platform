@@ -80,10 +80,7 @@ const exact: Record<string, readonly [string, string]> = {
     'No pudimos preparar el PDF de este informe. El informe no cambió; vuelve a intentarlo más tarde. Referencia: {correlationId}.',
     'Não foi possível preparar o PDF deste relatório. O relatório não foi alterado; tente novamente mais tarde. Referência: {correlationId}.',
   ],
-  'problem.expenseReceipt.previewReady': [
-    'Recibo verificado listo',
-    'Recibo verificado pronto',
-  ],
+  'problem.expenseReceipt.previewReady': ['Recibo verificado listo', 'Recibo verificado pronto'],
   'problem.expenseReceipt.previewFallback': [
     'Si la vista previa no se abre en este navegador, usa el enlace de descarga de abajo.',
     'Se a prévia não abrir neste navegador, use o link de download abaixo.',
@@ -108,10 +105,7 @@ const exact: Record<string, readonly [string, string]> = {
     'Las facturas visibles no tienen fechas de emisión, así que la exportación no puede determinar un período. Revisa esas facturas en Facturación antes de volver a intentarlo.',
     'As faturas visíveis não têm datas de emissão, por isso a exportação não consegue determinar um período. Reveja essas faturas em Faturação antes de tentar novamente.',
   ],
-  'problem.remedy.createTaxProfile': [
-    'Crear un perfil fiscal',
-    'Criar um perfil fiscal',
-  ],
+  'problem.remedy.createTaxProfile': ['Crear un perfil fiscal', 'Criar um perfil fiscal'],
   'problem.remedy.clearLedgerFilters': [
     'Borrar los filtros del registro',
     'Limpar os filtros do registo',
@@ -1737,6 +1731,10 @@ const exact: Record<string, readonly [string, string]> = {
     'Faltan datos del proyecto o selecciones iniciales de trabajadores, o algunos no son válidos. Corrige los campos señalados.',
     'Dados do projeto ou seleções iniciais de trabalhadores estão ausentes ou inválidos. Corrija os campos destacados.',
   ],
+  'problem.project.initialWorkersRequireFinanceSetup': [
+    'Crea primero el proyecto y después asigna a cada trabajador con el coste interno, la remuneración y las fechas de vigencia autorizados.',
+    'Crie primeiro o projeto e depois atribua cada trabalhador com custo interno, remuneração e datas de vigência autorizados.',
+  ],
   'problem.milestone.fieldsInvalid': [
     'Faltan datos del hito o algunos no son válidos. Corrige los campos señalados.',
     'Dados do marco estão ausentes ou inválidos. Corrija os campos destacados.',
@@ -1752,6 +1750,46 @@ const exact: Record<string, readonly [string, string]> = {
   'problem.assignment.fieldsInvalid': [
     'Faltan datos de proyecto, trabajador, fecha u horario de la asignación, o algunos no son válidos. Corrige los campos señalados.',
     'Dados de projeto, trabalhador, data ou horário da atribuição estão ausentes ou inválidos. Corrija os campos destacados.',
+  ],
+  'problem.assignment.financeTermsRequired': [
+    'Indica el coste interno por hora, la tarifa y base de remuneración y las fechas de vigencia antes de asignar al trabajador.',
+    'Informe o custo interno por hora, o valor e a base da remuneração e as datas de vigência antes de atribuir o trabalhador.',
+  ],
+  'problem.assignment.financeDatesMismatch': [
+    'La vigencia financiera debe cubrir exactamente las fechas de la asignación. Corrige las fechas indicadas.',
+    'A vigência financeira deve cobrir exatamente as datas da atribuição. Corrija as datas indicadas.',
+  ],
+  'problem.assignment.financeRuleOverlap': [
+    'Ya existen condiciones financieras para este trabajador, proyecto y período. Revisa las reglas vigentes antes de asignarlo.',
+    'Já existem condições financeiras para este trabalhador, projeto e período. Revise as regras vigentes antes de atribuí-lo.',
+  ],
+  'problem.assignment.financeSaveBlocked': [
+    'No se pudo guardar la asignación junto con sus condiciones financieras. No se guardó ninguna parte. Revisa los datos y vuelve a intentarlo.',
+    'Não foi possível salvar a atribuição com as condições financeiras. Nenhuma parte foi salva. Revise os dados e tente novamente.',
+  ],
+  'problem.assignment.financeSetupRequired': [
+    'Esta asignación necesita un coste interno y una remuneración que cubran todas sus fechas. Pide al propietario del proyecto que configure las condiciones antes de volver a intentarlo.',
+    'Esta atribuição precisa de custo interno e remuneração que cubram todas as suas datas. Peça ao proprietário do projeto para configurar as condições antes de tentar novamente.',
+  ],
+  'problem.assignment.financeCoverageRequired': [
+    'Las nuevas fechas de asignación necesitan coste interno y remuneración que las cubran. Pide que se configuren las condiciones antes de ampliar las fechas.',
+    'As novas datas da atribuição precisam de custo interno e remuneração que as cubram. Peça a configuração das condições antes de ampliar as datas.',
+  ],
+  'problem.assignment.startOutsideProjectDates': [
+    'La fecha de inicio de la asignación debe estar dentro de las fechas del proyecto. Revisa la fecha del proyecto o elige otro inicio.',
+    'A data de início da atribuição deve estar dentro das datas do projeto. Revise a data do projeto ou escolha outro início.',
+  ],
+  'problem.approval.timeCostAndCompensationRequired': [
+    'No se puede completar la revisión financiera de {workerName} en {projectName} ({workDate}): faltan el coste interno y la remuneración. Configúralos antes de volver a revisar el registro.',
+    'Não é possível concluir a revisão financeira de {workerName} em {projectName} ({workDate}): faltam o custo interno e a remuneração. Configure-os antes de revisar o registro novamente.',
+  ],
+  'problem.approval.timeCostRequired': [
+    'No se puede completar la revisión financiera de {workerName} en {projectName} ({workDate}): falta el coste interno. Configúralo antes de volver a revisar el registro.',
+    'Não é possível concluir a revisão financeira de {workerName} em {projectName} ({workDate}): falta o custo interno. Configure-o antes de revisar o registro novamente.',
+  ],
+  'problem.approval.timeCompensationRequired': [
+    'No se puede completar la revisión financiera de {workerName} en {projectName} ({workDate}): falta la remuneración del trabajador. Configúrala antes de volver a revisar el registro.',
+    'Não é possível concluir a revisão financeira de {workerName} em {projectName} ({workDate}): falta a remuneração do trabalhador. Configure-a antes de revisar o registro novamente.',
   ],
   'problem.client.idRequired': [
     'Selecciona un cliente antes de continuar.',
@@ -2950,10 +2988,7 @@ const exact: Record<string, readonly [string, string]> = {
     'Fechas que introdujiste',
     'Datas que introduziu',
   ],
-  'problem.remedy.reviewFinanceExpenses': [
-    'Revisar gastos actuales',
-    'Rever despesas atuais',
-  ],
+  'problem.remedy.reviewFinanceExpenses': ['Revisar gastos actuales', 'Rever despesas atuais'],
   'problem.finance.assignmentCommercialUnavailableOption': [
     'La regla seleccionada anteriormente ya no está disponible',
     'A regra selecionada anteriormente já não está disponível',
@@ -8377,6 +8412,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Especialidade do trabalhador atualizada.',
   ],
   'action.projects.assignmentCreated': ['Asignación creada.', 'Atribuição criada.'],
+  'action.projects.assignmentCreatedWithFinance': [
+    'Asignación creada con el coste interno y la remuneración del trabajador para este proyecto.',
+    'Atribuição criada com o custo interno e a remuneração do trabalhador para este projeto.',
+  ],
   'action.projects.assignmentDeleted': ['Asignación eliminada.', 'Atribuição excluída.'],
   'action.projects.assignmentUpdated': ['Asignación actualizada.', 'Atribuição atualizada.'],
   'action.projects.clientArchived': ['Cliente archivado.', 'Cliente arquivado.'],
@@ -8942,6 +8981,8 @@ function englishActionMessage(key: string): string {
     'action.projects.scheduleSaved': 'Expected schedule saved.',
     'action.validation.assignmentFields': 'Check assignment fields.',
     'action.projects.assignmentCreated': 'Assignment created.',
+    'action.projects.assignmentCreatedWithFinance':
+      'Assignment created with project-specific internal cost and worker compensation.',
     'action.projects.clientUpdated': 'Client updated.',
     'action.projects.clientArchived': 'Client archived.',
     'action.validation.clientIdRequired': 'Client ID required.',
@@ -10025,8 +10066,7 @@ const problemEnglish: Record<string, string> = {
     'The report CSV could not be reached. No data was changed. Check your connection and download it again.',
   'problem.supplier.reportCsvInvalidResponse':
     'The report CSV could not be verified. No data was changed. Review the report filters before downloading again.',
-  'problem.supplier.reportUnavailableProjectOption':
-    'Previously selected project (unavailable)',
+  'problem.supplier.reportUnavailableProjectOption': 'Previously selected project (unavailable)',
   'problem.supplier.batchTechnicianRequired': 'Select at least one technician',
   'problem.supplier.batchLimit': 'A time batch is limited to 100 technicians',
   'problem.supplier.batchReplayChanged': 'Batch request was already used with different values',
@@ -10543,6 +10583,8 @@ const problemEnglish: Record<string, string> = {
     'The project version is missing or invalid. Review the current project before continuing.',
   'problem.project.fieldsInvalid':
     'Some project details or initial worker selections are missing or invalid. Correct the highlighted fields.',
+  'problem.project.initialWorkersRequireFinanceSetup':
+    'Create the project first, then assign each worker with authorized internal cost, compensation, and effective dates.',
   'problem.milestone.fieldsInvalid':
     'Some milestone details are missing or invalid. Correct the highlighted fields.',
   'problem.milestone.recordInvalid':
@@ -10551,6 +10593,26 @@ const problemEnglish: Record<string, string> = {
     'The schedule has missing or invalid days, dates, or hours. Correct the highlighted fields.',
   'problem.assignment.fieldsInvalid':
     'The assignment has missing or invalid project, worker, date, or time details. Correct the highlighted fields.',
+  'problem.assignment.financeTermsRequired':
+    'Enter the internal hourly cost, compensation rate and basis, and effective dates before assigning this worker.',
+  'problem.assignment.financeDatesMismatch':
+    'Finance effective dates must exactly cover the assignment dates. Correct the highlighted dates.',
+  'problem.assignment.financeRuleOverlap':
+    'Finance terms already cover this worker, project, and period. Review the existing rules before assigning.',
+  'problem.assignment.financeSaveBlocked':
+    'The assignment and finance terms could not be saved together. Nothing was saved. Review the details and try again.',
+  'problem.assignment.financeSetupRequired':
+    'This assignment needs internal cost and compensation that cover every assigned date. Ask the project owner to set the terms before trying again.',
+  'problem.assignment.financeCoverageRequired':
+    'The updated assignment dates need internal cost and compensation covering every date. Set the terms before extending the assignment.',
+  'problem.assignment.startOutsideProjectDates':
+    'The assignment start must fall within the project dates. Review the project dates or choose another start.',
+  'problem.approval.timeCostAndCompensationRequired':
+    'Finance review cannot finish for {workerName} on {projectName} ({workDate}): internal cost and worker compensation are missing. Set both terms before reviewing this entry again.',
+  'problem.approval.timeCostRequired':
+    'Finance review cannot finish for {workerName} on {projectName} ({workDate}): internal cost is missing. Set the cost before reviewing this entry again.',
+  'problem.approval.timeCompensationRequired':
+    'Finance review cannot finish for {workerName} on {projectName} ({workDate}): worker compensation is missing. Set compensation before reviewing this entry again.',
   'problem.client.idRequired': 'Select a client before continuing.',
   'problem.client.versionRequired':
     'The client version is missing or invalid. Review the current client before continuing.',

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
+import { retryAfterSeconds, signInWaitMs } from './production-role-smoke-policy.mjs';
 
 const roles = [
   { label: 'Finance Administrator', secret: 'JA_QA_FINANCE', role: 'finance_admin' },
@@ -65,6 +66,7 @@ if (process.argv.includes('--validate-only')) {
 const base = 'https://j-aautomation.com/j-aautomation/app';
 const browser = await chromium.launch({ headless: true });
 let failures = 0;
+let previousSignInAttemptAt = null;
 try {
   for (const account of accounts) {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -87,21 +89,18 @@ try {
         const authResponse = page.waitForResponse((response) =>
           response.url().includes('/api/auth/sign-in/email'),
         );
+        const waitMs = signInWaitMs(previousSignInAttemptAt, Date.now());
+        if (waitMs) await delay(waitMs);
+        previousSignInAttemptAt = Date.now();
         await page.getByRole('button', { name: 'Continue to workspace' }).click();
         stage = 'receive authentication response';
         const response = await authResponse;
         authStatus = response.status();
         if (authStatus !== 429 || attempt > 0) break;
-        const retryAfterSeconds = Number.parseInt(response.headers()['retry-after'] ?? '', 10);
-        if (
-          !Number.isSafeInteger(retryAfterSeconds) ||
-          retryAfterSeconds < 1 ||
-          retryAfterSeconds > 900
-        ) {
-          break;
-        }
+        const retrySeconds = retryAfterSeconds(response.headers());
+        if (retrySeconds === null) break;
         console.log(`${account.label}: sign-in rate limited; retrying after server cooldown.`);
-        await delay((retryAfterSeconds + 2) * 1000);
+        await delay((retrySeconds + 2) * 1000);
         stage = 'open login page after cooldown';
       }
       stage = 'open workspace';
@@ -158,6 +157,7 @@ try {
                 ok: result.ok,
                 status: result.status,
                 retryAfter: result.headers.get('retry-after'),
+                authRetryAfter: result.headers.get('x-retry-after'),
               };
             });
             if (response.ok) {
@@ -165,16 +165,13 @@ try {
               break;
             }
             if (response.status !== 429 || attempt > 0) break;
-            const retryAfterSeconds = Number.parseInt(response.retryAfter ?? '', 10);
-            if (
-              !Number.isSafeInteger(retryAfterSeconds) ||
-              retryAfterSeconds < 1 ||
-              retryAfterSeconds > 900
-            ) {
-              break;
-            }
+            const retrySeconds = retryAfterSeconds({
+              'retry-after': response.retryAfter,
+              'x-retry-after': response.authRetryAfter,
+            });
+            if (retrySeconds === null) break;
             console.log(`${account.label}: sign-out rate limited; retrying after server cooldown.`);
-            await delay((retryAfterSeconds + 2) * 1000);
+            await delay((retrySeconds + 2) * 1000);
           }
         } catch {
           // Report the failed sign-out below without exposing session details.

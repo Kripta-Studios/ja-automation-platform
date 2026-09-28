@@ -20,7 +20,7 @@ The owner asked the team to invent rates for the listed approved records. The fo
 | QA ERROR AUDIT 20260926 Project | QA Worker 1    | 2026-09-26 only               | EUR 28.00/hour       | EUR 20.00/hour, hourly                |
 | QA ERROR AUDIT 20260926 Project | QA Worker 2    | 2026-09-26 only               | EUR 30.00/hour       | EUR 22.00/hour, hourly                |
 
-The five new rules will be entered through the production Finance interface after deployment and verified against the read-only projection and audit rows. The provisional warning should remain visible until actual rates are confirmed.
+The five rules were entered through the production Finance interface. A read-only audit verified cost and compensation coverage for all ten affected approved source records. The missing-projection warnings cleared; the provisional-rate advisory remains until actual rates are confirmed.
 
 ## Candidate evidence
 
@@ -34,4 +34,11 @@ The five new rules will be entered through the production Finance interface afte
 - A fresh read-only production backup verification found SQLite integrity `ok`, zero foreign-key violations, one private document, and complete three-day snapshot coverage. The deploy helper takes another online backup before cutover.
 - A second pre-release read-only backup verification on 28 September again returned integrity `ok`, zero foreign-key violations, one private document, and all three required snapshot days present.
 
-This packet does not claim exhaustive browser coverage for every action and role. Production smoke, GitHub role sign-ins, and the five Finance-rule submissions are post-deployment checks.
+## Post-deployment evidence
+
+- Release `925741bcc21bb6116181efd402ecb87e0bbbdb75` was deployed on 28 September. Public site and portal returned HTTP 200; the app health endpoint passed.
+- A production browser pass checked Owner assignment at phone and desktop widths, Owner week selection for past, current, and future dates, Finance projection names and links, and subsection navigation for Owner, Finance, Manager, Worker, Auditor, Supplier Coordinator, and External Technician. The inspected pages had no console or HTTP errors.
+- The five provisional rules above were saved in production with scoped dates, currencies, and review notes. A read-only audit verified all ten affected approved source records have cost and compensation coverage. A post-write backup passed integrity and foreign-key checks.
+- The source audit reports 641 distinct stable error and warning code/message pairs with English, Spanish, and Portuguese coverage. This is a source inventory, not an assertion that every action and role combination received a browser run.
+
+The browser checks do not certify Client Essential steps 30–32, which require external job, continuity, and Caddy evidence.

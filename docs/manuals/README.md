@@ -12,6 +12,25 @@
 
 The current guide records the exact capture account, route, viewport, image hash and deployed image tag. Test credentials are kept in the local, Git-ignored `Portal_Test_Accounts.private.md`; they are **not** embedded in this repository, the guide PDFs or PNGs. No real worker compensation, receipts or mailbox contents are included. Browser phone/tablet viewports are not physical iPhone/iPad Safari verification.
 
+## GitHub role sign-in smoke
+
+The public repository contains a manually triggered, read-only [role sign-in workflow](../../.github/workflows/production-role-smoke.yml). A repository administrator must create a protected GitHub Actions environment named `production-qa`, restrict it to `main`, and require a reviewer before use. Under that environment's **Environment secrets**, add separate email and password secrets from the local `Portal_Test_Accounts.private.md` for these rows:
+
+| Manual row            | Email secret                       | Password secret                       |
+| --------------------- | ---------------------------------- | ------------------------------------- |
+| Finance Administrator | `JA_QA_FINANCE_EMAIL`              | `JA_QA_FINANCE_PASSWORD`              |
+| Project Manager       | `JA_QA_MANAGER_EMAIL`              | `JA_QA_MANAGER_PASSWORD`              |
+| Read-only Auditor     | `JA_QA_AUDITOR_EMAIL`              | `JA_QA_AUDITOR_PASSWORD`              |
+| Worker 1              | `JA_QA_WORKER_EMAIL`               | `JA_QA_WORKER_PASSWORD`               |
+| Supplier Coordinator  | `JA_QA_SUPPLIER_COORDINATOR_EMAIL` | `JA_QA_SUPPLIER_COORDINATOR_PASSWORD` |
+| External Technician   | `JA_QA_EXTERNAL_TECHNICIAN_EMAIL`  | `JA_QA_EXTERNAL_TECHNICIAN_PASSWORD`  |
+
+The workflow checks these six account identities, roles, supplier navigation profiles, and sign-outs against the deployed portal. It only navigates to the workspace after authentication and does not submit business forms. Owner access is not in this manual, so this workflow does not cover Owner. The complete manual and all working passwords stay out of Git history, workflow inputs, logs, and artifacts.
+
+Production limits authentication attempts by source address. If the runner receives HTTP 429 during sign-in or sign-out, the smoke waits for the server's `Retry-After` window and retries once; a second 429 fails the run. This keeps the production limit intact.
+
+For a local check, run `node scripts/production-role-smoke.mjs --validate-only` from the repository root with the ignored manual present. The production sign-in check runs only when manually dispatched from GitHub Actions. The application itself does not read or ship these credentials to users.
+
 ## Existing portal PDFs and generated examples
 
 The older `Work_Projects_Guide.pdf`, `Supplier_Operations_Guide.pdf`, `Administration_Finance_Guide.pdf`, individual role PDFs, PT-BR guides, and the synthetic [example exports](examples/README.md) remain available as **historical or illustrative editions**. Their embedded screenshots and instructions were generated from earlier local synthetic captures; some wording (notably mandatory start/end time and separate Billing streams) no longer matches this deployed release. Use the current dated guide for the workflow above until those editions are regenerated from a matching release. The portal's Help catalog may still serve an older PDF; that does not make its illustrations current live evidence.

@@ -1,0 +1,46 @@
+name: Production role sign-in smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-role-smoke
+  cancel-in-progress: false
+
+jobs:
+  role-sign-in:
+    if: github.ref == 'refs/heads/main'
+    environment: production-qa
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Check role sign-ins in the deployed portal
+        env:
+          JA_QA_REQUIRE_SECRETS: 'true'
+          JA_QA_FINANCE_EMAIL: ${{ secrets.JA_QA_FINANCE_EMAIL }}
+          JA_QA_FINANCE_PASSWORD: ${{ secrets.JA_QA_FINANCE_PASSWORD }}
+          JA_QA_MANAGER_EMAIL: ${{ secrets.JA_QA_MANAGER_EMAIL }}
+          JA_QA_MANAGER_PASSWORD: ${{ secrets.JA_QA_MANAGER_PASSWORD }}
+          JA_QA_AUDITOR_EMAIL: ${{ secrets.JA_QA_AUDITOR_EMAIL }}
+          JA_QA_AUDITOR_PASSWORD: ${{ secrets.JA_QA_AUDITOR_PASSWORD }}
+          JA_QA_WORKER_EMAIL: ${{ secrets.JA_QA_WORKER_EMAIL }}
+          JA_QA_WORKER_PASSWORD: ${{ secrets.JA_QA_WORKER_PASSWORD }}
+          JA_QA_SUPPLIER_COORDINATOR_EMAIL: ${{ secrets.JA_QA_SUPPLIER_COORDINATOR_EMAIL }}
+          JA_QA_SUPPLIER_COORDINATOR_PASSWORD: ${{ secrets.JA_QA_SUPPLIER_COORDINATOR_PASSWORD }}
+          JA_QA_EXTERNAL_TECHNICIAN_EMAIL: ${{ secrets.JA_QA_EXTERNAL_TECHNICIAN_EMAIL }}
+          JA_QA_EXTERNAL_TECHNICIAN_PASSWORD: ${{ secrets.JA_QA_EXTERNAL_TECHNICIAN_PASSWORD }}
+        run: |
+          node scripts/production-role-smoke.mjs --validate-only
+          node scripts/production-role-smoke.mjs

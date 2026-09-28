@@ -25,7 +25,7 @@ The public repository contains a manually triggered, read-only [role sign-in wor
 | Supplier Coordinator  | `JA_QA_SUPPLIER_COORDINATOR_EMAIL` | `JA_QA_SUPPLIER_COORDINATOR_PASSWORD` |
 | External Technician   | `JA_QA_EXTERNAL_TECHNICIAN_EMAIL`  | `JA_QA_EXTERNAL_TECHNICIAN_PASSWORD`  |
 
-The workflow checks these six account identities, roles, supplier navigation profiles, and sign-outs against the deployed portal. It only navigates to the workspace after authentication and does not submit business forms. Owner access is not in this manual, so this workflow does not cover Owner. The complete manual and all working passwords stay out of Git history, workflow inputs, logs, and artifacts.
+The complete manual is stored as the encrypted `JA_PORTAL_TEST_ACCOUNTS_MD` secret in the same environment for authorized future QA. The current workflow uses only the separate role secrets above. It checks these six account identities, roles, supplier navigation profiles, and sign-outs against the deployed portal. It only navigates to the workspace after authentication and does not submit business forms. Owner access is not in this manual, so this workflow does not cover Owner. The complete manual and all working passwords stay out of Git history, workflow inputs, logs, and artifacts.
 
 Production limits authentication attempts by source address. If the runner receives HTTP 429 during sign-in or sign-out, the smoke waits for the server's `Retry-After` window and retries once; a second 429 fails the run. This keeps the production limit intact.
 

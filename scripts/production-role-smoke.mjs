@@ -71,18 +71,22 @@ try {
     const page = await context.newPage();
     let authStatus;
     let sessionActive = false;
+    let stage = 'open login page';
     page.on('response', (response) => {
       if (response.url().includes('/api/auth/sign-in/email')) authStatus = response.status();
     });
     try {
       for (let attempt = 0; attempt < 2; attempt += 1) {
         await page.goto(`${base}/login?lang=en`, { waitUntil: 'domcontentloaded' });
+        stage = 'fill login form';
         await page.getByLabel('Work email').fill(account.email);
         await page.getByLabel('Password').fill(account.password);
+        stage = 'submit login form';
         const authResponse = page.waitForResponse((response) =>
           response.url().includes('/api/auth/sign-in/email'),
         );
         await page.getByRole('button', { name: 'Continue to workspace' }).click();
+        stage = 'receive authentication response';
         const response = await authResponse;
         authStatus = response.status();
         if (authStatus !== 429 || attempt > 0) break;
@@ -96,12 +100,15 @@ try {
         }
         console.log(`${account.label}: sign-in rate limited; retrying after server cooldown.`);
         await delay((retryAfterSeconds + 2) * 1000);
+        stage = 'open login page after cooldown';
       }
+      stage = 'open workspace';
       await page.waitForURL(
         (url) => url.pathname.startsWith('/j-aautomation/app') && !url.pathname.endsWith('/login'),
         { timeout: 20_000 },
       );
       await page.locator('main').waitFor({ state: 'visible', timeout: 10_000 });
+      stage = 'verify authenticated identity';
       const sessionResponse = await page.request.get(`${base}/api/auth/get-session`);
       const session = sessionResponse.ok() ? await sessionResponse.json() : null;
       sessionActive = Boolean(session?.user?.id);
@@ -112,6 +119,7 @@ try {
         throw new Error('Session role did not match the expected role');
       }
       if (account.profile) {
+        stage = 'verify supplier navigation';
         const supplierLinks = await page.locator('a[href]').evaluateAll((links) => ({
           report: links.some(
             (link) => new URL(link.href).pathname === '/j-aautomation/app/supplier/report',
@@ -132,7 +140,7 @@ try {
     } catch {
       failures += 1;
       console.error(
-        `${account.label}: sign-in smoke failed (auth HTTP ${authStatus ?? 'unknown'}).`,
+        `${account.label}: smoke failed while trying to ${stage} (auth HTTP ${authStatus ?? 'unknown'}).`,
       );
     } finally {
       if (sessionActive || authStatus === 200) {

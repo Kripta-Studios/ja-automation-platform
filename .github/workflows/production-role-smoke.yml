@@ -26,6 +26,11 @@ jobs:
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Check deployed login reachability
+        run: |
+          status=$(curl --location --silent --output /dev/null --write-out '%{http_code}' --max-time 20 'https://j-aautomation.com/j-aautomation/app/login?lang=en')
+          echo "Deployed login HTTP $status"
+          test "$status" = 200
       - name: Check role sign-ins in the deployed portal
         env:
           JA_QA_REQUIRE_SECRETS: 'true'

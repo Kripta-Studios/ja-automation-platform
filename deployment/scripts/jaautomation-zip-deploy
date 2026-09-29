@@ -644,16 +644,12 @@ process_archive() (
   [[ -f "$DB_PATH" ]] || die 'La base de datos de producción no está disponible para el backup previo'
   [[ -f "$old_release/deployment/scripts/backup.mjs" ]] \
     || die 'El release activo no contiene el backup online requerido'
-  local old_backup_retention_days=30
-  if grep -Fq 'Backup retention must be exactly 3 days' "$old_release/deployment/scripts/backup.mjs"; then
-    old_backup_retention_days=3
-  fi
   log 'Creando backup online antes del reemplazo'
   backup_output=$(env \
     JA_DATABASE_PATH="$DB_PATH" \
     JA_DOCUMENT_ROOT="$DOCUMENT_ROOT" \
     JA_BACKUP_ROOT="$BACKUP_ROOT" \
-    JA_BACKUP_RETENTION_DAYS="$old_backup_retention_days" \
+    JA_BACKUP_RETENTION_DAYS=3 \
     "$NODE" "$old_release/deployment/scripts/backup.mjs")
   log "$backup_output"
   backup_dir=$(sed -n 's/^backup=\([^ ]*\) .*/\1/p' <<<"$backup_output")

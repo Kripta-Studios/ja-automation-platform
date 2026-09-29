@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { test } from 'node:test';
 
 const deployerPath = resolve('deployment/scripts/jaautomation-zip-deploy');
@@ -17,6 +18,69 @@ test('the ZIP deployer is valid Bash', () => {
   const bash = process.platform === 'win32' ? 'C:/Program Files/Git/bin/bash.exe' : 'bash';
   const result = spawnSync(bash, ['-n', deployerPath], { encoding: 'utf8' });
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+});
+
+test('predeployment backup enforces three days and verifies its directory before activation', () => {
+  const backupStart = indexOfOrFail('  backup_output=$(env');
+  const backupEnd = deployer.indexOf('  # The previous release', backupStart);
+  assert.ok(backupEnd > backupStart);
+  const backupCommand = deployer.slice(backupStart, backupEnd);
+  const fixture = mkdtempSync(join(tmpdir(), 'ja-deploy-backup-retention-'));
+  try {
+    const oldRelease = join(fixture, 'old-release');
+    mkdirSync(join(oldRelease, 'deployment/scripts'), { recursive: true });
+    writeFileSync(
+      join(oldRelease, 'deployment/scripts/backup.mjs'),
+      `
+      import assert from 'node:assert/strict';
+      import { mkdirSync } from 'node:fs';
+      import { join } from 'node:path';
+      assert.equal(process.env.JA_BACKUP_RETENTION_DAYS, '3');
+      const destination = join(process.env.JA_BACKUP_ROOT, 'predeployment-proof');
+      if (process.env.TEST_MISSING_BACKUP !== '1') mkdirSync(destination, { recursive: true });
+      console.log('backup=' + destination + ' sha256=fixture');
+    `,
+    );
+    const runBackup = (missingBackup) =>
+      spawnSync(
+        'bash',
+        [
+          '-c',
+          `
+      set -Eeuo pipefail
+      log() { printf '%s\\n' "$*"; }
+      die() { printf '%s\\n' "$*" >&2; exit 1; }
+      old_release=$TEST_OLD_RELEASE
+      NODE=$TEST_NODE
+      DB_PATH=$TEST_DB_PATH
+      DOCUMENT_ROOT=$TEST_DOCUMENT_ROOT
+      BACKUP_ROOT=$TEST_BACKUP_ROOT
+      ${backupCommand}
+    `,
+        ],
+        {
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            JA_BACKUP_RETENTION_DAYS: '30',
+            TEST_OLD_RELEASE: oldRelease,
+            TEST_NODE: process.execPath,
+            TEST_DB_PATH: join(fixture, 'database.sqlite'),
+            TEST_DOCUMENT_ROOT: join(fixture, 'documents'),
+            TEST_BACKUP_ROOT: join(fixture, missingBackup ? 'missing-backups' : 'backups'),
+            TEST_MISSING_BACKUP: missingBackup ? '1' : '0',
+          },
+        },
+      );
+    const created = runBackup(false);
+    assert.equal(created.status, 0, `${created.stdout}\n${created.stderr}`);
+    assert.match(created.stdout, /backup=.*predeployment-proof sha256=fixture/u);
+    const missing = runBackup(true);
+    assert.notEqual(missing.status, 0);
+    assert.match(missing.stderr, /backup previo no devolvió un directorio verificable/u);
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
 });
 
 test('a candidate must carry the jobs runner and both systemd units', () => {

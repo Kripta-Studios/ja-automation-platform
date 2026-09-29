@@ -29,7 +29,9 @@ describe('Worker time UI vertical slice', () => {
   it('keeps attention filtering and user-selected ordering truthful', () => {
     const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
 
-    expect(source).toContain("let order = $state<OperationalOrder>('newest')");
+    expect(source).toMatch(/let order = \$state<OperationalOrder>\([\s\S]*?: 'newest',/);
+    expect(source).toContain("const requestedInitialOrder = $page.url.searchParams.get('order')");
+    expect(source).toContain("!$page.url.searchParams.has('order')");
     expect(source).toContain('operationalStatusMatches(');
     expect(source).toContain("filterHref({ status: 'attention' })");
     expect(source).toContain('<option value="attention">{translate(\'Needs attention\')}</option>');

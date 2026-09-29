@@ -107,7 +107,7 @@ export default async function CapabilitiesPage({
                     href={`/capabilities/${service.slug}`}
                     className="text-cta mt-auto inline-flex"
                   >
-                    {t('explore')} <ArrowRight size={16} />
+                    {t('explore')} <ArrowRight size={16} aria-hidden="true" />
                   </Link>
                 </div>
               );

@@ -55,7 +55,7 @@
     "body": "J&A Automation designs, integrates, commissions and supports industrial control systems worldwide—from PLC, HMI and SCADA to robotics, electrical engineering, simulation, startup and troubleshooting.",
     "cta": "Talk to an Engineer",
     "ctaSecondary": "Explore Capabilities",
-    "supportLink": "Production issue? Request technical support →",
+    "supportLink": "Production issue? Request technical support",
     "sectorAutomotive": "AUTOMOTIVE & ROBOTICS",
     "sectorFoodBev": "FOOD & BEVERAGE",
     "sectorEnergy": "ENERGY & PROCESS"
@@ -71,14 +71,14 @@
     "h2": "One engineering partner from controls design to stable production.",
     "p1": "We design, integrate, and commission industrial control systems. From PLC logic and robotics to electrical design and stable production, we are your single engineering partner.",
     "p2": "From new systems and line upgrades through commissioning, troubleshooting and remote support, our team works across the full automation lifecycle with a practical focus on what needs to work on the factory floor.",
-    "cta": "About J&A Automation →",
+    "cta": "About J&A Automation",
     "imageCaption": "CONTROLS • INTEGRATION • COMMISSIONING"
   },
   "capabilities": {
     "eyebrow": "03 / CAPABILITIES",
     "h2": "Controls, robotics and engineering across the automation lifecycle.",
     "lead": "Build new equipment, integrate production systems, or modernize installed controls with full-lifecycle engineering support.",
-    "cta": "Explore all capabilities →",
+    "cta": "Explore all capabilities",
     "plcHmiScada": "PLC, HMI & SCADA",
     "plcHmiScadaDesc": "Control software for machines, lines and process systems—from sequencing and interlocks to alarms, recipes, diagnostics and supervisory integration.",
     "robotics": "Robotics & Line Integration",
@@ -102,7 +102,7 @@
   "industries": {
     "eyebrow": "01 / INDUSTRIES",
     "h2": "Built for demanding industrial environments.",
-    "cta": "Explore industries →",
+    "cta": "Explore industries",
     "automotive": "Automotive",
     "automotiveDesc": "Body shop, assembly, stamping, powertrain, conveyors, poka-yoke systems, robot/PLC integration and commissioning.",
     "foodBeverage": "Food & Beverage",
@@ -122,8 +122,8 @@
     "eyebrow": "04 / PROJECT EXPERIENCE",
     "h2": "Engineering proven across machines, lines and plants.",
     "lead": "Proven controls engineering across automotive, food and beverage, process, and industrial manufacturing worldwide.",
-    "cta": "View Project Archive →",
-    "viewProject": "View project →",
+    "cta": "View Project Archive",
+    "viewProject": "View project",
     "archiveRecord": "Archive record"
   },
   "clients": {
@@ -180,7 +180,7 @@
     "siteManagers": "Site managers / project coordinators",
     "instructors": "PLC / robot instructors",
     "body": "The team combines international project experience, project management, manufacturer training and practical work across automotive body shop, paint shop, assembly, stamping and powertrain environments.",
-    "cta": "About the Company →"
+    "cta": "About the Company"
   },
   "aquarexTeaser": {
     "eyebrow": "08 / AQUAREX",
@@ -193,7 +193,7 @@
     "eyebrow": "CAREERS",
     "h2": "Build automation where it matters: on the factory floor.",
     "body": "J&A works across PLC controls, robotics, electrical engineering, commissioning and international industrial projects. We are interested in engineers and technicians who are comfortable solving problems at the interface between software, machines and production.",
-    "cta": "View Careers →"
+    "cta": "View Careers"
   },
   "finalCta": {
     "h2": "Have a new project—or a production problem that needs an engineer?",

@@ -1,4 +1,5 @@
 <script lang="ts" generics="T extends Record<string, unknown>">
+  import DirectionIcon from './DirectionIcon.svelte';
   import type { Snippet } from 'svelte';
   import { onMount, untrack } from 'svelte';
   import { page as route } from '$app/stores';
@@ -168,7 +169,8 @@
     {#if pages > 1}<button
         type="button"
         disabled={current === 0}
-        onclick={() => (page = current - 1)}>← {translate('Previous')}</button
+        onclick={() => (page = current - 1)}
+        ><DirectionIcon direction="left" /> {translate('Previous')}</button
       >{/if}
     <span role="status"
       >{filtered.length ? current * pageSize + 1 : 0}–{Math.min(
@@ -179,7 +181,7 @@
     {#if pages > 1}<button
         type="button"
         disabled={current + 1 >= pages}
-        onclick={() => (page = current + 1)}>{translate('Next')} →</button
+        onclick={() => (page = current + 1)}>{translate('Next')} <DirectionIcon /></button
       >{/if}
   </nav>
   {@render children?.(filtered.slice(current * pageSize, (current + 1) * pageSize))}

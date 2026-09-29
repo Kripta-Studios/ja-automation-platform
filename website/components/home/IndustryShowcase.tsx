@@ -123,7 +123,7 @@ export async function IndustryShowcase() {
 
         <div className="mt-10 text-center">
           <Link href="/industries" className="text-cta text-white">
-            {t('cta')} <ArrowRight size={16} />
+            {t('cta')} <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
       </div>

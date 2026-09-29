@@ -41,10 +41,48 @@ test('owner configures one or two customer invoices from the project at phone, t
     await expect(setup.getByText('2. Billing details')).toBeVisible();
     await expect(setup.getByLabel('Invoice issuer (J&A Automation)')).not.toHaveValue('');
     await expect(setup.getByLabel('Labor tax profile')).toHaveValue('');
+    const issuer = (
+      await setup
+        .getByLabel('Invoice issuer (J&A Automation)')
+        .locator('option:checked')
+        .textContent()
+    )
+      ?.replace(/ \([^)]*\)$/, '')
+      .trim();
+    const cadence = await setup
+      .getByLabel('Labor billing cadence')
+      .locator('option:checked')
+      .textContent();
+    const layout = await setup.getByLabel('Invoice layout').locator('option:checked').textContent();
     await setup.getByRole('button', { name: 'Continue' }).click();
     await expect(setup.getByText('3. Review each person')).toBeVisible();
     await setup.getByRole('button', { name: 'Continue' }).click();
     await expect(setup.getByText('4. Review and save')).toBeVisible();
+    const review = setup.locator('dl.review');
+    await expect(
+      review
+        .locator('div')
+        .filter({ has: page.locator('dt', { hasText: 'Invoice issuer (J&A Automation)' }) })
+        .locator('dd'),
+    ).toHaveText(issuer ?? '');
+    await expect(
+      review
+        .locator('div')
+        .filter({ has: page.locator('dt', { hasText: 'Labor tax profile' }) })
+        .locator('dd'),
+    ).toHaveText('No tax profile configured');
+    await expect(
+      review
+        .locator('div')
+        .filter({ has: page.locator('dt', { hasText: 'Labor billing cadence' }) })
+        .locator('dd'),
+    ).toHaveText(cadence ?? '');
+    await expect(
+      review
+        .locator('div')
+        .filter({ has: page.locator('dt', { hasText: 'Invoice layout' }) })
+        .locator('dd'),
+    ).toHaveText(layout ?? '');
     await setup.getByLabel('Save these defaults as a reusable template').check();
     await setup.getByLabel('Template name').fill(`QA invoice ${testInfo.project.name}`);
     const viewport = page.viewportSize();
@@ -146,6 +184,14 @@ test('owner configures one or two customer invoices from the project at phone, t
       await setup.getByRole('button', { name: 'Save billing setup' }).click();
       await expect(setup.getByText('2. Billing details')).toBeVisible();
       await expect(setup.getByLabel('Recipient email')).toHaveAttribute('aria-invalid', 'true');
+      await expect(setup.getByLabel('Recipient email')).toHaveAttribute(
+        'aria-describedby',
+        'billing-setup-recipientEmail-error',
+      );
+      await expect(setup.locator('#billing-setup-recipientEmail-error')).toHaveText(
+        'Enter a valid invoice recipient email address.',
+      );
+      await expect(setup.getByLabel('Recipient email')).toBeFocused();
       await expect(setup.getByLabel('Recipient email')).toHaveValue('invalid-address');
       await page.reload();
       await setup.getByRole('button', { name: 'Continue' }).click();
@@ -200,6 +246,40 @@ test('billing setup labels translate in Spanish and Portuguese', async ({ page }
     await expect(page.getByText('Una factura con dos secciones')).toBeVisible();
     await page.goto(portal(`/projects/${row.id}?tab=billing&lang=pt`));
     await expect(page.getByText('Uma fatura com duas seções')).toBeVisible();
+    for (const [locale, monthly, standard, detailed, summary, noTax] of [
+      ['es', 'Mensual', 'Estándar', 'Detallado', 'Resumen', 'Sin perfil fiscal configurado'],
+      ['pt', 'Mensal', 'Padrão', 'Detalhado', 'Resumo', 'Nenhum perfil tributário configurado'],
+    ]) {
+      await page.goto(portal(`/projects/${row.id}?tab=billing&lang=${locale}`));
+      const setup = page.locator('.billing-setup');
+      await setup.locator('.actions button[type="button"]').last().click();
+      await setup
+        .locator('select')
+        .filter({ has: page.locator('option[value="monthly"]') })
+        .first()
+        .selectOption('monthly');
+      const layoutSelect = setup
+        .locator('select')
+        .filter({ has: page.locator('option[value="labor-detailed"]') });
+      await layoutSelect.selectOption('default');
+      await setup.locator('select[aria-label]').first().selectOption('');
+      await setup.locator('.actions button[type="button"]').last().click();
+      await setup.locator('.actions button[type="button"]').last().click();
+      await expect(setup.locator('dl.review')).toContainText(monthly!);
+      await expect(setup.locator('dl.review')).toContainText(standard!);
+      await expect(setup.locator('dl.review')).toContainText(noTax!);
+      for (const [value, label] of [
+        ['labor-detailed', detailed],
+        ['labor-summary', summary],
+      ]) {
+        await setup.locator('.actions button[type="button"]').first().click();
+        await setup.locator('.actions button[type="button"]').first().click();
+        await layoutSelect.selectOption(value!);
+        await setup.locator('.actions button[type="button"]').last().click();
+        await setup.locator('.actions button[type="button"]').last().click();
+        await expect(setup.locator('dl.review')).toContainText(label!);
+      }
+    }
   } finally {
     db.close();
   }

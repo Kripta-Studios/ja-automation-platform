@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { onDestroy, tick } from 'svelte';
   import { helpWorkflows } from '$lib/portal/help-workflows';
   import {
@@ -436,7 +437,7 @@
     <div class="task-grid">
       {#each helpWorkflows(data.user.role ?? 'worker', data.user.workforceProfile, data.locale) as topic}
         <article>
-          <h3><a href={`${base}/app/${topic.route}`}>{topic.title} →</a></h3>
+          <h3><a href={`${base}/app/${topic.route}`}>{topic.title} <DirectionIcon /></a></h3>
           <p>{topic.body}</p>
         </article>
       {/each}

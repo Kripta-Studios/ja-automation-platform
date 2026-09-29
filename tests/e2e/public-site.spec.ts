@@ -34,10 +34,11 @@ test('desktop portal login CTA keeps a white surface and hover motion', async ({
   );
   await expect(portalLogin).toBeVisible();
   await expect(portalLogin).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-  await expect(portalLogin).toHaveCSS('color', 'rgb(10, 12, 15)');
+  await expect(portalLogin).toHaveCSS('color', 'rgb(32, 32, 29)');
 
   await portalLogin.hover();
-  await expect(portalLogin).toHaveCSS('background-color', 'rgb(245, 247, 248)');
+  await expect(portalLogin).toHaveCSS('background-color', 'rgb(244, 244, 242)');
+  await expect(portalLogin).toHaveCSS('color', 'rgb(32, 32, 29)');
   await expect
     .poll(() => portalLogin.evaluate((element) => getComputedStyle(element).transform))
     .not.toBe('none');
@@ -267,7 +268,7 @@ test('hero CTAs and industries spacing fit required viewports', async ({ page },
       };
       return {
         hero: getBounds('#home'),
-        cta: getBounds('#home .translate-y-6'),
+        cta: getBounds('#home .home-intro-actions'),
         industries: getBounds('#industries'),
         industriesEyebrow: getBounds('#industries .eyebrow'),
       };

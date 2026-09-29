@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from './DirectionIcon.svelte';
   import { onMount, tick } from 'svelte';
   import type { NavItem } from '../../portal-navigation';
   let {
@@ -134,7 +135,7 @@
   <nav aria-label={translate('Go to section')}>
     {#each matches as item}
       <a class="section-result" href={itemHref(item)} onclick={() => dialog.close()}
-        ><span>{translate(item.label)}</span><span aria-hidden="true">→</span></a
+        ><span>{translate(item.label)}</span><DirectionIcon /></a
       >
     {/each}
     {#if !matches.length}<p role="status">{translate('No matching sections')}</p>{/if}

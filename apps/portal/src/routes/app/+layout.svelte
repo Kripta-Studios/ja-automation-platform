@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
   import { beforeNavigate, afterNavigate, goto } from '$app/navigation';
@@ -187,7 +188,7 @@
         class="workspace-back"
         href={origin ?? `${base}/app/${section}`}
         data-origin-back
-        onclick={back}>← {translate('Back')}</a
+        onclick={back}><DirectionIcon direction="left" /> {translate('Back')}</a
       >
       {@render children()}
     </div>

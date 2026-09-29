@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { afterNavigate, beforeNavigate } from '$app/navigation';
   import { page } from '$app/stores';
@@ -22,7 +23,10 @@
   } from '../../standalone-locale';
   import { reviewCopy, type ReviewLocale } from './copy';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
-  import { beginReportPdfDownload, type ReportPdfAttempt } from '$lib/portal/ui/report-pdf-download';
+  import {
+    beginReportPdfDownload,
+    type ReportPdfAttempt,
+  } from '$lib/portal/ui/report-pdf-download';
   import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
   import {
     readSessionItem,
@@ -128,7 +132,8 @@
   function onReportPdfRemedyClick(event: MouseEvent, id: string): void {
     if (!(event.target instanceof Element)) return;
     const retry = event.target.closest<HTMLAnchorElement>('a[href="#report-pdf-retry"]');
-    if (!retry || !(event.currentTarget instanceof Element) || !event.currentTarget.contains(retry)) return;
+    if (!retry || !(event.currentTarget instanceof Element) || !event.currentTarget.contains(retry))
+      return;
     event.preventDefault();
     void getReportPdf(id, 'download');
   }
@@ -352,7 +357,9 @@
 
 <main class="period-review-page" data-period-review lang={locale === 'pt' ? 'pt-BR' : locale}>
   <nav class="review-nav">
-    <a href={`${base}/app/reports?lang=${locale}`} data-origin-back>← {copy.back}</a>
+    <a href={`${base}/app/reports?lang=${locale}`} data-origin-back
+      ><DirectionIcon direction="left" /> {copy.back}</a
+    >
   </nav>
 
   <header class="review-header">
@@ -565,7 +572,7 @@
               <div class="review-report-actions">
                 <a
                   href={`${base}/app/reports/period/${encodeURIComponent(report.reportId)}?lang=${locale}`}
-                  >{copy.openReport} →</a
+                  >{copy.openReport} <DirectionIcon /></a
                 >
                 {#if report.pdfReady}
                   <a
@@ -580,17 +587,35 @@
                 {/if}
               </div>
               {#if reportPdfFailure?.id === report.reportId}
-                <div data-review-pdf-problem={report.reportId} onclick={(event) => onReportPdfRemedyClick(event, report.reportId)} role="presentation">
+                <div
+                  data-review-pdf-problem={report.reportId}
+                  onclick={(event) => onReportPdfRemedyClick(event, report.reportId)}
+                  role="presentation"
+                >
                   <ProblemNotice
                     problem={reportPdfFailure.problem}
                     {locale}
                     status={`${copy.state}: ${display(report.state)}`}
                     remedyLinks={{
-                      sign_in_again: { label: standaloneText(locale, 'problem.remedy.signInAgain'), href: `${base}/app/login` },
-                      review_report: { label: standaloneText(locale, 'problem.remedy.reviewReport'), href: `${base}/app/reports/period/${encodeURIComponent(report.reportId)}?review=1#period-report-header` },
-                      review_reports: { label: standaloneText(locale, 'problem.remedy.reviewReports'), href: `${base}/app/reports` },
-                      contact_owner: { label: standaloneText(locale, 'problem.remedy.contactProjectOwner') },
-                      retry_download: { label: standaloneText(locale, 'Download PDF'), href: '#report-pdf-retry' },
+                      sign_in_again: {
+                        label: standaloneText(locale, 'problem.remedy.signInAgain'),
+                        href: `${base}/app/login`,
+                      },
+                      review_report: {
+                        label: standaloneText(locale, 'problem.remedy.reviewReport'),
+                        href: `${base}/app/reports/period/${encodeURIComponent(report.reportId)}?review=1#period-report-header`,
+                      },
+                      review_reports: {
+                        label: standaloneText(locale, 'problem.remedy.reviewReports'),
+                        href: `${base}/app/reports`,
+                      },
+                      contact_owner: {
+                        label: standaloneText(locale, 'problem.remedy.contactProjectOwner'),
+                      },
+                      retry_download: {
+                        label: standaloneText(locale, 'Download PDF'),
+                        href: '#report-pdf-retry',
+                      },
                     }}
                   />
                 </div>
@@ -877,7 +902,7 @@
                     <p class="review-warning">{copy.unavailable} · {copy.pdfRequired}</p>
                     <a
                       href={`${base}/app/reports/period/${encodeURIComponent(report.reportId)}?lang=${locale}`}
-                      >{copy.openReport} →</a
+                      >{copy.openReport} <DirectionIcon /></a
                     >
                   {/if}
                 </FormCard>

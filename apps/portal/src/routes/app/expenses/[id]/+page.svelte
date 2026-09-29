@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { base } from '$app/paths';
   import { enhance, type SubmitFunction } from '$app/forms';
@@ -500,7 +501,9 @@
 <svelte:head><title>{t('Expense')} | {record.project_number}</title></svelte:head>
 <main class="record-detail-page">
   <nav class="detail-nav">
-    <a href={base + '/app/expenses'} data-origin-back>← {t('Expenses')}</a>
+    <a href={base + '/app/expenses'} data-origin-back
+      ><DirectionIcon direction="left" /> {t('Expenses')}</a
+    >
     <a href={base + '/app/projects/' + String(record.project_id)}>{t('Open project')}</a>
     <button type="button" class="no-print print-trigger" onclick={printReport}>
       <PrintIcon />
@@ -621,10 +624,10 @@
           {controlled('status', record.active_correction_state)}.
         </p>
         <a href={`${base}/app/expenses/${encodeURIComponent(String(record.active_correction_id))}`}
-          >{t('Open existing correction')} →</a
+          >{t('Open existing correction')} <DirectionIcon /></a
         >
       {:else if data.canCreateCorrection}
-        <a href="#expense-correction-title">{t('Create corrected draft')} →</a>
+        <a href="#expense-correction-title">{t('Create corrected draft')} <DirectionIcon /></a>
       {:else if record.approval_state === 'rejected'}
         <p>
           {t(
@@ -634,7 +637,7 @@
         {#if data.user?.role === 'owner_admin' || (data.user?.role === 'worker' && String(record.worker_id) === String(data.user?.id))}
           <a
             href={`${base}/app/expenses?project=${encodeURIComponent(String(record.project_id))}&date=${encodeURIComponent(String(record.spent_on))}`}
-            >{t('Add expense')} →</a
+            >{t('Add expense')} <DirectionIcon /></a
           >
         {/if}
       {:else}

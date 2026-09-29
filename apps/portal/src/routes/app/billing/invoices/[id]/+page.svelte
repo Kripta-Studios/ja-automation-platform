@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { beforeNavigate, invalidateAll } from '$app/navigation';
   import { base } from '$app/paths';
@@ -70,13 +71,19 @@
   let issuedPdfNotice = $state<HTMLDivElement | undefined>(undefined);
   let issuedPdfObjectUrls: Array<{ url: string; timer: number; external?: boolean }> = [];
   const issuedPdfRemedies = $derived({
-    sign_in_again: { label: t('problem.remedy.signInAgain'), href: `${base}/app/login?lang=${locale}` },
+    sign_in_again: {
+      label: t('problem.remedy.signInAgain'),
+      href: `${base}/app/login?lang=${locale}`,
+    },
     review_invoice: {
       label: t('problem.invoiceDraftPreview.reviewInvoice'),
       href: `${base}/app/billing/invoices/${encodeURIComponent(invoiceId)}?lang=${locale}`,
       reload: true,
     },
-    review_billing: { label: t('problem.invoiceDraftPreview.reviewBilling'), href: `${base}/app/billing` },
+    review_billing: {
+      label: t('problem.invoiceDraftPreview.reviewBilling'),
+      href: `${base}/app/billing`,
+    },
     contact_finance: { label: t('Contact a finance administrator') },
     retry_download: { label: t('Download PDF'), href: '#invoice-issued-pdf-download' },
   });
@@ -235,13 +242,30 @@
     'retry_download',
   ]);
 
-  function issuedPdfFallback(kind: 'network' | 'invalid' | 'signIn' | 'popup', reference = ''): ProblemData {
-    const definition = ({
-      network: ['INVOICE_PDF_NETWORK_UNAVAILABLE', 'problem.invoice.pdfNetworkUnavailable', 'retry_download'],
-      invalid: ['INVOICE_PDF_INVALID_RESPONSE', 'problem.invoice.pdfInvalidResponse', 'review_invoice'],
-      signIn: ['INVOICE_PDF_SIGN_IN_REQUIRED', 'problem.invoice.pdfSignInRequired', 'sign_in_again'],
-      popup: ['INVOICE_PDF_POPUP_BLOCKED', 'problem.invoice.pdfPopupBlocked', 'retry_download'],
-    } as const)[kind];
+  function issuedPdfFallback(
+    kind: 'network' | 'invalid' | 'signIn' | 'popup',
+    reference = '',
+  ): ProblemData {
+    const definition = (
+      {
+        network: [
+          'INVOICE_PDF_NETWORK_UNAVAILABLE',
+          'problem.invoice.pdfNetworkUnavailable',
+          'retry_download',
+        ],
+        invalid: [
+          'INVOICE_PDF_INVALID_RESPONSE',
+          'problem.invoice.pdfInvalidResponse',
+          'review_invoice',
+        ],
+        signIn: [
+          'INVOICE_PDF_SIGN_IN_REQUIRED',
+          'problem.invoice.pdfSignInRequired',
+          'sign_in_again',
+        ],
+        popup: ['INVOICE_PDF_POPUP_BLOCKED', 'problem.invoice.pdfPopupBlocked', 'retry_download'],
+      } as const
+    )[kind];
     return {
       code: definition[0],
       messageKey: definition[1],
@@ -252,7 +276,10 @@
     };
   }
 
-  async function showIssuedPdfProblem(problem: ProblemData, controller: AbortController): Promise<void> {
+  async function showIssuedPdfProblem(
+    problem: ProblemData,
+    controller: AbortController,
+  ): Promise<void> {
     if (issuedPdfController !== controller || controller.signal.aborted) return;
     issuedPdfProblem = problem;
     await tick();
@@ -294,7 +321,8 @@
       link.href = url;
       link.download = filename;
       link.textContent = t('Download PDF');
-      link.style.cssText = 'display: inline-block; margin: .5rem 0 1rem; min-height: 2.75rem; color: #0645ad';
+      link.style.cssText =
+        'display: inline-block; margin: .5rem 0 1rem; min-height: 2.75rem; color: #0645ad';
       const frame = doc.createElement('iframe');
       frame.title = t('PDF');
       frame.style.cssText = 'display: block; width: 100%; height: 78vh; border: 1px solid #d6d5d2';
@@ -344,7 +372,9 @@
       try {
         popup = window.open('about:blank', '_blank');
         if (popup && !prepareIssuedPdfPopup(popup)) popup = null;
-      } catch { /* Browser popup policy. */ }
+      } catch {
+        /* Browser popup policy. */
+      }
       issuedPdfPopup = popup;
       if (!popup) {
         await showIssuedPdfProblem(issuedPdfFallback('popup'), controller);
@@ -354,7 +384,10 @@
       }
     }
     const stillCurrent = () =>
-      !draftPreviewDisposed && issuedPdfController === controller && !controller.signal.aborted && invoiceId === requestedInvoiceId;
+      !draftPreviewDisposed &&
+      issuedPdfController === controller &&
+      !controller.signal.aborted &&
+      invoiceId === requestedInvoiceId;
     try {
       const response = await fetch(pdfUrl, {
         method: 'GET',
@@ -363,26 +396,44 @@
         signal: controller.signal,
         headers: { accept: 'application/pdf, application/json' },
       });
-      if (!stillCurrent()) { popup?.close(); return; }
+      if (!stillCurrent()) {
+        popup?.close();
+        return;
+      }
       const reference = response.headers.get('x-correlation-id') ?? '';
       if (response.redirected) {
         const destination = new URL(response.url);
         popup?.close();
         await showIssuedPdfProblem(
-          issuedPdfFallback(destination.origin === location.origin && destination.pathname.endsWith('/app/login') ? 'signIn' : 'invalid', reference),
+          issuedPdfFallback(
+            destination.origin === location.origin && destination.pathname.endsWith('/app/login')
+              ? 'signIn'
+              : 'invalid',
+            reference,
+          ),
           controller,
         );
         return;
       }
       if (!response.ok) {
-        const payload = response.headers.get('content-type')?.toLowerCase().includes('application/json')
+        const payload = response.headers
+          .get('content-type')
+          ?.toLowerCase()
+          .includes('application/json')
           ? await response.json().catch(() => null)
           : null;
-        if (!stillCurrent()) { popup?.close(); return; }
+        if (!stillCurrent()) {
+          popup?.close();
+          return;
+        }
         popup?.close();
         await showIssuedPdfProblem(
-          typedPrivateDownloadProblem(payload, issuedPdfMessageKeys, issuedPdfRemedyIds, reference) ??
-            issuedPdfFallback(response.status === 401 ? 'signIn' : 'invalid', reference),
+          typedPrivateDownloadProblem(
+            payload,
+            issuedPdfMessageKeys,
+            issuedPdfRemedyIds,
+            reference,
+          ) ?? issuedPdfFallback(response.status === 401 ? 'signIn' : 'invalid', reference),
           controller,
         );
         return;
@@ -395,27 +446,42 @@
         return;
       }
       const file = await response.blob();
-      if (!stillCurrent()) { popup?.close(); return; }
+      if (!stillCurrent()) {
+        popup?.close();
+        return;
+      }
       const length = response.headers.get('content-length');
-      if (file.size < 8 || (length && Number(length) !== file.size) || await file.slice(0, 5).text() !== '%PDF-') {
+      if (
+        file.size < 8 ||
+        (length && Number(length) !== file.size) ||
+        (await file.slice(0, 5).text()) !== '%PDF-'
+      ) {
         popup?.close();
         await showIssuedPdfProblem(issuedPdfFallback('invalid', reference), controller);
         return;
       }
-      if (!stillCurrent()) { popup?.close(); return; }
+      if (!stillCurrent()) {
+        popup?.close();
+        return;
+      }
       const url = URL.createObjectURL(file);
       if (mode === 'embed') {
         if (securePdfPreviewUrl) {
           const old = issuedPdfObjectUrls.find((entry) => entry.url === securePdfPreviewUrl);
           if (old) clearTimeout(old.timer);
           URL.revokeObjectURL(securePdfPreviewUrl);
-          issuedPdfObjectUrls = issuedPdfObjectUrls.filter((entry) => entry.url !== securePdfPreviewUrl);
+          issuedPdfObjectUrls = issuedPdfObjectUrls.filter(
+            (entry) => entry.url !== securePdfPreviewUrl,
+          );
         }
         securePdfPreviewUrl = url;
         securePdfPreviewOpen = true;
-        issuedPdfObjectUrls.push({ url, timer: window.setTimeout(() => {
-          if (securePdfPreviewUrl !== url) URL.revokeObjectURL(url);
-        }, 60_000) });
+        issuedPdfObjectUrls.push({
+          url,
+          timer: window.setTimeout(() => {
+            if (securePdfPreviewUrl !== url) URL.revokeObjectURL(url);
+          }, 60_000),
+        });
       } else {
         const releaseUrl = () => {
           clearTimeout(timer);
@@ -425,7 +491,13 @@
         const timer = window.setTimeout(releaseUrl, mode === 'open' ? 3_600_000 : 60_000);
         issuedPdfObjectUrls.push({ url, timer, external: mode === 'open' });
         if (mode === 'open' && popup) {
-          if (showIssuedPdfPopup(popup, url, privateDownloadFilename(disposition, `invoice-${requestedInvoiceId}.pdf`))) {
+          if (
+            showIssuedPdfPopup(
+              popup,
+              url,
+              privateDownloadFilename(disposition, `invoice-${requestedInvoiceId}.pdf`),
+            )
+          ) {
             popup.addEventListener('pagehide', releaseUrl, { once: true });
             issuedPdfPopup = null;
             issuedPdfOpenedFallback = true;
@@ -640,7 +712,10 @@
   let previousIssuedPdfInvoiceId: string | undefined;
   $effect(() => {
     const currentInvoiceId = invoiceId;
-    if (previousIssuedPdfInvoiceId !== undefined && previousIssuedPdfInvoiceId !== currentInvoiceId) {
+    if (
+      previousIssuedPdfInvoiceId !== undefined &&
+      previousIssuedPdfInvoiceId !== currentInvoiceId
+    ) {
       cancelIssuedPdf();
       issuedPdfProblem = null;
       issuedPdfOpenedFallback = false;
@@ -675,10 +750,10 @@
 <svelte:head><title>{t('Invoice preview')} | {invoice.project_number}</title></svelte:head>
 <main class="invoice-preview-page">
   <nav class="detail-nav no-print">
-    <a href={`${base}/app/billing`} data-origin-back>← {t('Billing')}</a><button
-      type="button"
-      class="print-trigger"
-      onclick={() => window.print()}><PrintIcon /> {t('Print Report')}</button
+    <a href={`${base}/app/billing`} data-origin-back
+      ><DirectionIcon direction="left" /> {t('Billing')}</a
+    ><button type="button" class="print-trigger" onclick={() => window.print()}
+      ><PrintIcon /> {t('Print Report')}</button
     >
   </nav>
   {#if invoiceState === 'draft' || invoiceState === 'approved'}
@@ -725,7 +800,11 @@
       {#if pdfStatus === 'ready'}
         <p class="invoice-pdf-panel__help">{t('Ready')}</p>
         {#if issuedPdfProblem}
-          <div class="invoice-pdf-panel__problem" bind:this={issuedPdfNotice} data-invoice-pdf-problem>
+          <div
+            class="invoice-pdf-panel__problem"
+            bind:this={issuedPdfNotice}
+            data-invoice-pdf-problem
+          >
             <ProblemNotice
               problem={issuedPdfProblem}
               kind="error"
@@ -742,7 +821,11 @@
             aria-expanded={securePdfPreviewOpen}
             disabled={issuedPdfBusy}
             onclick={() => void getIssuedPdf('embed')}
-            >{issuedPdfBusy ? t('Loading') : securePdfPreviewOpen ? t('Close') : t('Open PDF')}</button
+            >{issuedPdfBusy
+              ? t('Loading')
+              : securePdfPreviewOpen
+                ? t('Close')
+                : t('Open PDF')}</button
           >
           <a
             class="invoice-pdf-panel__action invoice-pdf-panel__action--secondary"
@@ -766,7 +849,12 @@
         {#if issuedPdfOpenedFallback || securePdfPreviewOpen}
           <p class="invoice-pdf-panel__fallback" role="status">
             {t('problem.invoice.pdfPreviewFallback')}
-            <a href={pdfUrl} download onclick={(event) => onIssuedPdfLinkClick(event, 'download')} onauxclick={(event) => onIssuedPdfLinkClick(event, 'download')}>{t('Download PDF')}</a>
+            <a
+              href={pdfUrl}
+              download
+              onclick={(event) => onIssuedPdfLinkClick(event, 'download')}
+              onauxclick={(event) => onIssuedPdfLinkClick(event, 'download')}>{t('Download PDF')}</a
+            >
           </p>
         {/if}
         {#if securePdfPreviewOpen && securePdfPreviewUrl}

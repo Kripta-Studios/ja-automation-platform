@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import RecordBrowser from '$lib/portal/ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
   import { portalText, normalizePortalLocale } from '$lib/portal-i18n';
@@ -186,7 +187,7 @@
       )}
     </p>
     <a class="management-action" href={`${base}/app/manage/worker-pay`}
-      >{t('Worker pay review')} →</a
+      >{t('Worker pay review')} <DirectionIcon /></a
     >
   </header>
   {#if formProblem}
@@ -215,12 +216,12 @@
         <a
           class="management-action"
           href={`${base}/app/projects/${data.selectedProjectId}?tab=commercial`}
-          >{t('Back to project')} →</a
+          >{t('Back to project')} <DirectionIcon /></a
         >
       {/if}
       {#if data.area === 'document'}<a
           class="management-action primary-action"
-          href={`${base}/app/documents`}>{t('Upload document')} →</a
+          href={`${base}/app/documents`}>{t('Upload document')} <DirectionIcon /></a
         >{:else}<details open={Boolean(form && 'recordId' in form && form.recordId === '')}>
           <summary>{t('Add record')}</summary>{@render catalogForm(null)}
         </details>{/if}
@@ -280,7 +281,7 @@
       <div class="management-toolbar">
         <label>{t('Search')}<input type="search" bind:value={search} /></label><a
           class="management-action primary-action"
-          href={`${base}/app/${section}`}>{t('Add or edit records')} →</a
+          href={`${base}/app/${section}`}>{t('Add or edit records')} <DirectionIcon /></a
         >
       </div>
       <div class="management-records">
@@ -384,7 +385,7 @@
           class="management-domain"
           href={`${base}/app/${domain.route}`}
         >
-          <span class="domain-title">{t(domain.title)} <span aria-hidden="true">→</span></span>
+          <span class="domain-title">{t(domain.title)} <DirectionIcon /></span>
           <span class="domain-count"
             >{domain.counts.reduce((sum, value) => sum + value.count, 0)} {t('records')}</span
           >

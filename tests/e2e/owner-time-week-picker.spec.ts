@@ -1,6 +1,67 @@
 import { expect, test } from '@playwright/test';
 import { portal, signIn } from './auth.js';
 
+for (const javaScriptEnabled of [true, false]) {
+  test(`Open week retains time filters ${javaScriptEnabled ? 'with JavaScript' : 'without JavaScript'}`, async ({
+    browser,
+    page,
+  }, info) => {
+    test.skip(!['phone-390', 'desktop'].includes(info.project.name));
+    await signIn(page, 'owner');
+    await page.goto(portal('/time?lang=en'));
+    const filters = page.locator('#time-filters');
+    const project = await filters
+      .locator('select[name="project"] option')
+      .nth(1)
+      .getAttribute('value');
+    const worker = await filters
+      .locator('select[name="worker"] option')
+      .nth(1)
+      .getAttribute('value');
+    if (!project || !worker) throw new Error('Project and worker time filters are required');
+    const context = await browser.newContext({
+      javaScriptEnabled,
+      storageState: await page.context().storageState(),
+      viewport: page.viewportSize()!,
+    });
+    try {
+      const weekPage = await context.newPage();
+      const params = new URLSearchParams({
+        lang: 'es',
+        project,
+        worker,
+        status: 'draft',
+        q: 'QA',
+        order: 'oldest',
+        category: 'regular',
+        from: '2026-09-01',
+        to: '2026-10-31',
+      });
+      await weekPage.goto(portal(`/time?${params}`));
+      await weekPage.locator('.timesheet-period input[name="week"]').fill('2026-10-05');
+      await weekPage.locator('.timesheet-period button[type="submit"]').click();
+      await expect(weekPage).toHaveURL(/week=2026-10-05/);
+      const result = new URL(weekPage.url());
+      for (const [name, value] of params) {
+        if (name !== 'from' && name !== 'to') expect(result.searchParams.get(name)).toBe(value);
+      }
+      expect(result.searchParams.has('from')).toBe(false);
+      expect(result.searchParams.has('to')).toBe(false);
+      expect(result.hash).toBe('#weekly-timesheet-title');
+      await expect(weekPage.locator('#weekly-timesheet-title')).toBeVisible();
+      await expect(weekPage.locator('#time-filters select[name="project"]')).toHaveValue(project);
+      await expect(weekPage.locator('#time-filters select[name="worker"]')).toHaveValue(worker);
+      await expect(weekPage.locator('#time-filters select[name="status"]')).toHaveValue('draft');
+      await expect(weekPage.locator('#time-filters input[name="q"]')).toHaveValue('QA');
+      await expect(weekPage.locator('#time-filters select[name="order"]')).toHaveValue('oldest');
+      await expect(weekPage.locator('#time-filters input[name="from"]')).toHaveValue('2026-10-05');
+      await expect(weekPage.locator('#time-filters input[name="to"]')).toHaveValue('2026-10-11');
+    } finally {
+      await context.close();
+    }
+  });
+}
+
 for (const viewport of ['phone-390', 'desktop'] as const) {
   test(`Owner can change the table week and keep dated drafts at ${viewport}`, async ({
     page,

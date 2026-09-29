@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
@@ -64,7 +65,9 @@
 
 <main class="record-detail-page notification-detail-page">
   <nav class="detail-nav">
-    <a href={base + '/app/notifications'} data-origin-back>← {t('Activity inbox')}</a>
+    <a href={base + '/app/notifications'} data-origin-back
+      ><DirectionIcon direction="left" /> {t('Activity inbox')}</a
+    >
     {#if target}<a href={base + target}>{t('Open source record')}</a>{/if}
   </nav>
   <header class="record-detail-header">

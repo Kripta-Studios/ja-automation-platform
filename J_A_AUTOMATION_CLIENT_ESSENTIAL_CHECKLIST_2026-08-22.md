@@ -930,7 +930,6 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Commit `ef1e6a0` desplegado a las 12:44:29 Madrid; 2.154 archivos idénticos al ZIP, nueve PDF instalados correctos, seis páginas públicas y dos ciclos automáticos aprobados. Respaldo íntegro con 59 documentos; cobertura histórica aún 14/30 días.
 - [x] Caché Docker a 0 B tras liberar 9.57GB; imágenes y volúmenes conservados. Correo, Caddy, contenedores, timers y bind de música activos. [Evidencia de publicación](docs/evidence/github-release-20260922/README.md).
 
-
 ## 2026-09-22 — Intervalos reales y filtros/selectores del portal (CORE-04, UI_PLAN)
 
 - [x] Fecha actual por defecto, inicio/fin locales del proyecto, pausa opcional y duración neta calculada. Edición, proveedor y payload offline conservan los campos canónicos; sin migración ni horas inventadas para registros antiguos.
@@ -950,7 +949,6 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Colección de 86 archivos: 64 PDF (30 impresiones del navegador), 6 XLSX, 13 CSV, 1 JSON y 2 ZIP. Nueve manuales regenerados con 116 capturas/202 comprobaciones vinculadas a `5b65dfd`; generación final de navegador 2/2 aprobada.
 - [x] Commit `1d730f3` desplegado a las 16:28:05 Madrid: 2.441 archivos del ZIP y 601 de ejecución coincidentes; nueve PDF instalados correctos. SQLite/FK, ocho tablas históricas y 59 archivos privados conservados; dos ciclos automáticos, respaldo, navegador público y correo/TLS verificados. Caché Docker 0 B tras recuperar 6.854GB. Los timeouts transitorios de readiness y los pendientes históricos quedan documentados en [la evidencia](docs/evidence/manual-examples-20260922/README.md).
 
-
 ## 2026-09-22 — Navegación y revisión integral de textos (UI_PLAN, CORE-04, CORE-13)
 
 - [x] Buscador de secciones por rol con Ctrl/⌘ K, fechas rápidas, filtros eliminables individualmente y navegación semanal. 24/24 pruebas de teclado, accesibilidad y presentación en 360/390/768/1440 px.
@@ -963,7 +961,6 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 
 - [x] Commit `d7fbd72` desplegado a las 17:49:09 Madrid: 2.538 archivos del ZIP y 604 de ejecución coincidentes, nueve PDF instalados verificados, SQLite/FK correctas, ocho tablas históricas y 59 archivos privados conservados. Doce páginas públicas, dos ciclos automáticos y respaldo íntegro aprobados; historial de backups aún 14/30 días. Caché Docker a 0 B tras recuperar 6.88GB; imágenes y volúmenes preservados. Servicios y contenedores ajenos conservados.
 
-
 ## 2026-09-22 — Agenda, formularios resistentes y bandeja de actividad (CORE-04/06/07, UI_PLAN)
 
 - [x] Agenda del trabajador con todas las asignaciones del día UTC, turnos nocturnos y próximos trabajos; enlaces autorizados y estado vacío explícito.
@@ -973,7 +970,6 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - Evidencia, alcance y recibo posterior al despliegue: [mejoras operativas](docs/evidence/operational-ux-20260922/README.md). No sustituye la aceptación contractual de 32 pasos ni modifica sus pendientes externos. Manuales existentes conservados; esta entrega no incluye su regeneración.
 
 - [x] Snapshot `0721986d94ba…` desplegado a las 23:51:05 Madrid, release `b30ae7b55a3f…`. 2.266 archivos del manifiesto y 604 fuentes de ejecución comprobados; navegador público 12/12. SQLite/FK, ocho tablas financieras y 59 archivos privados conservados; respaldo verificado y 17 ciclos automáticos sin fallos. Doce contenedores ajenos/PID de Caddy conservados y timers activos. Arranque frío inicial y cobertura histórica de respaldo 14/30 documentados.
-
 
 ## 2026-09-23 — Cierre de UX operativa y manuales
 
@@ -1025,3 +1021,12 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] El navegador descubrió y verificó las correcciones de proyecto (dos guardados sucesivos), pestaña de aprobaciones persistente, perfil fiscal activo seleccionable, conservación de la pestaña de configuración y recuperación del porcentaje fiscal 7,5 % / 750 puntos básicos tras un POST nativo fallido y reintento exitoso. El perfil fiscal sigue siendo opcional para el flujo de gastos.
 - [x] Typecheck de los diez paquetes y ESLint global aprobados; pruebas focalizadas de acciones, migraciones y recuperación 285/285, regresiones UI 33/33, y validación fiscal 30/30. El conjunto general secuencial sigue en ejecución y se documentará con su resultado exacto.
 - [ ] Commit, publicación en GitHub, despliegue de este candidato, comprobación de producción y evidencia operativa fresca para completar los pasos 30–31. Esta sección todavía no declara `CLIENT READY`.
+
+## 2026-09-29 — Auditoría autenticada del despliegue y seguimiento de UX
+
+- [x] Chromium/Playwright MCP y CDP en la aplicación desplegada con siete perfiles: Owner, Finanzas, PM, Auditoría, Worker, Supplier y Technician. 304 comprobaciones de ruta/anchura; 300 rutas disponibles HTTP 200 y cuatro rutas Notifications ajenas al menú de Supplier/Technician excluidas. Formularios reales, descargas y estados comprobados; registros nuevos limitados a QA sintético. [Alcance, resultados y límites](docs/evidence/live-browser-audit-20260929/README.md).
+- [x] Confirmados en navegador: proveedor vacío, fechas futuras, horas decimales, fecha siguiente, tabla/calendario Owner, envío semanal de horas/comidas vinculadas sin enviar aparcamiento independiente, sufijo de centro de coste, perfil fiscal opcional y emisor J&A USD predeterminado. XLSX de fixture descargado mediante UI: 12 gastos de factura / 850,00 USD, coincidentes con sus filas fuente. Perdiem configurable y editable probado en fixture aislado.
+- [x] Candidato: conservación de pestañas/filtros de aprobaciones y facturación, semana de siete días con filtros y formulario nativo, orden explícito de URL, etiqueta de proveedor opcional, resumen fiscal/emisor traducido, rol Auditor correcto y eliminación de directorios/formularios duplicados en Projects. Tipos y lint focalizados; 30 regresiones, 7 unidades y 11 comprobaciones de defaults/XLSX aprobadas.
+- [x] Correo inválido conserva atributos accesibles, mensaje asociado y foco en el campo; SVG decorativo coherente y contraste corregido en menú/calendario. Matriz ampliada de 172 casos: 94 aprobados inicialmente, 57 exclusiones previstas y 21 fallos corregidos; repeticiones 18/21 y 3/3 completan 115 casos aplicables aprobados. Tipos de diez paquetes, ESLint global, Prettier de 57 archivos modificados y builds site/portal/jobs correctos.
+- [ ] Revisión final, commit de release, despliegue con respaldo y comprobación posterior autenticada. Este candidato todavía no acredita cambios en producción.
+- [ ] No se acredita repetición universal de 180 acciones ni de los 32 pasos contractuales en esta auditoría. Las limitaciones y el estrés de rate limiting se describen en la evidencia; no se declara `CLIENT READY` únicamente por este seguimiento.

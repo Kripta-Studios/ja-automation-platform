@@ -141,7 +141,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               <p className="text-lead mb-4">{intro('p1')}</p>
               <p className="text-body text-ja-steel-700 mb-8">{intro('p2')}</p>
               <Link href="/about" className="text-cta">
-                {intro('cta')} <ArrowRight size={16} />
+                {intro('cta')} <ArrowRight size={16} aria-hidden="true" />
               </Link>
             </div>
             <div className="relative rounded-[14px] overflow-hidden aspect-[16/10]">
@@ -197,7 +197,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
           <div className="mt-10 text-center">
             <Link href="/capabilities" className="text-cta">
-              {cap('cta')} <ArrowRight size={16} />
+              {cap('cta')} <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </div>
         </div>
@@ -253,7 +253,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
           <div className="mt-10 text-center">
             <Link href="/projects" className="text-cta">
-              {proj('cta')} <ArrowRight size={16} />
+              {proj('cta')} <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </div>
         </div>
@@ -315,7 +315,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               <p className="text-lead max-w-2xl">{remote('body')}</p>
               <p className="mt-5 max-w-2xl text-sm text-ja-steel-700">{remote('helper')}</p>
               <Link href="/contact?intent=support" className="btn btn-primary mt-8">
-                {remote('cta')} <ArrowRight size={16} />
+                {remote('cta')} <ArrowRight size={16} aria-hidden="true" />
               </Link>
             </div>
             <div className="border border-ja-line bg-ja-surface p-7 sm:p-9">
@@ -349,7 +349,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               <h2 className="heading-2 mb-5">{team('h2')}</h2>
               <p className="text-lead">{team('body')}</p>
               <Link href="/about" className="text-cta mt-7 inline-flex">
-                {team('cta')} <ArrowRight size={16} />
+                {team('cta')} <ArrowRight size={16} aria-hidden="true" />
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-px border border-ja-line bg-ja-line sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
@@ -395,7 +395,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               <p className="text-lead">{careers('body')}</p>
             </div>
             <Link href="/careers" className="btn btn-secondary">
-              {careers('cta')} <ArrowRight size={16} />
+              {careers('cta')} <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </div>
         </div>

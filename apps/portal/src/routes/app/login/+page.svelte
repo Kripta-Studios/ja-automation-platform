@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { replaceState } from '$app/navigation';
   import { normalizePortalLocale } from '$lib/portal-i18n';
@@ -250,7 +251,7 @@
         /></label
       ><button class="login-submit" disabled={!hydrated || loginState === 'sending' || rateLimited}
         >{loginState === 'sending' ? t('Verifying access…') : t('Continue to workspace')}
-        <span aria-hidden="true">→</span></button
+        <DirectionIcon /></button
       >
       <button
         type="button"

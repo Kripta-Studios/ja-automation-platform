@@ -184,8 +184,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         const category = url.searchParams.get('category')?.trim() || undefined;
         const projectId = url.searchParams.get('project')?.trim() || undefined;
         const workerId = url.searchParams.get('worker')?.trim() || undefined;
-        const from = url.searchParams.get('from')?.trim() || undefined;
-        const to = url.searchParams.get('to')?.trim() || undefined;
+        // Native GET week picks need the same selected-week scope as the week
+        // links, without retaining an earlier register's date range.
+        const weekJump = url.searchParams.get('weekJump') === '1';
+        const from = weekJump ? weekStart : url.searchParams.get('from')?.trim() || undefined;
+        const to = weekJump ? weekEnd : url.searchParams.get('to')?.trim() || undefined;
         return {
           ...common,
           projects: timeProjects,

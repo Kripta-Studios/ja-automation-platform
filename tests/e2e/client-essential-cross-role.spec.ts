@@ -33,26 +33,6 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function periodReportRefreshIdempotencyKey(
-  projectId: string,
-  periodStart: string,
-  periodEnd: string,
-  reportLocale: string,
-  contentMode = 'hours_activity_all_technical',
-  technicalReportIds: string[] = [],
-): string {
-  const contentSelectionKey = createHash('sha256')
-    .update(
-      JSON.stringify({
-        contentMode,
-        technicalReportIds: [...technicalReportIds].sort(),
-      }),
-    )
-    .digest('hex')
-    .slice(0, 16);
-  return `period-report-refresh:${projectId}:${periodStart}:${periodEnd}:${reportLocale}:${contentSelectionKey}`;
-}
-
 /**
  * Match the stable visible label at the start of a tab's accessible text.
  * Counts/help copy may be appended by the surface without changing its
@@ -360,35 +340,18 @@ async function enqueueCustomerPeriodReportRefresh(page: Page): Promise<string> {
   expect(periodStart).not.toBe('');
   expect(periodEnd).not.toBe('');
 
-  const response = await page.request.post(`${page.url()}?/refresh`, {
-    headers: { origin: new URL(page.url()).origin, referer: page.url() },
-    form: { projectId, periodStart, periodEnd, reportLocale: 'en' },
-  });
-  expect(response.status(), 'period report refresh must enqueue a durable job').toBe(200);
-
-  // Read the durable identity written by the action instead of relying on a
-  // browser-only queued label.  This lets the service-worker proof assert the
-  // exact refresh job and report any unrelated fixture failures separately.
-  const fixture = readE2EFixturePointer();
-  const database = createDatabase(fixture.databasePath);
-  try {
-    const job = database.sqlite
-      .prepare(
-        `SELECT id
-           FROM job
-          WHERE kind='period_close_report'
-            AND idempotency_key=?
-          ORDER BY created_at DESC,id DESC
-          LIMIT 1`,
-      )
-      .get(periodReportRefreshIdempotencyKey(projectId, periodStart, periodEnd, 'en')) as
-      | { id: string }
-      | undefined;
-    if (!job?.id) throw new Error('The period report refresh action did not persist its job');
-    return job.id;
-  } finally {
-    database.sqlite.close();
-  }
+  const detailUrl = page.url();
+  await page.getByRole('link', { name: 'Refresh period reports', exact: true }).click();
+  const jobId = await refreshPeriodReportsThroughForm(
+    page,
+    projectId,
+    periodStart,
+    periodEnd,
+    'en',
+  );
+  await page.goto(detailUrl);
+  await expect(page.locator('[data-customer-signoff]')).toBeVisible();
+  return jobId;
 }
 
 async function refreshCustomerPeriodReportWithChangedLocale(
@@ -397,63 +360,96 @@ async function refreshCustomerPeriodReportWithChangedLocale(
   expectedPeriodStart: string,
   expectedPeriodEnd: string,
 ): Promise<string> {
-  // The customer-safe detail intentionally does not expose the internal
-  // refresh control. Use the Finance Reports surface, which is the
-  // authenticated product action for recalculating both audiences.
   await page.goto(portal('/reports'));
+  return refreshPeriodReportsThroughForm(
+    page,
+    expectedProjectId,
+    expectedPeriodStart,
+    expectedPeriodEnd,
+    'es',
+  );
+}
+
+async function refreshPeriodReportsThroughForm(
+  page: Page,
+  projectId: string,
+  periodStart: string,
+  periodEnd: string,
+  reportLocale: string,
+): Promise<string> {
+  // Use the authorized Finance Reports action exposed by the customer detail's
+  // refresh link, rather than invoking an internal-only detail action.
   await page.locator('details.report-generator > summary').click();
   const generator = page.locator('[data-report-generator-cta]');
   await expect(generator).toBeVisible();
   await generator.click();
   const refreshForm = page.locator('form[action="?/generatePeriodReports"]');
   await expect(refreshForm).toHaveCount(1);
-  const projectId = expectedProjectId;
-  const periodStart = expectedPeriodStart;
-  const periodEnd = expectedPeriodEnd;
   await refreshForm.locator('select[name="projectId"]').selectOption(projectId);
   await refreshForm.locator('input[name="periodStart"]').fill(periodStart);
   await refreshForm.locator('input[name="periodEnd"]').fill(periodEnd);
-  const localeSelect = refreshForm.locator('select[name="reportLocale"]');
-  const replacementLocale = 'es';
-  await localeSelect.selectOption(replacementLocale);
+  await refreshForm.locator('select[name="reportLocale"]').selectOption(reportLocale);
   const contentMode = await refreshForm.locator('select[name="contentMode"]').inputValue();
   const technicalReportIds = await refreshForm
     .locator('input[name="technicalReportIds"]:checked')
     .evaluateAll((inputs) => inputs.map((input) => (input as HTMLInputElement).value));
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' && response.url().includes('?/generatePeriodReports'),
+  const database = createDatabase(readE2EFixturePointer().databasePath);
+  const scopedJobs = database.sqlite.prepare(
+    `SELECT id,kind,idempotency_key,payload_json FROM job
+      WHERE kind='period_close_report'
+        AND json_extract(payload_json,'$.projectId')=?
+        AND json_extract(payload_json,'$.periodStart')=?
+        AND json_extract(payload_json,'$.periodEnd')=?
+        AND json_extract(payload_json,'$.reportLocale')=?`,
   );
-  await refreshForm.getByRole('button', { name: 'Refresh reports', exact: true }).click();
-  const response = await responsePromise;
-  const body = await response.text();
-  expect(response.status(), body).toBe(200);
-  expect(body).toContain('action.reports.periodReportsRefreshed');
-
-  const fixture = readE2EFixturePointer();
-  const database = createDatabase(fixture.databasePath);
+  type RefreshJob = { id: string; kind: string; idempotency_key: string; payload_json: string };
+  const priorJobIds = new Set(
+    (scopedJobs.all(projectId, periodStart, periodEnd, reportLocale) as RefreshJob[]).map(
+      (job) => job.id,
+    ),
+  );
   try {
-    const job = database.sqlite
-      .prepare(
-        `SELECT id
-           FROM job
-          WHERE kind='period_close_report'
-            AND idempotency_key=?
-          ORDER BY created_at DESC,id DESC
-          LIMIT 1`,
-      )
-      .get(
-        periodReportRefreshIdempotencyKey(
-          projectId,
-          periodStart,
-          periodEnd,
-          replacementLocale,
-          contentMode,
-          technicalReportIds,
-        ),
-      ) as { id: string } | undefined;
-    if (!job?.id) throw new Error('The changed report refresh action did not persist its job');
-    return job.id;
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        response.url().includes('?/generatePeriodReports'),
+    );
+    await refreshForm.getByRole('button', { name: 'Refresh reports', exact: true }).click();
+    const response = await responsePromise;
+    const body = await response.text();
+    expect(response.status(), body).toBe(200);
+    expect(body).toContain('action.reports.periodReportsRefreshed');
+
+    // Native HTML responses retain the action job identity in SvelteKit's page
+    // data. Verify that identity against a new durable job, independently of the
+    // browser's queued label and the obsolete scope-only idempotency key.
+    const newJobs = (
+      scopedJobs.all(projectId, periodStart, periodEnd, reportLocale) as RefreshJob[]
+    ).filter((job) => !priorJobIds.has(job.id));
+    expect(
+      newJobs,
+      'refresh must persist one new job for the selected snapshot versions',
+    ).toHaveLength(1);
+    const job = newJobs[0]!;
+    const jobId = job.id;
+    expect(body, 'the action response must identify this exact durable refresh job').toContain(
+      jobId,
+    );
+    expect(job).toMatchObject({ id: jobId, kind: 'period_close_report' });
+    expect(job.idempotency_key).toMatch(/^period-report-refresh:v2:[0-9a-f]{64}$/u);
+    const payload = JSON.parse(job.payload_json) as {
+      technicalReportIds: string[];
+      reportSnapshots: Array<{ id: string; locale: string; snapshotVersion: number }>;
+    };
+    expect(payload).toMatchObject({ projectId, periodStart, periodEnd, reportLocale, contentMode });
+    expect([...payload.technicalReportIds].sort()).toEqual([...technicalReportIds].sort());
+    expect(payload.reportSnapshots.length).toBeGreaterThan(0);
+    for (const snapshot of payload.reportSnapshots) {
+      expect(snapshot).toMatchObject({ locale: reportLocale, snapshotVersion: expect.any(Number) });
+      expect(snapshot.id).toMatch(/^[0-9a-f-]{36}$/u);
+      expect(snapshot.snapshotVersion).toBeGreaterThan(0);
+    }
+    return jobId;
   } finally {
     database.sqlite.close();
   }
@@ -617,8 +613,12 @@ async function openFinanceProjectWithUnlockedExpense(page: Page): Promise<void> 
 }
 
 async function manageInvoice(page: Page, row: Locator): Promise<Locator> {
-  await row.getByRole('button', { name: 'Manage', exact: true }).click();
   const sheet = page.locator('[data-ui="responsive-sheet"]');
+  if (await sheet.isVisible()) {
+    await sheet.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(sheet).toBeHidden();
+  }
+  await row.getByRole('button', { name: 'Manage', exact: true }).click();
   await expect(sheet).toBeVisible();
   return sheet;
 }
@@ -685,7 +685,7 @@ test.describe('Client Essential · Worker operational truth', () => {
     skipUnlessProject(testInfo, 'phone-390');
     await signIn(page, 'worker');
 
-    await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Today', level: 1, exact: true })).toBeVisible();
     await expect(page.getByText(/10 H EXPECTED/i)).toHaveCount(0);
     await expectOperationalOnly(page, '/');
 
@@ -702,8 +702,9 @@ test.describe('Client Essential · Worker operational truth', () => {
     await expect(travelForm.getByText('Travel operational detail')).toBeVisible();
     await expect(travelForm.locator('input[name="activityCode"]')).toBeVisible();
     await travelForm.locator('input[name="activityCode"]').fill('Airport to commissioning site');
-    await travelForm.locator('input[name="startTime"]').fill('06:00');
-    await travelForm.locator('input[name="endTime"]').fill('06:45');
+    await travelForm.getByRole('textbox', { name: 'Actual hours', exact: true }).fill('0.75');
+    await expect(travelForm.locator('input[name="minutes"]')).toHaveValue('45');
+    await expect(travelForm.locator('input[name="workDate"]')).toHaveValue('2026-08-24');
     await travelForm
       .locator('textarea[name="summary"]')
       .fill('Travelled from the airport to the commissioning site.');
@@ -719,8 +720,9 @@ test.describe('Client Essential · Worker operational truth', () => {
     await standbyForm.locator('select[name="category"]').selectOption('standby');
     await expect(standbyForm.getByText('Standby reason')).toBeVisible();
     await standbyForm.locator('input[name="activityCode"]').fill('Awaiting controlled test window');
-    await standbyForm.locator('input[name="startTime"]').fill('06:45');
-    await standbyForm.locator('input[name="endTime"]').fill('07:15');
+    await standbyForm.getByRole('textbox', { name: 'Actual hours', exact: true }).fill('0.5');
+    await expect(standbyForm.locator('input[name="minutes"]')).toHaveValue('30');
+    await expect(standbyForm.locator('input[name="workDate"]')).toHaveValue('2026-08-24');
     await standbyForm
       .locator('textarea[name="summary"]')
       .fill('Held available for the controlled test window.');
@@ -1088,6 +1090,7 @@ test.describe('Client Essential · Finance and billing control', () => {
     await expect(reloadedClassifiedExpense).toContainText('Classified');
 
     await page.goto(portal('/billing'));
+    await billingStageButton(page, 'Outstanding').click();
     const issuedRow = page
       .locator('tr[data-invoice-row][data-invoice-issued-on]:not([data-invoice-issued-on=""])')
       .filter({
@@ -1108,7 +1111,7 @@ test.describe('Client Essential · Finance and billing control', () => {
     const paymentForm = paymentDetails.locator('form[action="?/recordPayment"]');
     await expect(paymentForm).toBeVisible();
     const invoiceRow = page.locator(
-      `[data-invoice-row="${await issuedRow.getAttribute('data-invoice-row')}"]`,
+      `tr[data-invoice-row="${await issuedRow.getAttribute('data-invoice-row')}"]`,
     );
     await paymentForm.locator('input[name="amount"]').fill('1.00');
     await paymentForm.locator('input[name="receivedOn"]').fill(causalInvoiceDate);
@@ -1130,8 +1133,8 @@ test.describe('Client Essential · Finance and billing control', () => {
     await expect(
       page.getByRole('status').filter({ hasText: 'Payment reversal recorded' }),
     ).toBeVisible();
-    // The enhanced POST closes the management sheet. Reopen the exact invoice
-    // and its history before asserting the immutable payment/reversal timeline.
+    // Reopen the exact invoice and its history after the enhanced POST before
+    // asserting the immutable payment/reversal timeline.
     const reversalHistorySheet = await manageInvoice(page, invoiceRow);
     await reversalHistorySheet.getByText('Collections and reversals', { exact: true }).click();
     const paymentHistoryAfterReversal = reversalHistorySheet.locator(
@@ -1418,12 +1421,29 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
     );
     expect(servedPdf.byteLength).toBe(renderedReport.pdfByteLength);
     expect(createHash('sha256').update(servedPdf).digest('hex')).toBe(renderedReport.pdfSha256);
-    const pdfDownload = page.waitForEvent('download');
+    const previewPromise = page.waitForEvent('popup');
     await customerPdf.click();
+    const pdfPreview = await previewPromise;
+    const previewDownload = pdfPreview.getByRole('link', { name: 'Download PDF', exact: true });
+    await expect(previewDownload).toBeVisible();
+    await expect(previewDownload).toHaveAttribute(
+      'download',
+      `period-report-${reportPeriodStart}-${reportPeriodEnd}.pdf`,
+    );
+    await expect(pdfPreview.locator('iframe[title="PDF"]')).toHaveAttribute('src', /^blob:/u);
+    const pdfDownload = pdfPreview.waitForEvent('download');
+    await previewDownload.click();
     const downloaded = await pdfDownload;
     expect(downloaded.suggestedFilename()).toBe(
       `period-report-${reportPeriodStart}-${reportPeriodEnd}.pdf`,
     );
+    const downloadedPath = await downloaded.path();
+    expect(downloadedPath, 'the browser download must produce a local PDF artifact').not.toBeNull();
+    const downloadedPdf = readFileSync(downloadedPath!);
+    expect(downloadedPdf.byteLength).toBe(renderedReport.pdfByteLength);
+    expect(createHash('sha256').update(downloadedPdf).digest('hex')).toBe(renderedReport.pdfSha256);
+    expect(downloadedPdf.equals(servedPdf)).toBe(true);
+    await pdfPreview.close();
 
     const signoffState = customerSignoff.locator('[data-signoff-state]');
     await expect(signoffState).toHaveAttribute(
@@ -1876,8 +1896,25 @@ test.describe('Client Essential · Customer-safe report and Owner configuration'
       page.getByRole('heading', { name: 'Commercial configuration', exact: true }),
     ).toBeVisible();
     await expect(page.getByText('Finance configuration', { exact: true })).toHaveCount(0);
-    await page.getByRole('tab', { name: 'Billing', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Billing', exact: true })).toBeVisible();
+    const billingTab = page.getByRole('tab', { name: 'Billing', exact: true });
+    await billingTab.click();
+    await expect(billingTab).toHaveAttribute('aria-selected', 'true');
+    const billingPanel = page.getByRole('tabpanel', { name: 'Billing', exact: true });
+    await expect(billingPanel).toBeVisible();
+    const billingSetup = billingPanel.getByRole('region', {
+      name: 'Project billing setup',
+      exact: true,
+    });
+    await expect(billingSetup).toBeVisible();
+    await expect(
+      billingSetup.getByRole('heading', { name: 'Configure this project’s invoices', exact: true }),
+    ).toBeVisible();
+    await expect(
+      billingPanel.getByRole('region', { name: 'Invoices and advanced settings', exact: true }),
+    ).toBeVisible();
+    await expect(
+      billingPanel.getByRole('heading', { name: 'Invoices and advanced settings', exact: true }),
+    ).toBeVisible();
 
     await page.goto(portal('/finance?view=commercial'));
     await expect(

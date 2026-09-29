@@ -55,7 +55,7 @@
     "body": "A J&A Automation projeta, integra, comissiona e dá suporte a sistemas de controle industrial no mundo todo — de CLP, IHM e SCADA a robótica, engenharia elétrica, simulação, partida e diagnóstico de falhas.",
     "cta": "Fale com um engenheiro",
     "ctaSecondary": "Explorar capacidades",
-    "supportLink": "Problema na produção? Solicite suporte técnico →",
+    "supportLink": "Problema na produção? Solicite suporte técnico",
     "sectorAutomotive": "AUTOMOTIVO E ROBÓTICA",
     "sectorFoodBev": "ALIMENTOS E BEBIDAS",
     "sectorEnergy": "ENERGIA E PROCESSOS"
@@ -71,14 +71,14 @@
     "h2": "Um parceiro de engenharia do projeto de controles à produção estável.",
     "p1": "Projetos de automação industrial raramente falham dentro de uma única disciplina. A lógica de CLP, os robôs, os acionamentos, as interfaces de segurança, o projeto elétrico, a mecânica, os operadores e os cronogramas de produção precisam funcionar juntos. A J&A Automation integra essas interfaces em um único escopo de engenharia.",
     "p2": "De novos sistemas e atualizações de linha a comissionamento, diagnóstico de falhas e suporte remoto, nossa equipe trabalha em todo o ciclo de vida da automação com foco prático no que precisa funcionar no chão de fábrica.",
-    "cta": "Sobre a J&A Automation →",
+    "cta": "Sobre a J&A Automation",
     "imageCaption": "CONTROLES • INTEGRAÇÃO • COMISSIONAMENTO"
   },
   "capabilities": {
     "eyebrow": "03 / CAPACIDADES",
     "h2": "Controles, robótica e engenharia em todo o ciclo de vida da automação.",
     "lead": "Construa novos equipamentos, integre sistemas de produção, modernize controles instalados, comissione uma linha ou resolva o problema que está parando a produção.",
-    "cta": "Explorar todas as capacidades →",
+    "cta": "Explorar todas as capacidades",
     "plcHmiScada": "CLP, IHM e SCADA",
     "plcHmiScadaDesc": "Software de controle para máquinas, linhas e sistemas de processo — de sequenciamento e intertravamentos a alarmes, receitas, diagnósticos e integração supervisória.",
     "robotics": "Robótica e Integração de Linha",
@@ -102,7 +102,7 @@
   "industries": {
     "eyebrow": "01 / INDÚSTRIAS",
     "h2": "Projetado para ambientes de produção onde parada custa caro.",
-    "cta": "Explorar indústrias →",
+    "cta": "Explorar indústrias",
     "automotive": "Automotivo",
     "automotiveDesc": "Funilaria, montagem, estamparia, powertrain, transportadores, poka-yoke, integração robô/CLP e comissionamento.",
     "foodBeverage": "Alimentos e Bebidas",
@@ -122,8 +122,8 @@
     "eyebrow": "04 / EXPERIÊNCIA EM PROJETOS",
     "h2": "Engenharia comprovada em máquinas, linhas e plantas.",
     "lead": "O histórico de projetos da J&A abrange manufatura automotiva, envase e embalagens, equipamentos de processo, produção de cosméticos e utilidades industriais em diversos países e plataformas de controle.",
-    "cta": "Ver histórico de projetos →",
-    "viewProject": "Ver projeto →",
+    "cta": "Ver histórico de projetos",
+    "viewProject": "Ver projeto",
     "archiveRecord": "Registro do arquivo"
   },
   "clients": {
@@ -180,7 +180,7 @@
     "siteManagers": "Gerentes de obra / coordenadores de projeto",
     "instructors": "Instrutores de CLP / robótica",
     "body": "A equipe combina experiência internacional em projetos, gestão de projetos, treinamento de fabricantes e trabalho prático em ambientes de funilaria, pintura, montagem, estamparia e powertrain automotivo.",
-    "cta": "Sobre a empresa →"
+    "cta": "Sobre a empresa"
   },
   "aquarexTeaser": {
     "eyebrow": "08 / AQUAREX",
@@ -193,7 +193,7 @@
     "eyebrow": "CARREIRAS",
     "h2": "Construa automação onde importa: no chão de fábrica.",
     "body": "A J&A atua em controles CLP, robótica, engenharia elétrica, comissionamento e projetos industriais internacionais. Buscamos engenheiros e técnicos que se sintam confortáveis resolvendo problemas na interface entre software, máquinas e produção.",
-    "cta": "Ver carreiras →"
+    "cta": "Ver carreiras"
   },
   "finalCta": {
     "h2": "Tem um novo projeto — ou um problema na produção que precisa de um engenheiro?",

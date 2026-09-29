@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { afterNavigate } from '$app/navigation';
   import { page } from '$app/stores';
@@ -82,7 +83,9 @@
 
 <svelte:head><title>{t.title} | J&A</title></svelte:head>
 <main class="cash-page" lang={locale === 'pt' ? 'pt-BR' : locale}>
-  <a href={`${base}/app/finance?view=economic&lang=${locale}`} data-origin-back>← {t.back}</a>
+  <a href={`${base}/app/finance?view=economic&lang=${locale}`} data-origin-back
+    ><DirectionIcon direction="left" /> {t.back}</a
+  >
   <h1>{t.title}</h1>
   <p>{t.explanation}</p>
   <p>{t.pending}</p>
@@ -244,7 +247,7 @@
                     <dd>{item.reference || '—'}</dd>
                   </div>
                 </dl>
-                <a href={`${base}${item.href}`}>{t.open} →</a>
+                <a href={`${base}${item.href}`}>{t.open} <DirectionIcon /></a>
               </article>
             {/each}
           </div>

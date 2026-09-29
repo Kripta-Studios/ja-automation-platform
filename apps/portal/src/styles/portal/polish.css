@@ -846,6 +846,31 @@ button:not(:disabled):active,
 .portal-layout aside a.active .nav-icon {
   color: var(--ja-red);
 }
+.portal-layout > aside .nav-subsection-toggle {
+  color: var(--ja-text-secondary);
+  border-color: var(--ja-control-border);
+  background: var(--ja-surface);
+}
+.portal-layout > aside .nav-subsection-toggle:hover,
+.portal-layout > aside .nav-subsection-toggle[aria-expanded='true'] {
+  color: var(--ja-ink);
+  background: var(--ja-surface-raised);
+}
+.portal-layout > aside .nav-subsections {
+  border-left-color: var(--ja-border-strong);
+}
+.portal-layout > aside .nav-subsections > a {
+  color: var(--ja-text-secondary);
+}
+.portal-layout > aside .nav-subsections > a:hover {
+  color: var(--ja-ink);
+  background: var(--ja-surface-raised);
+}
+.portal-layout
+  > aside
+  :is(.nav-entry-main > a, .nav-subsections > a, .nav-subsection-toggle):focus-visible {
+  outline-color: var(--ja-border-focus);
+}
 .portal-layout aside .nav-icon {
   color: #74746b;
 }

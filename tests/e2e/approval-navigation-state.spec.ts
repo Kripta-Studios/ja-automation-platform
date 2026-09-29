@@ -1,6 +1,29 @@
 import { expect, test } from '@playwright/test';
 import { portal, signIn } from './auth.js';
 
+test('approval domain clicks and keyboard changes replace stale URL tabs without resetting filters', async ({
+  page,
+}) => {
+  await signIn(page, 'manager');
+  await page.goto(portal('/approvals?tab=time&order=oldest'));
+  const expensesTab = page.getByRole('tab', { name: /Expenses/ });
+  await expensesTab.click();
+  await expect(expensesTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page).toHaveURL(/tab=expenses/);
+  await expect(page).toHaveURL(/order=oldest/);
+  await page.reload();
+  await expect(expensesTab).toHaveAttribute('aria-selected', 'true');
+  await expensesTab.focus();
+  await page.keyboard.press('ArrowRight');
+  const reportsTab = page.getByRole('tab', { name: /Reports/ });
+  await expect(reportsTab).toHaveAttribute('aria-selected', 'true');
+  await expect(reportsTab).toBeFocused();
+  await expect(page).toHaveURL(/tab=reports/);
+  await expect(page).toHaveURL(/order=oldest/);
+  await page.reload();
+  await expect(reportsTab).toHaveAttribute('aria-selected', 'true');
+});
+
 test('approval filters and report actions keep the selected tab and browser position', async ({
   page,
 }, testInfo) => {

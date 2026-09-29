@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import TimeIntervalFields from '$lib/portal/ui/TimeIntervalFields.svelte';
   import { durationMinutes, localToday } from '$lib/portal/ui/time-entry-clock';
   import { portalText } from '$lib/portal-i18n';
@@ -1229,7 +1230,7 @@
         <button
           type="button"
           class="secondary-button"
-          onclick={() => selectWorkspaceAction('report')}>{c.report} →</button
+          onclick={() => selectWorkspaceAction('report')}>{c.report} <DirectionIcon /></button
         >
       {/if}
       <p>{c.batchHelp}</p>

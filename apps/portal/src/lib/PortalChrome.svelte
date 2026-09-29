@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from './portal/ui/DirectionIcon.svelte';
   import { onMount, tick } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
   import { page } from '$app/stores';
@@ -156,7 +157,7 @@
           : value === 'project_manager'
             ? 'manager'
             : value === 'auditor_read_only'
-              ? 'admin'
+              ? 'auditor_read_only'
               : (value ?? 'worker');
     return translateControlledValue(locale, 'role', normalized);
   };
@@ -395,7 +396,8 @@
           aria-label={`${translate('Sections')}: ${translate(item.label)}`}
           aria-controls={subsectionId(item)}
           aria-expanded={expandedSubsections === subsectionKey(item)}
-          onclick={() => toggleSubsections(item)}><span aria-hidden="true">⌄</span></button
+          onclick={() => toggleSubsections(item)}
+          ><span aria-hidden="true"><DirectionIcon direction="down" kind="chevron" /></span></button
         >
       {/if}
     </div>

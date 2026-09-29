@@ -187,7 +187,7 @@ export default async function CapabilityDetailPage({
 
             <div className="mt-10">
               <Link href="/projects" className="text-cta">
-                {common('viewAllProjects')} <ArrowRight size={16} />
+                {common('viewAllProjects')} <ArrowRight size={16} aria-hidden="true" />
               </Link>
             </div>
           </div>

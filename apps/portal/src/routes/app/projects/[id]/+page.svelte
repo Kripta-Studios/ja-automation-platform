@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import PlanningCalendar from '$lib/portal/ui/PlanningCalendar.svelte';
   import ProjectBudgetInput from '$lib/portal/sections/ProjectBudgetInput.svelte';
@@ -837,7 +838,9 @@
 
 <main class="project-detail-page" data-project-detail data-role={role}>
   <nav class="project-breadcrumb no-print" aria-label={t('Project navigation')}>
-    <a href={base + '/app/projects'} data-origin-back>← {t('Projects')}</a>
+    <a href={base + '/app/projects'} data-origin-back
+      ><DirectionIcon direction="left" /> {t('Projects')}</a
+    >
     <span aria-hidden="true">/</span>
     <span aria-current="page">{display(project.project_number)}</span>
     <div class="project-breadcrumb-actions">
@@ -1161,7 +1164,7 @@
             <a
               class="inline-link"
               href={`${base}/app/expenses?project=${encodeURIComponent(String(project.id))}`}
-              >{t('View all expenses')} →</a
+              >{t('View all expenses')} <DirectionIcon /></a
             >
           </section>
           {#if data.user.role === 'project_manager' && overview.milestones.length > 0}
@@ -1224,14 +1227,14 @@
                 {#if data.user.role === 'owner_admin' || data.user.role === 'project_manager'}<a
                     class="secondary-button"
                     href={`${base}/app/projects?action=assign-worker&project=${project.id}`}
-                    >{t('Assign worker')} →</a
+                    >{t('Assign worker')} <DirectionIcon /></a
                   ><a class="secondary-button" href={`${base}/app/crew?project=${project.id}`}
-                    >{t('Crew hours')} →</a
+                    >{t('Crew hours')} <DirectionIcon /></a
                   >{/if}
                 {#if canViewCommercial}<a
                     class="secondary-button"
                     href={`${base}/app/finance?view=commercial&project=${project.id}`}
-                    >{t('Configure person rates')} →</a
+                    >{t('Configure person rates')} <DirectionIcon /></a
                   >{/if}
               </div>
               <span class="surface-count">{overview.workers.length}</span>
@@ -1267,7 +1270,7 @@
                       <small
                         ><a
                           href={`${base}/app/manage/worker-pay?worker=${encodeURIComponent(String(worker.worker_id ?? worker.id))}`}
-                          >{t('Worker pay review')} →</a
+                          >{t('Worker pay review')} <DirectionIcon /></a
                         ></small
                       >
                     {/if}
@@ -1347,18 +1350,18 @@
                 <a
                   class="secondary-button"
                   href={`${base}/app/planning?project=${encodeURIComponent(String(project.id))}&date=${selectedPlanningDate}#${role === 'owner_admin' || role === 'project_manager' ? 'planning-create-form' : 'planning-day-agenda'}`}
-                  >{t('Open planning for this day')} →</a
+                  >{t('Open planning for this day')} <DirectionIcon /></a
                 >
                 {#if role === 'worker' || role === 'project_manager'}
                   <a
                     class="secondary-button"
                     href={`${base}/app/time?project=${encodeURIComponent(String(project.id))}&date=${selectedPlanningDate}&action=log-time`}
-                    >{t('Record time for this day')} →</a
+                    >{t('Record time for this day')} <DirectionIcon /></a
                   >
                   <a
                     class="secondary-button"
                     href={`${base}/app/expenses?project=${encodeURIComponent(String(project.id))}&date=${selectedPlanningDate}&action=record-expense`}
-                    >{t('Add expense for this day')} →</a
+                    >{t('Add expense for this day')} <DirectionIcon /></a
                   >
                 {/if}
               </nav>
@@ -1436,7 +1439,7 @@
               ><span class="report-type-icon" aria-hidden="true">✓</span><strong
                 >{t('Client Sign-off')}</strong
               ><small>{t('Customer-safe hours, activities and conformity surface')}</small><span
-                class="inline-link">{t('Open sign-off')} →</span
+                class="inline-link">{t('Open sign-off')} <DirectionIcon /></span
               ></a
             >
           </div>
@@ -1483,7 +1486,7 @@
               <a
                 class="secondary-button"
                 href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(String(project.id))}`}
-                >{t('Configure commercial terms')} →</a
+                >{t('Configure commercial terms')} <DirectionIcon /></a
               >
             {/if}
             <dl class="project-facts">
@@ -1547,7 +1550,7 @@
               <a
                 class="secondary-button"
                 href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(String(project.id))}`}
-                >{t('Edit economics inputs')} →</a
+                >{t('Edit economics inputs')} <DirectionIcon /></a
               >
             {/if}
             {#if finance}
@@ -1662,7 +1665,7 @@
             <a
               class="secondary-button"
               href={`${base}/app/manage?area=project_milestone&project=${encodeURIComponent(String(project.id))}`}
-              >{t('Create or edit milestones')} →</a
+              >{t('Create or edit milestones')} <DirectionIcon /></a
             >
           {/if}
           <div class="compact-record-list">

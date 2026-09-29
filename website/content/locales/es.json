@@ -55,7 +55,7 @@
     "body": "J&A Automation diseña, integra, pone en marcha y da soporte a sistemas de control industrial en todo el mundo — desde PLC, HMI y SCADA hasta robótica, ingeniería eléctrica, simulación, arranque y diagnóstico de fallas.",
     "cta": "Hable con un ingeniero",
     "ctaSecondary": "Explorar capacidades",
-    "supportLink": "¿Problema en producción? Solicite soporte técnico →",
+    "supportLink": "¿Problema en producción? Solicite soporte técnico",
     "sectorAutomotive": "AUTOMOTRIZ Y ROBÓTICA",
     "sectorFoodBev": "ALIMENTOS Y BEBIDAS",
     "sectorEnergy": "ENERGÍA Y PROCESOS"
@@ -71,14 +71,14 @@
     "h2": "Un socio de ingeniería del diseño de controles a la producción estable.",
     "p1": "Los proyectos de automatización industrial rara vez fallan dentro de una sola disciplina. La lógica de PLC, los robots, los accionamientos, las interfaces de seguridad, el diseño eléctrico, la mecánica, los operadores y los programas de producción tienen que funcionar juntos. J&A Automation integra esas interfaces en un solo alcance de ingeniería.",
     "p2": "Desde nuevos sistemas y actualizaciones de línea hasta puesta en marcha, diagnóstico de fallas y soporte remoto, nuestro equipo trabaja en todo el ciclo de vida de la automatización con enfoque práctico en lo que debe funcionar en el piso de producción.",
-    "cta": "Acerca de J&A Automation →",
+    "cta": "Acerca de J&A Automation",
     "imageCaption": "CONTROLES • INTEGRACIÓN • PUESTA EN MARCHA"
   },
   "capabilities": {
     "eyebrow": "03 / CAPACIDADES",
     "h2": "Controles, robótica e ingeniería en todo el ciclo de vida de la automatización.",
     "lead": "Construya nuevos equipos, integre sistemas de producción, modernice controles instalados, comisione una línea o resuelva el problema que detiene la producción.",
-    "cta": "Explorar todas las capacidades →",
+    "cta": "Explorar todas las capacidades",
     "plcHmiScada": "PLC, HMI y SCADA",
     "plcHmiScadaDesc": "Software de control para máquinas, líneas y sistemas de proceso — desde secuenciamiento e interbloqueos hasta alarmas, recetas, diagnósticos e integración supervisoria.",
     "robotics": "Robótica e Integración de Línea",
@@ -102,7 +102,7 @@
   "industries": {
     "eyebrow": "01 / INDUSTRIAS",
     "h2": "Diseñado para ambientes de producción donde el tiempo muerto es costoso.",
-    "cta": "Explorar industrias →",
+    "cta": "Explorar industrias",
     "automotive": "Automotriz",
     "automotiveDesc": "Taller de carrocería, ensamble, estampado, tren motriz, transportadores, poka-yoke, integración robot/PLC y puesta en marcha.",
     "foodBeverage": "Alimentos y Bebidas",
@@ -122,8 +122,8 @@
     "eyebrow": "04 / EXPERIENCIA EN PROYECTOS",
     "h2": "Ingeniería comprobada en máquinas, líneas y plantas.",
     "lead": "La historia de proyectos de J&A abarca manufactura automotriz, llenado y empaque, equipos de proceso, producción de cosméticos y utilidades industriales en múltiples países y plataformas de control.",
-    "cta": "Ver archivo de proyectos →",
-    "viewProject": "Ver proyecto →",
+    "cta": "Ver archivo de proyectos",
+    "viewProject": "Ver proyecto",
     "archiveRecord": "Registro del archivo"
   },
   "clients": {
@@ -180,7 +180,7 @@
     "siteManagers": "Gerentes de obra / coordinadores de proyecto",
     "instructors": "Instructores de PLC / robótica",
     "body": "El equipo combina experiencia internacional en proyectos, gestión de proyectos, capacitación de fabricantes y trabajo práctico en ambientes de taller de carrocería, pintura, ensamble, estampado y tren motriz automotriz.",
-    "cta": "Acerca de la empresa →"
+    "cta": "Acerca de la empresa"
   },
   "aquarexTeaser": {
     "eyebrow": "08 / AQUAREX",
@@ -193,7 +193,7 @@
     "eyebrow": "CARRERAS",
     "h2": "Construya automatización donde importa: en el piso de producción.",
     "body": "J&A trabaja en controles PLC, robótica, ingeniería eléctrica, puesta en marcha y proyectos industriales internacionales. Buscamos ingenieros y técnicos que se sientan cómodos resolviendo problemas en la interfaz entre software, máquinas y producción.",
-    "cta": "Ver carreras →"
+    "cta": "Ver carreras"
   },
   "finalCta": {
     "h2": "¿Tiene un nuevo proyecto — o un problema en producción que necesita un ingeniero?",

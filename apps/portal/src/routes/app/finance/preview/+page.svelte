@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { enhance } from '$app/forms';
   import { SectionCard, FormCard, FieldGroup, Field, formValidation } from '$lib/portal/ui';
@@ -141,7 +142,7 @@
 <main class="agreement-page" lang={locale === 'pt' ? 'pt-BR' : locale}>
   <a
     href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(data.selectedProjectId)}&lang=${locale}`}
-    data-origin-back>← {t.back}</a
+    data-origin-back><DirectionIcon direction="left" /> {t.back}</a
   >
   <h1>{t.title}</h1>
   <SectionCard title={t.summary}>

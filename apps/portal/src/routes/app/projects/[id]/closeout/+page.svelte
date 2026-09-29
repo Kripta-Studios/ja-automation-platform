@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { enhance, type SubmitFunction } from '$app/forms';
   import { invalidateAll } from '$app/navigation';
@@ -211,7 +212,7 @@
 >
   <a
     href={base + '/app/projects/' + encodeURIComponent(String(project.id)) + '?lang=' + locale}
-    data-origin-back>← {t.back}</a
+    data-origin-back><DirectionIcon direction="left" /> {t.back}</a
   >
   <header>
     <p>{t.kicker}</p>

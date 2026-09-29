@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
@@ -97,7 +98,7 @@
 
 <main class="record-detail-page error-page">
   <nav class="detail-nav no-print" aria-label={translate('Portal navigation')}>
-    <a href={recoveryHref}>← {recoveryLabel}</a>
+    <a href={recoveryHref}><DirectionIcon direction="left" /> {recoveryLabel}</a>
     <span>{sectionLabel}</span>
   </nav>
   <section class="detail-panel" role="alert">

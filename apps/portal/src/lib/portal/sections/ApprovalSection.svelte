@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { goto } from '$app/navigation';
+  import { goto, replaceState } from '$app/navigation';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import type { SubmitFunction } from '@sveltejs/kit';
@@ -351,17 +351,21 @@
   const componentId = $props.id();
 
   $effect(() => {
-    const tab = $page.url.searchParams.get('tab');
+    // Shallow history changes retain SvelteKit's last loaded page URL. Use the
+    // browser query while preserving the page dependency for real navigation.
+    const requestedUrl = new URL($page.url);
+    if (typeof location !== 'undefined') requestedUrl.search = location.search;
+    const tab = requestedUrl.searchParams.get('tab');
     if (!approvalProblem && (tab === 'time' || tab === 'expenses' || tab === 'reports'))
       activeTab = tab;
-    search = $page.url.searchParams.get('q')?.trim() ?? search;
-    projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
-    workerFilter = $page.url.searchParams.get('worker')?.trim() ?? '';
-    clientFilter = $page.url.searchParams.get('client')?.trim() ?? '';
-    fromFilter = $page.url.searchParams.get('from')?.trim() ?? '';
-    toFilter = $page.url.searchParams.get('to')?.trim() ?? '';
-    statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
-    const requestedStage = $page.url.searchParams.get('stage');
+    search = requestedUrl.searchParams.get('q')?.trim() ?? search;
+    projectFilter = requestedUrl.searchParams.get('project')?.trim() ?? '';
+    workerFilter = requestedUrl.searchParams.get('worker')?.trim() ?? '';
+    clientFilter = requestedUrl.searchParams.get('client')?.trim() ?? '';
+    fromFilter = requestedUrl.searchParams.get('from')?.trim() ?? '';
+    toFilter = requestedUrl.searchParams.get('to')?.trim() ?? '';
+    statusFilter = requestedUrl.searchParams.get('status')?.trim() ?? '';
+    const requestedStage = requestedUrl.searchParams.get('stage');
     if (
       requestedStage === '' ||
       requestedStage === 'operational' ||
@@ -372,7 +376,7 @@
     ) {
       stageFilter = requestedStage;
     }
-    const requestedOrder = $page.url.searchParams.get('order');
+    const requestedOrder = requestedUrl.searchParams.get('order');
     if (
       requestedOrder &&
       ['priority', 'newest', 'oldest', 'name', 'status'].includes(requestedOrder)
@@ -610,6 +614,11 @@
   function focusTab(tab: Tab): void {
     activeTab = tab;
     if (typeof document === 'undefined') return;
+    // Keep the visible domain in the current history entry. An earlier explicit
+    // tab must not override a later click after a refresh or action recovery.
+    const url = new URL(location.href);
+    url.searchParams.set('tab', tab);
+    replaceState(url, $page.state);
     void tick().then(() => document.getElementById(tabId(tab))?.focus());
   }
 

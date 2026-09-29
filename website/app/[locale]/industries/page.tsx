@@ -114,7 +114,7 @@ export default async function IndustriesPage({ params }: { params: Promise<{ loc
                     {t(`${key}Desc` as `${IndustryMessageKey}Desc`)}
                   </p>
                   <Link href={`/industries/${ind.slug}`} className="text-cta">
-                    {t('viewProjects')} <ArrowRight size={16} />
+                    {t('viewProjects')} <ArrowRight size={16} aria-hidden="true" />
                   </Link>
                 </div>
               );

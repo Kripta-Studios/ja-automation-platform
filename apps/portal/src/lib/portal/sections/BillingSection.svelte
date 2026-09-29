@@ -5,7 +5,7 @@
   import { base } from '$app/paths';
   import { enhance } from '$app/forms';
   import { page } from '$app/stores';
-  import { beforeNavigate } from '$app/navigation';
+  import { beforeNavigate, replaceState } from '$app/navigation';
   import { onMount, tick } from 'svelte';
   import { portalText, type PortalLocale } from '../../portal-i18n';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
@@ -1291,13 +1291,28 @@
     invoiceSetupTargetProjectId = null;
   }
 
+  function selectBillingWorkspace(next: BillingWorkspace, action = setupAction): void {
+    workspace = next;
+    setupAction = action;
+    const url = new URL(location.href);
+    url.searchParams.set('view', next);
+    if (projectFilter) url.searchParams.set('project', projectFilter);
+    else url.searchParams.delete('project');
+    if (stageFilter !== 'all') url.searchParams.set('stage', stageFilter);
+    else url.searchParams.delete('stage');
+    if (next === 'setup') url.searchParams.set('setup', action);
+    else url.searchParams.delete('setup');
+    // Keep the current document and scroll position while making refresh and
+    // returning from an invoice restore the workspace the user selected.
+    replaceState(url, $page.state);
+  }
+
   async function showSetupAction(
     action: BillingSetupAction,
     preserveInvoicePrerequisite = false,
   ): Promise<void> {
     if (!preserveInvoicePrerequisite) clearInvoiceSetupWarning();
-    workspace = 'setup';
-    setupAction = action;
+    selectBillingWorkspace('setup', action);
     await tick();
     const form = document.querySelector<HTMLElement>('.billing-section__config-form');
     const prerequisiteNotice =
@@ -1422,11 +1437,18 @@
   const canManageIssuerAndNumbering = $derived(data.user.role === 'owner_admin');
 
   $effect(() => {
-    const requestedView = $page.url.searchParams.get('view')?.trim();
+    // Shallow history changes retain SvelteKit's last loaded page URL. Use the
+    // browser query while preserving the page dependency for real navigation.
+    const requestedUrl = new URL($page.url);
+    if (typeof location !== 'undefined') requestedUrl.search = location.search;
+    const requestedView = requestedUrl.searchParams.get('view')?.trim();
     if (requestedView === 'streams' || requestedView === 'setup' || requestedView === 'invoices')
       workspace = requestedView;
-    projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
-    const requestedStage = $page.url.searchParams.get('stage')?.trim() as BillingStage | null;
+    const requestedSetup = requestedUrl.searchParams.get('setup')?.trim();
+    if (requestedSetup && setupActions.some((action) => action.id === requestedSetup))
+      setupAction = requestedSetup as BillingSetupAction;
+    projectFilter = requestedUrl.searchParams.get('project')?.trim() ?? '';
+    const requestedStage = requestedUrl.searchParams.get('stage')?.trim() as BillingStage | null;
     if (
       requestedStage &&
       ['all', 'wip', 'drafts', 'outstanding', 'overdue', 'credits', 'paid'].includes(requestedStage)
@@ -2239,7 +2261,7 @@
               type="button"
               class="secondary-button"
               onclick={() => {
-                workspace = 'streams';
+                selectBillingWorkspace('streams');
                 invoiceWizardOpen = false;
               }}>{translate('Manage stream')}</button
             >
@@ -2741,7 +2763,7 @@
       class="billing-section__workspace-tab"
       onclick={() => {
         clearInvoiceSetupWarning();
-        workspace = 'invoices';
+        selectBillingWorkspace('invoices');
       }}>{translate('Invoices')}</button
     >
     <button
@@ -2752,7 +2774,7 @@
       class="billing-section__workspace-tab"
       onclick={() => {
         clearInvoiceSetupWarning();
-        workspace = 'streams';
+        selectBillingWorkspace('streams');
       }}>{translate('Billing streams')}</button
     >
     {#if canManageBilling}
@@ -2764,7 +2786,7 @@
         class="billing-section__workspace-tab"
         onclick={() => {
           clearInvoiceSetupWarning();
-          workspace = 'setup';
+          selectBillingWorkspace('setup');
         }}>{translate('Configure billing')}</button
       >
     {/if}

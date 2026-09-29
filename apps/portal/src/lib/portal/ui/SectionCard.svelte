@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import DirectionIcon from './DirectionIcon.svelte';
   import { disclosure } from './disclosure.js';
 
   type SurfaceProps = { title: string; ariaLabel?: never } | { title?: never; ariaLabel: string };
@@ -74,14 +75,7 @@
           <h2 class="ui-card-heading" id={heading}>{accessibleName}</h2>
           {#if description}<span class="ui-disclosure-description">{description}</span>{/if}
         </span>
-        <svg
-          class="ui-disclosure-chevron"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.6"
-          aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg
-        >
+        <DirectionIcon class="ui-disclosure-chevron" direction="down" kind="chevron" size={20} />
       </summary>
       <div class="ui-disclosure-body">{@render children?.()}</div>
     </details>

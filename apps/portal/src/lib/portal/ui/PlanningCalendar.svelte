@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from './DirectionIcon.svelte';
   import { tick, untrack } from 'svelte';
   import {
     calendarDate,
@@ -94,11 +95,11 @@
     >
     <nav aria-label={translate('Calendar navigation')}>
       <button type="button" aria-label={translate('Previous month')} onclick={() => moveMonth(-1)}
-        >←</button
+        ><DirectionIcon direction="left" kind="chevron" /></button
       >
       <button type="button" onclick={() => selectDate(today)}>{translate('Today')}</button>
       <button type="button" aria-label={translate('Next month')} onclick={() => moveMonth(1)}
-        >→</button
+        ><DirectionIcon kind="chevron" /></button
       >
     </nav>
   </div>

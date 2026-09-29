@@ -30,7 +30,7 @@ export default async function CareersPage({ params }: { params: Promise<{ locale
           <h1 className="heading-display mb-6 max-w-4xl">{t('h1')}</h1>
           <p className="text-lead text-ja-steel-300 max-w-2xl mb-8">{t('lead')}</p>
           <Link href="/contact?intent=career" className="btn btn-primary">
-            {t('ctaPrimary')} <ArrowRight size={17} />
+            {t('ctaPrimary')} <ArrowRight size={17} aria-hidden="true" />
           </Link>
         </div>
       </section>
@@ -77,7 +77,7 @@ export default async function CareersPage({ params }: { params: Promise<{ locale
             <h2 className="heading-2 mb-4">{t('ctaH2')}</h2>
             <p className="text-ja-steel-300 mb-7">{t('ctaBody')}</p>
             <Link href="/contact?intent=career" className="text-cta text-white hover:text-white/80">
-              {t('ctaSecondary')} <ArrowRight size={16} />
+              {t('ctaSecondary')} <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </div>
         </div>

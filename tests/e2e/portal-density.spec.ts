@@ -108,8 +108,18 @@ test('project and finance administration opens one chosen task', async ({ page }
   const task = page.getByLabel('Commercial policies', { exact: true });
   await expect(task).toBeVisible();
   await task.selectOption({ label: 'Client labor rate' });
-  await expect(page.locator('form[action="?/createClientLaborRate"]')).toBeVisible();
-  await expect(page.locator('form[action="?/createCompensationRule"]')).toHaveCount(0);
+  const clientLaborRate = page.getByRole('region', { name: 'Client labor rate', exact: true });
+  await expect(clientLaborRate).toBeVisible();
+  await expect(
+    clientLaborRate.locator(
+      'form[action="?/createClientLaborRate"], form[action^="?/createClientLaborRate&"]',
+    ),
+  ).toBeVisible();
+  await expect(
+    page.locator(
+      'form[action="?/createCompensationRule"], form[action^="?/createCompensationRule&"]',
+    ),
+  ).toHaveCount(0);
   await readable(page);
   await page.locator('.finance-config-panel').scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath('finance-task.png'), fullPage: false });
@@ -128,7 +138,7 @@ test('reference directories print fully and linked history opens on demand', asy
   const directories = page.locator('.billing-reference-directory');
   await expect(directories).toHaveCount(2);
   await expect(directories.first()).not.toHaveAttribute('open', '');
-  await directories.first().locator('summary').click();
+  await directories.first().locator(':scope > summary').click();
   await expect(directories.first().locator('table')).toBeVisible();
   await readable(page);
   await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
@@ -159,7 +169,7 @@ test('project action drafts do not move to another paginated record', async ({ p
   const id = await action.locator('input[name="projectId"]').first().inputValue();
   await register
     .locator('.record-browser__pages')
-    .getByRole('button', { name: 'Next →', exact: true })
+    .getByRole('button', { name: 'Next', exact: true })
     .click();
   await expect(register.locator('.project-row-actions[open]')).toHaveCount(0);
   const reasons = await register

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
@@ -109,9 +110,7 @@
           maxlength={backupCode ? 64 : 6}
           required
         /></label
-      ><button class="login-submit"
-        >{t('Verify and continue')} <span aria-hidden="true">→</span></button
-      >
+      ><button class="login-submit">{t('Verify and continue')} <DirectionIcon /></button>
       <button type="button" class="login-passkey" onclick={() => (backupCode = !backupCode)}>
         {backupCode ? t('Use authenticator code') : t('Use a recovery code')}
       </button>

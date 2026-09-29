@@ -80,7 +80,7 @@ test('management SPA tabs restore their own search, sort and page without leakin
     await expect(sort).toHaveValue('priority');
     await search.fill(fixture.marker);
     await sort.selectOption('newest');
-    await browser.getByRole('button', { name: 'Next →' }).click();
+    await browser.getByRole('button', { name: 'Next' }).click();
     await expect(browser.getByRole('status').first()).toHaveText('9–12 / 12');
 
     await tabs.getByRole('link', { name: 'Documents', exact: true }).click();
@@ -120,7 +120,7 @@ test('focused management records override only hiding filters and keep saved ord
     const search = browser.getByRole('searchbox', { name: 'Search: Records' });
     const target = page.locator(`form:has(input[name="id"][value="${fixture.ids.at(-1)}"])`);
     await expect(target).toBeVisible();
-    await expect(browser.getByRole('button', { name: '← Previous' })).toBeEnabled();
+    await expect(browser.getByRole('button', { name: 'Previous' })).toBeEnabled();
     await expect(search).toHaveValue('');
     await expect(browser.getByRole('combobox', { name: 'Status', exact: true })).toHaveValue('');
     await expect(browser.getByRole('combobox', { name: 'Sort by' })).toHaveValue('oldest');
@@ -240,7 +240,7 @@ test('controlled notification paging preserves server order and resets on its pa
     await expect(page.locator('.notification-inbox .record-browser__controls')).toHaveCount(0);
     await page
       .getByRole('navigation', { name: 'Notifications: Pages' })
-      .getByRole('button', { name: 'Next →' })
+      .getByRole('button', { name: 'Next' })
       .click();
     await expect.poll(async () => (await idsOnPage()).slice(0, 2)).toEqual([ids[1], ids[0]]);
     await page

@@ -26,6 +26,11 @@
   onMount(() => {
     currentWeek = datePresetRange('week').from;
   });
+  const weekPickerFilters = $derived(
+    ['project', 'worker', 'status', 'lang', 'q', 'client', 'category', 'order']
+      .filter((name) => $page.url.searchParams.has(name))
+      .map((name) => ({ name, value: $page.url.searchParams.get(name) ?? '' })),
+  );
   function weekHref(week: string): string {
     const params = new URLSearchParams($page.url.searchParams);
     params.set('week', week);
@@ -100,6 +105,10 @@
       </p>
     </div>
     <form class="timesheet-period" method="GET" action={`${base}/app/time#weekly-timesheet-title`}>
+      <input type="hidden" name="weekJump" value="1" />
+      {#each weekPickerFilters as filter}
+        <input type="hidden" name={filter.name} value={filter.value} />
+      {/each}
       <label>{translate('Week of')}<input name="week" type="date" value={data.weekStart} /></label>
       <button type="submit">{translate('Open week')}</button>
     </form>

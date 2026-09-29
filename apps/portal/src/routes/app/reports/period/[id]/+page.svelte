@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { base } from '$app/paths';
   import { beforeNavigate } from '$app/navigation';
@@ -22,7 +23,10 @@
   import { Field, FieldGroup, StatusBadge, TableRegion } from '$lib/portal/ui';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
-  import { beginReportPdfDownload, type ReportPdfAttempt } from '$lib/portal/ui/report-pdf-download';
+  import {
+    beginReportPdfDownload,
+    type ReportPdfAttempt,
+  } from '$lib/portal/ui/report-pdf-download';
   import {
     documentDownloadFallback,
     documentDownloadProblem,
@@ -129,13 +133,17 @@
   function onReportPdfRemedyClick(event: MouseEvent, surface: ReportPdfSurface): void {
     if (!(event.target instanceof Element)) return;
     const retry = event.target.closest<HTMLAnchorElement>('a[href="#report-pdf-retry"]');
-    if (!retry || !(event.currentTarget instanceof Element) || !event.currentTarget.contains(retry)) return;
+    if (!retry || !(event.currentTarget instanceof Element) || !event.currentTarget.contains(retry))
+      return;
     event.preventDefault();
     void getReportPdf('download', surface);
   }
   const reportPdfRemedyLinks = $derived({
     sign_in_again: { label: t('problem.remedy.signInAgain'), href: `${base}/app/login` },
-    review_report: { label: t('problem.remedy.reviewReport'), href: `${reportHref}?review=1#period-report-header` },
+    review_report: {
+      label: t('problem.remedy.reviewReport'),
+      href: `${reportHref}?review=1#period-report-header`,
+    },
     review_reports: { label: t('problem.remedy.reviewReports'), href: `${base}/app/reports` },
     contact_owner: { label: t('problem.remedy.contactProjectOwner') },
     retry_download: { label: t('Download PDF'), href: '#report-pdf-retry' },
@@ -647,10 +655,12 @@
 
 <main class="record-detail-page">
   <nav class="detail-nav">
-    <a href={`${base}/app/reports`} data-origin-back>← {t('Reports')}</a><a
-      href={`${base}/app/projects/${String(project.id)}`}>{t('Open project')}</a
-    ><button type="button" class="no-print print-trigger" onclick={printReport}
-      ><PrintIcon /> {t('Print Report')}</button
+    <a href={`${base}/app/reports`} data-origin-back
+      ><DirectionIcon direction="left" /> {t('Reports')}</a
+    ><a href={`${base}/app/projects/${String(project.id)}`}>{t('Open project')}</a><button
+      type="button"
+      class="no-print print-trigger"
+      onclick={printReport}><PrintIcon /> {t('Print Report')}</button
     >
   </nav>
 
@@ -691,13 +701,16 @@
           rel="noreferrer"
           aria-disabled={reportPdfBusy}
           onclick={(event) => onReportPdfLinkClick(event, 'header')}
-          onauxclick={(event) => onReportPdfLinkClick(event, 'header')}
-          >{t('Open PDF')}</a
+          onauxclick={(event) => onReportPdfLinkClick(event, 'header')}>{t('Open PDF')}</a
         >{/if}
     </div>
   </header>
   {#if reportPdfFailure?.surface === 'header'}
-    <div data-period-pdf-problem="header" onclick={(event) => onReportPdfRemedyClick(event, 'header')} role="presentation">
+    <div
+      data-period-pdf-problem="header"
+      onclick={(event) => onReportPdfRemedyClick(event, 'header')}
+      role="presentation"
+    >
       <ProblemNotice
         problem={reportPdfFailure.problem}
         {locale}
@@ -899,7 +912,11 @@
             <span>{t('Only approved hours and activities are included.')}</span>
           </div>
           {#if reportPdfFailure?.surface === 'signoff'}
-            <div data-period-pdf-problem="signoff" onclick={(event) => onReportPdfRemedyClick(event, 'signoff')} role="presentation">
+            <div
+              data-period-pdf-problem="signoff"
+              onclick={(event) => onReportPdfRemedyClick(event, 'signoff')}
+              role="presentation"
+            >
               <ProblemNotice
                 problem={reportPdfFailure.problem}
                 {locale}

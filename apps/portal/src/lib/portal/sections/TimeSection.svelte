@@ -182,10 +182,15 @@
   let calendarDay = $state('');
   let dateDeepLinkConsumed = false;
   let editCategory = $state(nativeTimeValue('category') || 'regular');
-  let search = $state('');
-  let clientFilter = $state('');
-  let statusFilter = $state('');
-  let order = $state<OperationalOrder>('newest');
+  let search = $state($page.url.searchParams.get('q')?.trim() ?? '');
+  let clientFilter = $state($page.url.searchParams.get('client')?.trim() ?? '');
+  let statusFilter = $state($page.url.searchParams.get('status')?.trim() ?? '');
+  const requestedInitialOrder = $page.url.searchParams.get('order');
+  let order = $state<OperationalOrder>(
+    requestedInitialOrder && ['newest', 'oldest', 'name', 'status'].includes(requestedInitialOrder)
+      ? (requestedInitialOrder as OperationalOrder)
+      : 'newest',
+  );
   let registerPage = $state(1);
   let registerStateHydrated = $state(false);
   const registerStateKey = (): string => `ja-operational-register:time:${data.user.id}`;
@@ -200,7 +205,11 @@
     }>(registerStateKey());
     if (!$page.url.searchParams.has('q') && typeof saved?.search === 'string')
       search = saved.search;
-    if (saved?.order && ['newest', 'oldest', 'name', 'status'].includes(saved.order)) {
+    if (
+      !$page.url.searchParams.has('order') &&
+      saved?.order &&
+      ['newest', 'oldest', 'name', 'status'].includes(saved.order)
+    ) {
       order = saved.order;
     }
     if (typeof saved?.page === 'number') registerPage = saved.page;
@@ -464,6 +473,9 @@
     if (querySearch !== null) search = querySearch.trim();
     clientFilter = $page.url.searchParams.get('client')?.trim() ?? '';
     statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
+    const requestedOrder = $page.url.searchParams.get('order');
+    if (requestedOrder && ['newest', 'oldest', 'name', 'status'].includes(requestedOrder))
+      order = requestedOrder as OperationalOrder;
     registerPage = 1;
   });
   $effect(() => {
@@ -1758,7 +1770,7 @@
           >
         </div>
         <label>
-          <span>{translate('Vendor')}</span>
+          <span>{translate('Vendor (optional)')}</span>
           <input name="expenseVendor" maxlength="200" value={restoredTimeValue('expenseVendor')} />
         </label>
         <div class="expense-form-grid">
@@ -2028,10 +2040,11 @@
   }
   .time-calendar-grid button small {
     font-size: 0.72rem;
-    color: var(--ja-steel, #77756d);
+    color: var(--ja-text-secondary, #57574f);
   }
   .time-calendar-grid button.time-calendar-outside {
-    opacity: 0.45;
+    background: var(--ja-canvas, #f6f6f1);
+    color: var(--ja-text-secondary, #57574f);
   }
   .time-calendar-grid button.time-calendar-selected {
     border: 2px solid var(--ja-accent, #2349b5);

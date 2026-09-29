@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { afterNavigate } from '$app/navigation';
   import { page } from '$app/stores';
@@ -65,7 +66,9 @@
 
 <svelte:head><title>{t('Worker pay review')} · J&amp;A</title></svelte:head>
 <main class="owner-pay">
-  <a href={`${base}/app/manage`} class="back-link">← {t('Data management')}</a>
+  <a href={`${base}/app/manage`} class="back-link"
+    ><DirectionIcon direction="left" /> {t('Data management')}</a
+  >
   <header>
     <h1>{t('Worker pay review')}</h1>
     <p>

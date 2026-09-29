@@ -85,6 +85,25 @@
         String(item.currency) === currency &&
         (item.legal_entity_id === null || String(item.legal_entity_id) === entityId),
     );
+  const cadenceLabels: Record<string, string> = {
+    weekly: 'Weekly',
+    every_14_days: 'Every 14 days',
+    semi_monthly: 'Semi-monthly',
+    monthly: 'Monthly',
+    manual: 'Manual',
+  };
+  const layoutLabels: Record<string, string> = {
+    default: 'Standard',
+    'labor-detailed': 'Detailed',
+    'labor-summary': 'Summary',
+  };
+  const cadenceLabel = (value: string): string => t(cadenceLabels[value] ?? value);
+  const layoutLabel = (value: string): string => t(layoutLabels[value] ?? value);
+  const taxLabel = (id: string): string =>
+    String(
+      taxProfiles.find((profile) => String(profile.id) === id)?.name ??
+        t('No tax profile configured'),
+    );
   type ActionFeedback = {
     action?: string;
     success?: boolean;
@@ -329,12 +348,24 @@
 
   $effect(() => {
     if (!setupFailure?.fields) return;
+    let cancelled = false;
+    let frame: number | undefined;
     void tick().then(() => {
-      const firstInvalid = document.querySelector<HTMLElement>(
-        '.billing-setup [aria-invalid="true"]',
-      );
-      firstInvalid?.focus();
+      if (cancelled) return;
+      // The project page first restores its form and focuses its generic
+      // notice. Focus this wizard's field after that recovery has settled.
+      frame = requestAnimationFrame(() => {
+        if (cancelled) return;
+        const firstInvalid = document.querySelector<HTMLElement>(
+          '.billing-setup [aria-invalid="true"]',
+        );
+        firstInvalid?.focus();
+      });
     });
+    return () => {
+      cancelled = true;
+      if (frame !== undefined) cancelAnimationFrame(frame);
+    };
   });
 
   function copyDraftToSelected(): void {
@@ -1169,16 +1200,33 @@
               <dd>{currency}</dd>
             </div>
             <div>
+              <dt>{t('Invoice issuer (J&A Automation)')}</dt>
+              <dd>
+                {String(
+                  entityChoices.find((entity) => String(entity.id) === legalEntityId)?.legal_name ??
+                    '—',
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>{t('Labor tax profile')}</dt>
+              <dd>{taxLabel(laborTaxProfileId)}</dd>
+            </div>
+            {#if mode === 'separate'}<div>
+                <dt>{t('Expense tax profile')}</dt>
+                <dd>{taxLabel(expenseTaxProfileId)}</dd>
+              </div>{/if}
+            <div>
               <dt>{t('Labor billing cadence')}</dt>
-              <dd>{cadenceType}</dd>
+              <dd>{cadenceLabel(cadenceType)}</dd>
             </div>
             {#if mode === 'separate'}<div>
                 <dt>{t('Expense billing cadence')}</dt>
-                <dd>{expenseCadenceType}</dd>
+                <dd>{cadenceLabel(expenseCadenceType)}</dd>
               </div>{/if}
             <div>
               <dt>{t('Invoice layout')}</dt>
-              <dd>{invoiceLayout}</dd>
+              <dd>{layoutLabel(invoiceLayout)}</dd>
             </div>
             <div>
               <dt>{t('People needing terms')}</dt>

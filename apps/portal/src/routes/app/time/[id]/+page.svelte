@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
@@ -57,7 +58,8 @@
       data.canCreateCorrection ||
       form?.actionName !== 'createCorrectionDraft' ||
       !problem?.code?.startsWith('TIME_CORRECTION_')
-    ) return [];
+    )
+      return [];
     const values = form?.values as Record<string, unknown> | undefined;
     if (!values) return [];
     const fields = [
@@ -75,7 +77,9 @@
     return fields.flatMap(([name, label]) => {
       const value = values[name];
       if (typeof value !== 'string' || !value.trim()) return [];
-      return [{ label: t(label), value: name === 'category' ? controlled('timeCategory', value) : value }];
+      return [
+        { label: t(label), value: name === 'category' ? controlled('timeCategory', value) : value },
+      ];
     });
   });
   const recordHref = $derived(`${base}/app/time/${encodeURIComponent(String(record.id))}`);
@@ -252,7 +256,7 @@
 <svelte:head><title>{t('Time entry')} | {record.project_number}</title></svelte:head>
 <main class="record-detail-page">
   <nav class="detail-nav">
-    <a href={base + '/app/time'} data-origin-back>← {t('Time')}</a>
+    <a href={base + '/app/time'} data-origin-back><DirectionIcon direction="left" /> {t('Time')}</a>
     {#if !data.user?.workforceProfile}<a href={base + '/app/projects/' + String(record.project_id)}
         >{t('Open project')}</a
       >{/if}
@@ -295,7 +299,7 @@
       </p>
       <a
         href={`${base}/app/time/${encodeURIComponent(data.activeCorrection.id)}?lang=${encodeURIComponent(locale)}`}
-        >{t('Open existing correction')} →</a
+        >{t('Open existing correction')} <DirectionIcon /></a
       >
     </section>
   {/if}
@@ -305,7 +309,7 @@
         <a
           class="primary-button"
           href={`${base}/app/time?edit=${encodeURIComponent(String(record.id))}`}
-          >{t('Edit draft')} →</a
+          >{t('Edit draft')} <DirectionIcon /></a
         >
       {/if}
       {#if !submissionBlocked}
@@ -387,7 +391,7 @@
         {record.review_reason || t('No review reason was recorded.')}
       </p>
       {#if !data.activeCorrection && data.canCreateCorrection}
-        <a href="#time-correction-title">{t('Create corrected draft')} →</a>
+        <a href="#time-correction-title">{t('Create corrected draft')} <DirectionIcon /></a>
       {:else if !data.activeCorrection}
         <p>{t('The recorded worker must create a corrected draft from their Time register.')}</p>
       {/if}
@@ -407,11 +411,17 @@
     </section>
   {/if}
   {#if retainedCorrectionValues.length}
-    <section class="detail-panel record-detail-copy" aria-labelledby="time-correction-retained-title">
+    <section
+      class="detail-panel record-detail-copy"
+      aria-labelledby="time-correction-retained-title"
+    >
       <h2 id="time-correction-retained-title">{t('problem.time.correctionValuesRetained')}</h2>
       <dl class="record-facts">
         {#each retainedCorrectionValues as item}
-          <div><dt>{item.label}</dt><dd>{item.value}</dd></div>
+          <div>
+            <dt>{item.label}</dt>
+            <dd>{item.value}</dd>
+          </div>
         {/each}
       </dl>
     </section>

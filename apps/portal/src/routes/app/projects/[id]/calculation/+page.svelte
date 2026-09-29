@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { afterNavigate } from '$app/navigation';
   import { page } from '$app/stores';
@@ -327,7 +328,8 @@
     class="back-link"
     href={`${base}/app/finance?project=${encodeURIComponent(project.id)}&view=economic`}
   >
-    {t('← Back to project finance')}
+    <DirectionIcon direction="left" />
+    {t('← Back to project finance').replace(/^←\s*/u, '')}
   </a>
   <header class="page-header">
     <p>{t('PROJECT FINANCE EXPLANATION')}</p>

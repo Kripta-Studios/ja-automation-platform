@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { SectionCard } from '$lib/portal/ui';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
@@ -127,7 +128,9 @@
 
 <svelte:head><title>{t('Crew time · J&A Automation')}</title></svelte:head>
 <main class="crew-detail">
-  <a href={crewHref}>{t('← Back to crew hours')}</a>
+  <a href={crewHref}
+    ><DirectionIcon direction="left" /> {t('← Back to crew hours').replace(/^←\s*/u, '')}</a
+  >
   <h1>{record.workerName} · {record.workDate}</h1>
   {#if problem}
     <div tabindex="-1" data-crew-time-problem>
@@ -193,7 +196,7 @@
       {#if record.activeCorrectionState}
         <p>{t('An existing correction is')} {approvalLabel(record.activeCorrectionState)}.</p>
         {#if correctionHref}
-          <a href={correctionHref}>{t('Open existing correction')} →</a>
+          <a href={correctionHref}>{t('Open existing correction')} <DirectionIcon /></a>
         {:else}
           <p>
             {t(

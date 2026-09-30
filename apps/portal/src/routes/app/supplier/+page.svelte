@@ -39,6 +39,15 @@
     input.setCustomValidity(valid ? '' : c.invalidBreakHours);
     hidden.value = valid ? String(minutes) : '';
   }
+  function validateCorrectionHours(event: Event): void {
+    const input = event.currentTarget as HTMLInputElement;
+    const minutes = durationMinutes(input.value);
+    input.setCustomValidity(
+      minutes !== null && minutes > 0
+        ? ''
+        : portalText(data.locale, 'problem.supplier.durationRange'),
+    );
+  }
   const m = $derived(supplierManagementCopy[data.locale as keyof typeof supplierManagementCopy]);
   const currentProblem = $derived(
     form && !form.success && 'code' in form ? (form as unknown as ProblemData) : null,
@@ -342,6 +351,10 @@
     form?.operation === 'updateTime' && form.values?.id === entryId
       ? (form.values?.[key] ?? fallback)
       : fallback;
+  const correctionValue = (entryId: string, key: string, fallback = '') =>
+    form?.operation === 'correctTime' && form.values?.id === entryId
+      ? (form.values?.[key] ?? fallback)
+      : fallback;
   function editRecord(
     operation: UpdateOperation,
     row: { id: string; name: string; email?: string; hasLogin?: number },
@@ -484,7 +497,7 @@
       );
       // TimeIntervalFields keeps its own bound state. Restore the exact submitted
       // decimal text after a native failure so its calculated minutes stay in sync.
-      if (operation === 'createTimeBatch' && target) {
+      if (['createTimeBatch', 'correctTime', 'updateTime'].includes(operation) && target) {
         for (const name of ['durationHours', 'breakHours']) {
           const submitted = form.values?.[name];
           const control = target.elements.namedItem(name);
@@ -1486,7 +1499,8 @@
           </p>
           <p>{entry.summary}</p>
           <p>{c.recordedBy}: {entry.recordedByName || entry.workerName}</p>
-          {#if !data.owner && entry.state === 'needs_changes'}
+          {#if entry.isSuperseded}<p>{c.superseded}</p>{/if}
+          {#if !data.owner && entry.state === 'needs_changes' && !entry.isSuperseded}
             <form
               method="POST"
               action={actionUrl('correctTime')}
@@ -1499,7 +1513,88 @@
                 value={form?.operation === 'correctTime' && form.values?.id === entry.id
                   ? form.values.requestId
                   : data.correctionRequestId}
-              /><label data-ui="field"
+              />
+              <h4>{c.correction}</h4>
+              <label data-ui="field"
+                >{c.date}<input
+                  type="date"
+                  name="workDate"
+                  required
+                  value={correctionValue(String(entry.id), 'workDate', String(entry.workDate))}
+                /></label
+              >
+              <label data-ui="field"
+                >{c.category}<select
+                  name="category"
+                  value={correctionValue(String(entry.id), 'category', String(entry.category))}
+                  required
+                  ><option value="work">{c.work}</option><option value="travel">{c.travel}</option
+                  ></select
+                ></label
+              >
+              {#if entry.startTime && entry.endTime}
+                <input type="hidden" name="durationMode" value="interval" />
+                <fieldset class="time-interval">
+                  <legend>{c.interval}</legend>
+                  <label data-ui="field"
+                    >{c.startTime}<input
+                      type="time"
+                      name="startTime"
+                      required
+                      value={correctionValue(String(entry.id), 'startTime', entry.startTime)}
+                    /></label
+                  >
+                  <label data-ui="field"
+                    >{c.endTime}<input
+                      type="time"
+                      name="endTime"
+                      required
+                      value={correctionValue(String(entry.id), 'endTime', entry.endTime)}
+                    /></label
+                  >
+                  <label data-ui="field"
+                    >{c.breakHours}<input
+                      inputmode="decimal"
+                      name="breakHours"
+                      value={correctionValue(
+                        String(entry.id),
+                        'breakHours',
+                        decimalHours(Number(entry.breakMinutes ?? 0)),
+                      )}
+                      oninput={syncBreakHours}
+                    /><input
+                      type="hidden"
+                      name="breakMinutes"
+                      value={correctionValue(
+                        String(entry.id),
+                        'breakMinutes',
+                        String(entry.breakMinutes ?? 0),
+                      )}
+                    /></label
+                  >
+                </fieldset>
+              {:else}
+                <input type="hidden" name="durationMode" value="duration" />
+                <label data-ui="field"
+                  >{c.durationHours}<input
+                    inputmode="decimal"
+                    name="durationHours"
+                    required
+                    oninput={validateCorrectionHours}
+                    value={correctionValue(
+                      String(entry.id),
+                      'durationHours',
+                      editableDecimalHours(Number(entry.minutes)),
+                    )}
+                  /></label
+                >
+              {/if}
+              <label data-ui="field"
+                >{c.summary}<textarea name="summary" required
+                  >{correctionValue(String(entry.id), 'summary', String(entry.summary))}</textarea
+                ></label
+              >
+              <label data-ui="field"
                 >{c.reason}<input
                   name="reason"
                   required
@@ -1663,7 +1758,7 @@
                 ><button class="primary-button">{c.save}</button>
               </form>
             </details>
-            {#if entry.recordedBy === data.currentUserId}
+            {#if entry.recordedBy === data.currentUserId && !entry.isCorrection}
               <form
                 method="POST"
                 action={actionUrl('discardTime')}
@@ -1711,6 +1806,10 @@
     gap: 1rem;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
     align-items: end;
+  }
+  form h4 {
+    grid-column: 1 / -1;
+    margin: 0;
   }
   label {
     display: grid;

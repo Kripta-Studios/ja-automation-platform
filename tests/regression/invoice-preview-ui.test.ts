@@ -54,7 +54,7 @@ describe('Invoice PDF preview surface', () => {
     expect(value).toContain("credentials: 'same-origin'");
     expect(value).toContain("cache: 'no-store'");
     expect(value).toContain("type !== 'application/pdf'");
-    expect(value).toContain("file.slice(0, 5).text() !== '%PDF-'");
+    expect(value).toContain("(await file.slice(0, 5).text()) !== '%PDF-'");
     expect(value).toContain('src={securePdfPreviewUrl}');
     expect(value).toContain('{#if securePdfPreviewOpen && securePdfPreviewUrl}');
     expect(value).toContain('loading="lazy"');
@@ -95,7 +95,7 @@ describe('Invoice PDF preview surface', () => {
     expect(value).toContain("import { beforeNavigate, invalidateAll } from '$app/navigation';");
     expect(value).toContain("from '$lib/portal/invoice-pdf-polling';");
     expect(value).toContain('createInvoicePdfPollingController');
-    expect(value).toContain('pdfPolling.update(pdfStatus);');
+    expect(value).toContain("pdfPolling.update(hasDraftPreview ? 'unavailable' : pdfStatus);");
     expect(value).toContain('pdfPolling.dispose();');
     expect(value).not.toContain('setInterval(');
     expect(value).not.toContain('clearInterval(');

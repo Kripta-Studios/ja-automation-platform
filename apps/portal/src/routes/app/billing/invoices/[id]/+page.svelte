@@ -2,6 +2,7 @@
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { beforeNavigate, invalidateAll } from '$app/navigation';
+  import { enhance } from '$app/forms';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
@@ -10,6 +11,7 @@
     persistStandaloneLocale,
     resolveStandaloneLocale,
     standaloneText,
+    standaloneActionMessage,
   } from '../../../standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
@@ -17,6 +19,7 @@
   import { createInvoicePdfPollingController } from '$lib/portal/invoice-pdf-polling';
   import { StatusBadge } from '$lib/portal/ui';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
   import {
     privateDownloadFilename,
     typedPrivateDownloadProblem,
@@ -35,7 +38,29 @@
     due_date?: string | null;
   };
   type InvoicePdfStatus = 'queued' | 'running' | 'ready' | 'failed' | 'unavailable';
-  let { data } = $props();
+  let { data, form } = $props();
+  type DraftDetailsForm = Partial<ProblemData> & {
+    success?: boolean;
+    billingOperation?: string;
+    values?: Record<string, string>;
+  };
+  const draftDetailsForm = $derived(form as DraftDetailsForm | null | undefined);
+  const draftDetailsProblem = $derived(
+    draftDetailsForm?.success === false &&
+      draftDetailsForm.code &&
+      draftDetailsForm.messageKey &&
+      draftDetailsForm.correlationId
+      ? (draftDetailsForm as ProblemData)
+      : null,
+  );
+  let draftDetailsNotice = $state<HTMLDivElement | undefined>(undefined);
+  function draftValue(name: string, fallback: unknown): string {
+    const value =
+      draftDetailsForm?.billingOperation === 'updateInvoiceDraftDetails'
+        ? draftDetailsForm.values?.[name]
+        : undefined;
+    return value === undefined ? String(fallback ?? '') : value;
+  }
   let localeOverride = $state<PortalLocale | null>(null);
   const locale = $derived(
     localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
@@ -55,6 +80,62 @@
       : undefined,
   );
   const invoiceState = $derived(String(invoice.state ?? '').toLowerCase());
+  const hasDraftPreview = $derived(
+    ['draft', 'approved'].includes(invoiceState) &&
+      (invoice.invoice_number === null || invoice.invoice_number === undefined) &&
+      (invoice.issued_at === null || invoice.issued_at === undefined),
+  );
+  const canEditDraft = $derived(
+    invoiceState === 'draft' &&
+      hasDraftPreview &&
+      ![
+        'BILLING_INVOICE_HISTORICAL_ISSUE_MARKERS',
+        'BILLING_READ_ONLY_ROLE',
+        'BILLING_FINANCE_REQUIRED',
+        'BILLING_ACCOUNT_INACTIVE',
+        'BILLING_SESSION_EXPIRED',
+        'BILLING_SIGN_IN_REQUIRED',
+        'ACTION_ERROR_FORBIDDEN',
+        'ACTION_ERROR_UNAUTHENTICATED',
+      ].includes(draftDetailsProblem?.code ?? '') &&
+      ['owner_admin', 'finance_admin'].includes(String(data.user?.role ?? '')),
+  );
+  const retainedDraftValues = $derived(
+    !canEditDraft && draftDetailsForm?.billingOperation === 'updateInvoiceDraftDetails'
+      ? [
+          ['purchaseNo', 'Purchase No.'],
+          ['discount', 'Discount Amount'],
+          ['bankSwiftNumber', 'Bank Swift Number'],
+          ['bankAccountNumber', 'Bank Account Number'],
+          ['bankName', 'Bank Name'],
+          ['beneficiary', 'Beneficiary'],
+          ['pastDueNotice', 'Past Due Notice'],
+        ].filter(([name]) => draftDetailsForm?.values?.[name] !== undefined)
+      : [],
+  );
+  $effect(() => {
+    if (draftDetailsProblem)
+      void tick().then(() => {
+        const editor = document.querySelector<HTMLFormElement>(
+          'form[action="?/updateInvoiceDraftDetails"]',
+        );
+        if (editor)
+          reportFormFieldErrors(
+            editor,
+            draftDetailsProblem.fieldErrors,
+            draftDetailsProblem.params,
+          );
+        const notice = draftDetailsNotice?.querySelector<HTMLElement>('[data-problem-code]');
+        notice?.focus({ preventScroll: true });
+        notice?.scrollIntoView({ block: 'center' });
+      });
+  });
+  const defaultDiscount = $derived.by(() => {
+    const raw = String(invoice.discount_minor ?? '0').trim();
+    if (!/^\d+$/.test(raw)) return raw;
+    const digits = raw.replace(/^0+(?=\d)/, '').padStart(3, '0');
+    return `${digits.slice(0, -2)}.${digits.slice(-2)}`;
+  });
   const invoiceId = $derived(String(invoice.id ?? ''));
   const draftPreviewUrl = $derived(
     `${base}/app/api/invoices/${encodeURIComponent(invoiceId)}/draft-preview?lang=${locale}`,
@@ -694,7 +775,7 @@
   }
 
   $effect(() => {
-    pdfPolling.update(pdfStatus);
+    pdfPolling.update(hasDraftPreview ? 'unavailable' : pdfStatus);
   });
 
   let previousDraftPreviewInvoiceId: string | undefined;
@@ -756,7 +837,7 @@
       ><PrintIcon /> {t('Print Report')}</button
     >
   </nav>
-  {#if invoiceState === 'draft' || invoiceState === 'approved'}
+  {#if hasDraftPreview}
     <section class="invoice-pdf-panel no-print" aria-labelledby="invoice-pdf-heading">
       <div class="invoice-pdf-panel__heading">
         <div>
@@ -887,12 +968,49 @@
       <LocalizedPdfPanel ownerType="invoice" ownerId={invoiceId} {locale} title={t('PDF')} />
     </div>
   {/if}
-  {#if invoiceState === 'draft'}
-    <details class="no-print draft-edit-details">
+  {#if draftDetailsProblem}
+    <div class="no-print" bind:this={draftDetailsNotice} tabindex="-1" data-invoice-details-problem>
+      <ProblemNotice
+        problem={draftDetailsProblem}
+        {locale}
+        remedyLinks={{
+          review_invoice: {
+            label: t('Review invoice'),
+            href: `${base}/app/billing/invoices/${encodeURIComponent(invoiceId)}?lang=${locale}`,
+            reload: true,
+          },
+        }}
+      />
+    </div>
+  {:else if standaloneActionMessage(locale, form)}
+    <p class="no-print" role="status">{standaloneActionMessage(locale, form)}</p>
+  {/if}
+  {#if retainedDraftValues.length}
+    <section class="detail-panel no-print" data-invoice-retained-customizations>
+      <h2>{t('problem.expenseDetail.retainedValuesTitle')}</h2>
+      <p>{t('Copy these values before reviewing the current invoice.')}</p>
+      <dl>
+        {#each retainedDraftValues as [name, label]}
+          <div data-invoice-retained-field={name}>
+            <dt>{t(label)}</dt>
+            <dd>{draftDetailsForm?.values?.[name] || '—'}</dd>
+          </div>
+        {/each}
+      </dl>
+    </section>
+  {/if}
+  {#if invoiceState === 'draft' && canEditDraft}
+    <details class="no-print draft-edit-details" open={Boolean(draftDetailsProblem)}>
       <summary class="draft-edit-summary"
         >⚙ {t('Edit Invoice Details (Purchase No., Terms, Company, Discount)')}</summary
       >
-      <form method="POST" action="?/updateInvoiceDraftDetails" class="draft-edit-form">
+      <form
+        method="POST"
+        action="?/updateInvoiceDraftDetails"
+        class="draft-edit-form"
+        use:formValidation
+        use:enhance
+      >
         <input type="hidden" name="invoiceId" value={invoiceId} />
         <div class="draft-edit-grid">
           <div class="draft-field">
@@ -901,7 +1019,10 @@
               id="edit-purchase-no"
               name="purchaseNo"
               type="text"
-              value={invoice.purchase_no !== '—' ? invoice.purchase_no : ''}
+              value={draftValue(
+                'purchaseNo',
+                invoice.purchase_no !== '—' ? invoice.purchase_no : '',
+              )}
               placeholder={t('For example: BBS Mexico')}
             />
           </div>
@@ -911,9 +1032,7 @@
               id="edit-discount"
               name="discount"
               type="text"
-              value={invoice.discount_minor
-                ? (Number(invoice.discount_minor) / 100).toFixed(2)
-                : '0.00'}
+              value={draftValue('discount', defaultDiscount)}
               placeholder="0.00"
             />
           </div>
@@ -923,7 +1042,7 @@
               id="edit-swift"
               name="bankSwiftNumber"
               type="text"
-              value={invoice.terms_and_instructions?.bankSwiftNumber || ''}
+              value={draftValue('bankSwiftNumber', invoice.terms_and_instructions?.bankSwiftNumber)}
             />
           </div>
           <div class="draft-field">
@@ -932,7 +1051,10 @@
               id="edit-account"
               name="bankAccountNumber"
               type="text"
-              value={invoice.terms_and_instructions?.bankAccountNumber || ''}
+              value={draftValue(
+                'bankAccountNumber',
+                invoice.terms_and_instructions?.bankAccountNumber,
+              )}
             />
           </div>
           <div class="draft-field">
@@ -941,7 +1063,7 @@
               id="edit-bank-name"
               name="bankName"
               type="text"
-              value={invoice.terms_and_instructions?.bankName || ''}
+              value={draftValue('bankName', invoice.terms_and_instructions?.bankName)}
             />
           </div>
           <div class="draft-field">
@@ -950,7 +1072,7 @@
               id="edit-beneficiary"
               name="beneficiary"
               type="text"
-              value={invoice.terms_and_instructions?.beneficiary || ''}
+              value={draftValue('beneficiary', invoice.terms_and_instructions?.beneficiary)}
             />
           </div>
           <div class="draft-field full-width">
@@ -959,7 +1081,7 @@
               id="edit-past-due"
               name="pastDueNotice"
               type="text"
-              value={invoice.terms_and_instructions?.pastDueNotice || ''}
+              value={draftValue('pastDueNotice', invoice.terms_and_instructions?.pastDueNotice)}
             />
           </div>
         </div>
@@ -1136,3 +1258,9 @@
     </footer>
   </article>
 </main>
+
+<style>
+  [data-invoice-retained-customizations] dd {
+    overflow-wrap: anywhere;
+  }
+</style>

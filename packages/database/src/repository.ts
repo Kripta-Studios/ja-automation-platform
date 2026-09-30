@@ -8800,12 +8800,24 @@ export class PortalRepository {
     if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
     return this.transaction(() => {
       const invoice = this.sqlite
-        .prepare('SELECT id, state, snapshot_json FROM invoice WHERE id=?')
-        .get(invoiceId) as { id: string; state: string; snapshot_json: string | null } | undefined;
+        .prepare(
+          'SELECT id, state, snapshot_json, invoice_number, issued_at FROM invoice WHERE id=?',
+        )
+        .get(invoiceId) as
+        | {
+            id: string;
+            state: string;
+            snapshot_json: string | null;
+            invoice_number: string | null;
+            issued_at: string | null;
+          }
+        | undefined;
       if (!invoice) throw new ValidationError('Invoice not found');
       if (invoice.state !== 'draft' && invoice.state !== 'approved') {
         throw new ConflictError('Only draft or approved invoices can be modified before issuance');
       }
+      if (invoice.invoice_number !== null || invoice.issued_at !== null)
+        throw new ConflictError('Invoice has historical issue markers');
       let currentSnapshot: Record<string, unknown> = {};
       if (invoice.snapshot_json) {
         try {

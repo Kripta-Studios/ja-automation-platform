@@ -77,6 +77,8 @@ export type SupplierOperationalTimeRow = Readonly<{
   version: number;
   recordedBy: string;
   recordedByName: string;
+  isCorrection: number;
+  isSuperseded: number;
 }>;
 
 export type LocalPortalProvisionInput = Readonly<{
@@ -142,6 +144,19 @@ export class SupplierWorkforceRepository {
              VALUES(?,?,?,?)`,
           )
           .run(timeEntryId, scope.supplierId, principal.userId, now());
+      },
+      assertCanEditCorrectionDraft: (principal, timeEntryId) => {
+        const coordinator = this.assertCoordinator(principal);
+        const recordedCorrection = this.sqlite
+          .prepare(
+            `SELECT 1 FROM record_correction_link link
+             JOIN supplier_time_entry_recorder recorder ON recorder.time_entry_id=link.correction_id
+             WHERE link.record_type='time_entry' AND link.correction_id=? AND link.actor_user_id=?
+               AND recorder.recorded_by_user_id=? AND recorder.supplier_id=?`,
+          )
+          .get(timeEntryId, principal.userId, principal.userId, coordinator.supplierId);
+        if (!recordedCorrection)
+          throw new AccessDeniedError('Supplier correction draft ownership required');
       },
       audit: (principal, action, entityType, entityId, details) =>
         recordAuditEvent(this.sqlite, principal, action, entityType, entityId, details),
@@ -1330,6 +1345,8 @@ export class SupplierWorkforceRepository {
                 t.break_minutes breakMinutes,t.activity_summary summary,t.approval_state state,t.version,
                 COALESCE(rec.recorded_by_user_id,correction_link.actor_user_id,t.worker_id) recordedBy,
                 COALESCE(ru.name,correction_actor.name,u.name) recordedByName,
+                EXISTS(SELECT 1 FROM record_correction_link link
+                  WHERE link.record_type='time_entry' AND link.correction_id=t.id) isCorrection,
                 EXISTS(
                   SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
                    WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id AND correction.approval_state<>'rejected'
@@ -1364,6 +1381,8 @@ export class SupplierWorkforceRepository {
                   t.work_date workDate,t.category,t.minutes,t.start_time startTime,t.end_time endTime,
                   t.break_minutes breakMinutes,t.activity_summary summary,t.approval_state state,t.version,
                   COALESCE(rec.recorded_by_user_id,t.worker_id) recordedBy,COALESCE(ru.name,u.name) recordedByName,
+                  EXISTS(SELECT 1 FROM record_correction_link link
+                    WHERE link.record_type='time_entry' AND link.correction_id=t.id) isCorrection,
                   EXISTS(
                     SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
                      WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id AND correction.approval_state<>'rejected'

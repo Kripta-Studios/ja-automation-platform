@@ -28,6 +28,13 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'Copy these values before reviewing the current invoice.':
+    'Copy these values before reviewing the current invoice.',
+  'Preview is available before issuance. The final PDF is generated after issuance.':
+    'Preview is available before issuance. The final PDF is generated after issuance.',
+  'Grouping cannot be customized here. Invoice layout follows the selected template.':
+    'Grouping cannot be customized here. Invoice layout follows the selected template.',
+  'Saved grouping setting': 'Saved grouping setting',
   'No verified conversion is recorded. This expense keeps its original currency. A conversion cannot currently be entered here.':
     'No verified conversion is recorded. This expense keeps its original currency. A conversion cannot currently be entered here.',
   'Verified currency conversion needed': 'Verified currency conversion needed',
@@ -411,6 +418,13 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'Copy these values before reviewing the current invoice.':
+    'Copia estos valores antes de revisar la factura actual.',
+  'Preview is available before issuance. The final PDF is generated after issuance.':
+    'La vista previa está disponible antes de emitir la factura. El PDF final se genera después de la emisión.',
+  'Grouping cannot be customized here. Invoice layout follows the selected template.':
+    'La agrupación no se puede personalizar aquí. El diseño de la factura sigue la plantilla seleccionada.',
+  'Saved grouping setting': 'Configuración de agrupación guardada',
   'No verified conversion is recorded. This expense keeps its original currency. A conversion cannot currently be entered here.':
     'No se ha registrado una conversión verificada. Este gasto conserva su moneda original. Actualmente no se puede introducir una conversión aquí.',
   'Verified currency conversion needed': 'Se necesita una conversión de moneda verificada',
@@ -788,6 +802,13 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'Copy these values before reviewing the current invoice.':
+    'Copie estes valores antes de revisar a fatura atual.',
+  'Preview is available before issuance. The final PDF is generated after issuance.':
+    'A prévia está disponível antes da emissão. O PDF final é gerado após a emissão.',
+  'Grouping cannot be customized here. Invoice layout follows the selected template.':
+    'O agrupamento não pode ser personalizado aqui. O layout da fatura segue o modelo selecionado.',
+  'Saved grouping setting': 'Configuração de agrupamento salva',
   'No verified conversion is recorded. This expense keeps its original currency. A conversion cannot currently be entered here.':
     'Nenhuma conversão verificada foi registrada. Esta despesa mantém sua moeda original. No momento, não é possível informar uma conversão aqui.',
   'Verified currency conversion needed': 'É necessária uma conversão de moeda verificada',

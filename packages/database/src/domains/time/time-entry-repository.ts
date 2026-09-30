@@ -47,9 +47,9 @@ export type TimeEntryCorrectionInput = Readonly<{
     minutes?: number;
     summary?: string;
     site?: string;
-    startTime?: string;
-    endTime?: string;
-    breakMinutes?: number;
+    startTime?: string | null;
+    endTime?: string | null;
+    breakMinutes?: number | null;
   }>;
 }>;
 
@@ -84,6 +84,8 @@ export type TimeEntryRepositoryDependencies = Readonly<{
     projectId: string,
     workDate: string,
   ) => void;
+  /** Supplier-specific authority for editing the actor's own unsubmitted correction. */
+  assertCanEditCorrectionDraft?: (principal: Principal, timeEntryId: string) => void;
   audit: (
     principal: Principal,
     action: string,
@@ -461,7 +463,7 @@ export class TimeEntryRepository {
     return this.deps.transaction(() => {
       const current = this.deps.sqlite
         .prepare(
-          'SELECT project_id,worker_id,work_date,category,activity_code,minutes,activity_summary,site,start_time,end_time,break_minutes,approval_state,invoice_id,billing_status,version FROM time_entry WHERE id=?',
+          'SELECT project_id,worker_id,work_date,category,activity_code,minutes,activity_summary,site,start_time,end_time,break_minutes,approval_state,submitted_at,invoice_id,billing_status,billing_lock_id,locked_at,version FROM time_entry WHERE id=?',
         )
         .get(input.id) as
         | {
@@ -477,8 +479,11 @@ export class TimeEntryRepository {
             end_time: string | null;
             break_minutes: number | null;
             approval_state: string;
+            submitted_at: string | null;
             invoice_id: string | null;
             billing_status: string;
+            billing_lock_id: string | null;
+            locked_at: string | null;
             version: number;
           }
         | undefined;
@@ -486,17 +491,24 @@ export class TimeEntryRepository {
       if (
         current.invoice_id ||
         current.billing_status !== 'unlocked' ||
+        current.billing_lock_id ||
+        current.locked_at ||
+        current.submitted_at ||
         current.approval_state !== 'draft'
       )
         throw this.deps.errors.conflict('Only an unlocked never-submitted time draft can change');
-      if (
+      const linkedCorrection = Boolean(
         this.deps.sqlite
           .prepare(
             "SELECT 1 FROM record_correction_link WHERE record_type='time_entry' AND correction_id=? LIMIT 1",
           )
-          .get(input.id)
-      )
-        throw this.deps.errors.conflict('A linked correction draft cannot be edited');
+          .get(input.id),
+      );
+      if (linkedCorrection) {
+        if (!this.deps.assertCanEditCorrectionDraft)
+          throw this.deps.errors.conflict('A linked correction draft cannot be edited');
+        this.deps.assertCanEditCorrectionDraft(principal, input.id);
+      }
       const workDate = input.workDate ?? current.work_date;
       if (
         workDate !== current.work_date &&
@@ -565,8 +577,8 @@ export class TimeEntryRepository {
             activity_summary=COALESCE(?,activity_summary),site=COALESCE(?,site),
             start_time=?,end_time=?,break_minutes=?,updated_at=?,version=version+1
            WHERE id=? AND worker_id=? AND version=? AND invoice_id IS NULL AND billing_status='unlocked'
-             AND approval_state='draft'
-             AND NOT EXISTS(SELECT 1 FROM record_correction_link l WHERE l.record_type='time_entry' AND l.correction_id=time_entry.id)`,
+             AND approval_state='draft' AND submitted_at IS NULL AND billing_lock_id IS NULL AND locked_at IS NULL
+             AND (?=1 OR NOT EXISTS(SELECT 1 FROM record_correction_link l WHERE l.record_type='time_entry' AND l.correction_id=time_entry.id))`,
         )
         .run(
           input.workDate ?? null,
@@ -582,12 +594,14 @@ export class TimeEntryRepository {
           input.id,
           current.worker_id,
           input.version,
+          linkedCorrection ? 1 : 0,
         );
       if (result.changes !== 1)
         throw this.deps.errors.conflict('Time entry changed or cannot be edited');
       this.deps.audit(principal, 'time.update', 'time_entry', input.id, {
         version: input.version,
         workerId: current.worker_id,
+        ...(linkedCorrection ? { correctionDraft: true } : {}),
       });
       return { id: input.id, version: input.version + 1 };
     });
@@ -606,6 +620,31 @@ export class TimeEntryRepository {
     if (reason.length < 3)
       throw this.deps.errors.validation('Correction reason must contain at least 3 characters');
     const patch = input.patch ?? {};
+    const allowedFields = new Set([
+      'workDate',
+      'category',
+      'activityCode',
+      'minutes',
+      'summary',
+      'site',
+      'startTime',
+      'endTime',
+      'breakMinutes',
+    ]);
+    for (const [key, value] of Object.entries(patch)) {
+      if (!allowedFields.has(key))
+        throw this.deps.errors.validation('Correction field is not allowed');
+      if (value === undefined) continue;
+      if (key === 'minutes' || key === 'breakMinutes') {
+        if (key === 'breakMinutes' && value === null) continue;
+        if (!Number.isInteger(value) || Number(value) < 0 || Number(value) > 1440)
+          throw this.deps.errors.validation('Minutes must be an integer from 0 to 1440');
+      } else if (
+        !(value === null && ['startTime', 'endTime'].includes(key)) &&
+        typeof value !== 'string'
+      )
+        throw this.deps.errors.validation('Correction field is not allowed');
+    }
     const payloadHash = createHash('sha256')
       .update(
         JSON.stringify({
@@ -701,9 +740,10 @@ export class TimeEntryRepository {
         );
       const workDate = patch.workDate ?? original.work_date;
       const minutes = patch.minutes ?? original.minutes;
-      const startTime = patch.startTime ?? original.start_time;
-      const endTime = patch.endTime ?? original.end_time;
-      const breakMinutes = patch.breakMinutes ?? original.break_minutes;
+      const startTime = patch.startTime === undefined ? original.start_time : patch.startTime;
+      const endTime = patch.endTime === undefined ? original.end_time : patch.endTime;
+      const breakMinutes =
+        patch.breakMinutes === undefined ? original.break_minutes : patch.breakMinutes;
       this.deps.assertDate(workDate, 'Work date');
       if (workDate !== original.work_date) {
         this.assertEffectiveMembership(
@@ -724,8 +764,25 @@ export class TimeEntryRepository {
       }
       if (patch.category !== undefined) this.deps.assertText(patch.category, 'Category', 100);
       if (patch.summary !== undefined) this.deps.assertText(patch.summary, 'Activity summary');
+      const effectivePatch: Record<string, unknown> = {
+        workDate,
+        minutes,
+        startTime,
+        endTime,
+        breakMinutes,
+        category:
+          patch.category === undefined
+            ? original.category
+            : this.deps.assertText(patch.category, 'Category', 100),
+        summary:
+          patch.summary === undefined
+            ? original.activity_summary
+            : this.deps.assertText(patch.summary, 'Activity summary'),
+        activityCode: patch.activityCode ?? original.activity_code,
+        site: patch.site ?? original.site,
+      };
       if (
-        !Object.entries(patch).some(([key, value]) => {
+        !Object.keys(patch).some((key) => {
           const originalValue = (
             {
               workDate: original.work_date,
@@ -741,7 +798,7 @@ export class TimeEntryRepository {
           )[key];
           const normalized = (item: unknown) =>
             item === undefined || item === null || item === '' ? null : String(item).trim();
-          return normalized(value) !== normalized(originalValue);
+          return normalized(effectivePatch[key]) !== normalized(originalValue);
         })
       )
         throw this.deps.errors.validation(

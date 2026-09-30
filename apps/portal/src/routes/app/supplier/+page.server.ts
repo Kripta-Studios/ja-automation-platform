@@ -9,6 +9,7 @@ import {
 } from '$lib/server/supplier-context';
 import { actionFail, actionFailure } from '$lib/server/actions/action-message';
 import { AccessDeniedError, ConflictError, ValidationError } from '@ja/database';
+import { durationMinutes } from '$lib/portal/ui/time-entry-clock';
 
 type SupplierRule = {
   code: string;
@@ -294,7 +295,13 @@ const supplierRules: Record<string, SupplierRule> = {
   'Change at least one operational field before creating a correction': {
     code: 'SUPPLIER_TIME_CORRECTION_EMPTY',
     key: 'problem.supplier.timeCorrectionEmpty',
-    remedy: 'review_time_drafts',
+    field: 'summary',
+    remedy: 'correct_supplier_field',
+  },
+  'Supplier correction draft ownership required': {
+    code: 'SUPPLIER_TIME_CORRECTION_OWNERSHIP',
+    key: 'problem.supplier.timeOwnershipRequired',
+    remedy: 'contact_owner',
   },
   'This crew time is linked to an allocated receipt; its work date cannot change': {
     code: 'SUPPLIER_TIME_LINKED_RECEIPT_DATE',
@@ -757,14 +764,22 @@ function supplierProblem(
       : submissionNoLongerVisible
         ? [{ id: permittedRemedy }, { id: 'contact_owner' }]
         : [{ id: permittedRemedy }];
-  return actionFail(status, rule.key, params, message, {
+  const errorField =
+    ['correctTime', 'updateTime'].includes(operation) && rule.field === 'breakMinutes'
+      ? 'breakHours'
+      : rule.field;
+  const messageKey =
+    ['correctTime', 'updateTime'].includes(operation) && rule.field === 'breakMinutes'
+      ? 'problem.supplier.intervalInvalid'
+      : rule.key;
+  return actionFail(status, messageKey, params, message, {
     code: rule.code,
     operation,
     actionName: operation,
     values,
     ...(submissionCurrent.length ? { submissionCurrent } : {}),
     correlationId,
-    fieldErrors: rule.field ? { [rule.field]: [rule.key] } : {},
+    fieldErrors: errorField ? { [errorField]: [messageKey] } : {},
     remedies,
   });
 }
@@ -805,6 +820,30 @@ function batchDuration(values: Record<string, string>): {
     throw new ValidationError('Enter hours, or a start and end time');
   const minutes = Math.round(Number(normalizedHours) * 60);
   if (minutes < 1 || minutes > 1440)
+    throw new ValidationError('Duration must be greater than zero and no more than 24 hours');
+  return { minutes };
+}
+
+/** Draft edits and corrections derive canonical minutes only from visible hour fields. */
+function visibleTimeDuration(values: Record<string, string>): {
+  minutes: number;
+  startTime?: string;
+  endTime?: string;
+  breakMinutes?: number;
+} {
+  const durationMode = values.durationMode ?? '';
+  if (!['duration', 'interval'].includes(durationMode))
+    throw new ValidationError('Choose duration or time interval');
+  if (durationMode === 'interval') {
+    const breakHours = values.breakHours ?? '';
+    const breakMinutes = breakHours.trim() === '' ? 0 : durationMinutes(breakHours);
+    if (breakMinutes === null || breakMinutes > 1439)
+      throw new ValidationError('Break minutes must be an integer within the shift');
+    return batchDuration({ ...values, minutes: '', breakMinutes: String(breakMinutes) });
+  }
+  const minutes = durationMinutes(values.durationHours ?? '');
+  if (minutes === null) throw new ValidationError('Enter hours, or a start and end time');
+  if (minutes < 1)
     throw new ValidationError('Duration must be greater than zero and no more than 24 hours');
   return { minutes };
 }
@@ -1075,13 +1114,26 @@ function action(operation: string): Actions[string] {
           };
           break;
         }
-        case 'correctTime':
+        case 'correctTime': {
+          const durationMode = text('durationMode');
+          const duration = visibleTimeDuration(values);
           ctx.supplier.createTimeCorrection(ctx.principal, {
             originalId: text('id'),
             requestId: text('requestId'),
             reason: text('reason'),
+            patch: {
+              workDate: text('workDate'),
+              category: text('category'),
+              summary: text('summary'),
+              ...duration,
+              minutes: duration.minutes,
+              ...(durationMode === 'duration'
+                ? { startTime: null, endTime: null, breakMinutes: null }
+                : {}),
+            },
           });
           break;
+        }
         case 'submitTime':
           ctx.supplier.submitTime(ctx.principal, {
             id: text('id'),
@@ -1112,9 +1164,7 @@ function action(operation: string): Actions[string] {
         }
         case 'updateTime': {
           const durationMode = text('durationMode');
-          if (!['duration', 'interval'].includes(durationMode))
-            throw new ValidationError('Choose duration or time interval');
-          const duration = batchDuration(values);
+          const duration = visibleTimeDuration(values);
           ctx.supplier.updateTime(ctx.principal, {
             id: text('id'),
             version: Number(text('version')),

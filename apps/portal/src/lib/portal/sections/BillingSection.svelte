@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { disclosure } from '../ui/disclosure.js';
   import { lastCompletePeriodForCadence, type BillingCadence } from '@ja/billing-engine';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
@@ -1737,6 +1738,16 @@
             value: invoiceStatusText(invoice),
           },
           {
+            label: translate('PDF'),
+            value: hasDraftPreview(invoice)
+              ? translate('Preview')
+              : translate(
+                  invoicePdfStatus(invoice) === 'unavailable'
+                    ? 'Unavailable'
+                    : invoicePdfStatus(invoice),
+                ),
+          },
+          {
             label: balanceLabel(invoice),
             value: balanceDisplay(invoice, ledger),
           },
@@ -2036,6 +2047,27 @@
     return 'unavailable';
   }
 
+  function hasDraftPreview(invoice: Row): boolean {
+    const number = invoice.invoice_number ?? invoice.invoiceNumber;
+    const issuedAt = invoice.issued_at ?? invoice.issuedAt;
+    return (
+      ['draft', 'approved'].includes(invoiceState(invoice)) &&
+      (number === null || number === undefined) &&
+      (issuedAt === null || issuedAt === undefined)
+    );
+  }
+
+  function groupingLabel(mode: string): string {
+    const labels: Record<string, string> = {
+      summary: 'Summary',
+      detail: 'Detail',
+      by_worker: 'By worker',
+      by_day: 'By day',
+      by_category: 'By category',
+    };
+    return labels[mode] ? translate(labels[mode]) : mode || '—';
+  }
+
   function invoiceTitle(invoice: Row): string {
     if (invoiceState(invoice) === 'superseded') {
       const number = rowValue(invoice, 'invoice_number', 'invoiceNumber');
@@ -2138,7 +2170,7 @@
       <a
         class="secondary-button"
         href={`${base}/app/billing/invoices/${encodeURIComponent(String(form.messageParams.invoiceId))}`}
-        >{translate('Open invoice')} →</a
+        >{translate('Open invoice')} <DirectionIcon /></a
       >
     </p>
   {:else if form?.success && form.messageKey === 'action.billing.invoiceAlreadyExists' && form.messageParams?.invoiceId}
@@ -2146,7 +2178,7 @@
       <a
         class="secondary-button"
         href={`${base}/app/billing/invoices/${encodeURIComponent(String(form.messageParams.invoiceId))}`}
-        >{translate('Open existing invoice')} →</a
+        >{translate('Open existing invoice')} <DirectionIcon /></a
       >
     </p>
   {/if}
@@ -2287,15 +2319,17 @@
                 </dd>
               </div>
               <div>
-                <dt>{translate('Grouping')}</dt>
+                <dt>{translate('Saved grouping setting')}</dt>
                 <dd>
-                  {controlledValue(
-                    'status',
-                    rowValue(wizardRule, 'grouping_mode', 'groupingMode') || 'summary',
-                  )}
+                  {groupingLabel(rowValue(wizardRule, 'grouping_mode', 'groupingMode'))}
                 </dd>
               </div>
             </dl>
+            <p data-billing-grouping-help>
+              {translate(
+                'Grouping cannot be customized here. Invoice layout follows the selected template.',
+              )}
+            </p>
           </section>
         {:else if invoiceWizardStep === 4}
           <section>
@@ -2387,7 +2421,7 @@
               <a
                 class="secondary-button"
                 href={`${base}/app/billing/invoices/${encodeURIComponent(wizardReadiness.existingInvoiceId)}`}
-                >{translate('Open existing invoice')} →</a
+                >{translate('Open existing invoice')} <DirectionIcon /></a
               >
             {/if}
           </section>
@@ -2678,11 +2712,11 @@
                 <a
                   class="secondary-button"
                   href={`${base}/app/billing/invoices/${encodeURIComponent(wizardReadiness.existingInvoiceId)}`}
-                  >{translate('Open existing invoice')} →</a
+                  >{translate('Open existing invoice')} <DirectionIcon /></a
                 >
               {/if}
               <button type="button" class="secondary-button" onclick={() => (invoiceWizardStep = 4)}
-                >{translate('Period')} →</button
+                >{translate('Period')} <DirectionIcon /></button
               >
             {:else if !wizardReadiness || wizardReadiness.state === 'incomplete'}
               <p role="status">
@@ -2693,7 +2727,7 @@
               <a
                 class="primary-button"
                 href={`${base}/app/billing/invoices/${encodeURIComponent(wizardReadiness.existingInvoiceId)}`}
-                >{translate('Open existing invoice')} →</a
+                >{translate('Open existing invoice')} <DirectionIcon /></a
               >
             {:else}
               <button
@@ -3229,16 +3263,11 @@
               <span>{translate('PO reference')}</span>
               <input name="poNumberOverride" />
             </label>
-            <label>
-              <span>{translate('Grouping')}</span>
-              <select name="groupingMode">
-                <option value="summary">{translate('Summary')}</option>
-                <option value="detail">{translate('Detail')}</option>
-                <option value="by_worker">{translate('By worker')}</option>
-                <option value="by_day">{translate('By day')}</option>
-                <option value="by_category">{translate('By category')}</option>
-              </select>
-            </label>
+            <p data-billing-grouping-help>
+              {translate(
+                'Grouping cannot be customized here. Invoice layout follows the selected template.',
+              )}
+            </p>
             <label>
               <span>{translate('Semi-monthly rule')}</span>
               <select
@@ -3695,35 +3724,15 @@
                                 value={rowValue(rule, 'po_number_override', 'poNumberOverride')}
                               /></label
                             >
-                            <label
-                              ><span>{translate('Grouping')}</span><select name="groupingMode">
-                                <option
-                                  value="summary"
-                                  selected={rowValue(rule, 'grouping_mode', 'groupingMode') ===
-                                    'summary'}>{translate('Summary')}</option
-                                >
-                                <option
-                                  value="detail"
-                                  selected={rowValue(rule, 'grouping_mode', 'groupingMode') ===
-                                    'detail'}>{translate('Detail')}</option
-                                >
-                                <option
-                                  value="by_worker"
-                                  selected={rowValue(rule, 'grouping_mode', 'groupingMode') ===
-                                    'by_worker'}>{translate('By worker')}</option
-                                >
-                                <option
-                                  value="by_day"
-                                  selected={rowValue(rule, 'grouping_mode', 'groupingMode') ===
-                                    'by_day'}>{translate('By day')}</option
-                                >
-                                <option
-                                  value="by_category"
-                                  selected={rowValue(rule, 'grouping_mode', 'groupingMode') ===
-                                    'by_category'}>{translate('By category')}</option
-                                >
-                              </select></label
-                            >
+                            <p data-billing-grouping-help>
+                              {translate(
+                                'Grouping cannot be customized here. Invoice layout follows the selected template.',
+                              )}
+                            </p>
+                            <p data-billing-saved-grouping>
+                              <strong>{translate('Saved grouping setting')}:</strong>
+                              {groupingLabel(rowValue(rule, 'grouping_mode', 'groupingMode'))}
+                            </p>
                             <label class="billing-section__checkbox">
                               <input type="hidden" name="autoGenerateDraftPresent" value="1" />
                               <input
@@ -3916,6 +3925,7 @@
                   {@const invoiceStateValue = invoiceState(invoice)}
                   {@const ledger = ledgerForInvoice(invoiceId)}
                   {@const pdfStatus = invoicePdfStatus(invoice)}
+                  {@const draftPreview = hasDraftPreview(invoice)}
                   <tr
                     data-invoice-row={invoiceId}
                     data-invoice-state={invoiceStateValue}
@@ -3946,12 +3956,16 @@
                       />
                     </td>
                     <td>
-                      <span data-invoice-pdf-status={pdfStatus}>
+                      <span data-invoice-pdf-status={draftPreview ? 'preview' : pdfStatus}>
                         {translate('PDF')} · {translate(
-                          pdfStatus === 'unavailable' ? 'Unavailable' : pdfStatus,
+                          draftPreview
+                            ? 'Preview'
+                            : pdfStatus === 'unavailable'
+                              ? 'Unavailable'
+                              : pdfStatus,
                         )}
                       </span>
-                      {#if pdfStatus === 'ready'}
+                      {#if !draftPreview && pdfStatus === 'ready'}
                         <a
                           href={`${base}/app/api/invoices/${encodeURIComponent(invoiceId)}/pdf`}
                           download
@@ -4012,6 +4026,7 @@
             {@const currency = invoiceCurrency(invoice)}
             {@const rowBlocker = invoiceIssueBlocker(invoice)}
             {@const pdfStatus = invoicePdfStatus(invoice)}
+            {@const draftPreview = hasDraftPreview(invoice)}
             {@const currentLifecycle = lifecycleStage(invoiceStateValue)}
             {@const historicalIssueMarkers =
               ['draft', 'approved'].includes(invoiceStateValue) &&
@@ -4496,14 +4511,24 @@
                     >
                     <span
                       class="billing-section__artifact-status"
-                      data-invoice-pdf-status={pdfStatus}
+                      data-invoice-pdf-status={draftPreview ? 'preview' : pdfStatus}
                       aria-live="polite"
                     >
                       {translate('PDF')} · {translate(
-                        pdfStatus === 'unavailable' ? 'Unavailable' : pdfStatus,
+                        draftPreview
+                          ? 'Preview'
+                          : pdfStatus === 'unavailable'
+                            ? 'Unavailable'
+                            : pdfStatus,
                       )}
                     </span>
-                    {#if pdfStatus === 'ready'}
+                    {#if draftPreview}
+                      <p class="billing-section__artifact-note" data-invoice-preview-help>
+                        {translate(
+                          'Preview is available before issuance. The final PDF is generated after issuance.',
+                        )}
+                      </p>
+                    {:else if pdfStatus === 'ready'}
                       {#if invoicePdfFailure?.id === invoiceId && invoicePdfFailure.surface === 'drawer'}
                         <div
                           data-invoice-pdf-problem="drawer"
@@ -4856,7 +4881,7 @@
                       <a
                         class="secondary-button"
                         href={`${base}/app/ledger?project=${encodeURIComponent(rowValue(invoice, 'project_id', 'projectId'))}`}
-                        >{translate('Review credit in ledger')} →</a
+                        >{translate('Review credit in ledger')} <DirectionIcon /></a
                       >
                     {:else if canRecordPayment || paymentDraft?.invoiceId === invoiceId}
                       <details

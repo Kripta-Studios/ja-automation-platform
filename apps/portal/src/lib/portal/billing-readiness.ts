@@ -2,6 +2,7 @@ export const BILLING_READINESS_MESSAGE_KEYS = {
   no_billable_sources: 'action.billing.readiness.noBillableSources',
   period_cutoff_mismatch: 'action.billing.readiness.periodCutoffMismatch',
   pending_time_approval: 'action.billing.readiness.pendingTimeApproval',
+  pending_time_finance_review: 'action.billing.readiness.pendingTimeFinanceReview',
   pending_expense_approval: 'action.billing.readiness.pendingExpenseApproval',
   missing_tax_profile: 'action.billing.readiness.missingTaxProfile',
   inactive_tax_profile: 'action.billing.readiness.inactiveTaxProfile',
@@ -39,4 +40,17 @@ export function billingReadinessRemedyId(reasonCode: string, role?: string): str
   if (role && role !== 'owner_admin' && /number_policy|issuer|legal_entity/u.test(reasonCode))
     return 'contact_owner';
   return 'review_billing_setup';
+}
+
+export function billingReadinessReviewPath(reasonCodes: readonly string[], projectId = ''): string {
+  const project = projectId ? `&project=${encodeURIComponent(projectId)}` : '';
+  if (reasonCodes.includes('pending_time_finance_review'))
+    return `/approvals?stage=finance${project}#finance-review`;
+  if (reasonCodes.some((code) => code.includes('time_approval')))
+    return `/approvals?queue=time${project}`;
+  if (reasonCodes.some((code) => code.includes('expense')))
+    return `/approvals?queue=expenses${project}`;
+  if (reasonCodes.some((code) => code.includes('client_rate')))
+    return `/finance?view=commercial${project}`;
+  return '/billing';
 }

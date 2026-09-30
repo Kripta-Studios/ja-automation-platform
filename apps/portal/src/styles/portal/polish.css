@@ -742,11 +742,9 @@ details[open] > summary::after {
   font-size: 0.65rem;
 }
 
-.search-popover-item i {
+.search-popover-item .search-popover-arrow {
   flex: 0 0 auto;
   color: #706e66;
-  font-style: normal;
-  font-weight: 800;
 }
 
 .search-popover-empty {

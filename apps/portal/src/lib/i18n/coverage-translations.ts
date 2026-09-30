@@ -8,6 +8,72 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  'Finalization unavailable': ['Finalización no disponible', 'Finalização indisponível'],
+  'Review invoice issuers': ['Revisar emisores de facturas', 'Revisar emissores de faturas'],
+  'This empty period has no confirmed invoice issuer for its final version. You can still download formats marked Ready. Review invoice issuers or choose a period with issued invoices.':
+    [
+      'Este periodo vacío no tiene un emisor de facturas confirmado para su versión final. Puedes seguir descargando los formatos con estado Listo. Revisa los emisores de facturas o elige un periodo con facturas emitidas.',
+      'Este período vazio não tem um emissor de faturas confirmado para sua versão final. Você ainda pode baixar os formatos com status Pronto. Revise os emissores de faturas ou escolha um período com faturas emitidas.',
+    ],
+  'This version has no confirmed invoice issuer for every currency. You can still download formats marked Ready. Ask an owner to review the invoice issuers before finalizing a new version.':
+    [
+      'Esta versión no tiene un emisor de facturas confirmado para cada moneda. Puedes seguir descargando los formatos con estado Listo. Pide a un propietario que revise los emisores de facturas antes de finalizar una nueva versión.',
+      'Esta versão não tem um emissor de faturas confirmado para cada moeda. Você ainda pode baixar os formatos com status Pronto. Peça a um proprietário que revise os emissores de faturas antes de finalizar uma nova versão.',
+    ],
+  'This version is not ready to be finalized. You can still download formats marked Ready. Review the source records and invoice issuer setup with an owner.':
+    [
+      'Esta versión no está lista para finalizarse. Puedes seguir descargando los formatos con estado Listo. Revisa los registros de origen y la configuración del emisor de facturas con un propietario.',
+      'Esta versão não está pronta para ser finalizada. Você ainda pode baixar os formatos com status Pronto. Revise os registros de origem e a configuração do emissor de faturas com um proprietário.',
+    ],
+  'action.billing.readiness.pendingTimeFinanceReview': [
+    'Las horas aprobadas aún necesitan revisión financiera. En Aprobaciones → Revisión financiera, elige Facturable o No facturable para cada registro.',
+    'As horas aprovadas ainda precisam de revisão financeira. Em Aprovações → Revisão financeira, escolha Faturável ou Não faturável para cada registro.',
+  ],
+  'Too many verification attempts. Wait before trying again. Your code is still in the form.': [
+    'Demasiados intentos de verificación. Espera antes de intentarlo de nuevo. Tu código sigue en el formulario.',
+    'Muitas tentativas de verificação. Aguarde antes de tentar novamente. Seu código continua no formulário.',
+  ],
+  'We could not confirm verification. Check your connection and try again. Your code is still in the form.':
+    [
+      'No pudimos confirmar la verificación. Comprueba la conexión e inténtalo de nuevo. Tu código sigue en el formulario.',
+      'Não foi possível confirmar a verificação. Verifique a conexão e tente novamente. Seu código continua no formulário.',
+    ],
+  'You enabled MFA for this account. Enter your authenticator code to sign in.': [
+    'Activaste MFA para esta cuenta. Introduce el código de tu autenticador para iniciar sesión.',
+    'Você ativou MFA para esta conta. Digite o código do seu autenticador para entrar.',
+  ],
+  'Too many activation attempts. Wait before trying again. Your name and password are still in the form.':
+    [
+      'Demasiados intentos de activación. Espera antes de intentarlo de nuevo. Tu nombre y contraseña siguen en el formulario.',
+      'Muitas tentativas de ativação. Aguarde antes de tentar novamente. Seu nome e senha continuam no formulário.',
+    ],
+  'Try again in {seconds} seconds.': [
+    'Inténtalo de nuevo en {seconds} segundos.',
+    'Tente novamente em {seconds} segundos.',
+  ],
+  'Activation is temporarily unavailable. Please try again. Your name and password are still in the form.':
+    [
+      'La activación no está disponible temporalmente. Inténtalo de nuevo. Tu nombre y contraseña siguen en el formulario.',
+      'A ativação está temporariamente indisponível. Tente novamente. Seu nome e senha continuam no formulário.',
+    ],
+  'You are offline. Reconnect and try again. Your name and password are still in the form.': [
+    'Estás sin conexión. Vuelve a conectarte e inténtalo de nuevo. Tu nombre y contraseña siguen en el formulario.',
+    'Você está sem conexão. Reconecte-se e tente novamente. Seu nome e senha continuam no formulário.',
+  ],
+  'We could not confirm activation. Check your connection and try again. If you already activated the account, return to sign in.':
+    [
+      'No pudimos confirmar la activación. Comprueba la conexión e inténtalo de nuevo. Si ya activaste la cuenta, vuelve a iniciar sesión.',
+      'Não foi possível confirmar a ativação. Verifique a conexão e tente novamente. Se já ativou a conta, volte para entrar.',
+    ],
+  'Check your full name and password, then try again.': [
+    'Revisa tu nombre completo y contraseña y vuelve a intentarlo.',
+    'Confira seu nome completo e senha e tente novamente.',
+  ],
+  'This invitation could not be activated. It may have expired or already been used. Return to sign in if you activated it, or ask an owner for a new invitation.':
+    [
+      'No se pudo activar esta invitación. Puede haber caducado o haberse usado. Si ya activaste la cuenta, vuelve a iniciar sesión; si no, pide al propietario una nueva invitación.',
+      'Não foi possível ativar este convite. Ele pode ter expirado ou já ter sido usado. Se já ativou a conta, volte para entrar; caso contrário, peça um novo convite ao proprietário.',
+    ],
   'problem.invoice.pdfNetworkUnavailable': [
     'No se pudo acceder al PDF de la factura. No se modificó la factura. Comprueba la conexión y vuelve a intentarlo.',
     'Não foi possível aceder ao PDF da fatura. A fatura não foi alterada. Verifique a ligação e tente novamente.',
@@ -1024,6 +1090,10 @@ const exact: Record<string, readonly [string, string]> = {
   'problem.billing.packDeploymentIdentityMissing': [
     'No se puede crear el paquete contable porque falta la configuración de identidad de este entorno. Contacta con soporte para restaurarla antes de crear el paquete.',
     'Não é possível criar o pacote contábil porque falta a configuração de identidade deste ambiente. Contacte o suporte para a restaurar antes de criar o pacote.',
+  ],
+  'problem.billing.packExpenseCurrencyReviewRequired': [
+    'Un gasto aprobado necesita importes verificados en la moneda del proyecto. Abre Revisión financiera para completar su conversión de moneda y comprobar el importe de reembolso, si corresponde; después, vuelve a intentarlo. Se conserva el periodo seleccionado.',
+    'Uma despesa aprovada precisa de valores verificados na moeda do projeto. Abra Revisão financeira para concluir a conversão de moeda e conferir o valor de reembolso, se houver; depois, tente novamente. O período selecionado é mantido.',
   ],
   'problem.remedy.contactSupport': ['Contactar con soporte', 'Contactar o suporte'],
   'problem.billing.streamSelectionRequired': [
@@ -6838,6 +6908,19 @@ const exact: Record<string, readonly [string, string]> = {
   'Edit team member': ['Editar miembro del equipo', 'Editar membro da equipe'],
   'Remove access': ['Retirar acceso', 'Remover acesso'],
   'Restore access': ['Restaurar acceso', 'Restaurar acesso'],
+  'This future assignment will be cancelled before it starts.': [
+    'Esta asignación futura se cancelará antes de que comience.',
+    'Esta alocação futura será cancelada antes de começar.',
+  ],
+  'Leave the end date blank to remove access today, or choose an earlier date within the assignment.':
+    [
+      'Deja la fecha de fin en blanco para retirar el acceso hoy, o elige una fecha anterior dentro de la asignación.',
+      'Deixe a data de término em branco para remover o acesso hoje, ou escolha uma data anterior dentro da alocação.',
+    ],
+  'Restore this team member access?': [
+    '¿Restaurar el acceso de este miembro del equipo?',
+    'Restaurar o acesso deste membro da equipe?',
+  ],
   'Remove this team member access?': [
     '¿Retirar el acceso de este miembro del equipo?',
     'Remover o acesso deste membro da equipe?',
@@ -9078,6 +9161,8 @@ function englishActionMessage(key: string): string {
       'These dates do not match this billing stream’s cadence (for example a weekly stream needs a Monday–Sunday week). Choose the correct period; the app will not replace it automatically.',
     'action.billing.readiness.pendingTimeApproval':
       'Time entries in this period are still waiting for approval. Approve or reject them in Approvals, then create the draft again.',
+    'action.billing.readiness.pendingTimeFinanceReview':
+      'Approved time still needs Finance review. In Approvals → Finance review, choose Billable or Non-billable for each entry.',
     'action.billing.readiness.pendingExpenseApproval':
       'Expenses in this period still need operational approval or Finance review. Complete both stages in Approvals → Finance review, then create the draft again.',
     'action.billing.readiness.missingTaxProfile':
@@ -10252,6 +10337,8 @@ const problemEnglish: Record<string, string> = {
     'The selected invoice issuer uses another currency. Review the issuer and choose its currency or a suitable issuer before saving the tax profile.',
   'problem.billing.packDeploymentIdentityMissing':
     'The Accounting Pack cannot be created because this deployment is missing its identity configuration. Contact support to restore the configuration before creating the pack.',
+  'problem.billing.packExpenseCurrencyReviewRequired':
+    "An approved expense needs verified amounts in the project's currency. Open Finance review to complete its currency conversion and check any reimbursement amount, then retry. Your selected period is retained.",
   'problem.remedy.contactSupport': 'Contact support',
   'problem.billing.streamSelectionRequired':
     'Choose a billing stream before changing or archiving it.',

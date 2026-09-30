@@ -694,6 +694,22 @@ export function billingProblemFor(
   if (
     operation === 'createAccountingPack' &&
     error instanceof V3ConflictError &&
+    /^Expense [0-9a-f-]{36} (?:is missing its authoritative project-currency projection|needs an exact project-currency reimbursement projection)$/u.test(
+      message,
+    )
+  )
+    return known(
+      409,
+      'ACCOUNTING_PACK_EXPENSE_CURRENCY_REVIEW_REQUIRED',
+      'problem.billing.packExpenseCurrencyReviewRequired',
+      "An approved expense needs verified amounts in the project's currency. Open Finance review to complete its currency conversion and check any reimbursement amount, then retry. Your selected period is retained.",
+      'review_expense_finance',
+      undefined,
+      { expenseId: message.split(' ')[1]! },
+    );
+  if (
+    operation === 'createAccountingPack' &&
+    error instanceof V3ConflictError &&
     message === 'Deployment identity is not configured'
   )
     return known(
@@ -2419,7 +2435,28 @@ export const billingActions = {
         exportStatuses: refreshedPack?.exportStatuses ?? {},
       };
     } catch (error) {
-      return billingActionFailure(error, 'createAccountingPack', context.principal.role, values);
+      const mapped = billingProblemFor(error, 'createAccountingPack');
+      const expenseId = mapped?.params?.expenseId;
+      let reviewContext: Record<string, string> = {};
+      if (mapped?.code === 'ACCOUNTING_PACK_EXPENSE_CURRENCY_REVIEW_REQUIRED' && expenseId) {
+        try {
+          // The finance-authorized pack generation identified this source itself.
+          // Scope the remedy to that project/record; do not infer a conversion rate.
+          const expense = context.sqlite
+            .prepare('SELECT project_id projectId FROM expense WHERE id=?')
+            .get(expenseId) as { projectId: string } | undefined;
+          if (expense?.projectId) reviewContext = { projectId: expense.projectId };
+        } catch {
+          // The exact source ID still locates the record if this optional lookup fails.
+        }
+      }
+      return billingActionFailure(
+        error,
+        'createAccountingPack',
+        context.principal.role,
+        values,
+        reviewContext,
+      );
     } finally {
       context.sqlite.close();
     }

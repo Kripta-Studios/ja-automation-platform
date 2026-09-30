@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '../ui/DirectionIcon.svelte';
   import type { OwnerFinanceSummary, CashFilter } from '../owner-finance';
   import { ownerFinanceCopy } from '../owner-finance-copy';
   import { paymentMoney } from '../payment-money';
@@ -60,7 +61,7 @@
     {#each [['billing', '/billing'], ['expenses', '/expenses'], ['finance', '/finance?view=economic'], ['cash', '/finance/cash']] as [key, route]}<a
         href={`${base}/app${route}`}
         >{t[key as 'billing' | 'expenses' | 'finance' | 'cash']}
-        <span aria-hidden="true">↗</span></a
+        <DirectionIcon direction="up-right" /></a
       >{/each}
   </nav>
   {#if current}
@@ -68,7 +69,7 @@
     <div class="overview-cards">
       {#each cards as key}<a href={href(key)} class="overview-card" data-finance-metric={key}
           ><span>{t[key]}</span><strong>{money(current?.[key] ?? '0')}</strong><small
-            >{t.view} →</small
+            >{t.view} <DirectionIcon size={14} /></small
           ></a
         >{/each}
     </div>

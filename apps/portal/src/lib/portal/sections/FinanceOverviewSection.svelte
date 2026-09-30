@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { decimalHoursFromMinutes } from '../minute-hours';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { enhance } from '$app/forms';
   import { base } from '$app/paths';
@@ -872,15 +873,11 @@
   }
 
   function displayHours(valueToFormat: unknown): string {
-    const raw = String(valueToFormat ?? '').trim();
-    if (!/^-?\d+$/.test(raw)) return '—';
-    const negative = raw.startsWith('-');
-    const abs = BigInt(negative ? raw.slice(1) : raw);
-    const tenths = (abs * 10n) / 60n;
-    const whole = tenths / 10n;
-    const fraction = tenths % 10n;
-    const grouped = whole.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    return `${negative ? '-' : ''}${grouped}.${fraction} ${translate('hrs')}`;
+    const hours = decimalHoursFromMinutes(valueToFormat);
+    if (hours === '—') return hours;
+    const [whole, fraction] = hours.split('.');
+    const grouped = whole!.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `${grouped}${fraction ? `.${fraction}` : ''} ${translate('hrs')}`;
   }
 
   function consumptionTone(valueToFormat: unknown): 'ok' | 'warning' | 'danger' {

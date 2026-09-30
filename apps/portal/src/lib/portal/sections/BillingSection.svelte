@@ -18,7 +18,7 @@
   } from '../ui/private-document-download';
   import type { ProblemData } from '../../problem/contract';
   import type { TableCardRow } from '../ui';
-  import { billingReadinessMessageKey } from '../billing-readiness';
+  import { billingReadinessMessageKey, billingReadinessReviewPath } from '../billing-readiness';
   import { localizedServerFieldMessage } from '../ui/form-validation';
   import { reversalRecoveryState } from '../billing-reversal-recovery';
 
@@ -230,8 +230,14 @@
   } = $props();
 
   let search = $state('');
-  let projectFilter = $state('');
-  let stageFilter = $state<BillingStage>('all');
+  const billingStageFromQuery = (value: string | null): BillingStage =>
+    value && ['all', 'wip', 'drafts', 'outstanding', 'overdue', 'credits', 'paid'].includes(value)
+      ? (value as BillingStage)
+      : 'all';
+  let projectFilter = $state($page.url.searchParams.get('project')?.trim() ?? '');
+  let stageFilter = $state<BillingStage>(
+    billingStageFromQuery($page.url.searchParams.get('stage')?.trim() ?? null),
+  );
   let workspace = $state<BillingWorkspace>('invoices');
   let setupAction = $state<BillingSetupAction>('stream');
   let invoiceSetupRequired = $state(false);
@@ -1254,15 +1260,11 @@
     return form.reasons as Array<{ code?: string }>;
   }
 
-  function readinessActionHref(): string {
-    const codes = readinessReasons().map((reason) => String(reason.code ?? ''));
-    if (codes.some((code) => code.includes('time_approval')))
-      return `${base}/app/approvals?queue=time`;
-    if (codes.some((code) => code.includes('expense')))
-      return `${base}/app/approvals?queue=expenses`;
-    if (codes.some((code) => code.includes('client_rate')))
-      return `${base}/app/finance?view=commercial`;
-    return `${base}/app/billing`;
+  function readinessActionHref(reasons = readinessReasons()): string {
+    return `${base}/app${billingReadinessReviewPath(
+      reasons.map((reason) => String(reason.code ?? '')),
+      rowValue(wizardRule, 'project_id', 'projectId'),
+    )}`;
   }
 
   function reopenBlockedSelection(): void {
@@ -1448,12 +1450,7 @@
     if (requestedSetup && setupActions.some((action) => action.id === requestedSetup))
       setupAction = requestedSetup as BillingSetupAction;
     projectFilter = requestedUrl.searchParams.get('project')?.trim() ?? '';
-    const requestedStage = requestedUrl.searchParams.get('stage')?.trim() as BillingStage | null;
-    if (
-      requestedStage &&
-      ['all', 'wip', 'drafts', 'outstanding', 'overdue', 'credits', 'paid'].includes(requestedStage)
-    )
-      stageFilter = requestedStage;
+    stageFilter = billingStageFromQuery(requestedUrl.searchParams.get('stage')?.trim() ?? null);
   });
   let restoredBillingLocationId = '';
   $effect(() => {
@@ -2369,6 +2366,14 @@
                 {/if}
               </div>
             {/if}
+            {#if wizardReadiness?.reasons.some((reason) => reason.code === 'pending_time_finance_review')}
+              <div role="status" data-pending-time-finance-review>
+                <p>{translate('action.billing.readiness.pendingTimeFinanceReview')}</p>
+                <a href={readinessActionHref(wizardReadiness.reasons)}
+                  >{translate('Review pending records')}</a
+                >
+              </div>
+            {/if}
             {#if wizardReadiness?.existingInvoiceId}
               <p role="status">
                 {translate('An invoice already exists for this stream and period.')}
@@ -2485,9 +2490,7 @@
                 >{translate('Check selected period')}</button
               >
             {/if}
-            <a
-              class="secondary-button"
-              href={`${base}/app/approvals?project=${encodeURIComponent(rowValue(wizardRule, 'project_id', 'projectId'))}`}
+            <a class="secondary-button" href={readinessActionHref(wizardReadiness?.reasons ?? [])}
               >{translate('Review pending records')}</a
             >
           </section>

@@ -1285,7 +1285,7 @@
                       action={teamActionHref('updateUserStatus')}
                       use:formValidation
                       onsubmit={(event) => {
-                        if (!confirm(translate('Remove this team member access?')))
+                        if (!confirm(translate('Restore this team member access?')))
                           event.preventDefault();
                       }}
                     >

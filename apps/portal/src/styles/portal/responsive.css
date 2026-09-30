@@ -170,7 +170,8 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .time-primary-action {
+  .time-primary-action,
+  .expense-primary-action button {
     width: 100%;
   }
 

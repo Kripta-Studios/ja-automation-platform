@@ -841,13 +841,7 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
         name: string;
         supplierId: string;
       }[],
-      assigned: projectId
-        ? (ctx.supplier.listTechnicians(ctx.principal, projectId) as {
-            id: string;
-            name: string;
-            supplierId: string;
-          }[])
-        : [],
+      assigned: projectId ? ctx.supplier.listScheduledTechnicians(ctx.principal, projectId) : [],
       entries:
         projectId && !period.periodProblem
           ? ctx.supplier.listTime(ctx.principal, { projectId, from: period.from, to: period.to })

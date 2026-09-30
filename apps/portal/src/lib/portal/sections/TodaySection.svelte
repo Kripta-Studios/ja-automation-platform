@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { onMount } from 'svelte';
   import { portalText } from '../../portal-i18n';
   import { planningAgenda, planningInterval, type AgendaAssignment } from '../planning-agenda';
@@ -105,7 +106,7 @@
     </div>
     <a class="dashboard-project-count" href={`${base}/app/projects`}>
       <strong>{data.dashboard.activeProjects}</strong>
-      <span>{translate('active projects')} <span aria-hidden="true">↗</span></span>
+      <span>{translate('active projects')} <DirectionIcon direction="up-right" /></span>
     </a>
   </div>
 {/if}
@@ -298,7 +299,7 @@
       {#if planned}<p class="agenda-planned">{translate('Planned')}: {planned}</p>{/if}
     </div>
     {#if target}<a class="agenda-project-link" href={target}
-        >{translate('Open project')} <span aria-hidden="true">→</span></a
+        >{translate('Open project')} <DirectionIcon /></a
       >{/if}
   </article>
 {/snippet}

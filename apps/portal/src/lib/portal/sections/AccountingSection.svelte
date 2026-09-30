@@ -100,6 +100,18 @@
       label: translate('Review billing setup'),
       href: `${base}/app/billing?view=setup`,
     },
+    review_expense_finance: {
+      label: translate('Review pending records'),
+      href: `${base}/app/approvals?${new URLSearchParams({
+        stage: 'finance',
+        ...(typeof createPackProblem?.params.projectId === 'string'
+          ? { project: createPackProblem.params.projectId }
+          : {}),
+        ...(typeof createPackProblem?.params.expenseId === 'string'
+          ? { q: createPackProblem.params.expenseId }
+          : {}),
+      }).toString()}#finance-review`,
+    },
     contact_finance: { label: translate('Contact a finance administrator') },
     contact_owner: { label: translate('Contact an owner') },
     contact_support: { label: translate('problem.remedy.contactSupport') },

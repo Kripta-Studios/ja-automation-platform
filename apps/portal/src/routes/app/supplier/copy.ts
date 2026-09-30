@@ -40,6 +40,7 @@ export const supplierCopy = {
       'This creates a technician record without login credentials. Existing login accounts can be configured by the Owner.',
     assign: 'Assign existing technician',
     assigned: 'Technicians',
+    future: 'Future',
     time: 'Record team hours',
     batchHelp:
       'Select one or more technicians. Shared values create separate, traceable drafts in one atomic save; review them before submitting to J&A.',
@@ -97,7 +98,8 @@ export const supplierCopy = {
     total: 'Total actual minutes',
     totalHours: 'Total actual hours',
     empty: 'No authorized installations or records for this selection.',
-    reportEmpty: 'No work records match this project and date range. Check the dates or choose another project.',
+    reportEmpty:
+      'No work records match this project and date range. Check the dates or choose another project.',
     saved: 'Changes saved.',
     failed: 'The change could not be saved. Check the values and your current authorization.',
     reportNote:
@@ -145,6 +147,7 @@ export const supplierCopy = {
       'Se crea una ficha de técnico sin credenciales de acceso. El propietario puede configurar cuentas de acceso ya existentes.',
     assign: 'Asignar técnico existente',
     assigned: 'Técnicos',
+    future: 'Futuro',
     time: 'Registrar horas del equipo',
     batchHelp:
       'Selecciona uno o varios técnicos. Los valores comunes crean borradores separados y trazables en un guardado atómico; revísalos antes de enviarlos a J&A.',
@@ -202,7 +205,8 @@ export const supplierCopy = {
     total: 'Total de minutos reales',
     totalHours: 'Total de horas reales',
     empty: 'No hay instalaciones autorizadas o registros para esta selección.',
-    reportEmpty: 'No hay registros de trabajo para este proyecto y período. Revisa las fechas o elige otro proyecto.',
+    reportEmpty:
+      'No hay registros de trabajo para este proyecto y período. Revisa las fechas o elige otro proyecto.',
     saved: 'Cambios guardados.',
     failed: 'No se pudo guardar. Comprueba los valores y tu autorización actual.',
     reportNote:
@@ -250,6 +254,7 @@ export const supplierCopy = {
       'Cria um cadastro de técnico sem credenciais de acesso. O proprietário pode configurar contas de acesso já existentes.',
     assign: 'Atribuir técnico existente',
     assigned: 'Técnicos',
+    future: 'Futuro',
     time: 'Registrar horas da equipe',
     batchHelp:
       'Selecione um ou mais técnicos. Os valores comuns criam rascunhos separados e rastreáveis em um salvamento atômico; revise-os antes de enviá-los à J&A.',
@@ -307,7 +312,8 @@ export const supplierCopy = {
     total: 'Total de minutos reais',
     totalHours: 'Total de horas reais',
     empty: 'Não há instalações autorizadas ou registros para esta seleção.',
-    reportEmpty: 'Não há registos de trabalho para este projeto e período. Reveja as datas ou escolha outro projeto.',
+    reportEmpty:
+      'Não há registos de trabalho para este projeto e período. Reveja as datas ou escolha outro projeto.',
     saved: 'Alterações salvas.',
     failed: 'Não foi possível salvar. Verifique os valores e sua autorização atual.',
     reportNote:

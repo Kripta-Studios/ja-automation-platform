@@ -16,6 +16,10 @@ import {
   readSupplierProfile,
   type SupplierProfile,
 } from './supplier-access.ts';
+import {
+  readSupplierProjectRoster,
+  type SupplierProjectRosterRow,
+} from './supplier-project-roster.ts';
 
 type ProjectScope = Readonly<{ id: string; name: string }>;
 type SupplierScope = Readonly<{
@@ -1012,6 +1016,15 @@ export class SupplierWorkforceRepository {
           WHERE ${filters.join(' AND ')} ORDER BY u.name,u.id`,
       )
       .all(...values) as SupplierTechnicianDto[];
+  }
+
+  listScheduledTechnicians(principal: Principal, projectId: string): SupplierProjectRosterRow[] {
+    this.assertActive(principal);
+    const scope =
+      principal.role === 'owner_admin'
+        ? undefined
+        : this.assertCoordinatorGrant(principal, projectId, today());
+    return readSupplierProjectRoster(this.sqlite, projectId, scope);
   }
 
   addTechnician(

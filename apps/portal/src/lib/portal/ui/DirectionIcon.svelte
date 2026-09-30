@@ -5,7 +5,7 @@
     size = 18,
     class: className = '',
   }: {
-    direction?: 'up' | 'right' | 'down' | 'left';
+    direction?: 'up' | 'right' | 'down' | 'left' | 'up-right';
     kind?: 'arrow' | 'chevron';
     size?: number;
     class?: string;
@@ -17,12 +17,14 @@
       right: 'M5 12h14m-6-6 6 6-6 6',
       down: 'M12 5v14m-6-6 6 6 6-6',
       left: 'M19 12H5m6-6-6 6 6 6',
+      'up-right': 'M7 17 17 7M7 7h10v10',
     },
     chevron: {
       up: 'm6 15 6-6 6 6',
       right: 'm9 6 6 6-6 6',
       down: 'm6 9 6 6 6-6',
       left: 'm15 6-6 6 6 6',
+      'up-right': 'M7 7h10v10',
     },
   };
 </script>

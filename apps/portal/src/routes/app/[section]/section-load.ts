@@ -499,6 +499,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             : null,
           canonicalOwner,
           canManageMail: canonicalOwner,
+          assignmentToday: new Date().toISOString().slice(0, 10),
           assignments: authorizedAssignments.map((assignment) => ({
             ...assignment,
             actual_minutes: actualMinutesByAssignment.get(String(assignment.id ?? '')) ?? 0,

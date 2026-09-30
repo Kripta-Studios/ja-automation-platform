@@ -1946,11 +1946,6 @@
   .time-primary-action-top {
     justify-content: flex-start;
   }
-  .time-primary-action-top .time-primary-action {
-    min-height: 5.5rem;
-    padding: 1.3rem 2.5rem;
-    font-size: 1.25rem;
-  }
   .operational-action-copy {
     color: var(--ja-steel, #77756d);
     margin: -0.4rem 0 0;

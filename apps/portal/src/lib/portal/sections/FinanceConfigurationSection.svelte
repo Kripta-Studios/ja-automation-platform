@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { FormCard, FormSection, FieldGroup, Field, ProblemNotice, formValidation } from '../ui';
@@ -566,7 +567,7 @@
     <a
       class="secondary-button finance-config-preview"
       href={`${base}/app/finance/preview?project=${encodeURIComponent(data.selectedProjectId ?? '')}`}
-      >{translate('Commercial agreement and example')} <span aria-hidden="true">↗</span></a
+      >{translate('Commercial agreement and example')} <DirectionIcon direction="up-right" /></a
     >
   </div>
   <FormSection

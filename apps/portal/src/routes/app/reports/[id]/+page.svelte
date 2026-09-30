@@ -915,7 +915,9 @@
       </h1>
       <p>
         {display(report.project_number)} · {display(report.project_name)} ·
-        {isDaily ? display(report.work_date) : display(report.created_at).slice(0, 10)} ·
+        {isDaily
+          ? display(report.work_date)
+          : display(report.report_date ?? report.created_at).slice(0, 10)} ·
         {display(report.author_name)}
       </p>
     </div>

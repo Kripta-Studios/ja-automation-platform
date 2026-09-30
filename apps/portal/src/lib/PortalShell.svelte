@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import {
@@ -1158,8 +1159,12 @@
     skillFailure?.operation === operation && skillFailure.values?.[field] != null
       ? String(skillFailure.values[field])
       : fallback;
-  const missingChoice = (value: string, choices: readonly Row[]): boolean =>
-    Boolean(value && !choices.some((choice) => String(choice.id) === value));
+  const skillChoiceId = (skill: Row): string => String(skill.skill_id ?? skill.id ?? '');
+  const missingChoice = (
+    value: string,
+    choices: readonly Row[],
+    identify: (choice: Row) => string = (choice) => String(choice.id ?? ''),
+  ): boolean => Boolean(value && !choices.some((choice) => identify(choice) === value));
   const planningFieldMessage = (field: string, operation: string, id = ''): string =>
     planningFailure?.operation === operation &&
     (!id || String(planningFailure.values?.id ?? '') === id) &&
@@ -1925,6 +1930,26 @@
     return Array.from(
       document.querySelectorAll<HTMLElement>('#portal-search-popover a[role="option"]'),
     );
+  }
+
+  function submitGlobalSearch(event: SubmitEvent): void {
+    searchOpen = false;
+    const formElement = event.currentTarget;
+    if (!(formElement instanceof HTMLFormElement)) return;
+    // Some tabs update browser history without navigating the Svelte page.
+    // Read that current URL before the native GET serializes its controls.
+    const currentUrl = new URL(window.location.href);
+    formElement.action = currentUrl.pathname;
+    for (const input of formElement.querySelectorAll('[data-search-context]')) input.remove();
+    for (const [queryName, queryValue] of currentUrl.searchParams) {
+      if (queryName === 'q' || queryName.startsWith('/')) continue;
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = queryName;
+      input.value = queryValue;
+      input.dataset.searchContext = '';
+      formElement.append(input);
+    }
   }
 
   function handleSearchKeydown(event: KeyboardEvent): void {
@@ -3122,10 +3147,13 @@
         <form
           class="global-search"
           method="GET"
-          action={href(data.section)}
+          action={$page.url.pathname}
           role="search"
-          onsubmit={() => (searchOpen = false)}
+          onsubmit={submitGlobalSearch}
         >
+          {#each Array.from($page.url.searchParams.entries()).filter(([queryName]) => queryName !== 'q' && !queryName.startsWith('/')) as [queryName, queryValue]}
+            <input type="hidden" name={queryName} value={queryValue} data-search-context />
+          {/each}
           <label class="visually-hidden" for="portal-global-search"
             >{translate('Search workspace')}</label
           >
@@ -3188,7 +3216,7 @@
                         <strong>{String(suggestion.label ?? translate('Record'))}</strong>
                         <small>{group.label} · {String(suggestion.detail ?? '')}</small>
                       </span>
-                      <i aria-hidden="true">↗</i>
+                      <DirectionIcon direction="up-right" class="search-popover-arrow" />
                     </a>
                   {/each}
                 </div>
@@ -5112,13 +5140,29 @@
                         name="endsOn"
                         type="date"
                         min={String(assignment.starts_on ?? '')}
+                        max={data.assignmentToday}
+                        disabled={Boolean(
+                          data.assignmentToday &&
+                          String(assignment.starts_on ?? '') > data.assignmentToday,
+                        )}
                         value={assignmentEditValue(
                           'endsOn',
                           assignment.id,
-                          String(assignment.ends_on ?? ''),
+                          data.assignmentToday &&
+                            String(assignment.ends_on ?? '') <= data.assignmentToday
+                            ? String(assignment.ends_on ?? '')
+                            : '',
                         )}
                       /></label
                     >
+                    <p class="form-help wide-field">
+                      {translate(
+                        data.assignmentToday &&
+                          String(assignment.starts_on ?? '') > data.assignmentToday
+                          ? 'This future assignment will be cancelled before it starts.'
+                          : 'Leave the end date blank to remove access today, or choose an earlier date within the assignment.',
+                      )}
+                    </p>
                     <label class="wide-field"
                       >{translate('Removal reason')}<input
                         name="reason"
@@ -5893,7 +5937,7 @@
                 : ''}
               required
             />
-            >{#if planningFieldMessage('plannedMinutes', 'createPlanning')}<small
+            {#if planningFieldMessage('plannedMinutes', 'createPlanning')}<small
                 class="field-error"
                 role="alert">{planningFieldMessage('plannedMinutes', 'createPlanning')}</small
               >{/if}<label
@@ -6255,12 +6299,12 @@
                   >{translate('Expertise')}
                   <select name="skillId" value={skillValue('setWorkerSkill', 'skillId')} required>
                     <option value="">{translate('Select expertise')}</option>
-                    {#if missingChoice(skillValue('setWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [])}<option
+                    {#if missingChoice(skillValue('setWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [], skillChoiceId)}<option
                         value={skillValue('setWorkerSkill', 'skillId')}
                         disabled>{translate('Expertise')} · {translate('Unavailable')}</option
                       >{/if}
                     {#each data.allSkills ?? data.skills ?? [] as skill}
-                      <option value={skill.id}>{skill.name}</option>
+                      <option value={skillChoiceId(skill)}>{skill.name}</option>
                     {/each}
                   </select>
                 </label>
@@ -6301,12 +6345,12 @@
                     required
                   >
                     <option value="">{translate('Select expertise')}</option>
-                    {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), data.skills ?? [])}<option
+                    {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), data.skills ?? [], skillChoiceId)}<option
                         value={skillValue('deleteWorkerSkill', 'skillId')}
                         disabled>{translate('Expertise')} · {translate('Unavailable')}</option
                       >{/if}
                     {#each data.skills ?? [] as skill}
-                      <option value={skill.id}>{skill.name}</option>
+                      <option value={skillChoiceId(skill)}>{skill.name}</option>
                     {/each}
                   </select>
                 </label>
@@ -6401,12 +6445,12 @@
                       required
                     >
                       <option value="">{translate('Select expertise')}</option>
-                      {#if missingChoice(skillValue('setWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [])}<option
+                      {#if missingChoice(skillValue('setWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [], skillChoiceId)}<option
                           value={skillValue('setWorkerSkill', 'skillId')}
                           disabled>{translate('Expertise')} · {translate('Unavailable')}</option
                         >{/if}
                       {#each data.allSkills ?? data.skills ?? [] as skill}
-                        <option value={skill.id}>{skill.name}</option>
+                        <option value={skillChoiceId(skill)}>{skill.name}</option>
                       {/each}
                     </select></label
                   >
@@ -6454,12 +6498,12 @@
                       required
                     >
                       <option value="">{translate('Select expertise')}</option>
-                      {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [])}<option
+                      {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [], skillChoiceId)}<option
                           value={skillValue('deleteWorkerSkill', 'skillId')}
                           disabled>{translate('Expertise')} · {translate('Unavailable')}</option
                         >{/if}
                       {#each data.allSkills ?? data.skills ?? [] as skill}
-                        <option value={skill.id}>{skill.name}</option>
+                        <option value={skillChoiceId(skill)}>{skill.name}</option>
                       {/each}
                     </select></label
                   >

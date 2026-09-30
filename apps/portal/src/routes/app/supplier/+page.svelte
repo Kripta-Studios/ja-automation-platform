@@ -2,6 +2,7 @@
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import TimeIntervalFields from '$lib/portal/ui/TimeIntervalFields.svelte';
   import { durationMinutes, localToday } from '$lib/portal/ui/time-entry-clock';
+  import { supplierRosterForDate } from '$lib/portal/supplier-roster';
   import { portalText } from '$lib/portal-i18n';
   import {
     SectionCard,
@@ -298,11 +299,22 @@
     }),
   );
   const batchLimit = 100;
+  let batchWorkDate = $state(
+    untrack(() =>
+      form?.operation === 'createTimeBatch' ? String(form.values?.workDate ?? '') : '',
+    ),
+  );
+  const eligibleAssigned = $derived(supplierRosterForDate(data.assigned, batchWorkDate));
   const filteredAssigned = $derived(
-    data.assigned.filter((technician) =>
+    eligibleAssigned.filter((technician) =>
       technician.name.toLocaleLowerCase().includes(teamSearch.toLocaleLowerCase()),
     ),
   );
+  $effect(() => {
+    const eligibleIds = new Set(eligibleAssigned.map((technician) => technician.id));
+    if (selectedWorkerIds.some((id) => !eligibleIds.has(id)))
+      selectedWorkerIds = selectedWorkerIds.filter((id) => eligibleIds.has(id));
+  });
   const draftEntries = $derived(data.entries.filter((entry) => entry.state === 'draft'));
   const selectedDraftPayload = $derived(
     draftEntries
@@ -393,6 +405,7 @@
   let today = $state('');
   $effect(() => {
     if (workspaceAction) today = localToday();
+    if (!batchWorkDate) batchWorkDate = value('createTimeBatch', 'workDate', today);
   });
   const actionUrl = (operation: string) =>
     `?/${operation}&${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale, workspaceAction }).toString()}#supplier-workspace`;
@@ -1213,7 +1226,11 @@
     </SectionCard>
     <SectionCard title={c.assigned}
       ><ul>
-        {#each data.assigned as t}<li>{t.name}</li>{/each}
+        {#each data.assigned as t}<li>
+            {t.name} · {t.startsOn} — {t.endsOn || '…'}
+            {#if today && t.startsOn > today}<StatusBadge variant="neutral">{c.future}</StatusBadge
+              >{/if}
+          </li>{/each}
       </ul></SectionCard
     >
   {:else if workspaceAction === 'personnel'}
@@ -1287,18 +1304,13 @@
                   disabled={selectedWorkerIds.length >= batchLimit &&
                     !selectedWorkerIds.includes(String(technician.id))}
                 />
-                <span>{technician.name}</span>
+                <span>{technician.name} · {technician.startsOn} — {technician.endsOn || '…'}</span>
               </label>
             {:else}<p class="muted">{m.noMatches}</p>{/each}
           </div>
         </div>
         <label data-ui="field"
-          >{c.date}<input
-            type="date"
-            name="workDate"
-            value={value('createTimeBatch', 'workDate', today)}
-            required
-          /></label
+          >{c.date}<input type="date" name="workDate" bind:value={batchWorkDate} required /></label
         >
         <label data-ui="field"
           >{c.category}<select name="category" value={value('createTimeBatch', 'category', 'work')}
@@ -1326,7 +1338,7 @@
           />
         {:else}
           <div class="batch-technicians">
-            {#each data.assigned.filter( (technician) => selectedWorkerIds.includes(String(technician.id)), ) as technician}
+            {#each eligibleAssigned.filter( (technician) => selectedWorkerIds.includes(String(technician.id)), ) as technician}
               <label data-ui="field"
                 >{technician.name} · {c.personHours}
                 <input

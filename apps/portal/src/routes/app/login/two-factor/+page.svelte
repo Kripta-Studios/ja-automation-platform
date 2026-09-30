@@ -2,7 +2,7 @@
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import {
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
@@ -17,22 +17,65 @@
   );
   const t = (key: string): string => standaloneText(locale, key);
   let error = $state('');
+  let busy = $state(false);
+  let retrySeconds = $state(0);
+  let retryTimer: ReturnType<typeof setInterval> | undefined;
+  let statusElement: HTMLParagraphElement;
   let backupCode = $state(false);
   async function verify(event: SubmitEvent) {
     event.preventDefault();
+    if (busy || retrySeconds > 0) return;
     const data = new FormData(event.currentTarget as HTMLFormElement);
-    const response = await fetch(
-      base + '/app/api/auth/two-factor/' + (backupCode ? 'verify-backup-code' : 'verify-totp'),
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(
-          backupCode ? { code: data.get('code') } : { code: data.get('code'), trustDevice: false },
-        ),
-      },
-    );
-    if (response.ok) location.assign(`${base}/app/`);
-    else error = t('The code was not accepted.');
+    busy = true;
+    error = '';
+    try {
+      const response = await fetch(
+        base + '/app/api/auth/two-factor/' + (backupCode ? 'verify-backup-code' : 'verify-totp'),
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(
+            backupCode
+              ? { code: data.get('code') }
+              : { code: data.get('code'), trustDevice: false },
+          ),
+        },
+      );
+      if (response.ok) location.assign(`${base}/app/`);
+      else if (response.status === 429) {
+        error = t(
+          'Too many verification attempts. Wait before trying again. Your code is still in the form.',
+        );
+        const retryAfter = response.headers.get('retry-after')?.trim() ?? '';
+        const milliseconds = /^\d+$/u.test(retryAfter)
+          ? Number(retryAfter) * 1000
+          : Math.max(0, Date.parse(retryAfter) - Date.now());
+        if (Number.isFinite(milliseconds) && milliseconds > 0) {
+          const deadline = Date.now() + milliseconds;
+          retrySeconds = Math.ceil(milliseconds / 1000);
+          if (retryTimer) clearInterval(retryTimer);
+          retryTimer = setInterval(() => {
+            retrySeconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+            if (!retrySeconds) clearInterval(retryTimer);
+          }, 250);
+        }
+      } else if (response.status === 400 || response.status === 401)
+        error = t('The code was not accepted.');
+      else
+        error = t(
+          'We could not confirm verification. Check your connection and try again. Your code is still in the form.',
+        );
+    } catch {
+      error = t(
+        'We could not confirm verification. Check your connection and try again. Your code is still in the form.',
+      );
+    } finally {
+      busy = false;
+      if (error) {
+        await tick();
+        statusElement?.focus();
+      }
+    }
   }
 
   onMount(() => {
@@ -44,7 +87,10 @@
         localeOverride = resolveStandaloneLocale(event.newValue);
     };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      if (retryTimer) clearInterval(retryTimer);
+    };
   });
   $effect(() => applyStandaloneDocumentLocale(locale));
 </script>
@@ -88,7 +134,7 @@
           <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
         </svg>
         <span>{t('Webmail')}</span>
-        <span class="webmail-btn-arrow" aria-hidden="true">↗</span>
+        <DirectionIcon direction="up-right" class="webmail-btn-arrow" />
       </a>
     </div>
     <form class="login-card" onsubmit={verify}>
@@ -98,7 +144,7 @@
       <div class="login-card-heading">
         <p class="portal-kicker">{t('ONE MORE STEP')}</p>
         <h2>{t('Verify your identity')}</h2>
-        <p>{t('Your organization requires an authenticator code for this sign-in.')}</p>
+        <p>{t('You enabled MFA for this account. Enter your authenticator code to sign in.')}</p>
       </div>
       <label class="login-field"
         ><span>{backupCode ? t('Recovery code') : t('Six-digit code')}</span><input
@@ -110,8 +156,18 @@
           maxlength={backupCode ? 64 : 6}
           required
         /></label
-      ><button class="login-submit">{t('Verify and continue')} <DirectionIcon /></button>
-      <button type="button" class="login-passkey" onclick={() => (backupCode = !backupCode)}>
+      ><button class="login-submit" disabled={busy || retrySeconds > 0}
+        >{t('Verify and continue')} <DirectionIcon /></button
+      >
+      {#if retrySeconds > 0}<p>
+          {standaloneText(locale, 'Try again in {seconds} seconds.', { seconds: retrySeconds })}
+        </p>{/if}
+      <button
+        type="button"
+        class="login-passkey"
+        disabled={busy || retrySeconds > 0}
+        onclick={() => (backupCode = !backupCode)}
+      >
         {backupCode ? t('Use authenticator code') : t('Use a recovery code')}
       </button>
       <a
@@ -136,9 +192,16 @@
           <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
         </svg>
         <span>{t('Access Company Webmail')}</span>
-        <span class="webmail-btn-arrow" aria-hidden="true">↗</span>
+        <DirectionIcon direction="up-right" class="webmail-btn-arrow" />
       </a>
-      <p class="login-status" aria-live="polite">{error}</p>
+      <p
+        class="login-status"
+        bind:this={statusElement}
+        role={error ? 'alert' : 'status'}
+        tabindex="-1"
+      >
+        {error}
+      </p>
     </form>
     <p class="login-footer">J&A Automation · {t('Secure company access.')}</p>
   </section>

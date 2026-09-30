@@ -259,6 +259,7 @@
   }
 
   onMount(() => {
+    const hasExplicitSearch = $page.url.searchParams.has('q');
     const saved = readOperationalRegisterState<{
       activeTab?: Tab;
       search?: string;
@@ -288,10 +289,12 @@
     }
     if (typeof saved?.queuePage === 'number') queuePage = saved.queuePage;
     if (typeof saved?.completedPage === 'number') completedPage = saved.completedPage;
-    if (typeof saved?.milestoneSearch === 'string') milestoneSearch = saved.milestoneSearch;
-    if (typeof saved?.milestonePage === 'number') milestonePage = saved.milestonePage;
-    if (typeof saved?.financeSearch === 'string') financeSearch = saved.financeSearch;
-    if (typeof saved?.financePage === 'number') financePage = saved.financePage;
+    if (!hasExplicitSearch) {
+      if (typeof saved?.milestoneSearch === 'string') milestoneSearch = saved.milestoneSearch;
+      if (typeof saved?.milestonePage === 'number') milestonePage = saved.milestonePage;
+      if (typeof saved?.financeSearch === 'string') financeSearch = saved.financeSearch;
+      if (typeof saved?.financePage === 'number') financePage = saved.financePage;
+    }
     registerStateHydrated = true;
     if (!approvalProblem) {
       try {
@@ -349,6 +352,7 @@
       });
   });
   const componentId = $props.id();
+  let appliedUrlSearch: string | null = null;
 
   $effect(() => {
     // Shallow history changes retain SvelteKit's last loaded page URL. Use the
@@ -358,7 +362,17 @@
     const tab = requestedUrl.searchParams.get('tab');
     if (!approvalProblem && (tab === 'time' || tab === 'expenses' || tab === 'reports'))
       activeTab = tab;
-    search = requestedUrl.searchParams.get('q')?.trim() ?? search;
+    const requestedSearch = requestedUrl.searchParams.get('q');
+    if (requestedSearch !== null && requestedSearch !== appliedUrlSearch) {
+      // An explicit workspace search also scopes these queues. A saved local
+      // search or page must not hide the record identified by a remedy link.
+      milestoneSearch = '';
+      milestonePage = 1;
+      financeSearch = '';
+      financePage = 1;
+    }
+    appliedUrlSearch = requestedSearch;
+    search = requestedSearch?.trim() ?? search;
     projectFilter = requestedUrl.searchParams.get('project')?.trim() ?? '';
     workerFilter = requestedUrl.searchParams.get('worker')?.trim() ?? '';
     clientFilter = requestedUrl.searchParams.get('client')?.trim() ?? '';

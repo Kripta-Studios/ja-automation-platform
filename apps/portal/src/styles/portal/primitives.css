@@ -798,6 +798,13 @@
   justify-content: flex-end;
 }
 
+.time-primary-action-top .time-primary-action,
+.expense-primary-action-top button {
+  min-height: 5.5rem;
+  padding: 1.3rem 2.5rem;
+  font-size: 1.25rem;
+}
+
 .time-status-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

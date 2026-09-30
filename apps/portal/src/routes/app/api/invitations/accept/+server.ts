@@ -4,6 +4,10 @@ import { invitationAcceptSchema } from '@ja/schemas';
 import { auth } from '$lib/server/auth';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { verifyPassword } from 'better-auth/crypto';
+import {
+  isInvitationSignupRetryable,
+  retryUncommittedInvitationSignup,
+} from '$lib/server/invitation-signup-retry';
 
 const PENDING_CLAIM_STALE_MS = 15 * 60_000;
 const INVITATION_ROLES = new Set([
@@ -164,18 +168,39 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   if (!invitation) return genericFailure();
+  const claimedInvitation = invitation;
+  const canRetrySignup = (): boolean => {
+    const database = createDatabase();
+    try {
+      return Boolean(
+        database.sqlite
+          .prepare(
+            `SELECT 1 FROM invitation i
+             WHERE i.id=? AND i.token_hash=? AND i.used_at=? AND i.expires_at>?
+               AND NOT EXISTS(SELECT 1 FROM user u WHERE lower(u.email)=lower(i.email))`,
+          )
+          .get(claimedInvitation.id, tokenHash, claim, new Date().toISOString()),
+      );
+    } finally {
+      database.sqlite.close();
+    }
+  };
 
   try {
     const result =
       claimMode === 'signup'
-        ? await auth.api.signUpEmail({
-            body: {
-              name: parsed.data.name,
-              email: invitation.email,
-              password: parsed.data.password,
-            },
-            headers: request.headers,
-          })
+        ? await retryUncommittedInvitationSignup(
+            () =>
+              auth.api.signUpEmail({
+                body: {
+                  name: parsed.data.name,
+                  email: claimedInvitation.email,
+                  password: parsed.data.password,
+                },
+                headers: request.headers,
+              }),
+            canRetrySignup,
+          )
         : await verifyInvitedCredential(recoveryUserId ?? '', parsed.data.password);
     if (
       !result?.user?.id ||
@@ -239,7 +264,8 @@ export const POST: RequestHandler = async ({ request }) => {
       database.sqlite.close();
     }
     return invitationJson({ accepted: true, email: invitation.email });
-  } catch {
+  } catch (error) {
+    let retrySafe = false;
     console.error(
       JSON.stringify({ event: 'invitation.accept.failed', invitationId: invitation.id }),
     );
@@ -258,13 +284,14 @@ export const POST: RequestHandler = async ({ request }) => {
                LIMIT 1`,
             )
             .get(invitation.email);
-          if (!identityEvidence && claimMode === 'signup')
-            recovery.sqlite
+          if (!identityEvidence && claimMode === 'signup') {
+            const released = recovery.sqlite
               .prepare(
                 'UPDATE invitation SET used_at=NULL WHERE id=? AND token_hash=? AND used_at=?',
               )
               .run(invitation.id, tokenHash, claim);
-          else if (identityEvidence && claimMode === 'recover_credential' && previousStaleClaim)
+            retrySafe = released.changes === 1 && Date.parse(invitation.expires_at) > Date.now();
+          } else if (identityEvidence && claimMode === 'recover_credential' && previousStaleClaim)
             recovery.sqlite
               .prepare('UPDATE invitation SET used_at=? WHERE id=? AND token_hash=? AND used_at=?')
               .run(previousStaleClaim, invitation.id, tokenHash, claim);
@@ -284,7 +311,10 @@ export const POST: RequestHandler = async ({ request }) => {
       }
     } catch {
       // Never reopen an invitation when identity evidence cannot be checked safely.
+      retrySafe = false;
     }
+    if (retrySafe && isInvitationSignupRetryable(error))
+      return invitationJson({ error: 'Activation temporarily unavailable' }, { status: 503 });
     return genericFailure();
   }
 };

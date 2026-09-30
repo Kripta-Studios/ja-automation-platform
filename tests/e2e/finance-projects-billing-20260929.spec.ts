@@ -4,6 +4,8 @@ import { portal, signIn } from './auth.js';
 for (const role of ['owner', 'finance'] as const) {
   test(`${role} billing workspace and setup action survive refresh without reloading on tab selection`, async ({
     page,
+    context,
+    browser,
   }, info) => {
     test.skip(!['phone-360', 'phone-390', 'tablet-768', 'desktop'].includes(info.project.name));
     await signIn(page, role);
@@ -11,6 +13,22 @@ for (const role of ['owner', 'finance'] as const) {
     const projectFilter = page.getByRole('form', { name: 'Filter billing' }).getByLabel('Project');
     const projectId = await projectFilter.locator('option').nth(1).getAttribute('value');
     if (!projectId) throw new Error('Billing project filter is required');
+    const native = await browser.newContext({
+      storageState: await context.storageState(),
+      javaScriptEnabled: false,
+    });
+    try {
+      const nativePage = await native.newPage();
+      await nativePage.goto(portal(`/billing?lang=en&project=${projectId}&stage=drafts`));
+      const nativeFilters = nativePage.getByRole('form', { name: 'Filter billing' });
+      await expect(nativeFilters.getByLabel('Project')).toHaveValue(projectId);
+      await expect(nativeFilters.getByLabel('Stage')).toHaveValue('drafts');
+      await expect(
+        nativePage.locator('.billing-section__summary-card[aria-pressed="true"]'),
+      ).toContainText('Drafts');
+    } finally {
+      await native.close();
+    }
     await projectFilter.selectOption(projectId);
     await page
       .getByRole('form', { name: 'Filter billing' })

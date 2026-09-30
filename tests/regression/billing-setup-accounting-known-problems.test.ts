@@ -105,6 +105,25 @@ const cases = [
     field: null,
     remedy: 'contact_support',
   },
+  ...[
+    `Expense ${projectId} is missing its authoritative project-currency projection`,
+    `Expense ${projectId} needs an exact project-currency reimbursement projection`,
+  ].map((message) => ({
+    action: 'createAccountingPack' as const,
+    section: 'accounting',
+    method: 'createAccountingPack',
+    role: 'owner_admin',
+    error: new V3ConflictError(message),
+    values: {
+      periodStart: '2026-09-01',
+      periodEnd: '2026-09-30',
+      reportLocale: 'pt',
+    },
+    code: 'ACCOUNTING_PACK_EXPENSE_CURRENCY_REVIEW_REQUIRED',
+    messageKey: 'problem.billing.packExpenseCurrencyReviewRequired',
+    field: null,
+    remedy: 'review_expense_finance',
+  })),
 ] as const;
 
 describe('known Billing and Accounting setup failures', () => {
@@ -117,7 +136,7 @@ describe('known Billing and Accounting setup failures', () => {
       principal: { role: testCase.role },
       repository: { [testCase.method]: repositoryMethod },
       v3: { [testCase.method]: repositoryMethod },
-      sqlite: { close },
+      sqlite: { close, prepare: vi.fn(() => ({ get: vi.fn(() => ({ projectId })) })) },
     } as never);
     const body = new FormData();
     for (const [name, value] of Object.entries(testCase.values)) body.set(name, value);
@@ -142,6 +161,8 @@ describe('known Billing and Accounting setup failures', () => {
       values: testCase.values,
     });
     expect(result.data.values).not.toHaveProperty('unrelatedSecret');
+    if (testCase.code === 'ACCOUNTING_PACK_EXPENSE_CURRENCY_REVIEW_REQUIRED')
+      expect(result.data.params).toEqual({ expenseId: projectId, projectId });
     expect(result.data.message).not.toBe(testCase.error.message);
     if (testCase.field)
       expect(result.data.fieldErrors).toHaveProperty(testCase.field, [testCase.messageKey]);
@@ -161,6 +182,17 @@ describe('known Billing and Accounting setup failures', () => {
   });
 
   it('keeps matching scoped to its action', () => {
+    expect(
+      billingProblemFor(
+        new V3ConflictError(
+          `Expense ${projectId} is missing its authoritative project-currency projection`,
+        ),
+        'finalizeAccountingPack',
+      ),
+    ).toBeUndefined();
+    expect(
+      billingProblemFor(new V3ConflictError('Unknown accounting conflict'), 'createAccountingPack'),
+    ).toBeUndefined();
     expect(
       billingProblemFor(
         new ConflictError('Legal entity code already exists'),

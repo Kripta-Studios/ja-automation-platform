@@ -67,6 +67,7 @@ import {
 import { NotificationRepository } from './domains/notifications/index.ts';
 import { discardOwnerInvoice } from './domains/owner/owner-invoice-management.ts';
 import { issuerPaymentDefaults } from './domains/billing/issuer-payment-defaults.ts';
+import { pendingTimeFinanceReviewSourceIds } from './domains/billing/time-finance-review.ts';
 import { V3Repository } from './v3-repository.ts';
 
 export class AccessDeniedError extends Error {}
@@ -5451,6 +5452,12 @@ export class PortalRepository {
     }
     if (rule.stream_type === 'labor') {
       const slices = this.billingTimeSlices(rule.project_id, periodStart, periodEnd);
+      reasons.push(
+        ...pendingTimeFinanceReviewSourceIds(slices.map((slice) => slice.row)).map((sourceId) => ({
+          code: 'pending_time_finance_review',
+          sourceId,
+        })),
+      );
       const candidateSourceIds = new Set(slices.map((slice) => slice.row.id));
       const eligibleSourceIds = new Set<string>();
       const pending = this.sqlite

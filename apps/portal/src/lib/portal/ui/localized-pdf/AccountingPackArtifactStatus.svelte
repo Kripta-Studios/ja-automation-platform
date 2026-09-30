@@ -15,6 +15,8 @@
     saveBlobAsFile,
   } from '$lib/portal/accounting-pack-download';
   import type { AccountingPackDownloadFailureKind } from '$lib/portal/accounting-pack-download';
+  import { accountingPackFinalizationReadiness } from '$lib/portal/accounting-pack-finalization';
+  import DirectionIcon from '../DirectionIcon.svelte';
   import LocalizedPdfPanel from './LocalizedPdfPanel.svelte';
 
   type Pack = Record<string, unknown>;
@@ -165,6 +167,7 @@
     const value = Number(reconciliation[key] ?? 0);
     return Number.isSafeInteger(value) && value >= 0 ? value : 0;
   };
+  const finalizationReadiness = $derived(accountingPackFinalizationReadiness(reconciliation));
   let downloadingKey = $state<AccountingPackExportType | null>(null);
   let retryingKey = $state<AccountingPackExportType | null>(null);
   let retryUncertainKey = $state<AccountingPackExportType | null>(null);
@@ -604,6 +607,23 @@
         </form>
       </div>
     {/if}
+    {#if packState !== 'final' && !finalizationReadiness.ready}
+      <div
+        class="accounting-pack-export-guidance"
+        role="status"
+        data-accounting-finalization-blocked
+      >
+        <strong>{translate('Finalization unavailable')}</strong>
+        <p>{translate(finalizationReadiness.message)}</p>
+        {#if !isAuditor}
+          <a href={`${base}/app/billing?view=setup`}
+            >{translate('Review invoice issuers')} <DirectionIcon /></a
+          >
+        {:else}
+          <p>{translate('Contact an owner')}</p>
+        {/if}
+      </div>
+    {/if}
     {#if !isAuditor && packState !== 'final' && packState !== 'queued'}
       <details class="accounting-pack-review" open={Boolean(problem)}>
         <summary>{translate('Review before finalizing')}</summary>
@@ -663,13 +683,13 @@
             </dd>
           </div>
         </dl>
-        {#if packState === 'ready' && reconciliation.reconciles === true && !pack.sourceStale}
+        {#if packState === 'ready' && reconciliation.reconciles === true && !pack.sourceStale && finalizationReadiness.ready}
           <form method="POST" action="?/finalizeAccountingPack" use:rememberPackScroll>
             <input type="hidden" name="packId" value={pack.id} />
             <input type="hidden" name="viewportScrollY" value="0" />
             <button>{translate('Finalize reviewed version')}</button>
           </form>
-        {:else}
+        {:else if finalizationReadiness.ready}
           <p role="status">
             {translate('Resolve processing, source-change or reconciliation issues first.')}
           </p>

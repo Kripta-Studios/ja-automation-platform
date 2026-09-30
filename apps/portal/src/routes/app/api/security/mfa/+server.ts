@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createDatabase } from '@ja/database';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { auth } from '$lib/server/auth';
+import { generateManagedMfaSetup } from '$lib/server/managed-mfa-setup';
 import { englishCoverageKey } from '$lib/i18n/coverage-translations';
 import {
   assertAuthAuditReady,
@@ -341,39 +342,58 @@ export const POST: RequestHandler = async ({ locals, request }) => {
       // because its factor has not been verified/enrolled yet.
       if (before.mfaEnrolled || before.twoFactor?.verified)
         return mfaProblem(problems.alreadyEnrolled, locals.correlationId);
-      const result = await auth.api.enableTwoFactor(
-        managedMfaCall({
-          body: { method: 'totp', issuer: 'J&A Automation' },
-          headers,
-          returnHeaders: true,
-        }),
+      const authContext = await auth.$context;
+      const setup = await generateManagedMfaSetup(authContext.secretConfig, locals.user.email);
+      // Managed account settings intentionally authorize setup with the live
+      // session. Better Auth's public enable endpoint also requires a password
+      // for credential accounts, even with allowPasswordless, so it cannot
+      // implement the account holder's optional MFA policy.
+      commitProjectionAndAudit(
+        userId,
+        AUTH_AUDIT_ACTIONS.mfaSetupStarted,
+        { method: 'totp', sessionId, outcome: 'setup_started' },
+        (sqlite, updatedAt) => {
+          const current = sqlite
+            .prepare(
+              `SELECT u.email,u.mfa_enrolled,tf.id,tf.verified
+               FROM user u LEFT JOIN two_factor tf ON tf.user_id=u.id
+               WHERE u.id=? AND u.status='active'
+                 AND EXISTS(SELECT 1 FROM session s WHERE s.id=? AND s.user_id=u.id AND s.expires_at>?)`,
+            )
+            .get(userId, sessionId, updatedAt) as
+            | { email: string; mfa_enrolled: number; id: string | null; verified: number | null }
+            | undefined;
+          if (!current) throw Object.assign(new Error('MFA_SESSION_EXPIRED'), { statusCode: 401 });
+          if (current.mfa_enrolled || current.verified)
+            throw Object.assign(new Error('MFA_ALREADY_ENROLLED'), { statusCode: 409 });
+          if (current.email !== locals.user?.email)
+            throw Object.assign(new Error('MFA_ACCOUNT_CHANGED'), { statusCode: 409 });
+          let changed: number | bigint;
+          if (current.id)
+            changed = sqlite
+              .prepare(
+                `UPDATE two_factor SET secret=?,backup_codes=?,verified=0,
+                   failed_verification_count=0,locked_until=NULL WHERE id=? AND user_id=? AND verified=0`,
+              )
+              .run(setup.encryptedSecret, setup.encryptedBackupCodes, current.id, userId).changes;
+          else
+            changed = sqlite
+              .prepare(
+                `INSERT INTO two_factor(id,secret,backup_codes,user_id,verified,failed_verification_count,locked_until)
+                 VALUES(?,?,?,?,0,0,NULL)`,
+              )
+              .run(randomUUID(), setup.encryptedSecret, setup.encryptedBackupCodes, userId).changes;
+          if (Number(changed) !== 1) throw new Error('MFA_SETUP_UPDATE_FAILED');
+        },
       );
-      const authResult = unwrapBetterAuthResult(result);
-      try {
-        recordAuthAudit({
-          action: AUTH_AUDIT_ACTIONS.mfaSetupStarted.action,
-          entityType: AUTH_AUDIT_ACTIONS.mfaSetupStarted.entityType,
-          entityId: userId,
-          userId,
-          details: { method: 'totp', sessionId, outcome: 'setup_started' },
-        });
-      } catch (error) {
-        compensateOrFail(userId, before, error);
-      }
       return json(
         {
           enabled: false,
           requiresVerification: true,
-          totpURI:
-            'totpURI' in authResult.data
-              ? (authResult.data as { totpURI?: string }).totpURI
-              : undefined,
-          backupCodes:
-            'backupCodes' in authResult.data
-              ? (authResult.data as { backupCodes?: string[] }).backupCodes
-              : undefined,
+          totpURI: setup.totpURI,
+          backupCodes: setup.backupCodes,
         },
-        { headers: privateMfaHeaders(authResult.headers) },
+        { headers: privateMfaHeaders() },
       );
     }
 

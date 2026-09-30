@@ -15,6 +15,58 @@ async function readable(page: Page) {
   expect(results.violations).toEqual([]);
 }
 
+test('Record expense matches the Log time primary action size', async ({ page }) => {
+  await signIn(page, 'worker');
+  const measurements: Array<{
+    height: number;
+    width: number;
+    parentWidth: number;
+    fontSize: string;
+    fontWeight: string;
+    padding: string;
+  }> = [];
+  for (const [section, selector, title] of [
+    ['time', '[data-time-primary-cta]', 'Log time'],
+    ['expenses', '[data-expense-primary-cta]', 'Record expense'],
+  ]) {
+    await page.goto(portal(`/${section}?lang=en`), { waitUntil: 'networkidle' });
+    const button = page.locator(selector);
+    await expect(button).toBeVisible();
+    const size = await button.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return {
+        height: bounds.height,
+        width: bounds.width,
+        parentWidth: element.parentElement!.getBoundingClientRect().width,
+        fontSize: style.fontSize,
+        fontWeight: style.fontWeight,
+        padding: style.padding,
+      };
+    });
+    measurements.push(size);
+    expect(size.height).toBeGreaterThanOrEqual(88);
+    if (page.viewportSize()!.width < 768) expect(size.width).toBeCloseTo(size.parentWidth, 0);
+    await expectNoHorizontalOverflowForPrimaryActions(page);
+    await button.click();
+    const dialog = page.getByRole('dialog', { name: title, exact: true });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(dialog).toBeHidden();
+  }
+  expect(measurements[1]!.height).toBeCloseTo(measurements[0]!.height, 0);
+  expect(measurements[1]!.width).toBeGreaterThanOrEqual(measurements[0]!.width);
+  expect(measurements[1]!.fontSize).toBe(measurements[0]!.fontSize);
+  expect(measurements[1]!.fontWeight).toBe(measurements[0]!.fontWeight);
+  expect(measurements[1]!.padding).toBe(measurements[0]!.padding);
+});
+
+async function expectNoHorizontalOverflowForPrimaryActions(page: Page) {
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    page.viewportSize()!.width,
+  );
+}
+
 test('secondary register filters preserve criteria and leave primary work visible', async ({
   page,
 }, info) => {

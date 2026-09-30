@@ -9,6 +9,7 @@ const authMocks = vi.hoisted(() => ({
   enableTwoFactor: vi.fn(),
   verifyTOTP: vi.fn(),
 }));
+const setupMocks = vi.hoisted(() => ({ generateManagedMfaSetup: vi.fn() }));
 const auditMocks = vi.hoisted(() => ({
   assertAuthAuditReady: vi.fn(),
   recordAuthAudit: vi.fn(),
@@ -31,7 +32,10 @@ const auditMocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('$lib/server/auth', () => ({ auth: { api: authMocks } }));
+vi.mock('$lib/server/auth', () => ({
+  auth: { api: authMocks, $context: Promise.resolve({ secretConfig: 'test-secret-config' }) },
+}));
+vi.mock('$lib/server/managed-mfa-setup', () => setupMocks);
 vi.mock('$lib/server/auth-audit', () => auditMocks);
 
 const { POST } = await import('../../apps/portal/src/routes/app/api/security/mfa/+server.js');
@@ -79,6 +83,18 @@ function seedUser(): void {
         2,
         null,
       );
+    database.sqlite
+      .prepare(
+        'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
+      )
+      .run(
+        'owner-session',
+        'owner-session-token',
+        'owner',
+        new Date(Date.now() + 60_000).toISOString(),
+        now,
+        now,
+      );
   } finally {
     database.sqlite.close();
   }
@@ -102,7 +118,12 @@ function readIdentity(): Record<string, unknown> {
 function event(action: 'enable' | 'verify' | 'disable', body: Record<string, string>) {
   return {
     locals: {
-      user: { id: 'owner', role: 'owner_admin', status: 'active' },
+      user: {
+        id: 'owner',
+        email: 'antonny.luty@j-aautomation.com',
+        role: 'owner_admin',
+        status: 'active',
+      },
       session: { id: 'owner-session', userId: 'owner' },
       correlationId: 'mfa-correlation',
     },
@@ -138,6 +159,13 @@ beforeEach(() => {
   seedUser();
   authMocks.enableTwoFactor.mockReset();
   authMocks.verifyTOTP.mockReset();
+  setupMocks.generateManagedMfaSetup.mockReset();
+  setupMocks.generateManagedMfaSetup.mockResolvedValue({
+    encryptedSecret: 'new-secret',
+    encryptedBackupCodes: 'new-codes',
+    totpURI: 'otpauth://totp/J&A:owner',
+    backupCodes: ['one-time-code'],
+  });
   auditMocks.assertAuthAuditReady.mockReset();
   auditMocks.recordAuthAudit.mockReset();
 });
@@ -154,27 +182,6 @@ afterEach(() => {
 
 describe('MFA canonical audit boundary', () => {
   it('records setup, verification and disable through the canonical writer', async () => {
-    authMocks.enableTwoFactor.mockImplementation(async () => {
-      const database = createDatabase();
-      try {
-        database.sqlite
-          .prepare(
-            `UPDATE user SET two_factor_enabled=1,updated_at=?,version=version+1 WHERE id='owner'`,
-          )
-          .run(new Date().toISOString());
-        database.sqlite
-          .prepare(
-            `UPDATE two_factor SET secret='new-secret',backup_codes='new-codes',verified=0 WHERE user_id='owner'`,
-          )
-          .run();
-      } finally {
-        database.sqlite.close();
-      }
-      return {
-        totpURI: 'otpauth://totp/J&A:owner',
-        backupCodes: ['one-time-code'],
-      };
-    });
     authMocks.verifyTOTP.mockImplementation(async () => {
       const database = createDatabase();
       try {
@@ -231,32 +238,28 @@ describe('MFA canonical audit boundary', () => {
     }
   });
 
-  it('preserves authentication cookies while making setup secrets uncacheable', async () => {
-    authMocks.enableTwoFactor.mockResolvedValue({
-      response: {
-        totpURI: 'otpauth://totp/J&A:owner',
-        backupCodes: ['one-time-code'],
-      },
-      headers: new Headers({ 'set-cookie': 'session=rotated; HttpOnly; Secure' }),
-    });
+  it('keeps setup secrets uncacheable without rotating the live session', async () => {
     const response = await POST(event('enable', {}));
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('private, no-store');
-    expect(response.headers.get('set-cookie')).toBe('session=rotated; HttpOnly; Secure');
+    expect(response.headers.get('set-cookie')).toBeNull();
+    const database = createDatabase();
+    try {
+      expect(
+        database.sqlite.prepare("SELECT id FROM session WHERE id='owner-session'").get(),
+      ).toEqual({ id: 'owner-session' });
+    } finally {
+      database.sqlite.close();
+    }
   });
 
-  it('uses the passwordless Better Auth setup contract and rejects another enable after enrollment', async () => {
-    authMocks.enableTwoFactor.mockResolvedValue({
-      totpURI: 'otpauth://totp/J&A:owner',
-      backupCodes: ['one-time-code'],
-    });
+  it('uses managed encrypted setup and rejects another enable after enrollment', async () => {
     expect((await POST(event('enable', {}))).status).toBe(200);
-    expect(authMocks.enableTwoFactor).toHaveBeenCalledWith(
-      expect.objectContaining({
-        body: { method: 'totp', issuer: 'J&A Automation' },
-      }),
+    expect(setupMocks.generateManagedMfaSetup).toHaveBeenCalledWith(
+      'test-secret-config',
+      'antonny.luty@j-aautomation.com',
     );
-
+    expect(authMocks.enableTwoFactor).not.toHaveBeenCalled();
     const database = createDatabase();
     try {
       database.sqlite.prepare("UPDATE user SET mfa_enrolled=1 WHERE id='owner'").run();
@@ -271,7 +274,7 @@ describe('MFA canonical audit boundary', () => {
       messageKey: 'problem.mfa.alreadyEnrolled',
       remedies: [{ id: 'review_mfa_status' }],
     });
-    expect(authMocks.enableTwoFactor).toHaveBeenCalledTimes(1);
+    expect(setupMocks.generateManagedMfaSetup).toHaveBeenCalledTimes(1);
   });
 
   it('returns typed sign-in and field problems before changing MFA', async () => {
@@ -373,29 +376,10 @@ describe('MFA canonical audit boundary', () => {
     expect(authMocks.enableTwoFactor).not.toHaveBeenCalled();
   });
 
-  it('restores Better Auth and local projections when setup audit fails', async () => {
-    authMocks.enableTwoFactor.mockImplementation(async () => {
-      const database = createDatabase();
-      try {
-        database.sqlite
-          .prepare(
-            `UPDATE user SET two_factor_enabled=1,updated_at=?,version=version+1 WHERE id='owner'`,
-          )
-          .run(new Date().toISOString());
-        database.sqlite
-          .prepare(
-            `UPDATE two_factor SET secret='new-secret',backup_codes='new-codes',verified=0 WHERE user_id='owner'`,
-          )
-          .run();
-      } finally {
-        database.sqlite.close();
-      }
-      return { totpURI: 'otpauth://totp/J&A:owner', backupCodes: ['new-code'] };
-    });
+  it('rolls back managed setup when its atomic audit write fails', async () => {
     auditMocks.recordAuthAudit.mockImplementation(() => {
       throw new auditMocks.AuthAuditFailure('AUTH_AUDIT_WRITE_FAILED');
     });
-
     const response = await POST(event('enable', {}));
     expect(response.status).toBe(503);
     expect(await problem(response)).toMatchObject({
@@ -412,31 +396,22 @@ describe('MFA canonical audit boundary', () => {
     });
   });
 
-  it('reports uncertain MFA state when audit compensation itself fails', async () => {
-    authMocks.enableTwoFactor.mockImplementation(async () => {
+  it('reports uncertain MFA state when verification compensation itself fails', async () => {
+    authMocks.verifyTOTP.mockImplementation(async () => {
       const database = createDatabase();
       try {
         database.sqlite.prepare("UPDATE user SET two_factor_enabled=1 WHERE id='owner'").run();
         database.sqlite
-          .prepare("UPDATE two_factor SET secret='new-secret' WHERE user_id='owner'")
+          .prepare("UPDATE two_factor SET secret='new-secret',verified=1 WHERE user_id='owner'")
           .run();
+        database.sqlite.exec(
+          `CREATE TRIGGER deny_mfa_restore BEFORE UPDATE ON user BEGIN SELECT RAISE(ABORT, 'private restore failure detail'); END`,
+        );
       } finally {
         database.sqlite.close();
       }
-      return { totpURI: 'otpauth://totp/J&A:owner', backupCodes: ['new-code'] };
     });
-    auditMocks.recordAuthAudit.mockImplementation(() => {
-      const database = createDatabase();
-      try {
-        database.sqlite.exec(`CREATE TRIGGER deny_mfa_restore BEFORE UPDATE ON user
-          BEGIN SELECT RAISE(ABORT, 'private restore failure detail'); END`);
-      } finally {
-        database.sqlite.close();
-      }
-      throw new auditMocks.AuthAuditFailure('AUTH_AUDIT_WRITE_FAILED');
-    });
-
-    const response = await POST(event('enable', {}));
+    const response = await POST(event('verify', { code: '123456' }));
     expect(response.status).toBe(503);
     const body = await problem(response);
     expect(body).toMatchObject({
@@ -448,10 +423,7 @@ describe('MFA canonical audit boundary', () => {
     expect(String(body.error)).not.toContain('Reference:');
     expect(String(body.error)).not.toContain('no change was applied');
     expect(JSON.stringify(body)).not.toContain('private restore failure detail');
-    expect(readIdentity()).toMatchObject({
-      two_factor_enabled: 1,
-      secret: 'new-secret',
-    });
+    expect(readIdentity()).toMatchObject({ two_factor_enabled: 1, secret: 'new-secret' });
   });
 
   it('restores local and Better Auth state when verification audit fails', async () => {

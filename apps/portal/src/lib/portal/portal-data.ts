@@ -20,6 +20,7 @@ export type PortalData = {
   projects?: PortalRow[];
   clients?: PortalRow[];
   assignments?: PortalRow[];
+  assignmentToday?: string;
   timeAssignments?: PortalRow[];
   contacts?: PortalRow[];
   workers?: PortalRow[];

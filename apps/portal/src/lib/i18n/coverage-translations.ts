@@ -8326,8 +8326,8 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Há horas aprovadas sem tarifa do cliente. Adicione a tarifa de mão de obra do cliente em Finanças e crie o rascunho novamente.',
   ],
   'action.billing.readiness.missingExpenseCurrencyConversion': [
-    'Hay gastos en otra moneda sin conversión a la de facturación. Completa la conversión en Finanzas.',
-    'Há despesas em outra moeda sem conversão para a de faturamento. Conclua a conversão em Finanças.',
+    'Los gastos en otra moneda necesitan importes verificados en la moneda de facturación. Actualmente no se puede introducir una conversión aquí. Revisa la clasificación del gasto y del reembolso en Finanzas.',
+    'Despesas em outra moeda precisam de valores verificados na moeda de faturamento. Atualmente não é possível informar uma conversão aqui. Revise a classificação da despesa e do reembolso em Finanças.',
   ],
   'action.billing.readiness.missingExpenseFinanceProjection': [
     'Hay gastos clasificados sin proyección financiera. Completa la clasificación comercial en Finanzas.',
@@ -9190,7 +9190,7 @@ function englishActionMessage(key: string): string {
     'action.billing.readiness.missingClientRate':
       'Approved hours are missing a client labor rate. Add the client rate in Finance, then create the draft again.',
     'action.billing.readiness.missingExpenseCurrencyConversion':
-      'Expenses in another currency are missing conversion into the billing currency. Complete the conversion in Finance.',
+      'Expenses in another currency need verified amounts in the billing currency. Currency conversion cannot currently be entered here. Review their expense and reimbursement classification in Finance.',
     'action.billing.readiness.missingExpenseFinanceProjection':
       'Classified expenses are missing a finance projection. Complete commercial classification in Finance.',
     'action.billing.readiness.customerSignoffRequired':

@@ -6,7 +6,7 @@
   import { base } from '$app/paths';
   import { enhance } from '$app/forms';
   import { page } from '$app/stores';
-  import { beforeNavigate, replaceState } from '$app/navigation';
+  import { beforeNavigate, invalidateAll, replaceState } from '$app/navigation';
   import { onMount, tick } from 'svelte';
   import { portalText, type PortalLocale } from '../../portal-i18n';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
@@ -22,6 +22,7 @@
   import { billingReadinessMessageKey, billingReadinessReviewPath } from '../billing-readiness';
   import { localizedServerFieldMessage } from '../ui/form-validation';
   import { reversalRecoveryState } from '../billing-reversal-recovery';
+  import { formatTaxBasisPoints, taxProfileComponents } from '../tax-profile-presentation';
 
   const draftPeriodWarning: ProblemData = {
     code: 'WARNING_BILLING_DRAFT_PERIOD_SCOPE',
@@ -1152,7 +1153,8 @@
       (reversalDraft?.paymentId && selectedInvoiceId === reversalInvoiceId),
     );
     const inInvoiceDrawer = Boolean(invoiceFailureId && selectedInvoiceId === invoiceFailureId);
-    const focusKey = `${id}:${inPaymentDrawer || inInvoiceDrawer ? 'drawer' : inWizard ? 'wizard' : 'page'}`;
+    const inTaxRecovery = canManageBilling && (taxProfileUnavailable || taxProfileRetryDenied);
+    const focusKey = `${id}:${inPaymentDrawer || inInvoiceDrawer ? 'drawer' : inWizard ? 'wizard' : inTaxRecovery ? 'tax-recovery' : 'page'}`;
     if (!id || focusKey === focusedProblemId) return;
     focusedProblemId = focusKey;
     if (
@@ -1166,9 +1168,11 @@
       const selector =
         inPaymentDrawer || inInvoiceDrawer
           ? '[data-billing-invoice-problem] [data-ui="problem-notice"], [data-billing-payment-problem] [data-ui="problem-notice"], [data-billing-planning-problem] [data-ui="problem-notice"]'
-          : inWizard
-            ? '.billing-section__invoice-wizard [data-ui="problem-notice"]'
-            : '[data-ui="billing-section"] > [data-ui="problem-notice"]';
+          : inTaxRecovery
+            ? '[data-tax-recovery] [data-ui="problem-notice"]'
+            : inWizard
+              ? '.billing-section__invoice-wizard [data-ui="problem-notice"]'
+              : '[data-ui="billing-section"] > [data-ui="problem-notice"]';
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           const notice = document.querySelector<HTMLElement>(selector);
@@ -1441,6 +1445,51 @@
   const canManageBilling = $derived(
     !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
   );
+  const taxProfileFailure = $derived(
+    Boolean(
+      billingProblem && ['updateTaxProfile', 'archiveTaxProfile'].includes(billingFailureOperation),
+    ),
+  );
+  const taxProfileRetryDenied = $derived(
+    taxProfileFailure &&
+      [
+        'BILLING_FINANCE_REQUIRED',
+        'ACTION_ERROR_FORBIDDEN',
+        'ACTION_ERROR_UNAUTHENTICATED',
+      ].includes(billingProblem?.code ?? ''),
+  );
+  const taxProfileUnavailable = $derived(
+    taxProfileFailure &&
+      (billingProblem?.code === 'BILLING_TAX_PROFILE_UNAVAILABLE' ||
+        !(data.taxProfiles ?? []).some(
+          (profile) => rowValue(profile, 'id') === billingFailureValues.taxProfileId,
+        )),
+  );
+  let taxProfileRefresh = $state<'idle' | 'refreshing' | 'done' | 'failed'>('idle');
+  let refreshedTaxProfileProblem = '';
+  let observedTaxProfileProblem = '';
+  $effect(() => {
+    const problemId = billingProblem?.correlationId ?? '';
+    if (problemId !== observedTaxProfileProblem) {
+      observedTaxProfileProblem = problemId;
+      taxProfileRefresh = 'idle';
+    }
+    if (
+      !problemId ||
+      problemId === refreshedTaxProfileProblem ||
+      billingProblem?.code !== 'BILLING_TAX_PROFILE_UNAVAILABLE'
+    )
+      return;
+    refreshedTaxProfileProblem = problemId;
+    taxProfileRefresh = 'refreshing';
+    void invalidateAll()
+      .then(() => {
+        if (billingProblem?.correlationId === problemId) taxProfileRefresh = 'done';
+      })
+      .catch(() => {
+        if (billingProblem?.correlationId === problemId) taxProfileRefresh = 'failed';
+      });
+  });
   const canManageIssuerAndNumbering = $derived(data.user.role === 'owner_admin');
   const canVoidInvoice = $derived(data.user.role === 'owner_admin');
 
@@ -1698,6 +1747,7 @@
         )
       )
         return true;
+      if (taxProfileFailure) return true;
     }
     return (
       workspace === 'streams' &&
@@ -3058,34 +3108,189 @@
               </tbody>
             </table>
           </details>
-          <details class="billing-reference-directory" use:disclosure>
+          <details
+            class="billing-reference-directory"
+            data-tax-profile-directory
+            open={['updateTaxProfile', 'archiveTaxProfile'].includes(billingFailureOperation)}
+            use:disclosure
+          >
             <summary
               >{translate('Tax profiles')}
               <span class="disclosure-count">{data.taxProfiles?.length ?? 0}</span></summary
             >
-            <table class="billing-section__table">
-              <thead>
-                <tr>
-                  <th scope="col">{translate('Name')}</th>
-                  <th scope="col">{translate('Legal entity')}</th>
-                  <th scope="col">{translate('Currency')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each data.taxProfiles ?? [] as profile}
-                  <tr>
-                    <td>{rowValue(profile, 'name')}</td>
-                    <td
-                      >{rowValue(profile, 'legal_entity_code', 'legalEntityCode') ||
-                        translate('Global profile')}</td
-                    >
-                    <td>{rowValue(profile, 'currency')}</td>
-                  </tr>
-                {:else}
-                  <tr><td colspan="3">{translate('No tax profiles recorded.')}</td></tr>
-                {/each}
-              </tbody>
-            </table>
+            <p>
+              {translate(
+                'To change rates, dates or currency, create a new tax profile and explicitly select it in the applicable billing stream. Its effective date does not automatically replace another profile.',
+              )}
+            </p>
+            <p>
+              {translate(
+                'This list shows active profiles. Archived profiles leave this list; their components and issued invoice history are retained.',
+              )}
+            </p>
+            {#if taxProfileUnavailable || taxProfileRetryDenied}
+              <div data-tax-recovery>
+                <ProblemNotice
+                  problem={billingProblem!}
+                  kind="error"
+                  remedyLinks={problemRemedyLinks}
+                />
+                <p>
+                  {#if taxProfileRefresh === 'refreshing'}{translate(
+                      'Refreshing current tax profile information…',
+                    )}
+                  {:else if taxProfileRefresh === 'done'}{translate(
+                      'Current profile information has been refreshed. The submitted change was not retried. Copy any entered name before leaving this view.',
+                    )}
+                  {:else if taxProfileRefresh === 'failed'}{translate(
+                      'Current profile information could not be refreshed. Your entered name is retained. Check your connection and reload to review the profile.',
+                    )}
+                  {:else}{translate(
+                      'Review the current profile and your access before retrying. Copy any entered name before reloading this page.',
+                    )}{/if}
+                </p>
+                {#if billingFailureValues.name !== undefined}
+                  <dl class="record-facts" data-tax-retained-name>
+                    <div>
+                      <dt>{translate('Entered name (not saved)')}</dt>
+                      <dd>{billingFailureValues.name || translate('Empty')}</dd>
+                    </div>
+                  </dl>
+                {/if}
+              </div>
+            {/if}
+            {#each data.taxProfiles ?? [] as profile}
+              {@const profileId = rowValue(profile, 'id')}
+              {@const components = taxProfileComponents(profile.components_json)}
+              <SectionCard
+                title={rowValue(profile, 'name')}
+                headingId={`tax-profile-${profileId}-title`}
+                class="billing-section__tax-profile"
+                data-tax-profile={profileId}
+              >
+                <dl class="record-facts">
+                  <div>
+                    <dt>{translate('Invoice issuer (J&A Automation)')}</dt>
+                    <dd>
+                      {rowValue(profile, 'legal_entity_code', 'legalEntityCode') ||
+                        translate('Global profile')}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{translate('Currency')}</dt>
+                    <dd>{rowValue(profile, 'currency')}</dd>
+                  </div>
+                  <div>
+                    <dt>{translate('Effective from')}</dt>
+                    <dd>{rowValue(profile, 'effective_from', 'effectiveFrom')}</dd>
+                  </div>
+                  <div>
+                    <dt>{translate('Status')}</dt>
+                    <dd>{controlledValue('status', rowValue(profile, 'status'))}</dd>
+                  </div>
+                </dl>
+                <h4>{translate('Tax components')}</h4>
+                <ul data-tax-components>
+                  {#if components === null}<li>
+                      {translate(
+                        'Tax component details are unavailable. Reload this page to review the current profile.',
+                      )}
+                    </li>
+                  {:else}{#each components as component}
+                      <li>
+                        {component.name} · {formatTaxBasisPoints(component.basisPoints)} · {translate(
+                          component.compound ? 'Compound tax' : 'Non-compound tax',
+                        )}
+                      </li>
+                    {:else}<li>{translate('No tax components recorded.')}</li>{/each}{/if}
+                </ul>
+                {#if !taxProfileRetryDenied && !(taxProfileUnavailable && profileId === billingFailureValues.taxProfileId)}<details
+                    class="billing-section__rule-editor"
+                    open={problemFor('updateTaxProfile', 'taxProfileId', profileId) ||
+                      problemFor('archiveTaxProfile', 'taxProfileId', profileId)}
+                  >
+                    <summary class="secondary-button">{translate('Manage tax profile')}</summary>
+                    <div class="billing-section__rule-actions">
+                      {#if problemFor('updateTaxProfile', 'taxProfileId', profileId)}
+                        <ProblemNotice
+                          problem={billingProblem!}
+                          kind="error"
+                          remedyLinks={problemRemedyLinks}
+                        />
+                      {/if}
+                      <form
+                        method="POST"
+                        action="?/updateTaxProfile"
+                        class="billing-section__config-form"
+                        use:recoverBillingForm={recoveryOptions(
+                          'updateTaxProfile',
+                          'taxProfileId',
+                          profileId,
+                        )}
+                        use:enhance
+                      >
+                        <h4>{translate('Rename tax profile')}</h4>
+                        <p>
+                          {translate(
+                            'Renaming changes only the profile name. Rates, dates, currency and issued invoice snapshots stay unchanged.',
+                          )}
+                        </p>
+                        <input type="hidden" name="taxProfileId" value={profileId} />
+                        <label
+                          ><span>{translate('Name')}</span><input
+                            name="name"
+                            value={rowValue(profile, 'name')}
+                            maxlength="160"
+                            required
+                          /></label
+                        >
+                        <label class="billing-section__checkbox"
+                          ><input name="confirmTaxProfileChange" type="checkbox" required /><span
+                            >{translate('I confirm this profile rename.')}</span
+                          ></label
+                        >
+                        <button type="submit">{translate('Rename tax profile')}</button>
+                      </form>
+                      {#if problemFor('archiveTaxProfile', 'taxProfileId', profileId)}
+                        <ProblemNotice
+                          problem={billingProblem!}
+                          kind="error"
+                          remedyLinks={problemRemedyLinks}
+                        />
+                      {/if}
+                      <form
+                        method="POST"
+                        action="?/archiveTaxProfile"
+                        class="billing-section__config-form"
+                        use:recoverBillingForm={recoveryOptions(
+                          'archiveTaxProfile',
+                          'taxProfileId',
+                          profileId,
+                        )}
+                        use:enhance
+                      >
+                        <h4>{translate('Archive tax profile')}</h4>
+                        <p>
+                          {translate(
+                            'Streams using an archived profile cannot create new invoice drafts until a replacement profile is explicitly selected. An approved invoice using this profile must be issued or recalculated before archiving. Issued invoices stay unchanged.',
+                          )}
+                        </p>
+                        <input type="hidden" name="taxProfileId" value={profileId} />
+                        <label class="billing-section__checkbox"
+                          ><input name="confirmTaxProfileChange" type="checkbox" required /><span
+                            >{translate(
+                              'I have reviewed linked streams and confirm archiving this profile.',
+                            )}</span
+                          ></label
+                        >
+                        <button type="submit" class="danger"
+                          >{translate('Archive tax profile')}</button
+                        >
+                      </form>
+                    </div>
+                  </details>{/if}
+              </SectionCard>
+            {:else}<p>{translate('No tax profiles recorded.')}</p>{/each}
           </details>
         </div>
 
@@ -3362,7 +3567,7 @@
             >
               <h4>{translate('New tax profile')}</h4>
               <label>
-                <span>{translate('Legal entity')}</span>
+                <span>{translate('Invoice issuer (J&A Automation)')}</span>
                 <select name="legalEntityId">
                   <option value="">{translate('Global profile')}</option>
                   {#each data.legalEntities ?? [] as entity}
@@ -5175,6 +5380,16 @@
 </div>
 
 <style>
+  [data-tax-profile-directory] :global(.record-facts dd),
+  [data-tax-profile-directory] :global(.ui-card-heading),
+  [data-tax-components] li {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
   .billing-section__issuer-mobile-label {
     display: none;
   }

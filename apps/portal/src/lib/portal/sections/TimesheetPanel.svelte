@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { datePresetRange } from '../ui/date-presets';
@@ -114,13 +115,17 @@
     </form>
   </div>
   <nav class="timesheet-week-navigation" aria-label={translate('Week of')}>
-    <a href={weekHref(shiftWeek(data.weekStart ?? '', -7))}>← {translate('Previous week')}</a>
+    <a href={weekHref(shiftWeek(data.weekStart ?? '', -7))}
+      ><DirectionIcon direction="left" /> {translate('Previous week')}</a
+    >
     {#if currentWeek}<a
         href={weekHref(currentWeek)}
         aria-current={data.weekStart === currentWeek ? 'date' : undefined}
         >{translate('This week')}</a
       >{/if}
-    <a href={weekHref(shiftWeek(data.weekStart ?? '', 7))}>{translate('Next week')} →</a>
+    <a href={weekHref(shiftWeek(data.weekStart ?? '', 7))}
+      >{translate('Next week')} <DirectionIcon /></a
+    >
   </nav>
   <div class="timesheet-guide" aria-label={translate('How to read this timesheet')}>
     <div>

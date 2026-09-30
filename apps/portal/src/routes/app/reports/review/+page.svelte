@@ -582,7 +582,7 @@
                     aria-disabled={reportPdfBusyId === report.reportId}
                     onclick={(event) => onReportPdfLinkClick(event, report.reportId)}
                     onauxclick={(event) => onReportPdfLinkClick(event, report.reportId)}
-                    >{copy.openPdf} ↗</a
+                    >{copy.openPdf} <DirectionIcon direction="up-right" /></a
                   >
                 {/if}
               </div>
@@ -630,7 +630,9 @@
                 <ul>
                   {#each report.sources as source}
                     <li data-source-link={source.id}>
-                      <a href={linkFor(source.href)}>{sourceLabel(source)} ↗</a>
+                      <a href={linkFor(source.href)}
+                        >{sourceLabel(source)} <DirectionIcon direction="up-right" /></a
+                      >
                     </li>
                   {:else}
                     <li>{copy.noSources}</li>
@@ -941,7 +943,8 @@
                         >{copy.reasonLabels[String(reason.code)] ?? reasonLabel(reason.code)}</span
                       >
                       {#if sourceHref}<a href={linkFor(sourceHref)}
-                          >{copy.openSource} · {display(reason.sourceId)} ↗</a
+                          >{copy.openSource} · {display(reason.sourceId)}
+                          <DirectionIcon direction="up-right" /></a
                         >{:else if reason.code === 'period_cutoff_mismatch'}<small
                           >{copy.cadenceMismatch}</small
                         >{/if}

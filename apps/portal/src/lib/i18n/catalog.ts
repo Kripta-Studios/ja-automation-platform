@@ -28,6 +28,33 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'Refreshing current tax profile information…': 'Refreshing current tax profile information…',
+  'Current profile information has been refreshed. The submitted change was not retried. Copy any entered name before leaving this view.':
+    'Current profile information has been refreshed. The submitted change was not retried. Copy any entered name before leaving this view.',
+  'Current profile information could not be refreshed. Your entered name is retained. Check your connection and reload to review the profile.':
+    'Current profile information could not be refreshed. Your entered name is retained. Check your connection and reload to review the profile.',
+  'Tax component details are unavailable. Reload this page to review the current profile.':
+    'Tax component details are unavailable. Reload this page to review the current profile.',
+  'Review the current profile and your access before retrying. Copy any entered name before reloading this page.':
+    'Review the current profile and your access before retrying. Copy any entered name before reloading this page.',
+  'Entered name (not saved)': 'Entered name (not saved)',
+  'Tax components': 'Tax components',
+  'Non-compound tax': 'Non-compound tax',
+  'No tax components recorded.': 'No tax components recorded.',
+  'Manage tax profile': 'Manage tax profile',
+  'Rename tax profile': 'Rename tax profile',
+  'Archive tax profile': 'Archive tax profile',
+  'I confirm this profile rename.': 'I confirm this profile rename.',
+  'I have reviewed linked streams and confirm archiving this profile.':
+    'I have reviewed linked streams and confirm archiving this profile.',
+  'Renaming changes only the profile name. Rates, dates, currency and issued invoice snapshots stay unchanged.':
+    'Renaming changes only the profile name. Rates, dates, currency and issued invoice snapshots stay unchanged.',
+  'To change rates, dates or currency, create a new tax profile and explicitly select it in the applicable billing stream. Its effective date does not automatically replace another profile.':
+    'To change rates, dates or currency, create a new tax profile and explicitly select it in the applicable billing stream. Its effective date does not automatically replace another profile.',
+  'This list shows active profiles. Archived profiles leave this list; their components and issued invoice history are retained.':
+    'This list shows active profiles. Archived profiles leave this list; their components and issued invoice history are retained.',
+  'Streams using an archived profile cannot create new invoice drafts until a replacement profile is explicitly selected. An approved invoice using this profile must be issued or recalculated before archiving. Issued invoices stay unchanged.':
+    'Streams using an archived profile cannot create new invoice drafts until a replacement profile is explicitly selected. An approved invoice using this profile must be issued or recalculated before archiving. Issued invoices stay unchanged.',
   'Copy these values before reviewing the current invoice.':
     'Copy these values before reviewing the current invoice.',
   'Preview is available before issuance. The final PDF is generated after issuance.':
@@ -418,6 +445,33 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'Refreshing current tax profile information…': 'Actualizando la información del perfil fiscal…',
+  'Current profile information has been refreshed. The submitted change was not retried. Copy any entered name before leaving this view.':
+    'Se ha actualizado la información del perfil. No se ha vuelto a enviar el cambio. Copia el nombre introducido antes de salir de esta vista.',
+  'Current profile information could not be refreshed. Your entered name is retained. Check your connection and reload to review the profile.':
+    'No se pudo actualizar la información del perfil. Se conserva el nombre introducido. Revisa tu conexión y recarga para consultar el perfil.',
+  'Tax component details are unavailable. Reload this page to review the current profile.':
+    'Los detalles de los componentes fiscales no están disponibles. Recarga esta página para revisar el perfil actual.',
+  'Review the current profile and your access before retrying. Copy any entered name before reloading this page.':
+    'Revisa el perfil actual y tu acceso antes de volver a intentarlo. Copia el nombre introducido antes de recargar esta página.',
+  'Entered name (not saved)': 'Nombre introducido (sin guardar)',
+  'Tax components': 'Componentes fiscales',
+  'Non-compound tax': 'Impuesto no compuesto',
+  'No tax components recorded.': 'No se han registrado componentes fiscales.',
+  'Manage tax profile': 'Gestionar perfil fiscal',
+  'Rename tax profile': 'Renombrar perfil fiscal',
+  'Archive tax profile': 'Archivar perfil fiscal',
+  'I confirm this profile rename.': 'Confirmo el cambio de nombre de este perfil.',
+  'I have reviewed linked streams and confirm archiving this profile.':
+    'He revisado las líneas vinculadas y confirmo que deseo archivar este perfil.',
+  'Renaming changes only the profile name. Rates, dates, currency and issued invoice snapshots stay unchanged.':
+    'Al renombrar solo cambia el nombre del perfil. Los tipos, las fechas, la moneda y las instantáneas de las facturas emitidas no cambian.',
+  'To change rates, dates or currency, create a new tax profile and explicitly select it in the applicable billing stream. Its effective date does not automatically replace another profile.':
+    'Para cambiar los tipos, las fechas o la moneda, crea un nuevo perfil fiscal y selecciónalo expresamente en la línea de facturación correspondiente. Su fecha de vigencia no sustituye automáticamente otro perfil.',
+  'This list shows active profiles. Archived profiles leave this list; their components and issued invoice history are retained.':
+    'Esta lista muestra perfiles activos. Los perfiles archivados dejan de aparecer aquí; sus componentes y el historial de facturas emitidas se conservan.',
+  'Streams using an archived profile cannot create new invoice drafts until a replacement profile is explicitly selected. An approved invoice using this profile must be issued or recalculated before archiving. Issued invoices stay unchanged.':
+    'Las líneas que usan un perfil archivado no pueden crear nuevos borradores de factura hasta que se seleccione expresamente un perfil de reemplazo. Antes de archivar este perfil, hay que emitir o recalcular cualquier factura aprobada que lo use. Las facturas emitidas no cambian.',
   'Copy these values before reviewing the current invoice.':
     'Copia estos valores antes de revisar la factura actual.',
   'Preview is available before issuance. The final PDF is generated after issuance.':
@@ -802,6 +856,33 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'Refreshing current tax profile information…': 'Atualizando as informações do perfil tributário…',
+  'Current profile information has been refreshed. The submitted change was not retried. Copy any entered name before leaving this view.':
+    'As informações do perfil foram atualizadas. A alteração não foi reenviada. Copie o nome informado antes de sair desta tela.',
+  'Current profile information could not be refreshed. Your entered name is retained. Check your connection and reload to review the profile.':
+    'Não foi possível atualizar as informações do perfil. O nome informado foi mantido. Verifique sua conexão e recarregue para revisar o perfil.',
+  'Tax component details are unavailable. Reload this page to review the current profile.':
+    'Os detalhes dos componentes tributários estão indisponíveis. Recarregue esta página para revisar o perfil atual.',
+  'Review the current profile and your access before retrying. Copy any entered name before reloading this page.':
+    'Revise o perfil atual e seu acesso antes de tentar novamente. Copie o nome informado antes de recarregar esta página.',
+  'Entered name (not saved)': 'Nome informado (não salvo)',
+  'Tax components': 'Componentes tributários',
+  'Non-compound tax': 'Imposto não composto',
+  'No tax components recorded.': 'Nenhum componente tributário registrado.',
+  'Manage tax profile': 'Gerenciar perfil tributário',
+  'Rename tax profile': 'Renomear perfil tributário',
+  'Archive tax profile': 'Arquivar perfil tributário',
+  'I confirm this profile rename.': 'Confirmo a alteração do nome deste perfil.',
+  'I have reviewed linked streams and confirm archiving this profile.':
+    'Revisei os fluxos vinculados e confirmo o arquivamento deste perfil.',
+  'Renaming changes only the profile name. Rates, dates, currency and issued invoice snapshots stay unchanged.':
+    'Renomear altera apenas o nome do perfil. As alíquotas, datas, moeda e os registros das faturas emitidas permanecem inalterados.',
+  'To change rates, dates or currency, create a new tax profile and explicitly select it in the applicable billing stream. Its effective date does not automatically replace another profile.':
+    'Para alterar alíquotas, datas ou moeda, crie um novo perfil tributário e selecione-o explicitamente no fluxo de faturamento aplicável. Sua data de vigência não substitui automaticamente outro perfil.',
+  'This list shows active profiles. Archived profiles leave this list; their components and issued invoice history are retained.':
+    'Esta lista mostra perfis ativos. Perfis arquivados deixam de aparecer aqui; seus componentes e o histórico de faturas emitidas são preservados.',
+  'Streams using an archived profile cannot create new invoice drafts until a replacement profile is explicitly selected. An approved invoice using this profile must be issued or recalculated before archiving. Issued invoices stay unchanged.':
+    'Fluxos que usam um perfil arquivado não podem criar novos rascunhos de fatura até que um perfil substituto seja selecionado explicitamente. Uma fatura aprovada que use este perfil deve ser emitida ou recalculada antes do arquivamento. Faturas emitidas permanecem inalteradas.',
   'Copy these values before reviewing the current invoice.':
     'Copie estes valores antes de revisar a fatura atual.',
   'Preview is available before issuance. The final PDF is generated after issuance.':

@@ -4958,9 +4958,28 @@ export class PortalRepository {
     this.assertReadable(principal);
     if (!canManageBilling(principal) && principal.role !== 'auditor_read_only')
       throw new AccessDeniedError('Finance role required');
+    // Preserve the existing read-only Auditor projection. Component metadata
+    // supports the Owner/Finance configuration directory only.
+    if (!canManageBilling(principal))
+      return this.sqlite
+        .prepare(
+          "SELECT tp.id,tp.name,tp.currency,tp.effective_from,tp.legal_entity_id,tp.status,le.code legal_entity_code FROM tax_profile tp LEFT JOIN legal_entity le ON le.id=tp.legal_entity_id WHERE tp.status='active' AND (tp.legal_entity_id IS NULL OR le.status='active') ORDER BY tp.name",
+        )
+        .all();
     return this.sqlite
       .prepare(
-        "SELECT tp.id,tp.name,tp.currency,tp.effective_from,tp.legal_entity_id,tp.status,le.code legal_entity_code FROM tax_profile tp LEFT JOIN legal_entity le ON le.id=tp.legal_entity_id WHERE tp.status='active' AND (tp.legal_entity_id IS NULL OR le.status='active') ORDER BY tp.name",
+        `SELECT tp.id,tp.name,tp.currency,tp.effective_from,tp.legal_entity_id,tp.status,
+                le.code legal_entity_code,
+                (SELECT json_group_array(json_object(
+                   'name',component.name,'basisPoints',CAST(component.basis_points AS TEXT),
+                   'compound',component.compound
+                 )) FROM (
+                   SELECT name,basis_points,compound FROM tax_component
+                    WHERE tax_profile_id=tp.id ORDER BY calculation_order,id
+                 ) component) components_json
+           FROM tax_profile tp LEFT JOIN legal_entity le ON le.id=tp.legal_entity_id
+          WHERE tp.status='active' AND (tp.legal_entity_id IS NULL OR le.status='active')
+          ORDER BY tp.name`,
       )
       .all();
   }

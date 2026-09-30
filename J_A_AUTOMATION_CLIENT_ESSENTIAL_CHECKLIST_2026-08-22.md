@@ -1117,3 +1117,10 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Luna Team8 casos Owner/Worker/PM/Auditor390/1440 mantiene tab/URL/reload/Back/Forward; descarga UI exacta84bytes por Owner/PM/Worker hash igual, Auditor sin Reports/Documents N/A. Descarga inicial PDF ajeno por locator amplio corregida, copia local retirada sin mutar documento; no guardia ID-notificación cruzada afirmada.
 - [x] Compilado independiente14/14,30 contextos y wizard3/3 sin POST/error/skip/flaky; imágenes PT390/ES390 inspeccionadas.29 filas/ocho hashes financieros y33 archivos iguales, SQLiteOK/FK0, cuatro hashes fuente revisados intactos.
 - [ ] Publicación pendiente. Finance246 filas19PASS1N/A1FAIL225UNTESTED y Operations59 filas48PASS1FAIL10N/A separados; no cobertura universal. FX verificado/pack no vacío/firma genuina pendientes, no CLIENT READY.
+
+## 2026-09-30 — Publicación streams archivados
+
+- [x] d1ccd266db69 publicado/activado30/09 11:37:38Madrid; ZIP e85e6d4b162a y4.264 hashes/commit activos verificados, rollback f92d577 conservado. Chromium producción19/19 siete roles sin error/HTTPfallido; fixtureR5 compilado14 no repetido contra datos inexistentes producción.
+- [x] VPS/jobs/salud/backupOK/FK0/tres docs/tres días; ocho hashes financieros/tres archivos/quince contenedores ajenos/PIDCaddy912 intactos, watchers activos/habilitados. Buildercache6,943GB retirado, imágenes/current/rollback/volúmenes/datos/drafts intactos; headers/network-first verificados.
+- [x] Dos defectos de presentación registrados FIXED por compilado: Finance246 filas19PASS1N/A1FIXED225UNTESTED; cicloFinance69 filas59PASS6N/A1FIXED2UNTESTED1BLOCKED; Operations59 filas48PASS1FIXED10N/A, sin sumar como cobertura universal.
+- [ ] Próximo lote browserUI-only draft diario/documentos QA en ejecución, no PASS anticipado. Auditoría universal/FX/firma genuina siguen pendientes; no CLIENT READY.

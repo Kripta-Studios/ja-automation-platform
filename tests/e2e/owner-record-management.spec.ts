@@ -52,7 +52,7 @@ test('Owner reopens, edits and deletes an approved expense from the interface', 
   await row.getByRole('button', { name: 'Reopen as draft' }).click();
   row = page.locator(`article[id="${id}"]`);
   await expect(row).toContainText('Draft');
-  await row.getByRole('link', { name: 'Open record →' }).click();
+  await row.getByRole('link', { name: 'Open record' }).click();
   const sheet = page.getByRole('dialog');
   await expect(sheet).toBeVisible();
   await sheet.getByLabel('Vendor', { exact: true }).fill(vendor + ' corrected');

@@ -70,7 +70,7 @@ test('unclassified expense guides Finance review to its exact classification for
   );
   await expect(finance.locator('form[action="?/financeApprove"]')).toHaveCount(0);
   await expect(finance.getByRole('button', { name: 'Record Finance review' })).toHaveCount(0);
-  const classificationLink = finance.getByRole('link', { name: 'Classify expense in Finance →' });
+  const classificationLink = finance.getByRole('link', { name: 'Classify expense in Finance' });
   const href = await classificationLink.getAttribute('href');
   expect(href).toContain(`project=${projectId}`);
   expect(href).toContain(`expense=${expenseId}`);

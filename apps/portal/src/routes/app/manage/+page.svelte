@@ -314,7 +314,7 @@
             <a
               class="management-action"
               href={`${base}/app/${section}${section === 'reports' ? '/' + row.id : '?edit=' + row.id}`}
-              >{t('Open record →')}</a
+              >{t('Open record')} <DirectionIcon /></a
             >
             {#if row.managementBlock}
               <p>{t(row.managementBlock)}</p>
@@ -465,7 +465,7 @@
       </label>
     {/each}
     <label
-      >{t('Correction reason')}<textarea
+      >{t(row ? 'Correction reason' : 'Reason')}<textarea
         name="reason"
         value={fieldValue(row, 'reason', 'text')}
         minlength="3"
@@ -475,12 +475,14 @@
     >
     <label class="confirmation"
       ><input type="checkbox" name="confirmed" value="yes" required />{t(
-        'I confirm this change to the selected record.',
+        row
+          ? 'I confirm this change to the selected record.'
+          : 'I confirm creation of this record.',
       )}</label
     >
     <div class="management-tabs">
       <button class="primary-action" name="operation" value={row ? 'update' : 'create'}
-        >{t('Save changes')}</button
+        >{t(row ? 'Save changes' : 'Create record')}</button
       >{#if row}{#if data.area === 'document' && row.archived_at}<button
             name="operation"
             value="restore">{t('Restore')}</button

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { decimalHoursFromMinutes } from '../minute-hours';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { enhance } from '$app/forms';
@@ -2566,12 +2567,12 @@
                             'Set a project issuing authority covering this expense date before classification.',
                           )}
                           <a href={issuingAuthorityHref()}
-                            >{translate('Configure project issuing authority →')}</a
+                            >{translate('Configure project issuing authority')} <DirectionIcon /></a
                           >
                         </p>
                       {:else}
                         <a href={issuingAuthorityHref()}
-                          >{translate('Review project issuing authority →')}</a
+                          >{translate('Review project issuing authority')} <DirectionIcon /></a
                         >
                       {/if}
                       {#if policyRequired}

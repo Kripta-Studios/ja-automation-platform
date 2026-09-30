@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { enhance } from '$app/forms';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
@@ -302,7 +303,7 @@
                   .join(', ')}</span
               >
             {/if}
-            <span class="record-card-open">{translate('Open record →')}</span>
+            <span class="record-card-open">{translate('Open record')} <DirectionIcon /></span>
           </a>
           <div class="inbox-row-actions">
             <span class="state-tag">{row.read_at ? translate('read') : translate('new')}</span>

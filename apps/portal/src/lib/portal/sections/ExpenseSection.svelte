@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { page } from '$app/stores';
   import { beforeNavigate, replaceState } from '$app/navigation';
   import { enhance } from '$app/forms';
@@ -1809,7 +1810,7 @@
                   row.category,
                 ) || translate(String(row.category ?? ''))}
               </small>
-              <span class="record-card-open">{translate('Open record →')}</span>
+              <span class="record-card-open">{translate('Open record')} <DirectionIcon /></span>
             </a>
             <div class="expense-record-statuses">
               <StatusBadge
@@ -1873,7 +1874,7 @@
                   <a
                     class="secondary-button"
                     href={`${base}/app/expenses/${String(row.active_correction_id)}`}
-                    >{translate('Open existing correction')} →</a
+                    >{translate('Open existing correction')} <DirectionIcon /></a
                   >
                 {:else if (row.approval_state === 'approved' || row.approval_state === 'needs_changes') && correctionBlocker(row) === 'shared_receipt'}
                   <p class="expense-record-actions__note">
@@ -1887,7 +1888,7 @@
                   </p>
                   {#if data.user.role === 'owner_admin'}
                     <a class="secondary-button" href={reimbursementStatusHref(row)}
-                      >{translate('Reimbursement')} →</a
+                      >{translate('Reimbursement')} <DirectionIcon /></a
                     >
                   {/if}
                 {:else if (row.approval_state === 'approved' || row.approval_state === 'needs_changes') && correctionBlocker(row) === 'finalized'}
@@ -1898,14 +1899,14 @@
                   <a
                     class="secondary-button"
                     href={`${base}/app/expenses/${String(row.id)}#expense-correction-title`}
-                    >{translate('Create corrected draft')} →</a
+                    >{translate('Create corrected draft')} <DirectionIcon /></a
                   >
                 {/if}
               </div>
             {/if}
             {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
               <a href={`${base}/app/manage?type=expense#${String(row.id)}`}
-                >{translate('Manage record')} →</a
+                >{translate('Manage record')} <DirectionIcon /></a
               >
             {/if}
           </article>

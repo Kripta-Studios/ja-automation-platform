@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { enhance } from '$app/forms';
   import { goto, replaceState } from '$app/navigation';
   import { base } from '$app/paths';
@@ -1072,7 +1073,7 @@
                     )}</strong
                   >
                   <small>{stageLabel(row.review_stage)} · {projectName(row)}</small>
-                  <span>{translate('Open record →')}</span>
+                  <span>{translate('Open record')} <DirectionIcon /></span>
                 </a>
                 <div class="approval-row-status">
                   <StatusBadge
@@ -1143,7 +1144,8 @@
                         value(row, 'review_stage') === 'owner_override'
                           ? 'Create owner override draft'
                           : 'Create correction draft',
-                      )} →</a
+                      )}
+                      <DirectionIcon /></a
                     >
                   {/if}
                 {:else}
@@ -1290,7 +1292,9 @@
               <a class="approval-record-link" href={recordHref(row)}
                 ><strong
                   >{value(row, 'worker_name') || value(row, 'type')} · {value(row, 'date')}</strong
-                ><small>{projectName(row)}</small><span>{translate('Open record →')}</span></a
+                ><small>{projectName(row)}</small><span
+                  >{translate('Open record')} <DirectionIcon /></span
+                ></a
               ><StatusBadge
                 variant={statusVariant(row.approval_state)}
                 text={controlledValue('status', row.approval_state) || value(row, 'approval_state')}
@@ -1351,7 +1355,7 @@
                     'Submitted',
                   )}</small
                 >
-                <span>{translate('Open project →')}</span>
+                <span>{translate('Open project')} <DirectionIcon /></span>
               </a>
               <StatusBadge variant="warning" text={translate('Submitted')} />
             </div>
@@ -1463,7 +1467,7 @@
                     )}</strong
                   >
                   <small>{translate('Finance review')} · {projectName(row)}</small>
-                  <span>{translate('Open record →')}</span>
+                  <span>{translate('Open record')} <DirectionIcon /></span>
                 </a>
                 <StatusBadge variant="warning" text={translate('Approved operationally')} />
               </div>
@@ -1471,7 +1475,7 @@
                 <div class="finance-review-form" data-finance-classification-required>
                   <span>{translate('Classify this expense before Finance review.')}</span>
                   <a href={expenseClassificationHref(row)}
-                    >{translate('Classify expense in Finance →')}</a
+                    >{translate('Classify expense in Finance')} <DirectionIcon /></a
                   >
                 </div>
               {:else if isAuditor}

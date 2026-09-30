@@ -3362,7 +3362,7 @@
       />
     {:else if data.section === 'documents'}
       {#if data.user.role === 'owner_admin'}<a href={`${base}/app/manage?area=document`}
-          >{translate('Data management')} →</a
+          >{translate('Data management')} <DirectionIcon /></a
         >{/if}
       <div class="document-workspace">
         <SectionCard
@@ -5201,7 +5201,7 @@
                         translate('Open target')}</small
                     >
                   </div>
-                  <span>{translate('OPEN PROJECT →')}</span>
+                  <span>{translate('Open project').toUpperCase()} <DirectionIcon /></span>
                 </a>
                 {#if canManageProjects}
                   <details class="project-row-actions" use:disclosure>
@@ -5651,7 +5651,7 @@
                     )}</small
                   >
                 </div>
-                <span class="record-card-open">{translate('Open record →')}</span>
+                <span class="record-card-open">{translate('Open record')} <DirectionIcon /></span>
               </a>
             {:else}<div class="empty">{translate('No assignments recorded.')}</div>{/each}
           </SectionCard>
@@ -6208,7 +6208,7 @@
                   · {row.site}</small
                 >
               </div>
-              <span class="record-card-open">{translate('Open record →')}</span>
+              <span class="record-card-open">{translate('Open record')} <DirectionIcon /></span>
               <span class="state-tag">{controlledValue('status', row.status)}</span>
             </a>{/each}
         </section>

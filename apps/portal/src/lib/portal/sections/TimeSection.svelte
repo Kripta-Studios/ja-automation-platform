@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { SectionCard } from '../ui';
   import { page } from '$app/stores';
   import { enhance } from '$app/forms';
@@ -1440,7 +1441,7 @@
               )}</small
             >
             <span class="time-record-summary">{row.activity_summary}</span>
-            <span>{translate('Open record →')}</span>
+            <span>{translate('Open record')} <DirectionIcon /></span>
           </a>
           {#if row.approval_state === 'draft' && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
             <div class="time-submit-warning">
@@ -1473,13 +1474,13 @@
             <a
               class="secondary-button"
               href={`${base}/app/time/${String(row.active_correction_id)}`}
-              >{translate('Open existing correction')} →</a
+              >{translate('Open existing correction')} <DirectionIcon /></a
             >
           {:else if row.approval_state === 'needs_changes' && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
             <a
               class="secondary-button"
               href={`${base}/app/time/${String(row.id)}#time-correction-title`}
-              >{translate('Create corrected draft')} →</a
+              >{translate('Create corrected draft')} <DirectionIcon /></a
             >
           {/if}
           {#if canDelete(row)}
@@ -1501,7 +1502,7 @@
           {/if}
           {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
             <a href={`${base}/app/manage?type=time_entry#${String(row.id)}`}
-              >{translate('Manage record')} →</a
+              >{translate('Manage record')} <DirectionIcon /></a
             >
           {/if}
         </article>

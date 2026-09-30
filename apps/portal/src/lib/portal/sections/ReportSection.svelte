@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { SectionCard } from '../ui';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
@@ -1157,7 +1158,7 @@
                   · {translate('Reviewed by')}: {rowText(row, 'reviewed_by_name')}
                 {/if}
               </small>
-              <span class="report-register-open">{translate('Open report →')}</span>
+              <span class="report-register-open">{translate('Open report')} <DirectionIcon /></span>
               {#if row.approval_state === 'needs_changes'}
                 <span class="report-register-notice"
                   >{translate('Changes requested before resubmission')}</span
@@ -1174,7 +1175,7 @@
             {/if}
             {#if data.user.role === 'owner_admin'}
               <a href={`${base}/app/manage?type=daily_report#${String(row.id)}`}
-                >{translate('Manage record')} →</a
+                >{translate('Manage record')} <DirectionIcon /></a
               >
             {/if}
           </article>
@@ -1259,7 +1260,7 @@
                   · {translate('Reviewed by')}: {rowText(row, 'reviewed_by_name')}
                 {/if}
               </small>
-              <span class="report-register-open">{translate('Open report →')}</span>
+              <span class="report-register-open">{translate('Open report')} <DirectionIcon /></span>
               {#if row.approval_state === 'needs_changes'}
                 <span class="report-register-notice"
                   >{translate('Changes requested before resubmission')}</span
@@ -1276,7 +1277,7 @@
             {/if}
             {#if data.user.role === 'owner_admin'}
               <a href={`${base}/app/manage?type=technical_report#${String(row.id)}`}
-                >{translate('Manage record')} →</a
+                >{translate('Manage record')} <DirectionIcon /></a
               >
             {/if}
           </article>
@@ -1376,7 +1377,9 @@
                   >
                   <StatusBadge variant={signoffVariant(state)} text={signoffLabel(state)} />
                 </span>
-                <span class="report-register-open">{translate('Open sign-off record →')}</span>
+                <span class="report-register-open"
+                  >{translate('Open sign-off record')} <DirectionIcon /></span
+                >
               </a>
             {:else}
               <div
@@ -1505,7 +1508,9 @@
                   report.state,
                 ) || translate(String(report.state ?? 'Unknown'))}</small
               >
-              <span class="report-register-open">{translate('Open period record →')}</span>
+              <span class="report-register-open"
+                >{translate('Open period record')} <DirectionIcon /></span
+              >
             </a>
           {:else}
             <div

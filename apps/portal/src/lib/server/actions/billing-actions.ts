@@ -702,7 +702,7 @@ export function billingProblemFor(
       409,
       'ACCOUNTING_PACK_EXPENSE_CURRENCY_REVIEW_REQUIRED',
       'problem.billing.packExpenseCurrencyReviewRequired',
-      "An approved expense needs verified amounts in the project's currency. Open Finance review to complete its currency conversion and check any reimbursement amount, then retry. Your selected period is retained.",
+      "An approved expense needs verified amounts in the project's currency before this Accounting Pack can be created. Currency conversion cannot currently be entered here. Review its expense classification and any reimbursement classification in Finance review. Your selected period is retained.",
       'review_expense_finance',
       undefined,
       { expenseId: message.split(' ')[1]! },

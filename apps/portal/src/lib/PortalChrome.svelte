@@ -81,6 +81,7 @@
 
   const drawerScrollLockClass = 'portal-drawer-open';
   const pendingSubsectionsKey = 'ja-portal-pending-subsections';
+  const languageNames = { en: 'English', es: 'Español', pt: 'Português (Brasil)' };
 
   const navIconPaths: Record<string, string> = {
     Today: 'M3 10.75 12 3l9 7.75V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.25Z',
@@ -496,7 +497,8 @@
       </svg>
     </span>
     <span class="nav-label">{translate('Company Webmail')}</span>
-    <span class="nav-external-arrow" aria-hidden="true">↗</span>
+    <span class="nav-external-arrow" aria-hidden="true"><DirectionIcon direction="up-right" /></span
+    >
   </a>
   <button class="signout" onclick={logout}>{translate('Sign out')}</button>
 </aside>
@@ -585,7 +587,7 @@
     <span class="visually-hidden">{translate('Language')}</span>
     <select aria-label={translate('Language')} value={locale} onchange={changeLocale}>
       {#each portalLocales as supportedLocale}
-        <option value={supportedLocale}
+        <option value={supportedLocale} aria-label={translate(languageNames[supportedLocale])}
           >{supportedLocale === 'pt' ? 'PT-BR' : supportedLocale.toUpperCase()}</option
         >
       {/each}
@@ -679,7 +681,9 @@
         >
           <span class="account-menu-icon" aria-hidden="true">✉</span>
           <span
-            ><b>{translate('Company Webmail')}</b><small>webmail.j-aautomation.com ↗</small></span
+            ><b>{translate('Company Webmail')}</b><small
+              >webmail.j-aautomation.com <DirectionIcon direction="up-right" size={14} /></small
+            ></span
           >
         </a>
         <div class="account-menu-divider" role="separator"></div>

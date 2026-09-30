@@ -1092,8 +1092,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Não é possível criar o pacote contábil porque falta a configuração de identidade deste ambiente. Contacte o suporte para a restaurar antes de criar o pacote.',
   ],
   'problem.billing.packExpenseCurrencyReviewRequired': [
-    'Un gasto aprobado necesita importes verificados en la moneda del proyecto. Abre Revisión financiera para completar su conversión de moneda y comprobar el importe de reembolso, si corresponde; después, vuelve a intentarlo. Se conserva el periodo seleccionado.',
-    'Uma despesa aprovada precisa de valores verificados na moeda do projeto. Abra Revisão financeira para concluir a conversão de moeda e conferir o valor de reembolso, se houver; depois, tente novamente. O período selecionado é mantido.',
+    'Un gasto aprobado necesita importes verificados en la moneda del proyecto para crear este paquete contable. Actualmente no se puede introducir una conversión de moneda aquí. Revisa la clasificación del gasto y la del reembolso, si corresponde, en Revisión financiera. Se conserva el periodo seleccionado.',
+    'Uma despesa aprovada precisa de valores verificados na moeda do projeto para criar este pacote contábil. Atualmente não é possível informar uma conversão de moeda aqui. Revise a classificação da despesa e do reembolso, se houver, em Revisão financeira. O período selecionado é mantido.',
   ],
   'problem.remedy.contactSupport': ['Contactar con soporte', 'Contactar o suporte'],
   'problem.billing.streamSelectionRequired': [
@@ -10338,7 +10338,7 @@ const problemEnglish: Record<string, string> = {
   'problem.billing.packDeploymentIdentityMissing':
     'The Accounting Pack cannot be created because this deployment is missing its identity configuration. Contact support to restore the configuration before creating the pack.',
   'problem.billing.packExpenseCurrencyReviewRequired':
-    "An approved expense needs verified amounts in the project's currency. Open Finance review to complete its currency conversion and check any reimbursement amount, then retry. Your selected period is retained.",
+    "An approved expense needs verified amounts in the project's currency before this Accounting Pack can be created. Currency conversion cannot currently be entered here. Review its expense classification and any reimbursement classification in Finance review. Your selected period is retained.",
   'problem.remedy.contactSupport': 'Contact support',
   'problem.billing.streamSelectionRequired':
     'Choose a billing stream before changing or archiving it.',

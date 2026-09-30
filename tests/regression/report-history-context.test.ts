@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { translateReportHistoryAction } from '../../apps/portal/src/lib/portal-i18n';
+import {
+  isReportHistoryAction,
+  translateReportHistoryAction,
+} from '../../apps/portal/src/lib/portal-i18n';
+import { reportHistoryChangedFieldLabel } from '../../apps/portal/src/lib/i18n/report-history';
+import { standaloneText } from '../../apps/portal/src/routes/app/standalone-locale';
 
 const reportDetailSource = readFileSync(
   resolve(process.cwd(), 'apps/portal/src/routes/app/reports/[id]/+page.svelte'),
@@ -9,6 +14,24 @@ const reportDetailSource = readFileSync(
 );
 
 describe('report history contextual labels', () => {
+  it('localizes known changed-field captions while preserving unknown legacy identifiers', () => {
+    const summaryLabels = { en: 'Shift summary', es: 'Resumen del turno', pt: 'Resumo do turno' };
+    const fields = ['summary', 'tasksCompleted', 'changeSummary', 'legacy_custom_field'];
+    for (const locale of ['en', 'es', 'pt'] as const) {
+      const captions = fields.map((field) => {
+        const key = reportHistoryChangedFieldLabel(field);
+        return key ? standaloneText(locale, key) : field;
+      });
+      expect(captions[0]).toBe(summaryLabels[locale]);
+      expect(captions[1]).not.toBe('tasksCompleted');
+      expect(captions[2]).not.toBe('changeSummary');
+      expect(captions[3]).toBe('legacy_custom_field');
+      expect(fields).toEqual(['summary', 'tasksCompleted', 'changeSummary', 'legacy_custom_field']);
+    }
+    expect(reportHistoryChangedFieldLabel('__proto__')).toBeNull();
+    expect(reportHistoryChangedFieldLabel('constructor')).toBeNull();
+    expect(reportHistoryChangedFieldLabel(null)).toBeNull();
+  });
   it('renders semantic create/update/delete labels for daily and technical reports in every locale', () => {
     const expected: Record<'en' | 'es' | 'pt', Record<string, string>> = {
       en: {
@@ -42,16 +65,31 @@ describe('report history contextual labels', () => {
         expect(translateReportHistoryAction(locale, action), `${locale} ${action}`).toBe(label);
   });
 
-  it('contextualizes legacy generic update/delete rows from the loaded report type', () => {
-    expect(reportDetailSource).toContain("action === 'report.report_modified'");
+  it('distinguishes notification processing while preserving report edits and legacy deletion context', () => {
+    const notificationLabels = {
+      en: 'Report change notifications processed',
+      es: 'Notificaciones de cambios del informe procesadas',
+      pt: 'Notificações de alterações do relatório processadas',
+    };
+    for (const locale of ['en', 'es', 'pt'] as const) {
+      const notification = translateReportHistoryAction(locale, 'report.report_modified');
+      expect(notification).toBe(notificationLabels[locale]);
+      for (const record of ['daily', 'technical'] as const) {
+        const update = translateReportHistoryAction(locale, `report.${record}.update`);
+        expect(notification).not.toBe(update);
+        expect(translateReportHistoryAction(locale, `report.${record}.report_modified`)).toBe(
+          update,
+        );
+      }
+    }
+    expect(isReportHistoryAction('report.report_modified')).toBe(true);
+
+    // Retained existing source check for the source-specific legacy deletion label.
     expect(reportDetailSource).toContain("action === 'report.report_deleted'");
-    expect(reportDetailSource).toContain("? 'daily_report.update'");
-    expect(reportDetailSource).toContain(": 'technical_report.update'");
     expect(reportDetailSource).toContain("? 'daily_report.delete'");
     expect(reportDetailSource).toContain(": 'technical_report.delete'");
 
     const legacyToCanonical = {
-      'report.report_modified': ['daily_report.update', 'technical_report.update'],
       'report.report_deleted': ['daily_report.delete', 'technical_report.delete'],
     } as const;
     for (const [legacy, canonical] of Object.entries(legacyToCanonical)) {

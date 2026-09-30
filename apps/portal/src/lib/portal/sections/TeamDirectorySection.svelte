@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { formatDecimalHours } from './time-entry-actions';
   import { disclosure } from '../ui/disclosure.js';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { enhance } from '$app/forms';
   import { base } from '$app/paths';
   import type { ActionResult, SubmitFunction } from '@sveltejs/kit';
   import { page } from '$app/stores';
+  import { page as assignmentPage } from '$app/state';
+  import { assignmentWorkflowHref } from '../assignment-form-action';
   import { tick } from 'svelte';
   import type { ProblemData } from '$lib/problem/contract';
   import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
@@ -499,7 +502,7 @@
   }
 
   function formatHours(minutes: number): string {
-    return minutes > 0 ? `${(minutes / 60).toFixed(1)} h` : '—';
+    return minutes > 0 ? formatDecimalHours(minutes) : '—';
   }
 
   function matchesWorker(row: PortalRow): boolean {
@@ -1203,7 +1206,9 @@
                 <dt>{translate('Assignments')}</dt>
                 <dd>
                   <a
-                    href={`${base}/app/projects?action=update-assignment&worker=${workerId(worker)}`}
+                    href={assignmentWorkflowHref(assignmentPage.url, 'updateAssignment', {
+                      worker: workerId(worker),
+                    })}
                     >{assignmentsForWorker.filter(
                       (assignment) => value(assignment, 'status') === 'active',
                     ).length}</a

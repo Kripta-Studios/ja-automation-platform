@@ -4,6 +4,7 @@ import {
   CrewLeaderRepository,
   assertLiveSession,
   isSupplierCoordinator,
+  projectCalendarDate,
   readLiveSupplierCoordinatorGrant,
 } from '@ja/database';
 import type { Principal } from '@ja/domain';
@@ -30,11 +31,11 @@ export function _expenseDescriptionDefault(
 ): 'Perdiem' | 'Only hours' {
   const { projectId, workerId, date } = scope;
   assertLiveSession(sqlite, principal, AccessDeniedError);
-  if (
-    isSupplierCoordinator(sqlite, principal.userId) &&
-    !readLiveSupplierCoordinatorGrant(sqlite, principal, projectId, date)
-  )
-    throw new AccessDeniedError('Current supplier project grant required');
+  const actor = sqlite.prepare('SELECT role,status FROM user WHERE id=?').get(principal.userId) as
+    | { role: string; status: string }
+    | undefined;
+  if (!actor || actor.status !== 'active' || actor.role !== principal.role)
+    throw new AccessDeniedError('Active account required');
   if (workerId !== principal.userId) {
     if (principal.role === 'worker') {
       new CrewLeaderRepository(sqlite).authorizeDelegatedOperationalEntry(
@@ -52,13 +53,37 @@ export function _expenseDescriptionDefault(
   }
   const assignment = sqlite
     .prepare(
-      `SELECT pm.id FROM project_member pm JOIN user subject ON subject.id=pm.user_id
+      `SELECT pm.id,p.timezone
+         FROM project_member pm JOIN user subject ON subject.id=pm.user_id
+         JOIN project p ON p.id=pm.project_id
         WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active'
           AND subject.status='active' AND subject.role IN ('worker','project_manager')
+          AND p.status IN ('active','planned','paused')
           AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?) LIMIT 1`,
     )
-    .get(projectId, workerId, date, date) as { id: string } | undefined;
+    .get(projectId, workerId, date, date) as { id: string; timezone: string } | undefined;
   if (!assignment) throw new AccessDeniedError('Active worker assignment required');
+  if (principal.role === 'worker') {
+    let currentDate: string;
+    try {
+      currentDate = projectCalendarDate(assignment.timezone);
+    } catch {
+      throw new AccessDeniedError('Active worker assignment required');
+    }
+    const currentAssignment = sqlite
+      .prepare(
+        `SELECT 1 FROM project_member pm
+         WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active'
+           AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?) LIMIT 1`,
+      )
+      .get(projectId, workerId, currentDate, currentDate);
+    if (!currentAssignment) throw new AccessDeniedError('Active worker assignment required');
+    if (
+      isSupplierCoordinator(sqlite, principal.userId) &&
+      !readLiveSupplierCoordinatorGrant(sqlite, principal, projectId, date, currentDate)
+    )
+      throw new AccessDeniedError('Current supplier project grant required');
+  }
   const perDiem = sqlite
     .prepare(
       `SELECT 1 FROM assignment_expense_policy

@@ -52,10 +52,14 @@ vi.mock('$lib/server/portal-repository', () => ({
         prepare: (sql: string) => ({
           get: () => {
             if (state.operationError) throw state.operationError;
+            if (sql === 'SELECT role,status FROM user WHERE id=?')
+              return { role: 'worker', status: 'active' };
             if (sql.includes('FROM time_entry') && sql.includes('approval_state NOT IN'))
               return state.retainedTimeValid ? { 1: 1 } : undefined;
             state.getCount += 1;
-            return state.getCount === 1 ? { id: 'assignment-1' } : { ok: 1 };
+            return state.getCount === 1
+              ? { id: 'assignment-1', starts_on: '2020-01-01', ends_on: null, timezone: 'UTC' }
+              : { ok: 1 };
           },
         }),
       },
@@ -177,7 +181,7 @@ it('denies a supplier description suggestion after its live installation grant e
     code: 'EXPENSE_LOOKUP_DESCRIPTION_SCOPE_DENIED',
     messageKey: 'problem.expenseLookup.descriptionScopeDenied',
   });
-  expect(state.getCount).toBe(0);
+  expect(state.getCount).toBe(2);
   expect(state.closeCount).toBe(1);
 });
 

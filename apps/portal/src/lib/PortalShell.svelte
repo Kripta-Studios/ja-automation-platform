@@ -1,5 +1,13 @@
 <script lang="ts">
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
+  import {
+    assignmentDirectoryView,
+    assignmentFormAction,
+    assignmentReviewHref,
+    assignmentRetainedValue,
+    assignmentWorkflowHref,
+    projectWorkflowFrom,
+  } from './portal/assignment-form-action';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import {
@@ -19,9 +27,10 @@
     mfaProblemIsService,
     mfaUncertainProblem,
   } from '../routes/app/mfa-enrollment/mfa-enrollment-copy';
-  import { beforeNavigate, replaceState } from '$app/navigation';
+  import { beforeNavigate, goto, replaceState } from '$app/navigation';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
+  import { page as projectWorkflowPage } from '$app/state';
   import { createAuthClient } from 'better-auth/client';
   import { passkeyClient } from '@better-auth/passkey/client';
   import { disclosure } from './portal/ui/disclosure.js';
@@ -168,6 +177,7 @@
   let online = $state(true);
   let queue = $state(0);
   let syncMessage = $state('');
+  let assignmentCacheMessage = $state('');
   let conflictItems = $state<
     Array<{
       mutationId: string;
@@ -243,15 +253,42 @@
     | 'assign-worker'
     | 'update-assignment'
     | 'remove-assignment';
-  let projectWorkflow = $state<ProjectWorkflow | null>(null);
-  function rememberProjectWorkflow(workflow: ProjectWorkflow | null, hash = ''): void {
+  // Explicit current navigation wins over a retained previous native result;
+  // the failed form's values remain available independently.
+  let projectWorkflow = $derived<ProjectWorkflow | null>(
+    projectWorkflowFrom(
+      projectWorkflowPage.url,
+      (form as { actionName?: string } | undefined)?.actionName,
+    ),
+  );
+  const projectDirectoryView = $derived(
+    assignmentDirectoryView(projectWorkflowPage.url, projectWorkflow),
+  );
+  async function rememberProjectWorkflow(
+    workflow: ProjectWorkflow | null,
+    hash = '',
+  ): Promise<void> {
     const url = new URL(location.href);
     if (workflow) url.searchParams.set('action', workflow);
-    else url.searchParams.delete('action');
-    url.searchParams.delete('project');
-    url.searchParams.delete('worker');
-    url.hash = hash;
-    replaceState(url, {});
+    else {
+      url.searchParams.delete('action');
+      // All projects / Assignment history explicitly leave the directory view.
+      url.searchParams.delete('view');
+    }
+    for (const key of [...url.searchParams.keys()]) {
+      if (key.startsWith('/')) url.searchParams.delete(key);
+    }
+    if (workflow !== 'update-assignment' && workflow !== 'remove-assignment') {
+      url.searchParams.delete('project');
+      url.searchParams.delete('worker');
+    }
+    url.hash =
+      hash ||
+      (workflow === 'update-assignment' || workflow === 'remove-assignment'
+        ? 'project-assignment-list'
+        : '');
+    // These query parameters select loaded views, not shallow page state.
+    await goto(url, { replaceState: true, noScroll: true, keepFocus: true });
   }
   async function focusProjectDestination(selector: string): Promise<void> {
     await tick();
@@ -260,68 +297,37 @@
     target.scrollIntoView({ block: 'start' });
     target.focus({ preventScroll: true });
   }
-  function openProjectWorkflow(workflow: ProjectWorkflow): void {
+  async function openProjectWorkflow(workflow: ProjectWorkflow): Promise<void> {
     projectWorkflow = workflow;
-    rememberProjectWorkflow(workflow);
     if (workflow === 'new-project') {
       newProjectClientId = '';
       newProjectCurrencyOverride = null;
       newProjectTimezoneOverride = null;
     }
-    void focusProjectDestination(`[data-project-workflow="${workflow}"]`);
+    await rememberProjectWorkflow(workflow);
+    await focusProjectDestination(`[data-project-workflow="${workflow}"]`);
   }
-  function showProjectList(): void {
+  async function showProjectList(): Promise<void> {
     projectWorkflow = null;
-    rememberProjectWorkflow(null);
-    void tick().then(() => {
-      const target = document.getElementById('project-register');
-      const disclosure = target?.querySelector('details');
-      if (disclosure) disclosure.open = true;
-      target?.scrollIntoView({ block: 'start' });
-      target?.focus({ preventScroll: true });
-    });
+    await rememberProjectWorkflow(null);
+    await tick();
+    const target = document.getElementById('project-register');
+    const disclosure = target?.querySelector('details');
+    if (disclosure) disclosure.open = true;
+    target?.scrollIntoView({ block: 'start' });
+    target?.focus({ preventScroll: true });
   }
-  function showAssignmentHistory(event: MouseEvent): void {
+  async function showAssignmentHistory(event: MouseEvent): Promise<void> {
     event.preventDefault();
     projectWorkflow = null;
-    rememberProjectWorkflow(null, 'assignment-history');
-    void tick().then(() => {
-      const target = document.getElementById('assignment-history');
-      const disclosure = target?.querySelector('details');
-      if (disclosure) disclosure.open = true;
-      target?.scrollIntoView({ block: 'start' });
-      target?.focus({ preventScroll: true });
-    });
+    await rememberProjectWorkflow(null, 'assignment-history');
+    await tick();
+    const target = document.getElementById('assignment-history');
+    const disclosure = target?.querySelector('details');
+    if (disclosure) disclosure.open = true;
+    target?.scrollIntoView({ block: 'start' });
+    target?.focus({ preventScroll: true });
   }
-  $effect(() => {
-    const requested = $page.url.searchParams.get('action');
-    if (
-      [
-        'new-client',
-        'update-client',
-        'new-project',
-        'assign-worker',
-        'update-assignment',
-        'remove-assignment',
-      ].includes(requested ?? '')
-    )
-      projectWorkflow = requested as ProjectWorkflow;
-  });
-  $effect(() => {
-    if ((form as { actionName?: string } | undefined)?.actionName === 'createProject')
-      projectWorkflow = 'new-project';
-    if (form?.messageKey === 'action.validation.projectFields') projectWorkflow = 'new-project';
-    if (form?.messageKey === 'action.projects.projectCreated') projectWorkflow = 'new-project';
-    if (form?.messageKey === 'action.validation.clientFields') projectWorkflow = 'new-client';
-    if ((form as { actionName?: string } | undefined)?.actionName === 'createClient')
-      projectWorkflow = 'new-client';
-    if ((form as { actionName?: string } | undefined)?.actionName === 'assignWorker')
-      projectWorkflow = 'assign-worker';
-    if ((form as { actionName?: string } | undefined)?.actionName === 'updateAssignment')
-      projectWorkflow = 'update-assignment';
-    if ((form as { actionName?: string } | undefined)?.actionName === 'removeAssignment')
-      projectWorkflow = 'remove-assignment';
-  });
   let projectRegisterPage = $state<Row[]>([]);
   let documentPage = $state<Row[]>([]);
   let documentTransferBusy = $state(false);
@@ -429,7 +435,7 @@
   const secondaryNavigation: readonly NavItem[] = $derived(roleNavigation.secondary);
   const visibleAdmin: readonly NavItem[] = $derived(roleNavigation.admin);
   const securityAdmin: readonly NavItem[] = $derived(roleNavigation.security);
-  const currentView = $derived($page.url.searchParams.get('view') ?? '');
+  const currentView = $derived(projectWorkflowPage.url.searchParams.get('view') ?? '');
   const currentTitle = $derived(portalTitleFor(data.section, currentView));
   const actionFeedback = $derived(actionMessage(form));
   const documentResult = $derived.by(() => {
@@ -865,7 +871,7 @@
             },
             review_assignments: {
               label: translate('Review assignments'),
-              href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+              href: assignmentReviewHref(projectWorkflowPage.url, `${base}/app/projects`),
             },
             archive_project: {
               label:
@@ -1262,6 +1268,11 @@
       : null;
   });
   const profileWorkerId = $derived(String(data.selectedWorkerId ?? data.user.id));
+  const profileExpertiseOptions = $derived(data.allSkills ?? data.skills ?? []);
+  const profileAssignedExpertise = $derived(data.skills ?? []);
+  const profileRemovalExpertiseOptions = $derived(
+    profileExpertiseOptions.length > 0 ? profileExpertiseOptions : profileAssignedExpertise,
+  );
   let planningStarts = $state('');
   let planningEnds = $state('');
   let planningProjectId = $state('');
@@ -1593,12 +1604,18 @@
       ? (assignmentEditForm as ProblemData)
       : undefined,
   );
-  const assignmentEditValue = (field: string, assignmentId: unknown, fallback = ''): string => {
-    if (String(assignmentEditForm?.values?.assignmentId ?? '') !== String(assignmentId))
-      return fallback;
-    const submitted = assignmentEditForm?.values?.[field];
-    return submitted == null ? '' : String(submitted);
-  };
+  const assignmentEditValue = (field: string, assignmentId: unknown, fallback = ''): string =>
+    assignmentRetainedValue(
+      assignmentEditForm,
+      projectWorkflow === 'update-assignment'
+        ? 'updateAssignment'
+        : projectWorkflow === 'remove-assignment'
+          ? 'removeAssignment'
+          : undefined,
+      assignmentId,
+      field,
+      fallback,
+    );
   let focusedAssignmentEditProblemId = '';
   $effect(() => {
     const correlationId = assignmentEditProblem?.correlationId;
@@ -1679,7 +1696,7 @@
     },
     review_assignments: {
       label: portalText(locale, 'problem.remedy.reviewAssignments'),
-      href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+      href: assignmentWorkflowHref(projectWorkflowPage.url, 'updateAssignment'),
     },
     review_finance_rules: {
       label: translate('Open finance configuration'),
@@ -1692,7 +1709,12 @@
     },
     review_updated_record: {
       label: translate('Review updated record'),
-      href: `${base}/app/projects?action=${assignmentEditForm?.actionName === 'removeAssignment' ? 'remove-assignment' : 'update-assignment'}#project-assignment-list`,
+      href: assignmentWorkflowHref(
+        projectWorkflowPage.url,
+        assignmentEditForm?.actionName === 'removeAssignment'
+          ? 'removeAssignment'
+          : 'updateAssignment',
+      ),
     },
   });
   const firstAuthorizedProjectId = $derived(String(data.projects?.[0]?.id ?? '').trim() || null);
@@ -1989,6 +2011,7 @@
     setOnline: (value) => (online = value),
     setQueue: (value) => (queue = value),
     setSyncMessage: (value) => (syncMessage = value),
+    setAssignmentCacheMessage: (value) => (assignmentCacheMessage = value),
     getSyncMessage: () => syncMessage,
     setConflictItems: (value) => (conflictItems = value),
     setOfflineProjects: (value) => (offlineProjects = value),
@@ -2762,8 +2785,15 @@
   });
   $effect(() => {
     const projects = data.projects;
-    if (data.offlineEnabled !== false && projects?.length)
-      void offlineController.cacheAssignments(projects);
+    if (
+      data.user.id &&
+      data.offlineEnabled !== false &&
+      Array.isArray(projects) &&
+      untrack(() => online)
+    )
+      void offlineController.cacheAssignments(projects, {
+        authoritativeWorkerAccess: data.user.role === 'worker',
+      });
   });
   $effect(() => {
     locale;
@@ -3237,6 +3267,11 @@
         {/if}
       </div>
     </div>
+    {#if assignmentCacheMessage}
+      <p class="alert warn no-print" role="alert" data-assignment-cache-warning>
+        {translate(assignmentCacheMessage)}
+      </p>
+    {/if}
     {#if globalProblem}
       <ProblemNotice
         problem={globalProblem}
@@ -3340,6 +3375,7 @@
       />
     {:else if data.section === 'time'}
       <TimeSection
+        {locale}
         {data}
         {isAuditor}
         {availableProjects}
@@ -4188,7 +4224,7 @@
           </table>
         </TableRegion>
       </section>
-    {:else if data.section === 'projects' && currentView === 'clients'}
+    {:else if data.section === 'projects' && projectDirectoryView === 'clients'}
       <ClientDirectorySection
         clients={data.clients ?? []}
         contacts={data.contacts ?? []}
@@ -4197,7 +4233,7 @@
         {translate}
         {controlledValue}
       />
-    {:else if data.section === 'projects' && currentView === 'team'}
+    {:else if data.section === 'projects' && projectDirectoryView === 'team'}
       <TeamDirectorySection
         {form}
         suppliers={data.suppliers ?? []}
@@ -5028,10 +5064,10 @@
                     remedyLinks={assignmentRemedyLinks}
                   />
                 {/if}
-                {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active' && (!$page.url.searchParams.get('worker') || String(assignment.worker_id ?? assignment.user_id) === $page.url.searchParams.get('worker')) && (!$page.url.searchParams.get('project') || String(assignment.project_id) === $page.url.searchParams.get('project'))) as assignment}
+                {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active' && (!projectWorkflowPage.url.searchParams.get('worker') || String(assignment.worker_id ?? assignment.user_id) === projectWorkflowPage.url.searchParams.get('worker')) && (!projectWorkflowPage.url.searchParams.get('project') || String(assignment.project_id) === projectWorkflowPage.url.searchParams.get('project'))) as assignment}
                   <form
                     method="POST"
-                    action="?/updateAssignment"
+                    action={assignmentFormAction(projectWorkflowPage.url, 'updateAssignment')}
                     class="admin-form-grid assignment-edit-form"
                     data-action="updateAssignment"
                     data-assignment-id={assignment.id}
@@ -5102,6 +5138,7 @@
             {/if}
             {#if projectWorkflow === 'remove-assignment'}
               <section
+                id="project-assignment-list"
                 class="admin-details project-workflow-panel"
                 data-project-workflow="remove-assignment"
                 tabindex="-1"
@@ -5118,10 +5155,10 @@
                     'Removal ends the assignment and preserves its historical row. It never hard-deletes project history.',
                   )}
                 </p>
-                {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active') as assignment}
+                {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active' && (!projectWorkflowPage.url.searchParams.get('worker') || String(assignment.worker_id ?? assignment.user_id) === projectWorkflowPage.url.searchParams.get('worker')) && (!projectWorkflowPage.url.searchParams.get('project') || String(assignment.project_id) === projectWorkflowPage.url.searchParams.get('project'))) as assignment}
                   <form
                     method="POST"
-                    action="?/removeAssignment"
+                    action={assignmentFormAction(projectWorkflowPage.url, 'removeAssignment')}
                     class="admin-form-grid assignment-remove-form"
                     data-action="removeAssignment"
                     data-assignment-id={assignment.id}
@@ -5194,6 +5231,7 @@
               rows={availableProjects}
               bind:visible={projectRegisterPage}
               {translate}
+              statusLabel={(value) => controlledValue('status', value)}
               label="Project"
             />
             {#each projectRegisterPage as row (row.id)}
@@ -5236,7 +5274,13 @@
                               review_assignments: {
                                 label: portalText(locale, 'problem.remedy.reviewAssignments'),
                                 href: canManageAssignmentControls
-                                  ? `${base}/app/projects?action=update-assignment&project=${encodeURIComponent(String(row.id))}#project-assignment-list`
+                                  ? assignmentWorkflowHref(
+                                      projectWorkflowPage.url,
+                                      'updateAssignment',
+                                      {
+                                        project: String(row.id),
+                                      },
+                                    )
                                   : `${base}/app/projects#assignment-history`,
                               },
                             }}
@@ -5274,7 +5318,13 @@
                               review_assignments: {
                                 label: portalText(locale, 'problem.remedy.reviewAssignments'),
                                 href: canManageAssignmentControls
-                                  ? `${base}/app/projects?action=update-assignment&project=${encodeURIComponent(String(row.id))}#project-assignment-list`
+                                  ? assignmentWorkflowHref(
+                                      projectWorkflowPage.url,
+                                      'updateAssignment',
+                                      {
+                                        project: String(row.id),
+                                      },
+                                    )
                                   : `${base}/app/projects#assignment-history`,
                               },
                             }}
@@ -5643,7 +5693,10 @@
               <a
                 class="record-card-link"
                 href={canManageAssignmentControls
-                  ? `${base}/app/projects?action=update-assignment&project=${encodeURIComponent(String(assignment.project_id ?? ''))}&worker=${encodeURIComponent(String(assignment.worker_id ?? assignment.user_id ?? ''))}`
+                  ? assignmentWorkflowHref(projectWorkflowPage.url, 'updateAssignment', {
+                      project: String(assignment.project_id ?? ''),
+                      worker: String(assignment.worker_id ?? assignment.user_id ?? ''),
+                    })
                   : `${base}/app/projects/${encodeURIComponent(String(assignment.project_id ?? ''))}`}
               >
                 <div>
@@ -6285,6 +6338,20 @@
             </form>
           {/if}
           {#if !isAuditor}
+            {#if profileExpertiseOptions.length === 0}
+              <p class="form-help">
+                {translate(
+                  data.user.role === 'owner_admin'
+                    ? 'No expertise options are available. Configure the expertise catalog before adding expertise.'
+                    : 'No expertise options are available. Ask the owner to configure the expertise catalog before adding expertise.',
+                )}
+                {#if data.user.role === 'owner_admin'}
+                  <a href={`${href('planning')}#planning-skills`}
+                    >{translate('Manage expertise catalog')}</a
+                  >
+                {/if}
+              </p>
+            {/if}
             <details
               class="admin-details profile-skill-details"
               open={skillFailure?.operation === 'setWorkerSkill' &&
@@ -6324,7 +6391,9 @@
                     required
                   />
                 </label>
-                <button>{translate('Add expertise')}</button>
+                <button disabled={profileExpertiseOptions.length === 0}
+                  >{translate('Add expertise')}</button
+                >
               </form>
             </details>
             <details
@@ -6359,7 +6428,16 @@
                     {/each}
                   </select>
                 </label>
-                <button class="danger">{translate('Remove expertise')}</button>
+                {#if profileAssignedExpertise.length === 0}
+                  <p class="form-help">
+                    {translate(
+                      'No expertise is assigned to this profile, so there is nothing to remove.',
+                    )}
+                  </p>
+                {/if}
+                <button class="danger" disabled={profileAssignedExpertise.length === 0}
+                  >{translate('Remove expertise')}</button
+                >
               </form>
             </details>
           {/if}
@@ -6418,6 +6496,16 @@
                   skillFailure?.operation === 'deleteWorkerSkill'}
               >
                 <summary class="primary-button">{translate('Manage worker expertise')}</summary>
+                {#if profileExpertiseOptions.length === 0}
+                  <p class="form-help">
+                    {translate(
+                      'No expertise options are available. Configure the expertise catalog before adding expertise.',
+                    )}
+                    <a href={`${href('planning')}#planning-skills`}
+                      >{translate('Manage expertise catalog')}</a
+                    >
+                  </p>
+                {/if}
                 <form
                   method="POST"
                   action="?/setWorkerSkill#profile-skills"
@@ -6469,7 +6557,9 @@
                       required
                     /></label
                   >
-                  <button type="submit">{translate('Assign expertise')}</button>
+                  <button type="submit" disabled={profileExpertiseOptions.length === 0}
+                    >{translate('Assign expertise')}</button
+                  >
                 </form>
                 <form
                   method="POST"
@@ -6503,16 +6593,26 @@
                       required
                     >
                       <option value="">{translate('Select expertise')}</option>
-                      {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [], skillChoiceId)}<option
+                      {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), profileRemovalExpertiseOptions, skillChoiceId)}<option
                           value={skillValue('deleteWorkerSkill', 'skillId')}
                           disabled>{translate('Expertise')} · {translate('Unavailable')}</option
                         >{/if}
-                      {#each data.allSkills ?? data.skills ?? [] as skill}
+                      {#each profileRemovalExpertiseOptions as skill}
                         <option value={skillChoiceId(skill)}>{skill.name}</option>
                       {/each}
                     </select></label
                   >
-                  <button class="danger" type="submit">{translate('Remove expertise')}</button>
+                  {#if profileRemovalExpertiseOptions.length === 0}
+                    <p class="form-help">
+                      {translate('No expertise options are available to remove.')}
+                    </p>
+                  {/if}
+                  <button
+                    class="danger"
+                    type="submit"
+                    disabled={profileRemovalExpertiseOptions.length === 0}
+                    >{translate('Remove expertise')}</button
+                  >
                 </form>
               </details>
             </section>

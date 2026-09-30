@@ -269,6 +269,8 @@ function partitionName(identity: OfflineIdentity): string {
 
 const databaseName = (identity: OfflineIdentity) => `ja-portal-${partitionName(identity)}`;
 const privateCacheName = (identity: OfflineIdentity) =>
+  `ja-portal-private-v3-${partitionName(identity)}`;
+const legacyPrivateCacheName = (identity: OfflineIdentity) =>
   `ja-portal-private-${partitionName(identity)}`;
 const db = async () =>
   openDB(databaseName(await requireOfflineIdentity()), 2, {
@@ -496,5 +498,10 @@ export async function purgeUserCache() {
     request.onerror = () => reject(request.error ?? new Error('Offline database deletion failed'));
     request.onblocked = () => resolve();
   });
-  if (typeof caches !== 'undefined') await caches.delete(privateCacheName(identity));
+  if (typeof caches !== 'undefined')
+    await Promise.all(
+      [privateCacheName(identity), legacyPrivateCacheName(identity)].map((name) =>
+        caches.delete(name),
+      ),
+    );
 }

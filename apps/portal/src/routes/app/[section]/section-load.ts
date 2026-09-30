@@ -142,7 +142,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 }),
               };
         const weeklySchedules: WeeklyProjectSchedule[] =
-          context.principal.role !== 'worker'
+          context.principal.role !== 'worker' || timeProjectIds.length === 0
             ? []
             : (context.sqlite
                 .prepare(
@@ -159,6 +159,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                       AND s.effective_from <= ?
                       AND (s.effective_to IS NULL OR s.effective_to >= ?)
                     WHERE pm.user_id=?
+                      AND pm.project_id IN (${timeProjectIds.map(() => '?').join(',')})
                       AND pm.status='active'
                       AND p.status IN ('active','planned','paused')
                       AND pm.starts_on <= ?
@@ -169,6 +170,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   week.weekEnd,
                   weekStart,
                   context.principal.userId,
+                  ...timeProjectIds,
                   week.weekEnd,
                   weekStart,
                 ) as WeeklyProjectSchedule[]);
@@ -177,10 +179,26 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           weekStart,
           weeklySchedules,
         );
-        const weeklyPay =
+        const ownWeeklyPay =
           context.principal.role === 'worker' && !restrictedProfile
             ? context.v3.workerPay(context.principal, weekStart, week.weekEnd)
             : undefined;
+        // Operational time needs own aggregate estimates, never the full
+        // historical statement's project identities or planning/budget metadata.
+        const weeklyPay = ownWeeklyPay
+          ? {
+              currency: ownWeeklyPay.currency,
+              approvedMinutes: ownWeeklyPay.approvedMinutes,
+              pendingMinutes: ownWeeklyPay.pendingMinutes,
+              estimatedApprovedMinor: ownWeeklyPay.estimatedApprovedMinor,
+              estimatedPendingMinor: ownWeeklyPay.estimatedPendingMinor,
+              currencyBreakdown: ownWeeklyPay.currencyBreakdown.map((amount) => ({
+                currency: amount.currency,
+                estimatedApprovedMinor: amount.estimatedApprovedMinor,
+                estimatedPendingMinor: amount.estimatedPendingMinor,
+              })),
+            }
+          : undefined;
         const category = url.searchParams.get('category')?.trim() || undefined;
         const projectId = url.searchParams.get('project')?.trim() || undefined;
         const workerId = url.searchParams.get('worker')?.trim() || undefined;
@@ -301,30 +319,20 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           }));
         const payExpenses = context.repository
           .listWorkerStatementExpenses(context.principal, periodStart, periodEnd)
-          .map((row) => {
-            const detail = context.repository.expenseDetail(context.principal, row.id);
-            return {
-              id: row.id,
-              projectNumber: row.projectNumber,
-              spentOn: row.spentOn,
-              vendor: row.vendor,
-              description: row.description,
-              category: row.category,
-              reimbursementAmountMinor: row.reimbursementAmountMinor,
-              currency: row.currency,
-              approvalState: row.approvalState,
-              reimbursementState: row.reimbursementState,
-              expectedReimbursementOn:
-                detail.expected_reimbursement_on === null ||
-                detail.expected_reimbursement_on === undefined
-                  ? null
-                  : String(detail.expected_reimbursement_on),
-              reimbursedAt:
-                detail.reimbursed_at === null || detail.reimbursed_at === undefined
-                  ? null
-                  : String(detail.reimbursed_at),
-            };
-          });
+          .map((row) => ({
+            id: row.id,
+            projectNumber: row.projectNumber,
+            spentOn: row.spentOn,
+            vendor: row.vendor,
+            description: row.description,
+            category: row.category,
+            reimbursementAmountMinor: row.reimbursementAmountMinor,
+            currency: row.currency,
+            approvalState: row.approvalState,
+            reimbursementState: row.reimbursementState,
+            expectedReimbursementOn: row.expectedReimbursementOn,
+            reimbursedAt: row.reimbursedAt,
+          }));
 
         return {
           ...common,

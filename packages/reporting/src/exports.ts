@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { renderInvoiceTemplate, type InvoiceTemplateSnapshot } from '@ja/invoice-templates';
 import { activityWithInterval, actualTimeInterval } from './time-interval.ts';
+import { projectFinanceCaption } from './project-finance-copy.ts';
 import {
   ACCOUNTING_PACK_PDF_TEMPLATE_VERSION,
   FIELD_REPORT_TEMPLATE_VERSION,
@@ -1070,7 +1071,7 @@ export function projectFinanceXlsx(
   const finance = snapshot.financial;
   const currency = String(finance.currency ?? snapshot.project.currency ?? '');
   const labels = projectFinanceCopy(locale);
-  return xlsxFromSheets([
+  const sheets: XlsxSheet[] = [
     {
       name: labels.summarySheet,
       rows: projectFinanceSummaryRows(snapshot.project, finance, currency, locale, labels),
@@ -1362,7 +1363,32 @@ export function projectFinanceXlsx(
       columns: ['code', 'sourceId'],
       headerLabels: { code: 'Finance alert code', sourceId: 'Affected record ID' },
     },
-  ]);
+  ];
+  return xlsxFromSheets(
+    sheets.map((sheet, index) => ({
+      ...sheet,
+      headerLabels: Object.fromEntries(
+        Object.entries(sheet.headerLabels ?? {}).map(([key, caption]) => [
+          key,
+          projectFinanceCaption(caption, locale),
+        ]),
+      ),
+      // Only the Summary's controlled captions are translated. Source names,
+      // descriptions, identifiers, machine states and financial cells stay intact.
+      rows:
+        index === 0
+          ? sheet.rows.map((row) => ({
+              ...row,
+              section: projectFinanceCaption(String(row.section ?? ''), locale),
+              metric: projectFinanceCaption(String(row.metric ?? ''), locale),
+              displayValue:
+                row.section === 'How to read this file'
+                  ? projectFinanceCaption(String(row.displayValue ?? ''), locale)
+                  : row.displayValue,
+            }))
+          : sheet.rows,
+    })),
+  );
 }
 
 type ProjectFinanceCopy = Readonly<{
@@ -1388,31 +1414,31 @@ function projectFinanceCopy(locale: ReportLocale): ProjectFinanceCopy {
       laborSheet: 'Mano de obra',
       expenseSheet: 'Gastos',
       unbilledSheet: 'WIP no facturado',
-      minimumSheet: 'Minimo diario',
+      minimumSheet: 'Mínimo diario',
       invoiceSheet: 'Facturas',
       invoiceExpenseSheet: 'Gastos facturados',
       milestoneSheet: 'Hitos',
       alertSheet: 'Alertas',
       project: 'Proyecto',
-      economics: 'Economia del proyecto',
-      collections: 'Facturacion y cobro',
-      forecast: 'Prevision',
+      economics: 'Economía del proyecto',
+      collections: 'Facturación y cobro',
+      forecast: 'Previsión',
     };
   if (locale === 'pt')
     return {
       summarySheet: 'Resumo',
-      laborSheet: 'Mao de obra',
+      laborSheet: 'Mão de obra',
       expenseSheet: 'Despesas',
-      unbilledSheet: 'WIP nao faturado',
-      minimumSheet: 'Minimo diario',
+      unbilledSheet: 'WIP não faturado',
+      minimumSheet: 'Mínimo diário',
       invoiceSheet: 'Faturas',
       invoiceExpenseSheet: 'Despesas faturadas',
       milestoneSheet: 'Marcos',
       alertSheet: 'Alertas',
       project: 'Projeto',
       economics: 'Economia do projeto',
-      collections: 'Faturamento e cobranca',
-      forecast: 'Previsao',
+      collections: 'Faturamento e cobrança',
+      forecast: 'Previsão',
     };
   return {
     summarySheet: 'Summary',

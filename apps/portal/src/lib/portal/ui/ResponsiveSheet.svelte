@@ -18,7 +18,7 @@
     open,
     title,
     description,
-    closeLabel = 'Close',
+    closeLabel,
     protectChanges = false,
     class: className = '',
     children,
@@ -28,6 +28,7 @@
   const componentId = $props.id();
   const titleId = `responsive-sheet-${componentId}-title`;
   const descriptionId = `responsive-sheet-${componentId}-description`;
+  const displayedCloseLabel = $derived(closeLabel ?? 'Close');
   let panel: HTMLElement | undefined = $state();
   let previouslyFocused: HTMLElement | null = null;
   let baseline = '';
@@ -206,11 +207,12 @@
       <button
         type="button"
         class="responsive-sheet-close"
-        aria-label={closeLabel}
+        data-portal-live-text={closeLabel !== undefined ? true : undefined}
+        aria-label={displayedCloseLabel}
         onclick={requestClose}
       >
         <span aria-hidden="true">×</span>
-        <span class="sr-only">{closeLabel}</span>
+        <span class="sr-only">{displayedCloseLabel}</span>
       </button>
     </header>
     <div class="responsive-sheet-body">

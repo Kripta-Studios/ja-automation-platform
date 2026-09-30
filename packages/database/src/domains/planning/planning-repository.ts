@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { canManageAssignments, newId, type Principal } from '@ja/domain';
+import { workerOperationalProjectScope } from '../../core/project-access.ts';
 
 type ErrorFactory = (message: string) => never;
 
@@ -348,28 +349,38 @@ export class PlanningRepository {
 
   listPlanning(principal: Principal) {
     this.deps.assertReadable(principal);
-    if (principal.role === 'worker')
+    if (principal.role === 'worker') {
+      const scope = workerOperationalProjectScope(this.deps.sqlite, principal, 'planning');
       return this.deps.sqlite
         .prepare(
-          `SELECT DISTINCT pa.*,p.project_number,p.name project_name,u.name worker_name
+          `${scope.withClause}
+           SELECT DISTINCT pa.id,pa.project_id,pa.worker_id,pa.starts_at,pa.ends_at,
+                  pa.planned_minutes,pa.status,pa.site,pa.required_skill,pa.version,
+                  pa.created_at,pa.updated_at,p.project_number,p.name project_name,u.name worker_name
            FROM planning_assignment pa
            JOIN project p ON p.id=pa.project_id
            JOIN user u ON u.id=pa.worker_id
            JOIN project_member pm ON pm.project_id=pa.project_id AND pm.user_id=pa.worker_id
-           WHERE pa.worker_id=? AND pa.status<>'cancelled'
+           WHERE ${scope.predicate} AND pa.worker_id=? AND pa.status<>'cancelled'
              AND pm.status='active' AND u.status='active'
              AND u.role IN ('worker','project_manager')
              AND pm.starts_on<=date(pa.starts_at)
              AND (pm.ends_on IS NULL OR pm.ends_on>=date(pa.ends_at))
            ORDER BY pa.starts_at`,
         )
-        .all(principal.userId);
+        .all(...scope.parameters, principal.userId);
+    }
     const ids = principal.role === 'project_manager' ? [...principal.projectIds] : [];
     if (principal.role === 'project_manager' && ids.length === 0) return [];
     const restriction = ids.length ? ` AND pa.project_id IN (${ids.map(() => '?').join(',')})` : '';
+    const columns =
+      principal.role === 'project_manager'
+        ? `pa.id,pa.project_id,pa.worker_id,pa.starts_at,pa.ends_at,pa.planned_minutes,
+           pa.status,pa.site,pa.required_skill,pa.version,pa.created_at,pa.updated_at`
+        : 'pa.*';
     return this.deps.sqlite
       .prepare(
-        `SELECT pa.*,p.project_number,p.name project_name,u.name worker_name
+        `SELECT ${columns},p.project_number,p.name project_name,u.name worker_name
          FROM planning_assignment pa
          JOIN project p ON p.id=pa.project_id
          JOIN user u ON u.id=pa.worker_id

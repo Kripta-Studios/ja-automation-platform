@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { Principal } from '@ja/domain';
+import { workerOperationalProjectScope } from '../../core/project-access.ts';
 
 type TechnicalChangeDecision = 'approved' | 'needs_changes' | 'rejected';
 
@@ -237,18 +238,23 @@ export class TechnicalChangeRepository {
       throw this.deps.errors.accessDenied('Technical change review required');
     const conditions = queue ? ["tc.approval_state='submitted'"] : [];
     const values: string[] = [];
+    let withClause = '';
     if (principal.role === 'project_manager') {
       const projectIds = [...principal.projectIds];
       if (projectIds.length === 0) return [];
       conditions.push(`tc.project_id IN (${projectIds.map(() => '?').join(',')})`);
       values.push(...projectIds);
     } else if (principal.role === 'worker') {
+      const scope = workerOperationalProjectScope(this.deps.sqlite, principal);
+      withClause = scope.withClause;
+      conditions.push(scope.predicate);
+      values.push(...scope.parameters);
       conditions.push('tc.author_id=?');
       values.push(principal.userId);
     }
     const rows = this.deps.sqlite
       .prepare(
-        `SELECT tc.id,tc.project_id,tc.technical_report_id,tc.author_id,tc.component,
+        `${withClause} SELECT tc.id,tc.project_id,tc.technical_report_id,tc.author_id,tc.component,
                 tc.change_made,tc.safety_impact,tc.production_impact,tc.validation,
                 tc.validation_result,tc.open_risk,tc.rollback_information,tc.approval_state,
                 tc.created_at,tc.updated_at,tc.version,p.project_number,p.name project_name,u.name author_name

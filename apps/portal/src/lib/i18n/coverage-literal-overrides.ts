@@ -1,5 +1,32 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Project access could not be refreshed on this device. Stay online and reload before using offline forms. Your unsent drafts and attachments are preserved.':
+    [
+      'No se pudo actualizar el acceso a los proyectos en este dispositivo. Sigue en línea y vuelve a cargar la página antes de usar los formularios sin conexión. Tus borradores pendientes de envío y sus archivos adjuntos se conservan.',
+      'Não foi possível atualizar o acesso aos projetos neste dispositivo. Permaneça ligado à Internet e recarregue a página antes de usar os formulários sem ligação. Os seus rascunhos por enviar e os anexos são preservados.',
+    ],
+  Empty: ['Vacío', 'Vazio'],
+  'No expertise options are available. Configure the expertise catalog before adding expertise.': [
+    'No hay especialidades disponibles. Configura el catálogo de especialidades antes de añadir una.',
+    'Não há especialidades disponíveis. Configure o catálogo de especialidades antes de adicionar uma.',
+  ],
+  'No expertise options are available to remove.': [
+    'No hay especialidades disponibles para eliminar.',
+    'Não há especialidades disponíveis para remover.',
+  ],
+  'No expertise options are available. Ask the owner to configure the expertise catalog before adding expertise.':
+    [
+      'No hay especialidades disponibles. Pide al propietario que configure el catálogo de especialidades antes de añadir una.',
+      'Não há especialidades disponíveis. Peça ao proprietário para configurar o catálogo de especialidades antes de adicionar uma.',
+    ],
+  'Manage expertise catalog': [
+    'Gestionar el catálogo de especialidades',
+    'Gerenciar o catálogo de especialidades',
+  ],
+  'No expertise is assigned to this profile, so there is nothing to remove.': [
+    'Este perfil no tiene especialidades asignadas, por lo que no hay ninguna que eliminar.',
+    'Este perfil não tem especialidades atribuídas, portanto não há nenhuma para remover.',
+  ],
   status: ['estado', 'estado'],
   Sections: ['Secciones', 'Seções'],
   'Project register': ['Registro de proyectos', 'Cadastro de projetos'],

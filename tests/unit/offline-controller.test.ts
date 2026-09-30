@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  browserPurgePrivateReads,
   createOfflineController,
   offlineReviewReasonMessage,
   type OfflineControllerDependencies,
@@ -14,6 +15,7 @@ const createState = () => {
     online: false,
     queue: 0,
     syncMessage: '',
+    assignmentCacheMessage: '',
     conflictItems: [],
     offlineProjects: [],
   };
@@ -24,6 +26,7 @@ const createState = () => {
       setOnline: (value: boolean) => (state.online = value),
       setQueue: (value: number) => (state.queue = value),
       setSyncMessage: (value: string) => (state.syncMessage = value),
+      setAssignmentCacheMessage: (value: string) => (state.assignmentCacheMessage = value),
       getSyncMessage: () => state.syncMessage,
       setConflictItems: (value: OfflineControllerState['conflictItems']) =>
         (state.conflictItems = value),
@@ -47,6 +50,7 @@ const dependencies = (
   syncQueuedMutations: vi.fn(async () => ({ accepted: 0, conflicts: 0, rejected: 0, failed: 0 })),
   discardMutation: vi.fn(async () => undefined),
   cacheAssignments: vi.fn(async () => undefined),
+  purgePrivateReads: vi.fn(async () => undefined),
   purgeUserCache: vi.fn(async () => undefined),
   forgetIdentity: vi.fn(async () => undefined),
   ...overrides,
@@ -567,6 +571,204 @@ describe('offline controller', () => {
     });
   });
 
+  it('immediately replaces revoked project options with an authoritative online empty list', async () => {
+    const { state, sink } = createState();
+    state.offlineProjects = [{ id: 'revoked-project' }];
+    state.queue = 2;
+    let persist!: () => void;
+    const cacheAssignments = vi.fn(() => new Promise<void>((resolve) => (persist = resolve)));
+    const deps = dependencies({ cacheAssignments });
+    const controller = createOfflineController('/ja', sink, deps);
+
+    const write = controller.cacheAssignments([]);
+    expect(state.offlineProjects).toEqual([]);
+    await vi.waitFor(() => expect(cacheAssignments).toHaveBeenCalledExactlyOnceWith([]));
+    expect(state.queue).toBe(2);
+    expect(deps.purgeUserCache).not.toHaveBeenCalled();
+    expect(deps.discardMutation).not.toHaveBeenCalled();
+    expect(deps.syncQueuedMutations).not.toHaveBeenCalled();
+    persist();
+    await write;
+  });
+
+  it('preserves cached options when project data is absent or received offline', async () => {
+    const { state, sink } = createState();
+    state.offlineProjects = [{ id: 'cached-project' }];
+    let online = true;
+    const cacheAssignments = vi.fn(async () => undefined);
+    const controller = createOfflineController(
+      '/ja',
+      sink,
+      dependencies({ isOnline: () => online, cacheAssignments }),
+    );
+
+    await controller.cacheAssignments(undefined);
+    online = false;
+    await controller.cacheAssignments([]);
+    await controller.cacheAssignments([{ id: 'offline-stale-project' }]);
+    expect(state.offlineProjects).toEqual([{ id: 'cached-project' }]);
+    expect(cacheAssignments).not.toHaveBeenCalled();
+  });
+
+  it('does not let a late bootstrap cache read restore revoked options', async () => {
+    const { state, sink } = createState();
+    let read!: (
+      rows: Awaited<ReturnType<OfflineControllerDependencies['getOfflineAssignments']>>,
+    ) => void;
+    const controller = createOfflineController(
+      '/ja',
+      sink,
+      dependencies({
+        queuedCount: vi.fn(async () => 0),
+        getOfflineAssignments: vi
+          .fn()
+          .mockImplementationOnce(() => new Promise((resolve) => (read = resolve)))
+          .mockResolvedValue([]),
+      }),
+    );
+    const stop = controller.start();
+    await controller.cacheAssignments([]);
+    read([
+      {
+        id: 'revoked',
+        projectNumber: 'QA',
+        name: 'Revoked QA',
+        status: 'active',
+        currency: 'USD',
+        timezone: 'UTC',
+      },
+    ]);
+    await Promise.resolve();
+    expect(state.offlineProjects).toEqual([]);
+    stop();
+  });
+
+  it('serializes persisted snapshots while publishing the newest project options immediately', async () => {
+    const { state, sink } = createState();
+    let finishFirst!: () => void;
+    const firstWrite = new Promise<void>((resolve) => (finishFirst = resolve));
+    let stored: readonly Record<string, unknown>[] = [{ id: 'old' }];
+    const cacheAssignments = vi.fn(async (rows: readonly Record<string, unknown>[]) => {
+      if (rows.length) await firstWrite;
+      stored = rows;
+    });
+    const controller = createOfflineController('/ja', sink, dependencies({ cacheAssignments }));
+    const earlier = controller.cacheAssignments([{ id: 'earlier' }]);
+    await vi.waitFor(() => expect(cacheAssignments).toHaveBeenCalledTimes(1));
+    const latest = controller.cacheAssignments([]);
+    expect(state.offlineProjects).toEqual([]);
+    expect(cacheAssignments).toHaveBeenCalledTimes(1);
+    finishFirst();
+    await Promise.all([earlier, latest]);
+    expect(stored).toEqual([]);
+    expect(cacheAssignments.mock.calls).toEqual([[[{ id: 'earlier' }]], [[]]]);
+  });
+
+  it('retains known revocation in memory when assignment persistence fails and permits later replacement', async () => {
+    const { state, sink } = createState();
+    state.offlineProjects = [{ id: 'revoked' }];
+    const cacheAssignments = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Storage denied'))
+      .mockResolvedValue(undefined);
+    const controller = createOfflineController('/ja', sink, dependencies({ cacheAssignments }));
+    await expect(controller.cacheAssignments([])).resolves.toBeUndefined();
+    expect(state.offlineProjects).toEqual([]);
+    expect(state.assignmentCacheMessage).toContain('Stay online and reload');
+    expect(translate('es', state.assignmentCacheMessage)).toContain('Sigue en línea');
+    expect(translate('pt', state.assignmentCacheMessage)).toContain('Permaneça ligado à Internet');
+    await controller.cacheAssignments([{ id: 'newly-authorized' }]);
+    expect(state.offlineProjects).toEqual([{ id: 'newly-authorized' }]);
+    expect(cacheAssignments).toHaveBeenCalledTimes(2);
+    expect(state.assignmentCacheMessage).toBe('');
+  });
+
+  it('keeps the cache warning separate from existing draft/session guidance and queue-zero syncs', async () => {
+    const { state, sink } = createState();
+    state.syncMessage =
+      'Your session ended. Offline drafts remain on this device. Sign in again and review saved records before retrying.';
+    const controller = createOfflineController(
+      '/ja',
+      sink,
+      dependencies({
+        queuedCount: vi.fn(async () => 0),
+        cacheAssignments: vi.fn(async () => {
+          throw new Error('Storage denied');
+        }),
+      }),
+    );
+    const sessionMessage = state.syncMessage;
+    await controller.cacheAssignments([]);
+    const cacheMessage = state.assignmentCacheMessage;
+    await controller.sync();
+    await controller.refreshQueue();
+    expect(state.assignmentCacheMessage).toBe(cacheMessage);
+    expect(state.syncMessage).toBe(sessionMessage);
+    expect(cacheMessage).not.toBe('');
+    await controller.cacheAssignments(undefined);
+    expect(state.assignmentCacheMessage).toBe(cacheMessage);
+  });
+
+  it('does not clear a prior cache warning on an older successful write while the latest snapshot is unresolved', async () => {
+    const { state, sink } = createState();
+    const cacheAssignments = vi.fn().mockRejectedValueOnce(new Error('Initial storage failure'));
+    const controller = createOfflineController('/ja', sink, dependencies({ cacheAssignments }));
+    await controller.cacheAssignments([]);
+    const warning = state.assignmentCacheMessage;
+    let finishEarlier!: () => void;
+    let finishLatest!: () => void;
+    cacheAssignments.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (finishEarlier = resolve)),
+    );
+    cacheAssignments.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (finishLatest = resolve)),
+    );
+    const earlier = controller.cacheAssignments([{ id: 'earlier' }]);
+    await vi.waitFor(() => expect(cacheAssignments).toHaveBeenCalledTimes(2));
+    const latest = controller.cacheAssignments([]);
+    finishEarlier();
+    await earlier;
+    await vi.waitFor(() => expect(cacheAssignments).toHaveBeenCalledTimes(3));
+    expect(state.assignmentCacheMessage).toBe(warning);
+    expect(state.offlineProjects).toEqual([]);
+    finishLatest();
+    await latest;
+    expect(state.assignmentCacheMessage).toBe('');
+  });
+
+  it('captures each authoritative snapshot without later caller mutation changing its persisted options', async () => {
+    const { state, sink } = createState();
+    const cacheAssignments = vi.fn(async () => undefined);
+    const controller = createOfflineController('/ja', sink, dependencies({ cacheAssignments }));
+    const rows = [{ id: 'current' }];
+    const write = controller.cacheAssignments(rows);
+    rows[0]!.id = 'later-mutated';
+    await write;
+    expect(state.offlineProjects).toEqual([{ id: 'current' }]);
+    expect(cacheAssignments).toHaveBeenCalledExactlyOnceWith([{ id: 'current' }]);
+  });
+
+  it('does not persist a superseded or disposed-shell snapshot waiting in the assignment lane', async () => {
+    const { state, sink } = createState();
+    const cacheAssignments = vi.fn(async () => undefined);
+    const controller = createOfflineController(
+      '/ja',
+      sink,
+      dependencies({ cacheAssignments, queuedCount: vi.fn(async () => 0) }),
+    );
+    const earlier = controller.cacheAssignments([{ id: 'superseded' }]);
+    const latest = controller.cacheAssignments([]);
+    await Promise.all([earlier, latest]);
+    expect(cacheAssignments).toHaveBeenCalledExactlyOnceWith([]);
+    expect(state.offlineProjects).toEqual([]);
+
+    const stop = controller.start();
+    const stale = controller.cacheAssignments([{ id: 'departed-shell' }]);
+    stop();
+    await stale;
+    expect(cacheAssignments).toHaveBeenCalledTimes(1);
+  });
+
   it('revokes the browser identity before purging the current user partition', async () => {
     const { sink } = createState();
     const forgetIdentity = vi.fn(async () => undefined);
@@ -601,5 +803,224 @@ describe('offline controller', () => {
     );
 
     await expect(controller.forgetIdentity('user-a')).resolves.toBeUndefined();
+  });
+});
+
+describe('authoritative Worker assignment revocation clears only private read cache', () => {
+  const cached = (id: string) => ({
+    id,
+    projectNumber: id,
+    name: id,
+    status: 'active',
+    currency: 'USD',
+    timezone: 'UTC',
+  });
+  const workerAccess = { authoritativeWorkerAccess: true };
+
+  it('awaits acknowledged private-read purge before replacing persisted revoked assignments', async () => {
+    const { state, sink } = createState();
+    state.queue = 2;
+    const events: string[] = [];
+    let release!: () => void;
+    const deps = dependencies({
+      getOfflineAssignments: async () => [cached('revoked'), cached('retained')],
+      purgePrivateReads: vi.fn(async () => {
+        events.push('purge requested');
+        await new Promise<void>((resolve) => (release = resolve));
+        events.push('purge acknowledged');
+      }),
+      cacheAssignments: vi.fn(async () => {
+        events.push('assignments replaced');
+      }),
+    });
+    const controller = createOfflineController('/ja', sink, deps);
+    const pending = controller.cacheAssignments([{ id: 'retained' }], workerAccess);
+    expect(state.offlineProjects).toEqual([{ id: 'retained' }]);
+    await vi.waitFor(() => expect(events).toEqual(['purge requested']));
+    expect(deps.cacheAssignments).not.toHaveBeenCalled();
+    release();
+    await pending;
+    expect(events).toEqual(['purge requested', 'purge acknowledged', 'assignments replaced']);
+    expect(state.assignmentCacheMessage).toBe('');
+    expect(state.queue).toBe(2);
+    expect(deps.purgeUserCache).not.toHaveBeenCalled();
+    expect(deps.discardMutation).not.toHaveBeenCalled();
+    expect(deps.syncQueuedMutations).not.toHaveBeenCalled();
+  });
+
+  it('does not treat narrower nonWorker or missing/offline data as revocation', async () => {
+    const { sink } = createState();
+    let online = true;
+    const deps = dependencies({
+      isOnline: () => online,
+      getOfflineAssignments: async () => [cached('old')],
+    });
+    const controller = createOfflineController('/ja', sink, deps);
+    await controller.cacheAssignments([]);
+    await controller.cacheAssignments(undefined, workerAccess);
+    online = false;
+    await controller.cacheAssignments([], workerAccess);
+    expect(deps.purgePrivateReads).not.toHaveBeenCalled();
+    expect(deps.cacheAssignments).toHaveBeenCalledExactlyOnceWith([]);
+  });
+
+  it('does not purge unchanged or newly added authorized project sets', async () => {
+    const { sink } = createState();
+    const deps = dependencies({ getOfflineAssignments: async () => [cached('retained')] });
+    const controller = createOfflineController('/ja', sink, deps);
+    await controller.cacheAssignments([{ id: 'retained' }, { id: 'new' }], workerAccess);
+    expect(deps.purgePrivateReads).not.toHaveBeenCalled();
+    expect(deps.cacheAssignments).toHaveBeenCalledOnce();
+  });
+
+  it.each(['unavailable', 'failed'])(
+    'retains the cache warning and latest safe options when required purge is %s',
+    async (failure) => {
+      const { state, sink } = createState();
+      state.syncMessage = 'Existing conflict guidance';
+      const deps = dependencies({
+        queuedCount: async () => 0,
+        getOfflineAssignments: async () => [cached('revoked')],
+        purgePrivateReads:
+          failure === 'unavailable'
+            ? undefined
+            : vi.fn(async () => {
+                throw new Error('No completed acknowledgment');
+              }),
+      });
+      const controller = createOfflineController('/ja', sink, deps);
+      await controller.cacheAssignments([], workerAccess);
+      expect(state.offlineProjects).toEqual([]);
+      expect(state.assignmentCacheMessage).toContain('Stay online and reload');
+      expect(deps.cacheAssignments).not.toHaveBeenCalled();
+      await controller.refreshQueue();
+      await controller.sync();
+      expect(state.assignmentCacheMessage).toContain('Stay online and reload');
+      expect(state.syncMessage).toBe('Existing conflict guidance');
+      deps.purgePrivateReads = vi.fn(async () => undefined);
+      await controller.cacheAssignments([], workerAccess);
+      expect(state.assignmentCacheMessage).toBe('');
+      expect(deps.cacheAssignments).toHaveBeenCalledExactlyOnceWith([]);
+      expect(deps.purgeUserCache).not.toHaveBeenCalled();
+    },
+  );
+
+  it('requires both purge and assignment persistence before clearing a previous warning', async () => {
+    const { state, sink } = createState();
+    const deps = dependencies({
+      getOfflineAssignments: async () => [cached('revoked')],
+      cacheAssignments: vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Storage unavailable'))
+        .mockResolvedValue(undefined),
+    });
+    const controller = createOfflineController('/ja', sink, deps);
+    await controller.cacheAssignments([], workerAccess);
+    expect(state.assignmentCacheMessage).toContain('Stay online and reload');
+    await controller.cacheAssignments([], workerAccess);
+    expect(state.assignmentCacheMessage).toBe('');
+    expect(deps.purgePrivateReads).toHaveBeenCalledTimes(2);
+  });
+
+  it('serializes concurrent shells and skips a superseded snapshot after its delayed read', async () => {
+    const firstState = createState();
+    const latestState = createState();
+    let release!: (rows: ReturnType<typeof cached>[]) => void;
+    const deps = dependencies({
+      getOfflineAssignments: vi
+        .fn()
+        .mockImplementationOnce(() => new Promise((resolve) => (release = resolve)))
+        .mockResolvedValue([cached('revoked')]),
+    });
+    const first = createOfflineController('/ja', firstState.sink, deps);
+    const latest = createOfflineController('/ja', latestState.sink, deps);
+    const pending = first.cacheAssignments([{ id: 'revoked' }], workerAccess);
+    await vi.waitFor(() => expect(deps.getOfflineAssignments).toHaveBeenCalledOnce());
+    const newest = latest.cacheAssignments([], workerAccess);
+    release([cached('revoked')]);
+    await Promise.all([pending, newest]);
+    expect(deps.cacheAssignments).toHaveBeenCalledExactlyOnceWith([]);
+    expect(deps.purgePrivateReads).toHaveBeenCalledOnce();
+    expect(latestState.state.offlineProjects).toEqual([]);
+  });
+});
+
+describe('browser private-read purge acknowledgment', () => {
+  const setup = () => {
+    const close = vi.fn();
+    let onmessage: ((event: { data: unknown }) => void) | undefined;
+    class Channel {
+      port1 = {
+        set onmessage(value: typeof onmessage) {
+          onmessage = value;
+        },
+        close,
+      };
+      port2 = {};
+    }
+    const postMessage = vi.fn();
+    vi.stubGlobal('document', { cookie: 'ja_offline_identity=test-token' });
+    vi.stubGlobal('navigator', { serviceWorker: { controller: { postMessage } } });
+    vi.stubGlobal('MessageChannel', Channel);
+    return { close, postMessage, ack: (data: unknown) => onmessage?.({ data }) };
+  };
+
+  it('resolves only on an explicit completed success acknowledgment', async () => {
+    const browser = setup();
+    try {
+      let resolved = false;
+      const work = browserPurgePrivateReads().then(() => (resolved = true));
+      await vi.waitFor(() => expect(browser.postMessage).toHaveBeenCalledOnce());
+      expect(resolved).toBe(false);
+      browser.ack({ type: 'unrelated', success: true });
+      await Promise.resolve();
+      expect(resolved).toBe(false);
+      browser.ack({ type: 'ja-offline-private-reads-purged', success: true });
+      await work;
+      expect(resolved).toBe(true);
+      expect(browser.close).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('rejects a failed acknowledgment instead of reporting completed refresh', async () => {
+    const browser = setup();
+    try {
+      const work = browserPurgePrivateReads();
+      const rejected = expect(work).rejects.toThrow('refresh failed');
+      await vi.waitFor(() => expect(browser.postMessage).toHaveBeenCalledOnce());
+      browser.ack({ type: 'ja-offline-private-reads-purged', success: false });
+      await rejected;
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('rejects a missing acknowledgment after the bounded timeout', async () => {
+    const browser = setup();
+    vi.useFakeTimers();
+    try {
+      const work = browserPurgePrivateReads();
+      const rejected = expect(work).rejects.toThrow('not acknowledged');
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(2_000);
+      await rejected;
+      expect(browser.close).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('rejects required purging when no service worker is available', async () => {
+    vi.stubGlobal('document', { cookie: 'ja_offline_identity=test-token' });
+    vi.stubGlobal('navigator', {});
+    try {
+      await expect(browserPurgePrivateReads()).rejects.toThrow('could not be refreshed');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

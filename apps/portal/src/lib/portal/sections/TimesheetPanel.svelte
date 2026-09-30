@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { timesheetWeekday } from '../timesheet-weekday';
+  import type { PortalLocale } from '../../portal-i18n';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
@@ -12,11 +14,13 @@
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
 
   let {
+    locale = 'en',
     data,
     isAuditor,
     translate,
     controlledValue,
   }: {
+    locale?: PortalLocale;
     data: PortalData;
     isAuditor: boolean;
     translate: (value: string) => string;
@@ -75,9 +79,9 @@
       id: day.date,
       href: `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&from=${encodeURIComponent(day.date)}&to=${encodeURIComponent(day.date)}#time-records`,
       linkLabel: translate('Open day entries'),
-      linkAriaLabel: `${translate('Open time entries for')} ${day.label} ${day.date}`,
+      linkAriaLabel: `${translate('Open time entries for')} ${timesheetWeekday(day.date, locale)} ${day.date}`,
       cells: [
-        { label: translate('Day'), value: `${day.label} · ${day.date}` },
+        { label: translate('Day'), value: `${timesheetWeekday(day.date, locale)} · ${day.date}` },
         { label: translate('Actual'), value: formatDecimalHours(day.actualMinutes) },
         { label: translate('Expected'), value: displayMinutes(day.expectedMinutes) },
         { label: translate('Difference'), value: differenceLabel(day.differenceMinutes) },
@@ -179,7 +183,7 @@
             <th scope="row"
               ><a
                 href={`${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&from=${encodeURIComponent(day.date)}&to=${encodeURIComponent(day.date)}#time-records`}
-                >{day.label}<small>{day.date}</small></a
+                >{timesheetWeekday(day.date, locale)}<small>{day.date}</small></a
               ></th
             >
             <td>{formatDecimalHours(day.actualMinutes)}</td>

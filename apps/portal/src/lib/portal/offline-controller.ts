@@ -35,6 +35,7 @@ export type OfflineControllerState = {
   online: boolean;
   queue: number;
   syncMessage: string;
+  assignmentCacheMessage: string;
   conflictItems: OfflineConflict[];
   offlineProjects: PortalRow[];
 };
@@ -43,6 +44,7 @@ export type OfflineControllerSink = {
   setOnline: (value: boolean) => void;
   setQueue: (value: number) => void;
   setSyncMessage: (value: string) => void;
+  setAssignmentCacheMessage?: (value: string) => void;
   getSyncMessage?: () => string;
   setConflictItems: (value: OfflineConflict[]) => void;
   setOfflineProjects: (value: PortalRow[]) => void;
@@ -63,6 +65,7 @@ export type OfflineControllerDependencies = {
   syncQueuedMutations: (reviewMutationId?: string) => Promise<SyncResult>;
   discardMutation: (mutationId: string) => Promise<void>;
   cacheAssignments: (rows: readonly Record<string, unknown>[]) => Promise<void>;
+  purgePrivateReads?: () => Promise<void>;
   purgeUserCache: () => Promise<void>;
   /**
    * Revoke the browser-side identity before the authenticated session is
@@ -75,6 +78,8 @@ export type OfflineControllerDependencies = {
 
 const OFFLINE_IDENTITY_COOKIE = 'ja_offline_identity';
 const OFFLINE_IDENTITY_STORAGE_PREFIX = 'ja-portal-offline-identity:';
+const assignmentCacheFailureMessage =
+  'Project access could not be refreshed on this device. Stay online and reload before using offline forms. Your unsent drafts and attachments are preserved.';
 
 function readOfflineIdentityCookie(): string | null {
   if (typeof document === 'undefined') return null;
@@ -169,6 +174,40 @@ export async function browserForgetIdentity(userId: string): Promise<void> {
   await notifyServiceWorkerForget(userId, token);
 }
 
+export async function browserPurgePrivateReads(): Promise<void> {
+  const token = readOfflineIdentityCookie();
+  const worker = await activeServiceWorker();
+  if (!token || !worker || typeof MessageChannel === 'undefined')
+    throw new Error('Private offline reads could not be refreshed');
+  await new Promise<void>((resolve, reject) => {
+    const channel = new MessageChannel();
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      channel.port1.close();
+      if (error) reject(error);
+      else resolve();
+    };
+    const timeout = setTimeout(
+      () => finish(new Error('Private offline read refresh was not acknowledged')),
+      2_000,
+    );
+    channel.port1.onmessage = (event) => {
+      if (event.data?.type !== 'ja-offline-private-reads-purged') return;
+      finish(
+        event.data.success === true ? undefined : new Error('Private offline read refresh failed'),
+      );
+    };
+    try {
+      worker.postMessage({ type: 'ja-offline-purge-private-reads', token }, [channel.port2]);
+    } catch {
+      finish(new Error('Private offline read refresh could not be requested'));
+    }
+  });
+}
+
 const browserDependencies = (): OfflineControllerDependencies => ({
   isOnline: () => navigator.onLine,
   addWindowListener: (type, listener) => addEventListener(type, listener),
@@ -187,6 +226,7 @@ const browserDependencies = (): OfflineControllerDependencies => ({
     syncQueuedMutations(fetch, undefined, reviewMutationId),
   discardMutation,
   cacheAssignments,
+  purgePrivateReads: browserPurgePrivateReads,
   purgeUserCache,
   forgetIdentity: (userId) => browserForgetIdentity(userId),
 });
@@ -200,6 +240,11 @@ const assignmentRow = (project: OfflineAssignment): PortalRow => ({
   timezone: project.timezone,
 });
 
+const assignmentLanes = new WeakMap<
+  OfflineControllerDependencies['cacheAssignments'],
+  { revision: number; tail: Promise<void> }
+>();
+
 export const createOfflineController = (
   basePath: string,
   sink: OfflineControllerSink,
@@ -208,6 +253,12 @@ export const createOfflineController = (
   let lastControllerMessage = '';
   const reviewRetriesInFlight = new Set<string>();
   let syncTail: Promise<void> = Promise.resolve();
+  let assignmentRevision = 0;
+  const assignmentLane = assignmentLanes.get(dependencies.cacheAssignments) ?? {
+    revision: 0,
+    tail: Promise.resolve(),
+  };
+  assignmentLanes.set(dependencies.cacheAssignments, assignmentLane);
   const setControllerMessage = (message: string): void => {
     lastControllerMessage = message;
     sink.setSyncMessage(message);
@@ -332,8 +383,14 @@ export const createOfflineController = (
         .catch(() => sink.setConflictItems([]));
       void dependencies
         .getOfflineAssignments()
-        .then((projects) => sink.setOfflineProjects(projects.map(assignmentRow)))
-        .catch(() => sink.setOfflineProjects([]));
+        .then((projects) => {
+          // A current server snapshot, including an empty one, supersedes
+          // a cache read that started before its persistence completed.
+          if (assignmentRevision === 0) sink.setOfflineProjects(projects.map(assignmentRow));
+        })
+        .catch(() => {
+          if (assignmentRevision === 0) sink.setOfflineProjects([]);
+        });
       void sync();
       dependencies.addWindowListener('online', update);
       dependencies.addWindowListener('offline', update);
@@ -343,6 +400,9 @@ export const createOfflineController = (
         `${basePath}/app/`,
       );
       return () => {
+        // Cancel queued assignment writes and bootstrap publication when this
+        // authenticated shell is disposed, including during sign-out.
+        assignmentRevision++;
         dependencies.removeWindowListener('online', update);
         dependencies.removeWindowListener('offline', update);
         dependencies.removeServiceWorkerListener?.(onServiceWorkerMessage);
@@ -359,12 +419,41 @@ export const createOfflineController = (
       }
     },
     refreshQueue,
-    cacheAssignments: async (rows: readonly Record<string, unknown>[]): Promise<void> => {
-      try {
-        await dependencies.cacheAssignments(rows);
-      } catch {
-        // Storage remains unavailable until the authenticated identity is ready.
-      }
+    cacheAssignments: (
+      rows: readonly PortalRow[] | undefined,
+      options: Readonly<{ authoritativeWorkerAccess?: boolean }> = {},
+    ): Promise<void> => {
+      if (!dependencies.isOnline() || !Array.isArray(rows)) return Promise.resolve();
+      const snapshot = rows.map((row) => ({ ...row }));
+      const revision = ++assignmentRevision;
+      const laneRevision = ++assignmentLane.revision;
+      sink.setOfflineProjects(snapshot);
+      // Preserve snapshot order even while identity/database opening is slow.
+      // Only assignments are replaced; queued drafts and receipts stay intact.
+      const next = assignmentLane.tail.then(async () => {
+        if (revision !== assignmentRevision || laneRevision !== assignmentLane.revision) return;
+        try {
+          if (options.authoritativeWorkerAccess) {
+            const previous = await dependencies.getOfflineAssignments();
+            if (revision !== assignmentRevision || laneRevision !== assignmentLane.revision) return;
+            const currentIds = new Set(snapshot.map((row) => String(row.id)));
+            if (previous.some((row) => !currentIds.has(row.id))) {
+              if (!dependencies.purgePrivateReads)
+                throw new Error('Private offline read refresh unavailable');
+              await dependencies.purgePrivateReads();
+            }
+          }
+          if (revision !== assignmentRevision || laneRevision !== assignmentLane.revision) return;
+          await dependencies.cacheAssignments(snapshot);
+          if (revision === assignmentRevision && laneRevision === assignmentLane.revision)
+            sink.setAssignmentCacheMessage?.('');
+        } catch {
+          if (revision === assignmentRevision && laneRevision === assignmentLane.revision)
+            sink.setAssignmentCacheMessage?.(assignmentCacheFailureMessage);
+        }
+      });
+      assignmentLane.tail = next;
+      return next;
     },
     purgeUserCache: dependencies.purgeUserCache,
     forgetIdentity: async (userId: string): Promise<void> => {

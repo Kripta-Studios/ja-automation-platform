@@ -22,6 +22,7 @@
   } from '../../standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { billingReadinessMessageKey } from '$lib/portal/billing-readiness';
+  import { formatDecimalHours } from '$lib/portal/sections/time-entry-actions';
   import {
     translateControlledValue,
     type ControlledValueDomain,
@@ -513,8 +514,7 @@
   }
 
   function hours(minutes: unknown): string {
-    const value = Number(minutes);
-    return Number.isFinite(value) ? (value / 60).toFixed(1) + ' h' : '—';
+    return formatDecimalHours(minutes);
   }
 
   function expenseAmount(row: Row): string {

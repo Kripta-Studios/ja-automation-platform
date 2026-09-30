@@ -21,6 +21,7 @@
     children,
     label = 'Records',
     translate = (text: string) => text,
+    statusLabel = (value: string) => translate(value),
     pageSize = 8,
     focusId = '',
     contextKey = '',
@@ -35,6 +36,7 @@
     children?: Snippet<[T[]]>;
     label?: string;
     translate?: (text: string) => string;
+    statusLabel?: (value: string) => string;
     pageSize?: number;
     focusId?: string;
     contextKey?: string;
@@ -150,7 +152,7 @@
         <label
           >{translate('Status')}<select bind:value={status}
             ><option value="">{translate('All')}</option>{#each statuses as item}<option
-                value={item}>{translate(item)}</option
+                value={item}>{statusLabel(item)}</option
               >{/each}</select
           ></label
         >

@@ -50,6 +50,12 @@ function cellByHeader(files: Map<string, string>, sheet: number, header: string,
   return cellXml(files, sheet, `${match[1]}${row}`);
 }
 
+function headers(files: Map<string, string>, sheet: number): string[] {
+  const xml = files.get(`xl/worksheets/sheet${sheet}.xml`) ?? '';
+  const first = xml.match(/<row r="1"[^>]*>([\s\S]*?)<\/row>/)?.[1] ?? '';
+  return [...first.matchAll(/<t>([^<]*)<\/t>/g)].map((match) => match[1] ?? '');
+}
+
 describe('project finance XLSX export', () => {
   it('keeps declared numeric values numeric, dates sortable, and identifiers/formula-like text literal', () => {
     const bytes = xlsxFromSheets([
@@ -593,6 +599,229 @@ describe('project finance XLSX export', () => {
     expect(sheetNames(files)).toContain('Resumen');
     expect(sheetNames(files)).toContain('Mano de obra');
     expect(sheetNames(files)).toContain('Facturas');
-    expect(files.get('xl/worksheets/sheet2.xml')).toContain('Hours recorded');
+    expect(files.get('xl/worksheets/sheet2.xml')).toContain('Horas registradas');
   });
+
+  it.each(['en', 'es', 'pt'] as const)(
+    'localizes all nine controlled sheet headers and summary copy in %s while preserving source and exact cells',
+    (locale) => {
+      const snapshot = {
+        project: {
+          project_number: 'QA-0001',
+          // Deliberate caption collisions must remain literal source values.
+          project_name: 'Invoice number',
+          client_name: 'Worker',
+          currency: 'USD',
+          period_start: '2026-09-01',
+          period_end: '2026-09-30',
+        },
+        financial: {
+          currency: 'USD',
+          billingModel: 'tm',
+          forecastBasis: 'Project name',
+          laborRevenueMinor: '125',
+          actualMinutes: 165,
+          approvedUnbilledSources: [
+            {
+              sourceType: 'expense',
+              sourceId: 'source',
+              spentOn: '2026-09-30',
+              workerId: 'worker',
+              amountMinor: '125',
+            },
+          ],
+          dailyMinimumAdjustments: [
+            {
+              workerId: 'worker',
+              workDate: '2026-09-30',
+              adjustmentMinutes: 15,
+              revenueMinor: '125',
+            },
+          ],
+          reasons: [{ code: 'missing_client_rate', sourceId: 'source' }],
+        },
+        timeEconomics: [
+          {
+            worker_name: 'Worker',
+            work_date: '2026-09-30',
+            category: 'regular',
+            actualMinutes: 165,
+            clientRevenueMinor: '125',
+            billabilityState: 'billable',
+            approvalState: 'approved',
+          },
+        ],
+        expenseEconomics: [
+          {
+            id: 'expense',
+            workerName: 'Worker',
+            spentOn: '2026-09-30',
+            category: 'meals',
+            description: 'Due date',
+            paidBy: 'worker',
+            recordedCurrency: 'USD',
+            recordedAmountMinor: '9007199254740993',
+            financeApprovalState: 'pending_review',
+            classificationState: 'unclassified',
+            financeProjectionState: 'missing_rate',
+            approvalState: 'approved',
+          },
+        ],
+        invoices: [
+          {
+            id: 'invoice',
+            invoice_number: 'QA-001',
+            stream_type: 'expense',
+            state: 'issued',
+            currency: 'USD',
+            total_minor: '361',
+            period_start: '2026-10-01',
+            period_end: '2026-10-31',
+            issued_at: '2026-09-30T01:19:21.091Z',
+            due_at: '2026-10-30T01:19:21.091Z',
+            paid_minor: '0',
+          },
+        ],
+        invoiceExpenseLines: [
+          {
+            invoice_id: 'invoice',
+            invoice_number: 'QA-001',
+            invoice_state: 'issued',
+            expense_id: 'expense',
+            description: '=Invoice number',
+            currency: 'USD',
+            amount_minor: '361',
+          },
+        ],
+        milestones: [
+          {
+            name: 'Milestone',
+            due_on: '2026-10-31',
+            approval_state: 'approved',
+            amount_minor: '125',
+          },
+        ],
+      };
+      const before = JSON.stringify(snapshot);
+      const english = unzip(projectFinanceXlsx({ ...snapshot, locale: 'en' }));
+      const localized = unzip(projectFinanceXlsx({ ...snapshot, locale }));
+      const firstHeaders = {
+        en: [
+          'Section',
+          'Worker',
+          'Expense record ID',
+          'Record type',
+          'Worker ID',
+          'Invoice number',
+          'Invoice number',
+          'Milestone',
+          'Finance alert code',
+        ],
+        es: [
+          'Sección',
+          'Trabajador',
+          'ID del registro de gasto',
+          'Tipo de registro',
+          'ID del trabajador',
+          'Número de factura',
+          'Número de factura',
+          'Hito',
+          'Código de alerta financiera',
+        ],
+        pt: [
+          'Seção',
+          'Colaborador',
+          'ID do registro de despesa',
+          'Tipo de registro',
+          'ID do colaborador',
+          'Número da fatura',
+          'Número da fatura',
+          'Marco',
+          'Código do alerta financeiro',
+        ],
+      };
+      for (let sheet = 1; sheet <= 9; sheet++) {
+        const baseline = headers(english, sheet);
+        const actual = headers(localized, sheet);
+        expect(actual).toHaveLength(baseline.length);
+        expect(actual[0]).toBe(firstHeaders[locale][sheet - 1]);
+        if (locale !== 'en')
+          for (let column = 0; column < actual.length; column++)
+            expect(actual[column], `sheet${sheet} column${column}: ${baseline[column]}`).not.toBe(
+              baseline[column],
+            );
+        // Every numeric/date value and its cell reference/style remain exact.
+        const numeric = (xml: string) =>
+          [...xml.matchAll(/<c r="[^"]+"(?: s="[^"]+")?><v>[^<]*<\/v><\/c>/g)].map(
+            (match) => match[0],
+          );
+        expect(numeric(localized.get(`xl/worksheets/sheet${sheet}.xml`) ?? '')).toEqual(
+          numeric(english.get(`xl/worksheets/sheet${sheet}.xml`) ?? ''),
+        );
+      }
+      const summary = localized.get('xl/worksheets/sheet1.xml') ?? '';
+      if (locale !== 'en') {
+        const sourceSummary = english.get('xl/worksheets/sheet1.xml') ?? '';
+        for (const row of sourceSummary.matchAll(/<row r="(\d+)"[^>]*>/g)) {
+          const number = Number(row[1]);
+          if (number === 1) continue;
+          expect(cellXml(localized, 1, `B${number}`)).not.toBe(cellXml(english, 1, `B${number}`));
+          if (cellXml(english, 1, `A${number}`).includes('How to read this file'))
+            expect(cellXml(localized, 1, `C${number}`)).not.toBe(cellXml(english, 1, `C${number}`));
+        }
+      }
+      expect(summary).toContain(
+        locale === 'es'
+          ? 'Posibles cargos de mano de obra al cliente'
+          : locale === 'pt'
+            ? 'Possíveis cobranças de mão de obra ao cliente'
+            : 'Potential labor charges to client',
+      );
+      expect(summary).toContain(
+        locale === 'es'
+          ? 'Cómo leer este archivo'
+          : locale === 'pt'
+            ? 'Como ler este arquivo'
+            : 'How to read this file',
+      );
+      expect(summary).toContain(
+        locale === 'es'
+          ? 'no es prueba de pago.'
+          : locale === 'pt'
+            ? 'não é comprovante de pagamento.'
+            : 'it is not proof of payment.',
+      );
+      expect(summary).toContain('<t>Invoice number</t>');
+      expect(summary).toContain('<t>Project name</t>');
+      expect(cellXml(localized, 2, 'A2')).toContain('<t>Worker</t>');
+      expect(cellXml(localized, 3, 'D2')).toContain('<t>meals</t>');
+      expect(cellXml(localized, 3, 'E2')).toContain('<t>Due date</t>');
+      expect(cellXml(localized, 3, 'F2')).toContain('<t>worker</t>');
+      expect(localized.get('xl/worksheets/sheet3.xml')).toContain('<t>9007199254740993</t>');
+      expect(localized.get('xl/worksheets/sheet3.xml')).toContain('<t>pending_review</t>');
+      expect(cellXml(localized, 6, 'K2')).toContain('2026-09-30T01:19:21.091Z');
+      expect(cellXml(localized, 6, 'L2')).toContain('2026-10-30T01:19:21.091Z');
+      expect(cellXml(localized, 7, 'E2')).toContain('=Invoice number');
+      expect(cellXml(localized, 8, 'A2')).toContain('<t>Milestone</t>');
+      expect(cellXml(localized, 9, 'A2')).toContain('<t>missing_client_rate</t>');
+      expect(cellXml(localized, 9, 'B2')).toContain('<t>source</t>');
+      for (const [path, xml] of localized)
+        if (path.startsWith('xl/worksheets/')) expect(xml).not.toContain('<f>');
+      expect(sheetNames(localized)).toContain(
+        locale === 'es' ? 'Mínimo diario' : locale === 'pt' ? 'Mínimo diário' : 'Daily minimum',
+      );
+      if (locale === 'pt') {
+        expect(sheetNames(localized)).toContain('Mão de obra');
+        expect(sheetNames(localized)).toContain('WIP não faturado');
+        expect(summary).toContain('Faturamento e cobrança');
+        expect(summary).toContain('Previsão');
+      }
+      if (locale === 'es') {
+        expect(summary).toContain('Economía del proyecto');
+        expect(summary).toContain('Facturación y cobro');
+        expect(summary).toContain('Previsión');
+      }
+      expect(JSON.stringify(snapshot)).toBe(before);
+    },
+  );
 });

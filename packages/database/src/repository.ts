@@ -20,6 +20,7 @@ import { decodeTechnicalReportChange } from '@ja/schemas';
 import { recordAuditEvent } from './core/audit.ts';
 import { ProjectCloseoutService } from './domains/closeout/project-closeout-service.ts';
 import { assertActiveAccount, assertLiveSession } from './core/authorization.ts';
+import { workerOperationalProjectScope } from './core/project-access.ts';
 import { verifyPrivatePdfArtifact } from './core/private-pdf-proof.ts';
 import { nextNumberSequence } from './core/sequence.ts';
 import { assertSafeStorageKey } from './core/storage-key.ts';
@@ -138,6 +139,7 @@ type InvoiceListSourceRow = Readonly<{
   planned_issue_on: string | null;
   expected_collection_on: string | null;
   issued_at: string | null;
+  due_at: string | null;
   version: number;
   pdf_status: string;
   pdf_generated_at: string | null;
@@ -921,6 +923,20 @@ export class PortalRepository {
       | { role: Role; status: string }
       | undefined;
     if (!user || user.status !== 'active') throw new AccessDeniedError('Active account required');
+    if (user.role === 'worker' && sessionId !== undefined) {
+      const principal: Principal = {
+        userId,
+        role: user.role,
+        sessionId,
+        correlationId,
+        projectIds: new Set(),
+      };
+      const scope = workerOperationalProjectScope(this.sqlite, principal);
+      const projects = this.sqlite
+        .prepare(`${scope.withClause} SELECT p.id FROM project p WHERE ${scope.predicate}`)
+        .all(...scope.parameters) as Array<{ id: string }>;
+      return { ...principal, projectIds: new Set(projects.map((project) => project.id)) };
+    }
     const asOf = today();
     const projects = this.sqlite
       .prepare(
@@ -1919,7 +1935,8 @@ export class PortalRepository {
   private hasEffectiveProjectObjectAccess(
     principal: Principal,
     projectId: string,
-    objectDate = today(),
+    objectDate?: string,
+    instant = new Date(),
   ): boolean {
     if (
       principal.role === 'owner_admin' ||
@@ -1927,6 +1944,36 @@ export class PortalRepository {
       principal.role === 'auditor_read_only'
     )
       return true;
+    if (principal.role === 'worker') {
+      try {
+        const scope = workerOperationalProjectScope(this.sqlite, principal, 'object', instant);
+        return Boolean(
+          this.sqlite
+            .prepare(
+              `${scope.withClause},requested_project_object(object_date) AS (VALUES (?))
+               SELECT 1 FROM project p WHERE ${scope.predicate} AND p.id=?
+                 AND EXISTS (
+                   SELECT 1 FROM project_member pm
+                   JOIN current_project_days scope_day ON scope_day.timezone=p.timezone
+                   WHERE pm.project_id=p.id AND pm.user_id=? AND pm.status='active'
+                     AND pm.starts_on<=COALESCE((SELECT object_date FROM requested_project_object),scope_day.local_today)
+                     AND (pm.ends_on IS NULL OR pm.ends_on>=COALESCE((SELECT object_date FROM requested_project_object),scope_day.local_today))
+                 ) LIMIT 1`,
+            )
+            .get(
+              ...scope.withParameters,
+              objectDate ?? null,
+              ...scope.predicateParameters,
+              projectId,
+              principal.userId,
+            ),
+        );
+      } catch (error) {
+        if (error instanceof AccessDeniedError) return false;
+        throw error;
+      }
+    }
+    objectDate ??= today();
     if (!principal.projectIds.has(projectId)) return false;
     if (!this.hasSupplierCoordinatorOperationalAccess(principal, projectId, objectDate))
       return false;
@@ -1972,7 +2019,7 @@ export class PortalRepository {
   private assertProjectObjectAccess(
     principal: Principal,
     projectId: string,
-    objectDate = today(),
+    objectDate?: string,
     ownerId?: string,
   ): void {
     if (
@@ -8574,13 +8621,40 @@ export class PortalRepository {
          FROM expense WHERE project_id=?${ownOnly ? ' AND worker_id=?' : ''} ORDER BY spent_on DESC`,
       )
       .all(...(ownOnly ? [projectId, principal.userId] : [projectId]));
+    const planningColumns = this.canSeeFinanceFields(principal)
+      ? 'pa.*'
+      : `pa.id,pa.project_id,pa.worker_id,pa.starts_at,pa.ends_at,pa.planned_minutes,
+         pa.status,pa.site,pa.required_skill,pa.version,pa.created_at,pa.updated_at`;
+    const planningScope = ownOnly
+      ? workerOperationalProjectScope(this.sqlite, principal, 'planning', new Date())
+      : null;
     const planning = this.sqlite
       .prepare(
-        `SELECT pa.*,u.name worker_name FROM planning_assignment pa JOIN user u ON u.id=pa.worker_id
-         WHERE pa.project_id=? AND pa.status<>'cancelled'${ownOnly ? ' AND pa.worker_id=?' : ''}
+        `${planningScope?.withClause ?? ''}
+         SELECT DISTINCT ${planningColumns},u.name worker_name
+         FROM planning_assignment pa JOIN user u ON u.id=pa.worker_id
+         ${ownOnly ? 'JOIN project p ON p.id=pa.project_id JOIN project_member pm ON pm.project_id=pa.project_id AND pm.user_id=pa.worker_id' : ''}
+         WHERE pa.project_id=? AND ${
+           planningScope
+             ? `pa.status='published' AND ${planningScope.predicate} AND pa.worker_id=?
+                AND pm.status='active' AND u.status='active'
+                AND u.role IN ('worker','project_manager')
+                AND pm.starts_on<=date(pa.starts_at)
+                AND (pm.ends_on IS NULL OR pm.ends_on>=date(pa.ends_at))`
+             : "pa.status<>'cancelled'"
+         }
          ORDER BY pa.starts_at`,
       )
-      .all(...(ownOnly ? [projectId, principal.userId] : [projectId]));
+      .all(
+        ...(planningScope
+          ? [
+              ...planningScope.withParameters,
+              projectId,
+              ...planningScope.predicateParameters,
+              principal.userId,
+            ]
+          : [projectId]),
+      );
     const milestoneColumns = this.canSeeFinanceFields(principal)
       ? 'id,name,description,amount_minor,currency,due_on,approval_state,invoice_id,version'
       : 'id,name,description,due_on,approval_state,version';
@@ -8882,19 +8956,35 @@ export class PortalRepository {
     const technicalValues: string[] = [];
     const dailyConditions: string[] = [];
     const technicalConditions: string[] = [];
+    let dailyWithClause = '';
+    let technicalWithClause = '';
     if (principal.role === 'worker') {
+      const instant = new Date();
+      const dailyScope = workerOperationalProjectScope(this.sqlite, principal, 'daily', instant);
+      const technicalScope = workerOperationalProjectScope(
+        this.sqlite,
+        principal,
+        'technical',
+        instant,
+      );
+      dailyWithClause = dailyScope.withClause;
+      technicalWithClause = technicalScope.withClause;
+      dailyConditions.push(dailyScope.predicate);
+      dailyValues.push(...dailyScope.parameters);
+      technicalConditions.push(technicalScope.predicate);
+      technicalValues.push(...technicalScope.parameters);
       dailyConditions.push('d.worker_id=?');
       dailyValues.push(principal.userId);
       technicalConditions.push('t.author_id=?');
       technicalValues.push(principal.userId);
       dailyConditions.push(
-        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=d.project_id AND pm_scope.user_id=? AND pm_scope.status='active' AND pm_scope.starts_on<=d.work_date AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=d.work_date) AND pm_scope.starts_on<=? AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=?))",
+        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=d.project_id AND pm_scope.user_id=? AND pm_scope.status='active' AND pm_scope.starts_on<=d.work_date AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=d.work_date))",
       );
-      dailyValues.push(principal.userId, today(), today());
+      dailyValues.push(principal.userId);
       technicalConditions.push(
-        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=t.project_id AND pm_scope.user_id=? AND pm_scope.status='active' AND pm_scope.starts_on<=t.report_date AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=t.report_date) AND pm_scope.starts_on<=? AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=?))",
+        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=t.project_id AND pm_scope.user_id=? AND pm_scope.status='active' AND pm_scope.starts_on<=t.report_date AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=t.report_date))",
       );
-      technicalValues.push(principal.userId, today(), today());
+      technicalValues.push(principal.userId);
     } else if (principal.role === 'project_manager') {
       const ids = [...principal.projectIds];
       if (!ids.length) return [];
@@ -8914,7 +9004,7 @@ export class PortalRepository {
     }
     const daily = this.sqlite
       .prepare(
-        `SELECT 'daily' type,d.id,d.project_id,d.worker_id,d.work_date date,d.summary title,d.approval_state,d.version,
+        `${dailyWithClause} SELECT 'daily' type,d.id,d.project_id,d.worker_id,d.work_date date,d.summary title,d.approval_state,d.version,
                 d.safety_related,p.project_number,p.name project_name,u.name author_name,u.email author_email,
                 COALESCE(creator.name,u.name) created_by_name,COALESCE(creator.email,u.email) created_by_email,
                 reviewer.name reviewed_by_name,c.display_name client_name
@@ -8931,7 +9021,7 @@ export class PortalRepository {
       .all(...dailyValues) as Array<Record<string, unknown>>;
     const technical = this.sqlite
       .prepare(
-        `SELECT 'technical' type,t.id,t.project_id,t.author_id worker_id,t.report_date date,t.system_name title,t.approval_state,
+        `${technicalWithClause} SELECT 'technical' type,t.id,t.project_id,t.author_id worker_id,t.report_date date,t.system_name title,t.approval_state,
                 t.version,t.safety_related,p.project_number,p.name project_name,u.name author_name,u.email author_email,
                 COALESCE(creator.name,u.name) created_by_name,COALESCE(creator.email,u.email) created_by_email,
                 reviewer.name reviewed_by_name,c.display_name client_name
@@ -8949,6 +9039,7 @@ export class PortalRepository {
     return [...daily, ...technical]
       .filter(
         (row) =>
+          principal.role === 'worker' ||
           !isSupplierCoordinator(this.sqlite, principal.userId) ||
           this.hasEffectiveProjectObjectAccess(principal, String(row.project_id), String(row.date)),
       )
@@ -8966,6 +9057,10 @@ export class PortalRepository {
       .get(principal.userId) as { role: string } | undefined;
     if (persistedRole?.role !== principal.role)
       throw new AccessDeniedError('Authenticated role changed; sign in again');
+    const workerScope =
+      principal.role === 'worker'
+        ? workerOperationalProjectScope(this.sqlite, principal, 'notification')
+        : null;
     const notificationRepository = new NotificationRepository({
       sqlite: this.sqlite,
       transaction: <T>(work: () => T): T => this.transaction(work),
@@ -9064,7 +9159,7 @@ export class PortalRepository {
           principal.role === 'project_manager'
         )
           return false;
-        if (!source) return view.sourceId === null;
+        if (!source) return false;
         if (
           principal.role === 'owner_admin' ||
           principal.role === 'finance_admin' ||
@@ -9078,6 +9173,33 @@ export class PortalRepository {
           'budget_exception',
           'cap_exception',
         ].includes(row.kind);
+        if (workerScope) {
+          const objectDate = projectNotice ? null : source.date || null;
+          const membership = this.sqlite
+            .prepare(
+              `${workerScope.withClause},notification_source(record_date) AS (VALUES (?))
+               SELECT 1 FROM project p
+               WHERE ${workerScope.predicate} AND p.id=?
+                 AND EXISTS (
+                   SELECT 1 FROM project_member pm
+                   JOIN current_project_days scope_day ON scope_day.timezone=p.timezone
+                   WHERE pm.project_id=p.id AND pm.user_id=? AND pm.status='active'
+                     AND pm.starts_on<=COALESCE((SELECT record_date FROM notification_source),scope_day.local_today)
+                     AND (pm.ends_on IS NULL OR pm.ends_on>=COALESCE((SELECT record_date FROM notification_source),scope_day.local_today))
+                 ) LIMIT 1`,
+            )
+            .get(
+              ...workerScope.withParameters,
+              objectDate,
+              ...workerScope.predicateParameters,
+              source.project_id,
+              principal.userId,
+            );
+          return (
+            Boolean(membership) &&
+            (source.owner_id === null || source.owner_id === principal.userId)
+          );
+        }
         const objectDate = projectNotice ? current : source.date || current;
         const membership = this.sqlite
           .prepare(
@@ -9097,6 +9219,24 @@ export class PortalRepository {
           source.owner_id === principal.userId
         );
       })();
+      if (!sourceAuthorized || !source)
+        return {
+          id: row.id,
+          kind: 'workspace_activity',
+          subject_id: null,
+          read_at: row.read_at,
+          created_at: row.created_at,
+          source_id: null,
+          target: null,
+          title: 'J&A Automation notification',
+          actor_name: null,
+          changed_fields: [],
+          project_id: null,
+          project_number: null,
+          project_name: null,
+          record_date: null,
+          record_title: null,
+        };
       const safeView =
         sourceAuthorized && source
           ? view
@@ -9162,6 +9302,56 @@ export class PortalRepository {
     const term = typeof query === 'string' ? query.trim() : '';
     if (term.length > 120) throw new ValidationError('Search query is too long');
     const pattern = `%${term.replaceAll('%', '\\%').replaceAll('_', '\\_')}%`;
+    if (principal.role === 'worker') {
+      const instant = new Date();
+      const queries = [
+        {
+          dates: 'current' as const,
+          sql: `SELECT p.id,'project' type,p.name label,p.project_number || ' · Project' detail
+                FROM project p WHERE SCOPE
+                  AND (p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\' OR p.po_number LIKE ? ESCAPE '\\') LIMIT 50`,
+          values: [pattern, pattern, pattern],
+        },
+        {
+          dates: 'daily' as const,
+          sql: `SELECT d.id,'report' type,COALESCE(d.summary,'Daily report') label,p.project_number || ' · Daily report' detail
+                FROM daily_report d JOIN project p ON p.id=d.project_id
+                WHERE SCOPE AND d.worker_id=?
+                  AND EXISTS(SELECT 1 FROM project_member pm WHERE pm.project_id=d.project_id AND pm.user_id=d.worker_id
+                    AND pm.status='active' AND pm.starts_on<=d.work_date AND (pm.ends_on IS NULL OR pm.ends_on>=d.work_date))
+                  AND (d.id LIKE ? ESCAPE '\\' OR d.summary LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')`,
+          values: [principal.userId, pattern, pattern, pattern, pattern],
+        },
+        {
+          dates: 'technical' as const,
+          sql: `SELECT t.id,'report' type,COALESCE(t.system_name,t.change_summary,'Technical report') label,p.project_number || ' · Technical report' detail
+                FROM technical_report t JOIN project p ON p.id=t.project_id
+                WHERE SCOPE AND t.author_id=?
+                  AND EXISTS(SELECT 1 FROM project_member pm WHERE pm.project_id=t.project_id AND pm.user_id=t.author_id
+                    AND pm.status='active' AND pm.starts_on<=t.report_date AND (pm.ends_on IS NULL OR pm.ends_on>=t.report_date))
+                  AND (t.id LIKE ? ESCAPE '\\' OR t.system_name LIKE ? ESCAPE '\\' OR t.change_summary LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')`,
+          values: [principal.userId, pattern, pattern, pattern, pattern, pattern],
+        },
+        {
+          dates: 'expense' as const,
+          sql: `SELECT e.id,'expense' type,COALESCE(NULLIF(TRIM(e.vendor),''),NULLIF(TRIM(e.description),''),e.category) label,p.project_number || ' · Expense / receipt' detail
+                FROM expense e JOIN project p ON p.id=e.project_id
+                WHERE SCOPE AND e.worker_id=?
+                  AND EXISTS(SELECT 1 FROM project_member pm WHERE pm.project_id=e.project_id AND pm.user_id=e.worker_id
+                    AND pm.status='active' AND pm.starts_on<=e.spent_on AND (pm.ends_on IS NULL OR pm.ends_on>=e.spent_on))
+                  AND (e.id LIKE ? ESCAPE '\\' OR e.receipt_document_id LIKE ? ESCAPE '\\' OR e.vendor LIKE ? ESCAPE '\\' OR e.description LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\') LIMIT 50`,
+          values: [principal.userId, pattern, pattern, pattern, pattern, pattern],
+        },
+      ];
+      return queries
+        .flatMap(({ dates, sql, values }) => {
+          const scope = workerOperationalProjectScope(this.sqlite, principal, dates, instant);
+          return this.sqlite
+            .prepare(`${scope.withClause} ${sql.replace('SCOPE', scope.predicate)}`)
+            .all(...scope.parameters, ...values);
+        })
+        .slice(0, 100);
+    }
     const projectIds = principal.role === 'project_manager' ? [...principal.projectIds] : [];
     const projectRestriction =
       projectIds.length > 0
@@ -9170,128 +9360,67 @@ export class PortalRepository {
           ? ' AND 1=0'
           : '';
     const projectValues = [...projectIds];
-    const projects =
-      principal.role === 'worker'
-        ? this.sqlite
-            .prepare(
-              `SELECT p.id,'project' type,p.name label,p.project_number || ' · Project' detail FROM project p
-               JOIN project_member pm ON pm.project_id=p.id AND pm.user_id=? AND pm.status='active'
-                 AND pm.starts_on<=date('now') AND (pm.ends_on IS NULL OR pm.ends_on>=date('now'))
-               WHERE p.status='active' AND (p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\' OR p.po_number LIKE ? ESCAPE '\\') LIMIT 50`,
-            )
-            .all(principal.userId, pattern, pattern, pattern)
-        : this.sqlite
-            .prepare(
-              `SELECT p.id,'project' type,p.name label,p.project_number || ' · ' || COALESCE(p.po_number,'Project') detail FROM project p
+    const projects = this.sqlite
+      .prepare(
+        `SELECT p.id,'project' type,p.name label,p.project_number || ' · ' || COALESCE(p.po_number,'Project') detail FROM project p
                WHERE (p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\' OR p.po_number LIKE ? ESCAPE '\\')${projectRestriction} LIMIT 50`,
-            )
-            .all(pattern, pattern, pattern, ...projectValues);
-    const clients =
-      principal.role === 'worker'
-        ? []
-        : this.sqlite
-            .prepare(
-              `SELECT c.id,'client' type,c.display_name label,c.client_number || ' · Client' detail FROM client c
+      )
+      .all(pattern, pattern, pattern, ...projectValues);
+    const clients = this.sqlite
+      .prepare(
+        `SELECT c.id,'client' type,c.display_name label,c.client_number || ' · Client' detail FROM client c
                JOIN project p ON p.client_id=c.id
                WHERE (c.client_number LIKE ? ESCAPE '\\' OR c.display_name LIKE ? ESCAPE '\\')${projectRestriction} LIMIT 50`,
-            )
-            .all(pattern, pattern, ...projectValues);
-    const workers =
-      principal.role === 'worker'
-        ? []
-        : this.sqlite
-            .prepare(
-              `SELECT u.id,'worker' type,u.name label,u.email detail FROM user u
+      )
+      .all(pattern, pattern, ...projectValues);
+    const workers = this.sqlite
+      .prepare(
+        `SELECT u.id,'worker' type,u.name label,u.email detail FROM user u
                WHERE u.status='active' AND (u.name LIKE ? ESCAPE '\\' OR u.email LIKE ? ESCAPE '\\')
                AND (${
                  principal.role === 'project_manager'
                    ? `EXISTS (SELECT 1 FROM project_member pm WHERE pm.user_id=u.id AND pm.status='active' AND pm.project_id IN (${projectIds.map(() => '?').join(',')}))`
                    : '1=1'
                }) LIMIT 50`,
-            )
-            .all(pattern, pattern, ...projectValues);
-    const invoices =
-      principal.role === 'worker'
-        ? []
-        : this.sqlite
-            .prepare(
-              `SELECT i.id,'invoice' type,i.invoice_number label,i.stream_type || ' · Invoice' detail FROM invoice i
+      )
+      .all(pattern, pattern, ...projectValues);
+    const invoices = this.sqlite
+      .prepare(
+        `SELECT i.id,'invoice' type,i.invoice_number label,i.stream_type || ' · Invoice' detail FROM invoice i
                JOIN project p ON p.id=i.project_id
                WHERE i.invoice_number LIKE ? ESCAPE '\\'${projectRestriction} LIMIT 50`,
-            )
-            .all(pattern, ...projectValues);
-    const reports =
-      principal.role === 'worker'
-        ? this.sqlite
-            .prepare(
-              `SELECT d.id,'report' type,COALESCE(d.summary,'Daily report') label,p.project_number || ' · Daily report' detail
-               FROM daily_report d JOIN project p ON p.id=d.project_id
-               WHERE d.worker_id=? AND p.status='active'
-                 AND EXISTS(SELECT 1 FROM project_member pm WHERE pm.project_id=d.project_id AND pm.user_id=? AND pm.status='active' AND pm.starts_on<=d.work_date AND (pm.ends_on IS NULL OR pm.ends_on>=d.work_date) AND pm.starts_on<=date('now') AND (pm.ends_on IS NULL OR pm.ends_on>=date('now')))
-                 AND (d.id LIKE ? ESCAPE '\\' OR d.summary LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')
-               UNION ALL
-               SELECT t.id,'report' type,COALESCE(t.system_name,t.change_summary,'Technical report') label,p.project_number || ' · Technical report' detail
-               FROM technical_report t JOIN project p ON p.id=t.project_id
-               WHERE t.author_id=? AND p.status='active'
-                 AND EXISTS(SELECT 1 FROM project_member pm WHERE pm.project_id=t.project_id AND pm.user_id=? AND pm.status='active' AND pm.starts_on<=t.report_date AND (pm.ends_on IS NULL OR pm.ends_on>=t.report_date) AND pm.starts_on<=date('now') AND (pm.ends_on IS NULL OR pm.ends_on>=date('now')))
-                 AND (t.id LIKE ? ESCAPE '\\' OR t.system_name LIKE ? ESCAPE '\\' OR t.change_summary LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')`,
-            )
-            .all(
-              principal.userId,
-              principal.userId,
-              pattern,
-              pattern,
-              pattern,
-              pattern,
-              principal.userId,
-              principal.userId,
-              pattern,
-              pattern,
-              pattern,
-              pattern,
-              pattern,
-            )
-        : this.sqlite
-            .prepare(
-              `SELECT d.id,'report' type,COALESCE(d.summary,'Daily report') label,p.project_number || ' · Daily report' detail
+      )
+      .all(pattern, ...projectValues);
+    const reports = this.sqlite
+      .prepare(
+        `SELECT d.id,'report' type,COALESCE(d.summary,'Daily report') label,p.project_number || ' · Daily report' detail
                FROM daily_report d JOIN project p ON p.id=d.project_id
                WHERE (d.id LIKE ? ESCAPE '\\' OR d.summary LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')${projectRestriction}
                UNION ALL
                SELECT t.id,'report' type,COALESCE(t.system_name,t.change_summary,'Technical report') label,p.project_number || ' · Technical report' detail
                FROM technical_report t JOIN project p ON p.id=t.project_id
                WHERE (t.id LIKE ? ESCAPE '\\' OR t.system_name LIKE ? ESCAPE '\\' OR t.change_summary LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')${projectRestriction}`,
-            )
-            .all(
-              pattern,
-              pattern,
-              pattern,
-              pattern,
-              ...projectValues,
-              pattern,
-              pattern,
-              pattern,
-              pattern,
-              pattern,
-              ...projectValues,
-            );
-    const expenses =
-      principal.role === 'worker'
-        ? this.sqlite
-            .prepare(
-              `SELECT e.id,'expense' type,COALESCE(NULLIF(TRIM(e.vendor),''),NULLIF(TRIM(e.description),''),e.category) label,p.project_number || ' · Expense / receipt' detail
-               FROM expense e JOIN project p ON p.id=e.project_id
-               WHERE e.worker_id=? AND p.status='active'
-                 AND EXISTS(SELECT 1 FROM project_member pm WHERE pm.project_id=e.project_id AND pm.user_id=? AND pm.status='active' AND pm.starts_on<=e.spent_on AND (pm.ends_on IS NULL OR pm.ends_on>=e.spent_on) AND pm.starts_on<=date('now') AND (pm.ends_on IS NULL OR pm.ends_on>=date('now')))
-                 AND (e.id LIKE ? ESCAPE '\\' OR e.receipt_document_id LIKE ? ESCAPE '\\' OR e.vendor LIKE ? ESCAPE '\\' OR e.description LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\') LIMIT 50`,
-            )
-            .all(principal.userId, principal.userId, pattern, pattern, pattern, pattern, pattern)
-        : this.sqlite
-            .prepare(
-              `SELECT e.id,'expense' type,COALESCE(NULLIF(TRIM(e.vendor),''),NULLIF(TRIM(e.description),''),e.category) label,p.project_number || ' · Expense / receipt' detail
+      )
+      .all(
+        pattern,
+        pattern,
+        pattern,
+        pattern,
+        ...projectValues,
+        pattern,
+        pattern,
+        pattern,
+        pattern,
+        pattern,
+        ...projectValues,
+      );
+    const expenses = this.sqlite
+      .prepare(
+        `SELECT e.id,'expense' type,COALESCE(NULLIF(TRIM(e.vendor),''),NULLIF(TRIM(e.description),''),e.category) label,p.project_number || ' · Expense / receipt' detail
                FROM expense e JOIN project p ON p.id=e.project_id
                WHERE (e.id LIKE ? ESCAPE '\\' OR e.receipt_document_id LIKE ? ESCAPE '\\' OR e.vendor LIKE ? ESCAPE '\\' OR e.description LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\')${projectRestriction} LIMIT 50`,
-            )
-            .all(pattern, pattern, pattern, pattern, pattern, ...projectValues);
+      )
+      .all(pattern, pattern, pattern, pattern, pattern, ...projectValues);
     return [...projects, ...clients, ...workers, ...invoices, ...reports, ...expenses].slice(
       0,
       100,
@@ -9338,14 +9467,18 @@ export class PortalRepository {
     this.assertReadable(principal);
     const clauses = ['1=1'];
     const values: Array<string> = [];
+    let withClause = '';
     if (principal.role === 'worker') {
+      const scope = workerOperationalProjectScope(this.sqlite, principal, 'time');
+      withClause = scope.withClause;
+      clauses.push(scope.predicate);
+      values.push(...scope.parameters);
       clauses.push('t.worker_id=?');
       values.push(principal.userId);
-      clauses.push("p.status IN ('active','planned','paused')");
       clauses.push(
-        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=t.project_id AND pm_scope.user_id=? AND pm_scope.status='active' AND pm_scope.starts_on<=t.work_date AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=t.work_date) AND pm_scope.starts_on<=? AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=?))",
+        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=t.project_id AND pm_scope.user_id=? AND pm_scope.status='active' AND pm_scope.starts_on<=t.work_date AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=t.work_date))",
       );
-      values.push(principal.userId, today(), today());
+      values.push(principal.userId);
     } else if (principal.role === 'project_manager') {
       const projectIds = [...principal.projectIds];
       if (projectIds.length === 0) return [];
@@ -9375,7 +9508,7 @@ export class PortalRepository {
     }
     const rows = this.sqlite
       .prepare(
-        `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
+        `${withClause} SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
                 t.start_time,t.end_time,t.break_minutes,
                 t.activity_summary,t.approval_state,t.billability_state,
                 EXISTS(
@@ -9520,13 +9653,18 @@ export class PortalRepository {
     this.assertReadable(principal);
     const clauses = ['1=1'];
     const values: Array<string> = [];
+    let withClause = '';
     if (principal.role === 'worker') {
+      const scope = workerOperationalProjectScope(this.sqlite, principal, 'expense');
+      withClause = scope.withClause;
+      clauses.push(scope.predicate);
+      values.push(...scope.parameters);
       clauses.push('e.worker_id=?');
       values.push(principal.userId);
       clauses.push(
-        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=e.project_id AND pm_scope.user_id=? AND pm_scope.status='active' AND pm_scope.starts_on<=e.spent_on AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=e.spent_on) AND pm_scope.starts_on<=? AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=?))",
+        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=e.project_id AND pm_scope.user_id=? AND pm_scope.status='active' AND pm_scope.starts_on<=e.spent_on AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=e.spent_on))",
       );
-      values.push(principal.userId, today(), today());
+      values.push(principal.userId);
     } else if (principal.role === 'project_manager') {
       const projectIds = [...principal.projectIds];
       if (projectIds.length === 0) return [];
@@ -9550,7 +9688,7 @@ export class PortalRepository {
            e.receipt_document_id,e.receipt_required,e.version`;
     const ownedRows = this.sqlite
       .prepare(
-        `SELECT ${expenseColumns},
+        `${withClause} SELECT ${expenseColumns},
                 CASE WHEN e.invoice_id IS NOT NULL OR e.billing_lock_id IS NOT NULL
                        OR e.billing_state IN ('locked','invoiced') THEN 1 ELSE 0 END
                   correction_financially_finalized,
@@ -9955,6 +10093,12 @@ export class PortalRepository {
 
   listAssignedProjects(principal: Principal) {
     const projects = this.planning.listAssignedProjects(principal);
+    if (principal.role === 'worker') {
+      const instant = new Date();
+      return projects.filter((project) =>
+        this.hasEffectiveProjectObjectAccess(principal, String(project.id), undefined, instant),
+      );
+    }
     if (!isSupplierCoordinator(this.sqlite, principal.userId)) return projects;
     return projects.filter((project) =>
       this.hasEffectiveProjectObjectAccess(principal, String(project.id), today()),
@@ -10190,7 +10334,7 @@ export class PortalRepository {
       .prepare(
         `SELECT i.id,i.project_id,i.invoice_number,i.stream_type,i.state,i.currency,
                 i.total_minor,i.period_start,i.period_end,i.planned_issue_on,
-                i.expected_collection_on,i.issued_at,i.version,i.pdf_status,i.pdf_generated_at,
+                i.expected_collection_on,i.issued_at,i.due_at,i.version,i.pdf_status,i.pdf_generated_at,
                 EXISTS(SELECT 1 FROM invoice_event e WHERE e.invoice_id=i.id AND e.event_type='void') voided,
                 c.client_code,c.client_number,c.display_name client_name,
                 p.project_number,p.cost_center_code,p.po_number,

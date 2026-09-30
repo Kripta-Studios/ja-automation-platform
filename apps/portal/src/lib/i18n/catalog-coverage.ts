@@ -5,6 +5,7 @@ import {
 
 /** Generated from literal translation calls and action message keys. Keep this inventory in sync with the source. */
 const projectCrewCalculationKeys = [
+  'Project access could not be refreshed on this device. Stay online and reload before using offline forms. Your unsent drafts and attachments are preserved.',
   'If a worker is not listed, ask the owner to assign them to a project you manage first.',
   'Legal entities and invoice numbering policies require owner access.',
   'Europe/Madrid',
@@ -156,6 +157,38 @@ const projectCrewCalculationKeys = [
 ] as const;
 
 export const PORTAL_LITERAL_KEYS = [
+  // Existing component literals already translated in the main catalog.
+  'Saved grouping setting',
+  'Grouping cannot be customized here. Invoice layout follows the selected template.',
+  'To change rates, dates or currency, create a new tax profile and explicitly select it in the applicable billing stream. Its effective date does not automatically replace another profile.',
+  'This list shows active profiles. Archived profiles leave this list; their components and issued invoice history are retained.',
+  'Refreshing current tax profile information…',
+  'Current profile information has been refreshed. The submitted change was not retried. Copy any entered name before leaving this view.',
+  'Current profile information could not be refreshed. Your entered name is retained. Check your connection and reload to review the profile.',
+  'Review the current profile and your access before retrying. Copy any entered name before reloading this page.',
+  'Entered name (not saved)',
+  'Tax components',
+  'Tax component details are unavailable. Reload this page to review the current profile.',
+  'No tax components recorded.',
+  'Manage tax profile',
+  'Rename tax profile',
+  'Renaming changes only the profile name. Rates, dates, currency and issued invoice snapshots stay unchanged.',
+  'I confirm this profile rename.',
+  'Streams using an archived profile cannot create new invoice drafts until a replacement profile is explicitly selected. An approved invoice using this profile must be issued or recalculated before archiving. Issued invoices stay unchanged.',
+  'I have reviewed linked streams and confirm archiving this profile.',
+  'Saved automatic draft setting: enabled',
+  'Saved automatic draft setting: disabled',
+  'Saved stream settings',
+  'Preview is available before issuance. The final PDF is generated after issuance.',
+  'Configure project issuing authority',
+  'Open report',
+  'Open sign-off record',
+  'Open period record',
+  'Copy these values before reviewing the current invoice.',
+  'Verified currency conversion needed',
+  'No verified conversion is recorded. This expense keeps its original currency. A conversion cannot currently be entered here.',
+  'View person rates',
+  'No active billing streams. Configure a new stream to create invoice drafts.',
   'Finalization unavailable',
   'Review invoice issuers',
   'This empty period has no confirmed invoice issuer for its final version. You can still download formats marked Ready. Review invoice issuers or choose a period with issued invoices.',

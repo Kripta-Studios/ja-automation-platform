@@ -14,6 +14,7 @@
     standaloneText,
   } from '../../standalone-locale';
   import { translateReportHistoryAction, type PortalLocale } from '$lib/portal-i18n';
+  import { reportHistoryChangedFieldLabel } from '$lib/i18n/report-history';
   import { ActionBar, Field, FieldGroup, FormCard, FormSection, SectionCard } from '$lib/portal/ui';
   import {
     acknowledgeReportAutosave,
@@ -456,19 +457,14 @@
   const eventAction = (value: Value): string => {
     const action = display(value).trim();
     if (!action) return t('Change history');
-    // Older report audit rows use a generic action. The report detail already
-    // carries the authoritative source type, so contextualize those two legacy
-    // values before the closed report-history mapper renders the label.
+    // Preserve the legacy deletion label's authoritative source type. The
+    // generic modification audit has its own notification-processing label.
     const contextualAction =
-      action === 'report.report_modified'
+      action === 'report.report_deleted'
         ? isDaily
-          ? 'daily_report.update'
-          : 'technical_report.update'
-        : action === 'report.report_deleted'
-          ? isDaily
-            ? 'daily_report.delete'
-            : 'technical_report.delete'
-          : action;
+          ? 'daily_report.delete'
+          : 'technical_report.delete'
+        : action;
     const localizedAction = translateReportHistoryAction(locale, contextualAction);
     if (localizedAction) return localizedAction;
     const direct = controlled('recordType', action);
@@ -509,7 +505,12 @@
     try {
       const parsed = JSON.parse(value) as { changedFields?: unknown };
       return Array.isArray(parsed.changedFields)
-        ? parsed.changedFields.filter((field): field is string => typeof field === 'string')
+        ? parsed.changedFields
+            .filter((field): field is string => typeof field === 'string')
+            .map((field) => {
+              const caption = reportHistoryChangedFieldLabel(field);
+              return caption ? t(caption) : field;
+            })
         : [];
     } catch {
       return [];

@@ -40,6 +40,7 @@
   } from './operational-register';
 
   let {
+    locale = 'en',
     data,
     isAuditor,
     availableProjects,
@@ -47,6 +48,7 @@
     translate,
     controlledValue,
   }: {
+    locale?: import('../../portal-i18n').PortalLocale;
     data: PortalData;
     isAuditor: boolean;
     availableProjects: Row[];
@@ -926,7 +928,7 @@
   </div>
 
   {#if data.timesheet}
-    <TimesheetPanel {data} {isAuditor} {translate} {controlledValue} />
+    <TimesheetPanel {locale} {data} {isAuditor} {translate} {controlledValue} />
   {/if}
 
   {#if !isAuditor}

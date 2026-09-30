@@ -105,8 +105,6 @@ export type PortalData = {
       currency: string;
       estimatedApprovedMinor: string;
       estimatedPendingMinor: string;
-      approvedReimbursementMinor: string;
-      pendingReimbursementMinor: string;
     }>;
   };
   searchQuery?: string;

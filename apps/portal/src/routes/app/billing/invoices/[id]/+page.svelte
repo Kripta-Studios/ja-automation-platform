@@ -35,7 +35,7 @@
     invoice_date?: string | null;
     issued_at?: string | null;
     created_at?: string | null;
-    due_date?: string | null;
+    due_at?: string | null;
   };
   type InvoicePdfStatus = 'queued' | 'running' | 'ready' | 'failed' | 'unavailable';
   let { data, form } = $props();
@@ -1153,9 +1153,7 @@
       </div>
       <div>
         <span>{t('DUE DATE')}</span>
-        <strong
-          >{invoice.due_date || (invoice.issued_at ? invoice.issued_at.slice(0, 10) : '—')}</strong
-        >
+        <strong>{invoice.due_at ? invoice.due_at.slice(0, 10) : '—'}</strong>
       </div>
     </section>
     <section

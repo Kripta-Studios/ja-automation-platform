@@ -20,6 +20,58 @@ export type ReportHistoryRecord = 'daily' | 'technical' | 'period';
 
 type LocalizedLabel = Record<PortalLocale, string>;
 
+// Exact identifiers emitted by report updates. Unknown legacy fields remain
+// unchanged in the caller rather than being given an invented description.
+const changedFieldLabels: Readonly<Record<string, string>> = {
+  workDate: 'Work date',
+  siteShift: 'Site / shift',
+  summary: 'Shift summary',
+  tasksCompleted: 'Tasks completed',
+  problemsFound: 'Problems found',
+  correctiveActions: 'Corrective actions',
+  clientDecisions: 'Client decisions',
+  downtimeMinutes: 'Downtime minutes',
+  standbyReason: 'Standby reason',
+  blockers: 'Blockers',
+  openItems: 'Open items',
+  nextDayPlan: 'Next-day plan',
+  safetyRelated: 'Safety-related change',
+  customerContact: 'Customer contact',
+  systemName: 'System name',
+  plantSite: 'Plant / site',
+  areaLine: 'Area / line',
+  stationMachine: 'Station / machine',
+  systemType: 'System type',
+  plcPlatform: 'PLC platform',
+  controller: 'Controller',
+  hmiScada: 'HMI / SCADA',
+  networkProtocol: 'Network protocol',
+  softwareVersion: 'Software version',
+  programReference: 'Program reference',
+  changeSummary: 'Change summary',
+  productionImpact: 'Production impact',
+  validation: 'Validation',
+  validationResult: 'Validation result',
+  openRisk: 'Open risk / issue',
+  rollbackPlan: 'Rollback plan',
+};
+
+export function reportHistoryChangedFieldLabel(value: unknown): string | null {
+  return typeof value === 'string' && Object.hasOwn(changedFieldLabels, value)
+    ? changedFieldLabels[value]!
+    : null;
+}
+
+const notificationAuditLabels: LocalizedLabel = {
+  en: 'Report change notifications processed',
+  es: 'Notificaciones de cambios del informe procesadas',
+  pt: 'Notificações de alterações do relatório processadas',
+};
+
+function isNotificationAudit(value: unknown): boolean {
+  return typeof value === 'string' && value.trim().toLowerCase() === 'report.report_modified';
+}
+
 const recordLabels: Record<ReportHistoryRecord, LocalizedLabel> = {
   daily: {
     en: 'Daily report',
@@ -96,6 +148,8 @@ function parseReportHistoryAction(
 
 /** Return a complete localized history label for a known report audit action. */
 export function translateReportHistoryAction(locale: PortalLocale, value: unknown): string | null {
+  // This audit records the notification upsert phase, not a second report edit.
+  if (isNotificationAudit(value)) return notificationAuditLabels[locale];
   const parsed = parseReportHistoryAction(value);
   if (!parsed) return null;
   const subject = recordLabels[parsed.record][locale];
@@ -105,5 +159,5 @@ export function translateReportHistoryAction(locale: PortalLocale, value: unknow
 }
 
 export function isReportHistoryAction(value: unknown): boolean {
-  return Boolean(parseReportHistoryAction(value));
+  return isNotificationAudit(value) || Boolean(parseReportHistoryAction(value));
 }

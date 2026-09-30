@@ -464,6 +464,7 @@ export function translatePortalDom(root: ParentNode, locale: PortalLocale): void
   if (root instanceof Element) elements.push(root);
   elements.push(...Array.from(root.querySelectorAll('[aria-label],[placeholder],[title]')));
   for (const element of elements) {
+    if (element.closest('[data-portal-live-text]')) continue;
     const saved = originalAttributes.get(element) ?? {};
     for (const attribute of ['aria-label', 'placeholder', 'title']) {
       const value = element.getAttribute(attribute);

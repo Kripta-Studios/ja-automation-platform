@@ -1,6 +1,12 @@
 <script lang="ts">
   import { tick } from 'svelte';
+  import {
+    assignmentFormAction,
+    assignmentWorkflowHref,
+    assignmentRetainedValue,
+  } from '../assignment-form-action';
   import { page } from '$app/stores';
+  import { page as assignmentPage } from '$app/state';
   import type { ProblemData } from '$lib/problem/contract';
   import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
   import PlanningCalendar from '../ui/PlanningCalendar.svelte';
@@ -707,7 +713,7 @@
                 },
                 review_assignments: {
                   label: portalText(normalizedLocale, 'problem.remedy.reviewAssignments'),
-                  href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+                  href: assignmentWorkflowHref(assignmentPage.url, 'updateAssignment'),
                 },
                 choose_available_worker: {
                   label: portalText(normalizedLocale, 'problem.remedy.chooseAvailableWorker'),
@@ -793,8 +799,9 @@
           id="project-assignment-list"
           class="admin-details"
           data-project-workflow="manage-assignment"
-          open={$page.url.searchParams.get('action') === 'update-assignment' ||
-            Boolean(assignmentRecordProblem)}
+          open={['update-assignment', 'remove-assignment'].includes(
+            assignmentPage.url.searchParams.get('action') ?? '',
+          ) || Boolean(assignmentRecordProblem)}
         >
           <summary class="secondary-button">{translate('Update assignment')}</summary>
           <div class="project-section__assignment-list">
@@ -808,7 +815,7 @@
                   },
                   review_assignments: {
                     label: portalText(normalizedLocale, 'problem.remedy.reviewAssignments'),
-                    href: `${base}/app/projects?action=update-assignment#project-assignment-list`,
+                    href: assignmentWorkflowHref(assignmentPage.url, 'updateAssignment'),
                   },
                   contact_project_owner: {
                     label: portalText(normalizedLocale, 'problem.remedy.contactOwner'),
@@ -821,19 +828,33 @@
                 <h3>{value(assignment, 'project_number')} · {value(assignment, 'worker_name')}</h3>
                 <form
                   method="POST"
-                  action="?/updateAssignment"
+                  action={assignmentFormAction(assignmentPage.url, 'updateAssignment')}
                   class="project-section__assignment-form"
                 >
                   <input type="hidden" name="assignmentId" value={value(assignment, 'id')} />
-                  <input type="hidden" name="version" value={value(assignment, 'version') || '1'} />
+                  <input
+                    type="hidden"
+                    name="version"
+                    value={assignmentRetainedValue(
+                      assignmentFormData,
+                      'updateAssignment',
+                      value(assignment, 'id'),
+                      'version',
+                      value(assignment, 'version') || '1',
+                    )}
+                  />
                   <label>
                     <span>{translate('Starts on')}</span>
                     <input
                       name="startsOn"
                       type="date"
-                      value={assignmentRecordValues?.assignmentId === value(assignment, 'id')
-                        ? String(assignmentRecordValues.startsOn ?? '')
-                        : value(assignment, 'starts_on')}
+                      value={assignmentRetainedValue(
+                        assignmentFormData,
+                        'updateAssignment',
+                        value(assignment, 'id'),
+                        'startsOn',
+                        value(assignment, 'starts_on'),
+                      )}
                       required
                     />
                   </label>
@@ -842,29 +863,51 @@
                     <input
                       name="endsOn"
                       type="date"
-                      value={assignmentRecordValues?.assignmentId === value(assignment, 'id')
-                        ? String(assignmentRecordValues.endsOn ?? '')
-                        : value(assignment, 'ends_on')}
+                      value={assignmentRetainedValue(
+                        assignmentFormData,
+                        'updateAssignment',
+                        value(assignment, 'id'),
+                        'endsOn',
+                        value(assignment, 'ends_on'),
+                      )}
                     />
                   </label>
                   <button type="submit">{translate('Update assignment')}</button>
                 </form>
-                <details>
+                <details
+                  open={assignmentPage.url.searchParams.get('action') === 'remove-assignment'}
+                >
                   <summary class="secondary-button">{translate('Remove assignment')}</summary>
                   <form
                     method="POST"
-                    action="?/removeAssignment"
+                    action={assignmentFormAction(assignmentPage.url, 'removeAssignment')}
                     class="project-section__assignment-form"
                   >
                     <input type="hidden" name="assignmentId" value={value(assignment, 'id')} />
                     <input
                       type="hidden"
                       name="version"
-                      value={value(assignment, 'version') || '1'}
+                      value={assignmentRetainedValue(
+                        assignmentFormData,
+                        'removeAssignment',
+                        value(assignment, 'id'),
+                        'version',
+                        value(assignment, 'version') || '1',
+                      )}
                     />
                     <label>
                       <span>{translate('Removal reason')}</span>
-                      <input name="reason" required maxlength="2000" />
+                      <input
+                        name="reason"
+                        value={assignmentRetainedValue(
+                          assignmentFormData,
+                          'removeAssignment',
+                          value(assignment, 'id'),
+                          'reason',
+                        )}
+                        required
+                        maxlength="2000"
+                      />
                     </label>
                     <button type="submit" class="danger">{translate('Remove assignment')}</button>
                   </form>

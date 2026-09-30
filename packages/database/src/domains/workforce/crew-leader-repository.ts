@@ -386,13 +386,26 @@ export class CrewLeaderRepository {
 
   assignedWorkers(principal: Principal, projectId: string, workDate: string): CrewPerson[] {
     assertDate(workDate, 'Work date');
-    const date = this.projectToday(projectId);
     this.assertChief(principal);
+    // Resolve project facts only through the caller's assignment. Missing and
+    // out-of-scope identifiers must have the same denial, rather than [] for
+    // an existing project and a timezone error for a missing one.
+    const project = this.sqlite
+      .prepare(
+        `SELECT p.timezone FROM project p JOIN project_member pm ON pm.project_id=p.id
+         WHERE p.id=? AND pm.user_id=? AND pm.status='active'
+           AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+           AND p.status IN ('active','planned','paused') LIMIT 1`,
+      )
+      .get(projectId, principal.userId, workDate, workDate) as { timezone: string } | undefined;
+    if (!project) throw new AccessDeniedError('Active project crew delegation required');
+    const date = todayInProjectZone(project.timezone);
+    if (!date) throw new AccessDeniedError('Valid project timezone required for crew access');
     if (
       !this.member(projectId, principal.userId, date) ||
       !this.member(projectId, principal.userId, workDate)
     )
-      return [];
+      throw new AccessDeniedError('Active project crew delegation required');
     return this.sqlite
       .prepare(
         `SELECT DISTINCT u.id,u.name FROM crew_leader_grant g JOIN user u ON u.id=g.worker_user_id

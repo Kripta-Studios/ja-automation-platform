@@ -4208,6 +4208,7 @@
         rows={visibleInvoices}
         bind:visible={invoicePage}
         {translate}
+        statusLabel={(value) => controlledValue('status', value)}
         label="Billing"
       />
       {#if visibleInvoices.length > 0 || selectedInvoice}

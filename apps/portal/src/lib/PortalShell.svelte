@@ -421,6 +421,9 @@
   const roleNavigation = $derived(
     portalNavigationForRole(base, data.user.role, data.user.workforceProfile),
   );
+  const canUseGlobalSearch = $derived(
+    !['external_technician', 'supplier_coordinator'].includes(data.user.workforceProfile ?? ''),
+  );
   const navigation: readonly NavItem[] = $derived(roleNavigation.primary);
   const mobileNavigation: readonly NavItem[] = $derived(mobilePrimaryNavigationFor(roleNavigation));
   const secondaryNavigation: readonly NavItem[] = $derived(roleNavigation.secondary);
@@ -3144,92 +3147,94 @@
           <PrintIcon />
           {translate('Print report')}
         </button>
-        <form
-          class="global-search"
-          method="GET"
-          action={$page.url.pathname}
-          role="search"
-          onsubmit={submitGlobalSearch}
-        >
-          {#each Array.from($page.url.searchParams.entries()).filter(([queryName]) => queryName !== 'q' && !queryName.startsWith('/')) as [queryName, queryValue]}
-            <input type="hidden" name={queryName} value={queryValue} data-search-context />
-          {/each}
-          <label class="visually-hidden" for="portal-global-search"
-            >{translate('Search workspace')}</label
+        {#if canUseGlobalSearch}
+          <form
+            class="global-search"
+            method="GET"
+            action={$page.url.pathname}
+            role="search"
+            onsubmit={submitGlobalSearch}
           >
-          <input
-            bind:this={searchInput}
-            id="portal-global-search"
-            name="q"
-            bind:value={searchValue}
-            role="combobox"
-            aria-autocomplete="list"
-            aria-controls="portal-search-popover"
-            aria-expanded={searchOpen}
-            placeholder={translate('Search projects, people, invoices…')}
-            autocomplete="off"
-            onfocus={() => (searchOpen = true)}
-            oninput={() => (searchOpen = true)}
-            onkeydown={handleSearchKeydown}
-            onblur={() => setTimeout(() => (searchOpen = false), 200)}
-          />
-          <button type="submit">{translate('Search')}</button>
-          {#if searchOpen}
-            <div
-              id="portal-search-popover"
-              class="search-popover"
-              role="listbox"
-              aria-label={translate('Search recommendations')}
+            {#each Array.from($page.url.searchParams.entries()).filter(([queryName]) => queryName !== 'q' && !queryName.startsWith('/')) as [queryName, queryValue]}
+              <input type="hidden" name={queryName} value={queryValue} data-search-context />
+            {/each}
+            <label class="visually-hidden" for="portal-global-search"
+              >{translate('Search workspace')}</label
             >
-              <div class="search-popover-heading">
-                <span
-                  >{searchTerm
-                    ? translate('Matching records')
-                    : translate('Recommended records')}</span
-                >
-                <small>{translate('Only records in your access scope')}</small>
-              </div>
-              {#each groupedSearchSuggestions as group}
-                <div
-                  class="search-popover-group"
-                  role="group"
-                  aria-labelledby={`search-group-${group.key}`}
-                >
-                  <h3 id={`search-group-${group.key}`} class="search-popover-group-label">
-                    {group.label}
-                  </h3>
-                  {#each group.rows as suggestion, suggestionIndex}
-                    {@const optionIndex =
-                      groupedSearchSuggestions
-                        .slice(0, groupedSearchSuggestions.indexOf(group))
-                        .reduce((count, item) => count + item.rows.length, 0) + suggestionIndex}
-                    <a
-                      id={`search-option-${optionIndex}`}
-                      class="search-popover-item"
-                      href={searchHref(suggestion)}
-                      role="option"
-                      aria-selected="false"
-                      onclick={() => setTimeout(() => (searchOpen = false), 0)}
-                      onkeydown={(event) => handleSearchOptionKeydown(event, optionIndex)}
-                    >
-                      <span>
-                        <strong>{String(suggestion.label ?? translate('Record'))}</strong>
-                        <small>{group.label} · {String(suggestion.detail ?? '')}</small>
-                      </span>
-                      <DirectionIcon direction="up-right" class="search-popover-arrow" />
-                    </a>
-                  {/each}
+            <input
+              bind:this={searchInput}
+              id="portal-global-search"
+              name="q"
+              bind:value={searchValue}
+              role="combobox"
+              aria-autocomplete="list"
+              aria-controls="portal-search-popover"
+              aria-expanded={searchOpen}
+              placeholder={translate('Search projects, people, invoices…')}
+              autocomplete="off"
+              onfocus={() => (searchOpen = true)}
+              oninput={() => (searchOpen = true)}
+              onkeydown={handleSearchKeydown}
+              onblur={() => setTimeout(() => (searchOpen = false), 200)}
+            />
+            <button type="submit">{translate('Search')}</button>
+            {#if searchOpen}
+              <div
+                id="portal-search-popover"
+                class="search-popover"
+                role="listbox"
+                aria-label={translate('Search recommendations')}
+              >
+                <div class="search-popover-heading">
+                  <span
+                    >{searchTerm
+                      ? translate('Matching records')
+                      : translate('Recommended records')}</span
+                  >
+                  <small>{translate('Only records in your access scope')}</small>
                 </div>
-              {:else}
-                <p class="search-popover-empty">
-                  {translate(
-                    'No recommendation matches. Press Enter to search all authorized records.',
-                  )}
-                </p>
-              {/each}
-            </div>
-          {/if}
-        </form>
+                {#each groupedSearchSuggestions as group}
+                  <div
+                    class="search-popover-group"
+                    role="group"
+                    aria-labelledby={`search-group-${group.key}`}
+                  >
+                    <h3 id={`search-group-${group.key}`} class="search-popover-group-label">
+                      {group.label}
+                    </h3>
+                    {#each group.rows as suggestion, suggestionIndex}
+                      {@const optionIndex =
+                        groupedSearchSuggestions
+                          .slice(0, groupedSearchSuggestions.indexOf(group))
+                          .reduce((count, item) => count + item.rows.length, 0) + suggestionIndex}
+                      <a
+                        id={`search-option-${optionIndex}`}
+                        class="search-popover-item"
+                        href={searchHref(suggestion)}
+                        role="option"
+                        aria-selected="false"
+                        onclick={() => setTimeout(() => (searchOpen = false), 0)}
+                        onkeydown={(event) => handleSearchOptionKeydown(event, optionIndex)}
+                      >
+                        <span>
+                          <strong>{String(suggestion.label ?? translate('Record'))}</strong>
+                          <small>{group.label} · {String(suggestion.detail ?? '')}</small>
+                        </span>
+                        <DirectionIcon direction="up-right" class="search-popover-arrow" />
+                      </a>
+                    {/each}
+                  </div>
+                {:else}
+                  <p class="search-popover-empty">
+                    {translate(
+                      'No recommendation matches. Press Enter to search all authorized records.',
+                    )}
+                  </p>
+                {/each}
+              </div>
+            {/if}
+          </form>
+        {/if}
       </div>
     </div>
     {#if globalProblem}
@@ -3294,7 +3299,7 @@
         </div>
       </section>
     {/if}
-    {#if (data.searchQuery ?? '').length >= 2}
+    {#if canUseGlobalSearch && (data.searchQuery ?? '').length >= 2}
       <section class="record-list full search-results" aria-live="polite">
         <div class="panel-title">
           <h2>{translate('Search results')}</h2>

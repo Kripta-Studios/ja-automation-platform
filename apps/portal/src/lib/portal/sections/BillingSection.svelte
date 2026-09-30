@@ -711,7 +711,11 @@
     if (operation === 'restoreCreditNoteState')
       return !isAuditor && creditNote && state === 'overdue';
     if (operation === 'sendInvoice') return !isAuditor && state === 'issued';
-    if (['createInvoiceAdjustment', 'voidInvoice'].includes(operation))
+    if (operation === 'voidInvoice')
+      return (
+        canVoidInvoice && ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(state)
+      );
+    if (operation === 'createInvoiceAdjustment')
       return !isAuditor && ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(state);
     return false;
   }
@@ -887,15 +891,15 @@
       void tick().then(() =>
         requestAnimationFrame(() =>
           requestAnimationFrame(() => {
-            const previous = formElement.previousElementSibling;
-            const precedingNotice =
-              previous instanceof HTMLElement && previous.matches('[data-ui="problem-notice"]')
-                ? previous
-                : previous?.querySelector<HTMLElement>('[data-ui="problem-notice"]');
+            const failureNotice = Array.from(
+              formElement.parentElement?.querySelectorAll<HTMLElement>(
+                '[data-ui="problem-notice"][data-kind="error"]',
+              ) ?? [],
+            ).find((notice) => notice.dataset.problemCode === problem.code);
             const target =
               visibleErrors.length > 1
                 ? formElement.querySelector<HTMLElement>('[data-billing-recovery-summary]')
-                : (visibleErrors[0]?.control ?? precedingNotice);
+                : (visibleErrors[0]?.control ?? failureNotice);
             target?.focus({ preventScroll: true });
             if (drawerScroll !== null)
               drawerBody?.scrollTo({ top: drawerScroll, behavior: 'instant' });
@@ -1437,6 +1441,7 @@
     !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
   );
   const canManageIssuerAndNumbering = $derived(data.user.role === 'owner_admin');
+  const canVoidInvoice = $derived(data.user.role === 'owner_admin');
 
   $effect(() => {
     // Shallow history changes retain SvelteKit's last loaded page URL. Use the
@@ -4053,6 +4058,12 @@
                     kind={billingProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
                     remedyLinks={problemRemedyLinks}
                   />
+                  {#if billingFailureOperation === 'voidInvoice' && billingFailureValues.reason}
+                    <p data-billing-void-attempted-reason>
+                      <strong>{translate('Void reason')}:</strong>
+                      {billingFailureValues.reason}
+                    </p>
+                  {/if}
                 </div>
               {/if}
               <article class="billing-section__invoice" data-invoice-row={invoiceId}>
@@ -4991,11 +5002,13 @@
                         )}
                       </p>
                       {#if problemFor('createInvoiceAdjustment', 'originalInvoiceId', invoiceId)}
-                        <ProblemNotice
-                          problem={billingProblem!}
-                          kind="error"
-                          remedyLinks={problemRemedyLinks}
-                        />
+                        <div data-billing-invoice-problem>
+                          <ProblemNotice
+                            problem={billingProblem!}
+                            kind="error"
+                            remedyLinks={problemRemedyLinks}
+                          />
+                        </div>
                       {/if}
                       <ProblemNotice
                         problem={adjustmentWarning}
@@ -5039,67 +5052,81 @@
                         <button type="submit">{translate('Create adjustment')}</button>
                       </form>
                     </details>
-                    <details
-                      class="billing-section__action-panel"
-                      open={problemFor('sendInvoice', 'invoiceId', invoiceId) ||
-                        problemFor('voidInvoice', 'invoiceId', invoiceId)}
-                    >
-                      <summary>{translate('More actions')}</summary>
-                      {#if invoiceStateValue === 'issued'}
-                        <p>
-                          {translate(
-                            'Mark sent records a manual delivery only. It does not send an email.',
-                          )}
-                        </p>
-                        {#if problemFor('sendInvoice', 'invoiceId', invoiceId)}
-                          <ProblemNotice
-                            problem={billingProblem!}
-                            kind="error"
-                            remedyLinks={problemRemedyLinks}
-                          />
-                        {/if}
-                        <form
-                          method="POST"
-                          action="?/sendInvoice"
-                          use:recoverBillingForm={recoveryOptions(
-                            'sendInvoice',
-                            'invoiceId',
-                            invoiceId,
-                          )}
-                        >
-                          <input type="hidden" name="invoiceId" value={invoiceId} />
-                          <input type="hidden" name="idempotencyKey" value={`send-${invoiceId}`} />
-                          <button type="submit">{translate('Mark sent')}</button>
-                        </form>
-                      {/if}
-                      {#if problemFor('voidInvoice', 'invoiceId', invoiceId)}
-                        <ProblemNotice
-                          problem={billingProblem!}
-                          kind="error"
-                          remedyLinks={problemRemedyLinks}
-                        />
-                      {/if}
-                      <form
-                        method="POST"
-                        action="?/voidInvoice"
-                        class="billing-section__payment-form"
-                        use:recoverBillingForm={recoveryOptions(
-                          'voidInvoice',
-                          'invoiceId',
-                          invoiceId,
-                        )}
+                    {#if canVoidInvoice || invoiceStateValue === 'issued'}
+                      <details
+                        class="billing-section__action-panel"
+                        open={problemFor('sendInvoice', 'invoiceId', invoiceId) ||
+                          problemFor('voidInvoice', 'invoiceId', invoiceId)}
                       >
-                        <input type="hidden" name="invoiceId" value={invoiceId} />
-                        <input type="hidden" name="idempotencyKey" value={`void-${invoiceId}`} />
-                        <label
-                          ><span>{translate('Void reason')}</span><input
-                            name="reason"
-                            required
-                          /></label
-                        >
-                        <button type="submit" class="danger">{translate('Void')}</button>
-                      </form>
-                    </details>
+                        <summary>{translate('More actions')}</summary>
+                        {#if invoiceStateValue === 'issued'}
+                          <p>
+                            {translate(
+                              'Mark sent records a manual delivery only. It does not send an email.',
+                            )}
+                          </p>
+                          {#if problemFor('sendInvoice', 'invoiceId', invoiceId)}
+                            <ProblemNotice
+                              problem={billingProblem!}
+                              kind="error"
+                              remedyLinks={problemRemedyLinks}
+                            />
+                          {/if}
+                          <form
+                            method="POST"
+                            action="?/sendInvoice"
+                            use:recoverBillingForm={recoveryOptions(
+                              'sendInvoice',
+                              'invoiceId',
+                              invoiceId,
+                            )}
+                          >
+                            <input type="hidden" name="invoiceId" value={invoiceId} />
+                            <input
+                              type="hidden"
+                              name="idempotencyKey"
+                              value={`send-${invoiceId}`}
+                            />
+                            <button type="submit">{translate('Mark sent')}</button>
+                          </form>
+                        {/if}
+                        {#if canVoidInvoice}
+                          {#if problemFor('voidInvoice', 'invoiceId', invoiceId)}
+                            <div data-billing-invoice-problem>
+                              <ProblemNotice
+                                problem={billingProblem!}
+                                kind="error"
+                                remedyLinks={problemRemedyLinks}
+                              />
+                            </div>
+                          {/if}
+                          <form
+                            method="POST"
+                            action="?/voidInvoice"
+                            class="billing-section__payment-form"
+                            use:recoverBillingForm={recoveryOptions(
+                              'voidInvoice',
+                              'invoiceId',
+                              invoiceId,
+                            )}
+                          >
+                            <input type="hidden" name="invoiceId" value={invoiceId} />
+                            <input
+                              type="hidden"
+                              name="idempotencyKey"
+                              value={`void-${invoiceId}`}
+                            />
+                            <label
+                              ><span>{translate('Void reason')}</span><input
+                                name="reason"
+                                required
+                              /></label
+                            >
+                            <button type="submit" class="danger">{translate('Void')}</button>
+                          </form>
+                        {/if}
+                      </details>
+                    {/if}
                   {:else}
                     <span class="billing-section__read-only"
                       >{translate('No lifecycle action available')}</span

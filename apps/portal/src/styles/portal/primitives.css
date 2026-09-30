@@ -800,9 +800,19 @@
 
 .time-primary-action-top .time-primary-action,
 .expense-primary-action-top button {
+  max-width: 100%;
   min-height: 5.5rem;
   padding: 1.3rem 2.5rem;
   font-size: 1.25rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 768px) {
+  .time-primary-action-top .time-primary-action,
+  .expense-primary-action-top button {
+    width: 20rem;
+  }
 }
 
 .time-status-strip {

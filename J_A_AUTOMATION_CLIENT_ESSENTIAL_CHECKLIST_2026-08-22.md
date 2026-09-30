@@ -1089,3 +1089,15 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Tipos/lint globales y compilado 18/18 sin skip/flaky/fallos imprevistos; 90 screenshots nuevos conservados en carpeta independiente. Cuatro anchuras SVG de semana/revisión compiladas también aprobadas sin POST/error.
 - [x] Ciclos UI reales: Owner rename/Finanzas archive del perfil original; Finanzas create/rename y Owner archive del segundo perfil QA sin referencias. Create conserva toast/GET pero no estado POST; primer rename Owner duplicado tras fallo selector GET, ambos POST200/audits conservados, una acción cubierta, versión1→4 correcta. Componentes exactos/metadatos, ocho tablas financieras y33 archivos privados preservados; SQLiteOK/FK0.
 - [ ] Publicación pendiente. Entrada FX/firma genuina y acciones no demostradas permanecen abiertas; no CLIENT READY.
+
+## 2026-09-30 — Publicación controles fiscales
+
+- [x] Aplicación `21dfee6394f2…` publicada/activada 30/09 08:16:55 Madrid, ZIP `4ff6ae10c621…` y4.263 hashes; rollback inmediato `b2d3a5e929bd` conservado.
+- [x] Chromium vivo19/19 siete roles, idioma12/12 y botones8/8 sin POST de negocio/error/HTTPfallido; VPS/jobs/salud/backupOK/FK0/tres documentos/tres días aprobados. Ocho tablas financieras, tres archivos privados, quince contenedores ajenos y PIDCaddy intactos; watchers/timers activos/habilitados. Buildercache sin uso7,018GB eliminado; datos/volúmenes/imágenes/drafts offline preservados y headers/network-first verificados.
+- [ ] Anchos desktop de Log time/Record expense todavía difieren por etiqueta; ajuste CSS común y prueba cuatro anchuras/ENESPT en curso. Auditoría universal, FX verificado y firma genuina continúan abiertos; no CLIENT READY.
+
+## 2026-09-30 — Botones iguales en todas las anchuras
+
+- [x] CSS común Log time/Record expense:320px desde768 y ancho completo móvil; wrapping/foco/labels/colores/handlers/roles conservados. Conflicto inicial de especificidad móvil corregido antes de publicación; revisión independiente SHIP.
+- [x] Fuente y compilado independientes:28 medidas/14 pares cada etapa; Worker24 controles ENESPT cuatro anchuras abrir/cancelar y Owner4 EN390/1440 solo medidas. Todos88px alto,328/358 móvil y320 tablet/desktop; fuente/padding iguales, sin recorte/overflow/POST/error/HTTPfallido. Build portal aprobado, artefactos separados preservados.
+- [ ] Publicación de ancho igual pendiente; pruebas UI del stream QA sin uso en curso. Matrices no universales, FX verificado/firma genuina pendientes; no CLIENT READY.

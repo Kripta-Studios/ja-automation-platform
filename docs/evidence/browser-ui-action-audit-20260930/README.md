@@ -158,3 +158,17 @@ Independent review returned SHIP with all eleven hashes matching. Source evidenc
 One further authenticated ordinary Worker browser request to an Owner-visible ready Accounting XLSX returned the intentional concealed 404 `ACCOUNTING_PACK_NOT_FOUND`, JSON only and no artifact bytes. The failed initial locator probe made no Worker request and is preserved separately.
 
 To provide room for the next production build, eight obsolete unused local J&A app images were retired by their specific tags without force or global pruning. Every container ID/image reference, current release, immediate rollback and one additional healthy release were retained. Business data, volumes and unrelated images were untouched; free disk space increased to 16 GB.
+
+## Tax controls production receipt
+
+Application `21dfee6394f2113e24b8527d13a55a4ce590178d` was pushed and activated on **30 September 2026 at 06:16:55 UTC / 08:16:55 Madrid**. Archive SHA-256 is `4ff6ae10c6217ba2f15bb0c08bec688a4b774b663f0caca6782c12ad2669f3ee` with 4,263 manifest entries. The preceding healthy `b2d3a5e929bd` release is the immediate rollback.
+
+Live Chromium passed 19/19 seven-role checks, 12/12 native language/accessibility checks and 8/8 Worker action open/cancel checks without business POSTs, page errors or failed responses. VPS/current-jobs, health, backup integrity/FK/document verification and three-day manifest coverage passed. All eight production financial-table hashes, three private files, 15 unrelated container IDs and Caddy PID were preserved; deployment watchers/timers are active and enabled. Unused builder cache cleanup reclaimed 7.018 GB while preserving images/containers/volumes/records and offline drafts. Login remains private/no-store; the service worker remains no-cache with network-first fetches.
+
+At this release both action buttons match 88px height, font and padding and full phone width. Their desktop label widths differ; the latest request to make their dimensions consistently equal is under a separate narrow CSS review/browser check. The action audit remains incomplete: verified FX entry, genuine signed-file evidence and unexecuted role/action combinations remain open. No universal coverage or CLIENT READY claim is made.
+
+## Equal primary action dimensions
+
+The latest button request uses a single shared CSS rule for Log time and Record expense: 20rem width from 768px up, existing full-parent phone width, normal wrapping and bounded width. A review caught and corrected an initial selector-specificity conflict with the phone rule before release; native labels, focus, colors, handlers and permissions are unchanged.
+
+Fresh independent review returned SHIP. Source and independently rebuilt production-compiled browser checks each passed **28 control measurements / 14 matching pairs**: Worker EN/ES/PT at 360/390/768/1440 with both forms opened and canceled, plus Owner EN at 390/1440 measured without opening forms. Heights are 88px; widths are 328/358px on the two phones and 320px on tablet/desktop. Font and padding match; no clipping/overflow, POSTs, page exceptions or failed responses occurred. The compiled build passed, and its separate screenshots/JSON are retained. This CSS-only packet does not add a business action or warning path; production publication remains pending.

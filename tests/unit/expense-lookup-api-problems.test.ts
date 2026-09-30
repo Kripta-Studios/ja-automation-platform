@@ -9,6 +9,8 @@ const state = vi.hoisted(() => ({
   getCount: 0,
   timeState: 'active' as 'active' | 'corrected' | 'rejected',
   retainedTimeValid: true,
+  supplierCoordinator: false,
+  supplierGrantActive: true,
 }));
 
 vi.mock('@ja/database', async (importOriginal) => {
@@ -18,6 +20,9 @@ vi.mock('@ja/database', async (importOriginal) => {
     assertLiveSession: () => {
       if (state.operationError) throw state.operationError;
     },
+    isSupplierCoordinator: () => state.supplierCoordinator,
+    readLiveSupplierCoordinatorGrant: () =>
+      state.supplierGrantActive ? { grantId: 'supplier-grant-1' } : null,
     CrewLeaderRepository: class {
       authorizeDelegatedOperationalEntry() {
         if (state.operationError) throw state.operationError;
@@ -150,6 +155,30 @@ beforeEach(() => {
   state.getCount = 0;
   state.timeState = 'active';
   state.retainedTimeValid = true;
+  state.supplierCoordinator = false;
+  state.supplierGrantActive = true;
+});
+
+it('allows an authorized supplier description suggestion without exposing financial fields', async () => {
+  state.supplierCoordinator = true;
+  const { response, body } = await get(routes.description);
+  expect(response.status).toBe(200);
+  expect(body).toEqual({ description: 'Perdiem' });
+  expect(response.headers.get('cache-control')).toBe('private, no-store');
+  expect(state.closeCount).toBe(1);
+});
+
+it('denies a supplier description suggestion after its live installation grant ends', async () => {
+  state.supplierCoordinator = true;
+  state.supplierGrantActive = false;
+  const { response, body } = await get(routes.description);
+  expect(response.status).toBe(403);
+  expect(body).toMatchObject({
+    code: 'EXPENSE_LOOKUP_DESCRIPTION_SCOPE_DENIED',
+    messageKey: 'problem.expenseLookup.descriptionScopeDenied',
+  });
+  expect(state.getCount).toBe(0);
+  expect(state.closeCount).toBe(1);
 });
 
 it('confirms an existing linked time with an active correction without offering it as a new choice', async () => {

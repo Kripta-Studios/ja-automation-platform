@@ -7,7 +7,7 @@
   import { base } from '$app/paths';
   import { enhance, type SubmitFunction } from '$app/forms';
   import { afterNavigate, beforeNavigate, replaceState } from '$app/navigation';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { onDestroy, onMount, tick } from 'svelte';
   import { ResponsiveSheet, ToastRegion, formValidation, type ToastItem } from '$lib/portal/ui';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
@@ -99,9 +99,13 @@
   );
   let localeOverride = $state<PortalLocale | null>(null);
   let restoredTab = $state<{ projectId: string; tab: TabId } | null>(null);
+  const historyTab = $derived(
+    (page.state as { projectDetailTab?: { projectId: string; tab: TabId } }).projectDetailTab,
+  );
   let activeTab = $derived(
     resolveTabFromUrl(
-      $page.url.searchParams.get('tab') ??
+      (historyTab?.projectId === String(data.overview.project.id) ? historyTab.tab : null) ??
+        page.url.searchParams.get('tab') ??
         (restoredTab?.projectId === String(data.overview.project.id) ? restoredTab.tab : null),
       data.user?.role,
     ),
@@ -129,7 +133,7 @@
   }
 
   const locale = $derived(
-    localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
+    localeOverride ?? data.locale ?? resolveStandaloneLocale(page.url.searchParams.get('lang')),
   );
   const t = (key: string): string => standaloneText(locale, key);
   const controlled = (domain: ControlledValueDomain, value: unknown): string =>
@@ -766,9 +770,14 @@
   function selectTab(tab: TabId): void {
     restoredTab = { projectId: String(data.overview.project.id), tab };
     writeSessionState(tabStateKey(), tab);
-    const url = new URL($page.url);
+    const url = new URL(page.url);
     url.searchParams.set('tab', tab);
-    replaceState(url, $page.state);
+    // Shallow replacement updates page.state, while page.url retains the last
+    // loaded URL. Keep the visible panel in the same history entry as its URL.
+    replaceState(url, {
+      ...page.state,
+      projectDetailTab: { projectId: String(data.overview.project.id), tab },
+    });
   }
 
   async function handleTabKeydown(event: KeyboardEvent, current: TabId): Promise<void> {
@@ -797,7 +806,7 @@
   onMount(() => {
     mounted = true;
     if (problem) void tick().then(restoreDetailScroll);
-    if (!$page.url.searchParams.has('tab')) {
+    if (!page.url.searchParams.has('tab')) {
       const savedTab = readSessionState(tabStateKey());
       if (savedTab && allowedTabIds.includes(savedTab as TabId))
         restoredTab = {
@@ -805,7 +814,7 @@
           tab: resolveTabFromUrl(savedTab, data.user?.role),
         };
     }
-    localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
+    localeOverride = resolveStandaloneLocale(page.url.searchParams.get('lang'), data.locale);
     persistStandaloneLocale(locale);
     applyStandaloneDocumentLocale(locale);
     const onStorage = (event: StorageEvent) => {

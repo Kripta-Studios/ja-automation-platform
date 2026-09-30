@@ -27,7 +27,7 @@ test('owner configures separate worker reimbursement and customer recovery for a
     await expect(form).toBeVisible();
     await form.locator('[name="projectMemberId"]').selectOption(person.id);
     await form.locator('[name="payer"]').selectOption('worker');
-    await form.locator('[name="category"]').fill('parking');
+    await form.locator('[name="category"]').selectOption('parking');
     await form.locator('[name="effectiveFrom"]').fill(today);
     await form.locator('[name="workerReimbursement"]').selectOption('at_cost');
     await form.locator('[name="clientRecovery"]').selectOption('included');

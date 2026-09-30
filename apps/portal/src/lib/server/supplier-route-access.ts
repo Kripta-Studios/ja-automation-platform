@@ -22,6 +22,7 @@ export function supplierRouteAllowed(path: string): boolean {
       '/icon-512.png',
       '/api/expenses/crew-workers',
       '/api/expenses/time-options',
+      '/api/expenses/description-default',
     ].includes(route)
   )
     return true;

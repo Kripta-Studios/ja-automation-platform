@@ -8,6 +8,7 @@
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import { documentLanguage, portalText, type PortalLocale } from '../../portal-i18n';
   import { paymentMoney } from '../payment-money';
+  import { expenseCategories } from '../expense-categories';
 
   let {
     data,
@@ -452,6 +453,26 @@
   );
   const unavailablePolicyMember = $derived(
     selectedPolicyMemberId && !selectedPolicyAssignment ? selectedPolicyMemberId : '',
+  );
+  const policyCategoryOptions = $derived.by(() => {
+    // Preserve exact custom categories already used by operational records.
+    // Historical policies do not define new operational category aliases.
+    const categories: Array<readonly [string, string]> = [...expenseCategories];
+    for (const expense of data.financeExpenses ?? []) {
+      const category = rowValue(expense, 'category');
+      if (category && !categories.some(([value]) => value === category))
+        categories.push([category, category]);
+    }
+    const attempted = failedValue('createAssignmentExpensePolicy', 'category');
+    if (attempted && !categories.some(([value]) => value === attempted))
+      categories.push([attempted, attempted]);
+    return categories;
+  });
+  const policyAssignmentStart = $derived(
+    selectedPolicyAssignment ? rowValue(selectedPolicyAssignment, 'assignmentStartsOn') : '',
+  );
+  const policyAssignmentEnd = $derived(
+    selectedPolicyAssignment ? rowValue(selectedPolicyAssignment, 'assignmentEndsOn') : '',
   );
   const configurationActions = [
     'Project issuing authority',
@@ -1185,24 +1206,45 @@
                 <option value="third_party">{translate('Third party')}</option>
               </select>
             </Field>
-            <Field
-              id="expense-policy-category"
-              label={translate('Expense category')}
-              help={translate('Leave blank for all categories.')}
-            >
-              <input id="expense-policy-category" name="category" maxlength="80" />
+            <Field id="expense-policy-category" label={translate('Expense category')}>
+              <select
+                id="expense-policy-category"
+                name="category"
+                value={failedValue('createAssignmentExpensePolicy', 'category') ?? ''}
+              >
+                <option value="">{translate('All categories')}</option>
+                {#each policyCategoryOptions as [value, label]}
+                  <option {value}>{translate(label)}</option>
+                {/each}
+              </select>
             </Field>
             <Field id="expense-policy-from" label={translate('Effective from')} required>
               <input
                 id="expense-policy-from"
                 name="effectiveFrom"
                 type="date"
-                value={data.financeToday ?? ''}
+                value={failedValue('createAssignmentExpensePolicy', 'effectiveFrom') ??
+                  data.financeToday ??
+                  ''}
+                min={policyAssignmentStart || undefined}
+                max={policyAssignmentEnd || undefined}
                 required
               />
             </Field>
-            <Field id="expense-policy-to" label={translate('Effective to')}>
-              <input id="expense-policy-to" name="effectiveTo" type="date" />
+            <Field
+              id="expense-policy-to"
+              label={translate('Effective to')}
+              required={Boolean(policyAssignmentEnd)}
+            >
+              <input
+                id="expense-policy-to"
+                name="effectiveTo"
+                type="date"
+                value={failedValue('createAssignmentExpensePolicy', 'effectiveTo') ?? ''}
+                min={policyAssignmentStart || undefined}
+                max={policyAssignmentEnd || undefined}
+                required={Boolean(policyAssignmentEnd)}
+              />
             </Field>
             <Field
               id="expense-policy-worker"

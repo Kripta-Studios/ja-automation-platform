@@ -816,7 +816,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
             seeded.worker.name,
           );
           await personPolicy.locator('select[name="payer"]').selectOption('worker');
-          await personPolicy.locator('input[name="category"]').fill(category);
+          await personPolicy.locator('select[name="category"]').selectOption(category);
           await personPolicy.locator('input[name="effectiveFrom"]').fill('2026-08-01');
           await personPolicy.locator('input[name="effectiveTo"]').fill('2026-12-31');
           await personPolicy.locator('select[name="workerReimbursement"]').selectOption('at_cost');

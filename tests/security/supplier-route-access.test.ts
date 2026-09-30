@@ -27,6 +27,7 @@ describe('supplier operational surface', () => {
     '/crew/admin',
     '/crew/time/other/more',
     '/api/expenses/other',
+    '/api/expenses/description-default/other',
     '/api/offline/sync',
   ])('denies financial and unapproved surface %s', (path) => {
     expect(supplierRouteAllowed(path)).toBe(false);
@@ -49,6 +50,7 @@ describe('supplier operational surface', () => {
     '/api/localized-pdf',
     '/api/expenses/crew-workers',
     '/api/expenses/time-options',
+    '/api/expenses/description-default',
     '/api/reports/own-id/attachments',
     '/profile',
     '/service-worker.js',

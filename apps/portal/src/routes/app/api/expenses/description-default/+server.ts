@@ -1,5 +1,11 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { AccessDeniedError, CrewLeaderRepository, assertLiveSession } from '@ja/database';
+import {
+  AccessDeniedError,
+  CrewLeaderRepository,
+  assertLiveSession,
+  isSupplierCoordinator,
+  readLiveSupplierCoordinatorGrant,
+} from '@ja/database';
 import type { Principal } from '@ja/domain';
 import type { DatabaseSync } from 'node:sqlite';
 import { z } from 'zod';
@@ -24,6 +30,11 @@ export function _expenseDescriptionDefault(
 ): 'Perdiem' | 'Only hours' {
   const { projectId, workerId, date } = scope;
   assertLiveSession(sqlite, principal, AccessDeniedError);
+  if (
+    isSupplierCoordinator(sqlite, principal.userId) &&
+    !readLiveSupplierCoordinatorGrant(sqlite, principal, projectId, date)
+  )
+    throw new AccessDeniedError('Current supplier project grant required');
   if (workerId !== principal.userId) {
     if (principal.role === 'worker') {
       new CrewLeaderRepository(sqlite).authorizeDelegatedOperationalEntry(

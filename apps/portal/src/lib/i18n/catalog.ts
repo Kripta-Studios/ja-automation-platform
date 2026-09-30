@@ -28,6 +28,16 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'View person rates': 'View person rates',
+  'Saved automatic draft setting: enabled': 'Saved automatic draft setting: enabled',
+  'Saved automatic draft setting: disabled': 'Saved automatic draft setting: disabled',
+  'Saved stream settings': 'Saved stream settings',
+  'Archived streams retain saved settings and history. Use a new active stream for future billing.':
+    'Archived streams retain saved settings and history. Use a new active stream for future billing.',
+  'This stream’s availability is unknown. Review the current billing setup before making changes.':
+    'This stream’s availability is unknown. Review the current billing setup before making changes.',
+  'No active billing streams. Configure a new stream to create invoice drafts.':
+    'No active billing streams. Configure a new stream to create invoice drafts.',
   'Refreshing current tax profile information…': 'Refreshing current tax profile information…',
   'Current profile information has been refreshed. The submitted change was not retried. Copy any entered name before leaving this view.':
     'Current profile information has been refreshed. The submitted change was not retried. Copy any entered name before leaving this view.',
@@ -445,6 +455,18 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'View person rates': 'Ver tarifas por persona',
+  'Saved automatic draft setting: enabled':
+    'Configuración guardada del borrador automático: activado',
+  'Saved automatic draft setting: disabled':
+    'Configuración guardada del borrador automático: desactivado',
+  'Saved stream settings': 'Configuración guardada del flujo',
+  'Archived streams retain saved settings and history. Use a new active stream for future billing.':
+    'Los flujos archivados conservan su configuración y su historial. Usa un nuevo flujo activo para facturar en el futuro.',
+  'This stream’s availability is unknown. Review the current billing setup before making changes.':
+    'No se conoce la disponibilidad de este flujo. Revisa la configuración de facturación actual antes de hacer cambios.',
+  'No active billing streams. Configure a new stream to create invoice drafts.':
+    'No hay flujos de facturación activos. Configura un nuevo flujo para crear borradores de factura.',
   'Refreshing current tax profile information…': 'Actualizando la información del perfil fiscal…',
   'Current profile information has been refreshed. The submitted change was not retried. Copy any entered name before leaving this view.':
     'Se ha actualizado la información del perfil. No se ha vuelto a enviar el cambio. Copia el nombre introducido antes de salir de esta vista.',
@@ -856,6 +878,17 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'View person rates': 'Ver tarifas por pessoa',
+  'Saved automatic draft setting: enabled': 'Configuração salva do rascunho automático: ativado',
+  'Saved automatic draft setting: disabled':
+    'Configuração salva do rascunho automático: desativado',
+  'Saved stream settings': 'Configurações salvas do fluxo',
+  'Archived streams retain saved settings and history. Use a new active stream for future billing.':
+    'Os fluxos arquivados preservam suas configurações e seu histórico. Use um novo fluxo ativo para faturamentos futuros.',
+  'This stream’s availability is unknown. Review the current billing setup before making changes.':
+    'A disponibilidade deste fluxo é desconhecida. Revise a configuração atual de faturamento antes de fazer alterações.',
+  'No active billing streams. Configure a new stream to create invoice drafts.':
+    'Não há fluxos de faturamento ativos. Configure um novo fluxo para criar rascunhos de fatura.',
   'Refreshing current tax profile information…': 'Atualizando as informações do perfil tributário…',
   'Current profile information has been refreshed. The submitted change was not retried. Copy any entered name before leaving this view.':
     'As informações do perfil foram atualizadas. A alteração não foi reenviada. Copie o nome informado antes de sair desta tela.',

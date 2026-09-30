@@ -1343,7 +1343,17 @@
   }
 
   const invoices = $derived(data.invoices ?? []);
-  const billingRules = $derived(data.billingRules ?? []);
+  const billingRules = $derived(
+    (data.billingRules ?? []).map((rule) => ({
+      ...rule,
+      browser_status:
+        String(rule.enabled) === '1'
+          ? 'active'
+          : String(rule.enabled) === '0'
+            ? 'archived'
+            : 'unknown',
+    })),
+  );
   const activeWizardRules = $derived(billingRules.filter((rule) => String(rule.enabled) === '1'));
   $effect(() => {
     if (!invoiceSetupRequired) return;
@@ -1751,10 +1761,15 @@
     }
     return (
       workspace === 'streams' &&
+      canManageBilling &&
       ['updateBillingRule', 'archiveBillingRule', 'closePeriod'].includes(
         billingFailureOperation,
       ) &&
-      billingRules.some((rule) => rowValue(rule, 'id') === billingFailureValues.billingRuleId)
+      billingRules.some(
+        (rule) =>
+          rowValue(rule, 'id') === billingFailureValues.billingRuleId &&
+          rule.browser_status === 'active',
+      )
     );
   });
 
@@ -2118,6 +2133,26 @@
     return labels[mode] ? translate(labels[mode]) : mode || '—';
   }
 
+  function templateLabel(template: string): string {
+    const labels: Record<string, string> = {
+      default: 'Default',
+      'labor-detailed': 'Labor detailed',
+      'labor-summary': 'Labor summary',
+      'expenses-detailed': 'Expenses detailed',
+      'fixed-milestone': 'Fixed milestone',
+    };
+    return labels[template] ? translate(labels[template]) : template || '—';
+  }
+
+  function streamStatusLabel(state: string): string {
+    const labels: Record<string, string> = {
+      active: 'Active',
+      archived: 'Archived',
+      unknown: 'Unknown',
+    };
+    return translate(labels[state] ?? state);
+  }
+
   function invoiceTitle(invoice: Row): string {
     if (invoiceState(invoice) === 'superseded') {
       const number = rowValue(invoice, 'invoice_number', 'invoiceNumber');
@@ -2302,7 +2337,10 @@
                     )} — {rowValue(rule, 'project_number', 'projectNumber')} · {controlledValue(
                       'billingStream',
                       rowValue(rule, 'stream_type', 'streamType'),
-                    )} · {controlledValue('status', rowValue(rule, 'cadence_type', 'cadenceType'))} ·
+                    )} · {controlledValue(
+                      'billingStream',
+                      rowValue(rule, 'cadence_type', 'cadenceType'),
+                    )} ·
                     {rowValue(rule, 'currency')}
                   </option>
                 {/each}
@@ -2330,7 +2368,10 @@
               <div>
                 <dt>{translate('Cadence')}</dt>
                 <dd>
-                  {controlledValue('status', rowValue(wizardRule, 'cadence_type', 'cadenceType'))}
+                  {controlledValue(
+                    'billingStream',
+                    rowValue(wizardRule, 'cadence_type', 'cadenceType'),
+                  )}
                 </dd>
               </div>
               <div>
@@ -3723,7 +3764,7 @@
       <RecordBrowser
         rows={visibleBillingRules}
         bind:visible={billingRulePage}
-        {translate}
+        translate={(key) => streamStatusLabel(key)}
         label="Billing streams"
         contextKey={projectFilter || 'all-projects'}
         focusId={streamFocusId}
@@ -3759,18 +3800,50 @@
                   </td>
                   <td>
                     <span class="billing-section__rule-mobile-label">{translate('Cadence')}</span>
-                    {controlledValue('status', rowValue(rule, 'cadence_type', 'cadenceType'))}
+                    <StatusBadge
+                      variant={rule.browser_status === 'active' ? 'success' : 'neutral'}
+                      text={streamStatusLabel(rule.browser_status)}
+                    />
+                    {controlledValue(
+                      'billingStream',
+                      rowValue(rule, 'cadence_type', 'cadenceType'),
+                    )}
                     · {rowValue(rule, 'currency')}
+                    {#if rule.browser_status === 'active'}
+                      <small>
+                        {translate('Effective')}: {rowValue(
+                          rule,
+                          'effective_from',
+                          'effectiveFrom',
+                        )}
+                        → {rowValue(rule, 'effective_to', 'effectiveTo') || '…'}
+                      </small>
+                    {:else}
+                      <small
+                        >{translate('Effective from')}: {rowValue(
+                          rule,
+                          'effective_from',
+                          'effectiveFrom',
+                        ) || '—'}</small
+                      >
+                      <small
+                        >{translate('Effective to')}: {rowValue(
+                          rule,
+                          'effective_to',
+                          'effectiveTo',
+                        ) || '—'}</small
+                      >
+                    {/if}
                     <small>
-                      {translate('Effective')}: {rowValue(rule, 'effective_from', 'effectiveFrom')}
-                      → {rowValue(rule, 'effective_to', 'effectiveTo') || '…'}
+                      {rule.browser_status === 'active'
+                        ? String(rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft')) === '1'
+                          ? translate('Automatic draft enabled')
+                          : translate('Automatic draft disabled')
+                        : String(rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft')) === '1'
+                          ? translate('Saved automatic draft setting: enabled')
+                          : translate('Saved automatic draft setting: disabled')}
                     </small>
-                    <small>
-                      {String(rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft')) === '1'
-                        ? translate('Automatic draft enabled')
-                        : translate('Automatic draft disabled')}
-                    </small>
-                    {#if String(rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft')) === '1'}
+                    {#if rule.browser_status === 'active' && String(rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft')) === '1'}
                       <small>
                         {translate('Next period')}: {streamDraftPeriod(rule).start || '—'} → {streamDraftPeriod(
                           rule,
@@ -3810,7 +3883,7 @@
                         remedyLinks={problemRemedyLinks}
                       />
                     {/if}
-                    {#if canManageBilling}
+                    {#if canManageBilling && rule.browser_status === 'active'}
                       <form
                         method="POST"
                         action="?/createDraft"
@@ -4058,6 +4131,49 @@
                             </form>
                           </details>
                         </div>
+                      </details>
+                    {:else if rule.browser_status !== 'active'}
+                      <details
+                        id={`billing-stream-${rowValue(rule, 'id')}`}
+                        class="billing-section__saved-stream"
+                        data-saved-stream={rowValue(rule, 'id')}
+                      >
+                        <summary>{translate('Saved stream settings')}</summary>
+                        <p>
+                          {translate(
+                            rule.browser_status === 'archived'
+                              ? 'Archived streams retain saved settings and history. Use a new active stream for future billing.'
+                              : 'This stream’s availability is unknown. Review the current billing setup before making changes.',
+                          )}
+                        </p>
+                        <dl class="record-facts">
+                          <div>
+                            <dt>{translate('Invoice template')}</dt>
+                            <dd>{templateLabel(rowValue(rule, 'template_id', 'templateId'))}</dd>
+                          </div>
+                          <div>
+                            <dt>{translate('Saved grouping setting')}</dt>
+                            <dd>
+                              {groupingLabel(rowValue(rule, 'grouping_mode', 'groupingMode'))}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>{translate('Recipient email')}</dt>
+                            <dd>{rowValue(rule, 'recipient_email', 'recipientEmail') || '—'}</dd>
+                          </div>
+                          <div>
+                            <dt>{translate('Payment terms (days)')}</dt>
+                            <dd>
+                              {rowValue(rule, 'payment_terms_days', 'paymentTermsDays') || '—'}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>{translate('PO reference')}</dt>
+                            <dd>
+                              {rowValue(rule, 'po_number_override', 'poNumberOverride') || '—'}
+                            </dd>
+                          </div>
+                        </dl>
                       </details>
                     {/if}
                   </td>
@@ -5380,6 +5496,11 @@
 </div>
 
 <style>
+  .billing-section__saved-stream :global(.record-facts dd) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+  }
   [data-tax-profile-directory] :global(.record-facts dd),
   [data-tax-profile-directory] :global(.ui-card-heading),
   [data-tax-components] li {

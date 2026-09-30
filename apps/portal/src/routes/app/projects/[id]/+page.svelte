@@ -208,6 +208,7 @@
     return key ? t(key) : '';
   }
   const billingRules = $derived((data.billingRules ?? []) as BillingRule[]);
+  const activeBillingRules = $derived(billingRules.filter((rule) => String(rule.enabled) === '1'));
   const billingSetup = $derived(data.billingSetup ?? null);
   const finance = $derived(overview.financial);
   const periodProblem = $derived((data.periodProblem ?? null) as ProblemData | null);
@@ -229,7 +230,7 @@
       ? detailForm.values.billingRuleId
       : draftFailure?.success === false && draftFailure.billingRuleId
         ? draftFailure.billingRuleId
-        : String(billingRules[0]?.id ?? ''),
+        : String(activeBillingRules[0]?.id ?? ''),
   );
   const selectedDraftStart = $derived(
     detailForm?.success === false &&
@@ -1243,7 +1244,8 @@
                 {#if canViewCommercial}<a
                     class="secondary-button"
                     href={`${base}/app/finance?view=commercial&project=${project.id}`}
-                    >{t('Configure person rates')} <DirectionIcon /></a
+                    >{canWriteFinance ? t('Configure person rates') : t('View person rates')}
+                    <DirectionIcon /></a
                   >{/if}
               </div>
               <span class="surface-count">{overview.workers.length}</span>
@@ -1767,17 +1769,30 @@
                     )}</small
                   >
                 </div>
-                <span class="state-badge">{status(rule.status ?? 'active')}</span>
+                <span class="state-badge"
+                  >{status(
+                    String(rule.enabled) === '1'
+                      ? 'active'
+                      : String(rule.enabled) === '0'
+                        ? 'archived'
+                        : 'unknown',
+                  )}</span
+                >
               </a>
             {:else}<p class="empty-state">
                 {t('No billing stream is configured for this project.')}
               </p>{/each}
           </div>
           {#if canWriteFinance}
+            {#if !activeBillingRules.length}<p class="surface-intro">
+                {t('No active billing streams. Configure a new stream to create invoice drafts.')}
+              </p>{/if}
             <div class="billing-action-row">
-              <button type="button" class="primary-button" onclick={() => (invoiceOpen = true)}
-                >{t('Create invoice draft')}</button
-              >{#if !periodProblem}<a
+              {#if activeBillingRules.length}<button
+                  type="button"
+                  class="primary-button"
+                  onclick={() => (invoiceOpen = true)}>{t('Create invoice draft')}</button
+                >{/if}{#if !periodProblem}<a
                   id="finance-export-button"
                   class="secondary-button"
                   href={financeExportUrl}
@@ -2266,7 +2281,7 @@
         />
       </div>
     {/if}
-    {#if billingRules.length > 0}
+    {#if activeBillingRules.length > 0}
       <form
         method="POST"
         action="?/createInvoiceDraft&tab=billing"
@@ -2277,12 +2292,12 @@
       >
         <label
           >{t('Billing stream')}<select name="billingRuleId" value={selectedDraftRuleId} required
-            >{#if selectedDraftRuleId && !billingRules.some((rule) => String(rule.id) === selectedDraftRuleId)}<option
+            >{#if selectedDraftRuleId && !activeBillingRules.some((rule) => String(rule.id) === selectedDraftRuleId)}<option
                 value={selectedDraftRuleId}
                 selected
                 disabled>{t('problem.projectDetail.optionUnavailable')}</option
               >{/if}
-            >{#each billingRules as rule}<option value={rule.id}
+            >{#each activeBillingRules as rule}<option value={rule.id}
                 >{controlled('billingStream', rule.stream_type)} · {controlled(
                   'billingStream',
                   rule.cadence_type,
@@ -2328,13 +2343,17 @@
         <div class="sheet-form-actions">
           <button type="button" class="secondary-button" onclick={() => (invoiceOpen = false)}
             >{t('Cancel')}</button
-          ><button type="submit" class="primary-button" disabled={saving}
+          ><button
+            type="submit"
+            class="primary-button"
+            disabled={saving ||
+              !activeBillingRules.some((rule) => String(rule.id) === selectedDraftRuleId)}
             >{saving ? t('Creating…') : t('Create draft')}</button
           >
         </div>
       </form>
     {:else}<p class="empty-state">
-        {t('No billing stream is configured for this project. Configure one in Billing first.')}
+        {t('No active billing streams. Configure a new stream to create invoice drafts.')}
       </p>{/if}
   </ResponsiveSheet>
 {/if}
@@ -2493,6 +2512,13 @@
     border-color: #86b99a;
     background: #effaf2;
     color: #1f5630;
+  }
+  p.read-only-note {
+    display: block;
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .attention-grid {

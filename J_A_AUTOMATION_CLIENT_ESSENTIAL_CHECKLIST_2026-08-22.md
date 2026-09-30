@@ -1073,3 +1073,10 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Revisión final SHIP con hashes iguales; portal de producción compilado 18/18 sin skip/flaky/fallos imprevistos, seis conflictos reales adicionales y doce controles de idioma sin POST. Tipos/lint globales aprobados; ocho tablas financieras y 33 hashes de archivos privados intactos, SQLite OK/FK cero.
 - [x] Luna revalidó producción: ambos botones Worker 88 px y estilo/padding equivalente, ancho completo móvil, abrir/cancelar cuatro anchuras sin POST/error; búsqueda financiera omitida Supplier/Technician con filtros operativos conservados.
 - [ ] Publicación pendiente. Conversión verificada/pack no vacío y firma genuina siguen abiertos; no cobertura universal ni CLIENT READY.
+
+## 2026-09-30 — Publicación de lotes de seguimiento
+
+- [x] Aplicación `b2d3a5e929bd…` publicada en GitHub y activada 30/09 06:54:50 Madrid; ZIP `5cd0d7ed1f8e…`, 4.258 hashes. Incluye clasificación/moneda, factura/historia, corrección Supplier, aviso Accounting/idioma/SVG.
+- [x] Chromium de producción: 19/19 para siete roles, 12/12 idioma cuatro anchuras y 8/8 abrir/cancelar Worker, sin POST de negocio, excepciones ni HTTP fallidos. VPS/jobs/readiness y respaldo reales aprobados. Ocho tablas financieras, tres archivos privados, quince contenedores ajenos y PID Caddy conservados. Integridad/FK OK y tres días de manifiestos; watchers/timers activos/habilitados.
+- [x] Caché de builder sin uso eliminada: 7,021 GB. Imágenes/volúmenes/datos/rollback/drafts offline preservados; headers y fetch network-first verificados. No se afirma borrar almacenes de todos los navegadores.
+- [ ] Auditoría universal sigue incompleta: registro fiscal sin detalles/rename/archive, entrada FX verificada inexistente, pack no vacío bloqueado y firma genuina pendiente. Auditor sin configuración fiscal por diseño. No CLIENT READY.

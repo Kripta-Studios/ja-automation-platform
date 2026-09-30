@@ -1,3 +1,4 @@
+import { projectRecordIdSchema } from '@ja/schemas';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import {
   AccessDeniedError,
@@ -18,7 +19,7 @@ import {
 } from '$lib/server/expense-lookup-problem';
 
 const query = z.object({
-  projectId: z.uuid(),
+  projectId: projectRecordIdSchema,
   workerId: z.uuid(),
   date: z.iso.date(),
 });

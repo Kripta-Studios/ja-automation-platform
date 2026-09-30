@@ -9,6 +9,30 @@ const baseInput = {
 };
 
 describe('time input schema', () => {
+  it.each(['project-cp020-bbs-mexico', '00000000-0000-4000-8000-000000000001', 'p'.repeat(200)])(
+    'accepts a stable project identifier %s without changing operational values',
+    (projectId) => {
+      const parsed = timeInputSchema.parse({ ...baseInput, minutes: '75', projectId });
+      expect(parsed.projectId).toBe(projectId);
+      expect(parsed.minutes).toBe(75);
+    },
+  );
+
+  it.each([
+    '',
+    ' ',
+    '../project',
+    'project/other',
+    'project?scope=all',
+    "project';--",
+    'project-ñ',
+    'x'.repeat(201),
+  ])('rejects a malformed or unbounded project identifier %#', (projectId) => {
+    const parsed = timeInputSchema.safeParse({ ...baseInput, minutes: '75', projectId });
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) expect(parsed.error.flatten().fieldErrors.projectId).toBeDefined();
+  });
+
   it('derives canonical minutes from a complete interval and defaults the break to zero', () => {
     const parsed = timeInputSchema.parse({
       ...baseInput,
@@ -43,7 +67,7 @@ describe('time input schema', () => {
     [{ startTime: '10:00', endTime: '09:00' }, 'endTime'],
     [{ startTime: '08:00', endTime: '09:00', breakMinutes: 60 }, 'breakMinutes'],
     [{ startTime: '', endTime: '', minutes: '' }, 'minutes'],
-  ])('rejects an invalid or incomplete interval %#', (values, errorField) => {
+  ] as const)('rejects an invalid or incomplete interval %#', (values, errorField) => {
     const parsed = timeInputSchema.safeParse({ ...baseInput, ...values });
 
     expect(parsed.success).toBe(false);

@@ -363,7 +363,7 @@ const timeProblems: Record<string, TimeProblem> = {
     code: 'TIME_ASSIGNMENT_REQUIRED',
     key: 'problem.time.assignmentRequired',
     message:
-      'An active project assignment must cover this work date. Contact the project owner to review access.',
+      'Your current project access and assignment for this work date must both allow this entry. Contact the project owner to review access.',
     field: 'workDate',
     remedy: 'contact_project_owner',
   },
@@ -372,7 +372,7 @@ const timeProblems: Record<string, TimeProblem> = {
     code: 'TIME_ASSIGNMENT_REQUIRED',
     key: 'problem.time.assignmentRequired',
     message:
-      'An active project assignment must cover this work date. Contact the project owner to review access.',
+      'Your current project access and assignment for this work date must both allow this entry. Contact the project owner to review access.',
     field: 'workDate',
     remedy: 'contact_project_owner',
   },

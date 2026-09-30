@@ -59,6 +59,49 @@ async function denialBody(lookup: 'crew' | 'description', operation: () => unkno
 }
 
 describe('crew worker options authorized project boundary', () => {
+  it('keeps current and requested-day authority for a stored legacy project ID', async () => {
+    const legacyId = 'project-cp020-bbs-mexico';
+    sqlite.prepare('UPDATE project SET id=? WHERE id=?').run(legacyId, 'assigned');
+    sqlite
+      .prepare('UPDATE project_member SET project_id=? WHERE project_id=?')
+      .run(legacyId, 'assigned');
+    const actor = { ...principal(), projectIds: new Set([legacyId]) };
+    const input = { ...scope, projectId: legacyId };
+    expect(roster(legacyId, scope.date, actor)).toEqual([]);
+    expect(description(actor, input)).toBe('Only hours');
+    sqlite
+      .prepare('INSERT INTO crew_leader_grant VALUES(?,?,?,?,?,?,?)')
+      .run('legacy-grant', legacyId, 'caller', 'member', 'active', '2026-09-01', '2026-10-31');
+    expect(roster(legacyId, scope.date, actor)).toEqual([{ id: 'member', name: 'Member' }]);
+    sqlite.exec("UPDATE project_member SET ends_on='2026-09-29' WHERE user_id='caller'");
+    expect(await denialBody('crew', () => roster(legacyId, '2026-09-20', actor))).toMatchObject({
+      code: 'EXPENSE_LOOKUP_CREW_SCOPE_DENIED',
+    });
+    expect(
+      await denialBody('description', () => description(actor, { ...input, date: '2026-09-20' })),
+    ).toMatchObject({ code: 'EXPENSE_LOOKUP_DESCRIPTION_SCOPE_DENIED' });
+    sqlite.exec(
+      "UPDATE project_member SET ends_on='2026-10-31' WHERE user_id='caller'; UPDATE project SET status='closed'",
+    );
+    expect(() => roster(legacyId, scope.date, actor)).toThrow();
+    expect(() => description(actor, input)).toThrow();
+  });
+
+  it.each(['crew', 'description'] as const)(
+    'keeps unknown and unassigned legacy identifiers uniformly denied for %s',
+    async (lookup) => {
+      sqlite.prepare('UPDATE project SET id=? WHERE id=?').run('project-private', 'unassigned');
+      const operation = (projectId: string) =>
+        lookup === 'crew'
+          ? () => roster(projectId)
+          : () => description(principal(), { ...scope, projectId });
+      const existing = await denialBody(lookup, operation('project-private'));
+      const missing = await denialBody(lookup, operation('project-missing'));
+      expect(existing).toEqual(missing);
+      expect(JSON.stringify(existing)).not.toMatch(/project-private|project-missing|Private/);
+    },
+  );
+
   it('returns an empty roster to an assigned ordinary worker and only an authorized chief roster', () => {
     expect(roster()).toEqual([]);
     sqlite.exec(

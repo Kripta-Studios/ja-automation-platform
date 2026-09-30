@@ -1,3 +1,4 @@
+import { projectRecordIdSchema } from '@ja/schemas';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { CrewLeaderRepository } from '@ja/database';
 import { z } from 'zod';
@@ -8,7 +9,7 @@ import {
   expenseLookupSignIn,
 } from '$lib/server/expense-lookup-problem';
 
-const query = z.object({ projectId: z.uuid(), date: z.iso.date() });
+const query = z.object({ projectId: projectRecordIdSchema, date: z.iso.date() });
 
 /** Only the signed-in chief's currently delegated workers, for one project/day. */
 export const GET: RequestHandler = ({ locals, url }) => {

@@ -15,6 +15,7 @@ vi.mock('$lib/server/private-artifact-access', async (importOriginal) => ({
   removePrivateFileIfPresent: vi.fn(async () => undefined),
 }));
 
+import { translate } from '../../apps/portal/src/lib/i18n';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import {
   removePrivateFileIfPresent,
@@ -133,6 +134,50 @@ describe('expense access failures', () => {
       });
       expect(JSON.stringify(response.data)).not.toContain('do-not-return');
       expect(JSON.stringify(response.data)).not.toContain('receipt.pdf');
+    },
+  );
+
+  it.each(['en', 'es', 'pt'] as const)(
+    'retains native Expense inputs when current access changes after intake in %s',
+    async (locale) => {
+      finalizeUpload.mockReturnValue({ created: true });
+      removeUnreferencedReceipt.mockReturnValue(storageKey);
+      createExpense.mockImplementation(() => {
+        throw new AccessDeniedError('Project assignment access required');
+      });
+      const response = await expenseActions.createExpense({
+        request: requestWithReceipt(),
+        params: { section: 'expenses' },
+      } as never);
+      expect(response).toMatchObject({
+        status: 403,
+        data: {
+          code: 'EXPENSE_PROJECT_ACCESS_REQUIRED',
+          messageKey: 'problem.expense.projectAccessRequired',
+          remedies: [{ id: 'contact_project_owner' }],
+          values: {
+            projectId,
+            spentOn: '2026-09-27',
+            amount: '12.50',
+            category: 'parking',
+            description: 'Parking at the client site',
+            receiptNeedsReattach: true,
+          },
+        },
+      });
+      const guidance = translate(locale, 'problem.expense.projectAccessRequired');
+      expect(guidance).toMatch(
+        locale === 'en'
+          ? /no longer.*project owner/i
+          : locale === 'es'
+            ? /Ya no.*responsable/i
+            : /não tem mais.*responsável/i,
+      );
+      expect(createExpense).toHaveBeenCalledOnce();
+      expect(removeUnreferencedReceipt).toHaveBeenCalledOnce();
+      expect(removePrivateFileIfPresent).toHaveBeenCalledWith(expect.any(String), storageKey);
+      expect(close).toHaveBeenCalledOnce();
+      expect(JSON.stringify(response)).not.toContain('receipt.pdf');
     },
   );
 

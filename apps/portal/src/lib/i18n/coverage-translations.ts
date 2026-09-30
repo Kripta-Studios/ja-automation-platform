@@ -8,6 +8,11 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  'Submit all week drafts': [
+    'Enviar todos los borradores de la semana',
+    'Enviar todos os rascunhos da semana',
+  ],
+  'Submitting…': ['Enviando…', 'Enviando…'],
   'Finalization unavailable': ['Finalización no disponible', 'Finalização indisponível'],
   'Review invoice issuers': ['Revisar emisores de facturas', 'Revisar emissores de faturas'],
   'This empty period has no confirmed invoice issuer for its final version. You can still download formats marked Ready. Review invoice issuers or choose a period with issued invoices.':
@@ -4752,8 +4757,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Só é possível editar um rascunho de horas desbloqueado que nunca foi enviado. Revise o registro ou solicite uma correção.',
   ],
   'problem.time.assignmentRequired': [
-    'Una asignación activa al proyecto debe cubrir esta fecha de trabajo. Consulta al propietario del proyecto para revisar el acceso.',
-    'Uma atribuição ativa ao projeto deve cobrir esta data de trabalho. Contate o proprietário do projeto para revisar o acesso.',
+    'Tu acceso actual al proyecto y tu asignación para esta fecha de trabajo deben permitir este registro. Consulta al propietario del proyecto para revisar el acceso.',
+    'Seu acesso atual ao projeto e sua atribuição para esta data de trabalho devem permitir este registro. Contate o proprietário do projeto para revisar o acesso.',
   ],
   'problem.time.otherWorkerOwnerRequired': [
     'Aquí solo un propietario puede registrar horas para otro trabajador. Consulta al propietario del proyecto para revisar el acceso.',
@@ -11080,7 +11085,7 @@ const problemEnglish: Record<string, string> = {
   'problem.time.notEditableDraft':
     'Only an unlocked time draft that has never been submitted can be edited. Review the record or request a correction.',
   'problem.time.assignmentRequired':
-    'An active project assignment must cover this work date. Contact the project owner to review access.',
+    'Your current project access and assignment for this work date must both allow this entry. Contact the project owner to review access.',
   'problem.time.otherWorkerOwnerRequired':
     'Only an owner can record time for another worker here. Contact the project owner to review access.',
   'problem.time.projectNotOperational':

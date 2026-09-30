@@ -311,7 +311,7 @@ const optionalClockTime = z
 
 export const timeInputSchema = z
   .object({
-    projectId: uuidSchema,
+    projectId: projectRecordIdSchema,
     workDate: z.iso.date(),
     category: z.enum([
       'regular',
@@ -420,7 +420,7 @@ export const versionedRecordSchema = z.object({
 
 export const expenseInputSchema = z
   .object({
-    projectId: uuidSchema,
+    projectId: projectRecordIdSchema,
     spentOn: z.iso.date(),
     occurredTimeLocal: z
       .union([z.literal(''), z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)])

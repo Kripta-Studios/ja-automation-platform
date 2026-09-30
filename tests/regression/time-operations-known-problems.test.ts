@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AccessDeniedError, ConflictError, ValidationError } from '@ja/database';
 import { timeActionFailure } from '../../apps/portal/src/lib/server/actions/time-actions';
+import { translate } from '../../apps/portal/src/lib/i18n';
 import { reportActionFailure } from '../../apps/portal/src/lib/server/actions/operations-actions';
 
 describe('time and operations known repository problems', () => {
@@ -55,6 +56,49 @@ describe('time and operations known repository problems', () => {
     expect(JSON.stringify(response.data)).not.toContain('do-not-return');
     expect(JSON.parse(JSON.stringify(response.data))).toEqual(response.data);
   });
+
+  it.each(['en', 'es', 'pt'] as const)(
+    'retains stale Time inputs with current-access and work-date guidance in %s',
+    (locale) => {
+      const values = {
+        projectId: 'legacy-project',
+        workDate: '2026-09-30',
+        category: 'regular',
+        minutes: '15',
+        summary: 'Retain my unsaved work',
+        secret: 'do-not-return',
+      };
+      const response = timeActionFailure(
+        new AccessDeniedError('Project assignment access required'),
+        values,
+      );
+      expect(response).toMatchObject({
+        status: 403,
+        data: {
+          code: 'TIME_ASSIGNMENT_REQUIRED',
+          messageKey: 'problem.time.assignmentRequired',
+          fieldErrors: { workDate: ['problem.time.assignmentRequired'] },
+          remedies: [{ id: 'contact_project_owner' }],
+          values: {
+            projectId: values.projectId,
+            workDate: values.workDate,
+            category: values.category,
+            minutes: '15',
+            summary: values.summary,
+          },
+        },
+      });
+      const guidance = translate(locale, response.data.messageKey!);
+      expect(guidance).toMatch(
+        locale === 'en'
+          ? /current project access.*work date.*project owner/i
+          : locale === 'es'
+            ? /acceso actual.*fecha de trabajo.*propietario/i
+            : /acesso atual.*data de trabalho.*proprietário/i,
+      );
+      expect(JSON.stringify(response.data)).not.toContain(values.secret);
+    },
+  );
 
   it('points a worker ownership failure at the selected worker', () => {
     const response = timeActionFailure(new AccessDeniedError('Time entry ownership required'), {

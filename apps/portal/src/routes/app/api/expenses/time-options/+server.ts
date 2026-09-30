@@ -1,3 +1,4 @@
+import { projectRecordIdSchema } from '@ja/schemas';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { z } from 'zod';
 import { expenseTimeOptions } from '$lib/server/expense-time-options';
@@ -9,7 +10,7 @@ import {
 } from '$lib/server/expense-lookup-problem';
 
 const filtersSchema = z.object({
-  projectId: z.uuid(),
+  projectId: projectRecordIdSchema,
   date: z.iso.date(),
   workerId: z.uuid().optional(),
   originalExpenseId: z.uuid().optional(),

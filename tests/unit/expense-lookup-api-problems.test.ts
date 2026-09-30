@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
   openCount: 0,
   closeCount: 0,
   getCount: 0,
+  timeEmpty: false,
   timeState: 'active' as 'active' | 'corrected' | 'rejected',
   retainedTimeValid: true,
   supplierCoordinator: false,
@@ -73,6 +74,7 @@ vi.mock('$lib/server/portal-repository', () => ({
         }),
         listTimeForScope: () => {
           if (state.operationError) throw state.operationError;
+          if (state.timeEmpty) return [];
           return [
             {
               id: 'time-1',
@@ -158,6 +160,7 @@ beforeEach(() => {
   state.closeCount = 0;
   state.getCount = 0;
   state.timeState = 'active';
+  state.timeEmpty = false;
   state.retainedTimeValid = true;
   state.supplierCoordinator = false;
   state.supplierGrantActive = true;
@@ -205,6 +208,28 @@ it('flags a rejected original linked time even when the expense ID is unchanged'
 });
 
 describe.each(Object.entries(routes))('%s expense lookup API', (_name, route) => {
+  it('accepts the existing stable project ID and preserves the scoped response', async () => {
+    const path = route.path.replace(projectId, 'project-cp020-bbs-mexico');
+    const { response, body } = await get(route, { path });
+    expect(response.status).toBe(200);
+    expect(body).toEqual(route.result);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(state.openCount).toBe(1);
+    expect(state.closeCount).toBe(1);
+  });
+
+  it.each(['', '../project', 'project/other', "project';--", 'project-ñ', 'x'.repeat(201)])(
+    'rejects hostile or unbounded project filters before opening a repository %#',
+    async (value) => {
+      const url = new URL('http://localhost' + route.path);
+      url.searchParams.set('projectId', value);
+      const { response, body } = await get(route, { path: url.pathname + url.search });
+      expect(response.status).toBe(400);
+      expect(body).toMatchObject({ code: route.invalid, params: {}, fieldErrors: {} });
+      expect(state.openCount).toBe(0);
+    },
+  );
+
   it('requires sign-in before opening a repository', async () => {
     const { response, body } = await get(route, { locals: {} });
     expect(response.status).toBe(401);
@@ -297,6 +322,29 @@ describe.each(Object.entries(routes))('%s expense lookup API', (_name, route) =>
     expect(body).toEqual(route.result);
     expect(state.closeCount).toBe(1);
   });
+});
+
+it('preserves safe empty time options for an unknown valid-looking legacy project', async () => {
+  state.timeEmpty = true;
+  const { response, body } = await get(routes.time, {
+    path: routes.time.path.replace(projectId, 'project-missing'),
+  });
+  expect(response.status).toBe(200);
+  expect(body).toEqual({ rows: [] });
+  expect(state.closeCount).toBe(1);
+});
+
+it.each([
+  [routes.description, 'workerId', 'worker-legacy'],
+  [routes.time, 'workerId', 'worker-legacy'],
+  [routes.time, 'originalExpenseId', 'expense-legacy'],
+])('keeps non-project entity lookup identifiers UUID-only %#', async (route, field, value) => {
+  const url = new URL('http://localhost' + route.path);
+  url.searchParams.set(field, value);
+  const { response, body } = await get(route, { path: url.pathname + url.search });
+  expect(response.status).toBe(400);
+  expect(body.code).toBe(route.invalid);
+  expect(state.openCount).toBe(0);
 });
 
 it('maps an expired session while loading a description to sign-in guidance', async () => {

@@ -1,4 +1,5 @@
 import { assertLiveSession } from '../../core/authorization.ts';
+import { workerOperationalProjectScope } from '../../core/project-access.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import { createHash } from 'node:crypto';
 import { newId, type Principal } from '@ja/domain';
@@ -60,9 +61,9 @@ export type TimeEntryRepositoryDependencies = Readonly<{
   assertReadable: (principal: Principal) => void;
   assertCanReview: (principal: Principal, projectId: string) => void;
   /**
-   * Optional live authorization for a worker recording their own canonical
-   * time. PortalRepository uses this to add supplier-coordinator grant scope
-   * without changing the standard worker membership invariant.
+   * Additional caller-specific authorization for own layout copying and
+   * non-Worker own time. Canonical Worker writes enforce live project-local
+   * membership and supplier grants directly inside their write transaction.
    */
   assertOwnTimeAccess?: (principal: Principal, projectId: string, workDate: string) => void;
   /**
@@ -289,6 +290,36 @@ export class TimeEntryRepository {
       if (!this.deps.assertDelegatedTimeAccess)
         throw this.deps.errors.accessDenied('Time entry ownership required');
       this.deps.assertDelegatedTimeAccess(principal, workerId, projectId, workDate);
+      return;
+    }
+    if (principal.role === 'worker') {
+      // Own operational writes require live authority today in the project's
+      // timezone and separately on the requested day. A future assignment can
+      // be a different row from the one granting current access.
+      const scope = workerOperationalProjectScope(
+        this.deps.sqlite,
+        principal,
+        'time',
+        new Date(this.deps.now()),
+      );
+      const assignment = this.deps.sqlite
+        .prepare(
+          `${scope.withClause},requested_time(project_id,work_date) AS (VALUES (?,?))
+           SELECT 1 FROM requested_time t JOIN project p ON p.id=t.project_id
+           WHERE ${scope.predicate} AND EXISTS (
+             SELECT 1 FROM project_member pm
+             WHERE pm.project_id=t.project_id AND pm.user_id=? AND pm.status='active'
+               AND pm.starts_on<=t.work_date AND (pm.ends_on IS NULL OR pm.ends_on>=t.work_date)
+           ) LIMIT 1`,
+        )
+        .get(
+          ...scope.withParameters,
+          projectId,
+          workDate,
+          ...scope.predicateParameters,
+          principal.userId,
+        );
+      if (!assignment) throw this.deps.errors.accessDenied('Project assignment access required');
       return;
     }
     this.deps.assertOwnTimeAccess?.(principal, projectId, workDate);

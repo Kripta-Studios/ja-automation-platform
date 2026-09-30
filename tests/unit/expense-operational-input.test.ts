@@ -15,6 +15,40 @@ const operationalExpense = {
 };
 
 describe('Worker expense operational input', () => {
+  it.each(['project-cp020-bbs-mexico', '00000000-0000-4000-8000-000000000001', 'p'.repeat(200)])(
+    'accepts a stable project identifier %s without changing operational values',
+    (projectId) => {
+      const parsed = expenseInputSchema.parse({ ...operationalExpense, projectId });
+      expect(parsed.projectId).toBe(projectId);
+      expect(parsed.amountMinor).toBe(12345n);
+    },
+  );
+
+  it.each([
+    '',
+    ' ',
+    '../project',
+    'project/other',
+    'project?scope=all',
+    "project';--",
+    'project-ñ',
+    'x'.repeat(201),
+  ])('rejects a malformed or unbounded project identifier %#', (projectId) => {
+    const parsed = expenseInputSchema.safeParse({ ...operationalExpense, projectId });
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) expect(parsed.error.flatten().fieldErrors.projectId).toBeDefined();
+  });
+
+  it('retains UUID validation for an optional linked time entry on a legacy project', () => {
+    const parsed = expenseInputSchema.safeParse({
+      ...operationalExpense,
+      projectId: 'project-cp020-bbs-mexico',
+      timeEntryId: 'time-legacy',
+    });
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) expect(parsed.error.flatten().fieldErrors.timeEntryId).toBeDefined();
+  });
+
   it('accepts operational truth without commercial interpretation', () => {
     const result = expenseInputSchema.safeParse(operationalExpense);
     expect(result.success).toBe(true);

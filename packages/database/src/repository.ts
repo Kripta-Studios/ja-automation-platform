@@ -605,8 +605,11 @@ export class PortalRepository {
       assertReadable: (principal) => this.assertReadable(principal),
       assertCanReview: (principal, projectId) =>
         this.assertOperationalReviewer(principal, projectId),
-      assertOwnTimeAccess: (principal, projectId, workDate) =>
-        this.assertSupplierCoordinatorOperationalAccess(principal, projectId, workDate),
+      assertOwnTimeAccess: (principal, projectId, workDate) => {
+        if (principal.role === 'worker')
+          this.assertProjectObjectAccess(principal, projectId, workDate, principal.userId);
+        else this.assertSupplierCoordinatorOperationalAccess(principal, projectId, workDate);
+      },
       assertDelegatedTimeAccess: (principal, workerId, projectId, workDate) =>
         this.assertDelegatedWorkerAccess(principal, workerId, projectId, workDate),
       audit: (principal, action, entityType, entityId, details) =>
@@ -1656,7 +1659,9 @@ export class PortalRepository {
 
   createTimeEntry(principal: Principal, input: TimeInput, workerId = principal.userId) {
     this.assertOwnerSubject(principal, workerId, input.projectId, input.workDate);
-    if (principal.role !== 'owner_admin')
+    if (principal.role === 'worker')
+      this.assertProjectObjectAccess(principal, input.projectId, input.workDate, workerId);
+    else if (principal.role !== 'owner_admin')
       this.assertProjectMembership(principal, input.projectId, input.workDate);
     return this.time.createTimeEntryForWorker(principal, workerId, input);
   }
@@ -1700,7 +1705,9 @@ export class PortalRepository {
       // Revalidate current scope before returning any source identifiers on a
       // retry. A revoked or newly restricted actor cannot inspect old results.
       this.assertOwnerSubject(principal, workerId, input.projectId, input.workDate);
-      if (principal.role !== 'owner_admin')
+      if (principal.role === 'worker')
+        this.assertProjectObjectAccess(principal, input.projectId, input.workDate, workerId);
+      else if (principal.role !== 'owner_admin')
         this.assertProjectMembership(principal, input.projectId, input.workDate);
       const hash = createHash('sha256')
         .update(
@@ -3770,7 +3777,11 @@ export class PortalRepository {
             input.spentOn,
           ).grantId
         : null;
-      if (!delegated) this.assertOwnerSubject(principal, workerId, input.projectId, input.spentOn);
+      if (!delegated) {
+        this.assertOwnerSubject(principal, workerId, input.projectId, input.spentOn);
+        if (principal.role === 'worker')
+          this.assertProjectObjectAccess(principal, input.projectId, input.spentOn, workerId);
+      }
       assertDate(input.spentOn, 'Expense date');
       assertExpenseOccurrenceTime(input.occurredTimeLocal);
       const assignment = this.sqlite

@@ -1904,6 +1904,8 @@ export const PORTAL_LITERAL_KEYS = [
   'Contact Finance for an audited adjustment.',
   'Review time entries',
   'Review updated week',
+  'Submit all week drafts',
+  'Submitting…',
   'Review worker assignment',
   'Current status',
   'Add billing contact',

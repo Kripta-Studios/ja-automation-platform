@@ -260,6 +260,36 @@
       (canViewFinance ||
         (data.user?.role === 'worker' && String(record.worker_id) === String(data.user?.id))),
   );
+  const financeClassificationPending = $derived(
+    canViewFinance &&
+      record.approval_state === 'approved' &&
+      record.commercial_classification_state === 'unclassified' &&
+      Number(record.expense_policy_required ?? 0) === 1,
+  );
+  const financeClassificationHref = $derived.by(() => {
+    const params = new URLSearchParams({
+      view: 'commercial',
+      project: String(record.project_id),
+      expense: String(record.id),
+      lang: locale,
+    });
+    const query = $page.url.searchParams.get('q');
+    if (query !== null) params.set('q', query);
+    return `${base}/app/finance?${params.toString()}#expense-classification`;
+  });
+  const financeClassificationHold: ProblemData = {
+    code: 'EXPENSE_FINANCE_CLASSIFICATION_PENDING',
+    messageKey: 'problem.expenseDetail.financeClassificationHold',
+    params: {},
+    fieldErrors: {},
+    remedies: [{ id: 'review_expense_classification' }],
+    correlationId: '',
+  };
+  const needsVerifiedConversion = $derived(
+    (record.project_currency_amount_minor === null ||
+      record.project_currency_amount_minor === undefined) &&
+      record.currency !== record.project_currency,
+  );
   const money = (minor: unknown, currency: string) =>
     formatMoney(minor, currency, locale === 'pt' ? 'pt-BR' : locale);
   function receiptProblem(problem: ProblemData): ProblemData {
@@ -667,6 +697,22 @@
       </div>
     </section>
   {/if}
+  {#if financeClassificationPending}
+    <div data-expense-finance-classification-hold>
+      <ProblemNotice
+        problem={financeClassificationHold}
+        {locale}
+        kind="warning"
+        title={t('Needs Finance classification')}
+        remedyLinks={{
+          review_expense_classification: {
+            label: t('Review expense classification'),
+            href: financeClassificationHref,
+          },
+        }}
+      />
+    </div>
+  {/if}
   <section class="record-detail-grid">
     <article>
       <span>{t('AMOUNT')}</span><strong
@@ -679,14 +725,18 @@
     {#if canViewFinance}
       <article>
         <span>{t('CLIENT TREATMENT')}</span><strong
-          >{controlled('billingStream', record.client_treatment)}</strong
+          >{financeClassificationPending
+            ? t('Needs Finance classification')
+            : controlled('billingStream', record.client_treatment)}</strong
         >
       </article>
     {/if}
     {#if canViewOwnReimbursement && record.reimbursement_state}
       <article>
         <span>{t('REIMBURSEMENT')}</span><strong
-          >{controlled('status', record.reimbursement_state)}</strong
+          >{financeClassificationPending
+            ? t('Needs Finance classification')
+            : controlled('status', record.reimbursement_state)}</strong
         >
       </article>
     {/if}
@@ -729,15 +779,33 @@
       {#if canViewFinance}
         <div>
           <dt>{t('Billing treatment')}</dt>
-          <dd>{controlled('billingStream', record.billing_treatment ?? 'internal')}</dd>
+          <dd>
+            {financeClassificationPending
+              ? t('Needs Finance classification')
+              : controlled('billingStream', record.billing_treatment ?? 'internal')}
+          </dd>
         </div>
-        <div>
+        <div data-expense-project-amount class:expense-conversion-needed={needsVerifiedConversion}>
           <dt>{t('Project-currency amount')}</dt>
           <dd>
-            {money(
-              record.project_currency_amount_minor ?? record.amount_minor,
-              String(record.project_currency ?? record.currency),
-            )}
+            {#if needsVerifiedConversion}
+              <span data-expense-conversion-required
+                >{t('Verified currency conversion needed')}</span
+              >
+              <p data-expense-conversion-explanation>
+                {t(
+                  'No verified conversion is recorded. This expense keeps its original currency. A conversion cannot currently be entered here.',
+                )}
+              </p>
+              <a href={financeClassificationHref}
+                >{t('Review expense classification')} <DirectionIcon /></a
+              >
+            {:else}
+              {money(
+                record.project_currency_amount_minor ?? record.amount_minor,
+                String(record.project_currency ?? record.currency),
+              )}
+            {/if}
           </dd>
         </div>
       {/if}
@@ -771,3 +839,15 @@
     {/if}
   </section>
 </main>
+
+<style>
+  .expense-conversion-needed {
+    grid-column: 1 / -1;
+  }
+
+  .expense-conversion-needed dd {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+</style>

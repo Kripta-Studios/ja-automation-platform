@@ -28,6 +28,11 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'No verified conversion is recorded. This expense keeps its original currency. A conversion cannot currently be entered here.':
+    'No verified conversion is recorded. This expense keeps its original currency. A conversion cannot currently be entered here.',
+  'Verified currency conversion needed': 'Verified currency conversion needed',
+  'problem.expenseDetail.financeClassificationHold':
+    'Operational approval is complete. Finance must confirm this expense’s reimbursement and customer billing treatment. Reimbursement is not ready until classification is complete.',
   'We could not confirm the save. Check the register before submitting again.':
     'We could not confirm the save. Check the register before submitting again.',
   'Your changes were saved, but the register could not be refreshed. Close this form and refresh the page.':
@@ -406,6 +411,11 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'No verified conversion is recorded. This expense keeps its original currency. A conversion cannot currently be entered here.':
+    'No se ha registrado una conversión verificada. Este gasto conserva su moneda original. Actualmente no se puede introducir una conversión aquí.',
+  'Verified currency conversion needed': 'Se necesita una conversión de moneda verificada',
+  'problem.expenseDetail.financeClassificationHold':
+    'La aprobación operativa está completa. Finanzas debe confirmar el reembolso y el tratamiento de facturación al cliente de este gasto. El reembolso no está listo hasta que se complete la clasificación.',
   'We could not confirm the save. Check the register before submitting again.':
     'No pudimos confirmar el guardado. Revisa el listado antes de volver a enviar.',
   'Your changes were saved, but the register could not be refreshed. Close this form and refresh the page.':
@@ -778,6 +788,11 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'No verified conversion is recorded. This expense keeps its original currency. A conversion cannot currently be entered here.':
+    'Nenhuma conversão verificada foi registrada. Esta despesa mantém sua moeda original. No momento, não é possível informar uma conversão aqui.',
+  'Verified currency conversion needed': 'É necessária uma conversão de moeda verificada',
+  'problem.expenseDetail.financeClassificationHold':
+    'A aprovação operacional está concluída. A equipe financeira deve confirmar o reembolso e o tratamento de faturamento ao cliente desta despesa. O reembolso não está pronto até que a classificação seja concluída.',
   'We could not confirm the save. Check the register before submitting again.':
     'Não foi possível confirmar o salvamento. Verifique a lista antes de enviar novamente.',
   'Your changes were saved, but the register could not be refreshed. Close this form and refresh the page.':

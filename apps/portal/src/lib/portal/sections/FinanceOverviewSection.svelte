@@ -2429,6 +2429,7 @@
             <RecordBrowser
               rows={filteredFinanceExpenses}
               bind:visible={classificationPage}
+              focusId={linkedExpenseId}
               {translate}
               label="Expense treatment and planning"
             />

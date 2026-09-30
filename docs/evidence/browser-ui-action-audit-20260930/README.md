@@ -53,4 +53,12 @@ The compiled portal independently passed eight button measurements/open/cancel c
 
 Populated invoice-expense export, credit/void and remaining Supplier crew journeys are still in progress. An inventory of 181 server actions is a planning aid, not proof of tested UI actions. The private action-by-role matrices explicitly retain untested and blocked items. This round does not yet establish that every action for every role has been tested.
 
-This batch has not yet been committed, pushed or deployed. Deployment, production browser verification and cache cleanup remain release gates.
+## Production release receipt
+
+Application commit `6189979bbac6926261a95fc272c6c9a504f6c1c1` was pushed to GitHub and deployed on **30 September 2026 at 00:50:46 UTC / 02:50:46 Madrid**. The clean-source archive contains 4,246 manifest entries; its SHA-256 is `d9c84dd7645257301dee38fd05b7c307baeeb929af9bfa8e10049e74e441d2f8`. Site, portal and jobs activated successfully, with local readiness and both public URLs passing.
+
+Authenticated production Chromium checks passed **19/19 across all seven roles**, including phone/desktop navigation, selected tabs, role labels and the Owner week picker. There were no page exceptions, failed responses or horizontal overflow. A separate **eight-check production button run** measured Log time and Record expense at 360/390/768/1440 px, opened and cancelled both dialogs, and made no business POSTs. Both buttons are 88 px tall with matching font and padding, and fill the available width on phones.
+
+The VPS production/jobs verifier passed. The deployment backup passed SQLite integrity, zero foreign-key violations and hash verification for all three private files; manifests cover all three required calendar days. Eight financial-table hashes and all three private-file hashes were preserved across deployment. Twelve unrelated container IDs and Caddy PID were preserved.
+
+Unused Docker build cache was cleared, reclaiming **6.896 GB**. Images, containers, volumes and business data were retained. Deployment watcher/timer were restored to their prior active/enabled state; jobs and backup timers are active. This receipt establishes deployment of this batch, not universal action coverage. The continued action audit retains the gaps listed above.

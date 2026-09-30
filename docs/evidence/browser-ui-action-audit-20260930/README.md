@@ -88,3 +88,13 @@ The separate synthetic milestone completed Finance rejection with a required rea
 Fresh independent review returned SHIP for the four-file recovery/search packet. Existing pure/mock tests passed 30/30; portal build, global typecheck and lint passed. Independent compiled browser checks passed 6/6 native credit-failure cases and 4/4 restricted-search viewport cases, each search case covering Technician, Supplier and normal Worker. Author search checks also passed at all four widths, preserving local filtering, keyboard Help navigation and account controls with zero POSTs or page exceptions.
 
 A new Worker assignment appeared absent while its New York project civil date was still September 29 and the assignment started September 30. The selector intentionally uses the project timezone; the Worker identity was correct and principal scope is rebuilt per request. This was test scheduling, not a stale-session defect; no authorization guard was changed.
+
+## Continued production release receipt
+
+Application commit `f5fbf7812aec13c2cd2eb62f0569e7ec8846034f` was pushed and deployed on **30 September 2026 at 02:24:22 UTC / 04:24:22 Madrid**. Its clean Git archive has 4,252 manifest entries and SHA-256 `d5cef8630a05fb4c3de863b3d5612893ad3719a0478f8e643cb0b1803e67e6c6`. It contains the canonical policy/Supplier lookup/project-tab fixes, SVG/navigation and creation-copy changes, and the reviewed billing focus/role-search controls.
+
+Live authenticated Chromium passed **19/19 checks across all seven roles**, including omitted unavailable search controls for restricted profiles. Eight separate live button checks passed at 360/390/768/1440 px with zero business POSTs, exceptions or failed responses; Log time and Record expense both measure 88 px high with matching font and padding and full phone width. Site/portal readiness, public URLs and the VPS/current-jobs verifier passed.
+
+The deployment backup passed SQLite integrity, zero foreign-key violations and hashes for three private documents; all three required calendar-day manifests are present. Eight financial-table hashes and all three private-file hashes were preserved. Fifteen container IDs outside the managed deployment and Caddy PID were preserved. Unused build cache cleanup reclaimed **6.897 GB**; images, containers, volumes and business data were retained. Deployment path/timer are active and enabled again.
+
+This receipt covers the deployed reviewed batch. A clearer classification-hold notice for an approved, policy-required but unclassified expense and alternate invoice layout journeys are still under test. The seven-role action matrices retain untested and blocked actions; this is not universal action coverage or CLIENT READY.

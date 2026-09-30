@@ -1124,3 +1124,23 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] VPS/jobs/salud/backupOK/FK0/tres docs/tres días; ocho hashes financieros/tres archivos/quince contenedores ajenos/PIDCaddy912 intactos, watchers activos/habilitados. Buildercache6,943GB retirado, imágenes/current/rollback/volúmenes/datos/drafts intactos; headers/network-first verificados.
 - [x] Dos defectos de presentación registrados FIXED por compilado: Finance246 filas19PASS1N/A1FIXED225UNTESTED; cicloFinance69 filas59PASS6N/A1FIXED2UNTESTED1BLOCKED; Operations59 filas48PASS1FIXED10N/A, sin sumar como cobertura universal.
 - [ ] Próximo lote browserUI-only draft diario/documentos QA en ejecución, no PASS anticipado. Auditoría universal/FX/firma genuina siguen pendientes; no CLIENT READY.
+
+
+## 2026-09-30 — Inventario real de roles y recuperación de informes
+
+- [x] Chromium producción, identidad visible de siete roles:97 estados de página,79 entradas nav,349 apariciones de formularios y1.340 botones inventariados; diez enlaces de menú de cuenta llegan a URL/heading esperado. Cero escrituras de negocio/HTTP>=400/errores console o página/overflow.26 eventos GET fallidos de datos de ruta conservados sin estado HTTP; páginas correctas. Presencia no equivale a PASS de acciones/autorización.
+- [x] R6 por UI: Finance upload/download/archive documento propio105bytes; Owner93bytes download Owner/Finance y archive; hashes exactos, documentos históricos conservados, proyecto QA sin fuentes.29 filas/ocho hashes financieros y33 archivos originales intactos;35 archivos incluyen dos uploads, SQLiteOK/FK0. Worker/Auditor sin nav Documents no implica prueba de backend.
+- [x] Defecto real informe: autosave200 seguido Save409 por envelope SvelteKit no decodificado. Candidato acotado conserva typing/versión propia/optimistic guard y copia diferente; Source autosave→Save, Save antes debounce y respuesta real retenida→latest typing/Save aprobados. Copia redundante exacta se elimina sin warning; contexto único y reload200 comprobados. Fallos de harness/evidencia inicial conservados. Root33/33 pruebas focales con hashes iguales.
+- [ ] Conflicto remoto genuino, compilado independiente, revisión final y publicación del candidato pendientes. Cobertura completa de todas las acciones, FX verificado/pack no vacío/firma genuina permanecen abiertos; no CLIENT READY.
+
+
+## 2026-09-30 — Protección de Submit/upload y compilado corregido
+
+- [x] Source real: Owner update200→Worker staleSave409; Submit y upload ceroPOST, texto/base antiguos y archivo seleccionado conservados, freshOwner mantiene versión nueva. Warning accionable compare/copy; tres fallos previos harness cero mutaciones conservados.
+- [x] Revisión independiente corregida SHIP, cuatro hashes iguales y44/44 focales. Build portal/tipos/lint corregidos aprobados; compilado cuatro casos reales autosave→Save/predebounceSave/inflightack→newtypingSave/conflictoguardaSubmitUpload aprobados. Dos GETJS/noJS readonly no son prueba de mutación.
+- [x] Menú cuenta siete roles390/1440:14/14, SVG logout20px/ariahidden/focusablefalse/Escape, ceroPOST/error/overflow; directorio privado round15 corresponde a build ejecutado round16.
+- [ ] Ciclo positivo UI creó un único Draft sintético, autosave200 base1→ack2 y attachment201; harness exigía200 y paró, sin fallo producto/no retry. Continuación mismo registro para download/hash/dirtySubmit y cleanup keeper pendientes antes de FIXED/publicación. Withdraw/noJSdirtymutation no demostrados; auditoría universal/FX/firma genuina siguen abiertos.
+
+- [x] Continuación mismo Draft: download221bytes/hash exacto; autosave200 base2→nativeSubmit303 versión3, sin repeat create/upload/submit. Bodyautosave no recuperable tras navegación: fallo harness conservado, sin inventar ack decodificado. Screenshot Submitted/version4; GET-only register200/fresh200/texto final/archivo v2/SHA, selector Report summary VERSION4 aprobado. Primer selector amplio capturó v2 del attachment y falló, artefacto preservado. Fixture Submitted sintético retenido sin approve/sign/bill/pay.
+
+- [x] Keeper propio Draft17/0archivos borrado por UI: autosave17→18 real200 retenido, una confirmación/noDelete durante hold, Delete18→200 trasack, freshregister200 fila/marker ausentes, sin errores. Submitted QA retenido. Ocho tablas/29filas y33 hashes originales intactos;36 archivos, SQLiteOK/FK0. Defecto Save registrado FIXED por evidencia compilada; Operations50PASS2FIXED10N/A62filas, sin cobertura universal. Publicación siguiente; Withdraw/noJS/FX/firma genuina pendientes.

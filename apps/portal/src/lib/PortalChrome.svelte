@@ -688,7 +688,21 @@
         </a>
         <div class="account-menu-divider" role="separator"></div>
         <button type="button" class="account-signout" role="menuitem" onclick={logout}>
-          <span class="account-menu-icon" aria-hidden="true">↪</span>
+          <span class="account-menu-icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+              ><path d="M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M14 8l4 4-4 4M8 12h10" /></svg
+            >
+          </span>
           <span
             ><b>{translate('Log out')}</b><small
               >{translate('End this session on this device')}</small

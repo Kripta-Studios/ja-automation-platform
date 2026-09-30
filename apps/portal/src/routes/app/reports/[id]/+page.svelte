@@ -3,6 +3,7 @@
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { base } from '$app/paths';
   import { beforeNavigate } from '$app/navigation';
+  import { deserialize } from '$app/forms';
   import { onMount, tick } from 'svelte';
   import { page } from '$app/stores';
   import {
@@ -15,6 +16,12 @@
   import { translateReportHistoryAction, type PortalLocale } from '$lib/portal-i18n';
   import { ActionBar, Field, FieldGroup, FormCard, FormSection, SectionCard } from '$lib/portal/ui';
   import {
+    acknowledgeReportAutosave,
+    createReportAutosaveFlight,
+    decodeReportAutosaveResult,
+    loadedReportAutosaveSnapshot,
+    reportRecoveryMatchesLoaded,
+    reportFieldlessActionReadiness,
     applyReportSnapshot,
     clearStoredReportAutosave,
     readStoredReportAutosave,
@@ -420,17 +427,26 @@
   type AutosaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'conflict' | 'offline';
   let autosaveState = $state<AutosaveState>('idle');
   let autosaveMessage = $state(t('Autosave is ready'));
-  let autosaveVersion = $state(1);
+  function loadedEditVersion(): number {
+    const submittedVersion = reportForm?.success === false ? reportForm.values?.version : undefined;
+    const version = Number(submittedVersion ?? data.detail.report.version);
+    return Number.isInteger(version) && version > 0 ? version : 1;
+  }
+  let autosaveVersion = $derived(loadedEditVersion());
+  const currentReportVersion = $derived(Math.max(Number(report.version), autosaveVersion));
+  let confirmedSnapshot = $derived(loadedReportAutosaveSnapshot(data.detail.type, report));
+  let unresolvedReportFailure = $derived(
+    reportForm?.actionName === 'updateReport' && reportForm.success !== true,
+  );
   let recoveryDraft = $state<StoredReportAutosave | null>(null);
   let recoveryOpen = $state(false);
   let recoveryStale = $state(false);
   let comparingDraft = $state(false);
   let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
-  let autosaveInFlight = false;
-  $effect(() => {
-    const version = Number(data.detail.report.version);
-    if (Number.isInteger(version) && version > 0) autosaveVersion = version;
-  });
+  const autosaveFlight = createReportAutosaveFlight();
+  let manualSubmitWaiting = false;
+  const replayedSubmissions = new WeakSet<HTMLFormElement>();
+  let disposed = false;
   const display = (value: Value): string =>
     value === null || value === undefined ? '' : String(value);
   const submitted = (name: string, fallback: Value): string =>
@@ -577,15 +593,33 @@
 
   async function uploadAttachment(event: SubmitEvent): Promise<void> {
     event.preventDefault();
-    if (attachmentBusy) return;
+    if (attachmentBusy || manualSubmitWaiting) return;
     const formElement = event.currentTarget;
     if (!(formElement instanceof HTMLFormElement)) return;
     reportFormFieldErrors(formElement, {});
     attachmentBusy = true;
     attachmentError = false;
     attachmentNeedsReview = false;
-    attachmentMessage = t('Uploading attachment…');
+    attachmentMessage = t('Saving draft…');
+    const key = autosaveKey;
+    manualSubmitWaiting = true;
     try {
+      // Preserve the selected file while the report's own save finishes.
+      if (
+        !(await finishReportEdits()) ||
+        disposed ||
+        autosaveKey !== key ||
+        !formElement.isConnected
+      ) {
+        attachmentMessage = autosaveMessage;
+        attachmentError = true;
+        attachmentNeedsReview = true;
+        await tick();
+        focusAutosaveStatus();
+        return;
+      }
+      await tick();
+      attachmentMessage = t('Uploading attachment…');
       const response = await fetch(formElement.action, {
         method: 'POST',
         credentials: 'same-origin',
@@ -609,6 +643,7 @@
     } catch {
       focusAttachmentStatus(t('problem.reportAttachment.uploadUncertain'), true);
     } finally {
+      manualSubmitWaiting = false;
       attachmentBusy = false;
     }
   }
@@ -680,78 +715,188 @@
       autosaveMessage = t('Autosave is available for draft reports and reports needing changes');
     }
     if (autosaveTimer) clearTimeout(autosaveTimer);
-    autosaveTimer = setTimeout(() => void saveReportDraft(editForm), 850);
+    if (!manualSubmitWaiting) autosaveTimer = setTimeout(() => void saveReportDraft(editForm), 850);
   }
 
-  async function actionData(response: Response): Promise<Record<string, unknown>> {
-    const body = (await response.json().catch(() => null)) as unknown;
-    if (!body || typeof body !== 'object') return {};
-    const envelope = body as Record<string, unknown>;
-    return envelope.data && typeof envelope.data === 'object'
-      ? (envelope.data as Record<string, unknown>)
-      : envelope;
-  }
-
-  async function saveReportDraft(editForm: HTMLFormElement): Promise<void> {
+  function cancelScheduledAutosave(): void {
+    if (autosaveTimer) clearTimeout(autosaveTimer);
     autosaveTimer = undefined;
-    if (!data.detail.canEdit || autosaveInFlight) return;
+  }
+
+  function focusAutosaveStatus(): void {
+    const status =
+      document.querySelector<HTMLElement>('[data-autosave-status]') ??
+      document.querySelector<HTMLElement>('[data-report-problem] [data-ui="problem-notice"]') ??
+      attachmentStatusElement;
+    status?.focus({ preventScroll: true });
+    status?.scrollIntoView({ block: 'center', inline: 'nearest' });
+  }
+
+  function fieldlessActionReadiness(): 'ready' | 'dirty' | 'blocked' {
+    const editForm = editFormElement();
+    const current = editForm
+      ? snapshotReportForm(editForm, autosaveVersion)
+      : confirmedSnapshot && { ...confirmedSnapshot, version: String(autosaveVersion) };
+    return reportFieldlessActionReadiness(
+      current,
+      confirmedSnapshot,
+      unresolvedReportFailure || autosaveState === 'conflict' || autosaveState === 'offline',
+      recoveryDraft?.payload ?? null,
+    );
+  }
+
+  function blockFieldlessAction(): false {
+    if (autosaveState !== 'conflict' && autosaveState !== 'offline') {
+      autosaveState = 'conflict';
+      autosaveMessage =
+        standaloneActionMessage(locale, reportForm) ||
+        t('Review the local draft before continuing.');
+    }
+    return false;
+  }
+
+  async function finishReportEdits(): Promise<boolean> {
+    cancelScheduledAutosave();
+    if (!(await autosaveFlight.wait())) return false;
+    cancelScheduledAutosave();
+    let readiness = fieldlessActionReadiness();
+    if (readiness === 'blocked') return blockFieldlessAction();
+    const editForm = editFormElement();
+    if (readiness === 'dirty') {
+      if (!editForm || !(await saveReportDraft(editForm))) return false;
+      readiness = fieldlessActionReadiness();
+    }
+    cancelScheduledAutosave();
+    // New typing, old edit bases, and unresolved recovery are never omitted by
+    // an action that carries only the record identity/version (or an attachment).
+    return readiness === 'ready' || blockFieldlessAction();
+  }
+
+  async function awaitAutosaveBeforeSubmit(event: SubmitEvent): Promise<void> {
+    const targetForm = event.currentTarget as HTMLFormElement;
+    if (replayedSubmissions.delete(targetForm) || event.defaultPrevented) return;
+    cancelScheduledAutosave();
+    const savesNoFields = targetForm.action.endsWith('?/submitReport');
+    if (!autosaveFlight.busy() && !savesNoFields) return;
+    event.preventDefault();
+    if (manualSubmitWaiting) return;
+    manualSubmitWaiting = true;
+    const key = autosaveKey;
+    const submitter = event.submitter;
+    try {
+      const acknowledged = savesNoFields ? await finishReportEdits() : await autosaveFlight.wait();
+      cancelScheduledAutosave();
+      await tick(); // All versioned controls must contain the acknowledged version first.
+      if (disposed || autosaveKey !== key || !targetForm.isConnected) return;
+      if (!acknowledged) {
+        focusAutosaveStatus();
+        return;
+      }
+      replayedSubmissions.add(targetForm);
+      try {
+        targetForm.requestSubmit(
+          submitter instanceof HTMLButtonElement || submitter instanceof HTMLInputElement
+            ? submitter
+            : undefined,
+        );
+      } finally {
+        // Native constraint validation can prevent a submit event entirely.
+        replayedSubmissions.delete(targetForm);
+      }
+    } finally {
+      manualSubmitWaiting = false;
+    }
+  }
+
+  function saveReportDraft(editForm: HTMLFormElement): Promise<boolean> {
+    autosaveTimer = undefined;
+    if (!data.detail.canEdit || autosaveFlight.busy()) return autosaveFlight.wait();
     if (!canAutosave) {
       autosaveState = 'conflict';
       autosaveMessage = t('This report must be a draft or need changes before it can autosave');
-      return;
+      return Promise.resolve(false);
     }
     const snapshot = snapshotReportForm(editForm, autosaveVersion);
-    writeStoredReportAutosave(reportStorage(), autosaveKey, {
+    const key = autosaveKey;
+    writeStoredReportAutosave(reportStorage(), key, {
       version: autosaveVersion,
       savedAt: new Date().toISOString(),
       payload: snapshot,
     });
-    autosaveInFlight = true;
-    autosaveState = 'saving';
-    autosaveMessage = t('Saving draft…');
-    try {
-      const response = await fetch(autosaveAction, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { accept: 'application/json' },
-        body: snapshotToFormData(snapshot),
-      });
-      const result = await actionData(response);
-      if (!response.ok || result.success !== true) {
-        const message =
-          standaloneActionMessage(locale, result) || t('Draft could not be autosaved');
-        if (response.status === 409 || result.code === 'report_not_editable') {
-          recoveryDraft = readStoredReportAutosave(reportStorage(), autosaveKey);
-          recoveryOpen = Boolean(recoveryDraft);
-          autosaveState = 'conflict';
-          autosaveMessage = `${message}. ${t('Review the local draft before continuing.')}`;
-        } else if (!response.status || response.status >= 500) {
-          autosaveState = 'offline';
-          autosaveMessage = `${message}. ${t('Your local recovery draft is preserved.')}`;
-        } else {
-          autosaveState = 'conflict';
-          autosaveMessage = message;
+    return autosaveFlight.run(async () => {
+      autosaveState = 'saving';
+      autosaveMessage = t('Saving draft…');
+      try {
+        const response = await fetch(autosaveAction, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { accept: 'application/json' },
+          body: snapshotToFormData(snapshot),
+        });
+        const result = decodeReportAutosaveResult(await response.text(), deserialize);
+        if (disposed || autosaveKey !== key || !editForm.isConnected) return false;
+        const acknowledgement = response.ok
+          ? acknowledgeReportAutosave(
+              snapshot,
+              snapshotReportForm(editForm, autosaveVersion),
+              result,
+            )
+          : null;
+        if (!acknowledgement) {
+          const message =
+            standaloneActionMessage(locale, result) || t('Draft could not be autosaved');
+          if (response.status === 409 || result.code === 'report_not_editable') {
+            recoveryDraft = readStoredReportAutosave(reportStorage(), key);
+            recoveryOpen = Boolean(recoveryDraft);
+            autosaveState = 'conflict';
+            autosaveMessage = `${message}. ${t('Review the local draft before continuing.')}`;
+          } else if (!response.status || response.status >= 500) {
+            autosaveState = 'offline';
+            autosaveMessage = `${message}. ${t('Your local recovery draft is preserved.')}`;
+          } else {
+            autosaveState = 'conflict';
+            autosaveMessage = message;
+          }
+          return false;
         }
-        return;
+        setReportVersion(acknowledgement.version);
+        confirmedSnapshot = { ...snapshot, version: String(acknowledgement.version) };
+        unresolvedReportFailure = false;
+        if (acknowledgement.retained) {
+          // A response acknowledges only the sent fields, never later user typing.
+          writeStoredReportAutosave(reportStorage(), key, {
+            version: acknowledgement.version,
+            savedAt: new Date().toISOString(),
+            payload: acknowledgement.retained,
+          });
+          recoveryDraft = readStoredReportAutosave(reportStorage(), key);
+          recoveryStale = false;
+          autosaveState = 'dirty';
+          autosaveMessage = t('Unsaved changes are protected on this device');
+          cancelScheduledAutosave();
+          if (!manualSubmitWaiting)
+            autosaveTimer = setTimeout(() => void saveReportDraft(editForm), 850);
+        } else {
+          clearStoredReportAutosave(reportStorage(), key);
+          recoveryDraft = null;
+          recoveryOpen = false;
+          recoveryStale = false;
+          comparingDraft = false;
+          autosaveState = 'saved';
+          autosaveMessage = `${t('Draft saved at')} ${new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}`;
+        }
+        return true;
+      } catch {
+        if (!disposed && autosaveKey === key) {
+          autosaveState = 'offline';
+          autosaveMessage = t('Offline. Your local recovery draft is preserved.');
+        }
+        return false;
       }
-      const nextVersion = Number(result.version);
-      if (Number.isInteger(nextVersion) && nextVersion > 0) setReportVersion(nextVersion);
-      clearStoredReportAutosave(reportStorage(), autosaveKey);
-      recoveryDraft = null;
-      recoveryOpen = false;
-      recoveryStale = false;
-      comparingDraft = false;
-      autosaveState = 'saved';
-      autosaveMessage = `${t('Draft saved at')} ${new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      })}`;
-    } catch {
-      autosaveState = 'offline';
-      autosaveMessage = t('Offline. Your local recovery draft is preserved.');
-    } finally {
-      autosaveInFlight = false;
-    }
+    });
   }
 
   function recoverDraft(): void {
@@ -842,21 +987,30 @@
               target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
           });
       });
+    let saved = readStoredReportAutosave(reportStorage(), autosaveKey);
     if (
-      form?.success &&
-      [
-        'action.reports.changesSaved',
-        'action.reports.dailyDraftSaved',
-        'action.reports.technicalDraftSaved',
-      ].includes(String(form.messageKey ?? ''))
+      saved &&
+      reportRecoveryMatchesLoaded(
+        saved.payload,
+        loadedReportAutosaveSnapshot(data.detail.type, report),
+        !reportForm || reportForm.success === true,
+      )
     ) {
+      // A fast reload may skip the previous POST page's hydration. Only clear
+      // a local copy whose complete contents are proven present in this read.
       clearStoredReportAutosave(reportStorage(), autosaveKey);
+      saved = null;
     }
-    const saved = readStoredReportAutosave(reportStorage(), autosaveKey);
+    if (unresolvedReportFailure) {
+      autosaveState = 'conflict';
+      autosaveMessage =
+        standaloneActionMessage(locale, reportForm) ||
+        t('Review the local draft before continuing.');
+    }
     if (saved) {
       recoveryDraft = saved;
       recoveryOpen = true;
-      recoveryStale = saved.version < Number(report.version);
+      recoveryStale = saved.version < currentReportVersion;
       autosaveMessage = recoveryStale
         ? t(
             'This local draft belongs to an older report version. Compare it and copy only needed text; it cannot replace the newer record.',
@@ -866,6 +1020,7 @@
       autosaveMessage = t('Autosave is available for draft reports and reports needing changes');
     }
     return () => {
+      disposed = true;
       cancelAttachmentDownload();
       window.removeEventListener('pagehide', cancelAttachmentDownload);
       if (autosaveTimer) clearTimeout(autosaveTimer);
@@ -961,24 +1116,29 @@
   {#if data.detail.canSubmitDraft && !submissionBlocked}
     <section class="detail-panel record-detail-copy" aria-label={t('Report actions')}>
       <p>{t('Changes saved in this report still need an explicit submission for review.')}</p>
-      <form method="POST" action="?/submitReport">
+      <form method="POST" action="?/submitReport" onsubmit={awaitAutosaveBeforeSubmit}>
         <input type="hidden" name="type" value={data.detail.type} />
         <input type="hidden" name="id" value={String(report.id)} />
-        <input type="hidden" name="version" value={Number(report.version)} />
+        <input type="hidden" name="version" value={autosaveVersion} />
         <button type="submit">{t('Submit for review')}</button>
       </form>
     </section>
   {/if}
   {#if data.detail.canWithdrawCorrection}
     <section class="detail-panel record-detail-copy" aria-label={t('Withdraw correction draft')}>
-      <form method="POST" action="?/withdrawCorrectionDraft" class="record-correction-withdraw">
+      <form
+        method="POST"
+        action="?/withdrawCorrectionDraft"
+        class="record-correction-withdraw"
+        onsubmit={awaitAutosaveBeforeSubmit}
+      >
         <input
           type="hidden"
           name="recordType"
           value={isDaily ? 'daily_report' : 'technical_report'}
         />
         <input type="hidden" name="correctionId" value={String(report.id)} />
-        <input type="hidden" name="version" value={Number(report.version)} />
+        <input type="hidden" name="version" value={autosaveVersion} />
         <label
           ><span>{t('Why withdraw this draft?')}</span><input
             name="reason"
@@ -1029,12 +1189,13 @@
         <p class="form-help" id="modify-report-help">
           {t('Changes are versioned and notify the owner/admin review group.')}
         </p>
-        <span class="state-tag" aria-label={`${t('VERSION')} ${display(report.version)}`}
-          >v{display(report.version)}</span
+        <span class="state-tag" aria-label={`${t('VERSION')} ${display(currentReportVersion)}`}
+          >v{display(currentReportVersion)}</span
         >
         <span
           class="form-help"
           data-autosave-status
+          tabindex="-1"
           aria-live="polite"
           data-autosave-state={autosaveState}>{autosaveMessage}</span
         >
@@ -1051,15 +1212,11 @@
         data-report-id={report.id}
         aria-describedby="modify-report-help"
         oninput={scheduleAutosave}
+        onsubmit={awaitAutosaveBeforeSubmit}
         use:formValidation
       >
         <input id="report-id" type="hidden" name="id" value={report.id} />
-        <input
-          id="report-version"
-          type="hidden"
-          name="version"
-          value={submitted('version', report.version)}
-        />
+        <input id="report-version" type="hidden" name="version" value={autosaveVersion} />
         <input id="report-type" type="hidden" name="type" value={data.detail.type} />
         <input id="report-project-id" type="hidden" name="projectId" value={report.project_id} />
         {#if !isDaily}
@@ -1717,7 +1874,7 @@
         onsubmit={uploadAttachment}
         data-report-attachment-upload
       >
-        <input type="hidden" name="version" value={report.version} />
+        <input type="hidden" name="version" value={autosaveVersion} />
         <div class="report-attachment-upload-fields">
           <Field
             id="report-attachment-kind"
@@ -1838,9 +1995,10 @@
         ><small>{t('Recorded with the source')}</small>
       </article>
       <article>
-        <span>{t('VERSION')}</span><strong>{display(report.version)}</strong><small
-          >{display(report.updated_at)}</small
-        >
+        <span>{t('VERSION')}</span><strong>{display(currentReportVersion)}</strong>
+        {#if currentReportVersion === Number(report.version)}
+          <small>{display(report.updated_at)}</small>
+        {/if}
       </article>
     </div>
   </SectionCard>
@@ -1891,7 +2049,12 @@
         data-record-type={isDaily ? 'daily_report' : 'technical_report'}
         data-record-id={String(report.id)}
         onsubmit={(event) => {
-          if (!confirm(t('Delete this report? This cannot be undone.'))) event.preventDefault();
+          if (
+            !replayedSubmissions.has(event.currentTarget as HTMLFormElement) &&
+            !confirm(t('Delete this report? This cannot be undone.'))
+          )
+            event.preventDefault();
+          void awaitAutosaveBeforeSubmit(event);
         }}
       >
         <input
@@ -1900,7 +2063,7 @@
           value={isDaily ? 'daily_report' : 'technical_report'}
         />
         <input type="hidden" name="recordId" value={report.id} />
-        <input type="hidden" name="version" value={report.version} />
+        <input type="hidden" name="version" value={autosaveVersion} />
         <button class="danger-button" type="submit" aria-describedby="delete-report-warning">
           {t('Delete report')}
         </button>

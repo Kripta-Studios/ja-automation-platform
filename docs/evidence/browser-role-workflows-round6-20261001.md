@@ -4,9 +4,9 @@ Started 2026-10-01 after deployed round 5. Count only new, distinct fixes: brows
 
 ## Progress
 
-- UX/UI: 0/10 completed; ten Astra-approved candidates implemented, verification underway.
-- Bugs: 0/10 completed; ten Astra-approved candidates implemented, verification underway.
-- Latest constraint: one browser instance with one active page; roles switched sequentially. VPS reboot around 17:04 cleared earlier browser contexts and stopped preview. Production services recovered healthy on the unchanged round-5 release; preview restarted only after confirming its process was gone.
+- UX/UI: **10/10 completed** — final GPT-6 Astra high verdict PASS after candidate role workflows and deployed regression.
+- Bugs: **10/10 completed** — distinct selected fixes reviewed, browser-verified and deployed.
+- Constraint honored throughout: one browser instance with one active page; roles switched sequentially. VPS reboot around 17:04 cleared earlier browser contexts and stopped preview. Production services recovered healthy on the unchanged round-5 release; preview restarted only after confirming its process was gone.
 
 ## Bugs
 
@@ -116,3 +116,12 @@ The new preview/persistence implementation is described in [its browser evidence
 | B11 | Archived QA projects on Active board/count | Candidate Active board showed only2 real projects before new mock,3 afterward; no Archived QA members. Final live two-project check pending |
 
 Additional implemented findings retain separate qualified status: B06 supported disabled-offline mode, B12 preview/PDF parity across document families (one item), B13 unavailable Finance project500 replaced by explicit404/recovery. Newly introduced candidate CSP/sandbox defects do not count as extra items. The selected20 are distinct; no item contributes to both totals. Final deployed evidence follows after the new release activates.
+
+
+## Final GPT-6 Astra high verdict — PASS
+
+The final independent judge accepts exactly10UX (U01,U02,U03,U04,U07,U08,U10,U12,U13,U14) and10bugs (B01,B02,B03,B04,B05,B07,B08,B09,B10,B11), no overlap or extra credit for candidate-introduced regressions. All historical pending completion notes above are superseded. Multi-role saves/conflicts/corrections ran on the isolated candidate; the tested code deployed unchanged and live regression checks passed.
+
+Final runtime `5068a616f9839af74316e89d3f59ba3ee4b6be16`, archiveSHA256 `12f67b777800364b7e02220a2630ee7d2d6a9cf79da803e166a7bca8fe927fd1`, activated21:48:50 Europe/Madrid. Backup/build/health/public/jobs, latest production checks and qualified scope are in [the final preview evidence receipt](preview-editing-persistence-browser-20261001.md#final-activation-and-completion-receipt). Live report title above PDF controls,2realActiveprojects/noArchivedQA, human attachment/audit metadata, stale-PDF warning, distinct approval titles, correct expenseclassificationcounts/captions and dirty-editor cancellation passed. Final reportCSP/sizing360/390/768/1440, loginpasswordvisibility and mobileprojecttabs also passed. Source corrections/default inheritance retain candidate attribution; no production history was rewritten to repeat their tests.
+
+Production billing configuration remains as recorded: BBS/JunkersActive, threeUSDmanualstreams and canonicalUSAauthority; Junkers currentdraftUSD3,325/68h. EmptyQAprojects deleted, history-bearingQAprojectsArchived. Issuance still requires validtaxconfiguration; no tax treatment invented, customer invoice issued/sent, or real payment initiated. This completes the requested scoped10+10 target, not the entire historic Essential acceptance suite.

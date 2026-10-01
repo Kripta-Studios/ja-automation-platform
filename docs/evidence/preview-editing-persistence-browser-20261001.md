@@ -1,6 +1,6 @@
 # Document preview editing, PDF parity and remembered views — browser evidence
 
-Run started 2026-10-01. This records the lead agent's observed browser QA of the candidate implementation, together with its source and documentation boundaries. It is not a production activation record or a final Client Essential acceptance verdict.
+Run started 2026-10-01. This records the lead agent's observed browser QA of the candidate implementation, together with its source and documentation boundaries. Candidate and production activation evidence are separated below; this is not a complete Client Essential acceptance verdict.
 
 ## Scope and method
 
@@ -111,3 +111,15 @@ A remaining current-preview versus older stored-layout mismatch was identified: 
 ## Template freshness browser regression
 
 Final isolated-copy check of R5 ApprovedDailyv4: old template2026.09.22.1 shows Earlierlayout with current-layout guidance and PreviousPDFlayouts inventory. Normal Generate creates the2026.10.01.1 artifact through ordinary jobs, changes main status toReady/currentDownload, and preserves the older row. `regenerated-current-layout-daily-en.pdf` downloaded successfully with embeddedGeist. Explicit previous-layout download also succeeds (`preserved-previous-layout-daily-en.pdf`) with the reportpage retained. Changed-source R6 oldartifact instead shows source-changed/Outdated and zero historicalDownload links, matching existing backend restrictions. Source facts and approval state unchanged. Independent reviewer SHIP after history-gate and uncertain-request corrections; scopedESLint/catalogTypeScript/client+serverSveltecompile/diffchecks pass. Final layout-status deployment pending.
+
+## Final activation and completion receipt
+
+Final runtime release `5068a616f9839af74316e89d3f59ba3ee4b6be16` is pushed to `origin/codex/release-integration-20260928` and activated at21:48:50 Europe/Madrid. Archive SHA256 `12f67b777800364b7e02220a2630ee7d2d6a9cf79da803e166a7bca8fe927fd1`; backup `/var/backups/jaautomation/2026-10-01T194831743Z-b421da36-ba66-4a9b-9c66-2216142ba753`,10documents,databaseSHA256 `8c46905fab7aea09c94f33710140b5d293085c71db7a863fcbbe95bafb7820ae`. Portal/site/jobs builds, local/public health and jobs service actor checks pass. Migration0069 upgraded the production database without copying isolated QA data.
+
+Final production normal-UI generation of the preserved R5 ApprovedDaily displays Earlierlayout→Generatecurrentlayout→Ready/currentDownload. `production-regenerated-layout-daily-en.pdf` succeeds and embedsGeist. `production-preserved-previous-layout-daily-en.pdf` also downloads successfully from explicitly labelled history. Original source remains Approved/version4; new generation adds an artifact, not operational data. Console0errors, no horizontaloverflow. Final Companyfinances remainsUSD and Activeboard remains exactly BBSMexico/JunkersOHIO. Browser closed and isolated QA preview/jobs stopped.
+
+Final unused Docker build-cache cleanup reclaimed10.92GB; available disk15GB. Current and two prior runtime image pairs, source archives and backups remain; private database/files and unrelated services were not removed. Earlier pending activation/CSP/template-layout notes are superseded by this receipt.
+
+The selected10UX+10bugs have multi-role functional browser evidence on the isolated candidate, independent review and production activation/live regressions. Candidate-only mutations remain identified as candidate evidence; no repeated production QA approvals/corrections were required to count them. Separate full Svelte diagnostics retain documented baseline errors; the workspace type/lint and production builds passed. No assertion of complete every-action/tax/payment/issued-invoice/offline acceptance is made.
+
+GPT-6 Astra high final verdict: PASS10/10UX and10/10bugs, using the selected IDs in the consolidated round6ledger, with no overlap or extra credit for introduced candidate regressions. All outstanding counting/deployment conditions are closed.

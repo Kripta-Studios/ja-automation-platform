@@ -48,6 +48,8 @@ Period reports show a saved snapshot. Follow highlighted source links to change 
 
 Newly generated invoice and report previews use the same document layout as their PDFs. Choose the same language and document revision when comparing them. Ready historical PDF viewers show the stored artifact that the corresponding download returns. Existing historical PDF bytes remain unchanged. If generation is queued, running or failed, wait for readiness or use the offered retry before downloading.
 
+If the PDF panel says **Earlier layout**, choose **Generate current layout** to create a PDF that matches the current preview. The previous artifact remains listed under **Previous PDF layouts**. A **Download previous layout** link is explicitly historical; when its source has changed, the panel instead explains that a current PDF must be generated.
+
 Filters, currencies and supported view selectors are remembered for your user and role in the same browser. Explicit filtered links take precedence over remembered selections. Use the view's reset control where available, or open that view with `reset=1` in its URL, to restore defaults. Saved viewing preferences do not save invoice edits, report text or payment forms. If browser storage is unavailable, the view remains usable without remembering selections.
 
 If another session changes an invoice or its billing-stream settings, saving shows a conflict instead of overwriting the newer data. Review the retained values, refresh the record and reconcile your changes before saving again.

@@ -28,6 +28,12 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'pdf.earlierLayout': 'Earlier layout',
+  'pdf.generateCurrentLayout': 'Generate current layout',
+  'pdf.currentLayoutHelp': 'Generate the current layout to match this preview. Previous PDFs are preserved.',
+  'pdf.previousLayouts': 'Previous PDF layouts',
+  'pdf.downloadPreviousLayout': 'Download previous layout',
+
   'problem.billing.previewFieldsInvalid': 'Check the highlighted invoice fields before saving.',
   'problem.billing.previewDueDateInvalid': 'Due date must be on or after the invoice date.',
   'problem.billing.previewDiscountUnsupported':
@@ -472,6 +478,12 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'pdf.earlierLayout': 'Diseño anterior',
+  'pdf.generateCurrentLayout': 'Generar diseño actual',
+  'pdf.currentLayoutHelp': 'Genera el diseño actual para que coincida con esta vista previa. Los PDF anteriores se conservan.',
+  'pdf.previousLayouts': 'Diseños anteriores del PDF',
+  'pdf.downloadPreviousLayout': 'Descargar diseño anterior',
+
   'problem.billing.previewFieldsInvalid':
     'Revise los campos de la factura marcados antes de guardar.',
   'problem.billing.previewDueDateInvalid':
@@ -914,6 +926,12 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'pdf.earlierLayout': 'Layout anterior',
+  'pdf.generateCurrentLayout': 'Gerar layout atual',
+  'pdf.currentLayoutHelp': 'Gere o layout atual para corresponder a esta prévia. Os PDFs anteriores são preservados.',
+  'pdf.previousLayouts': 'Layouts anteriores do PDF',
+  'pdf.downloadPreviousLayout': 'Baixar layout anterior',
+
   'problem.billing.previewFieldsInvalid': 'Revise os campos da fatura destacados antes de salvar.',
   'problem.billing.previewDueDateInvalid':
     'O vencimento deve ser igual ou posterior à data da fatura.',

@@ -29,6 +29,7 @@
     controlled = false,
     resetKey = '',
     showEmpty = true,
+    beforeChange = () => true,
   }: {
     rows: T[];
     visible?: T[];
@@ -44,6 +45,7 @@
     controlled?: boolean;
     resetKey?: string;
     showEmpty?: boolean;
+    beforeChange?: () => boolean;
   } = $props();
   let search = $state('');
   let order = $state('priority');
@@ -145,12 +147,21 @@
         <label
           >{translate('Search')}<input
             type="search"
-            bind:value={search}
+            value={search}
+            oninput={(event) => {
+              if (beforeChange()) search = event.currentTarget.value;
+              else event.currentTarget.value = search;
+            }}
             aria-label={`${translate('Search')}: ${translate(label)}`}
           /></label
         >
         <label
-          >{translate('Status')}<select bind:value={status}
+          >{translate('Status')}<select
+            value={status}
+            onchange={(event) => {
+              if (beforeChange()) status = event.currentTarget.value;
+              else event.currentTarget.value = status;
+            }}
             ><option value="">{translate('All')}</option>{#each statuses as item}<option
                 value={item}>{statusLabel(item)}</option
               >{/each}</select
@@ -158,7 +169,12 @@
         >
       {/if}
       <label
-        >{translate('Sort by')}<select bind:value={order}
+        >{translate('Sort by')}<select
+          value={order}
+          onchange={(event) => {
+            if (beforeChange()) order = event.currentTarget.value;
+            else event.currentTarget.value = order;
+          }}
           ><option value="priority">{translate('Needs attention first')}</option><option
             value="oldest">{translate('Oldest first')}</option
           ><option value="newest">{translate('Newest first')}</option><option value="name"
@@ -171,8 +187,9 @@
     {#if pages > 1}<button
         type="button"
         disabled={current === 0}
-        onclick={() => (page = current - 1)}
-        ><DirectionIcon direction="left" /> {translate('Previous')}</button
+        onclick={() => {
+          if (beforeChange()) page = current - 1;
+        }}><DirectionIcon direction="left" /> {translate('Previous')}</button
       >{/if}
     <span role="status"
       >{filtered.length ? current * pageSize + 1 : 0}–{Math.min(
@@ -183,7 +200,9 @@
     {#if pages > 1}<button
         type="button"
         disabled={current + 1 >= pages}
-        onclick={() => (page = current + 1)}>{translate('Next')} <DirectionIcon /></button
+        onclick={() => {
+          if (beforeChange()) page = current + 1;
+        }}>{translate('Next')} <DirectionIcon /></button
       >{/if}
   </nav>
   {@render children?.(filtered.slice(current * pageSize, (current + 1) * pageSize))}

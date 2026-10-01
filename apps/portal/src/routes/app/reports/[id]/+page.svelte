@@ -94,7 +94,9 @@
     review_reports: { label: t('problem.remedy.reviewReports'), href: `${base}/app/reports` },
     review_report_fields: data.detail.canEdit
       ? { label: t('problem.remedy.reviewReportFields'), href: '#modify-report-form' }
-      : { label: t('problem.remedy.reviewReport'), href: reportHref, reload: true },
+      : data.detail.canCreateCorrection
+        ? { label: t('problem.remedy.reviewReportFields'), href: '#report-correction-title' }
+        : { label: t('problem.remedy.reviewReport'), href: reportHref, reload: true },
     request_report_correction: data.detail.canCreateCorrection
       ? {
           label: t('problem.remedy.requestReportCorrection'),
@@ -515,6 +517,40 @@
                         ? 'reimbursement'
                         : null;
     return recordType ? controlled('recordType', recordType) : t('Change history');
+  };
+  let correctionOpen = $state(false);
+  $effect(() => {
+    if (
+      $page.url.hash === '#report-correction-title' ||
+      (form?.success === false &&
+        String(reportForm?.values?.originalId ?? '') === String(report.id))
+    )
+      correctionOpen = true;
+  });
+  const auditSummary = (raw: Value): { label: string; value: string }[] => {
+    try {
+      const payload = JSON.parse(display(raw)) as Record<string, unknown>;
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return [];
+      const fields = [
+        ['workDate', 'Date'],
+        ['reportDate', 'Date'],
+        ['reason', 'Reason'],
+        ['baseVersion', 'Source version'],
+        ['ownerOverride', 'Owner override'],
+      ] as const;
+      return fields.flatMap(([key, label]) => {
+        const value = payload[key];
+        if (!['string', 'number', 'boolean'].includes(typeof value) || value === '') return [];
+        return [
+          {
+            label: t(label),
+            value: typeof value === 'boolean' ? t(value ? 'Yes' : 'No') : String(value),
+          },
+        ];
+      });
+    } catch {
+      return [];
+    }
   };
   const checked = (value: Value): boolean => value === true || value === 1 || value === '1';
   const submittedChecked = (name: string, fallback: Value): boolean => {
@@ -1083,15 +1119,6 @@
     </button>
   </nav>
 
-  <div class="no-print report-localized-pdf-slot">
-    <LocalizedPdfPanel
-      ownerType={isDaily ? 'daily_report' : 'technical_report'}
-      ownerId={String(report.id)}
-      {locale}
-      title={t('PDF')}
-    />
-  </div>
-
   <header class="record-detail-header">
     <div>
       <span class="portal-kicker"
@@ -1116,6 +1143,17 @@
         >{/if}
     </div>
   </header>
+
+  <div class="no-print report-localized-pdf-slot">
+    <LocalizedPdfPanel
+      compact
+      sourceVersion={currentReportVersion}
+      ownerType={isDaily ? 'daily_report' : 'technical_report'}
+      ownerId={String(report.id)}
+      {locale}
+      title={t('PDF')}
+    />
+  </div>
 
   {#if problem}
     <div data-report-problem>
@@ -1215,17 +1253,17 @@
   {/if}
 
   {#if data.detail.canCreateCorrection}
-    <section class="detail-panel record-detail-copy" aria-labelledby="report-correction-title">
-      <h2 id="report-correction-title">{t('Create corrected draft')}</h2>
+    <details class="detail-panel record-detail-copy no-print" bind:open={correctionOpen}>
+      <summary id="report-correction-title">{t('Create corrected draft')}</summary>
       <CorrectionDraftForm
         recordType={isDaily ? 'daily_report' : 'technical_report'}
         record={report}
         translate={t}
         ownerOverride={data.user.role === 'owner_admin'}
-        values={form?.values ?? {}}
+        values={reportForm?.values ?? {}}
         requestId={data.correctionRequestId}
       />
-    </section>
+    </details>
   {/if}
 
   {#if data.detail.canEdit && report.approval_state === 'needs_changes'}
@@ -1828,7 +1866,7 @@
                 </h3>
                 <p>
                   <span class="state-tag"
-                    >{controlled('recordType', attachment.attachment_kind)}</span
+                    >{controlled('attachmentKind', attachment.attachment_kind)}</span
                   >
                   {#if !isDaily && attachment.system_reference_snapshot}
                     <span>{t('System')}: {display(attachment.system_reference_snapshot)}</span>
@@ -1881,15 +1919,16 @@
                 <dd>{display(attachment.created_at).replace('T', ' ').slice(0, 19)}</dd>
               </div>
               <div>
-                <dt>{t('Version')}</dt>
+                <dt>{t('Attachment version')}</dt>
                 <dd>v{display(attachment.version) || '—'}</dd>
               </div>
               <div>
-                <dt>{t('State')}</dt>
-                <dd>
-                  {attachmentState(attachment.state)} · {display(attachment.scan_status) ||
-                    t('Unknown')}
-                </dd>
+                <dt>{t('Storage state')}</dt>
+                <dd>{attachmentState(attachment.state)}</dd>
+              </div>
+              <div>
+                <dt>{t('Scan status')}</dt>
+                <dd>{attachmentState(attachment.scan_status)}</dd>
               </div>
               <div class="report-attachment-hash">
                 <dt>{t('SHA-256')}</dt>
@@ -2058,7 +2097,7 @@
         ><small>{t('Recorded with the source')}</small>
       </article>
       <article>
-        <span>{t('VERSION')}</span><strong>{display(currentReportVersion)}</strong>
+        <span>{t('Report version')}</span><strong>{display(currentReportVersion)}</strong>
         {#if currentReportVersion === Number(report.version)}
           <small>{display(report.updated_at)}</small>
         {/if}
@@ -2090,8 +2129,14 @@
           <span class="change-summary"
             >{t('Changed')}: {changedFields(event.details_json).join(', ')}</span
           >
-        {:else}
-          <code>{display(event.details_json)}</code>
+        {/if}
+        {#each auditSummary(event.details_json) as entry}
+          <p class="change-summary"><strong>{entry.label}:</strong> {entry.value}</p>
+        {/each}
+        {#if event.details_json}
+          <details>
+            <summary>{t('Audit details')}</summary><code>{display(event.details_json)}</code>
+          </details>
         {/if}
       </article>
     {:else}<p class="empty">{t('No audit history recorded.')}</p>{/each}
@@ -2136,6 +2181,27 @@
 </main>
 
 <style>
+  .history-event {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .history-event code {
+    display: block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+  .record-detail-copy > summary {
+    cursor: pointer;
+    min-height: 44px;
+    padding-block: 0.5rem;
+    font-weight: 700;
+  }
+  .record-detail-copy > summary:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+  }
+
   .report-operational-fields {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));

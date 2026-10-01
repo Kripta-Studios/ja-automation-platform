@@ -8,6 +8,8 @@
   import { dailyCorrectionFields, technicalCorrectionFields } from '../correction-fields';
   import { base } from '$app/paths';
   import { onMount, untrack } from 'svelte';
+  import { beforeNavigate } from '$app/navigation';
+  import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
   type ExpenseTimeOption = {
     id: string;
     workerName: string;
@@ -35,6 +37,23 @@
     timeOptions?: ExpenseTimeOption[];
     requestId: string;
   } = $props();
+
+  let correctionForm: HTMLFormElement | undefined = $state();
+  beforeNavigate((navigation) => {
+    if (
+      navigation.to?.url.pathname === navigation.from?.url.pathname &&
+      navigation.to?.url.search === navigation.from?.url.search
+    )
+      return;
+    if (
+      !navigation.willUnload &&
+      !confirmDirtyForms(
+        correctionForm,
+        translate('Discard your unsaved changes? Your entered information will be lost.'),
+      )
+    )
+      navigation.cancel();
+  });
 
   const original = (column: string): unknown => record[column];
   const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
@@ -212,7 +231,9 @@
   action={correctionAction}
   class="correction-form"
   data-correction-draft-form
+  bind:this={correctionForm}
   use:formValidation
+  use:dirtyFormGuard={{ initialDirty: String(values.originalId ?? '') === String(record.id) }}
 >
   <input type="hidden" name="recordType" value={recordType} />
   <input type="hidden" name="correctionFields" value={recordType} />

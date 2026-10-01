@@ -451,6 +451,7 @@
         'client_name',
         'worker_id',
         'worker_name',
+        'report_title',
       ]);
       const matchesProject = !projectFilter || value(row, 'project_id') === projectFilter;
       const matchesWorker = !workerFilter || value(row, 'worker_id') === workerFilter;
@@ -1076,6 +1077,17 @@
                         'date',
                       )}</strong
                     >
+                    {#if ['daily', 'technical'].includes(value(row, 'type'))}
+                      <span class="approval-report-title"
+                        ><strong
+                          >{controlledValue(
+                            'recordType',
+                            value(row, 'type') === 'daily' ? 'daily_report' : 'technical_report',
+                          )}</strong
+                        >
+                        · {value(row, 'report_title') || translate('Untitled report')}</span
+                      >
+                    {/if}
                     <small>{stageLabel(row.review_stage)} · {projectName(row)}</small>
                     <span>{translate('Open record')} <DirectionIcon /></span>
                   </a>
@@ -1091,6 +1103,10 @@
                 <div class="approval-row-actions">
                   {#if isAuditor}
                     <span class="approval-read-only">{translate('Read-only review')}</span>
+                  {:else if value(row, 'approval_state') === 'needs_changes'}
+                    <span class="approval-read-only"
+                      >{translate('Awaiting author resubmission')}</span
+                    >
                   {:else if value(row, 'review_stage') === 'report'}
                     <form
                       method="POST"
@@ -1302,7 +1318,16 @@
                       row,
                       'date',
                     )}</strong
-                  ><small>{projectName(row)}</small><span
+                  >{#if ['daily', 'technical'].includes(value(row, 'type'))}<span
+                      class="approval-report-title"
+                      ><strong
+                        >{controlledValue(
+                          'recordType',
+                          value(row, 'type') === 'daily' ? 'daily_report' : 'technical_report',
+                        )}</strong
+                      >
+                      · {value(row, 'report_title') || translate('Untitled report')}</span
+                    >{/if}<small>{projectName(row)}</small><span
                     >{translate('Open record')} <DirectionIcon /></span
                   ></a
                 ><StatusBadge
@@ -1559,6 +1584,10 @@
 </div>
 
 <style>
+  .approval-report-title {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
   .approval-page {
     display: grid;
     gap: 1.25rem;

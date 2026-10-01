@@ -1,5 +1,46 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Untitled report': ['Informe sin título', 'Relatório sem título'],
+  'Awaiting author resubmission': ['Esperando el reenvío del autor', 'Aguardando reenvio do autor'],
+  'Any category': ['Cualquier categoría', 'Qualquer categoria'],
+  'Custom category': ['Categoría personalizada', 'Categoria personalizada'],
+  Outdated: ['Desactualizado', 'Desatualizado'],
+  'The source changed. Generate a current PDF before downloading.': [
+    'El registro cambió. Genera un PDF actualizado antes de descargarlo.',
+    'O registro mudou. Gere um PDF atualizado antes de baixar.',
+  ],
+  'Generate a current PDF': ['Generar un PDF actualizado', 'Gerar um PDF atualizado'],
+  'Show password': ['Mostrar contraseña', 'Mostrar senha'],
+  'Hide password': ['Ocultar contraseña', 'Ocultar senha'],
+  Unlocked: ['Sin bloqueo', 'Sem bloqueio'],
+  Saved: ['Guardado', 'Salvo'],
+  Temporary: ['Temporal', 'Temporário'],
+  'Not scanned': ['Sin analizar', 'Não verificado'],
+  'Attachment version': ['Versión del archivo adjunto', 'Versão do anexo'],
+  'Report version': ['Versión del informe', 'Versão do relatório'],
+  'Storage state': ['Estado de almacenamiento', 'Estado de armazenamento'],
+  'Scan status': ['Estado del análisis', 'Status da verificação'],
+  'Audit details': ['Detalles de auditoría', 'Detalhes de auditoria'],
+  'Source version': ['Versión de origen', 'Versão de origem'],
+  'Owner override': ['Excepción del propietario', 'Exceção do proprietário'],
+  'Other PDF languages': ['Otros idiomas del PDF', 'Outros idiomas do PDF'],
+  'Daily report draft saved': [
+    'Borrador del informe diario guardado',
+    'Rascunho do relatório diário salvo',
+  ],
+  'Technical report draft saved': [
+    'Borrador del informe técnico guardado',
+    'Rascunho do relatório técnico salvo',
+  ],
+
+  'Changing the project or date clears unsaved crew hours and receipt allocations. Continue?': [
+    'Cambiar el proyecto o la fecha elimina las horas de la cuadrilla y los repartos de recibos sin guardar. ¿Continuar?',
+    'Alterar o projeto ou a data limpa as horas da equipe e os rateios de recibos não salvos. Continuar?',
+  ],
+  'You have unsaved crew hours or receipt allocations. Leave without saving?': [
+    'Hay horas de la cuadrilla o repartos de recibos sin guardar. ¿Salir sin guardar?',
+    'Há horas da equipe ou rateios de recibos não salvos. Sair sem salvar?',
+  ],
   'Corrected time entry': ['Registro de horas corregido', 'Lançamento de horas corrigido'],
   'Open original time entry': [
     'Abrir registro de horas original',

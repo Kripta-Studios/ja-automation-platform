@@ -47,6 +47,7 @@
     filterProblem?.fieldErrors.date?.includes('problem.crew.dayDateInvalid') ?? false,
   );
   let crewEntryForm = $state<HTMLFormElement>();
+  let receiptAllocationForm = $state<HTMLFormElement>();
   let crewFilterForm = $state<HTMLFormElement>();
   let pendingOperation = $state<string | null>(null);
   let confirmedActionRedirect: string | null = null;
@@ -61,6 +62,28 @@
       if (control.type === 'radio') return control.checked && control.value === 'individual';
       return Boolean(control.value.trim());
     });
+  }
+  function hasUnsavedReceiptAllocation(): boolean {
+    return Array.from(receiptAllocationForm?.elements ?? []).some((control) => {
+      if (control instanceof HTMLSelectElement) return Boolean(control.value);
+      if (!(control instanceof HTMLInputElement) || control.type === 'hidden') return false;
+      if (control.type === 'checkbox') return control.checked;
+      return Boolean(control.value.trim());
+    });
+  }
+  function hasUnsavedCrewChanges(): boolean {
+    return hasUnsavedCrewEntries() || hasUnsavedReceiptAllocation();
+  }
+  function clearReceiptAllocation(): void {
+    allocationSelected = [];
+    for (const control of Array.from(receiptAllocationForm?.elements ?? [])) {
+      if (control instanceof HTMLSelectElement) control.value = '';
+      else if (control instanceof HTMLInputElement) {
+        if (control.type === 'checkbox') control.checked = false;
+        else if (control.name.startsWith('amount_')) control.value = '';
+        else if (control.name === 'requestId') control.value = crypto.randomUUID();
+      }
+    }
   }
   function restoreFilterContext(): void {
     const project = crewFilterForm?.elements.namedItem('project');
@@ -86,28 +109,36 @@
   function refreshCrewContext(event: SubmitEvent): void {
     if (
       pendingOperation ||
-      (hasUnsavedCrewEntries() &&
-        !window.confirm(t('Changing the project or date clears unsaved crew entries. Continue?')))
+      (hasUnsavedCrewChanges() &&
+        !window.confirm(
+          t(
+            'Changing the project or date clears unsaved crew hours and receipt allocations. Continue?',
+          ),
+        ))
     ) {
       event.preventDefault();
       restoreFilterContext();
       return;
     }
     clearCrewEntries();
+    clearReceiptAllocation();
     rememberFilterScroll(event);
   }
   beforeNavigate(({ cancel, to }) => {
     if (confirmedActionRedirect && to?.url.href === confirmedActionRedirect) return;
     if (
       pendingOperation ||
-      (hasUnsavedCrewEntries() &&
-        !window.confirm(t('You have unsaved crew entries. Leave without saving?')))
+      (hasUnsavedCrewChanges() &&
+        !window.confirm(
+          t('You have unsaved crew hours or receipt allocations. Leave without saving?'),
+        ))
     ) {
       restoreFilterContext();
       cancel();
       return;
     }
     clearCrewEntries();
+    clearReceiptAllocation();
   });
   function rememberFilterScroll(event: SubmitEvent): void {
     const field = (event.currentTarget as HTMLFormElement).elements.namedItem('viewportScrollY');
@@ -240,14 +271,17 @@
     const operation = formElement.dataset.crewOperation ?? '';
     if (
       pendingOperation ||
-      (operation !== 'createBatch' &&
-        hasUnsavedCrewEntries() &&
-        !window.confirm(t('You have unsaved crew entries. Leave without saving?')))
+      (((operation !== 'createBatch' && hasUnsavedCrewEntries()) ||
+        (operation !== 'allocateReceipt' && hasUnsavedReceiptAllocation())) &&
+        !window.confirm(
+          t('You have unsaved crew hours or receipt allocations. Leave without saving?'),
+        ))
     ) {
       cancel();
       return;
     }
     if (operation !== 'createBatch') clearCrewEntries();
+    if (operation !== 'allocateReceipt') clearReceiptAllocation();
     pendingOperation = operation;
     const scrollTop = window.scrollY;
     rememberScroll();
@@ -260,11 +294,14 @@
             destination.searchParams.get('project') === data.projectId;
           if (
             !savedCrewContext &&
-            hasUnsavedCrewEntries() &&
-            !window.confirm(t('You have unsaved crew entries. Leave without saving?'))
+            hasUnsavedCrewChanges() &&
+            !window.confirm(
+              t('You have unsaved crew hours or receipt allocations. Leave without saving?'),
+            )
           )
             return;
           clearCrewEntries();
+          clearReceiptAllocation();
           confirmedActionRedirect = destination.href;
         }
         await update({ reset: false });
@@ -799,6 +836,7 @@
           method="POST"
           action={`?/allocateReceipt&${actionContext}`}
           data-crew-operation="allocateReceipt"
+          bind:this={receiptAllocationForm}
           use:enhance={preserveCrewForm}
           use:formValidation
           class="entry-form"

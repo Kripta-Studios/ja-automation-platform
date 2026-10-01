@@ -2005,6 +2005,20 @@ export const reportActions = {
       }
       if (recordType === 'expense')
         return expenseCorrectionFailure(error, object, 'createCorrectionDraft');
+      if (
+        ['daily_report', 'technical_report'].includes(recordType) &&
+        error instanceof ValidationError &&
+        error.message === 'Change at least one operational field before creating a correction'
+      )
+        return correctionInputFailure(
+          'createCorrectionDraft',
+          recordType,
+          'problem.correction.changesRequired',
+          'CORRECTION_CHANGES_REQUIRED',
+          'Change at least one operational field before creating a corrected draft.',
+          object,
+          ['correctionFields'],
+        );
       if (recordType === 'time_entry') {
         const known = timeCorrectionCreateFailure(error, object);
         if (known) return known;

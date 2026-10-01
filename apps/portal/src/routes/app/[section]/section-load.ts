@@ -534,6 +534,13 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
              JOIN client c ON c.id=p.client_id
             WHERE p.id=?`,
         );
+        // Titles are operational context, looked up only after queue-row authorization.
+        const dailyApprovalTitle = context.sqlite.prepare(
+          'SELECT summary title FROM daily_report WHERE id=? AND project_id=? AND worker_id=?',
+        );
+        const technicalApprovalTitle = context.sqlite.prepare(
+          'SELECT system_name title FROM technical_report WHERE id=? AND project_id=? AND author_id=?',
+        );
         return {
           ...common,
           records: (isProjectManager
@@ -543,6 +550,17 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             : context.repository.listApprovalQueue(context.principal)
           ).map((row) => ({
             ...row,
+            ...(['daily', 'technical'].includes(String(row.type))
+              ? {
+                  report_title: String(
+                    (row.type === 'daily' ? dailyApprovalTitle : technicalApprovalTitle).get(
+                      String(row.id),
+                      String(row.project_id),
+                      String(row.worker_id),
+                    )?.title ?? '',
+                  ),
+                }
+              : {}),
             worker_name:
               context.sqlite
                 .prepare('SELECT name FROM user WHERE id=?')

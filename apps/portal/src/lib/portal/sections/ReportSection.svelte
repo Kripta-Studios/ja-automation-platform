@@ -4,7 +4,7 @@
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { enhance } from '$app/forms';
-  import { beforeNavigate } from '$app/navigation';
+  import { beforeNavigate, goto } from '$app/navigation';
   import { localToday } from '../ui/time-entry-clock';
   import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
   import { onMount, tick } from 'svelte';
@@ -232,9 +232,30 @@
     setProblem: (value) => {
       surfaceProblem = value;
     },
-    onSuccess: closeSurface,
+    onSuccess: () => {
+      const createdType = surface;
+      if (createdType === 'daily' || createdType === 'technical') {
+        const href = registerHref({
+          view: createdType,
+          project: createProject,
+          status: 'draft',
+          worker: '',
+          client: '',
+          from: '',
+          to: '',
+          q: '',
+          order: 'newest',
+        });
+        savedReportNotice = translate(
+          createdType === 'daily' ? 'Daily report draft saved' : 'Technical report draft saved',
+        );
+        closeSurface();
+        void goto(href, { replaceState: true, noScroll: true });
+      } else closeSurface();
+    },
     offlineHandled: () => data.offlineEnabled !== false,
   });
+  let savedReportNotice = $state('');
   let search = $state('');
   let projectFilter = $state('');
   let workerFilter = $state('');
@@ -929,6 +950,10 @@
     </div>
     <span class="report-page-count" aria-label={translate('Report count')}>{records.length}</span>
   </header>
+
+  {#if savedReportNotice}<p class="action-message success" role="status">
+      {savedReportNotice}
+    </p>{/if}
 
   <aside class="report-audience-guidance" aria-label={reportGuidance.title}>
     <strong>{reportGuidance.title}</strong>

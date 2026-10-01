@@ -24,6 +24,16 @@
   let loginState = $state<'idle' | 'sending' | 'error'>('idle');
   let hydrated = $state(false);
   let message = $state('');
+  let passwordVisible = $state(false);
+  let passwordInput: HTMLInputElement | undefined = $state();
+  async function togglePassword(): Promise<void> {
+    const start = passwordInput?.selectionStart ?? null;
+    const end = passwordInput?.selectionEnd ?? null;
+    passwordVisible = !passwordVisible;
+    await tick();
+    passwordInput?.focus({ preventScroll: true });
+    if (start !== null && end !== null) passwordInput?.setSelectionRange(start, end);
+  }
   let retryDeadline = $state<number | null>(null);
   let retrySeconds = $state(0);
   let statusElement: HTMLParagraphElement;
@@ -242,14 +252,23 @@
         /></label
       ><label class="login-field"
         ><span>{t('Password')}</span><input
+          bind:this={passwordInput}
+          id="login-password"
           name="password"
-          type="password"
+          type={passwordVisible ? 'text' : 'password'}
           autocomplete="current-password"
           placeholder={t('Enter your password')}
           aria-label={t('Password')}
           required
         /></label
-      ><button class="login-submit" disabled={!hydrated || loginState === 'sending' || rateLimited}
+      ><button
+        type="button"
+        class="login-password-toggle"
+        aria-controls="login-password"
+        aria-pressed={passwordVisible}
+        onclick={togglePassword}>{t(passwordVisible ? 'Hide password' : 'Show password')}</button
+      >
+      <button class="login-submit" disabled={!hydrated || loginState === 'sending' || rateLimited}
         >{loginState === 'sending' ? t('Verifying access…') : t('Continue to workspace')}
         <DirectionIcon /></button
       >
@@ -304,6 +323,21 @@
 </main>
 
 <style>
+  .login-password-toggle {
+    justify-self: end;
+    min-height: 44px;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--ja-red);
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--ja-red);
+    font: inherit;
+    cursor: pointer;
+  }
+  .login-password-toggle:focus-visible {
+    outline: 2px solid var(--ja-red);
+    outline-offset: 3px;
+  }
   .login-status {
     scroll-margin-block: 1.5rem;
   }

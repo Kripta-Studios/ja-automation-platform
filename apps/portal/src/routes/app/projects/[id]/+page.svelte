@@ -202,6 +202,18 @@
   function projectValue(name: string, fallback: string | number): string | number {
     return Object.hasOwn(failedProjectValues, name) ? (failedProjectValues[name] ?? '') : fallback;
   }
+  const budgetTypes = [
+    'none',
+    'revenue',
+    'purchase_order',
+    'labor',
+    'travel',
+    'expense',
+    'combined',
+  ];
+  const selectedBudgetType = $derived(
+    String(projectValue('budgetType', display(project.budget_type, 'none'))),
+  );
   function projectChecked(name: string, fallback: boolean): boolean {
     return detailForm?.success === false && detailForm.actionName === 'updateProject'
       ? Object.hasOwn(failedProjectValues, name)
@@ -1530,7 +1542,7 @@
             <dl class="project-facts">
               <div>
                 <dt>{t('Commercial model')}</dt>
-                <dd>{display(project.billing_model, t('Not configured'))}</dd>
+                <dd>{controlled('billingModel', project.billing_model) || t('Not configured')}</dd>
               </div>
               <div>
                 <dt>{t('Reference hours / day')}</dt>
@@ -1552,7 +1564,7 @@
               </div>
               <div>
                 <dt>{t('Budget type')}</dt>
-                <dd>{display(project.budget_type, t('Not configured'))}</dd>
+                <dd>{controlled('budgetType', project.budget_type) || t('Not configured')}</dd>
               </div>
               <div>
                 <dt>{t('Cost center')}</dt>
@@ -1913,6 +1925,7 @@
 {#if isOwner}
   <ResponsiveSheet
     open={editOpen}
+    protectChanges
     title={t('Edit project')}
     description={t(
       'Update project details. If someone else has changed the project, review their changes before saving again.',
@@ -2121,10 +2134,7 @@
                   value={model}
                   selected={String(
                     projectValue('billingModel', String(project.billing_model ?? '')),
-                  ) === model}
-                  >{model === 'all_in'
-                    ? t('Hourly labor with included expenses (all-in)')
-                    : controlled('billingStream', model)}</option
+                  ) === model}>{controlled('billingModel', model)}</option
                 >{/each}</select
             ></label
           >
@@ -2134,11 +2144,18 @@
             )}
           </p>
           <label
-            >{t('Budget type')}<input
-              name="budgetType"
-              value={projectValue('budgetType', display(project.budget_type, 'none'))}
-              maxlength="80"
-            /></label
+            >{t('Budget type')}<select name="budgetType">
+              {#if !budgetTypes.includes(selectedBudgetType)}
+                <option value={selectedBudgetType} selected
+                  >{controlled('budgetType', selectedBudgetType)}</option
+                >
+              {/if}
+              {#each budgetTypes as budgetType}
+                <option value={budgetType} selected={selectedBudgetType === budgetType}
+                  >{controlled('budgetType', budgetType)}</option
+                >
+              {/each}
+            </select></label
           >
           <ProjectBudgetInput
             name="budgetMinor"
@@ -2278,8 +2295,11 @@
         )}
       </p>
       <div class="sheet-form-actions">
-        <button type="button" class="secondary-button" onclick={() => (editOpen = false)}
-          >{t('Cancel')}</button
+        <button
+          type="button"
+          class="secondary-button"
+          data-sheet-close
+          onclick={() => (editOpen = false)}>{t('Cancel')}</button
         ><button type="submit" class="primary-button" disabled={saving}
           >{saving ? t('Saving…') : t('Save project')}</button
         >
@@ -3095,8 +3115,14 @@
     .project-context {
       margin-top: 1rem;
     }
+    .project-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      overflow-x: visible;
+    }
     .project-tabs button {
-      min-width: max-content;
+      min-width: 0;
+      overflow-wrap: anywhere;
       padding-inline: 0.8rem;
     }
     .compact-record,

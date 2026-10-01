@@ -96,6 +96,7 @@ export function publicLocalizedPdfVariant(variant: LocalizedPdfVariant) {
     errorCode: variant.errorCode,
     retryable: variant.retryable,
     integrityBlocked: variant.integrityBlocked,
+    sourceCurrent: variant.sourceCurrent !== false,
     maxAttempts: variant.maxAttempts,
     requestedAt: variant.requestedAt,
     startedAt: variant.startedAt,

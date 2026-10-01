@@ -69,6 +69,8 @@ export type LocalizedPdfVariant = Readonly<{
   errorCode: string | null;
   retryable: boolean | null;
   integrityBlocked: boolean;
+  /** Read-only current-source revision status; historic bytes are never changed. */
+  sourceCurrent?: boolean;
   maxAttempts: number;
   requestKey: string | null;
   requestedBy: string;
@@ -823,6 +825,12 @@ export class LocalizedPdfRepository {
     // A localized artifact is authorized against the immutable source revision captured at
     // request time. If the source was edited after the request, do not silently re-authorize the
     // old bytes using the new worker/project relationship; require a fresh variant instead.
+    if (!this.sourceRevisionMatches(row, owner))
+      throw new AccessDeniedError('Localized PDF source revision is no longer current');
+    return owner;
+  }
+
+  private sourceRevisionMatches(row: LocalizedPdfRow, owner: DerivedOwner): boolean {
     const legacyPeriodReportRevisionMatches =
       row.owner_type === 'period_report_revision' &&
       row.owner_revision_id === `${row.owner_id}:v1` &&
@@ -830,9 +838,7 @@ export class LocalizedPdfRepository {
     // Migration 0023's legacy period-report insert trigger only permits the v1 subject binding.
     // Keep that durable compatibility row readable only when its captured snapshot is exactly the
     // current base snapshot; the derived owner revision remains the deterministic snapshot hash.
-    if (owner.ownerRevisionId !== row.owner_revision_id && !legacyPeriodReportRevisionMatches)
-      throw new AccessDeniedError('Localized PDF source revision is no longer current');
-    return owner;
+    return owner.ownerRevisionId === row.owner_revision_id || legacyPeriodReportRevisionMatches;
   }
 
   private canRead(principal: Principal, owner: DerivedOwner): boolean {
@@ -1081,10 +1087,12 @@ export class LocalizedPdfRepository {
     selector?: LocalizedPdfOwnerSelector,
   ): readonly LocalizedPdfVariant[] {
     this.assertHuman(principal, false);
+    let currentOwner: DerivedOwner | null = null;
     const rows = selector
       ? (() => {
           const owner = this.deriveOwner(selector);
           this.assertReadable(principal, owner);
+          currentOwner = owner;
           return this.sqlite
             .prepare(
               `SELECT * FROM localized_pdf_variant
@@ -1110,7 +1118,10 @@ export class LocalizedPdfRepository {
             return false;
           }
         });
-    return rows.map((row) => this.map(row));
+    return rows.map((row) => ({
+      ...this.map(row),
+      sourceCurrent: currentOwner ? this.sourceRevisionMatches(row, currentOwner) : true,
+    }));
   }
 
   retryVariant(
@@ -1349,7 +1360,8 @@ export class LocalizedPdfRepository {
     snapshot: Record<string, unknown>,
   ): Record<string, string> {
     const workerColumn = ownerType === 'daily_report' ? 'worker_id' : 'author_id';
-    const createAction = ownerType === 'daily_report' ? 'daily_report.create' : 'technical_report.create';
+    const createAction =
+      ownerType === 'daily_report' ? 'daily_report.create' : 'technical_report.create';
     const workerId = sourceUserIdFromRow(snapshot, workerColumn);
     const reviewerId = definedText(snapshot.reviewed_by) ?? definedText(snapshot.reviewedBy);
     const creatorId = this.sqlite

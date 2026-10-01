@@ -1,5 +1,6 @@
 <script lang="ts">
   import DirectionIcon from '../ui/DirectionIcon.svelte';
+  import TimeCategorySelect from '../ui/TimeCategorySelect.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { FormCard, FormSection, FieldGroup, Field, ProblemNotice, formValidation } from '../ui';
@@ -613,11 +614,11 @@
           />
         </Field>
         <Field id="commercial-summary-category" label={translate('Time category')}>
-          <input
+          <TimeCategorySelect
             id="commercial-summary-category"
-            name="category"
             value={data.commercialCategory ?? 'regular'}
             required
+            {translate}
           />
         </Field>
       </FieldGroup>
@@ -2956,11 +2957,10 @@
                 label={translate('Time category')}
                 data-field="category"
               >
-                <input
+                <TimeCategorySelect
                   id="finance-client-category"
-                  name="category"
-                  placeholder={translate('regular, overtime, travel')}
                   value={failedValue('createClientLaborRate', 'category') ?? ''}
+                  {translate}
                 />
               </Field>
               <Field

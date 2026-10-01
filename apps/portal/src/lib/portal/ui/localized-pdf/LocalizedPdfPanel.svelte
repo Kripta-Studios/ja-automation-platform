@@ -1,6 +1,6 @@
 <script lang="ts">
   import { base } from '$app/paths';
-  import { onMount, tick } from 'svelte';
+  import { onMount, tick, untrack } from 'svelte';
   import { portalText, type PortalLocale } from '$lib/portal-i18n';
   import type { ProblemData } from '$lib/problem/contract';
   import ProblemNotice from '../ProblemNotice.svelte';
@@ -29,6 +29,8 @@
     description?: string;
     initialVariants?: readonly unknown[];
     class?: string;
+    compact?: boolean;
+    sourceVersion?: number;
   };
 
   let {
@@ -39,6 +41,8 @@
     description = '',
     initialVariants = [],
     class: className = '',
+    compact = false,
+    sourceVersion,
   }: Props = $props();
 
   const t = (key: string): string => portalText(locale, key);
@@ -49,6 +53,24 @@
   );
   let variants = $state<LocalizedPdfVariant[]>([]);
   let loaded = $state(false);
+  let mounted = $state(false);
+  let refreshedSourceKey = untrack(() => JSON.stringify([ownerType, ownerId, sourceVersion]));
+  $effect(() => {
+    const key = JSON.stringify([ownerType, ownerId, sourceVersion]);
+    if (!mounted || key === refreshedSourceKey) return;
+    refreshedSourceKey = key;
+    variants = [];
+    loaded = false;
+    problem = null;
+    errorMessage = '';
+    submittingLocale = null;
+    retryingVariantId = null;
+    downloadingVariantId = null;
+    requestStatusUnknownLocale = null;
+    retryStatusUnknownId = null;
+    userSelectedLocale = false;
+    void untrack(() => refresh());
+  });
   const visibleVariants = $derived(loaded ? variants : seededVariants);
   const defaultLocale = $derived(localeFromPortalLocale(locale));
   let selectedLocale = $state<LocalizedPdfLocale>('en');
@@ -82,6 +104,9 @@
   const problemVariant = $derived(
     problemVariantId ? visibleVariants.find((item) => item.variantId === problemVariantId) : null,
   );
+
+  const variantStatus = (variant: LocalizedPdfVariant): string =>
+    t(variant.sourceCurrent === false ? 'Outdated' : variant.status);
 
   function failureMessage(variant: LocalizedPdfVariant): string {
     return t(
@@ -157,6 +182,8 @@
 
   async function refresh(options: { silent?: boolean } = {}): Promise<boolean> {
     if (!ownerId) return false;
+    const sourceKey = JSON.stringify([ownerType, ownerId, sourceVersion]);
+    const stillCurrent = () => sourceKey === JSON.stringify([ownerType, ownerId, sourceVersion]);
     if (!options.silent) loading = true;
     if (!options.silent) {
       errorMessage = '';
@@ -169,6 +196,7 @@
         headers: { accept: 'application/json' },
       });
       const body = await jsonResponse(response);
+      if (!stillCurrent()) return false;
       if (!response.ok) {
         showResponseProblem(response, body, null, !options.silent);
         return false;
@@ -184,15 +212,18 @@
       retryStatusUnknownId = null;
       return true;
     } catch {
+      if (!stillCurrent()) return false;
       errorMessage = t('The PDF list could not be loaded.');
       return false;
     } finally {
-      if (!options.silent) loading = false;
+      if (!options.silent && stillCurrent()) loading = false;
     }
   }
 
   async function requestVariant(targetLocale: LocalizedPdfLocale): Promise<void> {
     if (submittingLocale || requestStatusUnknownLocale === targetLocale || !ownerId) return;
+    const sourceKey = JSON.stringify([ownerType, ownerId, sourceVersion]);
+    const stillCurrent = () => sourceKey === JSON.stringify([ownerType, ownerId, sourceVersion]);
     const priorVariant = variantForLocale(targetLocale);
     submittingLocale = targetLocale;
     errorMessage = '';
@@ -205,15 +236,20 @@
         body: JSON.stringify({ ownerType, ownerId, locale: targetLocale }),
       });
       const body = await jsonResponse(response);
+      if (!stillCurrent()) return;
+      if (!stillCurrent()) return;
       const next = normalizeLocalizedPdfVariant(body.variant);
       if (!response.ok || !next) {
         showResponseProblem(response, body, null, true);
         return;
       }
+      if (!stillCurrent()) return;
       variants = mergeLocalizedPdfVariant(visibleVariants, next);
       loaded = true;
     } catch {
+      if (!stillCurrent()) return;
       const refreshed = await refresh({ silent: true });
+      if (!stillCurrent()) return;
       if (!refreshed && problem) {
         requestStatusUnknownLocale = targetLocale;
         void tick().then(() =>
@@ -250,7 +286,7 @@
         panelElement?.querySelector<HTMLElement>('[data-ui="problem-notice"]')?.focus(),
       );
     } finally {
-      submittingLocale = null;
+      if (stillCurrent()) submittingLocale = null;
     }
   }
 
@@ -261,6 +297,8 @@
       !canRetryLocalizedPdf(variant)
     )
       return;
+    const sourceKey = JSON.stringify([ownerType, ownerId, sourceVersion]);
+    const stillCurrent = () => sourceKey === JSON.stringify([ownerType, ownerId, sourceVersion]);
     retryingVariantId = variant.variantId;
     errorMessage = '';
     problem = null;
@@ -271,16 +309,22 @@
         headers: { accept: 'application/json' },
       });
       const body = await jsonResponse(response);
+      if (!stillCurrent()) return;
+      if (!stillCurrent()) return;
       const next = normalizeLocalizedPdfVariant(body.variant);
       if (!response.ok || !next) {
         if (response.status === 409) await refresh({ silent: true });
+        if (!stillCurrent()) return;
         showResponseProblem(response, body, variant.variantId, true);
         return;
       }
+      if (!stillCurrent()) return;
       variants = mergeLocalizedPdfVariant(visibleVariants, next);
       loaded = true;
     } catch {
+      if (!stillCurrent()) return;
       const refreshed = await refresh({ silent: true });
+      if (!stillCurrent()) return;
       if (!refreshed && problem) {
         retryStatusUnknownId = variant.variantId;
         void tick().then(() =>
@@ -307,13 +351,15 @@
         panelElement?.querySelector<HTMLElement>('[data-ui="problem-notice"]')?.focus(),
       );
     } finally {
-      retryingVariantId = null;
+      if (stillCurrent()) retryingVariantId = null;
     }
   }
 
   async function downloadVariant(event: MouseEvent, variant: LocalizedPdfVariant): Promise<void> {
     event.preventDefault();
     if (downloadingVariantId) return;
+    const sourceKey = JSON.stringify([ownerType, ownerId, sourceVersion]);
+    const stillCurrent = () => sourceKey === JSON.stringify([ownerType, ownerId, sourceVersion]);
     downloadingVariantId = variant.variantId;
     errorMessage = '';
     problem = null;
@@ -325,15 +371,19 @@
       });
       if (!response.ok) {
         const body = await jsonResponse(response);
+        if (!stillCurrent()) return;
         if (response.status === 409 || response.status === 404) await refresh({ silent: true });
+        if (!stillCurrent()) return;
         showResponseProblem(response, body, variant.variantId, true);
         return;
       }
+      if (!stillCurrent()) return;
       if (!response.headers.get('content-type')?.includes('application/pdf')) {
         errorMessage = t('problem.localizedPdf.downloadNetwork');
         return;
       }
       const blob = await response.blob();
+      if (!stillCurrent()) return;
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = objectUrl;
@@ -346,9 +396,10 @@
       link.remove();
       setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     } catch {
+      if (!stillCurrent()) return;
       errorMessage = t('problem.localizedPdf.downloadNetwork');
     } finally {
-      downloadingVariantId = null;
+      if (stillCurrent()) downloadingVariantId = null;
     }
   }
 
@@ -360,7 +411,8 @@
 
   $effect(() => {
     const hasActiveVariant = visibleVariants.some(
-      (item) => item.status === 'queued' || item.status === 'running',
+      (item) =>
+        item.sourceCurrent !== false && (item.status === 'queued' || item.status === 'running'),
     );
     if (!hasActiveVariant || pollingTimer) return;
     pollingTimer = setInterval(() => void refresh({ silent: true }), 2500);
@@ -371,6 +423,7 @@
   });
 
   onMount(() => {
+    mounted = true;
     void refresh();
   });
 </script>
@@ -424,10 +477,11 @@
         disabled={submittingLocale !== null ||
           requestStatusUnknownLocale === effectiveLocale ||
           loading ||
-          selectedVariant?.status === 'queued' ||
-          selectedVariant?.status === 'running'}>{t('Generate report')}</button
+          (selectedVariant?.sourceCurrent !== false &&
+            (selectedVariant?.status === 'queued' || selectedVariant?.status === 'running'))}
+        >{t('Generate report')}</button
       >
-      {#if selectedVariant?.status === 'ready'}
+      {#if selectedVariant?.sourceCurrent !== false && selectedVariant?.status === 'ready'}
         <a
           class="localized-pdf-primary-action"
           href={localizedPdfDownloadUrl(base, selectedVariant.variantId)}
@@ -435,7 +489,7 @@
           onclick={(event) => void downloadVariant(event, selectedVariant)}
           aria-disabled={downloadingVariantId === selectedVariant.variantId}>{t('Download')}</a
         >
-      {:else if selectedVariant && canRetryLocalizedPdf(selectedVariant)}
+      {:else if selectedVariant?.sourceCurrent !== false && selectedVariant && canRetryLocalizedPdf(selectedVariant)}
         <button
           type="button"
           class="localized-pdf-primary-action"
@@ -446,7 +500,11 @@
       {/if}
     </div>
     <p id={`${languageId}-help`} class="localized-pdf-help">
-      {#if selectedVariant}{t(selectedVariant.status)}{:else}{t('Not generated yet')}{/if}
+      {#if selectedVariant?.sourceCurrent === false}{t(
+          'The source changed. Generate a current PDF before downloading.',
+        )}{:else if selectedVariant}{variantStatus(selectedVariant)}{:else}{t(
+          'Not generated yet',
+        )}{/if}
     </p>
   </div>
 
@@ -456,7 +514,7 @@
       status={problemVariant &&
       problem.code !== 'LOCALIZED_PDF_RETRY_UNCERTAIN' &&
       problem.code !== 'LOCALIZED_PDF_REQUEST_UNCERTAIN'
-        ? `${t('Status')}: ${t(problemVariant.status)}`
+        ? `${t('Status')}: ${variantStatus(problemVariant)}`
         : undefined}
       remedyLinks={{
         refresh_pdf_status: { label: t('Refresh') },
@@ -479,56 +537,76 @@
     <p class="localized-pdf-loading" role="status" aria-live="polite">{t('Loading')}</p>
   {/if}
 
-  <ul class="localized-pdf-variants" aria-label={t('Language')} aria-live="polite">
-    {#each localizedPdfLocaleOptions as option}
-      {@const variant = variantForLocale(option.value)}
-      <li class:localized-pdf-selected={option.value === effectiveLocale}>
-        <div class="localized-pdf-variant-label">
-          <strong>{t(option.labelKey)}</strong>
-          {#if variant}
-            <span
-              class={`localized-pdf-status localized-pdf-status-${statusVariant(variant.status)}`}
-            >
-              {t(variant.status)}
-            </span>
-          {:else}
-            <span class="localized-pdf-status localized-pdf-status-neutral"
-              >{t('Not generated yet')}</span
-            >
-          {/if}
-        </div>
-        <div class="localized-pdf-variant-actions">
-          {#if variant?.status === 'ready'}
-            <a
-              href={localizedPdfDownloadUrl(base, variant.variantId)}
-              download={variant.semanticFilename ?? undefined}
-              onclick={(event) => void downloadVariant(event, variant)}
-              aria-disabled={downloadingVariantId === variant.variantId}
-              aria-label={`${t('Download')} ${t(option.labelKey)}`}>{t('Download')}</a
-            >
-          {:else if variant?.status === 'failed'}
-            <span class="localized-pdf-failure-reason">{failureMessage(variant)}</span>
-            {#if canRetryLocalizedPdf(variant)}
-              <button
-                type="button"
-                class="localized-pdf-text-action"
-                onclick={() => void retryVariant(variant)}
-                disabled={retryingVariantId === variant.variantId ||
-                  retryStatusUnknownId === variant.variantId}>{t('Retry')}</button
+  {#snippet variantsList()}
+    <ul class="localized-pdf-variants" aria-label={t('Language')} aria-live="polite">
+      {#each localizedPdfLocaleOptions as option}
+        {@const variant = variantForLocale(option.value)}
+        <li class:localized-pdf-selected={option.value === effectiveLocale}>
+          <div class="localized-pdf-variant-label">
+            <strong>{t(option.labelKey)}</strong>
+            {#if variant}
+              <span
+                class={`localized-pdf-status localized-pdf-status-${statusVariant(variant.status)}`}
+              >
+                {variantStatus(variant)}
+              </span>
+            {:else}
+              <span class="localized-pdf-status localized-pdf-status-neutral"
+                >{t('Not generated yet')}</span
               >
             {/if}
-          {:else if variant}
-            <span>{t(variant.status)}</span>
-          {:else}
-            <span>{t('Not generated yet')}</span>
-          {/if}
-        </div>
-      </li>
-    {/each}
-  </ul>
+          </div>
+          <div class="localized-pdf-variant-actions">
+            {#if variant?.sourceCurrent === false}<span>{t('Generate a current PDF')}</span
+              >{:else if variant?.status === 'ready'}
+              <a
+                href={localizedPdfDownloadUrl(base, variant.variantId)}
+                download={variant.semanticFilename ?? undefined}
+                onclick={(event) => void downloadVariant(event, variant)}
+                aria-disabled={downloadingVariantId === variant.variantId}
+                aria-label={`${t('Download')} ${t(option.labelKey)}`}>{t('Download')}</a
+              >
+            {:else if variant?.status === 'failed'}
+              <span class="localized-pdf-failure-reason">{failureMessage(variant)}</span>
+              {#if canRetryLocalizedPdf(variant)}
+                <button
+                  type="button"
+                  class="localized-pdf-text-action"
+                  onclick={() => void retryVariant(variant)}
+                  disabled={retryingVariantId === variant.variantId ||
+                    retryStatusUnknownId === variant.variantId}>{t('Retry')}</button
+                >
+              {/if}
+            {:else if variant}
+              <span>{variantStatus(variant)}</span>
+            {:else}
+              <span>{t('Not generated yet')}</span>
+            {/if}
+          </div>
+        </li>
+      {/each}
+    </ul>
+  {/snippet}
+  {#if compact}
+    <details class="localized-pdf-language-details">
+      <summary>{t('Other PDF languages')}</summary>{@render variantsList()}
+    </details>
+  {:else}
+    {@render variantsList()}
+  {/if}
 </section>
 
 <style>
+  .localized-pdf-language-details summary {
+    cursor: pointer;
+    padding-block: 0.6rem;
+    min-height: 44px;
+    font-weight: 700;
+  }
+  .localized-pdf-language-details summary:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+  }
   .localized-pdf-panel {
     display: grid;
     gap: 1.15rem;

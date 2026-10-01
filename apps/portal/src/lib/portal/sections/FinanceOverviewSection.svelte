@@ -3,6 +3,8 @@
   import { decimalHoursFromMinutes } from '../minute-hours';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { enhance } from '$app/forms';
+  import { beforeNavigate } from '$app/navigation';
+  import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
@@ -112,6 +114,33 @@
   });
   let expenseInboxFilter = $state<ExpenseInboxFilter>('all');
   let selectedExpenseId = $state('');
+  let expenseEditor: HTMLDivElement | undefined = $state();
+  function confirmExpenseEditorChange(): boolean {
+    return confirmDirtyForms(
+      expenseEditor,
+      translate('Discard your unsaved changes? Your entered information will be lost.'),
+    );
+  }
+  function clearExpenseEditor(): boolean {
+    if (!confirmExpenseEditorChange()) return false;
+    selectedExpenseId = '';
+    return true;
+  }
+  function selectExpense(id: string): void {
+    if (confirmExpenseEditorChange()) selectedExpenseId = selectedExpenseId === id ? '' : id;
+  }
+  function setExpenseInboxFilter(filter: ExpenseInboxFilter): void {
+    if (filter === expenseInboxFilter || !clearExpenseEditor()) return;
+    expenseInboxFilter = filter;
+  }
+  beforeNavigate((navigation) => {
+    if (
+      navigation.to?.url.pathname === navigation.from?.url.pathname &&
+      navigation.to?.url.search === navigation.from?.url.search
+    )
+      return;
+    if (!navigation.willUnload && !confirmExpenseEditorChange()) navigation.cancel();
+  });
   const linkedExpenseId = $derived($page.url.searchParams.get('expense')?.trim() ?? '');
   $effect(() => {
     if (linkedExpenseId) selectedExpenseId = linkedExpenseId;
@@ -1527,8 +1556,10 @@
       const preset = expensePreset(expense);
       const classification = expenseClassificationState(expense);
       if (expenseInboxFilter === 'needs') return classification !== 'classified';
-      if (expenseInboxFilter === 'reimbursable') return preset === 'reimbursable_at_cost';
-      if (expenseInboxFilter === 'non_billable') return preset === 'non_billable';
+      if (expenseInboxFilter === 'reimbursable')
+        return classification === 'classified' && preset === 'reimbursable_at_cost';
+      if (expenseInboxFilter === 'non_billable')
+        return classification === 'classified' && preset === 'non_billable';
       return true;
     });
   });
@@ -1537,10 +1568,18 @@
       .length,
   );
   const reimbursableCount = $derived(
-    financeExpenses.filter((expense) => expensePreset(expense) === 'reimbursable_at_cost').length,
+    financeExpenses.filter(
+      (expense) =>
+        expenseClassificationState(expense) === 'classified' &&
+        expensePreset(expense) === 'reimbursable_at_cost',
+    ).length,
   );
   const nonBillableCount = $derived(
-    financeExpenses.filter((expense) => expensePreset(expense) === 'non_billable').length,
+    financeExpenses.filter(
+      (expense) =>
+        expenseClassificationState(expense) === 'classified' &&
+        expensePreset(expense) === 'non_billable',
+    ).length,
   );
 
   const sourceRows = $derived(
@@ -2395,28 +2434,28 @@
                 type="button"
                 class:finance-overview__inbox-filter--active={expenseInboxFilter === 'all'}
                 class="finance-overview__inbox-filter"
-                onclick={() => (expenseInboxFilter = 'all')}
+                onclick={() => setExpenseInboxFilter('all')}
                 >{translate('All')} ({financeExpenses.length})</button
               >
               <button
                 type="button"
                 class:finance-overview__inbox-filter--active={expenseInboxFilter === 'needs'}
                 class="finance-overview__inbox-filter"
-                onclick={() => (expenseInboxFilter = 'needs')}
+                onclick={() => setExpenseInboxFilter('needs')}
                 >{translate('Needs classification')} ({needsClassificationCount})</button
               >
               <button
                 type="button"
                 class:finance-overview__inbox-filter--active={expenseInboxFilter === 'reimbursable'}
                 class="finance-overview__inbox-filter"
-                onclick={() => (expenseInboxFilter = 'reimbursable')}
+                onclick={() => setExpenseInboxFilter('reimbursable')}
                 >{translate('Reimbursable at cost')} ({reimbursableCount})</button
               >
               <button
                 type="button"
                 class:finance-overview__inbox-filter--active={expenseInboxFilter === 'non_billable'}
                 class="finance-overview__inbox-filter"
-                onclick={() => (expenseInboxFilter = 'non_billable')}
+                onclick={() => setExpenseInboxFilter('non_billable')}
                 >{translate('Non-billable')} ({nonBillableCount})</button
               >
             </div>
@@ -2427,6 +2466,7 @@
             </p>
 
             <RecordBrowser
+              beforeChange={clearExpenseEditor}
               rows={filteredFinanceExpenses}
               bind:visible={classificationPage}
               focusId={linkedExpenseId}
@@ -2462,6 +2502,14 @@
                         value(expense, 'currency'),
                       )}</small
                     >
+                    <small
+                      >{value(expense, 'workerName', 'worker_name') || translate('Worker')}</small
+                    >
+                    {#if expense.description}<p>{String(expense.description)}</p>{/if}
+                    <a
+                      href={`${base}/app/expenses/${encodeURIComponent(expenseId)}?lang=${encodeURIComponent(locale)}`}
+                      >{translate('Open expense')}</a
+                    >
                   </div>
                   <StatusBadge
                     variant={classificationState === 'classified' ? 'success' : 'warning'}
@@ -2470,11 +2518,7 @@
                       : translate('Needs Finance classification')}
                   />
                   {#if canWriteFinance && !locked}
-                    <button
-                      type="button"
-                      onclick={() =>
-                        (selectedExpenseId = selectedExpenseId === expenseId ? '' : expenseId)}
-                    >
+                    <button type="button" onclick={() => selectExpense(expenseId)}>
                       {classificationState === 'classified'
                         ? translate('Review')
                         : translate('Classify')}
@@ -2498,18 +2542,19 @@
                     {value(expense, 'expectedRecoveryOn', 'expected_recovery_on') || '—'}</span
                   >
                   <span
-                    ><strong>{translate('Actual client recovery state')}</strong>
+                    ><strong>{translate('Billing state')}</strong>
                     {statusLabel(expenseBillingState(expense))}</span
                   >
                 </div>
 
                 {#if canWriteFinance && !locked && selectedExpenseId === expenseId}
-                  <div class="finance-overview__expense-form-grid">
+                  <div class="finance-overview__expense-form-grid" bind:this={expenseEditor}>
                     <form
                       method="POST"
                       action="?/classifyExpenseCommercially"
                       class="finance-overview__expense-form"
                       data-finance-expense-classification
+                      use:dirtyFormGuard
                       use:formValidation
                       onsubmit={prepareExpenseClassification}
                     >
@@ -2728,6 +2773,7 @@
                       action={`?/setExpensePlanningDates&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}&lang=${encodeURIComponent(locale)}`}
                       class="finance-overview__expense-form"
                       data-finance-expense-planning
+                      use:dirtyFormGuard
                       use:formValidation
                     >
                       <input type="hidden" name="expenseId" value={expenseId} />
@@ -4028,6 +4074,15 @@
     text-transform: uppercase;
   }
 
+  .finance-overview__expense-control-heading p {
+    overflow-wrap: anywhere;
+    margin-block: 0.4rem;
+  }
+  .finance-overview__expense-control-heading a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
   .finance-overview__expense-form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

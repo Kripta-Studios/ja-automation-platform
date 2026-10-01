@@ -28,9 +28,36 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'invoice.sourceSettingsChanged':
+    'Source settings have changed since this draft was saved. The draft retains its saved details. Rebuild it from Billing to use the current project, billing stream and issuer settings.',
+  'problem.billing.previewIssuerMismatch':
+    'The project issuing authority does not match this billing stream. Review the issuing setup before changing company settings.',
+  'invoice.sourceStreamLink': 'Billing stream settings',
+  'issuerSettings.title': 'Issuer payment and contact settings',
+  'issuerSettings.help':
+    'These are the actual settings for this invoice issuer and currency, shared by its billing streams. Issued invoices retain their saved details. Legal name and address use the reviewed issuing authority workflow.',
+  'issuerSettings.save': 'Save issuer settings',
+  'invoice.sourceSaveTitle': 'Where these changes are saved',
+  'invoice.sourceSaveProjectPo':
+    'Changing the purchase number updates the purchase order in the project settings.',
+  'invoice.sourceSaveStreamPo':
+    'Changing the purchase number updates the existing purchase order override in this billing stream.',
+  'invoice.sourceSaveTerms':
+    'Changing payment terms or the past due notice updates this billing stream.',
+  'invoice.sourceSaveIssuer':
+    'Changing bank or company contact details updates the actual issuer settings for this currency, shared across its projects. Only changed fields are saved to their sources.',
+  'action.billing.invoiceSourcesUpdated': 'Invoice details and changed source settings saved.',
+  'action.billing.issuerSettingsSaved': 'Issuer payment and contact settings saved.',
+  'problem.billing.issuerSettingsInvalid':
+    'Check the issuer payment and contact fields before saving.',
+  'problem.billing.issuerSettingsChanged':
+    'The issuer settings changed in another session. Refresh before saving again. Your entered values are retained.',
+  'problem.billing.previewProjectChanged':
+    'The project settings changed. Refresh the preview before saving again. Your entered values are retained.',
   'pdf.earlierLayout': 'Earlier layout',
   'pdf.generateCurrentLayout': 'Generate current layout',
-  'pdf.currentLayoutHelp': 'Generate the current layout to match this preview. Previous PDFs are preserved.',
+  'pdf.currentLayoutHelp':
+    'Generate the current layout to match this preview. Previous PDFs are preserved.',
   'pdf.previousLayouts': 'Previous PDF layouts',
   'pdf.downloadPreviousLayout': 'Download previous layout',
 
@@ -43,7 +70,7 @@ const en = {
   'problem.billing.previewVersionChanged':
     'This invoice changed in another session. Refresh the preview before saving again. Your entered values are retained.',
   'problem.billing.previewStreamChanged':
-    'The billing stream settings changed. Refresh the preview before saving defaults for future invoices.',
+    'The billing stream settings changed. Refresh the preview before saving again. Your entered values are retained.',
   'problem.billing.previewArtifactSealed':
     'This draft has a sealed PDF artifact. Create a replacement draft before editing.',
   'problem.billing.previewPdfBusy':
@@ -294,7 +321,8 @@ const en = {
     'No records match that search in your access scope.',
   'Project unavailable': 'Project unavailable',
   'Choose an available project': 'Choose an available project',
-  'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.': 'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.',
+  'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.':
+    'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.',
   'No published assignment for today.': 'No published assignment for today.',
   'No time recorded.': 'No time recorded.',
   'No expenses recorded.': 'No expenses recorded.',
@@ -478,9 +506,37 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'invoice.sourceSettingsChanged':
+    'La configuración de origen cambió desde que se guardó este borrador. El borrador conserva sus datos guardados. Regenérelo desde Facturación para usar la configuración actual del proyecto, flujo y emisor.',
+  'problem.billing.previewIssuerMismatch':
+    'La autoridad emisora del proyecto no coincide con este flujo de facturación. Revise la configuración de emisión antes de cambiar los datos de la empresa.',
+  'invoice.sourceStreamLink': 'Configuración del flujo de facturación',
+  'issuerSettings.title': 'Configuración de pago y contacto del emisor',
+  'issuerSettings.help':
+    'Esta es la configuración real del emisor y la moneda, compartida por sus flujos de facturación. Las facturas emitidas conservan sus datos. El nombre y la dirección legal se modifican mediante la autoridad emisora revisada.',
+  'issuerSettings.save': 'Guardar configuración del emisor',
+  'invoice.sourceSaveTitle': 'Dónde se guardan estos cambios',
+  'invoice.sourceSaveProjectPo':
+    'Cambiar el número de compra actualiza la orden de compra en la configuración del proyecto.',
+  'invoice.sourceSaveStreamPo':
+    'Cambiar el número de compra actualiza la referencia específica existente en este flujo de facturación.',
+  'invoice.sourceSaveTerms':
+    'Cambiar las condiciones de pago o el aviso de vencimiento actualiza este flujo de facturación.',
+  'invoice.sourceSaveIssuer':
+    'Cambiar los datos bancarios o de contacto de la empresa actualiza la configuración real del emisor para esta moneda, compartida entre sus proyectos. Solo se guardan los campos modificados en su origen.',
+  'action.billing.invoiceSourcesUpdated':
+    'Se guardaron los detalles de la factura y los cambios en su configuración de origen.',
+  'action.billing.issuerSettingsSaved': 'Se guardó la configuración de pago y contacto del emisor.',
+  'problem.billing.issuerSettingsInvalid':
+    'Revise los campos de pago y contacto del emisor antes de guardar.',
+  'problem.billing.issuerSettingsChanged':
+    'La configuración del emisor cambió en otra sesión. Actualice antes de guardar de nuevo. Se conserva la información introducida.',
+  'problem.billing.previewProjectChanged':
+    'La configuración del proyecto cambió. Actualice la vista previa antes de guardar de nuevo. Se conserva la información introducida.',
   'pdf.earlierLayout': 'Diseño anterior',
   'pdf.generateCurrentLayout': 'Generar diseño actual',
-  'pdf.currentLayoutHelp': 'Genera el diseño actual para que coincida con esta vista previa. Los PDF anteriores se conservan.',
+  'pdf.currentLayoutHelp':
+    'Genera el diseño actual para que coincida con esta vista previa. Los PDF anteriores se conservan.',
   'pdf.previousLayouts': 'Diseños anteriores del PDF',
   'pdf.downloadPreviousLayout': 'Descargar diseño anterior',
 
@@ -495,7 +551,7 @@ const esBase: Record<keyof typeof en, string> = {
   'problem.billing.previewVersionChanged':
     'Esta factura cambió en otra sesión. Actualice la vista previa antes de guardar de nuevo. Se conserva la información introducida.',
   'problem.billing.previewStreamChanged':
-    'La configuración del flujo de facturación cambió. Actualice la vista previa antes de guardar los valores para futuras facturas.',
+    'La configuración del flujo de facturación cambió. Actualice la vista previa antes de guardar de nuevo. Se conserva la información introducida.',
   'problem.billing.previewArtifactSealed':
     'Este borrador tiene un PDF sellado. Cree un borrador de reemplazo antes de editarlo.',
   'problem.billing.previewPdfBusy':
@@ -750,7 +806,8 @@ const esBase: Record<keyof typeof en, string> = {
     'Ningún registro coincide con la búsqueda en su ámbito de acceso.',
   'Project unavailable': 'Proyecto no disponible',
   'Choose an available project': 'Elegir un proyecto disponible',
-  'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.': 'El proyecto seleccionado no está disponible en su ámbito de acceso. Elija un proyecto disponible para continuar; se conservan los demás filtros.',
+  'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.':
+    'El proyecto seleccionado no está disponible en su ámbito de acceso. Elija un proyecto disponible para continuar; se conservan los demás filtros.',
   'No published assignment for today.': 'No hay asignación publicada para hoy.',
   'No time recorded.': 'No hay horas registradas.',
   'No expenses recorded.': 'No hay gastos registrados.',
@@ -926,9 +983,37 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'invoice.sourceSettingsChanged':
+    'As configurações de origem mudaram desde que este rascunho foi salvo. O rascunho mantém seus dados salvos. Gere-o novamente em Faturamento para usar as configurações atuais do projeto, fluxo e emissor.',
+  'problem.billing.previewIssuerMismatch':
+    'A autoridade emissora do projeto não corresponde a este fluxo de faturamento. Revise a configuração de emissão antes de alterar os dados da empresa.',
+  'invoice.sourceStreamLink': 'Configurações do fluxo de faturamento',
+  'issuerSettings.title': 'Configurações de pagamento e contato do emissor',
+  'issuerSettings.help':
+    'Estas são as configurações reais do emissor e da moeda, compartilhadas pelos seus fluxos de faturamento. Faturas emitidas mantêm seus dados. Nome e endereço legais seguem o fluxo de autoridade emissora revisada.',
+  'issuerSettings.save': 'Salvar configurações do emissor',
+  'invoice.sourceSaveTitle': 'Onde estas alterações são salvas',
+  'invoice.sourceSaveProjectPo':
+    'Alterar o número de compra atualiza o pedido de compra nas configurações do projeto.',
+  'invoice.sourceSaveStreamPo':
+    'Alterar o número de compra atualiza a referência específica existente neste fluxo de faturamento.',
+  'invoice.sourceSaveTerms':
+    'Alterar os termos de pagamento ou o aviso de atraso atualiza este fluxo de faturamento.',
+  'invoice.sourceSaveIssuer':
+    'Alterar dados bancários ou de contato da empresa atualiza as configurações reais do emissor nesta moeda, compartilhadas pelos seus projetos. Somente os campos alterados são salvos nas fontes.',
+  'action.billing.invoiceSourcesUpdated':
+    'Detalhes da fatura e alterações nas configurações de origem salvos.',
+  'action.billing.issuerSettingsSaved': 'Configurações de pagamento e contato do emissor salvas.',
+  'problem.billing.issuerSettingsInvalid':
+    'Revise os campos de pagamento e contato do emissor antes de salvar.',
+  'problem.billing.issuerSettingsChanged':
+    'As configurações do emissor mudaram em outra sessão. Atualize antes de salvar novamente. Os valores informados foram mantidos.',
+  'problem.billing.previewProjectChanged':
+    'As configurações do projeto mudaram. Atualize a prévia antes de salvar novamente. Os valores informados foram mantidos.',
   'pdf.earlierLayout': 'Layout anterior',
   'pdf.generateCurrentLayout': 'Gerar layout atual',
-  'pdf.currentLayoutHelp': 'Gere o layout atual para corresponder a esta prévia. Os PDFs anteriores são preservados.',
+  'pdf.currentLayoutHelp':
+    'Gere o layout atual para corresponder a esta prévia. Os PDFs anteriores são preservados.',
   'pdf.previousLayouts': 'Layouts anteriores do PDF',
   'pdf.downloadPreviousLayout': 'Baixar layout anterior',
 
@@ -942,7 +1027,7 @@ const ptBase: Record<keyof typeof en, string> = {
   'problem.billing.previewVersionChanged':
     'Esta fatura mudou em outra sessão. Atualize a prévia antes de salvar novamente. Os valores informados foram mantidos.',
   'problem.billing.previewStreamChanged':
-    'As configurações do fluxo de faturamento mudaram. Atualize a prévia antes de salvar os padrões para futuras faturas.',
+    'As configurações do fluxo de faturamento mudaram. Atualize a prévia antes de salvar novamente. Os valores informados foram mantidos.',
   'problem.billing.previewArtifactSealed':
     'Este rascunho tem um PDF selado. Crie um rascunho substituto antes de editar.',
   'problem.billing.previewPdfBusy':
@@ -1196,7 +1281,8 @@ const ptBase: Record<keyof typeof en, string> = {
     'Nenhum registro corresponde à busca no seu escopo de acesso.',
   'Project unavailable': 'Projeto indisponível',
   'Choose an available project': 'Escolher um projeto disponível',
-  'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.': 'O projeto selecionado não está disponível no seu escopo de acesso. Escolha um projeto disponível para continuar; os outros filtros são mantidos.',
+  'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.':
+    'O projeto selecionado não está disponível no seu escopo de acesso. Escolha um projeto disponível para continuar; os outros filtros são mantidos.',
   'No published assignment for today.': 'Nenhuma atribuição publicada para hoje.',
   'No time recorded.': 'Nenhuma hora registrada.',
   'No expenses recorded.': 'Nenhuma despesa registrada.',

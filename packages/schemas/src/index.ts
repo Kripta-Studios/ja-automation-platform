@@ -642,7 +642,8 @@ export const invoiceDraftDetailsInputSchema = z.object({
   invoiceDate: z.iso.date().optional(),
   dueDate: z.union([z.iso.date(), z.literal('')]).optional(),
   paymentTermsDays: z.coerce.number().int().min(0).max(365).optional(),
-  saveDefaults: z.boolean().default(false),
+  expectedProjectVersion: z.coerce.number().int().positive().optional(),
+  expectedIssuerSettingsVersion: z.coerce.number().int().nonnegative().optional(),
   purchaseNo: z.string().trim().max(160).optional(),
   termsAndInstructions: z.object({
     bankSwiftNumber: z.string().trim().max(160).optional(),
@@ -660,6 +661,20 @@ export const invoiceDraftDetailsInputSchema = z.object({
     website: z.string().trim().max(500).optional(),
   }).strict().optional(),
   discountMinor: z.string().regex(/^\d+$/u).optional(),
+}).strict();
+
+export const issuerDocumentSettingsInputSchema = z.object({
+  legalEntityId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/u),
+  currency: currencySchema,
+  expectedVersion: z.coerce.number().int().nonnegative(),
+  bankSwiftNumber: z.string().trim().max(160).optional(),
+  bankAccountNumber: z.string().trim().max(160).optional(),
+  bankName: z.string().trim().max(300).optional(),
+  beneficiary: z.string().trim().max(300).optional(),
+  companyDivision: z.string().trim().max(300).optional(),
+  companyPhone: z.string().trim().max(80).optional(),
+  companyEmail: z.union([z.email().max(254), z.literal('')]).optional(),
+  companyWebsite: z.string().trim().max(500).optional(),
 }).strict();
 
 export const invoicePeriodSchema = z.object({
@@ -696,6 +711,7 @@ export const billingRuleInputSchema = z.object({
   // Imported contacts retain stable IDs; repository verifies project-client membership.
   billingContactId: z.union([z.literal(''), clientRecordIdSchema]).optional(),
   paymentTermsDays: z.coerce.number().int().min(0).max(365).default(30),
+  pastDueNotice: z.string().trim().max(2000).optional(),
   fixedAmountMinor: minorUnitsSchema
     .optional()
     .transform((value) => (value ? BigInt(value) : undefined)),

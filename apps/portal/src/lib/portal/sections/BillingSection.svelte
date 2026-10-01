@@ -24,6 +24,7 @@
   import { localizedServerFieldMessage } from '../ui/form-validation';
   import { reversalRecoveryState } from '../billing-reversal-recovery';
   import { formatTaxBasisPoints, taxProfileComponents } from '../tax-profile-presentation';
+  import { dirtyFormGuard, hasUnsavedFormChanges } from '../dirty-form-guard';
 
   const draftPeriodWarning: ProblemData = {
     code: 'WARNING_BILLING_DRAFT_PERIOD_SCOPE',
@@ -243,6 +244,62 @@
   );
   let workspace = $state<BillingWorkspace>('invoices');
   let setupAction = $state<BillingSetupAction>('stream');
+  let issuerSettingsSavingId = $state('');
+  const issuerDocumentFields = [
+    ['bankSwiftNumber', 'Bank Swift Number'],
+    ['bankAccountNumber', 'Bank Account Number'],
+    ['bankName', 'Bank Name'],
+    ['beneficiary', 'Beneficiary'],
+    ['companyDivision', 'Division'],
+    ['companyPhone', 'Phone'],
+    ['companyEmail', 'Email'],
+    ['companyWebsite', 'Website'],
+  ] as const;
+  beforeNavigate((navigation) => {
+    const forms = document.querySelectorAll<HTMLFormElement>('[data-issuer-settings-form]');
+    if (
+      Array.from(forms).some(hasUnsavedFormChanges) &&
+      !window.confirm(translate('Discard unsaved changes?'))
+    )
+      navigation.cancel();
+  });
+  function issuerSetting(entity: Row, name: string): string {
+    const settings = entity.document_settings;
+    return settings && typeof settings === 'object'
+      ? String((settings as Record<string, unknown>)[name] ?? '')
+      : '';
+  }
+  function issuerSettingsGuard(formElement: HTMLFormElement, options: { initialDirty?: boolean }) {
+    let guard = dirtyFormGuard(formElement, options);
+    let disposed = false;
+    const reset = () =>
+      queueMicrotask(() => {
+        if (disposed) return;
+        guard.destroy();
+        guard = dirtyFormGuard(formElement);
+      });
+    formElement.addEventListener('reset', reset);
+    return {
+      update(next: { initialDirty?: boolean }) {
+        guard.update(next);
+      },
+      destroy() {
+        disposed = true;
+        formElement.removeEventListener('reset', reset);
+        guard.destroy();
+      },
+    };
+  }
+  function resetIssuerSettings(event: Event, entity: Row) {
+    event.preventDefault();
+    const formElement = event.currentTarget as HTMLFormElement;
+    for (const [name] of issuerDocumentFields) {
+      const control = formElement.elements.namedItem(name);
+      if (control instanceof HTMLInputElement) control.value = issuerSetting(entity, name);
+    }
+    const version = formElement.elements.namedItem('expectedVersion');
+    if (version instanceof HTMLInputElement) version.value = issuerSetting(entity, 'version') || '0';
+  }
   let invoiceSetupRequired = $state(false);
   let invoiceSetupSelectedProject = $state(false);
   let invoiceSetupTargetProjectId = $state<string | null>(null);
@@ -1551,6 +1608,7 @@
         'createTaxProfile',
         'createInvoiceNumberPolicy',
         'updateLegalEntity',
+        'updateIssuerDocumentSettings',
         'archiveLegalEntity',
         'updateTaxProfile',
         'archiveTaxProfile',
@@ -1781,6 +1839,13 @@
       )
         return true;
       if (taxProfileFailure) return true;
+      if (
+        billingFailureOperation === 'updateIssuerDocumentSettings' &&
+        (data.legalEntities ?? []).some(
+          (entity) => rowValue(entity, 'id') === billingFailureValues.legalEntityId,
+        )
+      )
+        return true;
     }
     return (
       workspace === 'streams' &&
@@ -3173,6 +3238,115 @@
             </table>
           </details>
           <details
+            id="issuer-document-settings"
+            class="billing-reference-directory"
+            open={Boolean($page.url.searchParams.get('issuerSettings')) ||
+              billingFailureOperation === 'updateIssuerDocumentSettings'}
+            use:disclosure
+          >
+            <summary>{translate('issuerSettings.title')}</summary>
+            <p>{translate('issuerSettings.help')}</p>
+            {#each data.legalEntities ?? [] as entity}
+              {#key `${rowValue(entity, 'id')}:${issuerSetting(entity, 'version')}`}
+                <details
+                  open={$page.url.searchParams.get('issuerSettings') === rowValue(entity, 'id') ||
+                    problemFor(
+                      'updateIssuerDocumentSettings',
+                      'legalEntityId',
+                      rowValue(entity, 'id'),
+                    )}
+                >
+                  <summary
+                    >{rowValue(entity, 'legal_name', 'legalName')} · {rowValue(
+                      entity,
+                      'currency',
+                    )}</summary
+                  >
+                  {#if problemFor('updateIssuerDocumentSettings', 'legalEntityId', rowValue(entity, 'id'))}
+                    <ProblemNotice
+                      problem={billingProblem!}
+                      kind="error"
+                      remedyLinks={problemRemedyLinks}
+                    />
+                    <a href={$page.url.href}>{translate('Refresh')}</a>
+                  {/if}
+                  <form
+                    method="POST"
+                    action="?/updateIssuerDocumentSettings"
+                    class="billing-section__config-form"
+                    data-issuer-settings-form
+                    onreset={(event) => resetIssuerSettings(event, entity)}
+                    use:issuerSettingsGuard={{
+                      initialDirty: problemFor(
+                        'updateIssuerDocumentSettings',
+                        'legalEntityId',
+                        rowValue(entity, 'id'),
+                      ),
+                    }}
+                    use:recoverBillingForm={recoveryOptions(
+                      'updateIssuerDocumentSettings',
+                      'legalEntityId',
+                      rowValue(entity, 'id'),
+                    )}
+                    use:enhance={({ cancel }) => {
+                      if (issuerSettingsSavingId) {
+                        cancel();
+                        return;
+                      }
+                      issuerSettingsSavingId = rowValue(entity, 'id');
+                      return async ({ update }) => {
+                        try {
+                          await update({ reset: false });
+                        } finally {
+                          issuerSettingsSavingId = '';
+                        }
+                      };
+                    }}
+                  >
+                    <input type="hidden" name="legalEntityId" value={rowValue(entity, 'id')} />
+                    <input type="hidden" name="currency" value={rowValue(entity, 'currency')} />
+                    <input
+                      type="hidden"
+                      name="expectedVersion"
+                      value={issuerSetting(entity, 'version') || '0'}
+                    />
+                    {#each issuerDocumentFields as [name, label]}
+                      <label
+                        ><span>{translate(label)}</span><input
+                          {name}
+                          type={name === 'companyEmail' ? 'email' : 'text'}
+                          value={issuerSetting(entity, name)}
+                          maxlength={name === 'companyPhone'
+                            ? 80
+                            : name === 'companyEmail'
+                              ? 254
+                              : name === 'companyWebsite'
+                                ? 500
+                                : ['bankSwiftNumber', 'bankAccountNumber'].includes(name)
+                                  ? 160
+                                  : 300}
+                          disabled={Boolean(issuerSettingsSavingId)}
+                        /></label
+                      >
+                    {/each}
+                    <button type="submit" disabled={Boolean(issuerSettingsSavingId)}
+                      >{translate(
+                        issuerSettingsSavingId === rowValue(entity, 'id')
+                          ? 'Saving'
+                          : 'issuerSettings.save',
+                      )}</button
+                    >
+                    <button
+                      type="reset"
+                      class="secondary-button"
+                      disabled={Boolean(issuerSettingsSavingId)}>{translate('Cancel')}</button
+                    >
+                  </form>
+                </details>
+              {/key}
+            {/each}
+          </details>
+          <details
             class="billing-reference-directory"
             data-tax-profile-directory
             open={['updateTaxProfile', 'archiveTaxProfile'].includes(billingFailureOperation)}
@@ -4018,6 +4192,14 @@
                                 value={rowValue(rule, 'payment_terms_days', 'paymentTermsDays') ||
                                   '30'}
                               /></label
+                            >
+                            <label
+                              ><span>{translate('Past Due Notice')}</span><textarea
+                                name="pastDueNotice"
+                                rows="3"
+                                maxlength="2000"
+                                >{rowValue(rule, 'past_due_notice', 'pastDueNotice')}</textarea
+                              ></label
                             >
                             <label
                               ><span>{translate('PO reference')}</span><input

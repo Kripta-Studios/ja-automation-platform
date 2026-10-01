@@ -6,7 +6,7 @@ Use the document preview to review saved content, open editable fields and downl
 
 1. Open **Billing**, choose an invoice in **Draft**, and review its preview.
 2. Select an underlined field, or open **Edit Invoice Details**. The editor opens at the relevant field.
-3. Change the values, review the future-invoice checkbox, and choose **Save Details**.
+3. Change the values, review which project, billing stream or issuing company owns each field, and choose **Save Details**.
 4. Wait for the save confirmation. The preview refreshes with the saved values; reload the page to revisit them, or download the latest draft PDF.
 
 Owners and Finance administrators can edit an authorized, unissued draft. Auditor access is read-only. Workers, crew chiefs and project managers do not gain access to commercial invoice editing through a preview link.
@@ -15,16 +15,23 @@ Owners and Finance administrators can edit an authorized, unissued draft. Audito
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Invoice date                     | This draft's business invoice date. The actual issuance event remains recorded separately.                     |
 | Due date                         | This draft's explicit due date. Leave it empty to calculate the due date from invoice date plus payment terms. |
-| Payment terms                    | The number of days used for the calculated due date; the accepted range is 0–365.                              |
-| Purchase No.                     | The purchase/PO reference printed on this invoice.                                                             |
-| Bank details and past-due notice | The payment instructions printed on this invoice.                                                              |
-| Company contact details          | Supplemental company information printed on this invoice, such as division, phone, email and website.          |
+| Payment terms                    | The actual billing stream's payment terms and this draft's calculated due date; the accepted range is 0–365. |
+| Purchase No.                     | The existing billing-stream PO override, or the project's actual PO when there is no stream override. |
+| Past-due notice                  | The actual billing stream's payment notice. |
+| Bank details                    | The issuing company's bank instructions for this currency and deployment. |
+| Company contact details          | The issuing company's supplemental division, phone, email and website settings for this currency and deployment. |
 
 A due date must be on or after the invoice date. Changing the invoice date or payment terms recalculates the due date when the explicit due-date field is empty.
 
-The checkbox **Use purchase number, payment terms, bank and company contact details for future invoices in this billing stream** is checked initially. Keep it checked to save those values as defaults for new drafts in the same billing stream. Uncheck it for a change that applies only to this draft. Invoice dates and explicit due dates always apply to the current draft; future drafts use their own dates. These defaults belong to the selected stream, so another project's stream has its own settings.
+Saving changed configuration fields updates their actual owning settings as well as the current draft. There is no separate future-invoice default checkbox. A project PO applies to that project; stream terms and an existing stream PO override apply to that stream. Issuer bank/contact settings are shared by projects and streams using that issuing company and currency in this deployment. New drafts read those real settings. Existing approved and issued documents preserve their snapshots.
+
+Only fields you change write back. Changing an invoice date alone does not replace the current company bank or contact settings with old values from an invoice snapshot. Invoice dates and explicit due dates always belong to the current invoice.
 
 The supplemental company fields do not replace the reviewed issuing legal entity. Use **Issuing authority** and the authorized billing configuration workflow to change that source.
+
+To review bank/contact changes at their source, open **Issuer payment and contact settings**, or go to **Billing → Configure billing** and expand that section. Owners and Finance can save those actual settings there. **Cancel** restores the currently saved values. Billing-stream payment terms, payment notice and PO override are available through **Billing stream settings**; clearing the override restores inheritance from the project PO, or the existing customer reference when the project has none.
+
+If a saved invoice snapshot differs from its current sources, the preview explains that difference. Use the offered rebuild workflow to create a draft from the current source settings. Saving unrelated invoice fields does not silently replace that snapshot with new company data.
 
 ## Invoice numbers and calculated amounts
 
@@ -52,4 +59,4 @@ If the PDF panel says **Earlier layout**, choose **Generate current layout** to 
 
 Filters, currencies and supported view selectors are remembered for your user and role in the same browser. Explicit filtered links take precedence over remembered selections. Use the view's reset control where available, or open that view with `reset=1` in its URL, to restore defaults. Saved viewing preferences do not save invoice edits, report text or payment forms. If browser storage is unavailable, the view remains usable without remembering selections.
 
-If another session changes an invoice or its billing-stream settings, saving shows a conflict instead of overwriting the newer data. Review the retained values, refresh the record and reconcile your changes before saving again.
+If another session changes an invoice or an owning project, billing stream or issuer setting, saving shows a conflict instead of overwriting the newer data. Review the retained values, refresh the record and reconcile your changes before saving again. Source updates and the invoice save succeed together; a rejected save does not commit partial configuration changes.

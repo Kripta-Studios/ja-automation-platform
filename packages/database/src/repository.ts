@@ -68,7 +68,7 @@ import {
 import { NotificationRepository } from './domains/notifications/index.ts';
 import { discardOwnerInvoice } from './domains/owner/owner-invoice-management.ts';
 import { updateInvoiceDraftDetails, invoicePresentationObject, invoiceBusinessDates } from './domains/billing/invoice-draft-details.ts';
-import { issuerPaymentDefaults } from './domains/billing/issuer-payment-defaults.ts';
+import { readIssuerDocumentSettings, issuerSettingsPresentation, updateIssuerDocumentSettings as persistIssuerDocumentSettings, invalidateDraftPresentation, resolveInvoiceIssuerAuthority, effectivePurchaseReference } from './domains/billing/issuer-document-settings.ts';
 import { pendingTimeFinanceReviewSourceIds } from './domains/billing/time-finance-review.ts';
 import { V3Repository } from './v3-repository.ts';
 
@@ -4921,6 +4921,7 @@ export class PortalRepository {
       templateId?: string;
       recipientEmail?: string;
       paymentTermsDays?: number;
+      pastDueNotice?: string;
       poNumberOverride?: string;
       semiMonthlyRule?: string;
       groupingMode?: string;
@@ -4933,6 +4934,8 @@ export class PortalRepository {
   ) {
     this.assertActive(principal);
     if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
+    const pastDueNotice = String(input.pastDueNotice ?? '').trim();
+    if (pastDueNotice.length > 2000) throw new ValidationError('Past due notice is too long');
     const templateId = controlledInvoiceTemplateId(input.templateId, input.streamType);
     if (input.includeExpenses && input.streamType !== 'labor')
       throw new ValidationError('Expenses can only be included in a labor billing stream');
@@ -5075,7 +5078,7 @@ export class PortalRepository {
       }
       this.sqlite
         .prepare(
-          'INSERT INTO billing_rule(id,project_id,legal_entity_id,stream_type,enabled,cadence_type,anchor_date,tax_profile_id,currency,auto_generate_draft,auto_issue,auto_send,effective_from,created_at,updated_at,template_id,recipient_email,billing_contact_id,payment_terms_days,po_number_override,semi_monthly_rule,grouping_mode,fixed_amount_minor,included_minutes,monthly_cutoff_day,include_expenses) VALUES(?,?,?,?,1,?,?,?,?,?,0,0,?,?,?,?,?,?,?,?,?, ?,?,?,?,?)',
+          'INSERT INTO billing_rule(id,project_id,legal_entity_id,stream_type,enabled,cadence_type,anchor_date,tax_profile_id,currency,auto_generate_draft,auto_issue,auto_send,effective_from,created_at,updated_at,template_id,recipient_email,billing_contact_id,payment_terms_days,po_number_override,semi_monthly_rule,grouping_mode,fixed_amount_minor,included_minutes,monthly_cutoff_day,include_expenses,past_due_notice) VALUES(?,?,?,?,1,?,?,?,?,?,0,0,?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?)',
         )
         .run(
           id,
@@ -5101,6 +5104,7 @@ export class PortalRepository {
           input.includedMinutes ?? null,
           input.monthlyCutoffDay ?? null,
           input.includeExpenses ? 1 : 0,
+          pastDueNotice,
         );
       this.audit(principal, 'billing_rule.create', 'billing_rule', id, {
         streamType: input.streamType,
@@ -5119,7 +5123,17 @@ export class PortalRepository {
       .prepare(
         "SELECT id,code,legal_name,currency,billing_address,company_identifiers,status FROM legal_entity WHERE status='active' ORDER BY code",
       )
-      .all();
+      .all().map((row) => ({ ...row, document_settings: readIssuerDocumentSettings(this.sqlite, String(row.id), String(row.currency)) }));
+  }
+
+  listIssuerDocumentSettings(principal: Principal) {
+    return this.listLegalEntities(principal).map((row) => row.document_settings);
+  }
+
+  updateIssuerDocumentSettings(principal: Principal, input: unknown) {
+    return persistIssuerDocumentSettings(this.sqlite, principal, input, {
+      access: AccessDeniedError, conflict: ConflictError, validation: ValidationError,
+    });
   }
 
   listTaxProfiles(principal: Principal) {
@@ -5436,6 +5450,7 @@ export class PortalRepository {
       // Presentation-only defaults were introduced after existing calculation fingerprints.
       // Excluding them also prevents bank/contact edits from rerating source money.
       invoice_preview_defaults_json: _previewDefaults,
+      past_due_notice: _pastDueNotice,
       ...calculationRule
     } = rule;
     const fingerprint = createHash('sha256')
@@ -6158,7 +6173,8 @@ export class PortalRepository {
         fixed_price_minor: string | null;
         fixed_amount_minor: string | null;
         included_minutes: number | null;
-        invoice_preview_defaults_json: string | null;
+        legal_entity_id: string;
+        past_due_notice: string;
         payment_terms_days: number;
         po_number_override: string | null;
       };
@@ -6562,19 +6578,22 @@ export class PortalRepository {
         principal,
         execution,
       );
-      const presentationDefaults = invoicePresentationObject(rule.invoice_preview_defaults_json);
+      const issuerSettings = readIssuerDocumentSettings(this.sqlite, rule.legal_entity_id, rule.currency);
+      const presentation = issuerSettingsPresentation(issuerSettings);
+      const projectReference = this.sqlite.prepare('SELECT p.po_number,c.po_reference FROM project p JOIN client c ON c.id=p.client_id WHERE p.id=?').get(rule.project_id);
       this.sqlite
         .prepare(
-          'UPDATE invoice SET subtotal_minor=?,tax_minor=?,total_minor=?,snapshot_json=?,updated_at=? WHERE id=?',
+          'UPDATE invoice SET subtotal_minor=?,tax_minor=?,total_minor=?,snapshot_json=?,planned_issue_on=?,updated_at=? WHERE id=?',
         )
         .run(
           safeInteger(subtotal.minorUnits),
           safeInteger(tax.minorUnits),
           safeInteger(total.minorUnits),
           JSON.stringify({
-            purchaseNo: presentationDefaults.purchaseNo ?? rule.po_number_override ?? undefined,
-            termsAndInstructions: invoicePresentationObject(presentationDefaults.termsAndInstructions),
-            companyInfo: invoicePresentationObject(presentationDefaults.companyInfo),
+            purchaseNo: effectivePurchaseReference(rule.po_number_override, projectReference?.po_number, projectReference?.po_reference),
+            termsAndInstructions: { ...presentation.termsAndInstructions, pastDueNotice: rule.past_due_notice },
+            companyInfo: presentation.companyInfo,
+            issuerDocumentSettingsVersion: issuerSettings.version,
             paymentTermsDays: rule.payment_terms_days,
             invoiceDate: timestamp.slice(0, 10),
             billingRuleVersion: rule.version,
@@ -6582,6 +6601,7 @@ export class PortalRepository {
             billingCalculationFingerprint: provenance.fingerprint,
             calculationSelections: provenance.selectedRules,
           }),
+          timestamp.slice(0,10),
           timestamp,
           id,
         );
@@ -7796,32 +7816,11 @@ export class PortalRepository {
       if (context.tax_profile_id && context.tax_currency !== invoice.currency)
         throw new ValidationError('Tax profile currency no longer matches the invoice currency');
       const deployment = this.deploymentIdentity();
-      const canonicalAuthority = this.sqlite
-        .prepare(
-          `SELECT bridge.canonical_revision_id legal_entity_revision_id
-             FROM legal_entity_revision_bridge bridge
-             JOIN project_legal_entity_assignment assignment
-               ON assignment.legal_entity_revision_id=bridge.canonical_revision_id
-              AND assignment.project_id=?
-              AND assignment.tenant_id=? AND assignment.deployment_id=?
-              AND assignment.effective_from<=?
-              AND (assignment.effective_to IS NULL OR assignment.effective_to>=?)
-            WHERE bridge.legacy_legal_entity_id=?
-              AND bridge.tenant_id=? AND bridge.deployment_id=?
-            ORDER BY assignment.effective_from DESC,assignment.assignment_id DESC
-            LIMIT 1`,
-        )
-        .get(
-          invoice.project_id,
-          deployment.tenantId,
-          deployment.deploymentId,
-          invoice.period_start,
-          invoice.period_end,
-          context.legal_entity_id,
-          deployment.tenantId,
-          deployment.deploymentId,
-        ) as { legal_entity_revision_id: string } | undefined;
-      if (!canonicalAuthority?.legal_entity_revision_id)
+      const canonicalAuthority = resolveInvoiceIssuerAuthority(
+        this.sqlite, invoice.project_id, context.legal_entity_id, invoice.currency,
+        invoice.period_start, invoice.period_end,
+      );
+      if (!canonicalAuthority?.revision_id)
         throw new ReadinessError(
           [
             {
@@ -7930,11 +7929,11 @@ export class PortalRepository {
         },
         legalEntity: {
           id: context.legal_entity_id,
-          revisionId: canonicalAuthority?.legal_entity_revision_id ?? null,
+          revisionId: canonicalAuthority?.revision_id ?? null,
           code: context.code,
-          legalName: context.legal_name,
-          billingAddress: context.billing_address,
-          companyIdentifiers: context.company_identifiers,
+          legalName: String(canonicalAuthority.legal_name),
+          billingAddress: [canonicalAuthority.address_line1, canonicalAuthority.address_line2, [canonicalAuthority.postal_code,canonicalAuthority.locality].filter(Boolean).join(' '), canonicalAuthority.region,canonicalAuthority.country_code].filter(Boolean).join('\n'),
+          companyIdentifiers: [canonicalAuthority.tax_identifier,canonicalAuthority.registration_identifier].filter(Boolean).join(' · '),
         },
         client: {
           code: context.client_code,
@@ -7959,14 +7958,14 @@ export class PortalRepository {
           context.client_po_reference ??
           null,
         termsAndInstructions: {
-          ...issuerPaymentDefaults(context.code, invoice.currency),
+          ...issuerSettingsPresentation(readIssuerDocumentSettings(this.sqlite, context.legal_entity_id, invoice.currency)).termsAndInstructions,
           ...(typeof draftCustomizations.termsAndInstructions === 'object' &&
           draftCustomizations.termsAndInstructions !== null &&
           !Array.isArray(draftCustomizations.termsAndInstructions)
             ? draftCustomizations.termsAndInstructions
             : {}),
         },
-        companyInfo: draftCustomizations.companyInfo ?? {},
+        companyInfo: draftCustomizations.companyInfo ?? issuerSettingsPresentation(readIssuerDocumentSettings(this.sqlite, context.legal_entity_id, invoice.currency)).companyInfo,
         discountMinor: draftCustomizations.discountMinor ?? '0',
         servicePeriod: { start: invoice.period_start, end: invoice.period_end },
         number: invoiceNumber,
@@ -8012,7 +8011,7 @@ export class PortalRepository {
       const calculationHash = createHash('sha256').update(snapshotJson).digest('hex');
       new V3Repository(this.sqlite).freezeInvoiceDirectCosts(
         invoiceId,
-        canonicalAuthority?.legal_entity_revision_id ?? null,
+        canonicalAuthority?.revision_id as string | null ?? null,
         issuedAt,
       );
       // Lock source rows while the invoice is still approved.  The finance
@@ -8044,7 +8043,7 @@ export class PortalRepository {
           issuedAt,
           deployment.tenantId,
           deployment.deploymentId,
-          canonicalAuthority?.legal_entity_revision_id ?? null,
+          canonicalAuthority?.revision_id as string | null ?? null,
           issuedAt,
           invoiceId,
         );
@@ -8937,18 +8936,26 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     const invoice = this.sqlite
       .prepare(
-        'SELECT i.*,p.project_number,p.name project_name,p.po_number project_po_number,c.client_number,c.display_name client_name,c.legal_name client_legal_name,c.billing_address client_billing_address,c.billing_email,br.template_id invoice_template_id,br.version billing_rule_version,br.payment_terms_days,br.po_number_override,le.code issuer_code,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name,rev.revision_id resolved_legal_entity_revision_id,rev.legal_name canonical_issuer_name,rev.tax_identifier canonical_tax_identifier,rev.registration_identifier canonical_registration_identifier,rev.address_line1 canonical_address_line1,rev.address_line2 canonical_address_line2,rev.locality canonical_locality,rev.region canonical_region,rev.postal_code canonical_postal_code,rev.country_code canonical_country_code,rev.base_currency canonical_currency,(SELECT COUNT(*) FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.legal_entity_revision_id=rev.revision_id AND a.tenant_id=rev.tenant_id AND a.deployment_id=rev.deployment_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) AND rev.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (rev.effective_to IS NULL OR rev.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10)))) canonical_assignment_matches FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity_revision rev ON rev.revision_id=COALESCE(i.legal_entity_revision_id,(SELECT a.legal_entity_revision_id FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) ORDER BY a.effective_from DESC LIMIT 1)) WHERE i.id=?',
+        'SELECT i.*,p.project_number,p.name project_name,p.po_number project_po_number,p.version project_version,c.client_number,c.display_name client_name,c.legal_name client_legal_name,c.billing_address client_billing_address,c.billing_email,c.po_reference client_po_reference,br.template_id invoice_template_id,br.version billing_rule_version,br.payment_terms_days,br.past_due_notice,br.po_number_override,br.legal_entity_id issuer_legal_entity_id,le.code issuer_code,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name,rev.revision_id resolved_legal_entity_revision_id,rev.legal_name canonical_issuer_name,rev.tax_identifier canonical_tax_identifier,rev.registration_identifier canonical_registration_identifier,rev.address_line1 canonical_address_line1,rev.address_line2 canonical_address_line2,rev.locality canonical_locality,rev.region canonical_region,rev.postal_code canonical_postal_code,rev.country_code canonical_country_code,rev.base_currency canonical_currency,(SELECT COUNT(*) FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.legal_entity_revision_id=rev.revision_id AND a.tenant_id=rev.tenant_id AND a.deployment_id=rev.deployment_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) AND rev.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (rev.effective_to IS NULL OR rev.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10)))) canonical_assignment_matches FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity_revision rev ON rev.revision_id=COALESCE(i.legal_entity_revision_id,(SELECT a.legal_entity_revision_id FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) ORDER BY a.effective_from DESC LIMIT 1)) WHERE i.id=?',
       )
       .get(invoiceId) as Record<string, unknown> | undefined;
     if (!invoice) throw new ValidationError('Invoice not found');
-    let customSnapshot: Record<string, unknown> = {};
-    if (typeof invoice.snapshot_json === 'string') {
-      try {
-        customSnapshot = JSON.parse(invoice.snapshot_json);
-      } catch {
-        // A malformed legacy snapshot is projected with safe invoice defaults below.
-      }
-    }
+    const frozenSource = !['draft','approved','superseded'].includes(String(invoice.state));
+    const issuerSettings = frozenSource ? {
+      legalEntityId: String(invoice.issuer_legal_entity_id ?? ''),currency: String(invoice.currency),version: 0,
+      bankSwiftNumber:'',bankAccountNumber:'',bankName:'',beneficiary:'',companyDivision:'',companyPhone:'',companyEmail:'',companyWebsite:'',
+    } : readIssuerDocumentSettings(this.sqlite, String(invoice.issuer_legal_entity_id), String(invoice.currency));
+    const presentation = issuerSettingsPresentation(issuerSettings);
+    const authority = frozenSource ? undefined : resolveInvoiceIssuerAuthority(this.sqlite, String(invoice.project_id), String(invoice.issuer_legal_entity_id), String(invoice.currency), String(invoice.period_start ?? String(invoice.created_at).slice(0,10)), String(invoice.period_end ?? invoice.period_start ?? String(invoice.created_at).slice(0,10)));
+    if (authority) Object.assign(invoice, {
+      resolved_legal_entity_revision_id: authority.revision_id, canonical_assignment_matches: 1,
+      canonical_issuer_name: authority.legal_name, canonical_tax_identifier: authority.tax_identifier,
+      canonical_registration_identifier: authority.registration_identifier, canonical_address_line1: authority.address_line1,
+      canonical_address_line2: authority.address_line2, canonical_locality: authority.locality, canonical_region: authority.region,
+      canonical_postal_code: authority.postal_code, canonical_country_code: authority.country_code, canonical_currency: authority.base_currency,
+    });
+    else if (!frozenSource) invoice.canonical_assignment_matches = 0;
+    const customSnapshot = invoicePresentationObject(invoice.snapshot_json);
     const frozenInvoice = !['draft', 'approved', 'superseded'].includes(
       String(invoice.state ?? ''),
     );
@@ -8986,29 +8993,40 @@ export class PortalRepository {
         .filter(Boolean)
         .join('\n'),
       purchase_no:
-        customSnapshot.purchaseNo ?? customSnapshot.purchase_no ?? (frozenInvoice ? null : invoice.po_number_override ?? invoice.project_po_number) ?? '—',
+        customSnapshot.purchaseNo ?? customSnapshot.purchase_no ?? (frozenInvoice ? null : effectivePurchaseReference(invoice.po_number_override, invoice.project_po_number, invoice.client_po_reference)) ?? '—',
       terms_and_instructions: {
         ...(['draft', 'approved'].includes(String(invoice.state ?? ''))
-          ? issuerPaymentDefaults(invoice.issuer_code, invoice.currency)
+          ? { ...presentation.termsAndInstructions, pastDueNotice: String(invoice.past_due_notice ?? '') }
           : {}),
         ...(typeof customSnapshot.termsAndInstructions === 'object' &&
         customSnapshot.termsAndInstructions !== null
           ? customSnapshot.termsAndInstructions
           : {}),
       },
+      issuer_settings_version: issuerSettings.version,
+      issuer_document_settings: issuerSettings,
+      purchase_no_source: typeof invoice.po_number_override === 'string' && invoice.po_number_override.trim() ? 'billing_stream' : 'project',
       company_info: {
+        ...(['draft', 'approved'].includes(String(invoice.state ?? '')) ? presentation.companyInfo : {}),
         ...(typeof customSnapshot.companyInfo === 'object' && customSnapshot.companyInfo !== null
           ? customSnapshot.companyInfo
           : {}),
       },
-      ...invoiceBusinessDates(customSnapshot, invoice.created_at, invoice.payment_terms_days),
-      invoice_date: frozenInvoice ? (customSnapshot.invoiceDate ?? customSnapshot.issueDate ?? invoice.issued_at) : invoiceBusinessDates(customSnapshot, invoice.created_at, invoice.payment_terms_days).invoiceDate,
-      due_date: frozenInvoice ? (customSnapshot.dueAt ?? invoice.due_at) : invoiceBusinessDates(customSnapshot, invoice.created_at, invoice.payment_terms_days).dueDate,
+      ...invoiceBusinessDates(!frozenInvoice && invoice.planned_issue_on ? { ...customSnapshot, invoiceDate: invoice.planned_issue_on } : customSnapshot, invoice.created_at, invoice.payment_terms_days),
+      invoice_date: frozenInvoice ? (customSnapshot.invoiceDate ?? customSnapshot.issueDate ?? invoice.issued_at) : invoiceBusinessDates(invoice.planned_issue_on ? { ...customSnapshot, invoiceDate: invoice.planned_issue_on } : customSnapshot, invoice.created_at, invoice.payment_terms_days).invoiceDate,
+      due_date: frozenInvoice ? (customSnapshot.dueAt ?? invoice.due_at) : invoiceBusinessDates(invoice.planned_issue_on ? { ...customSnapshot, invoiceDate: invoice.planned_issue_on } : customSnapshot, invoice.created_at, invoice.payment_terms_days).dueDate,
       payment_terms_days: frozenInvoice ? invoicePresentationObject(customSnapshot.commercial).paymentTermsDays : invoiceBusinessDates(customSnapshot, invoice.created_at, invoice.payment_terms_days).paymentTermsDays,
       due_date_override: customSnapshot.dueDateOverride ?? '',
       source_version: invoice.version,
       discount_minor: customSnapshot.discountMinor ?? customSnapshot.discount_minor ?? '0',
     };
+    const sourceSettingsChanged = ['draft','approved'].includes(String(invoice.state)) && (
+      Object.entries(presentation.termsAndInstructions).some(([name,value]) => String(enrichedInvoice.terms_and_instructions[name as keyof typeof enrichedInvoice.terms_and_instructions] ?? '') !== value) ||
+      Object.entries(presentation.companyInfo).some(([name,value]) => String(enrichedInvoice.company_info[name as keyof typeof enrichedInvoice.company_info] ?? '') !== value) ||
+      enrichedInvoice.payment_terms_days !== invoice.payment_terms_days ||
+      enrichedInvoice.purchase_no !== (effectivePurchaseReference(invoice.po_number_override, invoice.project_po_number, invoice.client_po_reference) ?? '—') ||
+      String(enrichedInvoice.terms_and_instructions.pastDueNotice ?? '') !== String(invoice.past_due_notice ?? '')
+    );
     let lines: Record<string, unknown>[] = this.sqlite
       .prepare(
         'SELECT description,quantity_numerator,quantity_denominator,unit_price_minor,subtotal_minor,source_type,source_id FROM invoice_line WHERE invoice_id=? ORDER BY rowid',
@@ -9050,6 +9068,7 @@ export class PortalRepository {
     return {
       invoice: {
         ...enrichedInvoice,
+        source_settings_changed: sourceSettingsChanged,
         labor_subtotal_minor: laborSubtotal.toString(),
         expense_subtotal_minor: expenseSubtotal.toString(),
         has_expense_lines: typedLines.some((line) => line.source_type === 'expense'),
@@ -9068,7 +9087,8 @@ export class PortalRepository {
       invoiceDate?: string;
       dueDate?: string;
       paymentTermsDays?: number;
-      saveDefaults?: boolean;
+      expectedProjectVersion?: number;
+      expectedIssuerSettingsVersion?: number;
       purchaseNo?: string;
       termsAndInstructions?: Record<string, string>;
       companyInfo?: Record<string, string>;
@@ -10740,6 +10760,8 @@ export class PortalRepository {
             );
         }
       }
+      const notice = input.pastDueNotice === undefined ? undefined : String(input.pastDueNotice).trim();
+      if (notice !== undefined && notice.length > 2000) throw new ValidationError('Past due notice is too long');
       const grouping = input.groupingMode;
       if (
         grouping !== undefined &&
@@ -10773,21 +10795,26 @@ export class PortalRepository {
           : String(input.poNumberOverride).trim() || null;
       const groupingValue = grouping === undefined ? null : String(grouping);
       const assignments = [
+        'past_due_notice=COALESCE(?,past_due_notice)',
         'template_id=COALESCE(?,template_id)',
         'recipient_email=COALESCE(?,recipient_email)',
         'payment_terms_days=COALESCE(?,payment_terms_days)',
-        'po_number_override=COALESCE(?,po_number_override)',
         'grouping_mode=COALESCE(?,grouping_mode)',
         'auto_generate_draft=COALESCE(?,auto_generate_draft)',
       ];
       const values: Array<string | number | bigint | null> = [
-        templateId ?? null,
+        notice ?? null,        templateId ?? null,
         recipient ?? null,
         paymentTerms === undefined ? null : Number(paymentTerms),
-        poNumber ?? null,
         groupingValue,
         input.autoGenerateDraft === undefined ? null : input.autoGenerateDraft ? 1 : 0,
       ];
+      // Omitted fields retain their value; an explicitly blank override removes
+      // it so future drafts inherit the project's purchase reference.
+      if (input.poNumberOverride !== undefined) {
+        assignments.push('po_number_override=?');
+        values.push(poNumber ?? null);
+      }
       if (input.includeExpenses !== undefined) {
         assignments.push('include_expenses=?');
         values.push(input.includeExpenses ? 1 : 0);
@@ -10816,6 +10843,7 @@ export class PortalRepository {
       this.sqlite
         .prepare(`UPDATE billing_rule SET ${assignments.join(',')} WHERE id=?`)
         .run(...values);
+      invalidateDraftPresentation(this.sqlite, 'billing_rule_id=?', [ruleId]);
       this.audit(principal, 'billing_rule.update', 'billing_rule', ruleId, input);
     });
   }

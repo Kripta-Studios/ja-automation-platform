@@ -1109,6 +1109,19 @@
               name="expectedBillingRuleVersion"
               value={draftValue('expectedBillingRuleVersion', invoice.billing_rule_version)}
             />
+            <input
+              type="hidden"
+              name="expectedProjectVersion"
+              value={draftValue('expectedProjectVersion', invoice.project_version)}
+            />
+            <input
+              type="hidden"
+              name="expectedIssuerSettingsVersion"
+              value={draftValue(
+                'expectedIssuerSettingsVersion',
+                invoice.issuer_settings_version ?? 0,
+              )}
+            />
             <p>
               {t(
                 'Select a field in the preview to edit it here. Save updates the preview immediately.',
@@ -1230,12 +1243,13 @@
               </div>
               <div class="draft-field full-width">
                 <label for="edit-past-due">{t('Past Due Notice')}</label>
-                <input
+                <textarea
                   id="edit-past-due"
                   name="pastDueNotice"
-                  type="text"
+                  rows="3"
+                  maxlength="2000"
                   value={draftValue('pastDueNotice', invoice.terms_and_instructions?.pastDueNotice)}
-                />
+                ></textarea>
               </div>
             </div>
             <div class="draft-edit-grid">
@@ -1251,17 +1265,17 @@
                 </div>
               {/each}
             </div>
-            <label class="draft-defaults-label"
-              ><input
-                type="checkbox"
-                name="saveDefaults"
-                value="true"
-                checked={draftDetailsForm?.values?.saveDefaults === undefined ||
-                  ['true', 'on'].includes(draftDetailsForm.values.saveDefaults)}
-              />{t(
-                'Use purchase number, payment terms, bank and company contact details for future invoices in this billing stream',
-              )}</label
-            >
+            <div class="invoice-source-guidance" aria-label={t('invoice.sourceSaveTitle')}>
+              <p>
+                {t(
+                  invoice.purchase_no_source === 'billing_stream'
+                    ? 'invoice.sourceSaveStreamPo'
+                    : 'invoice.sourceSaveProjectPo',
+                )}
+              </p>
+              <p>{t('invoice.sourceSaveTerms')}</p>
+              <p>{t('invoice.sourceSaveIssuer')}</p>
+            </div>
             <p>
               {t(
                 'Invoice and due dates apply to this draft. Issued invoices keep their original data.',
@@ -1276,6 +1290,17 @@
     {/key}
   {/if}
 
+  {#if invoice.source_settings_changed && ['draft', 'approved'].includes(invoiceState)}
+    <section class="detail-panel no-print invoice-source-guidance" role="status">
+      <p>{t('invoice.sourceSettingsChanged')}</p>
+      {#if ['owner_admin', 'finance_admin'].includes(String(data.user?.role ?? ''))}
+        <a
+          href={`${base}/app/billing?view=invoices&project=${encodeURIComponent(String(invoice.project_id ?? ''))}&lang=${locale}`}
+          >{t('Rebuild invoice draft')}</a
+        >
+      {/if}
+    </section>
+  {/if}
   {#if canEditDraft}
     <section
       class="detail-panel no-print invoice-source-guidance"
@@ -1293,6 +1318,14 @@
       </p>
       {#if editExplanation}<p role="status">{editExplanation}</p>{/if}
       <div class="invoice-source-links">
+        <a
+          href={`${base}/app/billing?view=streams&project=${encodeURIComponent(String(invoice.project_id ?? ''))}&focus=${encodeURIComponent(String(invoice.billing_rule_id ?? ''))}&lang=${locale}#billing-stream-${encodeURIComponent(String(invoice.billing_rule_id ?? ''))}`}
+          >{t('invoice.sourceStreamLink')}</a
+        >
+        <a
+          href={`${base}/app/billing?view=setup&issuerSettings=${encodeURIComponent(String(invoice.issuer_legal_entity_id ?? ''))}&lang=${locale}#issuer-document-settings`}
+          >{t('issuerSettings.title')}</a
+        >
         <a href={`${base}/app/billing?view=setup&lang=${locale}`}
           >{String(data.user?.role) === 'owner_admin'
             ? t('Billing configuration and numbering')
@@ -1373,16 +1406,6 @@
     flex-wrap: wrap;
     gap: 1rem;
     margin-block: 1rem;
-  }
-  .draft-defaults-label {
-    display: flex;
-    align-items: start;
-    gap: 0.6rem;
-    margin-block: 1rem;
-  }
-  .draft-defaults-label input {
-    width: auto;
-    margin-top: 0.2rem;
   }
   [data-invoice-retained-customizations] dd {
     overflow-wrap: anywhere;

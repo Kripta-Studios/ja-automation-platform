@@ -1082,11 +1082,17 @@
   text-transform: uppercase;
 }
 
-.draft-field input {
+.draft-field input,
+.draft-field textarea {
   padding: 0.45rem 0.6rem;
   border: 1px solid #d6d5d2;
   border-radius: 0.3rem;
   font-size: 0.85rem;
+}
+
+.draft-field textarea {
+  min-height: 5rem;
+  resize: vertical;
 }
 
 .save-draft-btn {

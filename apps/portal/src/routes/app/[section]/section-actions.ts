@@ -36,6 +36,7 @@ export const sectionActions: Actions = {
   archiveBillingRule: billingActions.archiveBillingRule,
   createLegalEntity: billingActions.createLegalEntity,
   updateLegalEntity: billingActions.updateLegalEntity,
+  updateIssuerDocumentSettings: billingActions.updateIssuerDocumentSettings,
   archiveLegalEntity: billingActions.archiveLegalEntity,
   createInvoiceNumberPolicy: billingActions.createInvoiceNumberPolicy,
   createTaxProfile: billingActions.createTaxProfile,

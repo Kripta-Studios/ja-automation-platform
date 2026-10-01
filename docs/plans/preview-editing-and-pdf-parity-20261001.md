@@ -35,3 +35,17 @@ Test records are created through ordinary UI in an isolated production snapshot.
 ## Completion evidence
 
 Code presence is not PASS. Record actual URLs, roles, actions, expected/observed results, downloaded artifact comparisons, reviewer verdict, release SHA/backup/health and limitations. The older 10 UX + 10 bug goal requires affected-role after-verification and remains separately tracked.
+
+## Source writeback correction — Owner instruction, October 1
+
+The Owner clarified that editing an invoice must update the actual owning configuration, rather than a separate set of reusable invoice defaults. This supersedes the earlier future-default checkbox and stream preview cache design. Issued financial history remains immutable.
+
+Dependency DAG: source ownership/schema and transaction contract → portal settings/editor integration → independent finance/security/UI review → isolated sequential role browser verification → pinned production release and source-settings smoke check.
+
+Bounded packets:
+
+- Backend (C, high): `packages/database/**` and `packages/schemas/src/index.ts`. Add versioned issuer document/payment settings scoped by deployment, stable issuer and currency; add stream past-due notice. Invoice saves write changed fields to actual project PO or existing stream PO override, stream payment terms, and issuer bank/contact settings. Dates stay invoice-specific. Retain old cache data without promoting conflicting values. Require live Owner/Finance authorization, source versions, audit, atomic writes, exact-money provenance, and frozen issued snapshots. Resolve canonical successor revisions by stable series and use assigned legal identity at issuance.
+- Portal (C, high): `apps/portal/**`. Remove future-default controls, disclose field ownership and save impact, send source versions, preserve retained input/conflict/dirty guards, and expose the same issuer bank/contact settings in Billing. Preserve separate canonical legal identity and customer contact workflows.
+- Parent: this plan, manuals/evidence, integration, sole browser, deployment and GitHub receipt. Workers share the checkout and cannot revert other packets. Independent reviewer owns no implementation files.
+
+Browser acceptance: Owner changes invoice PO/terms/bank/contact and verifies the corresponding real project, stream and issuer settings after reload; a date-only edit does not replace unrelated source settings. Finance can perform authorized payment/contact edits, while Auditor/Worker cannot. Validate a stale-source conflict retains input and commits no partial source/invoice mutation. Verify current preview/download and source-derived drafts, with no changes to issued history. Check 360/390, 768 and 1440 layouts. Functional evidence comes only through ordinary browser workflows; static compilation and migration/startup checks are separate engineering gates.

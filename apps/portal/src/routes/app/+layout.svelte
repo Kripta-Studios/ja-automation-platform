@@ -4,6 +4,7 @@
   import { base } from '$app/paths';
   import { beforeNavigate, afterNavigate, goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import { installWorkspaceNavigation } from '$lib/portal/ui/workspace-navigation';
   import { createAuthClient } from 'better-auth/client';
   import PortalChrome from '$lib/PortalChrome.svelte';
   import { portalNavigationForRole, type NavItem } from '$lib/portal-navigation';
@@ -102,6 +103,7 @@
       origin = rememberedOrigin($page.url);
       originHasNativeHistory = false;
     }
+    return installWorkspaceNavigation();
   });
   function navigateToOrigin(): void {
     if (!origin) return;

@@ -40,8 +40,9 @@
   } = $props();
 
   const formatPlanningMinutes = (value: unknown): string | null => {
+    if (value == null || value === '') return null;
     const minutes = typeof value === 'number' ? value : Number(value);
-    if (!Number.isFinite(minutes) || minutes <= 0) return null;
+    if (!Number.isFinite(minutes) || minutes < 0) return null;
 
     const wholeMinutes = Math.floor(minutes);
     const hours = Math.floor(wholeMinutes / 60);

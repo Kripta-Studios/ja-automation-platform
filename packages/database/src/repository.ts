@@ -393,6 +393,7 @@ type CorrectionDraftInput = Readonly<{
   requestId: string;
   reason: string;
   patch?: Readonly<Record<string, unknown>>;
+  receiptUpload?: Readonly<{ sha256: string; documentId?: string }>;
 }>;
 
 type InvoiceRow = {
@@ -2884,6 +2885,27 @@ export class PortalRepository {
     return this.createCorrectionDraftInternal(principal, input, true);
   }
 
+  /** Authorize and validate before private receipt storage; the final write rechecks everything. */
+  preflightExpenseCorrectionDraft(
+    principal: Principal,
+    input: CorrectionDraftInput,
+    ownerOverride = false,
+  ) {
+    if (input.recordType !== 'expense' || !input.receiptUpload)
+      throw new ValidationError('Correction payload is invalid');
+    this.assertActive(principal);
+    if (ownerOverride) {
+      if (principal.role !== 'owner_admin')
+        throw new AccessDeniedError('Owner administration required');
+      this.assertLiveSession(principal);
+    } else if (principal.role === 'owner_admin') {
+      throw new AccessDeniedError('Owners must use the audited override correction path');
+    } else if (!['worker', 'project_manager'].includes(principal.role)) {
+      throw new AccessDeniedError('Operational correction access required');
+    }
+    return this.createCorrectionDraftInternal(principal, input, ownerOverride, true);
+  }
+
   /** Withdraw an unsubmitted linked draft without deleting its audited provenance. */
   withdrawCorrectionDraft(
     principal: Principal,
@@ -3010,6 +3032,7 @@ export class PortalRepository {
     principal: Principal,
     input: CorrectionDraftInput,
     ownerOverride: boolean,
+    validateOnly = false,
   ) {
     this.assertActive(principal);
     const tables: Record<DraftRecordType, string> = {
@@ -3024,6 +3047,17 @@ export class PortalRepository {
     const reason = assertText(input.reason, 'Correction reason', 2000);
     if (reason.length < 3)
       throw new ValidationError('Correction reason must contain at least 3 characters');
+    if (
+      input.receiptUpload &&
+      (input.recordType !== 'expense' || !/^[a-f0-9]{64}$/.test(input.receiptUpload.sha256))
+    )
+      throw new ValidationError('Invalid receipt hash');
+    if (
+      input.receiptUpload &&
+      (Object.prototype.hasOwnProperty.call(input.patch ?? {}, 'receipt_document_id') ||
+        Object.prototype.hasOwnProperty.call(input.patch ?? {}, 'receiptDocumentId'))
+    )
+      throw new ValidationError('Correction field is not allowed');
     const payload = JSON.stringify({
       recordType: input.recordType,
       originalId: input.originalId,
@@ -3031,6 +3065,7 @@ export class PortalRepository {
       reason,
       actorUserId: principal.userId,
       ownerOverride,
+      ...(input.receiptUpload ? { receiptContentSha256: input.receiptUpload.sha256 } : {}),
     });
     const payloadHash = createHash('sha256').update(payload).digest('hex');
     return this.transaction(() => {
@@ -3152,6 +3187,17 @@ export class PortalRepository {
       )
         throw new ConflictError('Reimbursed expense requires an explicit adjustment');
       if (
+        input.recordType === 'expense' &&
+        this.sqlite
+          .prepare(
+            'SELECT 1 FROM crew_shared_expense_allocation_group WHERE expense_id=? AND completed=1',
+          )
+          .get(input.originalId)
+      )
+        throw new ConflictError(
+          'This receipt is allocated across crew shifts and cannot be edited. Create a documented correction instead.',
+        );
+      if (
         (input.recordType === 'daily_report' || input.recordType === 'technical_report') &&
         this.reportIsLocked(
           input.recordType === 'daily_report' ? 'daily' : 'technical',
@@ -3162,34 +3208,15 @@ export class PortalRepository {
 
       const correctionId = newId();
       const timestamp = now();
-      if (retryingReturnedCorrection) {
-        const superseded = this.sqlite
-          .prepare(
-            `UPDATE ${table} SET approval_state='rejected',updated_at=?,version=version+1
-              WHERE id=? AND approval_state='needs_changes'`,
-          )
-          .run(timestamp, input.originalId);
-        if (superseded.changes !== 1)
-          throw new ConflictError('Returned correction changed before retry creation');
-        this.sqlite
-          .prepare(
-            'INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at) VALUES(?,?,?,?,?,?,?,?)',
-          )
-          .run(
-            newId(),
-            input.recordType === 'time_entry' ? 'time' : 'expense',
-            input.originalId,
-            'needs_changes',
-            'rejected',
-            principal.userId,
-            `Superseded by append-only correction retry ${correctionId}`,
-            timestamp,
-          );
-      }
       const columns = (
         this.sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
       ).map((column) => column.name);
-      const patch = input.patch ?? {};
+      const patch: Record<string, unknown> = {
+        ...(input.patch ?? {}),
+        ...(input.receiptUpload?.documentId
+          ? { receipt_document_id: input.receiptUpload.documentId }
+          : {}),
+      };
       const aliases: Record<string, string> = {
         workDate: 'work_date',
         spentOn: 'spent_on',
@@ -3197,6 +3224,8 @@ export class PortalRepository {
         timeEntryId: 'time_entry_id',
         activityCode: 'activity_code',
         amountMinor: 'amount_minor',
+        paymentMethod: 'payment_method',
+        receiptDocumentId: 'receipt_document_id',
         activitySummary: 'activity_summary',
         startTime: 'start_time',
         endTime: 'end_time',
@@ -3316,6 +3345,12 @@ export class PortalRepository {
         }
         if (column === 'time_entry_id' && patch[key] !== null && typeof patch[key] !== 'string')
           throw new ValidationError('Correction time link is invalid');
+        if (
+          column === 'vendor' &&
+          patch[key] !== null &&
+          (typeof patch[key] !== 'string' || String(patch[key]).trim().length > 200)
+        )
+          throw new ValidationError('Vendor must be 200 characters or fewer');
       }
       const values = columns.map((column) => {
         const patchKey = Object.keys(patch).find((key) => (aliases[key] ?? key) === column);
@@ -3342,6 +3377,13 @@ export class PortalRepository {
           return null;
         if (column === 'billing_status' || column === 'billing_state') return 'unlocked';
         if (input.recordType === 'expense') {
+          if (
+            column === 'receipt_required' &&
+            (input.receiptUpload ||
+              Object.prototype.hasOwnProperty.call(patch, 'receipt_document_id') ||
+              Object.prototype.hasOwnProperty.call(patch, 'receiptDocumentId'))
+          )
+            return 1;
           // Commercial classification, conversion, billing and reimbursement
           // are approval-derived truth. A correction is new operational input,
           // never a copy of the original's finance decision.
@@ -3389,6 +3431,7 @@ export class PortalRepository {
         return String(value).trim();
       };
       if (
+        !input.receiptUpload &&
         !Object.keys(patch).some((key) => {
           const column = aliases[key] ?? key;
           return comparable(valueFor(column)) !== comparable(original[column]);
@@ -3450,6 +3493,66 @@ export class PortalRepository {
             principal,
             valueFor('time_entry_id') as string | null,
             delegatedGrantId,
+          );
+        if (input.receiptUpload) {
+          const originalReceipt = this.sqlite
+            .prepare('SELECT sha256 FROM document WHERE id=?')
+            .get(String(original.receipt_document_id ?? '')) as { sha256: string } | undefined;
+          if (originalReceipt?.sha256 === input.receiptUpload.sha256)
+            throw new ConflictError('Receipt content is already registered to another record');
+          if (!validateOnly && !input.receiptUpload.documentId)
+            throw new ValidationError('A committed receipt is required');
+        }
+        const receiptId = valueFor('receipt_document_id');
+        const replacingReceipt = receiptId !== original.receipt_document_id;
+        if (replacingReceipt || (input.receiptUpload && !validateOnly)) {
+          if (typeof receiptId !== 'string' || !receiptId)
+            throw new ValidationError('A committed receipt is required');
+          const receipt = this.sqlite
+            .prepare(
+              "SELECT project_id,sha256 FROM document WHERE id=? AND owner_id=? AND state='committed' AND artifact_type='receipt'",
+            )
+            .get(receiptId, principal.userId) as
+            | { project_id: string | null; sha256: string }
+            | undefined;
+          if (!receipt) throw new AccessDeniedError('Committed owned receipt required');
+          if (receipt.project_id !== projectId)
+            throw new AccessDeniedError('Receipt must belong to the expense project');
+          if (input.receiptUpload && receipt.sha256 !== input.receiptUpload.sha256)
+            throw new ValidationError('Invalid receipt hash');
+          if (
+            this.sqlite
+              .prepare(
+                'SELECT 1 FROM expense e JOIN document d ON d.id=e.receipt_document_id WHERE d.sha256=? LIMIT 1',
+              )
+              .get(receipt.sha256)
+          )
+            throw new ConflictError('Receipt content is already registered to another record');
+        }
+      }
+      if (validateOnly) return { id: '', correctionId: '', replayed: false };
+      if (retryingReturnedCorrection) {
+        const superseded = this.sqlite
+          .prepare(
+            `UPDATE ${table} SET approval_state='rejected',updated_at=?,version=version+1
+              WHERE id=? AND approval_state='needs_changes'`,
+          )
+          .run(timestamp, input.originalId);
+        if (superseded.changes !== 1)
+          throw new ConflictError('Returned correction changed before retry creation');
+        this.sqlite
+          .prepare(
+            'INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at) VALUES(?,?,?,?,?,?,?,?)',
+          )
+          .run(
+            newId(),
+            input.recordType === 'time_entry' ? 'time' : 'expense',
+            input.originalId,
+            'needs_changes',
+            'rejected',
+            principal.userId,
+            `Superseded by append-only correction retry ${correctionId}`,
+            timestamp,
           );
       }
       this.sqlite
@@ -3561,6 +3664,13 @@ export class PortalRepository {
         storedRequestId,
         reason,
         ownerOverride,
+        ...(input.receiptUpload
+          ? {
+              receiptDocumentId: input.receiptUpload.documentId,
+              receiptContentSha256: input.receiptUpload.sha256,
+              previousReceiptDocumentId: original.receipt_document_id ?? null,
+            }
+          : {}),
       });
       return { id: correctionId, correctionId, originalId: canonicalOriginalId, version: 1 };
     });
@@ -3692,17 +3802,16 @@ export class PortalRepository {
 
   createPlanningAssignment(
     principal: Principal,
-    input: {
-      projectId: string;
-      workerId: string;
-      startsAt: string;
-      endsAt: string;
-      plannedMinutes: number;
-      site?: string;
-      requiredSkill?: string;
-    },
+    input: Parameters<PlanningRepository['createPlanningAssignment']>[1],
   ) {
     return this.planning.createPlanningAssignment(principal, input);
+  }
+
+  createPlanningAssignments(
+    principal: Principal,
+    input: Parameters<PlanningRepository['createPlanningAssignments']>[1],
+  ) {
+    return this.planning.createPlanningAssignments(principal, input);
   }
 
   updatePlanningAssignment(
@@ -8651,7 +8760,7 @@ export class PortalRepository {
                 AND pm.status='active' AND u.status='active'
                 AND u.role IN ('worker','project_manager')
                 AND pm.starts_on<=date(pa.starts_at)
-                AND (pm.ends_on IS NULL OR pm.ends_on>=date(pa.ends_at))`
+                AND (pm.ends_on IS NULL OR pm.ends_on>=date(COALESCE(pa.ends_at,pa.starts_at)))`
              : "pa.status<>'cancelled'"
          }
          ORDER BY pa.starts_at`,

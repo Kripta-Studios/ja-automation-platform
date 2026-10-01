@@ -48,9 +48,9 @@ export const ownerCatalogs: Record<string, { title: string; fields: Field[] }> =
       { name: 'project_id', label: 'Project', type: 'project', required: true },
       { name: 'worker_id', label: 'Worker', type: 'worker', required: true },
       { name: 'starts_at', label: 'Start', type: 'datetime-local', required: true },
-      { name: 'ends_at', label: 'End', type: 'datetime-local', required: true },
-      { name: 'planned_minutes', label: 'Planned minutes', type: 'number', required: true },
-      { name: 'site', label: 'Site', type: 'text' },
+      { name: 'ends_at', label: 'End (optional)', type: 'datetime-local' },
+      { name: 'planned_minutes', label: 'Planned minutes (optional)', type: 'number' },
+      { name: 'site', label: 'Site (optional)', type: 'text' },
       { name: 'required_skill', label: 'Required skill', type: 'text' },
       {
         name: 'status',
@@ -180,11 +180,19 @@ export class OwnerCatalogManagement {
             throw new ValidationError(`Invalid ${field.label}`);
           if (field.options && !field.options.includes(raw))
             throw new ValidationError(`Invalid ${field.label}`);
+          if (
+            input.kind === 'planning_assignment' &&
+            !raw &&
+            ['ends_at', 'planned_minutes'].includes(field.name)
+          ) {
+            values[field.name] = null;
+            continue;
+          }
           if (field.type === 'number') {
             if (
               !/^\d+$/.test(raw) ||
               !Number.isSafeInteger(Number(raw)) ||
-              Number(raw) < 1 ||
+              Number(raw) < (input.kind === 'planning_assignment' ? 0 : 1) ||
               Number(raw) > 10080
             )
               throw new ValidationError(`Invalid ${field.label}`);
@@ -244,9 +252,10 @@ export class OwnerCatalogManagement {
           values.approved_at = null;
         } else {
           const startsAt = String(values.starts_at),
-            endsAt = String(values.ends_at),
+            endsAt = values.ends_at == null ? null : String(values.ends_at),
             workerId = String(values.worker_id);
-          if (endsAt <= startsAt) throw new ValidationError('End must follow start');
+          if (endsAt !== null && endsAt <= startsAt)
+            throw new ValidationError('End must follow start');
           if (
             !this.sqlite
               .prepare(
@@ -265,24 +274,27 @@ export class OwnerCatalogManagement {
                   workerId,
                   String(values.project_id),
                   startsAt.slice(0, 10),
-                  endsAt.slice(0, 10),
+                  (endsAt ?? startsAt).slice(0, 10),
                 )
             )
               throw new ValidationError('Worker assignment must cover the planning window');
             if (
               this.sqlite
                 .prepare(
-                  "SELECT 1 FROM planning_assignment WHERE worker_id=? AND id<>? AND status<>'cancelled' AND starts_at<? AND ends_at>?",
+                  `SELECT 1 FROM planning_assignment WHERE worker_id=? AND id<>? AND status<>'cancelled'
+                   AND (starts_at=? OR (ends_at IS NOT NULL AND starts_at<=? AND ends_at>?)
+                     OR (? IS NOT NULL AND starts_at>=? AND starts_at<?))`,
                 )
-                .get(workerId, id, endsAt, startsAt)
+                .get(workerId, id, startsAt, startsAt, startsAt, endsAt, startsAt, endsAt)
             )
               throw new ConflictError('Planning overlaps another assignment');
             if (
               this.sqlite
                 .prepare(
-                  "SELECT 1 FROM worker_availability WHERE worker_id=? AND availability='unavailable' AND starts_at<? AND ends_at>?",
+                  `SELECT 1 FROM worker_availability WHERE worker_id=? AND availability='unavailable'
+                   AND ((starts_at<=? AND ends_at>?) OR (? IS NOT NULL AND starts_at<? AND ends_at>?))`,
                 )
-                .get(workerId, endsAt, startsAt)
+                .get(workerId, startsAt, startsAt, endsAt, endsAt, startsAt)
             )
               throw new ConflictError('Worker is unavailable');
           }

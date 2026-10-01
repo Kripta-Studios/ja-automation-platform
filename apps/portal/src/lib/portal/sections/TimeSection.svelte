@@ -199,6 +199,7 @@
   const registerStateKey = (): string => `ja-operational-register:time:${data.user.id}`;
 
   onMount(() => {
+    createRequestId ||= crypto.randomUUID();
     calendarMonth = localToday().slice(0, 7);
     calendarDay = localToday();
     const saved = readOperationalRegisterState<{
@@ -1762,8 +1763,8 @@
         <input type="checkbox" name="withExpense" bind:checked={createExpenseEnabled} />
         <span>{translate('Add a meal expense with these hours')}</span>
       </label>
+      <input type="hidden" name="requestId" value={createRequestId} />
       {#if createExpenseEnabled}
-        <input type="hidden" name="requestId" value={createRequestId} />
         <div class="expense-entry-intro">
           <strong>{translate('Expense for this shift')}</strong>
           <span

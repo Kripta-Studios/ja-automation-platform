@@ -125,7 +125,14 @@
       <h2>{translate('Clients')}</h2>
       <p>{translate('Authorized client contacts, sites and project context.')}</p>
     </div>
-    <span class="client-directory__count" aria-live="polite">{visibleClients.length}</span>
+    <div>
+      {#if canManageContacts}
+        <a class="primary-button client-directory__create" href={`${base}/app/projects?view=clients&action=new-client`}>
+          {translate('Create client')}
+        </a>
+      {/if}
+      <span class="client-directory__count" aria-live="polite">{visibleClients.length}</span>
+    </div>
   </header>
 
   <form
@@ -441,6 +448,34 @@
     border-radius: 999px;
     color: var(--portal-ink, #20201d);
     font-weight: 800;
+  }
+
+  .client-directory__create {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 5.5rem;
+    max-width: 100%;
+    padding: 1.3rem 2.5rem;
+    border: 1px solid transparent;
+    border-radius: 0.45rem;
+    background: var(--ja-red, #a12c2a);
+    color: var(--ja-white, #fff);
+    font-size: 1.25rem;
+    font-weight: 800;
+    text-align: center;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+
+  .client-directory__create:hover {
+    background: var(--ja-red-dark, #8f1d14);
+  }
+
+  @media (min-width: 768px) {
+    .client-directory__create {
+      width: 20rem;
+    }
   }
 
   .client-directory__filter {

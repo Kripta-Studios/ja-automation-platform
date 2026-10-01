@@ -1,5 +1,6 @@
+import { createHash } from 'node:crypto';
 import { expenseInputSchema, timeInputSchema, versionedRecordSchema } from '@ja/schemas';
-import { AccessDeniedError, ConflictError, ValidationError } from '@ja/database';
+import { AccessDeniedError, ConflictError, ValidationError, recordAuditEvent } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import {
   actionFail,
@@ -234,6 +235,14 @@ type TimeProblem = {
 };
 
 const timeProblems: Record<string, TimeProblem> = {
+  'Time save retry has changed': {
+    status: 409,
+    code: 'TIME_SAVE_RETRY_CHANGED',
+    key: 'problem.time.saveRetryChanged',
+    message:
+      'This save request already created time with different details. Review the saved entry before starting a new time form.',
+    remedy: 'review_time',
+  },
   'Active account required': {
     status: 403,
     code: 'TIME_ACCOUNT_INACTIVE',
@@ -783,6 +792,15 @@ export const timeActions = {
         'requestId',
         'review_time',
       );
+    if (!withExpense && !/^[a-zA-Z0-9_-]{16,200}$/u.test(requestId))
+      return timePrecheckFailure(
+        'TIME_SAVE_REQUEST_INVALID',
+        'problem.time.saveRequestInvalid',
+        'The time save request ID is missing or invalid. Reopen the form and review the details before saving.',
+        values,
+        'requestId',
+        'review_time',
+      );
     if (parsedExpense && !parsedExpense.success) {
       const fields = Object.fromEntries(
         Object.entries(parsedExpense.error.flatten().fieldErrors).map(([key, errors]) => [
@@ -817,8 +835,66 @@ export const timeActions = {
         );
         return actionSuccess('action.time.expenseDraftsSaved', {}, 'Time and expense drafts saved');
       }
-      context.repository.createTimeEntry(context.principal, parsed.data, workerId);
-      return actionSuccess('action.time.draftSaved', {}, 'Time draft saved');
+      if (context.principal.role === 'auditor_read_only')
+        throw new AccessDeniedError('Read-only role');
+      const payloadHash = createHash('sha256')
+        .update(
+          JSON.stringify({
+            workerId: workerId || context.principal.userId,
+            entry: parsed.data,
+          }),
+        )
+        .digest('hex');
+      let began = false;
+      let replayed = false;
+      try {
+        context.sqlite.exec('BEGIN IMMEDIATE');
+        began = true;
+        const prior = context.sqlite
+          .prepare(
+            "SELECT entity_id,details_json FROM audit_event WHERE actor_id=? AND action='time.create' AND json_extract(details_json,'$.timeRequestId')=? LIMIT 1",
+          )
+          .get(context.principal.userId, requestId) as
+          | { entity_id: string; details_json: string }
+          | undefined;
+        if (prior) {
+          const details = JSON.parse(prior.details_json) as { timePayloadHash: string };
+          if (details.timePayloadHash !== payloadHash)
+            throw new ConflictError('Time save retry has changed');
+          // Replay returns existing operational truth only after current object
+          // authorization; it never creates another row or changes its lifecycle.
+          context.repository.timeDetail(context.principal, prior.entity_id);
+          replayed = true;
+        } else {
+          const created = context.repository.createTimeEntry(
+            context.principal,
+            parsed.data,
+            workerId,
+          );
+          recordAuditEvent(
+            context.sqlite,
+            context.principal,
+            'time.create',
+            'time_entry',
+            created.id,
+            {
+              projectId: parsed.data.projectId,
+              timeRequestId: requestId,
+              timePayloadHash: payloadHash,
+            },
+          );
+        }
+        context.sqlite.exec('COMMIT');
+        began = false;
+      } catch (error) {
+        if (began) context.sqlite.exec('ROLLBACK');
+        throw error;
+      }
+      return actionSuccess(
+        replayed ? 'action.time.draftAlreadySaved' : 'action.time.draftSaved',
+        {},
+        replayed ? 'Time draft already saved. No duplicate was created.' : 'Time draft saved',
+      );
     } catch (error) {
       return timeActionFailure(error, values);
     } finally {

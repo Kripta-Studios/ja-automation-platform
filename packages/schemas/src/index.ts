@@ -1048,8 +1048,14 @@ export const planningAssignmentInputSchema = z.object({
   projectId: uuidSchema,
   workerId: uuidSchema,
   startsAt: z.iso.datetime(),
-  endsAt: z.iso.datetime(),
-  plannedMinutes: integerFromForm(1, 10080),
+  endsAt: z.preprocess(
+    (value) => (value === '' || value == null ? undefined : value),
+    z.iso.datetime().optional(),
+  ),
+  plannedMinutes: z.preprocess(
+    (value) => (value === '' || value == null ? undefined : value),
+    integerFromForm(0, 10080).optional(),
+  ),
   site: optionalText(200),
   requiredSkill: optionalText(160),
 });

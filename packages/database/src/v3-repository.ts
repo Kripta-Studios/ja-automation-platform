@@ -3797,10 +3797,10 @@ export class V3Repository {
         const project = this.sqlite
           .prepare(
             `SELECT p.project_number,p.name,p.currency,p.budget_minor,p.po_cap_minor,p.revenue_budget_minor,
-                  COALESCE((SELECT SUM(planned_minutes) FROM planning_assignment pa
-                            WHERE pa.project_id=p.id AND pa.worker_id=? AND pa.status<>'cancelled'),0) planning_minutes,
-                  COALESCE((SELECT SUM(planned_minutes) FROM project_member pm
-                            WHERE pm.project_id=p.id AND pm.user_id=? AND pm.status='active'),0) member_planned_minutes
+                  (SELECT SUM(planned_minutes) FROM planning_assignment pa
+                            WHERE pa.project_id=p.id AND pa.worker_id=? AND pa.status<>'cancelled') planning_minutes,
+                  (SELECT SUM(planned_minutes) FROM project_member pm
+                            WHERE pm.project_id=p.id AND pm.user_id=? AND pm.status='active') member_planned_minutes
            FROM project p WHERE p.id=?`,
           )
           .get(workerId, workerId, projectId) as
@@ -3811,17 +3811,17 @@ export class V3Repository {
               budget_minor: number | null;
               po_cap_minor: number | null;
               revenue_budget_minor: number | null;
-              planning_minutes: number;
-              member_planned_minutes: number;
+              planning_minutes: number | null;
+              member_planned_minutes: number | null;
             }
           | undefined;
         if (!project) return null;
         const ownRows = rows.filter((row) => row.project_id === projectId);
         const actual = ownRows.reduce((sum, row) => sum + row.minutes, 0);
         const planned =
-          project.planning_minutes > 0
+          project.planning_minutes !== null
             ? project.planning_minutes
-            : project.member_planned_minutes > 0
+            : project.member_planned_minutes !== null
               ? project.member_planned_minutes
               : null;
         return {
@@ -4657,7 +4657,7 @@ export class V3Repository {
       .prepare(
         `SELECT COALESCE(SUM(planned_minutes),0) minutes
          FROM planning_assignment
-         WHERE project_id=? AND status<>'cancelled' AND ends_at>=? AND starts_at<=?`,
+         WHERE project_id=? AND status<>'cancelled' AND COALESCE(ends_at,starts_at)>=? AND starts_at<=?`,
       )
       .get(projectId, `${start}T00:00:00.000Z`, `${end}T23:59:59.999Z`) as { minutes: number };
     const forecastDate = periodEnd ?? new Date().toISOString().slice(0, 10);
@@ -4677,7 +4677,7 @@ export class V3Repository {
       .prepare(
         `SELECT worker_id, SUM(planned_minutes) minutes
          FROM planning_assignment
-         WHERE project_id=? AND status<>'cancelled' AND ends_at>=? AND starts_at<=?
+         WHERE project_id=? AND status<>'cancelled' AND planned_minutes IS NOT NULL AND COALESCE(ends_at,starts_at)>=? AND starts_at<=?
          GROUP BY worker_id`,
       )
       .all(projectId, `${start}T00:00:00.000Z`, `${end}T23:59:59.999Z`) as Array<{

@@ -30,7 +30,10 @@
   let pauseHoursInput = $state<HTMLInputElement>();
   const pauseMinutes = $derived(pauseHours.trim() === '' ? 0 : durationMinutes(pauseHours));
   const minutes = $derived(intervalMinutes(start, end, pauseMinutes ?? NaN));
-  const enteredMinutes = $derived(durationMinutes(hours));
+  const enteredMinutes = $derived.by(() => {
+    const value = durationMinutes(hours);
+    return value !== null && value > 0 ? value : null;
+  });
   const decimalHours = (value: number): string => String(Number((value / 60).toFixed(4)));
   $effect(() => {
     pauseHoursInput?.setCustomValidity(
@@ -51,7 +54,7 @@
   $effect(() => {
     hoursInput?.setCustomValidity(
       !useInterval && hours && enteredMinutes === null
-        ? translate('Enter a valid number of hours from 0 to 24.')
+        ? translate('Enter a number of hours greater than 0 and no more than 24.')
         : '',
     );
   });

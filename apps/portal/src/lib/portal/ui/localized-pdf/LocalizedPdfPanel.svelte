@@ -4,6 +4,7 @@
   import { portalText, type PortalLocale } from '$lib/portal-i18n';
   import type { ProblemData } from '$lib/problem/contract';
   import ProblemNotice from '../ProblemNotice.svelte';
+  import { privateDownloadFilename } from '../private-document-download';
   import {
     canRetryLocalizedPdf,
     localeFromPortalLocale,
@@ -336,7 +337,10 @@
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = objectUrl;
-      link.download = variant.semanticFilename ?? 'document.pdf';
+      link.download = privateDownloadFilename(
+        response.headers.get('content-disposition'),
+        variant.semanticFilename ?? 'document.pdf',
+      );
       document.body.append(link);
       link.click();
       link.remove();

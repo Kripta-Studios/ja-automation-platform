@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { createHash } from 'node:crypto';
 import { canManageAssignments, newId, type Principal } from '@ja/domain';
 import { workerOperationalProjectScope } from '../../core/project-access.ts';
 
@@ -21,8 +22,8 @@ export type PlanningAssignmentInput = {
   projectId: string;
   workerId: string;
   startsAt: string;
-  endsAt: string;
-  plannedMinutes: number;
+  endsAt?: string;
+  plannedMinutes?: number;
   site?: string;
   requiredSkill?: string;
 };
@@ -205,29 +206,98 @@ export class PlanningRepository {
       this.assertOperationalProject(input.projectId);
       this.assertManagerScope(principal, input.projectId);
       this.validatePlanningWindow(input, '');
-      const id = newId();
-      const timestamp = this.deps.now();
+      return this.insertPlanningAssignment(principal, input);
+    });
+  }
+
+  createPlanningAssignments(
+    principal: Principal,
+    input: Omit<PlanningAssignmentInput, 'workerId'> & { workerIds: string[]; requestKey: string },
+  ) {
+    this.deps.assertActive(principal);
+    if (!canManageAssignments(principal, input.projectId))
+      throw this.deps.errors.accessDenied('Planning administration required');
+    if (
+      !/^[0-9a-f-]{36}$/i.test(input.requestKey) ||
+      input.workerIds.length < 1 ||
+      input.workerIds.length > 100 ||
+      new Set(input.workerIds).size !== input.workerIds.length
+    )
+      throw this.deps.errors.validation('Select one or more distinct workers');
+    const workers = [...input.workerIds].sort();
+    const payloadHash = createHash('sha256')
+      .update(
+        JSON.stringify({
+          projectId: input.projectId,
+          workerIds: workers,
+          startsAt: input.startsAt,
+          endsAt: input.endsAt ?? null,
+          plannedMinutes: input.plannedMinutes ?? null,
+          site: input.site ?? null,
+          requiredSkill: input.requiredSkill ?? null,
+        }),
+      )
+      .digest('hex');
+    return this.deps.transaction(() => {
+      this.assertOperationalProject(input.projectId);
+      this.assertManagerScope(principal, input.projectId);
+      const prior = this.deps.sqlite
+        .prepare(
+          'SELECT payload_hash,assignment_ids FROM planning_publish_request WHERE actor_id=? AND request_key=?',
+        )
+        .get(principal.userId, input.requestKey) as
+        | { payload_hash: string; assignment_ids: string }
+        | undefined;
+      if (prior) {
+        if (prior.payload_hash !== payloadHash)
+          throw this.deps.errors.conflict(
+            'Planning publish request changed; reload before publishing',
+          );
+        return { ids: JSON.parse(prior.assignment_ids) as string[], replayed: true };
+      }
+      // Validate the entire group before the first assignment is inserted.
+      const assignments = workers.map((workerId) => ({ ...input, workerId }));
+      for (const assignment of assignments) this.validatePlanningWindow(assignment, '');
+      const ids = assignments.map(
+        (assignment) => this.insertPlanningAssignment(principal, assignment).id,
+      );
       this.deps.sqlite
         .prepare(
-          'INSERT INTO planning_assignment(id,project_id,worker_id,starts_at,ends_at,planned_minutes,status,site,required_skill,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+          'INSERT INTO planning_publish_request(actor_id,request_key,payload_hash,assignment_ids,created_at) VALUES(?,?,?,?,?)',
         )
-        .run(
-          id,
-          input.projectId,
-          input.workerId,
-          input.startsAt,
-          input.endsAt,
-          input.plannedMinutes,
-          'published',
-          input.site ?? null,
-          input.requiredSkill ?? null,
-          principal.userId,
-          timestamp,
-          timestamp,
-        );
-      this.deps.audit(principal, 'planning.create', 'planning_assignment', id, input);
-      return { id };
+        .run(principal.userId, input.requestKey, payloadHash, JSON.stringify(ids), this.deps.now());
+      return { ids, replayed: false };
     });
+  }
+
+  private insertPlanningAssignment(principal: Principal, input: PlanningAssignmentInput) {
+    const id = newId();
+    const timestamp = this.deps.now();
+    this.deps.sqlite
+      .prepare(
+        'INSERT INTO planning_assignment(id,project_id,worker_id,starts_at,ends_at,planned_minutes,status,site,required_skill,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+      )
+      .run(
+        id,
+        input.projectId,
+        input.workerId,
+        input.startsAt,
+        input.endsAt ?? null,
+        input.plannedMinutes ?? null,
+        'published',
+        input.site ?? null,
+        input.requiredSkill ?? null,
+        principal.userId,
+        timestamp,
+        timestamp,
+      );
+    const {
+      workerIds: _workerIds,
+      requestKey: _requestKey,
+      ...details
+    } = input as PlanningAssignmentInput & { workerIds?: string[]; requestKey?: string };
+    this.deps.audit(principal, 'planning.create', 'planning_assignment', id, details);
+    return { id };
   }
 
   updatePlanningAssignment(principal: Principal, input: PlanningAssignmentUpdateInput) {
@@ -264,8 +334,8 @@ export class PlanningRepository {
           input.projectId,
           input.workerId,
           input.startsAt,
-          input.endsAt,
-          input.plannedMinutes,
+          input.endsAt ?? null,
+          input.plannedMinutes ?? null,
           input.site ?? null,
           input.requiredSkill ?? null,
           timestamp,
@@ -316,33 +386,55 @@ export class PlanningRepository {
 
   private validatePlanningWindow(input: PlanningAssignmentInput, excludeId: string): void {
     const starts = Date.parse(input.startsAt);
-    const ends = Date.parse(input.endsAt);
-    if (!Number.isFinite(starts) || !Number.isFinite(ends) || ends <= starts)
+    const ends = input.endsAt ? Date.parse(input.endsAt) : null;
+    if (!Number.isFinite(starts) || (ends !== null && (!Number.isFinite(ends) || ends <= starts)))
       throw this.deps.errors.validation('Planning end must follow a valid start');
     if (
-      !Number.isInteger(input.plannedMinutes) ||
-      input.plannedMinutes < 1 ||
-      input.plannedMinutes > 10080
+      input.plannedMinutes !== undefined &&
+      (!Number.isInteger(input.plannedMinutes) ||
+        input.plannedMinutes < 0 ||
+        input.plannedMinutes > 10080)
     )
-      throw this.deps.errors.validation('Planned minutes must be between 1 and 10080');
+      throw this.deps.errors.validation('Planned minutes must be between 0 and 10080');
     const startsOn = this.datePart(input.startsAt, 'Planning start');
-    const endsOn = this.datePart(input.endsAt, 'Planning end');
+    const endsOn = input.endsAt ? this.datePart(input.endsAt, 'Planning end') : startsOn;
     if (!this.assignmentCoversWindow(input.projectId, input.workerId, startsOn, endsOn))
       throw this.deps.errors.validation(
         'Worker must have an effective project assignment for the planning window',
       );
+    // An omitted end is a start-only event, not an inferred shift duration.
+    // Reject an identical start or a start contained by a known interval.
     const overlap = this.deps.sqlite
       .prepare(
-        "SELECT 1 FROM planning_assignment WHERE worker_id=? AND id<>? AND status<>'cancelled' AND starts_at<? AND ends_at>? LIMIT 1",
+        `SELECT 1 FROM planning_assignment WHERE worker_id=? AND id<>? AND status<>'cancelled'
+       AND (starts_at=? OR (ends_at IS NOT NULL AND starts_at<=? AND ends_at>?)
+         OR (? IS NOT NULL AND starts_at>=? AND starts_at<?)) LIMIT 1`,
       )
-      .get(input.workerId, excludeId, input.endsAt, input.startsAt);
+      .get(
+        input.workerId,
+        excludeId,
+        input.startsAt,
+        input.startsAt,
+        input.startsAt,
+        input.endsAt ?? null,
+        input.startsAt,
+        input.endsAt ?? null,
+      );
     if (overlap)
       throw this.deps.errors.conflict('Worker already has an overlapping planning assignment');
     const unavailable = this.deps.sqlite
       .prepare(
-        "SELECT 1 FROM worker_availability WHERE worker_id=? AND availability='unavailable' AND starts_at<? AND ends_at>? LIMIT 1",
+        `SELECT 1 FROM worker_availability WHERE worker_id=? AND availability='unavailable'
+       AND ((starts_at<=? AND ends_at>?) OR (? IS NOT NULL AND starts_at<? AND ends_at>?)) LIMIT 1`,
       )
-      .get(input.workerId, input.endsAt, input.startsAt);
+      .get(
+        input.workerId,
+        input.startsAt,
+        input.startsAt,
+        input.endsAt ?? null,
+        input.endsAt ?? null,
+        input.startsAt,
+      );
     if (unavailable)
       throw this.deps.errors.conflict('Worker is unavailable for this planning window');
   }
@@ -365,7 +457,7 @@ export class PlanningRepository {
              AND pm.status='active' AND u.status='active'
              AND u.role IN ('worker','project_manager')
              AND pm.starts_on<=date(pa.starts_at)
-             AND (pm.ends_on IS NULL OR pm.ends_on>=date(pa.ends_at))
+             AND (pm.ends_on IS NULL OR pm.ends_on>=date(COALESCE(pa.ends_at,pa.starts_at)))
            ORDER BY pa.starts_at`,
         )
         .all(...scope.parameters, principal.userId);

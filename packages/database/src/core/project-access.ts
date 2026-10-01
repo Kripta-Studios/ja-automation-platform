@@ -18,7 +18,7 @@ const occurrenceDates: Readonly<Record<RecordDates, readonly string[]>> = {
   technical: ['t.report_date'],
   time: ['t.work_date'],
   expense: ['e.spent_on'],
-  planning: ['date(pa.starts_at)', 'date(pa.ends_at)'],
+  planning: ['date(pa.starts_at)', 'date(COALESCE(pa.ends_at,pa.starts_at))'],
   notification: ['COALESCE((SELECT record_date FROM notification_source),scope_day.local_today)'],
   object: ['COALESCE((SELECT object_date FROM requested_project_object),scope_day.local_today)'],
 };

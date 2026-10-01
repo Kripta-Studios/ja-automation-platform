@@ -1,5 +1,167 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Corrected time entry': ['Registro de horas corregido', 'Lançamento de horas corrigido'],
+  'Open original time entry': [
+    'Abrir registro de horas original',
+    'Abrir lançamento de horas original',
+  ],
+  'Changing the project or date clears unsaved crew entries. Continue?': [
+    'Cambiar el proyecto o la fecha elimina las entradas de la cuadrilla sin guardar. ¿Continuar?',
+    'Alterar o projeto ou a data limpa os lançamentos da equipe não salvos. Continuar?',
+  ],
+  'You have unsaved crew entries. Leave without saving?': [
+    'Hay entradas de la cuadrilla sin guardar. ¿Salir sin guardar?',
+    'Há lançamentos da equipe não salvos. Sair sem salvar?',
+  ],
+  'Reload the latest project and discard your unsaved edits?': [
+    '¿Recargar la versión actual del proyecto y descartar los cambios sin guardar?',
+    'Recarregar a versão atual do projeto e descartar suas alterações não salvas?',
+  ],
+  'Update project details. If someone else has changed the project, review their changes before saving again.':
+    [
+      'Actualiza los datos del proyecto. Si otra persona lo ha cambiado, revisa sus cambios antes de volver a guardar.',
+      'Atualize os dados do projeto. Se outra pessoa o alterou, revise as alterações antes de salvar novamente.',
+    ],
+  'Update the cost center code. The existing project number stays unchanged.': [
+    'Actualiza el código del centro de coste. El número del proyecto existente se mantiene sin cambios.',
+    'Atualize o código do centro de custo. O número do projeto existente permanece igual.',
+  ],
+  'Enter a number of hours greater than 0 and no more than 24.': [
+    'Introduce un número de horas mayor que 0 y no superior a 24.',
+    'Insira um número de horas maior que 0 e no máximo 24.',
+  ],
+  'Review in approvals': ['Revisar en Aprobaciones', 'Revisar em Aprovações'],
+  'Attach a receipt to this corrected draft, or leave this empty to keep the current receipt. The original expense stays unchanged.':
+    [
+      'Adjunta un recibo a este borrador corregido o deja este campo vacío para conservar el recibo actual. El gasto original se mantiene sin cambios.',
+      'Anexe um recibo a este rascunho corrigido ou deixe o campo vazio para manter o recibo atual. A despesa original permanece inalterada.',
+    ],
+  'Changing the worker clears unsaved daily expenses. Continue?': [
+    'Cambiar el trabajador elimina los gastos diarios sin guardar. ¿Continuar?',
+    'Alterar o trabalhador limpa as despesas diárias não salvas. Continuar?',
+  ],
+  'Changing the project clears unsaved daily expenses. Continue?': [
+    'Cambiar el proyecto elimina los gastos diarios sin guardar. ¿Continuar?',
+    'Alterar o projeto limpa as despesas diárias não salvas. Continuar?',
+  ],
+  'Changing the currency clears unsaved daily expenses. Continue?': [
+    'Cambiar la moneda elimina los gastos diarios sin guardar. ¿Continuar?',
+    'Alterar a moeda limpa as despesas diárias não salvas. Continuar?',
+  ],
+  'Close weekly entry': ['Cerrar entrada semanal', 'Fechar lançamento semanal'],
+  'Close weekly entry without saving?': [
+    '¿Cerrar la entrada semanal sin guardar?',
+    'Fechar o lançamento semanal sem salvar?',
+  ],
+  'No approved records match this view.': [
+    'No hay registros aprobados que coincidan con esta vista.',
+    'Nenhum registro aprovado corresponde a esta visualização.',
+  ],
+  'approved records': ['registros aprobados', 'registros aprovados'],
+  'Weekly expense timesheet': ['Parte semanal de gastos', 'Resumo semanal de despesas'],
+  'Expense calendar': ['Calendario de gastos', 'Calendário de despesas'],
+  'Expense week': ['Semana de gastos', 'Semana de despesas'],
+  'Week containing': ['Semana que incluye', 'Semana que contém'],
+  'Show week': ['Mostrar semana', 'Mostrar semana'],
+  'Daily expenses by currency and approval status': [
+    'Gastos diarios por moneda y estado de aprobación',
+    'Despesas diárias por moeda e status de aprovação',
+  ],
+  'Choose a worker to review weekly expenses.': [
+    'Selecciona un trabajador para revisar sus gastos semanales.',
+    'Selecione um trabalhador para revisar suas despesas semanais.',
+  ],
+  'Choose a day to review expenses and editable drafts.': [
+    'Selecciona un día para revisar gastos y borradores editables.',
+    'Selecione um dia para revisar despesas e rascunhos editáveis.',
+  ],
+  'No expenses recorded for this day.': [
+    'No hay gastos registrados para este día.',
+    'Nenhuma despesa registrada neste dia.',
+  ],
+  'Record expense on this day': ['Registrar gasto en este día', 'Registrar despesa neste dia'],
+  'View expense': ['Ver gasto', 'Ver despesa'],
+  'Leave unused days blank. All completed daily rows save together as drafts.': [
+    'Deja vacíos los días sin gastos. Todas las filas completas se guardan juntas como borradores.',
+    'Deixe em branco os dias sem despesas. Todas as linhas completas são salvas juntas como rascunhos.',
+  ],
+  'Save up to one expense per day for a single project and worker. Amounts remain in the selected currency. Attach receipts later by editing the draft; use Record expense to link hours.':
+    [
+      'Guarda un gasto por día para un proyecto y trabajador. Los importes conservan la moneda elegida. Puedes adjuntar recibos después al editar el borrador; usa Registrar gasto para vincular horas.',
+      'Salve uma despesa por dia para um projeto e trabalhador. Os valores mantêm a moeda escolhida. Anexe recibos depois ao editar o rascunho; use Registrar despesa para vincular horas.',
+    ],
+  'Submit all draft expenses for one worker in the displayed week. Every draft is checked together; if any draft changed or requires a receipt, none are submitted.':
+    [
+      'Envía todos los borradores de gastos de un trabajador en la semana mostrada. Se revisan juntos; si algún borrador cambió o falta un recibo obligatorio, no se envía ninguno.',
+      'Envie todos os rascunhos de despesas de um trabalhador na semana exibida. São verificados juntos; se algum mudou ou falta um recibo obrigatório, nenhum é enviado.',
+    ],
+  'draft expenses': ['borradores de gastos', 'rascunhos de despesas'],
+  'draft expenses require a receipt. Review those expenses before submitting the week.': [
+    'borradores requieren un recibo. Revísalos antes de enviar la semana.',
+    'rascunhos exigem um recibo. Revise-os antes de enviar a semana.',
+  ],
+  'Save weekly expense drafts': [
+    'Guardar borradores semanales de gastos',
+    'Salvar rascunhos semanais de despesas',
+  ],
+  'Weekly expense drafts saved': [
+    'Borradores semanales de gastos guardados',
+    'Rascunhos semanais de despesas salvos',
+  ],
+  'Expense week submitted': ['Semana de gastos enviada', 'Semana de despesas enviada'],
+  'This week could not be submitted. Review the drafts and try again.': [
+    'No se pudo enviar esta semana. Revisa los borradores e inténtalo de nuevo.',
+    'Não foi possível enviar esta semana. Revise os rascunhos e tente novamente.',
+  ],
+  'Weekly expenses could not be saved. Your entered details are retained.': [
+    'No se pudieron guardar los gastos semanales. Se conservan los datos introducidos.',
+    'Não foi possível salvar as despesas semanais. Os dados preenchidos foram mantidos.',
+  ],
+  'The response could not be confirmed. Refresh to review expense status before trying again.': [
+    'No se pudo confirmar la respuesta. Actualiza para revisar el estado de los gastos antes de volver a intentarlo.',
+    'Não foi possível confirmar a resposta. Atualize para revisar o status das despesas antes de tentar novamente.',
+  ],
+  'The save response could not be confirmed. Retry with the same details to avoid duplicate expenses.':
+    [
+      'No se pudo confirmar el guardado. Reintenta con los mismos datos para evitar duplicados.',
+      'Não foi possível confirmar o salvamento. Tente novamente com os mesmos dados para evitar duplicatas.',
+    ],
+  'You have unsaved weekly expenses. Leave without saving?': [
+    'Tienes gastos semanales sin guardar. ¿Salir sin guardar?',
+    'Você tem despesas semanais não salvas. Sair sem salvar?',
+  ],
+  'Changing the week clears unsaved daily expenses. Continue?': [
+    'Cambiar de semana borra los gastos diarios sin guardar. ¿Continuar?',
+    'Mudar a semana apaga as despesas diárias não salvas. Continuar?',
+  ],
+  'Attach receipt (optional)': ['Adjuntar recibo (opcional)', 'Anexar recibo (opcional)'],
+  'Replace receipt (optional)': ['Reemplazar recibo (opcional)', 'Substituir recibo (opcional)'],
+  'Choose a JPG, PNG, WebP, HEIC, HEIF, or PDF receipt under 10 MB. The current receipt stays attached until valid changes are saved.':
+    [
+      'Elige un recibo JPG, PNG, WebP, HEIC, HEIF o PDF de menos de 10 MB. El recibo actual se conserva hasta guardar cambios válidos.',
+      'Escolha um recibo JPG, PNG, WebP, HEIC, HEIF ou PDF de menos de 10 MB. O recibo atual permanece até salvar alterações válidas.',
+    ],
+  'End (optional)': ['Fin (opcional)', 'Fim (opcional)'],
+  'Planned minutes (optional)': ['Minutos previstos (opcional)', 'Minutos previstos (opcional)'],
+  'Planned hours (optional)': ['Horas previstas (opcional)', 'Horas previstas (opcional)'],
+  'Site (optional)': ['Ubicación (opcional)', 'Local (opcional)'],
+  'Select one or more assigned workers. Each worker receives the same assignment.': [
+    'Selecciona uno o varios trabajadores asignados. Cada trabajador recibirá la misma asignación.',
+    'Selecione um ou mais trabalhadores atribuídos. Cada trabalhador receberá a mesma atribuição.',
+  ],
+  'Select at least one worker': [
+    'Selecciona al menos un trabajador',
+    'Selecione pelo menos um trabalhador',
+  ],
+  'Select each worker only once': [
+    'Selecciona cada trabajador una sola vez',
+    'Selecione cada trabalhador apenas uma vez',
+  ],
+  'Publish a planned assignment for one or more assigned workers. Planning does not create actual time entries; each worker records the work performed separately.':
+    [
+      'Publica una asignación prevista para uno o varios trabajadores asignados. La planificación no crea registros de horas reales; cada trabajador registra por separado el trabajo realizado.',
+      'Publique uma atribuição prevista para um ou mais trabalhadores atribuídos. O planeamento não cria registos de horas reais; cada trabalhador regista separadamente o trabalho realizado.',
+    ],
   'Project access could not be refreshed on this device. Stay online and reload before using offline forms. Your unsent drafts and attachments are preserved.':
     [
       'No se pudo actualizar el acceso a los proyectos en este dispositivo. Sigue en línea y vuelve a cargar la página antes de usar los formularios sin conexión. Tus borradores pendientes de envío y sus archivos adjuntos se conservan.',

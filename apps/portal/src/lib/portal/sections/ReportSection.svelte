@@ -661,6 +661,16 @@
     return value || translate(String(row.approval_state ?? 'Draft'));
   }
 
+  function canSubmitReport(row: Row): boolean {
+    // The register aliases technical_report.author_id as worker_id. Creating
+    // a report for another worker does not grant the creator submission rights.
+    return (
+      !isAuditor &&
+      ['draft', 'needs_changes'].includes(rowText(row, 'approval_state')) &&
+      (data.user.role === 'owner_admin' || rowText(row, 'worker_id') === data.user.id)
+    );
+  }
+
   function signoffState(report: Row): SignoffState {
     switch (String(report.conformity_state ?? '').toLowerCase()) {
       case 'signed':
@@ -882,8 +892,20 @@
     if (from) params.set('from', from);
     if (to) params.set('to', to);
     params.set('q', queryText);
+    params.set('order', overrides.order ?? order);
     if ($page.url.searchParams.has('lang')) params.set('lang', $page.url.searchParams.get('lang')!);
     return `${base}/app/reports?${params.toString()}`;
+  }
+
+  function registerActionHref(
+    action:
+      | 'submitReport'
+      | 'createDailyReport'
+      | 'createTechnicalReport'
+      | 'generatePeriodReports',
+    view: ReportTab = activeTab,
+  ): string {
+    return `${registerHref({ view })}&/${action}`;
   }
 </script>
 
@@ -1165,8 +1187,12 @@
                 >
               {/if}
             </a>
-            {#if row.approval_state === 'draft' || row.approval_state === 'needs_changes'}
-              <form method="POST" action="?/submitReport" class="report-register-action">
+            {#if canSubmitReport(row)}
+              <form
+                method="POST"
+                action={registerActionHref('submitReport')}
+                class="report-register-action"
+              >
                 <input type="hidden" name="type" value={row.type} />
                 <input type="hidden" name="id" value={row.id} />
                 <input type="hidden" name="version" value={row.version} />
@@ -1267,8 +1293,12 @@
                 >
               {/if}
             </a>
-            {#if row.approval_state === 'draft' || row.approval_state === 'needs_changes'}
-              <form method="POST" action="?/submitReport" class="report-register-action">
+            {#if canSubmitReport(row)}
+              <form
+                method="POST"
+                action={registerActionHref('submitReport')}
+                class="report-register-action"
+              >
                 <input type="hidden" name="type" value={row.type} />
                 <input type="hidden" name="id" value={row.id} />
                 <input type="hidden" name="version" value={row.version} />
@@ -1647,7 +1677,7 @@
   {#if surface === 'daily'}
     <form
       method="POST"
-      action="?/createDailyReport"
+      action={registerActionHref('createDailyReport', 'daily')}
       class="report-entry-form report-form"
       data-report-entry-surface="daily"
       aria-busy={saving}
@@ -1824,7 +1854,7 @@
   {:else if surface === 'technical'}
     <form
       method="POST"
-      action="?/createTechnicalReport"
+      action={registerActionHref('createTechnicalReport', 'technical')}
       class="report-entry-form report-form"
       data-report-entry-surface="technical"
       aria-busy={saving}
@@ -2070,7 +2100,7 @@
   {:else if surface === 'generate' && canGeneratePeriodReports}
     <form
       method="POST"
-      action="?/generatePeriodReports"
+      action={registerActionHref('generatePeriodReports')}
       class="report-entry-form report-generator-form"
       data-report-entry-surface="generate"
     >

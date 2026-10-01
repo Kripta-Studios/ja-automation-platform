@@ -164,7 +164,11 @@
   });
   const remedyLinks = $derived({
     review_projects: { label: t('problem.remedy.reviewProjects'), href: base + '/app/projects' },
-    review_updated_record: { label: t('problem.remedy.reviewUpdatedRecord'), href: projectHref },
+    review_updated_record: {
+      label: t('problem.remedy.reviewUpdatedRecord'),
+      href: projectHref,
+      reload: true,
+    },
     correct_field: { label: t('problem.remedy.correctField') },
     contact_owner: { label: t('problem.remedy.contactOwner') },
     sign_in_again: { label: t('problem.remedy.signInAgain'), href: base + '/app/login' },
@@ -202,6 +206,26 @@
     return detailForm?.success === false && detailForm.actionName === 'updateProject'
       ? Object.hasOwn(failedProjectValues, name)
       : fallback;
+  }
+  function confirmProjectRecovery(event: MouseEvent): void {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      event.altKey ||
+      detailForm?.success !== false ||
+      detailForm.actionName !== 'updateProject' ||
+      !(event.target instanceof Element)
+    )
+      return;
+    const link = event.target.closest<HTMLAnchorElement>(
+      '[data-project-problem] a[data-sveltekit-reload]',
+    );
+    if (!link || new URL(link.href).pathname !== projectHref) return;
+    if (saving || !window.confirm(t('Reload the latest project and discard your unsaved edits?')))
+      event.preventDefault();
   }
   function projectFieldError(name: string): string {
     const key =
@@ -842,6 +866,8 @@
   $effect(() => applyStandaloneDocumentLocale(locale));
 </script>
 
+<svelte:window onclickcapture={confirmProjectRecovery} />
+
 <svelte:head>
   <title>{display(project.project_number)} · {display(project.name)} | J&A Automation</title>
 </svelte:head>
@@ -910,6 +936,7 @@
           type="button"
           class="primary-button"
           data-project-edit-cta
+          disabled={!mounted}
           onclick={() => (editOpen = true)}
         >
           {t('Edit project')}
@@ -1341,9 +1368,9 @@
               onselectdate={selectProjectPlanningDate}
               events={overview.planning.map((plan) => ({
                 id: String(plan.id),
-                title: `${display(plan.worker_name)} · ${display(plan.planned_minutes)} min`,
+                title: `${display(plan.worker_name)}${plan.planned_minutes == null ? '' : ` · ${display(plan.planned_minutes)} min`}`,
                 startsAt: String(plan.starts_at),
-                endsAt: String(plan.ends_at),
+                endsAt: plan.ends_at == null ? undefined : String(plan.ends_at),
                 href:
                   data.user.role === 'owner_admin'
                     ? `${base}/app/manage?area=planning_assignment&project=${project.id}&focus=${plan.id}`
@@ -1387,9 +1414,9 @@
                   >
                     <strong>{display(plan.worker_name, t('Assigned worker'))}</strong></a
                   ><small>{display(plan.site)} · {display(plan.required_skill)}</small><span
-                    >{display(plan.starts_at).replace('T', ' ').slice(0, 16)} → {display(
-                      plan.ends_at,
-                    ).slice(11, 16)}</span
+                    >{display(plan.starts_at).replace('T', ' ').slice(0, 16)}{plan.ends_at
+                      ? ` → ${display(plan.ends_at).replace('T', ' ').slice(0, 16)}`
+                      : ''}</span
                   >
                 </article>
               {:else}<p class="empty-state">{t('No planning assignments recorded.')}</p>{/each}
@@ -1888,7 +1915,7 @@
     open={editOpen}
     title={t('Edit project')}
     description={t(
-      'Update project configuration with optimistic concurrency. Lifecycle status and close date remain protected.',
+      'Update project details. If someone else has changed the project, review their changes before saving again.',
     )}
     closeLabel={t('Close edit project')}
     class="project-edit-sheet"
@@ -1947,7 +1974,7 @@
               maxlength="120"
             /><small
               >{t(
-                'End the cost center with digits. Those digits become the project number suffix (for example, CP020 becomes P-020).',
+                'Update the cost center code. The existing project number stays unchanged.',
               )}</small
             ></label
           >

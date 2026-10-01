@@ -28,6 +28,33 @@ export type PortalNavigation = {
 
 export type NavSubsection = { label: string; href: string };
 
+/** Carry only an authorized project selection between the related finance views. */
+export function financeProjectNavigationHref(
+  href: string,
+  {
+    base,
+    section,
+    url,
+    projectId,
+  }: { base: string; section: string; url: URL; projectId?: string },
+): string {
+  if (section !== 'finance' || !projectId) return href;
+  const target = new URL(href, url);
+  const financePath = `${base}/app/finance`;
+  const views = ['overview', 'economic', 'commercial'];
+  if (
+    url.pathname.replace(/\/+$/u, '') !== financePath ||
+    target.origin !== url.origin ||
+    target.pathname.replace(/\/+$/u, '') !== financePath ||
+    !views.includes(url.searchParams.get('view') || 'overview') ||
+    !views.includes(target.searchParams.get('view') || 'overview') ||
+    target.searchParams.has('project')
+  )
+    return href;
+  target.searchParams.set('project', projectId);
+  return `${target.pathname}${target.search}${target.hash}`;
+}
+
 /**
  * Only link to sections that the destination renders for this role. The
  * ordinary row remains the page link; these are optional shortcuts into its
@@ -494,7 +521,7 @@ export const portalTitles: Record<string, string> = {
   profile: 'Profile and security',
   planning: 'Resource planning',
   approvals: 'Approval queue',
-  billing: 'Billing streams',
+  billing: 'Billing',
   finance: 'Project finance',
   ledger: 'Collections / Ledger',
   accounting: 'Monthly Accounting Pack',
@@ -512,6 +539,7 @@ export const portalViewTitles: Record<string, Record<string, string>> = {
   },
   billing: {
     invoices: 'Invoices',
+    streams: 'Billing streams',
   },
   finance: {
     overview: 'Finance Overview',

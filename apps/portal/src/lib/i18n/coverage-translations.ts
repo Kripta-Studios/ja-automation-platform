@@ -8,6 +8,14 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  'problem.time.saveRequestInvalid': [
+    'La solicitud para guardar horas falta o no es válida. Abre de nuevo el formulario y revisa los datos antes de guardar.',
+    'A solicitação para salvar horas está ausente ou inválida. Reabra o formulário e revise os dados antes de salvar.',
+  ],
+  'problem.time.saveRetryChanged': [
+    'Esta solicitud ya guardó horas con otros datos. Revisa el registro guardado antes de abrir un nuevo formulario.',
+    'Esta solicitação já salvou horas com outros dados. Revise o registro salvo antes de abrir um novo formulário.',
+  ],
   'Submit all week drafts': [
     'Enviar todos los borradores de la semana',
     'Enviar todos os rascunhos da semana',
@@ -7940,6 +7948,30 @@ export function isCoverageInvariantKey(key: string): boolean {
  * validation messages without exposing an English fallback to users.
  */
 const actionExact: Record<string, readonly [string, string]> = {
+  'action.expense.draftAlreadySaved': [
+    'El borrador de gasto ya se guardó. No se creó un duplicado.',
+    'O rascunho de despesa já foi salvo. Nenhuma duplicata foi criada.',
+  ],
+  'action.expense.weekDraftsAlreadySaved': [
+    '{created} borradores semanales de gastos ya se guardaron. No se crearon duplicados.',
+    '{created} rascunhos semanais de despesas já foram salvos. Nenhuma duplicata foi criada.',
+  ],
+  'action.planning.assignmentAlreadyPublished': [
+    'La asignación ya se publicó. No se crearon duplicados.',
+    'A atribuição já foi publicada. Nenhuma duplicata foi criada.',
+  ],
+  'action.time.draftAlreadySaved': [
+    'El borrador de horas ya se guardó. No se creó un duplicado.',
+    'O rascunho de horas já foi salvo. Nenhuma duplicata foi criada.',
+  ],
+  'action.expense.weekSubmitted': [
+    '{submitted} borradores de gastos enviados a revisión.',
+    '{submitted} rascunhos de despesas enviados para revisão.',
+  ],
+  'action.expense.weekDraftsSaved': [
+    '{created} borradores semanales guardados; las repeticiones no crean duplicados.',
+    '{created} rascunhos semanais salvos; novas tentativas não criam duplicatas.',
+  ],
   'action.management.changed': [
     'Este registro cambió. Tus datos siguen en este formulario. Compáralos con el registro actual antes de volver a aplicar tus cambios.',
     'Este registro mudou. Seus dados continuam neste formulário. Compare-os com o registro atual antes de aplicar suas alterações novamente.',
@@ -8958,7 +8990,13 @@ function englishActionMessage(key: string): string {
     'action.validation.receiptContent':
       'Receipt filename or content does not match its declared file type.',
     'action.validation.receiptPath': 'Invalid receipt path.',
+    'action.expense.weekSubmitted': '{submitted} expense drafts submitted for review.',
+    'action.expense.weekDraftsSaved':
+      '{created} weekly expense drafts saved; retries create no duplicates.',
     'action.expense.draftSaved': 'Expense draft saved.',
+    'action.expense.draftAlreadySaved': 'Expense draft already saved. No duplicate was created.',
+    'action.expense.weekDraftsAlreadySaved':
+      '{created} weekly expense drafts were already saved. No duplicates were created.',
     'action.validation.expenseRecord': 'Invalid expense record.',
     'action.expense.submitted': 'Expense submitted.',
     'action.reports.draftDeleted': 'Draft deleted.',
@@ -9022,6 +9060,8 @@ function englishActionMessage(key: string): string {
     'action.reports.technicalChangeSubmitted': 'Technical change submitted for review.',
     'action.validation.planningFields': 'Check planning fields.',
     'action.planning.assignmentPublished': 'Assignment published.',
+    'action.planning.assignmentAlreadyPublished':
+      'Assignment already published. No duplicates were created.',
     'action.planning.assignmentUpdated': 'Assignment updated.',
     'action.planning.assignmentCancelled': 'Assignment cancelled.',
     'action.planning.workerNotAssigned':
@@ -9083,6 +9123,7 @@ function englishActionMessage(key: string): string {
     'action.projects.assignmentUpdated': 'Assignment updated.',
     'action.projects.assignmentDeleted': 'Assignment removed.',
     'action.validation.timeFields': 'Check time fields.',
+    'action.time.draftAlreadySaved': 'Time draft already saved. No duplicate was created.',
     'action.time.draftSaved': 'Time draft saved.',
     'action.time.batchDraftsSaved': '{count} daily time drafts saved.',
     'action.time.expenseDraftsSaved': 'Time and expense drafts saved.',
@@ -9243,6 +9284,10 @@ function englishActionMessage(key: string): string {
 }
 
 const problemEnglish: Record<string, string> = {
+  'problem.time.saveRequestInvalid':
+    'The time save request ID is missing or invalid. Reopen the form and review the details before saving.',
+  'problem.time.saveRetryChanged':
+    'This save request already created time with different details. Review the saved entry before starting a new time form.',
   'problem.invoice.pdfNetworkUnavailable':
     'The invoice PDF could not be reached. No invoice was changed. Check your connection and try again.',
   'problem.invoice.pdfInvalidResponse':

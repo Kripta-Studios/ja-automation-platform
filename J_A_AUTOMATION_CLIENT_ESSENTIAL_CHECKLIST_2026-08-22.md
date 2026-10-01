@@ -6,6 +6,18 @@
 **Client validation update:** 2026-08-24
 The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
 
+## Flujos por rol, gastos semanales y navegación — 2026-10-01
+
+Seguimiento solicitado por el propietario: pruebas funcionales exclusivamente en Chromium con
+propietario, jefe de equipo, trabajadores, gestor, administrador financiero, auditor, proveedor y
+técnico. Se comprobaron creación/asignación de proyecto, horas/gastos delegados, doble clic,
+privacidad, aprobaciones e informe diario; en copia aislada, gastos semanales atómicos, recibos,
+conflicto entre pestañas y publicación para varios trabajadores con campos opcionales.
+Los filtros conservan posición y foco en Planificación, Gastos, Horas e Informes; anchuras
+360/390/768/1440 verificadas. Typecheck/build del portal correctos y revisión independiente.
+Evidencia, registros sintéticos y límites: [browser-workflows-20261001](docs/evidence/browser-workflows-20261001.md).
+La aceptación histórica completa y los pendientes externos mantienen su estado.
+
 ## Seguimiento de funciones y errores — 2026-09-25
 
 La versión `2fa2cb6` continúa en producción mientras se verifica esta corrección. En una base
@@ -1281,3 +1293,15 @@ These scoped corrections are deployed and verified. Complete every-action/all-te
 ### Production maintenance verification — 2026-10-01
 
 Owner-authorized cleanup reclaimed 9.46 GiB, leaving 20.18 GiB available. Removed 14 obsolete extracted releases, 20 old archive/sidecar files and two unreferenced historical J&A images; unused Docker build cache was already empty. Current 69ed5e5 and immediate 3dee05c rollback archives, extracted sources and images remain verified (4,277/4,276 installed manifest hashes). A refreshed canonical backup retains three daily recovery snapshots with verified latest database/document integrity and complete day coverage. All 18 container references/states, Caddy PID, financial hashes and three private-file hashes are unchanged; SQLite quick_check/FKs pass and deployment triggers are restored. Public/internal health, public site and jobs checks pass; the post-cleanup actual production GET-only browser smoke passes 19/19 across seven roles and representative widths, with zero page errors/failed requests. Full every-action acceptance remains open. Details: `docs/evidence/browser-ui-action-audit-20260930/README.md`.
+
+### Multi-role adversarial workflow follow-up — 2026-10-01
+
+Continued browser-only operational QA after zip48b9c466 found and repaired missing approved-report facts, internal PDF filenames, receipt-less correction dead ends, silent weekly-entry worker/context changes, misleading approved-filter emptiness and lost finance project context. Worker/crew, manager, owner, finance and unassigned-worker Chromium checks cover validation recovery, private receipts, corrections/withdrawal/approval, role-safe views, unsaved-input safeguards and localized calendars. Duplicate receipt content shows an explicit no-new-expense error and retains correction fields; durable expense/week/planning replay branches now have distinct already-saved/no-duplicates EN/ES/PT messages, independently source-reviewed. Production activation and final verification are recorded in `docs/evidence/role-adversarial-browser-20261001.md`. This entry covers the exercised flows, not the complete historic acceptance suite.
+
+The follow-up activated as **zip366bef47558b2fe5e79263f810b3688f** at12:39:02 Europe/Madrid. Full type/lint and portal/site/jobs builds pass. Live duplicate receipt rejects with retained fields and unchanged23-record count; weekly context guards, manager permissions/approved results/review links, technical detail submission (one POST), operational report facts/semantic PDF, finance scope and planning filter scroll1911→1911 pass. Deployment backup and health/jobs/timer checks succeed. Nonzero native POST scroll restoration remains a stated runtime limit; the observed technical submit was0→0. Complete every-action/financial-issuance/offline acceptance is not claimed.
+
+### Proactive multi-role workflow round3 — 2026-10-01
+
+Browser-only QA across owner, crew chief/worker, supplier coordinator and technician found silent crew draft loss, stale project recovery using cached data, premature SSR Edit clicks, misleading actual-hour/cost-center guidance, missing time-correction lineage and a planning editor collapsing on input. Reviewed fixes preserve dirty data, enforce role-safe origin links and retain working editor context. Real correction create/withdraw/stale-submit, supplier overlap/discard/double-save, project optimistic conflict recovery and planning publish/update/cancel pass; actual project hours unchanged4.25. Global type/lint plus scoped compilation pass. Activation and detailed limitations are in `docs/evidence/proactive-role-workflows-round3-20261001.md`; no complete every-action/financial/offline acceptance claim.
+
+- 2026-10-01 Round3 activation and live UI evidence: `zip-2d6a8bb49564fc5eb49e66430527e68f` (13:45:01 Europe/Madrid); production portal/site builds, online5-document backup, health/public URLs/jobs actor/timers PASS. Actual live owner/Worker1 no-write regressions PASS for planning expansion/filter scroll, current hydrated project edit, timefacts360/768, crew unsaved context/nav guards andzero-hour0POST360/390/1440. Live empty worker fieldset512px defect fixed via scopedlayout; independentSHIP plus actual candidate/live empty/populated390/1440 verification. Detailed scope/limits and backup/image/cache receipts: `docs/evidence/proactive-role-workflows-round3-20261001.md`.

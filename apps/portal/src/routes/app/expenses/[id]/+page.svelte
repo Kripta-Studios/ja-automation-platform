@@ -535,6 +535,13 @@
       ><DirectionIcon direction="left" /> {t('Expenses')}</a
     >
     <a href={base + '/app/projects/' + String(record.project_id)}>{t('Open project')}</a>
+    {#if record.approval_state === 'submitted' && ['owner_admin', 'project_manager'].includes(data.user?.role ?? '')}
+      <a
+        class="no-print"
+        href={`${base}/app/approvals?project=${encodeURIComponent(String(record.project_id))}&tab=expenses&status=submitted&q=&lang=${encodeURIComponent(locale)}`}
+        >{t('Review in approvals')}</a
+      >
+    {/if}
     <button type="button" class="no-print print-trigger" onclick={printReport}>
       <PrintIcon />
       {t('Print Report')}

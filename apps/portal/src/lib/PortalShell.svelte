@@ -52,6 +52,7 @@
   } from './portal-i18n';
   import {
     activeNavItem,
+    financeProjectNavigationHref,
     mobilePrimaryNavigationFor,
     portalNavigationForRole,
     portalTitleFor,
@@ -1187,11 +1188,13 @@
     return String(fallback ?? '');
   };
   let planningEditForms = $state<Record<string, Record<string, string>>>({});
+  let planningEditorsExpanded = $state<Record<string, boolean>>({});
   const planningEditKey = (row: Row): string => `${String(row.id)}:${String(row.version)}`;
   const planningEditValue = (row: Row, field: string, fallback: unknown): string =>
     planningEditForms[planningEditKey(row)]?.[field] ??
     planningUpdateValue(field, String(row.id), fallback);
   const rememberPlanningEdit = (row: Row, form: HTMLFormElement): void => {
+    planningEditorsExpanded[planningEditKey(row)] = true;
     planningEditForms[planningEditKey(row)] = Object.fromEntries(
       [...new FormData(form)].filter(
         (entry): entry is [string, string] => typeof entry[1] === 'string',
@@ -1201,7 +1204,7 @@
   const planningWorkersForUpdate = (row: Row): Row[] => {
     const projectId = String(row.project_id);
     const startsOn = planningEditValue(row, 'startsAt', row.starts_at).slice(0, 10);
-    const endsOn = planningEditValue(row, 'endsAt', row.ends_at).slice(0, 10);
+    const endsOn = planningEditValue(row, 'endsAt', row.ends_at).slice(0, 10) || startsOn;
     const eligible = (data.workers ?? []).filter(
       (worker) =>
         worker.status === 'active' &&
@@ -1276,7 +1279,11 @@
   let planningStarts = $state('');
   let planningEnds = $state('');
   let planningProjectId = $state('');
-  let planningWorkerId = $state('');
+  let planningWorkerIds = $state<string[]>([]);
+  let planningRequestKey = $state('');
+  $effect(() => {
+    if (!planningRequestKey) planningRequestKey = crypto.randomUUID();
+  });
   let restoredPlanningFailure: unknown;
   $effect(() => {
     if (
@@ -1287,7 +1294,15 @@
     restoredPlanningFailure = planningFailure;
     const values = planningFailure.values ?? {};
     planningProjectId = String(values.projectId ?? '');
-    planningWorkerId = String(values.workerId ?? '');
+    try {
+      const workers = JSON.parse(String(values.workerIds ?? '[]'));
+      planningWorkerIds = Array.isArray(workers)
+        ? workers.filter((worker): worker is string => typeof worker === 'string')
+        : [];
+    } catch {
+      planningWorkerIds = values.workerId ? [String(values.workerId)] : [];
+    }
+    planningRequestKey = String(values.requestKey ?? planningRequestKey);
     planningStarts = String(values.startsAt ?? '');
     planningEnds = String(values.endsAt ?? '');
   });
@@ -1301,17 +1316,15 @@
             String(assignment.worker_id ?? assignment.user_id) === String(worker.id) &&
             assignment.status === 'active' &&
             (!planningStarts || String(assignment.starts_on) <= planningStarts.slice(0, 10)) &&
-            (!planningEnds ||
-              !assignment.ends_on ||
-              String(assignment.ends_on) >= planningEnds.slice(0, 10)),
+            (!assignment.ends_on ||
+              String(assignment.ends_on) >= (planningEnds || planningStarts).slice(0, 10)),
         ),
     ),
   );
-  const planningWorkerUnavailable = $derived(
-    planningWorkerId &&
-      !planningEligibleWorkers.some((worker) => String(worker.id) === planningWorkerId)
-      ? ((data.workers ?? []).find((worker) => String(worker.id) === planningWorkerId) ?? null)
-      : null,
+  const planningUnavailableWorkers = $derived(
+    planningWorkerIds.filter(
+      (id) => !planningEligibleWorkers.some((worker) => String(worker.id) === id),
+    ),
   );
   $effect(() => {
     if (data.section !== 'planning') return;
@@ -1325,11 +1338,11 @@
   $effect(() => {
     const requestedWorker = $page.url.searchParams.get('worker');
     if (
-      !planningWorkerId &&
+      planningWorkerIds.length === 0 &&
       requestedWorker &&
       planningEligibleWorkers.some((worker) => worker.id === requestedWorker)
     )
-      planningWorkerId = requestedWorker;
+      planningWorkerIds = [requestedWorker];
   });
   let handledPlanningUrlDate = '';
   $effect(() => {
@@ -1813,7 +1826,15 @@
   );
   const href = (section: string) =>
     section === 'today' ? `${base}/app/` : `${base}/app/${section}`;
-  const itemHref = (item: NavItem) => item.href ?? href(item.section);
+  const itemHref = (item: NavItem) =>
+    financeProjectNavigationHref(item.href ?? href(item.section), {
+      base,
+      section: data.section,
+      url: $page.url,
+      projectId: availableProjects.some((project) => String(project.id) === data.selectedProjectId)
+        ? data.selectedProjectId
+        : undefined,
+    });
   const activeDestination = $derived(
     activeNavItem([...navigation, ...secondaryNavigation, ...visibleAdmin, ...securityAdmin], {
       base,
@@ -5724,9 +5745,9 @@
           initialDate={$page.url.searchParams.get('date') ?? undefined}
           events={(data.records ?? []).map((row) => ({
             id: String(row.id),
-            title: `${row.worker_name} · ${row.project_number} · ${row.planned_minutes} min`,
+            title: `${row.worker_name} · ${row.project_number}${row.planned_minutes == null ? '' : ` · ${row.planned_minutes} min`}`,
             startsAt: String(row.starts_at),
-            endsAt: String(row.ends_at),
+            endsAt: row.ends_at == null ? undefined : String(row.ends_at),
             href:
               data.user.role === 'owner_admin'
                 ? `${base}/app/manage?area=planning_assignment&project=${row.project_id}&focus=${row.id}`
@@ -5756,16 +5777,21 @@
               <details
                 id={`planning-assignment-${row.id}`}
                 open={$page.url.searchParams.get('focus') === String(row.id) ||
+                  $page.url.hash === `#planning-assignment-${row.id}` ||
+                  planningEditorsExpanded[planningEditKey(row)] === true ||
                   planningFailedUpdateId === String(row.id) ||
                   (planningFailure?.operation === 'cancelPlanning' &&
                     String(planningFailure.values?.id ?? '') === String(row.id))}
+                ontoggle={(event) => {
+                  planningEditorsExpanded[planningEditKey(row)] = event.currentTarget.open;
+                }}
               >
                 <summary
                   >{row.worker_name} · {row.project_number} · {String(row.starts_at)
                     .slice(0, 16)
-                    .replace('T', ' ')} → {String(row.ends_at)
-                    .slice(0, 16)
-                    .replace('T', ' ')}</summary
+                    .replace('T', ' ')}{row.ends_at
+                    ? ` → ${String(row.ends_at).slice(0, 16).replace('T', ' ')}`
+                    : ''}</summary
                 >
                 <form
                   method="POST"
@@ -5818,11 +5844,10 @@
                       >{planningFieldMessage('startsAt', 'updatePlanning', String(row.id))}</small
                     >{/if}
                   <label
-                    >{translate('End')}<input
+                    >{translate('End (optional)')}<input
                       name="endsAt"
                       type="datetime-local"
                       value={planningEditValue(row, 'endsAt', row.ends_at).slice(0, 16)}
-                      required
                     /></label
                   >{#if planningFieldMessage('endsAt', 'updatePlanning', String(row.id))}<small
                       class="field-error"
@@ -5830,13 +5855,12 @@
                       >{planningFieldMessage('endsAt', 'updatePlanning', String(row.id))}</small
                     >{/if}
                   <label
-                    >{translate('Planned minutes')}<input
+                    >{translate('Planned minutes (optional)')}<input
                       name="plannedMinutes"
                       type="number"
-                      min="1"
+                      min="0"
                       max="10080"
                       value={planningEditValue(row, 'plannedMinutes', row.planned_minutes)}
-                      required
                     /></label
                   >{#if planningFieldMessage('plannedMinutes', 'updatePlanning', String(row.id))}<small
                       class="field-error"
@@ -5848,7 +5872,7 @@
                       )}</small
                     >{/if}
                   <label
-                    >{translate('Site')}<input
+                    >{translate('Site (optional)')}<input
                       name="site"
                       value={planningEditValue(row, 'site', row.site)}
                     /></label
@@ -5901,10 +5925,11 @@
                 remedyLinks={globalRemedyLinks}
               />
             {/if}
+            <input type="hidden" name="requestKey" value={planningRequestKey} />
             <h2>{translate('Publish field assignment')}</h2>
             <p class="form-help">
               {translate(
-                'Publish a planned shift for an assigned worker. Planning does not create actual time entries; the worker records the work performed separately.',
+                'Publish a planned assignment for one or more assigned workers. Planning does not create actual time entries; each worker records the work performed separately.',
               )}
             </p>
             {#if emptyPlanningProjectProblem}
@@ -5950,23 +5975,42 @@
                   'No worker is assigned to this project for the selected dates. Assign a worker to the project or choose another date.',
                 )}
               </p>{/if}
+            <fieldset class="planning-workers-fieldset">
+              <legend>{translate('Workers')}</legend>
+              <p class="form-help">
+                {translate(
+                  'Select one or more assigned workers. Each worker receives the same assignment.',
+                )}
+              </p>
+              {#each planningEligibleWorkers as worker}
+                <label class="check"
+                  ><input
+                    type="checkbox"
+                    name="workerIds"
+                    value={String(worker.id)}
+                    bind:group={planningWorkerIds}
+                  />{worker.name}</label
+                >
+              {/each}
+              {#each planningUnavailableWorkers as workerId}
+                <label class="check"
+                  ><input
+                    type="checkbox"
+                    name="workerIds"
+                    value={workerId}
+                    bind:group={planningWorkerIds}
+                  />{String(
+                    (data.workers ?? []).find((worker) => String(worker.id) === workerId)?.name ??
+                      translate('Previously selected worker'),
+                  )} · {translate('Unavailable for these dates')}</label
+                >
+              {/each}
+              {#if planningFieldMessage('workerIds', 'createPlanning')}<small
+                  class="field-error"
+                  role="alert">{planningFieldMessage('workerIds', 'createPlanning')}</small
+                >{/if}
+            </fieldset>
             <label
-              >{translate('Worker')}<select name="workerId" bind:value={planningWorkerId} required
-                ><option value="">{translate('Select assigned worker')}</option
-                >{#if planningWorkerId && !planningEligibleWorkers.some((worker) => String(worker.id) === planningWorkerId)}
-                  <option value={planningWorkerId} disabled
-                    >{String(
-                      planningWorkerUnavailable?.name ?? translate('Previously selected worker'),
-                    )} · {translate('Unavailable for these dates')}</option
-                  >
-                {/if}{#each planningEligibleWorkers as worker}<option value={worker.id}
-                    >{worker.name}</option
-                  >{/each}</select
-              ></label
-            >{#if planningFieldMessage('workerId', 'createPlanning')}<small
-                class="field-error"
-                role="alert">{planningFieldMessage('workerId', 'createPlanning')}</small
-              >{/if}<label
               >{translate('Start')}<input
                 name="startsAt"
                 type="datetime-local"
@@ -5977,29 +6021,27 @@
                 class="field-error"
                 role="alert">{planningFieldMessage('startsAt', 'createPlanning')}</small
               >{/if}<label
-              >{translate('End')}<input
+              >{translate('End (optional)')}<input
                 name="endsAt"
                 type="datetime-local"
                 bind:value={planningEnds}
-                required
               /></label
             >{#if planningFieldMessage('endsAt', 'createPlanning')}<small
                 class="field-error"
                 role="alert">{planningFieldMessage('endsAt', 'createPlanning')}</small
               >{/if}<ProjectBudgetInput
               name="plannedMinutes"
-              label={translate('Planned hours')}
+              label={translate('Planned hours (optional)')}
               kind="hours"
               value={planningFailure?.operation === 'createPlanning'
                 ? String(planningFailure.values?.plannedMinutes ?? '')
                 : ''}
-              required
             />
             {#if planningFieldMessage('plannedMinutes', 'createPlanning')}<small
                 class="field-error"
                 role="alert">{planningFieldMessage('plannedMinutes', 'createPlanning')}</small
               >{/if}<label
-              >{translate('Site')}<input
+              >{translate('Site (optional)')}<input
                 name="site"
                 value={planningFailure?.operation === 'createPlanning'
                   ? String(planningFailure.values?.site ?? '')
@@ -6018,10 +6060,9 @@
                   !operationalProjects.some(
                     (project) => String(project.id) === planningProjectId,
                   )) ||
-                (planningWorkerId &&
-                  !planningEligibleWorkers.some(
-                    (worker) => String(worker.id) === planningWorkerId,
-                  )),
+                planningUnavailableWorkers.length > 0 ||
+                planningWorkerIds.length === 0 ||
+                !planningRequestKey,
               )}>{translate('Publish assignment')}</button
             >
           </form>{/if}
@@ -6262,7 +6303,10 @@
             >
               <div>
                 <strong>{row.worker_name} · {row.project_number}</strong><small
-                  >{String(row.starts_at).replace('T', ' ').slice(0, 16)} · {row.planned_minutes} min
+                  >{String(row.starts_at).replace('T', ' ').slice(0, 16)}{row.planned_minutes ==
+                  null
+                    ? ''
+                    : ` · ${row.planned_minutes} min`}
                   · {row.site}</small
                 >
               </div>
@@ -6862,6 +6906,10 @@
   }
   .document-download-feedback > button {
     min-height: 2.75rem;
+  }
+  .planning-workers-fieldset {
+    grid-column: 1 / -1;
+    min-width: 0;
   }
   @media (max-width: 767px) {
     :global(.portal-layout main .admin-form-grid.project-setup-form) {

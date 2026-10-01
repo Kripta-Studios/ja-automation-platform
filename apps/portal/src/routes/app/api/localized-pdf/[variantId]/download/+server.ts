@@ -7,6 +7,7 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 import { AccessDeniedError, ConflictError } from '@ja/database';
 import { localizedPdfProblem } from '$lib/server/localized-pdf-api';
 import { openPortalRepository } from '$lib/server/portal-repository';
+import { semanticFilenamePart } from '$lib/server/report-export-request';
 
 function privateArtifactHeaders(): Record<string, string> {
   return {
@@ -162,6 +163,51 @@ export const GET: RequestHandler = async ({ locals, params }) => {
       }
       return problemResponse('downloadIntegrity', 409, context.principal.role === 'owner_admin');
     }
+    let downloadFilename = metadata.semanticFilename;
+    if (metadata.ownerType === 'daily_report' || metadata.ownerType === 'technical_report') {
+      // File reads above yield to concurrent report edits. Recheck the immutable variant's
+      // source revision in the same query that reads its operational naming fields.
+      const daily = metadata.ownerType === 'daily_report';
+      const source = context.sqlite
+        .prepare(
+          daily
+            ? `SELECT p.project_number,d.work_date report_date,d.summary report_title,d.version
+             FROM daily_report d JOIN project p ON p.id=d.project_id
+             JOIN localized_pdf_variant v ON v.owner_type='daily_report' AND v.owner_id=d.id
+             WHERE v.variant_id=? AND d.id=? AND v.owner_revision_id=d.id||':v'||d.version`
+            : `SELECT p.project_number,t.report_date,t.system_name report_title,t.version
+             FROM technical_report t JOIN project p ON p.id=t.project_id
+             JOIN localized_pdf_variant v ON v.owner_type='technical_report' AND v.owner_id=t.id
+             WHERE v.variant_id=? AND t.id=? AND v.owner_revision_id=t.id||':v'||t.version`,
+        )
+        .get(variantId, metadata.ownerId) as
+        | {
+            project_number: string;
+            report_date: string | null;
+            report_title: string | null;
+            version: number;
+          }
+        | undefined;
+      if (!source) return notFound();
+      const titles = {
+        en: daily ? 'Daily-report' : 'Technical-report',
+        es: daily ? 'Informe-diario' : 'Informe-tecnico',
+        pt: daily ? 'Relatorio-diario' : 'Relatorio-tecnico',
+      };
+      const title = titles[metadata.locale];
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(source.report_date ?? '')
+        ? source.report_date!
+        : { en: 'Undated', es: 'Sin-fecha', pt: 'Sem-data' }[metadata.locale];
+      downloadFilename =
+        [
+          title,
+          semanticFilenamePart(source.project_number, 'Project').slice(0, 40),
+          date,
+          semanticFilenamePart(source.report_title, title).slice(0, 50),
+          `v${source.version}`,
+          metadata.localeTag,
+        ].join('-') + '.pdf';
+    }
     // Copy into a standalone ArrayBuffer so the Fetch body cannot retain a Node Buffer's
     // pooled/shared backing memory (and stays compatible with the DOM BodyInit type).
     const responseBytes = new Uint8Array(bytes.byteLength);
@@ -170,7 +216,7 @@ export const GET: RequestHandler = async ({ locals, params }) => {
       headers: {
         'content-type': metadata.mediaType,
         'content-length': String(bytes.byteLength),
-        'content-disposition': contentDispositionFilename(metadata.semanticFilename),
+        'content-disposition': contentDispositionFilename(downloadFilename),
         ...privateArtifactHeaders(),
       },
     });

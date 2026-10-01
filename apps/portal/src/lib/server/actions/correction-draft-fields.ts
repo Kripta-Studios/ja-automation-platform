@@ -116,7 +116,7 @@ export function buildCorrectionPatch(
     if (occurred && !/^([01]\d|2[0-3]):[0-5]\d$/.test(occurred))
       throw new ValidationError('Expense occurrence time is invalid');
     add('spentOn', 'spent_on', dateField(form, 'spentOn'));
-    add('vendor', 'vendor', textField(form, 'vendor', 200, true));
+    add('vendor', 'vendor', textField(form, 'vendor', 200));
     add('category', 'category', category);
     const description = textField(form, 'description', 5000, true);
     if (description.length < 3) throw new ValidationError('Expense description is too short');
@@ -173,7 +173,9 @@ export function buildCorrectionPatch(
       }
     }
   }
-  if (Object.keys(patch).length === 0)
+  const receiptChanged =
+    recordType === 'expense' && form.receipt instanceof File && form.receipt.size > 0;
+  if (Object.keys(patch).length === 0 && !receiptChanged)
     throw new ValidationError('Change at least one operational field before creating a correction');
   return patch;
 }

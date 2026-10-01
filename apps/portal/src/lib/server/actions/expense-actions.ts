@@ -7,8 +7,11 @@ import {
   V3AccessDeniedError,
   V3ConflictError,
   ValidationError,
+  recordAuditEvent,
 } from '@ja/database';
 import { z, type ZodError } from 'zod';
+import { mondayOf } from '$lib/server/portal-week';
+import { weekDates } from '$lib/portal/sections/time-entry-actions';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import {
   removePrivateFileIfPresent,
@@ -63,6 +66,9 @@ const expenseValueFields = new Set([
   'paymentMethod',
   'receiptRequired',
   'receiptDocumentId',
+  'weekStart',
+  'entries',
+  'batchForm',
 ]);
 
 function safeExpenseValues(values: Record<string, unknown>): Record<string, string | boolean> {
@@ -192,9 +198,8 @@ function expenseSchemaFailure(error: ZodError, values: Record<string, unknown>) 
 
 /**
  * The update contract deliberately exposes only fields supported by
- * PortalRepository.updateExpense. Receipt replacement is intentionally not
- * accepted by this browser action; the portal does not pretend to support
- * uploading/replacing a receipt from an edit form.
+ * PortalRepository.updateExpense. Receipt uploads use the same validated,
+ * authorized private-file pipeline as expense creation.
  */
 const expenseUpdateSchema = versionedRecordSchema
   .extend({
@@ -210,6 +215,7 @@ const expenseUpdateSchema = versionedRecordSchema
     description: z.string().trim().max(5000).optional(),
     amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
     paymentMethod: z.string().trim().max(80).optional(),
+    receiptDocumentId: z.uuid().optional(),
   })
   .strict();
 
@@ -221,7 +227,7 @@ export function parseExpenseUpdateForm(object: Record<string, unknown>) {
   delete payload.amount;
 
   // Empty optional controls should be omitted rather than coerced to zero.
-  for (const key of ['paymentMethod']) {
+  for (const key of ['paymentMethod', 'receiptDocumentId']) {
     if (payload[key] === '') delete payload[key];
   }
   if (payload.description === '') delete payload.description;
@@ -239,6 +245,31 @@ type ExpenseProblem = {
   remedy: string;
 };
 const expenseProblems: Record<string, ExpenseProblem> = {
+  'Expense receipt type or size invalid': {
+    status: 400,
+    code: 'EXPENSE_RECEIPT_TYPE_OR_SIZE',
+    key: 'problem.expense.receiptTypeOrSize',
+    message: 'Choose a JPG, PNG, WebP, HEIC, HEIF, or PDF receipt under 10 MB.',
+    field: 'receipt',
+    remedy: 'attach_receipt',
+  },
+  'Expense receipt content invalid': {
+    status: 400,
+    code: 'EXPENSE_RECEIPT_CONTENT_INVALID',
+    key: 'problem.expense.receiptContentInvalid',
+    message:
+      'The receipt content does not match its file type. Choose a valid receipt and reattach it.',
+    field: 'receipt',
+    remedy: 'attach_receipt',
+  },
+  'Expense receipt path invalid': {
+    status: 400,
+    code: 'EXPENSE_RECEIPT_PATH_INVALID',
+    key: 'problem.expense.receiptPathInvalid',
+    message: 'The receipt filename could not be used. Rename the file and reattach it.',
+    field: 'receipt',
+    remedy: 'attach_receipt',
+  },
   'Project access required': {
     status: 403,
     code: 'EXPENSE_RECEIPT_PROJECT_ACCESS_REVOKED',
@@ -592,7 +623,397 @@ export function expenseActionFailure(
   return actionFailure(error, { values: savedValues });
 }
 
+function expenseWeekFailure(
+  status: number,
+  code: string,
+  message: string,
+  values: Record<string, unknown>,
+  field = 'entries',
+) {
+  return actionFail(status, `problem.expenseWeek.${code}`, {}, message, {
+    code: `EXPENSE_WEEK_${code.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()}`,
+    values: safeExpenseValues(values),
+    fieldErrors: { [field]: [message] },
+    remedies: [{ id: 'review_expenses' }],
+  });
+}
+
+function validWeekStart(value: string): boolean {
+  return (
+    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    Number.isFinite(Date.parse(`${value}T00:00:00Z`)) &&
+    new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value &&
+    mondayOf(value) === value
+  );
+}
+
+// Existing repository operations nest using savepoints, so validation and every
+// expense transition/creation share a single write transaction and audit outcome.
+function expenseWeekTransaction<T>(
+  context: ReturnType<typeof openPortalRepository>,
+  work: () => T,
+): T {
+  context.sqlite.exec('BEGIN IMMEDIATE');
+  try {
+    const result = work();
+    context.sqlite.exec('COMMIT');
+    return result;
+  } catch (error) {
+    context.sqlite.exec('ROLLBACK');
+    throw error;
+  }
+}
+
+export async function validateExpenseReceipt(file: File): Promise<Uint8Array> {
+  if (
+    ![
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/heic',
+      'image/heif',
+      'application/pdf',
+    ].includes(file.type) ||
+    file.size > 10_000_000
+  )
+    throw new ValidationError('Expense receipt type or size invalid');
+  try {
+    return await validateReportAttachmentFile(file);
+  } catch {
+    throw new ValidationError('Expense receipt content invalid');
+  }
+}
+
+export async function saveExpenseReceipt(
+  context: ReturnType<typeof openPortalRepository>,
+  projectId: string,
+  file: File,
+  bytes: Uint8Array,
+) {
+  const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
+  let reservationId: string | undefined;
+  let storageKey: string | undefined;
+  let fileCreated = false;
+  let committed = false;
+  const cleanup = async () => {
+    if (!reservationId) return;
+    if (committed) {
+      const removed = context.repository.removeUnreferencedReceipt(
+        context.principal,
+        reservationId,
+      );
+      if (removed) await removePrivateFileIfPresent(root, removed);
+    } else {
+      try {
+        context.v3.cancelUploadReservation(context.principal, reservationId);
+      } catch {
+        /* Stale reservation cleanup preserves the original failure. */
+      }
+      if (fileCreated && storageKey) await removePrivateFileIfPresent(root, storageKey);
+    }
+  };
+  try {
+    const reservation = context.v3.reserveUpload(context.principal, {
+      projectId,
+      originalFilename: file.name.slice(0, 200),
+      artifactType: 'receipt',
+      description: 'Expense receipt',
+      sensitivity: 'internal',
+    });
+    reservationId = reservation.reservationId;
+    storageKey = reservation.storageKey;
+    const target = resolve(root, storageKey);
+    const path = relative(root, target);
+    if (
+      !path ||
+      path.split(/[\\/]/).includes('..') ||
+      path.startsWith('\\') ||
+      path.startsWith('/')
+    )
+      throw new ValidationError('Expense receipt path invalid');
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    try {
+      await writePrivateFileExclusive(root, storageKey, bytes);
+      fileCreated = true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+      await assertRegularPrivateFile(root, storageKey, sha256, file.size, file.type);
+    }
+    context.v3.finalizeUpload(context.principal, reservationId, {
+      sha256,
+      mediaType: file.type,
+      byteLength: file.size,
+    });
+    committed = true;
+    return { id: reservationId, sha256, cleanup };
+  } catch (error) {
+    await cleanup().catch(() => undefined);
+    throw error;
+  }
+}
+
 export const expenseActions = {
+  submitExpenseWeek: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'expenses')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const weekStart = String(object.weekStart ?? '');
+    if (!validWeekStart(weekStart))
+      return expenseWeekFailure(
+        400,
+        'startInvalid',
+        'Select a valid week starting on Monday.',
+        object,
+        'weekStart',
+      );
+    let raw: unknown;
+    try {
+      raw = JSON.parse(String(object.entries ?? ''));
+    } catch {
+      raw = null;
+    }
+    const parsed = z
+      .array(z.object({ id: z.string().uuid(), version: z.number().int().positive() }).strict())
+      .min(1)
+      .max(200)
+      .safeParse(raw);
+    if (
+      !parsed.success ||
+      new Set(parsed.success ? parsed.data.map((row) => row.id) : []).size !==
+        (parsed.success ? parsed.data.length : 0)
+    )
+      return expenseWeekFailure(
+        400,
+        'selectionInvalid',
+        'Select a week containing 1 to 200 distinct draft expenses, then review and try again.',
+        object,
+      );
+    const context = openPortalRepository(locals);
+    try {
+      if (context.principal.role === 'auditor_read_only')
+        throw new AccessDeniedError('Read-only role');
+      const workerId = String(object.workerId || context.principal.userId);
+      if (context.principal.role !== 'owner_admin' && workerId !== context.principal.userId)
+        return expenseWeekFailure(
+          403,
+          'workerForbidden',
+          'Only the owner can submit another worker’s expense week. Submit your own week or contact the owner.',
+          object,
+          'workerId',
+        );
+      const dates = weekDates(weekStart);
+      const submitted = expenseWeekTransaction(context, () => {
+        const rows = context.sqlite
+          .prepare(
+            "SELECT id,version FROM expense WHERE worker_id=? AND spent_on BETWEEN ? AND ? AND approval_state='draft' ORDER BY spent_on,id",
+          )
+          .all(workerId, weekStart, dates[6]!) as Array<{ id: string; version: number }>;
+        const versions = new Map(parsed.data.map((row) => [row.id, row.version]));
+        if (
+          rows.length !== parsed.data.length ||
+          rows.some((row) => versions.get(row.id) !== row.version)
+        )
+          throw new ConflictError('Expense week changed before submission');
+        for (const row of rows)
+          context.repository.submitExpense(context.principal, row.id, row.version);
+        return rows.length;
+      });
+      return actionSuccess(
+        'action.expense.weekSubmitted',
+        { submitted },
+        `${submitted} expense drafts submitted for review`,
+      );
+    } catch (error) {
+      if (
+        error instanceof ConflictError &&
+        error.message === 'Expense week changed before submission'
+      )
+        return expenseWeekFailure(
+          409,
+          'changed',
+          'This week changed after you opened it. Refresh and review the current drafts before submitting. No expenses were submitted.',
+          object,
+        );
+      return expenseActionFailure(error, object);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  createExpenseWeek: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'expenses')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const weekStart = String(object.weekStart ?? '');
+    if (!validWeekStart(weekStart))
+      return expenseWeekFailure(
+        400,
+        'startInvalid',
+        'Select a valid week starting on Monday.',
+        object,
+        'weekStart',
+      );
+    const requestId = String(object.requestId ?? '');
+    if (!/^[a-zA-Z0-9_-]{16,200}$/.test(requestId))
+      return expenseWeekFailure(
+        400,
+        'requestInvalid',
+        'The save request expired. Reopen the weekly table before saving.',
+        object,
+        'requestId',
+      );
+    let raw: unknown;
+    try {
+      raw = JSON.parse(String(object.entries ?? ''));
+    } catch {
+      raw = null;
+    }
+    const rows = z
+      .array(
+        z
+          .object({
+            spentOn: z.string(),
+            amount: z.string(),
+            description: z.string(),
+            category: expenseCategorySchema,
+            vendor: z.string().max(200).default(''),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(7)
+      .safeParse(raw);
+    if (!rows.success)
+      return expenseWeekFailure(
+        400,
+        'rowsInvalid',
+        'Enter 1 to 7 daily expenses with a date, category, amount and description. No drafts were saved.',
+        object,
+      );
+    const dates = weekDates(weekStart);
+    if (
+      new Set(rows.data.map((row) => row.spentOn)).size !== rows.data.length ||
+      rows.data.some((row) => !dates.includes(row.spentOn))
+    )
+      return expenseWeekFailure(
+        400,
+        'datesInvalid',
+        'Each daily expense must have a distinct date in the selected week. No drafts were saved.',
+        object,
+      );
+    const inputs = rows.data.map((row) =>
+      expenseInputSchema.safeParse({
+        projectId: object.projectId,
+        spentOn: row.spentOn,
+        vendor: row.vendor,
+        category: row.category,
+        description: row.description,
+        currency: object.currency,
+        amountMinor: decimalToMinor(row.amount),
+        whoPaid: object.whoPaid,
+        receiptRequired: false,
+      }),
+    );
+    for (let index = 0; index < inputs.length; index++) {
+      const input = inputs[index];
+      if (input && !input.success) {
+        const failure = expenseSchemaFailure(input.error, object);
+        // Give the daily row a concrete date while preserving every table value.
+        return expenseWeekFailure(
+          400,
+          'rowInvalid',
+          `${rows.data[index]?.spentOn}: ${failure.data.message} No drafts were saved.`,
+          object,
+        );
+      }
+    }
+    const context = openPortalRepository(locals);
+    try {
+      if (context.principal.role === 'auditor_read_only')
+        throw new AccessDeniedError('Read-only role');
+      const workerId = String(object.workerId || context.principal.userId);
+      if (context.principal.role !== 'owner_admin' && workerId !== context.principal.userId)
+        return expenseWeekFailure(
+          403,
+          'workerForbidden',
+          'Choose your own expense week. The owner can record a week for another worker.',
+          object,
+          'workerId',
+        );
+      const payloadHash = createHash('sha256')
+        .update(
+          JSON.stringify({
+            workerId,
+            weekStart,
+            projectId: object.projectId,
+            currency: object.currency,
+            whoPaid: object.whoPaid,
+            rows: rows.data,
+          }),
+        )
+        .digest('hex');
+      const result = expenseWeekTransaction(context, () => {
+        const prior = context.sqlite
+          .prepare(
+            "SELECT details_json FROM audit_event WHERE actor_id=? AND action='expense.create' AND json_extract(details_json,'$.expenseWeekRequestId')=? LIMIT 1",
+          )
+          .get(context.principal.userId, requestId) as { details_json: string } | undefined;
+        if (prior) {
+          const details = JSON.parse(prior.details_json) as {
+            expenseWeekPayloadHash: string;
+            expenseWeekCount: number;
+            expenseIds: string[];
+          };
+          if (details.expenseWeekPayloadHash !== payloadHash)
+            throw new ConflictError('Expense week retry has changed');
+          for (const id of details.expenseIds)
+            context.repository.expenseDetail(context.principal, id);
+          return { created: details.expenseWeekCount, replayed: true };
+        }
+        const created = inputs.map((input) => {
+          if (!input.success) throw new ValidationError('Expense fields are invalid');
+          return context.repository.createExpense(context.principal, input.data, workerId);
+        });
+        // Reuse the reviewed expense.create audit contract to record this batch's
+        // retry identity. The rows and identity commit together; no schema write.
+        recordAuditEvent(
+          context.sqlite,
+          context.principal,
+          'expense.create',
+          'expense',
+          created[0]!.id,
+          {
+            projectId: String(object.projectId),
+            expenseWeekRequestId: requestId,
+            expenseWeekPayloadHash: payloadHash,
+            expenseWeekCount: created.length,
+            expenseIds: created.map((row) => row.id),
+          },
+        );
+        return { created: created.length, replayed: false };
+      });
+      return actionSuccess(
+        result.replayed
+          ? 'action.expense.weekDraftsAlreadySaved'
+          : 'action.expense.weekDraftsSaved',
+        result,
+        result.replayed
+          ? `${result.created} weekly expense drafts were already saved. No duplicates were created.`
+          : `${result.created} weekly expense drafts saved`,
+      );
+    } catch (error) {
+      if (error instanceof ConflictError && error.message === 'Expense week retry has changed')
+        return expenseWeekFailure(
+          409,
+          'retryChanged',
+          'This save request already created drafts with different details. Review the saved expenses before starting a new weekly table.',
+          object,
+        );
+      return expenseActionFailure(error, object);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+
   createExpense: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'expenses')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
@@ -616,179 +1037,99 @@ export const expenseActions = {
     const preflight = expenseInputSchema.safeParse(object);
     if (!preflight.success) return expenseSchemaFailure(preflight.error, { ...object, ...values });
     const context = openPortalRepository(locals);
-    let createdReceiptId: string | undefined;
-    let createdReceiptStorageKey: string | undefined;
-    let createdReceiptStoragePath: string | undefined;
-    let receiptFileCreated = false;
-    let reservationId: string | undefined;
+    let uploaded: Awaited<ReturnType<typeof saveExpenseReceipt>> | undefined;
     try {
-      if (receiptFile && receiptFile.size > 0) {
-        const receiptType = receiptFile.type;
-        const receiptSize = receiptFile.size;
-        const receiptName = receiptFile.name;
-        if (
-          ![
-            'image/jpeg',
-            'image/png',
-            'image/webp',
-            'image/heic',
-            'image/heif',
-            'application/pdf',
-          ].includes(receiptType) ||
-          receiptSize > 10_000_000
+      if (context.principal.role === 'auditor_read_only')
+        throw new AccessDeniedError('Read-only role');
+      const bytes =
+        receiptFile && receiptFile.size > 0 ? await validateExpenseReceipt(receiptFile) : undefined;
+      const receiptHash = bytes
+        ? createHash('sha256').update(bytes).digest('hex')
+        : object.receiptDocumentId
+          ? String(
+              context.sqlite
+                .prepare('SELECT sha256 FROM document WHERE id=? AND owner_id=?')
+                .get(String(object.receiptDocumentId), context.principal.userId)?.sha256 ?? '',
+            )
+          : null;
+      const payloadHash = createHash('sha256')
+        .update(
+          JSON.stringify({
+            ...preflight.data,
+            amountMinor: preflight.data.amountMinor.toString(),
+            receiptDocumentId: undefined,
+            receiptHash,
+            workerId: workerId || context.principal.userId,
+          }),
         )
-          return actionFail(
-            400,
-            'problem.expense.receiptTypeOrSize',
-            {},
-            'Choose a JPG, PNG, WebP, HEIC, HEIF, or PDF receipt under 10 MB.',
-            {
-              code: 'EXPENSE_RECEIPT_TYPE_OR_SIZE',
-              values,
-              fieldErrors: { receipt: ['problem.expense.receiptTypeOrSize'] },
-              remedies: [{ id: 'attach_receipt' }],
-            },
-          );
-        let bytes: Uint8Array;
-        try {
-          bytes = await validateReportAttachmentFile(receiptFile);
-        } catch {
-          return actionFail(
-            400,
-            'problem.expense.receiptContentInvalid',
-            {},
-            'The receipt content does not match its file type. Choose a valid receipt and reattach it.',
-            {
-              code: 'EXPENSE_RECEIPT_CONTENT_INVALID',
-              values,
-              fieldErrors: { receipt: ['problem.expense.receiptContentInvalid'] },
-              remedies: [{ id: 'attach_receipt' }],
-            },
-          );
-        }
-
-        const reservation = context.v3.reserveUpload(context.principal, {
-          projectId: String(object.projectId),
-          originalFilename: receiptName.slice(0, 200),
-          artifactType: 'receipt',
-          description: 'Expense receipt',
-          sensitivity: 'internal',
-        });
-        reservationId = reservation.reservationId;
-
-        const sha256 = createHash('sha256').update(bytes).digest('hex');
-        const storageKey = reservation.storageKey;
-        const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
-        const target = resolve(root, storageKey);
-        const targetRelativePath = relative(root, target);
-        if (
-          !targetRelativePath ||
-          targetRelativePath.split(/[\\/]/).includes('..') ||
-          targetRelativePath.startsWith('\\') ||
-          targetRelativePath.startsWith('/')
-        ) {
-          context.v3.cancelUploadReservation(context.principal, reservation.reservationId);
-          reservationId = undefined;
-          return actionFail(
-            400,
-            'problem.expense.receiptPathInvalid',
-            {},
-            'The receipt filename could not be used. Rename the file and reattach it.',
-            {
-              code: 'EXPENSE_RECEIPT_PATH_INVALID',
-              values,
-              fieldErrors: { receipt: ['problem.expense.receiptPathInvalid'] },
-              remedies: [{ id: 'attach_receipt' }],
-            },
-          );
-        }
-
-        createdReceiptStorageKey = storageKey;
-        createdReceiptStoragePath = target;
-        try {
-          await writePrivateFileExclusive(root, storageKey, bytes);
-          receiptFileCreated = true;
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
-          // A collision is only idempotent when the winner is the exact same
-          // receipt. Verify bytes, hash, length and declared media before the
-          // reservation is allowed to become document metadata.
-          await assertRegularPrivateFile(root, storageKey, sha256, receiptSize, receiptType);
-        }
-
-        const document = context.v3.finalizeUpload(context.principal, reservation.reservationId, {
-          sha256,
-          mediaType: receiptType,
-          byteLength: receiptSize,
-        });
-        reservationId = undefined;
-
-        object.receiptDocumentId = reservation.reservationId;
-        if (document.created) {
-          createdReceiptId = reservation.reservationId;
-          createdReceiptStorageKey = storageKey;
-        } else if (receiptFileCreated) {
-          await removePrivateFileIfPresent(root, storageKey);
-          receiptFileCreated = false;
-        }
+        .digest('hex');
+      const retryIdentity =
+        requestId && /^[a-zA-Z0-9_-]{16,200}$/.test(requestId) ? requestId : undefined;
+      const priorResult = () => {
+        if (!retryIdentity) return undefined;
+        const prior = context.sqlite
+          .prepare(
+            "SELECT entity_id,details_json FROM audit_event WHERE actor_id=? AND action='expense.create' AND json_extract(details_json,'$.expenseRequestId')=? LIMIT 1",
+          )
+          .get(context.principal.userId, retryIdentity) as
+          | { entity_id: string; details_json: string }
+          | undefined;
+        if (!prior) return undefined;
+        const details = JSON.parse(prior.details_json) as { expensePayloadHash: string };
+        if (details.expensePayloadHash !== payloadHash)
+          throw new ConflictError('Crew expense retry has changed');
+        context.repository.expenseDetail(context.principal, prior.entity_id);
+        return { id: prior.entity_id, version: 1, replayed: true };
+      };
+      if (priorResult())
+        return actionSuccess(
+          'action.expense.draftAlreadySaved',
+          {},
+          'Expense draft already saved. No duplicate was created.',
+        );
+      if (receiptFile && bytes) {
+        uploaded = await saveExpenseReceipt(context, String(object.projectId), receiptFile, bytes);
+        object.receiptDocumentId = uploaded.id;
       }
       const parsed = expenseInputSchema.safeParse(object);
-      if (!parsed.success) return expenseSchemaFailure(parsed.error, { ...object, ...values });
-      const created = context.repository.createExpense(
-        context.principal,
-        parsed.data,
-        workerId,
-        requestId,
+      if (!parsed.success) {
+        await uploaded?.cleanup();
+        return expenseSchemaFailure(parsed.error, { ...object, ...values });
+      }
+      const created = expenseWeekTransaction(context, () => {
+        const replayed = priorResult();
+        if (replayed) return replayed;
+        const created = context.repository.createExpense(
+          context.principal,
+          parsed.data,
+          workerId,
+          requestId,
+        );
+        if (retryIdentity && !created.replayed)
+          recordAuditEvent(
+            context.sqlite,
+            context.principal,
+            'expense.create',
+            'expense',
+            created.id,
+            {
+              projectId: parsed.data.projectId,
+              expenseRequestId: retryIdentity,
+              expensePayloadHash: payloadHash,
+            },
+          );
+        return created;
+      });
+      if (created.replayed) await uploaded?.cleanup();
+      return actionSuccess(
+        created.replayed ? 'action.expense.draftAlreadySaved' : 'action.expense.draftSaved',
+        {},
+        created.replayed
+          ? 'Expense draft already saved. No duplicate was created.'
+          : 'Expense draft saved',
       );
-      if (created.replayed && createdReceiptId) {
-        const removedKey = context.repository.removeUnreferencedReceipt(
-          context.principal,
-          createdReceiptId,
-        );
-        if (removedKey) {
-          const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
-          await removePrivateFileIfPresent(root, removedKey);
-        }
-      }
-      return actionSuccess('action.expense.draftSaved', {}, 'Expense draft saved');
     } catch (error) {
-      if (reservationId) {
-        try {
-          context.v3.cancelUploadReservation(context.principal, reservationId);
-        } catch {
-          // Preserve the original expense error; stale cleanup handles a
-          // reservation that could not be cancelled synchronously.
-        }
-      }
-      if (createdReceiptId && createdReceiptStorageKey) {
-        const removedKey = context.repository.removeUnreferencedReceipt(
-          context.principal,
-          createdReceiptId,
-        );
-        if (removedKey) {
-          const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
-          const target = resolve(root, removedKey);
-          const relativePath = relative(root, target);
-          if (
-            relativePath &&
-            !relativePath.split(/[\\/]/).includes('..') &&
-            !relativePath.startsWith('\\') &&
-            !relativePath.startsWith('/')
-          )
-            await removePrivateFileIfPresent(root, removedKey).catch(() => undefined);
-        }
-      }
-      if (receiptFileCreated && createdReceiptStorageKey && createdReceiptStoragePath) {
-        const root = resolve(process.env.JA_DOCUMENT_ROOT ?? 'data/documents');
-        const relativePath = relative(root, createdReceiptStoragePath);
-        if (
-          relativePath &&
-          !relativePath.split(/[\\/]/).includes('..') &&
-          !relativePath.startsWith('\\') &&
-          !relativePath.startsWith('/')
-        )
-          await removePrivateFileIfPresent(root, createdReceiptStorageKey).catch(() => undefined);
-      }
+      await uploaded?.cleanup().catch(() => undefined);
       return expenseActionFailure(error, values);
     } finally {
       context.sqlite.close();
@@ -799,13 +1140,38 @@ export const expenseActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     const values = safeExpenseValues(object);
+    const receipt = object.receipt;
+    const receiptFile = receipt instanceof File && receipt.size > 0 ? receipt : undefined;
+    delete object.receipt;
     const parsed = parseExpenseUpdateForm(object);
     if (!parsed.success) return expenseSchemaFailure(parsed.error, values);
     const context = openPortalRepository(locals);
+    let uploaded: Awaited<ReturnType<typeof saveExpenseReceipt>> | undefined;
     try {
-      context.repository.updateExpense(context.principal, parsed.data);
+      if (receiptFile) {
+        // Authorize the expense itself before reserving storage; project read
+        // access alone does not grant permission to replace another worker's receipt.
+        const detail = context.repository.expenseDetail(context.principal, parsed.data.id);
+        if (
+          detail.worker_id !== context.principal.userId &&
+          context.principal.role !== 'owner_admin' &&
+          context.principal.role !== 'worker'
+        )
+          throw new AccessDeniedError('Expense ownership required');
+        if (detail.approval_state !== 'draft')
+          throw new ConflictError('Only an unlocked editable expense draft can change');
+        if (Number(detail.version) !== parsed.data.version)
+          throw new ConflictError('Expense changed or cannot be edited');
+        const bytes = await validateExpenseReceipt(receiptFile);
+        uploaded = await saveExpenseReceipt(context, String(detail.project_id), receiptFile, bytes);
+      }
+      context.repository.updateExpense(context.principal, {
+        ...parsed.data,
+        ...(uploaded ? { receiptDocumentId: uploaded.id } : {}),
+      });
       return actionSuccess('action.expense.draftSaved', {}, 'Expense changes saved');
     } catch (error) {
+      await uploaded?.cleanup().catch(() => undefined);
       return expenseActionFailure(error, values);
     } finally {
       context.sqlite.close();

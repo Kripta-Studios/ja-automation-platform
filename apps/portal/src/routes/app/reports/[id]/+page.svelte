@@ -133,6 +133,29 @@
   const history = $derived((data.detail.history ?? []) as HistoryRow[]);
   const attachments = $derived((data.detail.attachments ?? []) as Attachment[]);
   const isDaily = $derived(data.detail.type === 'daily');
+  // Explicit operational fields only; do not render arbitrary DTO keys or audit payloads.
+  const operationalReportFields = $derived(
+    [
+      ...(isDaily ? dailyCorrectionFields : technicalCorrectionFields),
+      // Preserve legacy operational facts that are no longer ordinary edit controls.
+      ...(isDaily && report.safety_notes
+        ? [{ name: 'safetyNotes', column: 'safety_notes', label: 'Safety notes', kind: 'textarea' }]
+        : []),
+      ...(!isDaily && report.robot_platform
+        ? [
+            {
+              name: 'robotPlatform',
+              column: 'robot_platform',
+              label: 'Robot platform',
+              kind: 'text',
+            },
+          ]
+        : []),
+      ...(!isDaily && report.drive_motion
+        ? [{ name: 'driveMotion', column: 'drive_motion', label: 'Drive / motion', kind: 'text' }]
+        : []),
+    ].map((field) => ({ ...field, value: report[field.column] })),
+  );
   const retainedReportValues = $derived(
     reportForm?.actionName === 'updateReport' && !data.detail.canEdit && reportForm.values
       ? (isDaily ? dailyCorrectionFields : technicalCorrectionFields).flatMap((field) => {
@@ -788,6 +811,9 @@
       const acknowledged = savesNoFields ? await finishReportEdits() : await autosaveFlight.wait();
       cancelScheduledAutosave();
       await tick(); // All versioned controls must contain the acknowledged version first.
+      // A resolved autosave can resume while the original submit is still dispatching.
+      // Native requestSubmit ignores a nested submission; replay in the next browser task.
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
       if (disposed || autosaveKey !== key || !targetForm.isConnected) return;
       if (!acknowledged) {
         focusAutosaveStatus();
@@ -1044,6 +1070,13 @@
       ><DirectionIcon direction="left" /> {t('Reports')}</a
     >
     <a href={base + '/app/projects/' + display(report.project_id)}>{t('Open project')}</a>
+    {#if report.approval_state === 'submitted' && ['owner_admin', 'project_manager'].includes(data.user?.role ?? '')}
+      <a
+        class="no-print"
+        href={`${base}/app/approvals?project=${encodeURIComponent(String(report.project_id))}&tab=reports&status=submitted&q=&lang=${encodeURIComponent(locale)}`}
+        >{t('Review in approvals')}</a
+      >
+    {/if}
     <button type="button" class="no-print print-trigger" onclick={printReport}>
       <PrintIcon />
       {t('Print Report')}
@@ -1150,6 +1183,35 @@
         <button type="submit" class="destructive-button">{t('Withdraw correction draft')}</button>
       </form>
     </section>
+  {/if}
+
+  {#if !data.detail.canEdit}
+    <SectionCard
+      title={isDaily ? t('DAILY FIELD REPORT') : t('PLC / TECHNICAL REPORT')}
+      headingId="report-operational-content-title"
+      class="report-operational-content"
+      data-report-operational-content
+    >
+      <dl class="report-operational-fields">
+        {#each operationalReportFields as field}
+          <div
+            class:report-operational-narrative={field.kind === 'textarea'}
+            data-report-field={field.column}
+          >
+            <dt>{t(field.label)}</dt>
+            <dd>
+              {field.kind === 'checkbox'
+                ? field.value == null
+                  ? '—'
+                  : checked(field.value)
+                    ? t('Review required')
+                    : t('No safety flag')
+                : display(field.value) || '—'}
+            </dd>
+          </div>
+        {/each}
+      </dl>
+    </SectionCard>
   {/if}
 
   {#if data.detail.canCreateCorrection}
@@ -2074,6 +2136,34 @@
 </main>
 
 <style>
+  .report-operational-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: 1.25rem;
+    margin: 0;
+  }
+
+  .report-operational-fields > div {
+    min-width: 0;
+  }
+
+  .report-operational-fields .report-operational-narrative {
+    grid-column: 1 / -1;
+  }
+
+  .report-operational-fields dt {
+    color: var(--portal-muted, #67675f);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .report-operational-fields dd {
+    margin: 0.375rem 0 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.6;
+  }
+
   .report-attachments-panel {
     display: grid;
     gap: 1.25rem;

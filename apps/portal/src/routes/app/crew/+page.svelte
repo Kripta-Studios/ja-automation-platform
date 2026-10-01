@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { afterNavigate } from '$app/navigation';
+  import { afterNavigate, beforeNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
   import { untrack } from 'svelte';
@@ -46,6 +46,69 @@
   const invalidDateValue = $derived(
     filterProblem?.fieldErrors.date?.includes('problem.crew.dayDateInvalid') ?? false,
   );
+  let crewEntryForm = $state<HTMLFormElement>();
+  let crewFilterForm = $state<HTMLFormElement>();
+  let pendingOperation = $state<string | null>(null);
+  let confirmedActionRedirect: string | null = null;
+  function hasUnsavedCrewEntries(): boolean {
+    if (!crewEntryForm) return false;
+    return Array.from(crewEntryForm.elements).some((control) => {
+      if (control instanceof HTMLTextAreaElement) return Boolean(control.value.trim());
+      if (control instanceof HTMLSelectElement)
+        return control.name === 'category' && control.value !== 'regular';
+      if (!(control instanceof HTMLInputElement) || control.type === 'hidden') return false;
+      if (control.type === 'checkbox') return control.checked;
+      if (control.type === 'radio') return control.checked && control.value === 'individual';
+      return Boolean(control.value.trim());
+    });
+  }
+  function restoreFilterContext(): void {
+    const project = crewFilterForm?.elements.namedItem('project');
+    const date = crewFilterForm?.elements.namedItem('date');
+    if (project instanceof HTMLSelectElement) project.value = data.projectId;
+    if (date instanceof HTMLInputElement) date.value = data.workDate;
+  }
+  function clearCrewEntries(): void {
+    selected = [];
+    mode = 'shared';
+    for (const control of Array.from(crewEntryForm?.elements ?? [])) {
+      if (control instanceof HTMLTextAreaElement) control.value = '';
+      else if (control instanceof HTMLSelectElement && control.name === 'category')
+        control.value = 'regular';
+      else if (control instanceof HTMLInputElement) {
+        if (control.type === 'checkbox') control.checked = false;
+        else if (control.name === 'sharedHours' || control.name.startsWith('hours_'))
+          control.value = '';
+        else if (control.name === 'requestId') control.value = crypto.randomUUID();
+      }
+    }
+  }
+  function refreshCrewContext(event: SubmitEvent): void {
+    if (
+      pendingOperation ||
+      (hasUnsavedCrewEntries() &&
+        !window.confirm(t('Changing the project or date clears unsaved crew entries. Continue?')))
+    ) {
+      event.preventDefault();
+      restoreFilterContext();
+      return;
+    }
+    clearCrewEntries();
+    rememberFilterScroll(event);
+  }
+  beforeNavigate(({ cancel, to }) => {
+    if (confirmedActionRedirect && to?.url.href === confirmedActionRedirect) return;
+    if (
+      pendingOperation ||
+      (hasUnsavedCrewEntries() &&
+        !window.confirm(t('You have unsaved crew entries. Leave without saving?')))
+    ) {
+      restoreFilterContext();
+      cancel();
+      return;
+    }
+    clearCrewEntries();
+  });
   function rememberFilterScroll(event: SubmitEvent): void {
     const field = (event.currentTarget as HTMLFormElement).elements.namedItem('viewportScrollY');
     if (field instanceof HTMLInputElement)
@@ -173,16 +236,47 @@
     else if (rect.bottom > window.innerHeight - 16)
       window.scrollBy({ top: rect.bottom - window.innerHeight + 16, behavior: 'instant' });
   }
-  const preserveCrewForm: SubmitFunction = () => {
+  const preserveCrewForm: SubmitFunction = ({ formElement, cancel }) => {
+    const operation = formElement.dataset.crewOperation ?? '';
+    if (
+      pendingOperation ||
+      (operation !== 'createBatch' &&
+        hasUnsavedCrewEntries() &&
+        !window.confirm(t('You have unsaved crew entries. Leave without saving?')))
+    ) {
+      cancel();
+      return;
+    }
+    if (operation !== 'createBatch') clearCrewEntries();
+    pendingOperation = operation;
     const scrollTop = window.scrollY;
     rememberScroll();
     return async ({ result, update }) => {
-      await update({ reset: false });
-      if (result.type === 'failure') {
-        await tick();
-        showFieldProblems(result.data);
-        window.scrollTo({ top: scrollTop, behavior: 'instant' });
-        requestAnimationFrame(revealCrewProblem);
+      try {
+        if (result.type === 'redirect') {
+          const destination = new URL(result.location, $page.url);
+          const savedCrewContext =
+            destination.pathname === $page.url.pathname &&
+            destination.searchParams.get('project') === data.projectId;
+          if (
+            !savedCrewContext &&
+            hasUnsavedCrewEntries() &&
+            !window.confirm(t('You have unsaved crew entries. Leave without saving?'))
+          )
+            return;
+          clearCrewEntries();
+          confirmedActionRedirect = destination.href;
+        }
+        await update({ reset: false });
+        if (result.type === 'failure') {
+          await tick();
+          showFieldProblems(result.data);
+          window.scrollTo({ top: scrollTop, behavior: 'instant' });
+          requestAnimationFrame(revealCrewProblem);
+        }
+      } finally {
+        confirmedActionRedirect = null;
+        pendingOperation = null;
       }
     };
   };
@@ -303,10 +397,11 @@
   {/if}
 
   <form
+    bind:this={crewFilterForm}
     method="POST"
     action="?/refreshFilter"
     use:formValidation
-    onsubmit={rememberFilterScroll}
+    onsubmit={refreshCrewContext}
     class="context-form"
     data-crew-filter-form
   >
@@ -319,6 +414,7 @@
         id="crew-project"
         name="project"
         value={data.projectId}
+        disabled={Boolean(pendingOperation)}
         required
         aria-invalid={Boolean(filterProblem?.fieldErrors.project)}
         aria-describedby={filterProblem?.fieldErrors.project ? 'crew-project-error' : undefined}
@@ -347,6 +443,7 @@
         inputmode={invalidDateValue ? 'numeric' : undefined}
         name="date"
         value={data.workDate}
+        disabled={Boolean(pendingOperation)}
         required
         aria-invalid={Boolean(filterProblem?.fieldErrors.date)}
         aria-describedby={filterProblem?.fieldErrors.date ? 'crew-date-error' : undefined}
@@ -355,7 +452,7 @@
         <small id="crew-date-error" class="filter-field-error">{filterErrorText('date')}</small>
       {/if}
     </div>
-    <button type="submit">{t('Show project')}</button>
+    <button type="submit" disabled={Boolean(pendingOperation)}>{t('Show project')}</button>
   </form>
 
   {#if data.owner && !filterProblem}
@@ -416,7 +513,7 @@
               value={form?.operation === 'grant' ? form.values?.endsOn : ''}
             />
           </label>
-          <button type="submit">{t('Assign chief')}</button>
+          <button type="submit" disabled={Boolean(pendingOperation)}>{t('Assign chief')}</button>
         </form>
       {:else}
         <p class="empty">
@@ -449,7 +546,9 @@
                 >
                   <input type="hidden" name="id" value={grant.id} />
                   <input type="hidden" name="projectId" value={data.projectId} />
-                  <button type="submit" class="secondary">{t('Revoke')}</button>
+                  <button type="submit" class="secondary" disabled={Boolean(pendingOperation)}
+                    >{t('Revoke')}</button
+                  >
                 </form>
               {/if}
             </li>
@@ -467,6 +566,7 @@
       </p>
       {#if data.assigned.length}
         <form
+          bind:this={crewEntryForm}
           method="POST"
           action={`?/createBatch&${actionContext}`}
           data-crew-operation="createBatch"
@@ -481,103 +581,110 @@
           />
           <input type="hidden" name="projectId" value={data.projectId} />
           <input type="hidden" name="workDate" value={data.workDate} />
-          <fieldset>
-            <legend>{t('Team members')}</legend>
-            <div class="member-grid">
-              {#each data.assigned as person}
-                <div class="member-row">
-                  <label class="member-name">
-                    <input
-                      type="checkbox"
-                      name="workerIds"
-                      value={person.id}
-                      bind:group={selected}
-                    />
-                    <span>{person.name}</span>
-                  </label>
-                  {#if mode === 'individual'}
-                    <label
-                      >{t('Hours for')}
-                      {person.name}
+          <fieldset
+            class="crew-entry-controls"
+            disabled={Boolean(pendingOperation)}
+            aria-label={t('Log team hours')}
+          >
+            <fieldset>
+              <legend>{t('Team members')}</legend>
+              <div class="member-grid">
+                {#each data.assigned as person}
+                  <div class="member-row">
+                    <label class="member-name">
                       <input
-                        type="text"
-                        inputmode="decimal"
-                        name="hours_{person.id}"
-                        value={submittedValue(`hours_${person.id}`)}
-                        placeholder="7.5"
-                        disabled={!selected.includes(person.id)}
-                        required
+                        type="checkbox"
+                        name="workerIds"
+                        value={person.id}
+                        bind:group={selected}
                       />
+                      <span>{person.name}</span>
                     </label>
-                  {/if}
-                </div>
-              {/each}
-            </div>
-          </fieldset>
-          <fieldset>
-            <legend>{t('How to enter hours')}</legend>
-            <label class="radio"
-              ><input type="radio" name="mode" value="shared" bind:group={mode} />{t(
-                'Same hours for each selected member',
-              )}</label
-            >
-            <label class="radio"
-              ><input type="radio" name="mode" value="individual" bind:group={mode} />{t(
-                'Different hours for each member',
-              )}</label
-            >
-          </fieldset>
-          {#if mode === 'shared'}
+                    {#if mode === 'individual'}
+                      <label
+                        >{t('Hours for')}
+                        {person.name}
+                        <input
+                          type="text"
+                          inputmode="decimal"
+                          name="hours_{person.id}"
+                          value={submittedValue(`hours_${person.id}`)}
+                          placeholder="7.5"
+                          disabled={!selected.includes(person.id)}
+                          required
+                        />
+                      </label>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>{t('How to enter hours')}</legend>
+              <label class="radio"
+                ><input type="radio" name="mode" value="shared" bind:group={mode} />{t(
+                  'Same hours for each selected member',
+                )}</label
+              >
+              <label class="radio"
+                ><input type="radio" name="mode" value="individual" bind:group={mode} />{t(
+                  'Different hours for each member',
+                )}</label
+              >
+            </fieldset>
+            {#if mode === 'shared'}
+              <label
+                >{t('Hours per member')}
+                <input
+                  type="text"
+                  inputmode="decimal"
+                  name="sharedHours"
+                  value={submittedValue('sharedHours')}
+                  placeholder="7.5"
+                  aria-describedby="crew-shared-hours-help"
+                  required
+                />
+                <small id="crew-shared-hours-help"
+                  >{t('Enter decimal hours, for example 7.5.')}</small
+                >
+              </label>
+            {/if}
             <label
-              >{t('Hours per member')}
-              <input
-                type="text"
-                inputmode="decimal"
-                name="sharedHours"
-                value={submittedValue('sharedHours')}
-                placeholder="7.5"
-                aria-describedby="crew-shared-hours-help"
-                required
-              />
-              <small id="crew-shared-hours-help">{t('Enter decimal hours, for example 7.5.')}</small
+              >{t('Time category')}
+              <select name="category" value={submittedValue('category', 'regular')}>
+                <option value="regular">{t('Regular')}</option><option value="overtime"
+                  >{t('Overtime')}</option
+                >
+                <option value="travel">{t('Travel')}</option><option value="standby"
+                  >{t('Standby')}</option
+                >
+              </select>
+            </label>
+            <label
+              >{t('Work performed')}
+              <textarea name="summary" rows="3" maxlength="5000" required
+                >{submittedValue('summary')}</textarea
               >
             </label>
-          {/if}
-          <label
-            >{t('Time category')}
-            <select name="category" value={submittedValue('category', 'regular')}>
-              <option value="regular">{t('Regular')}</option><option value="overtime"
-                >{t('Overtime')}</option
-              >
-              <option value="travel">{t('Travel')}</option><option value="standby"
-                >{t('Standby')}</option
-              >
-            </select>
-          </label>
-          <label
-            >{t('Work performed')}
-            <textarea name="summary" rows="3" maxlength="5000" required
-              >{submittedValue('summary')}</textarea
+            <label class="check"
+              ><input
+                type="checkbox"
+                name="submit"
+                value="yes"
+                checked={submittedValue('submit') === 'yes'}
+              />{t('Submit for approval now')}</label
             >
-          </label>
-          <label class="check"
-            ><input
-              type="checkbox"
-              name="submit"
-              value="yes"
-              checked={submittedValue('submit') === 'yes'}
-            />{t('Submit for approval now')}</label
-          >
-          <p class="hint">
-            {t(
-              'Entries saved as drafts can be submitted later. Submission does not approve your own crew hours.',
-            )}
-          </p>
-          <button type="submit" disabled={selected.length === 0}
-            >{t('Save')}
-            {selected.length}
-            {selected.length === 1 ? t('person') : t('people')}</button
-          >
+            <p class="hint">
+              {t(
+                'Entries saved as drafts can be submitted later. Submission does not approve your own crew hours.',
+              )}
+            </p>
+            <button type="submit" disabled={Boolean(pendingOperation) || selected.length === 0}
+              >{t('Save')}
+              {selected.length}
+              {selected.length === 1 ? t('person') : t('people')}</button
+            >
+          </fieldset>
         </form>
       {:else}
         <p class="empty">
@@ -621,7 +728,9 @@
                   <input type="hidden" name="version" value={entry.version} />
                   <input type="hidden" name="projectId" value={data.projectId} />
                   <input type="hidden" name="workDate" value={data.workDate} />
-                  <button type="submit" class="secondary">{t('Submit')}</button>
+                  <button type="submit" class="secondary" disabled={Boolean(pendingOperation)}
+                    >{t('Submit')}</button
+                  >
                 </form>
               {/if}
             </li>
@@ -765,7 +874,9 @@
               'The amounts must add up exactly to the selected receipt. Include the worker and shift already linked to it.',
             )}
           </p>
-          <button type="submit" disabled={allocationSelected.length < 2}
+          <button
+            type="submit"
+            disabled={Boolean(pendingOperation) || allocationSelected.length < 2}
             >{t('Save receipt allocation')}</button
           >
         </form>
@@ -877,6 +988,14 @@
     display: grid;
     gap: 1rem;
     max-width: 46rem;
+  }
+  .crew-entry-controls {
+    display: grid;
+    gap: 1rem;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
   }
   label {
     display: grid;

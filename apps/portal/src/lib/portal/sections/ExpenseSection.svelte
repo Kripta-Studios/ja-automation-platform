@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ExpenseWeekPanel from './ExpenseWeekPanel.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { page } from '$app/stores';
   import { beforeNavigate, replaceState } from '$app/navigation';
@@ -69,6 +70,7 @@
     typeof nativeExpenseValues[field] === 'string' ? String(nativeExpenseValues[field]) : '';
   const nativeExpenseSurface: Surface | null =
     nativeExpenseForm?.code &&
+    nativeExpenseValue('batchForm') !== 'expense_week_table' &&
     (nativeExpenseValue('spentOn') ||
       nativeExpenseValue('projectId') ||
       nativeExpenseValue('amount') ||
@@ -215,6 +217,12 @@
   let timeLookupProblem = $state<ProblemData | null>(null);
   let timeLookupRetry = $state(0);
   let timeLookupScope = '';
+  const editRow = $derived.by(
+    () =>
+      (data.calendarRecords ?? records).find((row) => String(row.id) === editExpenseId) as
+        | Row
+        | undefined,
+  );
   const timeSelectionUnavailable = $derived(
     surface === 'create' &&
       Boolean(createTimeEntryId) &&
@@ -330,7 +338,7 @@
   });
   $effect(() => {
     const id = $page.url.searchParams.get('edit');
-    const row = records.find(
+    const row = (data.calendarRecords ?? records).find(
       (item) =>
         String(item.id) === id &&
         item.approval_state === 'draft' &&
@@ -689,9 +697,6 @@
     receiptFilter = $page.url.searchParams.get('receipt')?.trim() ?? '';
     registerPage = 1;
   });
-  const editRow = $derived.by(
-    () => records.find((row) => String(row.id) === editExpenseId) as Row | undefined,
-  );
   const expenseProblemContext = $derived.by(() => {
     const row = surface === 'edit' ? editRow : undefined;
     const projectId = String(row?.project_id ?? createProject);
@@ -1041,8 +1046,8 @@
     ).length,
   );
 
-  function rowText(row: Row, key: string): string {
-    const value = row[key];
+  function rowText(row: Row | undefined, key: string): string {
+    const value = row?.[key];
     return value === null || value === undefined ? '' : String(value);
   }
 
@@ -1289,6 +1294,20 @@
       </button>
     </div>
   {/if}
+
+  <ExpenseWeekPanel
+    {data}
+    {isAuditor}
+    {availableProjects}
+    {translate}
+    {controlledValue}
+    onCreate={(date, workerId) => {
+      openCreate();
+      createDate = date;
+      createWorker = workerId;
+    }}
+    onEdit={openEdit}
+  />
 
   <div class="expense-status-strip" aria-label={translate('Expense attention summary')}>
     <a
@@ -2399,6 +2418,7 @@
       <form
         method="POST"
         action="?/updateExpense"
+        enctype="multipart/form-data"
         class="expense-entry-form"
         data-expense-entry-surface
         aria-busy={saving}
@@ -2565,6 +2585,25 @@
             >{nativeRecoveryActive
               ? nativeExpenseValue('description')
               : rowText(editRow, 'description')}</textarea
+          >
+        </label>
+        <label>
+          <span
+            >{translate(
+              editRow.receipt_document_id
+                ? 'Replace receipt (optional)'
+                : 'Attach receipt (optional)',
+            )}</span
+          >
+          <input
+            name="receipt"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
+          />
+          <small
+            >{translate(
+              'Choose a JPG, PNG, WebP, HEIC, HEIF, or PDF receipt under 10 MB. The current receipt stays attached until valid changes are saved.',
+            )}</small
           >
         </label>
         <div class="expense-entry-actions">

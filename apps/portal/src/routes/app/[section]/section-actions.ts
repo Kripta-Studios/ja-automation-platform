@@ -97,6 +97,8 @@ export const sectionActions: Actions = {
   submitTimeWeek: timeActions.submitTimeWeek,
   deleteTime: timeActions.deleteTime,
   createExpense: expenseActions.createExpense,
+  createExpenseWeek: expenseActions.createExpenseWeek,
+  submitExpenseWeek: expenseActions.submitExpenseWeek,
   updateExpense: expenseActions.updateExpense,
   uploadPrivateDocument: documentActions.uploadPrivateDocument,
   submitExpense: expenseActions.submitExpense,

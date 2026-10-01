@@ -249,6 +249,10 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         };
       case 'expenses': {
         const records = context.repository.listExpensesForScope(context.principal);
+        const weekStart = mondayOf(url.searchParams.get('week'));
+        const weekEndDate = new Date(`${weekStart}T00:00:00Z`);
+        weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6);
+        const weekEnd = weekEndDate.toISOString().slice(0, 10);
         const assignedProjects = context.repository.listAssignedProjects(context.principal);
         // A supplier coordinator may be delegated a crew on a project without
         // receiving the separate supplier-project grant used for their own
@@ -272,6 +276,15 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           ...common,
           projects: [...assignedProjects, ...delegatedProjects],
           records,
+          weekStart,
+          weekEnd,
+          calendarRecords: records,
+          weekDraftRecords: records.filter(
+            (row) =>
+              row.approval_state === 'draft' &&
+              String(row.spent_on) >= weekStart &&
+              String(row.spent_on) <= weekEnd,
+          ),
         };
       }
       case 'documents':

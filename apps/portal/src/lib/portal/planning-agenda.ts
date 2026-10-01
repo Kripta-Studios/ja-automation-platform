@@ -1,6 +1,6 @@
 import type { PortalRow } from './portal-data';
 
-export type AgendaAssignment = { row: PortalRow; startsAt: number; endsAt: number };
+export type AgendaAssignment = { row: PortalRow; startsAt: number; endsAt: number | null };
 
 function timestamp(value: unknown): number | null {
   if (typeof value !== 'string') return null;
@@ -25,18 +25,23 @@ export function planningAgenda(rows: readonly PortalRow[], now: Date = new Date(
   for (const row of rows) {
     if (row.status === 'cancelled') continue;
     const startsAt = timestamp(row.starts_at);
-    const endsAt = timestamp(row.ends_at);
-    if (startsAt === null || endsAt === null || endsAt <= startsAt) {
+    const endsAt = row.ends_at == null || row.ends_at === '' ? null : timestamp(row.ends_at);
+    if (
+      startsAt === null ||
+      (row.ends_at != null && row.ends_at !== '' && endsAt === null) ||
+      (endsAt !== null && endsAt <= startsAt)
+    ) {
       invalidCount += 1;
       continue;
     }
     const assignment = { row, startsAt, endsAt };
-    if (endsAt > dayStart && startsAt < dayEnd) today.push(assignment);
+    if ((endsAt === null ? startsAt >= dayStart : endsAt > dayStart) && startsAt < dayEnd)
+      today.push(assignment);
     else if (startsAt >= dayEnd) upcoming.push(assignment);
   }
   const chronological = (a: AgendaAssignment, b: AgendaAssignment) =>
     a.startsAt - b.startsAt ||
-    a.endsAt - b.endsAt ||
+    (a.endsAt ?? a.startsAt) - (b.endsAt ?? b.startsAt) ||
     String(a.row.id).localeCompare(String(b.row.id));
   return { today: today.sort(chronological), upcoming: upcoming.sort(chronological), invalidCount };
 }
@@ -55,8 +60,9 @@ export function planningInterval(assignment: AgendaAssignment, locale: string): 
     timeZone: 'UTC',
   });
   const startDay = new Date(assignment.startsAt).toISOString().slice(0, 10);
-  const endDay = new Date(assignment.endsAt).toISOString().slice(0, 10);
   const start = `${date.format(assignment.startsAt)} · ${time.format(assignment.startsAt)}`;
+  if (assignment.endsAt === null) return `${start} UTC`;
+  const endDay = new Date(assignment.endsAt).toISOString().slice(0, 10);
   const end =
     startDay === endDay
       ? time.format(assignment.endsAt)

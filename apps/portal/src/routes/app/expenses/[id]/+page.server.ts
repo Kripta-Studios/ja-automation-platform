@@ -32,12 +32,16 @@ const retainedFields = new Set([
 ]);
 
 function retainedValues(form: FormData): Record<string, string> {
-  return Object.fromEntries(
-    Array.from(form.entries()).filter(
-      (entry): entry is [string, string] =>
-        retainedFields.has(entry[0]) && typeof entry[1] === 'string',
+  const receipt = form.get('receipt');
+  return {
+    ...Object.fromEntries(
+      Array.from(form.entries()).filter(
+        (entry): entry is [string, string] =>
+          retainedFields.has(entry[0]) && typeof entry[1] === 'string',
+      ),
     ),
-  );
+    ...(receipt instanceof File && receipt.size > 0 ? { receiptNeedsReattach: 'yes' } : {}),
+  };
 }
 
 function detailFailure(

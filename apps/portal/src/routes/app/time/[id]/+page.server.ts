@@ -18,6 +18,25 @@ export const load: PageServerLoad = ({ locals, params }) => {
       string,
       unknown
     >;
+    const correctionLink = context.sqlite
+      .prepare(
+        `SELECT original_id,reason FROM record_correction_link
+          WHERE record_type='time_entry' AND correction_id=?
+            AND tenant_id=(SELECT tenant_id FROM deployment_identity WHERE singleton=1)
+          LIMIT 1`,
+      )
+      .get(params.id) as { original_id: string; reason: string } | undefined;
+    let correctionOrigin: { id: string; reason: string } | null = null;
+    if (correctionLink) {
+      try {
+        context.repository.timeDetail(context.principal, correctionLink.original_id);
+        correctionOrigin = { id: correctionLink.original_id, reason: correctionLink.reason };
+      } catch (caught) {
+        // A readable correction does not grant access to its original or its correction metadata.
+        if (!(caught instanceof AccessDeniedError || caught instanceof ValidationError))
+          throw caught;
+      }
+    }
     const correctionRequestId = randomUUID();
     const correctionStatus = context.sqlite
       .prepare(
@@ -54,7 +73,8 @@ export const load: PageServerLoad = ({ locals, params }) => {
         };
       } catch (caught) {
         // The database can find a linked row that this role cannot open. Do not expose its ID.
-        if (!(caught instanceof AccessDeniedError || caught instanceof ValidationError)) throw caught;
+        if (!(caught instanceof AccessDeniedError || caught instanceof ValidationError))
+          throw caught;
       }
     }
     // timeDetail includes a linked ID for returned records. Keep that projection aligned with
@@ -165,6 +185,7 @@ export const load: PageServerLoad = ({ locals, params }) => {
     return {
       user: locals.user,
       record: safeRecord,
+      correctionOrigin,
       activeCorrection,
       correctionRequestId,
       ownDraft,

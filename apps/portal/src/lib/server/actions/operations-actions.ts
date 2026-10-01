@@ -13,6 +13,7 @@ import {
   uuidSchema,
 } from '@ja/schemas';
 import { z } from 'zod';
+import { createHash } from 'node:crypto';
 import {
   AccessDeniedError,
   ConflictError,
@@ -36,6 +37,11 @@ import {
   type PortalActionEvent,
 } from '$lib/server/action-utils';
 import { buildCorrectionPatch } from './correction-draft-fields';
+import {
+  expenseActionFailure,
+  saveExpenseReceipt,
+  validateExpenseReceipt,
+} from './expense-actions';
 import {
   timeCorrectionDependency,
   timeCorrectionDependencyProblem,
@@ -168,12 +174,17 @@ const expenseCorrectionValueFields = new Set([
 ]);
 
 function safeExpenseCorrectionValues(values: Record<string, unknown>): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(values).filter(
-      (entry): entry is [string, string] =>
-        expenseCorrectionValueFields.has(entry[0]) && typeof entry[1] === 'string',
+  return {
+    ...Object.fromEntries(
+      Object.entries(values).filter(
+        (entry): entry is [string, string] =>
+          expenseCorrectionValueFields.has(entry[0]) && typeof entry[1] === 'string',
+      ),
     ),
-  );
+    ...((values.receipt instanceof File && values.receipt.size > 0) || values.receiptNeedsReattach
+      ? { receiptNeedsReattach: 'yes' }
+      : {}),
+  };
 }
 
 type ExpenseCorrectionProblem = Readonly<{
@@ -340,6 +351,35 @@ function expenseCorrectionFailure(
 ) {
   if (values.recordType !== 'expense') return reportActionFailure(error, values);
   const savedValues = safeExpenseCorrectionValues(values);
+  if (
+    error instanceof Error &&
+    [
+      'Receipt content is already registered to another record',
+      'Committed owned receipt required',
+      'Receipt must belong to the expense project',
+      'A committed receipt is required',
+      'This receipt is allocated across crew shifts and cannot be edited. Create a documented correction instead.',
+    ].includes(error.message)
+  ) {
+    const failure = expenseActionFailure(error, values);
+    return actionFail(
+      failure.status,
+      failure.data.messageKey,
+      failure.data.params ?? {},
+      failure.data.message,
+      {
+        ...failure.data,
+        actionName,
+        values: savedValues,
+        fieldErrors: Object.fromEntries(
+          Object.entries(failure.data.fieldErrors).map(([field, messages]) => [
+            field,
+            [...messages],
+          ]),
+        ),
+      },
+    );
+  }
   const withdrawing = actionName === 'withdrawCorrectionDraft';
   const permissionError = error instanceof AccessDeniedError;
   const linkedTimeAccessError =
@@ -1160,6 +1200,8 @@ const planningFields = [
   'version',
   'projectId',
   'workerId',
+  'workerIds',
+  'requestKey',
   'startsAt',
   'endsAt',
   'plannedMinutes',
@@ -1287,7 +1329,7 @@ function planningActionFailure(
       key: 'action.planning.workerNotAssigned',
       code: 'PLANNING_WORKER_NOT_ASSIGNED',
       message: 'Worker must have an effective project assignment for the planning window',
-      field: 'workerId',
+      field: operation === 'createPlanning' ? 'workerIds' : 'workerId',
       status: 400,
       remedy: 'review_worker_assignments',
     },
@@ -1315,13 +1357,21 @@ function planningActionFailure(
       status: 400,
       remedy: 'review_planning_fields',
     },
-    'Planned minutes must be between 1 and 10080': {
+    'Planned minutes must be between 0 and 10080': {
       key: 'action.planning.invalidMinutes',
       code: 'PLANNING_MINUTES_INVALID',
-      message: 'Planned minutes must be between 1 and 10080',
+      message: 'Planned minutes must be between 0 and 10080',
       field: 'plannedMinutes',
       status: 400,
       remedy: 'review_planning_fields',
+    },
+    'Planning publish request changed; reload before publishing': {
+      key: 'action.planning.changed',
+      code: 'PLANNING_PUBLISH_REQUEST_CHANGED',
+      message:
+        'This publication was already saved with different values. Reload the page before publishing a new assignment.',
+      status: 409,
+      remedy: 'review_planning',
     },
     'Planning assignment changed; reload before editing': {
       key: 'action.planning.changed',
@@ -1803,6 +1853,13 @@ export const reportActions = {
       }
     }
     const context = openPortalRepository(locals);
+    const receiptFile =
+      recordType === 'expense' && object.receipt instanceof File && object.receipt.size > 0
+        ? object.receipt
+        : undefined;
+    let uploaded: Awaited<ReturnType<typeof saveExpenseReceipt>> | undefined;
+    let receiptUpload: { sha256: string; documentId?: string } | undefined;
+    let receiptOperation = false;
     try {
       if (object.correctionFields) {
         const original =
@@ -1817,7 +1874,7 @@ export const reportActions = {
           object,
           original as Record<string, unknown>,
         );
-      } else if (!patch || Object.keys(patch).length === 0) {
+      } else if ((!patch || Object.keys(patch).length === 0) && !receiptFile) {
         return recordType === 'expense'
           ? actionFail(
               400,
@@ -1849,9 +1906,9 @@ export const reportActions = {
             unknown
           >);
         const patched = (camel: string, column: string): unknown =>
-          Object.prototype.hasOwnProperty.call(patch, camel)
+          Object.prototype.hasOwnProperty.call(patch ?? {}, camel)
             ? patch?.[camel]
-            : Object.prototype.hasOwnProperty.call(patch, column)
+            : Object.prototype.hasOwnProperty.call(patch ?? {}, column)
               ? patch?.[column]
               : original[column];
         const linkedTimeId = patched('timeEntryId', 'time_entry_id');
@@ -1872,6 +1929,39 @@ export const reportActions = {
           if (!match)
             throw new ConflictError('Related logged hours no longer match the corrected expense');
         }
+        if (receiptFile) {
+          receiptOperation = true;
+          const bytes = await validateExpenseReceipt(receiptFile);
+          receiptUpload = { sha256: createHash('sha256').update(bytes).digest('hex') };
+          receiptOperation = false;
+          const preflight = context.repository.preflightExpenseCorrectionDraft(
+            context.principal,
+            {
+              recordType: 'expense',
+              originalId,
+              requestId,
+              reason,
+              patch,
+              receiptUpload,
+            },
+            String(object.ownerOverride ?? '') === 'yes',
+          );
+          if (preflight.replayed)
+            return actionSuccess(
+              'action.reports.correctionDraftCreated',
+              { correctionId: preflight.correctionId },
+              'Correction draft created',
+            );
+          receiptOperation = true;
+          uploaded = await saveExpenseReceipt(
+            context,
+            String(original.project_id),
+            receiptFile,
+            bytes,
+          );
+          receiptUpload.documentId = uploaded.id;
+          receiptOperation = false;
+        }
       }
       const correctionInput = {
         recordType: recordType as 'time_entry' | 'expense' | 'daily_report' | 'technical_report',
@@ -1879,17 +1969,40 @@ export const reportActions = {
         requestId,
         reason,
         patch,
+        ...(receiptUpload ? { receiptUpload } : {}),
       };
       const result =
         String(object.ownerOverride ?? '') === 'yes'
           ? context.repository.ownerOverrideCorrectionDraft(context.principal, correctionInput)
           : context.repository.createCorrectionDraft(context.principal, correctionInput);
+      if ('replayed' in result && result.replayed) await uploaded?.cleanup();
       return actionSuccess(
         'action.reports.correctionDraftCreated',
         { correctionId: result.correctionId },
         'Correction draft created',
       );
     } catch (error) {
+      await uploaded?.cleanup().catch(() => undefined);
+      if (recordType === 'expense' && receiptOperation) {
+        const failure = expenseActionFailure(error, object);
+        return actionFail(
+          failure.status,
+          failure.data.messageKey,
+          failure.data.params ?? {},
+          failure.data.message,
+          {
+            ...failure.data,
+            actionName: 'createCorrectionDraft',
+            values: safeExpenseCorrectionValues(object),
+            fieldErrors: Object.fromEntries(
+              Object.entries(failure.data.fieldErrors).map(([field, messages]) => [
+                field,
+                [...messages],
+              ]),
+            ),
+          },
+        );
+      }
       if (recordType === 'expense')
         return expenseCorrectionFailure(error, object, 'createCorrectionDraft');
       if (recordType === 'time_entry') {
@@ -2289,8 +2402,15 @@ export const reportActions = {
   createPlanning: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'planning')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const object = await formObject(request);
-    const values = safeWorkforceValues(object, planningFields);
+    const submitted = await request.formData();
+    const object: Record<string, unknown> = Object.fromEntries(submitted);
+    const workerIds = submitted.getAll('workerIds');
+    // Retain single-worker clients while the browser publishes a whole group.
+    object.workerIds = workerIds.length ? workerIds : object.workerId ? [object.workerId] : [];
+    const values = safeWorkforceValues(
+      { ...object, workerIds: JSON.stringify(object.workerIds) },
+      planningFields,
+    );
     // Planning's datetime-local controls represent UTC, independent of the server timezone.
     for (const key of ['startsAt', 'endsAt']) {
       const value = object[key];
@@ -2299,7 +2419,20 @@ export const reportActions = {
           ? `${value}:00.000Z`
           : value;
     }
-    const parsed = planningAssignmentInputSchema.safeParse(object);
+    const parsed = planningAssignmentInputSchema
+      .omit({ workerId: true })
+      .extend({
+        workerIds: z
+          .array(uuidSchema)
+          .min(1, 'Select at least one worker')
+          .max(100)
+          .refine(
+            (workers) => new Set(workers).size === workers.length,
+            'Select each worker only once',
+          ),
+        requestKey: uuidSchema,
+      })
+      .safeParse(object);
     if (!parsed.success)
       return workforceInputFailure(
         'createPlanning',
@@ -2314,8 +2447,16 @@ export const reportActions = {
     if (opened.failure) return opened.failure;
     const context = opened.context;
     try {
-      context.repository.createPlanningAssignment(context.principal, parsed.data);
-      return actionSuccess('action.planning.assignmentPublished', {}, 'Assignment published');
+      const result = context.repository.createPlanningAssignments(context.principal, parsed.data);
+      return actionSuccess(
+        result.replayed
+          ? 'action.planning.assignmentAlreadyPublished'
+          : 'action.planning.assignmentPublished',
+        {},
+        result.replayed
+          ? 'Assignment already published. No duplicates were created.'
+          : 'Assignment published',
+      );
     } catch (error) {
       return planningActionFailure(error, 'createPlanning', values);
     } finally {

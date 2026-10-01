@@ -260,6 +260,13 @@
     {#if !data.user?.workforceProfile}<a href={base + '/app/projects/' + String(record.project_id)}
         >{t('Open project')}</a
       >{/if}
+    {#if record.approval_state === 'submitted' && ['owner_admin', 'project_manager'].includes(data.user?.role ?? '')}
+      <a
+        class="no-print"
+        href={`${base}/app/approvals?project=${encodeURIComponent(String(record.project_id))}&tab=time&status=submitted&q=&lang=${encodeURIComponent(locale)}`}
+        >{t('Review in approvals')}</a
+      >
+    {/if}
     {#if canAddRelatedExpense}
       <a href={relatedExpenseHref}>{t('Add related expense')}</a>
     {/if}
@@ -291,6 +298,67 @@
   {:else if !problem && standaloneActionMessage(locale, form)}
     <p class="action-message" role="alert">{standaloneActionMessage(locale, form)}</p>
   {/if}
+  {#if data.correctionOrigin}
+    <section class="detail-panel record-detail-copy" aria-labelledby="time-correction-origin-title">
+      <h2 id="time-correction-origin-title">
+        <span class="state-tag">{t('Corrected time entry')}</span>
+      </h2>
+      <p><strong>{t('Correction reason')}:</strong> {data.correctionOrigin.reason}</p>
+      <a
+        href={`${base}/app/time/${encodeURIComponent(data.correctionOrigin.id)}?lang=${encodeURIComponent(locale)}`}
+        >{t('Open original time entry')} <DirectionIcon /></a
+      >
+    </section>
+  {/if}
+  <section class="record-detail-grid">
+    <article><span>{t('ACTUAL TIME')}</span><strong>{hours(record.minutes)}</strong></article>
+    <article>
+      <span>{t('CATEGORY')}</span><strong>{controlled('timeCategory', record.category)}</strong>
+    </article>
+    {#if 'billability_state' in record}
+      <article>
+        <span>{t('BILLABILITY')}</span><strong
+          >{controlled('status', record.billability_state ?? 'pending')}</strong
+        >
+      </article>
+    {/if}
+    <article>
+      <span>{t('SITE')}</span><strong>{record.site ?? record.site_name ?? '—'}</strong>
+    </article>
+  </section>
+  <section class="detail-panel record-detail-copy">
+    <div class="panel-title">
+      <h2>{t('Activity summary')}</h2>
+      <span>{record.activity_code ?? t('No code')}</span>
+    </div>
+    <p>{record.activity_summary ?? t('No activity summary was recorded.')}</p>
+    <dl class="record-facts">
+      <div>
+        <dt>{t('Project timezone')}</dt>
+        <dd>{record.project_timezone ?? '—'}</dd>
+      </div>
+      <div>
+        <dt>{t('Shift window')}</dt>
+        <dd>{record.start_time ?? '—'} → {record.end_time ?? '—'}</dd>
+      </div>
+      <div>
+        <dt>{t('Break')}</dt>
+        <dd>
+          {record.break_minutes === null || record.break_minutes === undefined
+            ? '—'
+            : hours(record.break_minutes)}
+        </dd>
+      </div>
+      <div>
+        <dt>{t('Submitted')}</dt>
+        <dd>{record.submitted_at ? localMoment(record.submitted_at) : t('Not submitted')}</dd>
+      </div>
+      <div>
+        <dt>{t('Approved')}</dt>
+        <dd>{record.approved_at ? localMoment(record.approved_at) : t('Not approved')}</dd>
+      </div>
+    </dl>
+  </section>
   {#if data.activeCorrection}
     <section class="detail-panel record-detail-copy" aria-label={t('Open existing correction')}>
       <p>
@@ -426,55 +494,6 @@
       </dl>
     </section>
   {/if}
-  <section class="record-detail-grid">
-    <article><span>{t('ACTUAL TIME')}</span><strong>{hours(record.minutes)}</strong></article>
-    <article>
-      <span>{t('CATEGORY')}</span><strong>{controlled('timeCategory', record.category)}</strong>
-    </article>
-    {#if 'billability_state' in record}
-      <article>
-        <span>{t('BILLABILITY')}</span><strong
-          >{controlled('status', record.billability_state ?? 'pending')}</strong
-        >
-      </article>
-    {/if}
-    <article>
-      <span>{t('SITE')}</span><strong>{record.site ?? record.site_name ?? '—'}</strong>
-    </article>
-  </section>
-  <section class="detail-panel record-detail-copy">
-    <div class="panel-title">
-      <h2>{t('Activity summary')}</h2>
-      <span>{record.activity_code ?? t('No code')}</span>
-    </div>
-    <p>{record.activity_summary ?? t('No activity summary was recorded.')}</p>
-    <dl class="record-facts">
-      <div>
-        <dt>{t('Project timezone')}</dt>
-        <dd>{record.project_timezone ?? '—'}</dd>
-      </div>
-      <div>
-        <dt>{t('Shift window')}</dt>
-        <dd>{record.start_time ?? '—'} → {record.end_time ?? '—'}</dd>
-      </div>
-      <div>
-        <dt>{t('Break')}</dt>
-        <dd>
-          {record.break_minutes === null || record.break_minutes === undefined
-            ? '—'
-            : hours(record.break_minutes)}
-        </dd>
-      </div>
-      <div>
-        <dt>{t('Submitted')}</dt>
-        <dd>{record.submitted_at ? localMoment(record.submitted_at) : t('Not submitted')}</dd>
-      </div>
-      <div>
-        <dt>{t('Approved')}</dt>
-        <dd>{record.approved_at ? localMoment(record.approved_at) : t('Not approved')}</dd>
-      </div>
-    </dl>
-  </section>
   <section class="detail-panel record-detail-copy">
     <div class="panel-title"><h2>{t('Related reports')}</h2></div>
     {#if data.relatedReports?.length}

@@ -208,6 +208,7 @@
 
 <form
   method="POST"
+  enctype={recordType === 'expense' ? 'multipart/form-data' : undefined}
   action={correctionAction}
   class="correction-form"
   data-correction-draft-form
@@ -285,9 +286,8 @@
   {:else if recordType === 'expense'}
     <div class="correction-form__grid">
       <label
-        ><span>{translate('Vendor')}</span><input
+        ><span>{translate('Vendor (optional)')}</span><input
           name="vendor"
-          required
           maxlength="200"
           value={fieldValue('vendor', 'vendor')}
         /></label
@@ -380,6 +380,23 @@
       {#if relatedLoading}<small>{translate('Loading logged hours…')}</small>{/if}
       {#if originalLinkUnverified && !relatedLoading}
         <small>{translate('Loading logged hours…')}</small>
+      {/if}
+    </label>
+    <label>
+      <span>{translate('Receipt (optional)')}</span>
+      <input
+        name="receipt"
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
+        aria-describedby="correction-receipt-help"
+      />
+      <small id="correction-receipt-help">
+        {translate(
+          'Attach a receipt to this corrected draft, or leave this empty to keep the current receipt. The original expense stays unchanged.',
+        )}
+      </small>
+      {#if values.receiptNeedsReattach}
+        <small class="warning">{translate('Reattach the receipt before saving again.')}</small>
       {/if}
     </label>
     {#if relatedProblem}

@@ -854,8 +854,11 @@
       <h2>{translate('Approvals')}</h2>
       <p>{translate('Review submitted operational truth before it moves to the next stage.')}</p>
     </div>
-    <span class="approval-count" aria-label={translate('Approval queue count')}
-      >{operationalRows.length}</span
+    <span
+      class="approval-count"
+      aria-label={translate(
+        statusFilter === 'approved' ? 'Completed review follow-up' : 'Approval queue count',
+      )}>{statusFilter === 'approved' ? completedRows.length : operationalRows.length}</span
     >
   </header>
 
@@ -1051,65 +1054,44 @@
     aria-labelledby={tabId(activeTab)}
     tabindex="0"
   >
-    <SectionCard
-      title={`${translate('Action queue')} · ${tabLabel(activeTab)}`}
-      class="approval-list-surface"
-    >
-      <p class="approval-purpose">
-        {translate(
-          'Records needing action come first, then explicit priority and oldest date. Approved records remain below for audit and correction follow-up.',
-        )}
-      </p>
-      {#if pagedSubmittedRows.rows.length > 0}
-        <div class="approval-list" aria-live="polite">
-          {#each pagedSubmittedRows.rows as row}
-            <article class="approval-row" data-approval-row={value(row, 'id')}>
-              <div class="approval-row-main">
-                <a class="approval-record-link" href={recordHref(row)}>
-                  <strong
-                    >{value(row, 'worker_name') || value(row, 'type')} · {value(
-                      row,
-                      'date',
-                    )}</strong
-                  >
-                  <small>{stageLabel(row.review_stage)} · {projectName(row)}</small>
-                  <span>{translate('Open record')} <DirectionIcon /></span>
-                </a>
-                <div class="approval-row-status">
-                  <StatusBadge
-                    variant={statusVariant(row.approval_state)}
-                    text={controlledValue('status', row.approval_state) ||
-                      value(row, 'approval_state')}
-                  />
+    {#if statusFilter !== 'approved'}
+      <SectionCard
+        title={`${translate('Action queue')} · ${tabLabel(activeTab)}`}
+        class="approval-list-surface"
+      >
+        <p class="approval-purpose">
+          {translate(
+            'Records needing action come first, then explicit priority and oldest date. Approved records remain below for audit and correction follow-up.',
+          )}
+        </p>
+        {#if pagedSubmittedRows.rows.length > 0}
+          <div class="approval-list" aria-live="polite">
+            {#each pagedSubmittedRows.rows as row}
+              <article class="approval-row" data-approval-row={value(row, 'id')}>
+                <div class="approval-row-main">
+                  <a class="approval-record-link" href={recordHref(row)}>
+                    <strong
+                      >{value(row, 'worker_name') || value(row, 'type')} · {value(
+                        row,
+                        'date',
+                      )}</strong
+                    >
+                    <small>{stageLabel(row.review_stage)} · {projectName(row)}</small>
+                    <span>{translate('Open record')} <DirectionIcon /></span>
+                  </a>
+                  <div class="approval-row-status">
+                    <StatusBadge
+                      variant={statusVariant(row.approval_state)}
+                      text={controlledValue('status', row.approval_state) ||
+                        value(row, 'approval_state')}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div class="approval-row-actions">
-                {#if isAuditor}
-                  <span class="approval-read-only">{translate('Read-only review')}</span>
-                {:else if value(row, 'review_stage') === 'report'}
-                  <form
-                    method="POST"
-                    action="?/reviewReport"
-                    use:formValidation
-                    use:enhance={submitApproval}
-                  >
-                    <input type="hidden" name="type" value={value(row, 'type')} />
-                    <input type="hidden" name="id" value={value(row, 'id')} />
-                    <input type="hidden" name="decision" value="approved" />
-                    <button type="submit">{translate('Approve report')}</button>
-                  </form>
-                  <details
-                    class="approval-action-menu"
-                    open={reviewActionOpen(
-                      reviewActionKey('report', row),
-                      String(failedApprovalValues.id ?? '') === value(row, 'id') &&
-                        String(failedApprovalValues.decision ?? '') === 'needs_changes',
-                    )}
-                    ontoggle={(event) =>
-                      rememberReviewActionOpen(reviewActionKey('report', row), event)}
-                  >
-                    <summary>{translate('Review actions')}</summary>
+                <div class="approval-row-actions">
+                  {#if isAuditor}
+                    <span class="approval-read-only">{translate('Read-only review')}</span>
+                  {:else if value(row, 'review_stage') === 'report'}
                     <form
                       method="POST"
                       action="?/reviewReport"
@@ -1118,73 +1100,60 @@
                     >
                       <input type="hidden" name="type" value={value(row, 'type')} />
                       <input type="hidden" name="id" value={value(row, 'id')} />
-                      <input type="hidden" name="decision" value="needs_changes" />
-                      <label>
-                        <span>{translate('Required change')}</span>
-                        <input
-                          name="reason"
-                          minlength="3"
-                          value={String(failedApprovalValues.id ?? '') === value(row, 'id')
-                            ? String(failedApprovalValues.reason ?? '')
-                            : ''}
-                          required
-                        />
-                      </label>
-                      <button type="submit" class="secondary-button">{translate('Return')}</button>
+                      <input type="hidden" name="decision" value="approved" />
+                      <button type="submit">{translate('Approve report')}</button>
                     </form>
-                  </details>
-                {:else if ['correction', 'owner_override'].includes(value(row, 'review_stage'))}
-                  {#if value(row, 'review_stage') === 'owner_override' && !ownerOverrideAllowed}
-                    <span class="approval-read-only">{translate('Owner review required')}</span>
-                  {:else}
-                    <a
-                      class="secondary-button"
-                      href={`${recordHref(row)}#${['daily', 'technical'].includes(value(row, 'type')) ? 'report-correction-title' : value(row, 'type') === 'expense' ? 'expense-correction-title' : 'time-correction-title'}`}
-                      >{translate(
-                        value(row, 'review_stage') === 'owner_override'
-                          ? 'Create owner override draft'
-                          : 'Create correction draft',
+                    <details
+                      class="approval-action-menu"
+                      open={reviewActionOpen(
+                        reviewActionKey('report', row),
+                        String(failedApprovalValues.id ?? '') === value(row, 'id') &&
+                          String(failedApprovalValues.decision ?? '') === 'needs_changes',
                       )}
-                      <DirectionIcon /></a
+                      ontoggle={(event) =>
+                        rememberReviewActionOpen(reviewActionKey('report', row), event)}
                     >
-                  {/if}
-                {:else}
-                  <form
-                    method="POST"
-                    action="?/approveRecord"
-                    use:formValidation
-                    use:enhance={submitApproval}
-                  >
-                    <input type="hidden" name="type" value={rowType(row)} />
-                    <input type="hidden" name="id" value={value(row, 'id')} />
-                    <input type="hidden" name="decision" value="approved" />
-                    <div class="approval-action-warning">
-                      <ProblemNotice
-                        kind="warning"
-                        problem={operationalApprovalWarning}
-                        remedyLinks={{
-                          review_operational_record: {
-                            label: translate('problem.remedy.reviewOperationalRecord'),
-                            href: recordHref(row),
-                          },
-                        }}
-                      />
-                    </div>
-                    <button type="submit">{translate('Approve')}</button>
-                  </form>
-                  <details
-                    class="approval-action-menu"
-                    open={reviewActionOpen(
-                      reviewActionKey('record', row),
-                      String(failedApprovalValues.id ?? '') === value(row, 'id') &&
-                        ['needs_changes', 'rejected'].includes(
-                          String(failedApprovalValues.decision ?? ''),
-                        ),
-                    )}
-                    ontoggle={(event) =>
-                      rememberReviewActionOpen(reviewActionKey('record', row), event)}
-                  >
-                    <summary>{translate('Review actions')}</summary>
+                      <summary>{translate('Review actions')}</summary>
+                      <form
+                        method="POST"
+                        action="?/reviewReport"
+                        use:formValidation
+                        use:enhance={submitApproval}
+                      >
+                        <input type="hidden" name="type" value={value(row, 'type')} />
+                        <input type="hidden" name="id" value={value(row, 'id')} />
+                        <input type="hidden" name="decision" value="needs_changes" />
+                        <label>
+                          <span>{translate('Required change')}</span>
+                          <input
+                            name="reason"
+                            minlength="3"
+                            value={String(failedApprovalValues.id ?? '') === value(row, 'id')
+                              ? String(failedApprovalValues.reason ?? '')
+                              : ''}
+                            required
+                          />
+                        </label>
+                        <button type="submit" class="secondary-button">{translate('Return')}</button
+                        >
+                      </form>
+                    </details>
+                  {:else if ['correction', 'owner_override'].includes(value(row, 'review_stage'))}
+                    {#if value(row, 'review_stage') === 'owner_override' && !ownerOverrideAllowed}
+                      <span class="approval-read-only">{translate('Owner review required')}</span>
+                    {:else}
+                      <a
+                        class="secondary-button"
+                        href={`${recordHref(row)}#${['daily', 'technical'].includes(value(row, 'type')) ? 'report-correction-title' : value(row, 'type') === 'expense' ? 'expense-correction-title' : 'time-correction-title'}`}
+                        >{translate(
+                          value(row, 'review_stage') === 'owner_override'
+                            ? 'Create owner override draft'
+                            : 'Create correction draft',
+                        )}
+                        <DirectionIcon /></a
+                      >
+                    {/if}
+                  {:else}
                     <form
                       method="POST"
                       action="?/approveRecord"
@@ -1193,20 +1162,11 @@
                     >
                       <input type="hidden" name="type" value={rowType(row)} />
                       <input type="hidden" name="id" value={value(row, 'id')} />
-                      <input type="hidden" name="decision" value="needs_changes" />
-                      <label>
-                        <span>{translate('Required change')}</span>
-                        <input
-                          name="reason"
-                          minlength="3"
-                          value={failedDecisionValue(row, 'needs_changes', 'reason')}
-                          required
-                        />
-                      </label>
+                      <input type="hidden" name="decision" value="approved" />
                       <div class="approval-action-warning">
                         <ProblemNotice
                           kind="warning"
-                          problem={operationalReturnWarning}
+                          problem={operationalApprovalWarning}
                           remedyLinks={{
                             review_operational_record: {
                               label: translate('problem.remedy.reviewOperationalRecord'),
@@ -1215,116 +1175,173 @@
                           }}
                         />
                       </div>
-                      <button type="submit" class="secondary-button">
-                        {translate('Needs changes')}
-                      </button>
+                      <button type="submit">{translate('Approve')}</button>
                     </form>
-                    <form
-                      method="POST"
-                      action="?/approveRecord"
-                      use:formValidation
-                      use:enhance={submitApproval}
+                    <details
+                      class="approval-action-menu"
+                      open={reviewActionOpen(
+                        reviewActionKey('record', row),
+                        String(failedApprovalValues.id ?? '') === value(row, 'id') &&
+                          ['needs_changes', 'rejected'].includes(
+                            String(failedApprovalValues.decision ?? ''),
+                          ),
+                      )}
+                      ontoggle={(event) =>
+                        rememberReviewActionOpen(reviewActionKey('record', row), event)}
                     >
-                      <input type="hidden" name="type" value={rowType(row)} />
-                      <input type="hidden" name="id" value={value(row, 'id')} />
-                      <input type="hidden" name="decision" value="rejected" />
-                      <label>
-                        <span>{translate('Rejection reason')}</span>
-                        <input
-                          name="reason"
-                          minlength="3"
-                          value={failedDecisionValue(row, 'rejected', 'reason')}
-                          required
-                        />
-                      </label>
-                      <button type="submit" class="danger-button">{translate('Reject')}</button>
-                    </form>
-                  </details>
-                {/if}
-              </div>
-            </article>
-          {/each}
-        </div>
-      {:else}
-        <div class="approval-empty" role="status">
-          <strong>{translate('No submitted records match this view.')}</strong>
-          <span>{translate('Completed records, if any, remain available below.')}</span>
-        </div>
-      {/if}
-      {#if pagedSubmittedRows.totalPages > 1}<nav
-          class="operational-pagination"
-          aria-label={translate('Submitted approval pages')}
-        >
-          <button
-            type="button"
-            class="secondary-button"
-            disabled={pagedSubmittedRows.current === 1}
-            onclick={() => (queuePage -= 1)}>{translate('Previous')}</button
-          ><span
-            >{translate('Page')}
-            {pagedSubmittedRows.current}
-            {translate('of')}
-            {pagedSubmittedRows.totalPages}</span
-          ><button
-            type="button"
-            class="secondary-button"
-            disabled={pagedSubmittedRows.current === pagedSubmittedRows.totalPages}
-            onclick={() => (queuePage += 1)}>{translate('Next')}</button
+                      <summary>{translate('Review actions')}</summary>
+                      <form
+                        method="POST"
+                        action="?/approveRecord"
+                        use:formValidation
+                        use:enhance={submitApproval}
+                      >
+                        <input type="hidden" name="type" value={rowType(row)} />
+                        <input type="hidden" name="id" value={value(row, 'id')} />
+                        <input type="hidden" name="decision" value="needs_changes" />
+                        <label>
+                          <span>{translate('Required change')}</span>
+                          <input
+                            name="reason"
+                            minlength="3"
+                            value={failedDecisionValue(row, 'needs_changes', 'reason')}
+                            required
+                          />
+                        </label>
+                        <div class="approval-action-warning">
+                          <ProblemNotice
+                            kind="warning"
+                            problem={operationalReturnWarning}
+                            remedyLinks={{
+                              review_operational_record: {
+                                label: translate('problem.remedy.reviewOperationalRecord'),
+                                href: recordHref(row),
+                              },
+                            }}
+                          />
+                        </div>
+                        <button type="submit" class="secondary-button">
+                          {translate('Needs changes')}
+                        </button>
+                      </form>
+                      <form
+                        method="POST"
+                        action="?/approveRecord"
+                        use:formValidation
+                        use:enhance={submitApproval}
+                      >
+                        <input type="hidden" name="type" value={rowType(row)} />
+                        <input type="hidden" name="id" value={value(row, 'id')} />
+                        <input type="hidden" name="decision" value="rejected" />
+                        <label>
+                          <span>{translate('Rejection reason')}</span>
+                          <input
+                            name="reason"
+                            minlength="3"
+                            value={failedDecisionValue(row, 'rejected', 'reason')}
+                            required
+                          />
+                        </label>
+                        <button type="submit" class="danger-button">{translate('Reject')}</button>
+                      </form>
+                    </details>
+                  {/if}
+                </div>
+              </article>
+            {/each}
+          </div>
+        {:else}
+          <div class="approval-empty" role="status">
+            <strong>{translate('No submitted records match this view.')}</strong>
+            <span>{translate('Completed records, if any, remain available below.')}</span>
+          </div>
+        {/if}
+        {#if pagedSubmittedRows.totalPages > 1}<nav
+            class="operational-pagination"
+            aria-label={translate('Submitted approval pages')}
           >
-        </nav>{/if}
-    </SectionCard>
-  </div>
+            <button
+              type="button"
+              class="secondary-button"
+              disabled={pagedSubmittedRows.current === 1}
+              onclick={() => (queuePage -= 1)}>{translate('Previous')}</button
+            ><span
+              >{translate('Page')}
+              {pagedSubmittedRows.current}
+              {translate('of')}
+              {pagedSubmittedRows.totalPages}</span
+            ><button
+              type="button"
+              class="secondary-button"
+              disabled={pagedSubmittedRows.current === pagedSubmittedRows.totalPages}
+              onclick={() => (queuePage += 1)}>{translate('Next')}</button
+            >
+          </nav>{/if}
+      </SectionCard>
+    {/if}
 
-  {#if completedRows.length > 0}
-    <SectionCard
-      title={translate('Completed review follow-up')}
-      collapsible
-      class="approval-list-surface"
-    >
-      <p class="approval-purpose">
-        {translate(
-          'These approved records are immutable operational history. Open a record to inspect it or start the audited correction path where permitted.',
-        )}
-      </p>
-      <div class="approval-list">
-        {#each pagedCompletedRows.rows as row}<article class="approval-row">
-            <div class="approval-row-main">
-              <a class="approval-record-link" href={recordHref(row)}
-                ><strong
-                  >{value(row, 'worker_name') || value(row, 'type')} · {value(row, 'date')}</strong
-                ><small>{projectName(row)}</small><span
-                  >{translate('Open record')} <DirectionIcon /></span
-                ></a
-              ><StatusBadge
-                variant={statusVariant(row.approval_state)}
-                text={controlledValue('status', row.approval_state) || value(row, 'approval_state')}
-              />
-            </div>
-          </article>{/each}
-      </div>
-      {#if pagedCompletedRows.totalPages > 1}<nav
-          class="operational-pagination"
-          aria-label={translate('Completed approval pages')}
-        >
-          <button
-            type="button"
-            class="secondary-button"
-            disabled={pagedCompletedRows.current === 1}
-            onclick={() => (completedPage -= 1)}>{translate('Previous')}</button
-          ><span
-            >{translate('Page')}
-            {pagedCompletedRows.current}
-            {translate('of')}
-            {pagedCompletedRows.totalPages}</span
-          ><button
-            type="button"
-            class="secondary-button"
-            disabled={pagedCompletedRows.current === pagedCompletedRows.totalPages}
-            onclick={() => (completedPage += 1)}>{translate('Next')}</button
+    {#if completedRows.length > 0 || statusFilter === 'approved'}
+      <SectionCard
+        title={translate('Completed review follow-up')}
+        collapsible
+        expanded={statusFilter === 'approved'}
+        class="approval-list-surface"
+      >
+        <p role="status">{completedRows.length} {translate('approved records')}</p>
+        <p class="approval-purpose">
+          {translate(
+            'These approved records are immutable operational history. Open a record to inspect it or start the audited correction path where permitted.',
+          )}
+        </p>
+        <div class="approval-list">
+          {#each pagedCompletedRows.rows as row}<article class="approval-row">
+              <div class="approval-row-main">
+                <a class="approval-record-link" href={recordHref(row)}
+                  ><strong
+                    >{value(row, 'worker_name') || value(row, 'type')} · {value(
+                      row,
+                      'date',
+                    )}</strong
+                  ><small>{projectName(row)}</small><span
+                    >{translate('Open record')} <DirectionIcon /></span
+                  ></a
+                ><StatusBadge
+                  variant={statusVariant(row.approval_state)}
+                  text={controlledValue('status', row.approval_state) ||
+                    value(row, 'approval_state')}
+                />
+              </div>
+            </article>{/each}
+        </div>
+        {#if !completedRows.length}
+          <div class="approval-empty" role="status">
+            <strong>{translate('No approved records match this view.')}</strong>
+          </div>
+        {/if}
+        {#if pagedCompletedRows.totalPages > 1}<nav
+            class="operational-pagination"
+            aria-label={translate('Completed approval pages')}
           >
-        </nav>{/if}
-    </SectionCard>
-  {/if}
+            <button
+              type="button"
+              class="secondary-button"
+              disabled={pagedCompletedRows.current === 1}
+              onclick={() => (completedPage -= 1)}>{translate('Previous')}</button
+            ><span
+              >{translate('Page')}
+              {pagedCompletedRows.current}
+              {translate('of')}
+              {pagedCompletedRows.totalPages}</span
+            ><button
+              type="button"
+              class="secondary-button"
+              disabled={pagedCompletedRows.current === pagedCompletedRows.totalPages}
+              onclick={() => (completedPage += 1)}>{translate('Next')}</button
+            >
+          </nav>{/if}
+      </SectionCard>
+    {/if}
+  </div>
 
   {#if milestones.length > 0}
     <SectionCard title={translate('Project approvals')} class="approval-milestone-surface">
@@ -1546,6 +1563,11 @@
     display: grid;
     gap: 1.25rem;
     overflow-anchor: none;
+  }
+
+  .approval-tab-panel {
+    display: grid;
+    gap: 1.25rem;
   }
 
   .approval-retained-values {

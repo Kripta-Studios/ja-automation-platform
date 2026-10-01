@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useViewPreferences } from '../ui/view-preferences.svelte';
   import CollectionsWorkbench from './CollectionsWorkbench.svelte';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import ProblemNotice from '../ui/ProblemNotice.svelte';
@@ -302,14 +303,35 @@
     ),
   );
 
-  $effect(() => {
-    clientFilter = $page.url.searchParams.get('client')?.trim() ?? '';
-    projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
-    statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
-    currencyFilter = $page.url.searchParams.get('currency')?.trim() ?? '';
-    agingFilter = $page.url.searchParams.get('aging')?.trim() ?? '';
-    const query = $page.url.searchParams.get('q');
-    search = query?.trim() ?? '';
+  useViewPreferences({
+    scope: 'collectionsledger',
+    user: () => `${data.user.id}:${data.user.role}`,
+    url: () => $page.url,
+    defaults: {
+      search: '',
+      clientFilter: '',
+      projectFilter: '',
+      statusFilter: '',
+      currencyFilter: '',
+      agingFilter: '',
+    },
+    query: {
+      search: 'q',
+      clientFilter: 'client',
+      projectFilter: 'project',
+      statusFilter: 'status',
+      currencyFilter: 'currency',
+      agingFilter: 'aging',
+    },
+    get: () => ({ search, clientFilter, projectFilter, statusFilter, currencyFilter, agingFilter }),
+    set: (saved) => {
+      search = saved.search;
+      clientFilter = saved.clientFilter;
+      projectFilter = saved.projectFilter;
+      statusFilter = saved.statusFilter;
+      currencyFilter = saved.currencyFilter;
+      agingFilter = saved.agingFilter;
+    },
   });
 
   function value(row: Row, ...keys: string[]): string {

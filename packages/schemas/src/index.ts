@@ -635,6 +635,33 @@ export const invoicePlanningDatesInputSchema = z
   })
   .strict();
 
+/** Draft presentation edits never authorize changes to issued accounting history. */
+export const invoiceDraftDetailsInputSchema = z.object({
+  expectedVersion: z.coerce.number().int().positive(),
+  expectedBillingRuleVersion: z.coerce.number().int().positive().optional(),
+  invoiceDate: z.iso.date().optional(),
+  dueDate: z.union([z.iso.date(), z.literal('')]).optional(),
+  paymentTermsDays: z.coerce.number().int().min(0).max(365).optional(),
+  saveDefaults: z.boolean().default(false),
+  purchaseNo: z.string().trim().max(160).optional(),
+  termsAndInstructions: z.object({
+    bankSwiftNumber: z.string().trim().max(160).optional(),
+    bankAccountNumber: z.string().trim().max(160).optional(),
+    bankName: z.string().trim().max(300).optional(),
+    beneficiary: z.string().trim().max(300).optional(),
+    pastDueNotice: z.string().trim().max(2000).optional(),
+  }).strict().optional(),
+  companyInfo: z.object({
+    name: z.string().trim().max(300).optional(),
+    division: z.string().trim().max(300).optional(),
+    phone: z.string().trim().max(80).optional(),
+    address: z.string().trim().max(2000).optional(),
+    email: z.union([z.email().max(254), z.literal('')]).optional(),
+    website: z.string().trim().max(500).optional(),
+  }).strict().optional(),
+  discountMinor: z.string().regex(/^\d+$/u).optional(),
+}).strict();
+
 export const invoicePeriodSchema = z.object({
   billingRuleId: uuidSchema,
   periodStart: z.iso.date(),

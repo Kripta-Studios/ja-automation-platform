@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { page } from '$app/stores';
+  import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import type { OwnerFinanceSummary, CashFilter } from '../owner-finance';
   import { ownerFinanceCopy } from '../owner-finance-copy';
@@ -10,6 +12,21 @@
   }: { summary: OwnerFinanceSummary; locale: 'en' | 'es' | 'pt'; base: string } = $props();
   const t = $derived(ownerFinanceCopy[locale]);
   let selected = $state('');
+  useViewPreferences({
+    scope: 'company-finances',
+    user: () => `${$page.data.user?.id ?? ''}:${$page.data.user?.role ?? ''}`,
+    url: () => $page.url,
+    defaults: { currency: '' },
+    get: () => ({ currency: selected }),
+    set: (saved) => {
+      selected = saved.currency;
+    },
+    validate: (saved) => ({
+      currency: summary.currencies.some((item) => item.currency === saved.currency)
+        ? saved.currency
+        : '',
+    }),
+  });
   const current = $derived(
     summary.currencies.find((item) => item.currency === selected) ?? summary.currencies[0],
   );

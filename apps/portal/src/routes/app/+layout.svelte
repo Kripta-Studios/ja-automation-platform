@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { rememberUrlView } from '$lib/portal/ui/url-view-preferences.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
@@ -10,6 +11,10 @@
   import { portalNavigationForRole, type NavItem } from '$lib/portal-navigation';
   import { portalText, type PortalLocale } from '$lib/portal-i18n';
   let { data, children } = $props();
+  rememberUrlView(
+    () => (data.chromeUser ? `${data.chromeUser.id}:${data.chromeUser.role}` : ''),
+    base,
+  );
   let menuOpen = $state(false);
   const section = $derived(
     $page.url.pathname.slice(`${base}/app/`.length).split('/')[0] || 'today',

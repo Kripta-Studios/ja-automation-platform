@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useViewPreferences } from '../ui/view-preferences.svelte';
   import { formatDecimalHours } from './time-entry-actions';
   import { disclosure } from '../ui/disclosure.js';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
@@ -776,6 +777,22 @@
       ),
     ),
   );
+
+  useViewPreferences({
+    scope: 'team-directory',
+    user: () => `${$page.data.user?.id ?? ''}:${$page.data.user?.role ?? ''}`,
+    url: () => $page.url,
+    defaults: { search: '', showAll: false, mailboxSearch: '', filterProvisioned: 'all' },
+    get: () => ({ search, showAll, mailboxSearch, filterProvisioned }),
+    set: (saved) => {
+      search = saved.search;
+      showAll = saved.showAll;
+      mailboxSearch = saved.mailboxSearch;
+      filterProvisioned = ['all', 'available', 'provisioned'].includes(saved.filterProvisioned)
+        ? (saved.filterProvisioned as typeof filterProvisioned)
+        : 'all';
+    },
+  });
 </script>
 
 <div class="team-directory" data-team-directory>

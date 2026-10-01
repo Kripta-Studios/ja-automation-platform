@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { disclosure } from '../ui/disclosure.js';
   import { lastCompletePeriodForCadence, type BillingCadence } from '@ja/billing-engine';
@@ -1505,19 +1506,38 @@
   const canManageIssuerAndNumbering = $derived(data.user.role === 'owner_admin');
   const canVoidInvoice = $derived(data.user.role === 'owner_admin');
 
-  $effect(() => {
-    // Shallow history changes retain SvelteKit's last loaded page URL. Use the
-    // browser query while preserving the page dependency for real navigation.
-    const requestedUrl = new URL($page.url);
-    if (typeof location !== 'undefined') requestedUrl.search = location.search;
-    const requestedView = requestedUrl.searchParams.get('view')?.trim();
-    if (requestedView === 'streams' || requestedView === 'setup' || requestedView === 'invoices')
-      workspace = requestedView;
-    const requestedSetup = requestedUrl.searchParams.get('setup')?.trim();
-    if (requestedSetup && setupActions.some((action) => action.id === requestedSetup))
-      setupAction = requestedSetup as BillingSetupAction;
-    projectFilter = requestedUrl.searchParams.get('project')?.trim() ?? '';
-    stageFilter = billingStageFromQuery(requestedUrl.searchParams.get('stage')?.trim() ?? null);
+  useViewPreferences({
+    scope: 'billing',
+    user: () => `${data.user.id}:${data.user.role}`,
+    url: () => $page.url,
+    defaults: {
+      search: '',
+      projectFilter: '',
+      stageFilter: 'all',
+      workspace: 'invoices',
+      setupAction: 'stream',
+    },
+    query: {
+      search: 'q',
+      projectFilter: 'project',
+      stageFilter: 'stage',
+      workspace: 'view',
+      setupAction: 'setup',
+    },
+    get: () => ({ search, projectFilter, stageFilter, workspace, setupAction }),
+    set: (saved) => {
+      search = saved.search;
+      projectFilter = saved.projectFilter;
+      stageFilter = billingStageFromQuery(saved.stageFilter);
+      if (!billingProblem) {
+        workspace = ['invoices', 'streams', 'setup'].includes(saved.workspace)
+          ? (saved.workspace as BillingWorkspace)
+          : 'invoices';
+        setupAction = setupActions.some((action) => action.id === saved.setupAction)
+          ? (saved.setupAction as BillingSetupAction)
+          : 'stream';
+      }
+    },
   });
   let restoredBillingLocationId = '';
   $effect(() => {

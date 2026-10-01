@@ -1,11 +1,11 @@
 /** Stable identities for deterministic business-artifact renderers. */
-export const INVOICE_TEMPLATE_VERSION = '2026.09.02.2' as const;
-export const ACCOUNTING_PACK_PDF_TEMPLATE_VERSION = '2026.09.22.1' as const;
+export const INVOICE_TEMPLATE_VERSION = '2026.10.01.1' as const;
+export const ACCOUNTING_PACK_PDF_TEMPLATE_VERSION = '2026.10.01.1' as const;
 export const ACCOUNTING_PACK_DATA_TEMPLATE_VERSION = '2026.09.02.2' as const;
 
-export const PERIOD_REPORT_TEMPLATE_VERSION = '2026.09.22.1' as const;
-export const WORKER_STATEMENT_TEMPLATE_VERSION = '2026.09.22.1' as const;
-export const FIELD_REPORT_TEMPLATE_VERSION = '2026.09.22.1' as const;
+export const PERIOD_REPORT_TEMPLATE_VERSION = '2026.10.01.1' as const;
+export const WORKER_STATEMENT_TEMPLATE_VERSION = '2026.10.01.1' as const;
+export const FIELD_REPORT_TEMPLATE_VERSION = '2026.10.01.1' as const;
 export const SPREADSHEET_TEMPLATE_VERSION = '2026.09.22.1' as const;
 
 export type LocalizedPdfOwnerType =

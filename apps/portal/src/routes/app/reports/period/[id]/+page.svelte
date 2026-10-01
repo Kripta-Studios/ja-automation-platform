@@ -21,6 +21,7 @@
     type ControlledValueDomain,
   } from '$lib/i18n/controlled-values';
   import { Field, FieldGroup, StatusBadge, TableRegion } from '$lib/portal/ui';
+  import ReportDocumentPreview from '$lib/portal/ui/ReportDocumentPreview.svelte';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import {
@@ -245,6 +246,14 @@
   const audience = $derived(String(report.audience ?? '').toLowerCase());
   const internal = $derived(audience === 'internal');
   const customerAudience = $derived(audience === 'customer');
+  const previewSourceFields = $derived([
+    { name:'projectSettings', label:t('Open project'), href:`${base}/app/projects/${encodeURIComponent(String(project.id))}` },
+    { name:'timeSources', label:t('Review source time entries'), href:`${base}/app/time?project=${encodeURIComponent(String(project.id))}&from=${encodeURIComponent(String(report.periodStart))}&to=${encodeURIComponent(String(report.periodEnd))}` },
+    ...(['owner_admin', 'finance_admin'].includes(userRole) ? [{ name:'commercialSources', label:t('Review project calculation'), href:`${base}/app/projects/${encodeURIComponent(String(project.id))}/calculation` }] : []),
+    ...dailyReports.filter((row) => row.id).map((row) => ({ name:`source:daily:${String(row.id)}`, label:t('Open daily source report'), href:`${base}/app/reports/${encodeURIComponent(String(row.id))}` })),
+    ...technicalReports.filter((row) => row.id).map((row) => ({ name:`source:technical:${String(row.id)}`, label:t('Open technical source report'), href:`${base}/app/reports/${encodeURIComponent(String(row.id))}` })),
+    ...((report.timeSummary ?? []) as Row[]).filter((row) => row.id).map((row) => ({ name:`source:time:${String(row.id)}`, label:t('Open source time entry'), href:`${base}/app/time/${encodeURIComponent(String(row.id))}` })),
+  ]);
   const customerConformity = $derived((report.conformity ?? null) as Row | null);
   const followup = $derived((report.followup ?? null) as FollowupView | null);
   const followupCopy = $derived(
@@ -705,6 +714,18 @@
         >{/if}
     </div>
   </header>
+  <ReportDocumentPreview
+    src={`${reportHref}/preview?lang=${encodeURIComponent(locale)}`}
+    revision={`${String(report.snapshotVersion)}:${String(report.snapshotSha256)}`}
+    {locale}
+    sourceFields={previewSourceFields}
+  />
+  <p class="no-print form-help">{locale === 'es'
+    ? 'Los valores calculados enlazan a sus registros de origen. Después de cambiar una fuente autorizada, recalcule el reporte para crear una nueva versión; las versiones aprobadas y firmadas conservan su historial.'
+    : locale === 'pt'
+      ? 'Os valores calculados vinculam aos registros de origem. Após alterar uma fonte autorizada, recalcule o relatório para criar uma nova versão; versões aprovadas e assinadas preservam seu histórico.'
+      : 'Calculated values link to their source records. After changing an authorized source, recalculate the report to create a new version; approved and signed versions preserve their history.'}</p>
+
   {#if reportPdfFailure?.surface === 'header'}
     <div
       data-period-pdf-problem="header"

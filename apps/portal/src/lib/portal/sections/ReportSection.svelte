@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { SectionCard } from '../ui';
   import { base } from '$app/paths';
@@ -519,17 +520,65 @@
       order,
     ]),
   );
-  $effect(() => {
-    const querySearch = $page.url.searchParams.get('q');
-    if (querySearch !== null) search = querySearch.trim();
-    projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
-    workerFilter = $page.url.searchParams.get('worker')?.trim() ?? '';
-    clientFilter = $page.url.searchParams.get('client')?.trim() ?? '';
-    fromFilter = $page.url.searchParams.get('from')?.trim() ?? '';
-    toFilter = $page.url.searchParams.get('to')?.trim() ?? '';
-    statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
-    dailyPage = 1;
-    technicalPage = 1;
+  useViewPreferences({
+    scope: 'report',
+    user: () => `${data.user.id}:${data.user.role}`,
+    url: () => $page.url,
+    defaults: {
+      view: 'daily',
+      search: '',
+      projectFilter: '',
+      workerFilter: '',
+      clientFilter: '',
+      fromFilter: '',
+      toFilter: '',
+      statusFilter: '',
+      order: 'newest',
+      dailyPage: 1,
+      technicalPage: 1,
+    },
+    query: {
+      view: 'view',
+      search: 'q',
+      projectFilter: 'project',
+      workerFilter: 'worker',
+      clientFilter: 'client',
+      fromFilter: 'from',
+      toFilter: 'to',
+      statusFilter: 'status',
+      order: 'order',
+    },
+    get: () => ({
+      view: activeTab,
+      search,
+      projectFilter,
+      workerFilter,
+      clientFilter,
+      fromFilter,
+      toFilter,
+      statusFilter,
+      order,
+      dailyPage,
+      technicalPage,
+    }),
+    set: (saved) => {
+      if (!nativeReportSurface)
+        tabOverride = { url: $page.url.href, tab: resolveReportTab(saved.view) };
+      search = saved.search;
+      projectFilter = saved.projectFilter;
+      workerFilter = saved.workerFilter;
+      clientFilter = saved.clientFilter;
+      fromFilter = saved.fromFilter;
+      toFilter = saved.toFilter;
+      statusFilter = saved.statusFilter;
+      order = saved.order as OperationalOrder;
+      dailyPage = saved.dailyPage;
+      technicalPage = saved.technicalPage;
+    },
+    validate: (saved) => ({
+      ...saved,
+      order: ['newest', 'oldest', 'name', 'status'].includes(saved.order) ? saved.order : 'newest',
+    }),
   });
   $effect(() => {
     if (activeTab === 'signoff' && workerFilter) workerFilter = '';
@@ -1140,7 +1189,7 @@
     <FilterSummary
       items={activeFilterItems}
       resultCount={visibleResultCount}
-      clearHref={`${base}/app/reports?view=${activeTab}&q=#report-panel-${activeTab}`}
+      clearHref={`${base}/app/reports?view=${activeTab}&q=&reset=1#report-panel-${activeTab}`}
       onclear={clearReportFilters}
       {translate}
     />

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { enhance } from '$app/forms';
   import { goto, replaceState } from '$app/navigation';
@@ -353,51 +354,99 @@
       });
   });
   const componentId = $props.id();
-  let appliedUrlSearch: string | null = null;
 
-  $effect(() => {
-    // Shallow history changes retain SvelteKit's last loaded page URL. Use the
-    // browser query while preserving the page dependency for real navigation.
-    const requestedUrl = new URL($page.url);
-    if (typeof location !== 'undefined') requestedUrl.search = location.search;
-    const tab = requestedUrl.searchParams.get('tab');
-    if (!approvalProblem && (tab === 'time' || tab === 'expenses' || tab === 'reports'))
-      activeTab = tab;
-    const requestedSearch = requestedUrl.searchParams.get('q');
-    if (requestedSearch !== null && requestedSearch !== appliedUrlSearch) {
-      // An explicit workspace search also scopes these queues. A saved local
-      // search or page must not hide the record identified by a remedy link.
-      milestoneSearch = '';
-      milestonePage = 1;
-      financeSearch = '';
-      financePage = 1;
-    }
-    appliedUrlSearch = requestedSearch;
-    search = requestedSearch?.trim() ?? search;
-    projectFilter = requestedUrl.searchParams.get('project')?.trim() ?? '';
-    workerFilter = requestedUrl.searchParams.get('worker')?.trim() ?? '';
-    clientFilter = requestedUrl.searchParams.get('client')?.trim() ?? '';
-    fromFilter = requestedUrl.searchParams.get('from')?.trim() ?? '';
-    toFilter = requestedUrl.searchParams.get('to')?.trim() ?? '';
-    statusFilter = requestedUrl.searchParams.get('status')?.trim() ?? '';
-    const requestedStage = requestedUrl.searchParams.get('stage');
-    if (
-      requestedStage === '' ||
-      requestedStage === 'operational' ||
-      requestedStage === 'report' ||
-      requestedStage === 'correction' ||
-      requestedStage === 'owner_override' ||
-      requestedStage === 'finance'
-    ) {
-      stageFilter = requestedStage;
-    }
-    const requestedOrder = requestedUrl.searchParams.get('order');
-    if (
-      requestedOrder &&
-      ['priority', 'newest', 'oldest', 'name', 'status'].includes(requestedOrder)
-    ) {
-      order = requestedOrder as OperationalOrder;
-    }
+  useViewPreferences({
+    scope: 'approvals',
+    user: () => `${data.user.id}:${data.user.role}`,
+    url: () => $page.url,
+    defaults: {
+      activeTab: 'time',
+      search: '',
+      projectFilter: '',
+      workerFilter: '',
+      clientFilter: '',
+      fromFilter: '',
+      toFilter: '',
+      statusFilter: '',
+      stageFilter: '',
+      order: 'priority',
+      queuePage: 1,
+      completedPage: 1,
+      milestoneSearch: '',
+      milestonePage: 1,
+      financeSearch: '',
+      financePage: 1,
+    },
+    query: {
+      activeTab: 'tab',
+      search: 'q',
+      projectFilter: 'project',
+      workerFilter: 'worker',
+      clientFilter: 'client',
+      fromFilter: 'from',
+      toFilter: 'to',
+      statusFilter: 'status',
+      stageFilter: 'stage',
+      order: 'order',
+    },
+    get: () => ({
+      activeTab,
+      search,
+      projectFilter,
+      workerFilter,
+      clientFilter,
+      fromFilter,
+      toFilter,
+      statusFilter,
+      stageFilter,
+      order,
+      queuePage,
+      completedPage,
+      milestoneSearch,
+      milestonePage,
+      financeSearch,
+      financePage,
+    }),
+    set: (saved) => {
+      if (!approvalProblem)
+        activeTab = tabs.includes(saved.activeTab as Tab) ? (saved.activeTab as Tab) : 'time';
+      search = saved.search;
+      projectFilter = saved.projectFilter;
+      workerFilter = saved.workerFilter;
+      clientFilter = saved.clientFilter;
+      fromFilter = saved.fromFilter;
+      toFilter = saved.toFilter;
+      statusFilter = saved.statusFilter;
+      stageFilter = [
+        '',
+        'operational',
+        'report',
+        'correction',
+        'owner_override',
+        'finance',
+      ].includes(saved.stageFilter)
+        ? (saved.stageFilter as Stage)
+        : '';
+      order = ['priority', 'newest', 'oldest', 'name', 'status'].includes(saved.order)
+        ? (saved.order as OperationalOrder)
+        : 'priority';
+      queuePage = saved.queuePage;
+      completedPage = saved.completedPage;
+      milestoneSearch =
+        $page.url.searchParams.has('q') ||
+        $page.url.searchParams.has('project') ||
+        $page.url.searchParams.has('stage')
+          ? ''
+          : saved.milestoneSearch;
+      financeSearch =
+        $page.url.searchParams.has('q') ||
+        $page.url.searchParams.has('project') ||
+        $page.url.searchParams.has('stage')
+          ? ''
+          : saved.financeSearch;
+      milestonePage = saved.milestonePage;
+      financePage = saved.financePage;
+    },
   });
 
   const rows = $derived(data.records ?? []);
@@ -746,7 +795,7 @@
   function clearFilters(event: MouseEvent): void {
     event.preventDefault();
     resetApprovalPages();
-    void goto(`${base}/app/approvals?tab=${activeTab}&q=&stage=&order=priority`, {
+    void goto(`${base}/app/approvals?tab=${activeTab}&q=&stage=&order=priority&reset=1`, {
       noScroll: true,
       keepFocus: true,
     });
@@ -1043,7 +1092,7 @@
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
     <a
       class="secondary-button"
-      href={`${base}/app/approvals?tab=${activeTab}&q=&stage=&order=priority`}
+      href={`${base}/app/approvals?tab=${activeTab}&q=&stage=&order=priority&reset=1`}
       onclick={clearFilters}>{translate('Clear filters')}</a
     >
   </form>

@@ -675,8 +675,13 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         };
       case 'finance': {
         const projects = context.repository.listFinanceProjects(context.principal);
-        const selected =
-          url.searchParams.get('project') ?? (projects[0] as { id?: string } | undefined)?.id ?? '';
+        const requestedProject = url.searchParams.get('project')?.trim();
+        if (
+          requestedProject &&
+          !projects.some((project) => String(project.id) === requestedProject)
+        )
+          error(404, 'finance.project_unavailable');
+        const selected = requestedProject ?? (projects[0] as { id?: string } | undefined)?.id ?? '';
         const canManageCanonicalAuthority = ['owner_admin', 'finance_admin'].includes(
           context.principal.role,
         );

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { page } from '$app/stores';
+  import { useViewPreferences } from './view-preferences.svelte';
   import DirectionIcon from './DirectionIcon.svelte';
   import { tick, untrack } from 'svelte';
   import {
@@ -32,6 +34,21 @@
   const today = calendarDate(new Date());
   let selected = $state(untrack(() => calendarDate(initialDate ?? today)));
   let month = $state(untrack(() => selected));
+  useViewPreferences({
+    scope: `planning-calendar:${agendaId ?? 'default'}`,
+    user: () =>
+      `${$page.data.user?.id ?? $page.data.managementUser?.id ?? ''}:${$page.data.user?.role ?? $page.data.managementUser?.role ?? ''}`,
+    url: () => $page.url,
+    defaults: untrack(() => ({ selected, month })),
+    get: () => ({ selected, month }),
+    set: (saved) => {
+      const valid = (date: string) =>
+        /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(date) &&
+        Number.isFinite(Date.parse(`${date}T00:00:00Z`));
+      if (valid(saved.selected)) selected = saved.selected;
+      if (valid(saved.month)) month = saved.month;
+    },
+  });
   let agendaElement: HTMLDivElement | undefined = $state();
   const days = $derived(
     calendarMonthDays(month).map((day) => ({

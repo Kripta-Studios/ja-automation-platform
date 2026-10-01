@@ -74,7 +74,7 @@
   let restoredKey = $state<string | null>(null);
   let appliedFocus = '';
   const storageKey = $derived(
-    `ja-record-browser:${$route.data.user?.id ?? $route.data.managementUser?.id ?? ''}:${$route.url.pathname}${$route.url.search}:${label}:${contextKey}`,
+    `ja-record-browser:${$route.data.user?.id ?? $route.data.managementUser?.id ?? ''}:${$route.data.user?.role ?? $route.data.managementUser?.role ?? ''}:${$route.url.pathname}:${label}:${contextKey}`,
   );
   onMount(() => {
     mounted = true;

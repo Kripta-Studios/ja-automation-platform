@@ -792,7 +792,7 @@ const table = (
     ? lines
         .map(
           (line) =>
-            `<tr>${columns.map((column) => cell(column, column.render(line), 'td')).join('')}</tr>`,
+            `<tr data-invoice-source-type="${escape(line.source_type ?? line.sourceType ?? '')}" data-invoice-source-id="${escape(line.source_id ?? line.sourceId ?? '')}">${columns.map((column) => cell(column, column.render(line), 'td')).join('')}</tr>`,
         )
         .join('')
     : `<tr><td colspan="${columns.length}" class="muted">${escape(localized.noInvoiceLines)}</td></tr>`;
@@ -1192,11 +1192,11 @@ const renderTotals = (
   return `<div class="invoice-bottom-grid">
   <div class="invoice-terms-card">
     <div class="terms-heading">${escape(localized.termsInstructions)}</div>
-    <div class="terms-field"><strong>${escape(localized.bankSwiftNumber)}:</strong> ${valueOrDash(terms.bankSwiftNumber, localized)}</div>
-    <div class="terms-field"><strong>${escape(localized.bankAccountNumber)}:</strong> ${valueOrDash(terms.bankAccountNumber, localized)}</div>
-    <div class="terms-field"><strong>${escape(localized.bankName)}:</strong> ${valueOrDash(terms.bankName, localized)}</div>
-    <div class="terms-field"><strong>${escape(localized.beneficiary)}:</strong> ${valueOrDash(terms.beneficiary, localized)}</div>
-    <div class="terms-notice">${valueOrDash(terms.pastDueNotice, localized)}</div>
+    <div class="terms-field" data-invoice-field="bankSwiftNumber"><strong>${escape(localized.bankSwiftNumber)}:</strong> ${valueOrDash(terms.bankSwiftNumber, localized)}</div>
+    <div class="terms-field" data-invoice-field="bankAccountNumber"><strong>${escape(localized.bankAccountNumber)}:</strong> ${valueOrDash(terms.bankAccountNumber, localized)}</div>
+    <div class="terms-field" data-invoice-field="bankName"><strong>${escape(localized.bankName)}:</strong> ${valueOrDash(terms.bankName, localized)}</div>
+    <div class="terms-field" data-invoice-field="beneficiary"><strong>${escape(localized.beneficiary)}:</strong> ${valueOrDash(terms.beneficiary, localized)}</div>
+    <div class="terms-notice" data-invoice-field="pastDueNotice">${valueOrDash(terms.pastDueNotice, localized)}</div>
   </div>
   <div class="invoice-total">
     <div class="total-row"><span>${escape(localized.subtotal)}</span><span>${moneyOrDash(currency, subtotalMinor, locale, localized)}</span></div>
@@ -1214,6 +1214,9 @@ export type RenderedInvoiceTemplate = Readonly<{
   title: string;
   subtitle: string;
   body: string;
+  /** Registered family-specific line blocks, shared by screen and PDF documents. */
+  lineBody: string;
+  totalsBody: string;
 }>;
 
 /** Render the selected registry contract without recalculating source values. */
@@ -1251,6 +1254,8 @@ export function renderInvoiceTemplate(snapshot: InvoiceTemplateSnapshot): Render
     title: titleFor(definition.id, localized),
     subtitle,
     body: `${renderCommon(snapshot, localized)}${combinedBody}${renderTotals(snapshot, localized, locale)}`,
+    lineBody: combinedBody,
+    totalsBody: renderTotals(snapshot, localized, locale),
   };
 }
 

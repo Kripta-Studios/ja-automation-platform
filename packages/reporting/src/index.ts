@@ -84,17 +84,22 @@ export {
   accountingPackArtifactBuilders,
   accountingPackCsv,
   accountingPackPdf,
+  accountingPackHtml,
   accountingPackXlsx,
   dailyReportPdf,
+  dailyReportHtml,
   invoiceCollectionLedgerCsv,
   invoiceCollectionLedgerXlsx,
   invoicePdf,
   periodReportPdf,
+  periodReportHtml,
   projectFinanceXlsx,
   renderAccountingPackArtifacts,
   technicalReportPdf,
+  technicalReportHtml,
   workerStatementCsv,
   workerStatementPdf,
+  workerStatementHtml,
   REPORT_LOCALES,
   REPORT_TEMPLATE_VERSION,
   toCsv,
@@ -137,3 +142,7 @@ export function periodReadiness(input: {
 }
 
 export { expenseRegisterRows, expenseRegisterExport } from './expense-register.ts';
+
+export { renderInvoiceDocument, invoiceDocumentHtml, invoiceDocumentCss } from './invoice-document.ts';
+
+export { reportPreviewSnapshot } from './report-preview-snapshots.ts';

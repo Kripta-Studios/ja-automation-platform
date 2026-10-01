@@ -122,7 +122,11 @@ function applySecurityHeaders(
       : 'strict-origin-when-cross-origin',
   );
   response.headers.set('permissions-policy', 'camera=(self), microphone=(), geolocation=()');
-  response.headers.set('x-frame-options', 'DENY');
+  const reportPreview = new RegExp(
+    `^${portalBase.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}/reports/(?:period/)?[^/]+/preview$`,
+    'u',
+  ).test(path);
+  response.headers.set('x-frame-options', reportPreview ? 'SAMEORIGIN' : 'DENY');
   response.headers.set('cross-origin-opener-policy', 'same-origin');
   if (isPortal && !response.headers.has('content-security-policy'))
     response.headers.set('content-security-policy', portalCsp);

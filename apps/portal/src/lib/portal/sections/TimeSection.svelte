@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { SectionCard } from '../ui';
   import { page } from '$app/stores';
@@ -254,6 +255,25 @@
     if (nativeBatchFailure || $page.url.searchParams.get('batch') === '1') batchDetailsOpen = true;
   });
 
+  useViewPreferences({
+    scope: 'time-calendar',
+    user: () => `${data.user.id}:${data.user.role}`,
+    url: () => $page.url,
+    defaults: {
+      calendarWorker: '',
+      calendarMonth: localToday().slice(0, 7),
+      calendarDay: localToday(),
+    },
+    get: () => ({ calendarWorker, calendarMonth, calendarDay }),
+    set: (saved) => {
+      calendarWorker = (data.workers ?? []).some((worker) => worker.id === saved.calendarWorker)
+        ? saved.calendarWorker
+        : '';
+      if (/^\d{4}-(0[1-9]|1[0-2])$/.test(saved.calendarMonth)) calendarMonth = saved.calendarMonth;
+      if (/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(saved.calendarDay))
+        calendarDay = saved.calendarDay;
+    },
+  });
   const records = $derived(data.records ?? []);
   const calendarRecords = $derived(data.calendarRecords ?? records);
   const ownerMode = $derived(data.user.role === 'owner_admin');
@@ -472,15 +492,24 @@
   const clientOptions = $derived(
     [...new Set(records.map((row) => String(row.client_name ?? '')).filter(Boolean))].sort(),
   );
-  $effect(() => {
-    const querySearch = $page.url.searchParams.get('q');
-    if (querySearch !== null) search = querySearch.trim();
-    clientFilter = $page.url.searchParams.get('client')?.trim() ?? '';
-    statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
-    const requestedOrder = $page.url.searchParams.get('order');
-    if (requestedOrder && ['newest', 'oldest', 'name', 'status'].includes(requestedOrder))
-      order = requestedOrder as OperationalOrder;
-    registerPage = 1;
+  useViewPreferences({
+    scope: 'time',
+    user: () => `${data.user.id}:${data.user.role}`,
+    url: () => $page.url,
+    defaults: { search: '', clientFilter: '', statusFilter: '', order: 'newest', registerPage: 1 },
+    query: { search: 'q', clientFilter: 'client', statusFilter: 'status', order: 'order' },
+    get: () => ({ search, clientFilter, statusFilter, order, registerPage }),
+    set: (saved) => {
+      search = saved.search;
+      clientFilter = saved.clientFilter;
+      statusFilter = saved.statusFilter;
+      order = saved.order as OperationalOrder;
+      registerPage = saved.registerPage;
+    },
+    validate: (saved) => ({
+      ...saved,
+      order: ['newest', 'oldest', 'name', 'status'].includes(saved.order) ? saved.order : 'newest',
+    }),
   });
   $effect(() => {
     if (nativeRecoveryActive) return;
@@ -638,7 +667,7 @@
     ].filter((item) => item.value);
   });
   const clearFiltersHref = $derived(
-    `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&q=#time-records`,
+    `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&q=&reset=1#time-records`,
   );
 
   function clearFilters(): void {

@@ -132,9 +132,9 @@ export function operationalPage<T>(
 export function readOperationalRegisterState<T extends Record<string, unknown>>(
   key: string,
 ): T | null {
-  if (typeof sessionStorage === 'undefined') return null;
+  if (typeof window === 'undefined') return null;
   try {
-    const parsed: unknown = JSON.parse(sessionStorage.getItem(key) ?? 'null');
+    const parsed: unknown = JSON.parse(localStorage.getItem(key) ?? 'null');
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as T) : null;
   } catch {
     return null;
@@ -142,10 +142,10 @@ export function readOperationalRegisterState<T extends Record<string, unknown>>(
 }
 
 export function writeOperationalRegisterState(key: string, value: Record<string, unknown>): void {
-  if (typeof sessionStorage === 'undefined') return;
+  if (typeof window === 'undefined') return;
   try {
-    sessionStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // Register navigation remains fully usable if a browser disables session storage.
+    // Register navigation remains fully usable if a browser disables local storage.
   }
 }

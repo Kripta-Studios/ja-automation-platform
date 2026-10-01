@@ -39,6 +39,10 @@
     canViewPendingReports?: boolean;
   } = $props();
 
+  const activeProjects = $derived(
+    availableProjects.filter((project) => project.status === 'active'),
+  );
+
   const formatPlanningMinutes = (value: unknown): string | null => {
     if (value == null || value === '') return null;
     const minutes = typeof value === 'number' ? value : Number(value);
@@ -163,9 +167,9 @@
   <section id="dashboard-project-board" class="record-list dashboard-projects">
     <div class="panel-title">
       <h2>{translate('Active project board')}</h2>
-      <span>{availableProjects.length} {translate('records')}</span>
+      <span>{activeProjects.length} {translate('records')}</span>
     </div>
-    {#each availableProjects as project}<a
+    {#each activeProjects as project}<a
         class="project-board-row"
         href={`${base}/app/projects/${project.id}`}
         ><span><b>{project.project_number}</b><strong>{project.name}</strong></span><small

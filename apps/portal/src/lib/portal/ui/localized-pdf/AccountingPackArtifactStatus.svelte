@@ -17,6 +17,7 @@
   import type { AccountingPackDownloadFailureKind } from '$lib/portal/accounting-pack-download';
   import { accountingPackFinalizationReadiness } from '$lib/portal/accounting-pack-finalization';
   import DirectionIcon from '../DirectionIcon.svelte';
+  import ActualPdfPreview from '../ActualPdfPreview.svelte';
   import LocalizedPdfPanel from './LocalizedPdfPanel.svelte';
 
   type Pack = Record<string, unknown>;
@@ -168,6 +169,7 @@
     return Number.isSafeInteger(value) && value >= 0 ? value : 0;
   };
   const finalizationReadiness = $derived(accountingPackFinalizationReadiness(reconciliation));
+  let previewOpen = $state(false);
   let downloadingKey = $state<AccountingPackExportType | null>(null);
   let retryingKey = $state<AccountingPackExportType | null>(null);
   let retryUncertainKey = $state<AccountingPackExportType | null>(null);
@@ -521,6 +523,11 @@
         </span>
       {/if}
     {/each}
+    {#if exportStatuses.pdf === 'ready'}
+      <button type="button" class="preview-link" aria-expanded={previewOpen} onclick={() => { previewOpen = !previewOpen; }}>{previewOpen
+        ? (locale === 'es' ? 'Cerrar vista previa' : locale === 'pt' ? 'Fechar prévia' : 'Close PDF preview')
+        : (locale === 'es' ? 'Vista previa del PDF guardado' : locale === 'pt' ? 'Prévia do PDF salvo' : 'Preview saved PDF')}</button>
+    {/if}
     {#each accountingPackExportTypes as artifact}
       {#if exportStatuses[artifact.key] === 'failed'}
         <div class="accounting-pack-export-guidance" role="status">
@@ -698,6 +705,20 @@
     {/if}
   </div>
 </article>
+
+{#if previewOpen && exportStatuses.pdf === 'ready'}
+  <ActualPdfPreview
+    src={artifactHref('pdf')}
+    {locale}
+    onFailure={(payload, status, reference) => {
+      const value = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+      return showDownloadNotice('pdf', classifyAccountingPackDownloadFailure(status, typeof value.error === 'string' ? value.error : '', typeof value.code === 'string' ? value.code : undefined), reference ?? undefined);
+    }}
+  />
+  <p class="form-help no-print">{locale === 'es' ? 'Revise los registros de origen antes de generar una nueva versión. Los paquetes finalizados conservan sus cifras históricas.' : locale === 'pt' ? 'Revise os registros de origem antes de gerar uma nova versão. Pacotes finalizados preservam seus valores históricos.' : 'Review source records before generating a new version. Finalized packs preserve their historical figures.'}
+    <a href={`${base}/app/billing?view=invoices`}>{translate('Invoices')}</a> · <a href={`${base}/app/finance?view=economic`}>{translate('Finance')}</a>
+  </p>
+{/if}
 
 {#if revisionId}
   <div class="no-print accounting-pack-localized-pdf">

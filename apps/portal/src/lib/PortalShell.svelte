@@ -8,6 +8,7 @@
     assignmentWorkflowHref,
     projectWorkflowFrom,
   } from './portal/assignment-form-action';
+  import ActualPdfPreview from '$lib/portal/ui/ActualPdfPreview.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import {
@@ -231,6 +232,7 @@
     requestIssuedAt: string;
   };
   let workerStatementArtifacts = $state<WorkerStatementArtifact[]>([]);
+  let workerStatementPreviewId = $state<string | null>(null);
   let workerStatementBusy = $state(false);
   let workerStatementPolling = $state(false);
   let workerStatementProblem = $state<ProblemData | null>(null);
@@ -3765,6 +3767,11 @@
                     if (event.button === 1) void downloadWorkerStatement(event, artifact);
                   }}>{translate(format.toUpperCase())} · {translate('Ready')}</a
                 >
+                {#if format === 'pdf'}
+                  <button type="button" class="preview-link" aria-expanded={workerStatementPreviewId === artifact.artifactId} onclick={() => { workerStatementPreviewId = workerStatementPreviewId === artifact.artifactId ? null : artifact.artifactId; }}>{workerStatementPreviewId === artifact.artifactId
+                    ? (locale === 'es' ? 'Cerrar vista previa' : locale === 'pt' ? 'Fechar prévia' : 'Close PDF preview')
+                    : (locale === 'es' ? 'Vista previa del PDF guardado' : locale === 'pt' ? 'Prévia do PDF salvo' : 'Preview saved PDF')}</button>
+                {/if}
               {:else if artifact}
                 <span
                   class="state-tag"
@@ -3790,6 +3797,18 @@
             {/each}
           </div>
         </div>
+        {#if workerStatementPreviewId && workerStatementArtifact('pdf')?.artifactId === workerStatementPreviewId && workerStatementArtifact('pdf')?.status === 'ready' && !workerStatementStatusUnknownIds.includes(workerStatementPreviewId)}
+          <ActualPdfPreview
+            src={`${base}/app/api/worker-statement/artifacts/${encodeURIComponent(workerStatementPreviewId)}/download`}
+            {locale}
+            onFailure={(payload, status, reference) => showWorkerStatementProblem(
+              workerStatementDownloadProblem(payload, reference) ?? workerStatementDownloadFallback(status === 401 ? 'signIn' : 'invalid', reference), 'download',
+            )}
+          />
+          <p class="form-help">{locale === 'es' ? 'Los valores del extracto provienen de sus registros guardados. Revise las horas o los gastos de origen y genere una nueva versión para reflejar los cambios autorizados.' : locale === 'pt' ? 'Os valores do demonstrativo vêm dos seus registros salvos. Revise as horas ou despesas de origem e gere uma nova versão para refletir alterações autorizadas.' : 'Statement values come from your saved records. Review source time or expenses and generate a new version to reflect authorized changes.'}
+            <a href={`${base}/app/time?from=${encodeURIComponent(data.periodStart)}&to=${encodeURIComponent(data.periodEnd)}`}>{translate('Time')}</a> · <a href={`${base}/app/expenses?from=${encodeURIComponent(data.periodStart)}&to=${encodeURIComponent(data.periodEnd)}`}>{translate('Expenses')}</a>
+          </p>
+        {/if}
         {#if workerStatementProblem}
           <ProblemNotice
             problem={workerStatementProblem.code === 'WORKER_STATEMENT_DOWNLOAD_STATUS_UNKNOWN'

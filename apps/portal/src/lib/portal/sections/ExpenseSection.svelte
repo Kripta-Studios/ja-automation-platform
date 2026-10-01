@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useViewPreferences } from '../ui/view-preferences.svelte';
   import ExpenseWeekPanel from './ExpenseWeekPanel.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { page } from '$app/stores';
@@ -680,22 +681,74 @@
   const clientOptions = $derived(
     [...new Set(records.map((row) => String(row.client_name ?? '')).filter(Boolean))].sort(),
   );
-  $effect(() => {
-    const query = $page.url.searchParams.get('q');
-    if (query !== null) search = query.trim();
-    projectFilter = $page.url.searchParams.get('project')?.trim() ?? '';
-    workerFilter = $page.url.searchParams.get('worker')?.trim() ?? '';
-    clientFilter = $page.url.searchParams.get('client')?.trim() ?? '';
-    categoryFilter = $page.url.searchParams.get('category')?.trim() ?? '';
-    currencyFilter = $page.url.searchParams.get('currency')?.trim() ?? '';
-    fromFilter = $page.url.searchParams.get('from')?.trim() ?? '';
-    toFilter = $page.url.searchParams.get('to')?.trim() ?? '';
-    statusFilter = $page.url.searchParams.get('status')?.trim() ?? '';
-    reimbursementFilter = canViewReimbursement
-      ? ($page.url.searchParams.get('reimbursement')?.trim() ?? '')
-      : '';
-    receiptFilter = $page.url.searchParams.get('receipt')?.trim() ?? '';
-    registerPage = 1;
+  useViewPreferences({
+    scope: 'expense',
+    user: () => `${data.user.id}:${data.user.role}`,
+    url: () => $page.url,
+    defaults: {
+      search: '',
+      projectFilter: '',
+      workerFilter: '',
+      clientFilter: '',
+      categoryFilter: '',
+      currencyFilter: '',
+      fromFilter: '',
+      toFilter: '',
+      statusFilter: '',
+      reimbursementFilter: '',
+      receiptFilter: '',
+      order: 'newest',
+      registerPage: 1,
+    },
+    query: {
+      search: 'q',
+      projectFilter: 'project',
+      workerFilter: 'worker',
+      clientFilter: 'client',
+      categoryFilter: 'category',
+      currencyFilter: 'currency',
+      fromFilter: 'from',
+      toFilter: 'to',
+      statusFilter: 'status',
+      reimbursementFilter: 'reimbursement',
+      receiptFilter: 'receipt',
+      order: 'order',
+    },
+    get: () => ({
+      search,
+      projectFilter,
+      workerFilter,
+      clientFilter,
+      categoryFilter,
+      currencyFilter,
+      fromFilter,
+      toFilter,
+      statusFilter,
+      reimbursementFilter,
+      receiptFilter,
+      order,
+      registerPage,
+    }),
+    set: (saved) => {
+      search = saved.search;
+      projectFilter = saved.projectFilter;
+      workerFilter = saved.workerFilter;
+      clientFilter = saved.clientFilter;
+      categoryFilter = saved.categoryFilter;
+      currencyFilter = saved.currencyFilter;
+      fromFilter = saved.fromFilter;
+      toFilter = saved.toFilter;
+      statusFilter = saved.statusFilter;
+      reimbursementFilter = saved.reimbursementFilter;
+      receiptFilter = saved.receiptFilter;
+      order = saved.order as OperationalOrder;
+      registerPage = saved.registerPage;
+    },
+    validate: (saved) => ({
+      ...saved,
+      order: ['newest', 'oldest', 'name', 'status'].includes(saved.order) ? saved.order : 'newest',
+      reimbursementFilter: canViewReimbursement ? saved.reimbursementFilter : '',
+    }),
   });
   const expenseProblemContext = $derived.by(() => {
     const row = surface === 'edit' ? editRow : undefined;
@@ -1014,7 +1067,7 @@
       ...advancedFilters,
     ].filter((item) => item.value);
   });
-  const clearFiltersHref = `${base}/app/expenses?q=`;
+  const clearFiltersHref = `${base}/app/expenses?q=&reset=1`;
 
   function clearFilters(): void {
     search = '';

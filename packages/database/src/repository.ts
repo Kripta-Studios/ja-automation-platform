@@ -67,6 +67,7 @@ import {
 } from './domains/workforce/workforce-repository.ts';
 import { NotificationRepository } from './domains/notifications/index.ts';
 import { discardOwnerInvoice } from './domains/owner/owner-invoice-management.ts';
+import { updateInvoiceDraftDetails, invoicePresentationObject, invoiceBusinessDates } from './domains/billing/invoice-draft-details.ts';
 import { issuerPaymentDefaults } from './domains/billing/issuer-payment-defaults.ts';
 import { pendingTimeFinanceReviewSourceIds } from './domains/billing/time-finance-review.ts';
 import { V3Repository } from './v3-repository.ts';
@@ -5432,6 +5433,9 @@ export class PortalRepository {
       version: _version,
       updated_at: _updatedAt,
       effective_to: _effectiveTo,
+      // Presentation-only defaults were introduced after existing calculation fingerprints.
+      // Excluding them also prevents bank/contact edits from rerating source money.
+      invoice_preview_defaults_json: _previewDefaults,
       ...calculationRule
     } = rule;
     const fingerprint = createHash('sha256')
@@ -6154,6 +6158,9 @@ export class PortalRepository {
         fixed_price_minor: string | null;
         fixed_amount_minor: string | null;
         included_minutes: number | null;
+        invoice_preview_defaults_json: string | null;
+        payment_terms_days: number;
+        po_number_override: string | null;
       };
       if (!rule)
         throw new ReadinessError([
@@ -6555,6 +6562,7 @@ export class PortalRepository {
         principal,
         execution,
       );
+      const presentationDefaults = invoicePresentationObject(rule.invoice_preview_defaults_json);
       this.sqlite
         .prepare(
           'UPDATE invoice SET subtotal_minor=?,tax_minor=?,total_minor=?,snapshot_json=?,updated_at=? WHERE id=?',
@@ -6564,6 +6572,11 @@ export class PortalRepository {
           safeInteger(tax.minorUnits),
           safeInteger(total.minorUnits),
           JSON.stringify({
+            purchaseNo: presentationDefaults.purchaseNo ?? rule.po_number_override ?? undefined,
+            termsAndInstructions: invoicePresentationObject(presentationDefaults.termsAndInstructions),
+            companyInfo: invoicePresentationObject(presentationDefaults.companyInfo),
+            paymentTermsDays: rule.payment_terms_days,
+            invoiceDate: timestamp.slice(0, 10),
             billingRuleVersion: rule.version,
             includeExpenses: rule.include_expenses === 1,
             billingCalculationFingerprint: provenance.fingerprint,
@@ -7895,9 +7908,6 @@ export class PortalRepository {
       const sequence = this.nextSequence('invoice', `${context.legal_entity_id}:${year}`);
       const invoiceNumber = `${policy.prefix}-${year}-${String(sequence).padStart(policy.digits, '0')}`;
       const issuedAt = now();
-      const due = new Date(
-        Date.parse(issuedAt) + context.billing_payment_terms_days * 86_400_000,
-      ).toISOString();
       let draftCustomizations: Record<string, unknown> = {};
       if (invoice.snapshot_json) {
         try {
@@ -7906,6 +7916,12 @@ export class PortalRepository {
           // Preserve issuance using the canonical defaults when a legacy snapshot is malformed.
         }
       }
+      const businessDates = invoiceBusinessDates(draftCustomizations, issuedAt, context.billing_payment_terms_days);
+      assertDate(businessDates.invoiceDate, 'Invoice date');
+      assertDate(businessDates.dueDate, 'Due date');
+      if (businessDates.dueDate < businessDates.invoiceDate || !Number.isInteger(businessDates.paymentTermsDays) || businessDates.paymentTermsDays < 0 || businessDates.paymentTermsDays > 365)
+        throw new ValidationError('Invoice business dates or payment terms are invalid');
+      const due = `${businessDates.dueDate}T00:00:00.000Z`;
       const snapshot = {
         template: {
           id: controlledInvoiceTemplateId(context.template_id, invoice.stream_type),
@@ -7954,7 +7970,10 @@ export class PortalRepository {
         discountMinor: draftCustomizations.discountMinor ?? '0',
         servicePeriod: { start: invoice.period_start, end: invoice.period_end },
         number: invoiceNumber,
-        issueDate: issuedAt,
+        issueDate: businessDates.invoiceDate,
+        invoiceDate: businessDates.invoiceDate,
+        paymentTermsDays: businessDates.paymentTermsDays,
+        dueDateOverride: businessDates.dueDateOverride,
         issuedAt,
         locale: normalizeReportLocale(reportLocale),
         invoiceNumber,
@@ -7963,7 +7982,7 @@ export class PortalRepository {
           cadence: context.cadence_type,
           anchorDate: context.anchor_date,
           groupingMode: context.grouping_mode,
-          paymentTermsDays: context.billing_payment_terms_days,
+          paymentTermsDays: businessDates.paymentTermsDays,
           poNumberOverride: context.po_number_override,
         },
         taxProfile: context.tax_profile_id
@@ -8643,11 +8662,15 @@ export class PortalRepository {
     this.assertReadable(principal);
     if (principal.role === 'worker') throw new AccessDeniedError('Management role required');
     const projectFilter = principal.role === 'project_manager' ? [...principal.projectIds] : [];
-    const where = projectFilter.length
-      ? ` WHERE p.id IN (${projectFilter.map(() => '?').join(',')})`
+    const where = principal.role === 'project_manager'
+      ? projectFilter.length
+        ? ` WHERE p.id IN (${projectFilter.map(() => '?').join(',')})`
+        : ' WHERE 0'
       : '';
     const projects = this.sqlite
-      .prepare(`SELECT count(*) count FROM project p${where}`)
+      .prepare(
+        `SELECT count(*) count FROM project p${where}${where ? ' AND' : ' WHERE'} p.status='active'`,
+      )
       .get(...projectFilter) as { count: number };
     const hours = this.sqlite
       .prepare(
@@ -8914,7 +8937,7 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     const invoice = this.sqlite
       .prepare(
-        'SELECT i.*,p.project_number,p.name project_name,p.po_number project_po_number,c.client_number,c.display_name client_name,c.legal_name client_legal_name,c.billing_address client_billing_address,c.billing_email,br.template_id invoice_template_id,le.code issuer_code,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name,rev.revision_id resolved_legal_entity_revision_id,rev.legal_name canonical_issuer_name,rev.tax_identifier canonical_tax_identifier,rev.registration_identifier canonical_registration_identifier,rev.address_line1 canonical_address_line1,rev.address_line2 canonical_address_line2,rev.locality canonical_locality,rev.region canonical_region,rev.postal_code canonical_postal_code,rev.country_code canonical_country_code,rev.base_currency canonical_currency,(SELECT COUNT(*) FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.legal_entity_revision_id=rev.revision_id AND a.tenant_id=rev.tenant_id AND a.deployment_id=rev.deployment_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) AND rev.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (rev.effective_to IS NULL OR rev.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10)))) canonical_assignment_matches FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity_revision rev ON rev.revision_id=COALESCE(i.legal_entity_revision_id,(SELECT a.legal_entity_revision_id FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) ORDER BY a.effective_from DESC LIMIT 1)) WHERE i.id=?',
+        'SELECT i.*,p.project_number,p.name project_name,p.po_number project_po_number,c.client_number,c.display_name client_name,c.legal_name client_legal_name,c.billing_address client_billing_address,c.billing_email,br.template_id invoice_template_id,br.version billing_rule_version,br.payment_terms_days,br.po_number_override,le.code issuer_code,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name,rev.revision_id resolved_legal_entity_revision_id,rev.legal_name canonical_issuer_name,rev.tax_identifier canonical_tax_identifier,rev.registration_identifier canonical_registration_identifier,rev.address_line1 canonical_address_line1,rev.address_line2 canonical_address_line2,rev.locality canonical_locality,rev.region canonical_region,rev.postal_code canonical_postal_code,rev.country_code canonical_country_code,rev.base_currency canonical_currency,(SELECT COUNT(*) FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.legal_entity_revision_id=rev.revision_id AND a.tenant_id=rev.tenant_id AND a.deployment_id=rev.deployment_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) AND rev.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (rev.effective_to IS NULL OR rev.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10)))) canonical_assignment_matches FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity_revision rev ON rev.revision_id=COALESCE(i.legal_entity_revision_id,(SELECT a.legal_entity_revision_id FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) ORDER BY a.effective_from DESC LIMIT 1)) WHERE i.id=?',
       )
       .get(invoiceId) as Record<string, unknown> | undefined;
     if (!invoice) throw new ValidationError('Invoice not found');
@@ -8963,7 +8986,7 @@ export class PortalRepository {
         .filter(Boolean)
         .join('\n'),
       purchase_no:
-        customSnapshot.purchaseNo ?? customSnapshot.purchase_no ?? invoice.project_po_number ?? '—',
+        customSnapshot.purchaseNo ?? customSnapshot.purchase_no ?? (frozenInvoice ? null : invoice.po_number_override ?? invoice.project_po_number) ?? '—',
       terms_and_instructions: {
         ...(['draft', 'approved'].includes(String(invoice.state ?? ''))
           ? issuerPaymentDefaults(invoice.issuer_code, invoice.currency)
@@ -8978,18 +9001,45 @@ export class PortalRepository {
           ? customSnapshot.companyInfo
           : {}),
       },
+      ...invoiceBusinessDates(customSnapshot, invoice.created_at, invoice.payment_terms_days),
+      invoice_date: frozenInvoice ? (customSnapshot.invoiceDate ?? customSnapshot.issueDate ?? invoice.issued_at) : invoiceBusinessDates(customSnapshot, invoice.created_at, invoice.payment_terms_days).invoiceDate,
+      due_date: frozenInvoice ? (customSnapshot.dueAt ?? invoice.due_at) : invoiceBusinessDates(customSnapshot, invoice.created_at, invoice.payment_terms_days).dueDate,
+      payment_terms_days: frozenInvoice ? invoicePresentationObject(customSnapshot.commercial).paymentTermsDays : invoiceBusinessDates(customSnapshot, invoice.created_at, invoice.payment_terms_days).paymentTermsDays,
+      due_date_override: customSnapshot.dueDateOverride ?? '',
+      source_version: invoice.version,
       discount_minor: customSnapshot.discountMinor ?? customSnapshot.discount_minor ?? '0',
     };
-    const lines = this.sqlite
+    let lines: Record<string, unknown>[] = this.sqlite
       .prepare(
-        'SELECT description,quantity_numerator,quantity_denominator,unit_price_minor,subtotal_minor,source_type FROM invoice_line WHERE invoice_id=? ORDER BY rowid',
+        'SELECT description,quantity_numerator,quantity_denominator,unit_price_minor,subtotal_minor,source_type,source_id FROM invoice_line WHERE invoice_id=? ORDER BY rowid',
       )
       .all(invoiceId);
-    const taxes = this.sqlite
+    let taxes: Record<string, unknown>[] = this.sqlite
       .prepare(
         'SELECT tc.name,tc.basis_points FROM invoice i JOIN billing_rule br ON br.id=i.billing_rule_id JOIN tax_component tc ON tc.tax_profile_id=br.tax_profile_id WHERE i.id=? ORDER BY tc.calculation_order',
       )
       .all(invoiceId);
+    if (frozenInvoice) {
+      const frozenClient = invoicePresentationObject(customSnapshot.client);
+      const frozenProject = invoicePresentationObject(customSnapshot.project);
+      const frozenCalculation = invoicePresentationObject(customSnapshot.calculation);
+      Object.assign(enrichedInvoice, {
+        client_legal_name: frozenClient.legalName ?? null, client_name: frozenClient.legalName ?? null,
+        client_number: frozenClient.number ?? null, client_billing_address: frozenClient.billingAddress ?? null,
+        billing_email: frozenClient.billingEmail ?? null,
+        project_number: frozenProject.number ?? null, project_name: frozenProject.name ?? null,
+        project_po_number: frozenProject.poNumber ?? null,
+        tax_profile_name: invoicePresentationObject(customSnapshot.taxProfile).name ?? null,
+        invoice_template_id: invoicePresentationObject(customSnapshot.template).id ?? 'default',
+        currency: frozenCalculation.currency ?? invoice.currency,
+        subtotal_minor: frozenCalculation.subtotalMinor ?? invoice.subtotal_minor,
+        tax_minor: frozenCalculation.taxMinor ?? invoice.tax_minor,
+        total_minor: frozenCalculation.totalMinor ?? invoice.total_minor,
+      });
+      lines = Array.isArray(customSnapshot.lines) ? customSnapshot.lines : [];
+      taxes = Array.isArray(invoicePresentationObject(customSnapshot.taxProfile).components)
+        ? invoicePresentationObject(customSnapshot.taxProfile).components as Record<string, unknown>[] : [];
+    }
     const typedLines = lines as Array<{ source_type: string; subtotal_minor: number }>;
     const expenseSubtotal = typedLines
       .filter((line) => line.source_type === 'expense')
@@ -9013,70 +9063,33 @@ export class PortalRepository {
     principal: Principal,
     invoiceId: string,
     data: {
+      expectedVersion: number;
+      expectedBillingRuleVersion?: number;
+      invoiceDate?: string;
+      dueDate?: string;
+      paymentTermsDays?: number;
+      saveDefaults?: boolean;
       purchaseNo?: string;
       termsAndInstructions?: Record<string, string>;
       companyInfo?: Record<string, string>;
       discountMinor?: string;
     },
   ) {
-    this.assertActive(principal);
-    if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
-    return this.transaction(() => {
-      const invoice = this.sqlite
-        .prepare(
-          'SELECT id, state, snapshot_json, invoice_number, issued_at FROM invoice WHERE id=?',
-        )
-        .get(invoiceId) as
-        | {
-            id: string;
-            state: string;
-            snapshot_json: string | null;
-            invoice_number: string | null;
-            issued_at: string | null;
-          }
-        | undefined;
-      if (!invoice) throw new ValidationError('Invoice not found');
-      if (invoice.state !== 'draft' && invoice.state !== 'approved') {
-        throw new ConflictError('Only draft or approved invoices can be modified before issuance');
-      }
-      if (invoice.invoice_number !== null || invoice.issued_at !== null)
-        throw new ConflictError('Invoice has historical issue markers');
-      let currentSnapshot: Record<string, unknown> = {};
-      if (invoice.snapshot_json) {
-        try {
-          currentSnapshot = JSON.parse(invoice.snapshot_json);
-        } catch {
-          // Invalid legacy customization data is replaced only in the new draft snapshot.
-        }
-      }
-      if (data.purchaseNo !== undefined) {
-        currentSnapshot.purchaseNo = data.purchaseNo;
-      }
-      if (data.termsAndInstructions !== undefined) {
-        currentSnapshot.termsAndInstructions = {
-          ...(typeof currentSnapshot.termsAndInstructions === 'object' &&
-          currentSnapshot.termsAndInstructions !== null
-            ? currentSnapshot.termsAndInstructions
-            : {}),
-          ...data.termsAndInstructions,
-        };
-      }
-      if (data.companyInfo !== undefined) {
-        currentSnapshot.companyInfo = {
-          ...(typeof currentSnapshot.companyInfo === 'object' &&
-          currentSnapshot.companyInfo !== null
-            ? currentSnapshot.companyInfo
-            : {}),
-          ...data.companyInfo,
-        };
-      }
-      if (data.discountMinor !== undefined) {
-        currentSnapshot.discountMinor = data.discountMinor;
-      }
-      this.sqlite
-        .prepare('UPDATE invoice SET snapshot_json=?, updated_at=? WHERE id=?')
-        .run(JSON.stringify(currentSnapshot), now(), invoiceId);
-      return { success: true };
+    return updateInvoiceDraftDetails(this.sqlite, principal, invoiceId, data, {
+      access: AccessDeniedError,
+      conflict: ConflictError,
+      validation: ValidationError,
+    }, {
+      assertCalculationFresh: (invoice) => this.assertInvoiceBillingRuleFresh({
+        id: String(invoice.id), billing_rule_id: String(invoice.billing_rule_id),
+        snapshot_json: typeof invoice.snapshot_json === 'string' ? invoice.snapshot_json : null,
+        stream_type: String(invoice.stream_type), period_start: String(invoice.period_start),
+        period_end: String(invoice.period_end),
+      }, principal),
+      refreshCalculationFingerprint: (invoice) => this.billingCalculationProvenance(
+        String(invoice.id), String(invoice.billing_rule_id), String(invoice.period_start),
+        String(invoice.period_end), principal,
+      ).fingerprint,
     });
   }
 

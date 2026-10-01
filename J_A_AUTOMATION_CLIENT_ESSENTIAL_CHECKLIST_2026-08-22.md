@@ -1324,3 +1324,8 @@ Round5 activated at15:52:26 Europe/Madrid as `zip-4f34490d89e84fe4e3dfaee559fb81
 ## Browser workflow round 6 and production cleanup — 2026-10-01
 
 [Round 6 evidence](docs/evidence/browser-role-workflows-round6-20261001.md) records source-backed browser findings, Astra classification and independent code review. Initial release `5cb15a0` activated 18:01:58 Europe/Madrid with successful builds, ten-document online backup and deployment health/jobs checks. Six QA projects and their billing stream archived via Owner UI, preserving history. Two additional billing bugs (imported ID selection rejected; draft sources directed to empty Approvals) and contextual cadence UX are implemented and preview-verified; follow-up activation/live configuration pending. This is scoped evidence, not a full Essential acceptance verdict or completed10+10 quota.
+
+
+## Editable previews and remembered views — 2026-10-01
+
+[Browser evidence](docs/evidence/preview-editing-persistence-browser-20261001.md) records Worker/Chief/PM/Owner/Finance/Auditor checks on an isolated production snapshot, acknowledged report edits/correction history, optimistic invoice conflicts, subsequent-draft billing defaults, canonical PDF downloads, role-scoped persistent filters and representative widths. Independent review SHIP and full workspace typecheck/lint pass. Migration0069 is additive; issued history and calculated-money authority stay protected. Production activation and the final live regression are recorded in that evidence after deployment. This does not promote untested Essential journeys.

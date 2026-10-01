@@ -20,6 +20,7 @@ import {
   technicalReportPdf,
   type ReportLocale,
 } from './exports.ts';
+import { reportPreviewSnapshot } from './report-preview-snapshots.ts';
 import { localizedPdfRendererVersion, localizedPdfTemplateVersion } from './report-versions.ts';
 import { ensureNoSymlinkComponents } from './private-storage.ts';
 
@@ -387,33 +388,7 @@ function renderVariant(variant: LocalizedPdfJobVariant): Uint8Array {
         lines: Array.isArray(row.lines) ? row.lines : [],
       });
     case 'period_report_revision':
-      return periodReportPdf({
-        ...row,
-        locale,
-        periodStart: stringValue(row, 'periodStart', 'period_start') ?? '1970-01-01',
-        periodEnd: stringValue(row, 'periodEnd', 'period_end') ?? '1970-01-01',
-        project:
-          row.project && typeof row.project === 'object'
-            ? (row.project as Record<string, unknown>)
-            : {
-                number: stringValue(row, 'project_number'),
-                name: stringValue(row, 'project_name'),
-              },
-        currency: stringValue(row, 'currency') ?? 'USD',
-        legalEntity: row.legalEntity ?? row.legal_entity,
-        totals:
-          row.totals && typeof row.totals === 'object'
-            ? (row.totals as ReportRow)
-            : {
-                subtotalMinor: numberValue(row, 'subtotalMinor', 'subtotal_minor'),
-                totalMinor: numberValue(row, 'totalMinor', 'total_minor'),
-              },
-        totalsByCurrency: snapshotArray(row, 'totalsByCurrency', 'totals_by_currency'),
-        invoiceRegister: snapshotArray(row, 'invoiceRegister', 'invoice_register'),
-        collections: snapshotArray(row, 'collections'),
-        workerCosts: snapshotArray(row, 'workerCosts', 'worker_costs'),
-        expenseRegister: snapshotArray(row, 'expenseRegister', 'expense_register'),
-      } as Parameters<typeof periodReportPdf>[0]);
+      return periodReportPdf(reportPreviewSnapshot('period_report_revision', row, locale) as Parameters<typeof periodReportPdf>[0]);
     case 'accounting_pack_revision':
       return accountingPackPdf({
         ...row,
@@ -436,39 +411,9 @@ function renderVariant(variant: LocalizedPdfJobVariant): Uint8Array {
         expenseRegister: snapshotArray(row, 'expenseRegister', 'expense_register'),
       } as Parameters<typeof accountingPackPdf>[0]);
     case 'daily_report':
-      return dailyReportPdf({
-        ...row,
-        locale,
-        date: stringValue(row, 'date', 'workDate', 'work_date') ?? '1970-01-01',
-        project:
-          row.project && typeof row.project === 'object'
-            ? (row.project as Record<string, unknown>)
-            : {
-                number: stringValue(row, 'project_number'),
-                name: stringValue(row, 'project_name'),
-              },
-        summary: stringValue(row, 'summary') ?? '',
-      });
+      return dailyReportPdf(reportPreviewSnapshot('daily_report', row, locale) as Parameters<typeof dailyReportPdf>[0]);
     case 'technical_report':
-      return technicalReportPdf({
-        ...row,
-        locale,
-        date:
-          stringValue(row, 'date', 'reportDate', 'report_date', 'createdAt', 'created_at') ??
-          '1970-01-01',
-        project:
-          row.project && typeof row.project === 'object'
-            ? (row.project as Record<string, unknown>)
-            : {
-                number: stringValue(row, 'project_number'),
-                name: stringValue(row, 'project_name'),
-              },
-        system: stringValue(row, 'system', 'systemName', 'system_name') ?? '',
-        site: stringValue(row, 'site', 'plantSite', 'plant_site') ?? '',
-        area: stringValue(row, 'area', 'areaLine', 'area_line') ?? '',
-        station: stringValue(row, 'station', 'stationMachine', 'station_machine') ?? '',
-        changeSummary: stringValue(row, 'changeSummary', 'change_summary') ?? '',
-      });
+      return technicalReportPdf(reportPreviewSnapshot('technical_report', row, locale));
   }
 }
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { useViewPreferences } from '../ui/view-preferences.svelte';
+  import { page } from '$app/stores';
   import { base } from '$app/paths';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { SectionCard, StatusBadge } from '../ui';
@@ -116,6 +118,17 @@
 
   const visibleClients = $derived((clients ?? []).filter(matches));
   let clientPage = $state<typeof visibleClients>([]);
+
+  useViewPreferences({
+    scope: 'client-directory',
+    user: () => `${$page.data.user?.id ?? ''}:${$page.data.user?.role ?? ''}`,
+    url: () => $page.url,
+    defaults: { search: '' },
+    get: () => ({ search }),
+    set: (saved) => {
+      search = saved.search;
+    },
+  });
 </script>
 
 <div class="client-directory" data-client-directory>
@@ -127,7 +140,10 @@
     </div>
     <div>
       {#if canManageContacts}
-        <a class="primary-button client-directory__create" href={`${base}/app/projects?view=clients&action=new-client`}>
+        <a
+          class="primary-button client-directory__create"
+          href={`${base}/app/projects?view=clients&action=new-client`}
+        >
           {translate('Create client')}
         </a>
       {/if}

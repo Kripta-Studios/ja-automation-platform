@@ -14,6 +14,7 @@ export default {
       directives: {
         'default-src': ['self'],
         'frame-src': ['self', 'blob:'],
+        'font-src': ['self', 'data:'],
         'img-src': ['self', 'data:', 'blob:'],
         // SvelteKit's accessibility announcer is emitted with one static,
         // visually-hidden style attribute. Keep the policy strict while

@@ -8,6 +8,7 @@ export const load: LayoutServerLoad = ({ locals }) => ({
   chromeUser:
     locals.user && locals.session
       ? {
+          id: locals.user.id,
           name: locals.user.name,
           role: locals.user.role,
           workforceProfile: locals.user.workforceProfile,

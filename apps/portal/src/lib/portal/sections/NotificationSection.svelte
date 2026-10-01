@@ -75,7 +75,7 @@
     const url = new URL($page.url);
     url.searchParams.delete('/markNotificationRead');
     if (unread) url.searchParams.set('read', 'unread');
-    else url.searchParams.delete('read');
+    else url.searchParams.set('read', 'all');
     url.searchParams.set('lang', locale);
     return `${url.pathname}${url.search}`;
   }

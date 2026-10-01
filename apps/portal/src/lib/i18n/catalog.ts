@@ -28,6 +28,20 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'problem.billing.previewFieldsInvalid': 'Check the highlighted invoice fields before saving.',
+  'problem.billing.previewDueDateInvalid': 'Due date must be on or after the invoice date.',
+  'problem.billing.previewDiscountUnsupported':
+    'Update the commercial billing terms and regenerate the draft to change a discount and recalculate totals and tax.',
+  'problem.billing.previewDraftOnly':
+    'Only an unissued Draft can be edited. Approved invoices need a replacement draft; issued invoices need a correction.',
+  'problem.billing.previewVersionChanged':
+    'This invoice changed in another session. Refresh the preview before saving again. Your entered values are retained.',
+  'problem.billing.previewStreamChanged':
+    'The billing stream settings changed. Refresh the preview before saving defaults for future invoices.',
+  'problem.billing.previewArtifactSealed':
+    'This draft has a sealed PDF artifact. Create a replacement draft before editing.',
+  'problem.billing.previewPdfBusy':
+    'An invoice PDF job is in progress. Wait for it to finish before editing.',
   'View person rates': 'View person rates',
   'Saved automatic draft setting: enabled': 'Saved automatic draft setting: enabled',
   'Saved automatic draft setting: disabled': 'Saved automatic draft setting: disabled',
@@ -272,6 +286,9 @@ const en = {
   'Not enabled': 'Not enabled',
   'No records match that search in your access scope.':
     'No records match that search in your access scope.',
+  'Project unavailable': 'Project unavailable',
+  'Choose an available project': 'Choose an available project',
+  'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.': 'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.',
   'No published assignment for today.': 'No published assignment for today.',
   'No time recorded.': 'No time recorded.',
   'No expenses recorded.': 'No expenses recorded.',
@@ -455,6 +472,22 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'problem.billing.previewFieldsInvalid':
+    'Revise los campos de la factura marcados antes de guardar.',
+  'problem.billing.previewDueDateInvalid':
+    'El vencimiento debe ser igual o posterior a la fecha de la factura.',
+  'problem.billing.previewDiscountUnsupported':
+    'Actualice las condiciones comerciales y regenere el borrador para cambiar un descuento y recalcular los totales e impuestos.',
+  'problem.billing.previewDraftOnly':
+    'Solo se puede editar un borrador sin emitir. Una factura aprobada necesita un nuevo borrador y una emitida requiere una corrección.',
+  'problem.billing.previewVersionChanged':
+    'Esta factura cambió en otra sesión. Actualice la vista previa antes de guardar de nuevo. Se conserva la información introducida.',
+  'problem.billing.previewStreamChanged':
+    'La configuración del flujo de facturación cambió. Actualice la vista previa antes de guardar los valores para futuras facturas.',
+  'problem.billing.previewArtifactSealed':
+    'Este borrador tiene un PDF sellado. Cree un borrador de reemplazo antes de editarlo.',
+  'problem.billing.previewPdfBusy':
+    'Se está generando el PDF de la factura. Espere a que termine antes de editarla.',
   'View person rates': 'Ver tarifas por persona',
   'Saved automatic draft setting: enabled':
     'Configuración guardada del borrador automático: activado',
@@ -703,6 +736,9 @@ const esBase: Record<keyof typeof en, string> = {
   'Not enabled': 'No activado',
   'No records match that search in your access scope.':
     'Ningún registro coincide con la búsqueda en su ámbito de acceso.',
+  'Project unavailable': 'Proyecto no disponible',
+  'Choose an available project': 'Elegir un proyecto disponible',
+  'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.': 'El proyecto seleccionado no está disponible en su ámbito de acceso. Elija un proyecto disponible para continuar; se conservan los demás filtros.',
   'No published assignment for today.': 'No hay asignación publicada para hoy.',
   'No time recorded.': 'No hay horas registradas.',
   'No expenses recorded.': 'No hay gastos registrados.',
@@ -878,6 +914,21 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'problem.billing.previewFieldsInvalid': 'Revise os campos da fatura destacados antes de salvar.',
+  'problem.billing.previewDueDateInvalid':
+    'O vencimento deve ser igual ou posterior à data da fatura.',
+  'problem.billing.previewDiscountUnsupported':
+    'Atualize as condições comerciais e gere o rascunho novamente para alterar um desconto e recalcular totais e impostos.',
+  'problem.billing.previewDraftOnly':
+    'Somente um rascunho não emitido pode ser editado. Faturas aprovadas exigem um novo rascunho; as emitidas exigem correção.',
+  'problem.billing.previewVersionChanged':
+    'Esta fatura mudou em outra sessão. Atualize a prévia antes de salvar novamente. Os valores informados foram mantidos.',
+  'problem.billing.previewStreamChanged':
+    'As configurações do fluxo de faturamento mudaram. Atualize a prévia antes de salvar os padrões para futuras faturas.',
+  'problem.billing.previewArtifactSealed':
+    'Este rascunho tem um PDF selado. Crie um rascunho substituto antes de editar.',
+  'problem.billing.previewPdfBusy':
+    'O PDF da fatura está sendo gerado. Aguarde a conclusão antes de editar.',
   'View person rates': 'Ver tarifas por pessoa',
   'Saved automatic draft setting: enabled': 'Configuração salva do rascunho automático: ativado',
   'Saved automatic draft setting: disabled':
@@ -1125,6 +1176,9 @@ const ptBase: Record<keyof typeof en, string> = {
   'Not enabled': 'Não ativado',
   'No records match that search in your access scope.':
     'Nenhum registro corresponde à busca no seu escopo de acesso.',
+  'Project unavailable': 'Projeto indisponível',
+  'Choose an available project': 'Escolher um projeto disponível',
+  'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.': 'O projeto selecionado não está disponível no seu escopo de acesso. Escolha um projeto disponível para continuar; os outros filtros são mantidos.',
   'No published assignment for today.': 'Nenhuma atribuição publicada para hoje.',
   'No time recorded.': 'Nenhuma hora registrada.',
   'No expenses recorded.': 'Nenhuma despesa registrada.',

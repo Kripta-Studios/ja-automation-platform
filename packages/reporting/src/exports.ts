@@ -1,10 +1,12 @@
+import { documentFontCss } from './document-fonts.ts';
 import { deflateRawSync } from 'node:zlib';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { renderInvoiceTemplate, type InvoiceTemplateSnapshot } from '@ja/invoice-templates';
+import { type InvoiceTemplateSnapshot } from '@ja/invoice-templates';
+import { invoiceDocumentHtml } from './invoice-document.ts';
 import { activityWithInterval, actualTimeInterval } from './time-interval.ts';
 import { projectFinanceCaption } from './project-finance-copy.ts';
 import {
@@ -590,15 +592,31 @@ const operationalTableCss = `
 .operational-table .number { text-align:right; white-space:nowrap; }
 `;
 
-const accountingPackCss = `${operationalTableCss}
+const reportDocumentCss = `${documentFontCss}
+body { font:10.5pt 'Geist', Arial, sans-serif; line-height:1.65; }
+h1 { font:600 26pt 'Geist', Arial, sans-serif; line-height:1.2; letter-spacing:-.03em; margin-bottom:3mm; }
+h2 { font:700 10pt 'Geist', Arial, sans-serif; letter-spacing:.09em; text-transform:uppercase; margin:7mm 0 3mm; padding-bottom:2mm; }
+.masthead { border-bottom:2px solid #e23d2d; margin-bottom:8mm; padding-bottom:6mm; }
+.eyebrow, .muted, th { font-family:'Geist', Arial,sans-serif; }
+.muted { font-size:8.5pt; }
+.metric { border-left:0; background:#f6f8fa; border-radius:1.5mm; padding:3.5mm; }
+.metric strong { font:600 11pt 'Geist', Arial, sans-serif; line-height:1.5; margin-top:1.5mm; white-space:pre-wrap; }
+.report-narrative p { white-space:pre-wrap; margin:0; overflow-wrap:anywhere; orphans:3; widows:3; }
+.report-narrative { break-inside:auto; }
+@media screen { html { background:#e9edf1; } body { background:#fff; width:210mm; min-height:297mm; padding:14mm 14mm 18mm; margin:0; } }
+`;
+
+const accountingPackCss = `${operationalTableCss}${reportDocumentCss}
 @page { size:A4 landscape; margin:12mm 12mm 16mm; }
+@media screen { body { width:297mm; min-height:210mm; padding:12mm 12mm 16mm; } }
 .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:3mm; }
 .metric { min-width:0; padding:2.5mm; }
 .metric strong { font-size:11pt; overflow-wrap:anywhere; }
 `;
 
-const workerStatementCss = `${operationalTableCss}
+const workerStatementCss = `${operationalTableCss}${reportDocumentCss}
 @page { size:A4 landscape; margin:12mm 14mm 16mm; }
+@media screen { body { width:297mm; min-height:210mm; padding:12mm 14mm 16mm; } }
 body { font-size:9pt; }
 h1 { font-size:20pt; margin-bottom:2mm; }
 h2 { margin-top:4mm; font-size:12pt; }
@@ -609,82 +627,20 @@ h2 { margin-top:4mm; font-size:12pt; }
 .metric strong { font-size:13pt; overflow-wrap:anywhere; }
 `;
 
-const periodReportCss = `${operationalTableCss}
+const periodReportCss = `${operationalTableCss}${reportDocumentCss}
 .grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:3mm; }
 .metric { padding:2.5mm; }
 .metric strong { font-size:11pt; overflow-wrap:anywhere; }
 .grid > .metric:first-child, .grid > .metric:nth-child(2) { grid-column:span 3; }
 `;
 
-const fieldReportCss = `
+const fieldReportCss = `${reportDocumentCss}
 .grid { gap:3mm 5mm; }
 .metric { min-width:0; padding:2.5mm; }
 .metric strong { font-size:11pt; overflow-wrap:anywhere; word-break:normal; }
 .report-section { overflow-wrap:anywhere; }
 h2 { margin-top:5mm; }
 `;
-
-/**
- * Invoice-only presentation. Shared report `pageCss` styles `.grid` / `.total` but not
- * `.invoice-parties`, `.invoice-meta`, or `.invoice-total`, so wrapping invoice HTML in
- * `layout()` collapsed parties, metadata and totals into unstructured text.
- */
-const invoiceCss = `
-.invoice-masthead { display:flex; align-items:flex-start; justify-content:space-between; gap:10mm; border-bottom:3px solid #0f2d3d; padding-bottom:5mm; margin-bottom:5mm; }
-.invoice-identity { text-align:right; min-width:0; }
-.invoice-identity h1 { margin:1mm 0 0; font-size:18pt; letter-spacing:-.02em; }
-.invoice-document { min-width:0; }
-.invoice-parties { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8mm; padding:5mm 0 4mm; }
-.invoice-party { display:grid; gap:1.2mm; min-width:0; }
-.invoice-party-label { color:#64748b; font-size:8pt; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
-.invoice-party div { margin:0; line-height:1.45; }
-.invoice-meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:5mm; padding:4mm 0; margin:0; border-block:1px solid #d9e1e7; }
-.invoice-field { display:grid; gap:1mm; min-width:0; }
-.invoice-field .label { color:#64748b; font-size:8pt; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
-.invoice-field .value { margin:0; font-weight:700; overflow-wrap:anywhere; }
-.invoice-document > h2 { margin:6mm 0 2mm; font-size:11pt; }
-.invoice-description-block { margin:0 0 3mm; }
-.invoice-lines { width:100%; max-width:100%; table-layout:fixed; border-collapse:collapse; margin-top:4mm; }
-.invoice-lines th { background:#dbebf7; color:#0d3b66; font-size:8.5pt; font-weight:700; letter-spacing:.03em; border-top:1px solid #b8d5ec; border-bottom:1px solid #b8d5ec; padding:2.2mm 2.8mm; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
-.invoice-lines td { padding:2.2mm 2.8mm; border-bottom:1px solid #e2e8f0; font-size:8.5pt; overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
-.invoice-lines th.amount, .invoice-lines td.amount { text-align:right; white-space:nowrap; }
-.qty-total-cell, .total-amount-cell { border:1.5px solid #0d3b66 !important; background:#ffffff; font-weight:700; text-align:right; }
-.invoice-bottom-grid { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:10mm; margin-top:6mm; align-items:start; }
-.invoice-terms-card { font-size:8pt; color:#1e293b; line-height:1.45; }
-.terms-heading { font-size:9.5pt; font-weight:700; color:#0f2d3d; text-decoration:underline; margin-bottom:2mm; }
-.terms-field { margin:0.8mm 0; }
-.terms-notice { margin-top:2.5mm; font-style:italic; color:#64748b; font-size:7.5pt; }
-.invoice-total { margin:0; width:100%; border-top:2px solid #cbd5e1; padding-top:2mm; }
-.invoice-total .total-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(28mm,1fr); align-items:start; gap:4mm; padding:1.2mm 0; }
-.invoice-total .total-row span:last-child, .invoice-total .total-row strong:last-child { text-align:right; overflow-wrap:anywhere; }
-.invoice-total .grand-total strong { color:#0f2d3d; font-size:12pt; }
-.company-contact-masthead { margin-top:1.5mm; font-size:7.5pt; color:#475569; line-height:1.35; }
-`;
-
-function invoiceLayout(
-  title: string,
-  subtitle: string,
-  number: string,
-  body: string,
-  locale: ReportLocale,
-  snapshot: InvoiceTemplateSnapshot,
-): string {
-  const copy = localizedCopy[locale];
-  const company = snapshot.companyInfo ?? snapshot.company_info;
-  const issuerName =
-    snapshotText(snapshot.legalEntity, 'legalName', 'legal_name', 'name') ||
-    snapshotText(company, 'name');
-  const contactLines = [
-    [snapshotText(company, 'division'), snapshotText(company, 'phone')].filter(Boolean).join(' · '),
-    snapshotText(company, 'address') ||
-      snapshotText(snapshot.legalEntity, 'billingAddress', 'billing_address', 'address'),
-    [snapshotText(company, 'email'), snapshotText(company, 'website')].filter(Boolean).join(' · '),
-  ]
-    .filter(Boolean)
-    .map((line) => `<div>${htmlEscape(line)}</div>`)
-    .join('');
-  return `<!doctype html><html lang="${localeTag(locale)}"><head><meta charset="utf-8"><meta name="template-version" content="${REPORT_TEMPLATE_VERSION}"><meta name="invoice-layout" content="structured-v1"><meta name="report-locale" content="${localeTag(locale)}"><style>${pageCss}${invoiceCss}</style></head><body><header class="invoice-masthead"><div class="brand-lockup"><img class="brand-logo" src="${companyLogo()}" alt="J&amp;A Automation logo"><div class="masthead-copy"><div class="eyebrow">${htmlEscape(issuerName || '—')}</div>${contactLines ? `<div class="company-contact-masthead">${contactLines}</div>` : ''}<div class="muted" style="margin-top:1mm;font-size:7pt">${htmlEscape(copy.template)} ${REPORT_TEMPLATE_VERSION}</div></div></div><div class="invoice-identity"><div class="eyebrow">${htmlEscape(title)}</div><h1>${htmlEscape(number)}</h1><div class="muted">${htmlEscape(subtitle)}</div></div></header><article class="invoice-document">${body}</article></body></html>`;
-}
 
 function exactMoneyText(currency: unknown, minor: unknown, locale: ReportLocale = 'en'): string {
   const code =
@@ -2194,7 +2150,7 @@ export function workerStatementCsv(snapshot: WorkerStatementSnapshot): Uint8Arra
   );
 }
 
-export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Array {
+export function workerStatementHtml(snapshot: WorkerStatementSnapshot): string {
   const locale = normalizeLocale(snapshot.locale);
   const copy = workerStatementCopy(locale);
   const common = localizedCopy[locale];
@@ -2291,6 +2247,7 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
     copy.noActivity,
     {
       amountIndexes: [6],
+      rowFieldKeys: snapshot.activities.map((row) => `source:time:${row.id}`),
       numberIndexes: [4],
       columnWidths: [11, 21, 10, 28, 6, 11, 13],
       footer: activityRows.length
@@ -2351,6 +2308,7 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
     {
       amountIndexes: [6],
       columnWidths: [11, 20, 24, 12, 12, 10, 11],
+      rowFieldKeys: snapshot.expenses.map((row) => `source:expense:${row.id}`),
       footer: expenseRows.length
         ? [
             common.total,
@@ -2364,16 +2322,18 @@ export function workerStatementPdf(snapshot: WorkerStatementSnapshot): Uint8Arra
         : undefined,
     },
   );
-  return renderHtmlToPdf(
-    layout(
+  return layout(
       copy.title,
       `${snapshot.worker.name} · ${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
       `<section class="grid">${summary}</section><p class="muted">${htmlEscape(common.approvedHours)}: ${htmlEscape(minutesAsHours(snapshot.approvedMinutes) || snapshot.approvedMinutes)} · ${htmlEscape(copy.pendingHours)}: ${htmlEscape(minutesAsHours(snapshot.pendingMinutes) || snapshot.pendingMinutes)}</p><h2>${htmlEscape(copy.ownActivity)}</h2>${activityTable}<h2>${htmlEscape(copy.settlements)}</h2>${settlementTable}<h2>${htmlEscape(copy.ownReimbursableExpenses)}</h2>${expenseTable}`,
       locale,
       workerStatementCss,
       WORKER_STATEMENT_TEMPLATE_VERSION,
-    ),
   );
+}
+
+export function workerStatementPdf(snapshot: Parameters<typeof workerStatementHtml>[0]): Uint8Array {
+  return renderHtmlToPdf(workerStatementHtml(snapshot));
 }
 
 export type InvoiceCollectionLedgerRow = Readonly<{
@@ -2881,7 +2841,7 @@ function accountingPackRegisterRows(
   );
 }
 
-export function accountingPackPdf(
+export function accountingPackHtml(
   snapshot: Readonly<{
     periodStart: string;
     periodEnd: string;
@@ -2895,7 +2855,7 @@ export function accountingPackPdf(
     workerCosts?: readonly Record<string, unknown>[];
     expenseRegister?: readonly Record<string, unknown>[];
   }>,
-): Uint8Array {
+): string {
   const locale = normalizeReportLocale(snapshot.locale);
   const copy = localizedCopy[locale];
   const snapshotCurrency = String(snapshot.currency ?? snapshot.totals?.currency ?? 'USD');
@@ -3098,8 +3058,7 @@ export function accountingPackPdf(
     row[2] ?? '',
     knownMoney(rowCurrency(snapshot.collections?.[index] ?? {}), row[3] ?? ''),
   ]);
-  return renderHtmlToPdf(
-    layout(
+  return layout(
       copy.accountingPack,
       `${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
       [
@@ -3215,11 +3174,14 @@ export function accountingPackPdf(
       locale,
       accountingPackCss,
       ACCOUNTING_PACK_PDF_TEMPLATE_VERSION,
-    ),
   );
 }
 
-export function periodReportPdf(
+export function accountingPackPdf(snapshot: Parameters<typeof accountingPackHtml>[0]): Uint8Array {
+  return renderHtmlToPdf(accountingPackHtml(snapshot));
+}
+
+export function periodReportHtml(
   snapshot: Readonly<{
     project?: Readonly<{ number?: string; name?: string; clientName?: string }>;
     periodStart: string;
@@ -3236,7 +3198,7 @@ export function periodReportPdf(
     sourceCounts?: Readonly<Record<string, unknown>>;
     backupArtifacts?: readonly Row[];
   }>,
-): Uint8Array {
+): string {
   const locale = normalizeReportLocale(snapshot.locale);
   const copy = localizedCopy[locale];
   const project = projectIdentity(snapshot);
@@ -3250,9 +3212,9 @@ export function periodReportPdf(
       maximumFractionDigits: 1,
     });
   const moneyMetric = (label: string, value: unknown): string =>
-    `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${value === null || value === undefined || value === '' ? '—' : moneyText(currency, value, locale)}</strong></div>`;
+    `<div class="metric" data-report-field="commercialSources"><span class="muted">${htmlEscape(label)}</span><strong>${value === null || value === undefined || value === '' ? '—' : moneyText(currency, value, locale)}</strong></div>`;
   const hoursMetric = (label: string, value: unknown): string =>
-    `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${value === null || value === undefined || value === '' ? '—' : htmlEscape(`${hours(value)} h`)}</strong></div>`;
+    `<div class="metric" data-report-field="timeSources"><span class="muted">${htmlEscape(label)}</span><strong>${value === null || value === undefined || value === '' ? '—' : htmlEscape(`${hours(value)} h`)}</strong></div>`;
   const timeSummary = snapshot.timeSummary ?? [];
   const approvedTimeMinutes = timeSummary.reduce(
     (total, row) =>
@@ -3309,6 +3271,7 @@ export function periodReportPdf(
   ].join(' · ');
   const operationalRows = [
     ...(snapshot.dailyReports ?? []).map((row) => ({
+      sourceField: `source:daily:${String(row.id ?? '')}`,
       type: copy.dailyReport,
       date: formatReportDate(row.work_date ?? row.workDate ?? row.date, locale),
       worker: String(row.workerDisplay ?? row.worker ?? row.workerName ?? row.worker_name ?? ''),
@@ -3317,6 +3280,7 @@ export function periodReportPdf(
       status: row.approval_state ?? row.approvalState,
     })),
     ...(snapshot.technicalReports ?? []).map((row) => ({
+      sourceField: `source:technical:${String(row.id ?? '')}`,
       type: copy.technicalReport,
       date: formatReportDate(
         row.report_date ?? row.reportDate ?? row.date ?? row.created_at ?? row.createdAt,
@@ -3328,6 +3292,7 @@ export function periodReportPdf(
       status: row.approval_state ?? row.approvalState,
     })),
     ...(snapshot.technicalChanges ?? []).map((row) => ({
+      sourceField: `source:technical_change:${String(row.id ?? '')}`,
       type: copy.technicalChange,
       date: formatReportDate(row.created_at ?? row.createdAt ?? row.date, locale),
       worker: String(row.workerDisplay ?? row.worker ?? row.workerName ?? row.worker_name ?? ''),
@@ -3336,6 +3301,7 @@ export function periodReportPdf(
       status: row.approval_state ?? row.approvalState,
     })),
     ...timeSummary.map((row) => ({
+      sourceField: `source:time:${String(row.id ?? '')}`,
       type: copy.sourceTime,
       date: formatReportDate(row.work_date ?? row.workDate ?? row.date, locale),
       worker: String(row.workerDisplay ?? row.worker ?? row.workerName ?? row.worker_name ?? ''),
@@ -3382,6 +3348,7 @@ export function periodReportPdf(
     copy.noReportRecords,
     {
       footer: operationalFooter,
+      rowFieldKeys: operationalRows.map((row) => row.sourceField),
       numberIndexes: [4],
       columnWidths: [13, 14, 16, 32, 9, 16],
     },
@@ -3428,27 +3395,25 @@ export function periodReportPdf(
 </div>`;
   }
 
-  return renderHtmlToPdf(
-    layout(
+  return layout(
       copy.projectPeriodReport,
       `${project.title}${project.title ? ' · ' : ''}${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
       customer
-        ? `<h2>${copy.operationalRecord}</h2><div class="grid">${reportField(copy.project, project.title)}${reportField(copy.client, project.clientName)}${publicMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p>${operationalTable}${customerSignatureBlock(locale)}`
-        : `<h2>${copy.calculation}</h2><div class="grid">${reportField(copy.project, project.title)}${reportField(copy.client, project.clientName)}${publicMetrics}${internalMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p>${calculationTable}<h2>${copy.operationalRecord}</h2>${operationalTable}`,
+        ? `<h2>${copy.operationalRecord}</h2><div class="grid">${reportField(copy.project, project.title, 'projectSettings')}${reportField(copy.client, project.clientName, 'projectSettings')}${publicMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p>${operationalTable}${customerSignatureBlock(locale)}`
+        : `<h2>${copy.calculation}</h2><div class="grid">${reportField(copy.project, project.title, 'projectSettings')}${reportField(copy.client, project.clientName, 'projectSettings')}${publicMetrics}${internalMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p>${calculationTable}<h2>${copy.operationalRecord}</h2>${operationalTable}`,
       locale,
       periodReportCss,
       PERIOD_REPORT_TEMPLATE_VERSION,
-    ),
   );
 }
 
+
+export function periodReportPdf(snapshot: Parameters<typeof periodReportHtml>[0]): Uint8Array {
+  return renderHtmlToPdf(periodReportHtml(snapshot));
+}
+
 export function invoicePdf(snapshot: InvoiceTemplateSnapshot): Uint8Array {
-  const locale = normalizeReportLocale(snapshot.locale);
-  const rendered = renderInvoiceTemplate(snapshot);
-  const number = String(snapshot.number ?? snapshot.invoiceNumber ?? '');
-  return renderHtmlToPdf(
-    invoiceLayout(rendered.title, rendered.subtitle, number, rendered.body, locale, snapshot),
-  );
+  return renderHtmlToPdf(invoiceDocumentHtml(snapshot, { logoUrl: companyLogo() }));
 }
 
 type ReportProject = Readonly<{
@@ -3540,16 +3505,16 @@ type TechnicalReportSnapshot = Readonly<{
   [key: string]: unknown;
 }>;
 
-function reportField(label: string, value: unknown): string {
+function reportField(label: string, value: unknown, field?: string): string {
   const text = value !== null && typeof value === 'object' ? '' : String(value ?? '').trim();
-  if (!text) return '';
-  return `<div class="metric"><span class="muted">${htmlEscape(label)}</span><strong>${htmlEscape(text)}</strong></div>`;
+  if (!text && !field) return '';
+  return `<div class="metric"${field ? ` data-report-field="${htmlEscape(field)}"` : ''}><span class="muted">${htmlEscape(label)}</span><strong>${htmlEscape(text || '—')}</strong></div>`;
 }
 
-function reportParagraph(title: string, value: unknown): string {
+function reportParagraph(title: string, value: unknown, field?: string): string {
   const text = value !== null && typeof value === 'object' ? '' : String(value ?? '').trim();
-  if (!text) return '';
-  return `<h2>${htmlEscape(title)}</h2><p>${htmlEscape(text)}</p>`;
+  if (!text && !field) return '';
+  return `<section class="report-narrative"${field ? ` data-report-field="${htmlEscape(field)}"` : ''}><h2>${htmlEscape(title)}</h2><p>${htmlEscape(text || '—')}</p></section>`;
 }
 
 function sumMinorUnits(values: readonly unknown[]): bigint {
@@ -3610,6 +3575,7 @@ function htmlTable(
     footer?: readonly string[];
     columnWidths?: readonly number[];
     numberIndexes?: readonly number[];
+    rowFieldKeys?: readonly string[];
   }>,
 ): string {
   if (rows.length === 0) return `<p class="muted">${htmlEscape(empty)}</p>`;
@@ -3626,7 +3592,7 @@ function htmlTable(
   };
   const head = headers.map((header, index) => cell(header, index, 'th')).join('');
   const body = rows
-    .map((row) => `<tr>${row.map((value, index) => cell(value, index, 'td')).join('')}</tr>`)
+    .map((row, index) => `<tr${options?.rowFieldKeys?.[index] ? ` data-report-field="${htmlEscape(options.rowFieldKeys[index])}"` : ''}>${row.map((value, index) => cell(value, index, 'td')).join('')}</tr>`)
     .join('');
   const footer =
     options?.footer && options.footer.length === headers.length
@@ -3669,7 +3635,7 @@ function technicalReportChangeFields(snapshot: TechnicalReportSnapshot): {
 }
 
 /** Render one immutable Daily Field Report source record in the requested locale. */
-export function dailyReportPdf(snapshot: DailyReportSnapshot): Uint8Array {
+export function dailyReportHtml(snapshot: DailyReportSnapshot): string {
   const locale = normalizeReportLocale(snapshot.locale);
   const copy = localizedCopy[locale];
   const project = projectIdentity(snapshot);
@@ -3682,40 +3648,43 @@ export function dailyReportPdf(snapshot: DailyReportSnapshot): Uint8Array {
       ? snapshot.worker
       : snapshotText(snapshot.worker, 'name', 'workerName', 'worker_name'));
   const fields = [
-    reportField(copy.project, project.title),
-    reportField(copy.client, project.clientName),
-    reportField(copy.date, formatReportDate(date, locale)),
+    reportField(copy.project, project.title, 'projectSettings'),
+    reportField(copy.client, project.clientName, 'projectSettings'),
+    reportField(copy.date, formatReportDate(date, locale), 'workDate'),
     reportField(copy.worker, worker),
     reportField(copy.status, translateReportStatus(status, locale)),
-    reportField(copy.safetyRelated, translateReportBoolean(safety, locale)),
+    reportField(copy.safetyRelated, translateReportBoolean(safety, locale), 'safetyRelated'),
     reportField(
       copy.siteShift,
       reportNarrative(snapshot, 'siteShift', 'site_shift', 'siteName', 'site_name'),
-    ),
+      'siteShift'),
     reportField(
       copy.downtimeMinutes,
       reportNarrative(snapshot, 'downtimeMinutes', 'downtime_minutes'),
-    ),
-    reportField(copy.standbyReason, reportNarrative(snapshot, 'standbyReason', 'standby_reason')),
+      'downtimeMinutes'),
+    reportField(copy.standbyReason, reportNarrative(snapshot, 'standbyReason', 'standby_reason'), 'standbyReason'),
     reportField(
       copy.customerContact,
       reportNarrative(snapshot, 'customerContact', 'customer_contact'),
-    ),
+      'customerContact'),
   ].join('');
-  return renderHtmlToPdf(
-    layout(
+  return layout(
       copy.dailyReport,
       `${project.title}${project.title && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
-      `<h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div>${reportParagraph(copy.summary, snapshot.summary)}${reportParagraph(copy.tasksCompleted, reportNarrative(snapshot, 'tasksCompleted', 'tasks_completed'))}${reportParagraph(copy.problemsFound, reportNarrative(snapshot, 'problemsFound', 'problems_found'))}${reportParagraph(copy.correctiveActions, reportNarrative(snapshot, 'correctiveActions', 'corrective_actions'))}${reportParagraph(copy.clientDecisions, reportNarrative(snapshot, 'clientDecisions', 'client_decisions'))}${reportParagraph(copy.openItems, reportNarrative(snapshot, 'openItems', 'open_items'))}${reportParagraph(copy.blockers, reportNarrative(snapshot, 'blockers'))}${reportParagraph(copy.nextDayPlan, reportNarrative(snapshot, 'nextDayPlan', 'next_day_plan'))}`,
+      `<h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div>${reportParagraph(copy.summary, snapshot.summary, 'summary')}${reportParagraph(copy.tasksCompleted, reportNarrative(snapshot, 'tasksCompleted', 'tasks_completed'), 'tasksCompleted')}${reportParagraph(copy.problemsFound, reportNarrative(snapshot, 'problemsFound', 'problems_found'), 'problemsFound')}${reportParagraph(copy.correctiveActions, reportNarrative(snapshot, 'correctiveActions', 'corrective_actions'), 'correctiveActions')}${reportParagraph(copy.clientDecisions, reportNarrative(snapshot, 'clientDecisions', 'client_decisions'), 'clientDecisions')}${reportParagraph(copy.openItems, reportNarrative(snapshot, 'openItems', 'open_items'), 'openItems')}${reportParagraph(copy.blockers, reportNarrative(snapshot, 'blockers'), 'blockers')}${reportParagraph(copy.nextDayPlan, reportNarrative(snapshot, 'nextDayPlan', 'next_day_plan'), 'nextDayPlan')}`,
       locale,
       fieldReportCss,
       FIELD_REPORT_TEMPLATE_VERSION,
-    ),
   );
 }
 
+
+export function dailyReportPdf(snapshot: Parameters<typeof dailyReportHtml>[0]): Uint8Array {
+  return renderHtmlToPdf(dailyReportHtml(snapshot));
+}
+
 /** Render one immutable PLC / Technical Report source record in the requested locale. */
-export function technicalReportPdf(snapshot: TechnicalReportSnapshot): Uint8Array {
+export function technicalReportHtml(snapshot: TechnicalReportSnapshot): string {
   const locale = normalizeReportLocale(snapshot.locale);
   const copy = localizedCopy[locale];
   const project = projectIdentity(snapshot);
@@ -3736,7 +3705,7 @@ export function technicalReportPdf(snapshot: TechnicalReportSnapshot): Uint8Arra
   const reportCreatedBy =
     snapshot.report_created_by_name ?? snapshot.created_by_name ?? workPerformedBy;
   const fields = [
-    reportField(copy.project, project.title),
+    reportField(copy.project, project.title, 'projectSettings'),
     reportField(
       locale === 'es'
         ? 'Trabajo realizado por'
@@ -3785,29 +3754,28 @@ export function technicalReportPdf(snapshot: TechnicalReportSnapshot): Uint8Arra
           : 'Reviewer email',
       snapshot.reviewed_by_email,
     ),
-    reportField(copy.client, project.clientName),
+    reportField(copy.client, project.clientName, 'projectSettings'),
     reportField(copy.date, formatReportDate(date, locale)),
-    reportField(copy.system, snapshot.system ?? snapshot.systemName ?? snapshot.system_name),
-    reportField(copy.site, snapshot.site ?? snapshot.plantSite ?? snapshot.plant_site),
-    reportField(copy.area, snapshot.area ?? snapshot.areaLine ?? snapshot.area_line),
+    reportField(copy.system, snapshot.system ?? snapshot.systemName ?? snapshot.system_name, 'systemName'),
+    reportField(copy.site, snapshot.site ?? snapshot.plantSite ?? snapshot.plant_site, 'plantSite'),
+    reportField(copy.area, snapshot.area ?? snapshot.areaLine ?? snapshot.area_line, 'areaLine'),
     reportField(
       copy.station,
       snapshot.station ?? snapshot.stationMachine ?? snapshot.station_machine,
-    ),
+      'stationMachine'),
     reportField(copy.status, translateReportStatus(status, locale)),
-    reportField(copy.safetyRelated, translateReportBoolean(safety, locale)),
+    reportField(copy.safetyRelated, translateReportBoolean(safety, locale), 'safetyRelated'),
   ].join('');
   const technicalDetails = [
-    [copy.systemType, snapshot.systemType ?? snapshot.system_type],
-    [copy.plcPlatform, snapshot.plcPlatform ?? snapshot.plc_platform],
-    [copy.controller, snapshot.controller],
-    [copy.hmiScada, snapshot.hmiScada ?? snapshot.hmi_scada],
-    [copy.networkProtocol, snapshot.networkProtocol ?? snapshot.network_protocol],
-    [copy.softwareVersion, snapshot.softwareVersion ?? snapshot.software_version],
-    [copy.programReference, snapshot.programReference ?? snapshot.program_reference],
+    [copy.systemType, snapshot.systemType ?? snapshot.system_type, 'systemType'],
+    [copy.plcPlatform, snapshot.plcPlatform ?? snapshot.plc_platform, 'plcPlatform'],
+    [copy.controller, snapshot.controller, 'controller'],
+    [copy.hmiScada, snapshot.hmiScada ?? snapshot.hmi_scada, 'hmiScada'],
+    [copy.networkProtocol, snapshot.networkProtocol ?? snapshot.network_protocol, 'networkProtocol'],
+    [copy.softwareVersion, snapshot.softwareVersion ?? snapshot.software_version, 'softwareVersion'],
+    [copy.programReference, snapshot.programReference ?? snapshot.program_reference, 'programReference'],
   ]
-    .filter(([, value]) => value !== undefined && value !== null && value !== '')
-    .map(([label, value]) => reportField(String(label), value))
+    .map(([label, value, field]) => reportField(String(label), value, String(field)))
     .join('');
   const changes = snapshot.technicalChanges ?? [];
   const changeRows = changes
@@ -3822,14 +3790,16 @@ export function technicalReportPdf(snapshot: TechnicalReportSnapshot): Uint8Arra
     changes.length > 0
       ? `<h2>${copy.technicalChanges}</h2><table><thead><tr><th>${copy.date}</th><th>${copy.detail}</th><th>${copy.changeSummary}</th><th>${copy.status}</th></tr></thead><tbody>${changeRows}</tbody></table>`
       : '';
-  return renderHtmlToPdf(
-    layout(
+  return layout(
       copy.technicalReport,
       `${project.title}${project.title && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
-      `<section class="report-section"><h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div></section>${technicalDetails ? `<section class="report-section"><h2>${copy.technicalRecords}</h2><div class="grid">${technicalDetails}</div></section>` : ''}<section class="report-section"><h2>${copy.changeSummary}</h2><div class="grid">${reportField(copy.problemSymptom, changeFields.problemSymptom)}${reportField(copy.diagnosisRootCause, changeFields.diagnosisRootCause)}${reportField(copy.changePerformed, changeFields.changePerformed)}${reportField(copy.productionImpact, snapshot.productionImpact ?? snapshot.production_impact)}${reportField(copy.validation, snapshot.validation)}${reportField(copy.validationResult, snapshot.validationResult ?? snapshot.validation_result)}${reportField(copy.openRisk, snapshot.openRisk ?? snapshot.open_risk)}${reportField(copy.rollbackPlan, snapshot.rollbackPlan ?? snapshot.rollbackInformation ?? snapshot.rollback_information)}</div></section>${changesSection}`,
+      `<section class="report-section"><h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div></section>${technicalDetails ? `<section class="report-section"><h2>${copy.technicalRecords}</h2><div class="grid">${technicalDetails}</div></section>` : ''}<section class="report-section"><h2>${copy.changeSummary}</h2><div class="grid">${reportField(copy.problemSymptom, changeFields.problemSymptom, 'problemSymptom')}${reportField(copy.diagnosisRootCause, changeFields.diagnosisRootCause, 'diagnosisRootCause')}${reportField(copy.changePerformed, changeFields.changePerformed, 'changePerformed')}${reportField(copy.productionImpact, snapshot.productionImpact ?? snapshot.production_impact, 'productionImpact')}${reportField(copy.validation, snapshot.validation, 'validation')}${reportField(copy.validationResult, snapshot.validationResult ?? snapshot.validation_result, 'validationResult')}${reportField(copy.openRisk, snapshot.openRisk ?? snapshot.open_risk, 'openRisk')}${reportField(copy.rollbackPlan, snapshot.rollbackPlan ?? snapshot.rollbackInformation ?? snapshot.rollback_information, 'rollbackPlan')}</div></section>${changesSection}`,
       locale,
       fieldReportCss,
       FIELD_REPORT_TEMPLATE_VERSION,
-    ),
   );
+}
+
+export function technicalReportPdf(snapshot: Parameters<typeof technicalReportHtml>[0]): Uint8Array {
+  return renderHtmlToPdf(technicalReportHtml(snapshot));
 }

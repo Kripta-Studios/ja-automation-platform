@@ -43,6 +43,7 @@
     translateControlledValue,
     type ControlledValueDomain,
   } from '$lib/i18n/controlled-values';
+  import ReportDocumentPreview, { type PreviewField } from '$lib/portal/ui/ReportDocumentPreview.svelte';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
   import CorrectionDraftForm from '$lib/portal/ui/CorrectionDraftForm.svelte';
   import { dailyCorrectionFields, technicalCorrectionFields } from '$lib/portal/correction-fields';
@@ -182,6 +183,34 @@
       ['draft', 'needs_changes'].includes(String(report.approval_state ?? '')),
     ),
   );
+  const previewEditableFields = $derived(
+    canAutosave
+      ? (isDaily ? dailyCorrectionFields : technicalCorrectionFields)
+          .filter((field) => isDaily || field.name !== 'reportDate')
+          .map((field) => field.name)
+      : [],
+  );
+  function previewField(name: string): PreviewField | null {
+    if (!canAutosave || !previewEditableFields.includes(name)) return null;
+    const field = (isDaily ? dailyCorrectionFields : technicalCorrectionFields).find((item) => item.name === name);
+    const control = editFormElement()?.elements.namedItem(name);
+    if (!field || !(control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement)) return null;
+    return {
+      ...field,
+      label: t(field.label),
+      value: control instanceof HTMLInputElement && control.type === 'checkbox'
+        ? (control.checked ? 'on' : 'off') : control.value,
+    };
+  }
+  function updatePreviewField(name: string, value: string): void {
+    if (!previewField(name)) return;
+    const control = editFormElement()?.elements.namedItem(name);
+    if (!(control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement)) return;
+    if (control instanceof HTMLInputElement && control.type === 'checkbox') control.checked = value === 'on';
+    else control.value = value;
+    // Bubble through the existing autosave/recovery/optimistic-version mechanism.
+    control.dispatchEvent(new Event('input', { bubbles:true }));
+  }
   const autosaveKey = $derived(
     reportAutosaveStorageKey(String(data.user.id), data.detail.type, String(report.id)),
   );
@@ -1154,6 +1183,24 @@
       title={t('PDF')}
     />
   </div>
+
+  <ReportDocumentPreview
+    src={`${reportHref}/preview?lang=${encodeURIComponent(locale)}`}
+    revision={currentReportVersion}
+    {locale}
+    fields={previewEditableFields}
+    sourceFields={[
+      { name:'projectSettings', label:t('Open project'), href:`${base}/app/projects/${encodeURIComponent(String(report.project_id))}` },
+      ...(data.detail.canCreateCorrection
+        ? (isDaily ? dailyCorrectionFields : technicalCorrectionFields).map((field) => ({ name:field.name, label:t('Request a correction'), href:`${reportHref}#report-correction-title` }))
+        : []),
+    ]}
+    getField={previewField}
+    updateField={updatePreviewField}
+    saveField={finishReportEdits}
+    saveState={autosaveState}
+    saveMessage={autosaveMessage}
+  />
 
   {#if problem}
     <div data-report-problem>

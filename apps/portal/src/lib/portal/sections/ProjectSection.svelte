@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useViewPreferences } from '../ui/view-preferences.svelte';
   import { tick } from 'svelte';
   import {
     assignmentFormAction,
@@ -99,6 +100,33 @@
   );
   let search = $derived($page.url.searchParams.get('q')?.trim() ?? '');
   let statusFilter = $derived($page.url.searchParams.get('status')?.trim() ?? '');
+  useViewPreferences({
+    scope: 'projects',
+    user: () => `${$page.data.user?.id ?? ''}:${$page.data.user?.role ?? ''}`,
+    url: () => $page.url,
+    defaults: { search: '', statusFilter: '' },
+    query: { search: 'q', statusFilter: 'status' },
+    get: () => ({ search, statusFilter }),
+    set: (saved) => {
+      search = saved.search;
+      statusFilter = saved.statusFilter;
+    },
+    validate: (saved) => ({
+      ...saved,
+      statusFilter: [
+        '',
+        'active',
+        'planned',
+        'attention',
+        'paused',
+        'closing',
+        'closed',
+        'archived',
+      ].includes(saved.statusFilter)
+        ? saved.statusFilter
+        : '',
+    }),
+  });
   let selectedAssignmentProjectId = $derived(
     typeof assignmentValues?.projectId === 'string'
       ? assignmentValues.projectId

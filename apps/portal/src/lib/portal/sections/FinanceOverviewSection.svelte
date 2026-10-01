@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { decimalHoursFromMinutes } from '../minute-hours';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
@@ -104,15 +105,27 @@
   const showCommercial = $derived(activeView === 'commercial');
 
   let sourceTab = $state<SourceTab>('portfolio');
-  $effect(() => {
-    const requested = $page.url.searchParams.get('source');
-    if (
-      requested &&
-      ['portfolio', 'workers', 'time', 'expenses', 'settlements'].includes(requested)
-    )
-      sourceTab = requested as SourceTab;
-  });
   let expenseInboxFilter = $state<ExpenseInboxFilter>('all');
+  useViewPreferences({
+    scope: 'finance-source',
+    user: () => `${data.user.id}:${data.user.role}`,
+    url: () => $page.url,
+    defaults: { sourceTab: 'portfolio', expenseInboxFilter: 'all' },
+    query: { sourceTab: 'source' },
+    get: () => ({ sourceTab, expenseInboxFilter }),
+    set: (saved) => {
+      sourceTab = ['portfolio', 'workers', 'time', 'expenses', 'settlements'].includes(
+        saved.sourceTab,
+      )
+        ? (saved.sourceTab as SourceTab)
+        : 'portfolio';
+      expenseInboxFilter = ['all', 'needs', 'reimbursable', 'non_billable'].includes(
+        saved.expenseInboxFilter,
+      )
+        ? (saved.expenseInboxFilter as ExpenseInboxFilter)
+        : 'all';
+    },
+  });
   let selectedExpenseId = $state('');
   let expenseEditor: HTMLDivElement | undefined = $state();
   function confirmExpenseEditorChange(): boolean {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
-  import { beforeNavigate, invalidateAll } from '$app/navigation';
+  import { beforeNavigate, invalidateAll, goto } from '$app/navigation';
   import { enhance } from '$app/forms';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
@@ -14,10 +14,12 @@
     standaloneActionMessage,
   } from '../../../standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
-  import { translateControlledValue } from '$lib/i18n/controlled-values';
-  import { money as formatMoney } from '$lib/portal/portal-format';
+  import {
+    renderInvoiceDocument,
+    type InvoiceTemplateSnapshot,
+  } from '@ja/reporting/invoice-document';
+  import { dirtyFormGuard, hasUnsavedFormChanges } from '$lib/portal/dirty-form-guard';
   import { createInvoicePdfPollingController } from '$lib/portal/invoice-pdf-polling';
-  import { StatusBadge } from '$lib/portal/ui';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
   import {
@@ -66,19 +68,8 @@
     localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
   );
   const t = (key: string): string => standaloneText(locale, key);
-  const streamLabel = (value: unknown): string =>
-    translateControlledValue(
-      locale,
-      'billingStream',
-      value === null || value === undefined ? null : String(value),
-    );
   const preview = $derived(data.preview as { invoice: InvoiceRow; lines: Row[]; taxes: Row[] });
   const invoice = $derived(preview.invoice);
-  const invoicePhone = $derived(
-    invoice.company_info && typeof invoice.company_info === 'object'
-      ? String((invoice.company_info as Record<string, unknown>).phone ?? '').trim() || undefined
-      : undefined,
-  );
   const invoiceState = $derived(String(invoice.state ?? '').toLowerCase());
   const hasDraftPreview = $derived(
     ['draft', 'approved'].includes(invoiceState) &&
@@ -102,15 +93,24 @@
   );
   const retainedDraftValues = $derived(
     !canEditDraft && draftDetailsForm?.billingOperation === 'updateInvoiceDraftDetails'
-      ? [
-          ['purchaseNo', 'Purchase No.'],
-          ['discount', 'Discount Amount'],
-          ['bankSwiftNumber', 'Bank Swift Number'],
-          ['bankAccountNumber', 'Bank Account Number'],
-          ['bankName', 'Bank Name'],
-          ['beneficiary', 'Beneficiary'],
-          ['pastDueNotice', 'Past Due Notice'],
-        ].filter(([name]) => draftDetailsForm?.values?.[name] !== undefined)
+      ? (
+          [
+            ['invoiceDate', 'Invoice Date'],
+            ['dueDate', 'Due Date'],
+            ['paymentTermsDays', 'Payment terms (days)'],
+            ['companyDivision', 'Division'],
+            ['companyPhone', 'Phone'],
+            ['companyEmail', 'Email'],
+            ['companyWebsite', 'Website'],
+            ['purchaseNo', 'Purchase No.'],
+            ['discount', 'Discount Amount'],
+            ['bankSwiftNumber', 'Bank Swift Number'],
+            ['bankAccountNumber', 'Bank Account Number'],
+            ['bankName', 'Bank Name'],
+            ['beneficiary', 'Beneficiary'],
+            ['pastDueNotice', 'Past Due Notice'],
+          ] as Array<[string, string]>
+        ).filter(([name]) => draftDetailsForm?.values?.[name] !== undefined)
       : [],
   );
   $effect(() => {
@@ -123,7 +123,12 @@
           reportFormFieldErrors(
             editor,
             draftDetailsProblem.fieldErrors,
-            draftDetailsProblem.params,
+            Object.fromEntries(
+              Object.entries(draftDetailsProblem.params).filter(
+                (entry): entry is [string, string | number] =>
+                  typeof entry[1] === 'string' || typeof entry[1] === 'number',
+              ),
+            ),
           );
         const notice = draftDetailsNotice?.querySelector<HTMLElement>('[data-problem-code]');
         notice?.focus({ preventScroll: true });
@@ -135,6 +140,20 @@
     if (!/^\d+$/.test(raw)) return raw;
     const digits = raw.replace(/^0+(?=\d)/, '').padStart(3, '0');
     return `${digits.slice(0, -2)}.${digits.slice(-2)}`;
+  });
+  const legacyDiscountMismatch = $derived.by(() => {
+    try {
+      const discount = BigInt(String(invoice.discount_minor ?? '0'));
+      return (
+        discount !== 0n &&
+        BigInt(String(invoice.total_minor ?? '0')) !==
+          BigInt(String(invoice.subtotal_minor ?? '0')) -
+            discount +
+            BigInt(String(invoice.tax_minor ?? '0'))
+      );
+    } catch {
+      return false;
+    }
   });
   const invoiceId = $derived(String(invoice.id ?? ''));
   const draftPreviewUrl = $derived(
@@ -196,30 +215,88 @@
     },
   });
   const pdfPolling = createInvoicePdfPollingController(() => invalidateAll());
-  const money = (minor: unknown) =>
-    formatMoney(minor, String(invoice.currency), locale === 'pt' ? 'pt-BR' : locale);
-  const quantityFor = (lines: Row[]) =>
-    lines.reduce(
-      (sum, line) =>
-        sum +
-        (Number(line.quantity_numerator ?? 1) / Number(line.quantity_denominator ?? 1) ||
-          Number(line.quantity ?? 1)),
-      0,
-    );
-  const laborLines = $derived(preview.lines.filter((line) => line.source_type !== 'expense'));
-  const expenseLines = $derived(preview.lines.filter((line) => line.source_type === 'expense'));
-  const mixedLines = $derived(laborLines.length > 0 && expenseLines.length > 0);
-  const invoiceLineGroups = $derived(
-    mixedLines
-      ? [
-          { kind: 'Labor', lines: laborLines, subtotal: invoice.labor_subtotal_minor },
-          { kind: 'Expenses', lines: expenseLines, subtotal: invoice.expense_subtotal_minor },
-        ]
-      : [{ kind: null, lines: preview.lines, subtotal: invoice.subtotal_minor }],
+  const documentSnapshot = $derived({
+    ...data.documentSnapshot,
+    locale,
+  } as InvoiceTemplateSnapshot);
+  const documentPreview = $derived(
+    renderInvoiceDocument(documentSnapshot, {
+      editable: canEditDraft,
+      logoUrl: `${base}/app/logo.png`,
+    }),
   );
-  const subtotalLessDiscountMinor = $derived(
-    BigInt(String(invoice.subtotal_minor ?? 0)) - BigInt(String(invoice.discount_minor ?? 0)),
+  let draftEditor = $state<HTMLDetailsElement>();
+  let draftEditorForm = $state<HTMLFormElement>();
+  let editExplanation = $state('');
+  let detailsSaving = $state(false);
+  const companyFields: Array<[string, string, string]> = [
+    ['companyDivision', 'Division', 'division'],
+    ['companyPhone', 'Phone', 'phone'],
+    ['companyEmail', 'Email', 'email'],
+    ['companyWebsite', 'Website', 'website'],
+  ];
+  const projectHref = $derived(
+    `${base}/app/projects/${encodeURIComponent(String(invoice.project_id ?? ''))}?lang=${locale}`,
   );
+  const financeHref = $derived(
+    `${base}/app/finance?view=commercial&project=${encodeURIComponent(String(invoice.project_id ?? ''))}&lang=${locale}`,
+  );
+  async function openPreviewField(name: string): Promise<void> {
+    if (!canEditDraft) return;
+    if (name === 'invoiceNumber') {
+      editExplanation = t(
+        'Invoice numbers are assigned when the invoice is issued, using the approved numbering policy.',
+      );
+      return;
+    }
+    if (name === 'issuingAuthority') {
+      editExplanation = t(
+        'The legal issuer name and address come from the reviewed project issuing authority. Edit that authority to change future drafts.',
+      );
+      return;
+    }
+    if (name === 'client') {
+      editExplanation = t(
+        'Client billing identity and address come from the project client record.',
+      );
+      return;
+    }
+    if (draftEditor) draftEditor.open = true;
+    await tick();
+    const control = draftEditorForm?.elements.namedItem(name);
+    if (control instanceof HTMLElement) {
+      control.focus({ preventScroll: true });
+      control.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }
+  function previewInteractions(node: HTMLElement) {
+    const listener = (event: Event) => previewClick(event as MouseEvent | KeyboardEvent);
+    node.addEventListener('click', listener);
+    node.addEventListener('keydown', listener);
+    return {
+      destroy() {
+        node.removeEventListener('click', listener);
+        node.removeEventListener('keydown', listener);
+      },
+    };
+  }
+  function previewClick(event: MouseEvent | KeyboardEvent): void {
+    if (event instanceof KeyboardEvent && !['Enter', ' '].includes(event.key)) return;
+    if (!(event.target instanceof Element)) return;
+    const field = event.target.closest<HTMLElement>('[data-invoice-edit]');
+    if (!field) {
+      const source = event.target.closest<HTMLElement>('[data-invoice-source-id][role="link"]');
+      if (source && canEditDraft) {
+        event.preventDefault();
+        void goto(
+          `${base}/app/${source.dataset.invoiceSourceType === 'expense' ? 'expenses' : 'time'}/${encodeURIComponent(source.dataset.invoiceSourceId ?? '')}?lang=${locale}`,
+        );
+      }
+      return;
+    }
+    event.preventDefault();
+    void openPreviewField(field.dataset.invoiceEdit ?? '');
+  }
 
   function invoicePdfStatus(row: Row): InvoicePdfStatus {
     const status = String(row.pdf_status ?? row.pdfStatus ?? '')
@@ -230,38 +307,6 @@
     if (status === 'rendering' || status === 'running' || status === 'processing') return 'running';
     if (status === 'queued' || status === 'pending') return 'queued';
     return 'unavailable';
-  }
-
-  function invoiceStatusVariant(
-    value: string,
-  ): 'success' | 'warning' | 'danger' | 'info' | 'neutral' {
-    switch (value) {
-      case 'paid':
-        return 'success';
-      case 'issued':
-      case 'sent':
-      case 'partially_paid':
-      case 'approved':
-        return 'info';
-      case 'void':
-      case 'voided':
-        return 'danger';
-      case 'credited':
-      case 'credit_note':
-      case 'credit':
-        return 'warning';
-      case 'draft':
-        return 'neutral';
-      default:
-        return 'neutral';
-    }
-  }
-
-  function invoiceStatusText(row: Row): string {
-    const raw = String(row.state ?? '').toLowerCase();
-    if (raw === 'superseded') return t('Superseded');
-    const status = translateControlledValue(locale, 'status', raw) || t('Unknown');
-    return raw === 'paid' ? `✓ ${status}` : status;
   }
 
   function pdfStatusLabel(status: InvoicePdfStatus): string {
@@ -303,7 +348,14 @@
     clearIssuedPdfObjectUrls();
   }
 
-  beforeNavigate(() => {
+  beforeNavigate((navigation) => {
+    if (
+      hasUnsavedFormChanges(draftEditorForm) &&
+      !window.confirm(t('You have unsaved changes. Leave without saving?'))
+    ) {
+      navigation.cancel();
+      return;
+    }
     cancelDraftPreview();
     cancelIssuedPdf();
   });
@@ -696,6 +748,7 @@
     if (draftPreviewBusy || draftPreviewDisposed) return;
     const requestedInvoiceId = invoiceId;
     const requestedLocale = locale;
+    const requestedVersion = String(invoice.version ?? '');
     const href = draftPreviewUrl;
     const controller = new AbortController();
     draftPreviewController = controller;
@@ -704,7 +757,8 @@
       draftPreviewController === controller &&
       !controller.signal.aborted &&
       invoiceId === requestedInvoiceId &&
-      locale === requestedLocale;
+      locale === requestedLocale &&
+      String(invoice.version ?? '') === requestedVersion;
     draftPreviewBusy = true;
     draftPreviewProblem = null;
     try {
@@ -780,7 +834,7 @@
 
   let previousDraftPreviewInvoiceId: string | undefined;
   $effect(() => {
-    const currentInvoiceId = invoiceId;
+    const currentInvoiceId = `${invoiceId}:${String(invoice.version ?? '')}`;
     if (
       previousDraftPreviewInvoiceId !== undefined &&
       previousDraftPreviewInvoiceId !== currentInvoiceId
@@ -828,7 +882,12 @@
   $effect(() => applyStandaloneDocumentLocale(locale));
 </script>
 
-<svelte:head><title>{t('Invoice preview')} | {invoice.project_number}</title></svelte:head>
+<svelte:head
+  ><title>{t('Invoice preview')} | {invoice.project_number}</title><link
+    rel="stylesheet"
+    href={`${base}/app/billing/invoices/${encodeURIComponent(invoiceId)}/preview-style`}
+  /></svelte:head
+>
 <main class="invoice-preview-page">
   <nav class="detail-nav no-print">
     <a href={`${base}/app/billing`} data-origin-back
@@ -968,6 +1027,13 @@
       <LocalizedPdfPanel ownerType="invoice" ownerId={invoiceId} {locale} title={t('PDF')} />
     </div>
   {/if}
+  {#if legacyDiscountMismatch}
+    <p class="no-print" role="alert">
+      {t(
+        'This invoice contains a legacy discount that does not reconcile with its saved total. The saved amounts have not been changed. Ask Finance to review the source calculation before issuing or replacing this invoice.',
+      )}
+    </p>
+  {/if}
   {#if draftDetailsProblem}
     <div class="no-print" bind:this={draftDetailsNotice} tabindex="-1" data-invoice-details-problem>
       <ProblemNotice
@@ -1000,264 +1066,324 @@
     </section>
   {/if}
   {#if invoiceState === 'draft' && canEditDraft}
-    <details class="no-print draft-edit-details" open={Boolean(draftDetailsProblem)}>
-      <summary class="draft-edit-summary"
-        >⚙ {t('Edit Invoice Details (Purchase No., Terms, Company, Discount)')}</summary
+    {#key `${invoiceId}:${invoice.version}:${draftDetailsForm?.correlationId ?? ''}`}
+      <details
+        bind:this={draftEditor}
+        class="no-print draft-edit-details"
+        open={Boolean(draftDetailsProblem)}
       >
-      <form
-        method="POST"
-        action="?/updateInvoiceDraftDetails"
-        class="draft-edit-form"
-        use:formValidation
-        use:enhance
-      >
-        <input type="hidden" name="invoiceId" value={invoiceId} />
-        <div class="draft-edit-grid">
-          <div class="draft-field">
-            <label for="edit-purchase-no">{t('Purchase No.')}</label>
+        <summary class="draft-edit-summary"
+          >⚙ {t('Edit invoice dates, payment terms and details')}</summary
+        >
+        <form
+          method="POST"
+          action="?/updateInvoiceDraftDetails"
+          class="draft-edit-form"
+          bind:this={draftEditorForm}
+          use:formValidation
+          use:dirtyFormGuard={{ initialDirty: Boolean(draftDetailsProblem) }}
+          use:enhance={({ cancel }) => {
+            if (detailsSaving) {
+              cancel();
+              return;
+            }
+            detailsSaving = true;
+            return async ({ update }) => {
+              try {
+                await update({ reset: false });
+              } finally {
+                detailsSaving = false;
+              }
+            };
+          }}
+        >
+          <fieldset class="invoice-editor-fields" disabled={detailsSaving}>
+            <input type="hidden" name="invoiceId" value={invoiceId} />
             <input
-              id="edit-purchase-no"
-              name="purchaseNo"
-              type="text"
-              value={draftValue(
-                'purchaseNo',
-                invoice.purchase_no !== '—' ? invoice.purchase_no : '',
+              type="hidden"
+              name="expectedVersion"
+              value={draftValue('expectedVersion', invoice.version)}
+            />
+            <input
+              type="hidden"
+              name="expectedBillingRuleVersion"
+              value={draftValue('expectedBillingRuleVersion', invoice.billing_rule_version)}
+            />
+            <p>
+              {t(
+                'Select a field in the preview to edit it here. Save updates the preview immediately.',
               )}
-              placeholder={t('For example: BBS Mexico')}
-            />
-          </div>
-          <div class="draft-field">
-            <label for="edit-discount">{t('Discount Amount')}</label>
-            <input
-              id="edit-discount"
-              name="discount"
-              type="text"
-              value={draftValue('discount', defaultDiscount)}
-              placeholder="0.00"
-            />
-          </div>
-          <div class="draft-field">
-            <label for="edit-swift">{t('Bank Swift Number')}</label>
-            <input
-              id="edit-swift"
-              name="bankSwiftNumber"
-              type="text"
-              value={draftValue('bankSwiftNumber', invoice.terms_and_instructions?.bankSwiftNumber)}
-            />
-          </div>
-          <div class="draft-field">
-            <label for="edit-account">{t('Bank Account Number')}</label>
-            <input
-              id="edit-account"
-              name="bankAccountNumber"
-              type="text"
-              value={draftValue(
-                'bankAccountNumber',
-                invoice.terms_and_instructions?.bankAccountNumber,
+            </p>
+            <p>
+              {t(
+                'Invoice numbers are assigned on issuance. Hours, rates and totals must be changed in their source records and recalculated.',
               )}
-            />
-          </div>
-          <div class="draft-field">
-            <label for="edit-bank-name">{t('Bank Name')}</label>
-            <input
-              id="edit-bank-name"
-              name="bankName"
-              type="text"
-              value={draftValue('bankName', invoice.terms_and_instructions?.bankName)}
-            />
-          </div>
-          <div class="draft-field">
-            <label for="edit-beneficiary">{t('Beneficiary')}</label>
-            <input
-              id="edit-beneficiary"
-              name="beneficiary"
-              type="text"
-              value={draftValue('beneficiary', invoice.terms_and_instructions?.beneficiary)}
-            />
-          </div>
-          <div class="draft-field full-width">
-            <label for="edit-past-due">{t('Past Due Notice')}</label>
-            <input
-              id="edit-past-due"
-              name="pastDueNotice"
-              type="text"
-              value={draftValue('pastDueNotice', invoice.terms_and_instructions?.pastDueNotice)}
-            />
-          </div>
-        </div>
-        <button type="submit" class="save-draft-btn">{t('Save Details')}</button>
-      </form>
-    </details>
+            </p>
+            <div class="draft-edit-grid">
+              <div class="draft-field">
+                <label for="edit-invoice-date">{t('Invoice Date')}</label>
+                <input
+                  id="edit-invoice-date"
+                  name="invoiceDate"
+                  type="date"
+                  required
+                  value={draftValue(
+                    'invoiceDate',
+                    documentSnapshot.invoiceDate ?? documentSnapshot.issueDate,
+                  )?.slice(0, 10)}
+                />
+              </div>
+              <div class="draft-field">
+                <label for="edit-due-date">{t('Due Date')}</label>
+                <input
+                  id="edit-due-date"
+                  name="dueDate"
+                  type="date"
+                  value={draftValue('dueDate', invoice.due_date_override)?.slice(0, 10)}
+                />
+                <small>{t('Leave empty to calculate from invoice date and payment terms.')}</small>
+              </div>
+              <div class="draft-field">
+                <label for="edit-payment-terms">{t('Payment terms (days)')}</label>
+                <input
+                  id="edit-payment-terms"
+                  name="paymentTermsDays"
+                  type="number"
+                  min="0"
+                  max="365"
+                  step="1"
+                  required
+                  value={draftValue('paymentTermsDays', documentSnapshot.paymentTermsDays ?? 30)}
+                />
+              </div>
+              <div class="draft-field">
+                <label for="edit-purchase-no">{t('Purchase No.')}</label>
+                <input
+                  id="edit-purchase-no"
+                  name="purchaseNo"
+                  type="text"
+                  value={draftValue(
+                    'purchaseNo',
+                    invoice.purchase_no !== '—' ? invoice.purchase_no : '',
+                  )}
+                  placeholder={t('For example: BBS Mexico')}
+                />
+              </div>
+              <div class="draft-field">
+                <label for="edit-discount">{t('Discount Amount')}</label>
+                <input
+                  id="edit-discount"
+                  name="discount"
+                  type="text"
+                  value={draftValue('discount', defaultDiscount)}
+                  placeholder="0.00"
+                  readonly
+                  aria-describedby="discount-help"
+                />
+                <small id="discount-help"
+                  >{t(
+                    'Discounts must be applied through billing calculation so taxes and totals remain correct.',
+                  )}</small
+                >
+              </div>
+              <div class="draft-field">
+                <label for="edit-swift">{t('Bank Swift Number')}</label>
+                <input
+                  id="edit-swift"
+                  name="bankSwiftNumber"
+                  type="text"
+                  value={draftValue(
+                    'bankSwiftNumber',
+                    invoice.terms_and_instructions?.bankSwiftNumber,
+                  )}
+                />
+              </div>
+              <div class="draft-field">
+                <label for="edit-account">{t('Bank Account Number')}</label>
+                <input
+                  id="edit-account"
+                  name="bankAccountNumber"
+                  type="text"
+                  value={draftValue(
+                    'bankAccountNumber',
+                    invoice.terms_and_instructions?.bankAccountNumber,
+                  )}
+                />
+              </div>
+              <div class="draft-field">
+                <label for="edit-bank-name">{t('Bank Name')}</label>
+                <input
+                  id="edit-bank-name"
+                  name="bankName"
+                  type="text"
+                  value={draftValue('bankName', invoice.terms_and_instructions?.bankName)}
+                />
+              </div>
+              <div class="draft-field">
+                <label for="edit-beneficiary">{t('Beneficiary')}</label>
+                <input
+                  id="edit-beneficiary"
+                  name="beneficiary"
+                  type="text"
+                  value={draftValue('beneficiary', invoice.terms_and_instructions?.beneficiary)}
+                />
+              </div>
+              <div class="draft-field full-width">
+                <label for="edit-past-due">{t('Past Due Notice')}</label>
+                <input
+                  id="edit-past-due"
+                  name="pastDueNotice"
+                  type="text"
+                  value={draftValue('pastDueNotice', invoice.terms_and_instructions?.pastDueNotice)}
+                />
+              </div>
+            </div>
+            <div class="draft-edit-grid">
+              {#each companyFields as [name, label, key]}
+                <div class="draft-field">
+                  <label for={`edit-${name}`}>{t(label)}</label>
+                  <input
+                    id={`edit-${name}`}
+                    {name}
+                    type="text"
+                    value={draftValue(name, invoice.company_info?.[key])}
+                  />
+                </div>
+              {/each}
+            </div>
+            <label class="draft-defaults-label"
+              ><input
+                type="checkbox"
+                name="saveDefaults"
+                value="true"
+                checked={draftDetailsForm?.values?.saveDefaults === undefined ||
+                  ['true', 'on'].includes(draftDetailsForm.values.saveDefaults)}
+              />{t(
+                'Use purchase number, payment terms, bank and company contact details for future invoices in this billing stream',
+              )}</label
+            >
+            <p>
+              {t(
+                'Invoice and due dates apply to this draft. Issued invoices keep their original data.',
+              )}
+            </p>
+            <button type="submit" class="save-draft-btn" disabled={detailsSaving}
+              >{detailsSaving ? t('Saving') : t('Save Details')}</button
+            >
+          </fieldset>
+        </form>
+      </details>
+    {/key}
   {/if}
 
-  <article class="invoice-paper">
-    <header>
-      <div class="brand-block">
-        <img src={`${base}/app/logo.png`} alt="J&A Automation" />
-        <div class="company-details">
-          <strong>{invoice.display_issuer_name || t('Issuing authority not configured')}</strong>
-          {#if (invoiceState === 'draft' || invoiceState === 'approved') && (!invoice.resolved_legal_entity_revision_id || Number(invoice.canonical_assignment_matches) !== 1)}
-            <small
-              >{t(
-                'Assign a reviewed project issuing authority before issuing this invoice.',
-              )}</small
-            >
-          {/if}
-          {#if invoice.company_info?.division}<div>{invoice.company_info.division}</div>{/if}
-          {#if invoicePhone}<div>{t('Phone')}: {invoicePhone}</div>{/if}
-          {#if invoice.display_issuer_address}<div>
-              {invoice.display_issuer_address}
-            </div>{/if}
-          {#if invoice.company_info?.email}<div>{invoice.company_info.email}</div>{/if}
-          {#if invoice.company_info?.website}<div>{invoice.company_info.website}</div>{/if}
-        </div>
-      </div>
-      <div class="invoice-identity">
-        <span>{invoiceState === 'draft' ? t('DRAFT INVOICE') : t('INVOICE')}</span>
-        <strong>{invoice.invoice_number || t('PREVIEW')}</strong>
-        <StatusBadge
-          variant={invoiceStatusVariant(invoiceState)}
-          text={invoiceStatusText(invoice)}
-          data-invoice-status={invoiceState}
-          aria-label={invoiceStatusText(invoice)}
-        />
-      </div>
-    </header>
-    <section class="invoice-parties">
-      <div>
-        <span>{t('BILL TO')}</span>
-        <strong>{invoice.client_legal_name || invoice.client_name}</strong>
-        {#if invoice.billing_contact_name}<p>{invoice.billing_contact_name}</p>{/if}
-        {#if invoice.client_billing_address}<p>{invoice.client_billing_address}</p>{/if}
-        {#if invoice.billing_email}<small>{invoice.billing_email}</small>{/if}
-      </div>
-    </section>
-    <section class="invoice-meta">
-      <div>
-        <span>{t('PURCHASE NO.')}</span>
-        <strong>{invoice.purchase_no || '—'}</strong>
-      </div>
-      <div>
-        <span>{t('INVOICE NUMBER')}</span>
-        <strong>{invoice.invoice_number || t('PREVIEW')}</strong>
-      </div>
-      <div>
-        <span>{t('INVOICE DATE')}</span>
-        <strong
-          >{invoice.issued_at
-            ? invoice.issued_at.slice(0, 10)
-            : invoice.created_at
-              ? invoice.created_at.slice(0, 10)
-              : '—'}</strong
-        >
-      </div>
-      <div>
-        <span>{t('DUE DATE')}</span>
-        <strong>{invoice.due_at ? invoice.due_at.slice(0, 10) : '—'}</strong>
-      </div>
-    </section>
+  {#if canEditDraft}
     <section
-      class="invoice-line-items"
-      data-mobile-representation="cards"
-      aria-labelledby="invoice-line-items-heading"
+      class="detail-panel no-print invoice-source-guidance"
+      aria-label={t('Edit invoice sources')}
     >
-      <h2 class="visually-hidden" id="invoice-line-items-heading">{t('Invoice line items')}</h2>
-      {#each invoiceLineGroups as group}
-        <div class="invoice-line-group">
-          {#if group.kind}<h3>{t(group.kind)}</h3>{/if}
-          <table>
-            <caption class="visually-hidden">{t('Invoice line items and amounts')}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{t('DESCRIPTION')}</th>
-                <th scope="col" class="amount">{t('QTY')}</th>
-                <th scope="col" class="amount">{t('UNIT PRICE')}</th>
-                <th scope="col" class="amount">{t('TOTAL')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each group.lines as line}
-                <tr>
-                  <td data-label={t('Description')}>{line.description}</td>
-                  <td data-label={t('Quantity')} class="amount">
-                    {(Number(line.quantity_numerator) / Number(line.quantity_denominator)).toFixed(
-                      2,
-                    )}
-                  </td>
-                  <td data-label={t('Unit Price')} class="amount">{money(line.unit_price_minor)}</td
-                  >
-                  <td data-label={t('Total')} class="amount">{money(line.subtotal_minor)}</td>
-                </tr>
-              {/each}
-            </tbody>
-            <tfoot>
-              <tr class="qty-total-row">
-                <td
-                  ><strong>{group.kind ? `${t(group.kind)} · ${t('Subtotal')}` : t('Total')}</strong
-                  ></td
-                >
-                <td class="amount qty-total-cell"
-                  ><strong>{quantityFor(group.lines).toFixed(2)}</strong></td
-                >
-                <td></td>
-                <td class="amount total-amount-cell"
-                  ><strong>{money(group.subtotal || 0)}</strong></td
-                >
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      {/each}
-    </section>
-    <section class="invoice-bottom-grid">
-      <div class="invoice-terms-card">
-        <div class="terms-heading">{t('Terms & Instructions')}</div>
-        <div class="terms-field">
-          <strong>{t('Bank Swift Number')}:</strong>
-          {invoice.terms_and_instructions?.bankSwiftNumber || '—'}
-        </div>
-        <div class="terms-field">
-          <strong>{t('Bank Account Number')}:</strong>
-          {invoice.terms_and_instructions?.bankAccountNumber || '—'}
-        </div>
-        <div class="terms-field">
-          <strong>{t('Bank Name')}:</strong>
-          {invoice.terms_and_instructions?.bankName || '—'}
-        </div>
-        <div class="terms-field">
-          <strong>{t('Beneficiary')}:</strong>
-          {invoice.terms_and_instructions?.beneficiary || '—'}
-        </div>
-        <div class="terms-notice">
-          {invoice.terms_and_instructions?.pastDueNotice || '—'}
-        </div>
+      {#if !invoice.resolved_legal_entity_revision_id || Number(invoice.canonical_assignment_matches) !== 1}
+        <p role="status">
+          {t('Assign a reviewed project issuing authority before issuing this invoice.')}
+        </p>
+      {/if}
+      <p>
+        {t(
+          'Select underlined preview fields to edit. Calculated values follow their approved source records.',
+        )}
+      </p>
+      {#if editExplanation}<p role="status">{editExplanation}</p>{/if}
+      <div class="invoice-source-links">
+        <a href={`${base}/app/billing?view=setup&lang=${locale}`}
+          >{String(data.user?.role) === 'owner_admin'
+            ? t('Billing configuration and numbering')
+            : t('Billing configuration')}</a
+        >
+        <a href={projectHref}>{t('Project and client')}</a>
+        <a href={`${financeHref}#project-issuing-authority`}>{t('Issuing authority')}</a>
       </div>
-      <div class="invoice-total">
-        <dl>
-          <dt>{t('Subtotal')}</dt>
-          <dd>{money(invoice.subtotal_minor)}</dd>
-          <dt>{t('Discount')}</dt>
-          <dd>{money(invoice.discount_minor || 0)}</dd>
-          <dt>{t('Subtotal Less Discount')}</dt>
-          <dd>{money(subtotalLessDiscountMinor.toString())}</dd>
-          {#each preview.taxes as tax}
-            <dt>{tax.name} · {Number(tax.basis_points) / 100}%</dt>
-            <dd>{money(invoice.tax_minor)}</dd>
+      <details>
+        <summary>{t('Edit hours, expenses and billing source records')}</summary>
+        <p>
+          {t(
+            'After changing an approved source, rebuild the draft from Billing to update its calculated lines.',
+          )}
+        </p>
+        <ul>
+          {#each preview.lines.filter( (line) => ['time', 'time_entry', 'expense'].includes(String(line.source_type)), ) as line}
+            <li>
+              <a
+                href={`${base}/app/${String(line.source_type) === 'expense' ? 'expenses' : 'time'}/${encodeURIComponent(String(line.source_id ?? ''))}?lang=${locale}`}
+                >{String(line.description ?? t('Source record'))}</a
+              >
+            </li>
           {/each}
-          <dt class="grand">{t('Total')}</dt>
-          <dd class="grand">{money(invoice.total_minor)}</dd>
-        </dl>
-      </div>
+        </ul>
+        <a
+          href={`${base}/app/billing?project=${encodeURIComponent(String(invoice.project_id ?? ''))}&lang=${locale}`}
+          >{t('Rebuild invoice draft')}</a
+        >
+      </details>
     </section>
-    <footer>
-      <span>{t('J&A AUTOMATION · INVOICE PREVIEW')}</span><span
-        >{invoice.project_number} / {streamLabel(invoice.stream_type)}</span
-      >
-    </footer>
-  </article>
+  {/if}
+  <div
+    class="invoice-document-shell"
+    use:previewInteractions
+    role="group"
+    aria-label={t('Invoice preview')}
+  >
+    {@html documentPreview.bodyHtml}
+  </div>
 </main>
 
 <style>
+  .invoice-editor-fields {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .invoice-document-shell {
+    position: relative;
+    margin: auto;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 1rem 4rem #0007;
+    min-height: 0;
+    max-width: 210mm;
+    padding: 14mm;
+  }
+  @media screen and (max-width: 600px) {
+    .invoice-document-shell {
+      padding: 1.25rem;
+    }
+  }
+  @media print {
+    .invoice-document-shell {
+      padding: 0;
+      max-width: none;
+      box-shadow: none;
+    }
+  }
+  .invoice-source-guidance {
+    max-width: 70rem;
+    margin: 1rem auto;
+  }
+  .invoice-source-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-block: 1rem;
+  }
+  .draft-defaults-label {
+    display: flex;
+    align-items: start;
+    gap: 0.6rem;
+    margin-block: 1rem;
+  }
+  .draft-defaults-label input {
+    width: auto;
+    margin-top: 0.2rem;
+  }
   [data-invoice-retained-customizations] dd {
     overflow-wrap: anywhere;
   }

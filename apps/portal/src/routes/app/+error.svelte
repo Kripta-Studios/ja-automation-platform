@@ -18,6 +18,9 @@
     ),
   );
   const status = $derived($page.status);
+  const financeProjectUnavailable = $derived(
+    status === 404 && $page.error?.message === 'finance.project_unavailable',
+  );
   const translate = (key: string): string => standaloneText(locale, key);
   const notificationDetailUnavailable = $derived.by(() => {
     if (status !== 404) return false;
@@ -26,13 +29,15 @@
     return path.startsWith(prefix) && !path.slice(prefix.length).includes('/');
   });
   const title = $derived(
-    notificationDetailUnavailable
-      ? translate('Notification unavailable')
-      : status === 404
-        ? standaloneText(locale, 'No results')
-        : status === 403
-          ? standaloneText(locale, 'Access restricted')
-          : standaloneText(locale, 'Error'),
+    financeProjectUnavailable
+      ? translate('Project unavailable')
+      : notificationDetailUnavailable
+        ? translate('Notification unavailable')
+        : status === 404
+          ? standaloneText(locale, 'No results')
+          : status === 403
+            ? standaloneText(locale, 'Access restricted')
+            : standaloneText(locale, 'Error'),
   );
   const genericFailure = $derived(standaloneText(locale, 'action.error.unavailable'));
   const closeoutFinanceDenied = $derived(
@@ -47,29 +52,44 @@
       $page.error?.message === 'Approval access required',
   );
   const description = $derived(
-    status === 404
-      ? notificationDetailUnavailable
-        ? translate('problem.notification.unavailable')
-        : translate('No records match that search in your access scope.')
-      : status === 403
-        ? closeoutFinanceDenied
-          ? translate('problem.closeout.financeRoleRequired')
-          : approvalRoleDenied
-            ? translate(
-                'Approvals are available to owners, project managers, and finance administrators. Open your workspace or contact an owner if you need this access.',
-              )
-            : translate(
-                'Your account does not have access to this page. Return to a section available to your role.',
-              )
-        : genericFailure,
+    financeProjectUnavailable
+      ? translate(
+          'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.',
+        )
+      : status === 404
+        ? notificationDetailUnavailable
+          ? translate('problem.notification.unavailable')
+          : translate('No records match that search in your access scope.')
+        : status === 403
+          ? closeoutFinanceDenied
+            ? translate('problem.closeout.financeRoleRequired')
+            : approvalRoleDenied
+              ? translate(
+                  'Approvals are available to owners, project managers, and finance administrators. Open your workspace or contact an owner if you need this access.',
+                )
+              : translate(
+                  'Your account does not have access to this page. Return to a section available to your role.',
+                )
+          : genericFailure,
   );
   const recoveryHref = $derived(
-    notificationDetailUnavailable ? `${base}/app/notifications?lang=${locale}` : `${base}/app/`,
+    financeProjectUnavailable
+      ? (() => {
+          const recovery = new URL($page.url);
+          recovery.searchParams.delete('project');
+          recovery.searchParams.set('view', 'overview');
+          return `${recovery.pathname}${recovery.search}`;
+        })()
+      : notificationDetailUnavailable
+        ? `${base}/app/notifications?lang=${locale}`
+        : `${base}/app/`,
   );
   const recoveryLabel = $derived(
-    notificationDetailUnavailable
-      ? translate('Activity inbox')
-      : standaloneText(locale, 'Open my workspace'),
+    financeProjectUnavailable
+      ? translate('Choose an available project')
+      : notificationDetailUnavailable
+        ? translate('Activity inbox')
+        : standaloneText(locale, 'Open my workspace'),
   );
   const sectionLabel = $derived.by(() => {
     const code = String($page.error?.message ?? '');

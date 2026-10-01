@@ -218,6 +218,15 @@
       },
     };
   }
+  // Style properties are applied after hydration, so strict CSP does not see an SSR style attribute.
+  function sizePaper(node: HTMLDivElement, size: { width: number; height: number }) {
+    const apply = (next: { width: number; height: number }) => {
+      node.style.maxWidth = `${next.width}px`;
+      node.style.height = `${next.height}px`;
+    };
+    apply(size);
+    return { update: apply };
+  }
   function changed(next: string): void {
     value = next;
     if (editor) updateField?.(editor.name, next);
@@ -276,8 +285,7 @@
     class="paper-frame"
     class:actual-size={actualSize}
     bind:this={container}
-    style:max-width={`${paperWidth}px`}
-    style:height={loaded ? `${height * scale}px` : '220px'}
+    use:sizePaper={{ width: paperWidth, height: loaded ? height * scale : 220 }}
   >
     {#if mounted}<iframe
         bind:this={iframe}
@@ -362,7 +370,9 @@
   }
   .paper-frame {
     position: relative;
-    width: min(100%, 794px);
+    width: 100%;
+    max-width: 794px;
+    height: 220px;
     margin: 1rem auto;
     overflow: hidden;
     background: white;

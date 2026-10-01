@@ -81,3 +81,38 @@ Live Owner saves BBS manual labor stream `01a0f853-db2e-772e-a519-16e92b21ebc0`,
 Live B10 failed Sept12–26 gives correct pending-submission guidance and Time link scoped to exact dates/project; browser exposes five Drafts, unchanged. Sept17–26 creates USD3,325.00 Junkers labor draft. Repeating period rebuilds the draft with a new ID while invoice register remains **one draft at the same total**, not two invoices. Latest observed draft `01a0f855-365a-742b-a6b8-9771065b4558`. No invoice issued/sent or real time approved. Preview shows existing customer $50 regular hourly rate and existing $0 overtime treatment; no rates changed.
 
 Issuer setup: existing application invoice preview supplied J&A Automation LLC,112BirkshireDr,GeorgetownTX78626,USA. Owner records canonical revision `ce-legal-entity-revision-c8e0918d43fd0097c2efe41cd4a7e6e00880e5d2`,USD,America/Chicago,effectiveSept7,explicitreasonusingrecordedfacts; optional tax/registrationIDsblank. Junkers authority assignment saved fromSept12 with open end. BBS authority assignment then fails live ProjectInvalidUUID: another affected B09 path, **no new quota item** per Astra. One-line projectLegalEntityAssignmentInputSchema uses existing boundedprojectRecordIdSchema; canonical repository project/session/role/tenant/evidence checks unchanged. Latest online-snapshot preview saves BBS authority fromSept7; independentreviewSHIP, schema typecheck/lint pass. Final authority hotfix activation/live assignment pending.
+
+
+## Consolidated final selection and latest authority release
+
+Authority hotfix `b121825` / archive SHA256 `cef179a02306d9078ab4dc1184735560320f55dbbe9dbeb76a327139a3df24c7` activated at18:53:18 Europe/Madrid. Production Owner then saved BBS issuing-authority assignment successfully; both real projects remain Active/editable with the configured USD streams. Two empty QA projects were hard-deleted through the Owner UI; four with operational/financial history remain Archived. That retained history is not claimed deleted.
+
+The new preview/persistence implementation is described in [its browser evidence](preview-editing-persistence-browser-20261001.md). Astra approves the distinctness of the selected improvements; the final completion verdict awaits live activation/regression below. The final selection uses B03 and B04 rather than configuration-specific B06 or PDF-parity B12, avoiding unsupported broad coverage claims.
+
+| Selected UX ID | Distinct improvement | Browser after evidence |
+|---|---|---|
+| U01 | Human attachment metadata and separate versions | Owner correction PDF upload: Saved, Not scanned, Attachment version2 vs Report version1 |
+| U02 | Readable audit summaries with optional original payload | Owner/Worker correction reason and override shown; original raw payload remains collapsed |
+| U03 | Collapsed correction disclosure | Approved report reading unobstructed; preview correction link opens mounted form; Cancel preserves values |
+| U04 | Report identity above compact PDF controls | Worker/Owner/Auditor detail places source title/status before PDF inventory; final live measurement pending |
+| U07 | Fully readable phone project tabs | 360/390/768/1440 full names inside viewport; phone48px targets |
+| U08 | Accessible Show/Hide password | Hydrated toggle preserves value/focus; default masked, aria-pressed matches state |
+| U10 | Report type/title in approval queue | Daily and technical records distinguishable, authorized title search retained |
+| U12 | Remembered filters and viewers | CurrencyUSD/EUR survives refresh; role-scoped Expense/Report/Billing/Projects choices and explicit reset tested |
+| U13 | Invoice preview edits owning draft/defaults | Owner/Finance acknowledged saves, stale409, validation; later draft inherits reusable stream defaults but fresh dates |
+| U14 | Report preview edits owning operational source | Worker/PM preview saves and reload; approved correction path preserves original |
+
+| Selected bug ID | Distinct failure corrected | Browser after evidence |
+|---|---|---|
+| B01 | Dirty correction silently discarded | Final Worker Cancel retains plan/reason; successful audited correction01a0f8dd-074f-76be-8e80-f227c375148d preserves fields and original |
+| B02 | New Daily hidden by Technical filter | Worker creation routes to saved Daily type/Draft/project; one new record |
+| B03 | Unclassified expenses counted as Non-billable | Candidate All2/Needs2/Non-billable0 and empty decided view |
+| B04 | Inline expense switches discard dirty fields | Candidate Cancel preserves editor/date/reason on switch/filter/search; clean planning save succeeds |
+| B05 | Unlocked billing incorrectly captioned actual recovery | Candidate Billing state / Unlocked captions match source state |
+| B07 | Outdated PDF advertised as downloadable | Revised report shows Source changed and zero download until current version generated |
+| B08 | Returned reports absent from review queue | Needs changes record visible, Awaiting author resubmission, zero Approve controls |
+| B09 | Existing imported IDs rejected by setup forms | BBS stream and canonical issuing-authority assignment saved via actual Owner browser; no authorization weakening |
+| B10 | Unsubmitted sources directed to empty Approvals | Live five Draft sources exposed through exact Time/project/date recovery; Submitted remains approval route; one current repeated draft |
+| B11 | Archived QA projects on Active board/count | Candidate Active board showed only2 real projects before new mock,3 afterward; no Archived QA members. Final live two-project check pending |
+
+Additional implemented findings retain separate qualified status: B06 supported disabled-offline mode, B12 preview/PDF parity across document families (one item), B13 unavailable Finance project500 replaced by explicit404/recovery. Newly introduced candidate CSP/sandbox defects do not count as extra items. The selected20 are distinct; no item contributes to both totals. Final deployed evidence follows after the new release activates.

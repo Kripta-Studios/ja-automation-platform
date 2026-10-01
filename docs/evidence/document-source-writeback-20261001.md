@@ -1,6 +1,6 @@
 # Document source writeback and older PDF refresh — October 1, 2026
 
-Owner instruction: invoice edits must update the actual owning project, billing stream or issuer settings, rather than a separate future-invoice default cache. Implementation and candidate browser verification passed. Production release verification remains pending.
+Owner instruction: invoice edits must update the actual owning project, billing stream or issuer settings, rather than a separate future-invoice default cache. Implementation, candidate browser verification and production release checks passed.
 
 ## Production older-PDF refresh
 
@@ -52,4 +52,17 @@ Independent read-only reviewer returned **SHIP**, including historical-source is
 
 Fresh migration 70 passed the ordinary engineering CLI with WAL, foreign keys enabled and integrity `ok`. Representative pre-migration snapshot upgrade succeeded during normal application startup and the above UI journeys. Old preview cache data remains retained without active use or automatic consolidation. No issued document was mutated or issued for this QA; successor issuance/history guarantees received code review, not a new browser issuance claim.
 
-Pending release evidence: final workspace gates, pinned archive, production backup/build/deploy/health receipts, GitHub push and live source-settings smoke checks.
+## Production release and live verification
+
+- Runtime source commit: `8952fb0ec75e60034d56c21e454ff1e79263ab17`, pushed to `codex/release-integration-20260928`.
+- Pinned archive: `/home/kripta/ja-automation-source-writeback-20261001.zip`, SHA-256 `b7d35460f2f6300d1b4cb127720c49c3d27e38d6c0ae166fdb35bee3fb9e5f78`, 310,038,304 bytes. Credential manuals, SQLite databases and environment files were excluded; the existing Owner-authorized public business classification sheet remains included.
+- Full workspace typecheck and lint passed; focused Svelte compilation and final diff checks passed. Portal/site/jobs production builds passed.
+- Online preactivation backup: `/var/backups/jaautomation/2026-10-01T210038247Z-c6764c4d-128a-4f9d-983e-2db8953a2917`, **14 documents**, database SHA-256 `805db7f44b4c02d9527748ad9b4aa665e1b741a61c854352ceaca213e0067e5f`.
+- Atomic activation completed **23:00:54 Europe/Madrid**, October 1. Current release: `/opt/jaautomation/releases/ja-automation-b7d35460f2f6300d1b4cb127720c49c3d27e38d6c0ae166fdb35bee3fb9e5f78`. Local/public health and the normal jobs worker/service actor passed.
+- One-browser production Owner check: original invoice `01a0f855-365a-742b-a6b8-9771065b4558` exposes the actual source destinations and project/stream/issuer versions, with zero future-default checkboxes. Its ordinary PDF download succeeded, with $3,325.00/68 hours retained and invoice version **1** unchanged.
+- Live Owner issuer Cancel restored Wells Fargo Bank/version **0**. Saving unchanged settings acknowledged success and kept version **0**, with no alerts or business source changes. The new editor had no horizontal overflow at 390px. The invoice page recorded zero console errors/warnings.
+- Live Finance could use the actual issuer editor and save unchanged settings without altering version **0**; Owner-only legacy identity editor absent. Live Auditor could view the invoice but had no invoice editor or issuer settings forms. Live Worker1 direct invoice navigation returned the scoped 404 with no financial total or editing access. Browser returned to Owner and the original invoice.
+- Production source data was not replaced with QA values. Changed-field writes and stale-form rejection were exercised on the isolated candidate; live production saves were no-ops. Issued history was not mutated.
+- `docker builder prune -f` after successful deployment reclaimed **6.133 GB**, leaving approximately **10 GB** available. Running containers, volumes, backups and release/rollback images were retained. The duplicate private QA ZIP was removed only after both copies matched the manifest hash; the pinned root archive remains available.
+
+Private detailed logs, downloaded PDFs and screenshots remain in `/home/kripta/ja-browser-round6-20261001`. Broader Essential acceptance and unobserved private statement periods remain outside these verified claims.

@@ -1273,6 +1273,7 @@
     return `${base}/app${billingReadinessReviewPath(
       reasons.map((reason) => String(reason.code ?? '')),
       rowValue(wizardRule, 'project_id', 'projectId'),
+      { start: wizardPeriodStart, end: wizardPeriodEnd },
     )}`;
   }
 
@@ -1402,6 +1403,7 @@
     'Save / issue',
   ];
   let setupProjectId = $state('');
+  let setupCadence = $state('weekly');
   let setupCurrency = $state('');
   let setupLegalEntityId = $state('');
   let setupTaxProfileId = $state('');
@@ -1544,6 +1546,7 @@
             : 'stream';
       if (billingFailureOperation === 'createBillingRule') {
         setupProjectId = billingFailureValues.projectId ?? '';
+        setupCadence = billingFailureValues.cadenceType ?? 'weekly';
         void tick().then(() => {
           setupLegalEntityId = billingFailureValues.legalEntityId ?? '';
           setupContactId = billingFailureValues.billingContactId ?? '';
@@ -3408,7 +3411,7 @@
             </p>
             <label>
               <span>{translate('Cadence')}</span>
-              <select name="cadenceType" required>
+              <select name="cadenceType" bind:value={setupCadence} required>
                 <option value="weekly">{translate('Weekly')}</option>
                 <option value="every_14_days">{translate('Every 14 days')}</option>
                 <option value="semi_monthly">{translate('Semi-monthly')}</option>
@@ -3422,9 +3425,9 @@
               <span>{translate('Effective from')}</span>
               <input name="effectiveFrom" type="date" required />
             </label>
-            <label>
+            <label hidden={!['weekly', 'every_14_days', 'custom'].includes(setupCadence)}>
               <span>{translate('Anchor date')}</span>
-              <input name="anchorDate" type="date" />
+              <input name="anchorDate" type="date" required={setupCadence === 'every_14_days'} />
             </label>
             <label>
               <span>{translate('Invoice issuer (J&A Automation)')}</span>
@@ -3514,12 +3517,12 @@
                 'Grouping cannot be customized here. Invoice layout follows the selected template.',
               )}
             </p>
-            <label>
+            <label hidden={setupCadence !== 'semi_monthly'}>
               <span>{translate('Semi-monthly rule')}</span>
               <select
                 name="semiMonthlyRule"
                 aria-describedby="billing-semi-monthly-rule-help"
-                required
+                required={setupCadence === 'semi_monthly'}
               >
                 {#if billingProblem?.code === 'BILLING_SEMI_MONTHLY_RULE_INVALID' && billingFailureValues.semiMonthlyRule === ''}
                   <option value="" disabled selected
@@ -3536,7 +3539,7 @@
                 </option>
               </select>
             </label>
-            <p id="billing-semi-monthly-rule-help">
+            <p id="billing-semi-monthly-rule-help" hidden={setupCadence !== 'semi_monthly'}>
               {translate('Semi-monthly billing currently covers both halves of each month.')}
             </p>
             <label class="billing-section__checkbox">
@@ -5924,6 +5927,10 @@
     margin: 0;
     color: var(--portal-muted, #67675f);
     line-height: 1.5;
+  }
+
+  .billing-section__config-form [hidden] {
+    display: none;
   }
 
   .billing-section__config-form textarea {

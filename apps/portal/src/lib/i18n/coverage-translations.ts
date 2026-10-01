@@ -8306,6 +8306,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Las fechas no coinciden con la cadencia de este flujo (por ejemplo, semanal es lunes a domingo). Elige el período correcto; la aplicación no lo sustituirá automáticamente.',
     'As datas não coincidem com a cadência deste fluxo (por exemplo, semanal é segunda a domingo). Escolha o período correto; o aplicativo não o substituirá automaticamente.',
   ],
+  'action.billing.readiness.pendingTimeSubmission': [
+    'Hay horas en borrador o devueltas para cambios en este período. Revísalas y envíalas desde Horas; después completa la aprobación antes de crear la factura.',
+    'Há horas em rascunho ou devolvidas para alterações neste período. Revise e envie em Horas; depois conclua a aprovação antes de criar a fatura.',
+  ],
   'action.billing.readiness.pendingTimeApproval': [
     'Hay registros de horas de este período pendientes de aprobación. Apruébalos o recházalos en Aprobaciones y vuelve a crear el borrador.',
     'Há registros de horas deste período pendentes de aprovação. Aprove ou rejeite-os em Aprovações e crie o rascunho novamente.',
@@ -9205,6 +9209,8 @@ function englishActionMessage(key: string): string {
       'The selected period has no approved billable hours or expenses. Review its pending records or explicitly choose another period; the app will not change the dates for you.',
     'action.billing.readiness.periodCutoffMismatch':
       'These dates do not match this billing stream’s cadence (for example a weekly stream needs a Monday–Sunday week). Choose the correct period; the app will not replace it automatically.',
+    'action.billing.readiness.pendingTimeSubmission':
+      'Time entries in this period are drafts or need changes. Review and submit them in Time, then complete approval before creating the invoice draft.',
     'action.billing.readiness.pendingTimeApproval':
       'Time entries in this period are still waiting for approval. Approve or reject them in Approvals, then create the draft again.',
     'action.billing.readiness.pendingTimeFinanceReview':

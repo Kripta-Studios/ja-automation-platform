@@ -4,8 +4,8 @@ Started 2026-10-01 after deployed round 5. Count only new, distinct fixes: brows
 
 ## Progress
 
-- UX/UI: 0/10 completed; nine Astra-approved candidates implemented, verification underway.
-- Bugs: 0/10 completed; eight Astra-approved candidates implemented, verification underway.
+- UX/UI: 0/10 completed; ten Astra-approved candidates implemented, verification underway.
+- Bugs: 0/10 completed; ten Astra-approved candidates implemented, verification underway.
 - Latest constraint: one browser instance with one active page; roles switched sequentially. VPS reboot around 17:04 cleared earlier browser contexts and stopped preview. Production services recovered healthy on the unchanged round-5 release; preview restarted only after confirming its process was gone.
 
 ## Bugs
@@ -59,3 +59,16 @@ Candidateprojecttabs360/390/768/1440 allfullnamesinsideviewport,48pxheight,nopag
 Independentread-onlyreview/root/review_round6_release returnedSHIP aftertwo blockersfixed: rejectedcorrectioninitialDirtyandPDFasyncsourcegatingincludingpost-awaitretryfailure. Workspacepnpmtypecheckandlintpassed,finalfocusedtypecheck/lintpassed,diffcheckpassed. Fullsvelte-check additionallyreports58errorsin15files, largelyexistingtype/declarationissues; theneworiginalIdtypedaccesswasfixed. FullSveltecheckisnotclaimedgreen. Productionbuild/activationpending.
 
 LiveR6reportnowSubmittedv5afterownerreturned,autosavedhandoverandresubmitted. TechnicalfixturecreatedoncebydblclickSave andSubmitted. OwnerliveBBSMexicoActive,USD,all-inhourlymodel10referencehours/day,0assignedteam/0actualtime,0reports. Project/data configurationinspectionongoing; noratesinvented.
+
+
+## Production activation and urgent billing follow-up
+
+Initial round-6 release activated successfully at 18:01:58 Europe/Madrid on 2026-10-01, commit `5cb15a0` pushed to `origin/codex/release-integration-20260928`. Archive SHA256 `660f374fe27fcb79788ea3efdf8f23b649ba7766a830867e200c249d4e6f6085`. Online backup `/var/backups/jaautomation/2026-10-01T160147205Z-fae5c323-127f-418d-af37-7a5a4095cf40`, ten documents, database SHA256 `c93c1783d555ff287f144f1201a3fe10bae90fbddeba49c88de362dde9554e88`. Portal/site builds, local/public health and jobs actor checks passed. Live R6 report correctly displays source-changed PDF warning, readable attachment metadata and audit summaries. Functional checks use one browser instance/page.
+
+Owner archived all six QA-prefixed projects via the normal Closing → Closed → Archived lifecycle (one was already Closing). Audit/operational/financial history retained; archive is not a hard delete. QA USD billing stream archived separately and browser displays Archived with effective end 2026-10-01. BBS Mexico and Junkers OHIO remain Active, project edit drawer available. Docker unused build cache pruned: 8.432 GB reclaimed; no volumes or rollback images removed.
+
+- **B09 — Astra BUG YES, one item:** live new billing stream offers BBS Mexico `project-cp020-bbs-mexico` and IMPC contact `contact-impc-hans-schwiedop`, but rejects both as invalid. UUID-only schema confirmed. Reuse existing bounded stored-ID schemas; repository role, currency, issuer and contact/project-client checks retained. Preview normal saves persist one BBS stream and one UUID Junkers stream, USD, manual cadence, J&A-USA issuer, existing contact and detailed labor template. No actual rates/hours invented.
+- **B10 — Astra BUG YES, one item:** preview against existing production Junkers data, Sept12–26 invoice draft rejected with pending-approval guidance pointing to an empty Approvals queue. Time browser proves five Draft sources Sept12–16 and eight Approved Sept17–26. Readiness now distinguishes Draft/Needs changes as pending submission with Time/project/attention/date filters; submitted records retain approval guidance. Preview link exposes five drafts; after submitting Sept16 only on the isolated copy, Sept16 invoice attempt uses approval guidance and scoped Approvals shows that submitted record. Blocking and billing eligibility remain unchanged. Project detail uses the same recovery helper after independent review identified the missed caller.
+- **U11 — Astra UX YES, one item:** stream creation shows only applicable cadence fields. Semi-monthly rule/help hidden for other cadences; anchor shown for weekly/every14/custom and required for every14. Mounted values retained; automatic draft flags unchanged. Preview all seven cadences display expected fields, manual phone/tablet/desktop checks and anchor retention verified.
+
+Preview creates a Junkers draft for existing approved Sept17–26 sources totaling **USD 3,325.00**; no production source approvals changed. Full Sept12–26 correctly remains blocked by earlier unsubmitted drafts. Existing dataset has no tax profiles: no tax treatment fabricated; review before issuance remains required. New billing hotfix independent review SHIP after shared project-detail routing correction, applicable static checks pass; hotfix production activation and live stream configuration pending. Original10+10 completion credit remains pending full deployed regression; twenty distinct candidates now approved and implemented.

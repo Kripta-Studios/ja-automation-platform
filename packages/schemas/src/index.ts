@@ -642,7 +642,7 @@ export const invoicePeriodSchema = z.object({
 });
 
 export const billingRuleInputSchema = z.object({
-  projectId: uuidSchema,
+  projectId: projectRecordIdSchema,
   legalEntityId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/),
   streamType: z.enum(['labor', 'expense', 'milestone', 'other']),
   includeExpenses: z
@@ -666,7 +666,8 @@ export const billingRuleInputSchema = z.object({
   currency: currencySchema,
   templateId: z.string().trim().min(1).max(100).default('default'),
   recipientEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
-  billingContactId: z.union([z.literal(''), uuidSchema]).optional(),
+  // Imported contacts retain stable IDs; repository verifies project-client membership.
+  billingContactId: z.union([z.literal(''), clientRecordIdSchema]).optional(),
   paymentTermsDays: z.coerce.number().int().min(0).max(365).default(30),
   fixedAmountMinor: minorUnitsSchema
     .optional()

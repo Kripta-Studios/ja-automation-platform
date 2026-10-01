@@ -5648,10 +5648,20 @@ export class PortalRepository {
       const eligibleSourceIds = new Set<string>();
       const pending = this.sqlite
         .prepare(
-          "SELECT id FROM time_entry WHERE project_id=? AND work_date BETWEEN ? AND ? AND approval_state NOT IN ('approved','locked','rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id)",
+          "SELECT id,approval_state FROM time_entry WHERE project_id=? AND work_date BETWEEN ? AND ? AND approval_state NOT IN ('approved','locked','rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id)",
         )
-        .all(rule.project_id, periodStart, periodEnd) as Array<{ id: string }>;
-      reasons.push(...pending.map((row) => ({ code: 'pending_time_approval', sourceId: row.id })));
+        .all(rule.project_id, periodStart, periodEnd) as Array<{
+        id: string;
+        approval_state: string;
+      }>;
+      reasons.push(
+        ...pending.map((row) => ({
+          code: ['draft', 'needs_changes'].includes(row.approval_state)
+            ? 'pending_time_submission'
+            : 'pending_time_approval',
+          sourceId: row.id,
+        })),
+      );
       const missingRateSources = new Set<string>();
       const reservedTimeSources = new Set<string>();
       for (const slice of slices) {

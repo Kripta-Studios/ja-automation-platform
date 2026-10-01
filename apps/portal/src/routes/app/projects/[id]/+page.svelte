@@ -21,7 +21,10 @@
     standaloneText,
   } from '../../standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
-  import { billingReadinessMessageKey } from '$lib/portal/billing-readiness';
+  import {
+    billingReadinessMessageKey,
+    billingReadinessReviewPath,
+  } from '$lib/portal/billing-readiness';
   import { formatDecimalHours } from '$lib/portal/sections/time-entry-actions';
   import {
     translateControlledValue,
@@ -155,12 +158,15 @@
     `${base}/app/projects/${encodeURIComponent(String(data.overview.project.id))}`,
   );
   const readinessHref = $derived.by(() => {
-    const reasons = (form as { reasons?: Array<{ code?: string }> } | null)?.reasons ?? [];
-    if (reasons.some((reason) => String(reason.code ?? '').includes('time_approval')))
-      return base + '/app/approvals?queue=time';
-    if (reasons.some((reason) => String(reason.code ?? '').includes('expense')))
-      return base + '/app/approvals?queue=expenses';
-    return base + '/app/approvals';
+    const failure = form as DraftFailure | null;
+    return `${base}/app${billingReadinessReviewPath(
+      (failure?.reasons ?? []).map((reason) => String(reason.code ?? '')),
+      String(data.overview.project.id),
+      {
+        start: String(detailForm?.values?.periodStart ?? failure?.periodStart ?? ''),
+        end: String(detailForm?.values?.periodEnd ?? failure?.periodEnd ?? ''),
+      },
+    )}`;
   });
   const remedyLinks = $derived({
     review_projects: { label: t('problem.remedy.reviewProjects'), href: base + '/app/projects' },

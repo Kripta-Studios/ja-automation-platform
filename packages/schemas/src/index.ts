@@ -514,7 +514,7 @@ export const projectCommercialPolicyInputSchema = z
 
 export const projectLegalEntityAssignmentInputSchema = z
   .object({
-    projectId: uuidSchema,
+    projectId: projectRecordIdSchema,
     legalEntityRevisionId: z
       .string()
       .trim()

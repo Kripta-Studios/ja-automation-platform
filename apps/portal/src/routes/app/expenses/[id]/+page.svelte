@@ -696,6 +696,7 @@
           {record.vendor || record.description || controlled('expenseCategory', record.category)}
         </h1>
         <p>{record.project_number} · {record.project_name} · {record.spent_on}</p>
+        <p>{t('Worker')}: {record.worker_name || '—'}</p>
       </div>
       <span class="state-tag">{statusLabel}</span>
     </header>

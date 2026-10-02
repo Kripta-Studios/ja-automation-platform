@@ -10802,7 +10802,8 @@ export class PortalRepository {
              FROM project_member pm_scope
              WHERE pm_scope.project_id=t.project_id
                AND pm_scope.user_id=t.worker_id
-               AND pm_scope.status='active'
+               AND (pm_scope.status='active'
+                 OR (pm_scope.status='inactive' AND pm_scope.ends_on IS NOT NULL))
                AND pm_scope.starts_on<=t.work_date
                AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=t.work_date)
            )

@@ -26,6 +26,7 @@ Choose an explicit person reimbursement override to preserve it even when it cur
 - Current values remain visible when a future agreement is saved. Use **Review scheduled commercial terms** and **Work date** to inspect the selected rules for another date.
 - Existing agreements on the same date are immutable. Use a later effective date for a change.
 - Assignment dates cannot exclude retained time, expenses or reports. Ending an assignment preserves its dated financial history.
+- In **Finance → Commercial**, choose a **Work date** inside an ended assignment's recorded dates to review its retained person terms. The row is marked **Inactive assignment · retained terms · read only**. Person configuration requires an active assignment and person.
 - Paid expenses, issued invoices and finalized settlements are protected from retrospective changes.
 
 Workers see their own authorized pay and reimbursement information. Project managers and crew chiefs do not receive other people's compensation, customer rates or internal costs.

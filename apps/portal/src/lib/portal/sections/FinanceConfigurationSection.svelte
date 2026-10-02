@@ -705,7 +705,8 @@
               </small>
               <small>
                 {translate('Worker pay')}: {ruleMoney(terms, 'payRateMinor', 'payCurrency')}
-                · {translate('Method')}: {rowValue(terms, 'payMethod') || '—'}
+                · {translate('Method')}: {compensationRuleLabel(rowValue(terms, 'payMethod')) ||
+                  '—'}
                 · {translate('Source')}: {termsSourceLabel(rowValue(terms, 'paySource'))}
               </small>
               <small>

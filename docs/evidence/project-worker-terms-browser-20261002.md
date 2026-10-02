@@ -61,4 +61,16 @@ These are scoped observations. They do not certify every private-field alias, re
 
 ## W47 release receipt
 
-W47: `c378e60ba786bd80667bf90492167caa4a3b2faa66b5f19cfb4591db1bfe78bc`, source `2ed59d0`, activated October2 at12:47:52 Europe/Madrid. The normal expense header now includes the claimant's permitted operational name. Backup, rollback preparation, local/public health and jobs checks passed. Browser label verification remains pending at this receipt.
+W47: `c378e60ba786bd80667bf90492167caa4a3b2faa66b5f19cfb4591db1bfe78bc`, source `2ed59d0`, activated October2 at12:47:52 Europe/Madrid. The normal expense header now includes the claimant's permitted operational name. Backup, rollback preparation, local/public health and jobs checks passed. Owner and PM subsequently verified the permitted claimant label in English, Spanish and Portuguese at390/1440; PM private-field redaction remained intact. Worker5 verified the English390 own-expense label. Other Worker/localized privacy branches remain pending.
+
+## W47 approved sources and W48 release
+
+Root approved only the seven handed-off QA time sources through Owner browser forms. The Finance source ledger allocated Worker8 daily10c as10c+0c, Worker3 fixed-period11c as11c+0c, and Worker4 fixed-project12c as12c+0c. Worker2's existing agreement allocated1c for30 minutes. Its separately created guarantee rule was not selected by the dated assignment override; this is a fixture binding issue, not an observed guarantee-calculation failure.
+
+On W48, the Owner project calculation for QA NONHOURLY W46 reconciled3.5 approved hours, worker pay EUR0.34 and internal cost EUR0.14. Customer billable hours and revenue were0 because these sources were not commercially classified. Worker-role approved-pay verification is a separate pending browser branch.
+
+Worker6's W47 MyPay showed the approved historical Oct1 hour and EUR0.04 after assignment removal. Old operational time, expense and project routes each denied403. Worker5's own approved cross-project pay was EUR0.03: dedicated EUR0.02 plus timezone EUR0.01. These are scoped current-role observations, not complete historical/privacy or artifact acceptance.
+
+W48 archive `8e427bdc706cc0bc29c0d49434f6d0872506129341004c128edd1c62d0293f78`, source `871b0ef`, activated October2 at13:08:21 Europe/Madrid. It preserves project/week/language on Time submission and removes forced512px minimum heights from MyPay cards. Independent Sol source review, scoped static checks, deployment backup and health/jobs checks passed. Browser verification of those two repairs remains pending at this receipt.
+
+Finance classification of the QA expense claims remains blocked: an existing USD issuing authority was assigned to the EUR project, and the app has no ordinary correction workflow for that unused assignment. Currency validation and an append-only unused-assignment replacement are being implemented. Expected expense reimbursements are not marked PASS before successful classification and role-specific reconciliation. No invoice, payment or settlement was finalized.

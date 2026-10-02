@@ -750,6 +750,10 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'Compensación estimada pendiente de aprobación:',
     'Compensação estimada a aguardar aprovação:',
   ],
+  'Estimated project compensation': [
+    'Compensación estimada del proyecto',
+    'Remuneração estimada do projeto',
+  ],
   'Estimated reimbursements awaiting approval:': [
     'Reembolsos estimados pendientes de aprobación:',
     'Reembolsos estimados a aguardar aprovação:',

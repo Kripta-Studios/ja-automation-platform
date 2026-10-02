@@ -4353,7 +4353,7 @@
             <div>
               <h2>{translate('Compensation statement')}</h2>
               <p>
-                {data.pay.label ?? translate('Estimate from approved and pending records')} · {data.periodStart}
+                {translate(data.pay.label ?? 'Estimate from approved and pending records')} · {data.periodStart}
                 {translate('to')}
                 {data.periodEnd}
               </p>
@@ -4486,7 +4486,7 @@
                   <th>{translate('Project')}</th>
                   <th>{translate('Category')}</th>
                   <th>{translate('Activity')}</th>
-                  <th>{translate('Actual minutes')}</th>
+                  <th>{translate('Actual hours')}</th>
                   <th>{translate('Approval')}</th>
                 </tr>
               </thead>

@@ -793,6 +793,65 @@
       .filter(Boolean)
       .join(' · ');
   });
+  let registerCrewCaption = $state<{ scope: string; name: string } | null>(null);
+  let registerCrewCaptionLoadingScope = $state('');
+  const registerCrewCaptionLookup = $derived.by(() => {
+    if (
+      surface !== null ||
+      data.user.role !== 'worker' ||
+      !workerFilter ||
+      workerFilter === data.user.id ||
+      !projectFilter ||
+      !availableProjects.some((project) => String(project.id) === projectFilter) ||
+      data.workers?.some((worker) => String(worker.id) === workerFilter && worker.name) ||
+      records.some((record) => String(record.worker_id) === workerFilter && record.worker_name)
+    )
+      return null;
+    // Use the same day as an expense handoff/create default. The server still
+    // requires live membership and delegation on today AND this requested day.
+    const date = $page.url.searchParams.get('date')?.trim() || localToday();
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(date)) return null;
+    const parsedDate = new Date(`${date}T00:00:00.000Z`);
+    if (!Number.isFinite(parsedDate.valueOf()) || parsedDate.toISOString().slice(0, 10) !== date)
+      return null;
+    return {
+      projectId: projectFilter,
+      workerId: workerFilter,
+      date,
+      scope: `${data.user.id}:${projectFilter}:${workerFilter}:${date}`,
+    };
+  });
+  $effect(() => {
+    const lookup = registerCrewCaptionLookup;
+    registerCrewCaption = null;
+    registerCrewCaptionLoadingScope = '';
+    if (!lookup) return;
+    const controller = new AbortController();
+    registerCrewCaptionLoadingScope = lookup.scope;
+    const params = new URLSearchParams({ projectId: lookup.projectId, date: lookup.date });
+    void fetch(`${base}/app/api/expenses/crew-workers?${params}`, {
+      signal: controller.signal,
+      credentials: 'same-origin',
+    })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const payload = (await response.json()) as {
+          workers?: Array<{ id: string; name: string }>;
+        };
+        const worker = Array.isArray(payload.workers)
+          ? payload.workers.find((candidate) => candidate.id === lookup.workerId)
+          : undefined;
+        if (!controller.signal.aborted && worker && typeof worker.name === 'string')
+          registerCrewCaption = { scope: lookup.scope, name: worker.name };
+      })
+      .catch(() => {
+        // Failed or denied lookups must not supply a name or disturb intake.
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) registerCrewCaptionLoadingScope = '';
+      });
+    return () => controller.abort();
+  });
   const selectedTimeLinkVerified = $derived.by(() => {
     if (!linkedTimeLookupSucceeded || linkedTimeLoading || timeLookupProblem) return false;
     if (surface === 'create')
@@ -1020,7 +1079,17 @@
               data.workers?.find((row) => String(row.id) === workerFilter)?.name ??
                 crewWorkerOptions.find((worker) => worker.id === workerFilter)?.name ??
                 records.find((row) => String(row.worker_id) === workerFilter)?.worker_name ??
-                (workerFilter === data.user.id ? data.user.name : translate('Unavailable')),
+                (registerCrewCaption?.scope === registerCrewCaptionLookup?.scope
+                  ? registerCrewCaption?.name
+                  : undefined) ??
+                (workerFilter === data.user.id
+                  ? data.user.name
+                  : translate(
+                      registerCrewCaptionLoadingScope &&
+                        registerCrewCaptionLoadingScope === registerCrewCaptionLookup?.scope
+                        ? 'Loading'
+                        : 'Unavailable',
+                    )),
             )
           : '',
       },

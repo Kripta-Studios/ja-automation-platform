@@ -27,6 +27,12 @@
   const status = (value: string) => translateControlledValue(locale, 'status', value);
   const timeCategory = (value: string) => translateControlledValue(locale, 'timeCategory', value);
   const payer = (value: string) => translateControlledValue(locale, 'role', value);
+  const expenseEntryAvailable = $derived(
+    data.entries.some(
+      (entry: { approvalState: string }) =>
+        !['needs_changes', 'rejected'].includes(entry.approvalState),
+    ),
+  );
   const problem = $derived(form?.code && form?.messageKey ? (form as ProblemData) : null);
   const filterProblem = $derived((data.filterProblem ?? null) as ProblemData | null);
   const filterFields = $derived(Object.keys(filterProblem?.fieldErrors ?? {}));
@@ -415,8 +421,10 @@
           contact_project_owner: { label: t('problem.remedy.contactProjectOwner') },
         }}
       />
-      <p class="filter-help">{t('problem.crew.dayFilterNotApplied')}</p>
-      {#if filterFields.length > 1}
+      {#if data.projects.length}
+        <p class="filter-help">{t('problem.crew.dayFilterNotApplied')}</p>
+      {/if}
+      {#if data.projects.length && filterFields.length > 1}
         <div data-ui="validation-summary" class="filter-summary" tabindex="-1">
           <strong>{t('Check the highlighted fields')}</strong>
           <ul>
@@ -433,64 +441,66 @@
     </div>
   {/if}
 
-  <form
-    bind:this={crewFilterForm}
-    method="POST"
-    action="?/refreshFilter"
-    use:formValidation
-    onsubmit={refreshCrewContext}
-    class="context-form"
-    data-crew-filter-form
-  >
-    <input type="hidden" name="lang" value={locale} />
-    <input type="hidden" name="filterTarget" value={data.owner ? 'crew-assign' : 'crew-hours'} />
-    <input type="hidden" name="viewportScrollY" value="" />
-    <div class="filter-field">
-      <label for="crew-project">{t('Project')}</label>
-      <select
-        id="crew-project"
-        name="project"
-        value={data.projectId}
-        disabled={Boolean(pendingOperation)}
-        required
-        aria-invalid={Boolean(filterProblem?.fieldErrors.project)}
-        aria-describedby={filterProblem?.fieldErrors.project ? 'crew-project-error' : undefined}
-      >
-        {#if !data.projectId}<option value="">{t('Select a project')}</option>{/if}
-        {#if projectUnavailable}
-          <option value={data.projectId} disabled
-            >{t('problem.crew.dayProjectUnavailableOption')}</option
+  {#if data.projects.length}
+    <form
+      bind:this={crewFilterForm}
+      method="POST"
+      action="?/refreshFilter"
+      use:formValidation
+      onsubmit={refreshCrewContext}
+      class="context-form"
+      data-crew-filter-form
+    >
+      <input type="hidden" name="lang" value={locale} />
+      <input type="hidden" name="filterTarget" value={data.owner ? 'crew-assign' : 'crew-hours'} />
+      <input type="hidden" name="viewportScrollY" value="" />
+      <div class="filter-field">
+        <label for="crew-project">{t('Project')}</label>
+        <select
+          id="crew-project"
+          name="project"
+          value={data.projectId}
+          disabled={Boolean(pendingOperation)}
+          required
+          aria-invalid={Boolean(filterProblem?.fieldErrors.project)}
+          aria-describedby={filterProblem?.fieldErrors.project ? 'crew-project-error' : undefined}
+        >
+          {#if !data.projectId}<option value="">{t('Select a project')}</option>{/if}
+          {#if projectUnavailable}
+            <option value={data.projectId} disabled
+              >{t('problem.crew.dayProjectUnavailableOption')}</option
+            >
+          {/if}
+          {#each data.projects as project}
+            <option value={project.id}>{project.name}</option>
+          {/each}
+        </select>
+        {#if filterProblem?.fieldErrors.project}
+          <small id="crew-project-error" class="filter-field-error"
+            >{filterErrorText('project')}</small
           >
         {/if}
-        {#each data.projects as project}
-          <option value={project.id}>{project.name}</option>
-        {/each}
-      </select>
-      {#if filterProblem?.fieldErrors.project}
-        <small id="crew-project-error" class="filter-field-error"
-          >{filterErrorText('project')}</small
-        >
-      {/if}
-    </div>
-    <div class="filter-field">
-      <label for="crew-date">{t('Work date')}</label>
-      <input
-        id="crew-date"
-        type={invalidDateValue ? 'text' : 'date'}
-        inputmode={invalidDateValue ? 'numeric' : undefined}
-        name="date"
-        value={data.workDate}
-        disabled={Boolean(pendingOperation)}
-        required
-        aria-invalid={Boolean(filterProblem?.fieldErrors.date)}
-        aria-describedby={filterProblem?.fieldErrors.date ? 'crew-date-error' : undefined}
-      />
-      {#if filterProblem?.fieldErrors.date}
-        <small id="crew-date-error" class="filter-field-error">{filterErrorText('date')}</small>
-      {/if}
-    </div>
-    <button type="submit" disabled={Boolean(pendingOperation)}>{t('Show project')}</button>
-  </form>
+      </div>
+      <div class="filter-field">
+        <label for="crew-date">{t('Work date')}</label>
+        <input
+          id="crew-date"
+          type={invalidDateValue ? 'text' : 'date'}
+          inputmode={invalidDateValue ? 'numeric' : undefined}
+          name="date"
+          value={data.workDate}
+          disabled={Boolean(pendingOperation)}
+          required
+          aria-invalid={Boolean(filterProblem?.fieldErrors.date)}
+          aria-describedby={filterProblem?.fieldErrors.date ? 'crew-date-error' : undefined}
+        />
+        {#if filterProblem?.fieldErrors.date}
+          <small id="crew-date-error" class="filter-field-error">{filterErrorText('date')}</small>
+        {/if}
+      </div>
+      <button type="submit" disabled={Boolean(pendingOperation)}>{t('Show project')}</button>
+    </form>
+  {/if}
 
   {#if data.owner && !filterProblem}
     <SectionCard title={t('Assign a crew chief')} id="crew-assign">
@@ -703,6 +713,12 @@
                 >{submittedValue('summary')}</textarea
               >
             </label>
+            {#if problem?.code === 'CREW_DUPLICATE_TIME'}
+              <label class="check">
+                <input type="checkbox" name="allowExactDuplicate" value="on" required />
+                {t('This is separate work. Save another identical time entry.')}
+              </label>
+            {/if}
             <label class="check"
               ><input
                 type="checkbox"
@@ -776,14 +792,27 @@
       {:else}<p class="empty">{t('No crew hours recorded for this date.')}</p>{/if}
     </SectionCard>
     <SectionCard title={t('Allocate one crew receipt')} id="crew-receipts">
-      <p>
-        {t(
-          'First save a receipt expense for one delegated worker using the “Add expense” link above. Select that expense here and split its amount across at least two crew time rows. The receipt stays',
-        )} <strong>{t('one expense')}</strong>
-        {t(
-          'for billing and reimbursement; the split only records which workers and shifts it covered. Worker reimbursement and customer billing follow the selected expense’s payer and worker policy.',
-        )}
-      </p>
+      {#if !data.assigned.length}
+        <p>
+          {t(
+            'No delegated worker is available on this date. Choose a date with an active delegation, or ask the project owner to assign your crew before recording hours and a receipt.',
+          )}
+        </p>
+      {:else}
+        <p>
+          {expenseEntryAvailable
+            ? t(
+                'First save a receipt expense for one delegated worker using the “Add expense” link above. Select that expense here and split its amount across at least two crew time rows. The receipt stays',
+              )
+            : t(
+                'Record crew hours above first. After an eligible time row is saved, add a receipt expense for one delegated worker. Then select that expense here and split its amount across at least two crew time rows. The receipt stays',
+              )}
+          <strong>{t('one expense')}</strong>
+          {t(
+            'for billing and reimbursement; the split only records which workers and shifts it covered. Worker reimbursement and customer billing follow the selected expense’s payer and worker policy.',
+          )}
+        </p>
+      {/if}
       {#if allocationProblem}
         <div tabindex="-1" data-crew-problem>
           <ProblemNotice
@@ -918,7 +947,7 @@
             >{t('Save receipt allocation')}</button
           >
         </form>
-      {:else}
+      {:else if data.assigned.length}
         <p class="empty">
           {t(
             'Save a receipt expense and at least two crew time rows for this project and date to allocate a shared receipt.',

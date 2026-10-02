@@ -147,6 +147,7 @@
       value === null || value === undefined ? null : String(value),
     );
   const overview = $derived(data.overview as ProjectOverview);
+  const projectDocuments = $derived(data.documents as Row[]);
   const project = $derived(overview.project);
   const role = $derived(String(data.user?.role ?? ''));
   const isOwner = $derived(role === 'owner_admin');
@@ -963,6 +964,22 @@
     </div>
   </header>
 
+  {#if data.invalidProjectTimezone}
+    <section class="project-surface" data-project-timezone-problem role="alert">
+      <p>{t('problem.projectDetail.timezoneInvalid')}</p>
+      {#if isOwner}
+        <button
+          type="button"
+          class="quiet-button"
+          disabled={!mounted}
+          onclick={() => (editOpen = true)}
+        >
+          {t('Edit project')}
+        </button>
+      {/if}
+    </section>
+  {/if}
+
   {#if canViewCommercial && periodProblem}
     <section
       class="project-surface project-period-correction"
@@ -1320,8 +1337,17 @@
                     ><small
                       >{controlled('role', worker.assignment_role ?? worker.role)} · {display(
                         worker.starts_on,
-                      )} → {display(worker.ends_on, t('Open assignment'))}</small
+                      )} → {display(worker.ends_on, '—')}</small
                     >
+                    {#if isOwner}
+                      <small
+                        ><a
+                          href={`${base}/app/projects?action=update-assignment&project=${encodeURIComponent(String(project.id))}&worker=${encodeURIComponent(String(worker.worker_id ?? worker.id))}#project-assignment-list`}
+                          aria-label={`${t('Update assignment')}: ${display(worker.name, t('Assigned worker'))}`}
+                          >{t('Update assignment')} →</a
+                        ></small
+                      >
+                    {/if}
                     {#if isOwner}
                       <small
                         ><a
@@ -1353,9 +1379,13 @@
                   >
                 </h2>
               </div>
-              <span class="surface-count">{overview.planning.length}</span>
+              <span class="surface-count planning-assignment-count"
+                >{overview.planning.length}
+                {t(overview.planning.length === 1 ? 'field assignment' : 'field assignments')}</span
+              >
             </div>
             {#if overview.schedule}
+              <p class="portal-kicker">{t('Expected working schedule')}</p>
               <dl class="schedule-facts">
                 <div>
                   <dt>{t('Timezone')}</dt>
@@ -1515,6 +1545,41 @@
             {:else}<p class="empty-state">{t('No reports recorded for this project.')}</p>{/each}
           </div>
         </section>
+        <section class="project-surface" aria-labelledby="project-files-title">
+          <div class="surface-heading">
+            <div>
+              <p class="portal-kicker">{t('REPORTS & FILES')}</p>
+              <h2 id="project-files-title">
+                {t('Private project documents')} · {projectDocuments.length}
+              </h2>
+            </div>
+            <a
+              class="secondary-button"
+              href={`${base}/app/documents?project=${encodeURIComponent(String(project.id))}#document-list`}
+              >{t('Documents')}</a
+            >
+          </div>
+          <div class="compact-record-list">
+            {#each projectDocuments.slice(0, 5) as document}
+              <div class="compact-record">
+                <span class="record-mark" aria-hidden="true">F</span>
+                <span class="record-copy">
+                  <strong
+                    >{display(
+                      document.safe_filename ?? document.original_filename,
+                      t('Document'),
+                    )}</strong
+                  >
+                  <small>{display(document.artifact_type)}</small>
+                </span>
+              </div>
+            {:else}
+              <p class="empty-state">
+                {t('No private documents are available in your access scope.')}
+              </p>
+            {/each}
+          </div>
+        </section>
       </div>
     {:else if activeTab === 'commercial' && canViewCommercial}
       <div
@@ -1630,7 +1695,9 @@
                     <a
                       href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}&source=portfolio#finance-source-records`}
                     >
-                      {percentageFromBps(finance.contributionMarginBps)}
+                      {String(finance.revenueCandidateMinor ?? '').trim() === '0'
+                        ? t('Not applicable — no revenue candidate')
+                        : percentageFromBps(finance.contributionMarginBps)}
                     </a>
                   </dd>
                 </div>
@@ -2734,6 +2801,11 @@
   }
   .surface-heading h2 {
     font-size: 1.1rem;
+  }
+  .planning-assignment-count {
+    max-width: 52%;
+    text-align: center;
+    white-space: normal;
   }
   .portal-kicker {
     margin: 0;

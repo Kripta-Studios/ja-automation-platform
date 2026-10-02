@@ -529,6 +529,14 @@ const reportProblems: Record<string, ReportProblem> = {
       'This time entry is linked to another record. Review its links and request a documented correction.',
     remedy: 'review_time',
   },
+  'Linked time and meal drafts must be withdrawn together': {
+    status: 409,
+    code: 'LINKED_DRAFT_DELETE_REQUIRES_PAIR_WITHDRAWAL',
+    key: 'problem.linkedDraft.deleteTogether',
+    message:
+      'This meal belongs to a linked time and meal draft pair. Withdraw both drafts together.',
+    remedy: 'review_expense',
+  },
   'Report access required': {
     status: 403,
     code: 'REPORT_ACCESS_REQUIRED',
@@ -1742,7 +1750,108 @@ export const reportActions = {
       });
       return actionSuccess('action.reports.draftDeleted', { recordId: result.id }, 'Draft deleted');
     } catch (error) {
+      if (
+        recordType === 'expense' &&
+        error instanceof ConflictError &&
+        error.message === 'Crew expense drafts must be withdrawn with a reason'
+      )
+        return actionFail(
+          409,
+          'problem.expense.crewDeleteRequiresWithdrawal',
+          {},
+          'This crew expense has an audit trail. Enter a reason and withdraw the draft instead of deleting it.',
+          {
+            code: 'EXPENSE_CREW_DELETE_REQUIRES_WITHDRAWAL',
+            actionName: 'withdrawCrewExpenseDraft',
+            values: { expenseId: recordId },
+            remedies: [{ id: 'review_expense', recordId }],
+          },
+        );
       return reportActionFailure(error, object);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  withdrawLinkedDrafts: async ({ locals, request, params }: PortalActionEvent) => {
+    if (!['time', 'expenses'].includes(params.section ?? ''))
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const expenseId = String(object.expenseId ?? '');
+    const expenseVersion = Number(object.expenseVersion);
+    const timeVersion = Number(object.timeVersion);
+    const reason = String(object.reason ?? '').trim();
+    if (
+      !expenseId ||
+      !Number.isInteger(expenseVersion) ||
+      expenseVersion < 1 ||
+      !Number.isInteger(timeVersion) ||
+      timeVersion < 1 ||
+      reason.length < 3 ||
+      reason.length > 2000
+    )
+      return actionFail(
+        400,
+        'problem.linkedDraft.withdrawInvalid',
+        {},
+        'Enter a reason of 3 to 2,000 characters and review both draft versions.',
+        {
+          code: 'LINKED_DRAFT_WITHDRAW_INVALID',
+          actionName: 'withdrawLinkedDrafts',
+          values: { expenseId, reason },
+          fieldErrors:
+            reason.length < 3 || reason.length > 2000
+              ? { reason: ['problem.linkedDraft.withdrawInvalid'] }
+              : {},
+          remedies: [{ id: 'review_expense' }],
+        },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      const result = context.repository.withdrawLinkedTimeAndExpenseDrafts(context.principal, {
+        expenseId,
+        expenseVersion,
+        timeVersion,
+        reason,
+      });
+      return actionSuccess(
+        'action.linkedDraft.withdrawn',
+        {
+          timeId: result.timeId,
+          expenseId: result.expenseId,
+        },
+        'Linked time and meal drafts withdrawn',
+      );
+    } catch (caught) {
+      if (
+        caught instanceof ConflictError ||
+        caught instanceof ValidationError ||
+        caught instanceof AccessDeniedError
+      )
+        return actionFail(
+          caught instanceof AccessDeniedError ? 403 : caught instanceof ConflictError ? 409 : 400,
+          caught.message === 'Linked draft withdrawal access required'
+            ? 'problem.linkedDraft.withdrawAccessRequired'
+            : caught.message === 'Linked time and meal draft pair is unavailable'
+              ? 'problem.linkedDraft.pairUnavailable'
+              : 'problem.linkedDraft.withdrawChanged',
+          {},
+          caught.message === 'Linked draft withdrawal access required'
+            ? 'You cannot withdraw this linked pair under your current access.'
+            : 'This linked pair changed or can no longer be withdrawn. Review both records.',
+          {
+            code:
+              caught instanceof AccessDeniedError
+                ? 'LINKED_DRAFT_WITHDRAW_ACCESS_REQUIRED'
+                : 'LINKED_DRAFT_WITHDRAW_CHANGED',
+            actionName: 'withdrawLinkedDrafts',
+            values: { expenseId, reason },
+            remedies: [{ id: 'review_expense', recordId: expenseId }],
+          },
+        );
+      return actionFailure(caught, {
+        actionName: 'withdrawLinkedDrafts',
+        values: { expenseId, reason },
+      });
     } finally {
       context.sqlite.close();
     }
@@ -2231,6 +2340,15 @@ export const reportActions = {
       );
     const context = openPortalRepository(locals);
     try {
+      if (['owner_admin', 'project_manager'].includes(context.principal.role) && !workerId)
+        return reportInputFailure(
+          'createDailyReport',
+          'REPORT_WORKER_REQUIRED',
+          'problem.report.workerRequired',
+          'Select a worker assigned to this project on the report date.',
+          values,
+          { workerId: ['problem.report.workerRequired'] },
+        );
       context.repository.createDailyReport(context.principal, parsed.data, workerId);
       return actionSuccess('action.reports.dailyDraftSaved', {}, 'Daily report draft saved');
     } catch (error) {
@@ -2267,6 +2385,15 @@ export const reportActions = {
     }
     const context = openPortalRepository(locals);
     try {
+      if (['owner_admin', 'project_manager'].includes(context.principal.role) && !workerId)
+        return reportInputFailure(
+          'createTechnicalReport',
+          'REPORT_WORKER_REQUIRED',
+          'problem.report.workerRequired',
+          'Select a worker assigned to this project on the report date.',
+          values,
+          { workerId: ['problem.report.workerRequired'] },
+        );
       context.repository.createTechnicalReport(context.principal, parsed.data, workerId);
       return actionSuccess('action.reports.technicalDraftSaved', {}, 'PLC report draft saved');
     } catch (error) {
@@ -2462,15 +2589,19 @@ export const reportActions = {
     const context = opened.context;
     try {
       const result = context.repository.createPlanningAssignments(context.principal, parsed.data);
-      return actionSuccess(
-        result.replayed
-          ? 'action.planning.assignmentAlreadyPublished'
-          : 'action.planning.assignmentPublished',
-        {},
-        result.replayed
-          ? 'Assignment already published. No duplicates were created.'
-          : 'Assignment published',
-      );
+      return {
+        ...actionSuccess(
+          result.replayed
+            ? 'action.planning.assignmentAlreadyPublished'
+            : 'action.planning.assignmentPublished',
+          {},
+          result.replayed
+            ? 'Assignment already published. No duplicates were created.'
+            : 'Assignment published',
+        ),
+        operation: 'createPlanning',
+        projectId: parsed.data.projectId,
+      };
     } catch (error) {
       return planningActionFailure(error, 'createPlanning', values);
     } finally {

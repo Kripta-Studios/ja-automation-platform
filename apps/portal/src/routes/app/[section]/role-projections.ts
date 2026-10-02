@@ -33,7 +33,7 @@ const pmSearchFieldsByType: Readonly<Record<string, readonly string[]>> = {
   client: ['id', 'type', 'label', 'detail'],
   worker: ['id', 'type', 'label', 'detail'],
   report: ['id', 'type', 'label', 'detail'],
-  expense: ['id', 'type', 'label', 'detail'],
+  expense: ['id', 'type', 'label', 'detail', 'projectNumber', 'spentOn', 'approvalState'],
 };
 
 const pmMilestoneFields = [

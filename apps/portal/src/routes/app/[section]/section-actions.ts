@@ -103,6 +103,7 @@ export const sectionActions: Actions = {
   updateExpense: expenseActions.updateExpense,
   uploadPrivateDocument: documentActions.uploadPrivateDocument,
   submitExpense: expenseActions.submitExpense,
+  withdrawCrewExpenseDraft: expenseActions.withdrawCrewExpenseDraft,
   deleteExpense: expenseActions.deleteExpense,
   approveRecord: approvalActions.approveRecord,
   financeApprove: approvalActions.financeApprove,
@@ -136,6 +137,7 @@ export const sectionActions: Actions = {
   archiveDocument: documentActions.archiveDocument,
   deleteDocument: documentActions.deleteDocument,
   ['delete' + 'Draft']: reportActions.deleteDraft,
+  withdrawLinkedDrafts: reportActions.withdrawLinkedDrafts,
   ['create' + 'CorrectionDraft']: reportActions.createCorrectionDraft,
   withdrawCorrectionDraft: reportActions.withdrawCorrectionDraft,
 };

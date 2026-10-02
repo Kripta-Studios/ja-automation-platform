@@ -30,6 +30,8 @@
     resetKey = '',
     showEmpty = true,
     beforeChange = () => true,
+    statusless = false,
+    initialOrder = 'priority',
   }: {
     rows: T[];
     visible?: T[];
@@ -46,9 +48,12 @@
     resetKey?: string;
     showEmpty?: boolean;
     beforeChange?: () => boolean;
+    statusless?: boolean;
+    initialOrder?: 'priority' | 'newest' | 'name';
   } = $props();
+  const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
   let search = $state('');
-  let order = $state('priority');
+  let order = $state(preferredOrder);
   let page = $state(0);
   const statuses = $derived(
     [...new Set([...rows.map(recordState), status].filter(Boolean))].sort(),
@@ -56,7 +61,7 @@
   const filtered = $derived(
     controlled
       ? [...rows]
-      : browseRecords(rows, filtersEnabled ? search : '', filtersEnabled ? status : '', order),
+      : browseRecords(rows, filtersEnabled ? search : '', filtersEnabled && !statusless ? status : '', order),
   );
   $effect(() => {
     visible = filtered.slice(current * pageSize, (current + 1) * pageSize);
@@ -66,7 +71,7 @@
   const defaults: RecordBrowserState = untrack(() => ({
     search: '',
     status,
-    order: 'priority',
+    order: preferredOrder,
     page: 0,
   }));
   let criteria = '';
@@ -90,6 +95,9 @@
     if (restoredKey !== key) {
       const saved = readOperationalRegisterState<Record<string, unknown>>(key);
       const restored = restoreRecordBrowserState(saved, defaults, filtersEnabled);
+      if (statusless && ['priority', 'status'].includes(restored.order))
+        restored.order = preferredOrder;
+      if (statusless) restored.status = '';
       criteria = JSON.stringify([restored.search, restored.status, restored.order, pageSize]);
       appliedFocus = '';
       restoredKey = key;
@@ -155,7 +163,7 @@
             aria-label={`${translate('Search')}: ${translate(label)}`}
           /></label
         >
-        <label
+        {#if !statusless}<label
           >{translate('Status')}<select
             value={status}
             onchange={(event) => {
@@ -166,7 +174,7 @@
                 value={item}>{statusLabel(item)}</option
               >{/each}</select
           ></label
-        >
+        >{/if}
       {/if}
       <label
         >{translate('Sort by')}<select
@@ -175,11 +183,11 @@
             if (beforeChange()) order = event.currentTarget.value;
             else event.currentTarget.value = order;
           }}
-          ><option value="priority">{translate('Needs attention first')}</option><option
+          >{#if !statusless}<option value="priority">{translate('Needs attention first')}</option>{/if}<option
             value="oldest">{translate('Oldest first')}</option
           ><option value="newest">{translate('Newest first')}</option><option value="name"
             >{translate('Name')}</option
-          ><option value="status">{translate('Status')}</option></select
+          >{#if !statusless}<option value="status">{translate('Status')}</option>{/if}</select
         ></label
       >
     </div>{/if}

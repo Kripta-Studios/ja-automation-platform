@@ -33,6 +33,7 @@ export type CrewTimeRow = Readonly<{
   version: number;
   recordedBy: string;
   editable: boolean;
+  discardable: boolean;
 }>;
 export type CrewTimeDetail = CrewTimeRow &
   Readonly<{
@@ -54,6 +55,7 @@ export type CrewBatchInput = TimeEntryInput &
     workerIds: readonly string[];
     workerMinutes?: Readonly<Record<string, number>>;
     submit?: boolean;
+    allowExactDuplicate?: boolean;
   }>;
 
 const now = () => new Date().toISOString();
@@ -451,7 +453,7 @@ export class CrewLeaderRepository {
        ORDER BY t.work_date DESC,t.created_at DESC LIMIT 400`,
       )
       .all(principal.userId, projectId, from, to) as Array<
-      Omit<CrewTimeRow, 'editable'> & {
+      Omit<CrewTimeRow, 'editable' | 'discardable'> & {
         grantId: string;
         invoiceId: string | null;
         billingStatus: string;
@@ -483,6 +485,12 @@ export class CrewLeaderRepository {
           billingStatus === 'unlocked' &&
           billingLockId === null &&
           !this.hasLinkedEvidence(row.id),
+        discardable:
+          row.approvalState === 'draft' &&
+          invoiceId === null &&
+          billingStatus === 'unlocked' &&
+          billingLockId === null &&
+          !this.hasLinkedEvidence(row.id, false),
       }));
   }
 
@@ -558,21 +566,27 @@ export class CrewLeaderRepository {
         billingStatus === 'unlocked' &&
         billingLockId === null &&
         !this.hasLinkedEvidence(id),
+      discardable:
+        row.approvalState === 'draft' &&
+        invoiceId === null &&
+        billingStatus === 'unlocked' &&
+        billingLockId === null &&
+        !this.hasLinkedEvidence(id, false),
     };
   }
 
-  private hasLinkedEvidence(id: string): boolean {
+  private hasLinkedEvidence(id: string, includeVoidedExpenses = true): boolean {
     return Boolean(
       this.sqlite
         .prepare(
-          `SELECT 1 WHERE EXISTS(SELECT 1 FROM expense WHERE time_entry_id=?)
+          `SELECT 1 WHERE EXISTS(SELECT 1 FROM expense WHERE time_entry_id=? AND (?=1 OR approval_state<>'void'))
              OR EXISTS(SELECT 1 FROM crew_shared_expense_allocation WHERE time_entry_id=?)
              OR EXISTS(SELECT 1 FROM report_time_link WHERE time_entry_id=?)
              OR EXISTS(SELECT 1 FROM operational_time_expense_request WHERE time_entry_id=?)
              OR EXISTS(SELECT 1 FROM record_correction_link
                        WHERE record_type='time_entry' AND (original_id=? OR correction_id=?))`,
         )
-        .get(id, id, id, id, id, id),
+        .get(id, includeVoidedExpenses ? 1 : 0, id, id, id, id, id),
     );
   }
 
@@ -691,7 +705,15 @@ export class CrewLeaderRepository {
 
   discardDraft(principal: Principal, id: string, version: number): void {
     this.transaction(() => {
-      const current = this.editableDraft(principal, id, version);
+      if (!Number.isSafeInteger(version) || version < 1)
+        throw new ValidationError('A valid draft version is required');
+      const current = this.entryDetail(principal, id);
+      if (current.version !== version)
+        throw new ConflictError('This crew draft changed. Reload it before discarding.');
+      if (current.approvalState !== 'draft' || !current.discardable)
+        throw new ConflictError(
+          'This crew draft has active linked evidence and cannot be discarded',
+        );
       const result = this.sqlite
         .prepare(
           `UPDATE time_entry SET approval_state='void',updated_at=?,version=version+1
@@ -755,6 +777,7 @@ export class CrewLeaderRepository {
         summary: input.summary.trim(),
         site: input.site?.trim() || null,
         submit: Boolean(input.submit),
+        ...(input.allowExactDuplicate ? { allowExactDuplicate: true } : {}),
       });
       const hash = createHash('sha256').update(payload).digest('hex');
       const prior = this.sqlite
@@ -773,15 +796,20 @@ export class CrewLeaderRepository {
       const created: { id: string; version: number }[] = [];
       for (const workerId of workerIds) {
         try {
-          const row = this.time.createTimeEntryForWorker(principal, workerId, {
-            projectId: input.projectId,
-            workDate: input.workDate,
-            category: input.category,
-            activityCode: input.activityCode,
-            minutes: workerMinutes?.[workerId] ?? input.minutes,
-            summary: input.summary,
-            site: input.site,
-          });
+          const row = this.time.createTimeEntryForWorker(
+            principal,
+            workerId,
+            {
+              projectId: input.projectId,
+              workDate: input.workDate,
+              category: input.category,
+              activityCode: input.activityCode,
+              minutes: workerMinutes?.[workerId] ?? input.minutes,
+              summary: input.summary,
+              site: input.site,
+            },
+            { allowExactDuplicate: input.allowExactDuplicate },
+          );
           created.push(input.submit ? this.time.submitTime(principal, row.id, row.version) : row);
         } catch (caught) {
           if (caught instanceof ValidationError || caught instanceof ConflictError) {

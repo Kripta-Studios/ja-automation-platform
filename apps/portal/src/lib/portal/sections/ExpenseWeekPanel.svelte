@@ -81,6 +81,9 @@
   const missingReceipts = $derived(
     drafts.filter((row) => expenseReceiptState(row) === 'missing').length,
   );
+  const linkedTimeDrafts = $derived(
+    drafts.filter((row) => row.linked_pair_time_id && row.linked_pair_time_state === 'draft').length,
+  );
   const snapshot = $derived(
     JSON.stringify(drafts.map((row) => ({ id: String(row.id), version: Number(row.version) }))),
   );
@@ -180,6 +183,24 @@
         .map(([code, amount]) => money(amount.toString(), code))
         .join(' · ') || '—'
     );
+  }
+  function approvalLabel(row: Row): string {
+    if (
+      row.approval_state === 'void' &&
+      (row.linked_pair_time_id || Number(row.crew_recorded ?? 0) === 1)
+    )
+      return translate('Withdrawn');
+    return controlledValue('status', row.approval_state);
+  }
+  function dailyStatuses(records: Row[]): { status: string; label: string }[] {
+    const unique: { status: string; label: string }[] = [];
+    for (const row of records) {
+      const status = String(row.approval_state);
+      const label = approvalLabel(row);
+      if (!unique.some((item) => item.status === status && item.label === label))
+        unique.push({ status, label });
+    }
+    return unique;
   }
   function weekHref(value: string): string {
     const params = new URLSearchParams($page.url.searchParams);
@@ -436,7 +457,7 @@
                   }}>{date}</button
                 ></th
               ><td>{daily.length}</td><td>{totalLabel(daily)}</td><td
-                >{#each [...new Set(daily.map( (row) => String(row.approval_state), ))] as status}<StatusBadge
+                >{#each dailyStatuses(daily) as { status, label }}<StatusBadge
                     variant={status === 'approved'
                       ? 'success'
                       : status === 'submitted'
@@ -446,7 +467,7 @@
                           : status === 'rejected'
                             ? 'danger'
                             : 'neutral'}
-                    text={controlledValue('status', status)}
+                    text={label}
                   />{/each}{#if !daily.length}—{/if}</td
               ></tr
             >
@@ -476,12 +497,16 @@
               'draft expenses require a receipt. Review those expenses before submitting the week.',
             )}
           </p>{/if}
+        {#if linkedTimeDrafts}<p class="expense-week-error" role="alert">
+            {linkedTimeDrafts} {translate('linked meal drafts have draft hours. Submit their time week first.')}
+            <a href={`${base}/app/time?week=${encodeURIComponent(weekStart)}&worker=${encodeURIComponent(workerId)}#time-week-submit-title`}>{translate('Open time week')}</a>
+          </p>{/if}
         <div bind:this={weekNotice} tabindex="-1" role={weekError ? 'alert' : 'status'}>
           {weekError || weekMessage}
         </div>
         <button
           type="submit"
-          disabled={Boolean(busy) || !workerId || !drafts.length || Boolean(missingReceipts)}
+          disabled={Boolean(busy) || !workerId || !drafts.length || Boolean(missingReceipts) || Boolean(linkedTimeDrafts)}
           >{translate(busy === 'submit' ? 'Submitting…' : 'Submit this week')}</button
         >
       </form>
@@ -539,7 +564,7 @@
                 ><strong>{row.project_number ?? row.project_name}</strong> · {money(
                   row.amount_minor,
                   String(row.currency),
-                )} · {controlledValue('status', row.approval_state)}<br />{row.description}</span
+                )} · {approvalLabel(row)}<br />{row.description}</span
               ><span
                 >{#if canEdit(row)}<button
                     type="button"

@@ -83,6 +83,16 @@
   line-height: 1.45;
 }
 
+.dashboard-currency-totals strong + strong {
+  margin-top: -0.5rem;
+}
+
+.dashboard-currency-totals strong {
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
 .dashboard-metrics .attention {
   color: #fff;
   border-color: var(--ja-red);

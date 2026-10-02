@@ -1,5 +1,30 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Own pay estimate for selected week': [
+    'Estimación de mi remuneración para la semana seleccionada',
+    'Estimativa da minha remuneração para a semana selecionada',
+  ],
+  'This pay estimate covers all eligible work in the selected week. Historical assignments may include time not shown in the operational table above.':
+    [
+      'Esta estimación incluye todo el trabajo elegible de la semana seleccionada. Las asignaciones anteriores pueden incluir horas que no aparecen en la tabla operativa de arriba.',
+      'Esta estimativa inclui todo o trabalho elegível da semana selecionada. As atribuições anteriores podem incluir horas que não aparecem na tabela operacional acima.',
+    ],
+  'Approved time in pay estimate': [
+    'Horas aprobadas en la estimación de remuneración',
+    'Horas aprovadas na estimativa de remuneração',
+  ],
+  'Pending time in pay estimate': [
+    'Horas pendientes en la estimación de remuneración',
+    'Horas pendentes na estimativa de remuneração',
+  ],
+  'Approved compensation estimate': [
+    'Estimación de remuneración aprobada',
+    'Estimativa de remuneração aprovada',
+  ],
+  'Review this week in My Pay': [
+    'Revisar esta semana en Mi remuneración',
+    'Revisar esta semana em Minha remuneração',
+  ],
   'Untitled report': ['Informe sin título', 'Relatório sem título'],
   'Awaiting author resubmission': ['Esperando el reenvío del autor', 'Aguardando reenvio do autor'],
   'Any category': ['Cualquier categoría', 'Qualquer categoria'],
@@ -21,6 +46,7 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   'Storage state': ['Estado de almacenamiento', 'Estado de armazenamento'],
   'Scan status': ['Estado del análisis', 'Status da verificação'],
   'Audit details': ['Detalles de auditoría', 'Detalhes de auditoria'],
+  'Actor ID': ['ID del actor', 'ID do agente'],
   'Source version': ['Versión de origen', 'Versão de origem'],
   'Owner override': ['Excepción del propietario', 'Exceção do proprietário'],
   'Other PDF languages': ['Otros idiomas del PDF', 'Outros idiomas do PDF'],
@@ -449,6 +475,14 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'Horas que registraste realmente.',
     'Horas que você realmente registrou.',
   ],
+  'Hours recorded for the selected scope.': [
+    'Horas registradas en el ámbito seleccionado.',
+    'Horas registradas no âmbito selecionado.',
+  ],
+  'Hours recorded across authorized projects and people for this week.': [
+    'Horas registradas en los proyectos y por las personas autorizadas durante esta semana.',
+    'Horas registradas nos projetos e pelas pessoas autorizadas nesta semana.',
+  ],
   'Log time on this day': ['Registrar horas en este día', 'Registrar horas neste dia'],
   Month: ['Mes', 'Mês'],
   'No time recorded for this day.': [
@@ -492,6 +526,14 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
       'Altere os dados operacionais solicitados antes de criar este rascunho. Revise todos os valores: uma correção vinculada não pode ser editada depois. Pode retirar um rascunho não enviado e recomeçar.',
     ],
   'Why withdraw this draft?': ['¿Por qué retiras este borrador?', 'Por que retirar este rascunho?'],
+  'Withdraw crew expense draft': [
+    'Retirar borrador de gasto de cuadrilla',
+    'Retirar rascunho de despesa da equipe',
+  ],
+  'Crew expense draft withdrawn': [
+    'Borrador de gasto de cuadrilla retirado',
+    'Rascunho de despesa da equipe retirado',
+  ],
   'Withdraw correction draft': ['Retirar borrador de corrección', 'Retirar rascunho de correção'],
   'Keep current linked hours': [
     'Mantener las horas vinculadas actuales',
@@ -547,6 +589,11 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     [
       'Los documentos registrados se conservan como prueba. Sube el archivo corregido como documento nuevo; el original seguirá disponible en el historial de auditoría.',
       'Os documentos registados são conservados como prova. Carregue o ficheiro corrigido como novo documento; o original continuará disponível no histórico de auditoria.',
+    ],
+  'Registered documents remain available as evidence. Authorized project users upload corrections as new documents; the original stays in the audit history.':
+    [
+      'Los documentos registrados siguen disponibles como prueba. Los usuarios autorizados del proyecto suben las correcciones como documentos nuevos; el original permanece en el historial de auditoría.',
+      'Os documentos registrados continuam disponíveis como prova. Usuários autorizados do projeto enviam correções como novos documentos; o original permanece no histórico de auditoria.',
     ],
   'A credit note cannot be overdue. Restore its issued status before accounting finalization.': [
     'Una nota de crédito no puede estar vencida. Restaura su estado de emisión antes de finalizar la contabilidad.',
@@ -918,6 +965,16 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
       'Primero guarda un gasto con recibo para un trabajador delegado mediante el enlace «Añadir gasto» de arriba. Selecciónalo aquí y distribuye el importe entre al menos dos registros de horas del equipo. El recibo sigue siendo',
       'Primeiro salve uma despesa com comprovante para um trabalhador delegado pelo link “Adicionar despesa” acima. Selecione-a aqui e distribua o valor entre pelo menos dois registros de horas da equipe. O comprovante continua sendo',
     ],
+  'Record crew hours above first. After an eligible time row is saved, add a receipt expense for one delegated worker. Then select that expense here and split its amount across at least two crew time rows. The receipt stays':
+    [
+      'Primero registra las horas del equipo arriba. Una vez guardado un registro de horas apto, añade un gasto con recibo para un trabajador delegado. Luego selecciónalo aquí y distribuye el importe entre al menos dos registros de horas del equipo. El recibo sigue siendo',
+      'Primeiro registe as horas da equipa acima. Depois de guardar um registo de horas elegível, adicione uma despesa com comprovativo para um trabalhador delegado. Em seguida, selecione-a aqui e divida o valor entre pelo menos dois registos de horas da equipa. O comprovativo continua a ser',
+    ],
+  'No delegated worker is available on this date. Choose a date with an active delegation, or ask the project owner to assign your crew before recording hours and a receipt.':
+    [
+      'No hay ningún trabajador delegado disponible en esta fecha. Elige una fecha con una delegación activa o pide al propietario del proyecto que asigne tu equipo antes de registrar horas y un recibo.',
+      'Não há trabalhadores delegados disponíveis nesta data. Escolha uma data com uma delegação ativa ou peça ao responsável pelo projeto para atribuir a sua equipa antes de registar horas e um comprovativo.',
+    ],
   'Hours for': ['Horas de', 'Horas de'],
   'Hours per member': ['Horas por miembro', 'Horas por integrante'],
   'Use exact one-minute increments: 0.1 hours = 6 minutes.': [
@@ -979,6 +1036,11 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     [
       'La proyección financiera de referencia aún no incluye los identificadores ni las versiones de las reglas de tarifas. Los registros de abajo muestran el estado configurado o no disponible y el método de pago; usa la configuración de facturación del proyecto para revisar o cambiar las condiciones futuras.',
       'A projeção financeira de referência ainda não inclui os identificadores e as versões das regras de tarifas. Os registros abaixo mostram os estados configurados ou indisponíveis e a forma de pagamento; use a configuração de faturamento do projeto para revisar ou alterar condições futuras.',
+    ],
+  'Rate-rule IDs and versions are not included in the canonical finance projection yet. Source rows below show the canonical configured/unavailable statuses and pay method; ask Finance or an owner to review future terms in Project billing setup.':
+    [
+      'La proyección financiera de referencia aún no incluye los identificadores ni las versiones de las reglas de tarifas. Los registros de abajo muestran el estado configurado o no disponible y el método de pago; pide a Finanzas o al propietario que revise las condiciones futuras en la configuración de facturación del proyecto.',
+      'A projeção financeira de referência ainda não inclui os identificadores e as versões das regras de tarifas. Os registros abaixo mostram os estados configurados ou indisponíveis e a forma de pagamento; peça ao Financeiro ou ao proprietário para revisar as condições futuras na configuração de faturamento do projeto.',
     ],
   'Receipt expense': ['Gasto con recibo', 'Despesa com comprovante'],
   Reconciliation: ['Conciliación', 'Conciliação'],
@@ -1193,6 +1255,31 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'Configurar las facturas de este proyecto',
     'Configurar as faturas deste projeto',
   ],
+  'Project invoice setup': [
+    'Configuración de facturas del proyecto',
+    'Configuração de faturas do projeto',
+  ],
+  'Not applicable — no revenue candidate': [
+    'No aplicable — sin ingresos previstos',
+    'Não aplicável — sem receita prevista',
+  ],
+  'No approved worker-paid expenses are in this project’s reimbursement queue.': [
+    'No hay gastos aprobados pagados por trabajadores en la cola de reembolsos de este proyecto.',
+    'Não há despesas aprovadas pagas por colaboradores na fila de reembolsos deste projeto.',
+  ],
+  'No settlements match the current filters.': [
+    'Ninguna liquidación coincide con los filtros actuales.',
+    'Nenhuma liquidação corresponde aos filtros atuais.',
+  ],
+  'No reimbursements match the current filters.': [
+    'Ningún reembolso coincide con los filtros actuales.',
+    'Nenhum reembolso corresponde aos filtros atuais.',
+  ],
+  'Finance or an owner can configure invoice rules for approved hours and customer-chargeable expenses. This view is read only.':
+    [
+      'Finanzas o el propietario pueden configurar las reglas de facturación de las horas aprobadas y los gastos repercutibles al cliente. Esta vista es de solo lectura.',
+      'O Financeiro ou o proprietário podem configurar as regras de faturamento das horas aprovadas e das despesas cobradas do cliente. Esta visualização é somente leitura.',
+    ],
   'Choose how approved hours and recoverable expenses become customer invoices. Each person’s rates and expense agreement stay separate.':
     [
       'Elige cómo las horas aprobadas y los gastos repercutibles pasan a las facturas del cliente. Las tarifas y los acuerdos de gastos de cada persona se mantienen separados.',
@@ -1546,6 +1633,12 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'Selecione um dia para ver sua agenda.',
   ],
   'Times shown in UTC.': ['Horas en UTC.', 'Horários em UTC.'],
+  'Start (UTC)': ['Inicio (UTC)', 'Início (UTC)'],
+  'End (UTC, optional)': ['Fin (UTC, opcional)', 'Fim (UTC, opcional)'],
+  'Enter dates and times in UTC. The worker agenda also shows times in UTC.': [
+    'Introduce las fechas y horas en UTC. La agenda del trabajador también muestra las horas en UTC.',
+    'Informe as datas e horários em UTC. A agenda do trabalhador também mostra os horários em UTC.',
+  ],
   Events: ['Eventos', 'Eventos'],
   'No events on this day.': ['No hay eventos este día.', 'Não há eventos neste dia.'],
 
@@ -1553,6 +1646,10 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   'Choose a day to add availability. Open an existing window to edit it. Times are UTC.': [
     'Elige un día para añadir disponibilidad. Abre una ventana existente para editarla. Las horas son UTC.',
     'Escolha um dia para adicionar disponibilidade. Abra um período existente para editar. Os horários são UTC.',
+  ],
+  'Review availability in the calendar. Editing is unavailable in this view. Times are UTC.': [
+    'Consulta la disponibilidad en el calendario. Esta vista no permite editarla. Las horas son UTC.',
+    'Consulte a disponibilidade no calendário. Esta visualização não permite edições. Os horários são UTC.',
   ],
   'Add availability': ['Añadir disponibilidad', 'Adicionar disponibilidade'],
   'Edit availability': ['Editar disponibilidad', 'Editar disponibilidade'],
@@ -1682,6 +1779,7 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   'Report created by': ['Reporte creado por', 'Relatório criado por'],
   'Reviewed by': ['Revisado por', 'Revisado por'],
   'Record expense': ['Registrar gasto', 'Registrar despesa'],
+  'Recorded amount': ['Importe registrado', 'Valor registrado'],
   'Recorded actual time': ['Horas reales registradas', 'Horas trabalhadas registradas'],
   'Save daily report': ['Guardar informe diario', 'Salvar relatório diário'],
   'BILLING PERIOD': ['PERÍODO DE FACTURACIÓN', 'PERÍODO DE FATURAMENTO'],
@@ -1870,6 +1968,12 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'Registrar un artefacto privado',
     'Registrar um artefato privado',
   ],
+  'Review private artifacts': ['Revisar archivos privados', 'Revisar arquivos privados'],
+  'Review registered private artifacts here. Ask an authorized project user to upload new evidence.':
+    [
+      'Revisa aquí los archivos privados registrados. Pide a un usuario autorizado del proyecto que cargue nuevas pruebas.',
+      'Revise aqui os arquivos privados registrados. Peça a um usuário autorizado do projeto para enviar novas evidências.',
+    ],
   'Revenue budget (minor)': [
     'Presupuesto de ingresos (unidades menores)',
     'Orçamento de receita (unidades menores)',
@@ -1934,6 +2038,8 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'flujos de facturación en borrador',
     'fluxos de faturamento em rascunho',
   ],
+  'invoice awaiting issuance': ['factura pendiente de emisión', 'fatura aguardando emissão'],
+  'invoices awaiting issuance': ['facturas pendientes de emisión', 'faturas aguardando emissão'],
   'regular, overtime, travel': ['ordinario, horas extra, viajes', 'regular, horas extras, viagens'],
   'Activate J&A account': ['Activar la cuenta de J&A', 'Ativar a conta J&A'],
   'Activate account': ['Activar cuenta', 'Ativar conta'],
@@ -1962,6 +2068,16 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'Mantén actualizado tu perfil de trabajador sin exponer la compensación ni las tarifas del cliente.',
     'Mantenha seu perfil de colaborador atualizado sem expor remuneração nem tarifas do cliente.',
   ],
+  "Review the selected worker's expertise and availability without exposing compensation or client rates.":
+    [
+      'Revisa la experiencia y disponibilidad del trabajador seleccionado sin mostrar compensación ni tarifas del cliente.',
+      'Revise as competências e a disponibilidade do colaborador selecionado sem mostrar remuneração nem tarifas do cliente.',
+    ],
+  'Review the expertise and availability shown here without exposing compensation or client rates.':
+    [
+      'Consulta las competencias y la disponibilidad que se muestran aquí sin exponer la compensación ni las tarifas del cliente.',
+      'Consulte as competências e a disponibilidade exibidas aqui sem expor remuneração nem tarifas do cliente.',
+    ],
   'Legal Entity': ['Entidad jurídica', 'Entidade legal'],
   'Line 4 · first shift': ['Línea 4 · primer turno', 'Linha 4 · primeiro turno'],
   'Modified · owner/admin review required': [
@@ -2555,6 +2671,70 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'Registros fuente de tiempo aprobados',
     'Registros de origem de tempo aprovados',
   ],
+  'Time source records': ['Registros fuente de tiempo', 'Registros de origem de tempo'],
+  'Expense source records': ['Registros fuente de gastos', 'Registros de origem de despesas'],
+  'events on this page': ['eventos en esta página', 'eventos nesta página'],
+  'Business and security includes all events except job service lifecycle. All activity keeps every event available.':
+    [
+      'Negocio y seguridad incluye todos los eventos salvo el ciclo de vida de trabajos del servicio. Toda la actividad mantiene disponibles todos los eventos.',
+      'Negócios e segurança inclui todos os eventos, exceto o ciclo de vida dos trabalhos do serviço. Toda a atividade mantém todos os eventos disponíveis.',
+    ],
+  'Audit event filters': ['Filtros de eventos de auditoría', 'Filtros de eventos de auditoria'],
+  'Business & security': ['Negocio y seguridad', 'Negócios e segurança'],
+  'Job service': ['Trabajos del servicio', 'Trabalhos do serviço'],
+  'All activity': ['Toda la actividad', 'Toda a atividade'],
+  'Latest events': ['Eventos más recientes', 'Eventos mais recentes'],
+  'Older events': ['Eventos anteriores', 'Eventos anteriores'],
+  'No audit events in this view.': [
+    'No hay eventos de auditoría en esta vista.',
+    'Não há eventos de auditoria nesta visualização.',
+  ],
+  'End of this audit view.': [
+    'Fin de esta vista de auditoría.',
+    'Fim desta visualização de auditoria.',
+  ],
+  'This is separate work. Save another identical time entry.': [
+    'Es otro trabajo. Guardar otro registro de horas idéntico.',
+    'É outro trabalho. Salvar outro registro de horas idêntico.',
+  ],
+  'Review saved expense': ['Revisar el gasto guardado', 'Revisar a despesa salva'],
+  'This is a separate expense': ['Este es otro gasto', 'Esta é uma despesa separada'],
+  'Save as a separate expense': ['Guardar como otro gasto', 'Salvar como despesa separada'],
+  'Conflicting day': ['Día en conflicto', 'Dia em conflito'],
+  'Linked time and meal entry': [
+    'Registro vinculado de horas y comida',
+    'Registro vinculado de horas e refeição',
+  ],
+  'Why withdraw both drafts?': [
+    '¿Por qué retiras ambos borradores?',
+    'Por que retirar os dois rascunhos?',
+  ],
+  'Withdraw time and meal drafts': [
+    'Retirar borradores de horas y comida',
+    'Retirar rascunhos de horas e refeição',
+  ],
+  'This time entry and meal expense were created together.': [
+    'Este registro de horas y gasto de comida se crearon juntos.',
+    'Este registro de horas e despesa de refeição foram criados juntos.',
+  ],
+  'Review linked meal expense': [
+    'Revisar gasto de comida vinculado',
+    'Revisar despesa de refeição vinculada',
+  ],
+  'Review linked time entry': [
+    'Revisar registro de horas vinculado',
+    'Revisar registro de horas vinculado',
+  ],
+  'Submit this pair with the weekly time entries.': [
+    'Envía este par con los registros semanales de horas.',
+    'Envie este par com os registros semanais de horas.',
+  ],
+  'linked meal drafts have draft hours. Submit their time week first.': [
+    'borradores de comida tienen horas en borrador. Envía primero su semana de horas.',
+    'rascunhos de refeição têm horas em rascunho. Envie primeiro a semana de horas correspondente.',
+  ],
+  'Open time week': ['Abrir semana de horas', 'Abrir semana de horas'],
+  Withdrawn: ['Retirado', 'Retirado'],
   'Archive billing stream': ['Archivar flujo de facturación', 'Arquivar fluxo de faturamento'],
   'Archive project': ['Archivar proyecto', 'Arquivar projeto'],
   Archived: ['Archivado', 'Arquivado'],
@@ -2666,6 +2846,11 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
       'Algunos registros de origen aprobados aún necesitan datos de proyección financiera. Los totales siguen visibles para trazabilidad, pero no están completos para la revisión final.',
       'Alguns registros de origem aprovados ainda precisam de dados de projeção financeira. Os totais continuam visíveis para rastreabilidade, mas não estão completos para a revisão final.',
     ],
+  'Some source records still need finance projection data. Totals remain visible for traceability but are not complete for final review.':
+    [
+      'Algunos registros de origen aún necesitan datos de proyección financiera. Los totales siguen visibles para trazabilidad, pero no están completos para la revisión final.',
+      'Alguns registros de origem ainda precisam de dados de projeção financeira. Os totais continuam visíveis para rastreabilidade, mas não estão completos para a revisão final.',
+    ],
   'Projection completeness reasons': [
     'Motivos de integridad de la proyección',
     'Motivos de integridad da projeção',
@@ -2681,6 +2866,10 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   'Worker compensation rule is missing for a source record.': [
     'Falta la regla de compensación del trabajador para un registro de origen.',
     'Falta a regra de remuneração do trabalhador para um registro de origem.',
+  ],
+  'Applicable forecast rates could not be resolved for planned remaining hours.': [
+    'No se pudieron determinar las tarifas de previsión aplicables a las horas planificadas restantes.',
+    'Não foi possível determinar as taxas de previsão aplicáveis às horas planejadas restantes.',
   ],
   'Expense finance projection is missing for a source record.': [
     'Falta la proyección financiera del gasto para un registro de origen.',
@@ -2861,6 +3050,11 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
       'Crea un paquete contable revisable y sigue cada artefacto hasta que esté listo, falle o quede en cola para procesamiento automático.',
       'Crie um pacote contábil revisável e acompanhe cada artefato até ficar pronto, falhar ou entrar na fila de processamento automático.',
     ],
+  'Review generated Accounting Packs and follow each artifact until it is ready, failed or queued for automatic processing.':
+    [
+      'Revisa los paquetes contables generados y sigue cada artefacto hasta que esté listo, falle o quede en cola para procesamiento automático.',
+      'Revise os pacotes contábeis gerados e acompanhe cada artefato até ficar pronto, falhar ou entrar na fila de processamento automático.',
+    ],
   'Create an effective-dated stream to prepare an invoice draft.': [
     'Crea un flujo con fecha de vigencia para preparar un borrador de factura.',
     'Crie um fluxo com vigência para preparar um rascunho de fatura.',
@@ -2910,6 +3104,10 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   'Daily and technical reports in scope': [
     'Informes diarios y técnicos incluidos',
     'Relatórios diários e técnicos incluídos',
+  ],
+  'Submitted daily and technical reports matching filters': [
+    'Informes diarios y técnicos enviados que coinciden con los filtros',
+    'Relatórios diários e técnicos enviados que correspondem aos filtros',
   ],
   'Daily report attachment': ['Adjunto del informe diario', 'Anexo do relatório diário'],
   'Daily report register': ['Registro de informes diarios', 'Registro de relatórios diários'],
@@ -2963,9 +3161,9 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
       'Cada tarjeta es una factura. Aprueba y después emite. Registra el cobro cuando el cliente pague. El ajuste es un borrador nuevo; la factura emitida no se modifica.',
       'Cada cartão é uma fatura. Aprove e depois emita. Registre o recebimento quando o cliente pagar. O ajuste é um rascunho novo; a fatura emitida não é alterada.',
     ],
-  'Draft or returned field reports': [
-    'Informes de campo en borrador o devueltos',
-    'Relatórios de campo em rascunho ou devolvidos',
+  'Draft, submitted, or returned field reports': [
+    'Informes de campo en borrador, enviados o devueltos',
+    'Relatórios de campo em rascunho, enviados ou devolvidos',
   ],
   'Draft or review state': ['Estado de borrador o revisión', 'Estado de rascunho ou revisão'],
   Drafts: ['Borradores', 'Rascunhos'],
@@ -3158,6 +3356,11 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'Genera un paquete de período cuando los registros fuente estén listos para revisión.',
     'Gere um pacote do período quando os registros de origem estiverem prontos para revisão.',
   ],
+  'A finance administrator or owner can generate a period pack when the source records are ready for review.':
+    [
+      'Un administrador de Finanzas o el propietario puede generar un paquete de período cuando los registros fuente estén listos para revisión.',
+      'Um administrador financeiro ou proprietário pode gerar um pacote do período quando os registros de origem estiverem prontos para revisão.',
+    ],
   'Generate customer and internal summaries from the canonical reviewed source records.': [
     'Genera resúmenes para el cliente e internos a partir de los registros fuente canónicos revisados.',
     'Gere resumos para o cliente e internos a partir dos registros de origem canônicos revisados.',
@@ -3599,6 +3802,11 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
       'Registra el tiempo operativo real. La interpretación comercial se aplica desde las reglas configuradas del proyecto.',
       'Registre o tempo operacional real. A interpretação comercial é aplicada a partir das regras configuradas do projeto.',
     ],
+  'Review actual operational time. Commercial interpretation follows the configured project rules.':
+    [
+      'Revisa el tiempo operativo real. La interpretación comercial sigue las reglas configuradas del proyecto.',
+      'Revise o tempo operacional real. A interpretação comercial segue as regras configuradas do projeto.',
+    ],
   'Record customer sign-off': [
     'Registrar conformidad del cliente',
     'Registrar conformidade do cliente',
@@ -3941,6 +4149,10 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'Economía del trabajador por fuente',
     'Economia do colaborador por origem',
   ],
+  'All authorized projects. The project selector above does not filter these worker totals.': [
+    'Todos los proyectos autorizados. El selector de proyecto de arriba no filtra estos totales por trabajador.',
+    'Todos os projetos autorizados. O seletor de projeto acima não filtra esses totais por colaborador.',
+  ],
   'Worker economics source table': [
     'Tabla fuente de economía del trabajador',
     'Tabela de origem da economia do colaborador',
@@ -4073,14 +4285,14 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   'Alias / username': ['Alias / usuario', 'Alias / usuário'],
   'All mailboxes': ['Todos los buzones', 'Todas as caixas de correio'],
   'Already in Portal': ['Ya está en el portal', 'Já está no portal'],
-  'Antonny Luty is the only Owner. This mailbox cannot be re-roled, offboarded or deleted from this screen.':
+  'This is the unique Owner mailbox. It cannot be re-roled, offboarded or deleted from this screen.':
     [
-      'Antonny Luty es el único propietario. Este buzón no puede cambiar de rol, darse de baja ni eliminarse desde esta pantalla.',
-      'Antonny Luty é o único proprietário. Esta caixa não pode ter a função alterada, ser desativada nem excluída nesta tela.',
+      'Este es el buzón del propietario único. No se puede cambiar su rol, darlo de baja ni eliminarlo desde esta pantalla.',
+      'Esta é a caixa do proprietário único. Sua função não pode ser alterada, nem a caixa desativada ou excluída nesta tela.',
     ],
-  'Antonny Luty is the unique Owner. Role changes and portal offboarding are unavailable.': [
-    'Antonny Luty es el propietario único. Los cambios de rol y la baja del portal no están disponibles.',
-    'Antonny Luty é o proprietário único. Alterações de função e desativação do portal não estão disponíveis.',
+  'This is the unique Owner account. Role changes and portal offboarding are unavailable.': [
+    'Esta es la cuenta del propietario único. Los cambios de rol y la baja del portal no están disponibles.',
+    'Esta é a conta do proprietário único. Alterações de função e desativação do portal não estão disponíveis.',
   ],
   'Assign role': ['Asignar rol', 'Atribuir função'],
   'Available to provision': ['Disponible para dar de alta', 'Disponível para provisionar'],

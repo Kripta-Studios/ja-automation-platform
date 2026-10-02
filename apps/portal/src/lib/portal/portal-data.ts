@@ -1,4 +1,5 @@
 import type { OwnerFinanceSummary } from './owner-finance';
+import type { ProblemData } from '../problem/contract';
 export type PortalRow = Record<string, string | number | boolean | string[] | null>;
 
 export type PortalData = {
@@ -24,6 +25,7 @@ export type PortalData = {
   timeAssignments?: PortalRow[];
   contacts?: PortalRow[];
   workers?: PortalRow[];
+  planningFilterWorkers?: PortalRow[];
   skills?: PortalRow[];
   workerSkills?: PortalRow[];
   allSkills?: PortalRow[];
@@ -61,6 +63,10 @@ export type PortalData = {
   ledger?: Array<Record<string, unknown>>;
   packs?: Array<Record<string, unknown>>;
   audit?: PortalRow[];
+  auditView?: 'all' | 'business' | 'service';
+  auditHasMore?: boolean;
+  auditNextCursor?: { occurredAt: string; id: string } | null;
+  auditOlderPage?: boolean;
   legalEntities?: PortalRow[];
   canonicalLegalEntityOptions?: PortalRow[];
   projectLegalEntityAssignments?: PortalRow[];
@@ -71,6 +77,7 @@ export type PortalData = {
   selectedProjectId?: string;
   periodStart?: string;
   periodEnd?: string;
+  payPeriodProblem?: ProblemData | null;
   weekStart?: string;
   weekEnd?: string;
   calendarRecords?: PortalRow[];
@@ -179,10 +186,9 @@ export type PortalData = {
     activeProjects: number;
     actualMinutes: number;
     pendingReports: number;
-    expenseMinor?: string;
+    expenseTotalsByCurrency?: Array<{ currency: string; minor: string }>;
     upcomingInvoices?: number;
-    upcomingInvoiceMinor?: string;
-    currency?: string;
+    upcomingInvoiceTotalsByCurrency?: Array<{ currency: string; minor: string }>;
   };
 };
 

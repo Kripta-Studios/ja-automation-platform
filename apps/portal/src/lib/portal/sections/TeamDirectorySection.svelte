@@ -1174,6 +1174,7 @@
           {translate}
           label="TeamDirectory"
           focusId={failedWorkerProfileId ?? $page.url.searchParams.get('worker') ?? ''}
+          showEmpty={activeWorkers.length > 0}
         />
         {#each teamPage as worker}
           {@const assignmentsForWorker = workerAssignments(worker)}
@@ -1273,7 +1274,7 @@
                 {/if}
                 {#if protectedOwner}<p class="team-directory__owner-lock" role="status">
                     {translate(
-                      'Antonny Luty is the unique Owner. Role changes and portal offboarding are unavailable.',
+                      'This is the unique Owner account. Role changes and portal offboarding are unavailable.',
                     )}
                   </p>{:else}<button
                     type="button"
@@ -1488,9 +1489,7 @@
                         translate('Assignment')}</span
                     ><small
                       >{value(assignment, 'starts_on') || '—'} → {value(assignment, 'ends_on') ||
-                        translate('Open assignment')} · {statusLabel(
-                        value(assignment, 'status'),
-                      )}</small
+                        '—'} · {statusLabel(value(assignment, 'status'))}</small
                     ><small
                       >{translate('Planned vs actual')}: {formatHours(
                         Number(value(assignment, 'planned_minutes')) || 0,
@@ -1502,9 +1501,17 @@
               </div>
             </details>
           </SectionCard>
-        {:else}<p class="team-directory__empty team-directory__empty--large">
-            {translate('No active specialists found.')}
-          </p>{/each}
+        {:else}
+          {#if activeWorkers.length === 0}
+            <p class="team-directory__empty team-directory__empty--large">
+              {translate(
+                showAll
+                  ? 'No specialists are available in your access scope.'
+                  : 'No active specialists found.',
+              )}
+            </p>
+          {/if}
+        {/each}
       </div>
     </section>
   {:else if canManageMailboxDirectory}
@@ -1699,7 +1706,7 @@
                       <strong>{translate('Unique Owner — protected')}</strong>
                       <p>
                         {translate(
-                          'Antonny Luty is the only Owner. This mailbox cannot be re-roled, offboarded or deleted from this screen.',
+                          'This is the unique Owner mailbox. It cannot be re-roled, offboarded or deleted from this screen.',
                         )}
                       </p>
                       {#if accountId}

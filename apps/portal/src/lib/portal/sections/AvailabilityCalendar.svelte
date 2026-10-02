@@ -302,7 +302,9 @@
   <h3>{translate('Availability calendar')}</h3>
   <p class="form-help">
     {translate(
-      'Choose a day to add availability. Open an existing window to edit it. Times are UTC.',
+      readOnly
+        ? 'Review availability in the calendar. Editing is unavailable in this view. Times are UTC.'
+        : 'Choose a day to add availability. Open an existing window to edit it. Times are UTC.',
     )}
   </p>
   {#if !readOnly}<button

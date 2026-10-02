@@ -386,7 +386,9 @@
       <h2>{translate('Accounting')}</h2>
       <p>
         {translate(
-          'Create a reviewable Accounting Pack and follow each artifact until it is ready, failed or queued for automatic processing.',
+          isAuditor
+            ? 'Review generated Accounting Packs and follow each artifact until it is ready, failed or queued for automatic processing.'
+            : 'Create a reviewable Accounting Pack and follow each artifact until it is ready, failed or queued for automatic processing.',
         )}
       </p>
     </div>
@@ -576,15 +578,15 @@
     title={translate('Accounting Pack register')}
     class="accounting-section__register"
   >
-    <RecordBrowser
-      rows={packs}
-      bind:visible={packPage}
-      bind:status={packFilter}
-      focusId={packRecoveryFocusId}
-      {translate}
-      label="Accounting"
-    />
     {#if packs.length > 0}
+      <RecordBrowser
+        rows={packs}
+        bind:visible={packPage}
+        bind:status={packFilter}
+        focusId={packRecoveryFocusId}
+        {translate}
+        label="Accounting"
+      />
       <div class="accounting-section__packs" aria-live="polite">
         {#each packPage as pack}
           <AccountingPackArtifactStatus
@@ -603,9 +605,13 @@
     {:else}
       <div class="accounting-section__empty" role="status">
         <strong>{translate('No Accounting Packs have been generated.')}</strong>
-        <span
-          >{translate('Generate a period pack when the source records are ready for review.')}</span
-        >
+        <span>
+          {translate(
+            isAuditor
+              ? 'A finance administrator or owner can generate a period pack when the source records are ready for review.'
+              : 'Generate a period pack when the source records are ready for review.',
+          )}
+        </span>
       </div>
     {/if}
   </SectionCard>

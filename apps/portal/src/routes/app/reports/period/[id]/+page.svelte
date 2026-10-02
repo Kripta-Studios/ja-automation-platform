@@ -1413,7 +1413,11 @@
       </article>
       <article class="record-fact">
         <span>{t('Contribution margin')}</span><strong
-          >{(Number(finance.contributionMarginBps ?? 0) / 100).toFixed(1)}%</strong
+          >{String(finance.revenueCandidateMinor ?? '').trim() === '0'
+            ? t('Not applicable — no revenue candidate')
+            : /^-?\d+$/u.test(String(finance.contributionMarginBps ?? '').trim())
+              ? `${(Number(finance.contributionMarginBps) / 100).toFixed(1)}%`
+              : '—'}</strong
         >
       </article>
     </section>

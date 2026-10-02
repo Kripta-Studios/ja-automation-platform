@@ -6,6 +6,7 @@ import {
   milestoneInputSchema,
   projectInputSchema,
   scheduleInputSchema,
+  isValidIanaTimeZone,
   uuidSchema,
   versionedRecordSchema,
 } from '@ja/schemas';
@@ -61,6 +62,22 @@ const knownProjectRules: Record<string, KnownProjectRule> = {
     code: 'CLIENT_TIMEZONE_INVALID',
     messageKey: 'problem.client.timezoneInvalid',
     message: 'Enter a valid time zone, such as Europe/Madrid or UTC, then save again.',
+    remedy: 'correct_fields',
+    field: 'timezone',
+  },
+  'Schedule timezone must be a valid IANA time zone': {
+    status: 400,
+    code: 'PROJECT_SCHEDULE_TIMEZONE_INVALID',
+    messageKey: 'problem.project.scheduleTimezoneInvalid',
+    message: 'Enter a valid IANA time zone, such as Europe/Madrid or UTC, then save again.',
+    remedy: 'correct_fields',
+    field: 'timezone',
+  },
+  'Project timezone must be a valid IANA time zone': {
+    status: 400,
+    code: 'PROJECT_TIMEZONE_INVALID',
+    messageKey: 'problem.project.timezoneInvalid',
+    message: 'Enter a valid IANA time zone, such as Europe/Madrid or UTC, then save again.',
     remedy: 'correct_fields',
     field: 'timezone',
   },
@@ -834,11 +851,16 @@ export const projectActions = {
     const context = openPortalRepository(locals);
     try {
       const result = context.repository.createClient(context.principal, parsed.data);
-      return actionSuccess(
-        'action.projects.clientCreated',
-        { clientNumber: result.clientNumber },
-        `Created ${result.clientNumber}`,
-      );
+      return {
+        ...actionSuccess(
+          'action.projects.clientCreated',
+          { clientNumber: result.clientNumber },
+          `Created ${result.clientNumber}`,
+        ),
+        actionName: 'createClient',
+        clientId: result.id,
+        clientNumber: result.clientNumber,
+      };
     } catch (error) {
       return (
         knownProjectFailure(error, {
@@ -886,6 +908,15 @@ export const projectActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const data = await request.formData();
     const values = Object.fromEntries(data);
+    const enteredTimezone = data.get('timezone')?.toString();
+    if (enteredTimezone !== undefined && !isValidIanaTimeZone(enteredTimezone))
+      return inputFailure(
+        'PROJECT_TIMEZONE_INVALID',
+        'problem.project.timezoneInvalid',
+        'Enter a valid IANA time zone, such as Europe/Madrid or UTC, then save again.',
+        { timezone: ['problem.project.timezoneInvalid'] },
+        { actionName: 'updateProject', values, correlationId: locals.correlationId },
+      );
     const projectId = data.get('projectId')?.toString();
     if (!projectId)
       return inputFailure(
@@ -1030,6 +1061,18 @@ export const projectActions = {
           ...(!parsed.success ? schemaFieldErrors(parsed.error) : {}),
           ...(!people.success ? schemaFieldErrors(people.error) : {}),
         },
+        {
+          values: retainedValues,
+          actionName: 'createProject',
+          correlationId: locals.correlationId,
+        },
+      );
+    if (!isValidIanaTimeZone(parsed.data.timezone))
+      return inputFailure(
+        'PROJECT_TIMEZONE_INVALID',
+        'problem.project.timezoneInvalid',
+        'Enter a valid IANA time zone, such as Europe/Madrid or UTC, then save again.',
+        { timezone: ['problem.project.timezoneInvalid'] },
         {
           values: retainedValues,
           actionName: 'createProject',
@@ -1215,6 +1258,14 @@ export const projectActions = {
         'problem.project.scheduleFieldsInvalid',
         'The schedule has missing or invalid days, dates, or hours. Correct the highlighted fields.',
         schemaFieldErrors(parsed.error),
+        extras,
+      );
+    if (!isValidIanaTimeZone(parsed.data.timezone))
+      return inputFailure(
+        'PROJECT_SCHEDULE_TIMEZONE_INVALID',
+        'problem.project.scheduleTimezoneInvalid',
+        'Enter a valid IANA time zone, such as Europe/Madrid or UTC, then save again.',
+        { timezone: ['problem.project.scheduleTimezoneInvalid'] },
         extras,
       );
     const context = openPortalRepository(locals);

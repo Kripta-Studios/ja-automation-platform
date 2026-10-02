@@ -587,7 +587,9 @@
           </div>
           <p class="provenance-unavailable">
             {t(
-              'Rate-rule IDs and versions are not included in the canonical finance projection yet. Source rows below show the canonical configured/unavailable statuses and pay method; use Project billing setup to review or change future terms.',
+              data.user.role === 'auditor_read_only'
+                ? 'Rate-rule IDs and versions are not included in the canonical finance projection yet. Source rows below show the canonical configured/unavailable statuses and pay method; ask Finance or an owner to review future terms in Project billing setup.'
+                : 'Rate-rule IDs and versions are not included in the canonical finance projection yet. Source rows below show the canonical configured/unavailable statuses and pay method; use Project billing setup to review or change future terms.',
             )}
           </p>
           <details>

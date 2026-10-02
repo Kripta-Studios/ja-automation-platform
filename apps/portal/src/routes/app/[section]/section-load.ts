@@ -6,7 +6,8 @@ import {
   listInvoiceEmailDeliveries,
 } from '@ja/database';
 import { error, redirect } from '@sveltejs/kit';
-import { defaultLookbackPeriod } from '$lib/server/iso-date';
+import { defaultLookbackPeriod, isRealIsoDate } from '$lib/server/iso-date';
+import type { ProblemData } from '$lib/problem/contract';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { mondayOf, weeklyView, type WeeklyProjectSchedule } from '$lib/server/portal-week';
 import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
@@ -240,6 +241,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
       case 'reports':
         return {
           ...common,
+          assignments:
+            ['owner_admin', 'project_manager'].includes(context.principal.role) &&
+            !restrictedProfile
+              ? context.repository.listAssignments(context.principal)
+              : [],
           projects: context.repository.listAssignedProjects(context.principal),
           records: context.repository.listOwnReports(context.principal),
           technicalChanges: restrictedProfile
@@ -287,20 +293,52 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           ),
         };
       }
-      case 'documents':
+      case 'documents': {
+        const projects = context.repository.listAssignedProjects(context.principal);
+        const requestedProjectId = url.searchParams.get('project') ?? '';
+        const selectedDocumentProject =
+          projects.find((project) => String(project.id) === requestedProjectId) ?? null;
+        if (requestedProjectId && !selectedDocumentProject)
+          error(404, 'detail.project.notFound');
         return {
           ...common,
-          projects: context.repository.listAssignedProjects(context.principal),
-          documents: context.repository.listDocuments(context.principal),
+          projects,
+          selectedDocumentProject,
+          documents: context.repository.listDocuments(
+            context.principal,
+            selectedDocumentProject ? String(selectedDocumentProject.id) : undefined,
+          ),
         };
+      }
       case 'pay': {
         if (context.principal.role === 'owner_admin')
           redirect(303, `/j-aautomation/app/manage/worker-pay${url.search}`);
         if (!['worker', 'project_manager'].includes(context.principal.role))
           error(403, 'Worker or project manager role required');
         const lookback = defaultLookbackPeriod();
-        const periodStart = url.searchParams.get('start') ?? lookback.periodStart;
-        const periodEnd = url.searchParams.get('end') ?? lookback.periodEnd;
+        const startValues = url.searchParams.getAll('start');
+        const endValues = url.searchParams.getAll('end');
+        const periodStart = startValues[0] ?? lookback.periodStart;
+        const periodEnd = endValues[0] ?? lookback.periodEnd;
+        const fieldErrors: Record<string, string[]> = {};
+        if (startValues.length > 1 || !isRealIsoDate(periodStart))
+          fieldErrors.start = ['problem.pay.startInvalid'];
+        if (endValues.length > 1 || !isRealIsoDate(periodEnd))
+          fieldErrors.end = ['problem.pay.endInvalid'];
+        if (!fieldErrors.start && !fieldErrors.end && periodStart > periodEnd)
+          fieldErrors.end = ['problem.pay.endBeforeStart'];
+        if (Object.keys(fieldErrors).length) {
+          const payPeriodProblem = {
+            code: 'PAY_PERIOD_INVALID',
+            messageKey: 'problem.pay.periodInvalid',
+            message: 'Choose one valid From and Through date; Through must be on or after From.',
+            params: {},
+            fieldErrors,
+            remedies: [{ id: 'correct_fields' }],
+            correlationId: locals.correlationId || randomBytes(16).toString('hex'),
+          } satisfies ProblemData;
+          return { ...common, periodStart, periodEnd, payPeriodProblem };
+        }
 
         const pay = context.v3.workerPay(context.principal, periodStart, periodEnd);
         const settlements = context.v3.listCompensationSettlements(
@@ -541,6 +579,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         const technicalApprovalTitle = context.sqlite.prepare(
           'SELECT system_name title FROM technical_report WHERE id=? AND project_id=? AND author_id=?',
         );
+        const expenseApprovalIdentity = context.sqlite.prepare(
+          'SELECT category,vendor,description,amount_minor,currency FROM expense WHERE id=? AND project_id=? AND worker_id=?',
+        );
         return {
           ...common,
           records: (isProjectManager
@@ -548,25 +589,57 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 context.repository.listApprovalQueue(context.principal),
               )
             : context.repository.listApprovalQueue(context.principal)
-          ).map((row) => ({
-            ...row,
-            ...(['daily', 'technical'].includes(String(row.type))
-              ? {
-                  report_title: String(
-                    (row.type === 'daily' ? dailyApprovalTitle : technicalApprovalTitle).get(
-                      String(row.id),
-                      String(row.project_id),
-                      String(row.worker_id),
-                    )?.title ?? '',
-                  ),
-                }
-              : {}),
-            worker_name:
-              context.sqlite
-                .prepare('SELECT name FROM user WHERE id=?')
-                .get(String(row.worker_id ?? ''))?.name ?? '',
-            ...(approvalIdentity.get(String(row.project_id ?? '')) ?? {}),
-          })),
+          ).map((row) => {
+            // Read identity only for an already-authorized queue row. PMs receive
+            // operational category/vendor context without expense money.
+            const expense =
+              row.type === 'expense'
+                ? (expenseApprovalIdentity.get(
+                    String(row.id),
+                    String(row.project_id),
+                    String(row.worker_id),
+                  ) as
+                    | {
+                        category: string;
+                        vendor: string | null;
+                        description: string | null;
+                        amount_minor: string | number;
+                        currency: string;
+                      }
+                    | undefined)
+                : undefined;
+            return {
+              ...row,
+              ...(expense
+                ? {
+                    expense_category: expense.category,
+                    expense_label: expense.vendor?.trim() || expense.description || '',
+                    ...(!isProjectManager
+                      ? {
+                          expense_amount_minor: expense.amount_minor,
+                          expense_currency: expense.currency,
+                        }
+                      : {}),
+                  }
+                : {}),
+              ...(['daily', 'technical'].includes(String(row.type))
+                ? {
+                    report_title: String(
+                      (row.type === 'daily' ? dailyApprovalTitle : technicalApprovalTitle).get(
+                        String(row.id),
+                        String(row.project_id),
+                        String(row.worker_id),
+                      )?.title ?? '',
+                    ),
+                  }
+                : {}),
+              worker_name:
+                context.sqlite
+                  .prepare('SELECT name FROM user WHERE id=?')
+                  .get(String(row.worker_id ?? ''))?.name ?? '',
+              ...(approvalIdentity.get(String(row.project_id ?? '')) ?? {}),
+            };
+          }),
           milestones: (isProjectManager
             ? projectManagerMilestoneProjection(
                 context.repository.listMilestonesForReview(context.principal),
@@ -582,18 +655,40 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               : [],
         };
       }
-      case 'planning':
+      case 'planning': {
+        const selectedProjectId = url.searchParams.get('project');
+        const selectedWorkerId = url.searchParams.get('worker');
+        // Published-schedule filters use workers represented in the authorized
+        // schedule, including historical rows whose current assignment ended.
+        // Derive options before the Worker filter so users can switch workers.
+        const projectRows = context.repository
+          .listPlanning(context.principal)
+          .filter(
+            (row) => !selectedProjectId || String(row.project_id) === selectedProjectId,
+          );
+        const representedWorkers = new Map<string, string>();
+        for (const row of projectRows) {
+          const id = String(row.worker_id ?? '').trim();
+          if (id) representedWorkers.set(id, String(row.worker_name ?? id));
+        }
+        const duplicateNames = new Map<string, number>();
+        for (const name of representedWorkers.values())
+          duplicateNames.set(name, (duplicateNames.get(name) ?? 0) + 1);
+        const planningFilterWorkers = [...representedWorkers].map(([id, name]) => ({
+          id,
+          name,
+          label: (duplicateNames.get(name) ?? 0) > 1 ? `${name} · ${id}` : name,
+        }));
+        planningFilterWorkers.sort(
+          (left, right) =>
+            left.name.localeCompare(right.name) || left.id.localeCompare(right.id),
+        );
         return {
           ...common,
-          records: context.repository
-            .listPlanning(context.principal)
-            .filter(
-              (row) =>
-                (!url.searchParams.get('project') ||
-                  String(row.project_id) === url.searchParams.get('project')) &&
-                (!url.searchParams.get('worker') ||
-                  String(row.worker_id) === url.searchParams.get('worker')),
-            ),
+          records: projectRows.filter(
+            (row) => !selectedWorkerId || String(row.worker_id) === selectedWorkerId,
+          ),
+          planningFilterWorkers,
           projects: context.repository.listAssignedProjects(context.principal),
           skills: context.repository.listSkills(context.principal),
           workers:
@@ -605,6 +700,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               ? context.repository.listAssignments(context.principal)
               : [],
         };
+      }
       case 'profile': {
         // Owner/finance administrators can inspect and manage the workforce from this screen.
         // Keep the target selection server-side and constrained to the same active-worker list
@@ -793,15 +889,18 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 .get(selected)
             : null,
           finance: selected ? context.v3.projectFinance(context.principal, selected) : null,
-          // Finance receives the complete, server-authorized expense source set for the
-          // selected project. Worker and PM loaders never expose this projection; the
-          // repository's role-aware list method is the authorization boundary.
+          // Finance classification only acts on live expense source records.
+          // Withdrawn and rejected expenses remain in operational history but
+          // must not appear as classification work or skew inbox counts.
+          // Worker and PM loaders never expose this projection; the repository's
+          // role-aware list method is the authorization boundary.
           financeExpenses: selected
             ? context.repository
                 .listExpensesForScope(context.principal)
                 .filter(
                   (expense) =>
-                    String(expense.project_id ?? expense.projectId ?? '') === String(selected),
+                    String(expense.project_id ?? expense.projectId ?? '') === String(selected) &&
+                    !['void', 'rejected'].includes(String(expense.approval_state ?? '')),
                 )
                 .map((expense) => ({
                   ...expense,
@@ -884,8 +983,38 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           })),
         };
       }
-      case 'audit':
-        return { ...common, audit: context.repository.listAuditEvents(context.principal) };
+      case 'audit': {
+        const requestedView = url.searchParams.get('view');
+        const auditView =
+          requestedView === 'all' || requestedView === 'service' ? requestedView : 'business';
+        const beforeAt = url.searchParams.get('beforeAt');
+        const beforeId = url.searchParams.get('beforeId');
+        if (
+          Boolean(beforeAt) !== Boolean(beforeId) ||
+          (beforeAt &&
+            (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(beforeAt) ||
+              Number.isNaN(Date.parse(beforeAt)))) ||
+          (beforeId && !/^[0-9a-f-]{36}$/iu.test(beforeId))
+        )
+          error(400, 'Invalid audit history cursor');
+        const pageSize = 50;
+        const rows = context.repository.listAuditEvents(context.principal, {
+          view: auditView,
+          ...(beforeAt && beforeId ? { before: { occurredAt: beforeAt, id: beforeId } } : {}),
+          limit: pageSize + 1,
+        });
+        const audit = rows.slice(0, pageSize);
+        const last = audit.at(-1);
+        return {
+          ...common,
+          audit,
+          auditView,
+          auditHasMore: rows.length > pageSize,
+          auditNextCursor:
+            rows.length > pageSize && last ? { occurredAt: last.occurred_at, id: last.id } : null,
+          auditOlderPage: Boolean(beforeAt),
+        };
+      }
       default:
         return { ...common, records: [] };
     }

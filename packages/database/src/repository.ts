@@ -16,7 +16,7 @@ import {
   type OvertimeMethod,
 } from '@ja/billing-engine';
 import { add, hourlyRateForMinutes, money, type Currency } from '@ja/money';
-import { decodeTechnicalReportChange } from '@ja/schemas';
+import { decodeTechnicalReportChange, isValidIanaTimeZone } from '@ja/schemas';
 import { recordAuditEvent } from './core/audit.ts';
 import { ProjectCloseoutService } from './domains/closeout/project-closeout-service.ts';
 import { assertActiveAccount, assertLiveSession } from './core/authorization.ts';
@@ -67,14 +67,31 @@ import {
 } from './domains/workforce/workforce-repository.ts';
 import { NotificationRepository } from './domains/notifications/index.ts';
 import { discardOwnerInvoice } from './domains/owner/owner-invoice-management.ts';
-import { updateInvoiceDraftDetails, invoicePresentationObject, invoiceBusinessDates } from './domains/billing/invoice-draft-details.ts';
-import { readIssuerDocumentSettings, issuerSettingsPresentation, updateIssuerDocumentSettings as persistIssuerDocumentSettings, invalidateDraftPresentation, resolveInvoiceIssuerAuthority, effectivePurchaseReference } from './domains/billing/issuer-document-settings.ts';
+import {
+  updateInvoiceDraftDetails,
+  invoicePresentationObject,
+  invoiceBusinessDates,
+} from './domains/billing/invoice-draft-details.ts';
+import {
+  readIssuerDocumentSettings,
+  issuerSettingsPresentation,
+  updateIssuerDocumentSettings as persistIssuerDocumentSettings,
+  invalidateDraftPresentation,
+  resolveInvoiceIssuerAuthority,
+  effectivePurchaseReference,
+} from './domains/billing/issuer-document-settings.ts';
 import { pendingTimeFinanceReviewSourceIds } from './domains/billing/time-finance-review.ts';
 import { V3Repository } from './v3-repository.ts';
 
 export class AccessDeniedError extends Error {}
 export class ConflictError extends Error {}
 export class ValidationError extends Error {}
+
+export class DuplicateCrewExpenseError extends ConflictError {
+  constructor(readonly expenseId: string) {
+    super('Possible duplicate crew expense');
+  }
+}
 
 function projectNumberForCostCenter(clientNumber: string, costCenterCode: string): string | null {
   const digits = /(\d+)$/.exec(costCenterCode)?.[1];
@@ -942,18 +959,29 @@ export class PortalRepository {
         .all(...scope.parameters) as Array<{ id: string }>;
       return { ...principal, projectIds: new Set(projects.map((project) => project.id)) };
     }
-    const asOf = today();
     const projects = this.sqlite
       .prepare(
-        "SELECT pm.project_id FROM project_member pm JOIN project p ON p.id=pm.project_id WHERE p.status IN ('active','planned','paused') AND pm.user_id=? AND pm.status='active' AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)",
+        "SELECT pm.project_id,p.timezone,pm.starts_on,pm.ends_on FROM project_member pm JOIN project p ON p.id=pm.project_id WHERE p.status IN ('active','planned','paused') AND pm.user_id=? AND pm.status='active'",
       )
-      .all(userId, asOf, asOf) as Array<{ project_id: string }>;
+      .all(userId) as Array<{
+      project_id: string;
+      timezone: string;
+      starts_on: string;
+      ends_on: string | null;
+    }>;
     return {
       userId,
       role: user.role,
       sessionId,
       correlationId,
-      projectIds: new Set(projects.map((row) => row.project_id)),
+      projectIds: new Set(
+        projects
+          .filter((row) => {
+            const asOf = user.role === 'project_manager' ? todayInTimezone(row.timezone) : today();
+            return row.starts_on <= asOf && (!row.ends_on || row.ends_on >= asOf);
+          })
+          .map((row) => row.project_id),
+      ),
     };
   }
 
@@ -1102,6 +1130,9 @@ export class PortalRepository {
       throw new AccessDeniedError('Assignment administration required');
     return this.transaction(() => {
       const costCenterCode = assertText(input.costCenterCode ?? '', 'Cost center code', 120);
+      const timezone = assertText(input.timezone, 'Project timezone', 100);
+      if (!isValidIanaTimeZone(timezone))
+        throw new ValidationError('Project timezone must be a valid IANA time zone');
       const client = this.sqlite
         .prepare('SELECT client_number,currency FROM client WHERE id=? AND status=?')
         .get(input.clientId, 'active') as { client_number: string; currency: Currency } | undefined;
@@ -1134,7 +1165,7 @@ export class PortalRepository {
           .get(projectManagerId);
         if (!manager) throw new ValidationError('Active project manager not found');
       }
-      const startDate = input.startDate || todayInTimezone(input.timezone);
+      const startDate = input.startDate || todayInTimezone(timezone);
       assertDate(startDate, 'Project start date');
       if (input.plannedEndDate) {
         assertDate(input.plannedEndDate, 'Planned end date');
@@ -1205,7 +1236,7 @@ export class PortalRepository {
           costCenterCode,
           input.clientId,
           assertText(input.name, 'Project name', 200),
-          input.timezone,
+          timezone,
           input.currency,
           'active',
           input.billingModel,
@@ -1226,7 +1257,7 @@ export class PortalRepository {
         .run(
           scheduleId,
           id,
-          input.timezone,
+          timezone,
           expectedMinutes,
           expectedMinutes,
           expectedMinutes,
@@ -1659,18 +1690,28 @@ export class PortalRepository {
     if (!assignment) throw new AccessDeniedError('Active worker assignment required');
   }
 
-  createTimeEntry(principal: Principal, input: TimeInput, workerId = principal.userId) {
+  createTimeEntry(
+    principal: Principal,
+    input: TimeInput,
+    workerId = principal.userId,
+    options: Readonly<{ allowExactDuplicate?: boolean }> = {},
+  ) {
     this.assertOwnerSubject(principal, workerId, input.projectId, input.workDate);
     if (principal.role === 'worker')
       this.assertProjectObjectAccess(principal, input.projectId, input.workDate, workerId);
     else if (principal.role !== 'owner_admin')
       this.assertProjectMembership(principal, input.projectId, input.workDate);
-    return this.time.createTimeEntryForWorker(principal, workerId, input);
+    return this.time.createTimeEntryForWorker(principal, workerId, input, options);
   }
 
   /** Save a week's editable daily entries as one unit. Each row runs the same
    * live assignment, overlap, and audit checks as the single-entry command. */
-  createTimeBatch(principal: Principal, workerId: string, entries: readonly TimeInput[]) {
+  createTimeBatch(
+    principal: Principal,
+    workerId: string,
+    entries: readonly TimeInput[],
+    options: Readonly<{ allowExactDuplicate?: boolean }> = {},
+  ) {
     this.assertActive(principal);
     if (entries.length < 1 || entries.length > 31)
       throw new ValidationError('Choose 1 to 31 days for a time batch');
@@ -1678,7 +1719,18 @@ export class PortalRepository {
     if (dates.size !== entries.length)
       throw new ValidationError('A time batch can contain only one entry per day');
     return this.transaction(() => {
-      const created = entries.map((entry) => this.createTimeEntry(principal, entry, workerId));
+      const created = entries.map((entry) => {
+        try {
+          return this.createTimeEntry(principal, entry, workerId, options);
+        } catch (error) {
+          if (
+            error instanceof ConflictError &&
+            error.message === 'Identical time entry already exists'
+          )
+            Object.assign(error, { duplicateDate: entry.workDate });
+          throw error;
+        }
+      });
       return { created };
     });
   }
@@ -1695,6 +1747,7 @@ export class PortalRepository {
     expense: Omit<ExpenseInput, 'projectId' | 'spentOn' | 'timeEntryId'>,
     requestId: string,
     workerId = principal.userId,
+    options: Readonly<{ allowExactDuplicate?: boolean }> = {},
   ): {
     time: { id: string; version: number };
     expense: { id: string; version: number };
@@ -1735,6 +1788,7 @@ export class PortalRepository {
             paymentMethod: expense.paymentMethod?.trim() || null,
             receiptRequired: expense.receiptRequired,
             receiptDocumentId: expense.receiptDocumentId || null,
+            ...(options.allowExactDuplicate ? { allowExactDuplicate: true } : {}),
           }),
         )
         .digest('hex');
@@ -1747,13 +1801,23 @@ export class PortalRepository {
         | undefined;
       if (previous) {
         if (previous.hash !== hash) throw new ConflictError('Time and expense retry has changed');
+        const state = this.sqlite
+          .prepare(
+            `SELECT t.approval_state time_state,e.approval_state expense_state
+          FROM time_entry t JOIN expense e ON e.id=? WHERE t.id=?`,
+          )
+          .get(previous.expenseId, previous.timeId) as
+          | { time_state: string; expense_state: string }
+          | undefined;
+        if (!state || state.time_state === 'void' || state.expense_state === 'void')
+          throw new ConflictError('Time and expense request was withdrawn');
         return {
           time: { id: previous.timeId, version: 1 },
           expense: { id: previous.expenseId, version: 1 },
           replayed: true,
         };
       }
-      const time = this.createTimeEntry(principal, input, workerId);
+      const time = this.createTimeEntry(principal, input, workerId, options);
       const createdExpense = this.createExpense(
         principal,
         {
@@ -1777,13 +1841,25 @@ export class PortalRepository {
     });
   }
 
-  submitTime(principal: Principal, id: string, baseVersion: number) {
+  submitTime(
+    principal: Principal,
+    id: string,
+    baseVersion: number,
+    options: Readonly<{ linkedWeekSubmission?: boolean }> = {},
+  ) {
     this.assertActive(principal);
     const scope = this.sqlite
       .prepare('SELECT project_id,worker_id,work_date FROM time_entry WHERE id=?')
       .get(id) as { project_id: string; worker_id: string; work_date: string } | undefined;
     if (!scope) throw new ValidationError('Time entry not found');
     this.assertProjectObjectAccess(principal, scope.project_id, scope.work_date, scope.worker_id);
+    if (
+      !options.linkedWeekSubmission &&
+      this.sqlite
+        .prepare('SELECT 1 FROM operational_time_expense_request WHERE time_entry_id=? LIMIT 1')
+        .get(id)
+    )
+      throw new ConflictError('Linked time and meal drafts must be submitted together');
     return this.time.submitTime(principal, id, baseVersion);
   }
 
@@ -1832,32 +1908,53 @@ export class PortalRepository {
         rows.some((row) => versions.get(row.id) !== row.version)
       )
         throw new ConflictError('Week changed. Refresh and review its drafts before submitting');
+      type LinkedMeal = {
+        id: string | null;
+        version: number | null;
+        project_id: string | null;
+        worker_id: string | null;
+        spent_on: string | null;
+        time_entry_id: string | null;
+        category: string | null;
+        approval_state: string | null;
+      };
+      const linkedMeals = new Map<string, LinkedMeal>();
+      // Validate every immutable link before changing any time state. A changed
+      // expense must never be silently skipped by the weekly submission.
+      for (const row of rows) {
+        const links = this.sqlite
+          .prepare(
+            `SELECT e.id,e.version,e.project_id,e.worker_id,e.spent_on,
+              e.time_entry_id,e.category,e.approval_state
+            FROM operational_time_expense_request link
+            LEFT JOIN expense e ON e.id=link.expense_id
+            WHERE link.time_entry_id=?`,
+          )
+          .all(row.id) as LinkedMeal[];
+        if (links.length > 1)
+          throw new ConflictError('Linked meal no longer matches its time entry');
+        const meal = links[0];
+        if (!meal) continue;
+        if (
+          !meal.id ||
+          meal.project_id !== row.project_id ||
+          meal.worker_id !== row.worker_id ||
+          meal.spent_on !== row.work_date ||
+          meal.time_entry_id !== row.id ||
+          meal.category !== 'meals' ||
+          !['draft', 'submitted', 'needs_changes', 'approved', 'locked'].includes(
+            meal.approval_state ?? '',
+          )
+        )
+          throw new ConflictError('Linked meal no longer matches its time entry');
+        linkedMeals.set(row.id, meal);
+      }
       let mealsSubmitted = 0;
       for (const row of rows) {
-        this.submitTime(principal, row.id, row.version);
-        const meals = this.sqlite
-          .prepare(
-            `SELECT e.id,e.version,e.project_id,e.worker_id,e.spent_on
-               FROM operational_time_expense_request link
-               JOIN expense e ON e.id=link.expense_id
-              WHERE link.time_entry_id=? AND e.time_entry_id=?
-                AND e.category='meals' AND e.approval_state='draft'`,
-          )
-          .all(row.id, row.id) as Array<{
-          id: string;
-          version: number;
-          project_id: string;
-          worker_id: string;
-          spent_on: string;
-        }>;
-        for (const meal of meals) {
-          if (
-            meal.project_id !== row.project_id ||
-            meal.worker_id !== row.worker_id ||
-            meal.spent_on !== row.work_date
-          )
-            throw new ConflictError('Linked meal no longer matches its time entry');
-          this.submitExpense(principal, meal.id, meal.version);
+        this.submitTime(principal, row.id, row.version, { linkedWeekSubmission: true });
+        const meal = linkedMeals.get(row.id);
+        if (meal?.approval_state === 'draft') {
+          this.submitExpense(principal, meal.id!, meal.version!);
           mealsSubmitted += 1;
         }
       }
@@ -1893,6 +1990,12 @@ export class PortalRepository {
       scope.worker_id,
     );
     if (principal.role === 'owner_admin') this.assertLiveSession(principal);
+    if (
+      this.sqlite
+        .prepare('SELECT 1 FROM operational_time_expense_request WHERE time_entry_id=? LIMIT 1')
+        .get(input.id)
+    )
+      throw new ConflictError('Linked time and meal drafts must be withdrawn before editing');
     return this.time.updateTimeEntry(principal, input);
   }
 
@@ -1982,11 +2085,21 @@ export class PortalRepository {
         throw error;
       }
     }
-    objectDate ??= today();
+    const localToday =
+      principal.role === 'project_manager'
+        ? todayInTimezone(
+            (
+              this.sqlite.prepare('SELECT timezone FROM project WHERE id=?').get(projectId) as
+                | { timezone: string }
+                | undefined
+            )?.timezone ?? 'UTC',
+          )
+        : today();
+    objectDate ??= localToday;
     if (!principal.projectIds.has(projectId)) return false;
     if (!this.hasSupplierCoordinatorOperationalAccess(principal, projectId, objectDate))
       return false;
-    const current = today();
+    const current = localToday;
     const assignment = this.sqlite
       .prepare(
         "SELECT 1 FROM project_member pm JOIN project p ON p.id=pm.project_id WHERE p.status IN ('active','planned','paused') AND pm.project_id=? AND pm.user_id=? AND pm.status='active' AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?) AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?) LIMIT 1",
@@ -2805,6 +2918,13 @@ export class PortalRepository {
       if (
         input.recordType === 'expense' &&
         this.sqlite
+          .prepare('SELECT 1 FROM crew_expense_recorder WHERE expense_id=? LIMIT 1')
+          .get(input.recordId)
+      )
+        throw new ConflictError('Crew expense drafts must be withdrawn with a reason');
+      if (
+        input.recordType === 'expense' &&
+        this.sqlite
           .prepare(
             'SELECT 1 FROM crew_shared_expense_allocation_group WHERE expense_id=? AND completed=1',
           )
@@ -2839,6 +2959,13 @@ export class PortalRepository {
             'This time entry is linked to another record and cannot be deleted',
           );
       }
+      if (
+        input.recordType === 'expense' &&
+        this.sqlite
+          .prepare('SELECT 1 FROM operational_time_expense_request WHERE expense_id=? LIMIT 1')
+          .get(input.recordId)
+      )
+        throw new ConflictError('Linked time and meal drafts must be withdrawn together');
       if (row.invoice_id || row.billing_lock_id || row.billing_status === 'locked')
         throw new ConflictError('Financially linked records cannot be deleted');
       const correctionLink = this.sqlite
@@ -2867,6 +2994,156 @@ export class PortalRepository {
         version: input.version,
       });
       return { id: input.recordId, recordType: input.recordType };
+    });
+  }
+
+  /** Keep immutable crew recorder/request provenance while withdrawing an unreviewed draft. */
+  withdrawCrewExpenseDraft(
+    principal: Principal,
+    input: Readonly<{ expenseId: string; version: number; reason: string }>,
+  ): { id: string; version: number; alreadyWithdrawn: boolean } {
+    this.assertActive(principal);
+    this.assertLiveSession(principal);
+    const reason = input.reason.trim();
+    if (
+      !input.expenseId ||
+      !Number.isInteger(input.version) ||
+      input.version < 1 ||
+      reason.length < 3 ||
+      reason.length > 2000
+    )
+      throw new ValidationError('Crew expense withdrawal is invalid');
+    return this.transaction(() => {
+      const row = this.sqlite
+        .prepare(
+          `SELECT e.id,e.project_id projectId,e.worker_id workerId,e.spent_on spentOn,
+                  e.approval_state approvalState,e.version,e.submitted_at submittedAt,
+                  e.approved_at approvedAt,e.finance_approved_by financeApprovedBy,
+                  e.finance_approved_at financeApprovedAt,
+                  e.reimbursement_state reimbursementState,
+                  e.reimbursed_at reimbursedAt,e.reimbursement_reference reimbursementReference,
+                  e.receipt_document_id receiptId,
+                  e.invoice_id invoiceId,e.billing_state billingState,
+                  e.billing_lock_id billingLockId,
+                  rec.grant_id grantId,rec.recorded_by_user_id recordedBy
+             FROM expense e JOIN crew_expense_recorder rec ON rec.expense_id=e.id
+            WHERE e.id=?`,
+        )
+        .get(input.expenseId) as
+        | {
+            id: string;
+            projectId: string;
+            workerId: string;
+            spentOn: string;
+            approvalState: string;
+            version: number;
+            submittedAt: string | null;
+            approvedAt: string | null;
+            financeApprovedBy: string | null;
+            financeApprovedAt: string | null;
+            reimbursementState: string | null;
+            reimbursedAt: string | null;
+            reimbursementReference: string | null;
+            receiptId: string | null;
+            invoiceId: string | null;
+            billingState: string | null;
+            billingLockId: string | null;
+            grantId: string;
+            recordedBy: string;
+          }
+        | undefined;
+      if (!row) throw new ConflictError('Crew expense draft changed before withdrawal');
+      if (principal.role === 'owner_admin' || principal.userId === row.workerId) {
+        this.assertProjectObjectAccess(principal, row.projectId, row.spentOn, row.workerId);
+      } else if (principal.role === 'worker' && principal.userId === row.recordedBy) {
+        this.assertRecordedCrewExpenseAccess(
+          principal,
+          row.id,
+          row.projectId,
+          row.workerId,
+          row.spentOn,
+        );
+      } else {
+        throw new AccessDeniedError('Crew expense withdrawal access required');
+      }
+      if (row.approvalState === 'void')
+        return { id: row.id, version: row.version, alreadyWithdrawn: true };
+      if (
+        row.approvalState !== 'draft' ||
+        row.version !== input.version ||
+        row.submittedAt ||
+        row.approvedAt ||
+        row.financeApprovedBy ||
+        row.financeApprovedAt ||
+        (row.reimbursementState !== null && row.reimbursementState !== 'pending') ||
+        row.reimbursedAt ||
+        row.reimbursementReference ||
+        row.invoiceId ||
+        row.billingLockId ||
+        row.billingState !== 'unlocked' ||
+        !this.sqlite
+          .prepare('SELECT 1 FROM crew_expense_request WHERE expense_id=? LIMIT 1')
+          .get(row.id) ||
+        this.sqlite
+          .prepare('SELECT 1 FROM approval_event WHERE entity_type=? AND entity_id=? LIMIT 1')
+          .get('expense', row.id) ||
+        this.sqlite
+          .prepare('SELECT 1 FROM operational_time_expense_request WHERE expense_id=? LIMIT 1')
+          .get(row.id) ||
+        this.sqlite
+          .prepare('SELECT 1 FROM crew_shared_expense_allocation_group WHERE expense_id=? LIMIT 1')
+          .get(row.id) ||
+        this.sqlite
+          .prepare('SELECT 1 FROM expense_classification_series WHERE expense_id=? LIMIT 1')
+          .get(row.id) ||
+        this.sqlite
+          .prepare('SELECT 1 FROM reimbursement_principal_series WHERE expense_id=? LIMIT 1')
+          .get(row.id) ||
+        this.sqlite
+          .prepare(
+            "SELECT 1 FROM direct_cost_series WHERE source_kind='expense' AND source_id=? LIMIT 1",
+          )
+          .get(row.id) ||
+        this.sqlite
+          .prepare(
+            `SELECT 1 FROM record_correction_link
+              WHERE record_type='expense' AND (original_id=? OR correction_id=?) LIMIT 1`,
+          )
+          .get(row.id, row.id)
+      )
+        throw new ConflictError('Crew expense draft changed before withdrawal');
+      const timestamp = now();
+      const changed = this.sqlite
+        .prepare(
+          "UPDATE expense SET approval_state='void',updated_at=?,version=version+1 WHERE id=? AND approval_state='draft' AND version=?",
+        )
+        .run(timestamp, row.id, input.version);
+      if (changed.changes !== 1)
+        throw new ConflictError('Crew expense draft changed before withdrawal');
+      this.sqlite
+        .prepare(
+          `INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at)
+           VALUES(?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          newId(),
+          'expense',
+          row.id,
+          'draft',
+          'void',
+          principal.userId,
+          `Withdrawn crew expense draft: ${reason}`,
+          timestamp,
+        );
+      this.audit(principal, 'expense.void', 'expense', row.id, {
+        reason,
+        projectId: row.projectId,
+        workerId: row.workerId,
+        recordedBy: row.recordedBy,
+        crewGrantId: row.grantId,
+        receiptDocumentId: row.receiptId,
+      });
+      return { id: row.id, version: input.version + 1, alreadyWithdrawn: false };
     });
   }
 
@@ -3875,6 +4152,7 @@ export class PortalRepository {
     input: ExpenseInput,
     workerId = principal.userId,
     requestId?: string,
+    options: Readonly<{ allowSeparateExpense?: boolean }> = {},
   ) {
     this.assertActive(principal);
     return this.transaction(() => {
@@ -3974,7 +4252,12 @@ export class PortalRepository {
             workerId,
             input.spentOn,
           );
-          return { id: previous.id, version: 1, replayed: true };
+          const replayState = this.sqlite
+            .prepare('SELECT approval_state state,version FROM expense WHERE id=?')
+            .get(previous.id) as { state: string; version: number } | undefined;
+          if (!replayState || replayState.state === 'void')
+            throw new ConflictError('Crew expense request was withdrawn');
+          return { id: previous.id, version: replayState.version, replayed: true };
         }
         if (
           receiptSha256 &&
@@ -3986,6 +4269,47 @@ export class PortalRepository {
             .get(input.projectId, receiptSha256)
         )
           throw new ConflictError('This receipt is already claimed by a project expense');
+        // A fresh request ID must not make an accidental double entry look like
+        // distinct work. Only expose records entered by this same, currently
+        // authorized chief under the same grant; another recorder's expense is
+        // outside this chief's detail scope. Receipted expenses retain the
+        // existing receipt-hash reuse guard instead of treating two different
+        // receipts with matching text and amount as the same cost.
+        if (!options.allowSeparateExpense && !input.receiptDocumentId) {
+          const duplicate = this.sqlite
+            .prepare(
+              `SELECT e.id
+                 FROM expense e
+                 JOIN crew_expense_recorder recorder ON recorder.expense_id=e.id
+                WHERE recorder.recorded_by_user_id=? AND recorder.grant_id=?
+                  AND e.project_id=? AND e.worker_id=? AND e.spent_on=?
+                  AND e.category=? AND e.currency=? AND e.amount_minor=?
+                  AND e.vendor=? AND e.description=? AND e.who_paid=?
+                  AND COALESCE(e.occurred_time_local,'')=?
+                  AND COALESCE(e.time_entry_id,'')=?
+                  AND COALESCE(e.payment_method,'')=?
+                  AND e.receipt_required=0 AND e.receipt_document_id IS NULL
+                  AND e.approval_state NOT IN ('void','rejected')
+                ORDER BY e.created_at DESC, e.id DESC LIMIT 1`,
+            )
+            .get(
+              principal.userId,
+              grantId,
+              input.projectId,
+              workerId,
+              input.spentOn,
+              input.category,
+              input.currency,
+              safeInteger(input.amountMinor),
+              vendor,
+              input.description.trim(),
+              normalizedWhoPaid,
+              input.occurredTimeLocal ?? '',
+              input.timeEntryId ?? '',
+              input.paymentMethod?.trim() || '',
+            ) as { id: string } | undefined;
+          if (duplicate) throw new DuplicateCrewExpenseError(duplicate.id);
+        }
       }
       const id = newId();
       const timestamp = now();
@@ -4324,13 +4648,15 @@ export class PortalRepository {
     return this.transaction(() => {
       const scope = this.sqlite
         .prepare(
-          'SELECT project_id,worker_id,spent_on,approval_state,version,invoice_id,billing_state,billing_lock_id,receipt_required,receipt_document_id FROM expense WHERE id=?',
+          'SELECT project_id,worker_id,spent_on,time_entry_id,category,approval_state,version,invoice_id,billing_state,billing_lock_id,receipt_required,receipt_document_id FROM expense WHERE id=?',
         )
         .get(id) as
         | {
             project_id: string;
             worker_id: string;
             spent_on: string;
+            time_entry_id: string | null;
+            category: string;
             approval_state: string;
             version: number;
             invoice_id: string | null;
@@ -4359,6 +4685,36 @@ export class PortalRepository {
         );
       if (scope.worker_id !== principal.userId && principal.role !== 'owner_admin' && !delegated)
         throw new AccessDeniedError('Expense ownership required');
+      const linkedTime = this.sqlite
+        .prepare(
+          `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.approval_state
+          FROM operational_time_expense_request r
+          JOIN time_entry t ON t.id=r.time_entry_id WHERE r.expense_id=? LIMIT 1`,
+        )
+        .get(id) as
+        | {
+            id: string;
+            project_id: string;
+            worker_id: string;
+            work_date: string;
+            approval_state: string;
+          }
+        | undefined;
+      if (linkedTime) {
+        if (linkedTime.approval_state === 'draft')
+          throw new ConflictError('Submit the linked time draft before its meal expense');
+        if (
+          !['submitted', 'needs_changes', 'approved', 'locked'].includes(
+            linkedTime.approval_state,
+          ) ||
+          scope.time_entry_id !== linkedTime.id ||
+          scope.category !== 'meals' ||
+          scope.project_id !== linkedTime.project_id ||
+          scope.worker_id !== linkedTime.worker_id ||
+          scope.spent_on !== linkedTime.work_date
+        )
+          throw new ConflictError('Linked time and meal no longer match for submission');
+      }
       if (scope.invoice_id || scope.billing_state !== 'unlocked' || scope.billing_lock_id)
         throw new ConflictError('Expense locked before submission');
       if (scope.approval_state !== 'draft')
@@ -4444,6 +4800,12 @@ export class PortalRepository {
       if (current.worker_id !== principal.userId && principal.role !== 'owner_admin' && !delegated)
         throw new AccessDeniedError('Expense ownership required');
       if (principal.role === 'owner_admin') this.assertLiveSession(principal);
+      if (
+        this.sqlite
+          .prepare('SELECT 1 FROM operational_time_expense_request WHERE expense_id=? LIMIT 1')
+          .get(input.id)
+      )
+        throw new ConflictError('Linked time and meal drafts must be withdrawn before editing');
       if (
         current.invoice_id ||
         current.billing_state !== 'unlocked' ||
@@ -5123,7 +5485,15 @@ export class PortalRepository {
       .prepare(
         "SELECT id,code,legal_name,currency,billing_address,company_identifiers,status FROM legal_entity WHERE status='active' ORDER BY code",
       )
-      .all().map((row) => ({ ...row, document_settings: readIssuerDocumentSettings(this.sqlite, String(row.id), String(row.currency)) }));
+      .all()
+      .map((row) => ({
+        ...row,
+        document_settings: readIssuerDocumentSettings(
+          this.sqlite,
+          String(row.id),
+          String(row.currency),
+        ),
+      }));
   }
 
   listIssuerDocumentSettings(principal: Principal) {
@@ -5132,7 +5502,9 @@ export class PortalRepository {
 
   updateIssuerDocumentSettings(principal: Principal, input: unknown) {
     return persistIssuerDocumentSettings(this.sqlite, principal, input, {
-      access: AccessDeniedError, conflict: ConflictError, validation: ValidationError,
+      access: AccessDeniedError,
+      conflict: ConflictError,
+      validation: ValidationError,
     });
   }
 
@@ -6578,9 +6950,17 @@ export class PortalRepository {
         principal,
         execution,
       );
-      const issuerSettings = readIssuerDocumentSettings(this.sqlite, rule.legal_entity_id, rule.currency);
+      const issuerSettings = readIssuerDocumentSettings(
+        this.sqlite,
+        rule.legal_entity_id,
+        rule.currency,
+      );
       const presentation = issuerSettingsPresentation(issuerSettings);
-      const projectReference = this.sqlite.prepare('SELECT p.po_number,c.po_reference FROM project p JOIN client c ON c.id=p.client_id WHERE p.id=?').get(rule.project_id);
+      const projectReference = this.sqlite
+        .prepare(
+          'SELECT p.po_number,c.po_reference FROM project p JOIN client c ON c.id=p.client_id WHERE p.id=?',
+        )
+        .get(rule.project_id);
       this.sqlite
         .prepare(
           'UPDATE invoice SET subtotal_minor=?,tax_minor=?,total_minor=?,snapshot_json=?,planned_issue_on=?,updated_at=? WHERE id=?',
@@ -6590,8 +6970,15 @@ export class PortalRepository {
           safeInteger(tax.minorUnits),
           safeInteger(total.minorUnits),
           JSON.stringify({
-            purchaseNo: effectivePurchaseReference(rule.po_number_override, projectReference?.po_number, projectReference?.po_reference),
-            termsAndInstructions: { ...presentation.termsAndInstructions, pastDueNotice: rule.past_due_notice },
+            purchaseNo: effectivePurchaseReference(
+              rule.po_number_override,
+              projectReference?.po_number,
+              projectReference?.po_reference,
+            ),
+            termsAndInstructions: {
+              ...presentation.termsAndInstructions,
+              pastDueNotice: rule.past_due_notice,
+            },
             companyInfo: presentation.companyInfo,
             issuerDocumentSettingsVersion: issuerSettings.version,
             paymentTermsDays: rule.payment_terms_days,
@@ -6601,7 +6988,7 @@ export class PortalRepository {
             billingCalculationFingerprint: provenance.fingerprint,
             calculationSelections: provenance.selectedRules,
           }),
-          timestamp.slice(0,10),
+          timestamp.slice(0, 10),
           timestamp,
           id,
         );
@@ -7817,8 +8204,12 @@ export class PortalRepository {
         throw new ValidationError('Tax profile currency no longer matches the invoice currency');
       const deployment = this.deploymentIdentity();
       const canonicalAuthority = resolveInvoiceIssuerAuthority(
-        this.sqlite, invoice.project_id, context.legal_entity_id, invoice.currency,
-        invoice.period_start, invoice.period_end,
+        this.sqlite,
+        invoice.project_id,
+        context.legal_entity_id,
+        invoice.currency,
+        invoice.period_start,
+        invoice.period_end,
       );
       if (!canonicalAuthority?.revision_id)
         throw new ReadinessError(
@@ -7915,10 +8306,19 @@ export class PortalRepository {
           // Preserve issuance using the canonical defaults when a legacy snapshot is malformed.
         }
       }
-      const businessDates = invoiceBusinessDates(draftCustomizations, issuedAt, context.billing_payment_terms_days);
+      const businessDates = invoiceBusinessDates(
+        draftCustomizations,
+        issuedAt,
+        context.billing_payment_terms_days,
+      );
       assertDate(businessDates.invoiceDate, 'Invoice date');
       assertDate(businessDates.dueDate, 'Due date');
-      if (businessDates.dueDate < businessDates.invoiceDate || !Number.isInteger(businessDates.paymentTermsDays) || businessDates.paymentTermsDays < 0 || businessDates.paymentTermsDays > 365)
+      if (
+        businessDates.dueDate < businessDates.invoiceDate ||
+        !Number.isInteger(businessDates.paymentTermsDays) ||
+        businessDates.paymentTermsDays < 0 ||
+        businessDates.paymentTermsDays > 365
+      )
         throw new ValidationError('Invoice business dates or payment terms are invalid');
       const due = `${businessDates.dueDate}T00:00:00.000Z`;
       const snapshot = {
@@ -7932,8 +8332,21 @@ export class PortalRepository {
           revisionId: canonicalAuthority?.revision_id ?? null,
           code: context.code,
           legalName: String(canonicalAuthority.legal_name),
-          billingAddress: [canonicalAuthority.address_line1, canonicalAuthority.address_line2, [canonicalAuthority.postal_code,canonicalAuthority.locality].filter(Boolean).join(' '), canonicalAuthority.region,canonicalAuthority.country_code].filter(Boolean).join('\n'),
-          companyIdentifiers: [canonicalAuthority.tax_identifier,canonicalAuthority.registration_identifier].filter(Boolean).join(' · '),
+          billingAddress: [
+            canonicalAuthority.address_line1,
+            canonicalAuthority.address_line2,
+            [canonicalAuthority.postal_code, canonicalAuthority.locality].filter(Boolean).join(' '),
+            canonicalAuthority.region,
+            canonicalAuthority.country_code,
+          ]
+            .filter(Boolean)
+            .join('\n'),
+          companyIdentifiers: [
+            canonicalAuthority.tax_identifier,
+            canonicalAuthority.registration_identifier,
+          ]
+            .filter(Boolean)
+            .join(' · '),
         },
         client: {
           code: context.client_code,
@@ -7958,14 +8371,20 @@ export class PortalRepository {
           context.client_po_reference ??
           null,
         termsAndInstructions: {
-          ...issuerSettingsPresentation(readIssuerDocumentSettings(this.sqlite, context.legal_entity_id, invoice.currency)).termsAndInstructions,
+          ...issuerSettingsPresentation(
+            readIssuerDocumentSettings(this.sqlite, context.legal_entity_id, invoice.currency),
+          ).termsAndInstructions,
           ...(typeof draftCustomizations.termsAndInstructions === 'object' &&
           draftCustomizations.termsAndInstructions !== null &&
           !Array.isArray(draftCustomizations.termsAndInstructions)
             ? draftCustomizations.termsAndInstructions
             : {}),
         },
-        companyInfo: draftCustomizations.companyInfo ?? issuerSettingsPresentation(readIssuerDocumentSettings(this.sqlite, context.legal_entity_id, invoice.currency)).companyInfo,
+        companyInfo:
+          draftCustomizations.companyInfo ??
+          issuerSettingsPresentation(
+            readIssuerDocumentSettings(this.sqlite, context.legal_entity_id, invoice.currency),
+          ).companyInfo,
         discountMinor: draftCustomizations.discountMinor ?? '0',
         servicePeriod: { start: invoice.period_start, end: invoice.period_end },
         number: invoiceNumber,
@@ -8011,7 +8430,7 @@ export class PortalRepository {
       const calculationHash = createHash('sha256').update(snapshotJson).digest('hex');
       new V3Repository(this.sqlite).freezeInvoiceDirectCosts(
         invoiceId,
-        canonicalAuthority?.revision_id as string | null ?? null,
+        (canonicalAuthority?.revision_id as string | null) ?? null,
         issuedAt,
       );
       // Lock source rows while the invoice is still approved.  The finance
@@ -8043,7 +8462,7 @@ export class PortalRepository {
           issuedAt,
           deployment.tenantId,
           deployment.deploymentId,
-          canonicalAuthority?.revision_id as string | null ?? null,
+          (canonicalAuthority?.revision_id as string | null) ?? null,
           issuedAt,
           invoiceId,
         );
@@ -8661,11 +9080,12 @@ export class PortalRepository {
     this.assertReadable(principal);
     if (principal.role === 'worker') throw new AccessDeniedError('Management role required');
     const projectFilter = principal.role === 'project_manager' ? [...principal.projectIds] : [];
-    const where = principal.role === 'project_manager'
-      ? projectFilter.length
-        ? ` WHERE p.id IN (${projectFilter.map(() => '?').join(',')})`
-        : ' WHERE 0'
-      : '';
+    const where =
+      principal.role === 'project_manager'
+        ? projectFilter.length
+          ? ` WHERE p.id IN (${projectFilter.map(() => '?').join(',')})`
+          : ' WHERE 0'
+        : '';
     const projects = this.sqlite
       .prepare(
         `SELECT count(*) count FROM project p${where}${where ? ' AND' : ' WHERE'} p.status='active'`,
@@ -8683,22 +9103,21 @@ export class PortalRepository {
       .get(...projectFilter, ...projectFilter) as { count: number };
     const expenses = this.sqlite
       .prepare(
-        `SELECT COALESCE(sum(e.amount_minor),0) minor FROM expense e JOIN project p ON p.id=e.project_id${where}${where ? ' AND' : ' WHERE'} NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=e.id AND correction.approval_state='approved') OR (rcl.correction_id=e.id AND correction.approval_state<>'approved')))`,
+        `SELECT e.currency,CAST(sum(e.amount_minor) AS TEXT) minor FROM expense e JOIN project p ON p.id=e.project_id${where}${where ? ' AND' : ' WHERE'} e.approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=e.id AND correction.approval_state='approved') OR (rcl.correction_id=e.id AND correction.approval_state<>'approved'))) GROUP BY e.currency ORDER BY e.currency`,
       )
-      .get(...projectFilter) as { minor: number };
+      .all(...projectFilter) as Array<{ currency: string; minor: string }>;
     const invoices = this.sqlite
       .prepare(
-        `SELECT count(*) count,COALESCE(sum(i.total_minor),0) minor FROM invoice i JOIN project p ON p.id=i.project_id${where}${where ? ' AND' : ' WHERE'} i.state IN ('draft','approved')`,
+        `SELECT i.currency,count(*) count,CAST(sum(i.total_minor) AS TEXT) minor FROM invoice i JOIN project p ON p.id=i.project_id${where}${where ? ' AND' : ' WHERE'} i.state IN ('draft','approved') GROUP BY i.currency ORDER BY i.currency`,
       )
-      .get(...projectFilter) as { count: number; minor: number };
+      .all(...projectFilter) as Array<{ currency: string; count: number; minor: string }>;
     return {
       activeProjects: projects.count,
       actualMinutes: hours.minutes,
       pendingReports: reports.count,
-      expenseMinor: String(expenses.minor),
-      upcomingInvoices: invoices.count,
-      upcomingInvoiceMinor: String(invoices.minor),
-      currency: 'USD',
+      expenseTotalsByCurrency: expenses,
+      upcomingInvoices: invoices.reduce((count, row) => count + row.count, 0),
+      upcomingInvoiceTotalsByCurrency: invoices.map(({ currency, minor }) => ({ currency, minor })),
     };
   }
 
@@ -8737,6 +9156,7 @@ export class PortalRepository {
       .prepare(
         `SELECT category,sum(minutes) minutes FROM time_entry
          WHERE project_id=?${ownOnly ? ' AND worker_id=?' : ''}
+           AND approval_state NOT IN ('rejected','void')
            AND NOT EXISTS (
              SELECT 1
                FROM record_correction_link rcl
@@ -8770,7 +9190,8 @@ export class PortalRepository {
     const expenses = this.sqlite
       .prepare(
         `SELECT ${expenseColumns}
-         FROM expense WHERE project_id=?${ownOnly ? ' AND worker_id=?' : ''} ORDER BY spent_on DESC`,
+         FROM expense WHERE project_id=?${ownOnly ? ' AND worker_id=?' : ''}
+           AND approval_state NOT IN ('rejected','void') ORDER BY spent_on DESC`,
       )
       .all(...(ownOnly ? [projectId, principal.userId] : [projectId]));
     const planningColumns = this.canSeeFinanceFields(principal)
@@ -8820,6 +9241,7 @@ export class PortalRepository {
       .prepare(
         `SELECT COALESCE(sum(minutes),0) minutes FROM time_entry
          WHERE project_id=?${ownOnly ? ' AND worker_id=?' : ''}
+           AND approval_state NOT IN ('rejected','void')
            AND NOT EXISTS (
              SELECT 1
                FROM record_correction_link rcl
@@ -8940,20 +9362,54 @@ export class PortalRepository {
       )
       .get(invoiceId) as Record<string, unknown> | undefined;
     if (!invoice) throw new ValidationError('Invoice not found');
-    const frozenSource = !['draft','approved','superseded'].includes(String(invoice.state));
-    const issuerSettings = frozenSource ? {
-      legalEntityId: String(invoice.issuer_legal_entity_id ?? ''),currency: String(invoice.currency),version: 0,
-      bankSwiftNumber:'',bankAccountNumber:'',bankName:'',beneficiary:'',companyDivision:'',companyPhone:'',companyEmail:'',companyWebsite:'',
-    } : readIssuerDocumentSettings(this.sqlite, String(invoice.issuer_legal_entity_id), String(invoice.currency));
+    const frozenSource = !['draft', 'approved', 'superseded'].includes(String(invoice.state));
+    const issuerSettings = frozenSource
+      ? {
+          legalEntityId: String(invoice.issuer_legal_entity_id ?? ''),
+          currency: String(invoice.currency),
+          version: 0,
+          bankSwiftNumber: '',
+          bankAccountNumber: '',
+          bankName: '',
+          beneficiary: '',
+          companyDivision: '',
+          companyPhone: '',
+          companyEmail: '',
+          companyWebsite: '',
+        }
+      : readIssuerDocumentSettings(
+          this.sqlite,
+          String(invoice.issuer_legal_entity_id),
+          String(invoice.currency),
+        );
     const presentation = issuerSettingsPresentation(issuerSettings);
-    const authority = frozenSource ? undefined : resolveInvoiceIssuerAuthority(this.sqlite, String(invoice.project_id), String(invoice.issuer_legal_entity_id), String(invoice.currency), String(invoice.period_start ?? String(invoice.created_at).slice(0,10)), String(invoice.period_end ?? invoice.period_start ?? String(invoice.created_at).slice(0,10)));
-    if (authority) Object.assign(invoice, {
-      resolved_legal_entity_revision_id: authority.revision_id, canonical_assignment_matches: 1,
-      canonical_issuer_name: authority.legal_name, canonical_tax_identifier: authority.tax_identifier,
-      canonical_registration_identifier: authority.registration_identifier, canonical_address_line1: authority.address_line1,
-      canonical_address_line2: authority.address_line2, canonical_locality: authority.locality, canonical_region: authority.region,
-      canonical_postal_code: authority.postal_code, canonical_country_code: authority.country_code, canonical_currency: authority.base_currency,
-    });
+    const authority = frozenSource
+      ? undefined
+      : resolveInvoiceIssuerAuthority(
+          this.sqlite,
+          String(invoice.project_id),
+          String(invoice.issuer_legal_entity_id),
+          String(invoice.currency),
+          String(invoice.period_start ?? String(invoice.created_at).slice(0, 10)),
+          String(
+            invoice.period_end ?? invoice.period_start ?? String(invoice.created_at).slice(0, 10),
+          ),
+        );
+    if (authority)
+      Object.assign(invoice, {
+        resolved_legal_entity_revision_id: authority.revision_id,
+        canonical_assignment_matches: 1,
+        canonical_issuer_name: authority.legal_name,
+        canonical_tax_identifier: authority.tax_identifier,
+        canonical_registration_identifier: authority.registration_identifier,
+        canonical_address_line1: authority.address_line1,
+        canonical_address_line2: authority.address_line2,
+        canonical_locality: authority.locality,
+        canonical_region: authority.region,
+        canonical_postal_code: authority.postal_code,
+        canonical_country_code: authority.country_code,
+        canonical_currency: authority.base_currency,
+      });
     else if (!frozenSource) invoice.canonical_assignment_matches = 0;
     const customSnapshot = invoicePresentationObject(invoice.snapshot_json);
     const frozenInvoice = !['draft', 'approved', 'superseded'].includes(
@@ -8993,10 +9449,22 @@ export class PortalRepository {
         .filter(Boolean)
         .join('\n'),
       purchase_no:
-        customSnapshot.purchaseNo ?? customSnapshot.purchase_no ?? (frozenInvoice ? null : effectivePurchaseReference(invoice.po_number_override, invoice.project_po_number, invoice.client_po_reference)) ?? '—',
+        customSnapshot.purchaseNo ??
+        customSnapshot.purchase_no ??
+        (frozenInvoice
+          ? null
+          : effectivePurchaseReference(
+              invoice.po_number_override,
+              invoice.project_po_number,
+              invoice.client_po_reference,
+            )) ??
+        '—',
       terms_and_instructions: {
         ...(['draft', 'approved'].includes(String(invoice.state ?? ''))
-          ? { ...presentation.termsAndInstructions, pastDueNotice: String(invoice.past_due_notice ?? '') }
+          ? {
+              ...presentation.termsAndInstructions,
+              pastDueNotice: String(invoice.past_due_notice ?? ''),
+            }
           : {}),
         ...(typeof customSnapshot.termsAndInstructions === 'object' &&
         customSnapshot.termsAndInstructions !== null
@@ -9005,28 +9473,76 @@ export class PortalRepository {
       },
       issuer_settings_version: issuerSettings.version,
       issuer_document_settings: issuerSettings,
-      purchase_no_source: typeof invoice.po_number_override === 'string' && invoice.po_number_override.trim() ? 'billing_stream' : 'project',
+      purchase_no_source:
+        typeof invoice.po_number_override === 'string' && invoice.po_number_override.trim()
+          ? 'billing_stream'
+          : 'project',
       company_info: {
-        ...(['draft', 'approved'].includes(String(invoice.state ?? '')) ? presentation.companyInfo : {}),
+        ...(['draft', 'approved'].includes(String(invoice.state ?? ''))
+          ? presentation.companyInfo
+          : {}),
         ...(typeof customSnapshot.companyInfo === 'object' && customSnapshot.companyInfo !== null
           ? customSnapshot.companyInfo
           : {}),
       },
-      ...invoiceBusinessDates(!frozenInvoice && invoice.planned_issue_on ? { ...customSnapshot, invoiceDate: invoice.planned_issue_on } : customSnapshot, invoice.created_at, invoice.payment_terms_days),
-      invoice_date: frozenInvoice ? (customSnapshot.invoiceDate ?? customSnapshot.issueDate ?? invoice.issued_at) : invoiceBusinessDates(invoice.planned_issue_on ? { ...customSnapshot, invoiceDate: invoice.planned_issue_on } : customSnapshot, invoice.created_at, invoice.payment_terms_days).invoiceDate,
-      due_date: frozenInvoice ? (customSnapshot.dueAt ?? invoice.due_at) : invoiceBusinessDates(invoice.planned_issue_on ? { ...customSnapshot, invoiceDate: invoice.planned_issue_on } : customSnapshot, invoice.created_at, invoice.payment_terms_days).dueDate,
-      payment_terms_days: frozenInvoice ? invoicePresentationObject(customSnapshot.commercial).paymentTermsDays : invoiceBusinessDates(customSnapshot, invoice.created_at, invoice.payment_terms_days).paymentTermsDays,
+      ...invoiceBusinessDates(
+        !frozenInvoice && invoice.planned_issue_on
+          ? { ...customSnapshot, invoiceDate: invoice.planned_issue_on }
+          : customSnapshot,
+        invoice.created_at,
+        invoice.payment_terms_days,
+      ),
+      invoice_date: frozenInvoice
+        ? (customSnapshot.invoiceDate ?? customSnapshot.issueDate ?? invoice.issued_at)
+        : invoiceBusinessDates(
+            invoice.planned_issue_on
+              ? { ...customSnapshot, invoiceDate: invoice.planned_issue_on }
+              : customSnapshot,
+            invoice.created_at,
+            invoice.payment_terms_days,
+          ).invoiceDate,
+      due_date: frozenInvoice
+        ? (customSnapshot.dueAt ?? invoice.due_at)
+        : invoiceBusinessDates(
+            invoice.planned_issue_on
+              ? { ...customSnapshot, invoiceDate: invoice.planned_issue_on }
+              : customSnapshot,
+            invoice.created_at,
+            invoice.payment_terms_days,
+          ).dueDate,
+      payment_terms_days: frozenInvoice
+        ? invoicePresentationObject(customSnapshot.commercial).paymentTermsDays
+        : invoiceBusinessDates(customSnapshot, invoice.created_at, invoice.payment_terms_days)
+            .paymentTermsDays,
       due_date_override: customSnapshot.dueDateOverride ?? '',
       source_version: invoice.version,
       discount_minor: customSnapshot.discountMinor ?? customSnapshot.discount_minor ?? '0',
     };
-    const sourceSettingsChanged = ['draft','approved'].includes(String(invoice.state)) && (
-      Object.entries(presentation.termsAndInstructions).some(([name,value]) => String(enrichedInvoice.terms_and_instructions[name as keyof typeof enrichedInvoice.terms_and_instructions] ?? '') !== value) ||
-      Object.entries(presentation.companyInfo).some(([name,value]) => String(enrichedInvoice.company_info[name as keyof typeof enrichedInvoice.company_info] ?? '') !== value) ||
-      enrichedInvoice.payment_terms_days !== invoice.payment_terms_days ||
-      enrichedInvoice.purchase_no !== (effectivePurchaseReference(invoice.po_number_override, invoice.project_po_number, invoice.client_po_reference) ?? '—') ||
-      String(enrichedInvoice.terms_and_instructions.pastDueNotice ?? '') !== String(invoice.past_due_notice ?? '')
-    );
+    const sourceSettingsChanged =
+      ['draft', 'approved'].includes(String(invoice.state)) &&
+      (Object.entries(presentation.termsAndInstructions).some(
+        ([name, value]) =>
+          String(
+            enrichedInvoice.terms_and_instructions[
+              name as keyof typeof enrichedInvoice.terms_and_instructions
+            ] ?? '',
+          ) !== value,
+      ) ||
+        Object.entries(presentation.companyInfo).some(
+          ([name, value]) =>
+            String(
+              enrichedInvoice.company_info[name as keyof typeof enrichedInvoice.company_info] ?? '',
+            ) !== value,
+        ) ||
+        enrichedInvoice.payment_terms_days !== invoice.payment_terms_days ||
+        enrichedInvoice.purchase_no !==
+          (effectivePurchaseReference(
+            invoice.po_number_override,
+            invoice.project_po_number,
+            invoice.client_po_reference,
+          ) ?? '—') ||
+        String(enrichedInvoice.terms_and_instructions.pastDueNotice ?? '') !==
+          String(invoice.past_due_notice ?? ''));
     let lines: Record<string, unknown>[] = this.sqlite
       .prepare(
         'SELECT description,quantity_numerator,quantity_denominator,unit_price_minor,subtotal_minor,source_type,source_id FROM invoice_line WHERE invoice_id=? ORDER BY rowid',
@@ -9042,10 +9558,13 @@ export class PortalRepository {
       const frozenProject = invoicePresentationObject(customSnapshot.project);
       const frozenCalculation = invoicePresentationObject(customSnapshot.calculation);
       Object.assign(enrichedInvoice, {
-        client_legal_name: frozenClient.legalName ?? null, client_name: frozenClient.legalName ?? null,
-        client_number: frozenClient.number ?? null, client_billing_address: frozenClient.billingAddress ?? null,
+        client_legal_name: frozenClient.legalName ?? null,
+        client_name: frozenClient.legalName ?? null,
+        client_number: frozenClient.number ?? null,
+        client_billing_address: frozenClient.billingAddress ?? null,
         billing_email: frozenClient.billingEmail ?? null,
-        project_number: frozenProject.number ?? null, project_name: frozenProject.name ?? null,
+        project_number: frozenProject.number ?? null,
+        project_name: frozenProject.name ?? null,
         project_po_number: frozenProject.poNumber ?? null,
         tax_profile_name: invoicePresentationObject(customSnapshot.taxProfile).name ?? null,
         invoice_template_id: invoicePresentationObject(customSnapshot.template).id ?? 'default',
@@ -9056,7 +9575,11 @@ export class PortalRepository {
       });
       lines = Array.isArray(customSnapshot.lines) ? customSnapshot.lines : [];
       taxes = Array.isArray(invoicePresentationObject(customSnapshot.taxProfile).components)
-        ? invoicePresentationObject(customSnapshot.taxProfile).components as Record<string, unknown>[] : [];
+        ? (invoicePresentationObject(customSnapshot.taxProfile).components as Record<
+            string,
+            unknown
+          >[])
+        : [];
     }
     const typedLines = lines as Array<{ source_type: string; subtotal_minor: number }>;
     const expenseSubtotal = typedLines
@@ -9095,22 +9618,40 @@ export class PortalRepository {
       discountMinor?: string;
     },
   ) {
-    return updateInvoiceDraftDetails(this.sqlite, principal, invoiceId, data, {
-      access: AccessDeniedError,
-      conflict: ConflictError,
-      validation: ValidationError,
-    }, {
-      assertCalculationFresh: (invoice) => this.assertInvoiceBillingRuleFresh({
-        id: String(invoice.id), billing_rule_id: String(invoice.billing_rule_id),
-        snapshot_json: typeof invoice.snapshot_json === 'string' ? invoice.snapshot_json : null,
-        stream_type: String(invoice.stream_type), period_start: String(invoice.period_start),
-        period_end: String(invoice.period_end),
-      }, principal),
-      refreshCalculationFingerprint: (invoice) => this.billingCalculationProvenance(
-        String(invoice.id), String(invoice.billing_rule_id), String(invoice.period_start),
-        String(invoice.period_end), principal,
-      ).fingerprint,
-    });
+    return updateInvoiceDraftDetails(
+      this.sqlite,
+      principal,
+      invoiceId,
+      data,
+      {
+        access: AccessDeniedError,
+        conflict: ConflictError,
+        validation: ValidationError,
+      },
+      {
+        assertCalculationFresh: (invoice) =>
+          this.assertInvoiceBillingRuleFresh(
+            {
+              id: String(invoice.id),
+              billing_rule_id: String(invoice.billing_rule_id),
+              snapshot_json:
+                typeof invoice.snapshot_json === 'string' ? invoice.snapshot_json : null,
+              stream_type: String(invoice.stream_type),
+              period_start: String(invoice.period_start),
+              period_end: String(invoice.period_end),
+            },
+            principal,
+          ),
+        refreshCalculationFingerprint: (invoice) =>
+          this.billingCalculationProvenance(
+            String(invoice.id),
+            String(invoice.billing_rule_id),
+            String(invoice.period_start),
+            String(invoice.period_end),
+            principal,
+          ).fingerprint,
+      },
+    );
   }
 
   listOwnReports(principal: Principal) {
@@ -9497,7 +10038,7 @@ export class PortalRepository {
         },
         {
           dates: 'expense' as const,
-          sql: `SELECT e.id,'expense' type,COALESCE(NULLIF(TRIM(e.vendor),''),NULLIF(TRIM(e.description),''),e.category) label,p.project_number || ' · Expense / receipt' detail
+          sql: `SELECT e.id,'expense' type,COALESCE(NULLIF(TRIM(e.vendor),''),NULLIF(TRIM(e.description),''),e.category) label,p.project_number || ' · Expense / receipt' detail,p.project_number projectNumber,e.spent_on spentOn,e.approval_state approvalState
                 FROM expense e JOIN project p ON p.id=e.project_id
                 WHERE SCOPE AND e.worker_id=?
                   AND EXISTS(SELECT 1 FROM project_member pm WHERE pm.project_id=e.project_id AND pm.user_id=e.worker_id
@@ -9579,7 +10120,7 @@ export class PortalRepository {
       );
     const expenses = this.sqlite
       .prepare(
-        `SELECT e.id,'expense' type,COALESCE(NULLIF(TRIM(e.vendor),''),NULLIF(TRIM(e.description),''),e.category) label,p.project_number || ' · Expense / receipt' detail
+        `SELECT e.id,'expense' type,COALESCE(NULLIF(TRIM(e.vendor),''),NULLIF(TRIM(e.description),''),e.category) label,p.project_number || ' · Expense / receipt' detail,p.project_number projectNumber,e.spent_on spentOn,e.approval_state approvalState
                FROM expense e JOIN project p ON p.id=e.project_id
                WHERE (e.id LIKE ? ESCAPE '\\' OR e.receipt_document_id LIKE ? ESCAPE '\\' OR e.vendor LIKE ? ESCAPE '\\' OR e.description LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\')${projectRestriction} LIMIT 50`,
       )
@@ -9596,16 +10137,41 @@ export class PortalRepository {
     return this.search(principal, '').slice(0, bounded);
   }
 
-  listAuditEvents(principal: Principal, limit = 200) {
+  listAuditEvents(
+    principal: Principal,
+    options: Readonly<{
+      view?: 'all' | 'business' | 'service';
+      before?: Readonly<{ occurredAt: string; id: string }>;
+      limit?: number;
+    }> = {},
+  ) {
     this.assertReadable(principal);
     if (principal.role !== 'owner_admin' && principal.role !== 'auditor_read_only')
       throw new AccessDeniedError('Audit access required');
-    const bounded = Math.max(1, Math.min(500, Math.trunc(limit)));
+    const bounded = Math.max(1, Math.min(500, Math.trunc(options.limit ?? 200)));
+    const conditions: string[] = [];
+    const values: Array<string | number> = [];
+    if (options.view === 'business') conditions.push("action NOT LIKE 'service_job.%'");
+    if (options.view === 'service') conditions.push("action LIKE 'service_job.%'");
+    if (options.before) {
+      conditions.push('(occurred_at<? OR (occurred_at=? AND id<?))');
+      values.push(options.before.occurredAt, options.before.occurredAt, options.before.id);
+    }
     return this.sqlite
       .prepare(
-        'SELECT id,actor_id,action,entity_type,entity_id,occurred_at,details_json FROM audit_event ORDER BY occurred_at DESC,id DESC LIMIT ?',
+        `SELECT id,actor_id,action,entity_type,entity_id,occurred_at,details_json
+         FROM audit_event ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
+         ORDER BY occurred_at DESC,id DESC LIMIT ?`,
       )
-      .all(bounded);
+      .all(...values, bounded) as Array<{
+      id: string;
+      actor_id: string;
+      action: string;
+      entity_type: string;
+      entity_id: string;
+      occurred_at: string;
+      details_json: string;
+    }>;
   }
 
   listOwnTime(principal: Principal) {
@@ -9674,6 +10240,8 @@ export class PortalRepository {
         `${withClause} SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
                 t.start_time,t.end_time,t.break_minutes,
                 t.activity_summary,t.approval_state,t.billability_state,
+                (SELECT r.expense_id FROM operational_time_expense_request r
+                  WHERE r.time_entry_id=t.id LIMIT 1) linked_pair_expense_id,
                 EXISTS(
                   SELECT 1 FROM record_correction_link rcl
                    WHERE rcl.record_type='time_entry' AND rcl.correction_id=t.id
@@ -9864,6 +10432,18 @@ export class PortalRepository {
                   ORDER BY correction.created_at DESC LIMIT 1) active_correction_id,
                 EXISTS(SELECT 1 FROM crew_shared_expense_allocation_group g
                        WHERE g.expense_id=e.id AND g.completed=1) shared_receipt_allocated,
+                (SELECT r.time_entry_id FROM operational_time_expense_request r
+                  WHERE r.expense_id=e.id LIMIT 1) linked_pair_time_id,
+                (SELECT t.version FROM operational_time_expense_request r
+                  JOIN time_entry t ON t.id=r.time_entry_id
+                  WHERE r.expense_id=e.id LIMIT 1) linked_pair_time_version,
+                (SELECT t.approval_state FROM operational_time_expense_request r
+                  JOIN time_entry t ON t.id=r.time_entry_id
+                  WHERE r.expense_id=e.id LIMIT 1) linked_pair_time_state,
+                EXISTS(SELECT 1 FROM crew_expense_recorder rec
+                       WHERE rec.expense_id=e.id) crew_recorded,
+                (SELECT rec.recorded_by_user_id FROM crew_expense_recorder rec
+                  WHERE rec.expense_id=e.id LIMIT 1) crew_recorded_by_user_id,
                 p.project_number,p.name project_name,u.name worker_name,c.display_name client_name
          FROM expense e JOIN project p ON p.id=e.project_id JOIN user u ON u.id=e.worker_id JOIN client c ON c.id=p.client_id
          WHERE ${clauses.join(' AND ')}
@@ -9883,6 +10463,15 @@ export class PortalRepository {
                      WHERE rcl.record_type='expense' AND rcl.correction_id=e.id) correction_linked,
               EXISTS(SELECT 1 FROM crew_shared_expense_allocation_group g
                      WHERE g.expense_id=e.id AND g.completed=1) shared_receipt_allocated,
+              (SELECT r.time_entry_id FROM operational_time_expense_request r
+                WHERE r.expense_id=e.id LIMIT 1) linked_pair_time_id,
+              (SELECT t.version FROM operational_time_expense_request r
+                JOIN time_entry t ON t.id=r.time_entry_id
+                WHERE r.expense_id=e.id LIMIT 1) linked_pair_time_version,
+              (SELECT t.approval_state FROM operational_time_expense_request r
+                JOIN time_entry t ON t.id=r.time_entry_id
+                WHERE r.expense_id=e.id LIMIT 1) linked_pair_time_state,
+              1 crew_recorded,rec.recorded_by_user_id crew_recorded_by_user_id,
               p.project_number,p.name project_name,u.name worker_name,c.display_name client_name
        FROM crew_expense_recorder rec JOIN expense e ON e.id=rec.expense_id
        JOIN project p ON p.id=e.project_id JOIN user u ON u.id=e.worker_id
@@ -10760,8 +11349,10 @@ export class PortalRepository {
             );
         }
       }
-      const notice = input.pastDueNotice === undefined ? undefined : String(input.pastDueNotice).trim();
-      if (notice !== undefined && notice.length > 2000) throw new ValidationError('Past due notice is too long');
+      const notice =
+        input.pastDueNotice === undefined ? undefined : String(input.pastDueNotice).trim();
+      if (notice !== undefined && notice.length > 2000)
+        throw new ValidationError('Past due notice is too long');
       const grouping = input.groupingMode;
       if (
         grouping !== undefined &&
@@ -10803,7 +11394,8 @@ export class PortalRepository {
         'auto_generate_draft=COALESCE(?,auto_generate_draft)',
       ];
       const values: Array<string | number | bigint | null> = [
-        notice ?? null,        templateId ?? null,
+        notice ?? null,
+        templateId ?? null,
         recipient ?? null,
         paymentTerms === undefined ? null : Number(paymentTerms),
         groupingValue,
@@ -11050,6 +11642,18 @@ export class PortalRepository {
       );
       if (expense.worker_id !== principal.userId && principal.role !== 'owner_admin')
         throw new AccessDeniedError('Expense ownership or admin rights required');
+      if (
+        this.sqlite
+          .prepare('SELECT 1 FROM operational_time_expense_request WHERE expense_id=?')
+          .get(expenseId)
+      )
+        throw new ConflictError('Linked time and meal drafts must be withdrawn together');
+      if (
+        this.sqlite
+          .prepare('SELECT 1 FROM crew_expense_recorder WHERE expense_id=? LIMIT 1')
+          .get(expenseId)
+      )
+        throw new ConflictError('Crew expense drafts must be withdrawn with a reason');
       if (expense.invoice_id || expense.billing_state !== 'unlocked' || expense.billing_lock_id)
         throw new ConflictError('Billed or locked expenses cannot be deleted');
       if (
@@ -11075,6 +11679,147 @@ export class PortalRepository {
       throw new ConflictError(
         'Only never-submitted expense drafts can be deleted; use a reasoned correction',
       );
+    });
+  }
+
+  withdrawLinkedTimeAndExpenseDrafts(
+    principal: Principal,
+    input: Readonly<{
+      expenseId: string;
+      expenseVersion: number;
+      timeVersion: number;
+      reason: string;
+    }>,
+  ): { timeId: string; expenseId: string; alreadyWithdrawn: boolean } {
+    this.assertActive(principal);
+    const reason = input.reason.trim();
+    if (
+      !input.expenseId ||
+      !Number.isInteger(input.expenseVersion) ||
+      input.expenseVersion < 1 ||
+      !Number.isInteger(input.timeVersion) ||
+      input.timeVersion < 1 ||
+      reason.length < 3 ||
+      reason.length > 2000
+    )
+      throw new ValidationError('Linked draft withdrawal is invalid');
+    return this.transaction(() => {
+      const pair = this.sqlite
+        .prepare(
+          `SELECT r.time_entry_id timeId,r.expense_id expenseId,r.actor_user_id actorId,
+          t.project_id timeProject,t.worker_id timeWorker,t.work_date workDate,t.approval_state timeState,
+          t.version timeVersion,t.invoice_id timeInvoice,t.billing_status timeBilling,t.billing_lock_id timeLock,t.locked_at timeLocked,t.submitted_at timeSubmitted,
+          e.project_id expenseProject,e.worker_id expenseWorker,e.spent_on spentOn,e.time_entry_id expenseTimeId,
+          e.category expenseCategory,e.approval_state expenseState,e.version expenseVersion,
+          e.invoice_id expenseInvoice,e.billing_state expenseBilling,e.billing_lock_id expenseLock,
+          e.submitted_at expenseSubmitted,e.approved_at expenseApproved,e.finance_approved_at expenseFinanceApproved,
+          e.reimbursed_at reimbursedAt
+        FROM operational_time_expense_request r
+        JOIN time_entry t ON t.id=r.time_entry_id JOIN expense e ON e.id=r.expense_id
+        WHERE r.expense_id=?`,
+        )
+        .get(input.expenseId) as Record<string, unknown> | undefined;
+      if (!pair) throw new ConflictError('Linked time and meal draft pair is unavailable');
+      const timeId = String(pair.timeId);
+      const expenseId = String(pair.expenseId);
+      this.assertProjectObjectAccess(
+        principal,
+        String(pair.timeProject),
+        String(pair.workDate),
+        String(pair.timeWorker),
+      );
+      if (
+        principal.role !== 'owner_admin' &&
+        (principal.role !== 'worker' || principal.userId !== pair.timeWorker)
+      )
+        throw new AccessDeniedError('Linked draft withdrawal access required');
+      if (pair.timeState === 'void' && pair.expenseState === 'void')
+        return { timeId, expenseId, alreadyWithdrawn: true };
+      if (
+        pair.timeState !== 'draft' ||
+        pair.expenseState !== 'draft' ||
+        pair.timeVersion !== input.timeVersion ||
+        pair.expenseVersion !== input.expenseVersion ||
+        pair.timeProject !== pair.expenseProject ||
+        pair.timeWorker !== pair.expenseWorker ||
+        pair.workDate !== pair.spentOn ||
+        pair.expenseTimeId !== timeId ||
+        pair.expenseCategory !== 'meals' ||
+        pair.timeInvoice ||
+        pair.timeLock ||
+        pair.timeLocked ||
+        pair.timeSubmitted ||
+        pair.timeBilling !== 'unlocked' ||
+        pair.expenseInvoice ||
+        pair.expenseLock ||
+        pair.expenseBilling !== 'unlocked' ||
+        pair.expenseSubmitted ||
+        pair.expenseApproved ||
+        pair.expenseFinanceApproved ||
+        pair.reimbursedAt ||
+        this.sqlite
+          .prepare('SELECT 1 FROM approval_event WHERE entity_id IN (?,?) LIMIT 1')
+          .get(timeId, expenseId) ||
+        this.sqlite
+          .prepare('SELECT 1 FROM report_time_link WHERE time_entry_id=? LIMIT 1')
+          .get(timeId) ||
+        this.sqlite
+          .prepare('SELECT 1 FROM expense WHERE time_entry_id=? AND id<>? LIMIT 1')
+          .get(timeId, expenseId) ||
+        this.sqlite
+          .prepare(
+            'SELECT 1 FROM record_correction_link WHERE original_id IN (?,?) OR correction_id IN (?,?) LIMIT 1',
+          )
+          .get(timeId, expenseId, timeId, expenseId) ||
+        this.sqlite
+          .prepare('SELECT 1 FROM crew_shared_expense_allocation WHERE time_entry_id=? LIMIT 1')
+          .get(timeId) ||
+        this.sqlite
+          .prepare('SELECT 1 FROM crew_shared_expense_allocation_group WHERE expense_id=? LIMIT 1')
+          .get(expenseId)
+      )
+        throw new ConflictError('Linked time and meal drafts changed before withdrawal');
+      const timestamp = now();
+      const timeChanged = this.sqlite
+        .prepare(
+          "UPDATE time_entry SET approval_state='void',updated_at=?,version=version+1 WHERE id=? AND approval_state='draft' AND version=?",
+        )
+        .run(timestamp, timeId, input.timeVersion);
+      const expenseChanged = this.sqlite
+        .prepare(
+          "UPDATE expense SET approval_state='void',updated_at=?,version=version+1 WHERE id=? AND approval_state='draft' AND version=?",
+        )
+        .run(timestamp, expenseId, input.expenseVersion);
+      if (timeChanged.changes !== 1 || expenseChanged.changes !== 1)
+        throw new ConflictError('Linked time and meal drafts changed before withdrawal');
+      for (const [entityType, entityId] of [
+        ['time', timeId],
+        ['expense', expenseId],
+      ] as const)
+        this.sqlite
+          .prepare(
+            'INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at) VALUES(?,?,?,?,?,?,?,?)',
+          )
+          .run(
+            newId(),
+            entityType,
+            entityId,
+            'draft',
+            'void',
+            principal.userId,
+            `Withdrawn linked time and meal drafts: ${reason}`,
+            timestamp,
+          );
+      const auditDetails = {
+        timeId,
+        expenseId,
+        reason,
+        linkedPairWithdrawal: true,
+        ownerOverride: principal.role === 'owner_admin' && principal.userId !== pair.actorId,
+      };
+      this.audit(principal, 'time.void', 'time_entry', timeId, auditDetails);
+      this.audit(principal, 'expense.void', 'expense', expenseId, auditDetails);
+      return { timeId, expenseId, alreadyWithdrawn: false };
     });
   }
 
@@ -11277,6 +12022,8 @@ export class PortalRepository {
         input.timezone === undefined
           ? String(existing.timezone)
           : assertText(input.timezone, 'Timezone', 80);
+      if (input.timezone !== undefined && !isValidIanaTimeZone(timezone))
+        throw new ValidationError('Project timezone must be a valid IANA time zone');
       const expectedMinutesPerDay =
         input.expectedHoursPerDay !== undefined && input.expectedHoursPerDay !== ''
           ? boundedInteger(

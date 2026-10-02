@@ -21,6 +21,11 @@
   const financeProjectUnavailable = $derived(
     status === 404 && $page.error?.message === 'finance.project_unavailable',
   );
+  const auditHistoryCursorInvalid = $derived(
+    status === 400 &&
+      $page.url.pathname === `${base}/app/audit` &&
+      $page.error?.message === 'Invalid audit history cursor',
+  );
   const translate = (key: string): string => standaloneText(locale, key);
   const notificationDetailUnavailable = $derived.by(() => {
     if (status !== 404) return false;
@@ -29,15 +34,17 @@
     return path.startsWith(prefix) && !path.slice(prefix.length).includes('/');
   });
   const title = $derived(
-    financeProjectUnavailable
-      ? translate('Project unavailable')
-      : notificationDetailUnavailable
-        ? translate('Notification unavailable')
-        : status === 404
-          ? standaloneText(locale, 'No results')
-          : status === 403
-            ? standaloneText(locale, 'Access restricted')
-            : standaloneText(locale, 'Error'),
+    auditHistoryCursorInvalid
+      ? translate('Invalid audit history link')
+      : financeProjectUnavailable
+        ? translate('Project unavailable')
+        : notificationDetailUnavailable
+          ? translate('Notification unavailable')
+          : status === 404
+            ? standaloneText(locale, 'No results')
+            : status === 403
+              ? standaloneText(locale, 'Access restricted')
+              : standaloneText(locale, 'Error'),
   );
   const genericFailure = $derived(standaloneText(locale, 'action.error.unavailable'));
   const closeoutFinanceDenied = $derived(
@@ -52,47 +59,61 @@
       $page.error?.message === 'Approval access required',
   );
   const description = $derived(
-    financeProjectUnavailable
+    auditHistoryCursorInvalid
       ? translate(
-          'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.',
+          'This audit history link is incomplete or invalid. Open the latest events to continue.',
         )
-      : status === 404
-        ? notificationDetailUnavailable
-          ? translate('problem.notification.unavailable')
-          : translate('No records match that search in your access scope.')
-        : status === 403
-          ? closeoutFinanceDenied
-            ? translate('problem.closeout.financeRoleRequired')
-            : approvalRoleDenied
-              ? translate(
-                  'Approvals are available to owners, project managers, and finance administrators. Open your workspace or contact an owner if you need this access.',
-                )
-              : translate(
-                  'Your account does not have access to this page. Return to a section available to your role.',
-                )
-          : genericFailure,
+      : financeProjectUnavailable
+        ? translate(
+            'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.',
+          )
+        : status === 404
+          ? notificationDetailUnavailable
+            ? translate('problem.notification.unavailable')
+            : translate('No records match that search in your access scope.')
+          : status === 403
+            ? closeoutFinanceDenied
+              ? translate('problem.closeout.financeRoleRequired')
+              : approvalRoleDenied
+                ? translate(
+                    'Approvals are available to owners, project managers, and finance administrators. Open your workspace or contact an owner if you need this access.',
+                  )
+                : translate(
+                    'Your account does not have access to this page. Return to a section available to your role.',
+                  )
+            : genericFailure,
   );
   const recoveryHref = $derived(
-    financeProjectUnavailable
+    auditHistoryCursorInvalid
       ? (() => {
-          const recovery = new URL($page.url);
-          recovery.searchParams.delete('project');
-          recovery.searchParams.set('view', 'overview');
-          return `${recovery.pathname}${recovery.search}`;
+          const requestedView = $page.url.searchParams.get('view');
+          const view =
+            requestedView === 'service' || requestedView === 'all' ? requestedView : 'business';
+          return `${base}/app/audit?lang=${encodeURIComponent(locale)}&view=${view}`;
         })()
-      : notificationDetailUnavailable
-        ? `${base}/app/notifications?lang=${locale}`
-        : `${base}/app/`,
+      : financeProjectUnavailable
+        ? (() => {
+            const recovery = new URL($page.url);
+            recovery.searchParams.delete('project');
+            recovery.searchParams.set('view', 'overview');
+            return `${recovery.pathname}${recovery.search}`;
+          })()
+        : notificationDetailUnavailable
+          ? `${base}/app/notifications?lang=${locale}`
+          : `${base}/app/`,
   );
   const recoveryLabel = $derived(
-    financeProjectUnavailable
-      ? translate('Choose an available project')
-      : notificationDetailUnavailable
-        ? translate('Activity inbox')
-        : standaloneText(locale, 'Open my workspace'),
+    auditHistoryCursorInvalid
+      ? translate('Open latest audit events')
+      : financeProjectUnavailable
+        ? translate('Choose an available project')
+        : notificationDetailUnavailable
+          ? translate('Activity inbox')
+          : standaloneText(locale, 'Open my workspace'),
   );
   const sectionLabel = $derived.by(() => {
     const code = String($page.error?.message ?? '');
+    if (auditHistoryCursorInvalid) return translate('Audit log');
     if (approvalRoleDenied) return translate('Approvals');
     if (code.includes('project') || $page.url.pathname.includes('/projects/'))
       return translate('Projects');
@@ -109,7 +130,8 @@
   onMount(() => {
     persistStandaloneLocale(locale);
     applyStandaloneDocumentLocale(locale);
-    if (status === 403 || notificationDetailUnavailable) errorHeading?.focus();
+    if (status === 403 || notificationDetailUnavailable || auditHistoryCursorInvalid)
+      errorHeading?.focus();
   });
   $effect(() => applyStandaloneDocumentLocale(locale));
 </script>

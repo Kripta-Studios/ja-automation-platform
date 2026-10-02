@@ -320,6 +320,20 @@ export function financeFailure(
     },
   ] as const;
   if (
+    context.actionName === 'classifyExpenseCommercially' &&
+    message === 'Withdrawn or rejected expense cannot be classified'
+  )
+    return problem(
+      409,
+      'problem.finance.expenseUnavailableForClassification',
+      {},
+      'This expense was withdrawn or rejected and cannot be classified. Review active expenses.',
+      {
+        code: 'FINANCE_EXPENSE_CLASSIFICATION_SOURCE_UNAVAILABLE',
+        remedies: [{ id: 'review_finance_expenses' }],
+      },
+    );
+  if (
     context.actionName === 'setExpensePlanningDates' &&
     error instanceof ValidationError &&
     message === 'Expense not found'

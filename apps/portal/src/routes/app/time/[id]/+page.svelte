@@ -22,6 +22,7 @@
   } from '$lib/i18n/controlled-values';
   type Row = Record<string, string | number | boolean | null>;
   let { data, form } = $props();
+  const formValues = $derived((form as { values?: Record<string, unknown> } | null)?.values ?? {});
   const detailForm = $derived(form as (Partial<ProblemData> & { success?: boolean }) | null);
   const problem = $derived(
     detailForm?.success === false &&
@@ -60,7 +61,7 @@
       !problem?.code?.startsWith('TIME_CORRECTION_')
     )
       return [];
-    const values = form?.values as Record<string, unknown> | undefined;
+    const values = formValues;
     if (!values) return [];
     const fields = [
       ['workDate', 'Date'],
@@ -92,6 +93,11 @@
     problem?.code === 'TIME_SUBMISSION_NOT_DRAFT' && typeof problem.params.status === 'string'
       ? problem.params.status
       : record.approval_state,
+  );
+  const statusLabel = $derived(
+    data.linkedPair?.expenseState === 'void' && record.approval_state === 'void'
+      ? t('Withdrawn')
+      : controlled('status', statusForDisplay),
   );
   const linkedExpenseId = $derived(
     problem?.remedies.find((remedy) => remedy.id === 'review_linked_expense')?.recordId ??
@@ -254,265 +260,370 @@
 </script>
 
 <svelte:head><title>{t('Time entry')} | {record.project_number}</title></svelte:head>
-<main class="record-detail-page">
-  <nav class="detail-nav">
-    <a href={base + '/app/time'} data-origin-back><DirectionIcon direction="left" /> {t('Time')}</a>
-    {#if !data.user?.workforceProfile}<a href={base + '/app/projects/' + String(record.project_id)}
-        >{t('Open project')}</a
-      >{/if}
-    {#if record.approval_state === 'submitted' && ['owner_admin', 'project_manager'].includes(data.user?.role ?? '')}
+{#if data.reviewOnly}
+  <main class="record-detail-page" data-review-only="time">
+    <nav class="detail-nav" data-review-navigation aria-label={t('Back to approvals')}>
       <a
-        class="no-print"
-        href={`${base}/app/approvals?project=${encodeURIComponent(String(record.project_id))}&tab=time&status=submitted&q=&lang=${encodeURIComponent(locale)}`}
-        >{t('Review in approvals')}</a
+        href={`${base}/app/approvals?project=${encodeURIComponent(String(record.project_id))}&tab=time&status=${encodeURIComponent(String(record.approval_state))}&q=&lang=${encodeURIComponent(locale)}`}
+        ><DirectionIcon direction="left" /> {t('Back to approvals')}</a
       >
-    {/if}
-    {#if canAddRelatedExpense}
-      <a href={relatedExpenseHref}>{t('Add related expense')}</a>
-    {/if}
-    <button type="button" class="no-print print-trigger" onclick={printReport}>
-      <PrintIcon />
-      {t('Print Report')}
-    </button>
-  </nav>
-  <header class="record-detail-header">
-    <div>
-      <span class="portal-kicker">{t('TIME ENTRY · SOURCE RECORD')}</span>
-      <h1>{record.project_number} · {record.work_date}</h1>
-      <p>{record.project_name} · {record.worker_name}</p>
-    </div>
-    <span class="state-tag">{controlled('status', statusForDisplay)}</span>
-  </header>
-  {#if problem && (!withdrawProblem || !data.canWithdrawCorrection)}
-    <div data-time-detail-problem>
-      <ProblemNotice
-        {problem}
-        kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
-        status={`${t('Status')}: ${controlled('status', statusForDisplay)}`}
-        {remedyLinks}
-      />
-    </div>
-    {#if withdrawProblem && !data.canWithdrawCorrection && form?.values?.reason}
-      <p><strong>{t('Withdrawal reason you entered')}:</strong> {form.values.reason}</p>
-    {/if}
-  {:else if !problem && standaloneActionMessage(locale, form)}
-    <p class="action-message" role="alert">{standaloneActionMessage(locale, form)}</p>
-  {/if}
-  {#if data.correctionOrigin}
-    <section class="detail-panel record-detail-copy" aria-labelledby="time-correction-origin-title">
-      <h2 id="time-correction-origin-title">
-        <span class="state-tag">{t('Corrected time entry')}</span>
-      </h2>
-      <p><strong>{t('Correction reason')}:</strong> {data.correctionOrigin.reason}</p>
-      <a
-        href={`${base}/app/time/${encodeURIComponent(data.correctionOrigin.id)}?lang=${encodeURIComponent(locale)}`}
-        >{t('Open original time entry')} <DirectionIcon /></a
-      >
-    </section>
-  {/if}
-  <section class="record-detail-grid">
-    <article><span>{t('ACTUAL TIME')}</span><strong>{hours(record.minutes)}</strong></article>
-    <article>
-      <span>{t('CATEGORY')}</span><strong>{controlled('timeCategory', record.category)}</strong>
-    </article>
-    {#if 'billability_state' in record}
-      <article>
-        <span>{t('BILLABILITY')}</span><strong
-          >{controlled('status', record.billability_state ?? 'pending')}</strong
-        >
-      </article>
-    {/if}
-    <article>
-      <span>{t('SITE')}</span><strong>{record.site ?? record.site_name ?? '—'}</strong>
-    </article>
-  </section>
-  <section class="detail-panel record-detail-copy">
-    <div class="panel-title">
-      <h2>{t('Activity summary')}</h2>
-      <span>{record.activity_code ?? t('No code')}</span>
-    </div>
-    <p>{record.activity_summary ?? t('No activity summary was recorded.')}</p>
-    <dl class="record-facts">
+    </nav>
+    <header class="record-detail-header">
       <div>
-        <dt>{t('Project timezone')}</dt>
-        <dd>{record.project_timezone ?? '—'}</dd>
+        <span class="portal-kicker">{t('Read-only operational review')}</span>
+        <h1>{t('Time entry')} · {record.project_number}</h1>
+        <p>{record.project_name} · {record.work_date}</p>
       </div>
-      <div>
-        <dt>{t('Shift window')}</dt>
-        <dd>{record.start_time ?? '—'} → {record.end_time ?? '—'}</dd>
-      </div>
-      <div>
-        <dt>{t('Break')}</dt>
-        <dd>
-          {record.break_minutes === null || record.break_minutes === undefined
-            ? '—'
-            : hours(record.break_minutes)}
-        </dd>
-      </div>
-      <div>
-        <dt>{t('Submitted')}</dt>
-        <dd>{record.submitted_at ? localMoment(record.submitted_at) : t('Not submitted')}</dd>
-      </div>
-      <div>
-        <dt>{t('Approved')}</dt>
-        <dd>{record.approved_at ? localMoment(record.approved_at) : t('Not approved')}</dd>
-      </div>
-    </dl>
-  </section>
-  {#if data.activeCorrection}
-    <section class="detail-panel record-detail-copy" aria-label={t('Open existing correction')}>
-      <p>
-        {t('An existing correction is')}
-        {controlled('status', data.activeCorrection.status)}.
-      </p>
-      <a
-        href={`${base}/app/time/${encodeURIComponent(data.activeCorrection.id)}?lang=${encodeURIComponent(locale)}`}
-        >{t('Open existing correction')} <DirectionIcon /></a
-      >
-    </section>
-  {/if}
-  {#if data.ownDraft}
-    <section class="detail-panel record-detail-copy" aria-label={t('Edit draft')}>
-      {#if data.ownDraft.can_edit === 1}
-        <a
-          class="primary-button"
-          href={`${base}/app/time?edit=${encodeURIComponent(String(record.id))}`}
-          >{t('Edit draft')} <DirectionIcon /></a
-        >
-      {/if}
-      {#if !submissionBlocked}
-        <form method="POST" action="?/submitTime" onsubmit={rememberScroll}>
-          <input type="hidden" name="id" value={String(record.id)} />
-          <input type="hidden" name="version" value={data.ownDraft.version} />
-          <button type="submit">{t('Submit')}</button>
-        </form>
-      {/if}
-      {#if data.ownDraft.can_delete === 1}
-        <form
-          method="POST"
-          action={`${base}/app/time?/deleteDraft`}
-          onsubmit={(event) => {
-            if (!window.confirm(t('Delete this draft?'))) event.preventDefault();
-          }}
-        >
-          <input type="hidden" name="recordType" value="time_entry" />
-          <input type="hidden" name="recordId" value={String(record.id)} />
-          <input type="hidden" name="version" value={data.ownDraft.version} />
-          <button type="submit" class="destructive-button">{t('Delete draft')}</button>
-        </form>
-      {/if}
-    </section>
-  {/if}
-  {#if data.canWithdrawCorrection}
-    <section class="detail-panel record-detail-copy" aria-label={t('Withdraw correction draft')}>
-      {#if withdrawProblem}
-        <div data-time-detail-problem>
-          <ProblemNotice
-            problem={withdrawProblem}
-            kind={withdrawProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
-            status={`${t('Status')}: ${controlled('status', statusForDisplay)}`}
-            {remedyLinks}
-          />
-        </div>
-      {:else if data.withdrawWarning}
-        <ProblemNotice
-          problem={data.withdrawWarning}
-          kind="warning"
-          status={`${t('Status')}: ${controlled('status', record.approval_state)}`}
-          {remedyLinks}
-        />
-      {/if}
-      {#if withdrawalNeedsReview}
-        {#if withdrawProblem && form?.values?.reason}
-          <p><strong>{t('Withdrawal reason you entered')}:</strong> {form.values.reason}</p>
-        {/if}
-      {:else}
-        <form
-          method="POST"
-          action="?/withdrawCorrectionDraft"
-          class="record-correction-withdraw"
-          use:formValidation
-        >
-          <input type="hidden" name="recordType" value="time_entry" />
-          <input type="hidden" name="correctionId" value={String(record.id)} />
-          <input type="hidden" name="version" value={data.withdrawVersion} />
-          <label
-            ><span>{t('Why withdraw this draft?')}</span><input
-              id="time-withdraw-reason"
-              name="reason"
-              value={withdrawProblem ? String(form?.values?.reason ?? '') : ''}
-              minlength="3"
-              maxlength="2000"
-              required
-            /></label
-          >
-          <button type="submit" class="destructive-button">{t('Withdraw correction draft')}</button>
-        </form>
-      {/if}
-    </section>
-  {/if}
-  {#if ['needs_changes', 'rejected'].includes(String(record.approval_state))}
-    <section class="detail-panel record-detail-copy" aria-labelledby="time-review-title">
-      <h2 id="time-review-title">{t('Review outcome')}</h2>
-      <p>
-        <strong>{t('Review reason')}:</strong>
-        {record.review_reason || t('No review reason was recorded.')}
-      </p>
-      {#if !data.activeCorrection && data.canCreateCorrection}
-        <a href="#time-correction-title">{t('Create corrected draft')} <DirectionIcon /></a>
-      {:else if !data.activeCorrection}
-        <p>{t('The recorded worker must create a corrected draft from their Time register.')}</p>
-      {/if}
-    </section>
-  {/if}
-  {#if data.canCreateCorrection}
-    <section class="detail-panel record-detail-copy" aria-labelledby="time-correction-title">
-      <h2 id="time-correction-title">{t('Create corrected draft')}</h2>
-      <CorrectionDraftForm
-        recordType="time_entry"
-        {record}
-        translate={t}
-        ownerOverride={data.user.role === 'owner_admin'}
-        values={form?.values ?? {}}
-        requestId={data.correctionRequestId}
-      />
-    </section>
-  {/if}
-  {#if retainedCorrectionValues.length}
-    <section
-      class="detail-panel record-detail-copy"
-      aria-labelledby="time-correction-retained-title"
-    >
-      <h2 id="time-correction-retained-title">{t('problem.time.correctionValuesRetained')}</h2>
+      <span class="state-tag">{controlled('status', record.approval_state)}</span>
+    </header>
+    <section class="detail-panel record-detail-copy">
+      <p>{t('Approval actions remain in the Approvals queue.')}</p>
       <dl class="record-facts">
-        {#each retainedCorrectionValues as item}
-          <div>
-            <dt>{item.label}</dt>
-            <dd>{item.value}</dd>
-          </div>
-        {/each}
+        <div>
+          <dt>{t('Worker')}</dt>
+          <dd>{record.worker_name}</dd>
+        </div>
+        <div>
+          <dt>{t('Project')}</dt>
+          <dd>{record.project_number} · {record.project_name}</dd>
+        </div>
+        <div>
+          <dt>{t('Date')}</dt>
+          <dd>{record.work_date}</dd>
+        </div>
+        <div>
+          <dt>{t('Status')}</dt>
+          <dd>{controlled('status', record.approval_state)}</dd>
+        </div>
+        <div>
+          <dt>{t('Actual minutes')}</dt>
+          <dd>{record.minutes}</dd>
+        </div>
+        <div>
+          <dt>{t('Operational category')}</dt>
+          <dd>{controlled('timeCategory', record.category)}</dd>
+        </div>
+        <div>
+          <dt>{t('Activity summary')}</dt>
+          <dd>{record.activity_summary || '—'}</dd>
+        </div>
       </dl>
     </section>
-  {/if}
-  <section class="detail-panel record-detail-copy">
-    <div class="panel-title"><h2>{t('Related reports')}</h2></div>
-    {#if data.relatedReports?.length}
-      <ul>
-        {#each data.relatedReports as report}
-          <li>
-            <a href={`${base}/app/reports/${report.id}`}
-              >{t(report.type === 'technical' ? 'Technical report' : 'Daily report')}</a
-            >
-            · {controlled('status', report.status)}
-          </li>
-        {/each}
-      </ul>
-    {:else}
-      <p>{t('No related reports yet.')}</p>
+  </main>
+{:else}
+  <main class="record-detail-page">
+    <nav class="detail-nav">
+      <a href={base + '/app/time'} data-origin-back
+        ><DirectionIcon direction="left" /> {t('Time')}</a
+      >
+      {#if !data.user?.workforceProfile}<a
+          href={base + '/app/projects/' + String(record.project_id)}>{t('Open project')}</a
+        >{/if}
+      {#if record.approval_state === 'submitted' && ['owner_admin', 'project_manager'].includes(data.user?.role ?? '')}
+        <a
+          class="no-print"
+          href={`${base}/app/approvals?project=${encodeURIComponent(String(record.project_id))}&tab=time&status=submitted&q=&lang=${encodeURIComponent(locale)}`}
+          >{t('Review in approvals')}</a
+        >
+      {/if}
+      {#if canAddRelatedExpense}
+        <a href={relatedExpenseHref}>{t('Add related expense')}</a>
+      {/if}
+      <button type="button" class="no-print print-trigger" onclick={printReport}>
+        <PrintIcon />
+        {t('Print Report')}
+      </button>
+    </nav>
+    <header class="record-detail-header">
+      <div>
+        <span class="portal-kicker">{t('TIME ENTRY · SOURCE RECORD')}</span>
+        <h1>{record.project_number} · {record.work_date}</h1>
+        <p>{record.project_name} · {record.worker_name}</p>
+      </div>
+      <span class="state-tag">{statusLabel}</span>
+    </header>
+    {#if problem && (!withdrawProblem || !data.canWithdrawCorrection)}
+      <div data-time-detail-problem>
+        <ProblemNotice
+          {problem}
+          kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+          status={`${t('Status')}: ${statusLabel}`}
+          {remedyLinks}
+        />
+      </div>
+      {#if withdrawProblem && !data.canWithdrawCorrection && formValues.reason}
+        <p><strong>{t('Withdrawal reason you entered')}:</strong> {String(formValues.reason)}</p>
+      {/if}
+    {:else if !problem && standaloneActionMessage(locale, form)}
+      <p class="action-message" role="alert">{standaloneActionMessage(locale, form)}</p>
     {/if}
-    <a
-      href={`${base}/app/reports?project=${encodeURIComponent(String(record.project_id))}&from=${encodeURIComponent(String(record.work_date))}&to=${encodeURIComponent(String(record.work_date))}`}
-      >{t('View project reports')}</a
-    >
-  </section>
-</main>
+    {#if data.correctionOrigin}
+      <section
+        class="detail-panel record-detail-copy"
+        aria-labelledby="time-correction-origin-title"
+      >
+        <h2 id="time-correction-origin-title">
+          <span class="state-tag">{t('Corrected time entry')}</span>
+        </h2>
+        <p><strong>{t('Correction reason')}:</strong> {data.correctionOrigin.reason}</p>
+        <a
+          href={`${base}/app/time/${encodeURIComponent(data.correctionOrigin.id)}?lang=${encodeURIComponent(locale)}`}
+          >{t('Open original time entry')} <DirectionIcon /></a
+        >
+      </section>
+    {/if}
+    <section class="record-detail-grid">
+      <article><span>{t('ACTUAL TIME')}</span><strong>{hours(record.minutes)}</strong></article>
+      <article>
+        <span>{t('CATEGORY')}</span><strong>{controlled('timeCategory', record.category)}</strong>
+      </article>
+      {#if record.approval_state !== 'void' && 'billability_state' in record}
+        <article>
+          <span>{t('BILLABILITY')}</span><strong
+            >{controlled('status', record.billability_state ?? 'pending')}</strong
+          >
+        </article>
+      {/if}
+      <article>
+        <span>{t('SITE')}</span><strong>{record.site ?? record.site_name ?? '—'}</strong>
+      </article>
+    </section>
+    <section class="detail-panel record-detail-copy">
+      <div class="panel-title">
+        <h2>{t('Activity summary')}</h2>
+        <span>{record.activity_code ?? t('No code')}</span>
+      </div>
+      <p>{record.activity_summary ?? t('No activity summary was recorded.')}</p>
+      <dl class="record-facts">
+        <div>
+          <dt>{t('Project timezone')}</dt>
+          <dd>{record.project_timezone ?? '—'}</dd>
+        </div>
+        <div>
+          <dt>{t('Shift window')}</dt>
+          <dd>{record.start_time ?? '—'} → {record.end_time ?? '—'}</dd>
+        </div>
+        <div>
+          <dt>{t('Break')}</dt>
+          <dd>
+            {record.break_minutes === null || record.break_minutes === undefined
+              ? '—'
+              : hours(record.break_minutes)}
+          </dd>
+        </div>
+        <div>
+          <dt>{t('Submitted')}</dt>
+          <dd>{record.submitted_at ? localMoment(record.submitted_at) : t('Not submitted')}</dd>
+        </div>
+        <div>
+          <dt>{t('Approved')}</dt>
+          <dd>{record.approved_at ? localMoment(record.approved_at) : t('Not approved')}</dd>
+        </div>
+      </dl>
+    </section>
+    {#if data.activeCorrection}
+      <section class="detail-panel record-detail-copy" aria-label={t('Open existing correction')}>
+        <p>
+          {t('An existing correction is')}
+          {controlled('status', data.activeCorrection.status)}.
+        </p>
+        <a
+          href={`${base}/app/time/${encodeURIComponent(data.activeCorrection.id)}?lang=${encodeURIComponent(locale)}`}
+          >{t('Open existing correction')} <DirectionIcon /></a
+        >
+      </section>
+    {/if}
+    {#if data.linkedPair}
+      <section class="detail-panel record-detail-copy" aria-label={t('Linked time and meal entry')}>
+        <p>{t('This time entry and meal expense were created together.')}</p>
+        <a
+          href={`${base}/app/expenses/${encodeURIComponent(data.linkedPair.expenseId)}?lang=${encodeURIComponent(locale)}`}
+        >
+          {t('Review linked meal expense')}
+          <DirectionIcon />
+        </a>
+      </section>
+    {/if}
+    {#if data.ownDraft}
+      <section class="detail-panel record-detail-copy" aria-label={t('Edit draft')}>
+        {#if data.ownDraft.can_edit === 1}
+          <a
+            class="primary-button"
+            href={`${base}/app/time?edit=${encodeURIComponent(String(record.id))}`}
+            >{t('Edit draft')} <DirectionIcon /></a
+          >
+        {/if}
+        {#if !submissionBlocked && !data.linkedPair}
+          <form method="POST" action="?/submitTime" onsubmit={rememberScroll}>
+            <input type="hidden" name="id" value={String(record.id)} />
+            <input type="hidden" name="version" value={data.ownDraft.version} />
+            <button type="submit">{t('Submit')}</button>
+          </form>
+        {:else if data.linkedPair}
+          <p>{t('Submit this pair with the weekly time entries.')}</p>
+        {/if}
+        {#if data.ownDraft.can_delete === 1}
+          <form
+            method="POST"
+            action={`${base}/app/time?/deleteDraft`}
+            onsubmit={(event) => {
+              if (!window.confirm(t('Delete this draft?'))) event.preventDefault();
+            }}
+          >
+            <input type="hidden" name="recordType" value="time_entry" />
+            <input type="hidden" name="recordId" value={String(record.id)} />
+            <input type="hidden" name="version" value={data.ownDraft.version} />
+            <button type="submit" class="destructive-button">{t('Delete draft')}</button>
+          </form>
+        {/if}
+        {#if data.linkedPair && record.approval_state === 'draft' && data.linkedPair.expenseState === 'draft'}
+          <form method="POST" action="?/withdrawLinkedDrafts">
+            <input type="hidden" name="expenseId" value={data.linkedPair.expenseId} />
+            <input type="hidden" name="expenseVersion" value={data.linkedPair.expenseVersion} />
+            <input type="hidden" name="timeVersion" value={data.ownDraft.version} />
+            <label
+              ><span>{t('Why withdraw both drafts?')}</span>
+              <input name="reason" required minlength="3" maxlength="2000" />
+            </label>
+            <button type="submit" class="destructive-button"
+              >{t('Withdraw time and meal drafts')}</button
+            >
+          </form>
+        {/if}
+      </section>
+    {/if}
+    {#if data.user?.role === 'owner_admin' && !data.ownDraft && data.linkedPair && record.approval_state === 'draft' && data.linkedPair.expenseState === 'draft'}
+      <section class="detail-panel record-detail-copy" aria-label={t('Linked time and meal entry')}>
+        <form method="POST" action="?/withdrawLinkedDrafts">
+          <input type="hidden" name="expenseId" value={data.linkedPair.expenseId} />
+          <input type="hidden" name="expenseVersion" value={data.linkedPair.expenseVersion} />
+          <input type="hidden" name="timeVersion" value={data.linkedPair.timeVersion} />
+          <label
+            ><span>{t('Why withdraw both drafts?')}</span>
+            <input name="reason" required minlength="3" maxlength="2000" />
+          </label>
+          <button type="submit" class="destructive-button"
+            >{t('Withdraw time and meal drafts')}</button
+          >
+        </form>
+      </section>
+    {/if}
+    {#if data.canWithdrawCorrection}
+      <section class="detail-panel record-detail-copy" aria-label={t('Withdraw correction draft')}>
+        {#if withdrawProblem}
+          <div data-time-detail-problem>
+            <ProblemNotice
+              problem={withdrawProblem}
+              kind={withdrawProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+              status={`${t('Status')}: ${statusLabel}`}
+              {remedyLinks}
+            />
+          </div>
+        {:else if data.withdrawWarning}
+          <ProblemNotice
+            problem={data.withdrawWarning}
+            kind="warning"
+            status={`${t('Status')}: ${controlled('status', record.approval_state)}`}
+            {remedyLinks}
+          />
+        {/if}
+        {#if withdrawalNeedsReview}
+          {#if withdrawProblem && formValues.reason}
+            <p>
+              <strong>{t('Withdrawal reason you entered')}:</strong>
+              {String(formValues.reason)}
+            </p>
+          {/if}
+        {:else}
+          <form
+            method="POST"
+            action="?/withdrawCorrectionDraft"
+            class="record-correction-withdraw"
+            use:formValidation
+          >
+            <input type="hidden" name="recordType" value="time_entry" />
+            <input type="hidden" name="correctionId" value={String(record.id)} />
+            <input type="hidden" name="version" value={data.withdrawVersion} />
+            <label
+              ><span>{t('Why withdraw this draft?')}</span><input
+                id="time-withdraw-reason"
+                name="reason"
+                value={withdrawProblem ? String(formValues.reason ?? '') : ''}
+                minlength="3"
+                maxlength="2000"
+                required
+              /></label
+            >
+            <button type="submit" class="destructive-button"
+              >{t('Withdraw correction draft')}</button
+            >
+          </form>
+        {/if}
+      </section>
+    {/if}
+    {#if ['needs_changes', 'rejected'].includes(String(record.approval_state))}
+      <section class="detail-panel record-detail-copy" aria-labelledby="time-review-title">
+        <h2 id="time-review-title">{t('Review outcome')}</h2>
+        <p>
+          <strong>{t('Review reason')}:</strong>
+          {record.review_reason || t('No review reason was recorded.')}
+        </p>
+        {#if !data.activeCorrection && data.canCreateCorrection}
+          <a href="#time-correction-title">{t('Create corrected draft')} <DirectionIcon /></a>
+        {:else if !data.activeCorrection}
+          <p>{t('The recorded worker must create a corrected draft from their Time register.')}</p>
+        {/if}
+      </section>
+    {/if}
+    {#if data.canCreateCorrection}
+      <section class="detail-panel record-detail-copy" aria-labelledby="time-correction-title">
+        <h2 id="time-correction-title">{t('Create corrected draft')}</h2>
+        <CorrectionDraftForm
+          recordType="time_entry"
+          {record}
+          translate={t}
+          ownerOverride={data.user.role === 'owner_admin'}
+          values={formValues}
+          requestId={data.correctionRequestId}
+        />
+      </section>
+    {/if}
+    {#if retainedCorrectionValues.length}
+      <section
+        class="detail-panel record-detail-copy"
+        aria-labelledby="time-correction-retained-title"
+      >
+        <h2 id="time-correction-retained-title">{t('problem.time.correctionValuesRetained')}</h2>
+        <dl class="record-facts">
+          {#each retainedCorrectionValues as item}
+            <div>
+              <dt>{item.label}</dt>
+              <dd>{item.value}</dd>
+            </div>
+          {/each}
+        </dl>
+      </section>
+    {/if}
+    <section class="detail-panel record-detail-copy">
+      <div class="panel-title"><h2>{t('Related reports')}</h2></div>
+      {#if data.relatedReports?.length}
+        <ul>
+          {#each data.relatedReports as report}
+            <li>
+              <a href={`${base}/app/reports/${report.id}`}
+                >{t(report.type === 'technical' ? 'Technical report' : 'Daily report')}</a
+              >
+              · {controlled('status', report.status)}
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p>{t('No related reports yet.')}</p>
+      {/if}
+      <a
+        href={`${base}/app/reports?project=${encodeURIComponent(String(record.project_id))}&from=${encodeURIComponent(String(record.work_date))}&to=${encodeURIComponent(String(record.work_date))}`}
+        >{t('View project reports')}</a
+      >
+    </section>
+  </main>
+{/if}

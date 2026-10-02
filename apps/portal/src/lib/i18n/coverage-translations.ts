@@ -353,6 +353,10 @@ const exact: Record<string, readonly [string, string]> = {
     'Introduce una fecha de trabajo real en formato AAAA-MM-DD para ver las horas del equipo.',
     'Introduza uma data de trabalho válida no formato AAAA-MM-DD para ver as horas da equipa.',
   ],
+  'problem.crew.dayOutsideAssignment': [
+    'No tienes asignación en este proyecto para la fecha de trabajo seleccionada. Elige una fecha dentro de tu asignación o pide al propietario del proyecto que la revise.',
+    'Você não está atribuído a este projeto na data de trabalho selecionada. Escolha uma data dentro da sua atribuição ou peça ao responsável pelo projeto para a rever.',
+  ],
   'problem.crew.dayProjectDuplicate': [
     'El filtro de proyecto se ha enviado más de una vez. Conserva una sola selección de proyecto.',
     'O filtro de projeto foi enviado mais de uma vez. Mantenha apenas uma seleção de projeto.',
@@ -1361,6 +1365,22 @@ const exact: Record<string, readonly [string, string]> = {
     'Elige fechas válidas de inicio y fin; la fecha de inicio debe ser igual o anterior a la de fin.',
     'Escolha datas válidas de início e fim; a data inicial deve ser igual ou anterior à final.',
   ],
+  'problem.pay.periodInvalid': [
+    'Elige una única fecha válida de inicio y fin; la fecha de fin debe ser igual o posterior a la de inicio.',
+    'Escolha uma única data válida de início e fim; a data final deve ser igual ou posterior à inicial.',
+  ],
+  'problem.pay.startInvalid': [
+    'Introduce una única fecha de inicio real en formato AAAA-MM-DD.',
+    'Introduza uma única data de início válida no formato AAAA-MM-DD.',
+  ],
+  'problem.pay.endInvalid': [
+    'Introduce una única fecha de fin real en formato AAAA-MM-DD.',
+    'Introduza uma única data final válida no formato AAAA-MM-DD.',
+  ],
+  'problem.pay.endBeforeStart': [
+    'La fecha de fin debe ser igual o posterior a la de inicio. Cambia una de las fechas y vuelve a aplicar el período.',
+    'A data final deve ser igual ou posterior à inicial. Altere uma das datas e aplique o período novamente.',
+  ],
   'problem.workerStatement.localeInvalid': [
     'Elige inglés, español o portugués.',
     'Escolha inglês, espanhol ou português.',
@@ -1765,6 +1785,10 @@ const exact: Record<string, readonly [string, string]> = {
     'Introduce fechas de inicio y fin válidas para el período financiero de este proyecto.',
     'Informe datas de início e fim válidas para o período financeiro deste projeto.',
   ],
+  'problem.projectDetail.timezoneInvalid': [
+    'La zona horaria de este proyecto no es válida. Un propietario debe corregirla en Editar proyecto antes de revisar la configuración de facturación.',
+    'O fuso horário deste projeto é inválido. Um proprietário deve corrigi-lo em Editar projeto antes de revisar a configuração de faturamento.',
+  ],
   'problem.workerPay.filterDuplicate': [
     'Un filtro de la revisión de pagos aparece más de una vez. Deja un valor por campo y vuelve a aplicar el período.',
     'Um filtro da revisão de pagamentos foi informado mais de uma vez. Mantenha um valor por campo e aplique o período novamente.',
@@ -1829,6 +1853,14 @@ const exact: Record<string, readonly [string, string]> = {
   'problem.project.scheduleFieldsInvalid': [
     'Faltan días, fechas u horas del calendario, o algunos no son válidos. Corrige los campos señalados.',
     'Dias, datas ou horas do cronograma estão ausentes ou inválidos. Corrija os campos destacados.',
+  ],
+  'problem.project.scheduleTimezoneInvalid': [
+    'Introduce una zona horaria IANA válida, como Europe/Madrid o UTC, y vuelve a guardar.',
+    'Informe um fuso horário IANA válido, como Europe/Madrid ou UTC, e salve novamente.',
+  ],
+  'problem.project.timezoneInvalid': [
+    'Introduce una zona horaria IANA válida, como Europe/Madrid o UTC, y vuelve a guardar.',
+    'Informe um fuso horário IANA válido, como Europe/Madrid ou UTC, e salve novamente.',
   ],
   'problem.assignment.fieldsInvalid': [
     'Faltan datos de proyecto, trabajador, fecha u horario de la asignación, o algunos no son válidos. Corrige los campos señalados.',
@@ -4792,9 +4824,69 @@ const exact: Record<string, readonly [string, string]> = {
     'Este trabajador ya tiene horas registradas en el intervalo seleccionado. Ajusta la hora de inicio o fin.',
     'Este trabalhador já tem horas registradas no intervalo selecionado. Ajuste o horário de início ou fim.',
   ],
+  'problem.time.duplicateEntry': [
+    'Ya existe un registro de horas idéntico para este trabajador y fecha. Revisa las horas guardadas. Si es otro trabajo, confírmalo abajo y vuelve a guardar.',
+    'Já existe um registro de horas idêntico para este trabalhador e data. Revise as horas salvas. Se for outro trabalho, confirme abaixo e salve novamente.',
+  ],
+  'problem.crew.duplicateTime': [
+    'Un trabajador seleccionado ya tiene horas idénticas para esta fecha. Revisa el registro guardado. Si es otro trabajo, confírmalo abajo y vuelve a guardar.',
+    'Um trabalhador selecionado já tem horas idênticas para esta data. Revise o registro salvo. Se for outro trabalho, confirme abaixo e salve novamente.',
+  ],
   'problem.time.expenseRetryChanged': [
     'Esta solicitud de horas y comida ya se usó con otros datos. Revisa los borradores guardados antes de intentarlo de nuevo.',
     'Esta solicitação de horas e refeição já foi usada com outros dados. Revise os rascunhos salvos antes de tentar novamente.',
+  ],
+  'problem.time.expenseRetryWithdrawn': [
+    'Este par de horas y comida se retiró. Inicia un registro nuevo si necesitas volver a registrar el trabajo.',
+    'Este par de horas e refeição foi retirado. Inicie um novo registro se precisar registrar o trabalho novamente.',
+  ],
+  'problem.linkedDraft.deleteTogether': [
+    'Esta comida pertenece a un par vinculado de borradores de horas y comida. Retira ambos borradores juntos.',
+    'Esta refeição pertence a um par vinculado de rascunhos de horas e refeição. Retire os dois juntos.',
+  ],
+  'problem.linkedDraft.withdrawInvalid': [
+    'Escribe un motivo de 3 a 2.000 caracteres y revisa las versiones de ambos borradores.',
+    'Informe um motivo de 3 a 2.000 caracteres e revise as versões dos dois rascunhos.',
+  ],
+  'problem.linkedDraft.withdrawAccessRequired': [
+    'No puedes retirar este par vinculado con tu acceso actual.',
+    'Você não pode retirar este par vinculado com seu acesso atual.',
+  ],
+  'problem.linkedDraft.pairUnavailable': [
+    'Este par vinculado no está disponible. Revisa ambos registros.',
+    'Este par vinculado não está disponível. Revise os dois registros.',
+  ],
+  'problem.linkedDraft.withdrawChanged': [
+    'Este par vinculado cambió o ya no se puede retirar. Revisa ambos registros.',
+    'Este par vinculado mudou ou não pode mais ser retirado. Revise os dois registros.',
+  ],
+  'problem.linkedDraft.editTogether': [
+    'Retira ambos borradores vinculados y crea un nuevo registro de horas y comida con los datos correctos.',
+    'Retire os dois rascunhos vinculados e crie um novo registro de horas e refeição com os dados corretos.',
+  ],
+  'problem.linkedDraft.submitTogether': [
+    'Envía los borradores vinculados de horas y comida juntos desde la revisión semanal de horas.',
+    'Envie os rascunhos vinculados de horas e refeição juntos na revisão semanal de horas.',
+  ],
+  'problem.linkedDraft.submitTimeFirst': [
+    'Envía la semana de horas vinculada antes de enviar este gasto de comida.',
+    'Envie a semana de horas vinculada antes de enviar esta despesa de refeição.',
+  ],
+  'problem.linkedDraft.timeUnavailable': [
+    'Las horas vinculadas no permiten enviar este gasto de comida. Revisa ambos registros.',
+    'As horas vinculadas não permitem enviar esta despesa de refeição. Revise ambos os registros.',
+  ],
+  'problem.expenseWeek.linkedTimeDraft': [
+    'Un gasto de comida está vinculado a horas aún en borrador. Envía primero la semana de horas y luego esta semana de gastos. No se envió ningún gasto.',
+    'Uma despesa de refeição está vinculada a horas ainda em rascunho. Envie primeiro a semana de horas e depois esta semana de despesas. Nenhuma despesa foi enviada.',
+  ],
+  'problem.expenseWeek.dateOutsideAssignment': [
+    'El {spentOn} queda fuera de la asignación activa de esta persona al proyecto. Corrige la fecha o pide al propietario que amplíe la asignación. No se guardó ningún borrador.',
+    'A data {spentOn} está fora da atribuição ativa desta pessoa ao projeto. Corrija a data ou peça ao proprietário para ampliar a atribuição. Nenhum rascunho foi salvo.',
+  ],
+  'problem.expenseWeek.linkedTimeUnavailable': [
+    'Un gasto de comida está vinculado a horas que no se pueden enviar. Revisa las horas y la comida vinculadas antes de volver a intentarlo. No se envió ningún gasto.',
+    'Uma despesa de refeição está vinculada a horas que não podem ser enviadas. Revise as horas e a refeição vinculadas antes de tentar novamente. Nenhuma despesa foi enviada.',
   ],
   'problem.time.correctionAlreadyExists': [
     'Ya existe un borrador de corrección activo para este registro de horas. Revisa el registro actualizado y abre la corrección existente si tienes acceso.',
@@ -5351,6 +5443,30 @@ const exact: Record<string, readonly [string, string]> = {
     'Solo se puede eliminar un borrador de gasto que nunca se haya enviado. Revisa el registro o solicita una corrección.',
     'Só é possível excluir um rascunho de despesa que nunca foi enviado. Revise o registro ou solicite uma correção.',
   ],
+  'problem.expense.crewWithdrawalInvalid': [
+    'Indica un motivo de entre 3 y 2.000 caracteres y revisa la versión actual del borrador.',
+    'Informe um motivo de 3 a 2.000 caracteres e revise a versão atual do rascunho.',
+  ],
+  'problem.expense.crewWithdrawalAccess': [
+    'No puedes retirar este gasto de cuadrilla con tu acceso actual. Contacta con el propietario del proyecto.',
+    'Você não pode retirar esta despesa da equipe com seu acesso atual. Contate o responsável pelo projeto.',
+  ],
+  'problem.expense.crewWithdrawalChanged': [
+    'Este gasto de cuadrilla cambió o tiene historial de revisión, reparto o finanzas. Revisa el registro actual antes de retirarlo.',
+    'Esta despesa da equipe mudou ou possui histórico de revisão, alocação ou financeiro. Revise o registro atual antes de retirá-la.',
+  ],
+  'problem.expense.crewRequestWithdrawn': [
+    'Esta solicitud de gasto de cuadrilla fue retirada. Crea un gasto nuevo en lugar de reintentarla.',
+    'Esta solicitação de despesa da equipe foi retirada. Crie uma nova despesa em vez de tentar novamente.',
+  ],
+  'problem.expense.crewDeleteRequiresWithdrawal': [
+    'Este gasto de cuadrilla tiene un historial de auditoría. Indica un motivo y retira el borrador en lugar de eliminarlo.',
+    'Esta despesa da equipe tem um histórico de auditoria. Informe um motivo e retire o rascunho em vez de excluí-lo.',
+  ],
+  'problem.expense.possibleCrewDuplicate': [
+    'Ya existe un posible gasto duplicado para este trabajador, proyecto y fecha. Revísalo antes de guardar otro.',
+    'Uma possível despesa duplicada já está salva para este trabalhador, projeto e data. Revise-a antes de salvar outra.',
+  ],
   'problem.expense.billedOrLocked': [
     'Los gastos facturados o bloqueados no se pueden eliminar. Consulta a Finanzas para un ajuste auditado.',
     'Despesas faturadas ou bloqueadas não podem ser excluídas. Contate a equipe de Finanças para um ajuste auditado.',
@@ -5725,6 +5841,10 @@ const exact: Record<string, readonly [string, string]> = {
     'Revisa los campos señalados del informe antes de guardar.',
     'Revise os campos destacados do relatório antes de salvar.',
   ],
+  'problem.report.workerRequired': [
+    'Selecciona un trabajador asignado a este proyecto en la fecha del informe.',
+    'Selecione um colaborador atribuído a este projeto na data do relatório.',
+  ],
   'problem.report.notFound': [
     'Este informe ya no está disponible. Revisa la lista de informes.',
     'Este relatório não está mais disponível. Revise a lista de relatórios.',
@@ -5973,6 +6093,10 @@ const exact: Record<string, readonly [string, string]> = {
     'Este gasto ya forma parte del historial de facturación o pagos a trabajadores. Revisa el registro y utiliza su vía de corrección.',
     'Esta despesa já faz parte do histórico de faturamento ou pagamento a trabalhadores. Revise o registro e use o procedimento de correção.',
   ],
+  'problem.finance.expenseUnavailableForClassification': [
+    'Este gasto se retiró o rechazó y no se puede clasificar. Revisa los gastos activos.',
+    'Esta despesa foi retirada ou rejeitada e não pode ser classificada. Revise as despesas ativas.',
+  ],
   'Contact a project owner': [
     'Consultar a un propietario del proyecto',
     'Contatar um proprietário do projeto',
@@ -6091,6 +6215,16 @@ const exact: Record<string, readonly [string, string]> = {
     'Selecionar trabalhador e período',
   ],
   'Select worker': ['Seleccionar trabajador', 'Selecionar trabalhador'],
+  'Search workers': ['Buscar trabajadores', 'Pesquisar trabalhadores'],
+  'Name or email': ['Nombre o correo electrónico', 'Nome ou e-mail'],
+  'No workers match this search.': [
+    'Ningún trabajador coincide con la búsqueda.',
+    'Nenhum trabalhador corresponde à pesquisa.',
+  ],
+  'No assigned worker is available for this project and date.': [
+    'No hay ningún trabajador asignado a este proyecto en esta fecha.',
+    'Não há nenhum colaborador atribuído a este projeto nesta data.',
+  ],
   'Approved compensation': ['Remuneración aprobada', 'Remuneração aprovada'],
   'Pending compensation': ['Remuneración pendiente', 'Remuneração pendente'],
   'Approved reimbursements': ['Reembolsos aprobados', 'Reembolsos aprovados'],
@@ -6963,6 +7097,22 @@ const exact: Record<string, readonly [string, string]> = {
   'No active specialists found.': [
     'No se encontraron especialistas activos.',
     'Nenhum especialista ativo encontrado.',
+  ],
+  'No issued invoices are available in this ledger for your access scope.': [
+    'No hay facturas emitidas disponibles en este libro dentro de tu ámbito de acceso.',
+    'Não há faturas emitidas disponíveis neste livro no seu âmbito de acesso.',
+  ],
+  'Issued invoices appear here with their costs and collection history.': [
+    'Las facturas emitidas aparecen aquí con sus costes e historial de cobros.',
+    'As faturas emitidas aparecem aqui com seus custos e histórico de recebimentos.',
+  ],
+  'No ledger rows match the current filters.': [
+    'Ninguna fila del libro coincide con los filtros actuales.',
+    'Nenhuma linha do livro corresponde aos filtros atuais.',
+  ],
+  'No specialists are available in your access scope.': [
+    'No hay especialistas disponibles dentro de tu ámbito de acceso.',
+    'Não há especialistas disponíveis no seu âmbito de acesso.',
   ],
   'No associated projects recorded.': [
     'No hay proyectos asociados registrados.',
@@ -7877,6 +8027,7 @@ const extraExact: Record<string, readonly [string, string]> = {
   events: ['eventos', 'eventos'],
   expert: ['experto', 'especialista'],
   exposure: ['exposición', 'exposição'],
+  file: ['archivo', 'arquivo'],
   files: ['archivos', 'arquivos'],
   invoices: ['facturas', 'faturas'],
   matches: ['coincidencias', 'correspondências'],
@@ -7963,6 +8114,10 @@ const actionExact: Record<string, readonly [string, string]> = {
   'action.time.draftAlreadySaved': [
     'El borrador de horas ya se guardó. No se creó un duplicado.',
     'O rascunho de horas já foi salvo. Nenhuma duplicata foi criada.',
+  ],
+  'action.linkedDraft.withdrawn': [
+    'Se retiraron juntos los borradores de horas y comida.',
+    'Os rascunhos de horas e refeição foram retirados juntos.',
   ],
   'action.expense.weekSubmitted': [
     '{submitted} borradores de gastos enviados a revisión.',
@@ -8414,6 +8569,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Registro de gasto eliminado o anulado.',
     'Registro de despesa excluído ou anulado.',
   ],
+  'action.expense.crewDraftWithdrawn': [
+    'Borrador de gasto de cuadrilla retirado.',
+    'Rascunho de despesa da equipe retirado.',
+  ],
   'action.expense.submitted': ['Gasto enviado.', 'Despesa enviada.'],
   'action.finance.assignmentRateOverrideSaved': [
     'Excepción de tarifa de asignación guardada.',
@@ -8651,7 +8810,14 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Rascunhos de horas e despesa salvos.',
   ],
   'action.time.draftUpdated': ['Borrador de horas actualizado.', 'Rascunho de horas atualizado.'],
-  'action.time.layoutCopied': ['Estructura de tiempo copiada.', 'Layout de tempo copiado.'],
+  'action.time.layoutCopied': [
+    '{created} borradores de estructura con cero horas añadidos para la semana del {targetWeekStart}.',
+    '{created} rascunhos de estrutura com zero horas adicionados para a semana de {targetWeekStart}.',
+  ],
+  'action.time.layoutNothingAdded': [
+    'No se copiaron registros aptos de la semana del {sourceWeekStart} a la del {targetWeekStart}. Revisa las asignaciones y los borradores existentes.',
+    'Nenhum registro elegível da semana de {sourceWeekStart} foi copiado para a semana de {targetWeekStart}. Confira as atribuições e os rascunhos existentes.',
+  ],
   'action.time.removedOrVoided': [
     'Registro de horas eliminado o anulado.',
     'Registro de horas excluído ou anulado.',
@@ -9128,6 +9294,7 @@ function englishActionMessage(key: string): string {
     'action.projects.assignmentDeleted': 'Assignment removed.',
     'action.validation.timeFields': 'Check time fields.',
     'action.time.draftAlreadySaved': 'Time draft already saved. No duplicate was created.',
+    'action.linkedDraft.withdrawn': 'Linked time and meal drafts withdrawn.',
     'action.time.draftSaved': 'Time draft saved.',
     'action.time.batchDraftsSaved': '{count} daily time drafts saved.',
     'action.time.expenseDraftsSaved': 'Time and expense drafts saved.',
@@ -9157,12 +9324,16 @@ function englishActionMessage(key: string): string {
     'action.billing.invoiceIssued': 'Invoice issued.',
     'action.billing.jobsProcessed': 'Background jobs processed.',
     'action.expense.removedOrVoided': 'Expense removed or voided.',
+    'action.expense.crewDraftWithdrawn': 'Crew expense draft withdrawn.',
     'action.finance.compensationSettled': 'Worker compensation settlement recorded.',
     'action.finance.reimbursementRecorded': 'Expense reimbursement recorded.',
     'action.projects.clientCreated': 'Client created.',
     'action.projects.projectCreated': 'Project created.',
     'action.reports.periodReportsRefreshed': 'Period reports refreshed.',
-    'action.time.layoutCopied': 'Weekly time layout copied.',
+    'action.time.layoutCopied':
+      '{created} zero-hour layout drafts added for the week of {targetWeekStart}.',
+    'action.time.layoutNothingAdded':
+      'No eligible entries from the week of {sourceWeekStart} were copied into the week of {targetWeekStart}. Check assignments and existing drafts.',
     'action.access.mailbox.created': 'Mailbox created.',
     'action.access.mailbox.aliasExists': 'This mailbox alias already exists.',
     'action.access.mailbox.identityCollision':
@@ -9361,6 +9532,8 @@ const problemEnglish: Record<string, string> = {
     'No active crew delegation is available. Contact the project owner to review your access.',
   'problem.crew.dayProjectSelectionRequired': 'Choose an available project to view crew work.',
   'problem.crew.dayDateInvalid': 'Enter a real work date in YYYY-MM-DD format to view crew time.',
+  'problem.crew.dayOutsideAssignment':
+    'You are not assigned to this project on the selected work date. Choose a date within your assignment, or ask the project owner to review it.',
   'problem.crew.dayProjectDuplicate':
     'The project filter was supplied more than once. Keep one project selection.',
   'problem.crew.dayDateDuplicate': 'The work date was supplied more than once. Keep one date.',
@@ -10518,6 +10691,12 @@ const problemEnglish: Record<string, string> = {
     'This worker statement is unavailable. Open My Pay to review your statements.',
   'problem.workerStatement.periodInvalid':
     'Choose a valid From and Through date; From must be on or before Through.',
+  'problem.pay.periodInvalid':
+    'Choose one valid From and Through date; Through must be on or after From.',
+  'problem.pay.startInvalid': 'Enter one real From date in YYYY-MM-DD format.',
+  'problem.pay.endInvalid': 'Enter one real Through date in YYYY-MM-DD format.',
+  'problem.pay.endBeforeStart':
+    'Through must be on or after From. Change either date and apply the period again.',
   'problem.workerStatement.localeInvalid': 'Choose English, Spanish, or Portuguese.',
   'problem.workerStatement.requestInvalid':
     'The statement request is incomplete. Review the period and try again.',
@@ -10704,6 +10883,8 @@ const problemEnglish: Record<string, string> = {
   'problem.project.idRequired': 'Select a project before continuing.',
   'problem.projectDetail.periodDateInvalid':
     "Enter a valid start and end date for this project's finance period.",
+  'problem.projectDetail.timezoneInvalid':
+    'This project has an invalid time zone. An owner must correct it in Edit project before reviewing billing setup.',
   'problem.workerPay.filterDuplicate':
     'A worker pay review filter was supplied more than once. Keep one value per field, then apply the period again.',
   'problem.workerPay.periodDateInvalid': 'Enter valid start and end dates to review worker pay.',
@@ -10734,6 +10915,10 @@ const problemEnglish: Record<string, string> = {
     'The milestone reference or version is invalid. Review the current milestone before submitting.',
   'problem.project.scheduleFieldsInvalid':
     'The schedule has missing or invalid days, dates, or hours. Correct the highlighted fields.',
+  'problem.project.scheduleTimezoneInvalid':
+    'Enter a valid IANA time zone, such as Europe/Madrid or UTC, then save again.',
+  'problem.project.timezoneInvalid':
+    'Enter a valid IANA time zone, such as Europe/Madrid or UTC, then save again.',
   'problem.assignment.fieldsInvalid':
     'The assignment has missing or invalid project, worker, date, or time details. Correct the highlighted fields.',
   'problem.assignment.financeTermsRequired':
@@ -11149,8 +11334,37 @@ const problemEnglish: Record<string, string> = {
     'The selected worker has no active assignment covering this work date. Review the worker and date.',
   'problem.time.intervalOverlap':
     'This worker already has time recorded in the selected interval. Adjust the start or end time.',
+  'problem.time.duplicateEntry':
+    'An identical time entry already exists for this worker and date. Review the saved time. If this is separate work, confirm below and save again.',
+  'problem.crew.duplicateTime':
+    'A selected worker already has identical time for this date. Review the saved row. If this is separate work, confirm below and save again.',
   'problem.time.expenseRetryChanged':
     'This time and meal request was already used with different details. Review the saved drafts before trying again.',
+  'problem.time.expenseRetryWithdrawn':
+    'This time and meal pair was withdrawn. Start a new entry if you need to record the work again.',
+  'problem.linkedDraft.deleteTogether':
+    'This meal belongs to a linked time and meal draft pair. Withdraw both drafts together.',
+  'problem.linkedDraft.withdrawInvalid':
+    'Enter a reason of 3 to 2,000 characters and review both draft versions.',
+  'problem.linkedDraft.withdrawAccessRequired':
+    'You cannot withdraw this linked pair under your current access.',
+  'problem.linkedDraft.pairUnavailable': 'This linked pair is unavailable. Review both records.',
+  'problem.linkedDraft.withdrawChanged':
+    'This linked pair changed or can no longer be withdrawn. Review both records.',
+  'problem.linkedDraft.editTogether':
+    'Withdraw both linked drafts, then create a new time and meal entry with the correct details.',
+  'problem.linkedDraft.submitTogether':
+    'Submit the linked time and meal drafts together from the weekly time review.',
+  'problem.linkedDraft.submitTimeFirst':
+    'Submit the linked time week before submitting this meal expense.',
+  'problem.linkedDraft.timeUnavailable':
+    'The linked time cannot support this meal submission. Review both records.',
+  'problem.expenseWeek.linkedTimeDraft':
+    'A meal expense is linked to time that is still a draft. Submit the time week first, then submit this expense week. No expenses were submitted.',
+  'problem.expenseWeek.dateOutsideAssignment':
+    '{spentOn} is outside this worker’s active assignment to the project. Correct the date or ask the owner to extend the assignment. No drafts were saved.',
+  'problem.expenseWeek.linkedTimeUnavailable':
+    'A meal expense is linked to time that cannot be submitted. Review the linked time and meal before retrying. No expenses were submitted.',
   'problem.time.correctionAlreadyExists':
     'An active correction draft now exists for this time record. Review the updated record and open the existing correction if you have access.',
   'problem.time.correctionRetryChanged':
@@ -11413,6 +11627,18 @@ const problemEnglish: Record<string, string> = {
     'This receipt is already attached to another record. Review the existing claim before submitting another.',
   'problem.expense.deleteDraftOnly':
     'Only an expense draft that has never been submitted can be deleted. Review the record or request a correction.',
+  'problem.expense.crewWithdrawalInvalid':
+    'Enter a reason of 3 to 2,000 characters and review the current draft version.',
+  'problem.expense.crewWithdrawalAccess':
+    'You cannot withdraw this crew expense under your current access. Contact the project owner.',
+  'problem.expense.crewWithdrawalChanged':
+    'This crew expense changed or has review, allocation, or financial history. Review the current record before withdrawing.',
+  'problem.expense.crewRequestWithdrawn':
+    'This crew expense request was withdrawn. Start a new expense instead of retrying it.',
+  'problem.expense.crewDeleteRequiresWithdrawal':
+    'This crew expense has an audit trail. Enter a reason and withdraw the draft instead of deleting it.',
+  'problem.expense.possibleCrewDuplicate':
+    'A possible duplicate expense is already saved for this worker, project, and date. Review it before saving another.',
   'problem.expense.billedOrLocked':
     'Billed or locked expenses cannot be deleted. Contact Finance for an audited adjustment.',
   'problem.expense.deleteChanged':
@@ -11583,6 +11809,7 @@ const problemEnglish: Record<string, string> = {
   'problem.report.routeMismatch':
     'This report link and form no longer match. Review the current report.',
   'problem.report.fieldsInvalid': 'Review the highlighted report fields before saving.',
+  'problem.report.workerRequired': 'Select a worker assigned to this project on the report date.',
   'problem.report.notFound': 'This report is no longer available. Review the report list.',
   'problem.report.editAccessRequired':
     'You cannot edit this report. Ask the project owner to review your access.',
@@ -11696,6 +11923,8 @@ const problemEnglish: Record<string, string> = {
     'This Finance record changed while the form was open. Review the updated record before saving again.',
   'problem.finance.expenseImmutable':
     'This expense has already entered billing or worker payment history. Review the record and use its correction path.',
+  'problem.finance.expenseUnavailableForClassification':
+    'This expense was withdrawn or rejected and cannot be classified. Review active expenses.',
   'problem.project.assignmentBlockedStatus':
     '{projectName} is {status}. New assignments are allowed only for Active, Planned, or Paused projects.',
   'problem.project.assignmentAllowedStatuses':

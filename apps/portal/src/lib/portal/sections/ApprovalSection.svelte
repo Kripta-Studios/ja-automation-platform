@@ -10,6 +10,7 @@
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { ProblemData } from '../../problem/contract';
   import type { PortalData, PortalRow as Row } from '../portal-data';
+  import { money } from '../portal-format';
   import {
     ProblemNotice,
     SectionCard,
@@ -471,60 +472,73 @@
       ).entries(),
     ),
   );
+  function matchesTab(row: Row, tab: Tab): boolean {
+    const type = value(row, 'type');
+    return tab === 'time'
+      ? type === 'time'
+      : tab === 'expenses'
+        ? type === 'expense'
+        : type === 'daily' || type === 'technical';
+  }
+
+  // Keep the domain totals and the visible queue on one common filter scope.
+  // Status, stage and tab are facets applied after this scope for each metric.
+  const scopedOperationalRows = $derived(
+    operationalRows.filter((row) => {
+      const recordDate = value(row, 'date');
+      return (
+        operationalMatches(row, search, [
+          'id',
+          'date',
+          'type',
+          'project_id',
+          'project_name',
+          'project_number',
+          'client_name',
+          'worker_id',
+          'worker_name',
+          'report_title',
+        ]) &&
+        (!projectFilter || value(row, 'project_id') === projectFilter) &&
+        (!workerFilter || value(row, 'worker_id') === workerFilter) &&
+        (!clientFilter || value(row, 'client_name') === clientFilter) &&
+        (!fromFilter || recordDate >= fromFilter) &&
+        (!toFilter || recordDate <= toFilter)
+      );
+    }),
+  );
+  const reviewScopedRows = $derived(
+    scopedOperationalRows.filter(
+      (row) =>
+        (!stageFilter || String(row.review_stage) === stageFilter) &&
+        operationalStatusMatches(row.approval_state, statusFilter, [
+          'submitted',
+          'needs_changes',
+        ]),
+    ),
+  );
+  const primaryQueueRows = $derived(
+    reviewScopedRows.filter((row) =>
+      statusFilter === 'approved'
+        ? value(row, 'approval_state') === 'approved'
+        : value(row, 'approval_state') !== 'approved',
+    ),
+  );
   const attentionCount = $derived(
-    operationalRows.filter((row) =>
-      ['submitted', 'needs_changes'].includes(String(row.approval_state)),
+    scopedOperationalRows.filter(
+      (row) =>
+        matchesTab(row, activeTab) &&
+        ['submitted', 'needs_changes'].includes(String(row.approval_state)),
     ).length,
   );
   const reportCount = $derived(
-    operationalRows.filter((row) => ['daily', 'technical'].includes(String(row.type))).length,
+    scopedOperationalRows.filter(
+      (row) => matchesTab(row, 'reports') && value(row, 'approval_state') === 'submitted',
+    ).length,
   );
-
-  const filteredOperationalRows = $derived.by(() => {
-    return operationalRows.filter((row) => {
-      const type = String(row.type);
-      const matchesTab =
-        activeTab === 'time'
-          ? type === 'time'
-          : activeTab === 'expenses'
-            ? type === 'expense'
-            : ['daily', 'technical'].includes(type);
-      const matchesStage = !stageFilter || String(row.review_stage) === stageFilter;
-      const matchesSearch = operationalMatches(row, search, [
-        'id',
-        'date',
-        'type',
-        'project_id',
-        'project_name',
-        'project_number',
-        'client_name',
-        'worker_id',
-        'worker_name',
-        'report_title',
-      ]);
-      const matchesProject = !projectFilter || value(row, 'project_id') === projectFilter;
-      const matchesWorker = !workerFilter || value(row, 'worker_id') === workerFilter;
-      const matchesClient = !clientFilter || value(row, 'client_name') === clientFilter;
-      const recordDate = value(row, 'date');
-      const matchesFrom = !fromFilter || recordDate >= fromFilter;
-      const matchesTo = !toFilter || recordDate <= toFilter;
-      const matchesStatus = operationalStatusMatches(row.approval_state, statusFilter, [
-        'submitted',
-        'needs_changes',
-      ]);
-      return (
-        matchesTab &&
-        matchesStage &&
-        matchesSearch &&
-        matchesProject &&
-        matchesWorker &&
-        matchesClient &&
-        matchesFrom &&
-        matchesTo &&
-        matchesStatus
-      );
-    });
-  });
+  const filteredOperationalRows = $derived(
+    reviewScopedRows.filter((row) => matchesTab(row, activeTab)),
+  );
   const submittedRows = $derived(
     operationalSort(
       filteredOperationalRows.filter((row) => value(row, 'approval_state') !== 'approved'),
@@ -887,6 +901,19 @@
     return value(row, 'type') === 'expense' ? 'expense' : 'time';
   }
 
+  function expenseSummary(row: Row): string {
+    const category = value(row, 'expense_category');
+    const label = value(row, 'expense_label');
+    const currency = value(row, 'expense_currency');
+    return [
+      controlledValue('expenseCategory', category) || translate(category || 'Expense'),
+      label,
+      currency ? money(row.expense_amount_minor, currency) : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }
+
   function expenseClassificationHref(row: Row): string {
     const params = new URLSearchParams({
       view: 'commercial',
@@ -908,7 +935,7 @@
       class="approval-count"
       aria-label={translate(
         statusFilter === 'approved' ? 'Completed review follow-up' : 'Approval queue count',
-      )}>{statusFilter === 'approved' ? completedRows.length : operationalRows.length}</span
+      )}>{statusFilter === 'approved' ? completedRows.length : submittedRows.length}</span
     >
   </header>
 
@@ -919,7 +946,7 @@
     >
       <span>{translate('Needs attention')}</span>
       <strong>{attentionCount}</strong>
-      <small>{translate('Submitted or correction-ready records')}</small>
+      <small>{translate('Submitted or correction-ready records')} · {tabLabel(activeTab)}</small>
     </a>
     <a
       class="approval-attention-card"
@@ -927,12 +954,12 @@
     >
       <span>{translate('Reports')}</span>
       <strong>{reportCount}</strong>
-      <small>{translate('Daily and technical reports in scope')}</small>
+      <small>{translate('Submitted daily and technical reports matching filters')}</small>
     </a>
     {#if financeReviewVisible}
       <a class="approval-attention-card approval-attention-card-finance" href="#finance-review">
         <span>{translate('Finance review')}</span>
-        <strong>{financeRows.length}</strong>
+        <strong>{filteredFinanceRows.length}</strong>
         <small>{translate('Separate finance queue')}</small>
       </a>
     {/if}
@@ -980,14 +1007,7 @@
       >
         <span>{tabLabel(tab)}</span>
         <strong
-          >{operationalRows.filter((row) => {
-            const type = value(row, 'type');
-            return tab === 'time'
-              ? type === 'time'
-              : tab === 'expenses'
-                ? type === 'expense'
-                : ['daily', 'technical'].includes(type);
-          }).length}</strong
+          >{primaryQueueRows.filter((row) => matchesTab(row, tab)).length}</strong
         >
       </button>
     {/each}
@@ -1136,6 +1156,9 @@
                         >
                         · {value(row, 'report_title') || translate('Untitled report')}</span
                       >
+                    {/if}
+                    {#if value(row, 'type') === 'expense'}
+                      <span class="approval-expense-summary">{expenseSummary(row)}</span>
                     {/if}
                     <small>{stageLabel(row.review_stage)} · {projectName(row)}</small>
                     <span>{translate('Open record')} <DirectionIcon /></span>
@@ -1376,6 +1399,8 @@
                         )}</strong
                       >
                       · {value(row, 'report_title') || translate('Untitled report')}</span
+                    >{/if}{#if value(row, 'type') === 'expense'}<span
+                      class="approval-expense-summary">{expenseSummary(row)}</span
                     >{/if}<small>{projectName(row)}</small><span
                     >{translate('Open record')} <DirectionIcon /></span
                   ></a
@@ -1557,6 +1582,9 @@
                       'date',
                     )}</strong
                   >
+                  {#if value(row, 'type') === 'expense'}
+                    <span class="approval-expense-summary">{expenseSummary(row)}</span>
+                  {/if}
                   <small>{translate('Finance review')} · {projectName(row)}</small>
                   <span>{translate('Open record')} <DirectionIcon /></span>
                 </a>
@@ -1864,6 +1892,13 @@
     color: var(--accent, #4f4e48);
     font-size: 0.8125rem;
     font-weight: 700;
+  }
+
+  .approval-record-link .approval-expense-summary {
+    color: inherit;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .approval-row-status {

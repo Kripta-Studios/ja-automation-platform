@@ -214,6 +214,12 @@
 .standalone-workspace__content .detail-nav > a:first-child {
   display: none;
 }
+.standalone-workspace__content .detail-nav[data-review-navigation] > a:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 44px;
+}
 @media print {
   .workspace-back {
     display: none;

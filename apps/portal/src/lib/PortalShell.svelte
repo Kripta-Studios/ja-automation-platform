@@ -116,6 +116,7 @@
   } from './i18n/controlled-values';
 
   let { data, form }: { data: PortalData; form?: ActionResult } = $props();
+  const payPeriodProblem = $derived(data.payPeriodProblem ?? null);
 
   function missingCompensationRuleProblem(count: number): ProblemData {
     return {
@@ -340,6 +341,23 @@
     problem: ProblemData;
   } | null>(null);
   let planningPage = $state<Row[]>([]);
+  const focusedPlanningRecord = $derived(
+    data.section === 'planning' && $page.url.searchParams.get('focus')
+      ? (data.records ?? []).find(
+          (row: Row) => String(row.id) === $page.url.searchParams.get('focus'),
+        )
+      : undefined,
+  );
+  function planningRecordHref(row: Row): string {
+    const project = encodeURIComponent(String(row.project_id ?? ''));
+    const id = encodeURIComponent(String(row.id ?? ''));
+    const date = encodeURIComponent(String(row.starts_at ?? '').slice(0, 10));
+    if (data.user.role === 'owner_admin')
+      return `${base}/app/manage?area=planning_assignment&project=${project}&focus=${id}`;
+    if (data.user.role === 'project_manager')
+      return `${base}/app/planning?project=${project}&date=${date}&focus=${id}#planning-assignment-${id}`;
+    return `${base}/app/planning?project=${project}&date=${date}&focus=${id}#planning-shift-detail`;
+  }
   let assignmentPage = $state<Row[]>([]);
   let passkeyName = $state('');
   let mfaCode = $state('');
@@ -1002,7 +1020,11 @@
   });
   const clientFormResult = $derived(
     (form as { actionName?: string } | undefined)?.actionName === 'createClient'
-      ? (form as AssignmentFormResult)
+      ? (form as AssignmentFormResult & {
+          success?: boolean;
+          clientId?: string;
+          clientNumber?: string;
+        })
       : undefined,
   );
   const clientProblem = $derived(
@@ -1273,6 +1295,21 @@
       : null;
   });
   const profileWorkerId = $derived(String(data.selectedWorkerId ?? data.user.id));
+  let profileSelectedWorkerId = $derived(profileWorkerId);
+  let profileWorkerSearch = $state('');
+  const profileMatchingWorkers = $derived(
+    (data.workers ?? []).filter((worker) =>
+      `${worker.name ?? ''} ${worker.email ?? ''}`
+        .toLocaleLowerCase()
+        .includes(profileWorkerSearch.trim().toLocaleLowerCase()),
+    ),
+  );
+  const profileVisibleWorkers = $derived(
+    (data.workers ?? []).filter(
+      (worker) =>
+        String(worker.id) === profileSelectedWorkerId || profileMatchingWorkers.includes(worker),
+    ),
+  );
   const profileExpertiseOptions = $derived(data.allSkills ?? data.skills ?? []);
   const profileAssignedExpertise = $derived(data.skills ?? []);
   const profileRemovalExpertiseOptions = $derived(
@@ -1328,6 +1365,22 @@
       (id) => !planningEligibleWorkers.some((worker) => String(worker.id) === id),
     ),
   );
+  let handledPlanningSuccess: unknown;
+  $effect(() => {
+    const result = form as
+      | { success?: boolean; operation?: string; projectId?: string }
+      | null
+      | undefined;
+    if (
+      result?.success !== true ||
+      result.operation !== 'createPlanning' ||
+      result === handledPlanningSuccess
+    )
+      return;
+    handledPlanningSuccess = result;
+    if (operationalProjects.some((project) => project.id === result.projectId))
+      planningProjectId = result.projectId ?? '';
+  });
   $effect(() => {
     if (data.section !== 'planning') return;
     const requested = $page.url.searchParams.get('project');
@@ -1555,6 +1608,92 @@
       : null,
   );
   const activeProjects = $derived(operationalProjects);
+  type ProjectContextFormResult = {
+    actionName?: string;
+    success?: boolean;
+    values?: Readonly<Record<string, unknown>>;
+    fieldErrors?: ProblemData['fieldErrors'];
+  };
+  const milestoneFormResult = $derived(
+    (form as ProjectContextFormResult | undefined)?.actionName === 'createMilestone'
+      ? (form as ProjectContextFormResult)
+      : undefined,
+  );
+  const scheduleFormResult = $derived(
+    (form as ProjectContextFormResult | undefined)?.actionName === 'updateSchedule'
+      ? (form as ProjectContextFormResult)
+      : undefined,
+  );
+  const activeProjectContextId = $derived.by(() => {
+    const requested = $page.url.searchParams.get('project') ?? '';
+    return activeProjects.some((project) => String(project.id) === requested) ? requested : '';
+  });
+  const projectContextFormValue = (
+    result: ProjectContextFormResult | undefined,
+    field: string,
+    fallback = '',
+  ): string => {
+    const value = result?.success === false ? result.values?.[field] : undefined;
+    return typeof value === 'string' ? value : fallback;
+  };
+  const milestoneProjectId = $derived.by(() => {
+    const requested = projectContextFormValue(
+      milestoneFormResult,
+      'projectId',
+      activeProjectContextId,
+    );
+    return activeProjects.some((project) => String(project.id) === requested) ? requested : '';
+  });
+  let scheduleProjectOverride = $state<string | null>(null);
+  let scheduleTimezoneOverride = $state<string | null>(null);
+  let scheduleContextKey = $state<string | null>(null);
+  $effect(() => {
+    const contextKey = `${$page.url.pathname}|${$page.url.searchParams.get('project') ?? ''}`;
+    if (scheduleContextKey === contextKey) return;
+    scheduleContextKey = contextKey;
+    scheduleProjectOverride = null;
+    scheduleTimezoneOverride = null;
+  });
+  const scheduleProjectId = $derived.by(() => {
+    const requested = projectContextFormValue(
+      scheduleFormResult,
+      'projectId',
+      scheduleProjectOverride ?? activeProjectContextId,
+    );
+    return operationalProjects.some((project) => String(project.id) === requested) ? requested : '';
+  });
+  const selectedScheduleProject = $derived(
+    operationalProjects.find((project) => String(project.id) === scheduleProjectId),
+  );
+  const scheduleTimezone = $derived(
+    projectContextFormValue(
+      scheduleFormResult,
+      'timezone',
+      scheduleTimezoneOverride ?? String(selectedScheduleProject?.timezone ?? 'America/New_York'),
+    ),
+  );
+  let ownerMilestoneForm: HTMLFormElement | undefined = $state();
+  let ownerScheduleForm: HTMLFormElement | undefined = $state();
+  let ownerMilestoneDetails: HTMLDetailsElement | undefined = $state();
+  let ownerScheduleDetails: HTMLDetailsElement | undefined = $state();
+  $effect(() => {
+    if (milestoneFormResult?.success === false && ownerMilestoneDetails)
+      ownerMilestoneDetails.open = true;
+    if (scheduleFormResult?.success === false && ownerScheduleDetails)
+      ownerScheduleDetails.open = true;
+    if (
+      milestoneFormResult?.success === false &&
+      milestoneFormResult.fieldErrors &&
+      ownerMilestoneForm
+    )
+      reportFormFieldErrors(ownerMilestoneForm, milestoneFormResult.fieldErrors);
+    if (
+      scheduleFormResult?.success === false &&
+      scheduleFormResult.fieldErrors &&
+      ownerScheduleForm
+    )
+      reportFormFieldErrors(ownerScheduleForm, scheduleFormResult.fieldErrors);
+  });
   type AssignmentFormResult = {
     actionName?: string;
     values?: Readonly<Record<string, unknown>>;
@@ -1696,6 +1835,19 @@
     }
     return assignmentSelectedProjectId;
   });
+  const assignmentRemedyWorkerId = $derived.by(() => {
+    if (assignmentEditForm?.actionName === 'updateAssignment') {
+      const assignmentId = String(assignmentEditForm.values?.assignmentId ?? '');
+      const record = (data.assignments ?? []).find(
+        (assignment) => String(assignment.id) === assignmentId,
+      );
+      return String(record?.worker_id ?? record?.user_id ?? '');
+    }
+    return assignmentFormValue(
+      'workerId',
+      projectWorkflowPage.url.searchParams.get('worker') ?? '',
+    );
+  });
   const assignmentRemedyLinks = $derived({
     correct_fields: {
       label: portalText(locale, 'problem.remedy.correctFields'),
@@ -1711,7 +1863,10 @@
     },
     review_assignments: {
       label: portalText(locale, 'problem.remedy.reviewAssignments'),
-      href: assignmentWorkflowHref(projectWorkflowPage.url, 'updateAssignment'),
+      href: assignmentWorkflowHref(projectWorkflowPage.url, 'updateAssignment', {
+        project: assignmentRemedyProjectId || undefined,
+        worker: assignmentRemedyWorkerId || undefined,
+      }),
     },
     review_finance_rules: {
       label: translate('Open finance configuration'),
@@ -1804,9 +1959,7 @@
   let newProjectCurrencyOverride = $state<string | null>(null);
   let newProjectTimezoneOverride = $state<string | null>(null);
   const selectedNewProjectClientId = $derived(
-    newProjectClientId ||
-      projectFormValue('clientId', $page.url.searchParams.get('client') ?? '') ||
-      String(activeClients[0]?.id ?? ''),
+    newProjectClientId || projectFormValue('clientId', $page.url.searchParams.get('client') ?? ''),
   );
   const selectedNewProjectClient = $derived(
     activeClients.find((client) => String(client.id) === selectedNewProjectClientId),
@@ -1927,6 +2080,29 @@
       return `${base}/app/planning`;
     return `${base}/app/`;
   };
+  const isExpenseSearchRow = (row: Row) => String(row.type ?? '').toLowerCase() === 'expense';
+  const searchResultDescription = (row: Row, groupLabel: string, fullId = false): string => {
+    if (!isExpenseSearchRow(row)) return `${groupLabel} · ${String(row.detail ?? '')}`;
+    const id = String(row.id ?? '');
+    const projectNumber = String(row.projectNumber ?? '').trim();
+    const date = String(row.spentOn ?? '').trim();
+    const rawStatus = String(row.approvalState ?? '').trim();
+    const status =
+      rawStatus === 'void' ? translate('Withdrawn') : controlledValue('status', rawStatus);
+    return [
+      groupLabel,
+      projectNumber ? `${projectNumber} · ${translate('Expenses')}` : String(row.detail ?? ''),
+      date,
+      status,
+      id ? `ID ${fullId ? id : id.slice(-8)}` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  };
+  const expenseSearchAccessibleLabel = (row: Row, groupLabel: string): string | undefined =>
+    isExpenseSearchRow(row)
+      ? `${String(row.label ?? translate('Record'))} · ${searchResultDescription(row, groupLabel, true)}`
+      : undefined;
   const toastItems = $derived.by(() => {
     const items: ToastItem[] = [];
     const add = (
@@ -3143,6 +3319,64 @@
         document.activeElement.blur();
     }, 0);
   }
+
+  function auditUtcIso(value: unknown): string | undefined {
+    const raw = String(value ?? '').trim();
+    return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/u.test(raw) &&
+      !Number.isNaN(Date.parse(raw))
+      ? raw
+      : undefined;
+  }
+
+  function auditTimestampLabel(value: unknown): string {
+    const utc = auditUtcIso(value);
+    return utc ? `${utc.replace('T', ' ').slice(0, 19)} UTC` : String(value ?? '').trim() || '—';
+  }
+
+  function auditDetailsDisplay(value: unknown): string {
+    const raw = String(value ?? '{}');
+    try {
+      JSON.parse(raw);
+    } catch {
+      return raw;
+    }
+    // Format the original tokens instead of parsing and serializing them:
+    // JSON numbers may exceed JavaScript's safe integer range.
+    let output = '';
+    let depth = 0;
+    let quoted = false;
+    let escaped = false;
+    const indent = () => '  '.repeat(depth);
+    for (let index = 0; index < raw.length; index += 1) {
+      const character = raw[index];
+      if (quoted) {
+        output += character;
+        if (escaped) escaped = false;
+        else if (character === '\\') escaped = true;
+        else if (character === '"') quoted = false;
+        continue;
+      }
+      if (character === '"') {
+        quoted = true;
+        output += character;
+      } else if (character === '{' || character === '[') {
+        depth += 1;
+        output += character;
+        if (raw[index + 1] !== (character === '{' ? '}' : ']')) output += `\n${indent()}`;
+      } else if (character === '}' || character === ']') {
+        depth = Math.max(0, depth - 1);
+        if (raw[index - 1] !== (character === '}' ? '{' : '[')) output += `\n${indent()}`;
+        output += character;
+      } else if (character === ',') {
+        output += `,\n${indent()}`;
+      } else if (character === ':') {
+        output += ': ';
+      } else if (!/\s/u.test(character)) {
+        output += character;
+      }
+    }
+    return output;
+  }
 </script>
 
 <svelte:head
@@ -3264,6 +3498,7 @@
                         id={`search-option-${optionIndex}`}
                         class="search-popover-item"
                         href={searchHref(suggestion)}
+                        aria-label={expenseSearchAccessibleLabel(suggestion, group.label)}
                         role="option"
                         aria-selected="false"
                         onclick={() => setTimeout(() => (searchOpen = false), 0)}
@@ -3271,7 +3506,7 @@
                       >
                         <span>
                           <strong>{String(suggestion.label ?? translate('Record'))}</strong>
-                          <small>{group.label} · {String(suggestion.detail ?? '')}</small>
+                          <small>{searchResultDescription(suggestion, group.label)}</small>
                         </span>
                         <DirectionIcon direction="up-right" class="search-popover-arrow" />
                       </a>
@@ -3367,9 +3602,13 @@
           <div class="search-result-group" role="group" aria-label={group.label}>
             <h3>{group.label}</h3>
             {#each group.rows as result}
-              <a class="search-result" href={searchHref(result)}>
+              <a
+                class="search-result"
+                href={searchHref(result)}
+                aria-label={expenseSearchAccessibleLabel(result, group.label)}
+              >
                 <strong>{String(result.label ?? translate('Result'))}</strong>
-                <small>{group.label} · {String(result.detail ?? '')}</small>
+                <small>{searchResultDescription(result, group.label)}</small>
               </a>
             {/each}
           </div>
@@ -3418,6 +3657,7 @@
     {:else if data.section === 'reports'}
       <ReportSection
         {data}
+        {locale}
         {isAuditor}
         {availableProjects}
         {saveOfflineDraft}
@@ -3432,7 +3672,7 @@
         <SectionCard
           id="document-upload"
           collapsible
-          title={translate('Register a private artifact')}
+          title={translate(isAuditor ? 'Review private artifacts' : 'Register a private artifact')}
           class="document-upload-panel"
           expanded={documentResult?.actionName === 'uploadPrivateDocument'}
         >
@@ -3443,6 +3683,13 @@
                   'Receipts, PLC backups and project reports are validated, hashed and kept outside the public site.',
                 )}
               </p>
+              {#if isAuditor}
+                <p class="form-help">
+                  {translate(
+                    'Review registered private artifacts here. Ask an authorized project user to upload new evidence.',
+                  )}
+                </p>
+              {/if}
             </div>
           </div>
           {#if !isAuditor}
@@ -3472,10 +3719,10 @@
                       name="projectId"
                       value={documentResult?.actionName === 'uploadPrivateDocument'
                         ? (documentFormValues.projectId ?? '')
-                        : ''}
+                        : String(data.selectedDocumentProject?.id ?? '')}
                       required
                     >
-                      <option value="">{translate('Select assignment')}</option>
+                      <option value="">{translate('Select project')}</option>
                       {#each availableProjects as project}
                         <option value={project.id}>{project.project_number} — {project.name}</option
                         >
@@ -3576,24 +3823,43 @@
           <div class="panel-title">
             <div>
               <h2>{translate('Private project documents')}</h2>
+              {#if data.selectedDocumentProject}
+                <p class="form-help">
+                  {String(data.selectedDocumentProject.project_number)} — {String(
+                    data.selectedDocumentProject.name,
+                  )}
+                  · <a href={`${base}/app/documents#document-list`}>{translate('All projects')}</a>
+                </p>
+              {/if}
               <p class="form-help">
                 {translate(
-                  'Registered documents are retained as evidence. Upload a corrected file as a new document; the original stays available in the audit history.',
+                  isAuditor
+                    ? 'Registered documents remain available as evidence. Authorized project users upload corrections as new documents; the original stays in the audit history.'
+                    : 'Registered documents are retained as evidence. Upload a corrected file as a new document; the original stays available in the audit history.',
                 )}
               </p>
               <p class="form-help">
                 {translate('Files are private, hash-verified, and authorized on every download.')}
               </p>
             </div>
-            <span>{data.documents?.length ?? 0} {translate('files')}</span>
+            <span
+              >{data.documents?.length ?? 0}
+              {translate((data.documents?.length ?? 0) === 1 ? 'file' : 'files')}</span
+            >
           </div>
-          <RecordBrowser
-            rows={data.documents ?? []}
-            bind:visible={documentPage}
-            {translate}
-            label="Private project documents"
-          />
-          {#each documentPage as document}<article class="invoice-row document-entry">
+          {#if (data.documents?.length ?? 0) > 0}
+            <RecordBrowser
+              rows={data.documents ?? []}
+              bind:visible={documentPage}
+              {translate}
+              label="Private project documents"
+              contextKey={String(data.selectedDocumentProject?.id ?? 'all')}
+              statusless
+            />
+          {/if}
+          {#each (data.documents?.length ?? 0) > 0 ? documentPage : [] as document}<article
+              class="invoice-row document-entry"
+            >
               <div>
                 <strong
                   >{String(
@@ -3704,566 +3970,675 @@
                   {/if}
                 </div>
               {/if}
-            </article>{:else}<div class="empty">
-              {translate('No private documents are available in your access scope.')}
-            </div>{/each}
+            </article>{:else}
+            {#if (data.documents?.length ?? 0) === 0}
+              <div class="empty">
+                {translate('No private documents are available in your access scope.')}
+              </div>
+            {/if}
+          {/each}
         </section>
       </div>
-    {:else if data.section === 'pay' && data.pay}
-      <form class="filter-form">
-        <label>{translate('From')}<input name="start" type="date" value={data.periodStart} /></label
-        ><label>{translate('Through')}<input name="end" type="date" value={data.periodEnd} /></label
-        ><button>{translate('Apply period')}</button>
+    {:else if data.section === 'pay'}
+      {#if payPeriodProblem}
+        <ProblemNotice
+          problem={payPeriodProblem}
+          remedyLinks={{
+            correct_fields: {
+              label: portalText(locale, 'problem.remedy.correctFields'),
+              href: payPeriodProblem.fieldErrors.start ? '#pay-period-start' : '#pay-period-end',
+            },
+          }}
+        />
+      {/if}
+      <form class="filter-form" method="GET">
+        <input type="hidden" name="lang" value={locale} />
+        <label for="pay-period-start">
+          {translate('From')}
+          <input
+            id="pay-period-start"
+            name="start"
+            type={payPeriodProblem?.fieldErrors.start ? 'text' : 'date'}
+            inputmode={payPeriodProblem?.fieldErrors.start ? 'numeric' : undefined}
+            value={data.periodStart}
+            required
+            aria-invalid={Boolean(payPeriodProblem?.fieldErrors.start)}
+            aria-describedby={payPeriodProblem?.fieldErrors.start
+              ? 'pay-period-start-error'
+              : undefined}
+          />
+          {#if payPeriodProblem?.fieldErrors.start}
+            <small id="pay-period-start-error" class="field-error"
+              >{payPeriodProblem.fieldErrors.start
+                .map((key) => portalText(locale, key))
+                .join(' ')}</small
+            >
+          {/if}
+        </label>
+        <label for="pay-period-end">
+          {translate('Through')}
+          <input
+            id="pay-period-end"
+            name="end"
+            type={payPeriodProblem?.fieldErrors.end?.includes('problem.pay.endInvalid')
+              ? 'text'
+              : 'date'}
+            inputmode={payPeriodProblem?.fieldErrors.end ? 'numeric' : undefined}
+            value={data.periodEnd}
+            required
+            aria-invalid={Boolean(payPeriodProblem?.fieldErrors.end)}
+            aria-describedby={payPeriodProblem?.fieldErrors.end
+              ? 'pay-period-end-error'
+              : undefined}
+          />
+          {#if payPeriodProblem?.fieldErrors.end}
+            <small id="pay-period-end-error" class="field-error"
+              >{payPeriodProblem.fieldErrors.end
+                .map((key) => portalText(locale, key))
+                .join(' ')}</small
+            >
+          {/if}
+        </label>
+        <button>{translate('Apply period')}</button>
       </form>
-      <section class="record-list full pay-export-actions" aria-labelledby="pay-export-title">
-        <div class="panel-title">
-          <div>
-            <h2 id="pay-export-title">{translate('Worker statement')}</h2>
-            <p class="form-help">
-              {translate(
-                'Download your own activity, compensation, settlement, and reimbursement statement for this period.',
-              )}
-            </p>
-          </div>
-          <div class="record-actions">
-            {#if pendingWorkerStatementRequest}
-              <button
-                type="button"
-                class="preview-link"
-                disabled={workerStatementBusy}
-                onclick={() => void checkPendingWorkerStatementRequest()}
-                >{portalText(locale, 'problem.workerStatement.checkStatus')}</button
-              >
-              {#if workerStatementRequestChecked}
+      {#if data.pay && !payPeriodProblem}
+        <section class="record-list full pay-export-actions" aria-labelledby="pay-export-title">
+          <div class="panel-title">
+            <div>
+              <h2 id="pay-export-title">{translate('Worker statement')}</h2>
+              <p class="form-help">
+                {translate(
+                  'Download your own activity, compensation, settlement, and reimbursement statement for this period.',
+                )}
+              </p>
+            </div>
+            <div class="record-actions">
+              {#if pendingWorkerStatementRequest}
                 <button
                   type="button"
                   class="preview-link"
-                  disabled={workerStatementBusy || workerStatementPolling}
-                  onclick={() => void retrySameWorkerStatementRequest()}
-                  >{portalText(locale, 'problem.workerStatement.retrySameRequest')}</button
+                  disabled={workerStatementBusy}
+                  onclick={() => void checkPendingWorkerStatementRequest()}
+                  >{portalText(locale, 'problem.workerStatement.checkStatus')}</button
                 >
-              {/if}
-            {:else}
-              <button
-                type="button"
-                class="preview-link"
-                disabled={workerStatementBusy || workerStatementPolling}
-                aria-busy={workerStatementBusy || workerStatementPolling}
-                onclick={() => void requestWorkerStatement()}>{translate('Generate report')}</button
-              >
-            {/if}
-            {#each ['pdf', 'csv'] as format}
-              {@const artifact = workerStatementArtifact(format as WorkerStatementFormat)}
-              {#if artifact?.status === 'ready' && !workerStatementStatusUnknownIds.includes(artifact.artifactId)}
-                <a
-                  class="preview-link"
-                  aria-label={format === 'pdf'
-                    ? translate('Download worker statement PDF')
-                    : translate('Download worker statement CSV')}
-                  aria-disabled={workerStatementDownloadBusy}
-                  href={`${base}/app/api/worker-statement/artifacts/${encodeURIComponent(artifact.artifactId)}/download`}
-                  onclick={(event) => void downloadWorkerStatement(event, artifact)}
-                  onauxclick={(event) => {
-                    if (event.button === 1) void downloadWorkerStatement(event, artifact);
-                  }}>{translate(format.toUpperCase())} · {translate('Ready')}</a
-                >
-                {#if format === 'pdf'}
-                  <button type="button" class="preview-link" aria-expanded={workerStatementPreviewId === artifact.artifactId} onclick={() => { workerStatementPreviewId = workerStatementPreviewId === artifact.artifactId ? null : artifact.artifactId; }}>{workerStatementPreviewId === artifact.artifactId
-                    ? (locale === 'es' ? 'Cerrar vista previa' : locale === 'pt' ? 'Fechar prévia' : 'Close PDF preview')
-                    : (locale === 'es' ? 'Vista previa del PDF guardado' : locale === 'pt' ? 'Prévia do PDF salvo' : 'Preview saved PDF')}</button>
-                {/if}
-              {:else if artifact}
-                <span
-                  class="state-tag"
-                  data-ui="status-badge"
-                  data-variant={artifact.status === 'failed' ? 'danger' : 'warning'}
-                  >{translate(format.toUpperCase())} · {workerStatementStatusUnknownIds.includes(
-                    artifact.artifactId,
-                  )
-                    ? portalText(locale, 'problem.workerStatement.checkStatus')
-                    : controlledValue('artifactState', artifact.status)}</span
-                >
-                {#if canRetryWorkerStatement(artifact)}
+                {#if workerStatementRequestChecked}
                   <button
                     type="button"
                     class="preview-link"
                     disabled={workerStatementBusy || workerStatementPolling}
-                    onclick={() => void retryWorkerStatement(artifact)}
-                    >{portalText(locale, 'problem.workerStatement.retryAction')}
-                    {translate(format.toUpperCase())}</button
+                    onclick={() => void retrySameWorkerStatementRequest()}
+                    >{portalText(locale, 'problem.workerStatement.retrySameRequest')}</button
                   >
                 {/if}
+              {:else}
+                <button
+                  type="button"
+                  class="preview-link"
+                  disabled={workerStatementBusy || workerStatementPolling}
+                  aria-busy={workerStatementBusy || workerStatementPolling}
+                  onclick={() => void requestWorkerStatement()}
+                  >{translate('Generate report')}</button
+                >
               {/if}
-            {/each}
+              {#each ['pdf', 'csv'] as format}
+                {@const artifact = workerStatementArtifact(format as WorkerStatementFormat)}
+                {#if artifact?.status === 'ready' && !workerStatementStatusUnknownIds.includes(artifact.artifactId)}
+                  <a
+                    class="preview-link"
+                    aria-label={format === 'pdf'
+                      ? translate('Download worker statement PDF')
+                      : translate('Download worker statement CSV')}
+                    aria-disabled={workerStatementDownloadBusy}
+                    href={`${base}/app/api/worker-statement/artifacts/${encodeURIComponent(artifact.artifactId)}/download`}
+                    onclick={(event) => void downloadWorkerStatement(event, artifact)}
+                    onauxclick={(event) => {
+                      if (event.button === 1) void downloadWorkerStatement(event, artifact);
+                    }}>{translate(format.toUpperCase())} · {translate('Ready')}</a
+                  >
+                  {#if format === 'pdf'}
+                    <button
+                      type="button"
+                      class="preview-link"
+                      aria-expanded={workerStatementPreviewId === artifact.artifactId}
+                      onclick={() => {
+                        workerStatementPreviewId =
+                          workerStatementPreviewId === artifact.artifactId
+                            ? null
+                            : artifact.artifactId;
+                      }}
+                      >{workerStatementPreviewId === artifact.artifactId
+                        ? locale === 'es'
+                          ? 'Cerrar vista previa'
+                          : locale === 'pt'
+                            ? 'Fechar prévia'
+                            : 'Close PDF preview'
+                        : locale === 'es'
+                          ? 'Vista previa del PDF guardado'
+                          : locale === 'pt'
+                            ? 'Prévia do PDF salvo'
+                            : 'Preview saved PDF'}</button
+                    >
+                  {/if}
+                {:else if artifact}
+                  <span
+                    class="state-tag"
+                    data-ui="status-badge"
+                    data-variant={artifact.status === 'failed' ? 'danger' : 'warning'}
+                    >{translate(format.toUpperCase())} · {workerStatementStatusUnknownIds.includes(
+                      artifact.artifactId,
+                    )
+                      ? portalText(locale, 'problem.workerStatement.checkStatus')
+                      : controlledValue('artifactState', artifact.status)}</span
+                  >
+                  {#if canRetryWorkerStatement(artifact)}
+                    <button
+                      type="button"
+                      class="preview-link"
+                      disabled={workerStatementBusy || workerStatementPolling}
+                      onclick={() => void retryWorkerStatement(artifact)}
+                      >{portalText(locale, 'problem.workerStatement.retryAction')}
+                      {translate(format.toUpperCase())}</button
+                    >
+                  {/if}
+                {/if}
+              {/each}
+            </div>
           </div>
-        </div>
-        {#if workerStatementPreviewId && workerStatementArtifact('pdf')?.artifactId === workerStatementPreviewId && workerStatementArtifact('pdf')?.status === 'ready' && !workerStatementStatusUnknownIds.includes(workerStatementPreviewId)}
-          <ActualPdfPreview
-            src={`${base}/app/api/worker-statement/artifacts/${encodeURIComponent(workerStatementPreviewId)}/download`}
-            {locale}
-            onFailure={(payload, status, reference) => showWorkerStatementProblem(
-              workerStatementDownloadProblem(payload, reference) ?? workerStatementDownloadFallback(status === 401 ? 'signIn' : 'invalid', reference), 'download',
-            )}
-          />
-          <p class="form-help">{locale === 'es' ? 'Los valores del extracto provienen de sus registros guardados. Revise las horas o los gastos de origen y genere una nueva versión para reflejar los cambios autorizados.' : locale === 'pt' ? 'Os valores do demonstrativo vêm dos seus registros salvos. Revise as horas ou despesas de origem e gere uma nova versão para refletir alterações autorizadas.' : 'Statement values come from your saved records. Review source time or expenses and generate a new version to reflect authorized changes.'}
-            <a href={`${base}/app/time?from=${encodeURIComponent(data.periodStart)}&to=${encodeURIComponent(data.periodEnd)}`}>{translate('Time')}</a> · <a href={`${base}/app/expenses?from=${encodeURIComponent(data.periodStart)}&to=${encodeURIComponent(data.periodEnd)}`}>{translate('Expenses')}</a>
-          </p>
-        {/if}
-        {#if workerStatementProblem}
-          <ProblemNotice
-            problem={workerStatementProblem.code === 'WORKER_STATEMENT_DOWNLOAD_STATUS_UNKNOWN'
-              ? { ...workerStatementProblem, remedies: [] }
-              : workerStatementProblem}
-            {locale}
-            kind={!workerStatementDownloadFailure &&
-            (workerStatementProblem.code === 'WORKER_STATEMENT_NETWORK_UNCERTAIN' ||
-              workerStatementProblem.code === 'WORKER_STATEMENT_SERVICE_UNAVAILABLE')
-              ? 'service'
-              : 'error'}
-            remedyLinks={{
-              review_my_pay: {
-                label: portalText(locale, 'problem.workerStatement.checkStatus'),
-                href: workerStatementPeriodHref,
-              },
-              check_statement_status: {
-                label: portalText(locale, 'problem.workerStatement.checkStatus'),
-                href: workerStatementPeriodHref,
-              },
-              retry_statement: { label: portalText(locale, 'problem.workerStatement.retryAction') },
-              retry_download: { label: portalText(locale, 'problem.expenseExport.retryDownload') },
-              contact_finance_owner: { label: portalText(locale, 'problem.remedy.contactOwner') },
-              sign_in: {
-                label: portalText(locale, 'problem.workerStatement.signInAgain'),
-                href: `${base}/app/login?lang=${encodeURIComponent(locale)}`,
-              },
-              review_workspace: {
-                label: portalText(locale, 'problem.workerStatement.returnToWork'),
-                href: `${base}/app?lang=${encodeURIComponent(locale)}`,
-              },
-            }}
-          />
-          {#if workerStatementProblem.code === 'WORKER_STATEMENT_DOWNLOAD_STATUS_UNKNOWN' && workerStatementDownloadFailedArtifactId}
-            <button
-              type="button"
-              class="preview-link"
-              disabled={workerStatementDownloadBusy}
-              onclick={() => void checkWorkerStatementDownloadStatus()}
-              >{portalText(locale, 'problem.workerStatement.checkStatus')}</button
-            >
+          {#if workerStatementPreviewId && workerStatementArtifact('pdf')?.artifactId === workerStatementPreviewId && workerStatementArtifact('pdf')?.status === 'ready' && !workerStatementStatusUnknownIds.includes(workerStatementPreviewId)}
+            <ActualPdfPreview
+              src={`${base}/app/api/worker-statement/artifacts/${encodeURIComponent(workerStatementPreviewId)}/download`}
+              {locale}
+              onFailure={(payload, status, reference) =>
+                showWorkerStatementProblem(
+                  workerStatementDownloadProblem(payload, reference) ??
+                    workerStatementDownloadFallback(
+                      status === 401 ? 'signIn' : 'invalid',
+                      reference,
+                    ),
+                  'download',
+                )}
+            />
+            <p class="form-help">
+              {locale === 'es'
+                ? 'Los valores del extracto provienen de sus registros guardados. Revise las horas o los gastos de origen y genere una nueva versión para reflejar los cambios autorizados.'
+                : locale === 'pt'
+                  ? 'Os valores do demonstrativo vêm dos seus registros salvos. Revise as horas ou despesas de origem e gere uma nova versão para refletir alterações autorizadas.'
+                  : 'Statement values come from your saved records. Review source time or expenses and generate a new version to reflect authorized changes.'}
+              <a
+                href={`${base}/app/time?from=${encodeURIComponent(data.periodStart)}&to=${encodeURIComponent(data.periodEnd)}`}
+                >{translate('Time')}</a
+              >
+              ·
+              <a
+                href={`${base}/app/expenses?from=${encodeURIComponent(data.periodStart)}&to=${encodeURIComponent(data.periodEnd)}`}
+                >{translate('Expenses')}</a
+              >
+            </p>
           {/if}
-          {#if workerStatementDownloadFailedFormat && workerStatementProblem.remedies.some((remedy) => remedy.id === 'retry_download')}
-            {@const artifact = workerStatementArtifact(workerStatementDownloadFailedFormat)}
-            {#if artifact?.status === 'ready'}
+          {#if workerStatementProblem}
+            <ProblemNotice
+              problem={workerStatementProblem.code === 'WORKER_STATEMENT_DOWNLOAD_STATUS_UNKNOWN'
+                ? { ...workerStatementProblem, remedies: [] }
+                : workerStatementProblem}
+              {locale}
+              kind={!workerStatementDownloadFailure &&
+              (workerStatementProblem.code === 'WORKER_STATEMENT_NETWORK_UNCERTAIN' ||
+                workerStatementProblem.code === 'WORKER_STATEMENT_SERVICE_UNAVAILABLE')
+                ? 'service'
+                : 'error'}
+              remedyLinks={{
+                review_my_pay: {
+                  label: portalText(locale, 'problem.workerStatement.checkStatus'),
+                  href: workerStatementPeriodHref,
+                },
+                check_statement_status: {
+                  label: portalText(locale, 'problem.workerStatement.checkStatus'),
+                  href: workerStatementPeriodHref,
+                },
+                retry_statement: {
+                  label: portalText(locale, 'problem.workerStatement.retryAction'),
+                },
+                retry_download: {
+                  label: portalText(locale, 'problem.expenseExport.retryDownload'),
+                },
+                contact_finance_owner: { label: portalText(locale, 'problem.remedy.contactOwner') },
+                sign_in: {
+                  label: portalText(locale, 'problem.workerStatement.signInAgain'),
+                  href: `${base}/app/login?lang=${encodeURIComponent(locale)}`,
+                },
+                review_workspace: {
+                  label: portalText(locale, 'problem.workerStatement.returnToWork'),
+                  href: `${base}/app?lang=${encodeURIComponent(locale)}`,
+                },
+              }}
+            />
+            {#if workerStatementProblem.code === 'WORKER_STATEMENT_DOWNLOAD_STATUS_UNKNOWN' && workerStatementDownloadFailedArtifactId}
               <button
                 type="button"
                 class="preview-link"
                 disabled={workerStatementDownloadBusy}
-                onclick={(event) => void downloadWorkerStatement(event, artifact)}
-                >{portalText(locale, 'problem.expenseExport.retryDownload')}</button
+                onclick={() => void checkWorkerStatementDownloadStatus()}
+                >{portalText(locale, 'problem.workerStatement.checkStatus')}</button
               >
             {/if}
-          {/if}
-        {:else if workerStatementBusy || workerStatementPolling}
-          <p class="form-help" role="status" aria-live="polite">
-            {portalText(locale, 'problem.workerStatement.queued')}
-          </p>
-        {:else if workerStatementArtifacts.some((artifact) => artifact.status === 'ready')}
-          <p class="form-help" role="status" aria-live="polite">
-            {portalText(locale, 'problem.workerStatement.ready')}
-          </p>
-        {/if}
-      </section>
-      <div class="finance-grid">
-        {#each data.pay.currencyBreakdown ?? [data.pay] as amount}
-          <a href="{base}/app/time" class="metric metric-link">
-            <span>{translate('APPROVED COMPENSATION')} · {amount.currency}</span><strong
-              >{paymentMoney(
-                amount.estimatedApprovedMinor,
-                amount.currency,
-                documentLanguage(locale),
-              )}</strong
-            >
-            <p>{data.pay.approvedMinutes} {translate('approved minutes')}</p>
-          </a>
-          <a href="{base}/app/expenses" class="metric metric-link">
-            <span>{translate('APPROVED REIMBURSEMENTS')} · {amount.currency}</span><strong
-              >{paymentMoney(
-                amount.approvedReimbursementMinor,
-                amount.currency,
-                documentLanguage(locale),
-              )}</strong
-            >
-            <p>
-              {translate('Estimated compensation awaiting approval:')}
-              {paymentMoney(
-                amount.estimatedPendingMinor,
-                amount.currency,
-                documentLanguage(locale),
-              )} · {translate('Estimated reimbursements awaiting approval:')}
-              {paymentMoney(
-                amount.pendingReimbursementMinor,
-                amount.currency,
-                documentLanguage(locale),
-              )}
+            {#if workerStatementDownloadFailedFormat && workerStatementProblem.remedies.some((remedy) => remedy.id === 'retry_download')}
+              {@const artifact = workerStatementArtifact(workerStatementDownloadFailedFormat)}
+              {#if artifact?.status === 'ready'}
+                <button
+                  type="button"
+                  class="preview-link"
+                  disabled={workerStatementDownloadBusy}
+                  onclick={(event) => void downloadWorkerStatement(event, artifact)}
+                  >{portalText(locale, 'problem.expenseExport.retryDownload')}</button
+                >
+              {/if}
+            {/if}
+          {:else if workerStatementBusy || workerStatementPolling}
+            <p class="form-help" role="status" aria-live="polite">
+              {portalText(locale, 'problem.workerStatement.queued')}
             </p>
-          </a>
-        {/each}
-      </div>
-      <section class="record-list full" aria-label={translate('Payment still outstanding')}>
-        <div class="panel-title">
-          <div>
-            <h2>{translate('Payment still outstanding')}</h2>
+          {:else if workerStatementArtifacts.some((artifact) => artifact.status === 'ready')}
+            <p class="form-help" role="status" aria-live="polite">
+              {portalText(locale, 'problem.workerStatement.ready')}
+            </p>
+          {/if}
+        </section>
+        <div class="finance-grid">
+          {#each data.pay.currencyBreakdown ?? [data.pay] as amount}
+            <a href="{base}/app/time" class="metric metric-link">
+              <span>{translate('APPROVED COMPENSATION')} · {amount.currency}</span><strong
+                >{paymentMoney(
+                  amount.estimatedApprovedMinor,
+                  amount.currency,
+                  documentLanguage(locale),
+                )}</strong
+              >
+              <p>{data.pay.approvedMinutes} {translate('approved minutes')}</p>
+            </a>
+            <a href="{base}/app/expenses" class="metric metric-link">
+              <span>{translate('APPROVED REIMBURSEMENTS')} · {amount.currency}</span><strong
+                >{paymentMoney(
+                  amount.approvedReimbursementMinor,
+                  amount.currency,
+                  documentLanguage(locale),
+                )}</strong
+              >
+              <p>
+                {translate('Estimated compensation awaiting approval:')}
+                {paymentMoney(
+                  amount.estimatedPendingMinor,
+                  amount.currency,
+                  documentLanguage(locale),
+                )} · {translate('Estimated reimbursements awaiting approval:')}
+                {paymentMoney(
+                  amount.pendingReimbursementMinor,
+                  amount.currency,
+                  documentLanguage(locale),
+                )}
+              </p>
+            </a>
+          {/each}
+        </div>
+        <section class="record-list full" aria-label={translate('Payment still outstanding')}>
+          <div class="panel-title">
+            <div>
+              <h2>{translate('Payment still outstanding')}</h2>
+              <p>
+                {translate(
+                  'Reviewed compensation and approved expenses that have not been paid yet.',
+                )}
+              </p>
+            </div>
+          </div>
+          {#each data.payOutstanding ?? [] as outstanding}
+            <p>
+              {translate('Unpaid reviewed settlements:')}
+              <strong
+                >{paymentMoney(
+                  outstanding.settlementMinor,
+                  outstanding.currency,
+                  documentLanguage(locale),
+                )}</strong
+              >
+              · {translate('Approved reimbursements awaiting payment:')}
+              <strong
+                >{paymentMoney(
+                  outstanding.reimbursementMinor,
+                  outstanding.currency,
+                  documentLanguage(locale),
+                )}</strong
+              >
+            </p>
+          {:else}
             <p>
               {translate(
-                'Reviewed compensation and approved expenses that have not been paid yet.',
+                'No reviewed payments or approved reimbursements are outstanding in this period.',
               )}
             </p>
-          </div>
-        </div>
-        {#each data.payOutstanding ?? [] as outstanding}
-          <p>
-            {translate('Unpaid reviewed settlements:')}
-            <strong
-              >{paymentMoney(
-                outstanding.settlementMinor,
-                outstanding.currency,
-                documentLanguage(locale),
-              )}</strong
+          {/each}
+        </section>
+        <section class="record-list full pay-detail">
+          <div class="panel-title">
+            <div>
+              <h2>{translate('Compensation statement')}</h2>
+              <p>
+                {data.pay.label ?? translate('Estimate from approved and pending records')} · {data.periodStart}
+                {translate('to')}
+                {data.periodEnd}
+              </p>
+            </div>
+            <span
+              >{data.pay.percentageBased
+                ? translate('Percentage rule active')
+                : translate('Rate rule active')}</span
             >
-            · {translate('Approved reimbursements awaiting payment:')}
-            <strong
-              >{paymentMoney(
-                outstanding.reimbursementMinor,
-                outstanding.currency,
-                documentLanguage(locale),
-              )}</strong
-            >
-          </p>
-        {:else}
-          <p>
-            {translate(
-              'No reviewed payments or approved reimbursements are outstanding in this period.',
-            )}
-          </p>
-        {/each}
-      </section>
-      <section class="record-list full pay-detail">
-        <div class="panel-title">
-          <div>
-            <h2>{translate('Compensation statement')}</h2>
-            <p>
-              {data.pay.label ?? translate('Estimate from approved and pending records')} · {data.periodStart}
-              {translate('to')}
-              {data.periodEnd}
-            </p>
           </div>
-          <span
-            >{data.pay.percentageBased
-              ? translate('Percentage rule active')
-              : translate('Rate rule active')}</span
+          <div class="detail-grid">
+            <a href="{base}/app/time" class="detail-grid-link">
+              <span>{translate('Approved actual time')}</span><strong
+                >{hours(data.pay.approvedMinutes)}</strong
+              >
+            </a>
+            <a href="{base}/app/time" class="detail-grid-link">
+              <span>{translate('Pending actual time')}</span><strong
+                >{hours(data.pay.pendingMinutes)}</strong
+              >
+            </a>
+            <a href="{base}/app/time" class="detail-grid-link">
+              <span>{translate('Daily guarantee coverage')}</span><strong
+                >{hours(data.pay.guaranteedMinutes ?? 0)}</strong
+              >
+            </a>
+            <a href="{base}/app/projects" class="detail-grid-link">
+              <span>{translate('Projects included')}</span><strong
+                >{data.pay.projectIds?.length ?? 0}</strong
+              >
+            </a>
+          </div>
+          <div class="statement-note">
+            {#if (data.pay.missingCompensationRules ?? 0) > 0}
+              <ProblemNotice
+                problem={missingCompensationRuleProblem(data.pay.missingCompensationRules ?? 0)}
+                kind="warning"
+                title={translate('Review required')}
+                remedyLinks={{
+                  contact_finance_owner: { label: translate('Contact Finance or an owner') },
+                }}
+              />
+            {/if}
+          </div>
+        </section>
+        <section class="record-list full pay-detail">
+          <div class="panel-title">
+            <div>
+              <h2>{translate('Assignment budget context')}</h2>
+              <p>
+                {translate(
+                  'Optional planning context only; actual and approved time remain the source of compensation.',
+                )}
+              </p>
+            </div>
+            <span>{data.pay.projectProgress?.length ?? 0} {translate('projects')}</span>
+          </div>
+          <TableRegion
+            class="table-wrap worker-pay-table"
+            mobileMode="scroll"
+            label={translate('Assignment budget context')}
           >
-        </div>
-        <div class="detail-grid">
-          <a href="{base}/app/time" class="detail-grid-link">
-            <span>{translate('Approved actual time')}</span><strong
-              >{hours(data.pay.approvedMinutes)}</strong
-            >
-          </a>
-          <a href="{base}/app/time" class="detail-grid-link">
-            <span>{translate('Pending actual time')}</span><strong
-              >{hours(data.pay.pendingMinutes)}</strong
-            >
-          </a>
-          <a href="{base}/app/time" class="detail-grid-link">
-            <span>{translate('Daily guarantee coverage')}</span><strong
-              >{hours(data.pay.guaranteedMinutes ?? 0)}</strong
-            >
-          </a>
-          <a href="{base}/app/projects" class="detail-grid-link">
-            <span>{translate('Projects included')}</span><strong
-              >{data.pay.projectIds?.length ?? 0}</strong
-            >
-          </a>
-        </div>
-        <div class="statement-note">
-          {#if (data.pay.missingCompensationRules ?? 0) > 0}
-            <ProblemNotice
-              problem={missingCompensationRuleProblem(data.pay.missingCompensationRules ?? 0)}
-              kind="warning"
-              title={translate('Review required')}
-              remedyLinks={{
-                contact_finance_owner: { label: translate('Contact Finance or an owner') },
-              }}
-            />
-          {/if}
-        </div>
-      </section>
-      <section class="record-list full pay-detail">
-        <div class="panel-title">
-          <div>
-            <h2>{translate('Assignment budget context')}</h2>
-            <p>
-              {translate(
-                'Optional planning context only; actual and approved time remain the source of compensation.',
-              )}
-            </p>
-          </div>
-          <span>{data.pay.projectProgress?.length ?? 0} {translate('projects')}</span>
-        </div>
-        <TableRegion
-          class="table-wrap worker-pay-table"
-          mobileMode="scroll"
-          label={translate('Assignment budget context')}
-        >
-          <table>
-            <thead
-              ><tr
-                ><th>{translate('Project')}</th><th>{translate('Actual')}</th><th
-                  >{translate('Approved')}</th
-                ><th>{translate('Pending')}</th><th>{translate('Planned')}</th><th
-                  >{translate('Remaining')}</th
-                ><th>{translate('Approved estimate')}</th><th>{translate('Pending estimate')}</th
-                ></tr
-              ></thead
-            >
-            <tbody
-              >{#each data.pay.projectProgress ?? [] as row}<tr
-                  ><td
-                    ><a
-                      href="{base}/app/projects/{String(row.projectId ?? '')}"
-                      class="project-progress-link"
-                      >{String(row.projectNumber)} · {String(row.projectName)}</a
-                    ></td
-                  ><td>{hours(row.actualMinutes ?? 0)}</td><td>{hours(row.approvedMinutes ?? 0)}</td
-                  ><td>{hours(row.pendingMinutes ?? 0)}</td><td
-                    >{row.plannedMinutes === null ? '—' : hours(row.plannedMinutes)}</td
-                  ><td>{row.hoursRemaining === null ? '—' : hours(row.hoursRemaining)}</td><td
-                    >{paymentMoney(
-                      String(row.estimatedApprovedMinor),
-                      String(row.currency),
-                      documentLanguage(locale),
-                    )}</td
-                  ><td
-                    >{paymentMoney(
-                      String(row.estimatedPendingMinor),
-                      String(row.currency),
-                      documentLanguage(locale),
-                    )}</td
+            <table>
+              <thead
+                ><tr
+                  ><th>{translate('Project')}</th><th>{translate('Actual')}</th><th
+                    >{translate('Approved')}</th
+                  ><th>{translate('Pending')}</th><th>{translate('Planned')}</th><th
+                    >{translate('Remaining')}</th
+                  ><th>{translate('Approved estimate')}</th><th>{translate('Pending estimate')}</th
                   ></tr
-                >{:else}<tr
-                  ><td colspan="8"
-                    >{translate('No project assignment budget context is configured.')}</td
-                  ></tr
-                >{/each}</tbody
-            >
-          </table>
-        </TableRegion>
-      </section>
-      <section class="record-list full pay-activity" aria-labelledby="pay-activity-title">
-        <div class="panel-title">
-          <div>
-            <h2 id="pay-activity-title">{translate('Own activity detail')}</h2>
-            <p class="form-help">
-              {translate(
-                'Actual operational activity included in this period. Compensation interpretation remains governed by project rules.',
-              )}
-            </p>
+                ></thead
+              >
+              <tbody
+                >{#each data.pay.projectProgress ?? [] as row}<tr
+                    ><td
+                      ><a
+                        href="{base}/app/projects/{String(row.projectId ?? '')}"
+                        class="project-progress-link"
+                        >{String(row.projectNumber)} · {String(row.projectName)}</a
+                      ></td
+                    ><td>{hours(row.actualMinutes ?? 0)}</td><td
+                      >{hours(row.approvedMinutes ?? 0)}</td
+                    ><td>{hours(row.pendingMinutes ?? 0)}</td><td
+                      >{row.plannedMinutes === null ? '—' : hours(row.plannedMinutes)}</td
+                    ><td>{row.hoursRemaining === null ? '—' : hours(row.hoursRemaining)}</td><td
+                      >{paymentMoney(
+                        String(row.estimatedApprovedMinor),
+                        String(row.currency),
+                        documentLanguage(locale),
+                      )}</td
+                    ><td
+                      >{paymentMoney(
+                        String(row.estimatedPendingMinor),
+                        String(row.currency),
+                        documentLanguage(locale),
+                      )}</td
+                    ></tr
+                  >{:else}<tr
+                    ><td colspan="8"
+                      >{translate('No project assignment budget context is configured.')}</td
+                    ></tr
+                  >{/each}</tbody
+              >
+            </table>
+          </TableRegion>
+        </section>
+        <section class="record-list full pay-activity" aria-labelledby="pay-activity-title">
+          <div class="panel-title">
+            <div>
+              <h2 id="pay-activity-title">{translate('Own activity detail')}</h2>
+              <p class="form-help">
+                {translate(
+                  'Actual operational activity included in this period. Compensation interpretation remains governed by project rules.',
+                )}
+              </p>
+            </div>
+            <span>{data.payActivities?.length ?? 0} {translate('entries')}</span>
           </div>
-          <span>{data.payActivities?.length ?? 0} {translate('entries')}</span>
-        </div>
-        <TableRegion
-          class="table-wrap worker-pay-table"
-          mobileMode="scroll"
-          label={translate('Own activity detail')}
-        >
-          <table>
-            <caption class="sr-only">{translate('Own activity detail')}</caption>
-            <thead>
-              <tr>
-                <th>{translate('Date')}</th>
-                <th>{translate('Project')}</th>
-                <th>{translate('Category')}</th>
-                <th>{translate('Activity')}</th>
-                <th>{translate('Actual minutes')}</th>
-                <th>{translate('Approval')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each data.payActivities ?? [] as activity}
+          <TableRegion
+            class="table-wrap worker-pay-table"
+            mobileMode="scroll"
+            label={translate('Own activity detail')}
+          >
+            <table>
+              <caption class="sr-only">{translate('Own activity detail')}</caption>
+              <thead>
                 <tr>
-                  <td>{String(activity.date ?? '—')}</td>
-                  <td
-                    >{String(activity.projectNumber ?? '—')} · {String(
-                      activity.projectName ?? '',
-                    )}</td
-                  >
-                  <td>{controlledValue('category', activity.category)}</td>
-                  <td>{String(activity.activitySummary ?? '—')}</td>
-                  <td>
-                    {#if activity.startTime && activity.endTime}
-                      <strong>{String(activity.startTime)} – {String(activity.endTime)}</strong><br
-                      />
-                    {/if}
-                    {hours(activity.actualMinutes ?? 0)}
-                    {#if Number(activity.breakMinutes ?? 0) > 0}
-                      · {translate('Break')}: {String(activity.breakMinutes)} {translate('min')}
-                    {/if}
-                  </td>
-                  <td>{controlledValue('status', activity.approvalState)}</td>
+                  <th>{translate('Date')}</th>
+                  <th>{translate('Project')}</th>
+                  <th>{translate('Category')}</th>
+                  <th>{translate('Activity')}</th>
+                  <th>{translate('Actual minutes')}</th>
+                  <th>{translate('Approval')}</th>
                 </tr>
-              {:else}
-                <tr>
-                  <td colspan="6">{translate('No activity recorded in this period.')}</td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </TableRegion>
-      </section>
-      <section class="record-list full pay-settlements">
-        <div class="panel-title">
-          <div>
-            <h2>{translate('Settlement status')}</h2>
-            <p>
-              {translate(
-                'Your reviewed compensation, recorded actual payments and remaining balance. Finalizing a settlement is not proof of payment.',
-              )}
-            </p>
-          </div>
-          <span>{data.settlements?.length ?? 0}</span>
-        </div>
-        <TableRegion
-          class="table-wrap worker-pay-table"
-          mobileMode="scroll"
-          label={translate('Settlement status')}
-        >
-          <table>
-            <caption class="sr-only">{translate('Settlement status')}</caption>
-            <thead>
-              <tr>
-                <th>{translate('Project / period')}</th>
-                <th>{translate('Payment state')}</th>
-                <th>{translate('Expected payment')}</th>
-                <th>{translate('Latest actual payment')}</th>
-                <th>{translate('Reviewed settlement')}</th>
-                <th>{translate('Actual paid')}</th>
-                <th>{translate('Remaining')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each data.settlements ?? [] as settlement}
-                <tr>
-                  <td>
-                    <a
-                      class="project-progress-link"
-                      href="{base}/app/projects/{String(settlement.projectId ?? '')}"
+              </thead>
+              <tbody>
+                {#each data.payActivities ?? [] as activity}
+                  <tr>
+                    <td>{String(activity.date ?? '—')}</td>
+                    <td
+                      >{String(activity.projectNumber ?? '—')} · {String(
+                        activity.projectName ?? '',
+                      )}</td
                     >
-                      {String(settlement.projectNumber ?? '—')} · {String(
-                        settlement.periodStart ?? '—',
-                      )} → {String(settlement.periodEnd ?? '—')}
-                    </a>
-                  </td>
-                  <td>{controlledValue('status', settlement.paymentState ?? settlement.state)}</td>
-                  <td>{String(settlement.expectedPaymentOn ?? translate('Not scheduled'))}</td>
-                  <td>{String(settlement.actualPaymentOn ?? translate('Not paid yet'))}</td>
-                  <td
-                    >{paymentMoney(
-                      settlement.amountMinor,
-                      String(settlement.currency),
-                      documentLanguage(locale),
-                    )}</td
-                  >
-                  <td
-                    >{paymentMoney(
-                      settlement.paidAmountMinor,
-                      String(settlement.currency),
-                      documentLanguage(locale),
-                    )}</td
-                  >
-                  <td
-                    >{paymentMoney(
-                      settlement.remainingAmountMinor,
-                      String(settlement.currency),
-                      documentLanguage(locale),
-                    )}</td
-                  >
-                </tr>
-              {:else}
-                <tr>
-                  <td colspan="7">{translate('No compensation settlements in this period.')}</td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </TableRegion>
-      </section>
-      <section
-        class="record-list full pay-reimbursements"
-        aria-labelledby="pay-reimbursements-title"
-      >
-        <div class="panel-title">
-          <div>
-            <h2 id="pay-reimbursements-title">{translate('Reimbursement status')}</h2>
-            <p>
-              {translate('Expected and actual reimbursement dates for your own approved expenses.')}
-            </p>
+                    <td>{controlledValue('category', activity.category)}</td>
+                    <td>{String(activity.activitySummary ?? '—')}</td>
+                    <td>
+                      {#if activity.startTime && activity.endTime}
+                        <strong>{String(activity.startTime)} – {String(activity.endTime)}</strong
+                        ><br />
+                      {/if}
+                      {hours(activity.actualMinutes ?? 0)}
+                      {#if Number(activity.breakMinutes ?? 0) > 0}
+                        · {translate('Break')}: {String(activity.breakMinutes)} {translate('min')}
+                      {/if}
+                    </td>
+                    <td>{controlledValue('status', activity.approvalState)}</td>
+                  </tr>
+                {:else}
+                  <tr>
+                    <td colspan="6">{translate('No activity recorded in this period.')}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </TableRegion>
+        </section>
+        <section class="record-list full pay-settlements">
+          <div class="panel-title">
+            <div>
+              <h2>{translate('Settlement status')}</h2>
+              <p>
+                {translate(
+                  'Your reviewed compensation, recorded actual payments and remaining balance. Finalizing a settlement is not proof of payment.',
+                )}
+              </p>
+            </div>
+            <span>{data.settlements?.length ?? 0}</span>
           </div>
-          <span>{data.payExpenses?.length ?? 0}</span>
-        </div>
-        <TableRegion
-          class="table-wrap worker-pay-table"
-          mobileMode="scroll"
-          label={translate('Reimbursement status')}
+          <TableRegion
+            class="table-wrap worker-pay-table"
+            mobileMode="scroll"
+            label={translate('Settlement status')}
+          >
+            <table>
+              <caption class="sr-only">{translate('Settlement status')}</caption>
+              <thead>
+                <tr>
+                  <th>{translate('Project / period')}</th>
+                  <th>{translate('Payment state')}</th>
+                  <th>{translate('Expected payment')}</th>
+                  <th>{translate('Latest actual payment')}</th>
+                  <th>{translate('Reviewed settlement')}</th>
+                  <th>{translate('Actual paid')}</th>
+                  <th>{translate('Remaining')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each data.settlements ?? [] as settlement}
+                  <tr>
+                    <td>
+                      <a
+                        class="project-progress-link"
+                        href="{base}/app/projects/{String(settlement.projectId ?? '')}"
+                      >
+                        {String(settlement.projectNumber ?? '—')} · {String(
+                          settlement.periodStart ?? '—',
+                        )} → {String(settlement.periodEnd ?? '—')}
+                      </a>
+                    </td>
+                    <td>{controlledValue('status', settlement.paymentState ?? settlement.state)}</td
+                    >
+                    <td>{String(settlement.expectedPaymentOn ?? translate('Not scheduled'))}</td>
+                    <td>{String(settlement.actualPaymentOn ?? translate('Not paid yet'))}</td>
+                    <td
+                      >{paymentMoney(
+                        settlement.amountMinor,
+                        String(settlement.currency),
+                        documentLanguage(locale),
+                      )}</td
+                    >
+                    <td
+                      >{paymentMoney(
+                        settlement.paidAmountMinor,
+                        String(settlement.currency),
+                        documentLanguage(locale),
+                      )}</td
+                    >
+                    <td
+                      >{paymentMoney(
+                        settlement.remainingAmountMinor,
+                        String(settlement.currency),
+                        documentLanguage(locale),
+                      )}</td
+                    >
+                  </tr>
+                {:else}
+                  <tr>
+                    <td colspan="7">{translate('No compensation settlements in this period.')}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </TableRegion>
+        </section>
+        <section
+          class="record-list full pay-reimbursements"
+          aria-labelledby="pay-reimbursements-title"
         >
-          <table>
-            <caption class="sr-only">{translate('Reimbursement status')}</caption>
-            <thead>
-              <tr>
-                <th>{translate('Date')}</th>
-                <th>{translate('Project')}</th>
-                <th>{translate('Vendor / category')}</th>
-                <th>{translate('State')}</th>
-                <th>{translate('Expected reimbursement')}</th>
-                <th>{translate('Actual reimbursement')}</th>
-                <th>{translate('Own amount')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each data.payExpenses ?? [] as expense}
+          <div class="panel-title">
+            <div>
+              <h2 id="pay-reimbursements-title">{translate('Reimbursement status')}</h2>
+              <p>
+                {translate(
+                  'Expected and actual reimbursement dates for your own approved expenses.',
+                )}
+              </p>
+            </div>
+            <span>{data.payExpenses?.length ?? 0}</span>
+          </div>
+          <TableRegion
+            class="table-wrap worker-pay-table"
+            mobileMode="scroll"
+            label={translate('Reimbursement status')}
+          >
+            <table>
+              <caption class="sr-only">{translate('Reimbursement status')}</caption>
+              <thead>
                 <tr>
-                  <td>{String(expense.spentOn ?? '—')}</td>
-                  <td>{String(expense.projectNumber ?? '—')}</td>
-                  <td
-                    >{String(expense.vendor || expense.description || 'Expense')} · {controlledValue(
-                      'expenseCategory',
-                      expense.category,
-                    )}</td
-                  >
-                  <td
-                    >{controlledValue(
-                      'status',
-                      expense.reimbursementState ?? expense.approvalState,
-                    )}</td
-                  >
-                  <td>{String(expense.expectedReimbursementOn ?? translate('Not scheduled'))}</td>
-                  <td>{String(expense.reimbursedAt ?? translate('Not reimbursed yet'))}</td>
-                  <td
-                    >{paymentMoney(
-                      expense.reimbursementAmountMinor,
-                      String(expense.currency),
-                      documentLanguage(locale),
-                    )}</td
-                  >
+                  <th>{translate('Date')}</th>
+                  <th>{translate('Project')}</th>
+                  <th>{translate('Vendor / category')}</th>
+                  <th>{translate('State')}</th>
+                  <th>{translate('Expected reimbursement')}</th>
+                  <th>{translate('Actual reimbursement')}</th>
+                  <th>{translate('Own amount')}</th>
                 </tr>
-              {:else}
-                <tr>
-                  <td colspan="7">{translate('No reimbursable expenses in this period.')}</td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </TableRegion>
-      </section>
+              </thead>
+              <tbody>
+                {#each data.payExpenses ?? [] as expense}
+                  <tr>
+                    <td>{String(expense.spentOn ?? '—')}</td>
+                    <td>{String(expense.projectNumber ?? '—')}</td>
+                    <td
+                      >{String(expense.vendor || expense.description || 'Expense')} · {controlledValue(
+                        'expenseCategory',
+                        expense.category,
+                      )}</td
+                    >
+                    <td
+                      >{controlledValue(
+                        'status',
+                        expense.reimbursementState ?? expense.approvalState,
+                      )}</td
+                    >
+                    <td>{String(expense.expectedReimbursementOn ?? translate('Not scheduled'))}</td>
+                    <td>{String(expense.reimbursedAt ?? translate('Not reimbursed yet'))}</td>
+                    <td
+                      >{paymentMoney(
+                        expense.reimbursementAmountMinor,
+                        String(expense.currency),
+                        documentLanguage(locale),
+                      )}</td
+                    >
+                  </tr>
+                {:else}
+                  <tr>
+                    <td colspan="7">{translate('No reimbursable expenses in this period.')}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </TableRegion>
+        </section>
+      {/if}
     {:else if data.section === 'projects' && projectDirectoryView === 'clients'}
       <ClientDirectorySection
         clients={data.clients ?? []}
@@ -4424,6 +4799,16 @@
                 use:formValidation
               >
                 <h2>{translate('Create client')}</h2>
+                {#if clientFormResult?.success && clientFormResult.clientId}
+                  <div class="form-help wide-field" role="status">
+                    <strong>{actionFeedback}</strong>
+                    <a
+                      class="secondary-button"
+                      href={`${base}/app/projects?action=update-client&client=${encodeURIComponent(clientFormResult.clientId)}`}
+                      >{translate('Edit client')} {clientFormResult.clientNumber ?? ''}</a
+                    >
+                  </div>
+                {/if}
                 {#if clientProblem}
                   <ProblemNotice
                     problem={clientProblem}
@@ -4679,6 +5064,8 @@
                       newProjectCurrencyOverride = null;
                       newProjectTimezoneOverride = null;
                     }}
+                    ><option value="" disabled
+                      >{portalText(locale, 'problem.client.idRequired')}</option
                     >{#each activeClients as client}<option value={client.id}
                         >{client.client_number} — {client.display_name}</option
                       >{/each}</select
@@ -5273,6 +5660,7 @@
               {translate}
               statusLabel={(value) => controlledValue('status', value)}
               label="Project"
+              showEmpty={availableProjects.length > 0}
             />
             {#each projectRegisterPage as row (row.id)}
               <article class="project-list-link">
@@ -5450,7 +5838,11 @@
                   </details>
                 {/if}
               </article>
-            {:else}<div class="empty">{translate('No projects available.')}</div>{/each}
+            {:else}
+              {#if availableProjects.length === 0}
+                <div class="empty">{translate('No projects available.')}</div>
+              {/if}
+            {/each}
           </SectionCard>
         </div>
         {#if canManageProjects}
@@ -5593,37 +5985,68 @@
             </form>
           </details>
           {#if canManageAssignmentControls}
-            <details class="admin-details">
+            <details class="admin-details" bind:this={ownerMilestoneDetails}>
               <summary class="primary-button">{translate('Create Milestone')}</summary>
-              <form method="POST" action="?/createMilestone" class="admin-form-grid">
+              <form
+                method="POST"
+                action="?/createMilestone"
+                class="admin-form-grid"
+                bind:this={ownerMilestoneForm}
+              >
                 <h2>{translate('Create milestone')}</h2>
                 <label
-                  >{translate('Project')}<select name="projectId" required
+                  >{translate('Project')}<select
+                    name="projectId"
+                    value={milestoneProjectId}
+                    required
+                    ><option value="" disabled>{translate('Select project')}</option
                     >{#each activeProjects as project}<option value={project.id}
                         >{project.project_number} — {project.name}</option
                       >{/each}</select
                   ></label
-                ><label>{translate('Name')}<input name="name" required /></label><label
+                ><label
+                  >{translate('Name')}<input
+                    name="name"
+                    value={projectContextFormValue(milestoneFormResult, 'name')}
+                    required
+                  /></label
+                ><label
                   >{translate('Description')}<textarea name="description" rows="2"
-                  ></textarea></label
+                    >{projectContextFormValue(milestoneFormResult, 'description')}</textarea
+                  ></label
                 ><label
                   >{translate('Amount (minor)')}<input
                     name="amountMinor"
                     inputmode="numeric"
                     pattern="[0-9]*"
+                    value={projectContextFormValue(milestoneFormResult, 'amountMinor')}
                     required
                   /></label
-                ><label>{translate('Due on')}<input name="dueOn" type="date" /></label><button
-                  >{translate('Save milestone')}</button
-                >
+                ><label
+                  >{translate('Due on')}<input
+                    name="dueOn"
+                    type="date"
+                    value={projectContextFormValue(milestoneFormResult, 'dueOn')}
+                  /></label
+                ><button>{translate('Save milestone')}</button>
               </form>
             </details>
-            <details class="admin-details">
+            <details class="admin-details" bind:this={ownerScheduleDetails}>
               <summary class="primary-button">{translate('Expected Working Schedule')}</summary>
-              <form method="POST" action="?/updateSchedule" class="admin-form-grid">
+              <form
+                method="POST"
+                action="?/updateSchedule"
+                class="admin-form-grid"
+                bind:this={ownerScheduleForm}
+              >
                 <h2>{translate('Expected working schedule')}</h2>
                 <label
-                  >{translate('Project')}<select name="projectId" required
+                  >{translate('Project')}<select
+                    name="projectId"
+                    value={scheduleProjectId}
+                    onchange={(event) => (scheduleProjectOverride = event.currentTarget.value)}
+                    required
+                    ><option value="" disabled>{translate('Select project')}</option
                     >{#each operationalProjects as project}<option value={project.id}
                         >{project.project_number} — {project.name}</option
                       >{/each}</select
@@ -5631,13 +6054,15 @@
                 ><label
                   >{translate('Timezone')}<input
                     name="timezone"
-                    value="America/New_York"
+                    value={scheduleTimezone}
+                    oninput={(event) => (scheduleTimezoneOverride = event.currentTarget.value)}
                     required
                   /></label
                 ><label
                   >{translate('Effective from')}<input
                     name="effectiveFrom"
                     type="date"
+                    value={projectContextFormValue(scheduleFormResult, 'effectiveFrom')}
                     required
                   /></label
                 >
@@ -5647,6 +6072,7 @@
                     type="number"
                     min="0"
                     max="1440"
+                    value={projectContextFormValue(scheduleFormResult, 'mondayMinutes')}
                     required
                   /></label
                 ><label
@@ -5655,6 +6081,7 @@
                     type="number"
                     min="0"
                     max="1440"
+                    value={projectContextFormValue(scheduleFormResult, 'tuesdayMinutes')}
                     required
                   /></label
                 ><label
@@ -5663,6 +6090,7 @@
                     type="number"
                     min="0"
                     max="1440"
+                    value={projectContextFormValue(scheduleFormResult, 'wednesdayMinutes')}
                     required
                   /></label
                 ><label
@@ -5671,6 +6099,7 @@
                     type="number"
                     min="0"
                     max="1440"
+                    value={projectContextFormValue(scheduleFormResult, 'thursdayMinutes')}
                     required
                   /></label
                 ><label
@@ -5679,6 +6108,7 @@
                     type="number"
                     min="0"
                     max="1440"
+                    value={projectContextFormValue(scheduleFormResult, 'fridayMinutes')}
                     required
                   /></label
                 ><label
@@ -5687,6 +6117,7 @@
                     type="number"
                     min="0"
                     max="1440"
+                    value={projectContextFormValue(scheduleFormResult, 'saturdayMinutes')}
                     required
                   /></label
                 ><label
@@ -5695,7 +6126,7 @@
                     type="number"
                     min="0"
                     max="1440"
-                    value="0"
+                    value={projectContextFormValue(scheduleFormResult, 'sundayMinutes', '0')}
                     required
                   /></label
                 ><button>{translate('Save schedule')}</button>
@@ -5742,11 +6173,8 @@
                 <div>
                   <strong>{assignment.project_number} · {assignment.project_name}</strong>
                   <small
-                    >{assignment.worker_name} · {assignment.starts_on} → {assignment.ends_on ??
-                      translate('Open assignment')} · {controlledValue(
-                      'status',
-                      assignment.status,
-                    )}</small
+                    >{assignment.worker_name} · {assignment.starts_on} → {assignment.ends_on || '—'} ·
+                    {controlledValue('status', assignment.status)}</small
                   >
                 </div>
                 <span class="record-card-open">{translate('Open record')} <DirectionIcon /></span>
@@ -5767,18 +6195,71 @@
             title: `${row.worker_name} · ${row.project_number}${row.planned_minutes == null ? '' : ` · ${row.planned_minutes} min`}`,
             startsAt: String(row.starts_at),
             endsAt: row.ends_at == null ? undefined : String(row.ends_at),
-            href:
-              data.user.role === 'owner_admin'
-                ? `${base}/app/manage?area=planning_assignment&project=${row.project_id}&focus=${row.id}`
-                : data.user.role === 'project_manager'
-                  ? `${base}/app/planning?project=${row.project_id}&focus=${row.id}#planning-assignment-${row.id}`
-                  : `${base}/app/projects/${row.project_id}?tab=team`,
+            href: planningRecordHref(row),
           }))}
           onselectdate={canManageAssignmentControls ? selectPlanningDate : undefined}
         />
         <p class="form-help">
           {translate('Calendar times are shown in UTC. Planning never creates actual hours.')}
         </p>
+        {#if focusedPlanningRecord}
+          <section
+            id="planning-shift-detail"
+            class="record-list full planning-shift-detail"
+            aria-labelledby="planning-shift-title"
+            tabindex="-1"
+          >
+            <div class="panel-title">
+              <h2 id="planning-shift-title">{translate('Published schedule')}</h2>
+              <span class="state-tag"
+                >{controlledValue('status', focusedPlanningRecord.status)}</span
+              >
+            </div>
+            <p>
+              <strong>{focusedPlanningRecord.worker_name}</strong> · {focusedPlanningRecord.project_number}
+              · {focusedPlanningRecord.project_name}
+            </p>
+            <dl class="planning-shift-facts">
+              <div>
+                <dt>{translate('Start')}</dt>
+                <dd>
+                  {String(focusedPlanningRecord.starts_at).replace('T', ' ').slice(0, 16)} UTC
+                </dd>
+              </div>
+              {#if focusedPlanningRecord.ends_at}
+                <div>
+                  <dt>{translate('End (optional)')}</dt>
+                  <dd>
+                    {String(focusedPlanningRecord.ends_at).replace('T', ' ').slice(0, 16)} UTC
+                  </dd>
+                </div>
+              {/if}
+              {#if focusedPlanningRecord.planned_minutes != null}
+                <div>
+                  <dt>{translate('Planned minutes (optional)')}</dt>
+                  <dd>{focusedPlanningRecord.planned_minutes} min</dd>
+                </div>
+              {/if}
+              {#if focusedPlanningRecord.site}
+                <div>
+                  <dt>{translate('Site (optional)')}</dt>
+                  <dd>{focusedPlanningRecord.site}</dd>
+                </div>
+              {/if}
+              {#if focusedPlanningRecord.required_skill}
+                <div>
+                  <dt>{translate('Required expertise')}</dt>
+                  <dd>{focusedPlanningRecord.required_skill}</dd>
+                </div>
+              {/if}
+            </dl>
+            <a
+              class="secondary-button"
+              href={`${base}/app/projects/${encodeURIComponent(String(focusedPlanningRecord.project_id))}?tab=team`}
+              >{translate('Open project')} <DirectionIcon /></a
+            >
+          </section>
+        {/if}
         {#if planningProblem && planningFailure?.operation !== 'createPlanning' && !planningFailedRecordVisible}
           <div data-planning-fallback>
             <ProblemNotice
@@ -5937,6 +6418,9 @@
             class="admin-form-grid"
             use:formValidation
           >
+            {#if form?.success === true && form?.operation === 'createPlanning'}
+              <p class="form-help" role="status">{actionFeedback}</p>
+            {/if}
             {#if planningProblem && planningFailure?.operation === 'createPlanning'}
               <ProblemNotice
                 problem={planningProblem}
@@ -6029,8 +6513,13 @@
                   role="alert">{planningFieldMessage('workerIds', 'createPlanning')}</small
                 >{/if}
             </fieldset>
+            <p class="form-help">
+              {translate(
+                'Enter dates and times in UTC. The worker agenda also shows times in UTC.',
+              )}
+            </p>
             <label
-              >{translate('Start')}<input
+              >{translate('Start (UTC)')}<input
                 name="startsAt"
                 type="datetime-local"
                 bind:value={planningStarts}
@@ -6040,7 +6529,7 @@
                 class="field-error"
                 role="alert">{planningFieldMessage('startsAt', 'createPlanning')}</small
               >{/if}<label
-              >{translate('End (optional)')}<input
+              >{translate('End (UTC, optional)')}<input
                 name="endsAt"
                 type="datetime-local"
                 bind:value={planningEnds}
@@ -6296,13 +6785,18 @@
                   >{/each}
               </select></label
             >
-            {#if data.workers?.length}<label
+            {#if data.user.role !== 'worker' && (data.planningFilterWorkers?.length || $page.url.searchParams.get('worker'))}<label
                 >{translate('Worker')}<select
                   name="worker"
                   value={$page.url.searchParams.get('worker') ?? ''}
                 >
                   <option value="">{translate('All')}</option>
-                  {#each data.workers as worker}<option value={worker.id}>{worker.name}</option
+                  {#if $page.url.searchParams.get('worker') && !(data.planningFilterWorkers ?? []).some((worker) => String(worker.id) === $page.url.searchParams.get('worker'))}<option
+                      value={$page.url.searchParams.get('worker') ?? ''}
+                      disabled>{translate('Worker')} · {translate('Unavailable')}</option
+                    >{/if}
+                  {#each data.planningFilterWorkers ?? [] as worker}<option value={worker.id}
+                      >{worker.label}</option
                     >{/each}
                 </select></label
               >{/if}
@@ -6314,19 +6808,16 @@
             {translate}
             label="Published schedule"
           />
-          {#each planningPage as row}<a
-              class="record-card-link"
-              href={data.user.role === 'owner_admin'
-                ? `${base}/app/manage?area=planning_assignment&project=${row.project_id}&focus=${row.id}`
-                : `${base}/app/projects/${row.project_id}`}
-            >
+          {#each planningPage as row}<a class="record-card-link" href={planningRecordHref(row)}>
               <div>
-                <strong>{row.worker_name} · {row.project_number}</strong><small
+                <strong class="planning-record-heading"
+                  >{row.worker_name} · {row.project_number}</strong
+                >
+                <small class="planning-record-detail"
                   >{String(row.starts_at).replace('T', ' ').slice(0, 16)}{row.planned_minutes ==
                   null
                     ? ''
-                    : ` · ${row.planned_minutes} min`}
-                  · {row.site}</small
+                    : ` · ${row.planned_minutes} min`}{row.site ? ` · ${row.site}` : ''}</small
                 >
               </div>
               <span class="record-card-open">{translate('Open record')} <DirectionIcon /></span>
@@ -6376,7 +6867,11 @@
           <h2>{translate('Expertise and availability')}</h2>
           <p>
             {translate(
-              'Keep your own workforce profile current without exposing compensation or client rates.',
+              ['owner_admin', 'finance_admin', 'project_manager'].includes(String(data.user.role))
+                ? "Review the selected worker's expertise and availability without exposing compensation or client rates."
+                : isAuditor
+                  ? 'Review the expertise and availability shown here without exposing compensation or client rates.'
+                  : 'Keep your own workforce profile current without exposing compensation or client rates.',
             )}
           </p>
           {#if skillProblem}
@@ -6389,9 +6884,23 @@
           {#if (data.user.role === 'owner_admin' || data.user.role === 'finance_admin' || data.user.role === 'project_manager') && (data.workers?.length ?? 0) > 0}
             <form method="GET" action={href('profile')} class="worker-profile-selector">
               <label
-                >{translate('Inspect worker')}<select name="worker" required>
-                  {#each data.workers ?? [] as worker}
-                    <option value={worker.id} selected={String(worker.id) === profileWorkerId}
+                >{translate('Search team')}<input
+                  type="search"
+                  bind:value={profileWorkerSearch}
+                  autocomplete="off"
+                /></label
+              >
+              {#if profileWorkerSearch.trim() && profileMatchingWorkers.length === 0}
+                <p class="form-help" role="status">{translate('No matching records.')}</p>
+              {/if}
+              <label
+                >{translate('Inspect worker')}<select
+                  name="worker"
+                  required
+                  bind:value={profileSelectedWorkerId}
+                >
+                  {#each profileVisibleWorkers as worker}
+                    <option value={worker.id}
                       >{worker.name} · {controlledValue('role', worker.role)}</option
                     >
                   {/each}
@@ -6415,94 +6924,98 @@
                 {/if}
               </p>
             {/if}
-            <details
-              class="admin-details profile-skill-details"
-              open={skillFailure?.operation === 'setWorkerSkill' &&
-                skillValue('setWorkerSkill', 'workerId') === profileWorkerId}
-            >
-              <summary class="primary-button">{translate('Add expertise')}</summary>
-              <form
-                method="POST"
-                action="?/setWorkerSkill#profile-skills"
-                data-workforce-operation="setWorkerSkill"
-                data-workforce-origin="profile"
-                class="admin-form-grid"
-                use:formValidation
+            {#if profileExpertiseOptions.length > 0 || skillFailure?.operation === 'setWorkerSkill'}
+              <details
+                class="admin-details profile-skill-details"
+                open={skillFailure?.operation === 'setWorkerSkill' &&
+                  skillValue('setWorkerSkill', 'workerId') === profileWorkerId}
               >
-                <input type="hidden" name="workerId" value={profileWorkerId} />
-                <label
-                  >{translate('Expertise')}
-                  <select name="skillId" value={skillValue('setWorkerSkill', 'skillId')} required>
-                    <option value="">{translate('Select expertise')}</option>
-                    {#if missingChoice(skillValue('setWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [], skillChoiceId)}<option
-                        value={skillValue('setWorkerSkill', 'skillId')}
-                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
-                      >{/if}
-                    {#each data.allSkills ?? data.skills ?? [] as skill}
-                      <option value={skillChoiceId(skill)}>{skill.name}</option>
-                    {/each}
-                  </select>
-                </label>
-                <label
-                  >{translate('Proficiency (1-5)')}
-                  <input
-                    name="proficiency"
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={skillValue('setWorkerSkill', 'proficiency', '3')}
-                    required
-                  />
-                </label>
-                <button disabled={profileExpertiseOptions.length === 0}
-                  >{translate('Add expertise')}</button
+                <summary class="primary-button">{translate('Add expertise')}</summary>
+                <form
+                  method="POST"
+                  action="?/setWorkerSkill#profile-skills"
+                  data-workforce-operation="setWorkerSkill"
+                  data-workforce-origin="profile"
+                  class="admin-form-grid"
+                  use:formValidation
                 >
-              </form>
-            </details>
-            <details
-              class="admin-details profile-skill-details"
-              open={skillFailure?.operation === 'deleteWorkerSkill' &&
-                skillValue('deleteWorkerSkill', 'workerId') === profileWorkerId}
-            >
-              <summary class="primary-button">{translate('Remove expertise')}</summary>
-              <form
-                method="POST"
-                action="?/deleteWorkerSkill#profile-skills"
-                data-workforce-operation="deleteWorkerSkill"
-                data-workforce-origin="profile"
-                class="admin-form-grid"
-                use:formValidation
-              >
-                <input type="hidden" name="workerId" value={profileWorkerId} />
-                <label
-                  >{translate('Expertise')}
-                  <select
-                    name="skillId"
-                    value={skillValue('deleteWorkerSkill', 'skillId')}
-                    required
+                  <input type="hidden" name="workerId" value={profileWorkerId} />
+                  <label
+                    >{translate('Expertise')}
+                    <select name="skillId" value={skillValue('setWorkerSkill', 'skillId')} required>
+                      <option value="">{translate('Select expertise')}</option>
+                      {#if missingChoice(skillValue('setWorkerSkill', 'skillId'), data.allSkills ?? data.skills ?? [], skillChoiceId)}<option
+                          value={skillValue('setWorkerSkill', 'skillId')}
+                          disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                        >{/if}
+                      {#each data.allSkills ?? data.skills ?? [] as skill}
+                        <option value={skillChoiceId(skill)}>{skill.name}</option>
+                      {/each}
+                    </select>
+                  </label>
+                  <label
+                    >{translate('Proficiency (1-5)')}
+                    <input
+                      name="proficiency"
+                      type="number"
+                      min="1"
+                      max="5"
+                      value={skillValue('setWorkerSkill', 'proficiency', '3')}
+                      required
+                    />
+                  </label>
+                  <button disabled={profileExpertiseOptions.length === 0}
+                    >{translate('Add expertise')}</button
                   >
-                    <option value="">{translate('Select expertise')}</option>
-                    {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), data.skills ?? [], skillChoiceId)}<option
-                        value={skillValue('deleteWorkerSkill', 'skillId')}
-                        disabled>{translate('Expertise')} · {translate('Unavailable')}</option
-                      >{/if}
-                    {#each data.skills ?? [] as skill}
-                      <option value={skillChoiceId(skill)}>{skill.name}</option>
-                    {/each}
-                  </select>
-                </label>
-                {#if profileAssignedExpertise.length === 0}
-                  <p class="form-help">
-                    {translate(
-                      'No expertise is assigned to this profile, so there is nothing to remove.',
-                    )}
-                  </p>
-                {/if}
-                <button class="danger" disabled={profileAssignedExpertise.length === 0}
-                  >{translate('Remove expertise')}</button
+                </form>
+              </details>
+            {/if}
+            {#if (data.skills?.length ?? 0) > 0 || skillFailure?.operation === 'deleteWorkerSkill'}
+              <details
+                class="admin-details profile-skill-details"
+                open={skillFailure?.operation === 'deleteWorkerSkill' &&
+                  skillValue('deleteWorkerSkill', 'workerId') === profileWorkerId}
+              >
+                <summary class="primary-button">{translate('Remove expertise')}</summary>
+                <form
+                  method="POST"
+                  action="?/deleteWorkerSkill#profile-skills"
+                  data-workforce-operation="deleteWorkerSkill"
+                  data-workforce-origin="profile"
+                  class="admin-form-grid"
+                  use:formValidation
                 >
-              </form>
-            </details>
+                  <input type="hidden" name="workerId" value={profileWorkerId} />
+                  <label
+                    >{translate('Expertise')}
+                    <select
+                      name="skillId"
+                      value={skillValue('deleteWorkerSkill', 'skillId')}
+                      required
+                    >
+                      <option value="">{translate('Select expertise')}</option>
+                      {#if missingChoice(skillValue('deleteWorkerSkill', 'skillId'), data.skills ?? [], skillChoiceId)}<option
+                          value={skillValue('deleteWorkerSkill', 'skillId')}
+                          disabled>{translate('Expertise')} · {translate('Unavailable')}</option
+                        >{/if}
+                      {#each data.skills ?? [] as skill}
+                        <option value={skillChoiceId(skill)}>{skill.name}</option>
+                      {/each}
+                    </select>
+                  </label>
+                  {#if profileAssignedExpertise.length === 0}
+                    <p class="form-help">
+                      {translate(
+                        'No expertise is assigned to this profile, so there is nothing to remove.',
+                      )}
+                    </p>
+                  {/if}
+                  <button class="danger" disabled={profileAssignedExpertise.length === 0}
+                    >{translate('Remove expertise')}</button
+                  >
+                </form>
+              </details>
+            {/if}
           {/if}
           <TableRegion
             class="table-wrap worker-profile-table"
@@ -6537,7 +7050,7 @@
               {locale}
             />
           {/key}
-          {#if data.user.role === 'owner_admin' && (data.workers?.length ?? 0) > 0}
+          {#if data.user.role === 'owner_admin' && (data.workers?.length ?? 0) > 0 && (profileExpertiseOptions.length > 0 || profileRemovalExpertiseOptions.length > 0 || Boolean(skillFailure))}
             <section
               class="owner-workforce-controls"
               aria-labelledby="worker-profile-controls-title"
@@ -6871,18 +7384,66 @@
       <section class="record-list full">
         <div class="panel-title">
           <h2>{translate('Append-only security and finance audit')}</h2>
-          <span>{data.audit?.length ?? 0} {translate('events')}</span>
+          <span>{data.audit?.length ?? 0} {translate('events on this page')}</span>
         </div>
-        {#each data.audit ?? [] as row}<article>
+        <p class="form-help">
+          {translate(
+            'Business and security includes all events except job service lifecycle. All activity keeps every event available.',
+          )}
+        </p>
+        <nav class="audit-view-nav" aria-label={translate('Audit event filters')}>
+          <a
+            href={`${base}/app/audit?lang=${encodeURIComponent(locale)}&view=business`}
+            aria-current={(data.auditView ?? 'business') === 'business' ? 'page' : undefined}
+            >{translate('Business & security')}</a
+          >
+          <a
+            href={`${base}/app/audit?lang=${encodeURIComponent(locale)}&view=service`}
+            aria-current={data.auditView === 'service' ? 'page' : undefined}
+            >{translate('Job service')}</a
+          >
+          <a
+            href={`${base}/app/audit?lang=${encodeURIComponent(locale)}&view=all`}
+            aria-current={data.auditView === 'all' ? 'page' : undefined}
+            >{translate('All activity')}</a
+          >
+        </nav>
+        {#if data.auditOlderPage}
+          <a
+            class="audit-latest-link"
+            href={`${base}/app/audit?lang=${encodeURIComponent(locale)}&view=${data.auditView ?? 'business'}`}
+            >{translate('Latest events')}</a
+          >
+        {/if}
+        {#each data.audit ?? [] as row (String(row.id))}<article class="audit-event">
             <div>
               <strong>{String(row.action).replaceAll('_', ' ')}</strong><small
-                >{String(row.entity_type)} · {String(row.entity_id)} · {String(row.occurred_at)
-                  .replace('T', ' ')
-                  .slice(0, 19)}</small
+                >{String(row.entity_type)} · {String(row.entity_id)} ·
+                <time datetime={auditUtcIso(row.occurred_at)}
+                  >{auditTimestampLabel(row.occurred_at)}</time
+                ></small
               >
+              <small>{translate('Actor ID')}: {String(row.actor_id || '—')}</small>
             </div>
-            <code>{String(row.details_json ?? '{}')}</code>
-          </article>{:else}<div class="empty">{translate('No audit events recorded.')}</div>{/each}
+            <details class="audit-event__details">
+              <summary
+                aria-label={`${translate('View details')}: ${String(row.action)} · ${String(row.entity_id)}`}
+                >{translate('View details')}</summary
+              >
+              <pre><code>{auditDetailsDisplay(row.details_json)}</code></pre>
+            </details>
+          </article>{:else}<div class="empty">
+            {translate('No audit events in this view.')}
+          </div>{/each}
+        {#if data.auditHasMore && data.auditNextCursor}
+          <a
+            class="audit-older-link"
+            href={`${base}/app/audit?lang=${encodeURIComponent(locale)}&view=${data.auditView ?? 'business'}&beforeAt=${encodeURIComponent(data.auditNextCursor.occurredAt)}&beforeId=${encodeURIComponent(data.auditNextCursor.id)}`}
+            >{translate('Older events')}</a
+          >
+        {:else if data.auditOlderPage && (data.audit?.length ?? 0) > 0}
+          <p class="form-help">{translate('End of this audit view.')}</p>
+        {/if}
       </section>
     {:else}
       <section class="record-list full">
@@ -6929,6 +7490,30 @@
   .planning-workers-fieldset {
     grid-column: 1 / -1;
     min-width: 0;
+  }
+  .planning-shift-detail {
+    scroll-margin-top: 1rem;
+  }
+  .planning-shift-detail p {
+    overflow-wrap: anywhere;
+  }
+  .planning-shift-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: 0.8rem;
+    margin: 1rem 0;
+  }
+  .planning-shift-facts div {
+    min-width: 0;
+  }
+  .planning-shift-facts dt {
+    color: var(--ja-text-secondary);
+    font-size: 0.8rem;
+  }
+  .planning-shift-facts dd {
+    margin: 0.2rem 0 0;
+    overflow-wrap: anywhere;
+    font-weight: 650;
   }
   @media (max-width: 767px) {
     :global(.portal-layout main .admin-form-grid.project-setup-form) {

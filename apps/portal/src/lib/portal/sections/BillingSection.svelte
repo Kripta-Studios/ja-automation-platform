@@ -298,7 +298,8 @@
       if (control instanceof HTMLInputElement) control.value = issuerSetting(entity, name);
     }
     const version = formElement.elements.namedItem('expectedVersion');
-    if (version instanceof HTMLInputElement) version.value = issuerSetting(entity, 'version') || '0';
+    if (version instanceof HTMLInputElement)
+      version.value = issuerSetting(entity, 'version') || '0';
   }
   let invoiceSetupRequired = $state(false);
   let invoiceSetupSelectedProject = $state(false);
@@ -1752,27 +1753,20 @@
     return null;
   }
 
-  const stageCounts = $derived({
-    wip: invoices.filter((invoice) => invoiceStage(invoice) === 'wip').length,
-    drafts: invoices.filter((invoice) => invoiceStage(invoice) === 'drafts').length,
-    outstanding: invoices.filter((invoice) => invoiceStage(invoice) === 'outstanding').length,
-    overdue: invoices.filter((invoice) => invoiceStage(invoice) === 'overdue').length,
-    credits: invoices.filter((invoice) => invoiceStage(invoice) === 'credits').length,
-    paid: invoices.filter((invoice) => invoiceStage(invoice) === 'paid').length,
-  });
-
-  const visibleInvoices = $derived.by(() => {
+  // Summary cards count the same project/search scope as the register; only
+  // their stage differs. This keeps a project handoff's totals meaningful.
+  const summaryInvoices = $derived.by(() => {
     const normalizedSearch = search.trim().toLowerCase();
     return invoices.filter((invoice) => {
       const invoiceProject = rowValue(invoice, 'project_id', 'projectId');
       const matchesProject = !projectFilter || invoiceProject === projectFilter;
-      const matchesStage = stageFilter === 'all' || invoiceStage(invoice) === stageFilter;
       const matchesSearch =
         !normalizedSearch ||
         [
           rowValue(invoice, 'invoice_number', 'invoiceNumber'),
           rowValue(invoice, 'project_number', 'projectNumber'),
           rowValue(invoice, 'project_name', 'projectName'),
+          invoiceProjectIdentity(invoice),
           rowValue(invoice, 'client_code', 'clientCode'),
           rowValue(invoice, 'client_number', 'clientNumber'),
           rowValue(invoice, 'client_name', 'clientName'),
@@ -1786,9 +1780,24 @@
           .join(' ')
           .toLowerCase()
           .includes(normalizedSearch);
-      return matchesProject && matchesStage && matchesSearch;
+      return matchesProject && matchesSearch;
     });
   });
+
+  const stageCounts = $derived({
+    wip: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'wip').length,
+    drafts: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'drafts').length,
+    outstanding: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'outstanding').length,
+    overdue: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'overdue').length,
+    credits: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'credits').length,
+    paid: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'paid').length,
+  });
+
+  const visibleInvoices = $derived(
+    summaryInvoices.filter(
+      (invoice) => stageFilter === 'all' || invoiceStage(invoice) === stageFilter,
+    ),
+  );
 
   const selectedInvoice = $derived(
     invoices.find((invoice) => rowValue(invoice, 'id') === selectedInvoiceId),
@@ -3015,7 +3024,7 @@
 
   {#if workspace === 'invoices'}
     <div class="billing-section__summary" aria-label={translate('Billing stage summary')}>
-      {#each [['all', 'All invoices', invoices.length], ['wip', 'WIP / Ready', stageCounts.wip], ['drafts', 'Drafts', stageCounts.drafts], ['outstanding', 'Outstanding', stageCounts.outstanding], ['overdue', 'Overdue', stageCounts.overdue], ['credits', 'Credit balances', stageCounts.credits], ['paid', 'Paid', stageCounts.paid]] as summary}
+      {#each [['all', 'All invoices', summaryInvoices.length], ['wip', 'WIP / Ready', stageCounts.wip], ['drafts', 'Drafts', stageCounts.drafts], ['outstanding', 'Outstanding', stageCounts.outstanding], ['overdue', 'Overdue', stageCounts.overdue], ['credits', 'Credit balances', stageCounts.credits], ['paid', 'Paid', stageCounts.paid]] as summary}
         <button
           type="button"
           class:billing-section__summary-card--active={stageFilter === summary[0]}
@@ -4415,6 +4424,8 @@
         {translate}
         statusLabel={(value) => controlledValue('status', value)}
         label="Billing"
+        filtersEnabled={false}
+        showEmpty={false}
       />
       {#if visibleInvoices.length > 0 || selectedInvoice}
         <!-- svelte-ignore a11y_click_events_have_key_events -->

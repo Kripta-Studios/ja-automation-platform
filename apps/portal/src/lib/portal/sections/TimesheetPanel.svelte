@@ -46,6 +46,18 @@
     params.delete('action');
     return `${base}/app/time?${params}#weekly-timesheet-title`;
   }
+  const copyActionHref = $derived.by(() => {
+    const params = new URLSearchParams($page.url.searchParams);
+    for (const key of [...params.keys()]) if (key.startsWith('/')) params.delete(key);
+    params.set('week', data.weekStart ?? '');
+    params.set('from', data.weekStart ?? '');
+    params.set('to', shiftWeek(data.weekStart ?? '', 6));
+    params.delete('weekJump');
+    params.delete('action');
+    // Keep the selected week in the POST URL so the action response renders
+    // the same week and its feedback instead of falling back to this week.
+    return `?${params.toString()}&/copyTimeLayout#weekly-timesheet-title`;
+  });
   const displayMinutes = (value: number | null | undefined): string =>
     value === null || value === undefined ? '—' : formatDecimalHours(value);
   const expectedTotal = (
@@ -73,6 +85,14 @@
       .filter(([, minutes]) => minutes > 0)
       .map(([category, minutes]) => `${categoryLabel(category)} ${formatDecimalHours(minutes)}`)
       .join(' · ');
+
+  const visibleWeekCategories = $derived.by(() => {
+    const totals: Record<string, number> = {};
+    for (const day of data.timesheet?.days ?? [])
+      for (const [category, minutes] of Object.entries(day.categories))
+        totals[category] = (totals[category] ?? 0) + minutes;
+    return totals;
+  });
 
   const timesheetCardRows = $derived.by((): TableCardRow[] =>
     (data.timesheet?.days ?? []).map((day) => ({
@@ -133,7 +153,13 @@
   </nav>
   <div class="timesheet-guide" aria-label={translate('How to read this timesheet')}>
     <div>
-      <strong>{translate('Actual')}</strong><span>{translate('Hours you really recorded.')}</span>
+      <strong>{translate('Actual')}</strong><span
+        >{translate(
+          data.user.role === 'worker'
+            ? 'Hours you really recorded.'
+            : 'Hours recorded across authorized projects and people for this week.',
+        )}</span
+      >
     </div>
     <div>
       <strong>{translate('Expected')}</strong><span
@@ -220,23 +246,44 @@
                 : `${difference > 0 ? '+' : ''}${formatDecimalHours(difference)}`;
             })()}</td
           >
-          <td colspan="2">
-            {#if data.weeklyPay}
-              {formatDecimalHours(data.weeklyPay.approvedMinutes)}
-              {translate('approved')} · {formatDecimalHours(data.weeklyPay.pendingMinutes)}
-              {translate('pending')}
-              {#each data.weeklyPay.currencyBreakdown ?? [data.weeklyPay] as amount}
-                · {money(amount.estimatedApprovedMinor, amount.currency)}
-                {translate('approved estimate')}
-              {/each}
-            {:else}
-              {translate('Review access is limited to operational time.')}
-            {/if}
-          </td>
+          <td>{summarizeCategories(visibleWeekCategories) || '—'}</td>
+          <td>—</td>
         </tr>
       </tfoot>
     </table>
   </TableRegion>
+  {#if data.weeklyPay}
+    <section class="timesheet-pay-context" aria-labelledby="timesheet-pay-context-title">
+      <h3 id="timesheet-pay-context-title">{translate('Own pay estimate for selected week')}</h3>
+      <p>
+        {data.timesheet?.weekStart} → {data.timesheet?.weekEnd}. {translate(
+          'This pay estimate covers all eligible work in the selected week. Historical assignments may include time not shown in the operational table above.',
+        )}
+      </p>
+      <dl>
+        <div>
+          <dt>{translate('Approved time in pay estimate')}</dt>
+          <dd>{formatDecimalHours(data.weeklyPay.approvedMinutes)}</dd>
+        </div>
+        <div>
+          <dt>{translate('Pending time in pay estimate')}</dt>
+          <dd>{formatDecimalHours(data.weeklyPay.pendingMinutes)}</dd>
+        </div>
+        {#each data.weeklyPay.currencyBreakdown ?? [data.weeklyPay] as amount}
+          <div>
+            <dt>{translate('Approved compensation estimate')} · {amount.currency}</dt>
+            <dd>{money(amount.estimatedApprovedMinor, amount.currency)}</dd>
+          </div>
+        {/each}
+      </dl>
+      {#if data.weekStart && data.weekEnd}
+        <a
+          href={`${base}/app/pay?start=${encodeURIComponent(data.weekStart)}&end=${encodeURIComponent(data.weekEnd)}&lang=${encodeURIComponent(locale)}`}
+          >{translate('Review this week in My Pay')}</a
+        >
+      {/if}
+    </section>
+  {/if}
   {#if !isAuditor}
     <details class="timesheet-copy">
       <summary>{translate('Copy previous week layout')}</summary>
@@ -246,7 +293,15 @@
             'Copies projects, categories and activity labels into zero-hour drafts. It never copies time values.',
           )}
         </p>
-        <form method="POST" action="?/copyTimeLayout">
+        {#if data.weekStart}
+          <p>
+            {translate('Previous week')}: {shiftWeek(data.weekStart, -7)}–{shiftWeek(
+              data.weekStart,
+              -1,
+            )} · {translate('This week')}: {data.weekStart}–{shiftWeek(data.weekStart, 6)}
+          </p>
+        {/if}
+        <form method="POST" action={copyActionHref}>
           <input type="hidden" name="sourceWeekStart" value={shiftWeek(data.weekStart ?? '', -7)} />
           <input type="hidden" name="targetWeekStart" value={data.weekStart} />
           <button type="submit">{translate('Add this week’s layout')}</button>
@@ -257,6 +312,40 @@
 </section>
 
 <style>
+  .timesheet-pay-context {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--ja-control-border, #86877b);
+    border-radius: 0.5rem;
+    background: var(--ja-canvas, #f6f6f1);
+  }
+  .timesheet-pay-context h3,
+  .timesheet-pay-context p {
+    margin: 0 0 0.75rem;
+  }
+  .timesheet-pay-context dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+    gap: 0.75rem;
+    margin: 0 0 0.75rem;
+  }
+  .timesheet-pay-context dl > div {
+    min-width: 0;
+  }
+  .timesheet-pay-context dt {
+    font-size: 0.875rem;
+  }
+  .timesheet-pay-context dd {
+    margin: 0.2rem 0 0;
+    font-weight: 700;
+  }
+  .timesheet-pay-context a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
   #weekly-timesheet-title {
     scroll-margin-top: 5rem;
   }

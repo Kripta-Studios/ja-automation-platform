@@ -77,6 +77,7 @@
     };
   };
   const approvalLabel = (value: string) => translateControlledValue(locale, 'status', value);
+  const categoryLabel = (value: string) => translateControlledValue(locale, 'timeCategory', value);
   const correctionHref = $derived(
     record.activeCorrectionId
       ? `/j-aautomation/app/crew/time/${encodeURIComponent(record.activeCorrectionId)}`
@@ -162,7 +163,7 @@
       </div>
       <div>
         <dt>{t('Category')}</dt>
-        <dd>{record.category}</dd>
+        <dd>{categoryLabel(record.category)}</dd>
       </div>
       <div>
         <dt>{t('Work performed')}</dt>
@@ -183,7 +184,7 @@
         <dd>{approvalLabel(record.approvalState)}</dd>
       </div>
     </dl>
-    {#if !['needs_changes', 'rejected'].includes(record.approvalState)}
+    {#if !['needs_changes', 'rejected', 'void'].includes(record.approvalState)}
       <a class="expense-link" href={expenseHref}>{t('Add expense for')} {record.workerName}</a>
     {/if}
   </SectionCard>
@@ -393,6 +394,10 @@
         </label>
         <button type="submit">{t('Save changes')}</button>
       </form>
+    </SectionCard>
+  {/if}
+  {#if record.discardable}
+    <SectionCard title={t('Discard draft')}>
       <form
         method="POST"
         action="?/discard"
@@ -408,7 +413,7 @@
         <button type="submit" class="discard">{t('Discard draft')}</button>
       </form>
     </SectionCard>
-  {:else if record.approvalState === 'draft'}
+  {:else if record.approvalState === 'draft' && !record.editable}
     <p class="notice">
       {record.isCorrectionDraft
         ? t(

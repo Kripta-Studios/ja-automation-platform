@@ -147,20 +147,37 @@
       <span>{translate('PENDING REPORTS')}</span><strong>{data.dashboard.pendingReports}</strong>
       <p>{translate('Daily and PLC records awaiting review')}</p>
     </a>
-    {#if data.dashboard.expenseMinor !== undefined && data.dashboard.currency}
+    {#if data.dashboard.expenseTotalsByCurrency}
       <a class="metric" href={`${base}/app/expenses`}>
-        <span>{translate('PROJECT EXPENSES')}</span><strong
-          >{money(data.dashboard.expenseMinor, data.dashboard.currency)}</strong
-        >
+        <span>{translate('PROJECT EXPENSES')}</span>
+        <div class="dashboard-currency-totals">
+          {#each data.dashboard.expenseTotalsByCurrency as total (total.currency)}
+            <strong>{money(total.minor, total.currency)} {total.currency}</strong>
+          {:else}
+            <strong>0</strong>
+          {/each}
+        </div>
         <p>{translate('All-in and reimbursable combined')}</p>
       </a>
     {/if}
-    {#if data.dashboard.upcomingInvoiceMinor !== undefined && data.dashboard.currency}
+    {#if data.dashboard.upcomingInvoiceTotalsByCurrency}
       <a class="metric" href={`${base}/app/billing`}>
-        <span>{translate('UPCOMING BILLING')}</span><strong
-          >{money(data.dashboard.upcomingInvoiceMinor, data.dashboard.currency)}</strong
-        >
-        <p>{data.dashboard.upcomingInvoices ?? 0} {translate('draft invoice streams')}</p>
+        <span>{translate('UPCOMING BILLING')}</span>
+        <div class="dashboard-currency-totals">
+          {#each data.dashboard.upcomingInvoiceTotalsByCurrency as total (total.currency)}
+            <strong>{money(total.minor, total.currency)} {total.currency}</strong>
+          {:else}
+            <strong>0</strong>
+          {/each}
+        </div>
+        <p>
+          {data.dashboard.upcomingInvoices ?? 0}
+          {translate(
+            data.dashboard.upcomingInvoices === 1
+              ? 'invoice awaiting issuance'
+              : 'invoices awaiting issuance',
+          )}
+        </p>
       </a>
     {/if}
   </div>

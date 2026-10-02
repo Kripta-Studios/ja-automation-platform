@@ -132,6 +132,7 @@ export const load: PageServerLoad = ({ locals, params }) => {
             .prepare(
               `SELECT t.version,
                  CASE WHEN NOT EXISTS(SELECT 1 FROM record_correction_link l WHERE l.record_type='time_entry' AND l.correction_id=t.id)
+                   AND NOT EXISTS(SELECT 1 FROM operational_time_expense_request r WHERE r.time_entry_id=t.id)
                    THEN 1 ELSE 0 END can_edit,
                  CASE WHEN t.invoice_id IS NULL AND t.billing_lock_id IS NULL
                     AND t.billing_status<>'locked'
@@ -151,6 +152,31 @@ export const load: PageServerLoad = ({ locals, params }) => {
             | { version: number; can_edit: number; can_delete: number }
             | undefined)
         : undefined;
+    const linkedPairRow = context.sqlite
+      .prepare(
+        `SELECT r.expense_id expenseId,e.version expenseVersion,
+        e.approval_state expenseState,t.version timeVersion FROM operational_time_expense_request r
+        JOIN expense e ON e.id=r.expense_id JOIN time_entry t ON t.id=r.time_entry_id
+        WHERE r.time_entry_id=? LIMIT 1`,
+      )
+      .get(params.id) as
+      | { expenseId: string; expenseVersion: number; expenseState: string; timeVersion: number }
+      | undefined;
+    let linkedPair: {
+      expenseId: string;
+      expenseVersion: number;
+      expenseState: string;
+      timeVersion: number;
+    } | null = null;
+    if (linkedPairRow) {
+      try {
+        context.repository.expenseDetail(context.principal, linkedPairRow.expenseId);
+        linkedPair = linkedPairRow;
+      } catch (caught) {
+        if (!(caught instanceof AccessDeniedError || caught instanceof ValidationError))
+          throw caught;
+      }
+    }
     const relatedReportIds = context.sqlite
       .prepare(
         `SELECT id FROM daily_report
@@ -184,11 +210,13 @@ export const load: PageServerLoad = ({ locals, params }) => {
     }
     return {
       user: locals.user,
+      reviewOnly: false,
       record: safeRecord,
       correctionOrigin,
       activeCorrection,
       correctionRequestId,
       ownDraft,
+      linkedPair,
       canCreateCorrection,
       canWithdrawCorrection,
       withdrawWarning,
@@ -196,7 +224,63 @@ export const load: PageServerLoad = ({ locals, params }) => {
       relatedReports,
     };
   } catch (caught) {
-    if (caught instanceof AccessDeniedError) error(403, 'detail.timeEntry.accessDenied');
+    if (caught instanceof AccessDeniedError) {
+      if (context.principal.role === 'project_manager') {
+        // The current approval queue is the authority for review access to older records.
+        // Never return the queue row: it also contains fields outside this review surface.
+        const queued = context.repository
+          .listApprovalQueue(context.principal)
+          .find((row) => row.type === 'time' && row.id === params.id);
+        if (
+          queued &&
+          typeof queued.project_id === 'string' &&
+          typeof queued.approval_state === 'string'
+        ) {
+          const row = context.sqlite
+            .prepare(
+              `SELECT t.id,t.project_id,t.work_date,t.approval_state,t.minutes,t.category,
+                      t.activity_summary,u.name worker_name,p.project_number,p.name project_name
+                 FROM time_entry t
+                 JOIN user u ON u.id=t.worker_id
+                 JOIN project p ON p.id=t.project_id
+                WHERE t.id=? AND t.project_id=? AND t.approval_state=?`,
+            )
+            .get(params.id, queued.project_id, queued.approval_state) as
+            | {
+                id: string;
+                project_id: string;
+                work_date: string;
+                approval_state: string;
+                minutes: number;
+                category: string;
+                activity_summary: string;
+                worker_name: string;
+                project_number: string;
+                project_name: string;
+              }
+            | undefined;
+          if (row) {
+            return {
+              user: locals.user,
+              reviewOnly: true,
+              record: {
+                id: row.id,
+                project_id: row.project_id,
+                work_date: row.work_date,
+                approval_state: row.approval_state,
+                minutes: row.minutes,
+                category: row.category,
+                activity_summary: row.activity_summary,
+                worker_name: row.worker_name,
+                project_number: row.project_number,
+                project_name: row.project_name,
+              },
+            };
+          }
+        }
+      }
+      error(403, 'detail.timeEntry.accessDenied');
+    }
     if (caught instanceof ValidationError) error(404, 'detail.timeEntry.notFound');
     throw caught;
   } finally {
@@ -205,6 +289,13 @@ export const load: PageServerLoad = ({ locals, params }) => {
 };
 
 export const actions: Actions = {
+  withdrawLinkedDrafts: async (event) => {
+    const result = await reportActions.withdrawLinkedDrafts({
+      ...event,
+      params: { ...event.params, section: 'time' },
+    });
+    return result;
+  },
   submitTime: async (event) => {
     const result = await timeActions.submitTime({
       ...event,

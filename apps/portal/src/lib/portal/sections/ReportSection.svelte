@@ -17,7 +17,7 @@
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import FilterSummary from '../ui/FilterSummary.svelte';
   import DatePresets from '../ui/DatePresets.svelte';
-  import { normalizePortalLocale, portalText } from '../../portal-i18n';
+  import { portalText, type PortalLocale } from '../../portal-i18n';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { reportGuidanceFor } from '../report-guidance';
@@ -33,6 +33,7 @@
 
   let {
     data,
+    locale,
     isAuditor,
     availableProjects,
     saveOfflineDraft,
@@ -40,6 +41,7 @@
     controlledValue,
   }: {
     data: PortalData;
+    locale: PortalLocale;
     isAuditor: boolean;
     availableProjects: Row[];
     saveOfflineDraft: (
@@ -49,9 +51,7 @@
     translate: (value: string) => string;
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
-  const reportLocale = $derived(
-    normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
-  );
+  const reportLocale = $derived(locale);
   let reportPdfBusyId = $state('');
   let reportPdfFailure = $state<{ id: string; problem: ProblemData } | null>(null);
   let reportPdfAttempt: ReportPdfAttempt | null = null;
@@ -173,6 +173,21 @@
   let saving = $state(false);
   let createDate = $state(nativeReportValue('workDate') || nativeReportValue('reportDate'));
   let createProject = $state(nativeReportValue('projectId'));
+  let createWorker = $state(nativeReportValue('workerId'));
+  const eligibleReportWorkers = $derived(
+    createProject && createDate
+      ? (data.workers ?? []).filter((worker) =>
+          (data.assignments ?? []).some(
+            (assignment) =>
+              String(assignment.project_id) === createProject &&
+              String(assignment.user_id) === String(worker.id) &&
+              assignment.status === 'active' &&
+              String(assignment.starts_on) <= createDate &&
+              (!assignment.ends_on || String(assignment.ends_on) >= createDate),
+          ),
+        )
+      : [],
+  );
   const emptyWorkerProblem = $derived<ProblemData | null>(
     ['owner_admin', 'project_manager'].includes(String(data.user.role)) &&
       (data.workers ?? []).length === 0
@@ -222,7 +237,7 @@
       : null,
   );
   const submitReport = createOperationalSubmit({
-    locale: () => normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
+    locale: () => reportLocale,
     translate: (value) => translate(value),
     setSaving: (value) => {
       saving = value;
@@ -263,6 +278,14 @@
   let clientFilter = $state('');
   let fromFilter = $state('');
   let toFilter = $state('');
+  const registerDateRangeInvalid = $derived(
+    Boolean(fromFilter && toFilter && fromFilter > toFilter),
+  );
+  function validateRegisterDateRange(event: SubmitEvent): void {
+    if (!registerDateRangeInvalid) return;
+    event.preventDefault();
+    (event.currentTarget as HTMLFormElement).querySelector<HTMLInputElement>('[name="to"]')?.focus();
+  }
   let statusFilter = $state('');
   let order = $state<OperationalOrder>('newest');
   let dailyPage = $state(1);
@@ -373,11 +396,7 @@
     ),
   );
   const reportGuidance = $derived(
-    reportGuidanceFor(
-      normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
-      String(data.user.role ?? ''),
-      data.user.workforceProfile,
-    ),
+    reportGuidanceFor(reportLocale, String(data.user.role ?? ''), data.user.workforceProfile),
   );
   const workerOptions = $derived(
     Array.from(
@@ -486,20 +505,23 @@
       ? [...new Set(periodReports.map((report) => rowText(report, 'state')).filter(Boolean))].sort()
       : [],
   );
-  const statusOptions = $derived([
-    ...new Set(
-      activeTab === 'signoff'
-        ? ['needs_report', 'ready_for_signature', 'signed', 'invalid', ...generatedStatusOptions]
-        : [
-            'attention',
-            'draft',
-            'submitted',
-            'approved',
-            'needs_changes',
-            ...generatedStatusOptions,
-          ],
-    ),
-  ]);
+  function reportStatusOptions(tab: ReportTab): string[] {
+    return [
+      ...new Set(
+        tab === 'signoff'
+          ? ['needs_report', 'ready_for_signature', 'signed', 'invalid', ...generatedStatusOptions]
+          : [
+              'attention',
+              'draft',
+              'submitted',
+              'approved',
+              'needs_changes',
+              ...generatedStatusOptions,
+            ],
+      ),
+    ];
+  }
+  const statusOptions = $derived(reportStatusOptions(activeTab));
   const pendingReportCount = $derived(
     fieldReportsForActiveTab.filter((row) =>
       ['draft', 'submitted', 'needs_changes'].includes(String(row.approval_state)),
@@ -578,6 +600,9 @@
     validate: (saved) => ({
       ...saved,
       order: ['newest', 'oldest', 'name', 'status'].includes(saved.order) ? saved.order : 'newest',
+      statusFilter: reportStatusOptions(resolveReportTab(saved.view)).includes(saved.statusFilter)
+        ? saved.statusFilter
+        : '',
     }),
   });
   $effect(() => {
@@ -841,13 +866,7 @@
   }
 
   function setTab(tab: ReportTab): void {
-    const signoffOnly = ['needs_report', 'ready_for_signature', 'signed', 'invalid'];
-    const fieldOnly = ['attention', 'submitted', 'needs_changes'];
-    if (
-      (tab === 'signoff' && fieldOnly.includes(statusFilter)) ||
-      (tab !== 'signoff' && signoffOnly.includes(statusFilter))
-    )
-      statusFilter = '';
+    if (!reportStatusOptions(tab).includes(statusFilter)) statusFilter = '';
     if (tab === 'signoff') workerFilter = '';
     tabOverride = { url: $page.url.href, tab };
     surface = null;
@@ -902,6 +921,7 @@
     const requestedDate = $page.url.searchParams.get('date')?.trim() ?? '';
     createDate = /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate) ? requestedDate : localToday();
     createProject = projectFilter;
+    createWorker = '';
     surface = type;
   }
 
@@ -967,6 +987,14 @@
     return `${base}/app/reports?${params.toString()}`;
   }
 
+  function periodReviewHref(): string {
+    const params = new URLSearchParams({ lang: locale });
+    if (projectFilter) params.set('project', projectFilter);
+    if (fromFilter) params.set('from', fromFilter);
+    if (toFilter) params.set('to', toFilter);
+    return `${base}/app/reports/review?${params}`;
+  }
+
   function registerActionHref(
     action:
       | 'submitReport'
@@ -982,7 +1010,7 @@
 <section class="report-page" data-report-page>
   {#if ['owner_admin', 'finance_admin', 'project_manager'].includes(String(data.user.role))}
     <p>
-      <a class="secondary-button" href={`${base}/app/reports/review`}
+      <a class="secondary-button" href={periodReviewHref()}
         >{translate('Period review and customer follow-up')}</a
       >
     </p>
@@ -1036,7 +1064,7 @@
     >
       <span>{translate('Needs attention')}</span>
       <strong>{pendingReportCount}</strong>
-      <small>{translate('Draft or returned field reports')}</small>
+      <small>{translate('Draft, submitted, or returned field reports')}</small>
     </a>
     <a
       class="report-attention-card"
@@ -1061,6 +1089,7 @@
     method="GET"
     action={`${base}/app/reports#report-panel-${activeTab}`}
     aria-label={translate('Filter reports')}
+    onsubmit={validateRegisterDateRange}
   >
     <input type="hidden" name="view" value={activeTab} />
     <label
@@ -1143,6 +1172,8 @@
             name="from"
             type="date"
             bind:value={fromFilter}
+            aria-invalid={registerDateRangeInvalid}
+            aria-describedby={registerDateRangeInvalid ? 'report-register-date-error' : undefined}
             onchange={() => {
               dailyPage = 1;
               technicalPage = 1;
@@ -1154,6 +1185,8 @@
             name="to"
             type="date"
             bind:value={toFilter}
+            aria-invalid={registerDateRangeInvalid}
+            aria-describedby={registerDateRangeInvalid ? 'report-register-date-error' : undefined}
             onchange={() => {
               dailyPage = 1;
               technicalPage = 1;
@@ -1179,6 +1212,11 @@
         </label>
       </div>
     </SectionCard>
+    {#if registerDateRangeInvalid}
+      <p id="report-register-date-error" class="form-help" role="alert">
+        {translate('Choose an end date on or after the start date.')}
+      </p>
+    {/if}
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
     <DatePresets
       from={fromFilter}
@@ -1601,6 +1639,9 @@
               data-period-report-id={String(report.id)}
               href={`${base}/app/reports/period/${String(report.id)}`}
             >
+              <span class="report-register-type" data-period-audience={rowText(report, 'audience')}
+                >{controlledValue('status', rowText(report, 'audience'))}</span
+              >
               <strong
                 >{rowText(report, 'project_number')} · {translate(
                   String(report.report_type ?? 'Period summary'),
@@ -1622,6 +1663,9 @@
               data-period-report-id={String(report.id)}
               aria-disabled="true"
             >
+              <span class="report-register-type" data-period-audience={rowText(report, 'audience')}
+                >{controlledValue('status', rowText(report, 'audience'))}</span
+              >
               <strong
                 >{rowText(report, 'project_number')} · {translate(
                   String(report.report_type ?? 'Period summary'),
@@ -1642,6 +1686,7 @@
               href={`${base}/app/api/reports/${String(report.id)}/pdf`}
               target="_blank"
               rel="noreferrer"
+              aria-label={`${translate('PDF')} · ${controlledValue('status', rowText(report, 'audience'))} · ${rowText(report, 'project_number')} · ${rowText(report, 'period_start')} → ${rowText(report, 'period_end')}`}
               aria-disabled={reportPdfBusyId === String(report.id)}
               onclick={(event) => onReportPdfLinkClick(event, String(report.id))}
               onauxclick={(event) => onReportPdfLinkClick(event, String(report.id))}
@@ -1791,20 +1836,6 @@
           }}
         />
       {/if}
-      {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
-        <label
-          ><span>{translate('Worker')}</span><select
-            name="workerId"
-            required
-            value={restoredReportValue('workerId')}
-            ><option value="">{translate('Select worker')}</option
-            >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
-                >{worker.name} — {worker.email}</option
-              >{/each}</select
-          ></label
-        >
-      {/if}
-
       <div class="report-entry-intro">
         <strong>{translate('Capture the shift')}</strong>
         <span
@@ -1815,7 +1846,12 @@
       </div>
       <label>
         <span>{translate('Project')}</span>
-        <select name="projectId" required bind:value={createProject}>
+        <select
+          name="projectId"
+          required
+          bind:value={createProject}
+          onchange={() => (createWorker = '')}
+        >
           <option value="">{translate('Select assignment')}</option>
           {#if createProject && !availableProjects.some((project) => String(project.id) === createProject)}
             <option value={createProject} disabled
@@ -1848,6 +1884,7 @@
             name="workDate"
             type="date"
             bind:value={createDate}
+            onchange={() => (createWorker = '')}
             required
           /></label
         >
@@ -1859,6 +1896,25 @@
           /></label
         >
       </div>
+      {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
+        <label
+          ><span>{translate('Worker')}</span><select
+            name="workerId"
+            required
+            bind:value={createWorker}
+            disabled={!createProject || !createDate || eligibleReportWorkers.length === 0}
+            ><option value="">{translate('Select worker')}</option
+            >{#each eligibleReportWorkers as worker}<option value={String(worker.id)}
+                >{worker.name} — {worker.email}</option
+              >{/each}</select
+          ></label
+        >
+        {#if createProject && createDate && eligibleReportWorkers.length === 0}
+          <p class="report-entry-help">
+            {translate('No assigned worker is available for this project and date.')}
+          </p>
+        {/if}
+      {/if}
       <label
         ><span>{translate('Shift summary')}</span><textarea name="summary" required
           >{restoredReportValue('summary')}</textarea
@@ -1968,20 +2024,6 @@
           }}
         />
       {/if}
-      {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
-        <label
-          ><span>{translate('Worker')}</span><select
-            name="workerId"
-            required
-            value={restoredReportValue('workerId')}
-            ><option value="">{translate('Select worker')}</option
-            >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
-                >{worker.name} — {worker.email}</option
-              >{/each}</select
-          ></label
-        >
-      {/if}
-
       <div class="report-entry-intro">
         <strong>{translate('Document the technical change')}</strong>
         <span
@@ -1992,7 +2034,12 @@
       </div>
       <label>
         <span>{translate('Project')}</span>
-        <select name="projectId" required bind:value={createProject}>
+        <select
+          name="projectId"
+          required
+          bind:value={createProject}
+          onchange={() => (createWorker = '')}
+        >
           <option value="">{translate('Select assignment')}</option>
           {#if createProject && !availableProjects.some((project) => String(project.id) === createProject)}
             <option value={createProject} disabled
@@ -2025,6 +2072,7 @@
             name="reportDate"
             type="date"
             bind:value={createDate}
+            onchange={() => (createWorker = '')}
             required
           /></label
         >
@@ -2043,6 +2091,25 @@
           /></label
         >
       </div>
+      {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
+        <label
+          ><span>{translate('Worker')}</span><select
+            name="workerId"
+            required
+            bind:value={createWorker}
+            disabled={!createProject || !createDate || eligibleReportWorkers.length === 0}
+            ><option value="">{translate('Select worker')}</option
+            >{#each eligibleReportWorkers as worker}<option value={String(worker.id)}
+                >{worker.name} — {worker.email}</option
+              >{/each}</select
+          ></label
+        >
+        {#if createProject && createDate && eligibleReportWorkers.length === 0}
+          <p class="report-entry-help">
+            {translate('No assigned worker is available for this project and date.')}
+          </p>
+        {/if}
+      {/if}
       <div class="report-entry-grid report-entry-grid-three">
         <label
           ><span>{translate('Area / line')}</span><input

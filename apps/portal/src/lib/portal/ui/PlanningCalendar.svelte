@@ -45,8 +45,15 @@
       const valid = (date: string) =>
         /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(date) &&
         Number.isFinite(Date.parse(`${date}T00:00:00Z`));
-      if (valid(saved.selected)) selected = saved.selected;
-      if (valid(saved.month)) month = saved.month;
+      // A direct link to a shift must open its day even when this viewer last
+      // used the calendar on another date.
+      if (initialDate && valid(initialDate)) {
+        selected = initialDate;
+        month = initialDate;
+      } else {
+        if (valid(saved.selected)) selected = saved.selected;
+        if (valid(saved.month)) month = saved.month;
+      }
     },
   });
   let agendaElement: HTMLDivElement | undefined = $state();

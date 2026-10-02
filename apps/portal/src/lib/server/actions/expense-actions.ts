@@ -4,6 +4,7 @@ import { expenseInputSchema, minorUnitsSchema, versionedRecordSchema } from '@ja
 import {
   AccessDeniedError,
   ConflictError,
+  DuplicateCrewExpenseError,
   V3AccessDeniedError,
   V3ConflictError,
   ValidationError,
@@ -407,6 +408,21 @@ const expenseProblems: Record<string, ExpenseProblem> = {
     field: 'timeEntryId',
     remedy: 'review_time',
   },
+  'Crew expense request was withdrawn': {
+    status: 409,
+    code: 'EXPENSE_CREW_REQUEST_WITHDRAWN',
+    key: 'problem.expense.crewRequestWithdrawn',
+    message: 'This crew expense request was withdrawn. Start a new expense instead of retrying it.',
+    remedy: 'review_expenses',
+  },
+  'Crew expense drafts must be withdrawn with a reason': {
+    status: 409,
+    code: 'EXPENSE_CREW_DELETE_REQUIRES_WITHDRAWAL',
+    key: 'problem.expense.crewDeleteRequiresWithdrawal',
+    message:
+      'This crew expense has an audit trail. Enter a reason and withdraw the draft instead of deleting it.',
+    remedy: 'review_expense',
+  },
   'Expense changed before submission': {
     status: 409,
     code: 'EXPENSE_SUBMISSION_CHANGED',
@@ -566,6 +582,43 @@ const expenseProblems: Record<string, ExpenseProblem> = {
       'Only an expense draft that has never been submitted can be deleted. Review the record or request a correction.',
     remedy: 'review_expense',
   },
+  'Linked time and meal drafts must be withdrawn together': {
+    status: 409,
+    code: 'LINKED_DRAFT_DELETE_REQUIRES_PAIR_WITHDRAWAL',
+    key: 'problem.linkedDraft.deleteTogether',
+    message:
+      'This meal belongs to a linked time and meal draft pair. Withdraw both drafts together.',
+    remedy: 'review_expense',
+  },
+  'Linked time and meal drafts must be submitted together': {
+    status: 409,
+    code: 'LINKED_DRAFT_SUBMIT_TOGETHER',
+    key: 'problem.linkedDraft.submitTogether',
+    message: 'Submit the linked time and meal drafts together from the weekly time review.',
+    remedy: 'review_time',
+  },
+  'Submit the linked time draft before its meal expense': {
+    status: 409,
+    code: 'LINKED_MEAL_TIME_DRAFT',
+    key: 'problem.linkedDraft.submitTimeFirst',
+    message: 'Submit the linked time week before submitting this meal expense.',
+    remedy: 'review_time',
+  },
+  'Linked time and meal no longer match for submission': {
+    status: 409,
+    code: 'LINKED_MEAL_TIME_UNAVAILABLE',
+    key: 'problem.linkedDraft.timeUnavailable',
+    message: 'The linked time cannot support this meal submission. Review both records.',
+    remedy: 'review_time',
+  },
+  'Linked time and meal drafts must be withdrawn before editing': {
+    status: 409,
+    code: 'LINKED_DRAFT_EDIT_TOGETHER',
+    key: 'problem.linkedDraft.editTogether',
+    message:
+      'Withdraw both linked drafts, then create a new time and meal entry with the correct details.',
+    remedy: 'review_expense',
+  },
   'Only never-submitted expense drafts can be deleted; use a reasoned correction': {
     status: 409,
     code: 'EXPENSE_DELETE_DRAFT_ONLY',
@@ -604,6 +657,18 @@ export function expenseActionFailure(
   params: ActionMessageParams = {},
 ) {
   const savedValues = safeExpenseValues(values);
+  if (error instanceof DuplicateCrewExpenseError)
+    return actionFail(
+      409,
+      'problem.expense.possibleCrewDuplicate',
+      {},
+      'A possible duplicate expense is already saved for this worker, project, and date. Review it before saving another.',
+      {
+        code: 'EXPENSE_POSSIBLE_CREW_DUPLICATE',
+        values: savedValues,
+        remedies: [{ id: 'review_expense', recordId: error.expenseId }],
+      },
+    );
   if (
     error instanceof ValidationError ||
     error instanceof ConflictError ||
@@ -629,12 +694,13 @@ function expenseWeekFailure(
   message: string,
   values: Record<string, unknown>,
   field = 'entries',
+  remedy = 'review_expenses',
 ) {
   return actionFail(status, `problem.expenseWeek.${code}`, {}, message, {
     code: `EXPENSE_WEEK_${code.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()}`,
     values: safeExpenseValues(values),
     fieldErrors: { [field]: [message] },
-    remedies: [{ id: 'review_expenses' }],
+    remedies: [{ id: remedy }],
   });
 }
 
@@ -805,15 +871,37 @@ export const expenseActions = {
       const submitted = expenseWeekTransaction(context, () => {
         const rows = context.sqlite
           .prepare(
-            "SELECT id,version FROM expense WHERE worker_id=? AND spent_on BETWEEN ? AND ? AND approval_state='draft' ORDER BY spent_on,id",
+            `SELECT e.id,e.version,r.time_entry_id linkedTimeId,t.approval_state linkedTimeState
+               FROM expense e
+               LEFT JOIN operational_time_expense_request r ON r.expense_id=e.id
+               LEFT JOIN time_entry t ON t.id=r.time_entry_id
+              WHERE e.worker_id=? AND e.spent_on BETWEEN ? AND ? AND e.approval_state='draft'
+              ORDER BY e.spent_on,e.id`,
           )
-          .all(workerId, weekStart, dates[6]!) as Array<{ id: string; version: number }>;
+          .all(workerId, weekStart, dates[6]!) as Array<{
+          id: string;
+          version: number;
+          linkedTimeId: string | null;
+          linkedTimeState: string | null;
+        }>;
         const versions = new Map(parsed.data.map((row) => [row.id, row.version]));
         if (
           rows.length !== parsed.data.length ||
           rows.some((row) => versions.get(row.id) !== row.version)
         )
           throw new ConflictError('Expense week changed before submission');
+        if (rows.some((row) => row.linkedTimeId && row.linkedTimeState === 'draft'))
+          throw new ConflictError('Expense week has a linked time draft awaiting submission');
+        if (
+          rows.some(
+            (row) =>
+              row.linkedTimeId &&
+              !['submitted', 'needs_changes', 'approved', 'locked'].includes(
+                row.linkedTimeState ?? '',
+              ),
+          )
+        )
+          throw new ConflictError('Expense week has an unavailable linked time entry');
         for (const row of rows)
           context.repository.submitExpense(context.principal, row.id, row.version);
         return rows.length;
@@ -833,6 +921,30 @@ export const expenseActions = {
           'changed',
           'This week changed after you opened it. Refresh and review the current drafts before submitting. No expenses were submitted.',
           object,
+        );
+      if (
+        error instanceof ConflictError &&
+        error.message === 'Expense week has a linked time draft awaiting submission'
+      )
+        return expenseWeekFailure(
+          409,
+          'linkedTimeDraft',
+          'A meal expense is linked to time that is still a draft. Submit the time week first, then submit this expense week. No expenses were submitted.',
+          object,
+          'entries',
+          'review_time',
+        );
+      if (
+        error instanceof ConflictError &&
+        error.message === 'Expense week has an unavailable linked time entry'
+      )
+        return expenseWeekFailure(
+          409,
+          'linkedTimeUnavailable',
+          'A meal expense is linked to time that cannot be submitted. Review the linked time and meal before retrying. No expenses were submitted.',
+          object,
+          'entries',
+          'review_time',
         );
       return expenseActionFailure(error, object);
     } finally {
@@ -939,6 +1051,27 @@ export const expenseActions = {
           object,
           'workerId',
         );
+      const activeAssignment = context.sqlite.prepare(
+        "SELECT 1 FROM project_member WHERE project_id=? AND user_id=? AND status='active' AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) LIMIT 1",
+      );
+      for (const row of rows.data) {
+        if (
+          activeAssignment.get(String(object.projectId ?? ''), workerId, row.spentOn, row.spentOn)
+        )
+          continue;
+        return actionFail(
+          403,
+          'problem.expenseWeek.dateOutsideAssignment',
+          { spentOn: row.spentOn },
+          `${row.spentOn} is outside this worker's active assignment to the project. Correct the date or ask the owner to extend the assignment. No drafts were saved.`,
+          {
+            code: 'EXPENSE_WEEK_DATE_OUTSIDE_ASSIGNMENT',
+            values: safeExpenseValues(object),
+            fieldErrors: {},
+            remedies: [{ id: 'review_expenses' }],
+          },
+        );
+      }
       const payloadHash = createHash('sha256')
         .update(
           JSON.stringify({
@@ -1024,6 +1157,8 @@ export const expenseActions = {
     delete object.workerId;
     const requestId = typeof object.requestId === 'string' ? object.requestId : undefined;
     delete object.requestId;
+    const allowSeparateExpense = object.allowSeparateExpense === 'on';
+    delete object.allowSeparateExpense;
     const receipt = object.receipt;
     const receiptFile = receipt instanceof File ? receipt : undefined;
     delete object.receipt;
@@ -1078,8 +1213,10 @@ export const expenseActions = {
         const details = JSON.parse(prior.details_json) as { expensePayloadHash: string };
         if (details.expensePayloadHash !== payloadHash)
           throw new ConflictError('Crew expense retry has changed');
-        context.repository.expenseDetail(context.principal, prior.entity_id);
-        return { id: prior.entity_id, version: 1, replayed: true };
+        const existing = context.repository.expenseDetail(context.principal, prior.entity_id);
+        if (existing.approval_state === 'void')
+          throw new ConflictError('Crew expense request was withdrawn');
+        return { id: prior.entity_id, version: Number(existing.version), replayed: true };
       };
       if (priorResult())
         return actionSuccess(
@@ -1104,6 +1241,7 @@ export const expenseActions = {
           parsed.data,
           workerId,
           requestId,
+          { allowSeparateExpense },
         );
         if (retryIdentity && !created.replayed)
           recordAuditEvent(
@@ -1198,6 +1336,91 @@ export const expenseActions = {
             )?.approval_state
           : undefined;
       return expenseActionFailure(error, values, status ? { status } : {});
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  withdrawCrewExpenseDraft: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'expenses')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const expenseId = String(object.expenseId ?? '');
+    const version = Number(object.version);
+    const reason = String(object.reason ?? '').trim();
+    const values = { expenseId, reason };
+    if (
+      !expenseId ||
+      !Number.isInteger(version) ||
+      version < 1 ||
+      reason.length < 3 ||
+      reason.length > 2000
+    )
+      return actionFail(
+        400,
+        'problem.expense.crewWithdrawalInvalid',
+        {},
+        'Enter a reason of 3 to 2,000 characters and review the current draft version.',
+        {
+          code: 'EXPENSE_CREW_WITHDRAWAL_INVALID',
+          actionName: 'withdrawCrewExpenseDraft',
+          values,
+          ...(reason.length < 3 || reason.length > 2000
+            ? { fieldErrors: { reason: ['problem.expense.crewWithdrawalInvalid'] } }
+            : {}),
+          remedies: [{ id: 'correct_fields' }],
+        },
+      );
+    const context = openPortalRepository(locals);
+    try {
+      const result = context.repository.withdrawCrewExpenseDraft(context.principal, {
+        expenseId,
+        version,
+        reason,
+      });
+      return actionSuccess(
+        'action.expense.crewDraftWithdrawn',
+        { expenseId: result.id, alreadyWithdrawn: result.alreadyWithdrawn },
+        'Crew expense draft withdrawn',
+      );
+    } catch (error) {
+      if (
+        error instanceof ConflictError ||
+        error instanceof ValidationError ||
+        error instanceof AccessDeniedError
+      ) {
+        const access = error instanceof AccessDeniedError;
+        const invalid = error instanceof ValidationError;
+        return actionFail(
+          access ? 403 : invalid ? 400 : 409,
+          access
+            ? 'problem.expense.crewWithdrawalAccess'
+            : invalid
+              ? 'problem.expense.crewWithdrawalInvalid'
+              : 'problem.expense.crewWithdrawalChanged',
+          {},
+          access
+            ? 'You cannot withdraw this crew expense under your current access. Contact the project owner.'
+            : invalid
+              ? 'Enter a reason of 3 to 2,000 characters and review the current draft version.'
+              : 'This crew expense changed or has review, allocation, or financial history. Review the current record before withdrawing.',
+          {
+            code: access
+              ? 'EXPENSE_CREW_WITHDRAWAL_ACCESS'
+              : invalid
+                ? 'EXPENSE_CREW_WITHDRAWAL_INVALID'
+                : 'EXPENSE_CREW_WITHDRAWAL_CHANGED',
+            actionName: 'withdrawCrewExpenseDraft',
+            values,
+            ...(invalid
+              ? { fieldErrors: { reason: ['problem.expense.crewWithdrawalInvalid'] } }
+              : {}),
+            remedies: [
+              { id: access ? 'contact_project_owner' : 'review_expense', recordId: expenseId },
+            ],
+          },
+        );
+      }
+      return actionFailure(error, { actionName: 'withdrawCrewExpenseDraft', values });
     } finally {
       context.sqlite.close();
     }

@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { createHash } from 'node:crypto';
 import { canManageAssignments, newId, type Principal } from '@ja/domain';
+import { isValidIanaTimeZone } from '@ja/schemas';
 import { workerOperationalProjectScope } from '../../core/project-access.ts';
 
 type ErrorFactory = (message: string) => never;
@@ -164,6 +165,9 @@ export class PlanningRepository {
     if (!canManageAssignments(principal, input.projectId))
       throw this.deps.errors.accessDenied('Schedule administration required');
     this.deps.assertDate(input.effectiveFrom, 'Schedule effective date');
+    const timezone = this.deps.assertText(input.timezone, 'Schedule timezone', 100);
+    if (!isValidIanaTimeZone(timezone))
+      throw this.deps.errors.validation('Schedule timezone must be a valid IANA time zone');
     const minutes = [
       input.mondayMinutes,
       input.tuesdayMinutes,
@@ -186,13 +190,13 @@ export class PlanningRepository {
         .run(
           id,
           input.projectId,
-          this.deps.assertText(input.timezone, 'Schedule timezone', 100),
+          timezone,
           ...minutes,
           input.effectiveFrom,
         );
       this.deps.sqlite
         .prepare('UPDATE project SET expected_schedule_id=?,timezone=?,updated_at=? WHERE id=?')
-        .run(id, input.timezone, timestamp, input.projectId);
+        .run(id, timezone, timestamp, input.projectId);
       this.deps.audit(principal, 'schedule.create', 'schedule', id, { projectId: input.projectId });
       return { id, version: 1 };
     });

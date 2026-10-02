@@ -106,6 +106,8 @@ const name = (row: Row): string =>
     'projectName',
     'invoice_number',
     'invoiceNumber',
+    'safe_filename',
+    'original_filename',
     'title',
   ]);
 const priorities: Record<string, number> = {

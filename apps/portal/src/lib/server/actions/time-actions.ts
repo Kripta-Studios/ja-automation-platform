@@ -420,12 +420,44 @@ const timeProblems: Record<string, TimeProblem> = {
     field: 'startTime',
     remedy: 'review_time',
   },
+  'Identical time entry already exists': {
+    status: 409,
+    code: 'TIME_DUPLICATE_ENTRY',
+    key: 'problem.time.duplicateEntry',
+    message:
+      'An identical time entry already exists for this worker and date. Review the saved time. If this is separate work, confirm below and save again.',
+    field: 'summary',
+    remedy: 'review_time',
+  },
   'Time and expense retry has changed': {
     status: 409,
     code: 'TIME_EXPENSE_RETRY_CHANGED',
     key: 'problem.time.expenseRetryChanged',
     message:
       'This time and meal request was already used with different details. Review the saved drafts before trying again.',
+    remedy: 'review_time',
+  },
+  'Time and expense request was withdrawn': {
+    status: 409,
+    code: 'TIME_EXPENSE_RETRY_WITHDRAWN',
+    key: 'problem.time.expenseRetryWithdrawn',
+    message:
+      'This time and meal pair was withdrawn. Start a new entry if you need to record the work again.',
+    remedy: 'review_time',
+  },
+  'Linked time and meal drafts must be submitted together': {
+    status: 409,
+    code: 'LINKED_DRAFT_SUBMIT_TOGETHER',
+    key: 'problem.linkedDraft.submitTogether',
+    message: 'Submit the linked time and meal drafts together from the weekly time review.',
+    remedy: 'review_week',
+  },
+  'Linked time and meal drafts must be withdrawn before editing': {
+    status: 409,
+    code: 'LINKED_DRAFT_EDIT_TOGETHER',
+    key: 'problem.linkedDraft.editTogether',
+    message:
+      'Withdraw both linked drafts, then create a new time and meal entry with the correct details.',
     remedy: 'review_time',
   },
   'A linked correction draft cannot be edited': {
@@ -568,15 +600,30 @@ export function timeActionFailure(
     error instanceof AccessDeniedError
   ) {
     const known = timeProblems[error.message];
-    if (known)
-      return actionFail(known.status, known.key, params, known.message, {
-        code: known.code,
-        values: savedValues,
-        ...(known.field && Object.hasOwn(savedValues, known.field)
-          ? { fields: { [known.field]: [known.key] } }
-          : {}),
-        remedies: [{ id: known.remedy }],
-      });
+    if (known) {
+      const duplicateDate =
+        error.message === 'Identical time entry already exists' &&
+        typeof (error as ConflictError & { duplicateDate?: unknown }).duplicateDate === 'string'
+          ? (error as ConflictError & { duplicateDate: string }).duplicateDate
+          : undefined;
+      return actionFail(
+        known.status,
+        known.key,
+        {
+          ...params,
+          ...(duplicateDate ? { duplicateDate } : {}),
+        },
+        known.message,
+        {
+          code: known.code,
+          values: savedValues,
+          ...(known.field && Object.hasOwn(savedValues, known.field)
+            ? { fields: { [known.field]: [known.key] } }
+            : {}),
+          remedies: [{ id: known.remedy }],
+        },
+      );
+    }
   }
   return actionFailure(error, { values: savedValues });
 }
@@ -714,6 +761,7 @@ export const timeActions = {
         context.principal,
         workerId,
         parsed.map((entry) => entry.data!),
+        { allowExactDuplicate: object.allowExactDuplicate === 'on' },
       );
       return actionSuccess(
         'action.time.batchDraftsSaved',
@@ -832,6 +880,7 @@ export const timeActions = {
           parsedExpense.data,
           requestId,
           workerId,
+          { allowExactDuplicate: object.allowExactDuplicate === 'on' },
         );
         return actionSuccess('action.time.expenseDraftsSaved', {}, 'Time and expense drafts saved');
       }
@@ -870,6 +919,7 @@ export const timeActions = {
             context.principal,
             parsed.data,
             workerId,
+            { allowExactDuplicate: object.allowExactDuplicate === 'on' },
           );
           recordAuditEvent(
             context.sqlite,
@@ -935,6 +985,12 @@ export const timeActions = {
         sourceWeekStart,
         targetWeekStart,
       );
+      if (result.created === 0)
+        return actionSuccess(
+          'action.time.layoutNothingAdded',
+          { sourceWeekStart, targetWeekStart },
+          `No eligible entries from ${sourceWeekStart} were copied into ${targetWeekStart}. Check assignments and existing drafts.`,
+        );
       return actionSuccess(
         'action.time.layoutCopied',
         { created: result.created, targetWeekStart },

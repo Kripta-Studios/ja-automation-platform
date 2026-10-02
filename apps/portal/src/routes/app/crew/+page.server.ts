@@ -380,7 +380,17 @@ function crewPageActionFailure(
     const message = error.message;
     const known =
       crewProblems[message] ??
-      (message.startsWith('No crew time was saved. ')
+      (message.startsWith('No crew time was saved. ') &&
+      message.endsWith(': Identical time entry already exists')
+        ? {
+            status: 409,
+            code: 'CREW_DUPLICATE_TIME',
+            key: 'problem.crew.duplicateTime' as ActionMessageKey,
+            message:
+              'A selected worker already has identical time for this date. Review the saved row. If this is separate work, confirm below and save again.',
+            remedy: 'review_crew_day',
+          }
+        : message.startsWith('No crew time was saved. ')
         ? {
             status: 409,
             code: 'CREW_BATCH_WORKER_BLOCKED',
@@ -616,6 +626,41 @@ export const load: PageServerLoad = ({ locals, url }) => {
       allocatedReceipts: [],
     });
     if (filterProblem) return emptyRows();
+    let assigned: ReturnType<CrewLeaderRepository['assignedWorkers']> = [];
+    if (!owner && projectId) {
+      try {
+        assigned = crew.assignedWorkers(context.principal, projectId, workDate);
+      } catch (caught) {
+        if (
+          !(caught instanceof AccessDeniedError) ||
+          caught.message !== 'Active project crew delegation required'
+        )
+          throw caught;
+        // The project may have been revoked since projects() ran. Keep that
+        // access failure distinct from a date outside the chief's assignment.
+        const currentProjects = crew.projects(context.principal);
+        if (!currentProjects.some((project) => project.id === projectId)) {
+          const selectedUrl = new URL(url);
+          selectedUrl.searchParams.set('project', projectId);
+          return emptyRows(
+            currentProjects,
+            resolveCrewDayFilter(selectedUrl, currentProjects, owner, locals.correlationId)
+              .filterProblem,
+          );
+        }
+        return emptyRows(
+          currentProjects,
+          crewDayProblem(
+            'CREW_DAY_OUTSIDE_ASSIGNMENT',
+            'problem.crew.dayOutsideAssignment',
+            'You are not assigned to this project on the selected work date. Choose a date within your assignment, or ask the project owner to review it.',
+            { date: ['problem.crew.dayOutsideAssignment'] },
+            'correct_field',
+            locals.correlationId,
+          ),
+        );
+      }
+    }
     const receiptRepository = new CrewSharedExpenseAllocationRepository(context.sqlite);
     const allocatedReceipts =
       !owner && projectId
@@ -645,8 +690,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
       allocationRequestId: randomUUID(),
       candidates: owner && projectId ? crew.candidateWorkers(context.principal, projectId) : [],
       grants: crew.grants(context.principal, projectId || undefined),
-      assigned:
-        !owner && projectId ? crew.assignedWorkers(context.principal, projectId, workDate) : [],
+      assigned,
       entries:
         !owner && projectId ? crew.entries(context.principal, projectId, workDate, workDate) : [],
       receipts:
@@ -737,6 +781,7 @@ function action(
           minutes: individual ? 0 : minutesFromHours(value('sharedHours'), 'Shared hours'),
           workerMinutes,
           submit: value('submit') === 'yes',
+          allowExactDuplicate: value('allowExactDuplicate') === 'on',
         });
       }
       const projectId = value('projectId');

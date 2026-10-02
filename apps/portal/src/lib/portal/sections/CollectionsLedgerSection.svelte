@@ -706,6 +706,9 @@
     return `${base}/app/ledger?${query}#collections-ledger-register`;
   }
   let ledgerPage = $state<typeof visibleRows>([]);
+  $effect(() => {
+    if (visibleRows.length === 0) ledgerPage = [];
+  });
 </script>
 
 <div
@@ -1028,13 +1031,27 @@
     id="collections-ledger-register"
     title={translate('Master Invoice / Cost / Collection Ledger')}
   >
-    <RecordBrowser
-      rows={visibleRows}
-      bind:visible={ledgerPage}
-      {translate}
-      label="CollectionsLedger"
-      filtersEnabled={false}
-    />
+    {#if visibleRows.length > 0}
+      <RecordBrowser
+        rows={visibleRows}
+        bind:visible={ledgerPage}
+        {translate}
+        label="CollectionsLedger"
+        filtersEnabled={false}
+        showEmpty={false}
+      />
+    {/if}
+    {#if visibleRows.length === 0}
+      <div class="collections-ledger__empty" role="status">
+        {#if rows.length === 0}
+          <strong>{translate('No issued invoices are available in this ledger for your access scope.')}</strong>
+          <span>{translate('Issued invoices appear here with their costs and collection history.')}</span>
+        {:else}
+          <strong>{translate('No ledger rows match the current filters.')}</strong>
+          <a href={`${base}/app/ledger?q=`}>{translate('Clear filters')}</a>
+        {/if}
+      </div>
+    {/if}
     <TableRegion
       ariaLabel={translate('Invoice reconciliation details')}
       mobileMode="cards"
@@ -1162,15 +1179,6 @@
                     {/each}
                   </div>
                 </details>
-              </td>
-            </tr>
-          {:else}
-            <tr>
-              <td colspan="14">
-                <div class="collections-ledger__empty" role="status">
-                  <strong>{translate('No ledger rows found')}</strong>
-                  <span>{translate('Try another filter or period.')}</span>
-                </div>
               </td>
             </tr>
           {/each}

@@ -273,6 +273,8 @@ export class ExpenseCommercialClassificationRepository {
         )
         .get(normalized.expenseId) as DbRow | undefined;
       if (!expense) return this.failValidation('Expense not found');
+      if (['void', 'rejected'].includes(String(rowValue(expense, 'approval_state'))))
+        return this.failConflict('Withdrawn or rejected expense cannot be classified');
       if (
         this.deps.sqlite
           .prepare(
@@ -746,7 +748,8 @@ export class ExpenseCommercialClassificationRepository {
                   reimbursement_state=CASE WHEN expense_policy_required=1 AND commercial_classification_state<>'classified' THEN ? ELSE reimbursement_state END,
                   commercial_classification_state='classified',version=version+1,updated_at=?
             WHERE id=? AND version=? AND invoice_id IS NULL
-              AND billing_state='unlocked' AND billing_lock_id IS NULL`,
+              AND billing_state='unlocked' AND billing_lock_id IS NULL
+              AND approval_state NOT IN ('void','rejected')`,
         )
         .run(
           normalized.clientTreatment,

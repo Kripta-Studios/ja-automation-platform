@@ -83,8 +83,27 @@ export function useViewPreferences<T extends Snapshot>(options: {
             restored[name as keyof T] = options.defaults[name as keyof T];
         }
       }
+      const validated = options.validate ? options.validate(restored) : restored;
       restoredContext = context;
-      untrack(() => options.set(options.validate ? options.validate(restored) : restored));
+      untrack(() => options.set(validated));
+      // A copied link can carry a value that is invalid for the selected view.
+      // Clear that URL key as well as the restored control value, so reloads,
+      // copied links and filter chips all describe the same register state.
+      if (options.validate) {
+        const canonical = new URL(url);
+        for (const [name, parameter] of Object.entries(options.query ?? {})) {
+          if (!parameter || !url.searchParams.has(parameter)) continue;
+          const key = name as keyof T;
+          if (validated[key] === restored[key]) continue;
+          const value = validated[key];
+          if (value === '' || value === options.defaults[key]) canonical.searchParams.delete(parameter);
+          else canonical.searchParams.set(parameter, String(value));
+        }
+        if (canonical.search !== url.search) {
+          restoredContext = `${key}:${canonical.pathname}${canonical.search}`;
+          replaceState(canonical, get(page).state);
+        }
+      }
       return;
     }
     try {

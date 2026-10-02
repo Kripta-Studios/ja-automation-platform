@@ -61,6 +61,15 @@
   const nativeExpenseForm = $page.form as
     | (ProblemData & { values?: Record<string, unknown> })
     | null;
+  const withdrawForm = $derived(
+    $page.form as (ProblemData & { actionName?: string; values?: Record<string, unknown> }) | null,
+  );
+  const linkedWithdrawProblem = $derived(
+    withdrawForm?.actionName === 'withdrawLinkedDrafts' ||
+      withdrawForm?.actionName === 'withdrawCrewExpenseDraft'
+      ? withdrawForm
+      : null,
+  );
   const nativeExpenseValues =
     nativeExpenseForm?.code &&
     nativeExpenseForm.values &&
@@ -88,6 +97,10 @@
   let surfaceError = $state('');
   let surfaceProblem = $state<ProblemData | null>(nativeExpenseSurface ? nativeExpenseForm : null);
   const problemExpenseId = $derived.by(() => {
+    if (surfaceProblem?.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE')
+      return (
+        surfaceProblem.remedies.find((remedy) => remedy.id === 'review_expense')?.recordId ?? ''
+      );
     const values = (surfaceProblem as (ProblemData & { values?: Record<string, unknown> }) | null)
       ?.values;
     return typeof values?.id === 'string' ? values.id : '';
@@ -181,6 +194,7 @@
   );
   let createWorker = $state(nativeExpenseValue('workerId'));
   let createRequestId = $state(nativeExpenseValue('requestId'));
+  let allowSeparateExpense = $state(false);
   let crewWorkerOptions = $state<Array<{ id: string; name: string }>>([]);
   let crewWorkersLoading = $state(false);
   let crewLookupProblem = $state<ProblemData | null>(null);
@@ -361,6 +375,16 @@
   let currencyFilter = $state('');
   let fromFilter = $state('');
   let toFilter = $state('');
+  const registerDateRangeInvalid = $derived(
+    Boolean(fromFilter && toFilter && fromFilter > toFilter),
+  );
+  function validateRegisterDateRange(event: SubmitEvent): void {
+    if (!registerDateRangeInvalid) return;
+    event.preventDefault();
+    (event.currentTarget as HTMLFormElement)
+      .querySelector<HTMLInputElement>('[name="to"]')
+      ?.focus();
+  }
   let statusFilter = $state('');
   let reimbursementFilter = $state('');
   let receiptFilter = $state('');
@@ -1130,6 +1154,16 @@
         return 'neutral';
     }
   }
+  function expenseApprovalLabel(row: Row): string {
+    if (
+      row.approval_state === 'void' &&
+      (row.linked_pair_time_id || Number(row.crew_recorded ?? 0) === 1)
+    )
+      return translate('Withdrawn');
+    return (
+      controlledValue('status', row.approval_state) || translate(String(row.approval_state ?? ''))
+    );
+  }
 
   function correctionBlocker(row: Row): 'shared_receipt' | 'reimbursed' | 'finalized' | null {
     if (row.shared_receipt_allocated) return 'shared_receipt';
@@ -1161,6 +1195,7 @@
           ? requestedWorker
           : '';
     createRequestId = crypto.randomUUID();
+    allowSeparateExpense = false;
     createCurrency = 'USD';
     createWhoPaid = 'worker';
     createDescription = '';
@@ -1201,6 +1236,7 @@
   function closeSurface(): void {
     surface = null;
     surfaceProblem = null;
+    allowSeparateExpense = false;
     nativeRecoveryActive = false;
     editExpenseId = null;
     createTimeEntryId = '';
@@ -1397,6 +1433,7 @@
     method="GET"
     action={`${base}/app/expenses`}
     aria-label={translate('Filter expenses')}
+    onsubmit={validateRegisterDateRange}
   >
     <label>
       <span>{translate('Search expenses')}</span>
@@ -1495,6 +1532,8 @@
             type="date"
             bind:value={fromFilter}
             onchange={() => (registerPage = 1)}
+            aria-invalid={registerDateRangeInvalid}
+            aria-describedby={registerDateRangeInvalid ? 'expense-register-date-error' : undefined}
           />
         </label>
         <label>
@@ -1505,6 +1544,8 @@
             type="date"
             bind:value={toFilter}
             onchange={() => (registerPage = 1)}
+            aria-invalid={registerDateRangeInvalid}
+            aria-describedby={registerDateRangeInvalid ? 'expense-register-date-error' : undefined}
           />
         </label>
 
@@ -1576,6 +1617,11 @@
         </label>
       </div>
     </SectionCard>
+    {#if registerDateRangeInvalid}
+      <p id="expense-register-date-error" class="form-help" role="alert">
+        {translate('Choose an end date on or after the start date.')}
+      </p>
+    {/if}
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
     <DatePresets
       from={fromFilter}
@@ -1865,6 +1911,9 @@
     title={translate('Recent expenses')}
     class="expense-list-surface"
   >
+    {#if linkedWithdrawProblem}
+      <ProblemNotice problem={linkedWithdrawProblem} kind="error" />
+    {/if}
     {#if visibleRecords.length > 0}
       <div class="expense-list" aria-live="polite">
         {#each pagedRecords.rows as row}
@@ -1891,12 +1940,11 @@
               />
               <a
                 href={approvalStatusHref(row)}
-                aria-label={`${translate('Open record')}: ${controlledValue('status', row.approval_state) || translate(String(row.approval_state ?? ''))}`}
+                aria-label={`${translate('Open record')}: ${expenseApprovalLabel(row)}`}
               >
                 <StatusBadge
                   variant={statusVariant(row.approval_state)}
-                  text={controlledValue('status', row.approval_state) ||
-                    translate(String(row.approval_state ?? ''))}
+                  text={expenseApprovalLabel(row)}
                 />
               </a>
               {#if canViewReimbursement && row.reimbursement_state && ['approved', 'locked'].includes(String(row.approval_state))}
@@ -1913,22 +1961,96 @@
               {#if row.shared_receipt_allocated}
                 <StatusBadge variant="neutral" text="Shared crew receipt · allocation locked" />
               {/if}
+              {#if row.linked_pair_time_id}
+                <a href={`${base}/app/time/${encodeURIComponent(String(row.linked_pair_time_id))}`}>
+                  {translate('Linked time and meal entry')}
+                  <DirectionIcon />
+                </a>
+              {/if}
             </div>
             {#if data.user.role === 'worker' || data.user.role === 'owner_admin'}
               <div class="expense-record-actions">
                 {#if row.approval_state === 'draft'}
-                  {#if !row.shared_receipt_allocated && Number(row.correction_linked ?? 0) !== 1}
+                  {#if !row.shared_receipt_allocated && !row.linked_pair_time_id && Number(row.correction_linked ?? 0) !== 1}
                     <button type="button" class="secondary-button" onclick={() => openEdit(row)}>
                       {translate('Edit')}
                     </button>
                   {/if}
-                  <form method="POST" action="?/submitExpense">
-                    <input type="hidden" name="id" value={row.id} />
-                    <input type="hidden" name="version" value={row.version} />
-                    <button type="submit">{translate('Submit')}</button>
-                  </form>
+                  {#if !row.linked_pair_time_id}
+                    <form method="POST" action="?/submitExpense">
+                      <input type="hidden" name="id" value={row.id} />
+                      <input type="hidden" name="version" value={row.version} />
+                      <button type="submit">{translate('Submit')}</button>
+                    </form>
+                  {:else}
+                    <p class="expense-record-actions__note">
+                      {translate('Submit this pair with the weekly time entries.')}
+                    </p>
+                  {/if}
                 {/if}
-                {#if row.approval_state === 'draft' && !row.shared_receipt_allocated && Number(row.correction_linked ?? 0) !== 1 && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
+                {#if row.approval_state === 'draft' && row.linked_pair_time_id && !row.shared_receipt_allocated && Number(row.correction_linked ?? 0) !== 1 && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
+                  <form
+                    method="POST"
+                    action="?/withdrawLinkedDrafts"
+                    data-action="withdrawLinkedDrafts"
+                    data-record-type="linked-time-meal"
+                    data-record-id={String(row.id)}
+                  >
+                    <input type="hidden" name="expenseId" value={row.id} />
+                    <input type="hidden" name="expenseVersion" value={row.version} />
+                    <input type="hidden" name="timeVersion" value={row.linked_pair_time_version} />
+                    <label
+                      ><span>{translate('Why withdraw both drafts?')}</span>
+                      <input name="reason" required minlength="3" maxlength="2000" />
+                    </label>
+                    <button type="submit" class="destructive-button"
+                      >{translate('Withdraw time and meal drafts')}</button
+                    >
+                  </form>
+                {:else if row.approval_state === 'draft' && Number(row.crew_recorded ?? 0) === 1 && (String(row.worker_id) === data.user.id || String(row.crew_recorded_by_user_id) === data.user.id || data.user.role === 'owner_admin')}
+                  <form
+                    method="POST"
+                    action="?/withdrawCrewExpenseDraft"
+                    data-action="withdrawCrewExpenseDraft"
+                    data-record-type="crew-expense"
+                    data-record-id={String(row.id)}
+                  >
+                    <input type="hidden" name="expenseId" value={row.id} />
+                    <input type="hidden" name="version" value={row.version} />
+                    <label>
+                      <span>{translate('Why withdraw this draft?')}</span>
+                      <input
+                        name="reason"
+                        required
+                        minlength="3"
+                        maxlength="2000"
+                        value={withdrawForm?.actionName === 'withdrawCrewExpenseDraft' &&
+                        withdrawForm.values?.expenseId === String(row.id)
+                          ? String(withdrawForm.values?.reason ?? '')
+                          : ''}
+                        aria-invalid={withdrawForm?.actionName === 'withdrawCrewExpenseDraft' &&
+                          withdrawForm.values?.expenseId === String(row.id) &&
+                          Boolean(withdrawForm.fieldErrors?.reason?.length)}
+                        aria-describedby={withdrawForm?.actionName === 'withdrawCrewExpenseDraft' &&
+                        withdrawForm.values?.expenseId === String(row.id) &&
+                        withdrawForm.fieldErrors?.reason?.length
+                          ? `crew-expense-withdraw-reason-${String(row.id)}`
+                          : undefined}
+                      />
+                      {#if withdrawForm?.actionName === 'withdrawCrewExpenseDraft' && withdrawForm.values?.expenseId === String(row.id) && withdrawForm.fieldErrors?.reason?.length}
+                        <small
+                          id={`crew-expense-withdraw-reason-${String(row.id)}`}
+                          class="field-error"
+                        >
+                          {translate('problem.expense.crewWithdrawalInvalid')}
+                        </small>
+                      {/if}
+                    </label>
+                    <button type="submit" class="destructive-button">
+                      {translate('Withdraw crew expense draft')}
+                    </button>
+                  </form>
+                {:else if row.approval_state === 'draft' && !row.shared_receipt_allocated && Number(row.correction_linked ?? 0) !== 1 && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
                   <form
                     method="POST"
                     action="?/deleteDraft"
@@ -2032,7 +2154,11 @@
       <div class="operational-form-error" tabindex="-1" data-operational-form-error>
         <ProblemNotice
           problem={surfaceProblem}
-          kind={surfaceProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+          kind={surfaceProblem.code === 'UNEXPECTED_ERROR'
+            ? 'service'
+            : surfaceProblem.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE'
+              ? 'warning'
+              : 'error'}
           status={expenseProblemContext || undefined}
           remedyLinks={{
             correct_field: {
@@ -2042,7 +2168,11 @@
               label: portalText(warningLocale, 'problem.remedy.correctFields'),
             },
             review_expense: {
-              label: translate('Review updated record'),
+              label: translate(
+                surfaceProblem.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE'
+                  ? 'Review saved expense'
+                  : 'Review updated record',
+              ),
               href: problemExpenseId
                 ? `${base}/app/expenses/${encodeURIComponent(problemExpenseId)}`
                 : `${base}/app/expenses#expense-records`,
@@ -2451,6 +2581,16 @@
             }}
           />
         {/if}
+        {#if surfaceProblem?.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE'}
+          <label class="expense-separate-confirm">
+            <input
+              type="checkbox"
+              name="allowSeparateExpense"
+              bind:checked={allowSeparateExpense}
+            />
+            <span>{translate('This is a separate expense')}</span>
+          </label>
+        {/if}
         <div class="expense-entry-actions">
           <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
             >{translate('Cancel')}</button
@@ -2463,7 +2603,13 @@
               projectSelectionUnavailable ||
               timeSelectionUnavailable ||
               (Boolean(createTimeEntryId) && linkedTimeLoading)}
-            >{translate(saving ? 'Saving…' : 'Save draft')}</button
+            >{translate(
+              saving
+                ? 'Saving…'
+                : allowSeparateExpense
+                  ? 'Save as a separate expense'
+                  : 'Save draft',
+            )}</button
           >
         </div>
       </form>

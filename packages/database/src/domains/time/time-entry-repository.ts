@@ -341,7 +341,12 @@ export class TimeEntryRepository {
    * The dependency above performs a fresh database authorization inside this
    * same write transaction; the audit actor stays the authenticated principal.
    */
-  createTimeEntryForWorker(principal: Principal, workerId: string, input: TimeEntryInput) {
+  createTimeEntryForWorker(
+    principal: Principal,
+    workerId: string,
+    input: TimeEntryInput,
+    options: Readonly<{ allowExactDuplicate?: boolean }> = {},
+  ) {
     this.deps.assertActive(principal);
     return this.deps.transaction(() => {
       // Keep authorization ahead of input validation so a revoked/stale
@@ -368,6 +373,41 @@ export class TimeEntryRepository {
         endTime: input.endTime ?? null,
         breakMinutes: input.breakMinutes ?? null,
       });
+      const category = this.deps.assertText(input.category, 'Category', 100);
+      const activityCode = input.activityCode?.trim() || null;
+      const summary = this.deps.assertText(input.summary, 'Activity summary');
+      const site = input.site?.trim() || null;
+      const duplicate = this.deps.sqlite
+        .prepare(
+          `SELECT 1 FROM time_entry existing
+           WHERE existing.project_id=? AND existing.worker_id=? AND existing.work_date=?
+             AND existing.category=? AND existing.activity_code IS ?
+             AND existing.minutes=? AND existing.activity_summary=? AND existing.site IS ?
+             AND existing.start_time IS ? AND existing.end_time IS ?
+             AND existing.break_minutes IS ?
+             AND existing.approval_state NOT IN ('void','rejected')
+             AND NOT EXISTS (
+               SELECT 1 FROM record_correction_link link
+               JOIN time_entry correction ON correction.id=link.correction_id
+               WHERE link.record_type='time_entry' AND link.original_id=existing.id
+                 AND correction.approval_state<>'rejected'
+             ) LIMIT 1`,
+        )
+        .get(
+          input.projectId,
+          workerId,
+          input.workDate,
+          category,
+          activityCode,
+          input.minutes,
+          summary,
+          site,
+          input.startTime ?? null,
+          input.endTime ?? null,
+          input.breakMinutes ?? null,
+        );
+      if (duplicate && !options.allowExactDuplicate)
+        throw this.deps.errors.conflict('Identical time entry already exists');
       const id = newId();
       const timestamp = this.deps.now();
       this.deps.sqlite
@@ -379,12 +419,12 @@ export class TimeEntryRepository {
           input.projectId,
           workerId,
           input.workDate,
-          this.deps.assertText(input.category, 'Category', 100),
-          input.activityCode?.trim() || null,
+          category,
+          activityCode,
           input.minutes,
           assignment.timezone,
-          this.deps.assertText(input.summary, 'Activity summary'),
-          input.site?.trim() || null,
+          summary,
+          site,
           input.startTime ?? null,
           input.endTime ?? null,
           input.breakMinutes ?? null,
@@ -1155,8 +1195,6 @@ export class TimeEntryRepository {
           continue;
         }
         const targetDate = this.deps.shiftIsoDate(targetWeekStart, offset);
-        this.deps.assertOwnTimeAccess?.(principal, row.project_id, row.work_date);
-        this.deps.assertOwnTimeAccess?.(principal, row.project_id, targetDate);
         const assignment = this.deps.sqlite
           .prepare(
             "SELECT p.timezone FROM project_member pm JOIN project p ON p.id=pm.project_id WHERE p.status IN ('active','planned','paused') AND pm.project_id=? AND pm.user_id=? AND pm.status='active' AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)",
@@ -1168,9 +1206,13 @@ export class TimeEntryRepository {
           skipped += 1;
           continue;
         }
+        // The source is the worker's own historical entry. Only the target
+        // date needs current access; expired source grants must not abort the
+        // entire batch or hide other eligible project layouts.
+        this.deps.assertOwnTimeAccess?.(principal, row.project_id, targetDate);
         const duplicate = this.deps.sqlite
           .prepare(
-            "SELECT 1 FROM time_entry WHERE worker_id=? AND project_id=? AND work_date=? AND category=? AND COALESCE(activity_code,'')=COALESCE(?,'') AND activity_summary=? LIMIT 1",
+            "SELECT 1 FROM time_entry WHERE worker_id=? AND project_id=? AND work_date=? AND category=? AND COALESCE(activity_code,'')=COALESCE(?,'') AND activity_summary=? AND approval_state NOT IN ('rejected','void') LIMIT 1",
           )
           .get(
             principal.userId,

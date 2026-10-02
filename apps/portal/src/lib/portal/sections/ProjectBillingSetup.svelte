@@ -510,14 +510,14 @@
 <section class="billing-setup" aria-label={t('Project billing setup')}>
   <div class="billing-setup__intro">
     <div>
-      <h3>{t('Configure this project’s invoices')}</h3>
+      <h3>{t(canEdit ? 'Configure this project’s invoices' : 'Project invoice setup')}</h3>
       <p>
-        {t(
-          'Choose how approved hours and customer-chargeable expenses become invoices. Worker reimbursement follows the project default unless a person override is set in Finance; customer expense charges remain separate.',
-        )}
+        {t(canEdit
+          ? 'Choose how approved hours and customer-chargeable expenses become invoices. Worker reimbursement follows the project default unless a person override is set in Finance; customer expense charges remain separate.'
+          : 'Finance or an owner can configure invoice rules for approved hours and customer-chargeable expenses. This view is read only.')}
       </p>
     </div>
-    <span>{t('Step')} {step} / 4</span>
+    {#if canEdit}<span>{t('Step')} {step} / 4</span>{/if}
   </div>
 
   {#if version > 0}
@@ -1323,8 +1323,6 @@
         )}
       />
     </form>
-  {:else}
-    <p>{t('Billing setup is read only for this role.')}</p>
   {/if}
 </section>
 

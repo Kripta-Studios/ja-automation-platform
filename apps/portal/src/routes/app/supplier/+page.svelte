@@ -123,6 +123,28 @@
     }
   }
   let search = $state('');
+  let accountSearch = $state('');
+  let selectedAccount = $state(
+    untrack(() => String(form?.operation === 'setProfile' ? (form.values?.userId ?? '') : '')),
+  );
+  let selectedProfile = $state(
+    untrack(() => String(form?.operation === 'setProfile' ? (form.values?.profile ?? '') : '')),
+  );
+  let selectedSupplier = $state(
+    untrack(() => String(form?.operation === 'setProfile' ? (form.values?.supplierId ?? '') : '')),
+  );
+  function selectProfileAccount(userId: string): void {
+    const account = data.accounts.find((item: { id: string }) => item.id === userId);
+    selectedProfile = account ? account.profile || 'standard' : '';
+    selectedSupplier = account?.supplierId || '';
+  }
+  const filteredAccounts = $derived(
+    data.accounts.filter(
+      (account: { id: string; name: string }) =>
+        account.id === selectedAccount ||
+        account.name.toLocaleLowerCase().includes(accountSearch.trim().toLocaleLowerCase()),
+    ),
+  );
   type DirectoryStatus = 'active' | 'inactive' | 'all';
   function requestedDirectoryStatus(): DirectoryStatus {
     const requested = $page.url.searchParams.get('directoryStatus');
@@ -652,19 +674,11 @@
     {:else if form && !form.success && !(editor && form.operation === editor.operation)}
       <p role="alert">{standaloneActionMessage(data.locale, form)}</p>
     {/if}
-    <p class="supplier-action-help">
-      {workspaceAction === 'directory'
-        ? m.intro
-        : workspaceAction === 'setup'
-          ? c.personnel
-          : workspaceAction === 'authorize'
-            ? c.restricted
-            : workspaceAction === 'personnel'
-              ? c.personnel
-              : workspaceAction === 'time'
-                ? c.intro
-                : c.report}
-    </p>
+    {#if workspaceAction === 'authorize' || workspaceAction === 'time'}
+      <p class="supplier-action-help">
+        {workspaceAction === 'authorize' ? c.restricted : c.intro}
+      </p>
+    {/if}
   </div>
   {#if data.owner && workspaceAction === 'directory'}
     <SectionCard title={c.title} id="supplier-directory">
@@ -686,6 +700,10 @@
         translate={(value) => portalText(data.locale, value)}
         label="Suppliers"
         contextKey="supplier-directory"
+        filtersEnabled={false}
+        showEmpty={false}
+        statusless
+        initialOrder="name"
       />
       <div class="supplier-directory">
         {#each supplierPage as supplier}
@@ -725,6 +743,10 @@
         translate={(value) => portalText(data.locale, value)}
         label="Technicians"
         contextKey="technician-directory"
+        filtersEnabled={false}
+        showEmpty={false}
+        statusless
+        initialOrder="name"
       />
       <div class="supplier-directory">
         {#each technicianPage as technician}
@@ -992,7 +1014,14 @@
       >{c.project}<select
         name="projectId"
         required
-        value={value(operation, 'projectId', data.projectId)}
+        value={value(
+          operation,
+          'projectId',
+          ['grant', 'addTechnician', 'assignTechnician'].includes(operation) &&
+            !data.projects.some((project) => project.id === $page.url.searchParams.get('projectId'))
+            ? ''
+            : data.projectId,
+        )}
         ><option value="">{c.select}</option>{#each data.projects as p}<option value={p.id}
             >{p.name}</option
           >{/each}</select
@@ -1007,7 +1036,9 @@
         value={value(
           operation,
           'supplierId',
-          String(data.suppliers.find((s) => s.status === 'active')?.id || ''),
+          ['grant', 'addTechnician'].includes(operation)
+            ? ''
+            : String(data.suppliers.find((s) => s.status === 'active')?.id || ''),
         )}
         ><option value="">{c.select}</option
         >{#each data.suppliers.filter((s) => s.status === 'active') as s}<option value={s.id}
@@ -1084,8 +1115,22 @@
         use:formValidation
       >
         <label data-ui="field"
-          >{c.account}<select name="userId" required value={value('setProfile', 'userId')}
-            ><option value="">{c.select}</option>{#each data.accounts as account}<option
+          >{portalText(data.locale, 'Search accounts')}<input
+            type="search"
+            bind:value={accountSearch}
+            autocomplete="off"
+          /></label
+        >
+        {#if !filteredAccounts.length}<p role="status" class="muted">
+            {portalText(data.locale, 'No matching records.')}
+          </p>{/if}
+        <label data-ui="field"
+          >{c.account}<select
+            name="userId"
+            required
+            bind:value={selectedAccount}
+            onchange={(event) => selectProfileAccount(event.currentTarget.value)}
+            ><option value="">{c.select}</option>{#each filteredAccounts as account}<option
                 value={account.id}
                 >{account.name} · {account.profile === 'supplier_coordinator'
                   ? c.coordinator
@@ -1096,16 +1141,25 @@
           ></label
         >
         <label data-ui="field"
-          >{c.profile}<select
-            name="profile"
-            required
-            value={value('setProfile', 'profile', 'supplier_coordinator')}
-            ><option value="supplier_coordinator">{c.coordinator}</option><option
-              value="external_technician">{c.technician}</option
-            ><option value="standard">{c.standard}</option></select
+          >{c.profile}<select name="profile" required bind:value={selectedProfile}
+            ><option value="">{c.select}</option><option value="supplier_coordinator"
+              >{c.coordinator}</option
+            ><option value="external_technician">{c.technician}</option><option value="standard"
+              >{c.standard}</option
+            ></select
           ></label
         >
-        {@render suppliers('setProfile')}<button class="primary-button">{c.saveProfile}</button>
+        {#if selectedProfile && selectedProfile !== 'standard'}
+          <label data-ui="field"
+            >{c.provider}<select name="supplierId" required bind:value={selectedSupplier}
+              ><option value="">{c.select}</option
+              >{#each data.suppliers.filter((s) => s.status === 'active') as supplier}<option
+                  value={supplier.id}>{supplier.name}</option
+                >{/each}</select
+            ></label
+          >
+        {/if}
+        <button class="primary-button">{c.saveProfile}</button>
       </form>
     </SectionCard>
   {/if}

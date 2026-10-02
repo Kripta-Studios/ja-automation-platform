@@ -30,7 +30,11 @@
   type Row = Record<string, string | number | boolean | null>;
   let { data, form } = $props();
   type DetailForm = Partial<ProblemData> & {
-    actionName?: 'createCorrectionDraft' | 'withdrawCorrectionDraft' | 'submitExpense';
+    actionName?:
+      | 'createCorrectionDraft'
+      | 'withdrawCorrectionDraft'
+      | 'withdrawCrewExpenseDraft'
+      | 'submitExpense';
     values?: Record<string, string>;
     success?: boolean;
   };
@@ -120,6 +124,11 @@
       ? problem.params.status
       : record.approval_state,
   );
+  const statusLabel = $derived(
+    (data.linkedPairTimeId || data.crewRecorded) && statusForDisplay === 'void'
+      ? t('Withdrawn')
+      : controlled('status', statusForDisplay),
+  );
   const remedyLinks = $derived({
     review_expense: {
       label: t('problem.remedy.reviewExpense'),
@@ -202,11 +211,24 @@
       // A malformed saved position does not hide the failure notice.
     }
   }
-  const enhancedSubmit: SubmitFunction = () => {
+  let submittingExpense = $state(false);
+  const enhancedSubmit: SubmitFunction = ({ formElement, cancel }) => {
+    const isExpenseSubmission = formElement.dataset.expenseDetailAction === 'submitExpense';
+    if (isExpenseSubmission) {
+      if (submittingExpense) {
+        cancel();
+        return;
+      }
+      submittingExpense = true;
+    }
     rememberScroll();
     return async ({ result, update }) => {
-      await update({ reset: false, invalidateAll: true });
-      if (result.type === 'failure') await tick();
+      try {
+        await update({ reset: false, invalidateAll: true });
+        if (result.type === 'failure') await tick();
+      } finally {
+        if (isExpenseSubmission) submittingExpense = false;
+      }
     };
   };
   let focusedProblemId = '';
@@ -529,323 +551,440 @@
 </script>
 
 <svelte:head><title>{t('Expense')} | {record.project_number}</title></svelte:head>
-<main class="record-detail-page">
-  <nav class="detail-nav">
-    <a href={base + '/app/expenses'} data-origin-back
-      ><DirectionIcon direction="left" /> {t('Expenses')}</a
-    >
-    <a href={base + '/app/projects/' + String(record.project_id)}>{t('Open project')}</a>
-    {#if record.approval_state === 'submitted' && ['owner_admin', 'project_manager'].includes(data.user?.role ?? '')}
+{#if data.reviewOnly}
+  <main class="record-detail-page" data-review-only="expense">
+    <nav class="detail-nav" data-review-navigation aria-label={t('Back to approvals')}>
       <a
-        class="no-print"
-        href={`${base}/app/approvals?project=${encodeURIComponent(String(record.project_id))}&tab=expenses&status=submitted&q=&lang=${encodeURIComponent(locale)}`}
-        >{t('Review in approvals')}</a
+        href={`${base}/app/approvals?project=${encodeURIComponent(String(record.project_id))}&tab=expenses&status=${encodeURIComponent(String(record.approval_state))}&q=&lang=${encodeURIComponent(locale)}`}
+        ><DirectionIcon direction="left" /> {t('Back to approvals')}</a
       >
-    {/if}
-    <button type="button" class="no-print print-trigger" onclick={printReport}>
-      <PrintIcon />
-      {t('Print Report')}
-    </button>
-  </nav>
-  <header class="record-detail-header">
-    <div>
-      <span class="portal-kicker">{t('EXPENSE · SOURCE RECORD')}</span>
-      <h1>
-        {record.vendor || record.description || controlled('expenseCategory', record.category)}
-      </h1>
-      <p>{record.project_number} · {record.project_name} · {record.spent_on}</p>
-    </div>
-    <span class="state-tag">{controlled('status', statusForDisplay)}</span>
-  </header>
-  {#if problem && detailForm?.actionName !== 'submitExpense'}
-    <div data-expense-detail-problem>
-      <ProblemNotice
-        {problem}
-        {locale}
-        kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
-        status={`${t('Status')}: ${controlled('status', statusForDisplay)}`}
-        {remedyLinks}
-      />
-    </div>
-  {:else if standaloneActionMessage(locale, form)}
-    <p class="action-message" role="alert">{standaloneActionMessage(locale, form)}</p>
-  {/if}
-  {#if retainedCorrectionValues.length}
-    <section
-      class="detail-panel record-detail-copy"
-      aria-labelledby="expense-retained-values-title"
-    >
-      <h2 id="expense-retained-values-title">{t('problem.expenseDetail.retainedValuesTitle')}</h2>
-      <p>{t('problem.expenseDetail.retainedValuesHelp')}</p>
+    </nav>
+    <header class="record-detail-header">
+      <div>
+        <span class="portal-kicker">{t('Read-only operational review')}</span>
+        <h1>{t('Expense')} · {record.project_number}</h1>
+        <p>{record.project_name} · {record.spent_on}</p>
+      </div>
+      <span class="state-tag">{controlled('status', record.approval_state)}</span>
+    </header>
+    <section class="detail-panel record-detail-copy">
+      <p>{t('Approval actions remain in the Approvals queue.')}</p>
       <dl class="record-facts">
-        {#each retainedCorrectionValues as item (item.label)}
-          <div>
-            <dt>{item.label}</dt>
-            <dd>{item.value || '—'}</dd>
-          </div>
-        {/each}
+        <div>
+          <dt>{t('Worker')}</dt>
+          <dd>{record.worker_name}</dd>
+        </div>
+        <div>
+          <dt>{t('Project')}</dt>
+          <dd>{record.project_number} · {record.project_name}</dd>
+        </div>
+        <div>
+          <dt>{t('Date')}</dt>
+          <dd>{record.spent_on}</dd>
+        </div>
+        <div>
+          <dt>{t('Status')}</dt>
+          <dd>{controlled('status', record.approval_state)}</dd>
+        </div>
+        <div>
+          <dt>{t('Category')}</dt>
+          <dd>{controlled('expenseCategory', record.category)}</dd>
+        </div>
+        <div>
+          <dt>{t('Vendor')}</dt>
+          <dd>{record.vendor || '—'}</dd>
+        </div>
+        <div>
+          <dt>{t('Description')}</dt>
+          <dd>{record.description || '—'}</dd>
+        </div>
       </dl>
     </section>
-  {/if}
-  {#if retainedWithdrawReason}
-    <p class="detail-panel record-detail-copy">
-      <strong>{t('problem.expenseDetail.retainedReason')}:</strong>
-      {retainedWithdrawReason}
-    </p>
-  {/if}
-  {#if problem && detailForm?.actionName === 'submitExpense'}
-    <section class="detail-panel record-detail-copy" data-expense-submit-problem>
-      <ProblemNotice
-        {problem}
-        {locale}
-        kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
-        status={`${t('Status')}: ${controlled('status', statusForDisplay)}`}
-        {remedyLinks}
-      />
-    </section>
-  {/if}
-  {#if data.canSubmitDraft && !submissionBlocked}
-    <section class="detail-panel record-detail-copy" aria-label={t('Draft actions')}>
-      <form
-        method="POST"
-        action="?/submitExpense"
-        data-expense-detail-action="submitExpense"
-        use:formValidation
-        use:enhance={enhancedSubmit}
+  </main>
+{:else}
+  <main class="record-detail-page">
+    <nav class="detail-nav">
+      <a href={base + '/app/expenses'} data-origin-back
+        ><DirectionIcon direction="left" /> {t('Expenses')}</a
       >
-        <input type="hidden" name="id" value={String(record.id)} />
-        <input type="hidden" name="version" value={Number(record.version)} />
-        <button type="submit">{t('Submit')}</button>
-      </form>
-    </section>
-  {/if}
-  {#if data.canWithdrawCorrection}
-    <section class="detail-panel record-detail-copy" aria-label={t('Withdraw correction draft')}>
-      <form
-        method="POST"
-        action="?/withdrawCorrectionDraft"
-        class="record-correction-withdraw"
-        data-expense-detail-action="withdrawCorrectionDraft"
-        use:formValidation
-        use:enhance={enhancedSubmit}
-      >
-        <input type="hidden" name="recordType" value="expense" />
-        <input type="hidden" name="correctionId" value={String(record.id)} />
-        <input type="hidden" name="version" value={Number(record.version)} />
-        <label
-          ><span>{t('Why withdraw this draft?')}</span><input
-            id="expense-withdraw-reason"
-            name="reason"
-            minlength="3"
-            maxlength="2000"
-            required
-            value={detailForm?.actionName === 'withdrawCorrectionDraft'
-              ? (detailForm.values?.reason ?? '')
-              : ''}
-          /></label
+      <a href={base + '/app/projects/' + String(record.project_id)}>{t('Open project')}</a>
+      {#if record.approval_state === 'submitted' && ['owner_admin', 'project_manager'].includes(data.user?.role ?? '')}
+        <a
+          class="no-print"
+          href={`${base}/app/approvals?project=${encodeURIComponent(String(record.project_id))}&tab=expenses&status=submitted&q=&lang=${encodeURIComponent(locale)}`}
+          >{t('Review in approvals')}</a
         >
-        <button type="submit" class="destructive-button">{t('Withdraw correction draft')}</button>
-      </form>
-    </section>
-  {/if}
-  {#if ['needs_changes', 'rejected'].includes(String(record.approval_state))}
-    <section class="detail-panel record-detail-copy" aria-labelledby="expense-review-title">
-      <h2 id="expense-review-title">{t('Review outcome')}</h2>
-      <p>
-        <strong>{t('Review reason')}:</strong>
-        {record.review_reason || t('No review reason was recorded.')}
-      </p>
-      {#if record.active_correction_id}
-        <p>
-          {t('An existing correction is')}
-          {controlled('status', record.active_correction_state)}.
-        </p>
-        <a href={`${base}/app/expenses/${encodeURIComponent(String(record.active_correction_id))}`}
-          >{t('Open existing correction')} <DirectionIcon /></a
-        >
-      {:else if data.canCreateCorrection}
-        <a href="#expense-correction-title">{t('Create corrected draft')} <DirectionIcon /></a>
-      {:else if record.approval_state === 'rejected'}
-        <p>
-          {t(
-            'A rejected expense cannot be corrected. Create a new expense if the cost should be recorded.',
-          )}
-        </p>
-        {#if data.user?.role === 'owner_admin' || (data.user?.role === 'worker' && String(record.worker_id) === String(data.user?.id))}
-          <a
-            href={`${base}/app/expenses?project=${encodeURIComponent(String(record.project_id))}&date=${encodeURIComponent(String(record.spent_on))}`}
-            >{t('Add expense')} <DirectionIcon /></a
-          >
-        {/if}
-      {:else}
-        <p>
-          {t('The recorded worker must create a corrected draft from their Expenses register.')}
-        </p>
       {/if}
-    </section>
-  {/if}
-  {#if data.canCreateCorrection}
-    <section class="detail-panel record-detail-copy" aria-labelledby="expense-correction-title">
-      <h2 id="expense-correction-title">{t('Create corrected draft')}</h2>
-      <div data-expense-detail-action="createCorrectionDraft">
-        <CorrectionDraftForm
-          recordType="expense"
-          {record}
-          translate={t}
-          ownerOverride={data.user.role === 'owner_admin'}
-          values={detailForm?.actionName === 'createCorrectionDraft'
-            ? (detailForm.values ?? {})
-            : {}}
-          timeOptions={data.correctionTimeOptions}
-          requestId={detailForm?.actionName === 'createCorrectionDraft'
-            ? (detailForm.values?.requestId ?? data.correctionRequestId)
-            : data.correctionRequestId}
+      <button type="button" class="no-print print-trigger" onclick={printReport}>
+        <PrintIcon />
+        {t('Print Report')}
+      </button>
+    </nav>
+    <header class="record-detail-header">
+      <div>
+        <span class="portal-kicker">{t('EXPENSE · SOURCE RECORD')}</span>
+        <h1>
+          {record.vendor || record.description || controlled('expenseCategory', record.category)}
+        </h1>
+        <p>{record.project_number} · {record.project_name} · {record.spent_on}</p>
+      </div>
+      <span class="state-tag">{statusLabel}</span>
+    </header>
+    {#if data.linkedPairTimeId}
+      <section class="detail-panel record-detail-copy" aria-label={t('Linked time and meal entry')}>
+        <p>{t('This time entry and meal expense were created together.')}</p>
+        <a
+          href={`${base}/app/time/${encodeURIComponent(data.linkedPairTimeId)}?lang=${encodeURIComponent(locale)}`}
+        >
+          {t('Review linked time entry')}
+          <DirectionIcon />
+        </a>
+        {#if record.approval_state === 'draft'}
+          <p>{t('Submit this pair with the weekly time entries.')}</p>
+        {/if}
+      </section>
+    {/if}
+    {#if problem && detailForm?.actionName !== 'submitExpense'}
+      <div data-expense-detail-problem>
+        <ProblemNotice
+          {problem}
+          {locale}
+          kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+          status={`${t('Status')}: ${statusLabel}`}
+          {remedyLinks}
         />
       </div>
-    </section>
-  {/if}
-  {#if financeClassificationPending}
-    <div data-expense-finance-classification-hold>
-      <ProblemNotice
-        problem={financeClassificationHold}
-        {locale}
-        kind="warning"
-        title={t('Needs Finance classification')}
-        remedyLinks={{
-          review_expense_classification: {
-            label: t('Review expense classification'),
-            href: financeClassificationHref,
-          },
-        }}
-      />
-    </div>
-  {/if}
-  <section class="record-detail-grid">
-    <article>
-      <span>{t('AMOUNT')}</span><strong
-        >{money(record.amount_minor, String(record.currency))}</strong
+    {:else if standaloneActionMessage(locale, form)}
+      <p class="action-message" role="alert">{standaloneActionMessage(locale, form)}</p>
+    {/if}
+    {#if retainedCorrectionValues.length}
+      <section
+        class="detail-panel record-detail-copy"
+        aria-labelledby="expense-retained-values-title"
       >
-    </article>
-    <article>
-      <span>{t('CATEGORY')}</span><strong>{controlled('expenseCategory', record.category)}</strong>
-    </article>
-    {#if canViewFinance}
-      <article>
-        <span>{t('CLIENT TREATMENT')}</span><strong
-          >{financeClassificationPending
-            ? t('Needs Finance classification')
-            : controlled('billingStream', record.client_treatment)}</strong
-        >
-      </article>
+        <h2 id="expense-retained-values-title">{t('problem.expenseDetail.retainedValuesTitle')}</h2>
+        <p>{t('problem.expenseDetail.retainedValuesHelp')}</p>
+        <dl class="record-facts">
+          {#each retainedCorrectionValues as item (item.label)}
+            <div>
+              <dt>{item.label}</dt>
+              <dd>{item.value || '—'}</dd>
+            </div>
+          {/each}
+        </dl>
+      </section>
     {/if}
-    {#if canViewOwnReimbursement && record.reimbursement_state}
-      <article>
-        <span>{t('REIMBURSEMENT')}</span><strong
-          >{financeClassificationPending
-            ? t('Needs Finance classification')
-            : controlled('status', record.reimbursement_state)}</strong
-        >
-      </article>
+    {#if retainedWithdrawReason}
+      <p class="detail-panel record-detail-copy">
+        <strong>{t('problem.expenseDetail.retainedReason')}:</strong>
+        {retainedWithdrawReason}
+      </p>
     {/if}
-  </section>
-  <section class="detail-panel record-detail-copy">
-    <div class="panel-title">
-      <h2>{t('Expense details')}</h2>
-      <span>{record.who_paid ? controlled('role', record.who_paid) : t('worker paid')}</span>
-    </div>
-    <p>{record.description ?? t('No description was recorded.')}</p>
-    <dl class="record-facts">
-      <div>
-        <dt>{t('Vendor')}</dt>
-        <dd>{record.vendor || '—'}</dd>
-      </div>
-      <div>
-        <dt>{t('Time expense occurred')}</dt>
-        <dd>{record.occurred_time_local ?? '—'}</dd>
-      </div>
-      <div>
-        <dt>{t('Related logged hours')}</dt>
-        <dd>
-          {#if record.time_entry_id}
+    {#if problem && detailForm?.actionName === 'submitExpense'}
+      <section class="detail-panel record-detail-copy" data-expense-submit-problem>
+        <ProblemNotice
+          {problem}
+          {locale}
+          kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+          status={`${t('Status')}: ${controlled('status', statusForDisplay)}`}
+          {remedyLinks}
+        />
+      </section>
+    {/if}
+    {#if data.canSubmitDraft && !submissionBlocked}
+      <section class="detail-panel record-detail-copy" aria-label={t('Draft actions')}>
+        <form
+          method="POST"
+          action="?/submitExpense"
+          data-expense-detail-action="submitExpense"
+          aria-busy={submittingExpense}
+          use:formValidation
+          use:enhance={enhancedSubmit}
+        >
+          <input type="hidden" name="id" value={String(record.id)} />
+          <input type="hidden" name="version" value={Number(record.version)} />
+          <button type="submit" disabled={submittingExpense}>{t('Submit')}</button>
+        </form>
+      </section>
+    {/if}
+    {#if data.canWithdrawCorrection}
+      <section class="detail-panel record-detail-copy" aria-label={t('Withdraw correction draft')}>
+        <form
+          method="POST"
+          action="?/withdrawCorrectionDraft"
+          class="record-correction-withdraw"
+          data-expense-detail-action="withdrawCorrectionDraft"
+          use:formValidation
+          use:enhance={enhancedSubmit}
+        >
+          <input type="hidden" name="recordType" value="expense" />
+          <input type="hidden" name="correctionId" value={String(record.id)} />
+          <input type="hidden" name="version" value={Number(record.version)} />
+          <label
+            ><span>{t('Why withdraw this draft?')}</span><input
+              id="expense-withdraw-reason"
+              name="reason"
+              minlength="3"
+              maxlength="2000"
+              required
+              value={detailForm?.actionName === 'withdrawCorrectionDraft'
+                ? (detailForm.values?.reason ?? '')
+                : ''}
+            /></label
+          >
+          <button type="submit" class="destructive-button">{t('Withdraw correction draft')}</button>
+        </form>
+      </section>
+    {/if}
+    {#if data.canWithdrawCrewDraft}
+      <section
+        class="detail-panel record-detail-copy"
+        aria-label={t('Withdraw crew expense draft')}
+      >
+        <form
+          method="POST"
+          action="?/withdrawCrewExpenseDraft"
+          data-expense-detail-action="withdrawCrewExpenseDraft"
+          use:formValidation
+          use:enhance={enhancedSubmit}
+        >
+          <input type="hidden" name="expenseId" value={String(record.id)} />
+          <input type="hidden" name="version" value={Number(record.version)} />
+          <label>
+            <span>{t('Why withdraw this draft?')}</span>
+            <input
+              id="crew-expense-withdraw-reason"
+              name="reason"
+              minlength="3"
+              maxlength="2000"
+              required
+              value={detailForm?.actionName === 'withdrawCrewExpenseDraft'
+                ? (detailForm.values?.reason ?? '')
+                : ''}
+              aria-invalid={detailForm?.actionName === 'withdrawCrewExpenseDraft' &&
+                Boolean(detailForm.fieldErrors?.reason?.length)}
+              aria-describedby={detailForm?.actionName === 'withdrawCrewExpenseDraft' &&
+              detailForm.fieldErrors?.reason?.length
+                ? 'crew-expense-withdraw-reason-error'
+                : undefined}
+            />
+            {#if detailForm?.actionName === 'withdrawCrewExpenseDraft' && detailForm.fieldErrors?.reason?.length}
+              <small id="crew-expense-withdraw-reason-error" class="field-error">
+                {t('problem.expense.crewWithdrawalInvalid')}
+              </small>
+            {/if}
+          </label>
+          <button type="submit" class="destructive-button">
+            {t('Withdraw crew expense draft')}
+          </button>
+        </form>
+      </section>
+    {/if}
+    {#if ['needs_changes', 'rejected'].includes(String(record.approval_state))}
+      <section class="detail-panel record-detail-copy" aria-labelledby="expense-review-title">
+        <h2 id="expense-review-title">{t('Review outcome')}</h2>
+        <p>
+          <strong>{t('Review reason')}:</strong>
+          {record.review_reason || t('No review reason was recorded.')}
+        </p>
+        {#if record.active_correction_id}
+          <p>
+            {t('An existing correction is')}
+            {controlled('status', record.active_correction_state)}.
+          </p>
+          <a
+            href={`${base}/app/expenses/${encodeURIComponent(String(record.active_correction_id))}`}
+            >{t('Open existing correction')} <DirectionIcon /></a
+          >
+        {:else if data.canCreateCorrection}
+          <a href="#expense-correction-title">{t('Create corrected draft')} <DirectionIcon /></a>
+        {:else if record.approval_state === 'rejected'}
+          <p>
+            {t(
+              'A rejected expense cannot be corrected. Create a new expense if the cost should be recorded.',
+            )}
+          </p>
+          {#if data.user?.role === 'owner_admin' || (data.user?.role === 'worker' && String(record.worker_id) === String(data.user?.id))}
             <a
-              href={base +
-                (data.user?.role === 'worker' && String(record.worker_id) !== String(data.user?.id)
-                  ? '/app/crew/time/'
-                  : '/app/time/') +
-                String(record.time_entry_id)}>{t('Open time record')}</a
+              href={`${base}/app/expenses?project=${encodeURIComponent(String(record.project_id))}&date=${encodeURIComponent(String(record.spent_on))}`}
+              >{t('Add expense')} <DirectionIcon /></a
             >
-          {:else}
-            —
           {/if}
-        </dd>
-      </div>
-      <div>
-        <dt>{t('Payment method')}</dt>
-        <dd>{record.payment_method ?? '—'}</dd>
-      </div>
-      {#if canViewFinance}
-        <div>
-          <dt>{t('Billing treatment')}</dt>
-          <dd>
-            {financeClassificationPending
-              ? t('Needs Finance classification')
-              : controlled('billingStream', record.billing_treatment ?? 'internal')}
-          </dd>
+        {:else}
+          <p>
+            {t('The recorded worker must create a corrected draft from their Expenses register.')}
+          </p>
+        {/if}
+      </section>
+    {/if}
+    {#if data.canCreateCorrection}
+      <section class="detail-panel record-detail-copy" aria-labelledby="expense-correction-title">
+        <h2 id="expense-correction-title">{t('Create corrected draft')}</h2>
+        <div data-expense-detail-action="createCorrectionDraft">
+          <CorrectionDraftForm
+            recordType="expense"
+            {record}
+            translate={t}
+            ownerOverride={data.user.role === 'owner_admin'}
+            values={detailForm?.actionName === 'createCorrectionDraft'
+              ? (detailForm.values ?? {})
+              : {}}
+            timeOptions={data.correctionTimeOptions}
+            requestId={detailForm?.actionName === 'createCorrectionDraft'
+              ? (detailForm.values?.requestId ?? data.correctionRequestId)
+              : data.correctionRequestId}
+          />
         </div>
-        <div data-expense-project-amount class:expense-conversion-needed={needsVerifiedConversion}>
-          <dt>{t('Project-currency amount')}</dt>
+      </section>
+    {/if}
+    {#if financeClassificationPending}
+      <div data-expense-finance-classification-hold>
+        <ProblemNotice
+          problem={financeClassificationHold}
+          {locale}
+          kind="warning"
+          title={t('Needs Finance classification')}
+          remedyLinks={{
+            review_expense_classification: {
+              label: t('Review expense classification'),
+              href: financeClassificationHref,
+            },
+          }}
+        />
+      </div>
+    {/if}
+    <section class="record-detail-grid">
+      <article>
+        <span>{t('AMOUNT')}</span><strong
+          >{money(record.amount_minor, String(record.currency))}</strong
+        >
+      </article>
+      <article>
+        <span>{t('CATEGORY')}</span><strong>{controlled('expenseCategory', record.category)}</strong
+        >
+      </article>
+      {#if canViewFinance}
+        <article>
+          <span>{t('CLIENT TREATMENT')}</span><strong
+            >{financeClassificationPending
+              ? t('Needs Finance classification')
+              : controlled('billingStream', record.client_treatment)}</strong
+          >
+        </article>
+      {/if}
+      {#if canViewOwnReimbursement && record.approval_state !== 'void' && record.reimbursement_state}
+        <article>
+          <span>{t('REIMBURSEMENT')}</span><strong
+            >{financeClassificationPending
+              ? t('Needs Finance classification')
+              : controlled('status', record.reimbursement_state)}</strong
+          >
+        </article>
+      {/if}
+    </section>
+    <section class="detail-panel record-detail-copy">
+      <div class="panel-title">
+        <h2>{t('Expense details')}</h2>
+        <span>{record.who_paid ? controlled('role', record.who_paid) : t('worker paid')}</span>
+      </div>
+      <p>{record.description ?? t('No description was recorded.')}</p>
+      <dl class="record-facts">
+        <div>
+          <dt>{t('Vendor')}</dt>
+          <dd>{record.vendor || '—'}</dd>
+        </div>
+        <div>
+          <dt>{t('Time expense occurred')}</dt>
+          <dd>{record.occurred_time_local ?? '—'}</dd>
+        </div>
+        <div>
+          <dt>{t('Related logged hours')}</dt>
           <dd>
-            {#if needsVerifiedConversion}
-              <span data-expense-conversion-required
-                >{t('Verified currency conversion needed')}</span
-              >
-              <p data-expense-conversion-explanation>
-                {t(
-                  'No verified conversion is recorded. This expense keeps its original currency. A conversion cannot currently be entered here.',
-                )}
-              </p>
-              <a href={financeClassificationHref}
-                >{t('Review expense classification')} <DirectionIcon /></a
+            {#if record.time_entry_id}
+              <a
+                href={base +
+                  (data.user?.role === 'worker' &&
+                  String(record.worker_id) !== String(data.user?.id)
+                    ? '/app/crew/time/'
+                    : '/app/time/') +
+                  String(record.time_entry_id)}>{t('Open time record')}</a
               >
             {:else}
-              {money(
-                record.project_currency_amount_minor ?? record.amount_minor,
-                String(record.project_currency ?? record.currency),
-              )}
+              —
             {/if}
           </dd>
         </div>
-      {/if}
-      <div>
-        <dt>{t('Receipt')}</dt>
-        <dd>
-          {record.receipt_document_id ? t('Registered private receipt') : t('No receipt linked')}
-        </dd>
-      </div>
-    </dl>
-    {#if record.receipt_document_id}
-      <a
-        id="expense-receipt-preview"
-        class="preview-link"
-        target="_blank"
-        href={receiptHref}
-        aria-busy={receiptPreviewBusy}
-        onclick={onReceiptPreviewClick}
-        onauxclick={onReceiptPreviewAuxClick}>{t('Open private receipt')}</a
-      >
-      {#if receiptPreviewProblem}
-        <div data-expense-receipt-problem>
-          <ProblemNotice
-            problem={receiptPreviewProblem}
-            {locale}
-            status={`${t('Status')}: ${controlled('status', statusForDisplay)}`}
-            remedyLinks={receiptRemedyLinks}
-          />
+        <div>
+          <dt>{t('Payment method')}</dt>
+          <dd>{record.payment_method ?? '—'}</dd>
         </div>
+        {#if canViewFinance}
+          <div>
+            <dt>{t('Billing treatment')}</dt>
+            <dd>
+              {financeClassificationPending
+                ? t('Needs Finance classification')
+                : controlled('billingStream', record.billing_treatment ?? 'internal')}
+            </dd>
+          </div>
+          <div
+            data-expense-project-amount
+            class:expense-conversion-needed={needsVerifiedConversion}
+          >
+            <dt>{t('Project-currency amount')}</dt>
+            <dd>
+              {#if needsVerifiedConversion}
+                <span data-expense-conversion-required
+                  >{t('Verified currency conversion needed')}</span
+                >
+                <p data-expense-conversion-explanation>
+                  {t(
+                    'No verified conversion is recorded. This expense keeps its original currency. A conversion cannot currently be entered here.',
+                  )}
+                </p>
+                <a href={financeClassificationHref}
+                  >{t('Review expense classification')} <DirectionIcon /></a
+                >
+              {:else}
+                {money(
+                  record.project_currency_amount_minor ?? record.amount_minor,
+                  String(record.project_currency ?? record.currency),
+                )}
+              {/if}
+            </dd>
+          </div>
+        {/if}
+        <div>
+          <dt>{t('Receipt')}</dt>
+          <dd>
+            {record.receipt_document_id ? t('Registered private receipt') : t('No receipt linked')}
+          </dd>
+        </div>
+      </dl>
+      {#if record.receipt_document_id}
+        <a
+          id="expense-receipt-preview"
+          class="preview-link"
+          target="_blank"
+          href={receiptHref}
+          aria-busy={receiptPreviewBusy}
+          onclick={onReceiptPreviewClick}
+          onauxclick={onReceiptPreviewAuxClick}>{t('Open private receipt')}</a
+        >
+        {#if receiptPreviewProblem}
+          <div data-expense-receipt-problem>
+            <ProblemNotice
+              problem={receiptPreviewProblem}
+              {locale}
+              status={`${t('Status')}: ${controlled('status', statusForDisplay)}`}
+              remedyLinks={receiptRemedyLinks}
+            />
+          </div>
+        {/if}
       {/if}
-    {/if}
-  </section>
-</main>
+    </section>
+  </main>
+{/if}
 
 <style>
   .expense-conversion-needed {

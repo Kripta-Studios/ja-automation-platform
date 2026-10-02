@@ -1,7 +1,7 @@
 import { error, isActionFailure, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { lastCompletePeriodForCadence, type BillingCadence } from '@ja/billing-engine';
-import { invoicePeriodSchema } from '@ja/schemas';
+import { invoicePeriodSchema, isValidIanaTimeZone } from '@ja/schemas';
 import { newId } from '@ja/domain';
 import { z } from 'zod';
 import {
@@ -120,6 +120,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
     const overview = context.repository.projectOverview(context.principal, params.id, {
       includeFinance: false,
     });
+    const validProjectTimezone = isValidIanaTimeZone(String(overview.project.timezone ?? ''));
     const financeVisible =
       context.principal.role === 'owner_admin' ||
       context.principal.role === 'finance_admin' ||
@@ -146,7 +147,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
     const latestExpenseRule = [...billingRules]
       .filter((rule) => rule.stream_type === 'expense' && Number(rule.enabled) === 1)
       .sort((a, b) => String(b.effective_from).localeCompare(String(a.effective_from)))[0];
-    const billingSetup = financeVisible
+    const billingSetup = financeVisible && validProjectTimezone
       ? new ProjectBillingSetupRepository(context.sqlite, context.repository)
       : null;
     const projectRow = overview.project as { client_id?: string };
@@ -159,6 +160,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
       periodEnd,
       periodValues,
       periodProblem,
+      invalidProjectTimezone: !validProjectTimezone,
       invoiceDraftStart: invoiceDraftPeriod.periodStart,
       invoiceDraftEnd: invoiceDraftPeriod.periodEnd,
       workers:
@@ -208,6 +210,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
             ? context.v3.projectFinance(context.principal, params.id, periodStart, periodEnd)
             : null,
       },
+      documents: context.repository.listDocuments(context.principal, params.id),
     };
   } catch (caught) {
     if (caught instanceof AccessDeniedError) error(403, 'detail.project.forbidden');
@@ -1728,6 +1731,22 @@ export const actions: Actions = {
           actionName: 'updateProject',
           values,
           fieldErrors: { [invalidField]: ['problem.projectDetail.fieldInvalid'] },
+          remedies: [{ id: 'correct_field', projectId }],
+        },
+      );
+
+    if (update.timezone !== undefined && !isValidIanaTimeZone(update.timezone))
+      return actionFail(
+        400,
+        'problem.project.timezoneInvalid',
+        {},
+        'Enter a valid IANA time zone, such as Europe/Madrid or UTC, then save again.',
+        {
+          code: 'PROJECT_TIMEZONE_INVALID',
+          action: 'updateProject',
+          actionName: 'updateProject',
+          values,
+          fieldErrors: { timezone: ['problem.project.timezoneInvalid'] },
           remedies: [{ id: 'correct_field', projectId }],
         },
       );

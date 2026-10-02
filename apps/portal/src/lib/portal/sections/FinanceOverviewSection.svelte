@@ -882,6 +882,23 @@
     return money(minor, String(currency || finance?.currency || 'USD'));
   }
 
+  function expenseReference(row: Row | Record<string, unknown>): string {
+    const id = value(row, 'id');
+    return id ? `…${id.slice(-8)}` : '—';
+  }
+
+  function expenseLinkLabel(row: Row | Record<string, unknown>): string {
+    return [
+      translate('Open details'),
+      value(row, 'description') || expenseReference(row),
+      value(row, 'spentOn', 'spent_on'),
+      displayMoney(row.recordedAmountMinor, row.recordedCurrency),
+      value(row, 'id'),
+    ]
+      .filter((part) => part && part !== '—')
+      .join(' · ');
+  }
+
   function minorAsDecimal(minor: unknown): string {
     const raw = String(minor ?? '').trim();
     if (!/^-?\d+$/.test(raw)) return '';
@@ -913,6 +930,12 @@
     const whole = digits.slice(0, -2).replace(/^0+(?=\d)/, '') || '0';
     const fraction = digits.slice(-2);
     return `${negative ? '-' : ''}${whole}.${fraction}%`;
+  }
+
+  function displayContributionMarginBps(valueToFormat: unknown): string {
+    return String(finance?.revenueCandidateMinor ?? '').trim() === '0'
+      ? translate('Not applicable — no revenue candidate')
+      : displayBps(valueToFormat);
   }
 
   function displayHours(valueToFormat: unknown): string {
@@ -983,6 +1006,20 @@
     return (
       value(row, 'commercialClassificationState', 'commercial_classification_state') ||
       'unclassified'
+    );
+  }
+
+  function expenseTreatmentLabel(row: Row | Record<string, unknown>): string {
+    const classification = value(
+      row,
+      'classificationState',
+      'commercialClassificationState',
+      'commercial_classification_state',
+    );
+    return translate(
+      classification === 'classified'
+        ? value(row, 'treatment') || 'Not classified'
+        : 'Not classified',
     );
   }
 
@@ -1222,13 +1259,52 @@
       'Expense finance projection is missing for a source record.',
     missing_expense_currency_conversion:
       'Expense currency conversion is missing for a source record.',
+    missing_person_forecast_rate:
+      'Applicable forecast rates could not be resolved for planned remaining hours.',
   };
+
+  const financeAlertMessages: Record<string, string> = {
+    PO_OR_REVENUE_BUDGET_AT_70_PERCENT: 'Purchase order or revenue budget at 70%',
+    PO_OR_REVENUE_BUDGET_AT_85_PERCENT: 'Purchase order or revenue budget at 85%',
+    PO_OR_REVENUE_BUDGET_AT_95_PERCENT: 'Purchase order or revenue budget at 95%',
+    LABOR_HOURS_BUDGET_AT_95_PERCENT: 'Labor hours budget at 95%',
+    TRAVEL_BUDGET_AT_95_PERCENT: 'Travel budget at 95%',
+    NEGATIVE_PROJECTED_MARGIN: 'Projected margin is negative',
+    MISSING_RATE: 'Time finance rules incomplete',
+    MISSING_EXPENSE_FINANCE_PROJECTION: 'Expense finance projection incomplete',
+  };
+
+  function financeAlertText(alert: unknown): string {
+    const code = String(alert ?? '').trim();
+    const known = financeAlertMessages[code];
+    if (known) return translate(known);
+    const words = code.replace(/[_-]+/gu, ' ').replace(/\s+/gu, ' ').toLowerCase();
+    return words
+      ? `${translate('Finance alert')}: ${words.charAt(0).toUpperCase()}${words.slice(1)}`
+      : translate('Finance alert');
+  }
 
   function projectionReasonText(reason: FinanceProjectionReason): string {
     const message =
       projectionReasonMessages[String(reason.code ?? '').trim()] ??
       'A finance source record needs projection review.';
     const sourceId = String(reason.sourceId ?? '').trim();
+    if (reason.code === 'missing_person_forecast_rate') {
+      const person = (data.commercialTermsSummary ?? []).find(
+        (row) => value(row, 'workerId', 'worker_id') === sourceId,
+      );
+      const personName = person ? value(person, 'workerName', 'worker_name') : '';
+      const project = availableProjects.find(
+        (item) => String(item.id) === String(data.selectedProjectId),
+      );
+      const context = [
+        project ? `${translate('Project')}: ${projectName(project)}` : '',
+        sourceId
+          ? `${translate('Worker')}: ${personName ? `${personName} · ` : ''}${sourceId}`
+          : '',
+      ].filter(Boolean);
+      return `${translate(message)}${context.length ? ` · ${context.join(' · ')}` : ''}`;
+    }
     const timeSource = projectionTimeSource(sourceId);
     const expenseSource = projectionExpenseSource(sourceId);
     const source = timeSource ?? expenseSource;
@@ -1335,7 +1411,7 @@
       {
         key: 'contribution-margin-percent',
         label: translate('Contribution Margin %'),
-        value: displayBps(finance.contributionMarginBps),
+        value: displayContributionMarginBps(finance.contributionMarginBps),
         note: translate('Calculated from approved project records'),
       },
       {
@@ -1512,12 +1588,20 @@
     sourceRowsPage.map((row) => ({
       id: value(row, 'id'),
       href: sourceRecordHref(row, 'expenses'),
+      linkLabel: translate('Open details'),
+      linkAriaLabel: expenseLinkLabel(row),
       cells: [
         { label: translate('Date'), value: value(row, 'spentOn', 'spent_on') || '—' },
+        { label: translate('Description'), value: value(row, 'description') || '—' },
+        { label: translate('Reference'), value: expenseReference(row) },
         { label: translate('Category'), value: categoryLabel(row.category) },
         {
+          label: translate('Recorded amount'),
+          value: displayMoney(row.recordedAmountMinor, row.recordedCurrency),
+        },
+        {
           label: translate('Treatment'),
-          value: translate(value(row, 'treatment') || 'Not classified'),
+          value: expenseTreatmentLabel(row),
         },
         { label: translate('Direct cost'), value: displayMoney(row.costMinor, finance?.currency) },
         {
@@ -1727,7 +1811,7 @@
         </strong>
         <p>
           {translate(
-            'Some approved source records still need finance projection data. Totals remain visible for traceability but are not complete for final review.',
+            'Some source records still need finance projection data. Totals remain visible for traceability but are not complete for final review.',
           )}
         </p>
         {#if financeProjectionReasons.length}
@@ -1844,14 +1928,22 @@
           <strong>{attentionReimbursements}</strong>
           <small>{translate('Expected or actual reimbursement follow-up')}</small>
         </a>
-        <a
-          class="finance-overview__attention-card"
-          href={financeHref('economic', undefined, '#finance-alerts')}
-        >
-          <span>{translate('Alerts')}</span>
-          <strong>{finance?.alerts?.length ?? 0}</strong>
-          <small>{translate('Records needing review')}</small>
-        </a>
+        {#if finance?.alerts?.length}
+          <a
+            class="finance-overview__attention-card"
+            href={financeHref('economic', undefined, '#finance-alert-chips')}
+          >
+            <span>{translate('Alerts')}</span>
+            <strong>{finance?.alerts?.length ?? 0}</strong>
+            <small>{translate('Project alert types')}</small>
+          </a>
+        {:else}
+          <div class="finance-overview__attention-card">
+            <span>{translate('Alerts')}</span>
+            <strong>0</strong>
+            <small>{translate('Project alert types')}</small>
+          </div>
+        {/if}
       </div>
     {/if}
 
@@ -1892,8 +1984,9 @@
             <span>{translate('Direct Project Result')}</span>
             <strong>{displayMoney(finance.contributionMarginMinor, finance.currency)}</strong>
             <span class="finance-overview__margin-tag" data-metric="contribution-margin-percent">
-              {displayBps(finance.contributionMarginBps)}
-              {translate('Contribution Margin %')}
+              {translate('Contribution margin')}: {displayContributionMarginBps(
+                finance.contributionMarginBps,
+              )}
             </span>
             <small
               >{translate('Contribution')} · {translate(
@@ -2058,12 +2151,13 @@
           </details>
           {#if finance.alerts?.length}
             <div
+              id="finance-alert-chips"
               class="finance-overview__alerts"
               role="status"
               aria-label={translate('Finance alerts')}
             >
               {#each finance.alerts as alert}
-                <span>{translate(String(alert).replaceAll('_', ' '))}</span>
+                <span>{financeAlertText(alert)}</span>
               {/each}
             </div>
           {/if}
@@ -2076,15 +2170,18 @@
           title={translate('Source records')}
           class="finance-overview__surface"
         >
-          {#key sourceTab}
-            <RecordBrowser
-              rows={sourceRows}
-              bind:visible={sourceRowsPage}
-              contextKey={sourceTab}
-              {translate}
-              label="Source records"
-            />
-          {/key}
+          {#if sourceTab !== 'settlements' || settlements.length}
+            {#key sourceTab}
+              <RecordBrowser
+                rows={sourceRows}
+                bind:visible={sourceRowsPage}
+                contextKey={sourceTab}
+                {translate}
+                label="Source records"
+                showEmpty={sourceTab !== 'settlements'}
+              />
+            {/key}
+          {/if}
           <div
             class="finance-overview__source-tabs"
             role="tablist"
@@ -2214,7 +2311,14 @@
           {#if sourceTab === 'workers'}
             <div class="finance-overview__subsurface">
               <div class="finance-overview__subsurface-heading">
-                <h3>{translate('Worker economics by source')}</h3>
+                <div>
+                  <h3>{translate('Worker economics by source')}</h3>
+                  <p>
+                    {translate(
+                      'All authorized projects. The project selector above does not filter these worker totals.',
+                    )}
+                  </p>
+                </div>
                 <span>{portfolioWorkers.length} {translate('records')}</span>
               </div>
               <TableRegion
@@ -2284,7 +2388,7 @@
           {#if sourceTab === 'time'}
             <div class="finance-overview__subsurface-heading">
               <div>
-                <h3>{translate('Approved time source records')}</h3>
+                <h3>{translate('Time source records')}</h3>
                 <p>
                   {translate(
                     'Review recorded minutes, billing status, effective rates and direct cost.',
@@ -2363,7 +2467,7 @@
           {#if sourceTab === 'expenses'}
             <div class="finance-overview__subsurface-heading">
               <div>
-                <h3>{translate('Finance-classified expense source records')}</h3>
+                <h3>{translate('Expense source records')}</h3>
                 <p>
                   {translate(
                     'Operational expense truth and Finance classification remain separate workflows.',
@@ -2383,7 +2487,9 @@
                 <thead>
                   <tr>
                     <th scope="col">{translate('Date')}</th>
+                    <th scope="col">{translate('Expense')}</th>
                     <th scope="col">{translate('Category')}</th>
+                    <th scope="col">{translate('Recorded amount')}</th>
                     <th scope="col">{translate('Treatment')}</th>
                     <th scope="col">{translate('Direct cost')}</th>
                     <th scope="col">{translate('Client revenue')}</th>
@@ -2392,21 +2498,28 @@
                 <tbody>
                   {#each sourceRowsPage as row}
                     <tr>
+                      <td>{value(row, 'spentOn', 'spent_on') || '—'}</td>
                       <td>
                         <a
                           class="finance-overview__source-link"
                           href={sourceRecordHref(row, 'expenses')}
-                          >{value(row, 'spentOn', 'spent_on') || '—'}</a
+                          aria-label={expenseLinkLabel(row)}
                         >
+                          <strong>{value(row, 'description') || expenseReference(row)}</strong>
+                          {#if value(row, 'description')}
+                            <span>{expenseReference(row)}</span>
+                          {/if}
+                        </a>
                       </td>
                       <td>{categoryLabel(row.category)}</td>
-                      <td>{translate(value(row, 'treatment') || 'Not classified')}</td>
+                      <td>{displayMoney(row.recordedAmountMinor, row.recordedCurrency)}</td>
+                      <td>{expenseTreatmentLabel(row)}</td>
                       <td>{displayMoney(row.costMinor, finance.currency)}</td>
                       <td>{displayMoney(row.revenueMinor, finance.currency)}</td>
                     </tr>
                   {:else}
                     <tr
-                      ><td colspan="5"
+                      ><td colspan="7"
                         >{translate('No approved expenses are available for this project.')}</td
                       ></tr
                     >
@@ -2934,108 +3047,117 @@
               </p>
             {/if}
           {/if}
-          <TableRegion
-            class="finance-overview__table-region"
-            ariaLabel={translate('Compensation settlements table')}
-            mobileMode="cards"
-            cardRows={sourceRowsPage.map((row) => ({
-              id: value(row, 'id'),
-              cells: [
-                {
-                  label: translate('Worker'),
-                  value: value(row, 'workerName', 'worker_name') || '—',
-                },
-                {
-                  label: translate('Period'),
-                  value: `${value(row, 'periodStart', 'period_start')} → ${value(row, 'periodEnd', 'period_end')}`,
-                },
-                { label: translate('Amount'), value: displayMoney(row.amountMinor, row.currency) },
-                {
-                  label: translate('Actual paid'),
-                  value: displayMoney(row.paidAmountMinor, row.currency),
-                },
-                {
-                  label: translate('Remaining'),
-                  value: displayMoney(row.remainingAmountMinor, row.currency),
-                },
-                { label: translate('Payment state'), value: statusLabel(row.paymentState) },
-                {
-                  label: translate('Timeline'),
-                  value: compensationTimeline(row),
-                },
-              ],
-            }))}
-          >
-            <table class="finance-overview__table">
-              <caption class="sr-only">{translate('Compensation settlements')}</caption>
-              <thead>
-                <tr>
-                  <th scope="col">{translate('Worker')}</th>
-                  <th scope="col">{translate('Period')}</th>
-                  <th scope="col">{translate('Basis')}</th>
-                  <th scope="col">{translate('Source')}</th>
-                  <th scope="col">{translate('Reviewed settlement')}</th>
-                  <th scope="col">{translate('Actual paid')}</th>
-                  <th scope="col">{translate('Remaining')}</th>
-                  <th scope="col">{translate('Payment state')}</th>
-                  <th scope="col">{translate('Timeline')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each sourceRowsPage as settlement}
+          {#if settlements.length}
+            <TableRegion
+              class="finance-overview__table-region"
+              ariaLabel={translate('Compensation settlements table')}
+              mobileMode="cards"
+              cardRows={sourceRowsPage.map((row) => ({
+                id: value(row, 'id'),
+                cells: [
+                  {
+                    label: translate('Worker'),
+                    value: value(row, 'workerName', 'worker_name') || '—',
+                  },
+                  {
+                    label: translate('Period'),
+                    value: `${value(row, 'periodStart', 'period_start')} → ${value(row, 'periodEnd', 'period_end')}`,
+                  },
+                  {
+                    label: translate('Amount'),
+                    value: displayMoney(row.amountMinor, row.currency),
+                  },
+                  {
+                    label: translate('Actual paid'),
+                    value: displayMoney(row.paidAmountMinor, row.currency),
+                  },
+                  {
+                    label: translate('Remaining'),
+                    value: displayMoney(row.remainingAmountMinor, row.currency),
+                  },
+                  { label: translate('Payment state'), value: statusLabel(row.paymentState) },
+                  {
+                    label: translate('Timeline'),
+                    value: compensationTimeline(row),
+                  },
+                ],
+              }))}
+            >
+              <table class="finance-overview__table">
+                <caption class="sr-only">{translate('Compensation settlements')}</caption>
+                <thead>
                   <tr>
-                    <td>
-                      <a
-                        class="finance-overview__source-link"
-                        href={`#compensation-settlement-${encodeURIComponent(value(settlement, 'id'))}`}
-                      >
-                        {value(settlement, 'workerName', 'worker_name') || '—'}
-                      </a>
-                    </td>
-                    <td
-                      >{value(settlement, 'periodStart', 'period_start')} → {value(
-                        settlement,
-                        'periodEnd',
-                        'period_end',
-                      )}</td
-                    >
-                    <td>{value(settlement, 'sourceBasis', 'source_basis') || '—'}</td>
-                    <td
-                      >{displayMoney(
-                        value(settlement, 'sourceAmountMinor', 'source_amount_minor'),
-                        settlement.currency,
-                      )}</td
-                    >
-                    <td>{displayMoney(settlement.amountMinor, settlement.currency)}</td>
-                    <td
-                      >{displayMoney(
-                        value(settlement, 'paidAmountMinor', 'paid_amount_minor'),
-                        settlement.currency,
-                      )}</td
-                    >
-                    <td
-                      >{displayMoney(
-                        value(settlement, 'remainingAmountMinor', 'remaining_amount_minor'),
-                        settlement.currency,
-                      )}</td
-                    >
-                    <td
-                      ><StatusBadge
-                        variant={rowStatusVariant(settlement.paymentState)}
-                        text={statusLabel(settlement.paymentState)}
-                      /></td
-                    >
-                    <td>{compensationTimeline(settlement)}</td>
+                    <th scope="col">{translate('Worker')}</th>
+                    <th scope="col">{translate('Period')}</th>
+                    <th scope="col">{translate('Basis')}</th>
+                    <th scope="col">{translate('Source')}</th>
+                    <th scope="col">{translate('Reviewed settlement')}</th>
+                    <th scope="col">{translate('Actual paid')}</th>
+                    <th scope="col">{translate('Remaining')}</th>
+                    <th scope="col">{translate('Payment state')}</th>
+                    <th scope="col">{translate('Timeline')}</th>
                   </tr>
-                {:else}
-                  <tr
-                    ><td colspan="9">{translate('No settlements recorded for this project.')}</td
-                    ></tr
-                  >
-                {/each}
-              </tbody>
-            </table>
-          </TableRegion>
+                </thead>
+                <tbody>
+                  {#each sourceRowsPage as settlement}
+                    <tr>
+                      <td>
+                        <a
+                          class="finance-overview__source-link"
+                          href={`#compensation-settlement-${encodeURIComponent(value(settlement, 'id'))}`}
+                        >
+                          {value(settlement, 'workerName', 'worker_name') || '—'}
+                        </a>
+                      </td>
+                      <td
+                        >{value(settlement, 'periodStart', 'period_start')} → {value(
+                          settlement,
+                          'periodEnd',
+                          'period_end',
+                        )}</td
+                      >
+                      <td>{value(settlement, 'sourceBasis', 'source_basis') || '—'}</td>
+                      <td
+                        >{displayMoney(
+                          value(settlement, 'sourceAmountMinor', 'source_amount_minor'),
+                          settlement.currency,
+                        )}</td
+                      >
+                      <td>{displayMoney(settlement.amountMinor, settlement.currency)}</td>
+                      <td
+                        >{displayMoney(
+                          value(settlement, 'paidAmountMinor', 'paid_amount_minor'),
+                          settlement.currency,
+                        )}</td
+                      >
+                      <td
+                        >{displayMoney(
+                          value(settlement, 'remainingAmountMinor', 'remaining_amount_minor'),
+                          settlement.currency,
+                        )}</td
+                      >
+                      <td
+                        ><StatusBadge
+                          variant={rowStatusVariant(settlement.paymentState)}
+                          text={statusLabel(settlement.paymentState)}
+                        /></td
+                      >
+                      <td>{compensationTimeline(settlement)}</td>
+                    </tr>
+                  {:else}
+                    <tr
+                      ><td colspan="9">{translate('No settlements match the current filters.')}</td
+                      ></tr
+                    >
+                  {/each}
+                </tbody>
+              </table>
+            </TableRegion>
+          {:else}
+            <div class="finance-overview__empty" role="status">
+              {translate('No settlements recorded for this project.')}
+            </div>
+          {/if}
           {#if settlements.length && canWriteFinance}
             <div
               class="finance-overview__settlement-planning"
@@ -3417,13 +3539,16 @@
             >
           {/if}
           <div class="finance-overview__reimbursement-list">
-            <RecordBrowser
-              rows={visibleReimbursements}
-              bind:visible={reimbursementPage}
-              {translate}
-              label="Worker reimbursement queue"
-            />
-            {#each reimbursementPage as reimbursement}
+            {#if reimbursements.length}
+              <RecordBrowser
+                rows={visibleReimbursements}
+                bind:visible={reimbursementPage}
+                {translate}
+                label="Worker reimbursement queue"
+                showEmpty={false}
+              />
+            {/if}
+            {#each reimbursements.length ? reimbursementPage : [] as reimbursement}
               {@const reimbursementState = value(
                 reimbursement,
                 'reimbursementState',
@@ -3509,7 +3634,11 @@
               </article>
             {:else}
               <div class="finance-overview__empty" role="status">
-                {translate('No approved worker-paid expenses require reimbursement.')}
+                {reimbursements.length
+                  ? translate('No reimbursements match the current filters.')
+                  : translate(
+                      'No approved worker-paid expenses are in this project’s reimbursement queue.',
+                    )}
               </div>
             {/each}
           </div>
@@ -3547,8 +3676,8 @@
 
   .finance-overview__hero-card:hover,
   .finance-overview__hero-card:focus-visible,
-  .finance-overview__attention-card:hover,
-  .finance-overview__attention-card:focus-visible {
+  a.finance-overview__attention-card:hover,
+  a.finance-overview__attention-card:focus-visible {
     border-color: var(--portal-accent, #53524c);
     outline: 3px solid color-mix(in srgb, var(--portal-accent, #53524c) 26%, transparent);
     outline-offset: 2px;

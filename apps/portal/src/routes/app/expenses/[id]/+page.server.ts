@@ -9,7 +9,11 @@ import { expenseTimeOptions } from '$lib/server/expense-time-options';
 import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import type { Actions, PageServerLoad } from './$types';
 
-type ExpenseDetailAction = 'createCorrectionDraft' | 'withdrawCorrectionDraft' | 'submitExpense';
+type ExpenseDetailAction =
+  | 'createCorrectionDraft'
+  | 'withdrawCorrectionDraft'
+  | 'withdrawCrewExpenseDraft'
+  | 'submitExpense';
 
 const retainedFields = new Set([
   'id',
@@ -144,7 +148,11 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
               (SELECT l.actor_user_id FROM record_correction_link l
                 WHERE l.record_type='expense' AND l.correction_id=e.id LIMIT 1) correction_actor,
               EXISTS(SELECT 1 FROM crew_shared_expense_allocation_group g
-                WHERE g.expense_id=e.id AND g.completed=1) shared_receipt
+                WHERE g.expense_id=e.id AND g.completed=1) shared_receipt,
+              (SELECT r.time_entry_id FROM operational_time_expense_request r
+                WHERE r.expense_id=e.id LIMIT 1) linked_pair_time_id,
+              (SELECT rec.recorded_by_user_id FROM crew_expense_recorder rec
+                WHERE rec.expense_id=e.id LIMIT 1) crew_recorded_by
          FROM expense e WHERE e.id=?`,
       )
       .get(params.id) as {
@@ -156,6 +164,8 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
       active_id: string | null;
       correction_actor: string | null;
       shared_receipt: number;
+      linked_pair_time_id: string | null;
+      crew_recorded_by: string | null;
     };
     const canCreateCorrection =
       ['approved', 'needs_changes'].includes(String(record.approval_state)) &&
@@ -172,12 +182,15 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
         context.principal.role === 'worker');
     return {
       user: locals.user,
+      reviewOnly: false,
       locale: resolvePortalLocalePreference(
         url.searchParams.get('lang'),
         cookies.get('ja.portal.locale'),
         cookies.get('ja-portal-locale'),
       ),
       record,
+      linkedPairTimeId: status.linked_pair_time_id,
+      crewRecorded: Boolean(status.crew_recorded_by),
       correctionRequestId: randomUUID(),
       canCreateCorrection,
       correctionTimeOptions: canCreateCorrection
@@ -192,14 +205,84 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
         Boolean(status.correction_actor) &&
         (status.correction_actor === context.principal.userId ||
           context.principal.role === 'owner_admin'),
+      canWithdrawCrewDraft:
+        record.approval_state === 'draft' &&
+        !status.linked_pair_time_id &&
+        Boolean(status.crew_recorded_by) &&
+        (context.principal.role === 'owner_admin' ||
+          String(record.worker_id) === context.principal.userId ||
+          status.crew_recorded_by === context.principal.userId),
       canSubmitDraft:
         record.approval_state === 'draft' &&
+        !status.linked_pair_time_id &&
         (context.principal.role === 'owner_admin' ||
           String(record.worker_id) === context.principal.userId ||
           context.principal.role === 'worker'),
     };
   } catch (caught) {
-    if (caught instanceof AccessDeniedError) error(403, 'detail.expense.accessDenied');
+    if (caught instanceof AccessDeniedError) {
+      if (context.principal.role === 'project_manager') {
+        // Queue membership is the narrow authority for operational review of an older record.
+        // Its amount and finance fields must never enter the fallback page response.
+        const queued = context.repository
+          .listApprovalQueue(context.principal)
+          .find((row) => row.type === 'expense' && row.id === params.id);
+        if (
+          queued &&
+          typeof queued.project_id === 'string' &&
+          typeof queued.approval_state === 'string'
+        ) {
+          const row = context.sqlite
+            .prepare(
+              `SELECT e.id,e.project_id,e.spent_on,e.approval_state,e.category,
+                      e.vendor,e.description,u.name worker_name,
+                      p.project_number,p.name project_name
+                 FROM expense e
+                 JOIN user u ON u.id=e.worker_id
+                 JOIN project p ON p.id=e.project_id
+                WHERE e.id=? AND e.project_id=? AND e.approval_state=?`,
+            )
+            .get(params.id, queued.project_id, queued.approval_state) as
+            | {
+                id: string;
+                project_id: string;
+                spent_on: string;
+                approval_state: string;
+                category: string;
+                vendor: string;
+                description: string;
+                worker_name: string;
+                project_number: string;
+                project_name: string;
+              }
+            | undefined;
+          if (row) {
+            return {
+              user: locals.user,
+              locale: resolvePortalLocalePreference(
+                url.searchParams.get('lang'),
+                cookies.get('ja.portal.locale'),
+                cookies.get('ja-portal-locale'),
+              ),
+              reviewOnly: true,
+              record: {
+                id: row.id,
+                project_id: row.project_id,
+                spent_on: row.spent_on,
+                approval_state: row.approval_state,
+                category: row.category,
+                vendor: row.vendor,
+                description: row.description,
+                worker_name: row.worker_name,
+                project_number: row.project_number,
+                project_name: row.project_name,
+              },
+            };
+          }
+        }
+      }
+      error(403, 'detail.expense.accessDenied');
+    }
     if (caught instanceof ValidationError) error(404, 'detail.expense.notFound');
     throw caught;
   } finally {
@@ -233,6 +316,15 @@ export const actions: Actions = {
         `/j-aautomation/app/expenses/${encodeURIComponent(String(result.messageParams.originalId))}`,
       );
     return detailFailure(result, 'withdrawCorrectionDraft', values, event.params.id);
+  },
+  withdrawCrewExpenseDraft: async (event) => {
+    const values = retainedValues(await event.request.clone().formData());
+    const result = await expenseActions.withdrawCrewExpenseDraft({
+      ...event,
+      params: { ...event.params, section: 'expenses' },
+    });
+    if ('success' in result && result.success === true) return result;
+    return detailFailure(result, 'withdrawCrewExpenseDraft', values, event.params.id);
   },
   submitExpense: async (event) => {
     const values = retainedValues(await event.request.clone().formData());

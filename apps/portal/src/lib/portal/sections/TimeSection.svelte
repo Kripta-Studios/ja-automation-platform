@@ -189,6 +189,20 @@
   let search = $state($page.url.searchParams.get('q')?.trim() ?? '');
   let clientFilter = $state($page.url.searchParams.get('client')?.trim() ?? '');
   let statusFilter = $state($page.url.searchParams.get('status')?.trim() ?? '');
+  let registerFrom = $state(String(data.timeFilter?.from ?? ''));
+  let registerTo = $state(String(data.timeFilter?.to ?? ''));
+  const registerDateRangeInvalid = $derived(
+    Boolean(registerFrom && registerTo && registerFrom > registerTo),
+  );
+  $effect(() => {
+    registerFrom = String(data.timeFilter?.from ?? '');
+    registerTo = String(data.timeFilter?.to ?? '');
+  });
+  function validateRegisterDateRange(event: SubmitEvent): void {
+    if (!registerDateRangeInvalid) return;
+    event.preventDefault();
+    (event.currentTarget as HTMLFormElement).querySelector<HTMLInputElement>('[name="to"]')?.focus();
+  }
   const requestedInitialOrder = $page.url.searchParams.get('order');
   let order = $state<OperationalOrder>(
     requestedInitialOrder && ['newest', 'oldest', 'name', 'status'].includes(requestedInitialOrder)
@@ -903,8 +917,14 @@
   }
 
   function canDelete(row: Row): boolean {
+    if (row.linked_pair_expense_id) return false;
     if (data.user.role === 'owner_admin') return canDeleteTimeDraft(row, data.user.id, true);
     return canDeleteTimeDraft(row, data.user.id);
+  }
+  function timeStatusLabel(row: Row): string {
+    return row.linked_pair_expense_id && row.approval_state === 'void'
+      ? translate('Withdrawn')
+      : controlledValue('status', row.approval_state);
   }
 </script>
 
@@ -914,9 +934,13 @@
       <p class="time-eyebrow">{translate('Worker operations')}</p>
       <h2>{translate('Time')}</h2>
       <p>
-        {translate(
-          'Record actual operational time. Commercial interpretation is applied from configured project rules.',
-        )}
+        {isAuditor
+          ? translate(
+              'Review actual operational time. Commercial interpretation follows the configured project rules.',
+            )
+          : translate(
+              'Record actual operational time. Commercial interpretation is applied from configured project rules.',
+            )}
       </p>
     </div>
   </header>
@@ -943,7 +967,7 @@
     <a class="time-status-card" href={filterHref({ status: '' })}>
       <span>{translate('Actual recorded')}</span>
       <strong>{formatDecimalHours(totalActualMinutes)}</strong>
-      <small>{translate('Hours you really recorded.')}</small>
+      <small>{translate(data.user.role === 'worker' ? 'Hours you really recorded.' : 'Hours recorded for the selected scope.')}</small>
     </a>
     <a class="time-status-card" href={filterHref({ status: 'attention' })}>
       <span>{translate('Needs attention')}</span>
@@ -1120,13 +1144,10 @@
             {#each calendarDayRecords as row}
               <li>
                 <span
-                  ><strong>{row.project_number}</strong> · {formatDecimalHours(row.minutes)} · {controlledValue(
-                    'status',
-                    row.approval_state,
-                  )}</span
+                  ><strong>{row.project_number}</strong> · {formatDecimalHours(row.minutes)} · {timeStatusLabel(row)}</span
                 >
                 <span class="time-calendar-row-actions">
-                  {#if row.approval_state === 'draft' && Number(row.correction_linked ?? 0) !== 1}
+                  {#if row.approval_state === 'draft' && !row.linked_pair_expense_id && Number(row.correction_linked ?? 0) !== 1}
                     <button type="button" class="secondary-button" onclick={() => openEdit(row)}
                       >{translate('Edit draft')}</button
                     >
@@ -1302,8 +1323,19 @@
                   },
                 }}
               />
+              {#if batchProblem.code === 'TIME_DUPLICATE_ENTRY' && batchProblem.params.duplicateDate}
+                <p class="form-help">
+                  {translate('Conflicting day')}: {String(batchProblem.params.duplicateDate)}
+                </p>
+              {/if}
             </div>
           {:else if batchError}<p role="alert">{batchError}</p>{/if}
+          {#if batchProblem?.code === 'TIME_DUPLICATE_ENTRY'}
+            <label class="time-expense-toggle">
+              <input type="checkbox" name="allowExactDuplicate" value="on" />
+              <span>{translate('This is separate work. Save another identical time entry.')}</span>
+            </label>
+          {/if}
           <button type="submit" disabled={batchSaving}
             >{translate(batchSaving ? 'Saving…' : 'Save daily drafts')}</button
           >
@@ -1318,6 +1350,7 @@
     method="GET"
     action={`${base}/app/time#time-filters`}
     aria-label={translate('Filter time entries')}
+    onsubmit={validateRegisterDateRange}
   >
     <input type="hidden" name="week" value={data.weekStart ?? ''} />
     <label>
@@ -1397,14 +1430,18 @@
           ><span>{translate('From')}</span><input
             name="from"
             type="date"
-            value={data.timeFilter?.from ?? ''}
+            bind:value={registerFrom}
+            aria-invalid={registerDateRangeInvalid}
+            aria-describedby={registerDateRangeInvalid ? 'time-register-date-error' : undefined}
           /></label
         >
         <label
           ><span>{translate('To')}</span><input
             name="to"
             type="date"
-            value={data.timeFilter?.to ?? ''}
+            bind:value={registerTo}
+            aria-invalid={registerDateRangeInvalid}
+            aria-describedby={registerDateRangeInvalid ? 'time-register-date-error' : undefined}
           /></label
         >
 
@@ -1430,6 +1467,11 @@
         </label>
       </div>
     </SectionCard>
+    {#if registerDateRangeInvalid}
+      <p id="time-register-date-error" class="form-help" role="alert">
+        {translate('Choose an end date on or after the start date.')}
+      </p>
+    {/if}
     <div class="time-filter-actions">
       <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
     </div>
@@ -1467,10 +1509,7 @@
             <small
               >{controlledValue('category', row.category)} · {#if row.start_time && row.end_time}{row.start_time}
                 – {row.end_time} ·
-              {/if}{formatDecimalHours(row.minutes)} · {controlledValue(
-                'status',
-                row.approval_state,
-              )}</small
+              {/if}{formatDecimalHours(row.minutes)} · {timeStatusLabel(row)}</small
             >
             <span class="time-record-summary">{row.activity_summary}</span>
             <span>{translate('Open record')} <DirectionIcon /></span>
@@ -1490,16 +1529,23 @@
               />
             </div>
             <div class="time-record-actions">
-              {#if Number(row.correction_linked ?? 0) !== 1}
+              {#if !row.linked_pair_expense_id && Number(row.correction_linked ?? 0) !== 1}
                 <button type="button" class="secondary-button" onclick={() => openEdit(row)}>
                   {translate('Edit draft')}
                 </button>
               {/if}
-              <form method="POST" action="?/submitTime">
-                <input type="hidden" name="id" value={row.id} />
-                <input type="hidden" name="version" value={row.version} />
-                <button type="submit">{translate('Submit')}</button>
-              </form>
+              {#if row.linked_pair_expense_id}
+                <a href={`${base}/app/time/${encodeURIComponent(String(row.id))}`}>
+                  {translate('Linked time and meal entry')}
+                </a>
+                <p class="form-help">{translate('Submit this pair with the weekly time entries.')}</p>
+              {:else}
+                <form method="POST" action="?/submitTime">
+                  <input type="hidden" name="id" value={row.id} />
+                  <input type="hidden" name="version" value={row.version} />
+                  <button type="submit">{translate('Submit')}</button>
+                </form>
+              {/if}
             </div>
           {/if}
           {#if row.active_correction_id && row.approval_state === 'needs_changes'}
@@ -1788,6 +1834,12 @@
           >{restoredTimeValue('summary')}</textarea
         >
       </label>
+      {#if surfaceProblem?.code === 'TIME_DUPLICATE_ENTRY'}
+        <label class="time-expense-toggle">
+          <input type="checkbox" name="allowExactDuplicate" value="on" />
+          <span>{translate('This is separate work. Save another identical time entry.')}</span>
+        </label>
+      {/if}
       <label class="time-expense-toggle">
         <input type="checkbox" name="withExpense" bind:checked={createExpenseEnabled} />
         <span>{translate('Add a meal expense with these hours')}</span>

@@ -1246,11 +1246,10 @@
     return id ? `${base}/app/${kind}/${encodeURIComponent(id)}` : projectWorkflowHref(kind);
   }
 
-  function workerSourceHref(row: Row | Record<string, unknown>): string {
-    const query = new URLSearchParams();
+  function portfolioWorkerSourceHref(row: Row | Record<string, unknown>): string {
+    const query = new URLSearchParams({ lang: locale });
     const workerId = value(row, 'workerId', 'worker_id', 'id');
     if (workerId) query.set('worker', workerId);
-    if (data.selectedProjectId) query.set('project', data.selectedProjectId);
     return `${base}/app/time?${query.toString()}`;
   }
 
@@ -1552,12 +1551,31 @@
   const workerCardRows = $derived.by((): TableCardRow[] =>
     sourceRowsPage.map((row) => ({
       id: value(row, 'workerId', 'worker_id', 'id'),
+      href: portfolioWorkerSourceHref(row),
+      linkLabel: translate('Open details'),
+      linkAriaLabel: `${translate('Open details')}: ${value(row, 'workerName', 'worker_name') || '—'}`,
       cells: [
         { label: translate('Worker'), value: value(row, 'workerName', 'worker_name') || '—' },
         { label: translate('Currency'), value: value(row, 'currency') || '—' },
         {
           label: translate('Approved hours'),
           value: displayHours(value(row, 'actualMinutes', 'actual_minutes')),
+        },
+        {
+          label: translate('Billable hours'),
+          value: displayHours(value(row, 'billableMinutes', 'billable_minutes')),
+        },
+        {
+          label: translate('Revenue attributed'),
+          value: displayMoney(value(row, 'revenue'), value(row, 'currency')),
+        },
+        {
+          label: translate('Loaded labor cost'),
+          value: displayMoney(value(row, 'internalCost', 'internal_cost'), value(row, 'currency')),
+        },
+        {
+          label: translate('Travel / expense'),
+          value: displayMoney(value(row, 'expenseCost', 'expense_cost'), value(row, 'currency')),
         },
         {
           label: translate('Contribution'),
@@ -1574,6 +1592,7 @@
     sourceRowsPage.map((row) => ({
       id: value(row, 'id'),
       href: sourceRecordHref(row, 'time'),
+      linkLabel: translate('Open details'),
       cells: [
         { label: translate('Date'), value: value(row, 'workDate', 'work_date') || '—' },
         { label: translate('Category'), value: categoryLabel(row.category) },
@@ -1581,7 +1600,12 @@
           label: translate('Hours'),
           value: displayHours(value(row, 'actualMinutes', 'actual_minutes')),
         },
+        {
+          label: translate('Billable hours'),
+          value: displayHours(value(row, 'clientBillableMinutes', 'client_billable_minutes')),
+        },
         { label: translate('State'), value: statusLabel(row.approvalState) },
+        { label: translate('Billing'), value: statusLabel(row.billingStatus ?? 'unlocked') },
         {
           label: translate('Client revenue'),
           value: displayMoney(row.clientRevenueMinor, finance?.currency),
@@ -1589,6 +1613,17 @@
         {
           label: translate('Loaded cost'),
           value: displayMoney(row.internalCostMinor, finance?.currency),
+        },
+        {
+          label: translate('Worker compensation'),
+          value: displayMoney(row.workerCompensationMinor, finance?.currency),
+        },
+        {
+          label: translate('Configuration'),
+          value:
+            row.clientRateConfigured && row.internalCostConfigured
+              ? translate('Complete')
+              : translate('Rate review'),
         },
       ],
     })),
@@ -1963,6 +1998,17 @@
       aria-label={translate('Filter finance by project')}
     >
       <input type="hidden" name="view" value={activeView} />
+      <input type="hidden" name="lang" value={locale} />
+      <input type="hidden" name="source" value={sourceTab} />
+      {#if data.commercialAsOf}
+        <input type="hidden" name="asOf" value={data.commercialAsOf} />
+      {/if}
+      {#if data.commercialCategory}
+        <input type="hidden" name="category" value={data.commercialCategory} />
+      {/if}
+      {#if $page.url.searchParams.get('task')?.trim()}
+        <input type="hidden" name="task" value={$page.url.searchParams.get('task')!.trim()} />
+      {/if}
       <Field id={`finance-project-${componentId}`} label={translate('Project')}>
         <select
           id={`finance-project-${componentId}`}
@@ -2355,7 +2401,10 @@
                     {#each sourceRowsPage as row}
                       <tr>
                         <td>
-                          <a class="finance-overview__source-link" href={workerSourceHref(row)}>
+                          <a
+                            class="finance-overview__source-link"
+                            href={portfolioWorkerSourceHref(row)}
+                          >
                             {value(row, 'workerName', 'worker_name') || '—'}
                           </a>
                         </td>

@@ -37,3 +37,10 @@ Workers see their own authorized pay and reimbursement information. Project mana
 In **Finance → Configuration → Project issuing authority**, choose a reviewed authority with the same currency as the project. If an incorrect assignment has never been used financially, the replacement form accepts a compatible authority and a reason. It keeps the original assignment as history and records the correction for the same interval. Financially used history is protected.
 
 Expense classification and **Record Finance review** are separate steps. Customer revenue enters the economic ledger after the required Finance review. Worker reimbursement follows the person's dated expense policy and may differ from customer recovery.
+
+
+## Compare financial sources across projects
+
+In **Finance → Commercial**, select the work date and category before changing projects. The Project selector keeps that review context so each project's person terms are shown for the same date.
+
+**Worker Economics** summarizes authorized activity across projects. Open a person's details to view their authorized Time records across those projects. On phones, Worker and Time cards include the financial review fields and **Open details** actions available in the desktop tables.

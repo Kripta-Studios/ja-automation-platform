@@ -64,6 +64,15 @@
     normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
   );
 
+  function timeRegisterAction(actionName: string): string {
+    const query = new URLSearchParams($page.url.searchParams);
+    for (const key of [...query.keys()]) {
+      if (key.startsWith('/')) query.delete(key);
+    }
+    query.set('lang', warningLocale);
+    return `?/${actionName}&${query.toString()}`;
+  }
+
   const nativeTimeForm = $page.form as (ProblemData & { values?: Record<string, unknown> }) | null;
   const nativeTimeValues =
     nativeTimeForm?.code && nativeTimeForm.values && typeof nativeTimeForm.values === 'object'
@@ -201,7 +210,9 @@
   function validateRegisterDateRange(event: SubmitEvent): void {
     if (!registerDateRangeInvalid) return;
     event.preventDefault();
-    (event.currentTarget as HTMLFormElement).querySelector<HTMLInputElement>('[name="to"]')?.focus();
+    (event.currentTarget as HTMLFormElement)
+      .querySelector<HTMLInputElement>('[name="to"]')
+      ?.focus();
   }
   const requestedInitialOrder = $page.url.searchParams.get('order');
   let order = $state<OperationalOrder>(
@@ -967,7 +978,13 @@
     <a class="time-status-card" href={filterHref({ status: '' })}>
       <span>{translate('Actual recorded')}</span>
       <strong>{formatDecimalHours(totalActualMinutes)}</strong>
-      <small>{translate(data.user.role === 'worker' ? 'Hours you really recorded.' : 'Hours recorded for the selected scope.')}</small>
+      <small
+        >{translate(
+          data.user.role === 'worker'
+            ? 'Hours you really recorded.'
+            : 'Hours recorded for the selected scope.',
+        )}</small
+      >
     </a>
     <a class="time-status-card" href={filterHref({ status: 'attention' })}>
       <span>{translate('Needs attention')}</span>
@@ -1144,7 +1161,9 @@
             {#each calendarDayRecords as row}
               <li>
                 <span
-                  ><strong>{row.project_number}</strong> · {formatDecimalHours(row.minutes)} · {timeStatusLabel(row)}</span
+                  ><strong>{row.project_number}</strong> · {formatDecimalHours(row.minutes)} · {timeStatusLabel(
+                    row,
+                  )}</span
                 >
                 <span class="time-calendar-row-actions">
                   {#if row.approval_state === 'draft' && !row.linked_pair_expense_id && Number(row.correction_linked ?? 0) !== 1}
@@ -1538,9 +1557,11 @@
                 <a href={`${base}/app/time/${encodeURIComponent(String(row.id))}`}>
                   {translate('Linked time and meal entry')}
                 </a>
-                <p class="form-help">{translate('Submit this pair with the weekly time entries.')}</p>
+                <p class="form-help">
+                  {translate('Submit this pair with the weekly time entries.')}
+                </p>
               {:else}
-                <form method="POST" action="?/submitTime">
+                <form method="POST" action={timeRegisterAction('submitTime')}>
                   <input type="hidden" name="id" value={row.id} />
                   <input type="hidden" name="version" value={row.version} />
                   <button type="submit">{translate('Submit')}</button>

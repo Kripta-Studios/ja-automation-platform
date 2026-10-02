@@ -35,7 +35,8 @@
   padding: clamp(0.9rem, 1.6vw, 1.35rem);
   min-height: 0;
 }
-.portal-layout main [data-ui='section-card'].full {
+.portal-layout main [data-ui='section-card'].full,
+.portal-layout main[data-portal-section='pay'] .record-list.full {
   min-height: 0;
 }
 .portal-layout main :is(.ui-card-heading, .ui-section-heading) {

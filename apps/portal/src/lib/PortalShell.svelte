@@ -3433,7 +3433,7 @@
     onMenuToggle={() => (menuOpen = !menuOpen)}
     onCloseMenu={() => (menuOpen = false)}
   />
-  <main id="portal-main">
+  <main id="portal-main" data-portal-section={data.section}>
     <header class="print-only-header" aria-hidden="true">
       <div class="print-identity">
         <img src={`${base}/app/logo.png`} alt="J&A Automation" />

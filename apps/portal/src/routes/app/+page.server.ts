@@ -4,6 +4,7 @@ import { redirect } from '@sveltejs/kit';
 import { base } from '$app/paths';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import {
+  projectManagerApprovalQueueProjection,
   projectManagerDashboardProjection,
   projectManagerSearchProjection,
   projectManagerSearchSuggestionsProjection,
@@ -63,7 +64,11 @@ export const load: PageServerLoad = ({ locals, url }) => {
         : {}),
       dashboard: isProjectManager ? projectManagerDashboardProjection(dashboard) : dashboard,
       projects: context.repository.listAssignedProjects(context.principal),
-      records: context.repository.listApprovalQueue(context.principal),
+      records: isProjectManager
+        ? projectManagerApprovalQueueProjection(
+            context.repository.listApprovalQueue(context.principal),
+          )
+        : context.repository.listApprovalQueue(context.principal),
     };
   } finally {
     context.sqlite.close();

@@ -3,6 +3,7 @@
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import PlanningCalendar from '$lib/portal/ui/PlanningCalendar.svelte';
   import ProjectBudgetInput from '$lib/portal/sections/ProjectBudgetInput.svelte';
+  import ProjectEconomicsDefaults from '$lib/portal/sections/ProjectEconomicsDefaults.svelte';
   import ProjectBillingSetup from '$lib/portal/sections/ProjectBillingSetup.svelte';
   import { base } from '$app/paths';
   import { enhance, type SubmitFunction } from '$app/forms';
@@ -1305,7 +1306,7 @@
                   >{/if}
                 {#if canViewCommercial}<a
                     class="secondary-button"
-                    href={`${base}/app/finance?view=commercial&project=${project.id}`}
+                    href={`${base}/app/projects/${project.id}?tab=billing&billingStep=people`}
                     >{canWriteFinance ? t('Configure person rates') : t('View person rates')}
                     <DirectionIcon /></a
                   >{/if}
@@ -1825,6 +1826,17 @@
         tabindex="0"
       >
         {#if billingSetup}
+          {#key data.personDefaultsRevision}
+            <ProjectEconomicsDefaults
+              projectId={String(project.id)}
+              currency={String(project.currency)}
+              defaults={data.personDefaults}
+              revision={data.personDefaultsRevision}
+              canEdit={canWriteFinance}
+              {form}
+              {t}
+            />
+          {/key}
           {#key billingSetup.version}
             <ProjectBillingSetup
               projectId={String(project.id)}
@@ -1838,6 +1850,7 @@
               contacts={billingSetup.contacts}
               templates={billingSetup.templates}
               people={billingSetup.people}
+              personDefaults={data.personDefaults}
               version={billingSetup.version}
               rulesFingerprint={billingSetup.rulesFingerprint}
               issuingPrerequisites={billingSetup.issuingPrerequisites}

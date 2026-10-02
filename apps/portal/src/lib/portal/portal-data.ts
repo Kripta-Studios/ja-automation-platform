@@ -42,6 +42,8 @@ export type PortalData = {
   internalCostRules?: PortalRow[];
   assignmentExpensePolicies?: PortalRow[];
   projectExpenseReimbursement?: PortalRow | null;
+  reimbursementPreferenceAsOf?: string;
+  reimbursementPreferenceHistory?: PortalRow[];
   commercialPolicies?: PortalRow[];
   commercialTermsSummary?: PortalRow[];
   commercialAsOf?: string;

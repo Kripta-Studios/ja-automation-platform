@@ -837,6 +837,36 @@
       "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
       "preProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56",
       "postProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56"
+    },
+    {
+      "version": 71,
+      "canonicalName": "project_person_defaults",
+      "file": "0071_project_person_defaults.sql",
+      "sha256": "63604af2d6cb87383cbd3cb1394662f7aaadfe2ee1d0dfc41d87cf223bb19e82",
+      "descriptor": "J&A B5 migration 71 project_person_defaults",
+      "descriptorSha256": "aa03c524b7c9d4392e0431468548ddb0e61724715634031d86916efc3d972829",
+      "projectionSha256": "dc0322e062bffce4ae3385824c2ed892c90e61448387a42a8f7f38fec5f3c029",
+      "vectorSha256": "50edeb65da312ca546cc00a385998e3381bad4b5ba1b59fdde3c3b8e7849c6dc",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56",
+      "postProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56"
+    },
+    {
+      "version": 72,
+      "canonicalName": "dated_reimbursement_preferences",
+      "file": "0072_dated_reimbursement_preferences.sql",
+      "sha256": "4317e277920633b1abd03142fb5a3b675dd22723c1c0a481f028a2ffa66bfadf",
+      "descriptor": "J&A B5 migration 72 dated_reimbursement_preferences",
+      "descriptorSha256": "9856e6ddb29320d252ac92d07575dbfa2c03fdd81b21456cf19a2e24d4ad1cc1",
+      "projectionSha256": "dc0322e062bffce4ae3385824c2ed892c90e61448387a42a8f7f38fec5f3c029",
+      "vectorSha256": "50edeb65da312ca546cc00a385998e3381bad4b5ba1b59fdde3c3b8e7849c6dc",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56",
+      "postProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56"
     }
   ]
 }

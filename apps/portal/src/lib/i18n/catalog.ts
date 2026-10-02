@@ -28,6 +28,22 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'problem.project.deleteHasCommercialAgreements':
+    'This project has recorded commercial agreements and cannot be deleted. Archive the project instead.',
+  'action.projects.personDefaultsSaved':
+    'Project defaults saved. Existing person agreements are unchanged.',
+  'problem.assignment.recordedHistory':
+    'These dates would exclude recorded time, expenses or reports. Keep dates that cover the recorded work, then save again.',
+  'problem.assignment.projectDefaultsUnavailable':
+    'No saved project defaults cover this assignment start date. Configure defaults or enter individual terms.',
+
+  'problem.finance.reimbursementDateInvalid': 'Choose a valid reimbursement effective date.',
+  'problem.finance.reimbursementOutsideAssignment':
+    'Choose a reimbursement effective date within this assignment.',
+  'problem.finance.reimbursementDateExists':
+    'A reimbursement preference already starts on this date. Choose another effective date.',
+  'problem.finance.reimbursementHistoryLocked':
+    'This date overlaps invoice, finalized settlement, or paid expense history. Choose a later effective date.',
   'invoice.sourceSettingsChanged':
     'Source settings have changed since this draft was saved. The draft retains its saved details. Rebuild it from Billing to use the current project, billing stream and issuer settings.',
   'problem.billing.previewIssuerMismatch':
@@ -530,6 +546,22 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'problem.project.deleteHasCommercialAgreements':
+    'Este proyecto tiene acuerdos comerciales registrados y no se puede eliminar. Archiva el proyecto.',
+  'action.projects.personDefaultsSaved':
+    'Valores predeterminados del proyecto guardados. Los acuerdos individuales existentes no cambian.',
+  'problem.assignment.recordedHistory':
+    'Estas fechas excluirían horas, gastos o informes registrados. Mantén fechas que cubran el trabajo registrado y vuelve a guardar.',
+  'problem.assignment.projectDefaultsUnavailable':
+    'Ningún valor predeterminado guardado cubre el inicio de esta asignación. Configura los valores predeterminados o introduce condiciones individuales.',
+  'problem.finance.reimbursementDateInvalid':
+    'Elige una fecha de vigencia válida para el reembolso.',
+  'problem.finance.reimbursementOutsideAssignment':
+    'Elige una fecha de vigencia del reembolso dentro de esta asignación.',
+  'problem.finance.reimbursementDateExists':
+    'Ya existe una preferencia de reembolso que comienza en esta fecha. Elige otra fecha de vigencia.',
+  'problem.finance.reimbursementHistoryLocked':
+    'Esta fecha se solapa con facturas, liquidaciones finalizadas o gastos ya pagados. Elige una fecha de vigencia posterior.',
   'invoice.sourceSettingsChanged':
     'La configuración de origen cambió desde que se guardó este borrador. El borrador conserva sus datos guardados. Regenérelo desde Facturación para usar la configuración actual del proyecto, flujo y emisor.',
   'problem.billing.previewIssuerMismatch':
@@ -1031,6 +1063,22 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'problem.project.deleteHasCommercialAgreements':
+    'Este projeto tem acordos comerciais registrados e não pode ser excluído. Arquive o projeto.',
+  'action.projects.personDefaultsSaved':
+    'Padrões do projeto salvos. Os acordos individuais existentes permanecem inalterados.',
+  'problem.assignment.recordedHistory':
+    'Estas datas excluiriam horas, despesas ou relatórios registrados. Mantenha datas que cubram o trabalho registrado e salve novamente.',
+  'problem.assignment.projectDefaultsUnavailable':
+    'Nenhum padrão salvo abrange o início desta atribuição. Configure os padrões ou informe condições individuais.',
+  'problem.finance.reimbursementDateInvalid':
+    'Escolha uma data de vigência válida para o reembolso.',
+  'problem.finance.reimbursementOutsideAssignment':
+    'Escolha uma data de vigência do reembolso dentro desta atribuição.',
+  'problem.finance.reimbursementDateExists':
+    'Já existe uma preferência de reembolso que começa nesta data. Escolha outra data de vigência.',
+  'problem.finance.reimbursementHistoryLocked':
+    'Esta data se sobrepõe a faturas, acertos finalizados ou despesas já pagas. Escolha uma data de vigência posterior.',
   'invoice.sourceSettingsChanged':
     'As configurações de origem mudaram desde que este rascunho foi salvo. O rascunho mantém seus dados salvos. Gere-o novamente em Faturamento para usar as configurações atuais do projeto, fluxo e emissor.',
   'problem.billing.previewIssuerMismatch':

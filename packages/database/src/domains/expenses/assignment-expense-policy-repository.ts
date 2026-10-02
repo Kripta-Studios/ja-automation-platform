@@ -152,34 +152,193 @@ export class AssignmentExpensePolicyRepository {
       throw new AccessDeniedError('Finance role required');
   }
 
-  /** A project default applies to future classifications; null keeps legacy person policy behavior. */
+  /** Select immutable preferences by operational date. Null inherits the next layer. */
+  effectiveReimbursementPreference(projectId: string, projectMemberId: string, onDate: string) {
+    date(onDate, 'Reimbursement effective date');
+    const selected = (memberId: string | null) =>
+      this.sqlite
+        .prepare(
+          `SELECT mode,effective_from FROM reimbursement_preference_revision
+         WHERE project_id=? AND project_member_id IS ? AND effective_from<=?
+         ORDER BY effective_from DESC LIMIT 1`,
+        )
+        .get(projectId, memberId, onDate) as
+        | { mode: ReimbursementPreference; effective_from: string }
+        | undefined;
+    const project = selected(null);
+    const assignment = selected(projectMemberId);
+    const projectDefault = project?.mode ?? null;
+    const workerOverride = assignment?.mode ?? null;
+    return {
+      projectDefault,
+      workerOverride,
+      mode: workerOverride ?? projectDefault,
+      source:
+        workerOverride !== null
+          ? 'assignment_override'
+          : projectDefault !== null
+            ? 'project_default'
+            : 'person_policy',
+      projectEffectiveFrom: project?.effective_from ?? null,
+      overrideEffectiveFrom: assignment?.effective_from ?? null,
+    };
+  }
+
+  listReimbursementPreferences(principal: Principal, projectId: string) {
+    this.assertFinance(principal);
+    return this.sqlite
+      .prepare(
+        `SELECT r.id,r.project_member_id projectMemberId,r.mode,r.effective_from effectiveFrom,
+              r.version,r.reason,u.name workerName
+       FROM reimbursement_preference_revision r
+       LEFT JOIN project_member pm ON pm.id=r.project_member_id
+       LEFT JOIN user u ON u.id=pm.user_id
+       WHERE r.project_id=? ORDER BY r.effective_from DESC,r.id`,
+      )
+      .all(projectId) as Array<{
+      id: string;
+      projectMemberId: string | null;
+      mode: ReimbursementPreference;
+      effectiveFrom: string;
+      version: number;
+      reason: string;
+      workerName: string | null;
+    }>;
+  }
+
+  private assertPreferenceInput(
+    mode: ReimbursementPreference,
+    effectiveFrom: string,
+    reason: string,
+  ): string {
+    if (mode !== null && !['at_cost', 'none'].includes(mode))
+      throw new ValidationError('Worker reimbursement preference is invalid');
+    date(effectiveFrom, 'Reimbursement effective date');
+    const trimmed = reason.trim();
+    if (trimmed.length < 3 || trimmed.length > 2000)
+      throw new ValidationError('Reason must be 3 to 2000 characters');
+    return trimmed;
+  }
+
+  private assertPreferenceHistory(
+    projectId: string,
+    workerId: string | null,
+    effectiveFrom: string,
+  ): void {
+    const invoice = this.sqlite
+      .prepare(
+        `SELECT 1 FROM invoice WHERE project_id=? AND period_end>=?
+       AND state NOT IN ('void','cancelled') LIMIT 1`,
+      )
+      .get(projectId, effectiveFrom);
+    const settlement = this.sqlite
+      .prepare(
+        `SELECT 1 FROM compensation_settlement WHERE project_id=? AND (? IS NULL OR worker_id=?)
+       AND period_end>=? AND state IN ('approved','settled') LIMIT 1`,
+      )
+      .get(projectId, workerId, workerId, effectiveFrom);
+    const paid = this.sqlite
+      .prepare(
+        `SELECT 1 FROM expense WHERE project_id=? AND (? IS NULL OR worker_id=?) AND spent_on>=?
+       AND (reimbursed_at IS NOT NULL OR reimbursement_state='reimbursed') LIMIT 1`,
+      )
+      .get(projectId, workerId, workerId, effectiveFrom);
+    if (invoice || settlement || paid)
+      throw new ConflictError(
+        'Reimbursement date overlaps invoice, finalized settlement, or paid expense history. Choose a later effective date.',
+      );
+  }
+
+  private insertPreference(
+    principal: Principal,
+    projectId: string,
+    projectMemberId: string | null,
+    mode: ReimbursementPreference,
+    effectiveFrom: string,
+    reason: string,
+  ): void {
+    const sameDay = this.sqlite
+      .prepare(
+        `SELECT 1 FROM reimbursement_preference_revision WHERE project_id=? AND project_member_id IS ? AND effective_from=?`,
+      )
+      .get(projectId, projectMemberId, effectiveFrom);
+    if (sameDay)
+      throw new ConflictError(
+        'A reimbursement preference already starts on this date. Choose another effective date.',
+      );
+    const prior = this.sqlite
+      .prepare(
+        `SELECT COALESCE(MAX(version),0) version FROM reimbursement_preference_revision WHERE project_id=? AND project_member_id IS ?`,
+      )
+      .get(projectId, projectMemberId) as { version: number };
+    const id = newId();
+    this.sqlite
+      .prepare(
+        `INSERT INTO reimbursement_preference_revision(id,project_id,project_member_id,mode,effective_from,version,reason,created_by,created_at)
+       VALUES(?,?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        id,
+        projectId,
+        projectMemberId,
+        mode,
+        effectiveFrom,
+        prior.version + 1,
+        reason,
+        principal.userId,
+        now(),
+      );
+    recordAuditEvent(
+      this.sqlite,
+      principal,
+      projectMemberId ? 'assignment.update' : 'project.update',
+      projectMemberId ? 'project_member' : 'project',
+      projectMemberId ?? projectId,
+      {
+        reimbursementPreferenceRevisionId: id,
+        workerExpenseReimbursement: mode,
+        effectiveFrom,
+        reason,
+      },
+    );
+  }
+
+  /** A dated default never reinterprets claims from an earlier operational date. */
   setProjectReimbursementDefault(
     principal: Principal,
     input: {
       projectId: string;
       expectedVersion: number;
       mode: ReimbursementPreference;
+      effectiveFrom: string;
       reason: string;
     },
   ): void {
     this.assertFinance(principal);
-    if (input.mode !== null && !['at_cost', 'none'].includes(input.mode))
-      throw new ValidationError('Project reimbursement default is invalid');
-    if (input.reason.trim().length < 3 || input.reason.trim().length > 2000)
-      throw new ValidationError('Reason must be 3 to 2000 characters');
+    const reason = this.assertPreferenceInput(input.mode, input.effectiveFrom, input.reason);
     runImmediateTransaction(this.sqlite, 'project-expense-reimbursement', () => {
+      const project = this.sqlite
+        .prepare('SELECT version FROM project WHERE id=?')
+        .get(input.projectId) as { version: number } | undefined;
+      if (!project || project.version !== input.expectedVersion)
+        throw new ConflictError('Project changed. Reload its reimbursement policy');
+      this.assertPreferenceHistory(input.projectId, null, input.effectiveFrom);
+      this.insertPreference(
+        principal,
+        input.projectId,
+        null,
+        input.mode,
+        input.effectiveFrom,
+        reason,
+      );
       const changed = this.sqlite
         .prepare(
-          `UPDATE project SET worker_expense_reimbursement_default=?,updated_at=?,version=version+1
+          `UPDATE project SET updated_at=?,version=version+1
                   WHERE id=? AND version=?`,
         )
-        .run(input.mode, now(), input.projectId, input.expectedVersion);
+        .run(now(), input.projectId, input.expectedVersion);
       if (changed.changes !== 1)
         throw new ConflictError('Project changed. Reload its reimbursement policy');
-      recordAuditEvent(this.sqlite, principal, 'project.update', 'project', input.projectId, {
-        workerExpenseReimbursementDefault: input.mode,
-        reason: input.reason.trim(),
-      });
     });
   }
 
@@ -190,31 +349,55 @@ export class AssignmentExpensePolicyRepository {
       projectMemberId: string;
       expectedVersion: number;
       mode: ReimbursementPreference;
+      effectiveFrom: string;
       reason: string;
     },
   ): void {
     this.assertFinance(principal);
-    if (input.mode !== null && !['at_cost', 'none'].includes(input.mode))
-      throw new ValidationError('Worker reimbursement override is invalid');
-    if (input.reason.trim().length < 3 || input.reason.trim().length > 2000)
-      throw new ValidationError('Reason must be 3 to 2000 characters');
+    const reason = this.assertPreferenceInput(input.mode, input.effectiveFrom, input.reason);
     runImmediateTransaction(this.sqlite, 'worker-expense-reimbursement', () => {
+      const assignment = this.sqlite
+        .prepare(
+          'SELECT project_id,user_id,starts_on,ends_on,status,version FROM project_member WHERE id=?',
+        )
+        .get(input.projectMemberId) as
+        | {
+            project_id: string;
+            user_id: string;
+            starts_on: string;
+            ends_on: string | null;
+            status: string;
+            version: number;
+          }
+        | undefined;
+      if (
+        !assignment ||
+        assignment.status !== 'active' ||
+        assignment.version !== input.expectedVersion
+      )
+        throw new ConflictError('Assignment changed. Reload its reimbursement policy');
+      if (
+        input.effectiveFrom < assignment.starts_on ||
+        (assignment.ends_on && input.effectiveFrom > assignment.ends_on)
+      )
+        throw new ValidationError('Reimbursement date must fall within the assignment');
+      this.assertPreferenceHistory(assignment.project_id, assignment.user_id, input.effectiveFrom);
+      this.insertPreference(
+        principal,
+        assignment.project_id,
+        input.projectMemberId,
+        input.mode,
+        input.effectiveFrom,
+        reason,
+      );
       const changed = this.sqlite
         .prepare(
-          `UPDATE project_member SET worker_expense_reimbursement_override=?,updated_at=?,version=version+1
+          `UPDATE project_member SET updated_at=?,version=version+1
                   WHERE id=? AND status='active' AND version=?`,
         )
-        .run(input.mode, now(), input.projectMemberId, input.expectedVersion);
+        .run(now(), input.projectMemberId, input.expectedVersion);
       if (changed.changes !== 1)
         throw new ConflictError('Assignment changed. Reload its reimbursement policy');
-      recordAuditEvent(
-        this.sqlite,
-        principal,
-        'assignment.update',
-        'project_member',
-        input.projectMemberId,
-        { workerExpenseReimbursementOverride: input.mode, reason: input.reason.trim() },
-      );
     });
   }
 
@@ -251,8 +434,12 @@ export class AssignmentExpensePolicyRepository {
       throw new ValidationError('Policy reason must be 3 to 2000 characters');
     return runImmediateTransaction(this.sqlite, 'assignment-expense-policy', () => {
       const assignment = this.sqlite
-        .prepare('SELECT id,starts_on,ends_on,status FROM project_member WHERE id=?')
-        .get(input.projectMemberId) as AssignmentRow | undefined;
+        .prepare(
+          'SELECT id,project_id,user_id,starts_on,ends_on,status FROM project_member WHERE id=?',
+        )
+        .get(input.projectMemberId) as
+        | (AssignmentRow & { project_id: string; user_id: string })
+        | undefined;
       if (!assignment || assignment.status !== 'active')
         throw new ValidationError('Active project assignment required');
       if (
@@ -278,13 +465,15 @@ export class AssignmentExpensePolicyRepository {
         .get(input.projectMemberId, normalizedPayer, category, effectiveFrom);
       if (duplicate) throw new ConflictError('Expense policy already starts on this date');
       // An open-ended predecessor is superseded by a later effective start.
-      // A finite window cannot silently overlap another rule at the same scope.
+      // A finite predecessor can be superseded with the same end boundary.
+      // Conflicting boundaries and later-start windows cannot be overwritten.
       const overlapping = this.sqlite
         .prepare(
           `SELECT 1 FROM assignment_expense_policy
          WHERE project_member_id=? AND payer=? AND COALESCE(category,'')=COALESCE(?,'')
-           AND ((effective_to IS NOT NULL AND effective_to>=? AND effective_from<=COALESCE(?,'9999-12-31'))
-             OR (? IS NOT NULL AND effective_from>? AND effective_from<=?)) LIMIT 1`,
+           AND ((effective_to IS NOT NULL AND effective_to>=? AND effective_from<=COALESCE(?,'9999-12-31')
+                 AND NOT (effective_from<? AND effective_to IS ?))
+             OR (effective_from>? AND effective_from<=COALESCE(?,'9999-12-31'))) LIMIT 1`,
         )
         .get(
           input.projectMemberId,
@@ -292,12 +481,14 @@ export class AssignmentExpensePolicyRepository {
           category,
           effectiveFrom,
           effectiveTo,
+          effectiveFrom,
           effectiveTo,
           effectiveFrom,
           effectiveTo,
         );
       if (overlapping)
         throw new ConflictError('Expense policy dates overlap an existing finite window');
+      this.assertPreferenceHistory(assignment.project_id, assignment.user_id, effectiveFrom);
       const id = newId();
       const version = (prior.version ?? 0) + 1;
       this.sqlite
@@ -394,6 +585,7 @@ export class AssignmentExpensePolicyRepository {
       .prepare(
         `SELECT id,starts_on,ends_on,status FROM project_member
        WHERE project_id=? AND user_id=? AND starts_on<=?
+         AND (status='active' OR (status='inactive' AND ends_on IS NOT NULL))
          AND (ends_on IS NULL OR ends_on>=?) ORDER BY starts_on DESC`,
       )
       .all(
@@ -422,23 +614,18 @@ export class AssignmentExpensePolicyRepository {
         context.category,
       ) as PolicyRow[];
     if (!policies[0]) return { policy: null, issue: 'missing_policy' };
-    const effective = this.sqlite
-      .prepare(
-        `SELECT pm.worker_expense_reimbursement_override worker_override,
-                       p.worker_expense_reimbursement_default project_default
-                  FROM project_member pm JOIN project p ON p.id=pm.project_id WHERE pm.id=?`,
-      )
-      .get(assignments[0]!.id) as {
-      worker_override: ReimbursementPreference;
-      project_default: ReimbursementPreference;
-    };
+    const effective = this.effectiveReimbursementPreference(
+      context.projectId,
+      assignments[0]!.id,
+      context.spentOn,
+    );
     const policy = projectPolicy(policies[0]);
     return {
       policy: {
         ...policy,
         workerReimbursement:
           normalizedPayer === 'worker'
-            ? (effective.worker_override ?? effective.project_default ?? policy.workerReimbursement)
+            ? (effective.workerOverride ?? effective.projectDefault ?? policy.workerReimbursement)
             : 'none',
       },
       issue: null,

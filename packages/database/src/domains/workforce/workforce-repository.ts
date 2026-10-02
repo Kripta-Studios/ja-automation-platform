@@ -541,7 +541,8 @@ export class WorkforceRepository {
       const overlap = this.deps.sqlite
         .prepare(
           `SELECT id FROM project_member
-           WHERE project_id=? AND user_id=? AND status='active'
+           WHERE project_id=? AND user_id=?
+             AND (status='active' OR (status='inactive' AND ends_on IS NOT NULL AND ends_on>=starts_on))
              AND (? IS NULL OR starts_on<=?)
              AND (ends_on IS NULL OR ends_on>=?)
            LIMIT 1`,
@@ -591,6 +592,51 @@ export class WorkforceRepository {
     });
   }
 
+  private assertAssignmentSourceDates(
+    existing: AssignmentRow,
+    startsOn: string,
+    endsOn: string | null,
+  ): void {
+    const excluded = this.deps.sqlite
+      .prepare(
+        `SELECT 1 FROM (
+           SELECT work_date source_date FROM time_entry
+            WHERE project_id=? AND worker_id=? AND approval_state<>'void'
+           UNION ALL
+           SELECT spent_on source_date FROM expense
+            WHERE project_id=? AND worker_id=? AND approval_state<>'void'
+           UNION ALL
+           SELECT work_date source_date FROM daily_report
+            WHERE project_id=? AND worker_id=? AND approval_state<>'void'
+           UNION ALL
+           SELECT report_date source_date FROM technical_report
+            WHERE project_id=? AND author_id=? AND approval_state<>'void'
+         ) sources
+         WHERE source_date>=? AND (? IS NULL OR source_date<=?)
+           AND (source_date<? OR (? IS NOT NULL AND source_date>?)) LIMIT 1`,
+      )
+      .get(
+        existing.project_id,
+        existing.user_id,
+        existing.project_id,
+        existing.user_id,
+        existing.project_id,
+        existing.user_id,
+        existing.project_id,
+        existing.user_id,
+        existing.starts_on,
+        existing.ends_on,
+        existing.ends_on,
+        startsOn,
+        endsOn,
+        endsOn,
+      );
+    if (excluded)
+      throw this.deps.errors.conflict(
+        'Assignment dates cannot exclude recorded time, expenses, or reports',
+      );
+  }
+
   updateAssignment(
     principal: Principal,
     id: string,
@@ -634,10 +680,12 @@ export class WorkforceRepository {
       if (endsOn) assertDate(endsOn, 'End date', this.deps.errors.validation);
       if (endsOn && endsOn < startsOn)
         throw this.deps.errors.validation('Assignment end date must follow the start date');
+      this.assertAssignmentSourceDates(existing, startsOn, endsOn);
       const overlap = this.deps.sqlite
         .prepare(
           `SELECT id FROM project_member
-           WHERE project_id=? AND user_id=? AND id<>? AND status='active'
+           WHERE project_id=? AND user_id=? AND id<>?
+             AND (status='active' OR (status='inactive' AND ends_on IS NOT NULL AND ends_on>=starts_on))
              AND (? IS NULL OR starts_on<=?)
              AND (ends_on IS NULL OR ends_on>=?)
            LIMIT 1`,
@@ -707,17 +755,18 @@ export class WorkforceRepository {
         assertDate(requestedEnd, 'Assignment end date', this.deps.errors.validation);
         if (requestedEnd > today)
           throw this.deps.errors.validation('Immediate removal cannot use a future end date');
-        if (!startsBeforeToday && requestedEnd < existing.starts_on)
-          throw this.deps.errors.validation('Assignment end date must follow the start date');
       }
+      // Cancelling an assignment before it starts leaves an empty date interval.
+      // Historical finance selection must never treat it as a worked assignment.
       const effectiveEnd = startsBeforeToday
         ? requestedEnd || (existing.ends_on && existing.ends_on <= today ? existing.ends_on : today)
-        : existing.starts_on;
+        : today;
       assertDate(effectiveEnd, 'Assignment end date', this.deps.errors.validation);
       if (startsBeforeToday && effectiveEnd > today)
         throw this.deps.errors.validation('Immediate removal cannot use a future end date');
-      if (effectiveEnd < existing.starts_on)
+      if (startsBeforeToday && effectiveEnd < existing.starts_on)
         throw this.deps.errors.validation('Assignment end date must follow the start date');
+      this.assertAssignmentSourceDates(existing, existing.starts_on, effectiveEnd);
 
       const changed = this.deps.sqlite
         .prepare(

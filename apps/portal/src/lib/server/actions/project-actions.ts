@@ -12,11 +12,16 @@ import {
 } from '@ja/schemas';
 import { z } from 'zod';
 import {
+  creationAssignmentsSchema,
+  creationDefaultsSchema,
+} from '$lib/server/project-person-default-input';
+import {
   AccessDeniedError,
   ConflictError,
   V3ConflictError,
   V3ValidationError,
   ValidationError,
+  ProjectPersonDefaultsRepository,
 } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
@@ -48,6 +53,34 @@ type KnownProjectRule = Readonly<{
 }>;
 
 const knownProjectRules: Record<string, KnownProjectRule> = {
+  'Project has recorded commercial agreements and cannot be deleted. Please archive the project instead.':
+    {
+      status: 409,
+      code: 'PROJECT_DELETE_HAS_COMMERCIAL_AGREEMENTS',
+      messageKey: 'problem.project.deleteHasCommercialAgreements',
+      message:
+        'This project has recorded commercial agreements and cannot be deleted. Archive the project instead.',
+      remedy: 'archive_project',
+    },
+  'Assignment dates cannot exclude recorded time, expenses, or reports': {
+    status: 409,
+    code: 'ASSIGNMENT_DATES_EXCLUDE_HISTORY',
+    messageKey: 'problem.assignment.recordedHistory',
+    message:
+      'These dates would exclude recorded time, expenses or reports. Keep dates that cover the recorded work, then save again.',
+    remedy: 'review_assignments',
+    field: 'endsOn',
+  },
+  'No saved project defaults cover this assignment start date. Configure defaults or enter individual terms.':
+    {
+      status: 409,
+      code: 'ASSIGNMENT_PROJECT_DEFAULTS_UNAVAILABLE',
+      messageKey: 'problem.assignment.projectDefaultsUnavailable',
+      message:
+        'No saved project defaults cover this assignment start date. Configure defaults or enter individual terms.',
+      remedy: 'review_finance_rules',
+      field: 'startsOn',
+    },
   'Client code already in use': {
     status: 409,
     code: 'CLIENT_CODE_ALREADY_USED',
@@ -1046,9 +1079,82 @@ export const projectActions = {
       initialWorkerIds,
       initialWorkersStartOn: data.get('initialWorkersStartOn')?.toString() ?? undefined,
     });
+    const personDefaultsJson = String(values.personDefaultsJson ?? 'null');
+    const initialAssignmentsJson = String(values.initialAssignmentsJson ?? '[]');
+    delete values.personDefaultsJson;
+    delete values.initialAssignmentsJson;
+    let creationInputs: { defaults: unknown; assignments: unknown };
+    try {
+      creationInputs = {
+        defaults: JSON.parse(personDefaultsJson),
+        assignments: JSON.parse(initialAssignmentsJson),
+      };
+    } catch {
+      return inputFailure(
+        'PROJECT_PERSON_CONFIG_INVALID',
+        'problem.project.fieldsInvalid',
+        'Review the optional worker assignment configuration.',
+        { initialAssignmentsJson: ['problem.project.fieldsInvalid'] },
+        {
+          values: { ...values, personDefaultsJson, initialAssignmentsJson },
+          actionName: 'createProject',
+          correlationId: locals.correlationId,
+        },
+      );
+    }
+    const defaults = creationDefaultsSchema.safeParse(creationInputs.defaults);
+    const assignments = creationAssignmentsSchema.safeParse(creationInputs.assignments);
+    if (!defaults.success || !assignments.success)
+      return inputFailure(
+        'PROJECT_PERSON_CONFIG_INVALID',
+        'problem.project.fieldsInvalid',
+        'Review the optional worker assignment configuration and highlighted fields.',
+        {
+          ...(!defaults.success
+            ? Object.fromEntries(
+                defaults.error.issues.map((issue) => [
+                  `personDefaults.${issue.path.join('.')}`,
+                  [issue.message],
+                ]),
+              )
+            : {}),
+          ...(!assignments.success
+            ? Object.fromEntries(
+                assignments.error.issues.map((issue) => [
+                  `assignments.${issue.path.join('.')}`,
+                  [issue.message],
+                ]),
+              )
+            : {}),
+        },
+        {
+          values: { ...values, personDefaultsJson, initialAssignmentsJson },
+          actionName: 'createProject',
+          correlationId: locals.correlationId,
+        },
+      );
+    if (
+      assignments.data.some(
+        (row) =>
+          row.mode === 'defaults' && (!defaults.data || row.startsOn < defaults.data.effectiveFrom),
+      )
+    )
+      return inputFailure(
+        'PROJECT_PERSON_DEFAULTS_REQUIRED',
+        'problem.project.fieldsInvalid',
+        'Save project defaults effective on or before each assignment, or enter individual worker terms.',
+        { initialAssignmentsJson: ['problem.project.fieldsInvalid'] },
+        {
+          values: { ...values, personDefaultsJson, initialAssignmentsJson },
+          actionName: 'createProject',
+          correlationId: locals.correlationId,
+        },
+      );
     const parsed = projectInputSchema.safeParse(values);
     const retainedValues = {
       ...values,
+      personDefaultsJson,
+      initialAssignmentsJson,
       initialWorkerIds,
       initialWorkersStartOn: data.get('initialWorkersStartOn')?.toString() ?? '',
     };
@@ -1093,10 +1199,35 @@ export const projectActions = {
       );
     const context = openPortalRepository(locals);
     try {
-      const result = context.repository.createProject(context.principal, {
-        ...parsed.data,
-        initialWorkerIds: people.data.initialWorkerIds,
-        initialWorkersStartOn: people.data.initialWorkersStartOn || undefined,
+      const result = withAssignmentFinanceTransaction(context.sqlite, () => {
+        const created = context.repository.createProject(context.principal, {
+          ...parsed.data,
+          initialWorkerIds: [],
+        });
+        const personRepository = new ProjectPersonDefaultsRepository(
+          context.sqlite,
+          context.repository,
+        );
+        if (defaults.data)
+          personRepository.save(context.principal, {
+            projectId: created.id,
+            expectedRevision: 0,
+            ...defaults.data,
+          });
+        for (const row of assignments.data) {
+          if (!assignmentStartWithinProjectDates(context.sqlite, created.id, row.startsOn))
+            throw new ValidationError('Worker assignment start date must be within project dates');
+          const assignment = context.repository.assignWorker(context.principal, {
+            projectId: created.id,
+            workerId: row.workerId,
+            startsOn: row.startsOn,
+            endsOn: row.endsOn || undefined,
+          });
+          if (row.mode === 'defaults')
+            personRepository.applyToNewAssignment(context.principal, assignment.id);
+          else personRepository.applyIndividualTerms(context.principal, assignment.id, row.config!);
+        }
+        return created;
       });
       return actionSuccess(
         'action.projects.projectCreated',
@@ -1299,6 +1430,7 @@ export const projectActions = {
         'financeEffectiveTo',
         'financeNotes',
         'useExistingFinanceRules',
+        'useProjectDefaults',
       ].map((key) => [key, typeof object[key] === 'string' ? object[key] : '']),
     );
     const parsed = assignmentInputSchema.safeParse(object);
@@ -1359,7 +1491,7 @@ export const projectActions = {
       }
 
       withAssignmentFinanceTransaction(context.sqlite, () => {
-        context.repository.assignWorker(context.principal, parsed.data);
+        const assignment = context.repository.assignWorker(context.principal, parsed.data);
         if (
           !assignmentStartWithinProjectDates(
             context.sqlite,
@@ -1372,6 +1504,13 @@ export const projectActions = {
           .prepare('SELECT currency FROM project WHERE id=?')
           .get(parsed.data.projectId) as { currency: 'EUR' | 'USD' | 'BRL' } | undefined;
         if (!project) throw new ValidationError('Project not found');
+        if (object.useProjectDefaults === 'on') {
+          new ProjectPersonDefaultsRepository(
+            context.sqlite,
+            context.repository,
+          ).applyToNewAssignment(context.principal, assignment.id);
+          return;
+        }
         if (object.useExistingFinanceRules === 'on') {
           if (
             !hasAssignmentFinanceCoverage(

@@ -298,8 +298,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         const requestedProjectId = url.searchParams.get('project') ?? '';
         const selectedDocumentProject =
           projects.find((project) => String(project.id) === requestedProjectId) ?? null;
-        if (requestedProjectId && !selectedDocumentProject)
-          error(404, 'detail.project.notFound');
+        if (requestedProjectId && !selectedDocumentProject) error(404, 'detail.project.notFound');
         return {
           ...common,
           projects,
@@ -663,9 +662,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         // Derive options before the Worker filter so users can switch workers.
         const projectRows = context.repository
           .listPlanning(context.principal)
-          .filter(
-            (row) => !selectedProjectId || String(row.project_id) === selectedProjectId,
-          );
+          .filter((row) => !selectedProjectId || String(row.project_id) === selectedProjectId);
         const representedWorkers = new Map<string, string>();
         for (const row of projectRows) {
           const id = String(row.worker_id ?? '').trim();
@@ -680,8 +677,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           label: (duplicateNames.get(name) ?? 0) > 1 ? `${name} · ${id}` : name,
         }));
         planningFilterWorkers.sort(
-          (left, right) =>
-            left.name.localeCompare(right.name) || left.id.localeCompare(right.id),
+          (left, right) => left.name.localeCompare(right.name) || left.id.localeCompare(right.id),
         );
         return {
           ...common,
@@ -844,6 +840,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 commercialCategory,
                 commercialAsOf,
               );
+              const reimbursement = new AssignmentExpensePolicyRepository(
+                context.sqlite,
+              ).effectiveReimbursementPreference(selected, member.id, commercialAsOf);
               return {
                 assignmentId: member.id,
                 assignmentVersion: member.version,
@@ -857,7 +856,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 internalCostRuleId: member.internal_cost_rule_id,
                 allowGlobalCompensation: member.allow_global_compensation_fallback === 1,
                 allowGlobalInternalCost: member.allow_global_internal_cost_fallback === 1,
-                workerExpenseReimbursementOverride: member.worker_expense_reimbursement_override,
+                workerExpenseReimbursementOverride: reimbursement.workerOverride,
+                workerExpenseReimbursementEffectiveFrom: reimbursement.overrideEffectiveFrom,
                 clientRateMinor: terms.clientLaborRate?.hourlyRateMinor ?? null,
                 clientCurrency: terms.clientLaborRate?.currency ?? null,
                 clientSource: terms.clientLaborRate?.provenance.source ?? null,
@@ -882,12 +882,27 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               : [],
           selectedProjectId: selected,
           projectExpenseReimbursement: selected
-            ? context.sqlite
-                .prepare(
-                  'SELECT version,worker_expense_reimbursement_default mode FROM project WHERE id=?',
-                )
-                .get(selected)
+            ? {
+                ...(context.sqlite
+                  .prepare('SELECT version FROM project WHERE id=?')
+                  .get(selected) ?? {}),
+                mode: new AssignmentExpensePolicyRepository(
+                  context.sqlite,
+                ).effectiveReimbursementPreference(selected, '', commercialAsOf).projectDefault,
+                effectiveFrom: new AssignmentExpensePolicyRepository(
+                  context.sqlite,
+                ).effectiveReimbursementPreference(selected, '', commercialAsOf)
+                  .projectEffectiveFrom,
+              }
             : null,
+          reimbursementPreferenceAsOf: commercialAsOf,
+          reimbursementPreferenceHistory:
+            selected && canManageCanonicalAuthority
+              ? new AssignmentExpensePolicyRepository(context.sqlite).listReimbursementPreferences(
+                  context.principal,
+                  selected,
+                )
+              : [],
           finance: selected ? context.v3.projectFinance(context.principal, selected) : null,
           // Finance classification only acts on live expense source records.
           // Withdrawn and rejected expenses remain in operational history but

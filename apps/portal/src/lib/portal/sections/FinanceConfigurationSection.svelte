@@ -318,6 +318,37 @@
       ? failedValue(actionName, field)
       : undefined;
   }
+  function reimbursementFieldError(
+    actionName: string,
+    field: string,
+    memberId?: string,
+  ): string | undefined {
+    if (failedConfigurationAction?.actionName !== actionName) return undefined;
+    if (memberId && failedValue(actionName, 'projectMemberId') !== memberId) return undefined;
+    if (!memberId && failedValue(actionName, 'projectId') !== String(data.selectedProjectId))
+      return undefined;
+    const errors = reimbursementProblem?.fieldErrors?.[field];
+    return errors?.[0] ? translate(errors[0]) : undefined;
+  }
+  function reimbursementPreferenceStatus(row: Row): string {
+    const asOf = data.reimbursementPreferenceAsOf ?? data.financeToday ?? '';
+    if (rowValue(row, 'effectiveFrom') > asOf) return translate('Scheduled');
+    const active = data.reimbursementPreferenceHistory?.find(
+      (candidate) =>
+        rowValue(candidate, 'projectMemberId') === rowValue(row, 'projectMemberId') &&
+        rowValue(candidate, 'effectiveFrom') <= asOf,
+    );
+    return translate(active?.id === row.id ? 'Effective on selected date' : 'Historical');
+  }
+  function reimbursementActionUrl(actionName: string): string {
+    const query = new URLSearchParams({
+      view: 'commercial',
+      project: String(data.selectedProjectId ?? ''),
+      asOf: data.reimbursementPreferenceAsOf ?? data.financeToday ?? '',
+      category: data.commercialCategory ?? 'regular',
+    });
+    return `?/${actionName}&${query.toString()}#person-expense-policies`;
+  }
   function assignmentRuleChoiceLabel(
     terms: Row,
     ruleId: string,
@@ -994,10 +1025,15 @@
       )}
       data-assignment-expense-policies
     >
+      <p class="muted">
+        {translate(
+          'Reimbursement preferences apply from their effective date. Earlier claims keep their date-specific terms; classified amounts and paid history remain unchanged.',
+        )}
+      </p>
       {#if canWritePolicy && data.selectedProjectId && data.projectExpenseReimbursement}
         <form
           method="POST"
-          action={`?/setProjectReimbursementDefault&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId))}#person-expense-policies`}
+          action={reimbursementActionUrl('setProjectReimbursementDefault')}
           class="admin-form-grid"
           data-project-reimbursement-form
           use:formValidation
@@ -1016,7 +1052,8 @@
             <select
               id="project-reimbursement-default"
               name="mode"
-              value={rowValue(data.projectExpenseReimbursement, 'mode') || 'inherit'}
+              value={failedValue('setProjectReimbursementDefault', 'mode') ??
+                (rowValue(data.projectExpenseReimbursement, 'mode') || 'inherit')}
               required
             >
               <option value="inherit">{translate('Use existing person policies')}</option>
@@ -1024,10 +1061,37 @@
               <option value="none">{translate('Do not reimburse worker')}</option>
             </select>
           </Field>
+          <Field
+            id="project-reimbursement-from"
+            label={translate('Effective from')}
+            required
+            error={reimbursementFieldError('setProjectReimbursementDefault', 'effectiveFrom')}
+          >
+            <input
+              id="project-reimbursement-from"
+              name="effectiveFrom"
+              type="date"
+              required
+              value={failedValue('setProjectReimbursementDefault', 'effectiveFrom') ??
+                data.reimbursementPreferenceAsOf ??
+                data.financeToday ??
+                ''}
+              aria-invalid={Boolean(
+                reimbursementFieldError('setProjectReimbursementDefault', 'effectiveFrom'),
+              )}
+              aria-describedby={reimbursementFieldError(
+                'setProjectReimbursementDefault',
+                'effectiveFrom',
+              )
+                ? 'project-reimbursement-from-error'
+                : undefined}
+            />
+          </Field>
           <Field id="project-reimbursement-reason" label={translate('Reason')} required>
             <input
               id="project-reimbursement-reason"
               name="reason"
+              value={failedValue('setProjectReimbursementDefault', 'reason') ?? ''}
               minlength="3"
               maxlength="2000"
               required
@@ -1051,7 +1115,7 @@
           {#each data.commercialTermsSummary as person}
             <form
               method="POST"
-              action={`?/setWorkerReimbursementOverride&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId))}#person-expense-policies`}
+              action={reimbursementActionUrl('setWorkerReimbursementOverride')}
               class="admin-form-grid"
               data-worker-reimbursement-form
               use:formValidation
@@ -1075,13 +1139,55 @@
                 <select
                   id={`worker-reimbursement-${rowValue(person, 'assignmentId')}`}
                   name="mode"
-                  value={rowValue(person, 'workerExpenseReimbursementOverride') || 'inherit'}
+                  value={failedAssignmentValue(person, 'setWorkerReimbursementOverride', 'mode') ??
+                    (rowValue(person, 'workerExpenseReimbursementOverride') || 'inherit')}
                   required
                 >
                   <option value="inherit">{translate('Use project default')}</option>
                   <option value="at_cost">{translate('Reimburse this worker at cost')}</option>
                   <option value="none">{translate('Do not reimburse this worker')}</option>
                 </select>
+              </Field>
+              <Field
+                id={`worker-reimbursement-from-${rowValue(person, 'assignmentId')}`}
+                label={translate('Effective from')}
+                required
+                error={reimbursementFieldError(
+                  'setWorkerReimbursementOverride',
+                  'effectiveFrom',
+                  rowValue(person, 'assignmentId'),
+                )}
+              >
+                <input
+                  id={`worker-reimbursement-from-${rowValue(person, 'assignmentId')}`}
+                  name="effectiveFrom"
+                  type="date"
+                  required
+                  min={rowValue(person, 'assignmentStartsOn') || undefined}
+                  max={rowValue(person, 'assignmentEndsOn') || undefined}
+                  value={failedAssignmentValue(
+                    person,
+                    'setWorkerReimbursementOverride',
+                    'effectiveFrom',
+                  ) ??
+                    data.reimbursementPreferenceAsOf ??
+                    data.financeToday ??
+                    ''}
+                  aria-invalid={Boolean(
+                    reimbursementFieldError(
+                      'setWorkerReimbursementOverride',
+                      'effectiveFrom',
+                      rowValue(person, 'assignmentId'),
+                    ),
+                  )}
+                  aria-describedby={reimbursementFieldError(
+                    'setWorkerReimbursementOverride',
+                    'effectiveFrom',
+                    rowValue(person, 'assignmentId'),
+                  )
+                    ? `worker-reimbursement-from-${rowValue(person, 'assignmentId')}-error`
+                    : undefined}
+                />
               </Field>
               <Field
                 id={`worker-reimbursement-reason-${rowValue(person, 'assignmentId')}`}
@@ -1091,6 +1197,11 @@
                 <input
                   id={`worker-reimbursement-reason-${rowValue(person, 'assignmentId')}`}
                   name="reason"
+                  value={failedAssignmentValue(
+                    person,
+                    'setWorkerReimbursementOverride',
+                    'reason',
+                  ) ?? ''}
                   minlength="3"
                   maxlength="2000"
                   required
@@ -1108,6 +1219,37 @@
                 <button type="submit">{translate('Save worker override')}</button>
               </div>
             </form>
+          {/each}
+        </div>
+      {/if}
+      {#if data.reimbursementPreferenceHistory?.length}
+        <div class="record-list" aria-label={translate('Dated reimbursement preferences')}>
+          <p class="muted">
+            {translate('Preferences shown for date')}: {data.reimbursementPreferenceAsOf}
+          </p>
+          {#each data.reimbursementPreferenceHistory as preference}
+            <article class="record-card">
+              <strong
+                >{rowValue(preference, 'workerName') ||
+                  translate('Project worker reimbursement default')}</strong
+              >
+              <span class="badge">{reimbursementPreferenceStatus(preference)}</span>
+              <p>
+                {rowValue(preference, 'mode')
+                  ? workerReimbursementLabel(rowValue(preference, 'mode'))
+                  : translate(
+                      rowValue(preference, 'projectMemberId')
+                        ? 'Use project default'
+                        : 'Use existing person policies',
+                    )}
+              </p>
+              <p class="muted">
+                {translate('Effective from')}: {rowValue(preference, 'effectiveFrom') ===
+                '0001-01-01'
+                  ? translate('Existing terms before dated changes')
+                  : rowValue(preference, 'effectiveFrom')}
+              </p>
+            </article>
           {/each}
         </div>
       {/if}
@@ -1345,7 +1487,7 @@
                   )}: {rowValue(policy, 'category') || translate('All categories')}</small
                 >
                 <small
-                  >{translate('Worker reimbursement')}: {workerReimbursementLabel(
+                  >{translate('Policy fallback reimbursement')}: {workerReimbursementLabel(
                     rowValue(policy, 'workerReimbursement'),
                   )} · {translate('Customer expense recovery')}: {expenseRecoveryLabel(
                     rowValue(policy, 'clientRecovery'),

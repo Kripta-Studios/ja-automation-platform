@@ -214,6 +214,8 @@
           'reverseCompensationPayment',
           'recordReimbursement',
           'createAssignmentExpensePolicy',
+          'setProjectReimbursementDefault',
+          'setWorkerReimbursementOverride',
         ].includes(String((result as { actionName?: string }).actionName)))
       ? result
       : null;
@@ -225,12 +227,7 @@
       | undefined,
   );
   const reimbursementProblemInForm = $derived.by(() => {
-    if (
-      !canWriteFinance ||
-      !showCommercial ||
-      financeProblem?.code !== 'WORKER_REIMBURSEMENT_POLICY_CHANGED' ||
-      !data.selectedProjectId
-    )
+    if (!canWriteFinance || !showCommercial || !financeProblem || !data.selectedProjectId)
       return false;
     if (failedFinanceForm?.actionName === 'setProjectReimbursementDefault')
       return (
@@ -608,7 +605,7 @@
       };
     else if (
       canWriteFinance &&
-      financeProblem?.code === 'WORKER_REIMBURSEMENT_POLICY_CHANGED' &&
+      financeProblem &&
       review &&
       ['setProjectReimbursementDefault', 'setWorkerReimbursementOverride'].includes(
         String(failedFinanceForm?.actionName),

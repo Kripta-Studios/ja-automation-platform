@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ProjectCreationAssignments from '$lib/portal/sections/ProjectCreationAssignments.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import {
     assignmentDirectoryView,
@@ -1727,6 +1728,7 @@
   const assignmentProjectCurrency = $derived(String(assignmentSelectedProject?.currency ?? ''));
   let ownerAssignmentStartsOn = $state(assignmentFormValue('startsOn'));
   let ownerAssignmentEndsOn = $state(assignmentFormValue('endsOn'));
+  let ownerUseProjectDefaults = $state(assignmentFormValue('useProjectDefaults') === 'on');
   let ownerUseExistingFinanceRules = $state(
     assignmentFormValue('useExistingFinanceRules') === 'on',
   );
@@ -5116,19 +5118,15 @@
                   ></label
                 >
                 <h3 class="wide-field">{translate('2 · People')}</h3>
-                <p class="form-help wide-field">
-                  {translate(
-                    'Create the project first. Then assign each worker with authorized internal cost, compensation, and effective dates.',
-                  )}
-                </p>
-                <h3 class="wide-field">
-                  {translate('3 · Commercial defaults')}
-                </h3>
-                <p class="form-help wide-field">
-                  {translate(
-                    'Person-specific customer rates, worker pay and expense policies are configured after the people are assigned.',
-                  )}
-                </p>
+                <ProjectCreationAssignments
+                  workers={data.workers ?? []}
+                  currency={newProjectCurrency}
+                  canAssignWorkers={data.user.role === 'owner_admin'}
+                  values={projectFormValues}
+                  errors={projectFieldErrors}
+                  t={translate}
+                />
+                <h3 class="wide-field">{translate('3 · Commercial defaults')}</h3>
                 <label
                   >{translate('Billing model')}<select name="billingModel"
                     ><option value="tm" selected={projectFormValue('billingModel', 'tm') === 'tm'}
@@ -5363,12 +5361,31 @@
                       {translate('Project currency')}: {assignmentProjectCurrency ||
                         translate('Select project')}
                     </p>
+                    <label class="check wide-field"
+                      ><input
+                        name="useProjectDefaults"
+                        type="checkbox"
+                        value="on"
+                        bind:checked={ownerUseProjectDefaults}
+                        onchange={() => {
+                          if (ownerUseProjectDefaults) ownerUseExistingFinanceRules = false;
+                        }}
+                      />{translate('Use saved project defaults for this assignment')}</label
+                    >
+                    <p class="form-help wide-field">
+                      {translate(
+                        'The saved project defaults will be copied into this assignment. Future project changes preserve this agreement.',
+                      )}
+                    </p>
                     <label class="check wide-field">
                       <input
                         name="useExistingFinanceRules"
                         type="checkbox"
                         value="on"
                         bind:checked={ownerUseExistingFinanceRules}
+                        onchange={() => {
+                          if (ownerUseExistingFinanceRules) ownerUseProjectDefaults = false;
+                        }}
                       />
                       {translate(
                         'Use existing authorized finance rules for this worker and assignment dates',
@@ -5398,16 +5415,16 @@
                         autocomplete="off"
                         placeholder="0.00"
                         value={assignmentFormValue('internalCostHourlyRate')}
-                        required={!ownerUseExistingFinanceRules}
-                        disabled={ownerUseExistingFinanceRules}
+                        required={!ownerUseExistingFinanceRules && !ownerUseProjectDefaults}
+                        disabled={ownerUseExistingFinanceRules || ownerUseProjectDefaults}
                       />
                     </label>
                     <label>
                       {translate('Worker compensation method')}
                       <select
                         name="compensationBasis"
-                        required={!ownerUseExistingFinanceRules}
-                        disabled={ownerUseExistingFinanceRules}
+                        required={!ownerUseExistingFinanceRules && !ownerUseProjectDefaults}
+                        disabled={ownerUseExistingFinanceRules || ownerUseProjectDefaults}
                       >
                         <option
                           value="hourly"
@@ -5431,8 +5448,8 @@
                         autocomplete="off"
                         placeholder="0.00"
                         value={assignmentFormValue('compensationRate')}
-                        required={!ownerUseExistingFinanceRules}
-                        disabled={ownerUseExistingFinanceRules}
+                        required={!ownerUseExistingFinanceRules && !ownerUseProjectDefaults}
+                        disabled={ownerUseExistingFinanceRules || ownerUseProjectDefaults}
                       />
                     </label>
                     <label>
@@ -5442,8 +5459,8 @@
                         type="date"
                         value={ownerAssignmentStartsOn}
                         readonly
-                        required={!ownerUseExistingFinanceRules}
-                        disabled={ownerUseExistingFinanceRules}
+                        required={!ownerUseExistingFinanceRules && !ownerUseProjectDefaults}
+                        disabled={ownerUseExistingFinanceRules || ownerUseProjectDefaults}
                       />
                     </label>
                     <label>
@@ -5453,7 +5470,7 @@
                         type="date"
                         value={ownerAssignmentEndsOn}
                         readonly
-                        disabled={ownerUseExistingFinanceRules}
+                        disabled={ownerUseExistingFinanceRules || ownerUseProjectDefaults}
                       />
                     </label>
                     <label class="wide-field">
@@ -5462,7 +5479,7 @@
                         name="financeNotes"
                         maxlength="2000"
                         rows="3"
-                        disabled={ownerUseExistingFinanceRules}
+                        disabled={ownerUseExistingFinanceRules || ownerUseProjectDefaults}
                         >{assignmentFormValue('financeNotes')}</textarea
                       >
                     </label>

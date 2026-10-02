@@ -2946,7 +2946,8 @@ export class V3Repository {
           )
           AND EXISTS (
             SELECT 1 FROM project_member pm WHERE pm.project_id=t.project_id
-              AND pm.user_id=t.worker_id AND pm.status='active'
+              AND pm.user_id=t.worker_id
+              AND (pm.status='active' OR (pm.status='inactive' AND pm.ends_on IS NOT NULL))
               AND pm.starts_on<=t.work_date
               AND (pm.ends_on IS NULL OR pm.ends_on>=t.work_date)
           )
@@ -2978,7 +2979,8 @@ export class V3Repository {
           )
           AND EXISTS (
             SELECT 1 FROM project_member pm WHERE pm.project_id=e.project_id
-              AND pm.user_id=e.worker_id AND pm.status='active'
+              AND pm.user_id=e.worker_id
+              AND (pm.status='active' OR (pm.status='inactive' AND pm.ends_on IS NOT NULL))
               AND pm.starts_on<=e.spent_on
               AND (pm.ends_on IS NULL OR pm.ends_on>=e.spent_on)
           )
@@ -3555,7 +3557,8 @@ export class V3Repository {
             AND EXISTS (
               SELECT 1 FROM project_member pm
                WHERE pm.project_id=t.project_id AND pm.user_id=t.worker_id
-                 AND pm.status='active' AND pm.starts_on<=t.work_date
+                 AND (pm.status='active' OR (pm.status='inactive' AND pm.ends_on IS NOT NULL))
+                 AND pm.starts_on<=t.work_date
                  AND (pm.ends_on IS NULL OR pm.ends_on>=t.work_date)
             )
             AND t.approval_state NOT IN ('rejected','void')
@@ -3756,7 +3759,8 @@ export class V3Repository {
            AND EXISTS (
              SELECT 1 FROM project_member pm
              WHERE pm.project_id=e.project_id AND pm.user_id=e.worker_id
-               AND pm.status='active' AND pm.starts_on<=e.spent_on
+               AND (pm.status='active' OR (pm.status='inactive' AND pm.ends_on IS NOT NULL))
+               AND pm.starts_on<=e.spent_on
                AND (pm.ends_on IS NULL OR pm.ends_on>=e.spent_on)
            )`,
       )

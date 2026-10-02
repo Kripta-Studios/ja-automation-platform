@@ -1,6 +1,8 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { tick, untrack } from 'svelte';
+  import { page } from '$app/state';
+  import type { ProjectPersonDefaults } from '@ja/database';
   import { localizedServerFieldMessage } from '$lib/portal/ui/form-validation';
   type Row = Record<string, unknown>;
   type SetupTemplate = {
@@ -22,6 +24,7 @@
     contacts,
     templates,
     people,
+    personDefaults,
     version,
     rulesFingerprint,
     issuingPrerequisites,
@@ -43,11 +46,16 @@
     taxProfiles: Row[];
     contacts: Row[];
     templates: SetupTemplate[];
+    personDefaults: ProjectPersonDefaults | null;
     people: Array<{
       id: string;
       name: string;
       customerRate: string | null;
       customerRateAmount: string;
+      internalCostAmount: string;
+      defaultOrigin: string | null;
+      scheduledRateDates: string[];
+      scheduledExpenseDates: string[];
       payConfigured: boolean;
       payType: string;
       payAmount: string;
@@ -56,6 +64,7 @@
       activeExpensePayers: string[];
       expensePayer: string;
       workerReimbursement: string;
+      reimbursementSource: 'inherit' | 'override';
       clientRecovery: string;
       markupPercent: string;
       assignmentId: string;
@@ -268,16 +277,22 @@
     values: { ...failedValues },
   }));
   let step = $state(
-    initialFailure.personActive ? 3 : initialFailure.active ? initialFailure.step : 1,
+    initialFailure.personActive || page.url.searchParams.get('billingStep') === 'people'
+      ? 3
+      : initialFailure.active
+        ? initialFailure.step
+        : 1,
   );
   type PersonDraft = {
     effectiveFrom: string;
     customerHourlyRate: string;
+    internalCostHourlyRate: string;
     workerPayType: string;
     workerPayAmount: string;
     percentageBasis: string;
     expensePayer: string;
     workerReimbursement: string;
+    reimbursementSource: string;
     clientRecovery: string;
     markupPercent: string;
   };
@@ -295,11 +310,13 @@
             {
               effectiveFrom: value('effectiveFrom', person.termsEffectiveFrom),
               customerHourlyRate: value('customerHourlyRate', person.customerRateAmount),
+              internalCostHourlyRate: value('internalCostHourlyRate', person.internalCostAmount),
               workerPayType: value('workerPayType', person.payType),
               workerPayAmount: value('workerPayAmount', person.payAmount),
               percentageBasis: value('percentageBasis', person.percentageBasis),
               expensePayer: value('expensePayer', person.expensePayer),
               workerReimbursement: value('workerReimbursement', person.workerReimbursement),
+              reimbursementSource: value('reimbursementSource', person.reimbursementSource),
               clientRecovery: value('clientRecovery', person.clientRecovery),
               markupPercent: value('markupPercent', person.markupPercent),
             } satisfies PersonDraft,
@@ -309,6 +326,7 @@
   );
   let personDrafts = $state(initialPersonDrafts);
   let personSubmitting = $state('');
+  let pinRatePersonIds = $state<string[]>([]);
   let bulkSourceId = $state(untrack(() => people[0]?.id ?? ''));
   let selectedPersonIds = $state<string[]>(
     untrack(() =>
@@ -390,11 +408,14 @@
       expectedFingerprint: person.termsFingerprint,
       effectiveFrom: draft.effectiveFrom,
       customerHourlyRate: draft.customerHourlyRate,
+      internalCostHourlyRate: draft.internalCostHourlyRate,
+      pinRates: pinRatePersonIds.includes(person.id),
       workerPayType: draft.workerPayType,
       workerPayAmount: draft.workerPayAmount,
       percentageBasis: draft.percentageBasis,
       expensePayer: draft.expensePayer,
       workerReimbursement: draft.workerReimbursement,
+      reimbursementSource: draft.reimbursementSource,
       clientRecovery: draft.clientRecovery,
       markupPercent: draft.clientRecovery === 'markup' ? draft.markupPercent : '',
     };
@@ -512,9 +533,11 @@
     <div>
       <h3>{t(canEdit ? 'Configure this project’s invoices' : 'Project invoice setup')}</h3>
       <p>
-        {t(canEdit
-          ? 'Choose how approved hours and customer-chargeable expenses become invoices. Worker reimbursement follows the project default unless a person override is set in Finance; customer expense charges remain separate.'
-          : 'Finance or an owner can configure invoice rules for approved hours and customer-chargeable expenses. This view is read only.')}
+        {t(
+          canEdit
+            ? 'Choose how approved hours and customer-chargeable expenses become invoices. Worker reimbursement follows the project default unless a person override is set in Finance; customer expense charges remain separate.'
+            : 'Finance or an owner can configure invoice rules for approved hours and customer-chargeable expenses. This view is read only.',
+        )}
       </p>
     </div>
     {#if canEdit}<span>{t('Step')} {step} / 4</span>{/if}
@@ -966,6 +989,39 @@
               {#if draft}
                 <div class="person-terms">
                   <h4>{person.name}</h4>
+                  {#if person.scheduledRateDates.length || person.scheduledExpenseDates.length}<p
+                      class="hint"
+                    >
+                      {t(
+                        'Future person terms are saved. Current values remain in effect until their effective date.',
+                      )}
+                      {t('Rates and pay')}: {person.scheduledRateDates.join(', ') || t('Unchanged')} ·
+                      {t('Expense terms')}: {person.scheduledExpenseDates.join(', ') ||
+                        t('Unchanged')} ·
+                      <a href={`${base}/app/finance?view=commercial&project=${projectId}`}
+                        >{t('Review scheduled commercial terms')}</a
+                      >
+                    </p>{/if}
+                  {#if person.defaultOrigin}<p class="hint">
+                      {t(
+                        'Started from saved project defaults. Later person agreements are independent.',
+                      )}
+                    </p>{/if}
+                  {#if canEdit && personDefaults}<button
+                      type="button"
+                      class="secondary-button"
+                      onclick={() => {
+                        Object.assign(draft, personDefaults.config);
+                        draft.reimbursementSource = 'override';
+                        if (!pinRatePersonIds.includes(person.id))
+                          pinRatePersonIds = [...pinRatePersonIds, person.id];
+                        if (draft.effectiveFrom < personDefaults.effectiveFrom)
+                          draft.effectiveFrom = personDefaults.effectiveFrom;
+                      }}>{t('Use project defaults in this draft')}</button
+                    >
+                    <p class="hint">
+                      {t('Review the effective date and save person terms to apply these values.')}
+                    </p>{/if}
                   {#if canEdit && people.length > 1}
                     <label class="bulk-select"
                       ><input
@@ -995,6 +1051,22 @@
                     </ul>
                   {/if}
                   {#if canEdit}
+                    <label class="bulk-select"
+                      ><input
+                        type="checkbox"
+                        checked={pinRatePersonIds.includes(person.id)}
+                        onchange={(event) => {
+                          pinRatePersonIds = event.currentTarget.checked
+                            ? [...pinRatePersonIds, person.id]
+                            : pinRatePersonIds.filter((id) => id !== person.id);
+                        }}
+                      />{t('Save these rates as explicit person overrides')}</label
+                    >
+                    <p class="hint">
+                      {t(
+                        'Changed rates become person overrides. Select this option to also preserve rates that currently match a default. Unchanged rates keep their current source otherwise.',
+                      )}
+                    </p>
                     <div class="person-fields">
                       <label
                         >{t('Terms effective from')}<input
@@ -1010,6 +1082,17 @@
                           inputmode="decimal"
                           bind:value={draft.customerHourlyRate}
                           aria-invalid={Boolean(personFieldError(person.id, 'customerHourlyRate'))}
+                          required
+                        /></label
+                      >
+                      <label
+                        >{t('Internal hourly cost')} ({currency})<input
+                          type="text"
+                          inputmode="decimal"
+                          bind:value={draft.internalCostHourlyRate}
+                          aria-invalid={Boolean(
+                            personFieldError(person.id, 'internalCostHourlyRate'),
+                          )}
                           required
                         /></label
                       >
@@ -1069,6 +1152,13 @@
                           ><option value="company_direct">{t('Company direct')}</option><option
                             value="client">{t('Client')}</option
                           ><option value="third_party">{t('Third party')}</option></select
+                        ></label
+                      >
+                      <label
+                        >{t('Worker reimbursement source')}<select
+                          bind:value={draft.reimbursementSource}
+                          ><option value="inherit">{t('Use project reimbursement default')}</option
+                          ><option value="override">{t('Override for this person')}</option></select
                         ></label
                       >
                       <label
@@ -1295,11 +1385,18 @@
           <input type="hidden" name="expectedFingerprint" value={person.termsFingerprint} />
           <input type="hidden" name="effectiveFrom" value={draft.effectiveFrom} />
           <input type="hidden" name="customerHourlyRate" value={draft.customerHourlyRate} />
+          <input
+            type="hidden"
+            name="pinRates"
+            value={pinRatePersonIds.includes(person.id) ? 'on' : ''}
+          />
+          <input type="hidden" name="internalCostHourlyRate" value={draft.internalCostHourlyRate} />
           <input type="hidden" name="workerPayType" value={draft.workerPayType} />
           <input type="hidden" name="workerPayAmount" value={draft.workerPayAmount} />
           <input type="hidden" name="percentageBasis" value={draft.percentageBasis} />
           <input type="hidden" name="expensePayer" value={draft.expensePayer} />
           <input type="hidden" name="workerReimbursement" value={draft.workerReimbursement} />
+          <input type="hidden" name="reimbursementSource" value={draft.reimbursementSource} />
           <input type="hidden" name="clientRecovery" value={draft.clientRecovery} />
           <input
             type="hidden"

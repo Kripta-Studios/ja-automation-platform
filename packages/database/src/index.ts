@@ -307,6 +307,8 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   68: 'optional_planning_publication',
   69: 'invoice_preview_edit_defaults',
   70: 'issuer_document_settings',
+  71: 'project_person_defaults',
+  72: 'dated_reimbursement_preferences',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -315,7 +317,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  'e132645541f4ddf23e9524a40c61dca885628887b8050f8481e39dc9c45719ac';
+  '067582ea3c6f13bc2df79c95013552e7229a20c0c1973a58b74fef9dc03bebf9';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1207,3 +1209,5 @@ export {
 } from './domains/owner/owner-record-management.ts';
 
 export { OwnerCatalogManagement, ownerCatalogs } from './domains/owner/owner-catalog-management.ts';
+
+export * from './domains/commercial/project-person-defaults.ts';

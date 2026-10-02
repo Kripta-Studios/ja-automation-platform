@@ -53,6 +53,8 @@ export type ProjectPersonTermsInput = Readonly<{
   expectedFingerprint: string;
   effectiveFrom: string;
   customerHourlyRate: string;
+  internalCostHourlyRate?: string;
+  pinRates?: boolean;
   workerPayType:
     | 'Hourly'
     | 'Daily'
@@ -67,6 +69,7 @@ export type ProjectPersonTermsInput = Readonly<{
     | 'COLLECTED_ELIGIBLE_LABOR';
   expensePayer: ExpensePayer;
   workerReimbursement: WorkerReimbursementMode;
+  reimbursementSource?: 'inherit' | 'override';
   clientRecovery: ClientRecoveryMode;
   markupPercent: string;
 }>;
@@ -84,6 +87,8 @@ function decimalFromHundredths(value: string | number | bigint | null | undefine
   const amount = BigInt(value);
   return `${amount / 100n}.${(amount % 100n).toString().padStart(2, '0')}`;
 }
+
+type PayInput = Parameters<V3Repository['createCompensationRule']>[1];
 
 type RuleRow = Readonly<{
   id: string;
@@ -133,7 +138,10 @@ export function projectCalendarDate(timezone: string, instant = new Date()): str
 const stamp = (): string => new Date().toISOString();
 
 function validate(input: ProjectBillingSetupInput): void {
-  if (!uuidPattern.test(input.projectId) || !uuidPattern.test(input.requestKey))
+  if (
+    !/^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/.test(input.projectId) ||
+    !uuidPattern.test(input.requestKey)
+  )
     throw new ValidationError('Project or request reference is invalid');
   if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 0)
     throw new ValidationError('Billing setup version is invalid');
@@ -314,6 +322,10 @@ export class ProjectBillingSetupRepository {
     name: string;
     customerRate: string | null;
     customerRateAmount: string;
+    internalCostAmount: string;
+    defaultOrigin: string | null;
+    scheduledRateDates: string[];
+    scheduledExpenseDates: string[];
     payConfigured: boolean;
     payType: string;
     payAmount: string;
@@ -322,6 +334,7 @@ export class ProjectBillingSetupRepository {
     activeExpensePayers: string[];
     expensePayer: string;
     workerReimbursement: string;
+    reimbursementSource: 'inherit' | 'override';
     clientRecovery: string;
     markupPercent: string;
     assignmentId: string;
@@ -331,9 +344,6 @@ export class ProjectBillingSetupRepository {
     issues: string[];
   }> {
     this.assertReadable(principal);
-    const reimbursementProject = this.sqlite
-      .prepare('SELECT worker_expense_reimbursement_default mode FROM project WHERE id=?')
-      .get(projectId) as { mode: WorkerReimbursementMode | null } | undefined;
     const rows = this.sqlite
       .prepare(
         `SELECT pm.id,pm.user_id,pm.starts_on,pm.worker_expense_reimbursement_override,u.name FROM project_member pm JOIN user u ON u.id=pm.user_id
@@ -373,6 +383,10 @@ export class ProjectBillingSetupRepository {
             name: row.name,
             customerRate: null,
             customerRateAmount: '',
+            internalCostAmount: '',
+            defaultOrigin: null,
+            scheduledRateDates: [],
+            scheduledExpenseDates: [],
             payConfigured: false,
             payType: 'Hourly',
             payAmount: '',
@@ -381,6 +395,7 @@ export class ProjectBillingSetupRepository {
             activeExpensePayers: [],
             expensePayer: 'worker',
             workerReimbursement: 'at_cost',
+            reimbursementSource: 'inherit',
             clientRecovery: 'at_cost',
             markupPercent: '',
             assignmentId: row.id,
@@ -406,6 +421,9 @@ export class ProjectBillingSetupRepository {
               markup_bps: number;
             }
           | undefined;
+        const reimbursement = new AssignmentExpensePolicyRepository(
+          this.sqlite,
+        ).effectiveReimbursementPreference(projectId, row.id, reviewDate);
         const pay = terms.workerCompensation?.rule;
         const activeExpensePayers = (
           this.sqlite
@@ -422,6 +440,29 @@ export class ProjectBillingSetupRepository {
               ? null
               : `${terms.clientLaborRate?.rule.currency ?? ''} ${(BigInt(rate) / 100n).toString()}.${(BigInt(rate) % 100n).toString().padStart(2, '0')}/h`,
           customerRateAmount: decimalFromHundredths(rate),
+          internalCostAmount: decimalFromHundredths(terms.internalCost?.rule.hourly_rate_minor),
+          scheduledRateDates: (
+            this.sqlite
+              .prepare(
+                'SELECT DISTINCT effective_from date FROM assignment_rate_override WHERE project_member_id=? AND effective_from>? ORDER BY effective_from',
+              )
+              .all(row.id, reviewDate) as { date: string }[]
+          ).map((record) => record.date),
+          scheduledExpenseDates: (
+            this.sqlite
+              .prepare(
+                'SELECT effective_from date FROM assignment_expense_policy WHERE project_member_id=? AND effective_from>? UNION SELECT effective_from date FROM reimbursement_preference_revision WHERE project_member_id=? AND effective_from>? ORDER BY date',
+              )
+              .all(row.id, reviewDate, row.id, reviewDate) as { date: string }[]
+          ).map((record) => record.date),
+          defaultOrigin:
+            (
+              this.sqlite
+                .prepare(
+                  'SELECT default_id FROM project_member_default_terms WHERE project_member_id=?',
+                )
+                .get(row.id) as { default_id: string } | undefined
+            )?.default_id ?? null,
           payConfigured: terms.workerCompensation !== null,
           payType: pay?.rule_type ?? 'Hourly',
           payAmount:
@@ -432,11 +473,8 @@ export class ProjectBillingSetupRepository {
           expenseConfigured: Boolean(policy),
           activeExpensePayers,
           expensePayer: policy?.payer ?? 'worker',
-          workerReimbursement:
-            row.worker_expense_reimbursement_override ??
-            reimbursementProject?.mode ??
-            policy?.worker_reimbursement ??
-            'at_cost',
+          workerReimbursement: reimbursement.mode ?? policy?.worker_reimbursement ?? 'at_cost',
+          reimbursementSource: reimbursement.workerOverride === null ? 'inherit' : 'override',
           clientRecovery: policy?.client_recovery ?? 'at_cost',
           markupPercent: decimalFromHundredths(policy?.markup_bps),
           assignmentId: row.id,
@@ -465,6 +503,11 @@ export class ProjectBillingSetupRepository {
         'SELECT id,version,effective_from,effective_to,rate_minor,rule_type,percentage_bps FROM compensation_rule WHERE worker_id=? AND (project_id=? OR project_id IS NULL) ORDER BY id',
       )
       .all(workerId, projectId);
+    const internal = this.sqlite
+      .prepare(
+        'SELECT id,version,effective_from,effective_to,hourly_rate_minor FROM internal_cost_rule WHERE worker_id=? AND (project_id=? OR project_id IS NULL) ORDER BY id',
+      )
+      .all(workerId, projectId);
     const policies = this.sqlite
       .prepare(
         `SELECT ep.id,ep.version,ep.effective_from,ep.effective_to,ep.payer,ep.worker_reimbursement,ep.client_recovery,ep.markup_bps FROM assignment_expense_policy ep JOIN project_member pm ON pm.id=ep.project_member_id WHERE pm.project_id=? AND pm.user_id=? ORDER BY ep.id`,
@@ -472,21 +515,37 @@ export class ProjectBillingSetupRepository {
       .all(projectId, workerId);
     const overrides = this.sqlite
       .prepare(
-        `SELECT o.id,o.version,o.effective_from,o.effective_to,o.client_labor_rate_id,o.compensation_rule_id,o.priority FROM assignment_rate_override o JOIN project_member pm ON pm.id=o.project_member_id WHERE pm.project_id=? AND pm.user_id=? ORDER BY o.id`,
+        `SELECT o.id,o.version,o.effective_from,o.effective_to,o.client_labor_rate_id,o.compensation_rule_id,o.internal_cost_rule_id,o.priority FROM assignment_rate_override o JOIN project_member pm ON pm.id=o.project_member_id WHERE pm.project_id=? AND pm.user_id=? ORDER BY o.id`,
+      )
+      .all(projectId, workerId);
+    const reimbursementRevisions = this.sqlite
+      .prepare(
+        'SELECT r.id,r.version,r.effective_from,r.mode,r.project_member_id FROM reimbursement_preference_revision r LEFT JOIN project_member pm ON pm.id=r.project_member_id WHERE r.project_id=? AND (r.project_member_id IS NULL OR pm.user_id=?) ORDER BY r.id',
       )
       .all(projectId, workerId);
     const reimbursementProject = this.sqlite
       .prepare('SELECT version,worker_expense_reimbursement_default FROM project WHERE id=?')
       .get(projectId);
     return createHash('sha256')
-      .update(JSON.stringify({ member, client, pay, policies, overrides, reimbursementProject }))
+      .update(
+        JSON.stringify({
+          member,
+          client,
+          pay,
+          internal,
+          policies,
+          overrides,
+          reimbursementProject,
+          reimbursementRevisions,
+        }),
+      )
       .digest('hex');
   }
 
   savePersonTerms(principal: Principal, input: ProjectPersonTermsInput): { changed: boolean } {
     this.assertWritable(principal);
     if (
-      !uuidPattern.test(input.projectId) ||
+      !/^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/.test(input.projectId) ||
       !uuidPattern.test(input.projectMemberId) ||
       !input.workerId ||
       input.workerId.length > 200 ||
@@ -496,6 +555,10 @@ export class ProjectBillingSetupRepository {
     if (!dayPattern.test(input.effectiveFrom) || Number.isNaN(Date.parse(input.effectiveFrom)))
       throw new ValidationError('Person terms effective date is invalid');
     const customerMinor = decimalHundredths(input.customerHourlyRate, 'Customer hourly rate');
+    const internalMinor =
+      input.internalCostHourlyRate === undefined
+        ? undefined
+        : decimalHundredths(input.internalCostHourlyRate, 'Internal hourly cost');
     const payHundredths = decimalHundredths(input.workerPayAmount, 'Worker compensation');
     const markupBps = Number(decimalHundredths(input.markupPercent || '0', 'Expense markup'));
     if (input.workerPayType === 'PercentageOfEligibleClientLabor' && payHundredths > 10_000n)
@@ -565,24 +628,39 @@ export class ProjectBillingSetupRepository {
       const selectedPay = terms.workerCompensation?.rule;
       const clientChanged =
         !selectedClient ||
-        selectedClient.project_id !== input.projectId ||
-        selectedClient.worker_id !== input.workerId ||
+        (input.pinRates === true &&
+          !['assignment_override', 'assignment_rule'].includes(
+            terms.clientLaborRate!.provenance.source,
+          )) ||
         selectedClient.category !== null ||
         BigInt(selectedClient.hourly_rate_minor) !== customerMinor;
       const payChanged =
         !selectedPay ||
-        selectedPay.project_id !== input.projectId ||
+        (input.pinRates === true &&
+          !['assignment_override', 'assignment_rule'].includes(
+            terms.workerCompensation!.provenance.source,
+          )) ||
         selectedPay.rule_type !== input.workerPayType ||
         (input.workerPayType === 'PercentageOfEligibleClientLabor'
           ? Number(selectedPay.percentage_bps) !== Number(payHundredths) ||
             selectedPay.percentage_basis !== input.percentageBasis
           : BigInt(selectedPay.rate_minor) !== payHundredths);
+      const selectedInternal = terms.internalCost?.rule;
+      const internalChanged =
+        internalMinor !== undefined &&
+        (!selectedInternal ||
+          (input.pinRates === true &&
+            !['assignment_override', 'assignment_rule'].includes(
+              terms.internalCost!.provenance.source,
+            )) ||
+          BigInt(selectedInternal.hourly_rate_minor) !== internalMinor);
+      let internalRuleId: string | undefined;
       let clientRuleId: string | undefined;
       let payRuleId: string | undefined;
-      if (clientChanged || payChanged) {
+      if (clientChanged || payChanged || internalChanged) {
         const sameDayOverride = this.sqlite
           .prepare(
-            `SELECT 1 FROM assignment_rate_override WHERE project_member_id=? AND effective_from=? AND (client_labor_rate_id IS NOT NULL OR compensation_rule_id IS NOT NULL) LIMIT 1`,
+            `SELECT 1 FROM assignment_rate_override WHERE project_member_id=? AND effective_from=? AND (client_labor_rate_id IS NOT NULL OR compensation_rule_id IS NOT NULL OR internal_cost_rule_id IS NOT NULL) LIMIT 1`,
           )
           .get(member.id, input.effectiveFrom);
         if (sameDayOverride)
@@ -595,14 +673,46 @@ export class ProjectBillingSetupRepository {
             projectId: input.projectId,
             workerId: input.workerId,
             currency: project.currency,
+            ...(selectedClient
+              ? {
+                  overtimeMethod: selectedClient.overtime_method,
+                  overtimeMultiplierBps: selectedClient.overtime_multiplier_bps ?? undefined,
+                  overtimeRateMinor:
+                    selectedClient.overtime_rate_minor === null
+                      ? undefined
+                      : BigInt(selectedClient.overtime_rate_minor),
+                  eligibleForPercentage: selectedClient.eligible_for_percentage === 1,
+                }
+              : {}),
             hourlyRateMinor: customerMinor,
             effectiveFrom: input.effectiveFrom,
+            effectiveTo: member.ends_on || undefined,
           }).id;
         if (payChanged)
           payRuleId = v3.createCompensationRule(principal, {
             projectId: input.projectId,
             workerId: input.workerId,
             currency: project.currency,
+            ...(selectedPay && selectedPay.rule_type === input.workerPayType
+              ? {
+                  rateBasis: selectedPay.rate_basis as PayInput['rateBasis'],
+                  dailyGuaranteeMinutes: selectedPay.daily_guarantee_minutes ?? undefined,
+                  settlementTrigger:
+                    selectedPay.settlement_trigger as PayInput['settlementTrigger'],
+                  overtimeMethod: selectedPay.overtime_method,
+                  percentageBps: selectedPay.percentage_bps ?? undefined,
+                  percentageBasis:
+                    (selectedPay.percentage_basis as PayInput['percentageBasis']) ?? undefined,
+                  overtimeMultiplierBps: selectedPay.overtime_multiplier_bps ?? undefined,
+                  overtimeRateMinor:
+                    selectedPay.overtime_rate_minor === null
+                      ? undefined
+                      : BigInt(selectedPay.overtime_rate_minor),
+                  weekendMethod: selectedPay.weekend_method as PayInput['weekendMethod'],
+                  travelMethod: selectedPay.travel_method as PayInput['travelMethod'],
+                  standbyMethod: selectedPay.standby_method as PayInput['standbyMethod'],
+                }
+              : {}),
             ruleType: input.workerPayType,
             ...(input.workerPayType === 'PercentageOfEligibleClientLabor'
               ? { percentageBps: Number(payHundredths), percentageBasis: input.percentageBasis }
@@ -611,12 +721,34 @@ export class ProjectBillingSetupRepository {
                   ...(input.workerPayType === 'Daily' ? { rateBasis: 'daily' as const } : {}),
                 }),
             effectiveFrom: input.effectiveFrom,
+            effectiveTo: member.ends_on || undefined,
+          }).id;
+        if (internalChanged)
+          internalRuleId = v3.createInternalCostRule(principal, {
+            projectId: input.projectId,
+            workerId: input.workerId,
+            currency: project.currency,
+            ...(selectedInternal
+              ? {
+                  overtimeMethod: selectedInternal.overtime_method,
+                  overtimeMultiplierBps: selectedInternal.overtime_multiplier_bps ?? undefined,
+                  overtimeRateMinor:
+                    selectedInternal.overtime_rate_minor === null
+                      ? undefined
+                      : BigInt(selectedInternal.overtime_rate_minor),
+                }
+              : {}),
+            hourlyRateMinor: internalMinor!,
+            costMethod: 'loaded_hourly',
+            effectiveFrom: input.effectiveFrom,
+            effectiveTo: member.ends_on || undefined,
           }).id;
         v3.createAssignmentRateOverride(principal, {
           projectMemberId: member.id,
           effectiveFrom: input.effectiveFrom,
           clientLaborRateId: clientRuleId,
           compensationRuleId: payRuleId,
+          internalCostRuleId: internalRuleId,
         });
         const resolved = resolveAssignmentCommercialTerms(this.sqlite, {
           projectId: input.projectId,
@@ -626,7 +758,8 @@ export class ProjectBillingSetupRepository {
         });
         if (
           (clientRuleId && resolved.clientLaborRate?.rule.id !== clientRuleId) ||
-          (payRuleId && resolved.workerCompensation?.rule.id !== payRuleId)
+          (payRuleId && resolved.workerCompensation?.rule.id !== payRuleId) ||
+          (internalRuleId && resolved.internalCost?.rule.id !== internalRuleId)
         )
           throw new ConflictError(
             'A more specific assignment override controls this person. Review advanced commercial terms.',
@@ -645,28 +778,38 @@ export class ProjectBillingSetupRepository {
             markup_bps: number;
           }
         | undefined;
+      const expenseRepository = new AssignmentExpensePolicyRepository(this.sqlite);
+      const preference = expenseRepository.effectiveReimbursementPreference(
+        input.projectId,
+        member.id,
+        input.effectiveFrom,
+      );
+      const wantedOverride =
+        input.expensePayer !== 'worker'
+          ? preference.workerOverride
+          : input.reimbursementSource === 'inherit'
+            ? null
+            : input.reimbursementSource === 'override'
+              ? input.workerReimbursement
+              : preference.mode === input.workerReimbursement
+                ? preference.workerOverride
+                : input.workerReimbursement;
+      const reimbursementOverrideChanged = wantedOverride !== preference.workerOverride;
       const policyChanged =
         !policy ||
-        (project.worker_expense_reimbursement_default === null &&
+        ((wantedOverride ?? preference.projectDefault) === null &&
           policy.worker_reimbursement !== input.workerReimbursement) ||
         policy.client_recovery !== input.clientRecovery ||
         policy.markup_bps !== markupBps;
-      const wantedOverride =
-        project.worker_expense_reimbursement_default && input.expensePayer === 'worker'
-          ? input.workerReimbursement === project.worker_expense_reimbursement_default
-            ? null
-            : input.workerReimbursement
-          : member.worker_expense_reimbursement_override;
-      const reimbursementOverrideChanged =
-        wantedOverride !== member.worker_expense_reimbursement_override;
       if (reimbursementOverrideChanged) {
-        this.sqlite
-          .prepare(
-            `UPDATE project_member SET worker_expense_reimbursement_override=?,updated_at=?,version=version+1 WHERE id=?`,
-          )
-          .run(wantedOverride, stamp(), member.id);
-        recordAuditEvent(this.sqlite, principal, 'assignment.update', 'project_member', member.id, {
-          workerExpenseReimbursementOverride: wantedOverride,
+        const current = this.sqlite
+          .prepare('SELECT version FROM project_member WHERE id=?')
+          .get(member.id) as { version: number };
+        expenseRepository.setWorkerReimbursementOverride(principal, {
+          projectMemberId: member.id,
+          expectedVersion: current.version,
+          mode: wantedOverride,
+          effectiveFrom: input.effectiveFrom,
           reason: 'Project billing setup per-person reimbursement',
         });
       }
@@ -687,7 +830,12 @@ export class ProjectBillingSetupRepository {
         });
       }
       return {
-        changed: clientChanged || payChanged || policyChanged || reimbursementOverrideChanged,
+        changed:
+          clientChanged ||
+          payChanged ||
+          internalChanged ||
+          policyChanged ||
+          reimbursementOverrideChanged,
       };
     });
   }

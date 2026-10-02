@@ -1071,6 +1071,16 @@ export class PortalRepository {
         );
       }
 
+      const authoredPreferences = this.sqlite
+        .prepare(
+          'SELECT 1 FROM reimbursement_preference_revision WHERE project_id=? AND created_by IS NOT NULL LIMIT 1',
+        )
+        .get(projectId);
+      if (authoredPreferences)
+        throw new ConflictError(
+          'Project has recorded commercial agreements and cannot be deleted. Please archive the project instead.',
+        );
+
       this.sqlite.prepare('UPDATE project SET expected_schedule_id=NULL WHERE id=?').run(projectId);
       try {
         this.sqlite
@@ -3229,6 +3239,8 @@ export class PortalRepository {
       const ownerId = String(row.worker_id ?? row.author_id ?? '');
       const objectDate = String(row.work_date ?? row.spent_on ?? row.report_date ?? '');
       this.assertProjectObjectAccess(principal, projectId, objectDate);
+      if (principal.role === 'project_manager' && input.recordType === 'expense')
+        this.assertOperationalReviewer(principal, projectId);
       if (principal.role === 'worker' && ownerId !== principal.userId) {
         if (input.recordType !== 'expense')
           throw new AccessDeniedError(
@@ -3260,7 +3272,11 @@ export class PortalRepository {
             input.correctionId,
           )
       )
-        throw new ConflictError('Only an unreviewed correction draft can be withdrawn');
+        throw new ConflictError(
+          principal.role === 'project_manager' && input.recordType === 'expense'
+            ? 'Correction draft changed before withdrawal'
+            : 'Only an unreviewed correction draft can be withdrawn',
+        );
       if (
         input.recordType === 'time_entry' &&
         this.sqlite
@@ -3326,6 +3342,12 @@ export class PortalRepository {
     if (reason.length < 3)
       throw new ValidationError('Correction reason must contain at least 3 characters');
     if (
+      principal.role === 'project_manager' &&
+      input.recordType === 'expense' &&
+      input.receiptUpload
+    )
+      throw new AccessDeniedError('Private expense fields require worker or owner access');
+    if (
       input.receiptUpload &&
       (input.recordType !== 'expense' || !/^[a-f0-9]{64}$/.test(input.receiptUpload.sha256))
     )
@@ -3382,6 +3404,8 @@ export class PortalRepository {
           objectDate,
         );
       else this.assertProjectObjectAccess(principal, projectId, objectDate, ownerId);
+      if (principal.role === 'project_manager' && input.recordType === 'expense')
+        this.assertOperationalReviewer(principal, projectId);
       if (
         principal.role !== 'owner_admin' &&
         principal.role !== 'finance_admin' &&
@@ -3448,7 +3472,11 @@ export class PortalRepository {
         original.billing_state === 'locked' ||
         original.locked_at
       )
-        throw new ConflictError('Financially finalized records require a finance correction');
+        throw new ConflictError(
+          principal.role === 'project_manager' && input.recordType === 'expense'
+            ? 'Expense is no longer eligible for an operational correction'
+            : 'Financially finalized records require a finance correction',
+        );
       if (
         input.recordType === 'time_entry' &&
         this.sqlite
@@ -3463,7 +3491,11 @@ export class PortalRepository {
         (String(original.reimbursement_state ?? '') === 'reimbursed' ||
           (original.reimbursed_at !== null && original.reimbursed_at !== undefined))
       )
-        throw new ConflictError('Reimbursed expense requires an explicit adjustment');
+        throw new ConflictError(
+          principal.role === 'project_manager'
+            ? 'Expense is no longer eligible for an operational correction'
+            : 'Reimbursed expense requires an explicit adjustment',
+        );
       if (
         input.recordType === 'expense' &&
         this.sqlite
@@ -3473,7 +3505,9 @@ export class PortalRepository {
           .get(input.originalId)
       )
         throw new ConflictError(
-          'This receipt is allocated across crew shifts and cannot be edited. Create a documented correction instead.',
+          principal.role === 'project_manager'
+            ? 'Expense is no longer eligible for an operational correction'
+            : 'This receipt is allocated across crew shifts and cannot be edited. Create a documented correction instead.',
         );
       if (
         (input.recordType === 'daily_report' || input.recordType === 'technical_report') &&
@@ -3599,8 +3633,42 @@ export class PortalRepository {
       };
       for (const key of Object.keys(patch)) {
         const column = aliases[key] ?? key;
+        if (
+          principal.role === 'project_manager' &&
+          input.recordType === 'expense' &&
+          ['amount_minor', 'receipt_document_id', 'payment_method'].includes(column)
+        )
+          throw new AccessDeniedError('Private expense fields require worker or owner access');
         if (!allowedPatchColumns[input.recordType].has(column))
           throw new ValidationError('Correction field is not allowed');
+        if (
+          input.recordType === 'expense' &&
+          column === 'category' &&
+          (typeof patch[key] !== 'string' ||
+            ![
+              'hotel',
+              'rental_car',
+              'fuel',
+              'tolls',
+              'parking',
+              'airfare',
+              'ground_transport',
+              'meals',
+              'per_diem',
+              'materials',
+              'tools',
+              'shipping',
+              'phone_data',
+              'visa_permit',
+              'other',
+            ].includes(String(patch[key])))
+        )
+          throw new ValidationError('Expense category is invalid');
+        if (input.recordType === 'expense' && column === 'description') {
+          if (typeof patch[key] !== 'string' || String(patch[key]).trim().length < 3)
+            throw new ValidationError('Expense description is too short');
+          assertText(patch[key] as string, 'Description', 5000);
+        }
         if (column === 'work_date' || column === 'spent_on' || column === 'report_date') {
           if (typeof patch[key] !== 'string')
             throw new ValidationError('Correction date is invalid');
@@ -10643,7 +10711,7 @@ export class PortalRepository {
              FROM project_member pm_scope
              WHERE pm_scope.project_id=e.project_id
                AND pm_scope.user_id=e.worker_id
-                AND pm_scope.status='active'
+                AND (pm_scope.status='active' OR (pm_scope.status='inactive' AND pm_scope.ends_on IS NOT NULL))
                 AND pm_scope.starts_on<=e.spent_on
                 AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=e.spent_on)
             )
@@ -10746,25 +10814,29 @@ export class PortalRepository {
   expenseDetail(principal: Principal, id: string) {
     this.assertReadable(principal);
     const restrictedSupplier = Boolean(readSupplierProfile(this.sqlite, principal.userId));
-    const expenseColumns = restrictedSupplier
-      ? `e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,e.category,e.currency,e.amount_minor,
+    const expenseColumns =
+      principal.role === 'project_manager'
+        ? `e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,e.category,
+         e.vendor,e.description,e.approval_state,e.version,e.created_at,e.updated_at`
+        : restrictedSupplier
+          ? `e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,e.category,e.currency,e.amount_minor,
          e.vendor,e.description,e.who_paid,e.payment_method,e.receipt_required,
          e.receipt_document_id,e.approval_state,e.version,e.created_at,e.updated_at`
-      : this.canSeeFinanceFields(principal)
-        ? 'e.*'
-        : principal.role === 'worker'
-          ? `e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,e.category,e.currency,e.amount_minor,
+          : this.canSeeFinanceFields(principal)
+            ? 'e.*'
+            : principal.role === 'worker'
+              ? `e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,e.category,e.currency,e.amount_minor,
            e.vendor,e.description,e.who_paid,e.payment_method,e.receipt_required,
            e.receipt_document_id,e.approval_state,e.reimbursement_state,
            e.reimbursement_amount_minor,e.expected_reimbursement_on,e.reimbursed_at,e.reimbursement_reference,
            e.version,e.created_at,e.updated_at`
-          : `e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,e.category,e.currency,e.amount_minor,
+              : `e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,e.category,e.currency,e.amount_minor,
            e.vendor,e.description,e.who_paid,e.payment_method,e.receipt_required,
            e.receipt_document_id,e.approval_state,e.version,e.created_at,e.updated_at`;
     const row = this.sqlite
       .prepare(
         `SELECT ${expenseColumns},p.project_number,p.name project_name,
-                p.site_name,p.currency project_currency,u.name worker_name,u.email worker_email
+                p.site_name,${principal.role === 'project_manager' ? '' : 'p.currency project_currency,'}u.name worker_name,u.email worker_email
          FROM expense e JOIN project p ON p.id=e.project_id JOIN user u ON u.id=e.worker_id
          WHERE e.id=?`,
       )

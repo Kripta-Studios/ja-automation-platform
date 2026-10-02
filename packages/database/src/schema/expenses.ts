@@ -1,4 +1,12 @@
-import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 import { users } from './identity.ts';
 import { projects } from './projects.ts';
 import { timeEntries } from './time.ts';
@@ -154,4 +162,41 @@ export const crewSharedExpenseAllocations = sqliteTable(
     recordedAt: text('recorded_at').notNull(),
   },
   (table) => [primaryKey({ columns: [table.groupId, table.timeEntryId] })],
+);
+
+/** Immutable project/assignment reimbursement preferences selected by expense date. */
+export const reimbursementPreferenceRevisions = sqliteTable(
+  'reimbursement_preference_revision',
+  {
+    id: text('id').primaryKey(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onUpdate: 'restrict', onDelete: 'cascade' }),
+    projectMemberId: text('project_member_id').references(() => projectMembers.id, {
+      onUpdate: 'restrict',
+      onDelete: 'cascade',
+    }),
+    mode: text('mode'),
+    effectiveFrom: text('effective_from').notNull(),
+    version: integer('version').notNull(),
+    reason: text('reason').notNull(),
+    createdBy: text('created_by').references(() => users.id, {
+      onUpdate: 'restrict',
+      onDelete: 'restrict',
+    }),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [
+    index('reimbursement_project_lookup_idx').on(
+      table.projectId,
+      table.projectMemberId,
+      table.effectiveFrom,
+    ),
+    uniqueIndex('reimbursement_project_date_uq')
+      .on(table.projectId, table.effectiveFrom)
+      .where(sql`${table.projectMemberId} IS NULL`),
+    uniqueIndex('reimbursement_assignment_date_uq')
+      .on(table.projectMemberId, table.effectiveFrom)
+      .where(sql`${table.projectMemberId} IS NOT NULL`),
+  ],
 );

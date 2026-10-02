@@ -21,3 +21,5 @@ export * from './schema/localized-artifacts.ts';
 export * from './schema/accounting-pack-snapshot-bridge.ts';
 export * from './schema/report-attachments.ts';
 export * from './schema/worker-statements.ts';
+
+export * from './schema/project-person-defaults.ts';

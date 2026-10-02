@@ -109,12 +109,12 @@ const financeInputProblems: Readonly<Record<string, FinanceInputProblem>> = {
   setProjectReimbursementDefault: {
     code: 'FINANCE_PROJECT_REIMBURSEMENT_FIELDS_INVALID',
     key: 'problem.finance.input.projectReimbursement',
-    message: 'Review the project worker reimbursement mode, version, and reason.',
+    message: 'Review the project worker reimbursement mode, effective date, version, and reason.',
   },
   setWorkerReimbursementOverride: {
     code: 'FINANCE_WORKER_REIMBURSEMENT_FIELDS_INVALID',
     key: 'problem.finance.input.workerReimbursement',
-    message: "Review the person's worker reimbursement mode, version, and reason.",
+    message: "Review the person's worker reimbursement mode, effective date, version, and reason.",
   },
   createAssignmentExpensePolicy: {
     code: 'FINANCE_ASSIGNMENT_EXPENSE_POLICY_FIELDS_INVALID',
@@ -1095,6 +1095,58 @@ export function financeFailure(
         fieldErrors: { markupBps: ['Enter a positive markup only for markup treatment'] },
       },
     );
+  if (message.startsWith('Reimbursement effective date must be'))
+    return problem(
+      400,
+      'problem.finance.reimbursementDateInvalid',
+      {},
+      'Choose a valid reimbursement effective date.',
+      {
+        code: 'REIMBURSEMENT_EFFECTIVE_DATE_INVALID',
+        fieldErrors: { effectiveFrom: ['problem.finance.reimbursementDateInvalid'] },
+      },
+    );
+  if (message === 'Reimbursement date must fall within the assignment')
+    return problem(
+      400,
+      'problem.finance.reimbursementOutsideAssignment',
+      {},
+      'Choose a reimbursement effective date within this assignment.',
+      {
+        code: 'REIMBURSEMENT_DATE_OUTSIDE_ASSIGNMENT',
+        fieldErrors: { effectiveFrom: ['problem.finance.reimbursementOutsideAssignment'] },
+      },
+    );
+  if (
+    message ===
+    'A reimbursement preference already starts on this date. Choose another effective date.'
+  )
+    return problem(
+      409,
+      'problem.finance.reimbursementDateExists',
+      {},
+      'A reimbursement preference already starts on this date. Choose another effective date.',
+      {
+        code: 'REIMBURSEMENT_DATE_EXISTS',
+        fieldErrors: { effectiveFrom: ['problem.finance.reimbursementDateExists'] },
+        remedies: review,
+      },
+    );
+  if (
+    message ===
+    'Reimbursement date overlaps invoice, finalized settlement, or paid expense history. Choose a later effective date.'
+  )
+    return problem(
+      409,
+      'problem.finance.reimbursementHistoryLocked',
+      {},
+      'This date overlaps invoice, finalized settlement, or paid expense history. Choose a later effective date.',
+      {
+        code: 'REIMBURSEMENT_HISTORY_LOCKED',
+        fieldErrors: { effectiveFrom: ['problem.finance.reimbursementHistoryLocked'] },
+        remedies: review,
+      },
+    );
   if (
     message === 'Project changed. Reload its reimbursement policy' ||
     message === 'Assignment changed. Reload its reimbursement policy'
@@ -1414,12 +1466,14 @@ const projectReimbursementForm = z.object({
   projectId: z.string().trim().min(1).max(200),
   expectedVersion: z.coerce.number().int().positive(),
   mode: reimbursementModeForm,
+  effectiveFrom: z.iso.date(),
   reason: z.string().trim().min(3).max(2000),
 });
 const workerReimbursementForm = z.object({
   projectMemberId: z.string().trim().min(1).max(200),
   expectedVersion: z.coerce.number().int().positive(),
   mode: reimbursementModeForm,
+  effectiveFrom: z.iso.date(),
   reason: z.string().trim().min(3).max(2000),
 });
 
@@ -1436,7 +1490,14 @@ const rawFinanceActions = {
         {},
         'Check project reimbursement fields',
         {
-          fields: parsed.error.flatten().fieldErrors,
+          fields: {
+            ...parsed.error.flatten().fieldErrors,
+            ...(parsed.error.flatten().fieldErrors.effectiveFrom
+              ? {
+                  effectiveFrom: ['problem.finance.reimbursementDateInvalid'],
+                }
+              : {}),
+          },
         },
       );
     const context = openPortalRepository(locals);
@@ -1472,7 +1533,14 @@ const rawFinanceActions = {
         {},
         'Check worker reimbursement fields',
         {
-          fields: parsed.error.flatten().fieldErrors,
+          fields: {
+            ...parsed.error.flatten().fieldErrors,
+            ...(parsed.error.flatten().fieldErrors.effectiveFrom
+              ? {
+                  effectiveFrom: ['problem.finance.reimbursementDateInvalid'],
+                }
+              : {}),
+          },
         },
       );
     const context = openPortalRepository(locals);
@@ -1490,8 +1558,7 @@ const rawFinanceActions = {
       // A stale assignment may no longer appear in the active person list.
       // Resolve its owning project from the record itself before offering a link.
       const assignmentProject =
-        error instanceof ConflictError &&
-        error.message === 'Assignment changed. Reload its reimbursement policy'
+        error instanceof ConflictError || error instanceof ValidationError
           ? (context.sqlite
               .prepare('SELECT project_id FROM project_member WHERE id=?')
               .get(parsed.data.projectMemberId) as { project_id: string } | undefined)

@@ -1,13 +1,15 @@
 import { error, isActionFailure, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { lastCompletePeriodForCadence, type BillingCadence } from '@ja/billing-engine';
-import { invoicePeriodSchema, isValidIanaTimeZone } from '@ja/schemas';
+import { invoicePeriodSchema, isValidIanaTimeZone, projectRecordIdSchema } from '@ja/schemas';
 import { newId } from '@ja/domain';
 import { z } from 'zod';
+import { projectPersonConfigSchema } from '$lib/server/project-person-default-input';
 import {
   AccessDeniedError,
   ConflictError,
   ProjectBillingSetupRepository,
+  ProjectPersonDefaultsRepository,
   ValidationError,
   V3ValidationError,
   V3ConflictError,
@@ -147,9 +149,10 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
     const latestExpenseRule = [...billingRules]
       .filter((rule) => rule.stream_type === 'expense' && Number(rule.enabled) === 1)
       .sort((a, b) => String(b.effective_from).localeCompare(String(a.effective_from)))[0];
-    const billingSetup = financeVisible && validProjectTimezone
-      ? new ProjectBillingSetupRepository(context.sqlite, context.repository)
-      : null;
+    const billingSetup =
+      financeVisible && validProjectTimezone
+        ? new ProjectBillingSetupRepository(context.sqlite, context.repository)
+        : null;
     const projectRow = overview.project as { client_id?: string };
     const invoiceDraftPeriod = cadencePeriod(
       (latestLaborRule ?? billingRules[0]) as Record<string, unknown> | undefined,
@@ -168,6 +171,18 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
           ? context.repository.listAllWorkers(context.principal)
           : [],
       billingRules,
+      personDefaults: financeVisible
+        ? new ProjectPersonDefaultsRepository(context.sqlite, context.repository).latest(
+            context.principal,
+            params.id,
+          )
+        : null,
+      personDefaultsRevision: financeVisible
+        ? new ProjectPersonDefaultsRepository(context.sqlite, context.repository).revision(
+            context.principal,
+            params.id,
+          )
+        : 0,
       billingSetup: billingSetup
         ? {
             version: billingSetup.currentVersion(context.principal, params.id),
@@ -228,12 +243,14 @@ const amount = z
   .regex(/^\d{1,10}(?:[.,]\d{1,2})?$/);
 const personTermsSchema = z
   .object({
-    projectId: z.uuid(),
+    projectId: projectRecordIdSchema,
     projectMemberId: z.uuid(),
     workerId: z.string().min(1).max(200),
     expectedFingerprint: z.string().regex(/^[0-9a-f]{64}$/),
     effectiveFrom: z.iso.date(),
     customerHourlyRate: amount,
+    internalCostHourlyRate: amount.optional(),
+    pinRates: z.preprocess((value) => value === true || value === 'on', z.boolean()).default(false),
     workerPayType: z.enum([
       'Hourly',
       'Daily',
@@ -250,6 +267,7 @@ const personTermsSchema = z
     ]),
     expensePayer: z.enum(['worker', 'company_card', 'company_direct', 'client', 'third_party']),
     workerReimbursement: z.enum(['at_cost', 'none']),
+    reimbursementSource: z.enum(['inherit', 'override']).optional(),
     clientRecovery: z.enum(['at_cost', 'markup', 'included', 'non_billable', 'client_direct']),
     markupPercent: z.union([z.literal(''), amount]),
   })
@@ -289,6 +307,7 @@ const personTermsSchema = z
   });
 
 type DetailAction =
+  | 'saveProjectPersonDefaults'
   | 'submitMilestone'
   | 'savePeopleTerms'
   | 'savePersonTerms'
@@ -324,7 +343,11 @@ function personFieldKey(field: string, message: string): DetailProblemKey {
   if (message === 'Markup is only available with markup recovery')
     return 'problem.projectDetail.personMarkupNotApplicable';
   if (field === 'effectiveFrom') return 'problem.projectDetail.personTermsDateInvalid';
-  if (['customerHourlyRate', 'workerPayAmount', 'markupPercent'].includes(field))
+  if (
+    ['customerHourlyRate', 'internalCostHourlyRate', 'workerPayAmount', 'markupPercent'].includes(
+      field,
+    )
+  )
     return 'problem.projectDetail.personTermsRateInvalid';
   return 'problem.projectDetail.personTermsInvalid';
 }
@@ -372,6 +395,15 @@ function localizedSchemaFields(
 }
 
 const detailRules: readonly DetailRule[] = [
+  [
+    'Project has recorded commercial agreements and cannot be deleted. Please archive the project instead.',
+    'PROJECT_DELETE_HAS_COMMERCIAL_AGREEMENTS',
+    'problem.project.deleteHasCommercialAgreements',
+    'This project has recorded commercial agreements and cannot be deleted. Archive the project instead.',
+    409,
+    [],
+    'review_project_status',
+  ],
   [
     'Milestone changed or not found',
     'PROJECT_MILESTONE_CHANGED',
@@ -1076,7 +1108,7 @@ function detailFailure(
       'correct_field',
     );
   const rateField =
-    /^(Customer hourly rate|Worker compensation|Expense markup) must be a non-negative amount with at most two decimals$/u.exec(
+    /^(Customer hourly rate|Internal hourly cost|Worker compensation|Expense markup) must be a non-negative amount with at most two decimals$/u.exec(
       cause.message,
     )?.[1];
   if (rateField) {
@@ -1085,7 +1117,9 @@ function detailFailure(
         ? 'customerHourlyRate'
         : rateField === 'Worker compensation'
           ? 'workerPayAmount'
-          : 'markupPercent';
+          : rateField === 'Internal hourly cost'
+            ? 'internalCostHourlyRate'
+            : 'markupPercent';
     return make(
       400,
       'PROJECT_PERSON_TERMS_RATE_INVALID',
@@ -1140,6 +1174,61 @@ function detailFailure(
   return actionFailure(cause, extras);
 }
 export const actions: Actions = {
+  saveProjectPersonDefaults: async ({ request, locals, params }) => {
+    const values = detailValues(await request.formData());
+    const schema = projectPersonConfigSchema.safeExtend({
+      projectId: projectRecordIdSchema,
+      effectiveFrom: z.iso.date(),
+      expectedRevision: z.coerce.number().int().nonnegative(),
+    });
+    const parsed = schema.safeParse(values);
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'problem.projectDetail.personTermsInvalid',
+        {},
+        'Review the project defaults and correct the highlighted fields.',
+        {
+          action: 'saveProjectPersonDefaults',
+          actionName: 'saveProjectPersonDefaults',
+          values,
+          fields: localizedSchemaFields(parsed.error.issues, 'person'),
+        },
+      );
+    let context: ReturnType<typeof openPortalRepository> | undefined;
+    try {
+      if (!locals.user || !['owner_admin', 'finance_admin'].includes(locals.user.role ?? ''))
+        throw new AccessDeniedError('Finance role required');
+      if (parsed.data.projectId !== params.id) throw new AccessDeniedError('Finance role required');
+      context = openPortalRepository(locals);
+      const { projectId, effectiveFrom, expectedRevision, ...config } = parsed.data;
+      new ProjectPersonDefaultsRepository(context.sqlite, context.repository).save(
+        context.principal,
+        { projectId, effectiveFrom, expectedRevision, config },
+      );
+      return {
+        ...actionSuccess(
+          'action.projects.personDefaultsSaved',
+          {},
+          'Project defaults saved. Existing person agreements are unchanged.',
+        ),
+        action: 'saveProjectPersonDefaults',
+      };
+    } catch (caught) {
+      const response = detailFailure(caught, 'saveProjectPersonDefaults', values, params.id ?? '');
+      if (caught instanceof ConflictError || caught instanceof ValidationError)
+        return actionFail(
+          caught instanceof ConflictError ? 409 : 400,
+          'action.error.failed',
+          {},
+          caught.message,
+          { action: 'saveProjectPersonDefaults', actionName: 'saveProjectPersonDefaults', values },
+        );
+      return response;
+    } finally {
+      context?.sqlite.close();
+    }
+  },
   submitMilestone: async ({ request, locals, params }) => {
     const raw = detailValues(await request.formData());
     if (!locals.user)
@@ -1382,7 +1471,7 @@ export const actions: Actions = {
       );
     const schema = z
       .object({
-        projectId: z.uuid(),
+        projectId: projectRecordIdSchema,
         expectedVersion: z.coerce.number().int().nonnegative(),
         expectedRulesFingerprint: z.string().regex(/^[0-9a-f]{64}$/),
         requestKey: z.uuid(),

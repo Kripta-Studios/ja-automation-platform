@@ -1,0 +1,327 @@
+<script lang="ts">
+  import { untrack } from 'svelte';
+  import ProjectPersonTermsFields from './ProjectPersonTermsFields.svelte';
+  let {
+    workers,
+    currency,
+    canAssignWorkers,
+    values,
+    errors = {},
+    t,
+  }: {
+    workers: Record<string, unknown>[];
+    currency: string;
+    canAssignWorkers: boolean;
+    values?: Record<string, unknown>;
+    errors?: Record<string, string[] | undefined>;
+    t: (key: string) => string;
+  } = $props();
+  type Row = {
+    workerId: string;
+    startsOn: string;
+    endsOn: string;
+    mode: 'defaults' | 'override';
+    config: Record<string, string>;
+  };
+  const empty = (): Record<string, string> => ({
+    customerHourlyRate: '',
+    internalCostHourlyRate: '',
+    workerPayType: 'Hourly',
+    workerPayAmount: '',
+    percentageBasis: 'CLIENT_LABOR_BEFORE_TAX',
+    expensePayer: 'worker',
+    workerReimbursement: 'at_cost',
+    clientRecovery: 'at_cost',
+    markupPercent: '',
+  });
+  const initial = untrack(() => {
+    let defaults: { effectiveFrom: string; config: Record<string, string> } | null = null;
+    let rows: Row[] = [];
+    try {
+      defaults = JSON.parse(String(values?.personDefaultsJson ?? 'null'));
+    } catch {
+      /* Retain valid drafts only. */
+    }
+    try {
+      rows = JSON.parse(String(values?.initialAssignmentsJson ?? '[]'));
+    } catch {
+      /* The server displays invalid structured input. */
+    }
+    return {
+      enabled: Boolean(defaults),
+      effectiveFrom:
+        defaults?.effectiveFrom ??
+        String(values?.startDate ?? new Date().toISOString().slice(0, 10)),
+      config: defaults?.config ?? empty(),
+      rows: (Array.isArray(rows) ? rows : [])
+        .filter((row) => row && typeof row === 'object')
+        .map((row) => ({ ...row, config: row.config ?? empty() })),
+    };
+  });
+  let enabled = $state(initial.enabled);
+  let effectiveFrom = $state(initial.effectiveFrom);
+  let config = $state(initial.config);
+  let rows = $state(initial.rows);
+  const eligible = $derived(
+    workers.filter((worker) => worker.status === 'active' && worker.role === 'worker'),
+  );
+  const payload = $derived(
+    rows.map((row) => ({
+      workerId: row.workerId,
+      startsOn: row.startsOn,
+      endsOn: row.endsOn,
+      mode: row.mode,
+      ...(row.mode === 'override' ? { config: row.config } : {}),
+    })),
+  );
+</script>
+
+<div class="creation-people wide-field" data-project-creation-people>
+  <details open={enabled}>
+    <summary>{t('Project defaults for people (optional)')}</summary>
+    <label class="check"
+      ><input
+        type="checkbox"
+        bind:checked={enabled}
+        onchange={() => {
+          if (!enabled)
+            rows.forEach((row) => {
+              if (row.mode === 'defaults') {
+                row.mode = 'override';
+                row.config = { ...config };
+              }
+            });
+        }}
+      />{t('Save default rates, pay and expense terms for this project')}</label
+    >
+    {#if enabled}<label
+        >{t('Terms effective from')}<input
+          type="date"
+          bind:value={effectiveFrom}
+          aria-invalid={Boolean(errors['personDefaults.effectiveFrom'])}
+          required
+        /></label
+      ><ProjectPersonTermsFields
+        bind:config
+        {currency}
+        {t}
+        errors={Object.fromEntries(
+          Object.entries(errors)
+            .filter(([key]) => key.startsWith('personDefaults.config.'))
+            .map(([key, messages]) => [key.slice(22), messages]),
+        )}
+      />{/if}
+    <p class="form-help">
+      {t(
+        'New assignments can start from these defaults. Each saved person agreement is independent. Changing project settings or defaults does not change or erase worker overrides.',
+      )}
+    </p>
+  </details>
+  {#if canAssignWorkers}<details open={rows.length > 0}>
+      <summary>{t('Worker assignments (optional)')}</summary>
+      <p class="form-help">
+        {t(
+          'Add workers now, use project defaults or enter individual terms. You can also assign workers after creating the project.',
+        )}
+      </p>
+      <table>
+        <caption>{t('Worker assignment configuration')}</caption>
+        <thead
+          ><tr
+            ><th>{t('Worker')}</th><th>{t('Assignment dates')}</th><th
+              >{t('Rates, pay and expenses')}</th
+            ><th>{t('Actions')}</th></tr
+          ></thead
+        >
+        <tbody
+          >{#each rows as row, i}<tr>
+              <td
+                ><label
+                  >{t('Worker')}<select
+                    bind:value={row.workerId}
+                    aria-invalid={Boolean(errors[`assignments.${i}.workerId`])}
+                    required
+                    ><option value="">{t('Select worker')}</option>{#each eligible as worker}<option
+                        value={String(worker.id)}
+                        disabled={rows.some(
+                          (other, index) => index !== i && other.workerId === String(worker.id),
+                        )}>{String(worker.name)} · {String(worker.email)}</option
+                      >{/each}</select
+                  ></label
+                ></td
+              >
+              <td
+                ><label
+                  >{t('Starts on')}<input
+                    type="date"
+                    bind:value={row.startsOn}
+                    aria-invalid={Boolean(errors[`assignments.${i}.startsOn`])}
+                    required
+                  /></label
+                ><label
+                  >{t('Ends on (optional)')}<input
+                    type="date"
+                    bind:value={row.endsOn}
+                    aria-invalid={Boolean(errors[`assignments.${i}.endsOn`])}
+                  /></label
+                ></td
+              >
+              <td
+                ><label
+                  >{t('Terms source')}<select bind:value={row.mode}
+                    ><option value="defaults" disabled={!enabled}
+                      >{t('Use project defaults')}</option
+                    ><option value="override">{t('Override for this person')}</option></select
+                  ></label
+                >
+                {#if row.mode === 'override'}<ProjectPersonTermsFields
+                    config={row.config}
+                    {currency}
+                    {t}
+                    errors={Object.fromEntries(
+                      Object.entries(errors)
+                        .filter(([key]) => key.startsWith(`assignments.${i}.config.`))
+                        .map(([key, messages]) => [
+                          key.slice(`assignments.${i}.config.`.length),
+                          messages,
+                        ]),
+                    )}
+                  />{:else}<p class="form-help">
+                    {t(
+                      'The saved project defaults will be copied into this assignment. Future project changes preserve this agreement.',
+                    )}
+                  </p>{/if}
+              </td>
+              <td>
+                {#each Object.entries(errors).filter(([key]) => key.startsWith(`assignments.${i}.`) && !key.includes('.config.')) as [key, messages]}<p
+                    class="warning"
+                    role="alert"
+                  >
+                    {key.split('.').at(-1)}: {messages?.map(t).join(' ')}
+                  </p>{/each}
+                <button
+                  type="button"
+                  class="secondary-button"
+                  onclick={() => {
+                    rows = rows.filter((_, index) => index !== i);
+                  }}
+                  aria-label={`${t('Remove worker assignment')} ${i + 1}`}>{t('Remove')}</button
+                ></td
+              >
+            </tr>{/each}</tbody
+        >
+      </table>
+      <button
+        type="button"
+        class="secondary-button"
+        disabled={rows.length >= 100 || eligible.length === 0}
+        onclick={() => {
+          rows.push({
+            workerId: '',
+            startsOn: effectiveFrom,
+            endsOn: '',
+            mode: enabled ? 'defaults' : 'override',
+            config: { ...config },
+          });
+        }}>{t('Add worker assignment')}</button
+      >
+    </details>
+  {/if}
+  <input
+    type="hidden"
+    name="personDefaultsJson"
+    value={JSON.stringify(enabled ? { effectiveFrom, config } : null)}
+  />
+  <input
+    type="hidden"
+    name="initialAssignmentsJson"
+    value={JSON.stringify(canAssignWorkers ? payload : [])}
+  />
+</div>
+
+<style>
+  .creation-people {
+    display: grid;
+    gap: 1rem;
+    grid-column: 1/-1;
+    min-width: 0;
+  }
+  details {
+    border: 1px solid var(--line, #d9e0e7);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    min-width: 0;
+  }
+  summary {
+    cursor: pointer;
+    min-height: 44px;
+    align-content: center;
+    font-weight: 600;
+  }
+  label {
+    display: grid;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+    min-width: 0;
+  }
+  .check {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+  input,
+  select {
+    min-height: 44px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin: 1rem 0;
+  }
+  caption {
+    text-align: left;
+    font-weight: 600;
+    padding: 0.75rem 0;
+  }
+  th,
+  td {
+    padding: 0.75rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--line, #d9e0e7);
+    overflow-wrap: anywhere;
+  }
+  th:nth-child(3) {
+    width: 45%;
+  }
+  td select,
+  td input {
+    width: 100%;
+  }
+  @media (max-width: 900px) {
+    table,
+    tbody,
+    tr,
+    td {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    thead {
+      display: none;
+    }
+    tr {
+      border: 1px solid var(--line, #d9e0e7);
+      border-radius: 0.75rem;
+      margin-bottom: 1rem;
+      padding: 0.25rem;
+    }
+    td {
+      border-bottom: 0;
+    }
+  }
+</style>

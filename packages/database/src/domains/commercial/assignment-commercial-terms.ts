@@ -212,7 +212,8 @@ function assignmentIds(sqlite: DatabaseSync, context: CommercialTermsContext): r
   return (
     sqlite
       .prepare(
-        `SELECT id FROM project_member WHERE project_id=? AND user_id=? AND status='active'
+        `SELECT id FROM project_member WHERE project_id=? AND user_id=?
+          AND (status='active' OR (status='inactive' AND ends_on IS NOT NULL))
           AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) ORDER BY starts_on DESC,id`,
       )
       .all(context.projectId, context.workerId, context.workDate, context.workDate) as {

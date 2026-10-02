@@ -2,9 +2,12 @@
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { base } from '$app/paths';
-  import { enhance, type SubmitFunction } from '$app/forms';
+  import { enhance } from '$app/forms';
+  import type { SubmitFunction } from '@sveltejs/kit';
   import { page } from '$app/stores';
-  import { onMount, tick } from 'svelte';
+  import { beforeNavigate } from '$app/navigation';
+  import { confirmDirtyForms, dirtyFormGuard } from '$lib/portal/dirty-form-guard';
+  import { onMount, tick, untrack } from 'svelte';
   import {
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
@@ -59,6 +62,71 @@
       value === null || value === undefined ? null : String(value),
     );
   const record = $derived(data.record as Row);
+  const canViewExpenseMoney = $derived(
+    data.expenseMoneyVisible !== false && data.user?.role !== 'project_manager',
+  );
+  let pmCorrectionForm: HTMLFormElement | undefined = $state();
+  beforeNavigate((navigation) => {
+    if (
+      navigation.to?.url.pathname === navigation.from?.url.pathname &&
+      navigation.to?.url.search === navigation.from?.url.search
+    )
+      return;
+    if (
+      !navigation.willUnload &&
+      !confirmDirtyForms(
+        pmCorrectionForm,
+        t('Discard your unsaved changes? Your entered information will be lost.'),
+      )
+    )
+      navigation.cancel();
+  });
+  let pmRecordId = $state(untrack(() => String(record.id)));
+  let pmVendor = $state(untrack(() => detailForm?.values?.vendor ?? String(record.vendor ?? '')));
+  let pmSpentOn = $state(
+    untrack(() => detailForm?.values?.spentOn ?? String(record.spent_on ?? '')),
+  );
+  let pmDescription = $state(
+    untrack(() => detailForm?.values?.description ?? String(record.description ?? '')),
+  );
+  let pmCategory = $state(
+    untrack(() => detailForm?.values?.category ?? String(record.category ?? 'other')),
+  );
+  let pmOccurredTime = $state(
+    untrack(
+      () => detailForm?.values?.occurredTimeLocal ?? String(record.occurred_time_local ?? ''),
+    ),
+  );
+  let pmTimeEntryId = $state(
+    untrack(() => detailForm?.values?.timeEntryId ?? String(record.time_entry_id ?? '')),
+  );
+  const pmCorrectionPatch = $derived.by(() => {
+    const fields: Array<[string, string, string]> = [
+      ['vendor', 'vendor', pmVendor],
+      ['spentOn', 'spent_on', pmSpentOn],
+      ['description', 'description', pmDescription],
+      ['category', 'category', pmCategory],
+      ['occurredTimeLocal', 'occurred_time_local', pmOccurredTime],
+      ['timeEntryId', 'time_entry_id', pmTimeEntryId],
+    ];
+    return Object.fromEntries(
+      fields.flatMap(([name, column, value]) => {
+        const before = record[column] === '' ? null : (record[column] ?? null);
+        const after = value === '' ? null : value;
+        return before === after ? [] : [[name, after]];
+      }),
+    );
+  });
+  $effect(() => {
+    if (pmRecordId === String(record.id)) return;
+    pmRecordId = String(record.id);
+    pmVendor = String(record.vendor ?? '');
+    pmSpentOn = String(record.spent_on ?? '');
+    pmDescription = String(record.description ?? '');
+    pmCategory = String(record.category ?? 'other');
+    pmOccurredTime = String(record.occurred_time_local ?? '');
+    pmTimeEntryId = String(record.time_entry_id ?? '');
+  });
   const recordHref = $derived(`${base}/app/expenses/${encodeURIComponent(String(record.id))}`);
   const receiptHref = $derived(
     `${base}/app/api/documents/${encodeURIComponent(String(record.receipt_document_id))}?view=1`,
@@ -179,6 +247,7 @@
             ['reason', 'Correction reason'],
           ] as const
         ).flatMap(([name, label]) =>
+          (canViewExpenseMoney || !['amount', 'paymentMethod'].includes(name)) &&
           typeof detailForm.values?.[name] === 'string'
             ? [{ label: t(label), value: detailForm.values[name] }]
             : [],
@@ -821,19 +890,115 @@
       <section class="detail-panel record-detail-copy" aria-labelledby="expense-correction-title">
         <h2 id="expense-correction-title">{t('Create corrected draft')}</h2>
         <div data-expense-detail-action="createCorrectionDraft">
-          <CorrectionDraftForm
-            recordType="expense"
-            {record}
-            translate={t}
-            ownerOverride={data.user.role === 'owner_admin'}
-            values={detailForm?.actionName === 'createCorrectionDraft'
-              ? (detailForm.values ?? {})
-              : {}}
-            timeOptions={data.correctionTimeOptions}
-            requestId={detailForm?.actionName === 'createCorrectionDraft'
-              ? (detailForm.values?.requestId ?? data.correctionRequestId)
-              : data.correctionRequestId}
-          />
+          {#if data.user.role === 'project_manager'}
+            <form
+              method="POST"
+              action="?/createCorrectionDraft"
+              data-correction-draft-form
+              class="admin-form-grid"
+              bind:this={pmCorrectionForm}
+              use:formValidation
+              use:dirtyFormGuard={{
+                initialDirty: String(detailForm?.values?.originalId ?? '') === String(record.id),
+              }}
+            >
+              <input type="hidden" name="recordType" value="expense" />
+              <input type="hidden" name="originalId" value={String(record.id)} />
+              <input
+                type="hidden"
+                name="requestId"
+                value={detailForm?.actionName === 'createCorrectionDraft'
+                  ? (detailForm.values?.requestId ?? data.correctionRequestId)
+                  : data.correctionRequestId}
+              />
+              <input type="hidden" name="patch" value={JSON.stringify(pmCorrectionPatch)} />
+              <label
+                ><span>{t('Vendor (optional)')}</span><input
+                  name="vendor"
+                  maxlength="200"
+                  bind:value={pmVendor}
+                /></label
+              >
+              <label
+                ><span>{t('Date')}</span><input
+                  name="spentOn"
+                  type="date"
+                  required
+                  bind:value={pmSpentOn}
+                /></label
+              >
+              <label
+                ><span>{t('Description')}</span><textarea
+                  name="description"
+                  required
+                  minlength="3"
+                  maxlength="5000"
+                  bind:value={pmDescription}
+                ></textarea></label
+              >
+              <label
+                ><span>{t('Category')}</span><select
+                  name="category"
+                  required
+                  bind:value={pmCategory}
+                >
+                  {#each ['hotel', 'rental_car', 'fuel', 'tolls', 'parking', 'airfare', 'ground_transport', 'meals', 'per_diem', 'materials', 'tools', 'shipping', 'phone_data', 'visa_permit', 'other'] as category}
+                    <option value={category}>{controlled('expenseCategory', category)}</option>
+                  {/each}
+                </select></label
+              >
+              <label
+                ><span>{t('Time expense occurred (optional)')}</span><input
+                  name="occurredTimeLocal"
+                  type="time"
+                  step="60"
+                  bind:value={pmOccurredTime}
+                /></label
+              >
+              <label
+                ><span>{t('Related logged hours (optional)')}</span><select
+                  name="timeEntryId"
+                  bind:value={pmTimeEntryId}
+                >
+                  <option value="">{t('Expense only / no linked hours')}</option>
+                  {#if pmTimeEntryId && !data.correctionTimeOptions.some((option: { id: string }) => option.id === pmTimeEntryId)}
+                    <option value={pmTimeEntryId}>{t('Current linked hours')}</option>
+                  {/if}
+                  {#each data.correctionTimeOptions as option (option.id)}
+                    <option value={option.id}
+                      >{option.workerName} · {Number(option.minutes) / 60} h · {option.summary}</option
+                    >
+                  {/each}
+                </select></label
+              >
+              <label
+                ><span>{t('Correction reason')}</span><textarea
+                  name="reason"
+                  required
+                  minlength="3"
+                  maxlength="2000"
+                  value={detailForm?.actionName === 'createCorrectionDraft'
+                    ? (detailForm.values?.reason ?? '')
+                    : ''}
+                ></textarea></label
+              >
+              <button type="submit">{t('Create corrected draft')}</button>
+            </form>
+          {:else}
+            <CorrectionDraftForm
+              recordType="expense"
+              {record}
+              translate={t}
+              ownerOverride={data.user.role === 'owner_admin'}
+              values={detailForm?.actionName === 'createCorrectionDraft'
+                ? (detailForm.values ?? {})
+                : {}}
+              timeOptions={data.correctionTimeOptions}
+              requestId={detailForm?.actionName === 'createCorrectionDraft'
+                ? (detailForm.values?.requestId ?? data.correctionRequestId)
+                : data.correctionRequestId}
+            />
+          {/if}
         </div>
       </section>
     {/if}
@@ -854,11 +1019,13 @@
       </div>
     {/if}
     <section class="record-detail-grid">
-      <article>
-        <span>{t('AMOUNT')}</span><strong
-          >{money(record.amount_minor, String(record.currency))}</strong
-        >
-      </article>
+      {#if canViewExpenseMoney}
+        <article>
+          <span>{t('AMOUNT')}</span><strong
+            >{money(record.amount_minor, String(record.currency))}</strong
+          >
+        </article>
+      {/if}
       <article>
         <span>{t('CATEGORY')}</span><strong>{controlled('expenseCategory', record.category)}</strong
         >
@@ -885,7 +1052,9 @@
     <section class="detail-panel record-detail-copy">
       <div class="panel-title">
         <h2>{t('Expense details')}</h2>
-        <span>{record.who_paid ? controlled('role', record.who_paid) : t('worker paid')}</span>
+        {#if canViewExpenseMoney}
+          <span>{record.who_paid ? controlled('role', record.who_paid) : t('worker paid')}</span>
+        {/if}
       </div>
       <p>{record.description ?? t('No description was recorded.')}</p>
       <dl class="record-facts">
@@ -914,10 +1083,12 @@
             {/if}
           </dd>
         </div>
-        <div>
-          <dt>{t('Payment method')}</dt>
-          <dd>{record.payment_method ?? '—'}</dd>
-        </div>
+        {#if canViewExpenseMoney}
+          <div>
+            <dt>{t('Payment method')}</dt>
+            <dd>{record.payment_method ?? '—'}</dd>
+          </div>
+        {/if}
         {#if canViewFinance}
           <div>
             <dt>{t('Billing treatment')}</dt>
@@ -954,14 +1125,18 @@
             </dd>
           </div>
         {/if}
-        <div>
-          <dt>{t('Receipt')}</dt>
-          <dd>
-            {record.receipt_document_id ? t('Registered private receipt') : t('No receipt linked')}
-          </dd>
-        </div>
+        {#if canViewExpenseMoney}
+          <div>
+            <dt>{t('Receipt')}</dt>
+            <dd>
+              {record.receipt_document_id
+                ? t('Registered private receipt')
+                : t('No receipt linked')}
+            </dd>
+          </div>
+        {/if}
       </dl>
-      {#if record.receipt_document_id}
+      {#if canViewExpenseMoney && record.receipt_document_id}
         <a
           id="expense-receipt-preview"
           class="preview-link"

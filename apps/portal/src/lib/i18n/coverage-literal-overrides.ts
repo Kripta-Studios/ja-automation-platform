@@ -1,5 +1,173 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Future person terms are saved. Current values remain in effect until their effective date.': [
+    'Las condiciones futuras están guardadas. Los valores actuales siguen vigentes hasta su fecha de efecto.',
+    'As condições futuras estão salvas. Os valores atuais continuam vigentes até a data de efeito.',
+  ],
+  'Rates and pay': ['Tarifas y remuneración', 'Tarifas e remuneração'],
+  'Expense terms': ['Condiciones de gastos', 'Condições de despesas'],
+  'Review scheduled commercial terms': [
+    'Revisar condiciones comerciales programadas',
+    'Revisar condições comerciais programadas',
+  ],
+
+  'Project defaults for people': [
+    'Valores predeterminados para personas del proyecto',
+    'Padrões do projeto para pessoas',
+  ],
+  'Project defaults for people (optional)': [
+    'Valores predeterminados para personas (opcional)',
+    'Padrões do projeto para pessoas (opcional)',
+  ],
+  'New assignments can start from these defaults. Each saved person agreement is independent. Changing project settings or defaults does not change or erase worker overrides.':
+    [
+      'Las nuevas asignaciones pueden partir de estos valores. Cada acuerdo individual guardado es independiente. Cambiar ajustes o valores predeterminados del proyecto no modifica ni elimina las condiciones particulares del trabajador.',
+      'Novas atribuições podem partir destes padrões. Cada acordo individual salvo é independente. Alterar configurações ou padrões do projeto não muda nem apaga as condições específicas do trabalhador.',
+    ],
+  'Latest saved defaults effective from': [
+    'Últimos valores guardados vigentes desde',
+    'Últimos padrões salvos vigentes a partir de',
+  ],
+  'No project defaults saved. Enter individual terms when assigning a worker.': [
+    'No hay valores predeterminados guardados. Introduce condiciones individuales al asignar a un trabajador.',
+    'Nenhum padrão do projeto salvo. Informe condições individuais ao atribuir um trabalhador.',
+  ],
+  'Configure project defaults': [
+    'Configurar valores predeterminados del proyecto',
+    'Configurar padrões do projeto',
+  ],
+  'Choose a later effective date for a new revision. Existing worker agreements and historical calculations are preserved.':
+    [
+      'Elige una fecha de vigencia posterior para una nueva revisión. Se conservan los acuerdos existentes y los cálculos históricos.',
+      'Escolha uma data de vigência posterior para uma nova revisão. Os acordos existentes e os cálculos históricos são preservados.',
+    ],
+  'Save project defaults': [
+    'Guardar valores predeterminados del proyecto',
+    'Salvar padrões do projeto',
+  ],
+  'Save default rates, pay and expense terms for this project': [
+    'Guardar tarifas, remuneración y condiciones de gastos predeterminadas para este proyecto',
+    'Salvar tarifas, remuneração e condições de despesas padrão para este projeto',
+  ],
+  'Worker assignments (optional)': [
+    'Asignaciones de trabajadores (opcional)',
+    'Atribuições de trabalhadores (opcional)',
+  ],
+  'Add workers now, use project defaults or enter individual terms. You can also assign workers after creating the project.':
+    [
+      'Añade trabajadores ahora con valores predeterminados o condiciones individuales. También puedes asignarlos después de crear el proyecto.',
+      'Adicione trabalhadores agora usando padrões ou condições individuais. Você também pode atribuí-los depois de criar o projeto.',
+    ],
+  'Worker assignment configuration': [
+    'Configuración de asignaciones de trabajadores',
+    'Configuração de atribuições de trabalhadores',
+  ],
+  'Assignment dates': ['Fechas de asignación', 'Datas da atribuição'],
+  'Rates, pay and expenses': ['Tarifas, remuneración y gastos', 'Tarifas, remuneração e despesas'],
+  'Terms source': ['Origen de las condiciones', 'Origem das condições'],
+  'Use project defaults': ['Usar valores predeterminados del proyecto', 'Usar padrões do projeto'],
+  'Override for this person': [
+    'Establecer condiciones particulares para esta persona',
+    'Definir condições específicas para esta pessoa',
+  ],
+  'The saved project defaults will be copied into this assignment. Future project changes preserve this agreement.':
+    [
+      'Los valores predeterminados guardados se copiarán a esta asignación. Los cambios futuros del proyecto conservarán este acuerdo.',
+      'Os padrões salvos serão copiados para esta atribuição. Alterações futuras do projeto preservarão este acordo.',
+    ],
+  'Remove worker assignment': [
+    'Quitar asignación de trabajador',
+    'Remover atribuição de trabalhador',
+  ],
+  'Add worker assignment': [
+    'Añadir asignación de trabajador',
+    'Adicionar atribuição de trabalhador',
+  ],
+  'Use saved project defaults for this assignment': [
+    'Usar los valores predeterminados guardados para esta asignación',
+    'Usar os padrões salvos do projeto para esta atribuição',
+  ],
+  'Started from saved project defaults. Later person agreements are independent.': [
+    'Partió de los valores predeterminados guardados. Los acuerdos individuales posteriores son independientes.',
+    'Partiu dos padrões salvos do projeto. Os acordos individuais posteriores são independentes.',
+  ],
+  'Use project defaults in this draft': [
+    'Usar valores predeterminados del proyecto en este borrador',
+    'Usar padrões do projeto neste rascunho',
+  ],
+  'Review the effective date and save person terms to apply these values.': [
+    'Revisa la fecha de vigencia y guarda las condiciones individuales para aplicar estos valores.',
+    'Revise a data de vigência e salve as condições individuais para aplicar estes valores.',
+  ],
+  'Save these rates as explicit person overrides': [
+    'Guardar estas tarifas como condiciones particulares explícitas',
+    'Salvar estas tarifas como condições específicas explícitas',
+  ],
+  'Changed rates become person overrides. Select this option to also preserve rates that currently match a default. Unchanged rates keep their current source otherwise.':
+    [
+      'Las tarifas modificadas se guardan como condiciones particulares. Selecciona esta opción para conservar también las que coincidan con un valor predeterminado. Si no lo haces, las tarifas sin cambios mantienen su origen actual.',
+      'Tarifas alteradas tornam-se condições específicas. Selecione esta opção para preservar também tarifas iguais a um padrão. Caso contrário, tarifas inalteradas mantêm sua origem atual.',
+    ],
+  'Worker reimbursement source': [
+    'Origen del reembolso al trabajador',
+    'Origem do reembolso ao trabalhador',
+  ],
+  'Use project reimbursement default': [
+    'Usar reembolso predeterminado del proyecto',
+    'Usar reembolso padrão do projeto',
+  ],
+  'Project defaults changed. Reload before saving.': [
+    'Los valores predeterminados del proyecto cambiaron. Recarga antes de guardar.',
+    'Os padrões do projeto mudaram. Recarregue antes de salvar.',
+  ],
+  'Choose an effective date after the last saved project defaults.': [
+    'Elige una fecha posterior a los últimos valores predeterminados guardados.',
+    'Escolha uma data posterior aos últimos padrões salvos.',
+  ],
+  'Review the project defaults and correct the highlighted fields.': [
+    'Revisa los valores predeterminados y corrige los campos resaltados.',
+    'Revise os padrões do projeto e corrija os campos destacados.',
+  ],
+  'This worker is already in the assignment table': [
+    'Este trabajador ya está en la tabla de asignaciones',
+    'Este trabalhador já está na tabela de atribuições',
+  ],
+  'Enter this worker’s terms': [
+    'Introduce las condiciones de este trabajador',
+    'Informe as condições deste trabalhador',
+  ],
+  'End date must be on or after start date': [
+    'La fecha de fin debe ser igual o posterior al inicio',
+    'A data final deve ser igual ou posterior à inicial',
+  ],
+  'Percentage cannot exceed 100%': [
+    'El porcentaje no puede superar el 100 %',
+    'A porcentagem não pode ultrapassar 100%',
+  ],
+  'Enter a markup above 0% and at most 100%': [
+    'Introduce un recargo mayor del 0 % y de hasta el 100 %',
+    'Informe um acréscimo acima de 0% e no máximo de 100%',
+  ],
+
+  'Reimbursement preferences apply from their effective date. Earlier claims keep their date-specific terms; classified amounts and paid history remain unchanged.':
+    [
+      'Las preferencias de reembolso se aplican desde su fecha de vigencia. Los gastos anteriores conservan las condiciones de su fecha; los importes clasificados y los pagos registrados se mantienen.',
+      'As preferências de reembolso se aplicam desde sua data de vigência. As despesas anteriores mantêm as condições de sua data; os valores classificados e os pagamentos registrados são preservados.',
+    ],
+  'Effective on selected date': ['Vigente en la fecha seleccionada', 'Vigente na data selecionada'],
+  'Dated reimbursement preferences': [
+    'Preferencias de reembolso por fecha',
+    'Preferências de reembolso por data',
+  ],
+  'Preferences shown for date': ['Preferencias para la fecha', 'Preferências para a data'],
+  'Existing terms before dated changes': [
+    'Condiciones anteriores a los cambios por fecha',
+    'Condições anteriores às alterações por data',
+  ],
+  'Policy fallback reimbursement': [
+    'Reembolso si no hay preferencia vigente',
+    'Reembolso se não houver preferência vigente',
+  ],
   'Own pay estimate for selected week': [
     'Estimación de mi remuneración para la semana seleccionada',
     'Estimativa da minha remuneração para a semana selecionada',

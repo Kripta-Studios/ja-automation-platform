@@ -35,6 +35,31 @@ const retainedFields = new Set([
   'timeEntryId',
 ]);
 
+const pmRetainedFields = new Set([
+  'id',
+  'version',
+  'recordType',
+  'originalId',
+  'correctionId',
+  'requestId',
+  'reason',
+  'vendor',
+  'spentOn',
+  'description',
+  'category',
+  'occurredTimeLocal',
+  'timeEntryId',
+]);
+
+function roleSafeValues(values: Record<string, unknown>, projectManager: boolean) {
+  if (!projectManager) return values;
+  return Object.fromEntries(
+    Object.entries(values).filter(
+      ([key, value]) => pmRetainedFields.has(key) && typeof value === 'string',
+    ),
+  );
+}
+
 function retainedValues(form: FormData): Record<string, string> {
   const receipt = form.get('receipt');
   return {
@@ -53,6 +78,7 @@ function detailFailure(
   actionName: ExpenseDetailAction,
   values: Record<string, string>,
   recordId: string,
+  projectManager: boolean,
 ) {
   const failure = result as { status?: number; data?: Record<string, unknown> };
   const payload = failure.data ?? {};
@@ -116,13 +142,29 @@ function detailFailure(
       ...payload,
       code: mapped?.code ?? (typeof payload.code === 'string' ? payload.code : undefined),
       actionName,
-      values: {
-        ...(payload.values && typeof payload.values === 'object' ? payload.values : {}),
-        ...values,
-      },
+      values: roleSafeValues(
+        {
+          ...(payload.values && typeof payload.values === 'object' ? payload.values : {}),
+          ...values,
+        },
+        projectManager,
+      ),
       remedies,
+      ...(projectManager && payload.fields && typeof payload.fields === 'object'
+        ? {
+            fields: Object.fromEntries(
+              Object.entries(payload.fields).filter(([key]) => pmRetainedFields.has(key)),
+            ) as Record<string, string[]>,
+          }
+        : {}),
       ...(payload.fieldErrors && typeof payload.fieldErrors === 'object'
-        ? { fieldErrors: payload.fieldErrors as Record<string, string[]> }
+        ? {
+            fieldErrors: Object.fromEntries(
+              Object.entries(payload.fieldErrors).filter(
+                ([key]) => !projectManager || pmRetainedFields.has(key),
+              ),
+            ) as Record<string, string[]>,
+          }
         : {}),
     },
   );
@@ -167,7 +209,19 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
       linked_pair_time_id: string | null;
       crew_recorded_by: string | null;
     };
+    const canReviewExpense =
+      context.principal.role !== 'project_manager' ||
+      Boolean(
+        context.sqlite
+          .prepare(
+            `SELECT 1 FROM project_member
+          WHERE project_id=? AND user_id=? AND status='active' AND can_review=1
+            AND starts_on<=date('now') AND (ends_on IS NULL OR ends_on>=date('now')) LIMIT 1`,
+          )
+          .get(String(record.project_id), context.principal.userId),
+      );
     const canCreateCorrection =
+      canReviewExpense &&
       ['approved', 'needs_changes'].includes(String(record.approval_state)) &&
       (!status.active_id ||
         (status.active_id === params.id && record.approval_state === 'needs_changes')) &&
@@ -183,6 +237,7 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
     return {
       user: locals.user,
       reviewOnly: false,
+      expenseMoneyVisible: context.principal.role !== 'project_manager',
       locale: resolvePortalLocalePreference(
         url.searchParams.get('lang'),
         cookies.get('ja.portal.locale'),
@@ -201,6 +256,7 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
           })
         : [],
       canWithdrawCorrection:
+        canReviewExpense &&
         record.approval_state === 'draft' &&
         Boolean(status.correction_actor) &&
         (status.correction_actor === context.principal.userId ||
@@ -265,6 +321,7 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
                 cookies.get('ja-portal-locale'),
               ),
               reviewOnly: true,
+              expenseMoneyVisible: false,
               record: {
                 id: row.id,
                 project_id: row.project_id,
@@ -302,7 +359,13 @@ export const actions: Actions = {
         303,
         `/j-aautomation/app/expenses/${encodeURIComponent(String(result.messageParams.correctionId))}`,
       );
-    return detailFailure(result, 'createCorrectionDraft', values, event.params.id);
+    return detailFailure(
+      result,
+      'createCorrectionDraft',
+      values,
+      event.params.id,
+      event.locals.user?.role === 'project_manager',
+    );
   },
   withdrawCorrectionDraft: async (event) => {
     const values = retainedValues(await event.request.clone().formData());
@@ -315,7 +378,13 @@ export const actions: Actions = {
         303,
         `/j-aautomation/app/expenses/${encodeURIComponent(String(result.messageParams.originalId))}`,
       );
-    return detailFailure(result, 'withdrawCorrectionDraft', values, event.params.id);
+    return detailFailure(
+      result,
+      'withdrawCorrectionDraft',
+      values,
+      event.params.id,
+      event.locals.user?.role === 'project_manager',
+    );
   },
   withdrawCrewExpenseDraft: async (event) => {
     const values = retainedValues(await event.request.clone().formData());
@@ -324,7 +393,13 @@ export const actions: Actions = {
       params: { ...event.params, section: 'expenses' },
     });
     if ('success' in result && result.success === true) return result;
-    return detailFailure(result, 'withdrawCrewExpenseDraft', values, event.params.id);
+    return detailFailure(
+      result,
+      'withdrawCrewExpenseDraft',
+      values,
+      event.params.id,
+      event.locals.user?.role === 'project_manager',
+    );
   },
   submitExpense: async (event) => {
     const values = retainedValues(await event.request.clone().formData());
@@ -334,6 +409,12 @@ export const actions: Actions = {
     });
     if ('success' in result && result.success === true)
       redirect(303, `/j-aautomation/app/expenses/${encodeURIComponent(event.params.id)}`);
-    return detailFailure(result, 'submitExpense', values, event.params.id);
+    return detailFailure(
+      result,
+      'submitExpense',
+      values,
+      event.params.id,
+      event.locals.user?.role === 'project_manager',
+    );
   },
 };

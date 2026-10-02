@@ -1256,7 +1256,7 @@
       {#if canWritePolicy && data.selectedProjectId && (data.commercialTermsSummary?.length || failedConfigurationAction?.actionName === 'createAssignmentExpensePolicy')}
         <form
           method="POST"
-          action={`?/createAssignmentExpensePolicy&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId))}`}
+          action={reimbursementActionUrl('createAssignmentExpensePolicy')}
           class="admin-form-grid"
           data-assignment-expense-policy-form
           use:formValidation

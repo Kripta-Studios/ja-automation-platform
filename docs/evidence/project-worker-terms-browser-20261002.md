@@ -43,3 +43,22 @@ Database and portal TypeScript passed. Scoped ESLint, formatting and production 
 Fresh Worker/Crew, PM privacy, Finance and Auditor outcomes will be appended as their browser checks finish. No existing56 UX /46 bug claim is considered fully reverified from this document or source presence alone. The external `/home/kripta/ja-audit-20261002/reverification/COVERAGE.md` tracks all102 accepted IDs and role-specific pending branches.
 
 Evidence screenshots and detailed oracle are retained under `/home/kripta/ja-audit-20261002/reverification/owner-pm` and `owner-oracle`. Credentials remain in the excluded private account manual.
+
+## W45 and W46 scoped browser results
+
+W45: `097c293ec71894aa403c5d9cbc9d9281a3b53466084dcaef5aef08eb80454dff`.
+W46: `ded21781f763b4b16c1610c497c7df9266acc7a115a9658692f06e9ff278c79c`, activated October2 at12:31:33 Europe/Madrid.
+
+- Worker5 registered identical time facts on two different projects. The dedicated Oct2 hourly pending estimate was EUR0.02; the timezone project's estimate was EUR0.01. Retrying the same dedicated-project source produced a linked duplicate warning and retained the form. The deliberate separate-work branch remains pending.
+- Worker6 registered known Oct1 work before removal. Owner approved the QA source, rejected an attempted assignment-date edit that would exclude it, and removed the assignment with an Oct2 end. The historical inactive interval remained visible. Worker access and pay after removal require the separate Worker check.
+- Worker5 could read their own expense but received403 for Worker6's known expense. The tested denied response did not expose the known other-worker identity or monetary fields.
+- PM normal expense detail and historical queue fallback omitted the tested private monetary, payer, receipt, reimbursement, customer-treatment and cost keys from both UI and browser-delivered hydration at390/1440.
+- Revoking PM Can review blocked stale correction creation and stale draft withdrawal with action403. Historical queue detail also returned403; restoring permission restored authorized reading and correction controls.
+- A submitted private amount patch was rejected without retaining its private sentinel values. Invalid category returned a readable400. A permitted operational correction created a draft, and reasoned withdrawal changed that draft to Rejected while leaving the approved original unchanged.
+- Owner creation validation retained both worker rows and showed friendly project-default/Assignment1 percentage captions in English390 and Spanish1440. Other validation branches remain separately pending.
+
+These are scoped observations. They do not certify every private-field alias, receipt-upload branch, financial lock, paid/issued history, daily/fixed-pay total or all applicable roles. Detailed receipts: external `owner-pm/LIVE_RESULTS_W45.md`, `owner-pm/LIVE_RESULTS_W46.md` and `worker/LIVE_RESULTS.md`.
+
+## W47 release receipt
+
+W47: `c378e60ba786bd80667bf90492167caa4a3b2faa66b5f19cfb4591db1bfe78bc`, source `2ed59d0`, activated October2 at12:47:52 Europe/Madrid. The normal expense header now includes the claimant's permitted operational name. Backup, rollback preparation, local/public health and jobs checks passed. Browser label verification remains pending at this receipt.

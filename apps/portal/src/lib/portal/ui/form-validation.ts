@@ -126,6 +126,7 @@ export function localizedServerFieldMessage(
   // language. Convert its standard diagnostics to the existing field copy;
   // domain-specific keys and messages retain their own wording.
   const minimumLength = raw.match(/^Too small: expected string to have >=(\d+) characters?$/u);
+  if (minimumLength?.[1] === '1') return t('Please complete this field.');
   if (minimumLength) return t('Use at least {min} characters.', { min: minimumLength[1] ?? '' });
   const maximumLength = raw.match(/^Too big: expected string to have <=(\d+) characters?$/u);
   if (maximumLength)

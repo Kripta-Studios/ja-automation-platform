@@ -1205,10 +1205,14 @@
   }
 
   function expenseClassificationAction(expenseId: string): string {
-    const query = new URLSearchParams({ view: 'commercial', expense: expenseId, lang: locale });
+    const query = new URLSearchParams($page.url.searchParams);
+    for (const key of [...query.keys()]) {
+      if (key.startsWith('/')) query.delete(key);
+    }
+    query.set('view', 'commercial');
+    query.set('expense', expenseId);
+    query.set('lang', locale);
     if (data.selectedProjectId) query.set('project', String(data.selectedProjectId));
-    const search = $page.url.searchParams.get('q');
-    if (search !== null) query.set('q', search);
     return `?/classifyExpenseCommercially&${query.toString()}#expense-classification`;
   }
 

@@ -341,14 +341,23 @@
     );
     return translate(active?.id === row.id ? 'Effective on selected date' : 'Historical');
   }
+  function configurationActionUrl(actionName: string, hash = ''): string {
+    const query = new URLSearchParams($page.url.searchParams);
+    // URLSearchParams decodes percent-encoded named-action keys before iteration.
+    for (const key of [...query.keys()]) {
+      if (key.startsWith('/')) query.delete(key);
+    }
+    query.set('view', 'commercial');
+    query.set('project', String(data.selectedProjectId ?? ''));
+    query.set('lang', locale);
+    query.set('task', selectedAction);
+    return `?/${actionName}&${query.toString()}${hash ? `#${hash}` : ''}`;
+  }
   function reimbursementActionUrl(actionName: string): string {
-    const query = new URLSearchParams({
-      view: 'commercial',
-      project: String(data.selectedProjectId ?? ''),
-      asOf: data.reimbursementPreferenceAsOf ?? data.financeToday ?? '',
-      category: data.commercialCategory ?? 'regular',
-    });
-    return `?/${actionName}&${query.toString()}#person-expense-policies`;
+    const url = new URL(configurationActionUrl(actionName, 'person-expense-policies'), $page.url);
+    url.searchParams.set('asOf', data.reimbursementPreferenceAsOf ?? data.financeToday ?? '');
+    url.searchParams.set('category', data.commercialCategory ?? 'regular');
+    return `${url.search}${url.hash}`;
   }
   function assignmentRuleChoiceLabel(
     terms: Row,
@@ -711,7 +720,7 @@
                   <summary>{translate('Configure this person')}</summary>
                   <form
                     method="POST"
-                    action={`?/setAssignmentCommercialRuleReferences&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+                    action={configurationActionUrl('setAssignmentCommercialRuleReferences')}
                     class="admin-form-grid"
                     use:formValidation
                   >
@@ -892,7 +901,7 @@
                   </form>
                   <form
                     method="POST"
-                    action={`?/setAssignmentCommercialFallback&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+                    action={configurationActionUrl('setAssignmentCommercialFallback')}
                     class="admin-form-grid"
                     use:formValidation
                   >
@@ -1536,7 +1545,7 @@
           </p>
           <form
             method="POST"
-            action={`?/createCanonicalLegalEntityRevision&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+            action={configurationActionUrl('createCanonicalLegalEntityRevision')}
             class="admin-form-grid"
             data-canonical-revision-form
             data-finance-action="createCanonicalLegalEntityRevision"
@@ -1767,7 +1776,7 @@
         </details>
         <form
           method="POST"
-          action={`?/assignProjectLegalEntity&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+          action={configurationActionUrl('assignProjectLegalEntity')}
           class="admin-form-grid"
           data-project-legal-entity-form
           use:formValidation
@@ -1940,7 +1949,7 @@
       {#if canWritePolicy}
         <form
           method="POST"
-          action={`?/createProjectCommercialPolicy&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+          action={configurationActionUrl('createProjectCommercialPolicy')}
           class="admin-form-grid"
           data-project-commercial-policy-form
           use:formValidation
@@ -2160,7 +2169,7 @@
                       <summary>{translate('Edit / supersede')}</summary>
                       <form
                         method="POST"
-                        action={`?/supersedeCompensationRule&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+                        action={configurationActionUrl('supersedeCompensationRule')}
                         class="admin-form-grid"
                         use:formValidation
                       >
@@ -2288,7 +2297,7 @@
                     </details>
                     <form
                       method="POST"
-                      action={`?/deactivateCompensationRule&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+                      action={configurationActionUrl('deactivateCompensationRule')}
                     >
                       <input type="hidden" name="ruleId" value={rowValue(rule, 'id')} />
                       <button type="submit" class="danger">{translate('Deactivate')}</button>
@@ -2335,7 +2344,7 @@
                       <summary>{translate('Edit / supersede')}</summary>
                       <form
                         method="POST"
-                        action={`?/supersedeClientLaborRate&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+                        action={configurationActionUrl('supersedeClientLaborRate')}
                         class="admin-form-grid"
                         use:formValidation
                       >
@@ -2429,7 +2438,7 @@
                     </details>
                     <form
                       method="POST"
-                      action={`?/deactivateClientLaborRate&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+                      action={configurationActionUrl('deactivateClientLaborRate')}
                     >
                       <input type="hidden" name="ruleId" value={rowValue(rule, 'id')} />
                       <button type="submit" class="danger">{translate('Deactivate')}</button>
@@ -2471,7 +2480,7 @@
                       <summary>{translate('Edit / supersede')}</summary>
                       <form
                         method="POST"
-                        action={`?/supersedeInternalCostRule&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+                        action={configurationActionUrl('supersedeInternalCostRule')}
                         class="admin-form-grid"
                         use:formValidation
                       >
@@ -2560,7 +2569,7 @@
                     </details>
                     <form
                       method="POST"
-                      action={`?/deactivateInternalCostRule&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+                      action={configurationActionUrl('deactivateInternalCostRule')}
                     >
                       <input type="hidden" name="ruleId" value={rowValue(rule, 'id')} />
                       <button type="submit" class="danger">{translate('Deactivate')}</button>
@@ -2623,7 +2632,7 @@
         {/if}
         <form
           method="POST"
-          action={`?/settleCompensation&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+          action={configurationActionUrl('settleCompensation')}
           class="admin-form-grid"
           use:formValidation
         >
@@ -2711,7 +2720,7 @@
         <FormSection title={translate('Worker compensation')}>
           <form
             method="POST"
-            action={`?/createCompensationRule&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+            action={configurationActionUrl('createCompensationRule')}
             class="admin-form-grid"
             use:formValidation
           >
@@ -3075,7 +3084,7 @@
         <FormSection title={translate('Client labor rate')}>
           <form
             method="POST"
-            action={`?/createClientLaborRate&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+            action={configurationActionUrl('createClientLaborRate')}
             class="admin-form-grid"
             use:formValidation
           >
@@ -3277,7 +3286,7 @@
         <FormSection title={translate('Internal loaded cost')}>
           <form
             method="POST"
-            action={`?/createInternalCostRule&view=commercial&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}`}
+            action={configurationActionUrl('createInternalCostRule')}
             class="admin-form-grid"
             use:formValidation
           >

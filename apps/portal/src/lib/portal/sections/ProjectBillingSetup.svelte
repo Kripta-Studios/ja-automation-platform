@@ -1,6 +1,7 @@
 <script lang="ts">
   import { base } from '$app/paths';
-  import { tick, untrack } from 'svelte';
+  import { onMount, tick, untrack } from 'svelte';
+  import { enhance, type SubmitFunction } from '$app/forms';
   import { page } from '$app/state';
   import type { ProjectPersonDefaults } from '@ja/database';
   import { localizedServerFieldMessage } from '$lib/portal/ui/form-validation';
@@ -35,6 +36,7 @@
     form,
     t,
     locale,
+    personDraftStatus = $bindable<(() => { dirty: boolean; pending: boolean }) | null>(null),
   }: {
     projectId: string;
     currency: string;
@@ -65,6 +67,8 @@
       expensePayer: string;
       workerReimbursement: string;
       reimbursementSource: 'inherit' | 'override';
+      inheritedWorkerReimbursement: string | null;
+      reimbursementReviewDate: string;
       clientRecovery: string;
       markupPercent: string;
       assignmentId: string;
@@ -83,6 +87,7 @@
     form?: unknown;
     t: (key: string) => string;
     locale: string;
+    personDraftStatus?: (() => { dirty: boolean; pending: boolean }) | null;
   } = $props();
 
   const entityChoices = $derived(
@@ -118,6 +123,8 @@
     success?: boolean;
     message?: string;
     fields?: Record<string, string[]>;
+    fieldErrors?: Record<string, string[]>;
+    messageKey?: string;
     values?: Record<string, string>;
   };
   const feedback = $derived.by((): ActionFeedback | null => {
@@ -143,7 +150,7 @@
     people.reduce(
       (message, person) =>
         person.id && person.name ? message.replaceAll(person.id, person.name) : message,
-      personFailure?.message ?? '',
+      t(personFailure?.messageKey ?? personFailure?.message ?? 'Check person terms fields'),
     ),
   );
   const failedBatchRows = $derived.by(() => {
@@ -158,9 +165,13 @@
     messages?.map((message) => localizedServerFieldMessage(locale, message)).join(', ') ?? '';
   const personFieldError = (workerId: string, name: string): string => {
     if (personFailedValues.workerId === workerId)
-      return localizeMessages(personFailure?.fields?.[name]);
+      return localizeMessages((personFailure?.fields ?? personFailure?.fieldErrors)?.[name]);
     const batchIndex = failedBatchRows.findIndex((row) => row.workerId === workerId);
-    return batchIndex < 0 ? '' : localizeMessages(personFailure?.fields?.[`${batchIndex}.${name}`]);
+    return batchIndex < 0
+      ? ''
+      : localizeMessages(
+          (personFailure?.fields ?? personFailure?.fieldErrors)?.[`${batchIndex}.${name}`],
+        );
   };
   const fieldError = (name: string): string => localizeMessages(setupFailure?.fields?.[name]);
   const errorId = (name: string): string => `billing-setup-${name}-error`;
@@ -192,8 +203,8 @@
     return 4;
   }
 
-  // The parent keys this component by saved setup version, so this snapshot is
-  // refreshed after each successful save while preserving in-progress edits.
+  // Setup saves remount the wizard. Person saves retain it and reconcile only
+  // saved and clean people against the canonical loader response.
   function initialValues() {
     const saved = (key: string, fallback: string): string =>
       typeof failedValues[key] === 'string' ? failedValues[key] : fallback;
@@ -268,8 +279,7 @@
     return `${value('year')}-${value('month')}-${value('day')}`;
   }
   const initial = initialValues();
-  // Initial form state is intentionally snapshotted; a successful save remounts
-  // this component under the new setup version.
+  // Initial wizard state is snapshotted. Person-only saves do not remount it.
   const initialFailure = untrack(() => ({
     active: Boolean(setupFailure),
     personActive: Boolean(personAction),
@@ -296,6 +306,36 @@
     clientRecovery: string;
     markupPercent: string;
   };
+  function savedPersonDraft(person: (typeof people)[number]): PersonDraft {
+    return {
+      effectiveFrom: person.termsEffectiveFrom,
+      customerHourlyRate: person.customerRateAmount,
+      internalCostHourlyRate: person.internalCostAmount,
+      workerPayType: person.payType,
+      workerPayAmount: person.payAmount,
+      percentageBasis: person.percentageBasis,
+      expensePayer: person.expensePayer,
+      workerReimbursement: person.workerReimbursement,
+      reimbursementSource: person.reimbursementSource,
+      clientRecovery: person.clientRecovery,
+      markupPercent: person.markupPercent,
+    };
+  }
+  // Baselines and concurrency tokens belong to the draft, not reactive loader props.
+  let personBaselines = $state(
+    untrack(() =>
+      Object.fromEntries(
+        people.map((person) => [
+          person.id,
+          {
+            draft: savedPersonDraft(person),
+            assignmentId: person.assignmentId,
+            fingerprint: person.termsFingerprint,
+          },
+        ]),
+      ),
+    ),
+  );
   const initialPersonDrafts = untrack(
     () =>
       Object.fromEntries(
@@ -326,7 +366,23 @@
   );
   let personDrafts = $state(initialPersonDrafts);
   let personSubmitting = $state('');
-  let pinRatePersonIds = $state<string[]>([]);
+  let pinRatePersonIds = $state<string[]>(
+    untrack(() =>
+      people
+        .filter((person) => {
+          const failed =
+            personFailedValues.workerId === person.id
+              ? personFailedValues
+              : failedBatchRows.find((row) => row.workerId === person.id);
+          return (
+            failed?.pinRates === 'on' ||
+            failed?.pinRates === 'true' ||
+            String(failed?.pinRates) === 'true'
+          );
+        })
+        .map((person) => person.id),
+    ),
+  );
   let bulkSourceId = $state(untrack(() => people[0]?.id ?? ''));
   let selectedPersonIds = $state<string[]>(
     untrack(() =>
@@ -336,6 +392,136 @@
     ),
   );
   let batchSubmitting = $state(false);
+  let personSaveNotice = $state('');
+  let personRefreshRequired = $state(false);
+  const personSaveBusy = $derived(Boolean(personSubmitting) || batchSubmitting);
+  function personIsDirty(workerId: string): boolean {
+    const draft = personDrafts[workerId];
+    const baseline = personBaselines[workerId]?.draft;
+    return Boolean(
+      draft &&
+      (!baseline ||
+        pinRatePersonIds.includes(workerId) ||
+        Object.keys(draft).some(
+          (key) => draft[key as keyof PersonDraft] !== baseline[key as keyof PersonDraft],
+        )),
+    );
+  }
+  onMount(() => {
+    personDraftStatus = () => ({
+      dirty: canEdit && !submitted && Object.keys(personDrafts).some(personIsDirty),
+      pending: personSaveBusy,
+    });
+    return () => {
+      personDraftStatus = null;
+    };
+  });
+  const personControlId = (workerId: string, name: string): string =>
+    `person-terms-${workerId}-${name}`;
+  const personErrorId = (workerId: string, name: string): string =>
+    `${personControlId(workerId, name)}-error`;
+  function personFieldCaption(workerId: string, name: string): string {
+    const captions: Record<string, string> = {
+      effectiveFrom: 'Terms effective from',
+      customerHourlyRate: 'Customer hourly rate',
+      internalCostHourlyRate: 'Internal hourly cost',
+      workerPayType: 'Worker compensation method',
+      workerPayAmount:
+        personDrafts[workerId]?.workerPayType === 'PercentageOfEligibleClientLabor'
+          ? 'Worker compensation percentage'
+          : 'Worker compensation rate',
+      percentageBasis: 'Percentage basis',
+      expensePayer: 'Expense payer',
+      workerReimbursement: 'Reimburse worker',
+      reimbursementSource: 'Worker reimbursement source',
+      clientRecovery: 'Charge customer for expense',
+      markupPercent: 'Expense markup percentage',
+    };
+    return t(captions[name] ?? 'Check person terms fields');
+  }
+  const personErrors = $derived.by(() =>
+    people.flatMap((person) =>
+      Object.keys(personDrafts[person.id] ?? {}).flatMap((name) => {
+        const message = personFieldError(person.id, name);
+        return message ? [{ workerId: person.id, name, personName: person.name, message }] : [];
+      }),
+    ),
+  );
+  function focusPersonControl(workerId: string, name: string): void {
+    const field = document.getElementById(personControlId(workerId, name));
+    field?.scrollIntoView({ block: 'center' });
+    field?.focus({ preventScroll: true });
+  }
+  async function focusPersonErrors(): Promise<void> {
+    step = 3;
+    await tick();
+    const summary = document.querySelector<HTMLElement>('[data-person-terms-errors]');
+    summary?.scrollIntoView({ block: 'center' });
+    summary?.focus({ preventScroll: true });
+  }
+  function reconcilePersonSave(savedIds: Set<string>, dirtySiblings: Set<string>): void {
+    for (const person of people) {
+      if (dirtySiblings.has(person.id)) continue;
+      const draft = savedPersonDraft(person);
+      personDrafts[person.id] = { ...draft };
+      personBaselines[person.id] = {
+        draft,
+        assignmentId: person.assignmentId,
+        fingerprint: person.termsFingerprint,
+      };
+      if (savedIds.has(person.id))
+        pinRatePersonIds = pinRatePersonIds.filter((id) => id !== person.id);
+    }
+  }
+  const submitPersonTerms: SubmitFunction = ({ formData, cancel }) => {
+    if (personSaveBusy || personRefreshRequired) {
+      cancel();
+      return;
+    }
+    const workerId = String(formData.get('workerId') ?? '');
+    const savedIds = new Set<string>(workerId ? [workerId] : selectedPersonIds);
+    const dirtySiblings = new Set(
+      Object.keys(personDrafts).filter((id) => !savedIds.has(id) && personIsDirty(id)),
+    );
+    personSaveNotice = '';
+    if (workerId) personSubmitting = workerId;
+    else batchSubmitting = true;
+    return async ({ result, update }) => {
+      let committed = false;
+      try {
+        if (result.type === 'success' && result.data?.success === true) {
+          committed = true;
+          await update({ reset: false, invalidateAll: true });
+          reconcilePersonSave(savedIds, dirtySiblings);
+        } else if (result.type === 'failure' || result.type === 'success') {
+          await update({ reset: false, invalidateAll: false });
+          await focusPersonErrors();
+        } else if (result.type === 'redirect') {
+          personSubmitting = '';
+          batchSubmitting = false;
+          await update({ reset: false, invalidateAll: false });
+        } else {
+          personRefreshRequired = true;
+          personSaveNotice = t(
+            'The person save result is unknown. Review the latest terms before trying again.',
+          );
+          await focusPersonErrors();
+        }
+      } catch {
+        // A transport/refresh failure is never retried as another financial POST.
+        personRefreshRequired = true;
+        personSaveNotice = t(
+          committed
+            ? 'Person terms were saved, but could not be refreshed. Reload the page to review them.'
+            : 'The person save result is unknown. Review the latest terms before trying again.',
+        );
+        await focusPersonErrors();
+      } finally {
+        personSubmitting = '';
+        batchSubmitting = false;
+      }
+    };
+  };
   let selectedTemplateId = $state(initialFailure.values.selectedTemplateId ?? '');
   let mode = $state<'combined' | 'separate'>(initial.mode);
   let effectiveFrom = $state(initial.effectiveFrom);
@@ -358,10 +544,6 @@
 
   $effect(() => {
     if (setupFailure) submitted = false;
-    if (personFailure) {
-      personSubmitting = '';
-      batchSubmitting = false;
-    }
   });
 
   $effect(() => {
@@ -403,9 +585,9 @@
     if (!draft) return null;
     return {
       projectId,
-      projectMemberId: person.assignmentId,
+      projectMemberId: personBaselines[person.id].assignmentId,
       workerId: person.id,
-      expectedFingerprint: person.termsFingerprint,
+      expectedFingerprint: personBaselines[person.id].fingerprint,
       effectiveFrom: draft.effectiveFrom,
       customerHourlyRate: draft.customerHourlyRate,
       internalCostHourlyRate: draft.internalCostHourlyRate,
@@ -588,7 +770,23 @@
         {/if}
       </div>
     {/if}
-    <form method="POST" action="?/saveBillingSetup&tab=billing" onsubmit={() => (submitted = true)}>
+    <form
+      method="POST"
+      action="?/saveBillingSetup&tab=billing"
+      onsubmit={(event) => {
+        if (
+          personSaveBusy ||
+          (Object.keys(personDrafts).some(personIsDirty) &&
+            !window.confirm(
+              t('Discard your unsaved changes? Your entered information will be lost.'),
+            ))
+        ) {
+          event.preventDefault();
+          return;
+        }
+        submitted = true;
+      }}
+    >
       <input type="hidden" name="projectId" value={projectId} />
       <input type="hidden" name="expectedVersion" value={version} />
       <input type="hidden" name="expectedRulesFingerprint" value={rulesFingerprint} />
@@ -940,14 +1138,31 @@
               'Set each assigned person’s customer charge, compensation and expense treatment here. Save each person before continuing.',
             )}
           </p>
-          {#if personFailure}<div class="warning" role="alert">
+          {#if personFailure || personSaveNotice}<div
+              class="warning"
+              role="alert"
+              tabindex="-1"
+              data-person-terms-errors
+            >
               <strong>{t('Check person terms fields')}</strong>
               {#if failedPerson}
                 <p>{failedPerson.name}</p>
               {/if}
-              {#if namedPersonFailureMessage}<p>
+              {#if personSaveNotice}<p>{personSaveNotice}</p>{/if}
+              {#if personFailure && namedPersonFailureMessage}<p>
                   {namedPersonFailureMessage}
                 </p>{/if}
+              {#if personErrors.length}<ul>
+                  {#each personErrors as error}<li>
+                      <a
+                        href={`#${personControlId(error.workerId, error.name)}`}
+                        onclick={(event) => {
+                          event.preventDefault();
+                          focusPersonControl(error.workerId, error.name);
+                        }}>{error.personName} · {personFieldCaption(error.workerId, error.name)}</a
+                      >: {error.message}
+                    </li>{/each}
+                </ul>{/if}
             </div>{/if}
           {#if canEdit && people.length > 1}
             <div class="bulk-defaults">
@@ -960,7 +1175,7 @@
               <button
                 type="button"
                 class="secondary-button"
-                disabled={selectedPersonIds.length === 0}
+                disabled={selectedPersonIds.length === 0 || personSaveBusy}
                 onclick={copyDraftToSelected}
               >
                 {t('Apply to selected people')}
@@ -968,9 +1183,8 @@
               <button
                 type="button"
                 class="primary-button"
-                disabled={selectedPersonIds.length === 0 || batchSubmitting}
+                disabled={selectedPersonIds.length === 0 || personSaveBusy || personRefreshRequired}
                 onclick={() => {
-                  batchSubmitting = true;
                   (
                     document.getElementById('selected-person-terms') as HTMLFormElement
                   )?.requestSubmit();
@@ -983,7 +1197,7 @@
               </p>
             </div>
           {/if}
-          <div class="people-list">
+          <div class="people-list" inert={personSaveBusy}>
             {#each people as person}
               {@const draft = personDrafts[person.id]}
               {#if draft}
@@ -1071,33 +1285,68 @@
                       <label
                         >{t('Terms effective from')}<input
                           type="date"
+                          id={personControlId(person.id, 'effectiveFrom')}
+                          aria-describedby={personFieldError(person.id, 'effectiveFrom')
+                            ? personErrorId(person.id, 'effectiveFrom')
+                            : undefined}
+                          disabled={personSaveBusy}
                           bind:value={draft.effectiveFrom}
                           aria-invalid={Boolean(personFieldError(person.id, 'effectiveFrom'))}
                           required
-                        /></label
+                        />{#if personFieldError(person.id, 'effectiveFrom')}<span
+                            class="warning"
+                            id={personErrorId(person.id, 'effectiveFrom')}
+                            >{personFieldError(person.id, 'effectiveFrom')}</span
+                          >{/if}</label
                       >
                       <label
                         >{t('Customer hourly rate')} ({currency})<input
                           type="text"
                           inputmode="decimal"
+                          id={personControlId(person.id, 'customerHourlyRate')}
+                          aria-describedby={personFieldError(person.id, 'customerHourlyRate')
+                            ? personErrorId(person.id, 'customerHourlyRate')
+                            : undefined}
+                          disabled={personSaveBusy}
                           bind:value={draft.customerHourlyRate}
                           aria-invalid={Boolean(personFieldError(person.id, 'customerHourlyRate'))}
                           required
-                        /></label
+                        />{#if personFieldError(person.id, 'customerHourlyRate')}<span
+                            class="warning"
+                            id={personErrorId(person.id, 'customerHourlyRate')}
+                            >{personFieldError(person.id, 'customerHourlyRate')}</span
+                          >{/if}</label
                       >
                       <label
                         >{t('Internal hourly cost')} ({currency})<input
                           type="text"
                           inputmode="decimal"
+                          id={personControlId(person.id, 'internalCostHourlyRate')}
+                          aria-describedby={personFieldError(person.id, 'internalCostHourlyRate')
+                            ? personErrorId(person.id, 'internalCostHourlyRate')
+                            : undefined}
+                          disabled={personSaveBusy}
                           bind:value={draft.internalCostHourlyRate}
                           aria-invalid={Boolean(
                             personFieldError(person.id, 'internalCostHourlyRate'),
                           )}
                           required
-                        /></label
+                        />{#if personFieldError(person.id, 'internalCostHourlyRate')}<span
+                            class="warning"
+                            id={personErrorId(person.id, 'internalCostHourlyRate')}
+                            >{personFieldError(person.id, 'internalCostHourlyRate')}</span
+                          >{/if}</label
                       >
                       <label
-                        >{t('Worker compensation method')}<select bind:value={draft.workerPayType}>
+                        >{t('Worker compensation method')}<select
+                          id={personControlId(person.id, 'workerPayType')}
+                          aria-describedby={personFieldError(person.id, 'workerPayType')
+                            ? personErrorId(person.id, 'workerPayType')
+                            : undefined}
+                          aria-invalid={Boolean(personFieldError(person.id, 'workerPayType'))}
+                          disabled={personSaveBusy}
+                          bind:value={draft.workerPayType}
+                        >
                           <option value="Hourly">{t('Hourly')}</option><option value="Daily"
                             >{t('Daily')}</option
                           >
@@ -1108,7 +1357,11 @@
                           <option value="PercentageOfEligibleClientLabor"
                             >{t('Percentage of eligible client labor')}</option
                           >
-                        </select></label
+                        </select>{#if personFieldError(person.id, 'workerPayType')}<span
+                            class="warning"
+                            id={personErrorId(person.id, 'workerPayType')}
+                            >{personFieldError(person.id, 'workerPayType')}</span
+                          >{/if}</label
                       >
                       <label
                         >{draft.workerPayType === 'PercentageOfEligibleClientLabor'
@@ -1119,13 +1372,29 @@
                           : `(${currency})`}<input
                           type="text"
                           inputmode="decimal"
+                          id={personControlId(person.id, 'workerPayAmount')}
+                          aria-describedby={personFieldError(person.id, 'workerPayAmount')
+                            ? personErrorId(person.id, 'workerPayAmount')
+                            : undefined}
+                          disabled={personSaveBusy}
                           bind:value={draft.workerPayAmount}
                           aria-invalid={Boolean(personFieldError(person.id, 'workerPayAmount'))}
                           required
-                        /></label
+                        />{#if personFieldError(person.id, 'workerPayAmount')}<span
+                            class="warning"
+                            id={personErrorId(person.id, 'workerPayAmount')}
+                            >{personFieldError(person.id, 'workerPayAmount')}</span
+                          >{/if}</label
                       >
                       {#if draft.workerPayType === 'PercentageOfEligibleClientLabor'}<label
-                          >{t('Percentage basis')}<select bind:value={draft.percentageBasis}
+                          >{t('Percentage basis')}<select
+                            id={personControlId(person.id, 'percentageBasis')}
+                            aria-describedby={personFieldError(person.id, 'percentageBasis')
+                              ? personErrorId(person.id, 'percentageBasis')
+                              : undefined}
+                            aria-invalid={Boolean(personFieldError(person.id, 'percentageBasis'))}
+                            disabled={personSaveBusy}
+                            bind:value={draft.percentageBasis}
                             ><option value="CLIENT_LABOR_BEFORE_TAX"
                               >{t('Client labor before tax')}</option
                             ><option value="CLIENT_LABOR_AFTER_APPROVED_DISCOUNT"
@@ -1135,10 +1404,20 @@
                             ><option value="COLLECTED_ELIGIBLE_LABOR"
                               >{t('Collected eligible labor')}</option
                             ></select
-                          ></label
+                          >{#if personFieldError(person.id, 'percentageBasis')}<span
+                              class="warning"
+                              id={personErrorId(person.id, 'percentageBasis')}
+                              >{personFieldError(person.id, 'percentageBasis')}</span
+                            >{/if}</label
                         >{/if}
                       <label
                         >{t('Expense payer')}<select
+                          id={personControlId(person.id, 'expensePayer')}
+                          aria-describedby={personFieldError(person.id, 'expensePayer')
+                            ? personErrorId(person.id, 'expensePayer')
+                            : undefined}
+                          aria-invalid={Boolean(personFieldError(person.id, 'expensePayer'))}
+                          disabled={personSaveBusy}
                           bind:value={draft.expensePayer}
                           onchange={() => {
                             if (draft.expensePayer !== 'worker') draft.workerReimbursement = 'none';
@@ -1152,44 +1431,128 @@
                           ><option value="company_direct">{t('Company direct')}</option><option
                             value="client">{t('Client')}</option
                           ><option value="third_party">{t('Third party')}</option></select
-                        ></label
+                        >{#if personFieldError(person.id, 'expensePayer')}<span
+                            class="warning"
+                            id={personErrorId(person.id, 'expensePayer')}
+                            >{personFieldError(person.id, 'expensePayer')}</span
+                          >{/if}</label
                       >
                       <label
                         >{t('Worker reimbursement source')}<select
+                          id={personControlId(person.id, 'reimbursementSource')}
+                          aria-describedby={personFieldError(person.id, 'reimbursementSource')
+                            ? personErrorId(person.id, 'reimbursementSource')
+                            : undefined}
+                          aria-invalid={Boolean(personFieldError(person.id, 'reimbursementSource'))}
+                          disabled={personSaveBusy}
                           bind:value={draft.reimbursementSource}
+                          onchange={(event) => {
+                            if (
+                              event.currentTarget.value === 'inherit' &&
+                              draft.effectiveFrom === person.reimbursementReviewDate &&
+                              person.inheritedWorkerReimbursement !== null
+                            )
+                              draft.workerReimbursement = person.inheritedWorkerReimbursement;
+                          }}
                           ><option value="inherit">{t('Use project reimbursement default')}</option
                           ><option value="override">{t('Override for this person')}</option></select
-                        ></label
+                        >{#if personFieldError(person.id, 'reimbursementSource')}<span
+                            class="warning"
+                            id={personErrorId(person.id, 'reimbursementSource')}
+                            >{personFieldError(person.id, 'reimbursementSource')}</span
+                          >{/if}</label
                       >
-                      <label
-                        >{t('Reimburse worker')}<select
-                          bind:value={draft.workerReimbursement}
-                          disabled={draft.expensePayer !== 'worker'}
-                          ><option value="at_cost">{t('At cost')}</option><option value="none"
-                            >{t('No reimbursement')}</option
-                          ></select
-                        ></label
-                      >
+                      {#if draft.reimbursementSource === 'inherit'}
+                        <p
+                          class="hint"
+                          data-inherited-reimbursement
+                          tabindex="-1"
+                          id={personControlId(person.id, 'workerReimbursement')}
+                          aria-invalid={Boolean(personFieldError(person.id, 'workerReimbursement'))}
+                          aria-describedby={personFieldError(person.id, 'workerReimbursement')
+                            ? personErrorId(person.id, 'workerReimbursement')
+                            : undefined}
+                        >
+                          {t('Reimburse worker')}: {draft.expensePayer !== 'worker'
+                            ? t('No reimbursement')
+                            : draft.effectiveFrom === person.reimbursementReviewDate &&
+                                person.inheritedWorkerReimbursement !== null
+                              ? t(
+                                  person.inheritedWorkerReimbursement === 'at_cost'
+                                    ? 'At cost'
+                                    : 'No reimbursement',
+                                )
+                              : t(
+                                  'Inherited reimbursement is resolved for the effective date when saved.',
+                                )}
+                          {#if personFieldError(person.id, 'workerReimbursement')}<span
+                              class="warning"
+                              id={personErrorId(person.id, 'workerReimbursement')}
+                              >{personFieldError(person.id, 'workerReimbursement')}</span
+                            >{/if}
+                        </p>
+                      {:else}
+                        <label
+                          >{t('Reimburse worker')}<select
+                            id={personControlId(person.id, 'workerReimbursement')}
+                            aria-describedby={personFieldError(person.id, 'workerReimbursement')
+                              ? personErrorId(person.id, 'workerReimbursement')
+                              : undefined}
+                            aria-invalid={Boolean(
+                              personFieldError(person.id, 'workerReimbursement'),
+                            )}
+                            bind:value={draft.workerReimbursement}
+                            disabled={personSaveBusy ||
+                              draft.expensePayer !== 'worker' ||
+                              draft.reimbursementSource === 'inherit'}
+                            ><option value="at_cost">{t('At cost')}</option><option value="none"
+                              >{t('No reimbursement')}</option
+                            ></select
+                          >{#if personFieldError(person.id, 'workerReimbursement')}<span
+                              class="warning"
+                              id={personErrorId(person.id, 'workerReimbursement')}
+                              >{personFieldError(person.id, 'workerReimbursement')}</span
+                            >{/if}</label
+                        >
+                      {/if}
                       <label
                         >{t('Charge customer for expense')}<select
+                          id={personControlId(person.id, 'clientRecovery')}
+                          aria-describedby={personFieldError(person.id, 'clientRecovery')
+                            ? personErrorId(person.id, 'clientRecovery')
+                            : undefined}
+                          aria-invalid={Boolean(personFieldError(person.id, 'clientRecovery'))}
                           bind:value={draft.clientRecovery}
-                          disabled={draft.expensePayer === 'client'}
+                          disabled={personSaveBusy || draft.expensePayer === 'client'}
                           ><option value="at_cost">{t('At cost')}</option><option value="markup"
                             >{t('Cost plus markup')}</option
                           ><option value="included">{t('Included in labor price')}</option><option
                             value="non_billable">{t('Do not charge customer')}</option
                           ><option value="client_direct">{t('Client pays directly')}</option
                           ></select
-                        ></label
+                        >{#if personFieldError(person.id, 'clientRecovery')}<span
+                            class="warning"
+                            id={personErrorId(person.id, 'clientRecovery')}
+                            >{personFieldError(person.id, 'clientRecovery')}</span
+                          >{/if}</label
                       >
                       {#if draft.clientRecovery === 'markup'}<label
                           >{t('Expense markup percentage')}<input
                             type="text"
                             inputmode="decimal"
+                            id={personControlId(person.id, 'markupPercent')}
+                            aria-describedby={personFieldError(person.id, 'markupPercent')
+                              ? personErrorId(person.id, 'markupPercent')
+                              : undefined}
+                            disabled={personSaveBusy}
                             bind:value={draft.markupPercent}
                             aria-invalid={Boolean(personFieldError(person.id, 'markupPercent'))}
                             required
-                          /></label
+                          />{#if personFieldError(person.id, 'markupPercent')}<span
+                              class="warning"
+                              id={personErrorId(person.id, 'markupPercent')}
+                              >{personFieldError(person.id, 'markupPercent')}</span
+                            >{/if}</label
                         >{/if}
                     </div>
                     <p class="hint" data-expense-billability-help>
@@ -1216,24 +1579,11 @@
                         'Existing terms on the same date are immutable. Choose a later effective date to change them.',
                       )}
                     </p>
-                    {#if personFailure?.fields && (personFailedValues.workerId === person.id || failedBatchRows.some((row) => row.workerId === person.id))}
-                      {@const batchIndex = failedBatchRows.findIndex(
-                        (row) => row.workerId === person.id,
-                      )}
-                      <ul class="warning">
-                        {#each Object.entries(personFailure.fields).filter(([field]) => personFailedValues.workerId === person.id || field.startsWith(`${batchIndex}.`)) as [field, messages]}
-                          <li>
-                            {t(field.split('.').at(-1) ?? field)}: {localizeMessages(messages)}
-                          </li>
-                        {/each}
-                      </ul>
-                    {/if}
                     <button
                       type="button"
                       class="secondary-button"
-                      disabled={personSubmitting === person.id}
+                      disabled={personSaveBusy || personRefreshRequired}
                       onclick={() => {
-                        personSubmitting = person.id;
                         (
                           document.getElementById(`person-terms-${person.id}`) as HTMLFormElement
                         )?.requestSubmit();
@@ -1378,11 +1728,20 @@
           method="POST"
           action="?/savePersonTerms&tab=billing"
           class="hidden-person-form"
+          use:enhance={submitPersonTerms}
         >
           <input type="hidden" name="projectId" value={projectId} />
-          <input type="hidden" name="projectMemberId" value={person.assignmentId} />
+          <input
+            type="hidden"
+            name="projectMemberId"
+            value={personBaselines[person.id].assignmentId}
+          />
           <input type="hidden" name="workerId" value={person.id} />
-          <input type="hidden" name="expectedFingerprint" value={person.termsFingerprint} />
+          <input
+            type="hidden"
+            name="expectedFingerprint"
+            value={personBaselines[person.id].fingerprint}
+          />
           <input type="hidden" name="effectiveFrom" value={draft.effectiveFrom} />
           <input type="hidden" name="customerHourlyRate" value={draft.customerHourlyRate} />
           <input
@@ -1411,6 +1770,7 @@
       method="POST"
       action="?/savePeopleTerms&tab=billing"
       class="hidden-person-form"
+      use:enhance={submitPersonTerms}
     >
       <input
         type="hidden"

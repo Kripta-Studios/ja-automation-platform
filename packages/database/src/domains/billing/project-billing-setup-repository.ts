@@ -335,6 +335,8 @@ export class ProjectBillingSetupRepository {
     expensePayer: string;
     workerReimbursement: string;
     reimbursementSource: 'inherit' | 'override';
+    inheritedWorkerReimbursement: string | null;
+    reimbursementReviewDate: string;
     clientRecovery: string;
     markupPercent: string;
     assignmentId: string;
@@ -396,6 +398,8 @@ export class ProjectBillingSetupRepository {
             expensePayer: 'worker',
             workerReimbursement: 'at_cost',
             reimbursementSource: 'inherit',
+            inheritedWorkerReimbursement: null,
+            reimbursementReviewDate: reviewDate,
             clientRecovery: 'at_cost',
             markupPercent: '',
             assignmentId: row.id,
@@ -424,6 +428,13 @@ export class ProjectBillingSetupRepository {
         const reimbursement = new AssignmentExpensePolicyRepository(
           this.sqlite,
         ).effectiveReimbursementPreference(projectId, row.id, reviewDate);
+        const inheritedPolicy = this.sqlite
+          .prepare(
+            `SELECT worker_reimbursement FROM assignment_expense_policy WHERE project_member_id=? AND payer='worker' AND category IS NULL AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?) ORDER BY effective_from DESC,version DESC LIMIT 1`,
+          )
+          .get(row.id, reviewDate, reviewDate) as
+          | { worker_reimbursement: WorkerReimbursementMode }
+          | undefined;
         const pay = terms.workerCompensation?.rule;
         const activeExpensePayers = (
           this.sqlite
@@ -475,6 +486,9 @@ export class ProjectBillingSetupRepository {
           expensePayer: policy?.payer ?? 'worker',
           workerReimbursement: reimbursement.mode ?? policy?.worker_reimbursement ?? 'at_cost',
           reimbursementSource: reimbursement.workerOverride === null ? 'inherit' : 'override',
+          inheritedWorkerReimbursement:
+            reimbursement.projectDefault ?? inheritedPolicy?.worker_reimbursement ?? 'at_cost',
+          reimbursementReviewDate: reviewDate,
           clientRecovery: policy?.client_recovery ?? 'at_cost',
           markupPercent: decimalFromHundredths(policy?.markup_bps),
           assignmentId: row.id,
@@ -794,11 +808,21 @@ export class ProjectBillingSetupRepository {
               : preference.mode === input.workerReimbursement
                 ? preference.workerOverride
                 : input.workerReimbursement;
+      // Preserve the independent dated policy fallback when inheriting. A project
+      // preference governs effective reimbursement without rewriting that fallback.
+      const policyReimbursement =
+        input.expensePayer === 'worker' && input.reimbursementSource === 'inherit'
+          ? policy
+            ? policy.worker_reimbursement === 'none'
+              ? 'none'
+              : 'at_cost'
+            : (preference.projectDefault ?? 'at_cost')
+          : input.workerReimbursement;
       const reimbursementOverrideChanged = wantedOverride !== preference.workerOverride;
       const policyChanged =
         !policy ||
         ((wantedOverride ?? preference.projectDefault) === null &&
-          policy.worker_reimbursement !== input.workerReimbursement) ||
+          policy.worker_reimbursement !== policyReimbursement) ||
         policy.client_recovery !== input.clientRecovery ||
         policy.markup_bps !== markupBps;
       if (reimbursementOverrideChanged) {
@@ -823,7 +847,7 @@ export class ProjectBillingSetupRepository {
           payer: input.expensePayer,
           effectiveFrom: input.effectiveFrom,
           effectiveTo: member.ends_on,
-          workerReimbursement: input.workerReimbursement,
+          workerReimbursement: policyReimbursement,
           clientRecovery: input.clientRecovery,
           markupBps,
           reason: 'Project billing setup per-person terms',

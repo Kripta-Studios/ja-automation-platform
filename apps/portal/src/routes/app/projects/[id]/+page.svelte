@@ -127,6 +127,35 @@
   let expenseCategoryFilter = $state('');
   let selectedPlanningDate = $state('');
   let tabButtons = $state<Partial<Record<TabId, HTMLButtonElement>>>({});
+  let personDraftStatus = $state<(() => { dirty: boolean; pending: boolean }) | null>(null);
+  let billingEditorKey = $state(0);
+  let observedBillingSetup = '';
+  $effect(() => {
+    const current = `${page.url.pathname}${page.url.search}:${data.overview.project.id}:${data.billingSetup?.version ?? ''}`;
+    if (observedBillingSetup && observedBillingSetup !== current && !personDraftStatus?.().pending)
+      billingEditorKey++;
+    observedBillingSetup = current;
+  });
+  function confirmPersonDraftDeparture(): boolean {
+    const status = personDraftStatus?.();
+    return (
+      !status ||
+      (!status.pending &&
+        (!status.dirty ||
+          window.confirm(
+            t('Discard your unsaved changes? Your entered information will be lost.'),
+          )))
+    );
+  }
+  beforeNavigate((navigation) => {
+    if (navigation.willUnload) return;
+    if (
+      navigation.from?.url.pathname === navigation.to?.url.pathname &&
+      navigation.from?.url.search === navigation.to?.url.search
+    )
+      return;
+    if (!confirmPersonDraftDeparture()) navigation.cancel();
+  });
   let periodProblemContainer = $state<HTMLElement | undefined>(undefined);
 
   async function selectProjectPlanningDate(date: string): Promise<void> {
@@ -784,6 +813,9 @@
     handledProblemId = id;
     saving = false;
     const action = detailForm?.actionName;
+    const personDrafts = personDraftStatus?.();
+    const preserveBillingDrafts =
+      action === 'updateProject' && (personDrafts?.dirty || personDrafts?.pending);
     if (action === 'updateProject') editOpen = true;
     if (action === 'createInvoiceDraft') invoiceOpen = true;
     if (
@@ -795,10 +827,11 @@
       restoredTab = { projectId: String(data.overview.project.id), tab: 'billing' };
     else if (
       action === 'submitMilestone' ||
-      action === 'updateProject' ||
+      (action === 'updateProject' && !preserveBillingDrafts) ||
       action === 'deleteProject'
     )
       restoredTab = { projectId: String(data.overview.project.id), tab: 'overview' };
+    if (action === 'savePersonTerms' || action === 'savePeopleTerms') return;
     void tick().then(() => {
       const formElement = action
         ? document.querySelector<HTMLFormElement>(`form[action*="/${action}"]`)
@@ -812,7 +845,9 @@
     });
   });
 
-  function selectTab(tab: TabId): void {
+  function selectTab(tab: TabId): boolean {
+    if (tab === activeTab) return true;
+    if (!confirmPersonDraftDeparture()) return false;
     restoredTab = { projectId: String(data.overview.project.id), tab };
     writeSessionState(tabStateKey(), tab);
     const url = new URL(page.url);
@@ -823,6 +858,7 @@
       ...page.state,
       projectDetailTab: { projectId: String(data.overview.project.id), tab },
     });
+    return true;
   }
 
   async function handleTabKeydown(event: KeyboardEvent, current: TabId): Promise<void> {
@@ -837,7 +873,7 @@
     event.preventDefault();
     const next = tabs[nextIndex];
     if (!next) return;
-    selectTab(next.id);
+    if (!selectTab(next.id)) return;
     await tick();
     tabButtons[next.id]?.focus();
   }
@@ -850,6 +886,14 @@
 
   onMount(() => {
     mounted = true;
+    const warnPersonDraftUnload = (event: BeforeUnloadEvent) => {
+      const status = personDraftStatus?.();
+      if (status?.dirty || status?.pending) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', warnPersonDraftUnload);
     if (problem) void tick().then(restoreDetailScroll);
     if (!page.url.searchParams.has('tab')) {
       const savedTab = readSessionState(tabStateKey());
@@ -878,6 +922,7 @@
     window.addEventListener('pagehide', rememberDetailScroll);
     document.addEventListener('submit', onSubmit, true);
     return () => {
+      window.removeEventListener('beforeunload', warnPersonDraftUnload);
       window.removeEventListener('storage', onStorage);
       window.removeEventListener('pagehide', rememberDetailScroll);
       document.removeEventListener('submit', onSubmit, true);
@@ -1837,8 +1882,9 @@
               {t}
             />
           {/key}
-          {#key billingSetup.version}
+          {#key billingEditorKey}
             <ProjectBillingSetup
+              bind:personDraftStatus
               projectId={String(project.id)}
               currency={String(project.currency)}
               timezone={String(project.timezone)}

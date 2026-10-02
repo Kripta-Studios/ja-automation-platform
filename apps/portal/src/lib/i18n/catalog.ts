@@ -177,6 +177,12 @@ const en = {
   'Your changes were saved, but the register could not be refreshed. Close this form and refresh the page.':
     'Your changes were saved, but the register could not be refreshed. Close this form and refresh the page.',
 
+  'Inherited reimbursement is resolved for the effective date when saved.':
+    'Inherited reimbursement is resolved for the effective date when saved.',
+  'The person save result is unknown. Review the latest terms before trying again.':
+    'The person save result is unknown. Review the latest terms before trying again.',
+  'Person terms were saved, but could not be refreshed. Reload the page to review them.':
+    'Person terms were saved, but could not be refreshed. Reload the page to review them.',
   'Discard your unsaved changes? Your entered information will be lost.':
     'Discard your unsaved changes? Your entered information will be lost.',
   'Review your latest 50 notifications. Filters apply to this list.':
@@ -735,6 +741,12 @@ const esBase: Record<keyof typeof en, string> = {
   'Your changes were saved, but the register could not be refreshed. Close this form and refresh the page.':
     'Los cambios se han guardado, pero no se pudo actualizar el listado. Cierra este formulario y recarga la página.',
 
+  'Inherited reimbursement is resolved for the effective date when saved.':
+    'El reembolso heredado se resuelve para la fecha de vigencia al guardar.',
+  'The person save result is unknown. Review the latest terms before trying again.':
+    'No se ha confirmado el guardado de las condiciones de la persona. Revisa las condiciones más recientes antes de volver a intentarlo.',
+  'Person terms were saved, but could not be refreshed. Reload the page to review them.':
+    'Las condiciones de la persona se han guardado, pero no se pudieron actualizar en pantalla. Recarga la página para revisarlas.',
   'Discard your unsaved changes? Your entered information will be lost.':
     '¿Descartar los cambios sin guardar? Se perderán los datos que has introducido.',
   'Review your latest 50 notifications. Filters apply to this list.':
@@ -1285,6 +1297,12 @@ const ptBase: Record<keyof typeof en, string> = {
   'Your changes were saved, but the register could not be refreshed. Close this form and refresh the page.':
     'As alterações foram salvas, mas não foi possível atualizar a lista. Feche este formulário e recarregue a página.',
 
+  'Inherited reimbursement is resolved for the effective date when saved.':
+    'O reembolso herdado é resolvido para a data de vigência ao salvar.',
+  'The person save result is unknown. Review the latest terms before trying again.':
+    'Não foi confirmado o salvamento das condições da pessoa. Revise as condições mais recentes antes de tentar novamente.',
+  'Person terms were saved, but could not be refreshed. Reload the page to review them.':
+    'As condições da pessoa foram salvas, mas não puderam ser atualizadas na tela. Recarregue a página para revisá-las.',
   'Discard your unsaved changes? Your entered information will be lost.':
     'Descartar as alterações não salvas? Os dados preenchidos serão perdidos.',
   'Review your latest 50 notifications. Filters apply to this list.':

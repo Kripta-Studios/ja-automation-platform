@@ -1,31 +1,44 @@
 import { z } from 'zod';
 import { clientRecordIdSchema } from '@ja/schemas';
-const amount = z
-  .string()
-  .trim()
-  .regex(/^\d{1,10}(?:[.,]\d{1,2})?$/);
+const amountPattern = /^\d{1,10}(?:[.,]\d{1,2})?$/;
+const amountError = 'problem.projectDetail.personTermsRateInvalid';
+const termsError = 'problem.projectDetail.personTermsInvalid';
+const amount = z.string({ error: amountError }).trim().regex(amountPattern, { error: amountError });
 export const projectPersonConfigSchema = z
   .object({
     customerHourlyRate: amount,
     internalCostHourlyRate: amount,
-    workerPayType: z.enum([
-      'Hourly',
-      'Daily',
-      'FixedPerBillingPeriod',
-      'FixedProjectAmount',
-      'PercentageOfEligibleClientLabor',
-    ]),
+    workerPayType: z.enum(
+      [
+        'Hourly',
+        'Daily',
+        'FixedPerBillingPeriod',
+        'FixedProjectAmount',
+        'PercentageOfEligibleClientLabor',
+      ],
+      { error: termsError },
+    ),
     workerPayAmount: amount,
-    percentageBasis: z.enum([
-      'CLIENT_LABOR_BEFORE_TAX',
-      'CLIENT_LABOR_AFTER_APPROVED_DISCOUNT',
-      'ISSUED_ELIGIBLE_LABOR',
-      'COLLECTED_ELIGIBLE_LABOR',
-    ]),
-    expensePayer: z.enum(['worker', 'company_card', 'company_direct', 'client', 'third_party']),
-    workerReimbursement: z.enum(['at_cost', 'none']),
-    clientRecovery: z.enum(['at_cost', 'markup', 'included', 'non_billable', 'client_direct']),
-    markupPercent: z.union([z.literal(''), amount]),
+    percentageBasis: z.enum(
+      [
+        'CLIENT_LABOR_BEFORE_TAX',
+        'CLIENT_LABOR_AFTER_APPROVED_DISCOUNT',
+        'ISSUED_ELIGIBLE_LABOR',
+        'COLLECTED_ELIGIBLE_LABOR',
+      ],
+      { error: termsError },
+    ),
+    expensePayer: z.enum(['worker', 'company_card', 'company_direct', 'client', 'third_party'], {
+      error: termsError,
+    }),
+    workerReimbursement: z.enum(['at_cost', 'none'], { error: termsError }),
+    clientRecovery: z.enum(['at_cost', 'markup', 'included', 'non_billable', 'client_direct'], {
+      error: termsError,
+    }),
+    markupPercent: z
+      .string({ error: amountError })
+      .trim()
+      .refine((value) => value === '' || amountPattern.test(value), { error: amountError }),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -33,13 +46,13 @@ export const projectPersonConfigSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['workerReimbursement'],
-        message: 'Only worker-paid expenses can reimburse a worker',
+        message: 'problem.projectDetail.personWorkerReimbursementMismatch',
       });
     if ((value.expensePayer === 'client') !== (value.clientRecovery === 'client_direct'))
       ctx.addIssue({
         code: 'custom',
         path: ['clientRecovery'],
-        message: 'Client-paid expenses require client-direct recovery',
+        message: 'problem.projectDetail.personClientRecoveryMismatch',
       });
     if (
       value.workerPayType === 'PercentageOfEligibleClientLabor' &&
@@ -48,7 +61,7 @@ export const projectPersonConfigSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['workerPayAmount'],
-        message: 'Percentage cannot exceed 100%',
+        message: 'problem.projectDetail.personPayPercentInvalid',
       });
     if (
       value.clientRecovery === 'markup' &&
@@ -59,11 +72,17 @@ export const projectPersonConfigSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['markupPercent'],
-        message: 'Enter a markup above 0% and at most 100%',
+        message:
+          Number(value.markupPercent.replace(',', '.')) > 100
+            ? 'problem.projectDetail.personMarkupInvalid'
+            : 'problem.projectDetail.personMarkupRequired',
       });
   });
 export const creationDefaultsSchema = z
-  .object({ effectiveFrom: z.iso.date(), config: projectPersonConfigSchema })
+  .object({
+    effectiveFrom: z.iso.date({ error: 'problem.projectDetail.personTermsDateInvalid' }),
+    config: projectPersonConfigSchema,
+  })
   .strict()
   .nullable();
 export const creationAssignmentsSchema = z
@@ -71,9 +90,11 @@ export const creationAssignmentsSchema = z
     z
       .object({
         workerId: clientRecordIdSchema,
-        startsOn: z.iso.date(),
-        endsOn: z.union([z.literal(''), z.iso.date()]),
-        mode: z.enum(['defaults', 'override']),
+        startsOn: z.iso.date({ error: 'problem.assignment.startDateInvalid' }),
+        endsOn: z.union([z.literal(''), z.iso.date()], {
+          error: 'problem.assignment.endDateInvalid',
+        }),
+        mode: z.enum(['defaults', 'override'], { error: termsError }),
         config: projectPersonConfigSchema.optional(),
       })
       .strict()
@@ -82,13 +103,13 @@ export const creationAssignmentsSchema = z
           ctx.addIssue({
             code: 'custom',
             path: ['endsOn'],
-            message: 'End date must be on or after start date',
+            message: 'problem.assignment.dateRangeInvalid',
           });
         if (row.mode === 'override' && !row.config)
-          ctx.addIssue({ code: 'custom', path: ['config'], message: 'Enter this worker’s terms' });
+          ctx.addIssue({ code: 'custom', path: ['config'], message: termsError });
       }),
   )
-  .max(100)
+  .max(100, { error: 'problem.project.initialWorkerLimit' })
   .superRefine((rows, ctx) => {
     const ids = new Set<string>();
     rows.forEach((row, i) => {
@@ -96,7 +117,7 @@ export const creationAssignmentsSchema = z
         ctx.addIssue({
           code: 'custom',
           path: [i, 'workerId'],
-          message: 'This worker is already in the assignment table',
+          message: 'problem.projectDetail.peopleTermsDuplicatePerson',
         });
       ids.add(row.workerId);
     });

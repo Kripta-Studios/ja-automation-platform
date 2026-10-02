@@ -1263,6 +1263,7 @@
     return {
       id: projectId,
       number: typeof projectNumber === 'string' ? projectNumber : '',
+      initialAssignmentCount: Number(result.messageParams?.initialAssignmentCount ?? 0),
     };
   });
   function projectFieldLabel(field: string): string {
@@ -1282,7 +1283,26 @@
       expenseBudgetMinor: 'Expense budget',
       initialWorkerIds: 'People (optional)',
       initialWorkersStartOn: 'Worker assignment start date (optional)',
+      workerId: 'Worker',
+      startsOn: 'Starts on',
+      endsOn: 'Ends on (optional)',
+      effectiveFrom: 'Terms effective from',
+      customerHourlyRate: 'Customer hourly rate',
+      internalCostHourlyRate: 'Internal hourly cost',
+      workerPayType: 'Worker compensation method',
+      workerPayAmount: 'Worker compensation rate',
+      percentageBasis: 'Percentage basis',
+      expensePayer: 'Expense payer',
+      workerReimbursement: 'Reimburse worker',
+      clientRecovery: 'Charge customer for expense',
+      markupPercent: 'Expense markup percentage',
     };
+    const assignmentField = /^assignments\.(\d+)\.(?:config\.)?(.+)$/.exec(field);
+    if (assignmentField)
+      return `${translate('Assignment')} ${Number(assignmentField[1]) + 1} · ${translate(labels[assignmentField[2]] ?? 'Worker assignments (optional)')}`;
+    const defaultField = /^personDefaults\.(?:config\.)?(.+)$/.exec(field);
+    if (defaultField)
+      return `${translate('Project defaults for people')} · ${translate(labels[defaultField[1]] ?? 'Project defaults for people')}`;
     return translate(labels[field] ?? field);
   }
   const invitationPath = $derived.by(() => {
@@ -5028,6 +5048,7 @@
                   {base}
                   projectId={createdProject.id}
                   projectNumber={createdProject.number}
+                  initialAssignmentCount={createdProject.initialAssignmentCount}
                   canAssignWorkers={canManageAssignmentControls}
                   {translate}
                 />
@@ -5040,7 +5061,7 @@
                 <h2>{translate('Create project')}</h2>
                 <p class="form-help wide-field">
                   {translate(
-                    'Create the project first. Then assign workers with their authorized cost, compensation, and effective dates before reviewing the project.',
+                    'Create the project with optional worker assignments and individual terms, or add people after saving.',
                   )}
                 </p>
                 {#if Object.keys(projectFieldErrors).length > 0}

@@ -1231,7 +1231,11 @@ export const projectActions = {
       });
       return actionSuccess(
         'action.projects.projectCreated',
-        { projectNumber: result.projectNumber, projectId: result.id },
+        {
+          projectNumber: result.projectNumber,
+          projectId: result.id,
+          initialAssignmentCount: assignments.data.length,
+        },
         `Created ${result.projectNumber}`,
       );
     } catch (error) {

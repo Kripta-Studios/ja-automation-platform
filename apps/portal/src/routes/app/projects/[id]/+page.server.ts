@@ -334,6 +334,7 @@ function detailValues(form: FormData): DetailValues {
 }
 
 function personFieldKey(field: string, message: string): DetailProblemKey {
+  if (message.startsWith('problem.projectDetail.')) return message as DetailProblemKey;
   if (message === 'Only worker-paid expenses can reimburse a worker')
     return 'problem.projectDetail.personWorkerReimbursementMismatch';
   if (message === 'Client-paid expenses require client-direct recovery')

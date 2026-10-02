@@ -3,13 +3,32 @@
     config = $bindable(),
     currency,
     errors = {},
+    errorContext = '',
     t,
   }: {
     config: Record<string, string>;
     currency: string;
     errors?: Record<string, string[] | undefined>;
+    errorContext?: string;
     t: (key: string) => string;
   } = $props();
+  function fieldLabel(field: string): string {
+    const labels: Record<string, string> = {
+      customerHourlyRate: 'Customer hourly rate',
+      internalCostHourlyRate: 'Internal hourly cost',
+      workerPayType: 'Worker compensation method',
+      workerPayAmount:
+        config.workerPayType === 'PercentageOfEligibleClientLabor'
+          ? 'Worker compensation percentage'
+          : 'Worker compensation rate',
+      percentageBasis: 'Percentage basis',
+      expensePayer: 'Expense payer',
+      workerReimbursement: 'Reimburse worker',
+      clientRecovery: 'Charge customer for expense',
+      markupPercent: 'Expense markup percentage',
+    };
+    return t(labels[field] ?? 'Check person terms fields');
+  }
 </script>
 
 <div class="terms-fields">
@@ -113,7 +132,7 @@
       /></label
     >{/if}
   {#each Object.entries(errors) as [field, messages]}<p class="warning" role="alert">
-      {field}: {messages?.map(t).join(' ')}
+      {errorContext ? `${errorContext} · ` : ''}{fieldLabel(field)}: {messages?.map(t).join(' ')}
     </p>{/each}
 </div>
 

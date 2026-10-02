@@ -456,6 +456,16 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
       'Crie primeiro o projeto. Depois atribua cada trabalhador com custo interno autorizado, remuneração e datas de vigência.',
     ],
   'Internal hourly cost': ['Coste interno por hora', 'Custo interno por hora'],
+  'Create the project with optional worker assignments and individual terms, or add people after saving.':
+    [
+      'Crea el proyecto con asignaciones de trabajadores y condiciones individuales opcionales, o añade personas después de guardar.',
+      'Crie o projeto com atribuições de trabalhadores e condições individuais opcionais, ou adicione pessoas após salvar.',
+    ],
+  'Worker assignments and their terms were saved with this project. Review them or add more people.':
+    [
+      'Las asignaciones y sus condiciones se guardaron con este proyecto. Revísalas o añade más personas.',
+      'As atribuições e suas condições foram salvas com este projeto. Revise-as ou adicione mais pessoas.',
+    ],
   'Compensation rate': ['Tarifa de remuneración', 'Valor da remuneração'],
   'Compensation basis': ['Base de remuneración', 'Base da remuneração'],
   'Finance effective from': ['Vigencia financiera desde', 'Vigência financeira a partir de'],

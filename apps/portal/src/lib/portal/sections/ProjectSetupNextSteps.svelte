@@ -3,12 +3,14 @@
     base,
     projectId,
     projectNumber,
+    initialAssignmentCount = 0,
     canAssignWorkers,
     translate,
   }: {
     base: string;
     projectId: string;
     projectNumber: string;
+    initialAssignmentCount?: number;
     canAssignWorkers: boolean;
     translate: (value: string) => string;
   } = $props();
@@ -22,7 +24,13 @@
   data-project-setup-next
 >
   <h2>{translate('Project created')} · {projectNumber}</h2>
-  <p>{translate('Now add people and configure how their work and expenses are calculated.')}</p>
+  <p>
+    {translate(
+      initialAssignmentCount > 0
+        ? 'Worker assignments and their terms were saved with this project. Review them or add more people.'
+        : 'Now add people and configure how their work and expenses are calculated.',
+    )}
+  </p>
   <ol>
     <li>
       <strong>{translate('Basics')}</strong>
@@ -30,6 +38,9 @@
     </li>
     <li>
       <strong>{translate('People')}</strong>
+      {#if initialAssignmentCount > 0}
+        <a href={`${projectPath}?tab=team`}>{translate('Review assigned people')}</a>
+      {/if}
       {#if canAssignWorkers}
         <a
           href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(projectId)}`}
@@ -41,7 +52,7 @@
     </li>
     <li>
       <strong>{translate('Commercial terms')}</strong>
-      <a href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(projectId)}`}
+      <a href={`${projectPath}?tab=billing&billingStep=people`}
         >{translate('Configure per-person rates and expenses')}</a
       >
     </li>

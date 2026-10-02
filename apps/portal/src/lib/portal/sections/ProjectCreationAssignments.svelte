@@ -74,6 +74,16 @@
       ...(row.mode === 'override' ? { config: row.config } : {}),
     })),
   );
+  function assignmentFieldLabel(field: string): string {
+    const labels: Record<string, string> = {
+      workerId: 'Worker',
+      startsOn: 'Starts on',
+      endsOn: 'Ends on (optional)',
+      mode: 'Terms source',
+      config: 'Rates, pay and expenses',
+    };
+    return t(labels[field] ?? 'Check person terms fields');
+  }
 </script>
 
 <div class="creation-people wide-field" data-project-creation-people>
@@ -101,10 +111,13 @@
           aria-invalid={Boolean(errors['personDefaults.effectiveFrom'])}
           required
         /></label
-      ><ProjectPersonTermsFields
+      >{#if errors['personDefaults.effectiveFrom']}<p class="warning" role="alert">
+          {t('Terms effective from')}: {errors['personDefaults.effectiveFrom']?.map(t).join(' ')}
+        </p>{/if}<ProjectPersonTermsFields
         bind:config
         {currency}
         {t}
+        errorContext={t('Project defaults for people')}
         errors={Object.fromEntries(
           Object.entries(errors)
             .filter(([key]) => key.startsWith('personDefaults.config.'))
@@ -178,6 +191,7 @@
                     config={row.config}
                     {currency}
                     {t}
+                    errorContext={`${t('Assignment')} ${i + 1}`}
                     errors={Object.fromEntries(
                       Object.entries(errors)
                         .filter(([key]) => key.startsWith(`assignments.${i}.config.`))
@@ -197,7 +211,10 @@
                     class="warning"
                     role="alert"
                   >
-                    {key.split('.').at(-1)}: {messages?.map(t).join(' ')}
+                    {t('Assignment')}
+                    {i + 1} · {assignmentFieldLabel(key.split('.').at(-1) ?? '')}: {messages
+                      ?.map(t)
+                      .join(' ')}
                   </p>{/each}
                 <button
                   type="button"

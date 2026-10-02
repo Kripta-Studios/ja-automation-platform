@@ -1787,7 +1787,8 @@
   const stageCounts = $derived({
     wip: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'wip').length,
     drafts: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'drafts').length,
-    outstanding: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'outstanding').length,
+    outstanding: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'outstanding')
+      .length,
     overdue: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'overdue').length,
     credits: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'credits').length,
     paid: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'paid').length,
@@ -4411,7 +4412,9 @@
         <p>
           {stageFilter === 'all'
             ? translate(
-                'Each row is one bill. Open Manage to approve, issue, collect, or correct. Adjustment is a new draft, never an edit of the issued bill.',
+                canManageBilling
+                  ? 'Each row is one bill. Open Manage to approve, issue, collect, or correct. Adjustment is a new draft, never an edit of the issued bill.'
+                  : 'billing.invoiceRegister.readOnlyHelp',
               )
             : `${stageLabel(stageFilter)} · ${translate('filtered')}`}
         </p>
@@ -5704,7 +5707,11 @@
         <div class="billing-section__empty" role="status">
           <strong>{translate('No invoices match this view.')}</strong>
           <span
-            >{translate('Adjust filters or build a draft from an authorized billing stream.')}</span
+            >{translate(
+              canManageBilling
+                ? 'Adjust filters or build a draft from an authorized billing stream.'
+                : 'billing.invoiceRegister.readOnlyEmptyHelp',
+            )}</span
           >
         </div>
       {/if}

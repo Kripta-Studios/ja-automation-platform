@@ -28,6 +28,9 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'billing.invoiceRegister.readOnlyHelp':
+    'Each row is one bill. Open an invoice to review its details and history.',
+  'billing.invoiceRegister.readOnlyEmptyHelp': 'Adjust filters to review available invoices.',
   'finance.issuerReplacement.title': 'Replace unused issuing authority',
   'finance.issuerReplacement.help':
     'Correct a setup mistake for this exact project and period. The original assignment stays in history. Replacement is available only while this project has no persisted financial records; approved time and unclassified expenses do not prevent it.',
@@ -518,6 +521,7 @@ const en = {
   Inactive: 'Inactive',
   Available: 'Available',
   Unavailable: 'Unavailable',
+  'Not applicable': 'Not applicable',
   Preferred: 'Preferred',
   Blocked: 'Blocked',
   'Regular time': 'Regular time',
@@ -570,6 +574,10 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'billing.invoiceRegister.readOnlyHelp':
+    'Cada fila es una factura. Abre una factura para revisar sus detalles e historial.',
+  'billing.invoiceRegister.readOnlyEmptyHelp':
+    'Ajusta los filtros para revisar las facturas disponibles.',
   'finance.issuerReplacement.title': 'Reemplazar entidad emisora sin uso financiero',
   'finance.issuerReplacement.help':
     'Corrige un error de configuración para este proyecto y período exactos. La asignación original permanece en el historial. Solo es posible si el proyecto no tiene registros financieros guardados; el tiempo aprobado y los gastos sin clasificar no lo impiden.',
@@ -1068,6 +1076,7 @@ const esBase: Record<keyof typeof en, string> = {
   Inactive: 'Inactivo',
   Available: 'Disponible',
   Unavailable: 'No disponible',
+  'Not applicable': 'No aplicable',
   Preferred: 'Preferido',
   Blocked: 'Bloqueado',
   'Regular time': 'Tiempo ordinario',
@@ -1111,6 +1120,10 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'billing.invoiceRegister.readOnlyHelp':
+    'Cada linha é uma fatura. Abra uma fatura para revisar seus detalhes e histórico.',
+  'billing.invoiceRegister.readOnlyEmptyHelp':
+    'Ajuste os filtros para revisar as faturas disponíveis.',
   'finance.issuerReplacement.title': 'Substituir entidade emissora sem uso financeiro',
   'finance.issuerReplacement.help':
     'Corrige um erro de configuração para este projeto e período exatos. A atribuição original permanece no histórico. A substituição só está disponível se o projeto não tiver registros financeiros salvos; horas aprovadas e despesas não classificadas não impedem a correção.',
@@ -1606,6 +1619,7 @@ const ptBase: Record<keyof typeof en, string> = {
   Inactive: 'Inativo',
   Available: 'Disponível',
   Unavailable: 'Indisponível',
+  'Not applicable': 'Não aplicável',
   Preferred: 'Preferencial',
   Blocked: 'Bloqueado',
   'Regular time': 'Tempo regular',

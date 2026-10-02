@@ -155,6 +155,7 @@ export type PortalData = {
     laborRevenueMinor?: string;
     expenseRevenueMinor?: string;
     directLaborCostMinor?: string;
+    expenseCostMinor?: string;
     travelCostMinor?: string;
     otherDirectCostMinor?: string;
     approvedUnbilledWipMinor?: string;

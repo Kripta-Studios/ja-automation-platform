@@ -1013,11 +1013,10 @@
       'commercialClassificationState',
       'commercial_classification_state',
     );
-    return translate(
-      classification === 'classified'
-        ? value(row, 'treatment') || 'Not classified'
-        : 'Not classified',
-    );
+    const treatment = value(row, 'treatment');
+    return classification === 'classified' && treatment
+      ? controlledValue('billingStream', treatment)
+      : translate('Not classified');
   }
 
   function hasExpenseIssuingAuthority(row: Row | Record<string, unknown>): boolean {
@@ -2026,7 +2025,7 @@
               {translate('Loaded labor')}:
               {displayMoney(finance.directLaborCostMinor, finance.currency)}
               · {translate('Expenses')}:
-              {displayMoney(finance.otherDirectCostMinor, finance.currency)}
+              {displayMoney(finance.expenseCostMinor, finance.currency)}
             </small>
           </a>
           <a

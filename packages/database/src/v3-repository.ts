@@ -4945,6 +4945,7 @@ export class V3Repository {
       operationalRevenueCandidateMinor: operationalRevenue.toString(),
       revenueCandidateMinor: revenue.toString(),
       directLaborCostMinor: laborCost.toString(),
+      expenseCostMinor: expenseCost.toString(),
       workerCompensationMinor: workerCompensation.toString(),
       travelCostMinor: travelCost.toString(),
       otherDirectCostMinor: otherDirectCost.toString(),

@@ -93,6 +93,7 @@ import {
 import { NotificationRepository } from './domains/notifications/index.ts';
 import { assertNoSupplierFinancialAccess } from './domains/workforce/supplier-access.ts';
 import { validateEffectiveTimeEntry } from './domains/time/time-entry-repository.ts';
+import { ProjectCompensationAllocator } from './domains/compensation/project-compensation-allocator.ts';
 
 export class V3AccessDeniedError extends Error {}
 export class V3ConflictError extends Error {}
@@ -3971,6 +3972,7 @@ export class V3Repository {
     const timeFinanceReasons: Array<{ code: string; sourceId: string }> = [];
     let unapprovedWip = 0n;
     const economics: Array<Record<string, OutputValue>> = [];
+    const compensationAllocator = new ProjectCompensationAllocator(project.currency);
     const approvedUnbilledSources: Array<Record<string, unknown>> = [];
     const approvedCommerciallyBillableSourceIds = new Set<string>();
     const dailyBillable = new Map<
@@ -4218,13 +4220,21 @@ export class V3Repository {
                 row.work_date,
                 row.activity_code,
               );
+        const sourceCompensation = this.compensationAmount(
+          item.row,
+          item.compensationRule,
+          clientRate?.currency === project.currency ? clientRate : null,
+        );
         return (
           sum +
-          this.compensationAmount(
-            item.row,
-            item.compensationRule,
-            clientRate?.currency === project.currency ? clientRate : null,
-          )
+          sourceCompensation +
+          compensationAllocator.additionalForApprovedSource({
+            sourceId: row.id,
+            workerId: row.worker_id,
+            workDate: row.work_date,
+            minutes: item.row.minutes,
+            rule: item.compensationRule,
+          })
         );
       }, 0n);
       if (commerciallyBillableSlices.length > 0) {
@@ -4303,6 +4313,16 @@ export class V3Repository {
         internalCostConfigured: allInternalRatesConfigured,
         compensationRuleType: economicRules[0]?.compensationRule?.rule_type ?? null,
       });
+    }
+    const economicsById = new Map(economics.map((source) => [source.id, source]));
+    for (const { sourceId, amountMinor } of compensationAllocator.guaranteeTopUps()) {
+      const source = economicsById.get(sourceId);
+      if (!source || source.approved !== true)
+        throw new V3ConflictError('Approved compensation source is missing');
+      source.workerCompensationMinor = (
+        BigInt(String(source.workerCompensationMinor)) + amountMinor
+      ).toString();
+      workerCompensation += amountMinor;
     }
     let dailyMinimumTopUp = 0n;
     if (project.client_daily_minimum_minutes !== null) {

@@ -29,3 +29,10 @@ Choose an explicit person reimbursement override to preserve it even when it cur
 - Paid expenses, issued invoices and finalized settlements are protected from retrospective changes.
 
 Workers see their own authorized pay and reimbursement information. Project managers and crew chiefs do not receive other people's compensation, customer rates or internal costs.
+
+
+## Issuing authority and expense review
+
+In **Finance → Configuration → Project issuing authority**, choose a reviewed authority with the same currency as the project. If an incorrect assignment has never been used financially, the replacement form accepts a compatible authority and a reason. It keeps the original assignment as history and records the correction for the same interval. Financially used history is protected.
+
+Expense classification and **Record Finance review** are separate steps. Customer revenue enters the economic ledger after the required Finance review. Worker reimbursement follows the person's dated expense policy and may differ from customer recovery.

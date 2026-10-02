@@ -74,3 +74,27 @@ Worker6's W47 MyPay showed the approved historical Oct1 hour and EUR0.04 after a
 W48 archive `8e427bdc706cc0bc29c0d49434f6d0872506129341004c128edd1c62d0293f78`, source `871b0ef`, activated October2 at13:08:21 Europe/Madrid. It preserves project/week/language on Time submission and removes forced512px minimum heights from MyPay cards. Independent Sol source review, scoped static checks, deployment backup and health/jobs checks passed. Browser verification of those two repairs remains pending at this receipt.
 
 Finance classification of the QA expense claims remains blocked: an existing USD issuing authority was assigned to the EUR project, and the app has no ordinary correction workflow for that unused assignment. Currency validation and an append-only unused-assignment replacement are being implemented. Expected expense reimbursements are not marked PASS before successful classification and role-specific reconciliation. No invoice, payment or settlement was finalized.
+
+
+## W48 completed Worker/Crew observations and W49 Finance recovery
+
+W48 Worker readers independently showed Daily EUR0.10, fixed-period EUR0.11 and fixed-project EUR0.12 once each across their two approved sources. The localized Time submission retained project/week/language, and the inspected MyPay cards fit their content at390/1440. Chief delegation checks were limited to the dated Worker1→Worker8 QA grant. Linked QA expenses were withdrawn with reasons and their draft time discarded; fresh Chief and subject-worker reloads retained Withdrawn/Void history and unchanged approved pay. These scoped checks do not establish every duplicate, receipt, weekly-batch or privacy branch.
+
+W49 source `856f4d83`, archive `25a451db1e5c7dd37570f620bd92998b07657b964c3bd4ba6cc70da7972d7ced`, activated October2 at14:11:50 Europe/Madrid. The first build was interrupted by a VPS restart at14:05:48; the cause is unknown. The canonical retry completed with backup, upgrade, local/public health and jobs checks. Subsequent builds are limited to one service at a time. Functional browser work now uses exactly one context and one page, with sequential role sign-out/sign-in.
+
+Finance used the new ordinary correction form to replace the unused USD authority on the dedicated EUR QA project. HTTP200 retained the original assignment as replaced history and added the EUR correction for the same October1–5 interval. A short reason produced native validation without a POST. Reload retained both history rows; replay idempotency and the used-history rejection remain untested. On a second EUR QA project, selecting a USD authority returned409 with a readable currency error and retained fields; choosing the reviewed EUR authority then succeeded.
+
+All four retained worker-paid EUR1 parking claims were commercially classified and then explicitly Finance reviewed through their normal forms. The economic expense ledger reconciled:
+
+| QA project / claimant | Work date | Internal cost EUR | Customer revenue EUR |
+| --- | --- | ---: | ---: |
+| Dedicated / Worker5 | October2 | 1.00 | 0.00 |
+| Dedicated / historical Worker6 | October1 | 1.00 | 1.10 |
+| Timezone / Worker5 | October2 | 1.00 | 1.10 |
+| Primary no-reimbursement / Worker5 | October2 | 0.00 | 0.00 |
+
+Worker6's customer revenue was0 before the Finance review stamp and1.10 afterward, consistent with the recognition gate. That intermediate state was not counted as a defect. Worker-role reimbursement/statement reconciliation remains pending. No invoice, payment or settlement was finalized.
+
+Browser validation also reproduced lost date/filter context after a configuration save and misleading minimum-one-character copy for trimmed whitespace. The reviewed correction is source `7b84a210`; its deployment and live browser acceptance are pending at this entry. W49 per-currency approved-minute captions and empty delegated-worker filter labels also await browser retesting.
+
+The W49 exact-source aggregate Svelte comparison contains60 errors and8 warnings in15 files, with identical diagnostic identities in baseline and candidate. Scoped TypeScript/lint checks pass; the aggregate check is not green. These entries do not certify complete102-item or all-role acceptance.

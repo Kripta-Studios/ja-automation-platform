@@ -28,6 +28,11 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'finance.commercialTerms.assignmentDates': 'Assignment dates',
+  'finance.commercialTerms.historicalReadOnly': 'Inactive assignment · retained terms · read only',
+  'finance.commercialTerms.historicalReadOnlyHelp':
+    'This inactive assignment covers the selected work date. Its retained terms are available for review. Configuration requires an active assignment and person.',
+  'finance.commercialTerms.historicalIssues': 'Retained term issues',
   'billing.invoiceRegister.readOnlyHelp':
     'Each row is one bill. Open an invoice to review its details and history.',
   'billing.invoiceRegister.readOnlyEmptyHelp': 'Adjust filters to review available invoices.',
@@ -574,6 +579,12 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'finance.commercialTerms.assignmentDates': 'Fechas de asignación',
+  'finance.commercialTerms.historicalReadOnly':
+    'Asignación inactiva · condiciones conservadas · solo lectura',
+  'finance.commercialTerms.historicalReadOnlyHelp':
+    'Esta asignación inactiva cubre la fecha de trabajo seleccionada. Sus condiciones conservadas están disponibles para revisión. La configuración requiere una asignación y una persona activas.',
+  'finance.commercialTerms.historicalIssues': 'Incidencias de las condiciones conservadas',
   'billing.invoiceRegister.readOnlyHelp':
     'Cada fila es una factura. Abre una factura para revisar sus detalles e historial.',
   'billing.invoiceRegister.readOnlyEmptyHelp':
@@ -1120,6 +1131,12 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'finance.commercialTerms.assignmentDates': 'Datas da atribuição',
+  'finance.commercialTerms.historicalReadOnly':
+    'Atribuição inativa · condições preservadas · somente leitura',
+  'finance.commercialTerms.historicalReadOnlyHelp':
+    'Esta atribuição inativa cobre a data de trabalho selecionada. Suas condições preservadas estão disponíveis para revisão. A configuração exige uma atribuição e uma pessoa ativas.',
+  'finance.commercialTerms.historicalIssues': 'Pendências das condições preservadas',
   'billing.invoiceRegister.readOnlyHelp':
     'Cada linha é uma fatura. Abra uma fatura para revisar seus detalhes e histórico.',
   'billing.invoiceRegister.readOnlyEmptyHelp':

@@ -282,6 +282,9 @@
 
   const policyWriteRoles = ['owner_admin', 'finance_admin'];
   const canWritePolicy = $derived(!isAuditor && policyWriteRoles.includes(String(data.user.role)));
+  const configurableCommercialTerms = $derived(
+    (data.commercialTermsSummary ?? []).filter((terms) => terms.canConfigure === true),
+  );
   const canManageCanonicalAuthority = $derived(
     !isAuditor && policyWriteRoles.includes(String(data.user.role)),
   );
@@ -489,7 +492,7 @@
       : undefined,
   );
   const selectedPolicyAssignment = $derived(
-    data.commercialTermsSummary?.find(
+    configurableCommercialTerms.find(
       (person) => rowValue(person, 'assignmentId') === selectedPolicyMemberId,
     ),
   );
@@ -677,6 +680,20 @@
             <div>
               <strong>{rowValue(terms, 'workerName')}</strong>
               <small>
+                {translate('Current status')}: {controlledValue(
+                  'status',
+                  rowValue(terms, 'assignmentStatus'),
+                )} · {translate('finance.commercialTerms.assignmentDates')}:
+                {rowValue(terms, 'assignmentStartsOn')} → {rowValue(terms, 'assignmentEndsOn') ||
+                  translate('Open assignment')}
+              </small>
+              {#if terms.historicalReadOnly === true}
+                <small
+                  ><strong>{translate('finance.commercialTerms.historicalReadOnly')}</strong></small
+                >
+                <small>{translate('finance.commercialTerms.historicalReadOnlyHelp')}</small>
+              {/if}
+              <small>
                 {translate('Customer charge')}: {ruleMoney(
                   terms,
                   'clientRateMinor',
@@ -700,12 +717,14 @@
               </small>
               {#if Array.isArray(terms.issueCodes) && terms.issueCodes.length}
                 <small role="status">
-                  {translate('Configuration required')}: {terms.issueCodes
-                    .map(termIssueLabel)
-                    .join('; ')}
+                  {translate(
+                    terms.historicalReadOnly === true
+                      ? 'finance.commercialTerms.historicalIssues'
+                      : 'Configuration required',
+                  )}: {terms.issueCodes.map(termIssueLabel).join('; ')}
                 </small>
               {/if}
-              {#if canWritePolicy}
+              {#if canWritePolicy && terms.canConfigure === true}
                 <details
                   class="assignment-commercial-editor"
                   open={Boolean(
@@ -1121,9 +1140,9 @@
           </div>
         </form>
       {/if}
-      {#if canWritePolicy && data.selectedProjectId && data.commercialTermsSummary?.length}
+      {#if canWritePolicy && data.selectedProjectId && configurableCommercialTerms.length}
         <div class="record-list" aria-label={translate('Worker reimbursement overrides')}>
-          {#each data.commercialTermsSummary as person}
+          {#each configurableCommercialTerms as person}
             <form
               method="POST"
               action={reimbursementActionUrl('setWorkerReimbursementOverride')}
@@ -1264,7 +1283,7 @@
           {/each}
         </div>
       {/if}
-      {#if canWritePolicy && data.selectedProjectId && (data.commercialTermsSummary?.length || failedConfigurationAction?.actionName === 'createAssignmentExpensePolicy')}
+      {#if canWritePolicy && data.selectedProjectId && (configurableCommercialTerms.length || failedConfigurationAction?.actionName === 'createAssignmentExpensePolicy')}
         <form
           method="POST"
           action={reimbursementActionUrl('createAssignmentExpensePolicy')}
@@ -1312,7 +1331,7 @@
                   })}</option
                 >
               {/if}
-              {#each data.commercialTermsSummary ?? [] as person}
+              {#each configurableCommercialTerms as person}
                 <option value={rowValue(person, 'assignmentId')}
                   >{rowValue(person, 'workerName')}</option
                 >

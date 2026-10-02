@@ -238,8 +238,9 @@
       return Boolean(
         data.commercialTermsSummary?.some(
           (person) =>
+            person.canConfigure === true &&
             String(person.assignmentId ?? person.assignment_id ?? person.id) ===
-            String(failedFinanceForm.values?.projectMemberId ?? ''),
+              String(failedFinanceForm.values?.projectMemberId ?? ''),
         ),
       );
     return false;
@@ -268,8 +269,9 @@
       ) &&
       data.commercialTermsSummary?.some(
         (person) =>
+          person.canConfigure === true &&
           String(person.assignmentId ?? person.assignment_id ?? '') ===
-          String(failedFinanceForm?.values?.projectMemberId ?? ''),
+            String(failedFinanceForm?.values?.projectMemberId ?? ''),
       ),
     ),
   );

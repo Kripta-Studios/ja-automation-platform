@@ -799,11 +799,14 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             : financeToday;
         const commercialCategory =
           url.searchParams.get('category')?.trim().slice(0, 80) || 'regular';
+        // Retained inactive memberships can be reviewed within their recorded date interval.
+        // A recorded end date is required, matching the commercial resolver's boundary.
         const commercialTermsSummary = selected
           ? (
               context.sqlite
                 .prepare(
                   `SELECT pm.id,pm.user_id,u.name,pm.version,pm.starts_on,pm.ends_on,
+                          pm.status assignment_status,u.status worker_status,
                           p.currency project_currency,
                           pm.client_bill_rule_id,pm.worker_compensation_rule_id,
                           pm.internal_cost_rule_id,
@@ -813,7 +816,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                      FROM project_member pm
                      JOIN user u ON u.id=pm.user_id
                      JOIN project p ON p.id=pm.project_id
-                    WHERE pm.project_id=? AND pm.status='active' AND u.status='active'
+                    WHERE pm.project_id=?
+                      AND ((pm.status='active' AND u.status='active')
+                        OR (pm.status='inactive' AND pm.ends_on IS NOT NULL))
                       AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
                     ORDER BY u.name,pm.id`,
                 )
@@ -824,6 +829,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 version: number;
                 starts_on: string;
                 ends_on: string | null;
+                assignment_status: string;
+                worker_status: string;
                 project_currency: string;
                 client_bill_rule_id: string | null;
                 worker_compensation_rule_id: string | null;
@@ -848,6 +855,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 assignmentVersion: member.version,
                 assignmentStartsOn: member.starts_on,
                 assignmentEndsOn: member.ends_on,
+                assignmentStatus: member.assignment_status,
+                workerStatus: member.worker_status,
+                canConfigure:
+                  member.assignment_status === 'active' && member.worker_status === 'active',
+                historicalReadOnly: member.assignment_status === 'inactive',
                 projectCurrency: member.project_currency,
                 workerId: member.user_id,
                 workerName: member.name,

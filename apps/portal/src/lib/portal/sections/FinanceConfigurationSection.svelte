@@ -1,6 +1,7 @@
 <script lang="ts">
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import TimeCategorySelect from '../ui/TimeCategorySelect.svelte';
+  import UnusedIssuingAuthorityReplacementForm from './UnusedIssuingAuthorityReplacementForm.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { FormCard, FormSection, FieldGroup, Field, ProblemNotice, formValidation } from '../ui';
@@ -521,6 +522,7 @@
   const actionTask: Record<string, string> = {
     createCanonicalLegalEntityRevision: 'Project issuing authority',
     assignProjectLegalEntity: 'Project issuing authority',
+    replaceUnusedProjectIssuingAuthority: 'Project issuing authority',
     createProjectCommercialPolicy: 'Project commercial and time policy',
     setProjectReimbursementDefault: 'Person expense policies',
     setWorkerReimbursementOverride: 'Person expense policies',
@@ -1895,6 +1897,23 @@
                   {rowValue(assignment, 'effectiveTo', 'effective_to') || translate('current')} ·
                   {rowValue(assignment, 'baseCurrency', 'base_currency')}
                 </small>
+                {#if rowValue(assignment, 'replacedByAssignmentId')}
+                  <p>{portalText(locale, 'finance.issuerReplacement.replaced')}</p>
+                {:else if rowValue(assignment, 'replacesAssignmentId')}
+                  <p>{portalText(locale, 'finance.issuerReplacement.corrected')}</p>
+                {/if}
+                {#if rowValue(assignment, 'replacementReason')}
+                  <p>{translate('Reason')}: {rowValue(assignment, 'replacementReason')}</p>
+                {/if}
+                {#if canManageCanonicalAuthority && !rowValue(assignment, 'replacedByAssignmentId')}
+                  <UnusedIssuingAuthorityReplacementForm
+                    {assignment}
+                    options={data.canonicalLegalEntityOptions ?? []}
+                    projectCurrency={selectedProjectCurrency}
+                    commandToken={data.canonicalAssignmentCommandToken ?? ''}
+                    {locale}
+                  />
+                {/if}
               </div>
             </article>
           {/each}
@@ -3262,12 +3281,30 @@
             class="admin-form-grid"
             use:formValidation
           >
-            <input
-              type="hidden"
-              name="projectId"
-              value={failedValue('createInternalCostRule', 'projectId') ?? data.selectedProjectId}
-            />
             <FieldGroup columns="2">
+              <Field
+                id="finance-internal-project"
+                label={translate('Project scope')}
+                data-field="projectId"
+              >
+                <select id="finance-internal-project" name="projectId">
+                  <option
+                    value=""
+                    selected={failedValue('createInternalCostRule', 'projectId') === ''}
+                    >{translate('Global')}</option
+                  >
+                  {#each availableProjects as project}
+                    <option
+                      value={project.id}
+                      selected={String(project.id) ===
+                        String(
+                          failedValue('createInternalCostRule', 'projectId') ??
+                            data.selectedProjectId,
+                        )}>{projectLabel(project)}</option
+                    >
+                  {/each}
+                </select>
+              </Field>
               <Field
                 id="finance-internal-worker"
                 label={translate('Worker')}

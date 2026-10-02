@@ -28,6 +28,30 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'finance.issuerReplacement.title': 'Replace unused issuing authority',
+  'finance.issuerReplacement.help':
+    'Correct a setup mistake for this exact project and period. The original assignment stays in history. Replacement is available only while this project has no persisted financial records; approved time and unclassified expenses do not prevent it.',
+  'finance.issuerReplacement.revision': 'Replacement issuing authority revision',
+  'finance.issuerReplacement.compatible':
+    'Reviewed revisions must match the project currency and cover the full original period.',
+  'finance.issuerReplacement.submit': 'Replace unused issuing authority',
+  'finance.issuerReplacement.noCompatibleRevision':
+    'No compatible reviewed revision covers this period. Create and review a compatible revision first.',
+  'finance.issuerReplacement.replaced': 'Replaced — retained as original history',
+  'finance.issuerReplacement.corrected': 'Correction — replaces an unused assignment',
+  'problem.finance.input.unusedIssuerReplacement':
+    'Choose a reviewed replacement revision and enter a reason of at least five characters.',
+  'problem.finance.issuerReplacementUsed':
+    'This project has persisted financial records. Its issuing authority cannot be replaced. Configure authority for a future interval instead.',
+  'problem.finance.issuerReplacementChanged':
+    'This issuing authority is unavailable or was already replaced. Review the current assignment history.',
+  'problem.finance.issuerReplacementSameRevision':
+    'Choose a different reviewed revision to correct this issuing authority.',
+  'problem.finance.issuerReplacementRetryConflict':
+    'This replacement request was already used with different details. Review the current assignment history.',
+  'problem.finance.projectIssuerCurrencyMismatch':
+    'Choose an issuing authority revision whose currency matches the project currency.',
+  'action.finance.unusedIssuerReplaced': 'Unused issuing authority replaced',
   'problem.project.deleteHasCommercialAgreements':
     'This project has recorded commercial agreements and cannot be deleted. Archive the project instead.',
   'action.projects.personDefaultsSaved':
@@ -546,6 +570,30 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'finance.issuerReplacement.title': 'Reemplazar entidad emisora sin uso financiero',
+  'finance.issuerReplacement.help':
+    'Corrige un error de configuración para este proyecto y período exactos. La asignación original permanece en el historial. Solo es posible si el proyecto no tiene registros financieros guardados; el tiempo aprobado y los gastos sin clasificar no lo impiden.',
+  'finance.issuerReplacement.revision': 'Revisión de la entidad emisora de reemplazo',
+  'finance.issuerReplacement.compatible':
+    'Las revisiones verificadas deben coincidir con la moneda del proyecto y cubrir todo el período original.',
+  'finance.issuerReplacement.submit': 'Reemplazar entidad emisora sin uso financiero',
+  'finance.issuerReplacement.noCompatibleRevision':
+    'Ninguna revisión verificada compatible cubre este período. Primero crea y verifica una revisión compatible.',
+  'finance.issuerReplacement.replaced': 'Reemplazada — conservada en el historial original',
+  'finance.issuerReplacement.corrected': 'Corrección — reemplaza una asignación sin uso financiero',
+  'problem.finance.input.unusedIssuerReplacement':
+    'Elige una revisión de reemplazo verificada e indica un motivo de al menos cinco caracteres.',
+  'problem.finance.issuerReplacementUsed':
+    'Este proyecto tiene registros financieros guardados. No se puede reemplazar su entidad emisora. Configura la entidad para un período futuro.',
+  'problem.finance.issuerReplacementChanged':
+    'Esta entidad emisora no está disponible o ya fue reemplazada. Revisa el historial de asignaciones actual.',
+  'problem.finance.issuerReplacementSameRevision':
+    'Elige una revisión verificada diferente para corregir esta entidad emisora.',
+  'problem.finance.issuerReplacementRetryConflict':
+    'Esta solicitud de reemplazo ya se utilizó con otros datos. Revisa el historial de asignaciones actual.',
+  'problem.finance.projectIssuerCurrencyMismatch':
+    'Elige una revisión de entidad emisora cuya moneda coincida con la moneda del proyecto.',
+  'action.finance.unusedIssuerReplaced': 'Entidad emisora sin uso financiero reemplazada',
   'problem.project.deleteHasCommercialAgreements':
     'Este proyecto tiene acuerdos comerciales registrados y no se puede eliminar. Archiva el proyecto.',
   'action.projects.personDefaultsSaved':
@@ -1063,6 +1111,30 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'finance.issuerReplacement.title': 'Substituir entidade emissora sem uso financeiro',
+  'finance.issuerReplacement.help':
+    'Corrige um erro de configuração para este projeto e período exatos. A atribuição original permanece no histórico. A substituição só está disponível se o projeto não tiver registros financeiros salvos; horas aprovadas e despesas não classificadas não impedem a correção.',
+  'finance.issuerReplacement.revision': 'Revisão da entidade emissora substituta',
+  'finance.issuerReplacement.compatible':
+    'As revisões verificadas devem corresponder à moeda do projeto e cobrir todo o período original.',
+  'finance.issuerReplacement.submit': 'Substituir entidade emissora sem uso financeiro',
+  'finance.issuerReplacement.noCompatibleRevision':
+    'Nenhuma revisão verificada compatível cobre este período. Primeiro crie e verifique uma revisão compatível.',
+  'finance.issuerReplacement.replaced': 'Substituída — preservada no histórico original',
+  'finance.issuerReplacement.corrected': 'Correção — substitui uma atribuição sem uso financeiro',
+  'problem.finance.input.unusedIssuerReplacement':
+    'Escolha uma revisão substituta verificada e informe um motivo de pelo menos cinco caracteres.',
+  'problem.finance.issuerReplacementUsed':
+    'Este projeto tem registros financeiros salvos. Sua entidade emissora não pode ser substituída. Configure a entidade para um período futuro.',
+  'problem.finance.issuerReplacementChanged':
+    'Esta entidade emissora não está disponível ou já foi substituída. Revise o histórico atual de atribuições.',
+  'problem.finance.issuerReplacementSameRevision':
+    'Escolha uma revisão verificada diferente para corrigir esta entidade emissora.',
+  'problem.finance.issuerReplacementRetryConflict':
+    'Esta solicitação de substituição já foi usada com outros dados. Revise o histórico atual de atribuições.',
+  'problem.finance.projectIssuerCurrencyMismatch':
+    'Escolha uma revisão de entidade emissora cuja moeda corresponda à moeda do projeto.',
+  'action.finance.unusedIssuerReplaced': 'Entidade emissora sem uso financeiro substituída',
   'problem.project.deleteHasCommercialAgreements':
     'Este projeto tem acordos comerciais registrados e não pode ser excluído. Arquive o projeto.',
   'action.projects.personDefaultsSaved':

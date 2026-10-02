@@ -1204,6 +1204,14 @@
     return `${base}/app/finance?${query.toString()}${hash}`;
   }
 
+  function expenseClassificationAction(expenseId: string): string {
+    const query = new URLSearchParams({ view: 'commercial', expense: expenseId, lang: locale });
+    if (data.selectedProjectId) query.set('project', String(data.selectedProjectId));
+    const search = $page.url.searchParams.get('q');
+    if (search !== null) query.set('q', search);
+    return `?/classifyExpenseCommercially&${query.toString()}#expense-classification`;
+  }
+
   function projectWorkflowHref(section: 'billing' | 'time' | 'expenses'): string {
     const query = new URLSearchParams();
     if (data.selectedProjectId) query.set('project', data.selectedProjectId);
@@ -2674,7 +2682,7 @@
                   <div class="finance-overview__expense-form-grid" bind:this={expenseEditor}>
                     <form
                       method="POST"
-                      action="?/classifyExpenseCommercially"
+                      action={expenseClassificationAction(expenseId)}
                       class="finance-overview__expense-form"
                       data-finance-expense-classification
                       use:dirtyFormGuard

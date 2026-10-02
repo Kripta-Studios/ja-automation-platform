@@ -85,6 +85,10 @@ import {
   type ProjectLegalEntityAssignmentView,
   type ResolvedCanonicalProjectLegalEntity,
 } from './domains/finance/canonical-project-legal-entity-repository.ts';
+import type {
+  UnusedIssuingAuthorityReplacementInput,
+  UnusedIssuingAuthorityReplacementResult,
+} from './domains/finance/unused-issuing-authority-replacement.ts';
 import { resolveAccountingPackProjectLegalEntity } from './domains/finance/accounting-pack-revision-service.ts';
 import {
   deriveTimeCommercialSlices,
@@ -676,6 +680,16 @@ export class V3Repository {
     input: ProjectLegalEntityAssignmentInput,
   ): ProjectLegalEntityAssignmentResult {
     return this.canonicalProjectLegalEntities.assignCanonicalLegalEntityToProject(principal, input);
+  }
+
+  replaceUnusedProjectIssuingAuthority(
+    principal: Principal,
+    input: UnusedIssuingAuthorityReplacementInput,
+  ): UnusedIssuingAuthorityReplacementResult {
+    return this.canonicalProjectLegalEntities.replaceUnusedProjectIssuingAuthority(
+      principal,
+      input,
+    );
   }
 
   listCanonicalLegalEntityRevisionOptions(

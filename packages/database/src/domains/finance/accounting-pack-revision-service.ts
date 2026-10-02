@@ -21,7 +21,7 @@ export function resolveAccountingPackProjectLegalEntity(
   const assignmentRows = sqlite
     .prepare(
       `SELECT bridge.legacy_legal_entity_id
-         FROM project_legal_entity_assignment assignment
+         FROM effective_project_legal_entity_assignment assignment
          JOIN legal_entity_revision_bridge bridge
            ON bridge.canonical_revision_id=assignment.legal_entity_revision_id
           AND bridge.tenant_id=assignment.tenant_id

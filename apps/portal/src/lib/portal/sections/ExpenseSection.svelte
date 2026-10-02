@@ -1018,6 +1018,7 @@
         value: workerFilter
           ? String(
               data.workers?.find((row) => String(row.id) === workerFilter)?.name ??
+                crewWorkerOptions.find((worker) => worker.id === workerFilter)?.name ??
                 records.find((row) => String(row.worker_id) === workerFilter)?.worker_name ??
                 (workerFilter === data.user.id ? data.user.name : translate('Unavailable')),
             )

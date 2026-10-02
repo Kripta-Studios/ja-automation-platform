@@ -312,7 +312,7 @@ export function updateInvoiceDraftDetails(
       );
       const otherAuthority = sqlite
         .prepare(
-          'SELECT 1 FROM project_legal_entity_assignment WHERE project_id=? AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)',
+          'SELECT 1 FROM effective_project_legal_entity_assignment WHERE project_id=? AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)',
         )
         .get(String(invoice.project_id), String(invoice.period_start), String(invoice.period_end));
       if (!authority && otherAuthority)

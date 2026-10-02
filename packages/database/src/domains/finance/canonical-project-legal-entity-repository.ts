@@ -7,6 +7,11 @@ import {
   ensureEvidence,
   type FinanceCommandInput,
 } from './finance-command-writer.ts';
+import {
+  replaceUnusedIssuingAuthority,
+  type UnusedIssuingAuthorityReplacementInput,
+  type UnusedIssuingAuthorityReplacementResult,
+} from './unused-issuing-authority-replacement.ts';
 
 type ErrorFactory = (message: string) => never;
 
@@ -93,6 +98,9 @@ export type ProjectLegalEntityAssignmentView = Readonly<{
   revisionNumber: number;
   effectiveFrom: string;
   effectiveTo: string | null;
+  replacedByAssignmentId: string | null;
+  replacesAssignmentId: string | null;
+  replacementReason: string | null;
 }>;
 
 export type ResolvedCanonicalProjectLegalEntity = Readonly<{
@@ -750,8 +758,8 @@ export class CanonicalProjectLegalEntityRepository {
     return this.deps.transaction(() => {
       const deployment = this.deployment();
       const project = this.deps.sqlite
-        .prepare('SELECT id FROM project WHERE id=?')
-        .get(normalized.projectId) as { id: string } | undefined;
+        .prepare('SELECT id,currency FROM project WHERE id=?')
+        .get(normalized.projectId) as { id: string; currency: string } | undefined;
       if (!project) return this.failValidation('Project not found');
       const revision = this.deps.sqlite
         .prepare(
@@ -768,6 +776,10 @@ export class CanonicalProjectLegalEntityRepository {
         rowValue(revision, 'deployment_id') !== deployment.deploymentId
       )
         return this.deps.errors.accessDenied('Legal-entity revision scope mismatch');
+      if (
+        String(rowValue(revision, 'base_currency')).toUpperCase() !== project.currency.toUpperCase()
+      )
+        return this.failConflict('Canonical legal-entity currency does not match project currency');
       const canonicalEvidence = this.deps.sqlite
         .prepare(
           `SELECT evidence_id FROM finance_hash_evidence
@@ -837,7 +849,7 @@ export class CanonicalProjectLegalEntityRepository {
       }
       const overlap = this.deps.sqlite
         .prepare(
-          `SELECT assignment_id FROM project_legal_entity_assignment
+          `SELECT assignment_id FROM effective_project_legal_entity_assignment
             WHERE project_id=?
               AND effective_from<=COALESCE(?, '9999-12-31')
               AND ?<=COALESCE(effective_to, '9999-12-31')
@@ -950,6 +962,16 @@ export class CanonicalProjectLegalEntityRepository {
     });
   }
 
+  replaceUnusedProjectIssuingAuthority(
+    principal: Principal,
+    input: UnusedIssuingAuthorityReplacementInput,
+  ): UnusedIssuingAuthorityReplacementResult {
+    this.assertActiveFinancePrincipal(principal);
+    return replaceUnusedIssuingAuthority(this.deps, principal, input, (assignment) =>
+      this.assignCanonicalLegalEntityToProject(principal, assignment),
+    );
+  }
+
   listCanonicalLegalEntityRevisionOptions(
     principal: Principal,
   ): CanonicalLegalEntityRevisionOption[] {
@@ -1005,11 +1027,15 @@ export class CanonicalProjectLegalEntityRepository {
       .prepare(
         `SELECT a.assignment_id,a.project_id,a.legal_entity_revision_id,
                 b.legacy_legal_entity_id,e.code,r.legal_name,r.base_currency,r.revision_number,
-                a.effective_from,a.effective_to
+                a.effective_from,a.effective_to,
+                outgoing.replacement_assignment_id,incoming.original_assignment_id,
+                COALESCE(outgoing.reason,incoming.reason) replacement_reason
            FROM project_legal_entity_assignment a
            JOIN legal_entity_revision r ON r.revision_id=a.legal_entity_revision_id
            JOIN legal_entity_revision_bridge b ON b.canonical_revision_id=r.revision_id
            JOIN legal_entity e ON e.id=b.legacy_legal_entity_id
+           LEFT JOIN project_legal_entity_assignment_replacement outgoing ON outgoing.original_assignment_id=a.assignment_id
+           LEFT JOIN project_legal_entity_assignment_replacement incoming ON incoming.replacement_assignment_id=a.assignment_id
           WHERE a.project_id=? AND a.tenant_id=? AND a.deployment_id=?
             AND r.tenant_id=? AND r.deployment_id=?
             AND b.tenant_id=? AND b.deployment_id=?
@@ -1037,6 +1063,10 @@ export class CanonicalProjectLegalEntityRepository {
           revisionNumber: Number(value.revision_number),
           effectiveFrom: String(value.effective_from),
           effectiveTo: rowValue<string | null>(value, 'effective_to') ?? null,
+          replacedByAssignmentId:
+            rowValue<string | null>(value, 'replacement_assignment_id') ?? null,
+          replacesAssignmentId: rowValue<string | null>(value, 'original_assignment_id') ?? null,
+          replacementReason: rowValue<string | null>(value, 'replacement_reason') ?? null,
         };
       });
   }
@@ -1060,7 +1090,7 @@ export class CanonicalProjectLegalEntityRepository {
                 r.legal_name,r.tax_identifier,r.registration_identifier,r.address_line1,
                 r.address_line2,r.locality,r.region,r.postal_code,r.country_code,
                 r.base_currency,r.timezone,r.effective_from,r.effective_to
-           FROM project_legal_entity_assignment a
+           FROM effective_project_legal_entity_assignment a
            JOIN legal_entity_revision r ON r.revision_id=a.legal_entity_revision_id
           WHERE a.project_id=? AND a.tenant_id=? AND a.deployment_id=?
             AND a.effective_from<=?

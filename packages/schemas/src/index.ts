@@ -512,6 +512,35 @@ export const projectCommercialPolicyInputSchema = z
       });
   });
 
+export const unusedProjectIssuingAuthorityReplacementInputSchema = z
+  .object({
+    originalAssignmentId: z
+      .string()
+      .trim()
+      .regex(
+        /^ce-project-legal-entity-assignment-[0-9a-f]{40}$/u,
+        'problem.finance.input.unusedIssuerReplacement',
+      ),
+    legalEntityRevisionId: z
+      .string()
+      .trim()
+      .regex(
+        /^ce-legal-entity-revision-[0-9a-f]{40}$/u,
+        'problem.finance.input.unusedIssuerReplacement',
+      ),
+    reason: z
+      .string()
+      .trim()
+      .min(5, 'problem.finance.input.unusedIssuerReplacement')
+      .max(2000, 'problem.finance.input.unusedIssuerReplacement'),
+    idempotencyKey: z
+      .string()
+      .trim()
+      .min(8, 'problem.finance.input.unusedIssuerReplacement')
+      .max(240, 'problem.finance.input.unusedIssuerReplacement'),
+  })
+  .strict();
+
 export const projectLegalEntityAssignmentInputSchema = z
   .object({
     projectId: projectRecordIdSchema,

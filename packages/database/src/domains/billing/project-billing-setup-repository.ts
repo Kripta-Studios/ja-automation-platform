@@ -272,7 +272,7 @@ export class ProjectBillingSetupRepository {
       this.sqlite
         .prepare(
           `SELECT 1 FROM legal_entity_revision_bridge bridge
-         JOIN project_legal_entity_assignment assignment
+         JOIN effective_project_legal_entity_assignment assignment
            ON assignment.legal_entity_revision_id=bridge.canonical_revision_id
           AND assignment.project_id=? AND assignment.tenant_id=? AND assignment.deployment_id=?
           AND assignment.effective_from<=? AND (assignment.effective_to IS NULL OR assignment.effective_to>=?)

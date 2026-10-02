@@ -1120,7 +1120,7 @@ function validateAuthoritativeSourceItems(
     const assignmentRows = sqlite
       .prepare(
         `SELECT legal_entity_revision_id
-           FROM project_legal_entity_assignment
+           FROM effective_project_legal_entity_assignment
           WHERE project_id=? AND tenant_id=? AND deployment_id=?
             AND substr(effective_from,1,10)<=?
             AND (effective_to IS NULL OR substr(effective_to,1,10)>=?)`,
@@ -1251,7 +1251,7 @@ function validateAuthoritativeSourceItems(
     const assignmentRows = sqlite
       .prepare(
         `SELECT bridge.legacy_legal_entity_id
-           FROM project_legal_entity_assignment assignment
+           FROM effective_project_legal_entity_assignment assignment
            JOIN legal_entity_revision_bridge bridge
              ON bridge.canonical_revision_id=assignment.legal_entity_revision_id
             AND bridge.tenant_id=assignment.tenant_id

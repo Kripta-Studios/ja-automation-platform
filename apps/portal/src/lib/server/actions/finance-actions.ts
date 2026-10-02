@@ -11,6 +11,7 @@ import {
   internalCostRuleInputSchema,
   projectCommercialPolicyInputSchema,
   projectLegalEntityAssignmentInputSchema,
+  unusedProjectIssuingAuthorityReplacementInputSchema,
   reimbursementInputSchema,
   uuidSchema,
 } from '@ja/schemas';
@@ -141,6 +142,12 @@ const financeInputProblems: Readonly<Record<string, FinanceInputProblem>> = {
     code: 'FINANCE_PROJECT_LEGAL_ENTITY_ASSIGNMENT_FIELDS_INVALID',
     key: 'problem.finance.input.projectLegalEntityAssignment',
     message: 'Review the project issuing authority and effective period.',
+  },
+  replaceUnusedProjectIssuingAuthority: {
+    code: 'FINANCE_UNUSED_ISSUER_REPLACEMENT_FIELDS_INVALID',
+    key: 'problem.finance.input.unusedIssuerReplacement',
+    message:
+      'Choose a reviewed replacement revision and enter a reason of at least five characters.',
   },
   classifyExpenseCommercially: {
     code: 'FINANCE_EXPENSE_CLASSIFICATION_FIELDS_INVALID',
@@ -551,7 +558,11 @@ export function financeFailure(
         },
       );
   }
-  if (context.actionName === 'assignProjectLegalEntity') {
+  if (
+    ['assignProjectLegalEntity', 'replaceUnusedProjectIssuingAuthority'].includes(
+      context.actionName ?? '',
+    )
+  ) {
     if (message === 'Legal-entity revision scope mismatch')
       return problem(
         403,
@@ -604,6 +615,47 @@ export function financeFailure(
           remedies: [{ id: 'configure_project_issuer', projectId: context.projectId }],
         },
       );
+  }
+  if (context.actionName === 'replaceUnusedProjectIssuingAuthority') {
+    if (message.includes('is not idempotent') || message.includes('are not idempotent'))
+      return problem(
+        409,
+        'problem.finance.issuerReplacementRetryConflict',
+        {},
+        'This replacement request was already used with different details. Review the current assignment history.',
+        {
+          code: 'FINANCE_ISSUER_REPLACEMENT_RETRY_CONFLICT',
+          remedies: [{ id: 'configure_project_issuer', projectId: context.projectId }],
+        },
+      );
+    const replacementProblems: Record<string, readonly [string, string, string]> = {
+      'Project issuing authority has persisted financial use': [
+        'problem.finance.issuerReplacementUsed',
+        'FINANCE_ISSUER_REPLACEMENT_USED',
+        'This project has persisted financial records. Its issuing authority cannot be replaced. Configure authority for a future interval instead.',
+      ],
+      'Original issuing authority was already replaced': [
+        'problem.finance.issuerReplacementChanged',
+        'FINANCE_ISSUER_REPLACEMENT_CHANGED',
+        'This issuing authority was already replaced. Review the current assignment history.',
+      ],
+      'Original issuing authority is unavailable': [
+        'problem.finance.issuerReplacementChanged',
+        'FINANCE_ISSUER_REPLACEMENT_CHANGED',
+        'This issuing authority is unavailable. Review the current assignment history.',
+      ],
+      'Choose a different issuing authority revision': [
+        'problem.finance.issuerReplacementSameRevision',
+        'FINANCE_ISSUER_REPLACEMENT_SAME_REVISION',
+        'Choose a different reviewed revision to correct this issuing authority.',
+      ],
+    };
+    const replacementProblem = replacementProblems[message];
+    if (replacementProblem)
+      return problem(409, replacementProblem[0] as `problem.${string}`, {}, replacementProblem[2], {
+        code: replacementProblem[1],
+        remedies: [{ id: 'configure_project_issuer', projectId: context.projectId }],
+      });
   }
   const ruleMutation = {
     supersedeCompensationRule: {
@@ -1175,6 +1227,23 @@ export function financeFailure(
         remedies: [{ id: 'configure_project_issuer', projectId: context.projectId }],
       },
     );
+  if (message === 'Canonical legal-entity currency does not match project currency')
+    if (
+      ['assignProjectLegalEntity', 'replaceUnusedProjectIssuingAuthority'].includes(
+        context.actionName ?? '',
+      )
+    )
+      return problem(
+        409,
+        'problem.finance.projectIssuerCurrencyMismatch',
+        {},
+        'Choose an issuing authority revision whose currency matches the project currency.',
+        {
+          code: 'PROJECT_ISSUING_CURRENCY_MISMATCH',
+          fieldErrors: { legalEntityRevisionId: ['problem.finance.projectIssuerCurrencyMismatch'] },
+          remedies: [{ id: 'configure_project_issuer', projectId: context.projectId }],
+        },
+      );
   if (message === 'Canonical legal-entity currency does not match project currency')
     return problem(
       409,
@@ -1781,6 +1850,50 @@ const rawFinanceActions = {
         values,
         actionName: 'assignProjectLegalEntity',
       });
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  replaceUnusedProjectIssuingAuthority: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'finance')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const context = openPortalRepository(locals);
+    let values: Record<string, string> = {};
+    try {
+      if (!['owner_admin', 'finance_admin'].includes(context.principal.role))
+        return actionFail(
+          403,
+          'problem.finance.roleRequired',
+          {},
+          'Finance access is required for this change.',
+          {
+            code: 'FINANCE_ROLE_REQUIRED',
+            remedies: [{ id: 'contact_finance_owner' }],
+          },
+        );
+      values = safeFinanceValues(await formObject(request));
+      const parsed = unusedProjectIssuingAuthorityReplacementInputSchema.safeParse(values);
+      if (!parsed.success)
+        return actionFail(
+          400,
+          'action.validation.unusedIssuerReplacement',
+          {},
+          'Invalid issuing authority replacement',
+          {
+            fields: parsed.error.flatten().fieldErrors,
+          },
+        );
+      const result = context.v3.replaceUnusedProjectIssuingAuthority(
+        context.principal,
+        parsed.data,
+      );
+      return actionSuccess(
+        'action.finance.unusedIssuerReplaced',
+        { idempotent: result.idempotent },
+        'Unused issuing authority replaced',
+      );
+    } catch (error) {
+      return financeFailure(error, { values, actionName: 'replaceUnusedProjectIssuingAuthority' });
     } finally {
       context.sqlite.close();
     }

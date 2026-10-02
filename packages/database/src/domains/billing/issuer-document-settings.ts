@@ -209,7 +209,7 @@ export function resolveInvoiceIssuerAuthority(
   return sqlite
     .prepare(
       `SELECT rev.*,bridge.legacy_legal_entity_id
-    FROM project_legal_entity_assignment a JOIN legal_entity_revision rev ON rev.revision_id=a.legal_entity_revision_id
+    FROM effective_project_legal_entity_assignment a JOIN legal_entity_revision rev ON rev.revision_id=a.legal_entity_revision_id
     JOIN legal_entity_revision genesis ON genesis.series_id=rev.series_id AND genesis.predecessor_revision_id IS NULL
     JOIN legal_entity_revision_bridge bridge ON bridge.canonical_revision_id=genesis.revision_id
     JOIN deployment_identity d ON d.singleton=1 AND d.tenant_id=a.tenant_id AND d.deployment_id=a.deployment_id

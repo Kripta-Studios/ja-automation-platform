@@ -4267,6 +4267,13 @@
         </section>
         <div class="finance-grid">
           {#each data.pay.currencyBreakdown ?? [data.pay] as amount}
+            {@const currencyApprovedMinutes = data.pay.projectProgress
+              ? data.pay.projectProgress
+                  .filter((row) => row.currency === amount.currency)
+                  .reduce((total, row) => total + Number(row.approvedMinutes ?? 0), 0)
+              : (data.pay.currencyBreakdown?.length ?? 1) === 1
+                ? data.pay.approvedMinutes
+                : null}
             <a href="{base}/app/time" class="metric metric-link">
               <span>{translate('APPROVED COMPENSATION')} · {amount.currency}</span><strong
                 >{paymentMoney(
@@ -4275,7 +4282,9 @@
                   documentLanguage(locale),
                 )}</strong
               >
-              <p>{data.pay.approvedMinutes} {translate('approved minutes')}</p>
+              {#if currencyApprovedMinutes !== null}
+                <p>{currencyApprovedMinutes} {translate('approved minutes')}</p>
+              {/if}
             </a>
             <a href="{base}/app/expenses" class="metric metric-link">
               <span>{translate('APPROVED REIMBURSEMENTS')} · {amount.currency}</span><strong

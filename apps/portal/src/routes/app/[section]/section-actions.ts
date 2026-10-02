@@ -115,6 +115,7 @@ export const sectionActions: Actions = {
   setWorkerReimbursementOverride: financeActions.setWorkerReimbursementOverride,
   createCanonicalLegalEntityRevision: financeActions.createCanonicalLegalEntityRevision,
   assignProjectLegalEntity: financeActions.assignProjectLegalEntity,
+  replaceUnusedProjectIssuingAuthority: financeActions.replaceUnusedProjectIssuingAuthority,
   setExpensePlanningDates: financeActions.setExpensePlanningDates,
   setCompensationSettlementExpectedPaymentOn:
     financeActions.setCompensationSettlementExpectedPaymentOn,

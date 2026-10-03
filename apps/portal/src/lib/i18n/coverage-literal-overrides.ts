@@ -1547,6 +1547,10 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'Aplicar valores provisionales a esta persona',
     'Aplicar valores provisórios a esta pessoa',
   ],
+  'Select this person for bulk actions': [
+    'Selecciona a esta persona para acciones en bloque',
+    'Selecione esta pessoa para ações em lote',
+  ],
   'This copies unsaved draft values only. Review and save each person separately; existing agreements are unchanged until saved.':
     [
       'Esto solo copia valores aún no guardados. Revisa y guarda a cada persona por separado; los acuerdos existentes no cambian hasta entonces.',

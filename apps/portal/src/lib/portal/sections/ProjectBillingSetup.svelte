@@ -1300,7 +1300,7 @@
                             ? [...selectedPersonIds, person.id]
                             : selectedPersonIds.filter((id) => id !== person.id);
                         }}
-                      />{t('Apply draft defaults to this person')}</label
+                      />{t('Select this person for bulk actions')}</label
                     >
                   {/if}
                   <p class="hint">

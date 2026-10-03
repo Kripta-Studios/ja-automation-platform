@@ -1508,3 +1508,8 @@ W85-R1 SOURCE SHIP aceptado por root (revisión SHAac8773ff, diff cumulativo SHA
 ## W85 desplegado; prueba nativa en curso — 2026-10-03
 
 CORE-02/03/06/15: commit465786bf/ZIPe44193f81b32 desplegado14:56:31Madrid una vez por proceso canónico serializado, con backup previo, salud local, jobs actor y readiness públicos. Tres fuentes exactas; rollbackW83 y W79 preservados. Cache0B tras liberar7.032GB; prune canónico correcto, snapshots1/2/3octubre y nuevo26docs intactos,18referencias/cuatro volúmenes iguales tras mantenimiento. Timers activos y8.6GiB libres. Sesión de navegador única concedida después; sin operaciones release durante prueba. Sin crédito por despliegue:65UX/61bugs. Evidencia ampliada y ROOT_W85_DEPLOY.md externoSHA57efe580; verificación nativa/dedup pendientes.
+
+
+## W85 prueba nativa aceptada por alcance — 2026-10-03
+
+CORE-02/03/06/15: packet cerrado129eventos, revisión Sol SCOPED PASS/SHIP SHAe7f1dce8 y recomputación de root SHAc5ea0097 aceptan1UX/2bugs: formato decimal comprensible, errores nativos visibles con foco y enlace real al textarea de motivo. Cinco bloqueos nativos sin tráfico; único POST200 rechazado lógicamente, sin registros nuevos,14campos/token intactos y siete fuentes protegidas sin cambios. **66UX/63bugs**, faltan34UX/37bugs; histórico47alcances/55sinprueba sin cambio. PM/keyboard/roles restantes sin prueba; summary automático del servidor todavía fuera de pantalla, reparación posterior+0. Después del cierre, ocho ZIP de inbox obsoletos verificados contra copias auditadas conservadas liberan2.31GiB; rollback/source/audits/backups/18referencias/4volúmenes intactos y cinco unidades activas. Mantenimiento+0. Evidencia ampliada vinculada y QUALIFIED_W84_ADDITIONS.md externo.

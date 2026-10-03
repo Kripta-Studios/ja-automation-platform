@@ -11,6 +11,7 @@
   import { documentLanguage, portalText, type PortalLocale } from '../../portal-i18n';
   import { paymentMoney } from '../payment-money';
   import { expenseCategories } from '../expense-categories';
+  import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
 
   let {
     data,
@@ -90,6 +91,40 @@
     return translate(
       value === 'at_cost' ? 'Reimburse at cost' : value === 'none' ? 'Do not reimburse' : value,
     );
+  }
+  const reimbursementReview = $derived(data.reimbursementReview);
+  const reimbursementReviewHasPeople = $derived(Boolean(data.commercialTermsSummary?.length));
+  const reviewPayers = [
+    ['worker', 'Worker'],
+    ['company_card', 'Company card'],
+    ['company_direct', 'Company'],
+    ['client', 'Client'],
+    ['third_party', 'Third party'],
+  ] as const;
+  function reimbursementReviewIssue(issue: string): string {
+    const labels: Record<string, string> = {
+      invalid_date: 'Choose a valid work date to review reimbursement.',
+      invalid_payer: 'Choose who paid the expense to review reimbursement.',
+      invalid_category: 'Choose an expense category to review reimbursement.',
+      person_required: 'Choose a person to review reimbursement.',
+      person_unavailable:
+        'The selected person is unavailable for this project and date. Choose a person again.',
+      missing_assignment: 'No assignment covers this person and work date.',
+      ambiguous_assignment:
+        'More than one assignment covers this person and work date. Ask the owner to review the assignments.',
+      missing_policy: 'No expense policy matches this person, date, payer and category.',
+      context_changed: 'The assignment context changed. Review the person and date again.',
+    };
+    return translate(labels[issue] ?? 'Choose a person to review reimbursement.');
+  }
+  function reimbursementReviewSource(source: string): string {
+    const labels: Record<string, string> = {
+      assignment_override: 'Person reimbursement override',
+      project_default: 'Project reimbursement default',
+      person_policy: 'Person expense policy fallback',
+      non_worker_payer: 'The expense was not paid by the worker',
+    };
+    return translate(labels[source] ?? 'Person expense policy fallback');
   }
 
   const projectLabel = (project: Row): string => {
@@ -321,6 +356,45 @@
     return failedValue(actionName, 'projectMemberId') === rowValue(terms, 'assignmentId')
       ? failedValue(actionName, field)
       : undefined;
+  }
+  function failedPolicyFormIsDirty(actionName: string, memberId?: string): boolean {
+    if (failedConfigurationAction?.actionName !== actionName) return false;
+    if (
+      actionName === 'setProjectReimbursementDefault' &&
+      failedValue(actionName, 'projectId') !== String(data.selectedProjectId)
+    )
+      return false;
+    if (memberId && failedValue(actionName, 'projectMemberId') !== memberId) return false;
+    if (
+      actionName === 'createAssignmentExpensePolicy' &&
+      policyCurrent &&
+      policyCurrent.projectId !== data.selectedProjectId
+    )
+      return false;
+    const fields =
+      actionName === 'createAssignmentExpensePolicy'
+        ? [
+            'projectMemberId',
+            'payer',
+            'category',
+            'effectiveFrom',
+            'effectiveTo',
+            'workerReimbursement',
+            'clientRecovery',
+          ]
+        : ['mode', 'effectiveFrom', 'reason'];
+    return fields.some((field) => failedValue(actionName, field) !== undefined);
+  }
+  function confirmReimbursementReview(event: SubmitEvent): void {
+    const form = event.currentTarget as HTMLFormElement;
+    const region = form.closest<HTMLElement>('[data-assignment-expense-policies]');
+    if (
+      !confirmDirtyForms(
+        region,
+        translate('Discard your unsaved changes? Your entered information will be lost.'),
+      )
+    )
+      event.preventDefault();
   }
   function reimbursementFieldError(
     actionName: string,
@@ -1061,6 +1135,150 @@
           'Reimbursement preferences apply from their effective date. Earlier claims keep their date-specific terms; classified amounts and paid history remain unchanged.',
         )}
       </p>
+      {#if canManageCanonicalAuthority && data.selectedProjectId && reimbursementReview}
+        <FormSection
+          title={translate('Review reimbursement by date')}
+          description={translate(
+            'Review configured behavior for one person, payer and expense category. This does not approve an expense, calculate an amount or record a payment.',
+          )}
+          data-reimbursement-review
+        >
+          <form
+            method="GET"
+            action={`${base}/app/finance`}
+            class="admin-form-grid"
+            onsubmit={confirmReimbursementReview}
+          >
+            <input type="hidden" name="view" value="commercial" />
+            <input type="hidden" name="project" value={data.selectedProjectId} />
+            <input type="hidden" name="task" value="Person expense policies" />
+            <input type="hidden" name="lang" value={locale} />
+            <input type="hidden" name="category" value={data.commercialCategory ?? 'regular'} />
+            <FieldGroup columns="2">
+              <Field
+                id="reimbursement-review-person"
+                label={translate('Assigned person')}
+                required={reimbursementReviewHasPeople}
+                help={reimbursementReviewHasPeople
+                  ? undefined
+                  : translate(
+                      'No people are listed for the reviewed date. Change the work date and select Review reimbursement to refresh the list, then choose a person.',
+                    )}
+              >
+                <select
+                  id="reimbursement-review-person"
+                  name="policyPerson"
+                  value={reimbursementReview.inputs.assignmentId}
+                  required={reimbursementReviewHasPeople}
+                >
+                  <option value="">{translate('Select person')}</option>
+                  {#each data.commercialTermsSummary ?? [] as person}
+                    <option value={rowValue(person, 'assignmentId')}
+                      >{rowValue(person, 'workerName')} · {rowValue(person, 'assignmentStartsOn')} →
+                      {rowValue(person, 'assignmentEndsOn') || translate('Open assignment')}</option
+                    >
+                  {/each}
+                </select>
+              </Field>
+              <Field id="reimbursement-review-date" label={translate('Work date')} required>
+                <input
+                  id="reimbursement-review-date"
+                  name="asOf"
+                  type="date"
+                  value={reimbursementReview.inputs.date}
+                  required
+                />
+              </Field>
+              <Field id="reimbursement-review-payer" label={translate('Who paid')} required>
+                <select
+                  id="reimbursement-review-payer"
+                  name="policyPayer"
+                  value={reimbursementReview.inputs.payer}
+                  required
+                >
+                  <option value="">{translate('Choose who paid')}</option>
+                  {#each reviewPayers as [value, label]}<option {value}>{translate(label)}</option
+                    >{/each}
+                </select>
+              </Field>
+              <Field
+                id="reimbursement-review-category"
+                label={translate('Expense category')}
+                required
+              >
+                <select
+                  id="reimbursement-review-category"
+                  name="policyCategory"
+                  value={reimbursementReview.inputs.category}
+                  required
+                >
+                  <option value="">{translate('Choose expense category')}</option>
+                  {#each expenseCategories as [value, label]}<option {value}
+                      >{translate(label)}</option
+                    >{/each}
+                </select>
+              </Field>
+            </FieldGroup>
+            <div class="form-actions">
+              <button type="submit">{translate('Review reimbursement')}</button>
+            </div>
+          </form>
+          {#if reimbursementReview.status === 'resolved'}
+            <article class="record-list-item" data-reimbursement-review-result>
+              <div>
+                <strong>{reimbursementReview.person.workerName}</strong>
+                <small
+                  >{translate('Work date')}: {reimbursementReview.inputs.date} · {translate(
+                    'Who paid',
+                  )}: {translate(
+                    reviewPayers.find(
+                      ([value]) => value === reimbursementReview.inputs.payer,
+                    )?.[1] ?? '',
+                  )} · {translate('Expense category')}: {translate(
+                    expenseCategories.find(
+                      ([value]) => value === reimbursementReview.inputs.category,
+                    )?.[1] ?? '',
+                  )}</small
+                >
+                <small
+                  >{translate('Assignment dates')}: {reimbursementReview.person.startsOn} →
+                  {reimbursementReview.person.endsOn || translate('Open assignment')}</small
+                >
+                <p>
+                  <strong>{translate('Configured reimbursement')}:</strong>
+                  {workerReimbursementLabel(reimbursementReview.behavior)}
+                </p>
+                <small
+                  >{translate('Reimbursement source')}: {reimbursementReviewSource(
+                    reimbursementReview.source,
+                  )}{#if reimbursementReview.sourceEffectiveFrom}
+                    · {translate('Effective from')}: {reimbursementReview.sourceEffectiveFrom}{/if}
+                </small>
+                <small
+                  >{translate('Selected expense policy')}: {reimbursementReview.policy.id} ·
+                  {translate('Version')}: {reimbursementReview.policy.version}</small
+                >
+                <small
+                  >{translate('Policy category')}: {reimbursementReview.policy.category
+                    ? translate(
+                        expenseCategories.find(
+                          ([value]) => value === reimbursementReview.policy.category,
+                        )?.[1] ?? reimbursementReview.policy.category,
+                      )
+                    : translate('All categories')} · {reimbursementReview.policy.effectiveFrom} →
+                  {reimbursementReview.policy.effectiveTo || translate('open-ended')}</small
+                >
+              </div>
+            </article>
+          {:else if reimbursementReview.status === 'invalid' || reimbursementReview.status === 'unavailable'}
+            <p class="muted" data-reimbursement-review-unavailable>
+              {reimbursementReviewIssue(reimbursementReview.issue)}
+            </p>
+          {:else}
+            <p class="muted">{translate('Choose a person to review reimbursement.')}</p>
+          {/if}
+        </FormSection>
+      {/if}
       {#if canWritePolicy && data.selectedProjectId && data.projectExpenseReimbursement}
         <form
           method="POST"
@@ -1068,6 +1286,9 @@
           class="admin-form-grid"
           data-project-reimbursement-form
           use:formValidation
+          use:dirtyFormGuard={{
+            initialDirty: failedPolicyFormIsDirty('setProjectReimbursementDefault'),
+          }}
         >
           <input type="hidden" name="projectId" value={data.selectedProjectId} />
           <input
@@ -1150,6 +1371,12 @@
               class="admin-form-grid"
               data-worker-reimbursement-form
               use:formValidation
+              use:dirtyFormGuard={{
+                initialDirty: failedPolicyFormIsDirty(
+                  'setWorkerReimbursementOverride',
+                  rowValue(person, 'assignmentId'),
+                ),
+              }}
             >
               <strong>{rowValue(person, 'workerName')}</strong>
               <input
@@ -1291,6 +1518,9 @@
           class="admin-form-grid"
           data-assignment-expense-policy-form
           use:formValidation
+          use:dirtyFormGuard={{
+            initialDirty: failedPolicyFormIsDirty('createAssignmentExpensePolicy'),
+          }}
         >
           {#if policyProblem}
             <div class="finance-config__policy-problem" data-finance-problem tabindex="-1">

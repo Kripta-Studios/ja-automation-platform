@@ -12,6 +12,10 @@ import { openPortalRepository } from '$lib/server/portal-repository';
 import { mondayOf, weeklyView, type WeeklyProjectSchedule } from '$lib/server/portal-week';
 import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
 import { listProjectSettlementWorkers } from '$lib/server/finance-settlement-workers';
+import {
+  reviewFinanceReimbursement,
+  withFinanceReimbursementSnapshot,
+} from '$lib/server/finance-reimbursement-review';
 import type { PageServerLoad } from './$types';
 import {
   projectManagerApprovalQueueProjection,
@@ -885,6 +889,42 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               };
             })
           : [];
+        const { assignmentExpensePolicies, reimbursementReview } =
+          selected && canManageCanonicalAuthority
+            ? withFinanceReimbursementSnapshot(context.sqlite, () => {
+                const repository = new AssignmentExpensePolicyRepository(context.sqlite);
+                // Reuse the existing live Finance guard before the internal resolver.
+                const policies = repository.listForProject(context.principal, selected);
+                return {
+                  assignmentExpensePolicies: policies,
+                  reimbursementReview: reviewFinanceReimbursement(
+                    context.sqlite,
+                    repository,
+                    selected,
+                    commercialTermsSummary.map((person) => ({
+                      assignmentId: person.assignmentId,
+                      workerId: person.workerId,
+                      workerName: person.workerName,
+                      startsOn: person.assignmentStartsOn,
+                      endsOn: person.assignmentEndsOn,
+                    })),
+                    url.searchParams.has('policyPerson'),
+                    {
+                      assignmentId: url.searchParams.get('policyPerson') ?? '',
+                      date:
+                        url.searchParams.get('asOf') ??
+                        (url.searchParams.has('policyPerson') ? '' : commercialAsOf),
+                      payer:
+                        url.searchParams.get('policyPayer') ??
+                        (url.searchParams.has('policyPerson') ? '' : 'worker'),
+                      category:
+                        url.searchParams.get('policyCategory') ??
+                        (url.searchParams.has('policyPerson') ? '' : 'parking'),
+                    },
+                  ),
+                };
+              })
+            : { assignmentExpensePolicies: [], reimbursementReview: undefined };
         return {
           ...common,
           projects,
@@ -908,6 +948,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               }
             : null,
           reimbursementPreferenceAsOf: commercialAsOf,
+          ...(reimbursementReview ? { reimbursementReview } : {}),
           reimbursementPreferenceHistory:
             selected && canManageCanonicalAuthority
               ? new AssignmentExpensePolicyRepository(context.sqlite).listReimbursementPreferences(
@@ -961,13 +1002,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           commercialTermsSummary,
           commercialAsOf,
           commercialCategory,
-          assignmentExpensePolicies:
-            selected && canManageCanonicalAuthority
-              ? new AssignmentExpensePolicyRepository(context.sqlite).listForProject(
-                  context.principal,
-                  selected,
-                )
-              : [],
+          assignmentExpensePolicies,
           reimbursements: selected
             ? context.v3.listReimbursementQueue(context.principal, selected)
             : [],

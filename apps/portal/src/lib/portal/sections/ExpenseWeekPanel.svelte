@@ -10,7 +10,7 @@
   import { SectionCard, StatusBadge } from '../ui';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
-  import { money, shiftWeek } from '../portal-format';
+  import { decimalToMinor, money, shiftWeek } from '../portal-format';
   import { expenseCategories } from '../expense-categories';
   import { expenseReceiptState } from '../expense-evidence';
   import { localToday } from '../ui/time-entry-clock';
@@ -82,7 +82,8 @@
     drafts.filter((row) => expenseReceiptState(row) === 'missing').length,
   );
   const linkedTimeDrafts = $derived(
-    drafts.filter((row) => row.linked_pair_time_id && row.linked_pair_time_state === 'draft').length,
+    drafts.filter((row) => row.linked_pair_time_id && row.linked_pair_time_state === 'draft')
+      .length,
   );
   const snapshot = $derived(
     JSON.stringify(drafts.map((row) => ({ id: String(row.id), version: Number(row.version) }))),
@@ -124,13 +125,68 @@
       ).format(new Date(Date.UTC(2024, 0, 1 + index))),
     ),
   );
-  const tableEntries = $derived(
-    JSON.stringify(
-      tableDates
-        .map((date) => rows[date])
-        .filter((row) => row && (row.amount.trim() || row.description.trim() || row.vendor.trim())),
-    ),
+  const includedRows = $derived(
+    tableDates
+      .map((date) => rows[date])
+      .filter((row): row is DailyDraft =>
+        Boolean(row && (row.amount.trim() || row.description.trim() || row.vendor.trim())),
+      ),
   );
+  const tableEntries = $derived(JSON.stringify(includedRows));
+  const recapLocale = $derived(
+    documentLanguage(normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale)),
+  );
+  const tableRecap = $derived(summarizeTableEntries(includedRows));
+  const tableRecapTotal = $derived(
+    tableRecap.totalMinor === undefined
+      ? '—'
+      : `${money(tableRecap.totalMinor, currency, recapLocale)} (${currency})`,
+  );
+  const recapScope = $derived(
+    JSON.stringify([tableOpen, requestId, tableWeekStart, project, currency, recapLocale]),
+  );
+  let announcedRecap = $state<{ scope: string; text: string } | null>(null);
+  const recapAnnouncement = $derived(
+    announcedRecap?.scope === recapScope ? announcedRecap.text : '',
+  );
+
+  function summarizeTableEntries(entries: DailyDraft[]) {
+    const maxMinor = '9007199254740991';
+    let total = 0n;
+    let invalidAmounts = 0;
+    let reviewRows = 0;
+    for (const row of entries) {
+      const minor = decimalToMinor(row.amount);
+      const validAmount =
+        minor !== undefined &&
+        minor !== '0' &&
+        (minor.length < maxMinor.length || (minor.length === maxMinor.length && minor <= maxMinor));
+      const descriptionLength = row.description.trim().length;
+      if (!validAmount) invalidAmounts += 1;
+      else total += BigInt(minor);
+      if (
+        !validAmount ||
+        descriptionLength < 3 ||
+        descriptionLength > 5000 ||
+        row.vendor.trim().length > 200
+      )
+        reviewRows += 1;
+    }
+    return {
+      enteredDays: entries.length,
+      reviewRows,
+      invalidAmounts,
+      totalMinor: entries.length && !invalidAmounts ? total.toString() : undefined,
+    };
+  }
+
+  async function announceTableRecap() {
+    const scope = recapScope;
+    await tick();
+    if (!tableOpen || busy || scope !== recapScope) return;
+    const text = `${translate('Entered days')}: ${tableRecap.enteredDays}. ${translate('Rows needing review')}: ${tableRecap.reviewRows}. ${translate('Entered total')}: ${tableRecapTotal}.`;
+    if (recapAnnouncement !== text) announcedRecap = { scope, text };
+  }
   const dirty = $derived(
     tableOpen &&
       Object.values(rows).some(
@@ -498,15 +554,23 @@
             )}
           </p>{/if}
         {#if linkedTimeDrafts}<p class="expense-week-error" role="alert">
-            {linkedTimeDrafts} {translate('linked meal drafts have draft hours. Submit their time week first.')}
-            <a href={`${base}/app/time?week=${encodeURIComponent(weekStart)}&worker=${encodeURIComponent(workerId)}#time-week-submit-title`}>{translate('Open time week')}</a>
+            {linkedTimeDrafts}
+            {translate('linked meal drafts have draft hours. Submit their time week first.')}
+            <a
+              href={`${base}/app/time?week=${encodeURIComponent(weekStart)}&worker=${encodeURIComponent(workerId)}#time-week-submit-title`}
+              >{translate('Open time week')}</a
+            >
           </p>{/if}
         <div bind:this={weekNotice} tabindex="-1" role={weekError ? 'alert' : 'status'}>
           {weekError || weekMessage}
         </div>
         <button
           type="submit"
-          disabled={Boolean(busy) || !workerId || !drafts.length || Boolean(missingReceipts) || Boolean(linkedTimeDrafts)}
+          disabled={Boolean(busy) ||
+            !workerId ||
+            !drafts.length ||
+            Boolean(missingReceipts) ||
+            Boolean(linkedTimeDrafts)}
           >{translate(busy === 'submit' ? 'Submitting…' : 'Submit this week')}</button
         >
       </form>
@@ -624,6 +688,8 @@
             class="weekly-entry-fields"
             disabled={Boolean(busy)}
             aria-label={translate('Weekly expense timesheet')}
+            onfocusout={announceTableRecap}
+            onchange={announceTableRecap}
           >
             <div class="weekly-fields">
               <label
@@ -718,6 +784,30 @@
               </table>
             </div>
           </fieldset>
+          <section class="expense-week-recap" aria-labelledby="expense-week-recap-title">
+            <h3 id="expense-week-recap-title">{translate('Unsaved weekly entry')}</h3>
+            <dl>
+              <div>
+                <dt>{translate('Entered days')}</dt>
+                <dd>{tableRecap.enteredDays}</dd>
+              </div>
+              <div>
+                <dt>{translate('Rows needing review')}</dt>
+                <dd>{tableRecap.reviewRows}</dd>
+              </div>
+              <div>
+                <dt>{translate('Entered total')}</dt>
+                <dd>{tableRecapTotal}</dd>
+              </div>
+            </dl>
+            <p>{translate('Only local entries are shown. Nothing has been saved.')}</p>
+            {#if tableRecap.invalidAmounts}
+              <p>{translate('Enter a valid amount for each entered day to see the total.')}</p>
+            {/if}
+          </section>
+          <p class="expense-week-recap-announcement" aria-live="polite" aria-atomic="true">
+            {recapAnnouncement}
+          </p>
           <div
             bind:this={tableNotice}
             tabindex="-1"
@@ -868,6 +958,50 @@
   }
   .expense-week-error {
     color: var(--ja-red-dark, #8f1d14);
+  }
+  .expense-week-recap {
+    min-width: 0;
+    margin: 0.75rem 0;
+    padding: 0.8rem;
+    border: 1px solid var(--portal-border, #dedede);
+    border-radius: 0.6rem;
+    background: var(--portal-surface-soft, #fbfbfa);
+  }
+  .expense-week-recap h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+  .expense-week-recap dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: 0.65rem;
+    margin: 0.65rem 0;
+  }
+  .expense-week-recap dl > div {
+    min-width: 0;
+  }
+  .expense-week-recap dt {
+    font-size: 0.85rem;
+  }
+  .expense-week-recap dd {
+    margin: 0.25rem 0 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .expense-week-recap p {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+  }
+  .expense-week-recap-announcement {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
   [role='alert'],
   [role='status'] {

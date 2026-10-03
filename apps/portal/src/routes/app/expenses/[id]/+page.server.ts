@@ -15,6 +15,15 @@ type ExpenseDetailAction =
   | 'withdrawCrewExpenseDraft'
   | 'submitExpense';
 
+type ExpenseCorrectionOrigin = Readonly<{
+  id: string;
+  spentOn: string;
+  projectNumber: string;
+  projectName: string;
+  category: string;
+  approvalState: string;
+}>;
+
 const retainedFields = new Set([
   'id',
   'version',
@@ -178,6 +187,35 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
       string,
       unknown
     >;
+    const correctionLink = context.sqlite
+      .prepare(
+        `SELECT original_id FROM record_correction_link
+          WHERE record_type='expense' AND correction_id=?
+            AND tenant_id=(SELECT tenant_id FROM deployment_identity WHERE singleton=1)
+          LIMIT 1`,
+      )
+      .get(params.id) as { original_id: string } | undefined;
+    let correctionOrigin: ExpenseCorrectionOrigin | null = null;
+    if (correctionLink) {
+      try {
+        const original = context.repository.expenseDetail(
+          context.principal,
+          correctionLink.original_id,
+        ) as Record<string, unknown>;
+        correctionOrigin = {
+          id: String(original.id),
+          spentOn: String(original.spent_on),
+          projectNumber: String(original.project_number ?? ''),
+          projectName: String(original.project_name ?? ''),
+          category: String(original.category),
+          approvalState: String(original.approval_state),
+        };
+      } catch (caught) {
+        // A readable correction does not grant access to its original's metadata.
+        if (!(caught instanceof AccessDeniedError || caught instanceof ValidationError))
+          throw caught;
+      }
+    }
     const status = context.sqlite
       .prepare(
         `SELECT e.invoice_id,e.billing_state,e.billing_lock_id,e.reimbursement_state,e.reimbursed_at,
@@ -244,6 +282,7 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
         cookies.get('ja-portal-locale'),
       ),
       record,
+      correctionOrigin,
       linkedPairTimeId: status.linked_pair_time_id,
       crewRecorded: Boolean(status.crew_recorded_by),
       correctionRequestId: randomUUID(),
@@ -322,6 +361,7 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
               ),
               reviewOnly: true,
               expenseMoneyVisible: false,
+              correctionOrigin: null,
               record: {
                 id: row.id,
                 project_id: row.project_id,

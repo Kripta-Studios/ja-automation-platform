@@ -700,6 +700,24 @@
       </div>
       <span class="state-tag">{statusLabel}</span>
     </header>
+    {#if data.correctionOrigin}
+      <section
+        class="detail-panel record-detail-copy"
+        aria-labelledby="expense-correction-origin-title"
+      >
+        <h2 id="expense-correction-origin-title">{t('Expense correction')}</h2>
+        <p>
+          {t('Original expense')}: {data.correctionOrigin.projectNumber} ·
+          {data.correctionOrigin.projectName} · {data.correctionOrigin.spentOn} ·
+          {controlled('expenseCategory', data.correctionOrigin.category)} ·
+          {controlled('status', data.correctionOrigin.approvalState)}
+        </p>
+        <a
+          href={`${base}/app/expenses/${encodeURIComponent(data.correctionOrigin.id)}?lang=${encodeURIComponent(locale)}`}
+          >{t('Open original expense')} <DirectionIcon /></a
+        >
+      </section>
+    {/if}
     {#if data.linkedPairTimeId}
       <section class="detail-panel record-detail-copy" aria-label={t('Linked time and meal entry')}>
         <p>{t('This time entry and meal expense were created together.')}</p>
@@ -868,6 +886,10 @@
           >
         {:else if data.canCreateCorrection}
           <a href="#expense-correction-title">{t('Create corrected draft')} <DirectionIcon /></a>
+        {:else if record.approval_state === 'rejected' && data.correctionOrigin}
+          <p>
+            {t('Open the original expense to check its current status and available actions.')}
+          </p>
         {:else if record.approval_state === 'rejected'}
           <p>
             {t(

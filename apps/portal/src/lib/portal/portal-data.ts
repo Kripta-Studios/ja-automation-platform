@@ -2,6 +2,56 @@ import type { OwnerFinanceSummary } from './owner-finance';
 import type { ProblemData } from '../problem/contract';
 export type PortalRow = Record<string, string | number | boolean | string[] | null>;
 
+export type ReimbursementReviewPerson = Readonly<{
+  assignmentId: string;
+  workerId: string;
+  workerName: string;
+  startsOn: string;
+  endsOn: string | null;
+}>;
+export type ReimbursementReviewInputs = Readonly<{
+  assignmentId: string;
+  date: string;
+  payer: string;
+  category: string;
+}>;
+type ReimbursementReviewBase = Readonly<{
+  inputs: ReimbursementReviewInputs;
+  person: ReimbursementReviewPerson | null;
+}>;
+export type FinanceReimbursementReview = ReimbursementReviewBase &
+  (
+    | { status: 'idle' }
+    | {
+        status: 'invalid';
+        issue: 'invalid_date' | 'invalid_payer' | 'invalid_category' | 'person_required';
+      }
+    | {
+        status: 'unavailable';
+        issue:
+          | 'person_unavailable'
+          | 'missing_assignment'
+          | 'ambiguous_assignment'
+          | 'missing_policy'
+          | 'context_changed';
+      }
+    | {
+        status: 'resolved';
+        person: ReimbursementReviewPerson;
+        behavior: 'at_cost' | 'none';
+        source: 'assignment_override' | 'project_default' | 'person_policy' | 'non_worker_payer';
+        sourceEffectiveFrom: string | null;
+        policy: Readonly<{
+          id: string;
+          version: number;
+          payer: string;
+          category: string | null;
+          effectiveFrom: string;
+          effectiveTo: string | null;
+        }>;
+      }
+  );
+
 export type PortalData = {
   suppliers?: PortalRow[];
   locale?: 'en' | 'es' | 'pt';
@@ -44,6 +94,7 @@ export type PortalData = {
   projectExpenseReimbursement?: PortalRow | null;
   reimbursementPreferenceAsOf?: string;
   reimbursementPreferenceHistory?: PortalRow[];
+  reimbursementReview?: FinanceReimbursementReview;
   commercialPolicies?: PortalRow[];
   commercialTermsSummary?: PortalRow[];
   commercialAsOf?: string;

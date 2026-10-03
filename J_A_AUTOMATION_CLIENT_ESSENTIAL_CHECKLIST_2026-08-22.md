@@ -1452,3 +1452,8 @@ W73 source2c9f4079/archivee1c838a7 activatedOct3 07:42:44Madrid afterW74closed. 
 
 
 W73 closed Solreview/rootacceptance adds exactly1bug0UX: native defaultsOFF keepscontainingsection andsamevisiblefocusedcheckbox, immediateONrestoresfullJSON inOwnerFinance390/1440. Manualsummary/reset/0Save/rows/explicitclose verified. PreexistinginteractiondistinctfromW62sizing; no data loss orrole-widthdoublecredit. Current **62UX/60bugs/122**, remaining38UX/40bugs; historical47scoped/55NOTRUN/0whole-compoundPASS. FullSSR/rows/server/race/privacy/money limits remainexplicit.
+
+
+### 2026-10-03 — W78 reimbursement and expense review candidate
+
+CORE-02/03/06/14/15: the exact eight-file candidate passed hash-attributed static gates and fresh independent GPT-6.1 Sol financial/privacy review (full diff SHA256 `d8c77c83b5aeddf68c4985583f95e1785f13f3280b0e54e7f60ba0e153a86683`). Dated selected-person reimbursement lookup, local unsaved-policy confirmation/date recovery, authorized correction-origin navigation and unsaved weekly expense recap are source-ready. Production build and browser outcomes remain pending. No financial algorithm, action or permission expansion; no source-only quota credit. Accepted totals remain 62 UX / 60 bugs. Detailed evidence: `docs/evidence/project-worker-terms-browser-20261002.md` and external W78 source/review packets.

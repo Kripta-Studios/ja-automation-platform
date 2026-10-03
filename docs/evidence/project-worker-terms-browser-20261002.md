@@ -2,6 +2,15 @@
 
 Date: 2026-10-02. All agents used for this continuation run GPT 6.1 Sol. Functional checks use the live browser UI only. Source review, TypeScript, lint and production builds are supporting evidence.
 
+## Latest reviewed status — October 3, 2026
+
+Accepted progress is **62 UX improvements and 60 bug fixes**, with 38 UX improvements and 40 bugs still needed for the requested totals. Historical entries below retain the status and counts recorded at the time. The original 102-item list has 47 scoped checks and 55 not yet rerun; no complete all-role certification is claimed.
+
+- **Production:** commit `2c9f4079`, deployed at 07:42:44 Europe/Madrid. Health and jobs checks passed; the previous release and three daily backups are retained.
+- **Worker agreements:** Owner browser tests show that later project templates preserve existing worker terms, while new assignments copy the selected template. Finance's recovery-only edit preserved the reimbursement fallback, numeric agreements and dated history. Future reimbursement remains a configuration inference until a resolved result is shown.
+- **Creation form:** Owner keeps the optional worker table. Finance has appropriate English, Spanish and Portuguese guidance. Native defaults toggles retain focus and values on phone and desktop for both roles.
+- **Limits:** tests use marked QA fixtures and normal browser controls. No invoice or payment was finalized. Individual receipts below state which dates, roles, states and financial outcomes were actually observed.
+
 ## Candidate and fixture
 
 Wave44 archive SHA256: `f5cdcfc6af3ea51d8706b63afe0a9b1e3169e88c5179594b007c6948ea6ee315`.
@@ -578,3 +587,21 @@ Closed independent GPT-6.1 Sol review and root accept **W73-B01, one bug and no 
 Root independently recomputedallfourcyclevisibility/focus/open/fieldcount/fullJSONgates andclosure andviewedOwnerOFF390. Source/static/deploymentandfreshwholecandidate gates precededthetest. BeforeW69/W72Owner immediatefailure andFinanceOFFcollapse staypreserved; thispreexistingcoupling isnotCSSregression ordata loss. Prior sizing/correctiondisclosure, role/width/manualsummarycases receive no additionalcredit. Rawtimezonevaluesarecorrect; a receiptunderscoretranscriptionwas identified forprosecorrection only.
 
 Accepted progress is now **62 UX /60 bugs /122 definitions**, remaining38UX/40bugs. Frozenhistorical102 remains47scoped/55NOTRUN/0whole-compoundPASS. Populatedrows/SSRrejection/otherlocales/races/serverpersistence/privacy/money remainNOTRUN. Exactdefinitionandlimits: external QUALIFIED_W73_ADDITION.md andclosed W73_SOL_RUNTIME_REVIEW.md/final21eventpacket/receipt.
+
+
+## W77 weekly expense entry: observed recap gap, zero saved changes
+
+On deployed application `2c9f40797d21a64f4fa2dedb8ad3232693ec1ef0`, actual Worker5 used the normal weekly expense table at 390 and 1440 pixels. The existing project Team tab confirmed an October 1–5 assignment before locally entering October 2/3 amounts. Two amounts of EUR0.01 and EUR0.02, an edit to EUR0.03, a description-only incomplete row and a one-row desktop counterpart produced no local row-count or total preview near Save. This is a proposed UX improvement; it does not establish a validation or calculation bug.
+
+The saved weekly summary (four records, EUR3.00) and project-filtered register (one Approved EUR1.00 record) describe different scopes. They stayed unchanged throughout this unsaved exercise. Normal Close prompted for discard and cleared the daily values. The project/currency selectors retained their context; restoring them through visible controls made all 32 native business-field signatures equal the fresh empty baseline. Root independently recomputed that comparison and the recorded request delta: ten ordinary GETs and zero new POSTs. The browser was explicitly closed.
+
+Evidence: external `finance-auditor/W77_SOL_BEFORE.safe.json` (SHA256 `df1e69a3d8095772f5471efc30c9e5dc155dfef88833ae0af0977b5e47b6f0e4`), `W77_SOL_BEFORE_RECEIPT.md` and matching screenshots. Preserved locator/modal timing limitations are test-harness observations. No expense was saved or changed, and no improvement or bug credit is assigned. Accepted totals remain 62 UX improvements and 60 bug fixes.
+
+
+## W78 reviewed release candidate: reimbursement and expense review
+
+The combined eight-source candidate passed scoped lint/format, portal TypeScript and direct baseline/final Svelte compilation with zero warnings in all three affected components. An independent GPT-6.1 Sol review approved the exact full diff `d8c77c83b5aeddf68c4985583f95e1785f13f3280b0e54e7f60ba0e153a86683`; root verified all eight current hashes and inspected the review.
+
+Owner and Finance gain a dated reimbursement lookup for one explicitly selected assignment, payer and expense category. The existing resolver supplies the configured behavior and its source. The local confirmation protects neighboring unsaved policy forms, and an empty dated person list can be refreshed for another date. Expense corrections gain a link to an original that the same principal is authorized to read, with six permitted reference fields. The weekly expense table gains an unsaved count, review count and exact entered total; invalid amounts suppress the total and the existing save payload remains intact.
+
+Production build/deployment and the selected browser afterproof are pending at this entry. The source review supplies no runtime or quota credit. The later browser sequence uses one page, sequential actual roles and zero domain writes, with explicit limits for date/payer matrices, retained failed-save initialization, financial payouts and inaccessible originals. Accepted progress remains 62 UX improvements and 60 bug fixes. Detailed source packets, review and selected browser plan are retained in external `finance-auditor/W78_SOL_*` and `ROOT_W78_SELECTED_BROWSER_PLAN.md`.

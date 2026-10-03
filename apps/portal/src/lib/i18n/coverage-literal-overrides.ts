@@ -1,5 +1,101 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Unsaved weekly entry': ['Entrada semanal sin guardar', 'Lançamento semanal não salvo'],
+  'Entered days': ['Días con datos', 'Dias preenchidos'],
+  'Rows needing review': ['Filas por revisar', 'Linhas para revisar'],
+  'Entered total': ['Total introducido', 'Total preenchido'],
+  'Only local entries are shown. Nothing has been saved.': [
+    'Solo se muestran los datos introducidos. No se ha guardado nada.',
+    'São exibidos apenas os dados preenchidos. Nada foi salvo.',
+  ],
+  'Enter a valid amount for each entered day to see the total.': [
+    'Introduce un importe válido en cada día rellenado para ver el total.',
+    'Informe um valor válido em cada dia preenchido para ver o total.',
+  ],
+  'Expense correction': ['Corrección del gasto', 'Correção da despesa'],
+  'Original expense': ['Gasto original', 'Despesa original'],
+  'Open original expense': ['Abrir el gasto original', 'Abrir a despesa original'],
+  'Open the original expense to check its current status and available actions.': [
+    'Abre el gasto original para comprobar su estado actual y las acciones disponibles.',
+    'Abra a despesa original para verificar o estado atual e as ações disponíveis.',
+  ],
+  'Review reimbursement by date': [
+    'Revisar el reembolso por fecha',
+    'Revisar o reembolso por data',
+  ],
+  'Review configured behavior for one person, payer and expense category. This does not approve an expense, calculate an amount or record a payment.':
+    [
+      'Revisa la configuración para una persona, un pagador y una categoría de gasto. Esto no aprueba un gasto, calcula un importe ni registra un pago.',
+      'Revise a configuração para uma pessoa, um pagador e uma categoria de despesa. Isso não aprova uma despesa, calcula um valor nem registra um pagamento.',
+    ],
+  'Review reimbursement': ['Revisar el reembolso', 'Revisar o reembolso'],
+  'No people are listed for the reviewed date. Change the work date and select Review reimbursement to refresh the list, then choose a person.':
+    [
+      'No hay personas en la lista para la fecha revisada. Cambia la fecha de trabajo y selecciona Revisar el reembolso para actualizar la lista; después, elige una persona.',
+      'Não há pessoas na lista para a data revisada. Altere a data de trabalho e selecione Revisar o reembolso para atualizar a lista; depois, escolha uma pessoa.',
+    ],
+  'Choose who paid': ['Elige quién pagó', 'Escolha quem pagou'],
+  'Choose expense category': ['Elige la categoría del gasto', 'Escolha a categoria da despesa'],
+  'Choose a person to review reimbursement.': [
+    'Elige una persona para revisar el reembolso.',
+    'Escolha uma pessoa para revisar o reembolso.',
+  ],
+  'Choose a valid work date to review reimbursement.': [
+    'Elige una fecha de trabajo válida para revisar el reembolso.',
+    'Escolha uma data de trabalho válida para revisar o reembolso.',
+  ],
+  'Choose who paid the expense to review reimbursement.': [
+    'Elige quién pagó el gasto para revisar el reembolso.',
+    'Escolha quem pagou a despesa para revisar o reembolso.',
+  ],
+  'Choose an expense category to review reimbursement.': [
+    'Elige una categoría de gasto para revisar el reembolso.',
+    'Escolha uma categoria de despesa para revisar o reembolso.',
+  ],
+  'The selected person is unavailable for this project and date. Choose a person again.': [
+    'La persona seleccionada no está disponible para este proyecto y fecha. Vuelve a elegir una persona.',
+    'A pessoa selecionada não está disponível para este projeto e data. Escolha uma pessoa novamente.',
+  ],
+  'No assignment covers this person and work date.': [
+    'Ninguna asignación cubre esta persona y fecha de trabajo.',
+    'Nenhuma atribuição cobre esta pessoa e data de trabalho.',
+  ],
+  'More than one assignment covers this person and work date. Ask the owner to review the assignments.':
+    [
+      'Más de una asignación cubre esta persona y fecha de trabajo. Pide al propietario que revise las asignaciones.',
+      'Mais de uma atribuição cobre esta pessoa e data de trabalho. Peça ao proprietário que revise as atribuições.',
+    ],
+  'No expense policy matches this person, date, payer and category.': [
+    'Ninguna política de gastos coincide con esta persona, fecha, pagador y categoría.',
+    'Nenhuma política de despesas corresponde a esta pessoa, data, pagador e categoria.',
+  ],
+  'The assignment context changed. Review the person and date again.': [
+    'El contexto de la asignación cambió. Revisa de nuevo la persona y la fecha.',
+    'O contexto da atribuição mudou. Revise a pessoa e a data novamente.',
+  ],
+  'Configured reimbursement': ['Reembolso configurado', 'Reembolso configurado'],
+  'Reimbursement source': ['Origen del reembolso', 'Origem do reembolso'],
+  'Person reimbursement override': [
+    'Excepción de reembolso de la persona',
+    'Substituição de reembolso da pessoa',
+  ],
+  'Project reimbursement default': [
+    'Reembolso predeterminado del proyecto',
+    'Reembolso padrão do projeto',
+  ],
+  'Person expense policy fallback': [
+    'Alternativa de la política de gastos de la persona',
+    'Alternativa da política de despesas da pessoa',
+  ],
+  'The expense was not paid by the worker': [
+    'El gasto no fue pagado por el trabajador',
+    'A despesa não foi paga pelo trabalhador',
+  ],
+  'Selected expense policy': [
+    'Política de gastos seleccionada',
+    'Política de despesas selecionada',
+  ],
+  'Policy category': ['Categoría de la política', 'Categoria da política'],
   'Active means not revoked. Recording also depends on dates and both project assignments.': [
     'Activo significa que no se ha revocado. El registro también depende de las fechas y de las asignaciones de ambas personas al proyecto.',
     'Ativo significa que não foi revogado. O registro também depende das datas e das atribuições de ambas as pessoas ao projeto.',

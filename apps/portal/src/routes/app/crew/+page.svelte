@@ -22,7 +22,9 @@
   let { data, form } = $props();
   let localeOverride = $state<PortalLocale | null>(null);
   const locale = $derived(
-    localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
+    $page.url.searchParams.has('lang')
+      ? resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale)
+      : (localeOverride ?? data.locale ?? resolveStandaloneLocale()),
   );
   const t = (key: string, params?: Record<string, string | number>) =>
     standaloneText(locale, key, params);
@@ -546,7 +548,10 @@
       });
     return () => window.removeEventListener('pagehide', rememberScroll);
   });
-  $effect(() => applyStandaloneDocumentLocale(locale));
+  $effect(() => {
+    persistStandaloneLocale(locale);
+    applyStandaloneDocumentLocale(locale);
+  });
 </script>
 
 <svelte:head>
@@ -1424,6 +1429,49 @@
     width: 1.2rem;
     height: 1.2rem;
   }
+  .entry-form[data-crew-operation='allocateReceipt'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .entry-form[data-crew-operation='allocateReceipt'] fieldset,
+  .entry-form[data-crew-operation='allocateReceipt'] .member-grid,
+  .entry-form[data-crew-operation='allocateReceipt'] .member-row,
+  .entry-form[data-crew-operation='allocateReceipt'] label,
+  .entry-form[data-crew-operation='allocateReceipt'] :global([data-validation-summary]) {
+    min-width: 0;
+  }
+  .entry-form[data-crew-operation='allocateReceipt'] legend,
+  .entry-form[data-crew-operation='allocateReceipt'] label,
+  .entry-form[data-crew-operation='allocateReceipt'] :global([data-validation-summary]),
+  .entry-form[data-crew-operation='allocateReceipt'] :global([data-validation-generated-error]) {
+    overflow-wrap: anywhere;
+  }
+  .entry-form[data-crew-operation='allocateReceipt'] legend,
+  .entry-form[data-crew-operation='allocateReceipt'] select,
+  .entry-form[data-crew-operation='allocateReceipt'] input:not([type='checkbox']) {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .entry-form[data-crew-operation='allocateReceipt'] .member-name {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+  .entry-form[data-crew-operation='allocateReceipt'] .member-name > input {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .entry-form[data-crew-operation='allocateReceipt'] .member-name > span {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+  }
+  .entry-form[data-crew-operation='allocateReceipt']
+    .member-name
+    > :global([data-validation-generated-error]) {
+    grid-column: 1/-1;
+    grid-row: 2;
+    min-width: 0;
+    margin: 0.35rem 0 0;
+  }
   .grant-list,
   .entry-list {
     padding: 0;
@@ -1461,6 +1509,9 @@
   @media (max-width: 600px) {
     .member-row {
       grid-template-columns: 1fr;
+    }
+    .entry-form[data-crew-operation='allocateReceipt'] .member-row {
+      grid-template-columns: minmax(0, 1fr);
     }
     .grant-list li,
     .entry-list li {

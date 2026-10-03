@@ -43,8 +43,11 @@
     await goto(`${base}/app/login`);
   }
   function changeLocale(event: Event) {
+    const select = event.currentTarget as HTMLSelectElement;
+    const requestedLocale = select.value;
+    select.value = locale;
     const url = new URL($page.url);
-    url.searchParams.set('lang', (event.target as HTMLSelectElement).value);
+    url.searchParams.set('lang', requestedLocale);
     void goto(url.pathname + url.search + url.hash, { keepFocus: true, noScroll: true });
   }
   // SvelteKit restores scroll on popstate. Keep the actual origin so a detail's Back

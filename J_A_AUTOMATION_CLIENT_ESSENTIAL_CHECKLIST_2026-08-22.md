@@ -1473,3 +1473,8 @@ W79 corrige únicamente el idioma reactivo del detalle de gasto, observado con c
 ## W79 desplegado y limpiado; revisión del navegador pendiente — 2026-10-03
 
 CORE-17: aplicación8a630faa/archive023ba114 activada12:14:29Madrid; fuente revisada del detalle de gasto verificada, backup26documentos, upgrade, disponibilidad pública/local, portal/site saludables y jobs correctos. Cache7.034GB/final0B; comprobación de18referencias antes de eliminar sólo imágenesW73 obsoletas. W79actual/W78rollback, tres backups diarios y timers activos conservados;11GBlibres. Sesión única cerrada con No open tabs tras40eventos del plan nativo de idiomas/Cancel. Revisión independiente de ejecución pendiente; familiaW71+0, totales65UX/60bugs sin cambio. Evidencia y límites en `docs/evidence/project-worker-terms-browser-20261002.md` y ROOT_W79_DEPLOY.md externo.
+
+
+## W79 ejecución aceptada por alcance — 2026-10-03
+
+CORE-02/06/15: revisión Sol SCOPEDPASS/SHIP y recomputación de root aceptan el idioma reactivo del detalle y Cancel nativo con token/campos intactos. GET aceptado rota token y conserva motivo local; limpieza visible restaura campos y registros protegidos, cierre explícito. FamiliaW71+0;65UX/60bugs. El aviso genérico de pérdida y opciones/etiqueta de recibo sin traducir siguen como candidatos separados. Sin certificación completa de roles, traducción, anchuras ni finanzas. Informe SHAe4df2782 y packetSHA918ce12a en evidencia vinculada.

@@ -3713,10 +3713,10 @@ export class V3Repository {
       pending: hasPending,
     } of dailyRules.values()) {
       const amount = BigInt(rule.rate_minor);
-      if (hasPending) {
-        addProjectAmount(pendingByProject, projectId, amount);
-      } else if (hasApproved) {
+      if (hasApproved) {
         addProjectAmount(approvedByProject, projectId, amount);
+      } else if (hasPending) {
+        addProjectAmount(pendingByProject, projectId, amount);
       }
     }
     for (const {

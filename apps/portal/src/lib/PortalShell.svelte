@@ -1131,6 +1131,117 @@
       ? result.values
       : {};
   });
+  function projectAssignmentDateTarget(field: string): string | undefined {
+    const match = /^assignments\.(\d+)\.startsOn$/.exec(field);
+    return match ? `project-creation-assignment-${match[1]}-starts-on` : undefined;
+  }
+  let focusedProjectCreationFailure = '';
+  $effect(() => {
+    const failure = form as (ProblemData & { actionName?: string; success?: boolean }) | undefined;
+    if (
+      data.user.role !== 'owner_admin' ||
+      data.section !== 'projects' ||
+      projectWorkflow !== 'new-project' ||
+      failure?.actionName !== 'createProject' ||
+      failure.success !== false ||
+      failure.code !== 'PROJECT_PERSON_DEFAULTS_REQUIRED' ||
+      !failure.correlationId ||
+      failure.correlationId === focusedProjectCreationFailure
+    )
+      return;
+    const field = Object.keys(failure.fieldErrors ?? {}).find((key) =>
+      projectAssignmentDateTarget(key),
+    );
+    const targetId = field ? projectAssignmentDateTarget(field) : undefined;
+    if (!targetId) return;
+    const correlationId = failure.correlationId;
+    focusedProjectCreationFailure = correlationId;
+    let active = true;
+    let target: HTMLInputElement | null = null;
+    let frame = 0;
+    const initialFocus = document.activeElement;
+    const cancel = () => {
+      active = false;
+    };
+    const movedFocus = (event: FocusEvent) => {
+      if (event.target !== target) cancel();
+    };
+    document.addEventListener('pointerdown', cancel, true);
+    document.addEventListener('keydown', cancel, true);
+    document.addEventListener('focusin', movedFocus, true);
+    const current = () =>
+      active &&
+      (form as ProblemData | undefined)?.correlationId === correlationId &&
+      projectWorkflow === 'new-project' &&
+      target?.isConnected &&
+      target.getAttribute('aria-invalid') === 'true';
+    void tick().then(() => {
+      target = document.getElementById(targetId) as HTMLInputElement | null;
+      if (!current() || document.activeElement !== initialFocus || !target) return;
+      const reveal = () => {
+        if (!current() || document.activeElement !== target || !target) return;
+        const view = window.visualViewport;
+        let safeTop = Math.max(0, view?.offsetTop ?? 0) + 16;
+        let safeBottom =
+          Math.min(
+            window.innerHeight,
+            (view?.offsetTop ?? 0) + (view?.height ?? window.innerHeight),
+          ) - 16;
+        const header = document.querySelector<HTMLElement>('.portal-layout > header');
+        if (header) {
+          const style = getComputedStyle(header);
+          const bounds = header.getBoundingClientRect();
+          if (
+            ['sticky', 'fixed'].includes(style.position) &&
+            style.visibility !== 'hidden' &&
+            bounds.width > 0 &&
+            bounds.height > 0 &&
+            bounds.top <= safeTop
+          )
+            safeTop = Math.max(safeTop, bounds.bottom + 16);
+        }
+        const navigation = document.querySelector<HTMLElement>('.bottom-nav');
+        if (navigation) {
+          const style = getComputedStyle(navigation);
+          const bounds = navigation.getBoundingClientRect();
+          if (
+            style.position === 'fixed' &&
+            style.visibility !== 'hidden' &&
+            bounds.width > 0 &&
+            bounds.height > 0
+          )
+            safeBottom = Math.min(safeBottom, bounds.top - 16);
+        }
+        if (safeBottom <= safeTop) return;
+        const label = target.closest('label') ?? target;
+        const error = document.getElementById(target.getAttribute('aria-describedby') ?? '');
+        const bounds = label.getBoundingClientRect();
+        const errorBounds = error?.getBoundingClientRect();
+        const top = Math.min(bounds.top, errorBounds?.top ?? bounds.top);
+        const bottom = Math.max(bounds.bottom, errorBounds?.bottom ?? bounds.bottom);
+        const delta =
+          bottom - top > safeBottom - safeTop || top < safeTop
+            ? top - safeTop
+            : bottom > safeBottom
+              ? bottom - safeBottom
+              : 0;
+        if (delta) window.scrollBy({ top: delta, behavior: 'instant' });
+      };
+      target.focus({ preventScroll: true });
+      reveal();
+      // Native POST scroll restoration can follow hydration. Recheck geometry once after paint.
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(reveal);
+      });
+    });
+    return () => {
+      cancel();
+      cancelAnimationFrame(frame);
+      document.removeEventListener('pointerdown', cancel, true);
+      document.removeEventListener('keydown', cancel, true);
+      document.removeEventListener('focusin', movedFocus, true);
+    };
+  });
   const projectFormValue = (field: string, fallback = ''): string => {
     const value = projectFormValues[field];
     return typeof value === 'string' ? value : fallback;
@@ -5081,7 +5192,12 @@
                     <ul>
                       {#each Object.entries(projectFieldErrors) as [field, messages]}
                         <li>
-                          {projectFieldLabel(field)}: {(messages ?? []).map(translate).join(' · ')}
+                          {#if projectAssignmentDateTarget(field)}<a
+                              href={`#${projectAssignmentDateTarget(field)}`}
+                              >{projectFieldLabel(field)}</a
+                            >{:else}{projectFieldLabel(field)}{/if}: {(messages ?? [])
+                            .map(translate)
+                            .join(' · ')}
                         </li>
                       {/each}
                     </ul>

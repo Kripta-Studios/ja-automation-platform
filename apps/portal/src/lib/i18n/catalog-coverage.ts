@@ -3188,6 +3188,8 @@ export const PORTAL_ACTION_KEYS = [
   'problem.project.idRequired',
   'problem.project.versionRequired',
   'problem.project.fieldsInvalid',
+  'problem.project.creationDefaultsDateConflict',
+  'problem.project.creationDefaultsMissing',
   'problem.project.initialWorkersRequireFinanceSetup',
   'problem.milestone.fieldsInvalid',
   'problem.milestone.recordInvalid',

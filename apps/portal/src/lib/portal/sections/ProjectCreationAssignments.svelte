@@ -210,11 +210,23 @@
                 ><label
                   >{t('Starts on')}<input
                     type="date"
+                    id={`project-creation-assignment-${i}-starts-on`}
                     bind:value={row.startsOn}
                     aria-invalid={Boolean(errors[`assignments.${i}.startsOn`])}
+                    aria-describedby={errors[`assignments.${i}.startsOn`]
+                      ? `project-creation-assignment-${i}-starts-on-error`
+                      : undefined}
                     required
                   /></label
-                ><label
+                >{#if errors[`assignments.${i}.startsOn`]}<p
+                    id={`project-creation-assignment-${i}-starts-on-error`}
+                    class="warning"
+                    role="alert"
+                  >
+                    {t('Assignment')}
+                    {i + 1} · {t('Starts on')}:
+                    {errors[`assignments.${i}.startsOn`]?.map(t).join(' ')}
+                  </p>{/if}<label
                   >{t('Ends on (optional)')}<input
                     type="date"
                     bind:value={row.endsOn}
@@ -319,7 +331,7 @@
                 {/if}
               </td>
               <td>
-                {#each Object.entries(errors).filter(([key]) => key.startsWith(`assignments.${i}.`) && !key.includes('.config.')) as [key, messages]}<p
+                {#each Object.entries(errors).filter(([key]) => key.startsWith(`assignments.${i}.`) && !key.includes('.config.') && key !== `assignments.${i}.startsOn`) as [key, messages]}<p
                     class="warning"
                     role="alert"
                   >
@@ -369,6 +381,9 @@
 </div>
 
 <style>
+  input[id^='project-creation-assignment-'] {
+    scroll-margin-top: 8rem;
+  }
   .creation-people {
     display: grid;
     gap: 1rem;

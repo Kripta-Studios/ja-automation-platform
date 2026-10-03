@@ -64,6 +64,10 @@ const en = {
     'This project has recorded commercial agreements and cannot be deleted. Archive the project instead.',
   'action.projects.personDefaultsSaved':
     'Project defaults saved. Existing person agreements are unchanged.',
+  'problem.project.creationDefaultsDateConflict':
+    'Project defaults must take effect on or before this assignment starts. Change the assignment start date or the defaults effective date, or use individual terms.',
+  'problem.project.creationDefaultsMissing':
+    'Enable project defaults for this assignment, or use individual terms.',
   'problem.assignment.recordedHistory':
     'These dates would exclude recorded time, expenses or reports. Keep dates that cover the recorded work, then save again.',
   'problem.assignment.projectDefaultsUnavailable':
@@ -627,6 +631,10 @@ const esBase: Record<keyof typeof en, string> = {
     'Este proyecto tiene acuerdos comerciales registrados y no se puede eliminar. Archiva el proyecto.',
   'action.projects.personDefaultsSaved':
     'Valores predeterminados del proyecto guardados. Los acuerdos individuales existentes no cambian.',
+  'problem.project.creationDefaultsDateConflict':
+    'Los valores predeterminados del proyecto deben entrar en vigor antes o el mismo día que esta asignación. Cambia la fecha de inicio de la asignación o la fecha de vigencia de los valores predeterminados, o introduce condiciones individuales.',
+  'problem.project.creationDefaultsMissing':
+    'Activa los valores predeterminados del proyecto para esta asignación o introduce condiciones individuales.',
   'problem.assignment.recordedHistory':
     'Estas fechas excluirían horas, gastos o informes registrados. Mantén fechas que cubran el trabajo registrado y vuelve a guardar.',
   'problem.assignment.projectDefaultsUnavailable':
@@ -1189,6 +1197,10 @@ const ptBase: Record<keyof typeof en, string> = {
     'Este projeto tem acordos comerciais registrados e não pode ser excluído. Arquive o projeto.',
   'action.projects.personDefaultsSaved':
     'Padrões do projeto salvos. Os acordos individuais existentes permanecem inalterados.',
+  'problem.project.creationDefaultsDateConflict':
+    'Os padrões do projeto devem entrar em vigor antes ou no dia de início desta atribuição. Altere a data de início da atribuição ou a data de vigência dos padrões, ou informe condições individuais.',
+  'problem.project.creationDefaultsMissing':
+    'Ative os padrões do projeto para esta atribuição ou informe condições individuais.',
   'problem.assignment.recordedHistory':
     'Estas datas excluiriam horas, despesas ou relatórios registrados. Mantenha datas que cubram o trabalho registrado e salve novamente.',
   'problem.assignment.projectDefaultsUnavailable':

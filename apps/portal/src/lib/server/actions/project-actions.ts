@@ -1138,18 +1138,31 @@ export const projectActions = {
         (row) =>
           row.mode === 'defaults' && (!defaults.data || row.startsOn < defaults.data.effectiveFrom),
       )
-    )
+    ) {
+      const messageKey = defaults.data
+        ? 'problem.project.creationDefaultsDateConflict'
+        : 'problem.project.creationDefaultsMissing';
       return inputFailure(
         'PROJECT_PERSON_DEFAULTS_REQUIRED',
-        'problem.project.fieldsInvalid',
-        'Save project defaults effective on or before each assignment, or enter individual worker terms.',
-        { initialAssignmentsJson: ['problem.project.fieldsInvalid'] },
+        messageKey,
+        defaults.data
+          ? 'Project defaults must take effect on or before this assignment starts. Change the assignment start date or the defaults effective date, or use individual terms.'
+          : 'Enable project defaults for this assignment, or use individual terms.',
+        Object.fromEntries(
+          assignments.data.flatMap((row, index) =>
+            row.mode === 'defaults' &&
+            (!defaults.data || row.startsOn < defaults.data.effectiveFrom)
+              ? [[`assignments.${index}.startsOn`, [messageKey]]]
+              : [],
+          ),
+        ),
         {
           values: { ...values, personDefaultsJson, initialAssignmentsJson },
           actionName: 'createProject',
           correlationId: locals.correlationId,
         },
       );
+    }
     const parsed = projectInputSchema.safeParse(values);
     const retainedValues = {
       ...values,

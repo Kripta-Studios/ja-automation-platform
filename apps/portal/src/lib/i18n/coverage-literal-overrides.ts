@@ -1,5 +1,36 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Receipt split preview': ['Vista previa del reparto del recibo', 'Prévia da divisão do recibo'],
+  'Receipt total': ['Total del recibo', 'Total do recibo'],
+  'Allocated total': ['Total distribuido', 'Total distribuído'],
+  'Choose a saved receipt to preview the split.': [
+    'Elige un recibo guardado para ver el reparto.',
+    'Escolha um recibo salvo para visualizar a divisão.',
+  ],
+  'Receipt total unavailable.': [
+    'El total del recibo no está disponible.',
+    'O total do recibo não está disponível.',
+  ],
+  'Select at least two different workers.': [
+    'Selecciona al menos dos trabajadores distintos.',
+    'Selecione pelo menos dois trabalhadores diferentes.',
+  ],
+  'Enter a positive amount for every selected time row to calculate the split.': [
+    'Introduce un importe positivo para cada registro de horas seleccionado para calcular el reparto.',
+    'Informe um valor positivo para cada registro de horas selecionado para calcular a divisão.',
+  ],
+  'Remaining to allocate: {amount}': [
+    'Pendiente de distribuir: {amount}',
+    'Restante a distribuir: {amount}',
+  ],
+  'Over receipt total by: {amount}': [
+    'Exceso sobre el total del recibo: {amount}',
+    'Excesso em relação ao total do recibo: {amount}',
+  ],
+  'Amounts match the receipt.': [
+    'Los importes coinciden con el recibo.',
+    'Os valores correspondem ao recibo.',
+  ],
   'Future person terms are saved. Current values remain in effect until their effective date.': [
     'Las condiciones futuras están guardadas. Los valores actuales siguen vigentes hasta su fecha de efecto.',
     'As condições futuras estão salvas. Os valores atuais continuam vigentes até a data de efeito.',

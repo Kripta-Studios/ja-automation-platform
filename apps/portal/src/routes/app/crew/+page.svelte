@@ -11,6 +11,8 @@
   import type { ProblemData } from '$lib/problem/contract';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
+  import { decimalToMinor } from '$lib/portal/portal-format';
+  import { paymentMoney } from '$lib/portal/payment-money';
   import {
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
@@ -54,6 +56,17 @@
   );
   let crewEntryForm = $state<HTMLFormElement>();
   let receiptAllocationForm = $state<HTMLFormElement>();
+  type AllocationPreviewSnapshot = {
+    expenseId: string;
+    rows: { id: string; amount: string }[];
+  };
+  let allocationPreviewSnapshot = $state.raw<AllocationPreviewSnapshot>({
+    expenseId: '',
+    rows: [],
+  });
+  let allocationPreviewAnnouncement = $state('');
+  let allocationPreviewMounted = $state(false);
+  let allocationPreviewSync = 0;
   let crewFilterForm = $state<HTMLFormElement>();
   let pendingOperation = $state<string | null>(null);
   let confirmedActionRedirect: string | null = null;
@@ -90,7 +103,147 @@
         else if (control.name === 'requestId') control.value = crypto.randomUUID();
       }
     }
+    clearAllocationPreview();
   }
+  function clearAllocationPreview(): void {
+    allocationPreviewSync += 1;
+    allocationPreviewSnapshot = { expenseId: '', rows: [] };
+    allocationPreviewAnnouncement = '';
+  }
+  function allocationPreviewSummary(snapshot: AllocationPreviewSnapshot) {
+    const receipt = data.receipts.find((item: { id: string }) => item.id === snapshot.expenseId);
+    const empty = { receiptTotal: '', allocatedTotal: '', workerHint: '', over: false };
+    if (!receipt) return { ...empty, message: t('Choose a saved receipt to preview the split.') };
+    if (!Number.isSafeInteger(receipt.amountMinor) || receipt.amountMinor <= 0)
+      return { ...empty, message: t('Receipt total unavailable.') };
+    const receiptMinor = BigInt(receipt.amountMinor);
+    const formatAmount = (amount: bigint) =>
+      paymentMoney(amount.toString(), receipt.currency, locale);
+    const entries = new Map<string, { workerId: string }>(
+      data.entries.map((entry: { id: string; workerId: string }) => [entry.id, entry]),
+    );
+    const rows = snapshot.rows.filter((row) => entries.has(row.id));
+    const workerHint =
+      new Set(rows.map((row) => entries.get(row.id)!.workerId)).size < 2
+        ? t('Select at least two different workers.')
+        : '';
+    const receiptTotal = formatAmount(receiptMinor);
+    let total = 0n;
+    for (const row of rows) {
+      const normalized = row.amount.trim().replace(',', '.');
+      const minor = /^\d{1,12}(?:\.\d{1,2})?$/u.test(normalized)
+        ? decimalToMinor(normalized)
+        : undefined;
+      if (minor === undefined || BigInt(minor) <= 0n)
+        return {
+          ...empty,
+          receiptTotal,
+          workerHint,
+          message: t('Enter a positive amount for every selected time row to calculate the split.'),
+        };
+      total += BigInt(minor);
+    }
+    return {
+      receiptTotal,
+      allocatedTotal: formatAmount(total),
+      workerHint,
+      over: total > receiptMinor,
+      message:
+        total < receiptMinor
+          ? t('Remaining to allocate: {amount}', { amount: formatAmount(receiptMinor - total) })
+          : total > receiptMinor
+            ? t('Over receipt total by: {amount}', { amount: formatAmount(total - receiptMinor) })
+            : t('Amounts match the receipt.'),
+    };
+  }
+  const allocationPreview = $derived(allocationPreviewSummary(allocationPreviewSnapshot));
+  function syncAllocationPreview(announce = false): void {
+    const target = receiptAllocationForm;
+    if (!target?.isConnected) return;
+    const project = target.elements.namedItem('projectId');
+    const workDate = target.elements.namedItem('workDate');
+    if (
+      !(project instanceof HTMLInputElement) ||
+      project.value !== data.projectId ||
+      !(workDate instanceof HTMLInputElement) ||
+      workDate.value !== data.workDate
+    )
+      return;
+    const receipt = target.elements.namedItem('expenseId');
+    const availableIds = new Set(data.entries.map((entry: { id: string }) => entry.id));
+    const selectedIds: string[] = [];
+    for (const control of Array.from(target.elements)) {
+      if (
+        control instanceof HTMLInputElement &&
+        control.type === 'checkbox' &&
+        control.name === 'timeEntryIds' &&
+        control.checked &&
+        availableIds.has(control.value) &&
+        !selectedIds.includes(control.value)
+      )
+        selectedIds.push(control.value);
+    }
+    const snapshot: AllocationPreviewSnapshot = {
+      expenseId: receipt instanceof HTMLSelectElement ? receipt.value : '',
+      rows: selectedIds.map((id) => {
+        const amount = target.elements.namedItem(`amount_${id}`);
+        return { id, amount: amount instanceof HTMLInputElement ? amount.value : '' };
+      }),
+    };
+    allocationPreviewSnapshot = snapshot;
+    if (announce) {
+      const summary = allocationPreviewSummary(snapshot);
+      const announcement = [
+        summary.receiptTotal && `${t('Receipt total')}: ${summary.receiptTotal}`,
+        summary.allocatedTotal && `${t('Allocated total')}: ${summary.allocatedTotal}`,
+        summary.message,
+        summary.workerHint,
+      ]
+        .filter(Boolean)
+        .join('. ');
+      if (announcement !== allocationPreviewAnnouncement)
+        allocationPreviewAnnouncement = announcement;
+    }
+  }
+  onMount(() => {
+    allocationPreviewMounted = true;
+    return () => {
+      allocationPreviewSync += 1;
+    };
+  });
+  $effect(() => {
+    const mounted = allocationPreviewMounted;
+    const target = receiptAllocationForm;
+    const projectId = data.projectId;
+    const workDate = data.workDate;
+    // Observe incoming form/data revisions, never the preview mirror written below.
+    void data.entries;
+    void data.receipts;
+    void form;
+    void locale;
+    const revision = ++allocationPreviewSync;
+    if (!mounted) return;
+    let stale = false;
+    void tick().then(() => {
+      if (
+        stale ||
+        revision !== allocationPreviewSync ||
+        target !== receiptAllocationForm ||
+        projectId !== data.projectId ||
+        workDate !== data.workDate
+      )
+        return;
+      if (!target?.isConnected) {
+        clearAllocationPreview();
+        return;
+      }
+      allocationPreviewAnnouncement = '';
+      syncAllocationPreview();
+    });
+    return () => {
+      stale = true;
+    };
+  });
   function restoreFilterContext(): void {
     const project = crewFilterForm?.elements.namedItem('project');
     const date = crewFilterForm?.elements.namedItem('date');
@@ -868,6 +1021,9 @@
           bind:this={receiptAllocationForm}
           use:enhance={preserveCrewForm}
           use:formValidation
+          oninput={() => syncAllocationPreview()}
+          onchange={() => syncAllocationPreview(true)}
+          onfocusout={() => syncAllocationPreview(true)}
           class="entry-form"
         >
           <input
@@ -936,6 +1092,32 @@
               {/each}
             </div>
           </fieldset>
+          <div
+            class="allocation-preview"
+            class:allocation-preview--over={allocationPreview.over}
+            data-crew-allocation-preview
+          >
+            <strong>{t('Receipt split preview')}</strong>
+            {#if allocationPreview.receiptTotal}
+              <dl>
+                <div>
+                  <dt>{t('Receipt total')}</dt>
+                  <dd>{allocationPreview.receiptTotal}</dd>
+                </div>
+                {#if allocationPreview.allocatedTotal}
+                  <div>
+                    <dt>{t('Allocated total')}</dt>
+                    <dd>{allocationPreview.allocatedTotal}</dd>
+                  </div>
+                {/if}
+              </dl>
+            {/if}
+            <p>{allocationPreview.message}</p>
+            {#if allocationPreview.workerHint}<p>{allocationPreview.workerHint}</p>{/if}
+          </div>
+          <p class="allocation-preview-announcement" aria-live="polite" aria-atomic="true">
+            {allocationPreviewAnnouncement}
+          </p>
           <p class="hint">
             {t(
               'The amounts must add up exactly to the selected receipt. Include the worker and shift already linked to it.',
@@ -1055,6 +1237,46 @@
     display: grid;
     gap: 1rem;
     max-width: 46rem;
+  }
+  .allocation-preview {
+    min-width: 0;
+    padding: 0.75rem;
+    border: 1px solid #c5d0d9;
+    border-radius: 0.5rem;
+    background: #f4f8fa;
+    overflow-wrap: anywhere;
+  }
+  .allocation-preview--over {
+    border-color: #a40f18;
+  }
+  .allocation-preview dl {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0.5rem 0;
+  }
+  .allocation-preview dl > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.35rem 0.75rem;
+  }
+  .allocation-preview dt {
+    font-weight: 600;
+  }
+  .allocation-preview dd {
+    margin: 0;
+  }
+  .allocation-preview p {
+    margin: 0.35rem 0 0;
+  }
+  .allocation-preview-announcement {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .crew-entry-controls {
     display: grid;

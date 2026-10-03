@@ -1534,3 +1534,8 @@ W88: dos fuentes cambian solo caption de selección bulk y traduccionesES/PT, no
 ## W88 desplegado y mantenimiento aceptado — 2026-10-03
 
 CORE-02/03/04/06/15: commit1f8fba27/ZIPfc25afe489a4 desplegado19:51:25Madrid una vez;4713archivos, dos fuentes de caption y20protegidas exactas, salud/site/portal/jobs/readiness correctos. Verificador inicial rechazó formatoZIPnormalGit; fallo conservado y archivo existente validado sin rehacerlo. W87rollbacknuevo+original/W85/W83 exactos. Cache0B tras liberar7.017GB; prune0adicionales, backupsOct1/2/3 con14/24/26documentos.18referencias previas y4volúmenes intactos; servicio ajeno añadido simultáneamente:19referencias finales. Cinco unidades activas, scanner procesando inbox naturalmente y7.917GB libres. Helper de metadata corregido contra conteos históricos reales; stops conservados, sin créditoapp. Recibo root680d5b40/after9331d3cb y ROOT_W88_DEPLOY.md externos. Browsercaption todavía sin prueba; **68UX/64bugs**, histórico47/55/0 sin cambio, +0.
+
+
+## W88 caption nativo aceptado por alcance — 2026-10-03
+
+CORE-02/03/04/06/15: OwnerEN/ES/PT y FinanceEN, packet61b6a934dd/revisiónSol53091724/recomputaciónroot: checkbox y dos bulkbuttons son únicas diferencias,4cards/7forms restaurados, dirty0 y POSTnegocio0 por pares. Financecrop274×45 solamente; ES/PTFinance/historia/otrosroles sin prueba. Errors1/33/34/43 y close59→blank60→cleanup61 conservados; NoTabs real, no claim de contexto ininterrumpido ni tokens ocultos. Watchers restaurados tras cierre. +0, **68UX/64bugs**, histórico47/55/0 sin cambio.

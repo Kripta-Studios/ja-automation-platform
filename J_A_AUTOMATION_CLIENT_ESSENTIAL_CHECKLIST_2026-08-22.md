@@ -1493,3 +1493,8 @@ CORE-02/03/06/15: cuatro fuentes congeladas, avisos específicos veraces EN/ES/P
 ## W83 desplegado; prueba nativa pendiente — 2026-10-03
 
 CORE-02/03/06/15: e9af38c2 desplegado13:30:50Madrid mediante retry canónico después de fallo por espacio y rollback verificado. Cuatro hashes congelados correctos, portal/site saludables, jobs/preflight/URLs públicas correctos. Caché Docker0B, cuatro tagsW78 obsoletos sin referencias retirados sinforce, W79rollback conservado y18referencias completas sin cambios. Backup canónico26documentos conservado con snapshots diarios1/2/3Oct; timersactivos y12GiB libres. Evidencia vinculada y ROOT_W83_DEPLOY.md externo. Navegador/dedup todavía pendientes; +0,65UX/60bugs e histórico47alcances/55sinprueba sin cambio.
+
+
+## W83 prueba nativa aceptada por alcance — 2026-10-03
+
+CORE-02/03/06/15: revisión Sol SCOPED PASS / SHIP y recomputación de root del packet cerrado de 162 eventos aceptan un único bug W81: categorías y etiqueta opcional de recibo traducidas en el formulario de corrección, conservando 15 valores canónicos y hechos protegidos. Seis Cancel con snapshots y tráfico idénticos; GET aceptados con retención/refresh veraces, limpieza y cierre explícitos. Avisos W80/W82: +0. Límites de captura/modal/header/file/crops conservados; sin pruebas de Save, uploads, finanzas ni todos los roles. Totales **65 UX /61 bugs**, histórico 47 alcances/55 sin prueba sin cambio. Detalles en evidencia vinculada y QUALIFIED_W81_ADDITION.md externo.

@@ -5070,7 +5070,9 @@
                 <h2>{translate('Create project')}</h2>
                 <p class="form-help wide-field">
                   {translate(
-                    'Create the project with optional worker assignments and individual terms, or add people after saving.',
+                    data.user.role === 'owner_admin'
+                      ? 'Create the project with optional worker assignments and individual terms, or add people after saving.'
+                      : 'Create the project with optional default rates, pay and expense terms. Ask the owner to add worker assignments.',
                   )}
                 </p>
                 {#if Object.keys(projectFieldErrors).length > 0}

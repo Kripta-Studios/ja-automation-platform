@@ -4,6 +4,8 @@ Owners can configure customer rates, internal costs, worker compensation and exp
 
 ## Create a project
 
+The optional worker-assignment table is available to the Owner. Finance can configure optional project defaults and ask the Owner to add worker assignments.
+
 1. Choose the client and fill in the project details.
 2. Open **Project defaults for people (optional)** and enable defaults if needed. Enter the effective date, rates, compensation method and expense terms.
 3. Open **Worker assignments (optional)**. Add each worker and their assignment dates.

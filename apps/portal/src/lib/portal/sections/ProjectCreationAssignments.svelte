@@ -285,6 +285,20 @@
     display: flex;
     gap: 0.75rem;
     align-items: center;
+    min-height: 2.75rem;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
+  .check input[type='checkbox'] {
+    box-sizing: border-box;
+    flex: 0 0 1.2rem;
+    width: 1.2rem;
+    height: 1.2rem;
+    min-width: 1.2rem;
+    min-height: 1.2rem;
+    max-width: 1.2rem;
+    margin: 0;
+    padding: 0;
   }
   input,
   select {

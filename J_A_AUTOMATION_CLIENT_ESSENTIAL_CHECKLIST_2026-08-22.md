@@ -1428,3 +1428,6 @@ W65/W70/W71 closed Sol review and root acceptance add **1 UX +2 bugs**: live rec
 
 
 W66 closed Sol review/root acceptance adds1UX for Owner administrative delegation status versus loaded-date coverage. ActualOct3outside→typedunappliedOct2stillOct3→normal303Oct2within→303restoreOct3outside preserves exactActiveIDs/dates, Revokedmultiset and blankgrantpeople; localizedspecific hints visible, browserclosed. No Grant/Revoke actions; metadatareset and scrolledparagraph/Dateinputfocus limits preserved. Current **62 UX /59 bugs /121 definitions**, historical47scoped/55NOTRUN/0whole-compoundPASS unchanged. Broaderrole/eligibility/money and100/100 remain incomplete.
+
+
+W68 closed Finance697009ac zero-save proof/rootacceptance adds scopedN03 controls/reset coverage, +0: configurablelocaldefaults/noOwnerWorkertable, legitimateManagerBasics, ordinaryreset/noaddedPOST/explicitclose. ActualmisleadingFinanceintro and oversized672.5×44defaultscheckbox confirmed. CombinedW69/W72 three-file source852573bd/f4a049a2/35df9ccf passes static/rootchecks and freshwholeSolSHIP; roletext/14scopedCSSlines only, nativefinancialcontracts preserved. ExistingN13/W62familycompletions, noextraquota; OwnerFinancebrowserafterproof/deploymentpending afterN02closure. Current62UX/59bugs121 unchanged.

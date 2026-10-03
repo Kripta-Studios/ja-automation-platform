@@ -506,6 +506,11 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
       'Crea el proyecto con asignaciones de trabajadores y condiciones individuales opcionales, o añade personas después de guardar.',
       'Crie o projeto com atribuições de trabalhadores e condições individuais opcionais, ou adicione pessoas após salvar.',
     ],
+  'Create the project with optional default rates, pay and expense terms. Ask the owner to add worker assignments.':
+    [
+      'Crea el proyecto con tarifas, remuneración y condiciones de gastos predeterminadas opcionales. Pide al propietario que añada las asignaciones de trabajadores.',
+      'Crie o projeto com tarifas, remuneração e condições de despesas padrão opcionais. Peça ao proprietário que adicione as atribuições de trabalhadores.',
+    ],
   'Worker assignments and their terms were saved with this project. Review them or add more people.':
     [
       'Las asignaciones y sus condiciones se guardaron con este proyecto. Revísalas o añade más personas.',

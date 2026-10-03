@@ -20,6 +20,14 @@ Saved project defaults are copied into new assignments as independent agreements
 
 Choose an explicit person reimbursement override to preserve it even when it currently matches the project default. Customer expense recovery is separate from worker reimbursement: an expense can reimburse the worker while charging the customer nothing.
 
+### Review and correct unsaved changes
+
+- Saving one person keeps another person's unsaved draft. Review each person's effective date and terms before saving a selected group.
+- If a save is rejected, use the named links in the error summary to reach the affected fields. Correct the retained values and save again. A conflict requires reviewing the latest saved agreement before retrying.
+- Leaving Billing with unsaved person terms prompts you to keep editing or discard. Cancel keeps the drafts; accepting discard clears the unsaved values and their old validation messages.
+- Changing the header language keeps the current editor step and unsaved person values. Error feedback may clear when the language changes.
+- With inherited reimbursement selected, its displayed value is read only. It reflects the dated project default when available, otherwise the person's existing policy; where neither exists, the established fallback is at cost. For a different draft date, follow the resolve-on-save guidance and review the saved dated terms.
+
 ## Effective dates and history
 
 - A later agreement applies from its effective date. Earlier work retains the terms applicable to its work date.

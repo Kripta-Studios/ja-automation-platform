@@ -291,3 +291,25 @@ Build-cache cleanup reclaimed 7.022GB and left 0B. Obsolete original W57 image t
 After build completion, a separate sequential SHA256 and byte comparison verified 13 old W44–W56 deployment-inbox ZIPs against retained audit archive copies, with stable file identities before and after reading. Root rechecked all file identities and protections before removing only those inbox copies: 4,029,568,996 logical bytes. Every audit archive, W57/W57-language/W61 inbox artifact, application data and other application was retained. Available filesystem space rose from 12,638,040,064 to 16,667,676,672 bytes at the recorded cleanup; `df` reports 16GB free. The external verified manifest and `ROOT_W61_DUPLICATE_ARCHIVE_CLEANUP.safe.json` preserve exact removed/retained paths and hashes.
 
 The browser was explicitly closed throughout build and cleanup. A new exclusive GPT-6.1 Sol lease was granted after all gates for complete rejected-save discard, fresh rejection recovery, the five deferred Finance cases and actual scheduled-status translations. Earlier Owner/role/financial results keep their recorded runtime attribution and limitations. No W57 acceptance or new quota credit yet; accepted totals remain 57 UX / 54 bugs.
+
+## W57 independent acceptance — two bugs and one UX
+
+Independent GPT-6.1 Sol review passed the closed evidence packet, and root accepted exactly these three definitions:
+
+| ID | Accepted scope |
+| --- | --- |
+| W57-B01 | Preserve existing-person unsaved commercial drafts across rejected sibling saves and guarded departures; an explicitly accepted discard clears the complete draft and rejected response. |
+| W57-B02 | Show truthful, read-only inherited worker reimbursement instead of retaining an edited override as though it were the inherited value. |
+| W57-U01 | Provide visible, localized rejection summaries with named links, associated field errors and on-screen keyboard focus in the existing-person editor. |
+
+Accepted totals are **58 UX improvements / 56 bug fixes, 114 distinct definitions** toward the unfinished 100/100 goal. Frozen historical 102-item reverification remains **42 scoped / 60 NOT RUN / 0 whole-compound PASS**. Header-language reset repair, incomplete-discard completion, the missing Unchanged translation and deployment/archive cleanup add no extra definitions.
+
+On production source `1312170d` / archive `0740d53585908a96d4d82bb13a8a8fcaf926b17d21b3afb784ca8e181cd8034e`, Owner EN360 single-save recovery and Finance EN1440/ES390/ES1440/PT390/PT1440 single/batch recovery passed. Cancel retained complete fields, errors, selections, pins and captured tokens; accepted Team discard restored every recorded canonical group and cleared old feedback. Fresh rejections remained visible after discard. ES390/PT1440 additionally reached the actual Projects route after accepted discard and returned clean. Keyboard links focused the correct visible inputs with a 3px outline. Enhanced validation responses were actual HTTP200 rejections, not claimed network400/409 responses.
+
+Actual dirty EN→ES→PT390 header changes retained the editor step, fields, selections, pins and tokens without overflow. Both scheduled-notice variants showed Unchanged / Sin cambios / Sem alterações with their existing October4 dates. Final Dedicated project state exactly matched the original canonical baseline; no valid financial writes occurred in these combined-correction cases. The browser explicitly closed before the next test lease.
+
+Earlier financial I1–I6 evidence remains attributed to `fc5ecd22`: successful isolated single and two-person batch saves, preservation of an unsaved sibling and its original fingerprint, natural stale rejection, independent customer recovery, existing-policy fallback and dated default-clear history. Create/I1 request telemetry was lost; canonical UI/history proves outcomes without fabricated statuses or replay. October4/5 configuration history does not prove future operational expense, payment or calculated-money outcomes. Earlier Owner/Finance and restricted-role proof remains attributed to `fce95d99`; the seven original incomplete-discard failures remain recorded, with the latest cases closing the affected gates.
+
+Privacy checks are bounded to the actual Worker/PM delivered keys and Auditor read-only controls; Chief retains only the historical W56 Finance403 observation. Advanced compensation/category/markup combinations, all races, non-JavaScript failure recovery and complete all-role/Essential acceptance remain unproven. Pending header observation does not prove cancellation or native-selector restoration, and error summaries are not claimed to survive language changes. Persisted equal-value override independence N02 is a separate current browser task and adds no new quota here.
+
+External acceptance is recorded in `reverification/QUALIFIED_W57_ADDITIONS.md`, `COVERAGE.md`, `finance-auditor/W57_SOL_QUALIFICATION_PROPOSAL.md`, `W57_SOL_REVIEW.md`, `W61_SOL_FINAL.safe.json` and `W61_SOL_FINAL_RECEIPT.md`. All new work and independent reviews use GPT-6.1 Sol only, with one browser session at a time.

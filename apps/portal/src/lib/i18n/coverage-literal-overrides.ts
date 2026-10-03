@@ -1,5 +1,18 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Active means not revoked. Recording also depends on dates and both project assignments.': [
+    'Activo significa que no se ha revocado. El registro también depende de las fechas y de las asignaciones de ambas personas al proyecto.',
+    'Ativo significa que não foi revogado. O registro também depende das datas e das atribuições de ambas as pessoas ao projeto.',
+  ],
+  'Selected work date {date}: within delegation dates.': [
+    'Fecha de trabajo seleccionada {date}: dentro del período de la delegación.',
+    'Data de trabalho selecionada {date}: dentro do período da delegação.',
+  ],
+  'Selected work date {date}: outside delegation dates.': [
+    'Fecha de trabajo seleccionada {date}: fuera del período de la delegación.',
+    'Data de trabalho selecionada {date}: fora do período da delegação.',
+  ],
+  Revoked: ['Revocada', 'Revogada'],
   'Receipt split preview': ['Vista previa del reparto del recibo', 'Prévia da divisão do recibo'],
   'Receipt total': ['Total del recibo', 'Total do recibo'],
   'Allocated total': ['Total distribuido', 'Total distribuído'],

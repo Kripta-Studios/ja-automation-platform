@@ -27,6 +27,24 @@
   const t = (key: string, params?: Record<string, string | number>) =>
     standaloneText(locale, key, params);
   const status = (value: string) => translateControlledValue(locale, 'status', value);
+  function canonicalCrewDate(value: unknown): value is string {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) return false;
+    const [year, month, day] = value.split('-').map(Number);
+    const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1];
+  }
+  function delegationDateCoverage(grant: { startsOn: string; endsOn: string | null }) {
+    if (
+      !canonicalCrewDate(data.workDate) ||
+      !canonicalCrewDate(grant.startsOn) ||
+      (grant.endsOn !== null && !canonicalCrewDate(grant.endsOn))
+    )
+      return null;
+    return (
+      grant.startsOn <= data.workDate && (grant.endsOn === null || data.workDate <= grant.endsOn)
+    );
+  }
   const timeCategory = (value: string) => translateControlledValue(locale, 'timeCategory', value);
   const payer = (value: string) => translateControlledValue(locale, 'role', value);
   const expenseEntryAvailable = $derived(
@@ -723,18 +741,36 @@
     </SectionCard>
     <SectionCard title={t('Crew delegations')} id="crew-delegations">
       {#if data.grants.length}
+        <p class="hint">
+          {t(
+            'Active means not revoked. Recording also depends on dates and both project assignments.',
+          )}
+        </p>
         <ul class="grant-list">
           {#each data.grants as grant}
             <li>
-              <div>
-                <strong>{grant.chiefName}</strong>
-                {t('can record for')}
-                <strong>{grant.workerName}</strong><br />
+              <div class="delegation-detail">
+                {t('Chief')}: <strong>{grant.chiefName}</strong> ·
+                {t('Team member')}: <strong>{grant.workerName}</strong><br />
                 <small
-                  >{grant.startsOn} → {grant.endsOn ?? t('open ended')} · {status(
-                    grant.status,
-                  )}</small
+                  >{grant.startsOn} → {grant.endsOn ?? t('open ended')} · {grant.status ===
+                  'revoked'
+                    ? t('Revoked')
+                    : status(grant.status)}</small
                 >
+                {#if grant.status === 'active'}
+                  {@const covered = delegationDateCoverage(grant)}
+                  {#if covered !== null}
+                    <small class="delegation-date-coverage">
+                      {t(
+                        covered
+                          ? 'Selected work date {date}: within delegation dates.'
+                          : 'Selected work date {date}: outside delegation dates.',
+                        { date: data.workDate },
+                      )}
+                    </small>
+                  {/if}
+                {/if}
               </div>
               {#if grant.status === 'active'}
                 <form
@@ -1392,6 +1428,13 @@
   .entry-list {
     padding: 0;
     list-style: none;
+  }
+  .delegation-detail {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .delegation-date-coverage {
+    display: block;
   }
   .grant-list li,
   .entry-list li {

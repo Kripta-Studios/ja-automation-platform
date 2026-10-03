@@ -1382,3 +1382,6 @@ W57 language correction fce95d99 / archive 5cc5b546a4c9a5a65594e8d869904fe936f66
 
 
 W57 corrected browser run found a remaining English Unchanged in the Portuguese future-terms notice. The one-entry shared translation repair (ES Sin cambios / PT Sem alterações) passed scoped lint/format, portal TypeScript and independent Sol source review; deployment and actual locale proof pending. No additional quota credit. Main W57 candidates and role/privacy gates remain pending.
+
+
+W57 remains pending: actual accepted Discard then Billing re-entry resurrected rejected pay/date values and errors, despite clearing customer/pin values. The parent-only exact-response consumption repair passed scoped static gates and independent Sol review at 42f3eebd69401795cbe8ff9298348ab8937edcc97878c9a419e732858987fe8d. Cancel, initial failed-form recovery and fresh responses are preserved. Combined deployment with the scheduled-status translation and affected browser retest are pending; zero new definitions for these corrections.

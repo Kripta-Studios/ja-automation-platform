@@ -96,7 +96,11 @@
     actionName?: string;
     values?: Record<string, string>;
   };
-  const detailForm = $derived((form ?? null) as DetailForm | null);
+  // Consume only the failed response explicitly discarded with its person drafts.
+  // A later response must remain visible, even for the same person action.
+  let discardedPersonFeedback = $state.raw<unknown>(null);
+  const visibleForm = $derived(form === discardedPersonFeedback ? null : form);
+  const detailForm = $derived((visibleForm ?? null) as DetailForm | null);
   const problem = $derived(
     detailForm?.code && detailForm.messageKey && detailForm.correlationId
       ? (detailForm as ProblemData)
@@ -144,14 +148,19 @@
   });
   function confirmPersonDraftDeparture(): boolean {
     const status = personDraftStatus?.();
-    return (
-      !status ||
-      (!status.pending &&
-        (!status.dirty ||
-          window.confirm(
-            t('Discard your unsaved changes? Your entered information will be lost.'),
-          )))
-    );
+    if (!status) return true;
+    if (status.pending) return false;
+    if (!status.dirty) return true;
+    if (!window.confirm(t('Discard your unsaved changes? Your entered information will be lost.')))
+      return false;
+    const discarded = form as DetailForm | null | undefined;
+    const action = discarded?.actionName ?? discarded?.action;
+    if (
+      discarded?.success === false &&
+      (action === 'savePersonTerms' || action === 'savePeopleTerms')
+    )
+      discardedPersonFeedback = form;
+    return true;
   }
   beforeNavigate((navigation) => {
     if (navigation.willUnload) return;
@@ -627,8 +636,8 @@
     messageKey?: unknown;
   };
 
-  const actionFeedback = $derived(problem ? null : standaloneActionMessage(locale, form));
-  const actionResult = $derived((form ?? null) as ActionFeedback | null);
+  const actionFeedback = $derived(problem ? null : standaloneActionMessage(locale, visibleForm));
+  const actionResult = $derived((visibleForm ?? null) as ActionFeedback | null);
   const actionFeedbackKey = $derived(
     actionFeedback
       ? `${actionResult?.success === true ? 'success' : 'error'}:${String(actionResult?.messageKey ?? actionFeedback)}`
@@ -990,7 +999,7 @@
 
   {#if actionFeedback && !actionToastVisible}
     <p
-      class:success={form?.success}
+      class:success={actionResult?.success}
       class="project-action-message"
       data-project-action-message
       role="status"
@@ -1922,7 +1931,7 @@
               canEdit={canWriteFinance}
               canEditProject={isOwner}
               onEditProject={() => (editOpen = true)}
-              {form}
+              form={visibleForm}
               {t}
               {locale}
             />

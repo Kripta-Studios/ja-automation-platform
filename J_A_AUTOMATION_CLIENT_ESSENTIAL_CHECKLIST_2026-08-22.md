@@ -1488,3 +1488,8 @@ CORE-02/03/06/14: Worker3 creó una única corrección21c mediante doble activac
 ## W83 fuente revisada; despliegue/prueba nativa pendientes — 2026-10-03
 
 CORE-02/03/06/15: cuatro fuentes congeladas, avisos específicos veraces EN/ES/PT,15categorías canónicas sin cambios con etiquetas registradas y recibo opcional traducido. Formato/lint/TypeScript/diff correctos; dos componentes compilados baseline/final0warnings. Root acepta SHIP independiente SHA0ffab604 y diff completoSHAff370d87. Sin cambio de guards, campos/tokens, permisos ni reglas financieras. Despliegue/navegador/dedup pendientes; avisos+0, traducción candidata máximo1bug todavía sin crédito.65UX/60bugs sin cambio.
+
+
+## W83 desplegado; prueba nativa pendiente — 2026-10-03
+
+CORE-02/03/06/15: e9af38c2 desplegado13:30:50Madrid mediante retry canónico después de fallo por espacio y rollback verificado. Cuatro hashes congelados correctos, portal/site saludables, jobs/preflight/URLs públicas correctos. Caché Docker0B, cuatro tagsW78 obsoletos sin referencias retirados sinforce, W79rollback conservado y18referencias completas sin cambios. Backup canónico26documentos conservado con snapshots diarios1/2/3Oct; timersactivos y12GiB libres. Evidencia vinculada y ROOT_W83_DEPLOY.md externo. Navegador/dedup todavía pendientes; +0,65UX/60bugs e histórico47alcances/55sinprueba sin cambio.

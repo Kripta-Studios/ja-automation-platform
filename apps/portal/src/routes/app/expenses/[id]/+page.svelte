@@ -229,9 +229,11 @@
       href:
         detailForm?.actionName === 'withdrawCorrectionDraft' && data.canWithdrawCorrection
           ? '#expense-withdraw-reason'
-          : data.canCreateCorrection
-            ? '#expense-correction-title'
-            : undefined,
+          : detailForm?.actionName === 'createCorrectionDraft' && data.canCreateCorrection
+            ? '#correction-draft-reason'
+            : data.canCreateCorrection
+              ? '#expense-correction-title'
+              : undefined,
     },
     sign_in_again: { label: t('problem.remedy.signInAgain'), href: `${base}/app/login` },
   });
@@ -1002,6 +1004,7 @@
               >
               <label
                 ><span>{t('Correction reason')}</span><textarea
+                  id="correction-draft-reason"
                   name="reason"
                   required
                   minlength="3"
@@ -1191,6 +1194,10 @@
 {/if}
 
 <style>
+  textarea#correction-draft-reason {
+    scroll-margin-block-start: 8rem;
+  }
+
   .expense-conversion-needed {
     grid-column: 1 / -1;
   }

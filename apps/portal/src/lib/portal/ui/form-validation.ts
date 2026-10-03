@@ -293,6 +293,66 @@ function renderSummary(
   }
 }
 
+function revealInvalidFeedback(
+  form: HTMLFormElement,
+  target: HTMLElement,
+  control?: ValidationControl,
+): void {
+  const view = form.ownerDocument.defaultView;
+  if (!view || !form.isConnected || !target.isConnected) return;
+  const viewport = view.visualViewport;
+  const viewportTop = Math.max(0, viewport?.offsetTop ?? 0);
+  const viewportBottom = Math.min(
+    view.innerHeight,
+    (viewport?.offsetTop ?? 0) + (viewport?.height ?? view.innerHeight),
+  );
+  let safeTop = viewportTop + 16;
+  let safeBottom = viewportBottom - 16;
+  const header = form.ownerDocument.querySelector<HTMLElement>('.portal-layout > header');
+  if (header) {
+    const style = view.getComputedStyle(header);
+    const bounds = header.getBoundingClientRect();
+    if (
+      ['sticky', 'fixed'].includes(style.position) &&
+      style.visibility !== 'hidden' &&
+      bounds.width > 0 &&
+      bounds.height > 0 &&
+      bounds.top <= safeTop &&
+      bounds.bottom > viewportTop
+    )
+      safeTop = Math.max(safeTop, bounds.bottom + 16);
+  }
+  const navigation = form.ownerDocument.querySelector<HTMLElement>('.bottom-nav');
+  if (navigation) {
+    const style = view.getComputedStyle(navigation);
+    const bounds = navigation.getBoundingClientRect();
+    if (
+      style.position === 'fixed' &&
+      style.visibility !== 'hidden' &&
+      bounds.width > 0 &&
+      bounds.height > 0 &&
+      bounds.top < viewportBottom &&
+      bounds.bottom > viewportTop
+    )
+      safeBottom = Math.min(safeBottom, bounds.top - 16);
+  }
+  if (safeBottom <= safeTop) return;
+  const feedback = control?.labels?.[0] ?? target;
+  const bounds = feedback.getBoundingClientRect();
+  const errorId = control?.getAttribute('data-validation-error-id');
+  const error = errorId ? form.ownerDocument.getElementById(errorId) : null;
+  const errorBounds = error?.getBoundingClientRect();
+  const top = Math.min(bounds.top, errorBounds?.top ?? bounds.top);
+  const bottom = Math.max(bounds.bottom, errorBounds?.bottom ?? bounds.bottom);
+  const delta =
+    bottom - top > safeBottom - safeTop || top < safeTop
+      ? top - safeTop
+      : bottom > safeBottom
+        ? bottom - safeBottom
+        : 0;
+  if (delta) view.scrollBy({ top: delta, behavior: 'instant' });
+}
+
 function renderInvalidState(form: HTMLFormElement, invalidControls: ValidationControl[]): void {
   const fieldControls = controls(form);
   for (const [index, control] of fieldControls.entries()) ensureId(form, control, index);
@@ -324,11 +384,15 @@ function renderInvalidState(form: HTMLFormElement, invalidControls: ValidationCo
   const first = invalidControls[0];
   if (first) {
     const focus = () => {
-      if (invalidControls.length > 1)
-        (form.querySelector('[data-validation-summary]') as HTMLElement | null)?.focus({
-          preventScroll: true,
-        });
-      else first.focus({ preventScroll: true });
+      const reveal = form.getAttribute('data-validation-reveal') === 'invalid';
+      if (reveal && !form.isConnected) return;
+      const target =
+        invalidControls.length > 1
+          ? form.querySelector<HTMLElement>('[data-validation-summary]')
+          : first;
+      target?.focus({ preventScroll: true });
+      if (reveal && target)
+        revealInvalidFeedback(form, target, invalidControls.length === 1 ? first : undefined);
     };
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(focus);
     else setTimeout(focus, 0);

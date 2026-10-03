@@ -229,6 +229,7 @@
   action={correctionAction}
   class="correction-form"
   data-correction-draft-form
+  data-validation-reveal={recordType === 'expense' ? 'invalid' : undefined}
   bind:this={correctionForm}
   use:formValidation
   use:dirtyFormGuard={{ initialDirty: String(values.originalId ?? '') === String(record.id) }}
@@ -345,6 +346,7 @@
           required
           inputmode="decimal"
           pattern="[0-9]+([.][0-9][0-9]?)?"
+          data-pattern-message="Amount: enter a number such as 12.34, with no more than two decimal places."
           value={amount()}
         /></label
       >
@@ -522,6 +524,9 @@
   }
   .correction-form textarea {
     min-height: 5rem;
+  }
+  form[data-validation-reveal='invalid'] textarea#correction-draft-reason {
+    scroll-margin-block-start: 8rem;
   }
   .correction-form button {
     justify-self: start;

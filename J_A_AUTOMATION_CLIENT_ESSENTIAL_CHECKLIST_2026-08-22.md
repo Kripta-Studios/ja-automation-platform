@@ -1468,3 +1468,8 @@ CORE-17: application `532b15f7`, archive `056630610a757bc9a061cdfedbdde26afe20fe
 Aceptadas tres mejoras UX: revisión del reembolso configurado por persona/fecha/pagador/categoría, navegación de una corrección al gasto original autorizado y resumen exacto/completo del lote semanal aún sin guardar. Evidencia real cerrada de126eventos, revisión independiente Sol y recomputación de controles/limpieza. Totales65UX/60bugs; faltan35UX/40bugs. Los102 históricos conservan47alcances/55sin nueva prueba/0certificaciones compuestas completas. No Save financiero, pago, privacidad universal ni total de red de toda la sesión.
 
 W79 corrige únicamente el idioma reactivo del detalle de gasto, observado con cabecera portuguesa/cuerpo español. FamiliaW71, crédito adicional0. Fuente revisada SHIP, lint/formato/TypeScript correctos y compilación Svelte0/0advertencias; despliegue y navegador posterior pendientes. Detalles y límites: `docs/evidence/project-worker-terms-browser-20261002.md`.
+
+
+## W79 desplegado y limpiado; revisión del navegador pendiente — 2026-10-03
+
+CORE-17: aplicación8a630faa/archive023ba114 activada12:14:29Madrid; fuente revisada del detalle de gasto verificada, backup26documentos, upgrade, disponibilidad pública/local, portal/site saludables y jobs correctos. Cache7.034GB/final0B; comprobación de18referencias antes de eliminar sólo imágenesW73 obsoletas. W79actual/W78rollback, tres backups diarios y timers activos conservados;11GBlibres. Sesión única cerrada con No open tabs tras40eventos del plan nativo de idiomas/Cancel. Revisión independiente de ejecución pendiente; familiaW71+0, totales65UX/60bugs sin cambio. Evidencia y límites en `docs/evidence/project-worker-terms-browser-20261002.md` y ROOT_W79_DEPLOY.md externo.

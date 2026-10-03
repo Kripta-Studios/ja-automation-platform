@@ -130,8 +130,14 @@
   let personDraftStatus = $state<(() => { dirty: boolean; pending: boolean }) | null>(null);
   let billingEditorKey = $state(0);
   let observedBillingSetup = '';
+  function billingRouteIdentity(url: URL): string {
+    const normalized = new URL(url);
+    normalized.searchParams.delete('lang');
+    normalized.searchParams.sort();
+    return normalized.pathname + normalized.search;
+  }
   $effect(() => {
-    const current = `${page.url.pathname}${page.url.search}:${data.overview.project.id}:${data.billingSetup?.version ?? ''}`;
+    const current = `${billingRouteIdentity(page.url)}:${data.overview.project.id}:${data.billingSetup?.version ?? ''}`;
     if (observedBillingSetup && observedBillingSetup !== current && !personDraftStatus?.().pending)
       billingEditorKey++;
     observedBillingSetup = current;
@@ -154,6 +160,14 @@
       navigation.from?.url.search === navigation.to?.url.search
     )
       return;
+    if (
+      navigation.from &&
+      navigation.to &&
+      billingRouteIdentity(navigation.from.url) === billingRouteIdentity(navigation.to.url)
+    ) {
+      if (personDraftStatus?.().pending) navigation.cancel();
+      return;
+    }
     if (!confirmPersonDraftDeparture()) navigation.cancel();
   });
   let periodProblemContainer = $state<HTMLElement | undefined>(undefined);
@@ -167,7 +181,9 @@
   }
 
   const locale = $derived(
-    localeOverride ?? data.locale ?? resolveStandaloneLocale(page.url.searchParams.get('lang')),
+    page.url.searchParams.has('lang')
+      ? resolveStandaloneLocale(page.url.searchParams.get('lang'), data.locale)
+      : (localeOverride ?? data.locale ?? resolveStandaloneLocale()),
   );
   const t = (key: string): string => standaloneText(locale, key);
   const controlled = (domain: ControlledValueDomain, value: unknown): string =>
@@ -904,8 +920,6 @@
         };
     }
     localeOverride = resolveStandaloneLocale(page.url.searchParams.get('lang'), data.locale);
-    persistStandaloneLocale(locale);
-    applyStandaloneDocumentLocale(locale);
     const onStorage = (event: StorageEvent) => {
       if (event.key === 'ja.portal.locale' || event.key === 'ja-portal-locale')
         localeOverride = resolveStandaloneLocale(event.newValue);
@@ -928,7 +942,11 @@
       document.removeEventListener('submit', onSubmit, true);
     };
   });
-  $effect(() => applyStandaloneDocumentLocale(locale));
+  $effect(() => {
+    if (!mounted) return;
+    persistStandaloneLocale(locale);
+    applyStandaloneDocumentLocale(locale);
+  });
 </script>
 
 <svelte:window onclickcapture={confirmProjectRecovery} />

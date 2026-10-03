@@ -347,3 +347,43 @@ Source `09d77b6febb508cb7c0a370fef77252d3b26b903` / archive `6805159aec47fdd88ed
 Docker build-cache cleanup reclaimed7.021GB and left0B. Obsolete W57-language images were removed after checking every running/stopped container reference; current W62 and immediate W61 rollback remain. Backup retention completed successfully with three daily snapshots. Deployment watchers and jobs/backup/prune timers are active, portal/site containers healthy, jobs up and17GB disk free. No volumes or other applications were removed.
 
 The browser stayed closed during build and cleanup. A new sole GPT-6.1 Sol lease now checks person navigation, localized dirty state, checkbox/label operation, draft recovery, applicable Finance/Auditor controls and the separately authorized new-fixture equal rate/pay/cost pin sequence. These remain pending runtime acceptance; counts stay58UX/56bugs114 and historical102 coverage43scoped/59NOTRUN/0whole-compoundPASS. External `finance-auditor/ROOT_W62_DEPLOY.md`, `wave62-deploy.log` and `w62-cache-cleanup.log` record the deployment gates.
+
+## W64 saved browser evidence — Submitted Time status
+
+Independent GPT-6.1 Sol review of the existing W56 browser artifacts, followed by root's comparison of the actual linked rows, qualifies a bounded BUG-005 check for Owner, Finance and Auditor EN1440. On source `ffc8e6b5`, exact Nonhourly Worker8 source `01a0fc6d-7237-7128-94be-d8c4926fa1c1` shows October1, three minutes, **State: Submitted** under the neutral **Time source records** heading. The State column is distinct from Billing Unlocked and Configuration Complete. All three actual-role screenshots were inspected; W51 Finance evidence separately corroborates the result.
+
+No repeated application request or new fix was needed. Historical102 coverage becomes **44 scoped / 58 NOT RUN / 0 whole-compound PASS**, with accepted totals unchanged at58UX/56bugs114. The original BUG-005 also covers a conditional finance-projection warning; that branch, visible Submitted phone cards and current W62 repetition remain unverified. Exact source/release/role attribution and limits are in external `finance-auditor/W64_SOL_BUG005_EXISTING_REVIEW.md`. This is additional coverage of an existing definition, with zero new quota.
+
+## W62 accepted — two UX improvements and one visual repair
+
+Independent GPT-6.1 Sol review passed the closed production evidence, and root accepts exactly:
+
+| ID | Accepted outcome |
+| --- | --- |
+| W62-U01 | Select an existing person and move visible keyboard focus to their commercial-editor heading while retaining the other cards and drafts. |
+| W62-U02 | Show named unsaved-person markers and a count of people with local changes, independently of bulk selection. |
+| W62-B01 | Repair the shared CSS mismatch that made both selection/pin checkbox glyphs inherit full text-input dimensions and appear detached from their captions. |
+
+Accepted totals are **60 UX improvements / 57 bug fixes, 117 distinct definitions**. Remaining work toward 100/100 is 40 UX and 43 bugs. Historical102 coverage stays **44 scoped / 58 NOT RUN / 0 whole-compound PASS**. Focus, keyboard, translations and widths are variants of the same outcomes; named badges/count form one UX, and both checkbox controls form one visual repair. Existing W57 draft recovery and N02 persisted independence receive no new credit here.
+
+On deployed source `09d77b6f`, Owner EN390/1440 and Finance EN390/1440 navigation retains complete eleven-value person drafts, identities/fingerprints, selections and independent copy source. The original six heading nodes remain connected in the recorded Owner jump. The target heading is visibly outlined and clears the sticky header; its date is already visible and four ordinary Tabs reach it. This replaces the observed baseline traversal of twelve specified 700px wheels, without claiming human time savings. Representative EN360/768 controls fit on screen without overflow.
+
+Actual EN→ES→PT switching retains complete values and correct named markers; exact localized counts distinguish zero, one and two dirty people. Both native checkboxes measure about19.19px beside their captions within44px label targets; caption clicks, keyboard Space and focus operate on the intended control. Owner/Finance malformed pay saves each return actual enhanced200 rejection with retained values and usable named input links. Accepted Team Discard restores complete canonical values and clears old feedback without reload. Auditor reaches the read-only Billing page with no new mutators. Final original Nonhourly values, tokens, fields, checkboxes, rows, copy source, defaults and feedback exactly match the clean baseline; no valid financial writes occurred there. The browser explicitly closed before the next unrelated read-only lease.
+
+Limits remain: natural pending disable/inert was not captured; no delay or extra save was introduced. Projects return cleanup is reload-assisted, separate from the complete Team Discard proof. The first packet has only nine rendered fields; later snapshots capture all eleven business values. Older focus.visible means the CSS focus-visible predicate. Auditor viewport metadata, separately logged Finance zeroPOST, localized screenshots, full accessibility, duplicate-name targets, all roles/conditional fields and race cases remain unverified. Full Essential/all-role acceptance remains incomplete. Exact qualification is in external `QUALIFIED_W62_ADDITIONS.md`, `finance-auditor/W62_SOL_RUNTIME_REVIEW.md` and `W62_SOL_RUNTIME_FINAL_RECEIPT.md`.
+
+## N02 equal customer, pay and cost overrides — scoped acceptance
+
+Owner EN1440 on the same W62 release created isolated marked project `01a0ff80-604a-70ea-a21d-0322f71e5785`, EUR/Madrid, with October1–5 assignments. Ten intended UI actions created an empty project, two manual worker/project pay3c and cost4c agreements, a project-wide customer7c rule from October1, an explicit unchanged Worker5 7/3/4 pin from October2, then distinct customer8c and worker/project pay5c/cost6c rules from October3.
+
+| Dated Finance review after all actions | Worker5 customer/pay/cost | Worker7 customer/pay/cost |
+| --- | --- | --- |
+| October1 | 7/3/4c, original scopes | 7/3/4c, original scopes |
+| October2 | 7/3/4c, customer/pay Assignment override | 7/3/4c, project customer and worker/project pay |
+| October3 | Pinned 7/3/4c | Follows 8/5/6c |
+
+Normal rule-register captions preserve the original, equal-pin and later independent records with distinct IDs and dates. Only customer rules are project-wide; pay/cost rules are scoped to each worker and project. Legacy assignment-reference selectors remain blank with original options because they cover the whole assignment interval; they are not evidence of missing dated pins or direct access to new pinned foreign references. The dated numeric/provenance summaries and separate history supply the observed result.
+
+During the single pin save, unselected Worker7's draft stayed dirty with all eleven values and its original fingerprint while the saved person's marker cleared. Explicit Discard restored that sibling before later rules were added. Creation request status was lost after a harness wait error, but actual success/new project identity proves the outcome without replay. The pin save returned separately observed HTTP200; its natural pending snapshot was lost. Other intended saves returned observed200. Marked configuration is retained, with no operational time/expense, approval, payment or finalization.
+
+Independent Sol review and root accept this Owner equal-rate/pay/cost portion of N02 with **zero new quota**. Whole N02 remains partial: assignment-copy default revisions, other roles, operational calculated money and broader cases remain separate. The earlier reimbursement proof retains its original release attribution. Exact records and limitations are in external `finance-auditor/N02_SOL_PIN_FINAL_RECEIPT.md`, `N02_SOL_PIN_FINAL.safe.json`, `N02_SOL_RATE_PIN_REVIEW.md` and `N02_SOL_ASSIGNMENT_REFERENCE_SOURCE_NOTE.md`.

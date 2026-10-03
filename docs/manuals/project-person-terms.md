@@ -16,12 +16,17 @@ Both optional sections can remain empty. Workers can be assigned later.
 
 Open the project's **Team** tab, then **Configure person rates**. In **Billing → Review each person**, choose a new effective date and enter that person's terms. Save the person or use the selected-person batch controls after reviewing each draft.
 
+For a long team list, choose a name under **Person** and use **Go to person** to reach that person's heading. Other cards and their unsaved edits stay available.
+
 Saved project defaults are copied into new assignments as independent agreements. Changing the project or its defaults does not overwrite existing worker agreements. **Use project defaults in this draft** copies values for review; saving applies them from the chosen date.
+
+If the current customer rate, worker pay and internal cost already match the values you want to preserve, select **Save these rates as explicit person overrides** before saving. This pins the rates from the chosen effective date. Without that option, unchanged rates keep their current source and can follow later applicable rules.
 
 Choose an explicit person reimbursement override to preserve it even when it currently matches the project default. Customer expense recovery is separate from worker reimbursement: an expense can reimburse the worker while charging the customer nothing.
 
 ### Review and correct unsaved changes
 
+- **Unsaved changes** marks each edited person, and the count shows how many people have local changes. Selecting a person for a bulk action alone does not mark their terms as changed.
 - Saving one person keeps another person's unsaved draft. Review each person's effective date and terms before saving a selected group.
 - If a save is rejected, use the named links in the error summary to reach the affected fields. Correct the retained values and save again. A conflict requires reviewing the latest saved agreement before retrying.
 - Leaving Billing with unsaved person terms prompts you to keep editing or discard. Cancel keeps the drafts; accepting discard clears the unsaved values and their old validation messages.

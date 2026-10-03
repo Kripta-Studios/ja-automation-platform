@@ -59,6 +59,7 @@
     };
   });
   let enabled = $state(initial.enabled);
+  let defaultsOpen = $state(initial.enabled);
   let effectiveFrom = $state(initial.effectiveFrom);
   let config = $state(initial.config);
   let rows = $state(initial.rows);
@@ -87,7 +88,7 @@
 </script>
 
 <div class="creation-people wide-field" data-project-creation-people>
-  <details open={enabled}>
+  <details bind:open={defaultsOpen}>
     <summary>{t('Project defaults for people (optional)')}</summary>
     <label class="check"
       ><input

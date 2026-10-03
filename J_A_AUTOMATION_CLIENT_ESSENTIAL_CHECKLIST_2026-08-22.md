@@ -1385,3 +1385,6 @@ W57 corrected browser run found a remaining English Unchanged in the Portuguese 
 
 
 W57 remains pending: actual accepted Discard then Billing re-entry resurrected rejected pay/date values and errors, despite clearing customer/pin values. The parent-only exact-response consumption repair passed scoped static gates and independent Sol review at 42f3eebd69401795cbe8ff9298348ab8937edcc97878c9a419e732858987fe8d. Cancel, initial failed-form recovery and fresh responses are preserved. Combined deployment with the scheduled-status translation and affected browser retest are pending; zero new definitions for these corrections.
+
+
+Combined discard/translation corrections 1312170d / archive 0740d53585908a96d4d82bb13a8a8fcaf926b17d21b3afb784ca8e181cd8034e activated October 3 at 02:44:57 after canonical build/backup/upgrade/readiness/jobs gates. Cache cleanup reclaimed 7.022GB/final0B; current/immediate rollback images and three backups retained. Thirteen byte-verified old inbox ZIP duplicates removed, all audit copies preserved, recovering about4.03GB; disk16GB free, timers active and containers healthy. Single Sol browser resumed only after cleanup for focused discard recovery, remaining Finance5 and scheduled-status locale proof. W57 acceptance pending; 57UX/54bugs unchanged.

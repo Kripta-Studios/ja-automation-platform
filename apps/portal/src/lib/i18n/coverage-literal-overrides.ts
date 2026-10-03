@@ -1375,6 +1375,16 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'Percentual de acréscimo da despesa',
   ],
   'Save person terms': ['Guardar condiciones de la persona', 'Salvar condições da pessoa'],
+  'Go to person': ['Ir a la persona', 'Ir à pessoa'],
+  'Unsaved changes': ['Cambios sin guardar', 'Alterações não salvas'],
+  '{count} person with unsaved changes': [
+    '{count} persona con cambios sin guardar',
+    '{count} pessoa com alterações não salvas',
+  ],
+  '{count} people with unsaved changes': [
+    '{count} personas con cambios sin guardar',
+    '{count} pessoas com alterações não salvas',
+  ],
   'Copy draft terms from': [
     'Copiar condiciones provisionales de',
     'Copiar condições provisórias de',

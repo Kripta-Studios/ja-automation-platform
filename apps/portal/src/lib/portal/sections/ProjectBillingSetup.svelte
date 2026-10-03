@@ -4,6 +4,7 @@
   import { enhance, type SubmitFunction } from '$app/forms';
   import { page } from '$app/state';
   import type { ProjectPersonDefaults } from '@ja/database';
+  import { StatusBadge } from '$lib/portal/ui';
   import { localizedServerFieldMessage } from '$lib/portal/ui/form-validation';
   type Row = Record<string, unknown>;
   type SetupTemplate = {
@@ -384,6 +385,7 @@
     ),
   );
   let bulkSourceId = $state(untrack(() => people[0]?.id ?? ''));
+  let personNavigatorId = $state(untrack(() => people[0]?.id ?? ''));
   let selectedPersonIds = $state<string[]>(
     untrack(() =>
       failedBatchRows
@@ -407,6 +409,21 @@
         )),
     );
   }
+  const dirtyPersonCount = $derived(people.filter((person) => personIsDirty(person.id)).length);
+  const dirtyPersonMessage = $derived(
+    t(
+      dirtyPersonCount === 1
+        ? '{count} person with unsaved changes'
+        : '{count} people with unsaved changes',
+    ).replace('{count}', String(dirtyPersonCount)),
+  );
+  const navigatorPersonAvailable = $derived(
+    people.some((person) => person.id === personNavigatorId && Boolean(personDrafts[person.id])),
+  );
+  $effect(() => {
+    if (!people.some((person) => person.id === personNavigatorId))
+      personNavigatorId = people[0]?.id ?? '';
+  });
   onMount(() => {
     personDraftStatus = () => ({
       dirty: canEdit && !submitted && Object.keys(personDrafts).some(personIsDirty),
@@ -420,6 +437,13 @@
     `person-terms-${workerId}-${name}`;
   const personErrorId = (workerId: string, name: string): string =>
     `${personControlId(workerId, name)}-error`;
+  const personHeadingId = (workerId: string): string => personControlId(workerId, 'heading');
+  function goToPerson(): void {
+    if (personSaveBusy || !navigatorPersonAvailable) return;
+    const heading = document.getElementById(personHeadingId(personNavigatorId));
+    heading?.scrollIntoView({ block: 'start' });
+    heading?.focus({ preventScroll: true });
+  }
   function personFieldCaption(workerId: string, name: string): string {
     const captions: Record<string, string> = {
       effectiveFrom: 'Terms effective from',
@@ -1138,6 +1162,31 @@
               'Set each assigned person’s customer charge, compensation and expense treatment here. Save each person before continuing.',
             )}
           </p>
+          {#if people.length > 1}
+            <div class="person-navigation">
+              <label for={`person-terms-navigator-${projectId}`}>
+                {t('Person')}
+                <select
+                  id={`person-terms-navigator-${projectId}`}
+                  bind:value={personNavigatorId}
+                  disabled={personSaveBusy}
+                >
+                  {#each people as person}<option value={person.id}>{person.name}</option>{/each}
+                </select>
+              </label>
+              <button
+                type="button"
+                class="secondary-button"
+                disabled={personSaveBusy || !navigatorPersonAvailable}
+                onclick={goToPerson}>{t('Go to person')}</button
+              >
+            </div>
+          {/if}
+          {#if canEdit && people.length > 0}
+            <p class="hint" role="status" aria-live="polite" aria-atomic="true">
+              {dirtyPersonMessage}
+            </p>
+          {/if}
           {#if personFailure || personSaveNotice}<div
               class="warning"
               role="alert"
@@ -1202,7 +1251,12 @@
               {@const draft = personDrafts[person.id]}
               {#if draft}
                 <div class="person-terms">
-                  <h4>{person.name}</h4>
+                  <div class="person-heading">
+                    <h4 id={personHeadingId(person.id)} tabindex="-1">{person.name}</h4>
+                    {#if canEdit && personIsDirty(person.id)}
+                      <StatusBadge variant="warning" text={t('Unsaved changes')} />
+                    {/if}
+                  </div>
                   {#if person.scheduledRateDates.length || person.scheduledExpenseDates.length}<p
                       class="hint"
                     >
@@ -1860,6 +1914,41 @@
   }
   .person-terms h4 {
     margin: 0;
+    scroll-margin-top: 6rem;
+  }
+  .person-terms h4:focus {
+    outline: 3px solid var(--ja-teal, #706e66);
+    outline-offset: 2px;
+  }
+  .person-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .person-navigation {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 0.6rem;
+  }
+  .bulk-select {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 2.75rem;
+    cursor: pointer;
+  }
+  .bulk-select input[type='checkbox'] {
+    box-sizing: border-box;
+    flex: 0 0 1.2rem;
+    width: 1.2rem;
+    height: 1.2rem;
+    min-width: 1.2rem;
+    min-height: 1.2rem;
+    max-width: 1.2rem;
+    margin: 0;
+    padding: 0;
   }
   .person-fields {
     margin: 0.8rem 0;
@@ -1969,7 +2058,8 @@
   @media (max-width: 640px) {
     .choice-grid,
     .field-grid,
-    .person-fields {
+    .person-fields,
+    .person-navigation {
       grid-template-columns: 1fr;
     }
     .billing-setup__intro {

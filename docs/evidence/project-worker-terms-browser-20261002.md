@@ -255,3 +255,12 @@ The actual header Language control exposed a regression: changing a clean Billin
 The latest user instruction permits only GPT-6.1 Sol for implementation, browser execution and independent review. Accepted progress remains 57 UX / 54 bugs; W57 candidates remain pending. External `finance-auditor/W57_SOL_REVIEW.md` records the source diagnosis and correction gates.
 
 The one-page correction passed portal TypeScript, scoped lint/format, Svelte compilation with zero warnings and independent Sol source review at SHA256 `febbc610d3eb628b3d0dd9e631b0d8773d38cff522cc35abd762323b63605f02`. Language is excluded from editor identity while project, setup revision and other query values remain; pending saves still prevent departure. Current explicit language takes precedence and updates page/document language reactively. Source approval permits deployment, not browser acceptance. Header consistency when a pending save cancels navigation remains an explicit runtime limit until observed.
+
+
+## W57 language correction activated — browser acceptance pending
+
+The reviewed correction `fce95d9984f36e51a5ba5584a3b17a0d6695e677`, archive `5cc5b546a4c9a5a65594e8d869904fe936f66923303267a8653eb79513a13fc7`, activated October 3 at 02:13:53 Europe/Madrid. Both serialized production builds, the 24-document backup, upgrade, local/public readiness and jobs gates passed. Backup `2026-10-03T001336229Z-b8f21ca0-2b30-44bc-815e-e9e76544747e`, SHA256 `b8017a9afec965b9cb5246f7614f7deff2b693e816c6fcc0c6312e928db69c0c`.
+
+Docker cache cleanup reclaimed 7.022GB and left 0B. Obsolete W56 images were removed after checking every running and stopped container; current correction and immediate W57 rollback remain. Three backup snapshots remain under the configured retention. Watchers and jobs/backup/prune timers are active, both web containers are healthy, and disk free space is 13GB.
+
+The sole browser was explicitly closed throughout deployment. Root granted the GPT-6.1 Sol browser lane a new exclusive lease only after deployment and cleanup finished. Normal header language switching, localized draft/error recovery and fresh restricted-role project projections are being checked. No W57 candidate is accepted yet; totals remain 57 UX / 54 bugs. External `finance-auditor/ROOT_W57_LOCALE_DEPLOY.md` and `wave57-locale-deploy.log` record activation; `W57_SOL_RETEST_FINANCIAL_RECEIPT.md` records the isolated financial checks and their telemetry/future-resolution limits.

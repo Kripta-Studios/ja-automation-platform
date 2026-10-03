@@ -569,3 +569,12 @@ Reviewed source `2c9f40797d21a64f4fa2dedb8ad3232693ec1ef0` / archive `e1c838a757
 Buildcachecleanup reclaimed7.034GB/final0B. All18containerreferences/exacttagguards permitted onlyobsoleteW70 removal; current/W72immediaterollback retained. CanonicalretentionkeepsOct1/2/newOct3dailybackups; deployment/jobs/backup/prunetimersactive, portal/sitehealthy,jobsrunning,13GBfree. Exactbackup/imageidentities and logs in external ROOT_W73_DEPLOY.md. No volumes/unrelatedapps removed.
 
 SoleSolbrowser resumed aftercleanup for Owner/Finance native immediateSpaceOFFON, samevisiblefocus/openstate, exactnull/restoredJSON, manualsummaryindependence andnormalreset at390/1440. ZeroSave/rows. Runtimeandatmostonebugqualificationpending;62UX/59bugs121 and historical47scoped/55NOTRUN/0whole-compoundPASS unchanged.
+
+
+## W73 focus repair accepted — one bug
+
+Closed independent GPT-6.1 Sol review and root accept **W73-B01, one bug and no separate UX** on2c9f4079/archivee1c838a7. Actual Owner/Finance390/1440 immediate nativeSpaceOFF→ON retains the same connected, visibly focused, unobscured checkbox and open disclosure without reopening/refocusing. OFF emitsnull and unmounts allterms; ON restores the full exactstagedJSON/eightterms. Allfour manualsummarycases leavebusinessstateunchanged. Bothcomplete nativefield resets match freshbaselines throughnormalnavigation, finishsettledProjects/form0, and explicitlyclose. NoSave/rows/domainwrites; recordedpostauth-through-cleanup metadata unchanged withauthseparate.
+
+Root independently recomputedallfourcyclevisibility/focus/open/fieldcount/fullJSONgates andclosure andviewedOwnerOFF390. Source/static/deploymentandfreshwholecandidate gates precededthetest. BeforeW69/W72Owner immediatefailure andFinanceOFFcollapse staypreserved; thispreexistingcoupling isnotCSSregression ordata loss. Prior sizing/correctiondisclosure, role/width/manualsummarycases receive no additionalcredit. Rawtimezonevaluesarecorrect; a receiptunderscoretranscriptionwas identified forprosecorrection only.
+
+Accepted progress is now **62 UX /60 bugs /122 definitions**, remaining38UX/40bugs. Frozenhistorical102 remains47scoped/55NOTRUN/0whole-compoundPASS. Populatedrows/SSRrejection/otherlocales/races/serverpersistence/privacy/money remainNOTRUN. Exactdefinitionandlimits: external QUALIFIED_W73_ADDITION.md andclosed W73_SOL_RUNTIME_REVIEW.md/final21eventpacket/receipt.

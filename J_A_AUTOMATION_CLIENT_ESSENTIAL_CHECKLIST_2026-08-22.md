@@ -1449,3 +1449,6 @@ W74 actualFinance3fce9958 boundedconfigurationPASS/rootaccepted,+0: W7Oct4recove
 
 
 W73 source2c9f4079/archivee1c838a7 activatedOct3 07:42:44Madrid afterW74closed. Exacthashes/26documentbackup/build/upgrade/readiness/jobs/normalDockerhealth passed. Cache7.034GB/final0B, obsoleteW70safelyremoved,current/W72rollback/3dailyretained,timersactive,13GBfree. SoleSol OwnerFinancezeroSave immediatekeyboardafterproofactive; maxonebugpending,62UX/59bugs121unchanged.
+
+
+W73 closed Solreview/rootacceptance adds exactly1bug0UX: native defaultsOFF keepscontainingsection andsamevisiblefocusedcheckbox, immediateONrestoresfullJSON inOwnerFinance390/1440. Manualsummary/reset/0Save/rows/explicitclose verified. PreexistinginteractiondistinctfromW62sizing; no data loss orrole-widthdoublecredit. Current **62UX/60bugs/122**, remaining38UX/40bugs; historical47scoped/55NOTRUN/0whole-compoundPASS. FullSSR/rows/server/race/privacy/money limits remainexplicit.

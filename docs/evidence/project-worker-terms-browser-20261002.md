@@ -551,3 +551,21 @@ The one-file repair adds independent defaultsOpen initialized from initial.enabl
 Sequential static ESLint/Prettier/portal TypeScript/diff gates and exact baseline/final Svelte compilation with zero warnings passed. Root compared the actual complete diff/hash to the frozen packet and inspected saved gates. Fresh independent GPT-6.1 Sol whole-candidate review returned SHIP, accepted by root. External source candidate, review, qualification boundaries and W73_SOL_BROWSER_PLAN.md preserve scope. Source initialization for retained invalid forms and populated-row conversion remain untested in the browser.
 
 Production remains3fce9958 during the sole W74 Finance inheritance workflow. After its explicit closure, deploy this frozen source and verify native immediate Space OFF→ON with the same visibly focused checkbox/open section, null→exact restored JSON, manual summary independence and ordinary reset for Owner/Finance390/1440. No Save/worker rows in that future test. Current62UX/59bugs121 and historical47scoped/55NOTRUN/0whole-compoundPASS unchanged.
+
+
+## W74 Finance recovery-only edit preserves reimbursement fallback
+
+Closed independent Sol review and root accept bounded configuration evidence on3fce9958/archive34fdca2b, existingN04/N07/N02/W57 **+0**. After fresh Owner preflight, actual Finance saved exactly two marked successors: W7 customer expense recoveryAtCost effectiveOctober4, then projectUseExistingPersonPolicies effectiveOctober5. Both normal UI responses were200; preference version3→4 observed. New W7 policy retains storedNone fallback and Inherit preference, with15/9/12c customer/pay/cost. W5/W4 explicitNone and W3 explicitAtCost, all four numeric agreements/windows and earlier dated history remain intact.
+
+ActualOctober4/5 screens expose project preferences, person preferences and policy fallback separately. Expected effective W7 AtCost→None is an **inference from that configuration**, not a rendered resolved reimbursement or payout. No operational source was created to manufacture a result. CurrentOctober3 Billing correctly remainsNonbillable with the scheduled successor notice; root independently recomputed all four complete named person forms, finding only legitimate changed fingerprints. Typed reason is recorded before save, but persisted reason and preference row IDs are not exposed.
+
+Final scoped Time/Expenses/allthreeReports tabs have zero matching records within recorded hidden-week/filter limits; Billing has0dirty/errors and all8selection/pin controlsOFF. Exact finite assignments/template revision2 remain, both configuration successors retained as authorized immutable QA history. Explicit Noopentabs precedes W73 deployment. Final32eventpacket, closedreceipt and W74_SOL_RUNTIME_REVIEW.md preserve limits. No computed-money/fullprivacy/allrole/wholecompound PASS; counts62UX/59bugs121 and historical47scoped/55NOTRUN/0whole-compoundPASS unchanged.
+
+
+## W73 deployed — native keyboard afterproof started
+
+Reviewed source `2c9f40797d21a64f4fa2dedb8ad3232693ec1ef0` / archive `e1c838a7578c6fa2a4747f8157ccb9f1390cd508280af5827db147ee481587f0` activatedOctober3 **07:42:44 Europe/Madrid**, after W74 explicit browserclosure. Package4712trackedfiles/threechangedentries exactbytes/CRCs verified. Serializedbuilds/26-documentbackup/upgrade/localpublicreadiness/jobs passed; root verified deployedsourcehashes and waitedfor normalDockerhealthy.
+
+Buildcachecleanup reclaimed7.034GB/final0B. All18containerreferences/exacttagguards permitted onlyobsoleteW70 removal; current/W72immediaterollback retained. CanonicalretentionkeepsOct1/2/newOct3dailybackups; deployment/jobs/backup/prunetimersactive, portal/sitehealthy,jobsrunning,13GBfree. Exactbackup/imageidentities and logs in external ROOT_W73_DEPLOY.md. No volumes/unrelatedapps removed.
+
+SoleSolbrowser resumed aftercleanup for Owner/Finance native immediateSpaceOFFON, samevisiblefocus/openstate, exactnull/restoredJSON, manualsummaryindependence andnormalreset at390/1440. ZeroSave/rows. Runtimeandatmostonebugqualificationpending;62UX/59bugs121 and historical47scoped/55NOTRUN/0whole-compoundPASS unchanged.

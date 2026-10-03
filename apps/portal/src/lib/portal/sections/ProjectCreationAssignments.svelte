@@ -85,6 +85,48 @@
     };
     return t(labels[field] ?? 'Check person terms fields');
   }
+  const draftChoiceLabels: Record<string, Record<string, string>> = {
+    workerPayType: {
+      Hourly: 'Hourly',
+      Daily: 'Daily',
+      FixedPerBillingPeriod: 'Fixed per billing period',
+      FixedProjectAmount: 'Fixed project amount',
+      PercentageOfEligibleClientLabor: 'Percentage of eligible client labor',
+    },
+    percentageBasis: {
+      CLIENT_LABOR_BEFORE_TAX: 'Client labor before tax',
+      CLIENT_LABOR_AFTER_APPROVED_DISCOUNT: 'Client labor after approved discount',
+      ISSUED_ELIGIBLE_LABOR: 'Issued eligible labor',
+      COLLECTED_ELIGIBLE_LABOR: 'Collected eligible labor',
+    },
+    expensePayer: {
+      worker: 'Worker',
+      company_card: 'Company card',
+      company_direct: 'Company direct',
+      client: 'Client',
+      third_party: 'Third party',
+    },
+    workerReimbursement: {
+      none: 'No reimbursement',
+      at_cost: 'At cost',
+    },
+    clientRecovery: {
+      at_cost: 'At cost',
+      markup: 'Cost plus markup',
+      included: 'Included in labor price',
+      non_billable: 'Do not charge customer',
+      client_direct: 'Client pays directly',
+    },
+  };
+  function draftValue(value: string | undefined, suffix = ''): string {
+    return value === undefined || value === '' ? '—' : `${value}${suffix}`;
+  }
+  function draftChoice(field: string): string {
+    const value = config[field];
+    if (value === undefined || value === '') return '—';
+    const labels = draftChoiceLabels[field];
+    return labels && Object.hasOwn(labels, value) ? t(labels[value]) : value;
+  }
 </script>
 
 <div class="creation-people wide-field" data-project-creation-people>
@@ -205,7 +247,76 @@
                     {t(
                       'The saved project defaults will be copied into this assignment. Future project changes preserve this agreement.',
                     )}
-                  </p>{/if}
+                  </p>
+                  {#if enabled && row.mode === 'defaults'}
+                    <div class="creation-defaults-recap">
+                      <h4>{t('Current draft project defaults')}</h4>
+                      <dl>
+                        <div>
+                          <dt>{t('Terms effective from')}</dt>
+                          <dd>{draftValue(effectiveFrom)}</dd>
+                        </div>
+                        <div>
+                          <dt>{t('Starts on')}</dt>
+                          <dd>{draftValue(row.startsOn)}</dd>
+                        </div>
+                        <div>
+                          <dt>{t('Ends on (optional)')}</dt>
+                          <dd>{draftValue(row.endsOn)}</dd>
+                        </div>
+                        <div>
+                          <dt>{t('Customer hourly rate')} ({currency})</dt>
+                          <dd>{draftValue(config.customerHourlyRate)}</dd>
+                        </div>
+                        <div>
+                          <dt>{t('Internal hourly cost')} ({currency})</dt>
+                          <dd>{draftValue(config.internalCostHourlyRate)}</dd>
+                        </div>
+                        <div>
+                          <dt>{t('Worker compensation method')}</dt>
+                          <dd>{draftChoice('workerPayType')}</dd>
+                        </div>
+                        <div>
+                          <dt>
+                            {config.workerPayType === 'PercentageOfEligibleClientLabor'
+                              ? t('Worker compensation percentage')
+                              : `${t('Worker compensation rate')} (${currency})`}
+                          </dt>
+                          <dd>
+                            {draftValue(
+                              config.workerPayAmount,
+                              config.workerPayType === 'PercentageOfEligibleClientLabor' ? '%' : '',
+                            )}
+                          </dd>
+                        </div>
+                        {#if config.workerPayType === 'PercentageOfEligibleClientLabor'}
+                          <div>
+                            <dt>{t('Percentage basis')}</dt>
+                            <dd>{draftChoice('percentageBasis')}</dd>
+                          </div>
+                        {/if}
+                        <div>
+                          <dt>{t('Expense payer')}</dt>
+                          <dd>{draftChoice('expensePayer')}</dd>
+                        </div>
+                        <div>
+                          <dt>{t('Reimburse worker')}</dt>
+                          <dd>{draftChoice('workerReimbursement')}</dd>
+                        </div>
+                        <div>
+                          <dt>{t('Charge customer for expense')}</dt>
+                          <dd>{draftChoice('clientRecovery')}</dd>
+                        </div>
+                        {#if config.clientRecovery === 'markup'}
+                          <div>
+                            <dt>{t('Expense markup percentage')}</dt>
+                            <dd>{draftValue(config.markupPercent, '%')}</dd>
+                          </div>
+                        {/if}
+                      </dl>
+                    </div>
+                  {/if}
+                {/if}
               </td>
               <td>
                 {#each Object.entries(errors).filter(([key]) => key.startsWith(`assignments.${i}.`) && !key.includes('.config.')) as [key, messages]}<p
@@ -333,6 +444,27 @@
   td select,
   td input {
     width: 100%;
+  }
+  .creation-defaults-recap,
+  .creation-defaults-recap dl,
+  .creation-defaults-recap dl > div {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+  .creation-defaults-recap {
+    margin-top: 0.75rem;
+  }
+  .creation-defaults-recap h4,
+  .creation-defaults-recap dl,
+  .creation-defaults-recap dd {
+    margin: 0;
+  }
+  .creation-defaults-recap h4,
+  .creation-defaults-recap dt,
+  .creation-defaults-recap dd {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
   }
   @media (max-width: 900px) {
     table,

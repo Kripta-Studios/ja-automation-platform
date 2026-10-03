@@ -1241,7 +1241,7 @@
               >
               <p class="hint">
                 {t(
-                  'This copies unsaved draft values only. Review selected people, then save them together or individually. Existing agreements are unchanged until saved.',
+                  'Copies the source person’s draft terms, keeping each selected person’s effective date. Review the terms and dates, then save together or individually. Existing agreements change only when saved.',
                 )}
               </p>
             </div>

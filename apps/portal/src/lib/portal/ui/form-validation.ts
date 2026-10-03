@@ -353,6 +353,12 @@ function revealInvalidFeedback(
   if (delta) view.scrollBy({ top: delta, behavior: 'instant' });
 }
 
+/** Reveal an already focused validation summary; callers own timing and permission. */
+export function revealFormValidationSummary(form: HTMLFormElement, summary: HTMLElement): void {
+  if (!form.contains(summary) || !summary.matches('[data-validation-summary]')) return;
+  revealInvalidFeedback(form, summary);
+}
+
 function renderInvalidState(form: HTMLFormElement, invalidControls: ValidationControl[]): void {
   const fieldControls = controls(form);
   for (const [index, control] of fieldControls.entries()) ensureId(form, control, index);

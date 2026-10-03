@@ -1474,6 +1474,10 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'Revisa los datos comerciales de la persona',
     'Verifique os dados comerciais da pessoa',
   ],
+  'Current draft project defaults': [
+    'Valores predeterminados actuales del borrador del proyecto',
+    'Valores padrão atuais do rascunho do projeto',
+  ],
   'Terms effective from': ['Condiciones vigentes desde', 'Condições válidas a partir de'],
   'Customer hourly rate': ['Tarifa por hora al cliente', 'Tarifa por hora ao cliente'],
   'Worker compensation method': [
@@ -1552,6 +1556,11 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     [
       'Esto solo copia valores aún no guardados. Revisa a las personas seleccionadas y guárdalas juntas o individualmente. Los acuerdos existentes no cambian hasta guardar.',
       'Isto copia apenas valores ainda não salvos. Revise as pessoas selecionadas e salve-as juntas ou individualmente. Os acordos existentes não mudam até salvar.',
+    ],
+  'Copies the source person’s draft terms, keeping each selected person’s effective date. Review the terms and dates, then save together or individually. Existing agreements change only when saved.':
+    [
+      'Copia las condiciones provisionales de la persona de origen y conserva la fecha de vigencia de cada persona seleccionada. Revisa las condiciones y las fechas; después, guarda los cambios juntos o individualmente. Los acuerdos existentes solo cambian al guardar.',
+      'Copia as condições provisórias da pessoa de origem e mantém a data de vigência de cada pessoa selecionada. Revise as condições e as datas; depois, salve as alterações juntas ou individualmente. Os acordos existentes só mudam ao salvar.',
     ],
   'Advanced commercial rules': ['Reglas comerciales avanzadas', 'Regras comerciais avançadas'],
   'Assign people here, then set each person’s customer rate, pay and expense terms in this project’s Billing setup.':

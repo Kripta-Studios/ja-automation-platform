@@ -391,26 +391,26 @@ function crewPageActionFailure(
             remedy: 'review_crew_day',
           }
         : message.startsWith('No crew time was saved. ')
-        ? {
-            status: 409,
-            code: 'CREW_BATCH_WORKER_BLOCKED',
-            key: 'problem.crew.batchWorkerBlocked' as ActionMessageKey,
-            message:
-              'No crew time was saved because a selected worker has a date, assignment, or existing time conflict. Review that worker and the current entries.',
-            remedy: 'review_crew_day',
-          }
-        : message.startsWith('Crew member hours:')
           ? {
-              status: 400,
-              code: 'CREW_INDIVIDUAL_HOURS_INVALID',
-              key: 'problem.crew.individualHoursInvalid' as ActionMessageKey,
-              message: 'Enter valid hours for every selected worker.',
-              field: 'workerIds',
+              status: 409,
+              code: 'CREW_BATCH_WORKER_BLOCKED',
+              key: 'problem.crew.batchWorkerBlocked' as ActionMessageKey,
+              message:
+                'No crew time was saved because a selected worker has a date, assignment, or existing time conflict. Review that worker and the current entries.',
               remedy: 'review_crew_day',
             }
-          : message.startsWith('Shared hours:')
-            ? crewProblems['Enter valid shared minutes']
-            : null);
+          : message.startsWith('Crew member hours:')
+            ? {
+                status: 400,
+                code: 'CREW_INDIVIDUAL_HOURS_INVALID',
+                key: 'problem.crew.individualHoursInvalid' as ActionMessageKey,
+                message: 'Enter valid hours for every selected worker.',
+                field: 'workerIds',
+                remedy: 'review_crew_day',
+              }
+            : message.startsWith('Shared hours:')
+              ? crewProblems['Enter valid shared minutes']
+              : null);
     if (known)
       return actionFail(known.status, known.key, {}, known.message, {
         ...extras,
@@ -569,15 +569,13 @@ function resolveCrewDayFilter(
 
 function minutesFromHours(value: string, label: string): number {
   const normalized = value.trim().replace(',', '.');
-  if (!/^\d{1,2}(?:\.\d{1,2})?$/u.test(normalized))
+  if (!/^\d{1,2}(?:\.\d{1,4})?$/u.test(normalized))
     throw new ValidationError(`${label}: enter hours such as 7.5`);
-  const [whole, fraction = ''] = normalized.split('.');
-  const hundredths = Number(fraction.padEnd(2, '0'));
-  const hundredthMinutes = Number(whole) * 6000 + hundredths * 60;
-  if (hundredthMinutes % 100 !== 0)
-    throw new ValidationError(`${label}: use increments of one minute`);
-  const minutes = hundredthMinutes / 100;
-  if (minutes < 1 || minutes > 1440)
+  const hours = Number(normalized);
+  if (!Number.isFinite(hours) || hours <= 0 || hours > 24)
+    throw new ValidationError(`${label}: enter more than zero and no more than 24 hours`);
+  const minutes = Math.round(hours * 60);
+  if (!Number.isSafeInteger(minutes) || minutes < 1 || minutes > 1440)
     throw new ValidationError(`${label}: enter more than zero and no more than 24 hours`);
   return minutes;
 }

@@ -22,7 +22,10 @@
     documentDownloadProblem,
     privateDownloadFilename,
   } from '$lib/portal/ui/private-document-download';
-  import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
+  import formValidation, {
+    reportFormFieldErrors,
+    revealFormValidationSummary,
+  } from '$lib/portal/ui/form-validation';
   import type { ProblemData } from '$lib/problem/contract';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { money as formatMoney } from '$lib/portal/portal-format';
@@ -326,6 +329,17 @@
       if (summary) {
         summary.focus({ preventScroll: true });
         restoreScroll();
+        if (
+          targetForm &&
+          action === 'createCorrectionDraft' &&
+          data.canCreateCorrection &&
+          !data.reviewOnly &&
+          problem?.correlationId === id &&
+          problem.fieldErrors &&
+          Object.keys(problem.fieldErrors).length > 0
+        ) {
+          revealFormValidationSummary(targetForm, summary);
+        }
         return;
       }
       const submitProblem = action === 'submitExpense';

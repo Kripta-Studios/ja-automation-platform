@@ -1457,3 +1457,8 @@ W73 closed Solreview/rootacceptance adds exactly1bug0UX: native defaultsOFF keep
 ### 2026-10-03 — W78 reimbursement and expense review candidate
 
 CORE-02/03/06/14/15: the exact eight-file candidate passed hash-attributed static gates and fresh independent GPT-6.1 Sol financial/privacy review (full diff SHA256 `d8c77c83b5aeddf68c4985583f95e1785f13f3280b0e54e7f60ba0e153a86683`). Dated selected-person reimbursement lookup, local unsaved-policy confirmation/date recovery, authorized correction-origin navigation and unsaved weekly expense recap are source-ready. Production build and browser outcomes remain pending. No financial algorithm, action or permission expansion; no source-only quota credit. Accepted totals remain 62 UX / 60 bugs. Detailed evidence: `docs/evidence/project-worker-terms-browser-20261002.md` and external W78 source/review packets.
+
+
+### 2026-10-03 — W78 production activation and retention
+
+CORE-17: application `532b15f7`, archive `056630610a757bc9a061cdfedbdde26afe20fe1157d90c4cd03c6aa4e73fb554`, activated 10:59:37 Europe/Madrid. Serialized builds, 26-document preactivation backup, upgrade, local/public readiness, jobs and healthy current images passed; all eight reviewed deployed hashes match. Cache reclaimed 7.018 GB/final 0B. Exact image/reference guards removed only obsolete W72; current/W73 rollback and three daily backups retained, timers/watchers active, 12 GB free. Sole zero-domain-write browser afterproof started only after cleanup. No additional quota or all-role acceptance; totals 62 UX / 60 bugs. Full deployment/cleanup receipt: external `finance-auditor/ROOT_W78_DEPLOY.md` and linked repository evidence.

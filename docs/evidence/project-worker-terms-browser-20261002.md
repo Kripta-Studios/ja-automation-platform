@@ -6,7 +6,7 @@ Date: 2026-10-02. All agents used for this continuation run GPT 6.1 Sol. Functio
 
 Accepted progress is **62 UX improvements and 60 bug fixes**, with 38 UX improvements and 40 bugs still needed for the requested totals. Historical entries below retain the status and counts recorded at the time. The original 102-item list has 47 scoped checks and 55 not yet rerun; no complete all-role certification is claimed.
 
-- **Production:** commit `2c9f4079`, deployed at 07:42:44 Europe/Madrid. Health and jobs checks passed; the previous release and three daily backups are retained.
+- **Production:** application commit `532b15f7`, deployed at 10:59:37 Europe/Madrid. All eight reviewed source hashes, health and jobs checks passed. W73 is retained for rollback, build cache is empty and three daily backups remain.
 - **Worker agreements:** Owner browser tests show that later project templates preserve existing worker terms, while new assignments copy the selected template. Finance's recovery-only edit preserved the reimbursement fallback, numeric agreements and dated history. Future reimbursement remains a configuration inference until a resolved result is shown.
 - **Creation form:** Owner keeps the optional worker table. Finance has appropriate English, Spanish and Portuguese guidance. Native defaults toggles retain focus and values on phone and desktop for both roles.
 - **Limits:** tests use marked QA fixtures and normal browser controls. No invoice or payment was finalized. Individual receipts below state which dates, roles, states and financial outcomes were actually observed.
@@ -605,3 +605,12 @@ The combined eight-source candidate passed scoped lint/format, portal TypeScript
 Owner and Finance gain a dated reimbursement lookup for one explicitly selected assignment, payer and expense category. The existing resolver supplies the configured behavior and its source. The local confirmation protects neighboring unsaved policy forms, and an empty dated person list can be refreshed for another date. Expense corrections gain a link to an original that the same principal is authorized to read, with six permitted reference fields. The weekly expense table gains an unsaved count, review count and exact entered total; invalid amounts suppress the total and the existing save payload remains intact.
 
 Production build/deployment and the selected browser afterproof are pending at this entry. The source review supplies no runtime or quota credit. The later browser sequence uses one page, sequential actual roles and zero domain writes, with explicit limits for date/payer matrices, retained failed-save initialization, financial payouts and inaccessible originals. Accepted progress remains 62 UX improvements and 60 bug fixes. Detailed source packets, review and selected browser plan are retained in external `finance-auditor/W78_SOL_*` and `ROOT_W78_SELECTED_BROWSER_PLAN.md`.
+
+
+## W78 deployed and cleaned; browser qualification started
+
+Application commit `532b15f788932e6b1b427fa6bf4b14bd149c3206` was pushed before canonical production deployment. Archive `056630610a757bc9a061cdfedbdde26afe20fe1157d90c4cd03c6aa4e73fb554` activated October 3 at **10:59:37 Europe/Madrid / 08:59:37 UTC**. The package contains 4,713 tracked files and exactly ten changed paths from W73. Serialized builds, the 26-document preactivation backup, upgrade, local/public readiness and jobs checks passed; all eight deployed source hashes match the reviewed candidate and portal/site are healthy.
+
+Cache cleanup reclaimed 7.018 GB and left zero build cache. Guarded removal checked all 18 container references and exact tags before removing only obsolete W72 images. Current W78 and immediate W73 rollback, three daily backups and all required timers/watchers remain; 12 GB is free. Full identities and logs are retained in external `finance-auditor/ROOT_W78_DEPLOY.md`.
+
+Only after cleanup did the browser agent receive the sole session for the selected Worker/Finance/Owner/Auditor/PM afterproof. That run is zero domain writes and remains pending at this entry. The separate real correction and paired time/meal workflows are prepared for a later lease. Accepted totals remain 62 UX improvements and 60 bug fixes; source/deployment and planned tests earn no additional credit.

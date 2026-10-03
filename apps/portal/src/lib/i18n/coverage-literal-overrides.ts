@@ -6,6 +6,7 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   ],
   'Rates and pay': ['Tarifas y remuneración', 'Tarifas e remuneração'],
   'Expense terms': ['Condiciones de gastos', 'Condições de despesas'],
+  Unchanged: ['Sin cambios', 'Sem alterações'],
   'Review scheduled commercial terms': [
     'Revisar condiciones comerciales programadas',
     'Revisar condições comerciais programadas',

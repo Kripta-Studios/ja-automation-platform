@@ -264,3 +264,10 @@ The reviewed correction `fce95d9984f36e51a5ba5584a3b17a0d6695e677`, archive `5cc
 Docker cache cleanup reclaimed 7.022GB and left 0B. Obsolete W56 images were removed after checking every running and stopped container; current correction and immediate W57 rollback remain. Three backup snapshots remain under the configured retention. Watchers and jobs/backup/prune timers are active, both web containers are healthy, and disk free space is 13GB.
 
 The sole browser was explicitly closed throughout deployment. Root granted the GPT-6.1 Sol browser lane a new exclusive lease only after deployment and cleanup finished. Normal header language switching, localized draft/error recovery and fresh restricted-role project projections are being checked. No W57 candidate is accepted yet; totals remain 57 UX / 54 bugs. External `finance-auditor/ROOT_W57_LOCALE_DEPLOY.md` and `wave57-locale-deploy.log` record activation; `W57_SOL_RETEST_FINANCIAL_RECEIPT.md` records the isolated financial checks and their telemetry/future-resolution limits.
+
+
+## Scheduled person-term status translation — reviewed correction pending deployment
+
+The corrected W57 browser run exposed an English `Unchanged` inside the Portuguese future-terms notice at 390px. The existing notice already calls the translation helper; its shared literal entry was missing. One catalog insertion supplies Spanish `Sin cambios` and Portuguese `Sem alterações`, preserving the canonical English caption. Source SHA256 `b63d38f6339a2963648710db10790798b2f6e18f23d55f6f91c3a77aebe2386a` passed scoped lint/format, portal TypeScript and independent GPT-6.1 Sol source review.
+
+This is a bounded localization completion with zero additional quota credit. Deployed read-only EN/ES/PT proof must retain the existing October 4 expense date, editor step and drafts. W57 core role/error/privacy acceptance remains in progress. External `finance-auditor/W61_SOL_SCHEDULED_STATUS_SOURCE.md`, its exact diff and `W61_SOL_SCHEDULED_STATUS_REVIEW.md` record the finding, source and limits.

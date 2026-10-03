@@ -1379,3 +1379,6 @@ W57 follow-up: Owner EN1440 rejected single/batch saves retained both drafts and
 
 
 W57 language correction fce95d99 / archive 5cc5b546a4c9a5a65594e8d869904fe936f66923303267a8653eb79513a13fc7 activated October 3 at 02:13:53 after build/backup/upgrade/readiness/jobs gates. Cache cleanup reclaimed 7.022GB, with 0B remaining; obsolete W56 images removed, current/immediate rollback and three backup snapshots retained, timers active, containers healthy, 13GB free. Single-browser GPT-6.1 Sol retest resumed after cleanup. Acceptance remains pending; 57 UX / 54 bugs unchanged.
+
+
+W57 corrected browser run found a remaining English Unchanged in the Portuguese future-terms notice. The one-entry shared translation repair (ES Sin cambios / PT Sem alterações) passed scoped lint/format, portal TypeScript and independent Sol source review; deployment and actual locale proof pending. No additional quota credit. Main W57 candidates and role/privacy gates remain pending.

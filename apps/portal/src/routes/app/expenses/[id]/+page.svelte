@@ -51,8 +51,11 @@
       : null,
   );
   let localeOverride = $state<PortalLocale | null>(null);
+  let localeMounted = $state(false);
   const locale = $derived(
-    localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
+    $page.url.searchParams.has('lang')
+      ? resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale)
+      : (localeOverride ?? data.locale ?? resolveStandaloneLocale()),
   );
   const t = (key: string): string => standaloneText(locale, key);
   const controlled = (domain: ControlledValueDomain, value: unknown): string =>
@@ -596,8 +599,7 @@
     const correctionValidation = correctionForm ? formValidation(correctionForm) : null;
     const correctionEnhancement = correctionForm ? enhance(correctionForm, enhancedSubmit) : null;
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
-    persistStandaloneLocale(locale);
-    applyStandaloneDocumentLocale(locale);
+    localeMounted = true;
     const onStorage = (event: StorageEvent) => {
       if (event.key === 'ja.portal.locale' || event.key === 'ja-portal-locale')
         localeOverride = resolveStandaloneLocale(event.newValue);
@@ -616,7 +618,11 @@
       correctionEnhancement?.destroy();
     };
   });
-  $effect(() => applyStandaloneDocumentLocale(locale));
+  $effect(() => {
+    if (!localeMounted) return;
+    persistStandaloneLocale(locale);
+    applyStandaloneDocumentLocale(locale);
+  });
 </script>
 
 <svelte:head><title>{t('Expense')} | {record.project_number}</title></svelte:head>

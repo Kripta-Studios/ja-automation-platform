@@ -1462,3 +1462,9 @@ CORE-02/03/06/14/15: the exact eight-file candidate passed hash-attributed stati
 ### 2026-10-03 — W78 production activation and retention
 
 CORE-17: application `532b15f7`, archive `056630610a757bc9a061cdfedbdde26afe20fe1157d90c4cd03c6aa4e73fb554`, activated 10:59:37 Europe/Madrid. Serialized builds, 26-document preactivation backup, upgrade, local/public readiness, jobs and healthy current images passed; all eight reviewed deployed hashes match. Cache reclaimed 7.018 GB/final 0B. Exact image/reference guards removed only obsolete W72; current/W73 rollback and three daily backups retained, timers/watchers active, 12 GB free. Sole zero-domain-write browser afterproof started only after cleanup. No additional quota or all-role acceptance; totals 62 UX / 60 bugs. Full deployment/cleanup receipt: external `finance-auditor/ROOT_W78_DEPLOY.md` and linked repository evidence.
+
+## W78 aceptado por alcance y W79 pendiente — 2026-10-03
+
+Aceptadas tres mejoras UX: revisión del reembolso configurado por persona/fecha/pagador/categoría, navegación de una corrección al gasto original autorizado y resumen exacto/completo del lote semanal aún sin guardar. Evidencia real cerrada de126eventos, revisión independiente Sol y recomputación de controles/limpieza. Totales65UX/60bugs; faltan35UX/40bugs. Los102 históricos conservan47alcances/55sin nueva prueba/0certificaciones compuestas completas. No Save financiero, pago, privacidad universal ni total de red de toda la sesión.
+
+W79 corrige únicamente el idioma reactivo del detalle de gasto, observado con cabecera portuguesa/cuerpo español. FamiliaW71, crédito adicional0. Fuente revisada SHIP, lint/formato/TypeScript correctos y compilación Svelte0/0advertencias; despliegue y navegador posterior pendientes. Detalles y límites: `docs/evidence/project-worker-terms-browser-20261002.md`.

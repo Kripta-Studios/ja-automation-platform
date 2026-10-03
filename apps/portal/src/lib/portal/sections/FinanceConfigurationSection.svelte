@@ -388,12 +388,7 @@
   function confirmReimbursementReview(event: SubmitEvent): void {
     const form = event.currentTarget as HTMLFormElement;
     const region = form.closest<HTMLElement>('[data-assignment-expense-policies]');
-    if (
-      !confirmDirtyForms(
-        region,
-        translate('Discard your unsaved changes? Your entered information will be lost.'),
-      )
-    )
+    if (!confirmDirtyForms(region, translate('finance.reimbursement.review.confirm')))
       event.preventDefault();
   }
   function reimbursementFieldError(

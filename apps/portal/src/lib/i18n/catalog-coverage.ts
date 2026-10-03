@@ -426,6 +426,8 @@ export const PORTAL_LITERAL_KEYS = [
   'Inherited reimbursement is resolved for the effective date when saved.',
   'The person save result is unknown. Review the latest terms before trying again.',
   'Person terms were saved, but could not be refreshed. Reload the page to review them.',
+  'finance.reimbursement.review.confirm',
+  'correction.draft.navigation.confirm',
   'Discard your unsaved changes? Your entered information will be lost.',
   'Review your latest 50 notifications. Filters apply to this list.',
   'Notification filters',

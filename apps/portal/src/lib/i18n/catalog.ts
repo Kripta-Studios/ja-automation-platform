@@ -183,6 +183,10 @@ const en = {
     'The person save result is unknown. Review the latest terms before trying again.',
   'Person terms were saved, but could not be refreshed. Reload the page to review them.':
     'Person terms were saved, but could not be refreshed. Reload the page to review them.',
+  'finance.reimbursement.review.confirm':
+    'Review reimbursement now? Some unsaved values may change while others remain. Check the settings, effective dates and reason before saving.',
+  'correction.draft.navigation.confirm':
+    'Continue without saving? Unsaved changes may be lost. Review any retained values before creating the correction.',
   'Discard your unsaved changes? Your entered information will be lost.':
     'Discard your unsaved changes? Your entered information will be lost.',
   'Review your latest 50 notifications. Filters apply to this list.':
@@ -747,6 +751,10 @@ const esBase: Record<keyof typeof en, string> = {
     'No se ha confirmado el guardado de las condiciones de la persona. Revisa las condiciones más recientes antes de volver a intentarlo.',
   'Person terms were saved, but could not be refreshed. Reload the page to review them.':
     'Las condiciones de la persona se han guardado, pero no se pudieron actualizar en pantalla. Recarga la página para revisarlas.',
+  'finance.reimbursement.review.confirm':
+    '¿Revisar el reembolso ahora? Algunos datos sin guardar pueden cambiar mientras que otros se conservan. Revisa la configuración, las fechas de vigencia y el motivo antes de guardar.',
+  'correction.draft.navigation.confirm':
+    '¿Continuar sin guardar? Los cambios sin guardar pueden perderse. Revisa cualquier dato que se conserve antes de crear la corrección.',
   'Discard your unsaved changes? Your entered information will be lost.':
     '¿Descartar los cambios sin guardar? Se perderán los datos que has introducido.',
   'Review your latest 50 notifications. Filters apply to this list.':
@@ -1303,6 +1311,10 @@ const ptBase: Record<keyof typeof en, string> = {
     'Não foi confirmado o salvamento das condições da pessoa. Revise as condições mais recentes antes de tentar novamente.',
   'Person terms were saved, but could not be refreshed. Reload the page to review them.':
     'As condições da pessoa foram salvas, mas não puderam ser atualizadas na tela. Recarregue a página para revisá-las.',
+  'finance.reimbursement.review.confirm':
+    'Revisar o reembolso agora? Alguns dados não salvos podem mudar, enquanto outros são mantidos. Confira as configurações, as datas de vigência e o motivo antes de salvar.',
+  'correction.draft.navigation.confirm':
+    'Continuar sem salvar? As alterações não salvas podem ser perdidas. Revise os dados que permanecerem antes de criar a correção.',
   'Discard your unsaved changes? Your entered information will be lost.':
     'Descartar as alterações não salvas? Os dados preenchidos serão perdidos.',
   'Review your latest 50 notifications. Filters apply to this list.':

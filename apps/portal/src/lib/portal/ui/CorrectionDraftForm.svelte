@@ -6,6 +6,7 @@
   import { page } from '$app/stores';
   import { normalizePortalLocale, portalText } from '../../portal-i18n';
   import { dailyCorrectionFields, technicalCorrectionFields } from '../correction-fields';
+  import { expenseCategories } from '../expense-categories';
   import { base } from '$app/paths';
   import { onMount, untrack } from 'svelte';
   import { beforeNavigate } from '$app/navigation';
@@ -47,10 +48,7 @@
       return;
     if (
       !navigation.willUnload &&
-      !confirmDirtyForms(
-        correctionForm,
-        translate('Discard your unsaved changes? Your entered information will be lost.'),
-      )
+      !confirmDirtyForms(correctionForm, translate('correction.draft.navigation.confirm'))
     )
       navigation.cancel();
   });
@@ -336,8 +334,8 @@
       <label>
         <span>{translate('Category')}</span>
         <select name="category" required value={fieldValue('category', 'category')}>
-          {#each ['hotel', 'rental_car', 'fuel', 'tolls', 'parking', 'airfare', 'ground_transport', 'meals', 'per_diem', 'materials', 'tools', 'shipping', 'phone_data', 'visa_permit', 'other'] as category}
-            <option value={category}>{translate(category.replaceAll('_', ' '))}</option>
+          {#each expenseCategories as [value, label]}
+            <option {value}>{translate(label)}</option>
           {/each}
         </select>
       </label>
@@ -404,7 +402,7 @@
       {/if}
     </label>
     <label>
-      <span>{translate('Receipt (optional)')}</span>
+      <span>{translate('Attach receipt (optional)')}</span>
       <input
         name="receipt"
         type="file"

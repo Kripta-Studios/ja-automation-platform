@@ -1478,3 +1478,13 @@ CORE-17: aplicación8a630faa/archive023ba114 activada12:14:29Madrid; fuente revi
 ## W79 ejecución aceptada por alcance — 2026-10-03
 
 CORE-02/06/15: revisión Sol SCOPEDPASS/SHIP y recomputación de root aceptan el idioma reactivo del detalle y Cancel nativo con token/campos intactos. GET aceptado rota token y conserva motivo local; limpieza visible restaura campos y registros protegidos, cierre explícito. FamiliaW71+0;65UX/60bugs. El aviso genérico de pérdida y opciones/etiqueta de recibo sin traducir siguen como candidatos separados. Sin certificación completa de roles, traducción, anchuras ni finanzas. Informe SHAe4df2782 y packetSHA918ce12a en evidencia vinculada.
+
+
+## W80 flujos reales aceptados por alcance — 2026-10-03
+
+CORE-02/03/06/14: Worker3 creó una única corrección21c mediante doble activación nativa y la retiró a Rejected; original19cNeedschanges y corrección20cRejected conservados. Worker5 creó una pareja3min/1c y una retirada conjunta dejó ambosWithdrawn, enlaces/hechos/historia conservados, totales activos restaurados y60minApproved protegidos. Cuatro comandos,97eventos cerrados, revisión Sol SCOPEDPASS/SHIP SHAa4d5fdd6 y recomputación de root. BUG009/033 ganan ramas limitadas; no Submit/privacidadPM/concurrencia/auditoría completa. +0;65UX/60bugs e histórico47alcances/55sinprueba sin cambio. Detalles e IDs en evidencia vinculada.
+
+
+## W83 fuente revisada; despliegue/prueba nativa pendientes — 2026-10-03
+
+CORE-02/03/06/15: cuatro fuentes congeladas, avisos específicos veraces EN/ES/PT,15categorías canónicas sin cambios con etiquetas registradas y recibo opcional traducido. Formato/lint/TypeScript/diff correctos; dos componentes compilados baseline/final0warnings. Root acepta SHIP independiente SHA0ffab604 y diff completoSHAff370d87. Sin cambio de guards, campos/tokens, permisos ni reglas financieras. Despliegue/navegador/dedup pendientes; avisos+0, traducción candidata máximo1bug todavía sin crédito.65UX/60bugs sin cambio.

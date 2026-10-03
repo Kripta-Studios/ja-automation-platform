@@ -340,13 +340,13 @@
     {/if}
   </header>
 
-  {#if periodProblem}
-    <section
-      class="period-correction"
-      data-project-calculation-period-problem
-      bind:this={periodProblemContainer}
-      aria-label={t('problem.projectCalculation.periodFilter')}
-    >
+  <section
+    class="period-correction"
+    data-project-calculation-period-problem={periodProblem ? '' : undefined}
+    bind:this={periodProblemContainer}
+    aria-label={t('problem.projectCalculation.periodFilter')}
+  >
+    {#if periodProblem}
       <ProblemNotice
         problem={periodProblem}
         remedyLinks={{ correct_field: { label: t('problem.remedy.correctField') } }}
@@ -363,58 +363,59 @@
           {/each}
         </ul>
       {/if}
-      <form
-        method="GET"
-        action={`${base}/app/projects/${encodeURIComponent(project.id)}/calculation`}
-        class="period-form"
-        data-project-calculation-period-form
-        onsubmit={rememberPeriodScroll}
-      >
-        <input type="hidden" name="lang" value={locale} />
-        <label for="calculation-periodStart">
-          {t('Period start')}
-          <input
-            id="calculation-periodStart"
-            name="periodStart"
-            type="text"
-            inputmode="numeric"
-            autocomplete="off"
-            value={periodValues.periodStart}
-            aria-invalid={Boolean(periodProblem.fieldErrors.periodStart)}
-            aria-describedby={periodProblem.fieldErrors.periodStart
-              ? 'calculation-periodStart-error'
-              : undefined}
-          />
-          {#if periodProblem.fieldErrors.periodStart}
-            <small id="calculation-periodStart-error" class="field-error"
-              >{t(periodProblem.fieldErrors.periodStart[0])}</small
-            >
-          {/if}
-        </label>
-        <label for="calculation-periodEnd">
-          {t('Period end')}
-          <input
-            id="calculation-periodEnd"
-            name="periodEnd"
-            type="text"
-            inputmode="numeric"
-            autocomplete="off"
-            value={periodValues.periodEnd}
-            aria-invalid={Boolean(periodProblem.fieldErrors.periodEnd)}
-            aria-describedby={periodProblem.fieldErrors.periodEnd
-              ? 'calculation-periodEnd-error'
-              : undefined}
-          />
-          {#if periodProblem.fieldErrors.periodEnd}
-            <small id="calculation-periodEnd-error" class="field-error"
-              >{t(periodProblem.fieldErrors.periodEnd[0])}</small
-            >
-          {/if}
-        </label>
-        <button type="submit">{t('problem.projectCalculation.reviewPeriod')}</button>
-      </form>
-    </section>
-  {:else if explanation}
+    {/if}
+    <form
+      method="GET"
+      action={`${base}/app/projects/${encodeURIComponent(project.id)}/calculation`}
+      class="period-form"
+      data-project-calculation-period-form
+      onsubmit={rememberPeriodScroll}
+    >
+      <input type="hidden" name="lang" value={locale} />
+      <label for="calculation-periodStart">
+        {t('Period start')}
+        <input
+          id="calculation-periodStart"
+          name="periodStart"
+          type={periodProblem ? 'text' : 'date'}
+          inputmode={periodProblem ? 'numeric' : undefined}
+          autocomplete="off"
+          value={periodValues.periodStart}
+          aria-invalid={Boolean(periodProblem?.fieldErrors.periodStart)}
+          aria-describedby={periodProblem?.fieldErrors.periodStart
+            ? 'calculation-periodStart-error'
+            : undefined}
+        />
+        {#if periodProblem?.fieldErrors.periodStart}
+          <small id="calculation-periodStart-error" class="field-error"
+            >{t(periodProblem?.fieldErrors.periodStart[0])}</small
+          >
+        {/if}
+      </label>
+      <label for="calculation-periodEnd">
+        {t('Period end')}
+        <input
+          id="calculation-periodEnd"
+          name="periodEnd"
+          type={periodProblem ? 'text' : 'date'}
+          inputmode={periodProblem ? 'numeric' : undefined}
+          autocomplete="off"
+          value={periodValues.periodEnd}
+          aria-invalid={Boolean(periodProblem?.fieldErrors.periodEnd)}
+          aria-describedby={periodProblem?.fieldErrors.periodEnd
+            ? 'calculation-periodEnd-error'
+            : undefined}
+        />
+        {#if periodProblem?.fieldErrors.periodEnd}
+          <small id="calculation-periodEnd-error" class="field-error"
+            >{t(periodProblem?.fieldErrors.periodEnd[0])}</small
+          >
+        {/if}
+      </label>
+      <button type="submit">{t('problem.projectCalculation.reviewPeriod')}</button>
+    </form>
+  </section>
+  {#if !periodProblem && explanation}
     <section class="notice" data-calculation-canonical-note>
       <strong>{t('These are the canonical project-finance results.')}</strong>
       <p>

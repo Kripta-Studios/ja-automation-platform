@@ -1539,3 +1539,12 @@ CORE-02/03/04/06/15: commit1f8fba27/ZIPfc25afe489a4 desplegado19:51:25Madrid una
 ## W88 caption nativo aceptado por alcance — 2026-10-03
 
 CORE-02/03/04/06/15: OwnerEN/ES/PT y FinanceEN, packet61b6a934dd/revisiónSol53091724/recomputaciónroot: checkbox y dos bulkbuttons son únicas diferencias,4cards/7forms restaurados, dirty0 y POSTnegocio0 por pares. Financecrop274×45 solamente; ES/PTFinance/historia/otrosroles sin prueba. Errors1/33/34/43 y close59→blank60→cleanup61 conservados; NoTabs real, no claim de contexto ininterrumpido ni tokens ocultos. Watchers restaurados tras cierre. +0, **68UX/64bugs**, histórico47/55/0 sin cambio.
+
+
+### Continuación W89/W90 — 2026-10-03
+
+Prueba nativa W89 cerrada83eventos y revisión Sol independiente `dfd7c7a6`, aceptación raíz `44f67e0a`: ampliar el intervalo válido de Worker4 desplaza indebidamente la misma tarifa fija EUR0.12 aprobada a pendiente, conservando60min aprobados; intervalo estrecho restablece el importe y el amplio reproduce. Finance confirma reparto aprobado0.12/0.00. Su explicación válida del proyecto carece de controles de período. Auditor solo acredita identidad; selección equivocada del probador deja la comprobación dependiente NOT RUN. Errores del probador/capturas transitorias se conservan; no se cuentan.
+
+Candidato W90 de2fuentes: prioridad aprobada/bloqueada del grupo fijo sin duplicar importe BigInt; formulario GET de período disponible en explicación válida, conservando errores y recuperación existentes. Formato/lint/TSC de database/portal/compilación Svelte sin advertencias PASS,25fuentes protegidas iguales, freeze `05f0c4f9` y diff reversible `946f5ac5`. Revisión independiente de fuentes, push/despliegue y prueba nativa posterior pendientes. Antes solo FixedProjectAmount demostrado; otras2familias fijas compartidas requieren prueba nativa o NOT RUN. Conteo aceptado68UX/64bugs sin cambio, techo condicional1UX/1bug; cobertura original47scoped/55NOT RUN/0PASS compuesto.
+
+Revisión independiente de fuentes **SHIP** `d7f85959` leída y aceptada por raíz contra freeze final `05f0c4f9`, diff completo y27identidades de fuentes. Prosa larga/manifiesto inicial conservados; sin cambio de fuentes/gates. Push/despliegue y prueba nativa posterior pendientes;68UX/64bugs sin cambio.

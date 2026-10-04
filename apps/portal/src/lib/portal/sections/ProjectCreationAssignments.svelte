@@ -21,6 +21,7 @@
     startsOn: string;
     endsOn: string;
     mode: 'defaults' | 'override';
+    hasIndividualTerms: boolean;
     config: Record<string, string>;
   };
   const empty = (): Record<string, string> => ({
@@ -55,7 +56,11 @@
       config: defaults?.config ?? empty(),
       rows: (Array.isArray(rows) ? rows : [])
         .filter((row) => row && typeof row === 'object')
-        .map((row) => ({ ...row, config: row.config ?? empty() })),
+        .map((row) => ({
+          ...row,
+          hasIndividualTerms: row.mode === 'override',
+          config: row.config ?? empty(),
+        })),
     };
   });
   let enabled = $state(initial.enabled);
@@ -136,12 +141,13 @@
       ><input
         type="checkbox"
         bind:checked={enabled}
-        onchange={() => {
-          if (!enabled)
+        onchange={(event) => {
+          if (!event.currentTarget.checked)
             rows.forEach((row) => {
               if (row.mode === 'defaults') {
                 row.mode = 'override';
                 row.config = { ...config };
+                row.hasIndividualTerms = true;
               }
             });
         }}
@@ -236,7 +242,14 @@
               >
               <td
                 ><label
-                  >{t('Terms source')}<select bind:value={row.mode}
+                  >{t('Terms source')}<select
+                    bind:value={row.mode}
+                    onchange={(event) => {
+                      if (event.currentTarget.value === 'override' && !row.hasIndividualTerms) {
+                        row.config = { ...config };
+                        row.hasIndividualTerms = true;
+                      }
+                    }}
                     ><option value="defaults" disabled={!enabled}
                       >{t('Use project defaults')}</option
                     ><option value="override">{t('Override for this person')}</option></select
@@ -362,6 +375,7 @@
             startsOn: effectiveFrom,
             endsOn: '',
             mode: enabled ? 'defaults' : 'override',
+            hasIndividualTerms: !enabled,
             config: { ...config },
           });
         }}>{t('Add worker assignment')}</button

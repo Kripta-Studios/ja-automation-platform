@@ -14,6 +14,14 @@ import {
   type ProjectPersonTermsInput,
 } from '../billing/project-billing-setup-repository.ts';
 
+export class ProjectDefaultsDateConflictError extends ConflictError {
+  readonly code = 'PROJECT_DEFAULTS_DATE_CONFLICT';
+
+  constructor() {
+    super('Choose an effective date after the last saved project defaults.');
+  }
+}
+
 export type ProjectPersonDefaultsConfig = Pick<
   ProjectPersonTermsInput,
   | 'customerHourlyRate'
@@ -159,7 +167,7 @@ export class ProjectPersonDefaultsRepository {
         throw new ConflictError('Project defaults changed. Reload before saving.');
       const latest = this.latest(principal, input.projectId);
       if (latest && input.effectiveFrom <= latest.effectiveFrom)
-        throw new ConflictError('Choose an effective date after the last saved project defaults.');
+        throw new ProjectDefaultsDateConflictError();
       const id = newId();
       this.sqlite
         .prepare(

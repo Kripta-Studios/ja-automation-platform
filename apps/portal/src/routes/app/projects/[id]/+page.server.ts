@@ -10,6 +10,7 @@ import {
   ConflictError,
   ProjectBillingSetupRepository,
   ProjectPersonDefaultsRepository,
+  ProjectDefaultsDateConflictError,
   ValidationError,
   V3ValidationError,
   V3ConflictError,
@@ -1216,6 +1217,14 @@ export const actions: Actions = {
         action: 'saveProjectPersonDefaults',
       };
     } catch (caught) {
+      if (caught instanceof ProjectDefaultsDateConflictError)
+        return actionFail(409, 'action.error.failed', {}, caught.message, {
+          code: caught.code,
+          action: 'saveProjectPersonDefaults',
+          actionName: 'saveProjectPersonDefaults',
+          values,
+          fields: { effectiveFrom: [caught.message] },
+        });
       const response = detailFailure(caught, 'saveProjectPersonDefaults', values, params.id ?? '');
       if (caught instanceof ConflictError || caught instanceof ValidationError)
         return actionFail(

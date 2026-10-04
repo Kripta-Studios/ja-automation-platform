@@ -52,6 +52,26 @@
     };
   });
   let draft = $state(initial);
+  const effectiveFromError = $derived(failure?.fields?.effectiveFrom?.map(t).join(' '));
+  const effectiveFromId = $derived(`project-defaults-${projectId}-effective-from`);
+  function fieldLabel(field: string): string {
+    const labels: Record<string, string> = {
+      effectiveFrom: 'Terms effective from',
+      customerHourlyRate: 'Customer hourly rate',
+      internalCostHourlyRate: 'Internal hourly cost',
+      workerPayType: 'Worker compensation method',
+      workerPayAmount:
+        draft.workerPayType === 'PercentageOfEligibleClientLabor'
+          ? 'Worker compensation percentage'
+          : 'Worker compensation rate',
+      percentageBasis: 'Percentage basis',
+      expensePayer: 'Expense payer',
+      workerReimbursement: 'Reimburse worker',
+      clientRecovery: 'Charge customer for expense',
+      markupPercent: 'Expense markup percentage',
+    };
+    return t(labels[field] ?? 'Check person terms fields');
+  }
 </script>
 
 <section
@@ -93,18 +113,22 @@
             <strong>{t('Check person terms fields')}</strong>
             <p>{t(failure.message ?? '')}</p>
             {#each Object.entries(failure.fields ?? {}) as [field, messages]}<p>
-                {field}: {messages.map(t).join(' ')}
+                {fieldLabel(field)}: {messages.map(t).join(' ')}
               </p>{/each}
           </div>{/if}
         <div class="defaults-fields">
           <label
             >{t('Terms effective from')}<input
+              id={effectiveFromId}
               name="effectiveFrom"
               type="date"
               bind:value={draft.effectiveFrom}
               required
               aria-invalid={Boolean(failure?.fields?.effectiveFrom)}
-            /></label
+              aria-describedby={effectiveFromError ? `${effectiveFromId}-error` : undefined}
+            />{#if effectiveFromError}<span id={`${effectiveFromId}-error`} class="hint">
+                {effectiveFromError}
+              </span>{/if}</label
           >
           <label
             >{t('Customer hourly rate')} ({currency})<input

@@ -1645,3 +1645,8 @@ CORE-02/03/04/06/15: one closed native91-call session on W1044151b0ff verified g
 ### W107 fresh expense intake repair pending deployment/afterproof
 
 CORE-02/03/04/06/15: one-component source1982941b reads fresh visible URL prefills and presets known project currency only on fresh opening; explicit foreign currency/failed-form recovery remain. Static gates8ad98c8d pass, zero-warning Svelte/CSS identical,28 protected sources exact. GitHub/deployment/closed native acceptance pending; no credit yet, **71UX/65bugs**, conditional at most1UX/1bug. Original47/55/0 unchanged; no Client Essential READY claim.
+
+
+### W107 deployed / W108R2 scoped native acceptance — October 4
+
+CORE-02/03/04/06/15: W107d07bdc85/archive4f4dba8d deployed08:15:50Madrid, portal/sitehealthy/jobsrunning;29sourcepins/19containerrefs/fourvolumes preserved. Cache6.913GB reclaimed/0B; additionalbackupprune0, daily3snapshots retained. Fresh sole W108R2 closed64calls, four successes/fourattempts: genuine delegation, marked12min Draft→Submit, onlynew grantRevoked. Offered linked intakeEUR; explicitUSDretained; acceptedCancelcleansURL and generic same-page reopen clearsoptionalTime/presetsEUR; deliberatelink/discard controlalso passes. NoExpenseSave/financialconsequence. Rootall64objects+originalimage; independentSol11groupreview6ac3ac70/root835e42ca accept **+1UX/+1bug →72UX/66bugs**, remaining28/34. NoTabs64 and firsttimerrestoration/Chrome-profile0 precedeassembly. Imagecurrencybelowcrop/033emptytarget/fourselectorerrors preserved; nonToday390otherroles/locales/failure-recoveryNOT_RUN. Original47/55/0 unchanged; no Client EssentialREADY. W109date-local error association repair source/staticgates ready, deployment/nativeafterpending/+0. See linked production browser evidence.

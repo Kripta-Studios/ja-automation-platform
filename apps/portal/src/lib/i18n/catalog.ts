@@ -28,6 +28,8 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'project.costCenter.numberChangeHelp':
+    'Changing the final digits can change the project number when no invoice exists. Changes that would alter the number are blocked while any invoice, including a draft, exists.',
   'project.personTerms.payerDraftHelp':
     "Switching the payer preserves your draft choices for each payer. Only the selected payer's expense choices are saved.",
   'finance.commercialTerms.assignmentDates': 'Assignment dates',
@@ -595,6 +597,8 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'project.costCenter.numberChangeHelp':
+    'Cambiar los dígitos finales puede cambiar el número del proyecto si no hay ninguna factura. Los cambios que modificarían el número se bloquean mientras exista cualquier factura, incluida una factura en borrador.',
   'project.personTerms.payerDraftHelp':
     'Cambiar quién paga conserva las opciones del borrador para cada pagador. Solo se guardan las opciones de gastos del pagador seleccionado.',
   'finance.commercialTerms.assignmentDates': 'Fechas de asignación',
@@ -1163,6 +1167,8 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'project.costCenter.numberChangeHelp':
+    'Alterar os dígitos finais pode alterar o número do projeto se não houver nenhuma fatura. As alterações que mudariam o número são bloqueadas enquanto existir qualquer fatura, inclusive uma fatura em rascunho.',
   'project.personTerms.payerDraftHelp':
     'Alterar quem paga preserva as opções do rascunho para cada pagador. Apenas as opções de despesas do pagador selecionado são salvas.',
   'finance.commercialTerms.assignmentDates': 'Datas da atribuição',

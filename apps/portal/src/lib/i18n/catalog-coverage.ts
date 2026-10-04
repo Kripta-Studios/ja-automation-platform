@@ -164,6 +164,7 @@ const projectCrewCalculationKeys = [
 
 export const PORTAL_LITERAL_KEYS = [
   // Existing component literals already translated in the main catalog.
+  'project.costCenter.numberChangeHelp',
   'Saved grouping setting',
   'Grouping cannot be customized here. Invoice layout follows the selected template.',
   'To change rates, dates or currency, create a new tax profile and explicitly select it in the applicable billing stream. Its effective date does not automatically replace another profile.',

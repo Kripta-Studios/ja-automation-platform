@@ -2152,11 +2152,7 @@
               value={projectValue('costCenterCode', display(project.cost_center_code, ''))}
               required
               maxlength="120"
-            /><small
-              >{t(
-                'Update the cost center code. The existing project number stays unchanged.',
-              )}</small
-            ></label
+            /><small>{t('project.costCenter.numberChangeHelp')}</small></label
           >
           <label
             >{t('Project alias')}<input

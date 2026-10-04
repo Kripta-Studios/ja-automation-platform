@@ -1253,9 +1253,10 @@
     surfaceError = '';
     surfaceProblem = null;
     nativeRecoveryActive = false;
-    const requestedDate = $page.url.searchParams.get('date')?.trim() ?? '';
-    const requestedProject = $page.url.searchParams.get('project')?.trim() || projectFilter;
-    const requestedWorker = $page.url.searchParams.get('worker')?.trim() ?? '';
+    const intakeUrl = typeof window === 'undefined' ? $page.url : new URL(window.location.href);
+    const requestedDate = intakeUrl.searchParams.get('date')?.trim() ?? '';
+    const requestedProject = intakeUrl.searchParams.get('project')?.trim() || projectFilter;
+    const requestedWorker = intakeUrl.searchParams.get('worker')?.trim() ?? '';
     createDate = /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate) ? requestedDate : localToday();
     createProject = requestedProject;
     createWorker =
@@ -1266,12 +1267,15 @@
           : '';
     createRequestId = crypto.randomUUID();
     allowSeparateExpense = false;
-    createCurrency = 'USD';
+    createCurrency = String(
+      availableProjects.find((project) => String(project.id) === requestedProject)?.currency ??
+        'USD',
+    );
     createWhoPaid = 'worker';
     createDescription = '';
     createDescriptionEdited = false;
     suggestedDescriptionScope = '';
-    createTimeEntryId = $page.url.searchParams.get('timeEntry')?.trim() ?? '';
+    createTimeEntryId = intakeUrl.searchParams.get('timeEntry')?.trim() ?? '';
     surface = 'create';
     editExpenseId = null;
   }

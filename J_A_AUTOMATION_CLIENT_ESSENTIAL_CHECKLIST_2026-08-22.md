@@ -1635,3 +1635,13 @@ W102 retained QA project `01a104e9-4cea-718e-9757-4f0291009b53` saved optional W
 ### W104 deployed / W105 Owner afterproof accepted — 2026-10-04
 
 CORE-02/03/04/06/15: application4151b0ff/archive451a6f1a completed one canonical deployment at06:28:01Madrid. Scoped maintenance preserves28 source hashes/19 containers/four volumes/retained releases and43 archives/three backups; cache6.96GB reclaimed/0B, later retention removed0. Closed W105 Owner53 calls: same-date defaults rejection and correctedOctober5revision2 both preserve shallow Billing Step3 and unsaved A0.13/B0.07; genuine discard/reload restores saved A0.12/B0.07 and complete original expense terms. Root67pins/53actualobjects/30selected/seven originalimages and independent Sol11groupedchecks8d9db0cb accepted. NoTabs53 and first trigger restoration/Chrome-profile0 precede assembly. Existing context family+0: **71UX/65bugs**, remaining29/35; original102 coverage47scoped/55NOT_RUN/0wholecompoundPASS. Other roles/locales, broad phone/accessibility, advanced/history/arithmetic/final artifacts NOT_RUN. No Client Essential READY claim. Details and actual source/runtime boundaries in linked evidence.
+
+
+### W106 Chief linked expense and subject duplicate checks — 2026-10-04
+
+CORE-02/03/04/06/15: one closed native91-call session on W1044151b0ff verified genuine Owner delegation, Chief six-minute time and linked EUR0.01 Parking Draft→Submit, Chief expense duplicate rejection, Worker2 exact own readers/crossactor time duplicate rejection, and sole new-grant revoke. Six successes/eight attempts; sources remain Submitted, no approval/payment/privacy claim. Root108 pins/91 objects/79 selected/nine images; fresh Sol12 grouped checks24c57f78/root2ff26b41. NoTabs91 and first trigger restoration/Chrome-profile0 precede assembly. Existing workflow +0; one canceled optional-source resurrection BEFORE bug and one known-project fresh currency preset UX candidate await repair/deployed-after proof, maximum1bug/1UX. Historical date reset/other roles/financial consequences NOT_RUN. Counts **71UX/65bugs**, original47/55/0 unchanged. No Client Essential READY claim. Details in linked production browser evidence.
+
+
+### W107 fresh expense intake repair pending deployment/afterproof
+
+CORE-02/03/04/06/15: one-component source1982941b reads fresh visible URL prefills and presets known project currency only on fresh opening; explicit foreign currency/failed-form recovery remain. Static gates8ad98c8d pass, zero-warning Svelte/CSS identical,28 protected sources exact. GitHub/deployment/closed native acceptance pending; no credit yet, **71UX/65bugs**, conditional at most1UX/1bug. Original47/55/0 unchanged; no Client Essential READY claim.

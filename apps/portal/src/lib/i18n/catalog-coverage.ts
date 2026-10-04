@@ -5,6 +5,7 @@ import {
 
 /** Generated from literal translation calls and action message keys. Keep this inventory in sync with the source. */
 const projectCrewCalculationKeys = [
+  'project.personTerms.payerDraftHelp',
   'Project access could not be refreshed on this device. Stay online and reload before using offline forms. Your unsent drafts and attachments are preserved.',
   'If a worker is not listed, ask the owner to assign them to a project you manage first.',
   'Legal entities and invoice numbering policies require owner access.',

@@ -28,6 +28,8 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'project.personTerms.payerDraftHelp':
+    "Switching the payer preserves your draft choices for each payer. Only the selected payer's expense choices are saved.",
   'finance.commercialTerms.assignmentDates': 'Assignment dates',
   'finance.commercialTerms.historicalReadOnly': 'Inactive assignment · retained terms · read only',
   'finance.commercialTerms.historicalReadOnlyHelp':
@@ -593,6 +595,8 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'project.personTerms.payerDraftHelp':
+    'Cambiar quién paga conserva las opciones del borrador para cada pagador. Solo se guardan las opciones de gastos del pagador seleccionado.',
   'finance.commercialTerms.assignmentDates': 'Fechas de asignación',
   'finance.commercialTerms.historicalReadOnly':
     'Asignación inactiva · condiciones conservadas · solo lectura',
@@ -1159,6 +1163,8 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'project.personTerms.payerDraftHelp':
+    'Alterar quem paga preserva as opções do rascunho para cada pagador. Apenas as opções de despesas do pagador selecionado são salvas.',
   'finance.commercialTerms.assignmentDates': 'Datas da atribuição',
   'finance.commercialTerms.historicalReadOnly':
     'Atribuição inativa · condições preservadas · somente leitura',

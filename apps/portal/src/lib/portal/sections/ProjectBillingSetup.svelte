@@ -1,6 +1,7 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { onMount, tick, untrack } from 'svelte';
+  import { SvelteMap } from 'svelte/reactivity';
   import { enhance, type SubmitFunction } from '$app/forms';
   import { page } from '$app/state';
   import type { ProjectPersonDefaults } from '@ja/database';
@@ -307,6 +308,43 @@
     clientRecovery: string;
     markupPercent: string;
   };
+  const expensePayers = [
+    'worker',
+    'company_card',
+    'company_direct',
+    'client',
+    'third_party',
+  ] as const;
+  type ExpensePayer = (typeof expensePayers)[number];
+  type ExpenseDraft = Pick<
+    PersonDraft,
+    'reimbursementSource' | 'workerReimbursement' | 'clientRecovery' | 'markupPercent'
+  >;
+  // Only visited draft choices are retained; loader DTOs do not contain every payer's policy.
+  // This component-local cache is excluded from dirty comparisons and save payloads.
+  const payerExpenseDrafts = new SvelteMap<string, SvelteMap<ExpensePayer, ExpenseDraft>>();
+  function changeExpensePayer(workerId: string, value: string): void {
+    const draft = personDrafts[workerId];
+    const nextPayer = expensePayers.find((payer) => payer === value);
+    if (!draft || !nextPayer || draft.expensePayer === nextPayer) return;
+    const previousPayer = expensePayers.find((payer) => payer === draft.expensePayer);
+    const snapshots =
+      payerExpenseDrafts.get(workerId) ?? new SvelteMap<ExpensePayer, ExpenseDraft>();
+    if (previousPayer)
+      snapshots.set(previousPayer, {
+        reimbursementSource: draft.reimbursementSource,
+        workerReimbursement: draft.workerReimbursement,
+        clientRecovery: draft.clientRecovery,
+        markupPercent: draft.markupPercent,
+      });
+    payerExpenseDrafts.set(workerId, snapshots);
+    draft.expensePayer = nextPayer;
+    const retained = snapshots.get(nextPayer);
+    if (retained) Object.assign(draft, retained);
+    if (nextPayer !== 'worker') draft.workerReimbursement = 'none';
+    if (nextPayer === 'client') draft.clientRecovery = 'client_direct';
+    else if (draft.clientRecovery === 'client_direct') draft.clientRecovery = 'at_cost';
+  }
   function savedPersonDraft(person: (typeof people)[number]): PersonDraft {
     return {
       effectiveFrom: person.termsEffectiveFrom,
@@ -487,6 +525,7 @@
     for (const person of people) {
       if (dirtySiblings.has(person.id)) continue;
       const draft = savedPersonDraft(person);
+      payerExpenseDrafts.delete(person.id);
       personDrafts[person.id] = { ...draft };
       personBaselines[person.id] = {
         draft,
@@ -597,6 +636,7 @@
     if (!source) return;
     for (const workerId of selectedPersonIds) {
       if (workerId === bulkSourceId || !personDrafts[workerId]) continue;
+      payerExpenseDrafts.delete(workerId);
       personDrafts[workerId] = {
         ...source,
         effectiveFrom: personDrafts[workerId].effectiveFrom,
@@ -1279,6 +1319,7 @@
                       type="button"
                       class="secondary-button"
                       onclick={() => {
+                        payerExpenseDrafts.delete(person.id);
                         Object.assign(draft, personDefaults.config);
                         draft.reimbursementSource = 'override';
                         if (!pinRatePersonIds.includes(person.id))
@@ -1472,14 +1513,9 @@
                             : undefined}
                           aria-invalid={Boolean(personFieldError(person.id, 'expensePayer'))}
                           disabled={personSaveBusy}
-                          bind:value={draft.expensePayer}
-                          onchange={() => {
-                            if (draft.expensePayer !== 'worker') draft.workerReimbursement = 'none';
-                            if (draft.expensePayer === 'client')
-                              draft.clientRecovery = 'client_direct';
-                            else if (draft.clientRecovery === 'client_direct')
-                              draft.clientRecovery = 'at_cost';
-                          }}
+                          value={draft.expensePayer}
+                          onchange={(event) =>
+                            changeExpensePayer(person.id, event.currentTarget.value)}
                           ><option value="worker">{t('Worker')}</option><option value="company_card"
                             >{t('Company card')}</option
                           ><option value="company_direct">{t('Company direct')}</option><option
@@ -1503,6 +1539,7 @@
                           onchange={(event) => {
                             if (
                               event.currentTarget.value === 'inherit' &&
+                              draft.expensePayer === 'worker' &&
                               draft.effectiveFrom === person.reimbursementReviewDate &&
                               person.inheritedWorkerReimbursement !== null
                             )
@@ -1618,6 +1655,7 @@
                       {t(
                         'Expense treatment applies to the selected payer only. Policies for other payers remain active.',
                       )}
+                      {t('project.personTerms.payerDraftHelp')}
                     </p>
                     {#if person.activeExpensePayers.filter((payer) => payer !== draft.expensePayer).length > 0}
                       <p class="warning">

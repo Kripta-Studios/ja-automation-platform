@@ -842,6 +842,17 @@
   let settlementPeriodStart = $state('');
   let settlementPeriodEnd = $state('');
   let settlementWorkerId = $state('');
+  const settlementPeriodOrderInvalid = $derived(
+    Boolean(
+      settlementPeriodStart && settlementPeriodEnd && settlementPeriodEnd < settlementPeriodStart,
+    ),
+  );
+  const settlementPeriodEndId = `finance-settlement-period-end-${componentId}`;
+  const settlementPeriodEndError = $derived(
+    settlementPeriodOrderInvalid
+      ? translate('problem.finance.settlementPeriodOrderInvalid')
+      : undefined,
+  );
   const settlementWorkerChoices = $derived(
     (data.workers ?? []).filter((worker) => {
       if (!settlementPeriodStart || !settlementPeriodEnd) return true;
@@ -1595,6 +1606,7 @@
       linkLabel: translate('Open details'),
       cells: [
         { label: translate('Date'), value: value(row, 'workDate', 'work_date') || '—' },
+        { label: translate('Worker'), value: value(row, 'workerName', 'worker_name') || '—' },
         { label: translate('Category'), value: categoryLabel(row.category) },
         {
           label: translate('Hours'),
@@ -2467,6 +2479,7 @@
                 <thead>
                   <tr>
                     <th scope="col">{translate('Date')}</th>
+                    <th scope="col">{translate('Worker')}</th>
                     <th scope="col">{translate('Category')}</th>
                     <th scope="col">{translate('Hours')}</th>
                     <th scope="col">{translate('Billable hours')}</th>
@@ -2488,6 +2501,7 @@
                           >{value(row, 'workDate', 'work_date') || '—'}</a
                         >
                       </td>
+                      <td>{value(row, 'workerName', 'worker_name') || '—'}</td>
                       <td>{categoryLabel(row.category)}</td>
                       <td>{displayHours(value(row, 'actualMinutes', 'actual_minutes'))}</td>
                       <td
@@ -2513,7 +2527,7 @@
                     </tr>
                   {:else}
                     <tr
-                      ><td colspan="10"
+                      ><td colspan="11"
                         >{translate('No time economics are available for this project.')}</td
                       ></tr
                     >
@@ -3080,21 +3094,30 @@
                   required
                 /></label
               >
-              <label
-                ><span>{translate('Period end')}</span><input
+              <Field
+                id={settlementPeriodEndId}
+                label={translate('Period end')}
+                error={settlementPeriodEndError}
+              >
+                <input
+                  id={settlementPeriodEndId}
                   name="periodEnd"
                   type="date"
                   bind:value={settlementPeriodEnd}
                   required
-                /></label
-              >
+                  aria-invalid={settlementPeriodOrderInvalid ? 'true' : undefined}
+                  aria-describedby={settlementPeriodOrderInvalid
+                    ? `${settlementPeriodEndId}-error`
+                    : undefined}
+                />
+              </Field>
               <button
                 type="submit"
                 disabled={!data.selectedProjectId || !settlementWorkerChoices.length}
                 >{translate('Finalize compensation')}</button
               >
             </form>
-            {#if !settlementWorkerChoices.length}
+            {#if !settlementWorkerChoices.length && (!data.selectedProjectId || !settlementPeriodOrderInvalid)}
               <p class="finance-overview__surface-note">
                 {!data.selectedProjectId
                   ? translate('Select a project before finalizing compensation.')

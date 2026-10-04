@@ -6,6 +6,10 @@
 **Client validation update:** 2026-08-24
 The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
 
+## Latest scoped progress — October 4, 2026
+
+Accepted additions total **73 UX/66 bugs**, remaining27/34; original102 coverage **47 scoped/55 NOT_RUN/0 whole-compound PASS**. Current accepted application is `fd892bd92d75900afbe983322519bc10acdf3276` / archive `3a39cb292a84c4ab3fc4cf1fdc290c28396cdfbd9add962f4e0233df5b0dc7b1`. W112 recovery completion adds0; W113 neutral margin presentation adds1UX/0bugs; W114 preflight adds0; W115 two-source Finance/own-pay support adds0. Narrowed own-pay filters and payment outcomes remain NOT_RUN. Historical dated checks retain their scope; complete Client Essential acceptance/CLIENT READY is not established. Details: [project worker terms](docs/evidence/project-worker-terms-browser-20261002.md).
+
 ## Flujos por rol, gastos semanales y navegación — 2026-10-01
 
 Seguimiento solicitado por el propietario: pruebas funcionales exclusivamente en Chromium con
@@ -1661,3 +1665,15 @@ Closed W109 Owner41 calls/two attempts confirms same-date rejection association,
 Closed W110 Finance→Auditor55 calls/zero business writes confirms populated draft invoice search/stage/manage/return/reset and independent exact Auditor expense/treatment/source readers. Missing unclassified pair and positive Alerts remain NOT_RUN; image right columns clipped, snapshot47 supplies exact amounts. Root61 pins/55 objects/original image, peer `f7b98a6b` / root `5c9d6c04`, existing +0. Both sessions actual NoTabs and first trigger restoration/Chrome-profile0 precede assembly. W113 fixed-green negative-margin presentation is one pending neutral-style UX candidate, no arithmetic/alert bug or credit.
 
 Qualified unused W99 retirement `2a6b577c` follows actual430-command proof `ea6802e1`, retains audit/Git/currentW109/W107/W104/19refs/fourvolumes/otherarchives/backups/markers and raises free bytes8,101,539,840→11,287,367,680; housekeeping +0. **72 UX /66 bugs**, remaining28/34; original47 scoped/55 NOT_RUN/0 whole-compound PASS unchanged. Other roles/locales, positive-margin fixture, screen-reader/SSR/noJS, financial consequences/history and complete Essential certification remain pending. See linked project-worker production evidence.
+
+### W112/W113 accepted; W114 preflight; W115 money support — October 4, 2026
+
+CORE-02/03/04/06/15: accepted deployment `fd892bd92d75900afbe983322519bc10acdf3276` / archive `3a39cb292a84c4ab3fc4cf1fdc290c28396cdfbd9add962f4e0233df5b0dc7b1` completed13:04:41Madrid. W112 closed Owner47-call1440/390 feedback/focus/full drafts/discard/reload adds0; successful defaults save remains unrun. W113 closed Auditor33-call neutral negative/N/A badge presentation accepts exactly1UX/0bugs. W114 closed Owner22-call stale-gate preflight stopped before money; legitimate Finance W74 W7 AtCost and separate reimbursement/version4/template revision2 history establish no configuration defect.
+
+W115 closed134-call supporting0 proof made six actual business actions39/43/60/64/84/90. Actual Finance106 binds two October4 Approved/Complete1h sources: Worker4 `01a106df-0227-745c-ae1d-fa7e5261b595` pay€0.04/cost€0.06; Worker3 `01a106e0-9937-774e-ae10-b6b783c8a81c` pay€0.05/cost€0.08. Separate own My Pay identities show matching exact N02 estimates/marked Approved activity within September1–October4 across own projects. Narrower filters NOT_RUN/source IDs NOT_REBOUND/estimates not paid cash. Actual close134 and first trigger restoration precede assembly; ROOT acceptance/independent review verify153 pins while preserving bounded raw-reading, image and harness-error limits.
+
+Current **73 UX/66 bugs**, remaining27/34; original47 scoped/55 NOT_RUN/0 whole-compound PASS unchanged. Broader roles/locales/widths, W113 positive/native contrast/audio, postapproval canonical readers, customer recognition, expense/reimbursement/futureOctober5 outcomes, statements/invoices/settlement/payment/cash collection, historical immutable money and complete Essential certification remain NOT_RUN. Earlier dated72/66 entries remain historical. See linked project-worker production evidence.
+
+### W116 Finance native BEFORE — October 4, 2026
+
+Closed Finance53-call/zero-write desktop1440/phone390 observations identify missing worker attribution in Time source review and misleading assignment-coverage feedback for reversed settlement dates. Existing money/source facts and valid recovery were preserved; repair/deployed AFTER/independent qualification are pending. **No credit;73 UX/66 bugs.** See linked project-worker evidence for scope, image and fresh-name limits.

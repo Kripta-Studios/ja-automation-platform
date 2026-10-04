@@ -109,27 +109,39 @@
       >
         <input type="hidden" name="projectId" value={projectId} />
         <input type="hidden" name="expectedRevision" value={revision} />
-        {#if failure}<div role="alert" class="warning">
+        {#if failure}<div
+            role="alert"
+            class="warning"
+            tabindex="-1"
+            data-defaults-validation-summary
+          >
             <strong>{t('Check person terms fields')}</strong>
-            <p>{t(failure.message ?? '')}</p>
+            {#if failure.message && !Object.values(failure.fields ?? {}).some((messages) => messages
+                    .map(t)
+                    .join(' ') === t(failure.message ?? ''))}<p>
+                {t(failure.message)}
+              </p>{/if}
             {#each Object.entries(failure.fields ?? {}) as [field, messages]}<p>
                 {fieldLabel(field)}: {messages.map(t).join(' ')}
               </p>{/each}
           </div>{/if}
         <div class="defaults-fields">
-          <label
-            >{t('Terms effective from')}<input
-              id={effectiveFromId}
-              name="effectiveFrom"
-              type="date"
-              bind:value={draft.effectiveFrom}
-              required
-              aria-invalid={Boolean(failure?.fields?.effectiveFrom)}
-              aria-describedby={effectiveFromError ? `${effectiveFromId}-error` : undefined}
-            />{#if effectiveFromError}<span id={`${effectiveFromId}-error`} class="hint">
+          <div class="defaults-field">
+            <label for={effectiveFromId}
+              >{t('Terms effective from')}<input
+                id={effectiveFromId}
+                name="effectiveFrom"
+                type="date"
+                bind:value={draft.effectiveFrom}
+                required
+                aria-invalid={Boolean(failure?.fields?.effectiveFrom)}
+                aria-describedby={effectiveFromError ? `${effectiveFromId}-error` : undefined}
+              /></label
+            >
+            {#if effectiveFromError}<span id={`${effectiveFromId}-error`} class="hint">
                 {effectiveFromError}
-              </span>{/if}</label
-          >
+              </span>{/if}
+          </div>
           <label
             >{t('Customer hourly rate')} ({currency})<input
               name="customerHourlyRate"
@@ -257,6 +269,12 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
     gap: 1rem;
+  }
+  .defaults-field {
+    display: grid;
+    gap: 0.4rem;
+    min-width: 0;
+    align-content: start;
   }
   label {
     display: grid;

@@ -862,9 +862,17 @@
         ? document.querySelector<HTMLFormElement>(`form[action*="/${action}"]`)
         : null;
       if (formElement && problem.fieldErrors)
-        reportFormFieldErrors(formElement, problem.fieldErrors);
+        reportFormFieldErrors(
+          formElement,
+          action === 'saveProjectPersonDefaults'
+            ? Object.fromEntries(
+                Object.entries(problem.fieldErrors).filter(([field]) => field !== 'effectiveFrom'),
+              )
+            : problem.fieldErrors,
+        );
       const target =
         formElement?.querySelector<HTMLElement>('[data-validation-summary]') ??
+        formElement?.querySelector<HTMLElement>('[data-defaults-validation-summary]') ??
         document.querySelector<HTMLElement>('[data-project-problem] [data-ui="problem-notice"]');
       target?.focus({ preventScroll: true });
     });

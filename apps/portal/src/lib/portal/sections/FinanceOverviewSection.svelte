@@ -3771,8 +3771,8 @@
     width: fit-content;
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
-    background: #d7f4e4;
-    color: #14532d;
+    background: var(--ja-surface-raised, #eeeee9);
+    color: var(--ja-status-info, #5b5a53);
     font-size: 0.8125rem;
     font-weight: 800;
     text-transform: none;

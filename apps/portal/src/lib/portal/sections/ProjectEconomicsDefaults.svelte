@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { enhance } from '$app/forms';
+  import { refreshAll } from '$app/navigation';
   import { untrack } from 'svelte';
   import type { ProjectPersonDefaults } from '@ja/database';
   let {
@@ -76,6 +78,12 @@
       <form
         method="POST"
         action="?/saveProjectPersonDefaults&tab=billing"
+        use:enhance={() =>
+          async ({ result, update }) => {
+            // Apply feedback before the revised defaults remount with their saved values.
+            await update({ reset: false, invalidateAll: false });
+            if (result.type === 'success') await refreshAll();
+          }}
         class="defaults-form"
         data-defaults-form
       >

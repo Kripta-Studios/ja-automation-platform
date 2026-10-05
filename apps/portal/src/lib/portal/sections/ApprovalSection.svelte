@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { normalizeVisibleProjectSelection, projectVisibility } from '../project-visibility';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { enhance } from '$app/forms';
@@ -448,6 +449,13 @@
       milestonePage = saved.milestonePage;
       financePage = saved.financePage;
     },
+    validate: (saved) => ({
+      ...saved,
+      projectFilter: normalizeVisibleProjectSelection(
+        saved.projectFilter,
+        projectVisibility(data.projects ?? [], true).projectIds,
+      ),
+    }),
   });
 
   const rows = $derived(data.records ?? []);
@@ -511,10 +519,7 @@
     scopedOperationalRows.filter(
       (row) =>
         (!stageFilter || String(row.review_stage) === stageFilter) &&
-        operationalStatusMatches(row.approval_state, statusFilter, [
-          'submitted',
-          'needs_changes',
-        ]),
+        operationalStatusMatches(row.approval_state, statusFilter, ['submitted', 'needs_changes']),
     ),
   );
   const primaryQueueRows = $derived(
@@ -817,6 +822,7 @@
 
   function approvalHref(overrides: Record<string, string>): string {
     const params = new URLSearchParams();
+    if ($page.url.searchParams.get('includeArchived') === '1') params.set('includeArchived', '1');
     const tab = overrides.tab ?? activeTab;
     const project = overrides.project ?? projectFilter;
     const worker = overrides.worker ?? workerFilter;
@@ -1006,9 +1012,7 @@
         onkeydown={(event) => handleTabKeydown(event, tab)}
       >
         <span>{tabLabel(tab)}</span>
-        <strong
-          >{primaryQueueRows.filter((row) => matchesTab(row, tab)).length}</strong
-        >
+        <strong>{primaryQueueRows.filter((row) => matchesTab(row, tab)).length}</strong>
       </button>
     {/each}
   </div>
@@ -1020,6 +1024,9 @@
     action={`${base}/app/approvals`}
     onsubmit={applyFilters}
   >
+    {#if $page.url.searchParams.get('includeArchived') === '1'}
+      <input type="hidden" name="includeArchived" value="1" />
+    {/if}
     <input type="hidden" name="tab" value={activeTab} />
     <label>
       <span>{translate('Search queue')}</span>

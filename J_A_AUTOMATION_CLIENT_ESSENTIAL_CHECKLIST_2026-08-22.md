@@ -6,7 +6,11 @@
 **Client validation update:** 2026-08-24
 The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
 
-## Latest scoped progress — October 5, 2026
+## QA cleanup, calendars, billing setup and quick guide — October 5, 2026
+
+New user-requested scope: archive synthetic QA operational data while retaining BBS/Junkers and immutable history; exclude archives from ordinary operational views with explicit history access; Owner Expense Month/Worker controls; blue Time calendar/Log time; project/client defaults in New billing stream; issuer settings/tax management tables; eight-page illustrated project-to-invoice PDF. Final focused tests **43/43**, portal typecheck and scoped lint passed. Sequential browser evidence covers Owner, Worker, PM, Finance and Auditor, responsive controls, save/failure recovery and archive filtering/export continuity. Independent GPT-6.1 Sol review **APPROVE**. The protected production data comparison found all checked rows unchanged across **44** project-linked tables. See [scoped evidence and qualifications](docs/evidence/project-billing-cleanup-20261005/README.md) and [the PDF guide](docs/manuals/Project_to_Invoice_Quick_Guide_EN.pdf). This scope adds no legacy audit credits and does not assert whole-app/Client Essential acceptance; deployment/live evidence is recorded separately after cutover.
+
+## Earlier scoped progress — October 5, 2026
 
 Accepted additions total **75 UX / 69 bugs**, remaining **25 UX / 31 bugs**; original 102 coverage remains **47 scoped / 55 NOT_RUN / 0 whole-compound PASS**. W119-B01 adds exactly one bug fix for the false universal project-number promise; it adds no UX credit. Source `0f32319aa8c2c888d47740dab220ff35cf1c08e8` / archive `49355e708d0f2b12864889a9c72ce9be8378130be5b0eb2583974ef7d6ef97a5` completed its canonical deployment October 4 at 22:56:29 Europe/Madrid. The closed Owner English 1280×720 check and independent GPT-6.1 Sol judgment support the corrected conditional caption only; Save, invoice state, renumbering and financial effects were not exercised. Root acceptance SHA256 `13cef97c09f8f0261be163901c4ede2dd681375140fe1aa2e7bafb483974d5e4`. Prior W116/W118 acceptance and dated scope remain unchanged.
 

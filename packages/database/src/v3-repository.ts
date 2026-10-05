@@ -5019,7 +5019,12 @@ export class V3Repository {
     };
   }
 
-  financePortfolio(principal: Principal, periodStart?: string, periodEnd?: string) {
+  financePortfolio(
+    principal: Principal,
+    periodStart?: string,
+    periodEnd?: string,
+    options: Readonly<{ includeArchived?: boolean }> = {},
+  ) {
     this.assertFinanceReadable(principal);
     if (periodStart) requireDate(periodStart, 'Period start');
     if (periodEnd) requireDate(periodEnd, 'Period end');
@@ -5028,6 +5033,7 @@ export class V3Repository {
       .prepare(
         `SELECT p.id,p.project_number,p.name,p.currency,p.client_id,c.client_number,c.display_name client_name
          FROM project p JOIN client c ON c.id=p.client_id
+         ${options.includeArchived === false ? "WHERE p.status<>'archived'" : ''}
          ORDER BY p.project_number`,
       )
       .all() as Array<{

@@ -1,11 +1,17 @@
 import { randomUUID } from 'node:crypto';
-import { AccessDeniedError, V3AccessDeniedError, assertLiveSession } from '@ja/database';
+import {
+  AccessDeniedError,
+  CrewLeaderRepository,
+  V3AccessDeniedError,
+  assertLiveSession,
+} from '@ja/database';
 import { expenseRegisterExport } from '@ja/reporting';
 import type { ProblemData } from '$lib/problem/contract';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { isRealIsoDate } from '$lib/server/iso-date';
 import { expenseReceiptState, expenseSearchMatches } from '$lib/portal/expense-evidence';
 import type { RequestHandler } from './$types';
+import { projectVisibility, visibleProjectRecords } from '$lib/portal/project-visibility';
 
 type ProblemName = keyof typeof definitions;
 type Definition = Readonly<{
@@ -260,8 +266,18 @@ export const GET: RequestHandler = ({ locals, url }) => {
       invalid('reimbursement', 'reimbursementInvalid');
     if (primary) return problemResponse(primary, locals.correlationId, fieldErrors);
 
-    const rows = (
-      ctx.repository.listExpensesForScope(ctx.principal) as Record<string, unknown>[]
+    const assignedProjects = ctx.repository.listAssignedProjects(ctx.principal);
+    const crewProjects =
+      ctx.principal.role === 'worker'
+        ? new CrewLeaderRepository(ctx.sqlite).projects(ctx.principal)
+        : [];
+    const visible = projectVisibility(
+      [...assignedProjects, ...crewProjects],
+      url.searchParams.get('includeArchived') === '1',
+    );
+    const rows = visibleProjectRecords(
+      ctx.repository.listExpensesForScope(ctx.principal) as Record<string, unknown>[],
+      visible.projectIds,
     ).filter(
       (row) =>
         String(row.spent_on) >= from &&

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { normalizeVisibleProjectSelection, projectVisibility } from '../project-visibility';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { SectionCard } from '../ui';
@@ -284,7 +285,9 @@
   function validateRegisterDateRange(event: SubmitEvent): void {
     if (!registerDateRangeInvalid) return;
     event.preventDefault();
-    (event.currentTarget as HTMLFormElement).querySelector<HTMLInputElement>('[name="to"]')?.focus();
+    (event.currentTarget as HTMLFormElement)
+      .querySelector<HTMLInputElement>('[name="to"]')
+      ?.focus();
   }
   let statusFilter = $state('');
   let order = $state<OperationalOrder>('newest');
@@ -599,6 +602,10 @@
     },
     validate: (saved) => ({
       ...saved,
+      projectFilter: normalizeVisibleProjectSelection(
+        saved.projectFilter,
+        projectVisibility(availableProjects, true).projectIds,
+      ),
       order: ['newest', 'oldest', 'name', 'status'].includes(saved.order) ? saved.order : 'newest',
       statusFilter: reportStatusOptions(resolveReportTab(saved.view)).includes(saved.statusFilter)
         ? saved.statusFilter
@@ -966,6 +973,7 @@
 
   function registerHref(overrides: Record<string, string>): string {
     const params = new URLSearchParams();
+    if ($page.url.searchParams.get('includeArchived') === '1') params.set('includeArchived', '1');
     const view = overrides.view ?? activeTab;
     const project = overrides.project ?? projectFilter;
     const status = overrides.status ?? statusFilter;
@@ -1091,6 +1099,9 @@
     aria-label={translate('Filter reports')}
     onsubmit={validateRegisterDateRange}
   >
+    {#if $page.url.searchParams.get('includeArchived') === '1'}
+      <input type="hidden" name="includeArchived" value="1" />
+    {/if}
     <input type="hidden" name="view" value={activeTab} />
     <label
       ><span>{translate('Search register')}</span><input

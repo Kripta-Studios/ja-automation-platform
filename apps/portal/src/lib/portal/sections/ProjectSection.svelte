@@ -99,17 +99,17 @@
     assignmentFormData?.actionName === 'assignWorker' ? assignmentFormData.values : undefined,
   );
   let search = $derived($page.url.searchParams.get('q')?.trim() ?? '');
-  let statusFilter = $derived($page.url.searchParams.get('status')?.trim() ?? '');
+  let statusFilter = $derived($page.url.searchParams.get('status')?.trim() ?? 'active');
   useViewPreferences({
     scope: 'projects',
     user: () => `${$page.data.user?.id ?? ''}:${$page.data.user?.role ?? ''}`,
     url: () => $page.url,
-    defaults: { search: '', statusFilter: '' },
+    defaults: { search: '', statusFilter: 'active' },
     query: { search: 'q', statusFilter: 'status' },
     get: () => ({ search, statusFilter }),
     set: (saved) => {
       search = saved.search;
-      statusFilter = saved.statusFilter;
+      statusFilter = saved.statusFilter || ($page.url.searchParams.has('status') ? '' : 'active');
     },
     validate: (saved) => ({
       ...saved,

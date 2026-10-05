@@ -11,6 +11,7 @@ import {
 } from './[section]/role-projections';
 import type { PageServerLoad } from './$types';
 import { portalLandingForRole } from '$lib/portal-navigation';
+import { projectVisibility, visibleProjectRecords } from '$lib/portal/project-visibility';
 export const load: PageServerLoad = ({ locals, url }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
   if (locals.user.status === 'suspended' || locals.user.status === 'offboarded')
@@ -25,8 +26,14 @@ export const load: PageServerLoad = ({ locals, url }) => {
   try {
     const searchQuery = url.searchParams.get('q')?.trim() ?? '';
     const repositorySearchResults =
-      searchQuery.length >= 2 ? context.repository.search(context.principal, searchQuery) : [];
-    const repositorySearchSuggestions = context.repository.searchSuggestions(context.principal);
+      searchQuery.length >= 2
+        ? context.repository.search(context.principal, searchQuery, { includeArchived: false })
+        : [];
+    const repositorySearchSuggestions = context.repository.searchSuggestions(
+      context.principal,
+      24,
+      { includeArchived: false },
+    );
     const isProjectManager = context.principal.role === 'project_manager';
     const searchResults = isProjectManager
       ? projectManagerSearchProjection(repositorySearchResults)
@@ -34,6 +41,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
     const searchSuggestions = isProjectManager
       ? projectManagerSearchSuggestionsProjection(repositorySearchSuggestions)
       : repositorySearchSuggestions;
+    const visible = projectVisibility(context.repository.listAssignedProjects(context.principal));
     if (context.principal.role === 'worker')
       return {
         user: locals.user,
@@ -41,8 +49,11 @@ export const load: PageServerLoad = ({ locals, url }) => {
         searchQuery,
         searchResults,
         searchSuggestions,
-        records: context.repository.listPlanning(context.principal),
-        projects: context.repository.listAssignedProjects(context.principal),
+        records: visibleProjectRecords(
+          context.repository.listPlanning(context.principal),
+          visible.projectIds,
+        ),
+        projects: visible.projects,
       };
     const dashboard = context.repository.dashboard(context.principal);
     return {
@@ -63,12 +74,18 @@ export const load: PageServerLoad = ({ locals, url }) => {
           }
         : {}),
       dashboard: isProjectManager ? projectManagerDashboardProjection(dashboard) : dashboard,
-      projects: context.repository.listAssignedProjects(context.principal),
+      projects: visible.projects,
       records: isProjectManager
         ? projectManagerApprovalQueueProjection(
-            context.repository.listApprovalQueue(context.principal),
+            visibleProjectRecords(
+              context.repository.listApprovalQueue(context.principal),
+              visible.projectIds,
+            ),
           )
-        : context.repository.listApprovalQueue(context.principal),
+        : visibleProjectRecords(
+            context.repository.listApprovalQueue(context.principal),
+            visible.projectIds,
+          ),
     };
   } finally {
     context.sqlite.close();

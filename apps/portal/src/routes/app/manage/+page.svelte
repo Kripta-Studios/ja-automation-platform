@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
+  import { page } from '$app/stores';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import RecordBrowser from '$lib/portal/ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
@@ -15,6 +17,26 @@
     portalText(normalizePortalLocale(data.locale), text, params);
   const controlled = (domain: 'status' | 'availability', value: unknown) =>
     translateControlledValue(normalizePortalLocale(data.locale), domain, String(value ?? ''));
+  function managementHref(changes: Record<string, string>): string {
+    const next = new URL($page.url);
+    next.searchParams.delete('focus');
+    for (const [key, value] of Object.entries(changes)) {
+      if (value) next.searchParams.set(key, value);
+      else next.searchParams.delete(key);
+    }
+    return `${next.pathname}${next.search}`;
+  }
+  function managementAction(name: string): string {
+    const params = new URLSearchParams($page.url.searchParams);
+    for (const key of [...params.keys()]) if (key.startsWith('/')) params.delete(key);
+    return `?/${name}&${params}`;
+  }
+  const inactiveHistory = $derived($page.url.searchParams.get('includeInactive') === '1');
+  const inactiveHistoryCopy = {
+    en: { show: 'Show inactive workers', hide: 'Show active workers only' },
+    es: { show: 'Mostrar trabajadores inactivos', hide: 'Mostrar solo trabajadores activos' },
+    pt: { show: 'Mostrar trabalhadores inativos', hide: 'Mostrar apenas trabalhadores ativos' },
+  };
   const feedback = $derived.by(() => {
     if (!form) return '';
     const result = form as {
@@ -86,6 +108,8 @@
   });
   const reviewRecordHref = $derived.by(() => {
     const params = new URLSearchParams();
+    if ($page.url.searchParams.get('includeArchived') === '1') params.set('includeArchived', '1');
+    if (inactiveHistory) params.set('includeInactive', '1');
     if (data.area) params.set('area', data.area);
     else params.set('type', data.recordType);
     if (failedRecordId) params.set('focus', failedRecordId);
@@ -190,6 +214,16 @@
       >{t('Worker pay review')} <DirectionIcon /></a
     >
   </header>
+  <ArchivedProjectHistory url={$page.url} locale={normalizePortalLocale(data.locale)} />
+  <p>
+    <a
+      class="secondary-button"
+      href={managementHref({ includeInactive: inactiveHistory ? '' : '1' })}
+      >{inactiveHistoryCopy[normalizePortalLocale(data.locale)][
+        inactiveHistory ? 'hide' : 'show'
+      ]}</a
+    >
+  </p>
   {#if formProblem}
     <div data-management-problem>
       <ProblemNotice
@@ -204,7 +238,7 @@
   <nav class="management-tabs" aria-label={t('Management areas')}>
     {#each [['', 'Operational records'], ['planning_assignment', 'Planning'], ['worker_availability', 'Availability'], ['document', 'Documents'], ['technical_change', 'Technical changes'], ['project_milestone', 'Milestones']] as [area, label]}
       <a
-        href={area ? `?area=${area}` : '?type=expense'}
+        href={managementHref({ area: area ?? '', type: area ? '' : 'expense' })}
         aria-current={(area ? data.area === area : !data.catalog) ? 'page' : undefined}
         >{t(label ?? '')}</a
       >
@@ -274,7 +308,7 @@
     <SectionCard title={t('Operational records')}>
       <nav aria-label={t('Record type')} class="management-tabs">
         {#each types as [type, label]}<a
-            href={`?type=${type}`}
+            href={managementHref({ type, area: '' })}
             aria-current={data.recordType === type ? 'page' : undefined}>{t(label ?? '')}</a
           >{/each}
       </nav>
@@ -330,7 +364,7 @@
                 <summary>{t('Manage record')}</summary>
                 <form
                   method="POST"
-                  action={`?/manageRecord&type=${data.recordType}`}
+                  action={managementAction('manageRecord')}
                   use:formValidation
                   use:rememberManagementScroll
                   data-management-record-id={row.id}
@@ -397,7 +431,7 @@
 {#snippet catalogForm(row: Record<string, unknown> | null)}
   <form
     method="POST"
-    action={`?/manageCatalog&area=${data.area}`}
+    action={managementAction('manageCatalog')}
     use:formValidation
     use:rememberManagementScroll
     data-management-record-id={String(row?.id ?? '')}

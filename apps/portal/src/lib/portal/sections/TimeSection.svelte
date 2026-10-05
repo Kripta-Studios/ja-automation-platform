@@ -706,6 +706,7 @@
 
   function filterHref(overrides: Record<string, string>): string {
     const params = new URLSearchParams();
+    if ($page.url.searchParams.get('includeArchived') === '1') params.set('includeArchived', '1');
     const project = overrides.project ?? String(data.timeFilter?.projectId ?? '');
     const category = overrides.category ?? String(data.timeFilter?.category ?? '');
     const status = overrides.status ?? statusFilter;
@@ -962,6 +963,7 @@
         type="button"
         class="time-primary-action"
         data-time-primary-cta
+        disabled={saving}
         onclick={() => openCreate()}
       >
         {translate('Log time')}
@@ -1006,6 +1008,15 @@
     <section class="time-week-submit" aria-labelledby="time-week-submit-title">
       <div>
         <h3 id="time-week-submit-title">{translate('Submit this week')}</h3>
+        {#if $page.url.searchParams.get('includeArchived') === '1'}
+          <p>
+            {{
+              en: 'Weekly submission excludes archived project drafts. They remain available in history.',
+              es: 'El envío semanal excluye los borradores de proyectos archivados. Siguen disponibles en el historial.',
+              pt: 'O envio semanal exclui rascunhos de projetos arquivados. Continuam disponíveis no histórico.',
+            }[warningLocale]}
+          </p>
+        {/if}
         <p>
           {translate(
             'Submit all draft hours for one worker in the displayed week, together with meals added in Log time. Submitted records enter review.',
@@ -1104,8 +1115,11 @@
           <label
             ><span>{translate('Month')}</span><input
               type="month"
-              bind:value={calendarMonth}
-              onchange={(event) => (calendarDay = `${event.currentTarget.value}-01`)}
+              value={calendarMonth}
+              onchange={(event) => {
+                calendarMonth = event.currentTarget.value;
+                calendarDay = calendarMonth ? `${calendarMonth}-01` : '';
+              }}
             /></label
           >
         </div>
@@ -1146,7 +1160,7 @@
           <h4>{calendarDay}</h4>
           <button
             type="button"
-            disabled={!calendarWorker}
+            disabled={!calendarWorker || !calendarDay}
             onclick={() => openCreate(calendarDay, calendarWorker)}
           >
             {translate('Log time on this day')}
@@ -1213,6 +1227,9 @@
           onsubmit={submitBatchWeekPicker}
         >
           <input type="hidden" name="batch" value="1" />
+          {#if $page.url.searchParams.get('includeArchived') === '1'}
+            <input type="hidden" name="includeArchived" value="1" />
+          {/if}
           <div class="time-batch-week-control">
             <label>
               <span>{translate('Week of')}</span>
@@ -1372,6 +1389,9 @@
     onsubmit={validateRegisterDateRange}
   >
     <input type="hidden" name="week" value={data.weekStart ?? ''} />
+    {#if $page.url.searchParams.get('includeArchived') === '1'}
+      <input type="hidden" name="includeArchived" value="1" />
+    {/if}
     <label>
       <span>{translate('Search register')}</span>
       <input
@@ -2037,6 +2057,11 @@
 </ResponsiveSheet>
 
 <style>
+  .time-page {
+    --time-accent: #2349b5;
+    --time-accent-hover: #193889;
+    --time-calendar-surface: #eef3ff;
+  }
   .time-submit-warning {
     grid-column: 1 / -1;
     min-width: 0;
@@ -2051,6 +2076,27 @@
   }
   .time-primary-action-top {
     justify-content: flex-start;
+  }
+  .time-primary-action {
+    background: var(--time-accent);
+    border-color: var(--time-accent);
+    color: var(--ja-white, #fff);
+  }
+  .time-primary-action:hover:not(:disabled),
+  .time-primary-action:focus-visible:not(:disabled) {
+    background: var(--time-accent-hover);
+    border-color: var(--time-accent-hover);
+    color: var(--ja-white, #fff);
+  }
+  .time-primary-action:focus-visible {
+    outline: 3px solid var(--ja-border-focus, #4568ff);
+    outline-offset: 2px;
+  }
+  .time-primary-action:disabled {
+    background: var(--time-accent);
+    border-color: var(--time-accent);
+    opacity: 0.62;
+    cursor: wait;
   }
   .operational-action-copy {
     color: var(--ja-steel, #77756d);
@@ -2115,44 +2161,58 @@
     justify-self: start;
   }
   .time-calendar-controls label {
-    min-width: 10rem;
+    flex: 1 1 10rem;
+  }
+  .time-calendar-controls {
+    flex: 1 1 24rem;
+    max-width: 28rem;
+    min-width: 0;
+    gap: 0.75rem;
   }
   .time-calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0.3rem;
+    gap: 0.35rem;
     margin-top: 1rem;
   }
   .time-calendar-weekday {
     text-align: center;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
   }
   .time-calendar-grid button {
-    min-height: 4rem;
+    min-width: 0;
+    min-height: 64px;
     display: grid;
-    align-content: start;
-    justify-items: start;
-    gap: 0.15rem;
+    gap: 0.2rem;
     padding: 0.4rem;
-    border: 1px solid var(--ja-control-border, #d7d8d2);
-    border-radius: 0.45rem;
-    background: white;
-    color: inherit;
+    border: 1px solid color-mix(in srgb, var(--time-accent) 65%, white);
+    border-radius: var(--ja-control-radius, 0.625rem);
+    background: color-mix(in srgb, var(--time-calendar-surface) 40%, white);
+    color: var(--time-accent);
   }
   .time-calendar-grid button small {
-    font-size: 0.72rem;
-    color: var(--ja-text-secondary, #57574f);
+    font-size: 0.8rem;
+    color: inherit;
+    overflow-wrap: anywhere;
   }
   .time-calendar-grid button.time-calendar-outside {
     background: var(--ja-canvas, #f6f6f1);
     color: var(--ja-text-secondary, #57574f);
   }
   .time-calendar-grid button.time-calendar-selected {
-    border: 2px solid var(--ja-accent, #2349b5);
-    background: var(--ja-canvas, #f6f6f1);
+    border: 2px solid var(--time-accent);
+    background: var(--time-calendar-surface);
+    color: var(--time-accent);
+  }
+  .time-calendar-grid button:hover,
+  .time-calendar-grid button:focus-visible {
+    border-color: var(--time-accent);
+    background: var(--time-calendar-surface);
+    color: var(--time-accent);
   }
   .time-calendar-grid button:focus-visible {
-    outline: 3px solid var(--ja-accent, #2349b5);
+    outline: 3px solid var(--time-accent);
+    outline-offset: 2px;
   }
   .time-calendar-day {
     margin-top: 1rem;
@@ -2246,11 +2306,13 @@
       padding: 0.8rem;
     }
     .time-calendar-grid button {
-      min-height: 3.1rem;
-      padding: 0.2rem;
+      min-height: 48px;
     }
     .time-calendar-grid button small {
-      font-size: 0.62rem;
+      font-size: 0.7rem;
+    }
+    .time-calendar-grid {
+      gap: 0.2rem;
     }
     .time-batch-row {
       grid-template-columns: repeat(2, minmax(0, 1fr));

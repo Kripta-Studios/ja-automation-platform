@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import ExpenseWeekPanel from './ExpenseWeekPanel.svelte';
+  import { normalizeVisibleProjectSelection, projectVisibility } from '../project-visibility';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { page } from '$app/stores';
   import { beforeNavigate, replaceState } from '$app/navigation';
@@ -770,6 +771,10 @@
     },
     validate: (saved) => ({
       ...saved,
+      projectFilter: normalizeVisibleProjectSelection(
+        saved.projectFilter,
+        projectVisibility(availableProjects, true).projectIds,
+      ),
       order: ['newest', 'oldest', 'name', 'status'].includes(saved.order) ? saved.order : 'newest',
       reimbursementFilter: canViewReimbursement ? saved.reimbursementFilter : '',
     }),
@@ -1344,6 +1349,7 @@
 
   function registerHref(overrides: Record<string, string>): string {
     const params = new URLSearchParams();
+    if ($page.url.searchParams.get('includeArchived') === '1') params.set('includeArchived', '1');
     const project = overrides.project ?? projectFilter;
     const status = overrides.status ?? statusFilter;
     const reimbursement = overrides.reimbursement ?? reimbursementFilter;
@@ -1373,6 +1379,7 @@
 
   function exportHref(format: 'csv' | 'xlsx' | 'pdf'): string {
     const params = new URLSearchParams({ from: exportFrom, to: exportTo, format });
+    if ($page.url.searchParams.get('includeArchived') === '1') params.set('includeArchived', '1');
     if (exportProject) params.set('project', exportProject);
     if (exportWorker) params.set('worker', exportWorker);
     if (exportClient) params.set('client', exportClient);
@@ -1400,6 +1407,7 @@
       format,
     });
     if (search) params.set('q', search);
+    if ($page.url.searchParams.get('includeArchived') === '1') params.set('includeArchived', '1');
     if (projectFilter) params.set('project', projectFilter);
     if (workerFilter) params.set('worker', workerFilter);
     if (clientFilter) params.set('client', clientFilter);
@@ -1509,6 +1517,9 @@
     aria-label={translate('Filter expenses')}
     onsubmit={validateRegisterDateRange}
   >
+    {#if $page.url.searchParams.get('includeArchived') === '1'}
+      <input type="hidden" name="includeArchived" value="1" />
+    {/if}
     <label>
       <span>{translate('Search expenses')}</span>
       <input

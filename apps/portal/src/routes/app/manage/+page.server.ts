@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import {
   AccessDeniedError,
   ConflictError,
@@ -12,6 +12,12 @@ import { openPortalRepository } from '$lib/server/portal-repository';
 import { englishCoverageKey } from '$lib/i18n/coverage-translations';
 import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/action-message';
 import type { Actions, PageServerLoad } from './$types';
+import {
+  includesArchivedProjectHistory,
+  normalizeVisibleProjectSelection,
+  projectVisibility,
+  visibleProjectRecords,
+} from '$lib/portal/project-visibility';
 
 const domains = [
   {
@@ -87,45 +93,127 @@ export const load: PageServerLoad = ({ locals, url }) => {
       error(400, 'Invalid record type');
     const area = url.searchParams.get('area') || '';
     if (area && !Object.hasOwn(ownerCatalogs, area)) error(400, 'Invalid management area');
-    const projects = ctx.sqlite
-      .prepare('SELECT id,project_number,name FROM project ORDER BY project_number')
-      .all() as { id: string; project_number: string; name: string }[];
+    const includeArchived = includesArchivedProjectHistory(url.searchParams);
+    const includeInactive = url.searchParams.get('includeInactive') === '1';
+    const scope = projectVisibility(
+      ctx.repository.listAssignedProjects(ctx.principal),
+      includeArchived,
+    );
+    const projects = scope.projects;
     const requestedProjectId = url.searchParams.get('project') ?? '';
+    const selectedProjectId = normalizeVisibleProjectSelection(
+      requestedProjectId,
+      scope.projectIds,
+    );
+    if (requestedProjectId && !selectedProjectId) {
+      const canonical = new URL(url);
+      canonical.searchParams.delete('project');
+      canonical.searchParams.delete('focus');
+      redirect(303, `${canonical.pathname}${canonical.search}`);
+    }
+    const records = visibleProjectRecords(
+      manager.list(ctx.principal, recordType),
+      scope.projectIds,
+    ).filter((row) => !selectedProjectId || row.project_id === selectedProjectId);
+    const workers = ctx.sqlite
+      .prepare(
+        `SELECT id,name,email,status FROM user WHERE role IN ('worker','project_manager')
+         ${includeInactive ? '' : "AND status='active'"} ORDER BY name`,
+      )
+      .all() as { id: string; name: string; email: string; status: string }[];
+    const workerIds = new Set(workers.map((worker) => worker.id));
+    const catalogRows = area
+      ? new OwnerCatalogManagement(ctx.sqlite)
+          .list(ctx.principal, area)
+          .filter((row) =>
+            row.project_id
+              ? scope.projectIds.has(String(row.project_id)) &&
+                (!selectedProjectId || row.project_id === selectedProjectId)
+              : true,
+          )
+          .filter((row) => area !== 'worker_availability' || workerIds.has(String(row.worker_id)))
+      : [];
+    const requestedFocusId = url.searchParams.get('focus') ?? '';
+    const focusId = (area ? catalogRows : records).some((row) => row.id === requestedFocusId)
+      ? requestedFocusId
+      : '';
+    if (requestedFocusId && !focusId) {
+      const canonical = new URL(url);
+      canonical.searchParams.delete('focus');
+      redirect(303, `${canonical.pathname}${canonical.search}`);
+    }
+    // Counts describe current operational/configuration lists. Financial obligations
+    // and issued/accounting history keep their complete historical counts.
+    const historicalTables = new Set([
+      'invoice',
+      'billing_period',
+      'payment',
+      'compensation_settlement',
+      'accounting_pack_run',
+      'accounting_pack_revision',
+      'legal_entity',
+      'tax_profile',
+      'invoice_number_policy',
+    ]);
+    function countVisible(table: string): number {
+      const conditions: string[] = [];
+      const values: string[] = [];
+      if (!historicalTables.has(table)) {
+        const columns = new Set(
+          (ctx.sqlite.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map(
+            (column) => column.name,
+          ),
+        );
+        if (table === 'project' || columns.has('project_id')) {
+          const column = table === 'project' ? 'id' : 'project_id';
+          const ids = [...scope.projectIds];
+          conditions.push(
+            `${column} IS NULL OR ${ids.length ? `${column} IN (${ids.map(() => '?').join(',')})` : '0'}`,
+          );
+          values.push(...ids);
+        }
+        if (!includeInactive && table === 'user') conditions.push("status='active'");
+        if (!includeArchived && table === 'client') conditions.push("status<>'archived'");
+        if (!includeArchived && table === 'client_contact')
+          conditions.push("client_id IN (SELECT id FROM client WHERE status<>'archived')");
+        if (!includeInactive && table === 'supplier') conditions.push("status='active'");
+        if (!includeInactive && table === 'supplier_user_profile')
+          conditions.push("user_id IN (SELECT id FROM user WHERE status='active')");
+        if (!includeInactive && table === 'supplier_project_grant')
+          conditions.push("supplier_id IN (SELECT id FROM supplier WHERE status='active')");
+        if (!includeInactive && ['worker_skill', 'worker_availability'].includes(table))
+          conditions.push("worker_id IN (SELECT id FROM user WHERE status='active')");
+      }
+      return Number(
+        ctx.sqlite
+          .prepare(
+            `SELECT count(*) count FROM ${table}${conditions.length ? ` WHERE ${conditions.map((condition) => `(${condition})`).join(' AND ')}` : ''}`,
+          )
+          .get(...values)?.count ?? 0,
+      );
+    }
     return {
       managementUser: locals.user!,
       recordType,
-      records: manager.list(ctx.principal, recordType),
+      records,
       area,
       catalog: area ? ownerCatalogs[area]! : null,
-      technicalReports: ctx.sqlite
-        .prepare('SELECT id,system_name FROM technical_report ORDER BY system_name')
-        .all() as { id: string; system_name: string }[],
-      catalogRows: area
-        ? new OwnerCatalogManagement(ctx.sqlite)
-            .list(ctx.principal, area)
-            .filter(
-              (row) =>
-                !url.searchParams.get('project') ||
-                String(row.project_id) === url.searchParams.get('project'),
-            )
-        : [],
-      focusId: url.searchParams.get('focus') ?? '',
+      technicalReports: visibleProjectRecords(
+        ctx.sqlite
+          .prepare('SELECT id,project_id,system_name FROM technical_report ORDER BY system_name')
+          .all(),
+        scope.projectIds,
+      ).filter((report) => !selectedProjectId || report.project_id === selectedProjectId),
+      catalogRows,
+      focusId,
       projects,
-      selectedProjectId: projects.some((project) => project.id === requestedProjectId)
-        ? requestedProjectId
-        : '',
-      workers: ctx.sqlite
-        .prepare(
-          "SELECT id,name,email FROM user WHERE role IN ('worker','project_manager') ORDER BY name",
-        )
-        .all() as { id: string; name: string; email: string }[],
+      selectedProjectId,
+      workers,
       domains: domains.map((domain) => ({
         ...domain,
         counts: domain.tables.map((table) => ({
           table,
-          count: Number(
-            ctx.sqlite.prepare(`SELECT count(*) count FROM ${table}`).get()?.count ?? 0,
-          ),
+          count: countVisible(table),
         })),
       })),
     };

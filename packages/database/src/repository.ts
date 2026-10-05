@@ -1902,6 +1902,7 @@ export class PortalRepository {
           `SELECT id,project_id,worker_id,work_date,version
              FROM time_entry
             WHERE worker_id=? AND work_date BETWEEN ? AND ? AND approval_state='draft'
+              AND EXISTS (SELECT 1 FROM project p WHERE p.id=time_entry.project_id AND p.status<>'archived')
             ORDER BY work_date,id`,
         )
         .all(workerId, weekStart, weekEnd) as Array<{
@@ -9161,17 +9162,17 @@ export class PortalRepository {
       .get(...projectFilter) as { count: number };
     const hours = this.sqlite
       .prepare(
-        `SELECT COALESCE(sum(t.minutes),0) minutes FROM time_entry t JOIN project p ON p.id=t.project_id${where}${where ? ' AND' : ' WHERE'} t.approval_state IN ('submitted','approved','locked') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id WHERE rcl.record_type='time_entry' AND ((rcl.original_id=t.id AND correction.approval_state='approved') OR (rcl.correction_id=t.id AND correction.approval_state<>'approved')))`,
+        `SELECT COALESCE(sum(t.minutes),0) minutes FROM time_entry t JOIN project p ON p.id=t.project_id${where}${where ? ' AND' : ' WHERE'} p.status<>'archived' AND t.approval_state IN ('submitted','approved','locked') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id WHERE rcl.record_type='time_entry' AND ((rcl.original_id=t.id AND correction.approval_state='approved') OR (rcl.correction_id=t.id AND correction.approval_state<>'approved')))`,
       )
       .get(...projectFilter) as { minutes: number };
     const reports = this.sqlite
       .prepare(
-        `SELECT (SELECT count(*) FROM daily_report d JOIN project p ON p.id=d.project_id${where}${where ? ' AND' : ' WHERE'} d.approval_state='submitted') + (SELECT count(*) FROM technical_report tr JOIN project p ON p.id=tr.project_id${where}${where ? ' AND' : ' WHERE'} tr.approval_state='submitted') count`,
+        `SELECT (SELECT count(*) FROM daily_report d JOIN project p ON p.id=d.project_id${where}${where ? ' AND' : ' WHERE'} p.status<>'archived' AND d.approval_state='submitted') + (SELECT count(*) FROM technical_report tr JOIN project p ON p.id=tr.project_id${where}${where ? ' AND' : ' WHERE'} p.status<>'archived' AND tr.approval_state='submitted') count`,
       )
       .get(...projectFilter, ...projectFilter) as { count: number };
     const expenses = this.sqlite
       .prepare(
-        `SELECT e.currency,CAST(sum(e.amount_minor) AS TEXT) minor FROM expense e JOIN project p ON p.id=e.project_id${where}${where ? ' AND' : ' WHERE'} e.approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=e.id AND correction.approval_state='approved') OR (rcl.correction_id=e.id AND correction.approval_state<>'approved'))) GROUP BY e.currency ORDER BY e.currency`,
+        `SELECT e.currency,CAST(sum(e.amount_minor) AS TEXT) minor FROM expense e JOIN project p ON p.id=e.project_id${where}${where ? ' AND' : ' WHERE'} p.status<>'archived' AND e.approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=e.id AND correction.approval_state='approved') OR (rcl.correction_id=e.id AND correction.approval_state<>'approved'))) GROUP BY e.currency ORDER BY e.currency`,
       )
       .all(...projectFilter) as Array<{ currency: string; minor: string }>;
     const invoices = this.sqlite
@@ -10069,7 +10070,11 @@ export class PortalRepository {
     if (result.changes !== 1) throw new ValidationError('Notification not found');
   }
 
-  search(principal: Principal, query: string) {
+  search(
+    principal: Principal,
+    query: string,
+    options: Readonly<{ includeArchived?: boolean }> = {},
+  ) {
     this.assertReadable(principal);
     const term = typeof query === 'string' ? query.trim() : '';
     if (term.length > 120) throw new ValidationError('Search query is too long');
@@ -10131,18 +10136,19 @@ export class PortalRepository {
         : principal.role === 'project_manager'
           ? ' AND 1=0'
           : '';
+    const operationalRestriction = `${projectRestriction}${options.includeArchived === false ? " AND p.status<>'archived'" : ''}`;
     const projectValues = [...projectIds];
     const projects = this.sqlite
       .prepare(
         `SELECT p.id,'project' type,p.name label,p.project_number || ' · ' || COALESCE(p.po_number,'Project') detail FROM project p
-               WHERE (p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\' OR p.po_number LIKE ? ESCAPE '\\')${projectRestriction} LIMIT 50`,
+               WHERE (p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\' OR p.po_number LIKE ? ESCAPE '\\')${operationalRestriction} LIMIT 50`,
       )
       .all(pattern, pattern, pattern, ...projectValues);
     const clients = this.sqlite
       .prepare(
         `SELECT c.id,'client' type,c.display_name label,c.client_number || ' · Client' detail FROM client c
                JOIN project p ON p.client_id=c.id
-               WHERE (c.client_number LIKE ? ESCAPE '\\' OR c.display_name LIKE ? ESCAPE '\\')${projectRestriction} LIMIT 50`,
+               WHERE (c.client_number LIKE ? ESCAPE '\\' OR c.display_name LIKE ? ESCAPE '\\')${operationalRestriction} LIMIT 50`,
       )
       .all(pattern, pattern, ...projectValues);
     const workers = this.sqlite
@@ -10167,11 +10173,11 @@ export class PortalRepository {
       .prepare(
         `SELECT d.id,'report' type,COALESCE(d.summary,'Daily report') label,p.project_number || ' · Daily report' detail
                FROM daily_report d JOIN project p ON p.id=d.project_id
-               WHERE (d.id LIKE ? ESCAPE '\\' OR d.summary LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')${projectRestriction}
+               WHERE (d.id LIKE ? ESCAPE '\\' OR d.summary LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')${operationalRestriction}
                UNION ALL
                SELECT t.id,'report' type,COALESCE(t.system_name,t.change_summary,'Technical report') label,p.project_number || ' · Technical report' detail
                FROM technical_report t JOIN project p ON p.id=t.project_id
-               WHERE (t.id LIKE ? ESCAPE '\\' OR t.system_name LIKE ? ESCAPE '\\' OR t.change_summary LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')${projectRestriction}`,
+               WHERE (t.id LIKE ? ESCAPE '\\' OR t.system_name LIKE ? ESCAPE '\\' OR t.change_summary LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')${operationalRestriction}`,
       )
       .all(
         pattern,
@@ -10190,7 +10196,7 @@ export class PortalRepository {
       .prepare(
         `SELECT e.id,'expense' type,COALESCE(NULLIF(TRIM(e.vendor),''),NULLIF(TRIM(e.description),''),e.category) label,p.project_number || ' · Expense / receipt' detail,p.project_number projectNumber,e.spent_on spentOn,e.approval_state approvalState
                FROM expense e JOIN project p ON p.id=e.project_id
-               WHERE (e.id LIKE ? ESCAPE '\\' OR e.receipt_document_id LIKE ? ESCAPE '\\' OR e.vendor LIKE ? ESCAPE '\\' OR e.description LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\')${projectRestriction} LIMIT 50`,
+               WHERE (e.id LIKE ? ESCAPE '\\' OR e.receipt_document_id LIKE ? ESCAPE '\\' OR e.vendor LIKE ? ESCAPE '\\' OR e.description LIKE ? ESCAPE '\\' OR p.project_number LIKE ? ESCAPE '\\')${operationalRestriction} LIMIT 50`,
       )
       .all(pattern, pattern, pattern, pattern, pattern, ...projectValues);
     return [...projects, ...clients, ...workers, ...invoices, ...reports, ...expenses].slice(
@@ -10199,10 +10205,14 @@ export class PortalRepository {
     );
   }
 
-  searchSuggestions(principal: Principal, limit = 24) {
+  searchSuggestions(
+    principal: Principal,
+    limit = 24,
+    options: Readonly<{ includeArchived?: boolean }> = {},
+  ) {
     this.assertReadable(principal);
     const bounded = Math.max(1, Math.min(50, Math.trunc(limit)));
-    return this.search(principal, '').slice(0, bounded);
+    return this.search(principal, '', options).slice(0, bounded);
   }
 
   listAuditEvents(
@@ -11363,7 +11373,13 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     return this.sqlite
       .prepare(
-        'SELECT id,project_number,name,status,currency,client_id FROM project ORDER BY project_number',
+        `SELECT p.id,p.project_number,p.name,p.status,p.currency,p.client_id,p.po_number,
+                c.payment_terms_days AS client_payment_terms_days,
+                c.billing_email AS client_billing_email,
+                c.po_reference AS client_po_reference
+           FROM project p
+           JOIN client c ON c.id=p.client_id
+          ORDER BY p.project_number`,
       )
       .all();
   }

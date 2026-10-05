@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
   import ProjectCreationAssignments from '$lib/portal/sections/ProjectCreationAssignments.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import {
@@ -3751,6 +3752,10 @@
       </section>
     {/if}
 
+    {#if ['time', 'expenses', 'reports', 'planning', 'approvals', 'projects', 'documents', 'finance', 'billing'].includes(data.section) && ['owner_admin', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(String(data.user.role)) && !data.user.workforceProfile}
+      <ArchivedProjectHistory url={$page.url} {locale} />
+    {/if}
+
     {#if data.section === 'today'}
       <TodaySection
         {locale}
@@ -5825,6 +5830,7 @@
               {translate}
               statusLabel={(value) => controlledValue('status', value)}
               label="Project"
+              status={$page.url.searchParams.get('status') ?? 'active'}
               showEmpty={availableProjects.length > 0}
             />
             {#each projectRegisterPage as row (row.id)}
@@ -6939,6 +6945,9 @@
             <span>{data.records?.length ?? 0}</span>
           </div>
           <form method="GET" class="admin-form-grid">
+            {#if $page.url.searchParams.get('includeArchived') === '1'}
+              <input type="hidden" name="includeArchived" value="1" />
+            {/if}
             <label
               >{translate('Project')}<select
                 name="project"

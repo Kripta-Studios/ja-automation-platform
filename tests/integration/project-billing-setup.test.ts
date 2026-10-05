@@ -70,6 +70,31 @@ function dayOffset(days: number): string {
 }
 
 describe('project-centered billing setup', () => {
+  it('projects saved PO and client payment defaults only to finance-authorized roles', () => {
+    const value = setup();
+    value.sqlite
+      .prepare('UPDATE project SET po_number=? WHERE id=?')
+      .run('PROJECT-PO-42', value.project.id);
+    value.sqlite
+      .prepare('UPDATE client SET payment_terms_days=?,billing_email=?,po_reference=? WHERE id=?')
+      .run(45, 'billing-defaults@example.test', 'CLIENT-PO-FALLBACK', value.client.id);
+    for (const principal of [value.owner, value.finance]) {
+      const project = value.repository
+        .listFinanceProjects(principal)
+        .find((row) => row.id === value.project.id);
+      expect(project).toMatchObject({
+        id: value.project.id,
+        client_id: value.client.id,
+        po_number: 'PROJECT-PO-42',
+        client_payment_terms_days: 45,
+        client_billing_email: 'billing-defaults@example.test',
+        client_po_reference: 'CLIENT-PO-FALLBACK',
+      });
+    }
+    expect(() => value.repository.listFinanceProjects(value.worker)).toThrow(AccessDeniedError);
+    expect(() => value.repository.listFinanceProjects(value.manager)).toThrow(AccessDeniedError);
+  });
+
   it('exposes active tax profiles to the billing setup selector', () => {
     const value = setup();
     expect(value.repository.listTaxProfiles(value.finance)).toContainEqual(

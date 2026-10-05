@@ -876,6 +876,7 @@ export const expenseActions = {
                LEFT JOIN operational_time_expense_request r ON r.expense_id=e.id
                LEFT JOIN time_entry t ON t.id=r.time_entry_id
               WHERE e.worker_id=? AND e.spent_on BETWEEN ? AND ? AND e.approval_state='draft'
+                AND EXISTS (SELECT 1 FROM project p WHERE p.id=e.project_id AND p.status<>'archived')
               ORDER BY e.spent_on,e.id`,
           )
           .all(workerId, weekStart, dates[6]!) as Array<{

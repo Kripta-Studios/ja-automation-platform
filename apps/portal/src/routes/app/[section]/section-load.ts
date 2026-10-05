@@ -24,6 +24,12 @@ import {
   projectManagerSearchSuggestionsProjection,
 } from './role-projections';
 import { listMailboxAccounts } from '$lib/server/mail-directory';
+import {
+  includesArchivedProjectHistory,
+  normalizeVisibleProjectSelection,
+  projectVisibility,
+  visibleProjectRecords,
+} from '$lib/portal/project-visibility';
 
 const sections = [
   'time',
@@ -70,6 +76,17 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
       error(403, 'Operational account: access denied');
     const searchQuery = url.searchParams.get('q')?.trim() ?? '';
     const isProjectManager = context.principal.role === 'project_manager';
+    const includeArchived = includesArchivedProjectHistory(url.searchParams);
+    function normalizeProjectQuery(projectIds: ReadonlySet<string>): string {
+      const requested = url.searchParams.get('project');
+      const selected = normalizeVisibleProjectSelection(requested, projectIds);
+      if (requested && !selected) {
+        const canonical = new URL(url);
+        canonical.searchParams.delete('project');
+        redirect(303, `${canonical.pathname}${canonical.search}${canonical.hash}`);
+      }
+      return selected;
+    }
     const canonicalOwner = (() => {
       if (context.principal.role !== 'owner_admin') return false;
       try {
@@ -98,21 +115,26 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         ? []
         : isProjectManager
           ? projectManagerSearchSuggestionsProjection(
-              context.repository.searchSuggestions(context.principal),
+              context.repository.searchSuggestions(context.principal, 24, { includeArchived }),
             )
-          : context.repository.searchSuggestions(context.principal),
+          : context.repository.searchSuggestions(context.principal, 24, { includeArchived }),
       searchResults:
         !restrictedProfile && searchQuery.length >= 2
           ? isProjectManager
             ? projectManagerSearchProjection(
-                context.repository.search(context.principal, searchQuery),
+                context.repository.search(context.principal, searchQuery, { includeArchived }),
               )
-            : context.repository.search(context.principal, searchQuery)
+            : context.repository.search(context.principal, searchQuery, { includeArchived })
           : [],
     };
     switch (section) {
       case 'time': {
-        const timeProjects = context.repository.listAssignedProjects(context.principal);
+        const timeScope = projectVisibility(
+          context.repository.listAssignedProjects(context.principal),
+          includeArchived,
+        );
+        const timeProjects = timeScope.projects;
+        const selectedProject = normalizeProjectQuery(timeScope.projectIds);
         const timeProjectIds = timeProjects.map((project) => String(project.id));
         const timeAssignments = timeProjectIds.length
           ? context.sqlite
@@ -179,8 +201,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   week.weekEnd,
                   weekStart,
                 ) as WeeklyProjectSchedule[]);
+        const visibleWeekRows = visibleProjectRecords(week.rows, timeScope.projectIds);
         const timesheet = weeklyView(
-          week.rows as Array<Record<string, unknown>>,
+          visibleWeekRows as Array<Record<string, unknown>>,
           weekStart,
           weeklySchedules,
         );
@@ -205,7 +228,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             }
           : undefined;
         const category = url.searchParams.get('category')?.trim() || undefined;
-        const projectId = url.searchParams.get('project')?.trim() || undefined;
+        const projectId = selectedProject || undefined;
         const workerId = url.searchParams.get('worker')?.trim() || undefined;
         // Native GET week picks need the same selected-week scope as the week
         // links, without retaining an earlier register's date range.
@@ -216,19 +239,26 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           ...common,
           projects: timeProjects,
           timeAssignments,
-          records: context.repository
-            .listTimeForScope(context.principal, {
+          records: visibleProjectRecords(
+            context.repository.listTimeForScope(context.principal, {
               category,
               projectId,
               from,
               to,
-            })
-            .filter((row) => !workerId || String(row.worker_id) === workerId),
+            }),
+            timeScope.projectIds,
+          ).filter((row) => !workerId || String(row.worker_id) === workerId),
           calendarRecords:
             context.principal.role === 'owner_admin'
-              ? context.repository.listTimeForScope(context.principal)
+              ? visibleProjectRecords(
+                  context.repository.listTimeForScope(context.principal),
+                  timeScope.projectIds,
+                )
               : undefined,
-          weekDraftRecords: week.rows,
+          weekDraftRecords: visibleProjectRecords(
+            week.rows,
+            projectVisibility(timeProjects).projectIds,
+          ),
           timeFilter: {
             category: category ?? '',
             projectId: projectId ?? '',
@@ -242,23 +272,43 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           weeklyPay,
         };
       }
-      case 'reports':
+      case 'reports': {
+        const scope = projectVisibility(
+          context.repository.listAssignedProjects(context.principal),
+          includeArchived,
+        );
+        normalizeProjectQuery(scope.projectIds);
         return {
           ...common,
           assignments:
             ['owner_admin', 'project_manager'].includes(context.principal.role) &&
             !restrictedProfile
-              ? context.repository.listAssignments(context.principal)
+              ? visibleProjectRecords(
+                  context.repository.listAssignments(context.principal),
+                  scope.projectIds,
+                )
               : [],
-          projects: context.repository.listAssignedProjects(context.principal),
-          records: context.repository.listOwnReports(context.principal),
+          projects: scope.projects,
+          records: visibleProjectRecords(
+            context.repository.listOwnReports(context.principal),
+            scope.projectIds,
+          ),
           technicalChanges: restrictedProfile
             ? []
-            : context.v3.listTechnicalChanges(context.principal),
-          periodReports: restrictedProfile ? [] : context.v3.listPeriodReports(context.principal),
+            : visibleProjectRecords(
+                context.v3.listTechnicalChanges(context.principal),
+                scope.projectIds,
+              ),
+          periodReports: restrictedProfile
+            ? []
+            : visibleProjectRecords(
+                context.v3.listPeriodReports(context.principal),
+                scope.projectIds,
+              ),
         };
+      }
       case 'expenses': {
-        const records = context.repository.listExpensesForScope(context.principal);
+        const authorizedRecords = context.repository.listExpensesForScope(context.principal);
         const weekStart = mondayOf(url.searchParams.get('week'));
         const weekEndDate = new Date(`${weekStart}T00:00:00Z`);
         weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6);
@@ -282,14 +332,23 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             .get(project.id);
           return row ? [row] : [];
         });
+        const scope = projectVisibility(
+          [...assignedProjects, ...delegatedProjects],
+          includeArchived,
+        );
+        normalizeProjectQuery(scope.projectIds);
+        const records = visibleProjectRecords(authorizedRecords, scope.projectIds);
         return {
           ...common,
-          projects: [...assignedProjects, ...delegatedProjects],
+          projects: scope.projects,
           records,
           weekStart,
           weekEnd,
           calendarRecords: records,
-          weekDraftRecords: records.filter(
+          weekDraftRecords: visibleProjectRecords(
+            records,
+            projectVisibility(scope.projects).projectIds,
+          ).filter(
             (row) =>
               row.approval_state === 'draft' &&
               String(row.spent_on) >= weekStart &&
@@ -298,19 +357,27 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         };
       }
       case 'documents': {
-        const projects = context.repository.listAssignedProjects(context.principal);
-        const requestedProjectId = url.searchParams.get('project') ?? '';
+        const scope = projectVisibility(
+          context.repository.listAssignedProjects(context.principal),
+          includeArchived,
+        );
+        const projects = scope.projects;
+        const requestedProjectId = normalizeProjectQuery(scope.projectIds);
         const selectedDocumentProject =
           projects.find((project) => String(project.id) === requestedProjectId) ?? null;
-        if (requestedProjectId && !selectedDocumentProject) error(404, 'detail.project.notFound');
         return {
           ...common,
           projects,
           selectedDocumentProject,
-          documents: context.repository.listDocuments(
-            context.principal,
-            selectedDocumentProject ? String(selectedDocumentProject.id) : undefined,
-          ),
+          documents: context.repository
+            .listDocuments(
+              context.principal,
+              selectedDocumentProject ? String(selectedDocumentProject.id) : undefined,
+            )
+            .filter(
+              (document) =>
+                !document.project_id || scope.projectIds.has(String(document.project_id)),
+            ),
         };
       }
       case 'pay': {
@@ -429,12 +496,20 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 )
                 .get(linkedProjectId, context.principal.userId)
             : undefined;
-        const visibleProjects = unavailableLinkedProject
-          ? [...authorizedProjects, unavailableLinkedProject]
-          : authorizedProjects;
+        const projectHistory = includeArchived || url.searchParams.get('status') === 'archived';
+        const directoryScope = projectVisibility(
+          unavailableLinkedProject
+            ? [...authorizedProjects, unavailableLinkedProject]
+            : authorizedProjects,
+          projectHistory,
+        );
+        const visibleProjects = directoryScope.projects;
         const authorizedAssignments =
           context.principal.role !== 'worker'
-            ? context.repository.listAssignments(context.principal)
+            ? visibleProjectRecords(
+                context.repository.listAssignments(context.principal),
+                directoryScope.projectIds,
+              )
             : [];
         const assignmentIds = authorizedAssignments
           .map((assignment) => String(assignment.id ?? ''))
@@ -507,15 +582,24 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           : null;
         const projectWorkers =
           context.principal.role !== 'worker'
-            ? context.repository.listAllWorkers(context.principal).map((worker) => ({
-                ...worker,
-                ...(canonicalOwner
-                  ? {
-                      ...(supplierDirectoryForUser?.get(String(worker.id)) ?? {}),
-                      ...(portalAccessForUser?.get(String(worker.id), String(worker.id)) ?? {}),
-                    }
-                  : {}),
-              }))
+            ? context.repository
+                .listAllWorkers(context.principal)
+                .filter(
+                  (worker) =>
+                    includeArchived ||
+                    url.searchParams.get('includeInactive') === '1' ||
+                    url.searchParams.get('status') === 'inactive' ||
+                    worker.status === 'active',
+                )
+                .map((worker) => ({
+                  ...worker,
+                  ...(canonicalOwner
+                    ? {
+                        ...(supplierDirectoryForUser?.get(String(worker.id)) ?? {}),
+                        ...(portalAccessForUser?.get(String(worker.id), String(worker.id)) ?? {}),
+                      }
+                    : {}),
+                }))
             : [];
         const eligibleWorkerIds = projectWorkers
           .filter((worker) => worker.status === 'active')
@@ -536,7 +620,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             context.principal.role === 'owner_admin' ||
             context.principal.role === 'finance_admin' ||
             context.principal.role === 'auditor_read_only'
-              ? context.repository.listClients(context.principal)
+              ? context.repository
+                  .listClients(context.principal)
+                  .filter((client) => includeArchived || client.status !== 'archived')
               : [],
           contacts:
             context.principal.role === 'worker'
@@ -569,6 +655,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         };
       }
       case 'approvals': {
+        const scope = projectVisibility(
+          context.repository.listAssignedProjects(context.principal),
+          includeArchived,
+        );
+        normalizeProjectQuery(scope.projectIds);
         const approvalIdentity = context.sqlite.prepare(
           `SELECT p.name project_name,p.project_number,c.display_name client_name
              FROM project p
@@ -587,11 +678,14 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         );
         return {
           ...common,
-          records: (isProjectManager
-            ? projectManagerApprovalQueueProjection(
-                context.repository.listApprovalQueue(context.principal),
-              )
-            : context.repository.listApprovalQueue(context.principal)
+          projects: scope.projects,
+          records: visibleProjectRecords(
+            isProjectManager
+              ? projectManagerApprovalQueueProjection(
+                  context.repository.listApprovalQueue(context.principal),
+                )
+              : context.repository.listApprovalQueue(context.principal),
+            scope.projectIds,
           ).map((row) => {
             // Read identity only for an already-authorized queue row. PMs receive
             // operational category/vendor context without expense money.
@@ -643,30 +737,40 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               ...(approvalIdentity.get(String(row.project_id ?? '')) ?? {}),
             };
           }),
-          milestones: (isProjectManager
-            ? projectManagerMilestoneProjection(
-                context.repository.listMilestonesForReview(context.principal),
-              )
-            : context.repository.listMilestonesForReview(context.principal)
+          milestones: visibleProjectRecords(
+            isProjectManager
+              ? projectManagerMilestoneProjection(
+                  context.repository.listMilestonesForReview(context.principal),
+                )
+              : context.repository.listMilestonesForReview(context.principal),
+            scope.projectIds,
           ).map((row) => ({
             ...row,
             ...(approvalIdentity.get(String(row.project_id ?? '')) ?? {}),
           })),
           technicalChanges:
             context.principal.role === 'owner_admin' || context.principal.role === 'project_manager'
-              ? context.v3.listTechnicalChanges(context.principal, true)
+              ? visibleProjectRecords(
+                  context.v3.listTechnicalChanges(context.principal, true),
+                  scope.projectIds,
+                )
               : [],
         };
       }
       case 'planning': {
-        const selectedProjectId = url.searchParams.get('project');
+        const scope = projectVisibility(
+          context.repository.listAssignedProjects(context.principal),
+          includeArchived,
+        );
+        const selectedProjectId = normalizeProjectQuery(scope.projectIds);
         const selectedWorkerId = url.searchParams.get('worker');
         // Published-schedule filters use workers represented in the authorized
         // schedule, including historical rows whose current assignment ended.
         // Derive options before the Worker filter so users can switch workers.
-        const projectRows = context.repository
-          .listPlanning(context.principal)
-          .filter((row) => !selectedProjectId || String(row.project_id) === selectedProjectId);
+        const projectRows = visibleProjectRecords(
+          context.repository.listPlanning(context.principal),
+          scope.projectIds,
+        ).filter((row) => !selectedProjectId || String(row.project_id) === selectedProjectId);
         const representedWorkers = new Map<string, string>();
         for (const row of projectRows) {
           const id = String(row.worker_id ?? '').trim();
@@ -689,7 +793,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             (row) => !selectedWorkerId || String(row.worker_id) === selectedWorkerId,
           ),
           planningFilterWorkers,
-          projects: context.repository.listAssignedProjects(context.principal),
+          projects: scope.projects,
           skills: context.repository.listSkills(context.principal),
           workers:
             context.principal.role !== 'worker'
@@ -697,7 +801,10 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               : [],
           assignments:
             context.principal.role !== 'worker'
-              ? context.repository.listAssignments(context.principal)
+              ? visibleProjectRecords(
+                  context.repository.listAssignments(context.principal),
+                  scope.projectIds,
+                )
               : [],
         };
       }
@@ -747,10 +854,18 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
       }
       case 'notifications':
         return { ...common, records: context.repository.listNotifications(context.principal) };
-      case 'billing':
+      case 'billing': {
+        const scope = projectVisibility(
+          context.repository.listFinanceProjects(context.principal),
+          includeArchived,
+        );
+        normalizeProjectQuery(scope.projectIds);
         return {
           ...common,
-          billingRules: context.repository.listBillingRules(context.principal),
+          billingRules: visibleProjectRecords(
+            context.repository.listBillingRules(context.principal),
+            scope.projectIds,
+          ),
           invoiceEmailDeliveries:
             context.principal.role === 'auditor_read_only'
               ? []
@@ -764,20 +879,20 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             paymentCommandToken: randomBytes(32).toString('base64url'),
           })),
           ledger: context.v3.masterLedger(context.principal),
-          projects: context.repository.listFinanceProjects(context.principal),
+          projects: scope.projects,
           legalEntities: context.repository.listLegalEntities(context.principal),
           taxProfiles: context.repository.listTaxProfiles(context.principal),
           contacts: context.repository.listAllClientContacts(context.principal),
         };
+      }
       case 'finance': {
-        const projects = context.repository.listFinanceProjects(context.principal);
-        const requestedProject = url.searchParams.get('project')?.trim();
-        if (
-          requestedProject &&
-          !projects.some((project) => String(project.id) === requestedProject)
-        )
-          error(404, 'finance.project_unavailable');
-        const selected = requestedProject ?? (projects[0] as { id?: string } | undefined)?.id ?? '';
+        const scope = projectVisibility(
+          context.repository.listFinanceProjects(context.principal),
+          includeArchived,
+        );
+        const projects = scope.projects;
+        const requestedProject = normalizeProjectQuery(scope.projectIds);
+        const selected = requestedProject || (projects[0] as { id?: string } | undefined)?.id || '';
         const canManageCanonicalAuthority = ['owner_admin', 'finance_admin'].includes(
           context.principal.role,
         );
@@ -985,13 +1100,21 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           commercialPolicies: selected
             ? context.repository.listProjectCommercialPolicies(context.principal, selected)
             : [],
-          // Include global worker rules alongside project-specific rules. The selected project
-          // still scopes the finance summary and create forms, while this register makes every
-          // effective rule visible to an authorized finance administrator.
-          compensationRules: context.v3.listCompensationRules(context.principal),
-          clientLaborRates: context.v3.listClientLaborRates(context.principal),
-          internalCostRules: context.v3.listInternalCostRules(context.principal),
-          portfolio: context.v3.financePortfolio(context.principal),
+          // Keep global rules while restricting project-specific configuration to this mode.
+          // Settlements, payments and invoice/ledger history retain their authoritative scopes.
+          compensationRules: context.v3
+            .listCompensationRules(context.principal)
+            .filter((rule) => !rule.project_id || scope.projectIds.has(String(rule.project_id))),
+          clientLaborRates: visibleProjectRecords(
+            context.v3.listClientLaborRates(context.principal),
+            scope.projectIds,
+          ),
+          internalCostRules: context.v3
+            .listInternalCostRules(context.principal)
+            .filter((rule) => !rule.project_id || scope.projectIds.has(String(rule.project_id))),
+          portfolio: context.v3.financePortfolio(context.principal, undefined, undefined, {
+            includeArchived,
+          }),
           settlements,
           compensationPayments: settlementIds.size
             ? context.v3

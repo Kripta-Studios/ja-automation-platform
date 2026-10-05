@@ -25,6 +25,7 @@
   import { reversalRecoveryState } from '../billing-reversal-recovery';
   import { formatTaxBasisPoints, taxProfileComponents } from '../tax-profile-presentation';
   import { dirtyFormGuard, hasUnsavedFormChanges } from '../dirty-form-guard';
+  import { billingStreamDefaults } from '../billing-stream-defaults';
 
   const draftPeriodWarning: ProblemData = {
     code: 'WARNING_BILLING_DRAFT_PERIOD_SCOPE',
@@ -245,6 +246,73 @@
   let workspace = $state<BillingWorkspace>('invoices');
   let setupAction = $state<BillingSetupAction>('stream');
   let issuerSettingsSavingId = $state('');
+  let selectedIssuerSettings = $state<{ id: string; mode: 'edit' | 'remove' } | null>(null);
+  let addingIssuerSettings = $state(false);
+  let selectedTaxProfileId = $state('');
+  const setupCopy = $derived(
+    {
+      en: {
+        addSettings: 'Add payment and contact settings',
+        removeSettings: 'Clear payment and contact settings',
+        confirmRemove: 'I confirm clearing these settings for future drafts.',
+        removeHelp:
+          'This clears the payment and contact fields for this issuer and currency. Issued invoices retain their saved details.',
+        noSettings: 'No payment or contact settings configured.',
+        configured: 'Configured',
+        allConfigured:
+          'All listed issuers already have settings. Choose Edit or create a new invoice issuer.',
+        projectDefaults:
+          'PO reference and currency come from the project. Payment terms and billing email use the client defaults; a unique primary billing contact is selected when available. You can edit these defaults.',
+        fallbackTerms:
+          'No client payment terms are configured. Review the 30-day default before saving.',
+        chooseSettingsIssuer: 'Choose the invoice issuer for the new settings.',
+        archiveIssuer: 'Archive invoice issuer',
+        archiveIssuerHelp:
+          'Archiving removes the issuer from active billing setup. Review linked billing streams before confirming. Issued invoice history is retained.',
+        confirmArchiveIssuer: 'I have reviewed linked streams and confirm archiving this issuer.',
+      },
+      es: {
+        addSettings: 'Añadir configuración de pago y contacto',
+        removeSettings: 'Vaciar configuración de pago y contacto',
+        confirmRemove: 'Confirmo vaciar esta configuración para futuros borradores.',
+        removeHelp:
+          'Se vacían los campos de pago y contacto de este emisor y moneda. Las facturas emitidas conservan sus datos guardados.',
+        noSettings: 'Sin configuración de pago ni contacto.',
+        configured: 'Configurado',
+        allConfigured:
+          'Todos los emisores de la lista ya tienen configuración. Elige Editar o crea un nuevo emisor de facturas.',
+        projectDefaults:
+          'La referencia PO y la moneda vienen del proyecto. Los términos de pago y el email usan los valores del cliente; se selecciona su contacto principal de facturación cuando es único. Puedes editar estos valores.',
+        fallbackTerms:
+          'El cliente no tiene términos de pago configurados. Revisa el valor inicial de 30 días antes de guardar.',
+        chooseSettingsIssuer: 'Elige el emisor de facturas para la nueva configuración.',
+        archiveIssuer: 'Archivar emisor de facturas',
+        archiveIssuerHelp:
+          'El archivo retira el emisor de la configuración activa de facturación. Revisa los flujos vinculados antes de confirmar. Se conserva el historial de facturas emitidas.',
+        confirmArchiveIssuer: 'He revisado los flujos vinculados y confirmo archivar este emisor.',
+      },
+      pt: {
+        addSettings: 'Adicionar configurações de pagamento e contato',
+        removeSettings: 'Limpar configurações de pagamento e contato',
+        confirmRemove: 'Confirmo limpar estas configurações para futuros rascunhos.',
+        removeHelp:
+          'Os campos de pagamento e contato deste emissor e moeda serão limpos. As faturas emitidas mantêm os dados salvos.',
+        noSettings: 'Sem configurações de pagamento ou contato.',
+        configured: 'Configurado',
+        allConfigured:
+          'Todos os emissores da lista já têm configurações. Escolha Editar ou crie um novo emissor de faturas.',
+        projectDefaults:
+          'A referência PO e a moeda vêm do projeto. Os termos de pagamento e o email usam os padrões do cliente; seu contato principal de faturamento é selecionado quando é único. Você pode editar estes valores.',
+        fallbackTerms:
+          'O cliente não tem termos de pagamento configurados. Revise o padrão de 30 dias antes de salvar.',
+        chooseSettingsIssuer: 'Escolha o emissor de faturas para as novas configurações.',
+        archiveIssuer: 'Arquivar emissor de faturas',
+        archiveIssuerHelp:
+          'O arquivamento remove o emissor das configurações ativas de faturamento. Revise os fluxos vinculados antes de confirmar. O histórico de faturas emitidas é preservado.',
+        confirmArchiveIssuer: 'Revisei os fluxos vinculados e confirmo arquivar este emissor.',
+      },
+    }[locale],
+  );
   const issuerDocumentFields = [
     ['bankSwiftNumber', 'Bank Swift Number'],
     ['bankAccountNumber', 'Bank Account Number'],
@@ -255,13 +323,139 @@
     ['companyEmail', 'Email'],
     ['companyWebsite', 'Website'],
   ] as const;
-  beforeNavigate((navigation) => {
-    const forms = document.querySelectorAll<HTMLFormElement>('[data-issuer-settings-form]');
+  const issuerSettingsIntent = $derived.by(() => {
+    if (selectedIssuerSettings) return selectedIssuerSettings;
+    if (billingFailureOperation === 'updateIssuerDocumentSettings') {
+      return {
+        id: billingFailureValues.legalEntityId ?? '',
+        mode: issuerDocumentFields.every(([name]) => billingFailureValues[name] === '')
+          ? ('remove' as const)
+          : ('edit' as const),
+      };
+    }
+    const id = $page.url.searchParams.get('issuerSettings');
+    return id ? { id, mode: 'edit' as const } : null;
+  });
+  const taxProfileEditId = $derived(
+    selectedTaxProfileId ||
+      (['updateTaxProfile', 'archiveTaxProfile'].includes(billingFailureOperation)
+        ? billingFailureValues.taxProfileId
+        : $page.url.searchParams.get('taxProfile')) ||
+      '',
+  );
+  function hasIssuerSettings(entity: Row): boolean {
+    return issuerDocumentFields.some(([name]) => Boolean(issuerSetting(entity, name)));
+  }
+  const issuerSettingsCardRows = $derived(
+    (data.legalEntities ?? []).map(
+      (entity): TableCardRow => ({
+        id: rowValue(entity, 'id'),
+        cells: [
+          {
+            label: translate('Invoice issuer (J&A Automation)'),
+            value: rowValue(entity, 'legal_name', 'legalName'),
+          },
+          { label: translate('Currency'), value: rowValue(entity, 'currency') },
+          { label: translate('Bank Name'), value: issuerSetting(entity, 'bankName') || '—' },
+          { label: translate('Email'), value: issuerSetting(entity, 'companyEmail') || '—' },
+          {
+            label: translate('Status'),
+            value: hasIssuerSettings(entity) ? setupCopy.configured : setupCopy.noSettings,
+          },
+        ],
+        href: `${base}/app/billing?view=setup&setup=entity&issuerSettings=${encodeURIComponent(rowValue(entity, 'id'))}#issuer-settings-${encodeURIComponent(rowValue(entity, 'id'))}`,
+        linkLabel: translate('Edit'),
+      }),
+    ),
+  );
+  function taxComponentsText(profile: Row): string {
+    const components = taxProfileComponents(profile.components_json);
+    if (components === null)
+      return translate(
+        'Tax component details are unavailable. Reload this page to review the current profile.',
+      );
+    return (
+      components
+        .map(
+          (component) =>
+            `${component.name} · ${formatTaxBasisPoints(component.basisPoints)} · ${translate(component.compound ? 'Compound tax' : 'Non-compound tax')}`,
+        )
+        .join('; ') || translate('No tax components recorded.')
+    );
+  }
+  const taxProfileCardRows = $derived(
+    (data.taxProfiles ?? []).map(
+      (profile): TableCardRow => ({
+        id: rowValue(profile, 'id'),
+        cells: [
+          { label: translate('Name'), value: rowValue(profile, 'name') },
+          {
+            label: translate('Invoice issuer (J&A Automation)'),
+            value:
+              rowValue(profile, 'legal_entity_code', 'legalEntityCode') ||
+              translate('Global profile'),
+          },
+          { label: translate('Currency'), value: rowValue(profile, 'currency') },
+          {
+            label: translate('Effective from'),
+            value: rowValue(profile, 'effective_from', 'effectiveFrom'),
+          },
+          { label: translate('Tax components'), value: taxComponentsText(profile) },
+          {
+            label: translate('Status'),
+            value: controlledValue('status', rowValue(profile, 'status')),
+          },
+        ],
+        href: `${base}/app/billing?view=setup&setup=tax&taxProfile=${encodeURIComponent(rowValue(profile, 'id'))}#tax-profile-${encodeURIComponent(rowValue(profile, 'id'))}-editor`,
+        linkLabel: translate('Manage tax profile'),
+      }),
+    ),
+  );
+  async function openIssuerSettings(id: string, mode: 'edit' | 'remove' = 'edit') {
     if (
-      Array.from(forms).some(hasUnsavedFormChanges) &&
+      Array.from(document.querySelectorAll<HTMLFormElement>('[data-issuer-settings-form]')).some(
+        hasUnsavedFormChanges,
+      ) &&
       !window.confirm(translate('Discard unsaved changes?'))
     )
-      navigation.cancel();
+      return;
+    addingIssuerSettings = false;
+    selectedIssuerSettings = { id, mode };
+    await tick();
+    const editor = document.getElementById(`issuer-settings-${id}`);
+    editor?.scrollIntoView({ block: 'nearest' });
+    editor
+      ?.querySelector<HTMLElement>('input:not([type="hidden"]), button')
+      ?.focus({ preventScroll: true });
+  }
+  async function openTaxProfile(id: string, archive = false) {
+    if (
+      id !== taxProfileEditId &&
+      Array.from(document.querySelectorAll<HTMLFormElement>('[data-tax-profile-form]')).some(
+        hasUnsavedFormChanges,
+      ) &&
+      !window.confirm(translate('Discard unsaved changes?'))
+    )
+      return;
+    selectedTaxProfileId = id;
+    await tick();
+    const editor = document.getElementById(`tax-profile-${id}-${archive ? 'archive' : 'editor'}`);
+    editor?.scrollIntoView({ block: 'nearest' });
+    editor
+      ?.querySelector<HTMLElement>('input:not([type="hidden"]), button')
+      ?.focus({ preventScroll: true });
+  }
+  function confirmBillingDirectoryChanges(): boolean {
+    const forms = document.querySelectorAll<HTMLFormElement>(
+      '[data-issuer-settings-form], [data-tax-profile-form]',
+    );
+    return (
+      !Array.from(forms).some(hasUnsavedFormChanges) ||
+      window.confirm(translate('Discard unsaved changes?'))
+    );
+  }
+  beforeNavigate((navigation) => {
+    if (!confirmBillingDirectoryChanges()) navigation.cancel();
   });
   function issuerSetting(entity: Row, name: string): string {
     const settings = entity.document_settings;
@@ -873,7 +1067,16 @@
           continue;
         if (control instanceof HTMLInputElement && control.type === 'checkbox')
           control.checked = value === 'true' || value === 'on' || value === '1';
-        else control.value = value;
+        else {
+          control.value = value;
+          // Keep bound default fields in sync with native/enhanced recovery.
+          // The submitted-value comparison above preserves edits made while saving.
+          if (
+            operation === 'createBillingRule' &&
+            ['poNumberOverride', 'paymentTermsDays', 'recipientEmail'].includes(name)
+          )
+            control.dispatchEvent(new Event('input', { bubbles: true }));
+        }
       }
       if (operation === 'createTaxProfile') {
         const percent = formElement.querySelector<HTMLInputElement>(
@@ -1362,7 +1565,13 @@
     invoiceSetupTargetProjectId = null;
   }
 
-  function selectBillingWorkspace(next: BillingWorkspace, action = setupAction): void {
+  function selectBillingWorkspace(next: BillingWorkspace, action = setupAction): boolean {
+    if (
+      workspace === 'setup' &&
+      (next !== 'setup' || action !== setupAction) &&
+      !confirmBillingDirectoryChanges()
+    )
+      return false;
     workspace = next;
     setupAction = action;
     const url = new URL(location.href);
@@ -1376,14 +1585,15 @@
     // Keep the current document and scroll position while making refresh and
     // returning from an invoice restore the workspace the user selected.
     replaceState(url, $page.state);
+    return true;
   }
 
   async function showSetupAction(
     action: BillingSetupAction,
     preserveInvoicePrerequisite = false,
   ): Promise<void> {
+    if (!selectBillingWorkspace('setup', action)) return;
     if (!preserveInvoicePrerequisite) clearInvoiceSetupWarning();
-    selectBillingWorkspace('setup', action);
     await tick();
     const form = document.querySelector<HTMLElement>('.billing-section__config-form');
     const prerequisiteNotice =
@@ -1464,12 +1674,49 @@
   let setupProjectId = $state('');
   let setupCadence = $state('weekly');
   let setupCurrency = $state('');
+  let setupPoNumber = $state('');
+  let setupPaymentTermsDays = $state('30');
+  let setupRecipientEmail = $state('');
   let setupLegalEntityId = $state('');
   let setupTaxProfileId = $state('');
   let setupContactId = $state('');
   const setupProject = $derived(
     availableProjects.find((project) => rowValue(project, 'id') === setupProjectId),
   );
+  const setupProjectDefaults = $derived(billingStreamDefaults(setupProject, data.contacts ?? []));
+  function applySetupProjectDefaults(
+    projectId: string,
+    formElement?: HTMLFormElement | null,
+  ): void {
+    setupProjectId = projectId;
+    const defaults = billingStreamDefaults(
+      availableProjects.find((project) => rowValue(project, 'id') === projectId),
+      data.contacts ?? [],
+    );
+    setupCurrency = defaults.currency;
+    setupPoNumber = defaults.poNumber;
+    setupPaymentTermsDays = defaults.paymentTermsDays;
+    setupRecipientEmail = defaults.recipientEmail;
+    setupContactId = defaults.billingContactId;
+    setupLegalEntityId = '';
+    setupTaxProfileId = '';
+    setupCadence = 'weekly';
+    // Dates, templates and automation belong to the previous project selection.
+    // Apply this only for a deliberate selection, never data refresh or failure recovery.
+    for (const [name, value] of [
+      ['streamType', 'labor'],
+      ['templateId', 'default'],
+      ['effectiveFrom', ''],
+      ['anchorDate', ''],
+      ['semiMonthlyRule', '1_15_16_end'],
+    ]) {
+      const control = formElement?.elements.namedItem(name);
+      if (control instanceof HTMLInputElement || control instanceof HTMLSelectElement)
+        control.value = value;
+    }
+    const automatic = formElement?.elements.namedItem('autoGenerateDraft');
+    if (automatic instanceof HTMLInputElement) automatic.checked = false;
+  }
   const setupEligibleIssuers = $derived(
     (data.legalEntities ?? []).filter(
       (entity) =>
@@ -1493,24 +1740,6 @@
       ],
       correlationId: '',
     };
-  });
-  $effect(() => {
-    setupCurrency = rowValue(setupProject, 'currency');
-    setupLegalEntityId = rowValue(
-      (data.legalEntities ?? []).find(
-        (entity) =>
-          rowValue(entity, 'code') === 'JA-USA' &&
-          rowValue(entity, 'currency') === setupCurrency &&
-          rowValue(entity, 'status') === 'active',
-      ),
-      'id',
-    );
-    setupTaxProfileId = '';
-    setupContactId = '';
-  });
-  $effect(() => {
-    if (!setupLegalEntityId) return;
-    setupTaxProfileId = '';
   });
   const ledgerRows = $derived(data.ledger ?? []);
   const canManageBilling = $derived(
@@ -1582,6 +1811,14 @@
       workspace: 'view',
       setupAction: 'setup',
     },
+    validate: (saved) => ({
+      ...saved,
+      projectFilter: (data.projects ?? []).some(
+        (project) => String(project.id) === saved.projectFilter,
+      )
+        ? saved.projectFilter
+        : '',
+    }),
     get: () => ({ search, projectFilter, stageFilter, workspace, setupAction }),
     set: (saved) => {
       search = saved.search;
@@ -1616,15 +1853,21 @@
       ].includes(billingFailureOperation)
     ) {
       workspace = 'setup';
-      setupAction = billingFailureOperation.includes('LegalEntity')
-        ? 'entity'
-        : billingFailureOperation.includes('TaxProfile')
-          ? 'tax'
-          : billingFailureOperation === 'createInvoiceNumberPolicy'
-            ? 'numbering'
-            : 'stream';
+      setupAction =
+        billingFailureOperation.includes('LegalEntity') ||
+        billingFailureOperation === 'updateIssuerDocumentSettings'
+          ? 'entity'
+          : billingFailureOperation.includes('TaxProfile')
+            ? 'tax'
+            : billingFailureOperation === 'createInvoiceNumberPolicy'
+              ? 'numbering'
+              : 'stream';
       if (billingFailureOperation === 'createBillingRule') {
         setupProjectId = billingFailureValues.projectId ?? '';
+        setupCurrency = rowValue(
+          availableProjects.find((project) => rowValue(project, 'id') === setupProjectId),
+          'currency',
+        );
         setupCadence = billingFailureValues.cadenceType ?? 'weekly';
         void tick().then(() => {
           setupLegalEntityId = billingFailureValues.legalEntityId ?? '';
@@ -1842,7 +2085,8 @@
       )
         return true;
       if (
-        billingFailureOperation === 'updateLegalEntity' &&
+        canManageIssuerAndNumbering &&
+        ['updateLegalEntity', 'archiveLegalEntity'].includes(billingFailureOperation) &&
         (data.legalEntities ?? []).some(
           (entity) => rowValue(entity, 'id') === billingFailureValues.legalEntityId,
         )
@@ -2057,7 +2301,8 @@
       invoiceSetupSelectedProject = availableProjects.some(
         (project) => rowValue(project, 'id') === projectFilter,
       );
-      if (invoiceSetupSelectedProject) setupProjectId = projectFilter;
+      if (invoiceSetupSelectedProject && setupProjectId !== projectFilter)
+        applySetupProjectDefaults(projectFilter);
       invoiceSetupTargetProjectId = invoiceSetupSelectedProject ? projectFilter : null;
       invoiceSetupRequired = true;
       void showSetupAction('stream', true);
@@ -3137,12 +3382,23 @@
         <div class="billing-section__directories">
           <details
             class="billing-reference-directory billing-section__issuer-directory"
+            open={['updateLegalEntity', 'archiveLegalEntity'].includes(billingFailureOperation)}
             use:disclosure
           >
             <summary
               >{translate('Invoice issuers (J&A Automation)')}
               <span class="disclosure-count">{data.legalEntities?.length ?? 0}</span></summary
             >
+            {#if canManageIssuerAndNumbering}
+              <div class="billing-section__directory-toolbar">
+                <button
+                  type="button"
+                  class="secondary-button"
+                  onclick={() => void showSetupAction('entity')}
+                  >{translate('New invoice issuer')}</button
+                >
+              </div>
+            {/if}
             <table class="billing-section__table billing-section__issuer-table">
               <thead>
                 <tr>
@@ -3235,6 +3491,47 @@
                             <button type="submit">{translate('Save issuer')}</button>
                           </form>
                         </details>
+                        <details
+                          open={problemFor(
+                            'archiveLegalEntity',
+                            'legalEntityId',
+                            rowValue(entity, 'id'),
+                          )}
+                        >
+                          <summary>{setupCopy.archiveIssuer}</summary>
+                          {#if problemFor('archiveLegalEntity', 'legalEntityId', rowValue(entity, 'id'))}
+                            <ProblemNotice
+                              problem={billingProblem!}
+                              kind="error"
+                              remedyLinks={problemRemedyLinks}
+                            />
+                          {/if}
+                          <form
+                            method="POST"
+                            action="?/archiveLegalEntity"
+                            class="billing-section__config-form"
+                            use:recoverBillingForm={recoveryOptions(
+                              'archiveLegalEntity',
+                              'legalEntityId',
+                              rowValue(entity, 'id'),
+                            )}
+                            use:enhance
+                          >
+                            <h4>{setupCopy.archiveIssuer}</h4>
+                            <p>{setupCopy.archiveIssuerHelp}</p>
+                            <input
+                              type="hidden"
+                              name="legalEntityId"
+                              value={rowValue(entity, 'id')}
+                            />
+                            <label class="billing-section__checkbox"
+                              ><input type="checkbox" required /><span
+                                >{setupCopy.confirmArchiveIssuer}</span
+                              ></label
+                            >
+                            <button type="submit" class="danger">{setupCopy.archiveIssuer}</button>
+                          </form>
+                        </details>
                       </td>{/if}
                   </tr>
                 {:else}
@@ -3249,117 +3546,292 @@
           </details>
           <details
             id="issuer-document-settings"
-            class="billing-reference-directory"
+            class="billing-reference-directory billing-section__settings-directory"
             open={Boolean($page.url.searchParams.get('issuerSettings')) ||
               billingFailureOperation === 'updateIssuerDocumentSettings'}
             use:disclosure
           >
-            <summary>{translate('issuerSettings.title')}</summary>
+            <summary
+              >{translate('issuerSettings.title')}
+              <span class="disclosure-count">{data.legalEntities?.length ?? 0}</span></summary
+            >
             <p>{translate('issuerSettings.help')}</p>
-            {#each data.legalEntities ?? [] as entity}
-              {#key `${rowValue(entity, 'id')}:${issuerSetting(entity, 'version')}`}
-                <details
-                  open={$page.url.searchParams.get('issuerSettings') === rowValue(entity, 'id') ||
-                    problemFor(
-                      'updateIssuerDocumentSettings',
-                      'legalEntityId',
-                      rowValue(entity, 'id'),
-                    )}
-                >
-                  <summary
-                    >{rowValue(entity, 'legal_name', 'legalName')} · {rowValue(
-                      entity,
-                      'currency',
-                    )}</summary
-                  >
-                  {#if problemFor('updateIssuerDocumentSettings', 'legalEntityId', rowValue(entity, 'id'))}
-                    <ProblemNotice
-                      problem={billingProblem!}
-                      kind="error"
-                      remedyLinks={problemRemedyLinks}
-                    />
-                    <a href={$page.url.href}>{translate('Refresh')}</a>
-                  {/if}
-                  <form
-                    method="POST"
-                    action="?/updateIssuerDocumentSettings"
-                    class="billing-section__config-form"
-                    data-issuer-settings-form
-                    onreset={(event) => resetIssuerSettings(event, entity)}
-                    use:issuerSettingsGuard={{
-                      initialDirty: problemFor(
-                        'updateIssuerDocumentSettings',
-                        'legalEntityId',
-                        rowValue(entity, 'id'),
-                      ),
-                    }}
-                    use:recoverBillingForm={recoveryOptions(
-                      'updateIssuerDocumentSettings',
-                      'legalEntityId',
-                      rowValue(entity, 'id'),
-                    )}
-                    use:enhance={({ cancel }) => {
-                      if (issuerSettingsSavingId) {
-                        cancel();
-                        return;
-                      }
-                      issuerSettingsSavingId = rowValue(entity, 'id');
-                      return async ({ update }) => {
-                        try {
-                          await update({ reset: false });
-                        } finally {
-                          issuerSettingsSavingId = '';
-                        }
-                      };
+            <div class="billing-section__directory-toolbar">
+              <button
+                type="button"
+                class="secondary-button"
+                onclick={() => {
+                  addingIssuerSettings = true;
+                }}>{setupCopy.addSettings}</button
+              >
+            </div>
+            {#if addingIssuerSettings}
+              <div class="billing-section__config-form">
+                <label
+                  ><span>{setupCopy.chooseSettingsIssuer}</span>
+                  <select
+                    value=""
+                    onchange={(event) => {
+                      if (event.currentTarget.value)
+                        void openIssuerSettings(event.currentTarget.value);
                     }}
                   >
-                    <input type="hidden" name="legalEntityId" value={rowValue(entity, 'id')} />
-                    <input type="hidden" name="currency" value={rowValue(entity, 'currency')} />
-                    <input
-                      type="hidden"
-                      name="expectedVersion"
-                      value={issuerSetting(entity, 'version') || '0'}
-                    />
-                    {#each issuerDocumentFields as [name, label]}
-                      <label
-                        ><span>{translate(label)}</span><input
-                          {name}
-                          type={name === 'companyEmail' ? 'email' : 'text'}
-                          value={issuerSetting(entity, name)}
-                          maxlength={name === 'companyPhone'
-                            ? 80
-                            : name === 'companyEmail'
-                              ? 254
-                              : name === 'companyWebsite'
-                                ? 500
-                                : ['bankSwiftNumber', 'bankAccountNumber'].includes(name)
-                                  ? 160
-                                  : 300}
-                          disabled={Boolean(issuerSettingsSavingId)}
-                        /></label
+                    <option value="">{translate('Select legal entity')}</option>
+                    {#each (data.legalEntities ?? []).filter((entity) => !hasIssuerSettings(entity)) as entity}
+                      <option value={rowValue(entity, 'id')}
+                        >{rowValue(entity, 'legal_name', 'legalName')} · {rowValue(
+                          entity,
+                          'currency',
+                        )}</option
                       >
                     {/each}
-                    <button type="submit" disabled={Boolean(issuerSettingsSavingId)}
-                      >{translate(
-                        issuerSettingsSavingId === rowValue(entity, 'id')
-                          ? 'Saving'
-                          : 'issuerSettings.save',
-                      )}</button
-                    >
-                    <button
-                      type="reset"
-                      class="secondary-button"
-                      disabled={Boolean(issuerSettingsSavingId)}>{translate('Cancel')}</button
-                    >
-                  </form>
-                </details>
-              {/key}
+                  </select>
+                </label>
+                {#if !(data.legalEntities ?? []).some((entity) => !hasIssuerSettings(entity))}
+                  <p>
+                    {(data.legalEntities ?? []).length
+                      ? setupCopy.allConfigured
+                      : translate('No invoice issuers recorded.')}
+                  </p>
+                  {#if canManageIssuerAndNumbering}<button
+                      type="button"
+                      onclick={() => void showSetupAction('entity')}
+                      >{translate('New invoice issuer')}</button
+                    >{/if}
+                {/if}
+                <button
+                  type="button"
+                  class="secondary-button"
+                  onclick={() => {
+                    addingIssuerSettings = false;
+                  }}>{translate('Cancel')}</button
+                >
+              </div>
+            {/if}
+            <TableRegion
+              label={translate('issuerSettings.title')}
+              mobileMode="cards"
+              cardRows={issuerSettingsCardRows}
+            >
+              <table class="billing-section__table billing-section__directory-table">
+                <caption class="sr-only">{translate('issuerSettings.title')}</caption>
+                <thead
+                  ><tr>
+                    <th scope="col">{translate('Invoice issuer (J&A Automation)')}</th>
+                    <th scope="col">{translate('Currency')}</th>
+                    <th scope="col">{translate('Bank Name')}</th>
+                    <th scope="col">{translate('Email')}</th>
+                    <th scope="col">{translate('Status')}</th>
+                    <th scope="col">{translate('Actions')}</th>
+                  </tr></thead
+                >
+                <tbody>
+                  {#each data.legalEntities ?? [] as entity}
+                    <tr data-issuer-settings-row={rowValue(entity, 'id')}>
+                      <td
+                        ><strong>{rowValue(entity, 'legal_name', 'legalName')}</strong><small
+                          >{rowValue(entity, 'code')}</small
+                        ></td
+                      >
+                      <td>{rowValue(entity, 'currency')}</td>
+                      <td
+                        >{issuerSetting(entity, 'bankName') || '—'}<small
+                          >{issuerSetting(entity, 'beneficiary')}</small
+                        ></td
+                      >
+                      <td
+                        >{issuerSetting(entity, 'companyEmail') || '—'}<small
+                          >{issuerSetting(entity, 'companyPhone')}</small
+                        ></td
+                      >
+                      <td
+                        ><StatusBadge
+                          tone={hasIssuerSettings(entity) ? 'success' : 'neutral'}
+                          text={hasIssuerSettings(entity)
+                            ? setupCopy.configured
+                            : setupCopy.noSettings}
+                        /></td
+                      >
+                      <td
+                        ><div class="billing-section__directory-row-actions">
+                          <button
+                            type="button"
+                            class="secondary-button"
+                            onclick={() => void openIssuerSettings(rowValue(entity, 'id'))}
+                            >{translate('Edit')}</button
+                          >
+                          <button
+                            type="button"
+                            class="secondary-button"
+                            disabled={!hasIssuerSettings(entity)}
+                            onclick={() =>
+                              void openIssuerSettings(rowValue(entity, 'id'), 'remove')}
+                            >{setupCopy.removeSettings}</button
+                          >
+                        </div></td
+                      >
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </TableRegion>
+            {#if !(data.legalEntities ?? []).length}<p class="billing-section__empty">
+                {translate('No invoice issuers recorded.')}
+              </p>{/if}
+            {#each data.legalEntities ?? [] as entity}
+              {#if issuerSettingsIntent?.id === rowValue(entity, 'id')}
+                {#key `${rowValue(entity, 'id')}:${issuerSetting(entity, 'version')}:${issuerSettingsIntent.mode}`}
+                  <section
+                    id={`issuer-settings-${rowValue(entity, 'id')}`}
+                    class="billing-section__directory-editor"
+                    aria-label={rowValue(entity, 'legal_name', 'legalName')}
+                  >
+                    <h4>
+                      {issuerSettingsIntent.mode === 'remove'
+                        ? setupCopy.removeSettings
+                        : translate('Edit')} · {rowValue(entity, 'legal_name', 'legalName')} · {rowValue(
+                        entity,
+                        'currency',
+                      )}
+                    </h4>
+                    {#if problemFor('updateIssuerDocumentSettings', 'legalEntityId', rowValue(entity, 'id'))}
+                      <ProblemNotice
+                        problem={billingProblem!}
+                        kind="error"
+                        remedyLinks={problemRemedyLinks}
+                      />
+                      <a href={$page.url.href}>{translate('Refresh')}</a>
+                    {/if}
+                    {#if issuerSettingsIntent.mode === 'remove'}
+                      <form
+                        method="POST"
+                        action="?/updateIssuerDocumentSettings"
+                        class="billing-section__config-form"
+                        data-issuer-settings-form
+                        use:issuerSettingsGuard={{ initialDirty: false }}
+                        use:recoverBillingForm={recoveryOptions(
+                          'updateIssuerDocumentSettings',
+                          'legalEntityId',
+                          rowValue(entity, 'id'),
+                        )}
+                        use:enhance
+                      >
+                        <p>{setupCopy.removeHelp}</p>
+                        <input type="hidden" name="legalEntityId" value={rowValue(entity, 'id')} />
+                        <input type="hidden" name="currency" value={rowValue(entity, 'currency')} />
+                        <input
+                          type="hidden"
+                          name="expectedVersion"
+                          value={issuerSetting(entity, 'version') || '0'}
+                        />
+                        {#each issuerDocumentFields as [name]}<input
+                            type="hidden"
+                            {name}
+                            value=""
+                          />{/each}
+                        <label class="billing-section__checkbox"
+                          ><input type="checkbox" required /><span>{setupCopy.confirmRemove}</span
+                          ></label
+                        >
+                        <button type="submit" class="danger">{setupCopy.removeSettings}</button>
+                        <button
+                          type="button"
+                          class="secondary-button"
+                          onclick={() => void openIssuerSettings(rowValue(entity, 'id'))}
+                          >{translate('Cancel')}</button
+                        >
+                      </form>
+                    {:else}
+                      <form
+                        method="POST"
+                        action="?/updateIssuerDocumentSettings"
+                        class="billing-section__config-form"
+                        data-issuer-settings-form
+                        onreset={(event) => resetIssuerSettings(event, entity)}
+                        use:issuerSettingsGuard={{
+                          initialDirty: problemFor(
+                            'updateIssuerDocumentSettings',
+                            'legalEntityId',
+                            rowValue(entity, 'id'),
+                          ),
+                        }}
+                        use:recoverBillingForm={recoveryOptions(
+                          'updateIssuerDocumentSettings',
+                          'legalEntityId',
+                          rowValue(entity, 'id'),
+                        )}
+                        use:enhance={({ cancel }) => {
+                          if (issuerSettingsSavingId) {
+                            cancel();
+                            return;
+                          }
+                          issuerSettingsSavingId = rowValue(entity, 'id');
+                          return async ({ update }) => {
+                            try {
+                              await update({ reset: false });
+                            } finally {
+                              issuerSettingsSavingId = '';
+                            }
+                          };
+                        }}
+                      >
+                        <input type="hidden" name="legalEntityId" value={rowValue(entity, 'id')} />
+                        <input type="hidden" name="currency" value={rowValue(entity, 'currency')} />
+                        <input
+                          type="hidden"
+                          name="expectedVersion"
+                          value={issuerSetting(entity, 'version') || '0'}
+                        />
+                        {#each issuerDocumentFields as [name, label]}
+                          <label
+                            ><span>{translate(label)}</span><input
+                              {name}
+                              type={name === 'companyEmail' ? 'email' : 'text'}
+                              value={issuerSetting(entity, name)}
+                              maxlength={name === 'companyPhone'
+                                ? 80
+                                : name === 'companyEmail'
+                                  ? 254
+                                  : name === 'companyWebsite'
+                                    ? 500
+                                    : ['bankSwiftNumber', 'bankAccountNumber'].includes(name)
+                                      ? 160
+                                      : 300}
+                              disabled={Boolean(issuerSettingsSavingId)}
+                            /></label
+                          >
+                        {/each}
+                        <button type="submit" disabled={Boolean(issuerSettingsSavingId)}
+                          >{translate(
+                            issuerSettingsSavingId === rowValue(entity, 'id')
+                              ? 'Saving'
+                              : 'issuerSettings.save',
+                          )}</button
+                        >
+                        <button
+                          type="reset"
+                          class="secondary-button"
+                          disabled={Boolean(issuerSettingsSavingId)}>{translate('Cancel')}</button
+                        >
+                      </form>
+                      <button
+                        type="button"
+                        class="secondary-button"
+                        disabled={!hasIssuerSettings(entity)}
+                        onclick={() => void openIssuerSettings(rowValue(entity, 'id'), 'remove')}
+                        >{setupCopy.removeSettings}</button
+                      >
+                    {/if}
+                  </section>
+                {/key}
+              {/if}
             {/each}
           </details>
           <details
-            class="billing-reference-directory"
+            class="billing-reference-directory billing-section__settings-directory"
             data-tax-profile-directory
-            open={['updateTaxProfile', 'archiveTaxProfile'].includes(billingFailureOperation)}
+            open={Boolean($page.url.searchParams.get('taxProfile')) ||
+              ['updateTaxProfile', 'archiveTaxProfile'].includes(billingFailureOperation)}
             use:disclosure
           >
             <summary
@@ -3407,138 +3879,233 @@
                 {/if}
               </div>
             {/if}
+            <div class="billing-section__directory-toolbar">
+              <button
+                type="button"
+                class="secondary-button"
+                onclick={() => void showSetupAction('tax')}>{translate('New tax profile')}</button
+              >
+            </div>
+            <TableRegion
+              label={translate('Tax profiles')}
+              mobileMode="cards"
+              cardRows={taxProfileCardRows}
+            >
+              <table class="billing-section__table billing-section__directory-table">
+                <caption class="sr-only">{translate('Tax profiles')}</caption>
+                <thead
+                  ><tr>
+                    <th scope="col">{translate('Name')}</th>
+                    <th scope="col">{translate('Invoice issuer (J&A Automation)')}</th>
+                    <th scope="col">{translate('Currency')}</th>
+                    <th scope="col">{translate('Effective from')}</th>
+                    <th scope="col">{translate('Tax components')}</th>
+                    <th scope="col">{translate('Status')}</th>
+                    <th scope="col">{translate('Actions')}</th>
+                  </tr></thead
+                >
+                <tbody>
+                  {#each data.taxProfiles ?? [] as profile}
+                    <tr data-tax-profile-row={rowValue(profile, 'id')}>
+                      <td><strong>{rowValue(profile, 'name')}</strong></td>
+                      <td
+                        >{rowValue(profile, 'legal_entity_code', 'legalEntityCode') ||
+                          translate('Global profile')}</td
+                      >
+                      <td>{rowValue(profile, 'currency')}</td>
+                      <td>{rowValue(profile, 'effective_from', 'effectiveFrom')}</td>
+                      <td>{taxComponentsText(profile)}</td>
+                      <td
+                        ><StatusBadge
+                          tone="success"
+                          text={controlledValue('status', rowValue(profile, 'status'))}
+                        /></td
+                      >
+                      <td
+                        ><div class="billing-section__directory-row-actions">
+                          <button
+                            type="button"
+                            class="secondary-button"
+                            onclick={() => void openTaxProfile(rowValue(profile, 'id'))}
+                            >{translate('Edit')}</button
+                          >
+                          <button
+                            type="button"
+                            class="secondary-button"
+                            onclick={() => void openTaxProfile(rowValue(profile, 'id'), true)}
+                            >{translate('Archive tax profile')}</button
+                          >
+                        </div></td
+                      >
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </TableRegion>
+            {#if !(data.taxProfiles ?? []).length}<p class="billing-section__empty">
+                {translate('No tax profiles recorded.')}
+              </p>{/if}
             {#each data.taxProfiles ?? [] as profile}
               {@const profileId = rowValue(profile, 'id')}
               {@const components = taxProfileComponents(profile.components_json)}
-              <SectionCard
-                title={rowValue(profile, 'name')}
-                headingId={`tax-profile-${profileId}-title`}
-                class="billing-section__tax-profile"
-                data-tax-profile={profileId}
-              >
-                <dl class="record-facts">
-                  <div>
-                    <dt>{translate('Invoice issuer (J&A Automation)')}</dt>
-                    <dd>
-                      {rowValue(profile, 'legal_entity_code', 'legalEntityCode') ||
-                        translate('Global profile')}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{translate('Currency')}</dt>
-                    <dd>{rowValue(profile, 'currency')}</dd>
-                  </div>
-                  <div>
-                    <dt>{translate('Effective from')}</dt>
-                    <dd>{rowValue(profile, 'effective_from', 'effectiveFrom')}</dd>
-                  </div>
-                  <div>
-                    <dt>{translate('Status')}</dt>
-                    <dd>{controlledValue('status', rowValue(profile, 'status'))}</dd>
-                  </div>
-                </dl>
-                <h4>{translate('Tax components')}</h4>
-                <ul data-tax-components>
-                  {#if components === null}<li>
-                      {translate(
-                        'Tax component details are unavailable. Reload this page to review the current profile.',
-                      )}
-                    </li>
-                  {:else}{#each components as component}
-                      <li>
-                        {component.name} · {formatTaxBasisPoints(component.basisPoints)} · {translate(
-                          component.compound ? 'Compound tax' : 'Non-compound tax',
-                        )}
-                      </li>
-                    {:else}<li>{translate('No tax components recorded.')}</li>{/each}{/if}
-                </ul>
-                {#if !taxProfileRetryDenied && !(taxProfileUnavailable && profileId === billingFailureValues.taxProfileId)}<details
-                    class="billing-section__rule-editor"
-                    open={problemFor('updateTaxProfile', 'taxProfileId', profileId) ||
-                      problemFor('archiveTaxProfile', 'taxProfileId', profileId)}
+              {#if taxProfileEditId === profileId}
+                <div id={`tax-profile-${profileId}-editor`}>
+                  <SectionCard
+                    title={rowValue(profile, 'name')}
+                    headingId={`tax-profile-${profileId}-title`}
+                    class="billing-section__tax-profile"
+                    data-tax-profile={profileId}
                   >
-                    <summary class="secondary-button">{translate('Manage tax profile')}</summary>
-                    <div class="billing-section__rule-actions">
-                      {#if problemFor('updateTaxProfile', 'taxProfileId', profileId)}
-                        <ProblemNotice
-                          problem={billingProblem!}
-                          kind="error"
-                          remedyLinks={problemRemedyLinks}
-                        />
-                      {/if}
-                      <form
-                        method="POST"
-                        action="?/updateTaxProfile"
-                        class="billing-section__config-form"
-                        use:recoverBillingForm={recoveryOptions(
-                          'updateTaxProfile',
-                          'taxProfileId',
-                          profileId,
-                        )}
-                        use:enhance
-                      >
-                        <h4>{translate('Rename tax profile')}</h4>
-                        <p>
+                    <dl class="record-facts">
+                      <div>
+                        <dt>{translate('Invoice issuer (J&A Automation)')}</dt>
+                        <dd>
+                          {rowValue(profile, 'legal_entity_code', 'legalEntityCode') ||
+                            translate('Global profile')}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>{translate('Currency')}</dt>
+                        <dd>{rowValue(profile, 'currency')}</dd>
+                      </div>
+                      <div>
+                        <dt>{translate('Effective from')}</dt>
+                        <dd>{rowValue(profile, 'effective_from', 'effectiveFrom')}</dd>
+                      </div>
+                      <div>
+                        <dt>{translate('Status')}</dt>
+                        <dd>{controlledValue('status', rowValue(profile, 'status'))}</dd>
+                      </div>
+                    </dl>
+                    <h4>{translate('Tax components')}</h4>
+                    <ul data-tax-components>
+                      {#if components === null}<li>
                           {translate(
-                            'Renaming changes only the profile name. Rates, dates, currency and issued invoice snapshots stay unchanged.',
+                            'Tax component details are unavailable. Reload this page to review the current profile.',
                           )}
-                        </p>
-                        <input type="hidden" name="taxProfileId" value={profileId} />
-                        <label
-                          ><span>{translate('Name')}</span><input
-                            name="name"
-                            value={rowValue(profile, 'name')}
-                            maxlength="160"
-                            required
-                          /></label
-                        >
-                        <label class="billing-section__checkbox"
-                          ><input name="confirmTaxProfileChange" type="checkbox" required /><span
-                            >{translate('I confirm this profile rename.')}</span
-                          ></label
-                        >
-                        <button type="submit">{translate('Rename tax profile')}</button>
-                      </form>
-                      {#if problemFor('archiveTaxProfile', 'taxProfileId', profileId)}
-                        <ProblemNotice
-                          problem={billingProblem!}
-                          kind="error"
-                          remedyLinks={problemRemedyLinks}
-                        />
-                      {/if}
-                      <form
-                        method="POST"
-                        action="?/archiveTaxProfile"
-                        class="billing-section__config-form"
-                        use:recoverBillingForm={recoveryOptions(
-                          'archiveTaxProfile',
-                          'taxProfileId',
-                          profileId,
-                        )}
-                        use:enhance
+                        </li>
+                      {:else}{#each components as component}
+                          <li>
+                            {component.name} · {formatTaxBasisPoints(component.basisPoints)} · {translate(
+                              component.compound ? 'Compound tax' : 'Non-compound tax',
+                            )}
+                          </li>
+                        {:else}<li>{translate('No tax components recorded.')}</li>{/each}{/if}
+                    </ul>
+                    {#if !taxProfileRetryDenied && !(taxProfileUnavailable && profileId === billingFailureValues.taxProfileId)}<details
+                        class="billing-section__rule-editor"
+                        open={taxProfileEditId === profileId ||
+                          problemFor('updateTaxProfile', 'taxProfileId', profileId) ||
+                          problemFor('archiveTaxProfile', 'taxProfileId', profileId)}
                       >
-                        <h4>{translate('Archive tax profile')}</h4>
-                        <p>
-                          {translate(
-                            'Streams using an archived profile cannot create new invoice drafts until a replacement profile is explicitly selected. An approved invoice using this profile must be issued or recalculated before archiving. Issued invoices stay unchanged.',
-                          )}
-                        </p>
-                        <input type="hidden" name="taxProfileId" value={profileId} />
-                        <label class="billing-section__checkbox"
-                          ><input name="confirmTaxProfileChange" type="checkbox" required /><span
-                            >{translate(
-                              'I have reviewed linked streams and confirm archiving this profile.',
-                            )}</span
-                          ></label
+                        <summary class="secondary-button">{translate('Manage tax profile')}</summary
                         >
-                        <button type="submit" class="danger"
-                          >{translate('Archive tax profile')}</button
-                        >
-                      </form>
-                    </div>
-                  </details>{/if}
-              </SectionCard>
-            {:else}<p>{translate('No tax profiles recorded.')}</p>{/each}
+                        <div class="billing-section__rule-actions">
+                          {#if problemFor('updateTaxProfile', 'taxProfileId', profileId)}
+                            <ProblemNotice
+                              problem={billingProblem!}
+                              kind="error"
+                              remedyLinks={problemRemedyLinks}
+                            />
+                          {/if}
+                          <form
+                            method="POST"
+                            action="?/updateTaxProfile"
+                            class="billing-section__config-form"
+                            data-tax-profile-form
+                            use:issuerSettingsGuard={{
+                              initialDirty: problemFor(
+                                'updateTaxProfile',
+                                'taxProfileId',
+                                profileId,
+                              ),
+                            }}
+                            use:recoverBillingForm={recoveryOptions(
+                              'updateTaxProfile',
+                              'taxProfileId',
+                              profileId,
+                            )}
+                            use:enhance
+                          >
+                            <h4>{translate('Rename tax profile')}</h4>
+                            <p>
+                              {translate(
+                                'Renaming changes only the profile name. Rates, dates, currency and issued invoice snapshots stay unchanged.',
+                              )}
+                            </p>
+                            <input type="hidden" name="taxProfileId" value={profileId} />
+                            <label
+                              ><span>{translate('Name')}</span><input
+                                name="name"
+                                value={rowValue(profile, 'name')}
+                                maxlength="160"
+                                required
+                              /></label
+                            >
+                            <label class="billing-section__checkbox"
+                              ><input
+                                name="confirmTaxProfileChange"
+                                type="checkbox"
+                                required
+                              /><span>{translate('I confirm this profile rename.')}</span></label
+                            >
+                            <button type="submit">{translate('Rename tax profile')}</button>
+                          </form>
+                          {#if problemFor('archiveTaxProfile', 'taxProfileId', profileId)}
+                            <ProblemNotice
+                              problem={billingProblem!}
+                              kind="error"
+                              remedyLinks={problemRemedyLinks}
+                            />
+                          {/if}
+                          <form
+                            method="POST"
+                            id={`tax-profile-${profileId}-archive`}
+                            action="?/archiveTaxProfile"
+                            class="billing-section__config-form"
+                            data-tax-profile-form
+                            use:issuerSettingsGuard={{
+                              initialDirty: problemFor(
+                                'archiveTaxProfile',
+                                'taxProfileId',
+                                profileId,
+                              ),
+                            }}
+                            use:recoverBillingForm={recoveryOptions(
+                              'archiveTaxProfile',
+                              'taxProfileId',
+                              profileId,
+                            )}
+                            use:enhance
+                          >
+                            <h4>{translate('Archive tax profile')}</h4>
+                            <p>
+                              {translate(
+                                'Streams using an archived profile cannot create new invoice drafts until a replacement profile is explicitly selected. An approved invoice using this profile must be issued or recalculated before archiving. Issued invoices stay unchanged.',
+                              )}
+                            </p>
+                            <input type="hidden" name="taxProfileId" value={profileId} />
+                            <label class="billing-section__checkbox"
+                              ><input
+                                name="confirmTaxProfileChange"
+                                type="checkbox"
+                                required
+                              /><span
+                                >{translate(
+                                  'I have reviewed linked streams and confirm archiving this profile.',
+                                )}</span
+                              ></label
+                            >
+                            <button type="submit" class="danger"
+                              >{translate('Archive tax profile')}</button
+                            >
+                          </form>
+                        </div>
+                      </details>{/if}
+                  </SectionCard>
+                </div>
+              {/if}
+            {/each}
           </details>
         </div>
 
@@ -3582,7 +4149,14 @@
             action="?/createBillingRule"
             class="billing-section__config-form"
             use:recoverBillingForm={recoveryOptions('createBillingRule')}
-            use:enhance
+            use:enhance={({ formElement }) =>
+              async ({ result, update }) => {
+                await update({ reset: false });
+                if (result.type === 'success') {
+                  formElement.reset();
+                  applySetupProjectDefaults('', formElement);
+                }
+              }}
           >
             <h4>{translate('New billing stream')}</h4>
             <label>
@@ -3591,6 +4165,8 @@
                 id="billing-new-stream-project"
                 name="projectId"
                 bind:value={setupProjectId}
+                onchange={(event) =>
+                  applySetupProjectDefaults(event.currentTarget.value, event.currentTarget.form)}
                 required
               >
                 <option value="">{translate('Select project')}</option>
@@ -3599,6 +4175,7 @@
                 {/each}
               </select>
             </label>
+            {#if setupProject}<p>{setupCopy.projectDefaults}</p>{/if}
             <label>
               <span>{translate('Stream')}</span>
               <select name="streamType" required>
@@ -3638,6 +4215,9 @@
               <select
                 name="legalEntityId"
                 bind:value={setupLegalEntityId}
+                onchange={() => {
+                  setupTaxProfileId = '';
+                }}
                 aria-describedby={setupIssuerUnavailableProblem
                   ? 'billing-issuer-unavailable'
                   : undefined}
@@ -3691,7 +4271,7 @@
             </label>
             <label>
               <span>{translate('Recipient email')}</span>
-              <input name="recipientEmail" type="email" />
+              <input name="recipientEmail" type="email" bind:value={setupRecipientEmail} />
             </label>
             <label>
               <span>{translate('Billing contact')}</span>
@@ -3710,11 +4290,24 @@
             </label>
             <label>
               <span>{translate('Payment terms (days)')}</span>
-              <input name="paymentTermsDays" type="number" min="0" max="365" value="30" required />
+              <input
+                name="paymentTermsDays"
+                type="number"
+                min="0"
+                max="365"
+                value={setupPaymentTermsDays}
+                oninput={(event) => {
+                  setupPaymentTermsDays = event.currentTarget.value;
+                }}
+                required
+              />
+              {#if setupProject && !setupProjectDefaults.hasClientPaymentTerms}<small
+                  >{setupCopy.fallbackTerms}</small
+                >{/if}
             </label>
             <label>
               <span>{translate('PO reference')}</span>
-              <input name="poNumberOverride" />
+              <input name="poNumberOverride" bind:value={setupPoNumber} />
             </label>
             <p data-billing-grouping-help>
               {translate(
@@ -5744,6 +6337,47 @@
     min-width: 0;
   }
 
+  .billing-section__settings-directory {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .billing-section__directory-toolbar,
+  .billing-section__directory-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+  }
+
+  .billing-section__directory-row-actions {
+    margin: 0;
+  }
+
+  .billing-section__directory-toolbar button,
+  .billing-section__directory-row-actions button {
+    min-height: 2.75rem;
+  }
+
+  .billing-section__directory-table {
+    min-width: 52rem;
+  }
+
+  .billing-section__directory-table td {
+    max-width: 18rem;
+    overflow-wrap: anywhere;
+  }
+
+  .billing-section__directory-editor {
+    min-width: 0;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.65rem;
+    overflow-wrap: anywhere;
+  }
+
   .billing-section__issuer-table th:last-child,
   .billing-section__issuer-table td:last-child {
     width: 21rem;
@@ -6138,8 +6772,16 @@
   }
 
   .billing-section__config-form h4,
+  .billing-section__config-form > p,
   .billing-section__config-form > button {
     grid-column: 1 / -1;
+  }
+
+  .billing-section__issuer-table summary {
+    min-height: 2.75rem;
+    padding: 0.5rem 0;
+    box-sizing: border-box;
+    cursor: pointer;
   }
 
   .billing-section__config-form > [data-expense-billability-help] {

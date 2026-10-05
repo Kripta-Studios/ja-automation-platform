@@ -1211,6 +1211,7 @@
 
   function financeHref(view: 'economic' | 'commercial', source?: SourceTab, hash = ''): string {
     const query = new URLSearchParams({ view });
+    if ($page.url.searchParams.get('includeArchived') === '1') query.set('includeArchived', '1');
     if (data.selectedProjectId) query.set('project', data.selectedProjectId);
     if (source) query.set('source', source);
     return `${base}/app/finance?${query.toString()}${hash}`;
@@ -1230,6 +1231,7 @@
 
   function projectWorkflowHref(section: 'billing' | 'time' | 'expenses'): string {
     const query = new URLSearchParams();
+    if ($page.url.searchParams.get('includeArchived') === '1') query.set('includeArchived', '1');
     if (data.selectedProjectId) query.set('project', data.selectedProjectId);
     const serialized = query.toString();
     return `${base}/app/${section}${serialized ? `?${serialized}` : ''}`;
@@ -1259,6 +1261,7 @@
 
   function portfolioWorkerSourceHref(row: Row | Record<string, unknown>): string {
     const query = new URLSearchParams({ lang: locale });
+    if ($page.url.searchParams.get('includeArchived') === '1') query.set('includeArchived', '1');
     const workerId = value(row, 'workerId', 'worker_id', 'id');
     if (workerId) query.set('worker', workerId);
     return `${base}/app/time?${query.toString()}`;
@@ -1266,6 +1269,7 @@
 
   function ledgerHref(status: string): string {
     const query = new URLSearchParams();
+    if ($page.url.searchParams.get('includeArchived') === '1') query.set('includeArchived', '1');
     if (data.selectedProjectId) query.set('project', data.selectedProjectId);
     if (status) query.set('status', status);
     return `${base}/app/ledger?${query.toString()}`;
@@ -2010,6 +2014,9 @@
       aria-label={translate('Filter finance by project')}
     >
       <input type="hidden" name="view" value={activeView} />
+      {#if $page.url.searchParams.get('includeArchived') === '1'}
+        <input type="hidden" name="includeArchived" value="1" />
+      {/if}
       <input type="hidden" name="lang" value={locale} />
       <input type="hidden" name="source" value={sourceTab} />
       {#if data.commercialAsOf}

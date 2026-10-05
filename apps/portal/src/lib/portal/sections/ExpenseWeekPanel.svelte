@@ -62,7 +62,8 @@
   const canEnter = $derived(
     !isAuditor && ['owner_admin', 'worker', 'project_manager'].includes(String(data.user.role)),
   );
-  let worker = $state(String(restored.workerId ?? $page.url.searchParams.get('worker') ?? ''));
+  const initialWorker = String(restored.workerId ?? $page.url.searchParams.get('worker') ?? '');
+  let worker = $state(initialWorker);
   const workerId = $derived(ownerMode ? worker : data.user.id);
   const history = $derived(data.calendarRecords ?? data.records ?? []);
   const weekRows = $derived(
@@ -90,11 +91,21 @@
   );
   let calendarMonth = $state('');
   let calendarDay = $state('');
+  // Calendar browsing must not reassign the weekly submission or unsaved table drafts.
+  let calendarWorker = $state(initialWorker);
+  const calendarWorkerId = $derived(
+    ownerMode
+      ? (data.workers ?? []).some((person) => String(person.id) === calendarWorker)
+        ? calendarWorker
+        : ''
+      : data.user.id,
+  );
   const calendarDates = $derived(monthCalendarDates(calendarMonth));
+  const calendarRecords = $derived(
+    history.filter((row) => String(row.worker_id) === calendarWorkerId),
+  );
   const dayRecords = $derived(
-    history.filter(
-      (row) => String(row.worker_id) === workerId && String(row.spent_on) === calendarDay,
-    ),
+    calendarRecords.filter((row) => String(row.spent_on) === calendarDay),
   );
   let tableOpen = $state(Boolean(restored.batchForm));
   let tableWeek = $state(String(restored.weekStart ?? ''));
@@ -508,6 +519,7 @@
                   class="day-link"
                   type="button"
                   onclick={() => {
+                    calendarWorker = workerId;
                     calendarDay = date;
                     calendarMonth = date.slice(0, 7);
                   }}>{date}</button
@@ -535,6 +547,15 @@
 
   {#if canEnter}
     <SectionCard title={translate('Submit this week')} headingId="expense-week-submit-title">
+      {#if $page.url.searchParams.get('includeArchived') === '1'}
+        <p>
+          {{
+            en: 'Weekly submission excludes archived project drafts. They remain available in history.',
+            es: 'El envío semanal excluye los borradores de proyectos archivados. Siguen disponibles en el historial.',
+            pt: 'O envio semanal exclui rascunhos de projetos arquivados. Continuam disponíveis no histórico.',
+          }[normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale)]}
+        </p>
+      {/if}
       <p>
         {translate(
           'Submit all draft expenses for one worker in the displayed week. Every draft is checked together; if any draft changed or requires a receipt, none are submitted.',
@@ -579,19 +600,36 @@
 
   <SectionCard title={translate('Expense calendar')} headingId="expense-calendar-title">
     <div class="week-toolbar">
-      <label
-        ><span>{translate('Month')}</span><input
-          type="month"
-          bind:value={calendarMonth}
-          onchange={() => (calendarDay = `${calendarMonth}-01`)}
-        /></label
-      >
+      <div class="expense-calendar-controls">
+        {#if ownerMode}
+          <label>
+            <span>{translate('Worker')}</span>
+            <select bind:value={calendarWorker}>
+              <option value="">{translate('Select worker')}</option>
+              {#each data.workers ?? [] as person}
+                <option value={String(person.id)}>{person.name}</option>
+              {/each}
+            </select>
+          </label>
+        {/if}
+        <label>
+          <span>{translate('Month')}</span>
+          <input
+            type="month"
+            value={calendarMonth}
+            onchange={(event) => {
+              calendarMonth = event.currentTarget.value;
+              calendarDay = calendarMonth ? `${calendarMonth}-01` : '';
+            }}
+          />
+        </label>
+      </div>
       <p>{translate('Choose a day to review expenses and editable drafts.')}</p>
     </div>
     <div class="expense-calendar" aria-label={translate('Expense calendar')}>
       {#each calendarWeekdays as day}<strong>{day}</strong>{/each}
-      {#each calendarDates as date}{@const daily = history.filter(
-          (row) => String(row.worker_id) === workerId && String(row.spent_on) === date,
+      {#each calendarDates as date}{@const daily = calendarRecords.filter(
+          (row) => String(row.spent_on) === date,
         )}
         <button
           type="button"
@@ -601,6 +639,7 @@
           aria-label={`${date}: ${daily.length} ${translate('Expenses')}`}
           onclick={() => {
             calendarDay = date;
+            calendarMonth = date.slice(0, 7);
           }}
           ><span>{Number(date.slice(-2))}</span>{#if daily.length}<small>{daily.length}</small
             >{/if}</button
@@ -612,12 +651,12 @@
         <h3>{calendarDay}</h3>
         {#if canEnter}<button
             type="button"
-            disabled={Boolean(busy) || !workerId || !calendarDay}
-            onclick={() => onCreate(calendarDay, workerId)}
+            disabled={Boolean(busy) || !calendarWorkerId || !calendarDay}
+            onclick={() => onCreate(calendarDay, calendarWorkerId)}
             >{translate('Record expense on this day')}</button
           >{/if}
       </div>
-      {#if !workerId}<p>
+      {#if !calendarWorkerId}<p>
           {translate('Select a worker to review this day.')}
         </p>{:else if !dayRecords.length}<p>
           {translate('No expenses recorded for this day.')}
@@ -908,6 +947,22 @@
     margin: 0;
     min-width: 0;
   }
+  .expense-calendar-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.75rem;
+    flex: 1 1 24rem;
+    max-width: 28rem;
+    min-width: 0;
+  }
+  .expense-calendar-controls label {
+    flex: 1 1 10rem;
+  }
+  .expense-calendar-controls input,
+  .expense-calendar-controls select {
+    min-height: var(--ja-target-min, 2.75rem);
+  }
   .expense-calendar {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -918,6 +973,7 @@
     font-size: 0.85rem;
   }
   .expense-calendar button {
+    min-width: 0;
     min-height: 64px;
     display: grid;
     gap: 0.2rem;
@@ -926,12 +982,25 @@
     color: inherit;
     border: 1px solid var(--portal-border, #dedede);
   }
+  .expense-calendar button.outside {
+    background: var(--ja-canvas, #f6f6f1);
+    color: var(--ja-text-secondary, #57574f);
+  }
   .expense-calendar button.selected {
     border: 2px solid var(--ja-red, #ae281b);
     background: #fff1ef;
   }
-  .expense-calendar button.outside {
-    opacity: 0.55;
+  .expense-calendar button:hover {
+    color: inherit;
+    border-color: var(--ja-red, #ae281b);
+    background: #fff1ef;
+  }
+  .expense-calendar button:focus-visible {
+    color: inherit;
+    border-color: var(--ja-red, #ae281b);
+    background: #fff1ef;
+    outline: 3px solid var(--ja-red, #ae281b);
+    outline-offset: 2px;
   }
   .expense-calendar small {
     font-size: 0.8rem;

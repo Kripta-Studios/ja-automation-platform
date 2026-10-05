@@ -90,6 +90,21 @@ function fixture() {
 }
 
 describe('source-backed cash and obligations calendar', () => {
+  it('retains issued invoice balances and cash receipts when the source project is archived', () => {
+    const f = fixture();
+    const ledger = f.v3.masterLedger(f.principal);
+    const cash = readCashMovements(f);
+    f.sqlite.prepare("UPDATE project SET status='archived' WHERE id=?").run(f.project.id);
+    expect(f.v3.masterLedger(f.principal)).toEqual(ledger);
+    expect(readCashMovements(f)).toEqual(cash);
+    expect(cash.find((row) => row.id === 'receivable:cash-invoice')).toMatchObject({
+      amountMinor: '40000',
+    });
+    expect(cash.find((row) => row.id === 'receipt:cash-payment')).toMatchObject({
+      amountMinor: '60000',
+    });
+  });
+
   it('keeps expected dates separate from receipts, compensation finalization and expense FX cost', () => {
     const f = fixture();
     const rows = readCashMovements(f);

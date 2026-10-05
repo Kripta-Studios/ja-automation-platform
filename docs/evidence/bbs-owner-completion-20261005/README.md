@@ -61,4 +61,10 @@ Final workspace typecheck, scoped eleven-file ESLint/Prettier, production Portal
 
 ## Deployment
 
-Canonical backup/build/rollback deployment and read-only production smoke results will be appended after publication. No synthetic business transaction is authorized in production.
+**PASS.** Source commit `6e98f345cfaec87ffa55bc73e3b97f3093816d59` was fast-forwarded to GitHub `main` and deployed through the installed canonical ZIP entrypoint. Archive SHA256 is `af7733ebe5e33b9238f70c90d1d4554727d63ecffa7bd86122c9e37d9900d641`; activation completed 2026-10-05 22:11:02 UTC (6 October 00:11:02 Madrid). Rollback images were retained, the canonical online database/documents backup independently passed immutable read-only hash/quick-check/FK verification, and jobs service actor/local/public health gates passed. The temporarily paused ZIP watcher was restored; ZIP/jobs/backup timers are active.
+
+Authenticated production Help/manual download matches the reviewed PDF exactly (`803dcab…32991`, 8,030,413 bytes). Finance preserves the selected BBS project/language; 390px page has no overflow or errors. All twenty protected financial/source/issuer tables retain their predeployment counts and hashes, SQLite quick check is `ok`, foreign-key errors zero, and issued production invoice count remains zero. No synthetic approval, issuance, collection, compensation payment or customer acceptance was written in production. This publishes the application changes and issued **training** annex, with genuine business approvals still required.
+
+The first read-only smoke probe used the intentionally operator-only `/health/ready` through the public host and got its configured 404. The corrected check uses canonical loopback readiness plus public `/app/api/health`; both returned 200. Caddy's private-health boundary was retained. This was a harness URL correction, not a product routing change.
+
+[Deployment receipt](production-deployment.json), [backup verification](production-backup-verification.json), [live browser receipt](production-browser-smoke.json), [financial preservation](production-after.json), [eleven reviewed source files and running images](production-release-check.json). The follow-up evidence-only Git commit records these completed operations; the deployed application/manual source remains the reviewed `6e98f345` candidate.

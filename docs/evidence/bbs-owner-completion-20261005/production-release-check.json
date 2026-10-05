@@ -1,0 +1,37 @@
+{
+  "release": "/opt/jaautomation/releases/ja-automation-af7733ebe5e33b9238f70c90d1d4554727d63ecffa7bd86122c9e37d9900d641",
+  "sourceCommit": "6e98f345cfaec87ffa55bc73e3b97f3093816d59",
+  "testedSourceFilesMatch": {
+    "apps/portal/src/routes/app/billing/invoices/[id]/+page.svelte": true,
+    "apps/portal/src/routes/app/reports/period/[id]/+page.svelte": true,
+    "packages/database/src/v3-repository.ts": true,
+    "packages/database/src/domains/accounting-pack/accounting-pack-revision-service.ts": true,
+    "packages/database/src/demo-seed.ts": true,
+    "packages/reporting/src/exports.ts": true,
+    "tests/integration/accounting-pack-cut-boundaries.test.ts": true,
+    "tests/unit/period-report-technical-details.test.ts": true,
+    "tests/integration/accounting-pack-revision-service.test.ts": true,
+    "tests/integration/accounting-pack-action.test.ts": true,
+    "tests/migrations/accounting-pack-signed-credit-migration.test.ts": true
+  },
+  "containers": [
+    {
+      "name": "deployment-portal-1",
+      "image": "ja-automation-portal:zip-af7733ebe5e33b9238f70c90d1d45547",
+      "status": "running",
+      "health": "healthy"
+    },
+    {
+      "name": "deployment-site-1",
+      "image": "ja-automation-site:zip-af7733ebe5e33b9238f70c90d1d45547",
+      "status": "running",
+      "health": "healthy"
+    },
+    {
+      "name": "deployment-jobs-1",
+      "image": "ja-automation-portal:zip-af7733ebe5e33b9238f70c90d1d45547",
+      "status": "running",
+      "health": "not-configured"
+    }
+  ]
+}

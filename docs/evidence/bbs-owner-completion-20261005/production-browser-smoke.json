@@ -1,0 +1,15 @@
+{
+  "capturedAt": "2026-10-05T22:15:37.368Z",
+  "environment": "production",
+  "operations": "Authenticated read-only Help, PDF download and finance navigation; no business POST",
+  "localReadyStatus": 200,
+  "publicApplicationHealthStatus": 200,
+  "manualStatus": 200,
+  "manualSha256": "803dcab002f17ad09c618d836544625473a19c3498b551f3c4fb6c2d7ec32991",
+  "manualByteLength": 8030413,
+  "manualMatchesReviewedCandidate": true,
+  "settlementProjectContextRetained": true,
+  "phoneWidth": 390,
+  "phoneOverflow": false,
+  "pageErrors": []
+}

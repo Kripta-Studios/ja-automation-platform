@@ -1,0 +1,11 @@
+{
+  "capturedAt": "2026-10-05T22:24:54.072806+00:00",
+  "operation": "Read-only immutable canonical predeployment snapshot verification; no production restore",
+  "backup": "/var/backups/jaautomation/2026-10-05T221043758Z-6c4f187f-51aa-40e4-b155-9ecee87038f2",
+  "databaseSha256": "48218bf3758a30a006397b430d234bc7ce4dbe7dadb29fb4fc4af0d8ffe9f0e0",
+  "matchesCanonicalBackupLog": true,
+  "manifestSha256": "d4408e2ce2f4a89499198473556160d9673f00c2e6bb184c73262c11dedd8341",
+  "documentsRecordedByCanonicalBackup": 27,
+  "quickCheck": "ok",
+  "foreignKeyErrors": 0
+}

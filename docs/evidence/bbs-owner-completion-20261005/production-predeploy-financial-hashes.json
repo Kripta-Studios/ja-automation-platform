@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-05T22:01:44.804078+00:00",
+  "capturedAt": "2026-10-05T22:07:05.842011+00:00",
   "environment": "production",
   "operation": "read-only immediate predeployment hash baseline; no row data exported",
   "tables": {

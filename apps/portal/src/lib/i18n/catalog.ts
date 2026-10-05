@@ -28,6 +28,24 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'action.billing.readiness.noNewClientUnitCharges':
+    'There are no new daily or weekly charges in these parts. The full unit is charged once on its first eligible time entry. Review the invoice or period containing that entry before retrying.',
+
+  'problem.invoiceDraftPreview.issuerCoverageGap':
+    'Cannot generate the PDF: issuer {issuerName} does not cover {missingFrom} to {missingTo} for project {projectName}. This invoice covers {periodStart} to {periodEnd}. In Finance → Project issuing authority, add a reviewed issuer assignment in {currency} covering the missing dates, then retry the PDF.',
+  'problem.invoiceDraftPreview.issuerRevisionChange':
+    'Cannot generate the PDF: the issuing company data changes version during {periodStart} to {periodEnd} for project {projectName}. One reviewed version of {issuerName} must cover the whole invoice period. In Finance → Project issuing authority, review the version dates and use separate billing periods when different versions apply.',
+
+  'Customer billing unit': 'Customer billing unit',
+  'Customer daily rate': 'Customer daily rate',
+  'Customer weekly rate': 'Customer weekly rate',
+  'Charge the full rate once per person for each worked day or Monday–Sunday week with approved work. Actual hours and worker pay remain independent.':
+    'Charge the full rate once per person for each worked day or Monday–Sunday week with approved work. Actual hours and worker pay remain independent.',
+  'Daily or weekly customer rates cannot be forecast from planned hours alone. Actual approved work is priced by full worked units.':
+    'Daily or weekly customer rates cannot be forecast from planned hours alone. Actual approved work is priced by full worked units.',
+  'action.billing.readiness.hybridHourlyRequired':
+    'The hybrid model includes hours and requires hourly customer rates. Use time and materials for full daily or weekly charges.',
+
   'project.costCenter.numberChangeHelp':
     'Changing the final digits can change the project number when no invoice exists. Changes that would alter the number are blocked while any invoice, including a draft, exists.',
   'project.personTerms.payerDraftHelp':
@@ -597,6 +615,24 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'action.billing.readiness.noNewClientUnitCharges':
+    'Estos partes no generan nuevos cobros diarios o semanales. La unidad completa se cobra una sola vez en su primer parte elegible. Revisa la factura o el período que incluye ese parte antes de volver a intentarlo.',
+
+  'problem.invoiceDraftPreview.issuerCoverageGap':
+    'No se puede generar el PDF: el emisor {issuerName} no cubre del {missingFrom} al {missingTo} en el proyecto {projectName}. Esta factura incluye del {periodStart} al {periodEnd}. En Finanzas → Empresa emisora del proyecto, añade una asignación revisada del emisor en {currency} que cubra las fechas pendientes y vuelve a generar el PDF.',
+  'problem.invoiceDraftPreview.issuerRevisionChange':
+    'No se puede generar el PDF: los datos de la empresa emisora cambian de versión entre {periodStart} y {periodEnd} en el proyecto {projectName}. Una misma versión revisada de {issuerName} debe cubrir todo el período. En Finanzas → Empresa emisora del proyecto, revisa las fechas de vigencia y utiliza períodos de facturación separados cuando correspondan versiones distintas.',
+
+  'Customer billing unit': 'Unidad de cobro al cliente',
+  'Customer daily rate': 'Tarifa diaria de cobro al cliente',
+  'Customer weekly rate': 'Tarifa semanal de cobro al cliente',
+  'Charge the full rate once per person for each worked day or Monday–Sunday week with approved work. Actual hours and worker pay remain independent.':
+    'Se cobra la tarifa completa una vez por persona por cada día o semana de lunes a domingo con trabajo aprobado. Las horas reales y el pago al trabajador son independientes.',
+  'Daily or weekly customer rates cannot be forecast from planned hours alone. Actual approved work is priced by full worked units.':
+    'Las tarifas diarias o semanales no se pueden estimar solo con horas planificadas. El trabajo aprobado se cobra por unidades completas.',
+  'action.billing.readiness.hybridHourlyRequired':
+    'El modelo híbrido incluye horas y requiere tarifas de cobro por hora. Usa tiempo y materiales para cobrar días o semanas completos.',
+
   'project.costCenter.numberChangeHelp':
     'Cambiar los dígitos finales puede cambiar el número del proyecto si no hay ninguna factura. Los cambios que modificarían el número se bloquean mientras exista cualquier factura, incluida una factura en borrador.',
   'project.personTerms.payerDraftHelp':
@@ -1167,6 +1203,24 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'action.billing.readiness.noNewClientUnitCharges':
+    'Estes registros não geram novas cobranças diárias ou semanais. A unidade completa é cobrada uma única vez no primeiro registro elegível. Revise a fatura ou o período que inclui esse registro antes de tentar novamente.',
+
+  'problem.invoiceDraftPreview.issuerCoverageGap':
+    'Não é possível gerar o PDF: o emissor {issuerName} não cobre de {missingFrom} a {missingTo} no projeto {projectName}. Esta fatura inclui de {periodStart} a {periodEnd}. Em Finanças → Empresa emissora do projeto, adicione uma atribuição revisada em {currency} cobrindo as datas pendentes e tente novamente.',
+  'problem.invoiceDraftPreview.issuerRevisionChange':
+    'Não é possível gerar o PDF: os dados da empresa emissora mudam de versão entre {periodStart} e {periodEnd} no projeto {projectName}. Uma mesma versão revisada de {issuerName} deve cobrir todo o período. Em Finanças → Empresa emissora do projeto, revise as datas e use períodos separados quando versões diferentes forem aplicáveis.',
+
+  'Customer billing unit': 'Unidade de cobrança ao cliente',
+  'Customer daily rate': 'Tarifa diária de cobrança ao cliente',
+  'Customer weekly rate': 'Tarifa semanal de cobrança ao cliente',
+  'Charge the full rate once per person for each worked day or Monday–Sunday week with approved work. Actual hours and worker pay remain independent.':
+    'Cobrar a tarifa completa uma vez por pessoa por cada dia ou semana de segunda a domingo com trabalho aprovado. As horas reais e o pagamento ao trabalhador são independentes.',
+  'Daily or weekly customer rates cannot be forecast from planned hours alone. Actual approved work is priced by full worked units.':
+    'As tarifas diárias ou semanais não podem ser previstas apenas com horas planejadas. O trabalho aprovado é cobrado por unidades completas.',
+  'action.billing.readiness.hybridHourlyRequired':
+    'O modelo híbrido inclui horas e exige tarifas por hora. Use tempo e materiais para cobrar dias ou semanas completos.',
+
   'project.costCenter.numberChangeHelp':
     'Alterar os dígitos finais pode alterar o número do projeto se não houver nenhuma fatura. As alterações que mudariam o número são bloqueadas enquanto existir qualquer fatura, inclusive uma fatura em rascunho.',
   'project.personTerms.payerDraftHelp':

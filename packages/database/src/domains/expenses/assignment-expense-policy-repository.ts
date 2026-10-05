@@ -228,7 +228,7 @@ export class AssignmentExpensePolicyRepository {
     const invoice = this.sqlite
       .prepare(
         `SELECT 1 FROM invoice WHERE project_id=? AND period_end>=?
-       AND state NOT IN ('void','cancelled') LIMIT 1`,
+       AND state NOT IN ('draft','void','cancelled','superseded') LIMIT 1`,
       )
       .get(projectId, effectiveFrom);
     const settlement = this.sqlite

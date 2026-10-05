@@ -17,6 +17,8 @@ export const BILLING_READINESS_MESSAGE_KEYS = {
   missing_fixed_price: 'action.billing.readiness.missingFixedPrice',
   cap_exhausted: 'action.billing.readiness.capExhausted',
   missing_client_rate: 'action.billing.readiness.missingClientRate',
+  no_new_client_unit_charges: 'action.billing.readiness.noNewClientUnitCharges',
+  hybrid_requires_hourly_client_rates: 'action.billing.readiness.hybridHourlyRequired',
   missing_expense_currency_conversion: 'action.billing.readiness.missingExpenseCurrencyConversion',
   missing_expense_finance_projection: 'action.billing.readiness.missingExpenseFinanceProjection',
   customer_signoff_required: 'action.billing.readiness.customerSignoffRequired',

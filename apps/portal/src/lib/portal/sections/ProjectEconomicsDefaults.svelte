@@ -41,6 +41,7 @@
       effectiveFrom:
         values?.effectiveFrom ?? defaults?.effectiveFrom ?? new Date().toISOString().slice(0, 10),
       customerHourlyRate: values?.customerHourlyRate ?? c?.customerHourlyRate ?? '',
+      customerRateBasis: values?.customerRateBasis ?? c?.customerRateBasis ?? 'hourly',
       internalCostHourlyRate: values?.internalCostHourlyRate ?? c?.internalCostHourlyRate ?? '',
       workerPayType: values?.workerPayType ?? c?.workerPayType ?? 'Hourly',
       workerPayAmount: values?.workerPayAmount ?? c?.workerPayAmount ?? '',
@@ -143,7 +144,23 @@
               </span>{/if}
           </div>
           <label
-            >{t('Customer hourly rate')} ({currency})<input
+            >{t('Customer billing unit')}<select
+              name="customerRateBasis"
+              bind:value={draft.customerRateBasis}
+            >
+              <option value="hourly">{t('Hourly')}</option><option value="daily"
+                >{t('Daily')}</option
+              ><option value="weekly">{t('Weekly')}</option>
+            </select></label
+          >
+          <label
+            >{t(
+              draft.customerRateBasis === 'daily'
+                ? 'Customer daily rate'
+                : draft.customerRateBasis === 'weekly'
+                  ? 'Customer weekly rate'
+                  : 'Customer hourly rate',
+            )} ({currency})<input
               name="customerHourlyRate"
               inputmode="decimal"
               bind:value={draft.customerHourlyRate}

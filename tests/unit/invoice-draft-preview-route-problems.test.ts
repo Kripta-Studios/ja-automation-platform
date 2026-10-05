@@ -177,6 +177,32 @@ describe('invoice draft preview problem boundary', () => {
     expect(state.render).not.toHaveBeenCalled();
   });
 
+  it('identifies uncovered issuer dates and version changes without exposing facts before authorization', async () => {
+    Object.assign(state.preview.invoice, {
+      canonical_assignment_matches: 0,
+      issuer_name: 'J&A',
+      project_name: 'BBS DEMO',
+      period_start: '2026-09-28',
+      period_end: '2026-10-04',
+      issuer_coverage_issue: { kind: 'gap', missingFrom: '2026-09-30', missingTo: '2026-09-30' },
+    });
+    const gap = (await problem()).body;
+    expect(gap.code).toBe('INVOICE_DRAFT_PREVIEW_ISSUER_COVERAGE_GAP');
+    expect(gap.params).toMatchObject({
+      missingFrom: '2026-09-30',
+      missingTo: '2026-09-30',
+      periodStart: '2026-09-28',
+      periodEnd: '2026-10-04',
+    });
+    expect(portalText('es', gap.messageKey, gap.params)).toContain('2026-09-30');
+    state.preview.invoice.issuer_coverage_issue = { kind: 'revision_change' };
+    expect((await problem()).body.code).toBe('INVOICE_DRAFT_PREVIEW_ISSUER_REVISION_CHANGE');
+    state.authorized = false;
+    const blocked = (await problem()).body;
+    expect(blocked.code).toBe('INVOICE_DRAFT_PREVIEW_ACCESS_DENIED');
+    expect(blocked.params).toEqual({});
+  });
+
   it('offers issuer configuration only to an owner', async () => {
     state.role = 'owner_admin';
     state.preview.invoice.canonical_currency = 'USD';

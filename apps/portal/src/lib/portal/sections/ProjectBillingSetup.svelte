@@ -56,6 +56,7 @@
       name: string;
       customerRate: string | null;
       customerRateAmount: string;
+      customerRateBasis?: string;
       internalCostAmount: string;
       defaultOrigin: string | null;
       scheduledRateDates: string[];
@@ -226,10 +227,10 @@
         (!rule.effective_to || String(rule.effective_to) >= String(labor.effective_from)),
     );
     const firstEntityId = String(
-      labor?.legal_entity_id ??
-        legalEntities.find(
-          (item) => String(item.currency) === currency && String(item.code) === 'JA-USA',
-        )?.id ??
+      legalEntities.find(
+        (item) => String(item.currency) === currency && String(item.code) === 'JA-USA',
+      )?.id ??
+        labor?.legal_entity_id ??
         legalEntities.find((item) => String(item.currency) === currency)?.id ??
         '',
     );
@@ -298,6 +299,7 @@
   type PersonDraft = {
     effectiveFrom: string;
     customerHourlyRate: string;
+    customerRateBasis: string;
     internalCostHourlyRate: string;
     workerPayType: string;
     workerPayAmount: string;
@@ -349,6 +351,7 @@
     return {
       effectiveFrom: person.termsEffectiveFrom,
       customerHourlyRate: person.customerRateAmount,
+      customerRateBasis: person.customerRateBasis ?? 'hourly',
       internalCostHourlyRate: person.internalCostAmount,
       workerPayType: person.payType,
       workerPayAmount: person.payAmount,
@@ -389,6 +392,7 @@
             {
               effectiveFrom: value('effectiveFrom', person.termsEffectiveFrom),
               customerHourlyRate: value('customerHourlyRate', person.customerRateAmount),
+              customerRateBasis: value('customerRateBasis', person.customerRateBasis ?? 'hourly'),
               internalCostHourlyRate: value('internalCostHourlyRate', person.internalCostAmount),
               workerPayType: value('workerPayType', person.payType),
               workerPayAmount: value('workerPayAmount', person.payAmount),
@@ -654,6 +658,7 @@
       expectedFingerprint: personBaselines[person.id].fingerprint,
       effectiveFrom: draft.effectiveFrom,
       customerHourlyRate: draft.customerHourlyRate,
+      customerRateBasis: draft.customerRateBasis,
       internalCostHourlyRate: draft.internalCostHourlyRate,
       pinRates: pinRatePersonIds.includes(person.id),
       workerPayType: draft.workerPayType,
@@ -1321,6 +1326,8 @@
                       onclick={() => {
                         payerExpenseDrafts.delete(person.id);
                         Object.assign(draft, personDefaults.config);
+                        draft.customerRateBasis =
+                          personDefaults.config.customerRateBasis ?? 'hourly';
                         draft.reimbursementSource = 'override';
                         if (!pinRatePersonIds.includes(person.id))
                           pinRatePersonIds = [...pinRatePersonIds, person.id];
@@ -1395,7 +1402,26 @@
                           >{/if}</label
                       >
                       <label
-                        >{t('Customer hourly rate')} ({currency})<input
+                        >{t('Customer billing unit')}
+                        <select bind:value={draft.customerRateBasis} disabled={personSaveBusy}>
+                          <option value="hourly">{t('Hourly')}</option>
+                          <option value="daily">{t('Daily')}</option>
+                          <option value="weekly">{t('Weekly')}</option>
+                        </select>
+                        <small
+                          >{t(
+                            'Charge the full rate once per person for each worked day or Monday–Sunday week with approved work. Actual hours and worker pay remain independent.',
+                          )}</small
+                        >
+                      </label>
+                      <label
+                        >{t(
+                          draft.customerRateBasis === 'daily'
+                            ? 'Customer daily rate'
+                            : draft.customerRateBasis === 'weekly'
+                              ? 'Customer weekly rate'
+                              : 'Customer hourly rate',
+                        )} ({currency})<input
                           type="text"
                           inputmode="decimal"
                           id={personControlId(person.id, 'customerHourlyRate')}
@@ -1836,6 +1862,7 @@
           />
           <input type="hidden" name="effectiveFrom" value={draft.effectiveFrom} />
           <input type="hidden" name="customerHourlyRate" value={draft.customerHourlyRate} />
+          <input type="hidden" name="customerRateBasis" value={draft.customerRateBasis} />
           <input
             type="hidden"
             name="pinRates"

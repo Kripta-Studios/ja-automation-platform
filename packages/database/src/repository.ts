@@ -41,6 +41,10 @@ import {
 } from './domains/commercial/project-commercial-policy-repository.ts';
 import { deriveTimeCommercialSlices } from './domains/commercial/time-commercial-slices.ts';
 import { resolveClientLaborRule } from './domains/commercial/assignment-commercial-terms.ts';
+import {
+  ClientLaborChargeAllocator,
+  clientBillingUnit,
+} from './domains/commercial/client-labor-charge.ts';
 import { CanonicalProjectLegalEntityRepository } from './domains/finance/canonical-project-legal-entity-repository.ts';
 import {
   ExpenseCommercialClassificationRepository,
@@ -78,6 +82,7 @@ import {
   updateIssuerDocumentSettings as persistIssuerDocumentSettings,
   invalidateDraftPresentation,
   resolveInvoiceIssuerAuthority,
+  invoiceIssuerCoverageIssue,
   effectivePurchaseReference,
 } from './domains/billing/issuer-document-settings.ts';
 import { pendingTimeFinanceReviewSourceIds } from './domains/billing/time-finance-review.ts';
@@ -5725,6 +5730,23 @@ export class PortalRepository {
     });
   }
 
+  private billingSliceClientUnit(projectId: string, slice: BillingTimeSlice) {
+    const context = {
+      projectId,
+      workerId: slice.row.worker_id,
+      workDate: slice.row.work_date,
+      activityCode: slice.row.activity_code,
+    };
+    const overtime =
+      slice.category === 'overtime'
+        ? resolveClientLaborRule(this.sqlite, { ...context, category: 'overtime' })
+        : null;
+    const selected = overtime?.selected
+      ? overtime
+      : resolveClientLaborRule(this.sqlite, { ...context, category: slice.row.category });
+    return clientBillingUnit(selected.selected?.rule.rate_basis);
+  }
+
   private billingSliceClientRate(
     principal: Principal | null,
     projectId: string,
@@ -5839,7 +5861,14 @@ export class PortalRepository {
           minutes: slice.minutes,
           sliceIndex: slice.sliceIndex,
           rateMinor: rate.toString(),
-          rateRule: resolved.selected.rule,
+          rateRule:
+            clientBillingUnit(resolved.selected.rule.rate_basis) === 'hourly'
+              ? Object.fromEntries(
+                  Object.entries(resolved.selected.rule).filter(
+                    ([key]) => key !== 'rate_basis' && key !== 'unit_rate_minor',
+                  ),
+                )
+              : resolved.selected.rule,
           rateProvenance: resolved.selected.provenance,
           timePolicy: policy,
         });
@@ -6139,6 +6168,11 @@ export class PortalRepository {
         }
         eligibleSourceIds.add(row.id);
         if (
+          rule.billing_model === 'hybrid' &&
+          this.billingSliceClientUnit(rule.project_id, slice) !== 'hourly'
+        )
+          reasons.push({ code: 'hybrid_requires_hourly_client_rates', sourceId: row.id });
+        if (
           this.billingSliceClientRate(
             principal,
             rule.project_id,
@@ -6363,6 +6397,7 @@ export class PortalRepository {
         string,
         { minutes: number; rate: bigint; workerId: string; workDate: string }
       >();
+      const charges = new ClientLaborChargeAllocator(this.sqlite, existingInvoiceId ?? '');
       for (const slice of this.billingTimeSlices(rule.project_id, periodStart, periodEnd)) {
         const row = slice.row;
         if (
@@ -6390,7 +6425,16 @@ export class PortalRepository {
         lines.push({
           sourceType: 'time',
           sourceId: row.id,
-          amount: hourlyRateForMinutes(money(rule.rule_currency, rate), billableMinutes).minorUnits,
+          amount: charges.charge({
+            sourceId: row.id,
+            projectId: rule.project_id,
+            workerId: row.worker_id,
+            workDate: row.work_date,
+            minutes: billableMinutes,
+            currency: rule.rule_currency,
+            unit: this.billingSliceClientUnit(rule.project_id, slice),
+            rateMinor: rate,
+          }).amountMinor,
         });
         const key = `${row.worker_id}:${row.work_date}`;
         const day = daily.get(key) ?? {
@@ -6401,7 +6445,7 @@ export class PortalRepository {
         };
         day.minutes += billableMinutes;
         day.rate = day.rate > rate ? day.rate : rate;
-        daily.set(key, day);
+        if (this.billingSliceClientUnit(rule.project_id, slice) === 'hourly') daily.set(key, day);
       }
       const minimum = this.sqlite
         .prepare('SELECT client_daily_minimum_minutes FROM project WHERE id=?')
@@ -6754,6 +6798,7 @@ export class PortalRepository {
           }
         >();
         const reservedSources = new Set<string>();
+        const charges = new ClientLaborChargeAllocator(this.sqlite, id);
         let includedRemaining =
           rule.billing_model === 'hybrid' ? Math.max(0, rule.included_minutes ?? 0) : 0;
         for (const slice of slices) {
@@ -6784,7 +6829,22 @@ export class PortalRepository {
             reservedSources.add(row.id);
           }
           if (billableMinutes === 0) continue;
-          const amount = hourlyRateForMinutes(money(rule.currency, rate), billableMinutes);
+          const unit = this.billingSliceClientUnit(rule.project_id, slice);
+          if (unit !== 'hourly' && rule.billing_model === 'hybrid')
+            throw new ReadinessError([
+              { code: 'hybrid_requires_hourly_client_rates', sourceId: row.id },
+            ]);
+          const charge = charges.charge({
+            sourceId: row.id,
+            projectId: rule.project_id,
+            workerId: row.worker_id,
+            workDate: row.work_date,
+            minutes: billableMinutes,
+            currency: rule.currency,
+            unit,
+            rateMinor: rate,
+          });
+          const amount = money(rule.currency, charge.amountMinor);
           subtotal = add(subtotal, amount);
           const workerDayKey = `${row.worker_id}:${row.work_date}`;
           const day = daily.get(workerDayKey) ?? {
@@ -6797,18 +6857,20 @@ export class PortalRepository {
           day.minutes += billableMinutes;
           day.rate = day.rate > rate ? day.rate : rate;
           day.sourceIds.add(row.id);
-          daily.set(workerDayKey, day);
+          if (unit === 'hourly') daily.set(workerDayKey, day);
           this.insertInvoiceLine(
             id,
             `${row.work_date} · ${row.category}${slice.category === 'overtime' && row.category !== 'overtime' ? ' → overtime' : ''} · ${row.activity_summary}`,
-            billableMinutes,
-            60,
+            charge.numerator,
+            charge.denominator,
             safeInteger(rate),
             amount.minorUnits,
             'time',
             row.id,
             {
               ...row,
+              customerBillingUnit: unit,
+              customerChargeBucketKey: charge.bucketKey,
               sourceEntryId: row.id,
               sourceVersion: row.version,
               sourceActualMinutes: row.minutes,
@@ -6996,7 +7058,17 @@ export class PortalRepository {
         for (const source of coveredSources.values())
           this.insertInvoiceSource(id, 'time', source.id, source.version);
       }
-      if (subtotal.minorUnits <= 0n) throw new ReadinessError([{ code: 'no_billable_sources' }]);
+      if (subtotal.minorUnits <= 0n) {
+        const coveredUnit = this.sqlite
+          .prepare(
+            `SELECT 1 FROM invoice_line WHERE invoice_id=?
+          AND quantity_numerator=0 AND json_extract(snapshot_json,'$.customerBillingUnit') IN ('daily','weekly') LIMIT 1`,
+          )
+          .get(id);
+        throw new ReadinessError([
+          { code: coveredUnit ? 'no_new_client_unit_charges' : 'no_billable_sources' },
+        ]);
+      }
       this.rebuildInvoiceCommercialManifest(id, rule.billing_model, timestamp);
       const components = this.sqlite
         .prepare(
@@ -7429,6 +7501,8 @@ export class PortalRepository {
           )
         : null;
     if (!resolved) return null;
+    if (clientBillingUnit(resolved.rateBasis) !== 'hourly')
+      return BigInt(resolved.unitRateMinor ?? '0');
     if (effectiveCategory === 'regular') return BigInt(resolved.hourlyRateMinor);
     if (category === 'overtime') return BigInt(resolved.effectiveRateMinor);
     const rate = this.sqlite
@@ -9479,7 +9553,19 @@ export class PortalRepository {
         canonical_country_code: authority.country_code,
         canonical_currency: authority.base_currency,
       });
-    else if (!frozenSource) invoice.canonical_assignment_matches = 0;
+    else if (!frozenSource) {
+      invoice.canonical_assignment_matches = 0;
+      invoice.issuer_coverage_issue = invoiceIssuerCoverageIssue(
+        this.sqlite,
+        String(invoice.project_id),
+        String(invoice.issuer_legal_entity_id),
+        String(invoice.currency),
+        String(invoice.period_start ?? String(invoice.created_at).slice(0, 10)),
+        String(
+          invoice.period_end ?? invoice.period_start ?? String(invoice.created_at).slice(0, 10),
+        ),
+      );
+    }
     const customSnapshot = invoicePresentationObject(invoice.snapshot_json);
     const frozenInvoice = !['draft', 'approved', 'superseded'].includes(
       String(invoice.state ?? ''),
@@ -9614,7 +9700,7 @@ export class PortalRepository {
           String(invoice.past_due_notice ?? ''));
     let lines: Record<string, unknown>[] = this.sqlite
       .prepare(
-        'SELECT description,quantity_numerator,quantity_denominator,unit_price_minor,subtotal_minor,source_type,source_id FROM invoice_line WHERE invoice_id=? ORDER BY rowid',
+        'SELECT description,quantity_numerator,quantity_denominator,unit_price_minor,subtotal_minor,source_type,source_id,snapshot_json FROM invoice_line WHERE invoice_id=? ORDER BY rowid',
       )
       .all(invoiceId);
     let taxes: Record<string, unknown>[] = this.sqlite

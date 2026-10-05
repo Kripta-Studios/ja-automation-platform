@@ -1698,7 +1698,15 @@
     setupPaymentTermsDays = defaults.paymentTermsDays;
     setupRecipientEmail = defaults.recipientEmail;
     setupContactId = defaults.billingContactId;
-    setupLegalEntityId = '';
+    setupLegalEntityId = rowValue(
+      (data.legalEntities ?? []).find(
+        (entity) =>
+          rowValue(entity, 'code') === 'JA-USA' &&
+          rowValue(entity, 'currency') === setupCurrency &&
+          rowValue(entity, 'status') === 'active',
+      ) ?? {},
+      'id',
+    );
     setupTaxProfileId = '';
     setupCadence = 'weekly';
     // Dates, templates and automation belong to the previous project selection.

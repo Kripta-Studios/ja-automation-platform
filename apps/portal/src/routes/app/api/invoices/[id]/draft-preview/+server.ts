@@ -67,6 +67,16 @@ const definitions = {
     'ISSUER_NOT_EFFECTIVE',
     'The issuing legal entity is not effective for this project and period. Ask an owner to review the assignment dates.',
   ],
+  issuerCoverageGap: [
+    409,
+    'ISSUER_COVERAGE_GAP',
+    'Cannot generate the PDF: issuer {issuerName} does not cover {missingFrom} to {missingTo} for project {projectName}. This invoice covers {periodStart} to {periodEnd}. In Finance → Project issuing authority, add a reviewed issuer assignment in {currency} covering the missing dates, then retry the PDF.',
+  ],
+  issuerRevisionChange: [
+    409,
+    'ISSUER_REVISION_CHANGE',
+    'Cannot generate the PDF: the issuing company data changes version during {periodStart} to {periodEnd} for project {projectName}. One reviewed version of {issuerName} must cover the whole invoice period. In Finance → Project issuing authority, review the version dates and use separate billing periods when different versions apply.',
+  ],
   currencyMismatch: [
     409,
     'CURRENCY_MISMATCH',
@@ -88,8 +98,13 @@ function problemResponse(
 ): Response {
   const reference = correlationId || randomUUID();
   const [status, suffix, message] = definitions[name];
-  const setupProblem =
-    name === 'issuerMissing' || name === 'issuerNotEffective' || name === 'currencyMismatch';
+  const setupProblem = [
+    'issuerMissing',
+    'issuerNotEffective',
+    'issuerCoverageGap',
+    'issuerRevisionChange',
+    'currencyMismatch',
+  ].includes(name);
   const remedy =
     name === 'signInRequired' || name === 'sessionExpired'
       ? { id: 'sign_in_again' }
@@ -172,7 +187,28 @@ export const GET: RequestHandler = ({ locals, params, url }) => {
     } catch (caught) {
       const known = snapshotProblem(caught);
       if (!known) throw caught;
-      return problemResponse(known, locals.correlationId, {
+      const invoice = preview.invoice as Record<string, unknown>;
+      const coverage = invoice.issuer_coverage_issue as
+        | { kind?: string; missingFrom?: string; missingTo?: string }
+        | undefined;
+      const isCoverage = known === 'issuerMissing' || known === 'issuerNotEffective';
+      const diagnosticName: ProblemName =
+        isCoverage && coverage?.kind === 'gap'
+          ? 'issuerCoverageGap'
+          : isCoverage && coverage?.kind === 'revision_change'
+            ? 'issuerRevisionChange'
+            : known;
+      return problemResponse(diagnosticName, locals.correlationId, {
+        params: {
+          periodStart: String(invoice.period_start ?? '—'),
+          periodEnd: String(invoice.period_end ?? '—'),
+          issuerName: String(invoice.canonical_issuer_name ?? invoice.issuer_name ?? '—'),
+          projectName: String(invoice.project_name ?? '—'),
+          currency: String(invoice.currency ?? '—'),
+          ...(coverage?.kind === 'gap'
+            ? { missingFrom: String(coverage.missingFrom), missingTo: String(coverage.missingTo) }
+            : {}),
+        },
         role: context.principal.role,
         invoiceId,
       });

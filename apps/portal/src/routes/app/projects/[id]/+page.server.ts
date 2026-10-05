@@ -250,6 +250,7 @@ const personTermsSchema = z
     expectedFingerprint: z.string().regex(/^[0-9a-f]{64}$/),
     effectiveFrom: z.iso.date(),
     customerHourlyRate: amount,
+    customerRateBasis: z.enum(['hourly', 'daily', 'weekly']).default('hourly'),
     internalCostHourlyRate: amount.optional(),
     pinRates: z.preprocess((value) => value === true || value === 'on', z.boolean()).default(false),
     workerPayType: z.enum([

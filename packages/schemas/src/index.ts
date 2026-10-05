@@ -828,6 +828,10 @@ export const compensationRuleInputSchema = z.object({
 });
 
 export const clientLaborRateInputSchema = z.object({
+  rateBasis: z.enum(['hourly', 'daily', 'weekly']).default('hourly'),
+  unitRateMinor: minorUnitsSchema
+    .optional()
+    .transform((value) => (value === undefined ? undefined : BigInt(value))),
   projectId: uuidSchema,
   workerId: z.union([z.literal(''), uuidSchema]).optional(),
   category: z.string().trim().max(100).optional(),

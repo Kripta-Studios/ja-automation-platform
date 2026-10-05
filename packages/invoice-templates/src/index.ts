@@ -702,12 +702,89 @@ const formatQuantity = (qty: number): string => {
   return qty.toFixed(2);
 };
 
+const billingUnitLabel = (unit: string, locale: InvoiceLanguage): string => {
+  const labels =
+    locale === 'es'
+      ? { hourly: 'h', daily: 'día', weekly: 'semana', item: 'unid.' }
+      : locale === 'pt'
+        ? { hourly: 'h', daily: 'dia', weekly: 'semana', item: 'unid.' }
+        : { hourly: 'h', daily: 'day', weekly: 'week', item: 'item' };
+  return labels[unit as keyof typeof labels] ?? labels.item;
+};
+const billedUnit = (line: Readonly<Record<string, unknown>>): string | undefined => {
+  const value = lineValue(line, 'customerBillingUnit');
+  return value === 'hourly' || value === 'daily' || value === 'weekly' ? value : undefined;
+};
+const quantitySummary = (
+  lines: readonly Readonly<Record<string, unknown>>[],
+  locale: InvoiceLanguage,
+): string | undefined => {
+  if (!lines.some((line) => billedUnit(line) === 'daily' || billedUnit(line) === 'weekly')) {
+    const quantity = lines.reduce((sum, line) => sum + getLineQuantity(line), 0);
+    return quantity > 0 ? formatQuantity(quantity) : undefined;
+  }
+  const totals = new Map<string, number>();
+  for (const line of lines) {
+    const unit = billedUnit(line) ?? (Number(line.quantity_denominator) === 60 ? 'hourly' : 'item');
+    totals.set(unit, (totals.get(unit) ?? 0) + getLineQuantity(line));
+  }
+  return (
+    [...totals]
+      .filter(([, quantity]) => quantity > 0)
+      .map(([unit, quantity]) => `${formatQuantity(quantity)} ${billingUnitLabel(unit, locale)}`)
+      .join(' · ') || undefined
+  );
+};
+
+const actualTimeNote = (
+  lines: readonly Readonly<Record<string, unknown>>[],
+  locale: InvoiceLanguage,
+): string => {
+  if (!lines.some((line) => billedUnit(line) === 'daily' || billedUnit(line) === 'weekly'))
+    return '';
+  const minutesBySource = new Map<string, number>();
+  for (const [index, line] of lines.entries()) {
+    const minutes = Number(lineValue(line, 'sourceActualMinutes'));
+    if (Number.isFinite(minutes) && minutes > 0)
+      minutesBySource.set(String(line.source_id ?? index), minutes);
+  }
+  const minutes = [...minutesBySource.values()].reduce((sum, value) => sum + value, 0);
+  if (!minutes) return '';
+  const label =
+    locale === 'es'
+      ? 'Tiempo real registrado'
+      : locale === 'pt'
+        ? 'Tempo real registrado'
+        : 'Actual recorded time';
+  return `<p class="invoice-actual-time">${escape(label)}: ${escape(formatQuantity(minutes / 60))} h</p>`;
+};
+
 const formatLaborDescription = (
   line: Readonly<Record<string, unknown>>,
   localized: InvoiceCopy,
+  locale: InvoiceLanguage,
 ): string => {
   const desc = lineDisplayValue(line, 'description', 'detail');
-  if (nonEmptyString(desc)) return String(desc);
+  if (nonEmptyString(desc)) {
+    const unit = billedUnit(line);
+    if (unit === 'daily' || unit === 'weekly') {
+      const covered = getLineQuantity(line) === 0;
+      const note =
+        locale === 'es'
+          ? covered
+            ? 'Unidad ya cubierta'
+            : 'Tarifa completa'
+          : locale === 'pt'
+            ? covered
+              ? 'Unidade já incluída'
+              : 'Tarifa completa'
+            : covered
+              ? 'Unit already covered'
+              : 'Full unit rate';
+      return `${String(desc)} · ${note} (${billingUnitLabel(unit, locale)})`;
+    }
+    return String(desc);
+  }
   const worker = lineDisplayValue(line, 'worker_name', 'workerName', 'worker', 'employee_name');
   const date = lineDisplayValue(line, 'work_date', 'workDate', 'service_date', 'date');
   if (worker && date) return `${worker} Hours · ${date}`;
@@ -820,12 +897,17 @@ const moneyColumn = (
   render: (line) => moneyOrDash(currency, lineValue(line, ...keys), locale, localized),
 });
 
-const quantityColumn = (label: string, ..._keys: readonly string[]): InvoiceColumn => ({
+const quantityColumn = (
+  label: string,
+  locale: InvoiceLanguage,
+  ..._keys: readonly string[]
+): InvoiceColumn => ({
   label,
   numeric: true,
   render: (line) => {
     const qty = getLineQuantity(line);
-    return escape(formatQuantity(qty));
+    const unit = billedUnit(line);
+    return escape(`${formatQuantity(qty)}${unit ? ` ${billingUnitLabel(unit, locale)}` : ''}`);
   },
 });
 
@@ -864,8 +946,7 @@ const renderLaborDetailed = (
 ): string => {
   const currency = calculationCurrency(snapshot);
   const lines = snapshot.lines ?? [];
-  const totalQty = lines.reduce((sum, line) => sum + getLineQuantity(line), 0);
-  const totalQtyText = totalQty > 0 ? formatQuantity(totalQty) : undefined;
+  const totalQtyText = quantitySummary(lines, locale);
   const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
   const totalAmountText =
     totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
@@ -873,10 +954,11 @@ const renderLaborDetailed = (
     [
       {
         label: `${localized.description} / ${localized.worker}`,
-        render: (line) => escape(formatLaborDescription(line, localized)),
+        render: (line) => escape(formatLaborDescription(line, localized, locale)),
       },
       quantityColumn(
         localized.qty,
+        locale,
         'hours',
         'hour_quantity',
         'hourQuantity',
@@ -920,8 +1002,7 @@ const renderLaborSummary = (
 ): string => {
   const currency = calculationCurrency(snapshot);
   const lines = snapshot.lines ?? [];
-  const totalQty = lines.reduce((sum, line) => sum + getLineQuantity(line), 0);
-  const totalQtyText = totalQty > 0 ? formatQuantity(totalQty) : undefined;
+  const totalQtyText = quantitySummary(lines, locale);
   const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
   const totalAmountText =
     totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
@@ -930,6 +1011,7 @@ const renderLaborSummary = (
       textColumn(localized.description, 'grouping_key', 'groupingKey', 'category', 'description'),
       quantityColumn(
         `${localized.qty} / ${localized.summaryQuantity}`,
+        locale,
         'hours',
         'hour_quantity',
         'hourQuantity',
@@ -972,8 +1054,7 @@ const renderExpensesDetailed = (
 ): string => {
   const currency = calculationCurrency(snapshot);
   const lines = snapshot.lines ?? [];
-  const totalQty = lines.reduce((sum, line) => sum + getLineQuantity(line), 0);
-  const totalQtyText = totalQty > 0 ? formatQuantity(totalQty) : undefined;
+  const totalQtyText = quantitySummary(lines, locale);
   const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
   const totalAmountText =
     totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
@@ -990,7 +1071,7 @@ const renderExpensesDetailed = (
           return escape(String(desc || vendor || localized.noValue));
         },
       },
-      quantityColumn(localized.qty, 'quantity', 'quantity_display', 'qty'),
+      quantityColumn(localized.qty, locale, 'quantity', 'quantity_display', 'qty'),
       moneyColumn(
         localized.unitPrice,
         currency,
@@ -1027,8 +1108,7 @@ const renderFixedMilestone = (
 ): string => {
   const currency = calculationCurrency(snapshot);
   const lines = snapshot.lines ?? [];
-  const totalQty = lines.reduce((sum, line) => sum + getLineQuantity(line), 0);
-  const totalQtyText = totalQty > 0 ? formatQuantity(totalQty) : undefined;
+  const totalQtyText = quantitySummary(lines, locale);
   const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
   const totalAmountText =
     totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
@@ -1045,7 +1125,7 @@ const renderFixedMilestone = (
           return escape(String(desc || milestone || localized.noValue));
         },
       },
-      quantityColumn(localized.qty, 'quantity', 'quantity_display'),
+      quantityColumn(localized.qty, locale, 'quantity', 'quantity_display'),
       moneyColumn(
         localized.unitPrice,
         currency,
@@ -1081,8 +1161,7 @@ const renderCreditAdjustment = (
 ): string => {
   const currency = calculationCurrency(snapshot);
   const lines = snapshot.lines ?? [];
-  const totalQty = lines.reduce((sum, line) => sum + getLineQuantity(line), 0);
-  const totalQtyText = totalQty > 0 ? formatQuantity(totalQty) : undefined;
+  const totalQtyText = quantitySummary(lines, locale);
   const totalAmountMinor = lineSubtotalMinorSum(lines, snapshot);
   const totalAmountText =
     totalAmountMinor !== 0n ? formatMinorUnits(currency, totalAmountMinor, locale) : undefined;
@@ -1110,7 +1189,7 @@ const renderCreditAdjustment = (
           return escape(parts.join(' · ') || localized.noValue);
         },
       },
-      quantityColumn(localized.qty, 'quantity', 'quantity_display'),
+      quantityColumn(localized.qty, locale, 'quantity', 'quantity_display'),
       moneyColumn(
         localized.unitPrice,
         currency,
@@ -1253,8 +1332,8 @@ export function renderInvoiceTemplate(snapshot: InvoiceTemplateSnapshot): Render
     locale,
     title: titleFor(definition.id, localized),
     subtitle,
-    body: `${renderCommon(snapshot, localized)}${combinedBody}${renderTotals(snapshot, localized, locale)}`,
-    lineBody: combinedBody,
+    body: `${renderCommon(snapshot, localized)}${combinedBody}${actualTimeNote(laborLines, locale)}${renderTotals(snapshot, localized, locale)}`,
+    lineBody: `${combinedBody}${actualTimeNote(laborLines, locale)}`,
     totalsBody: renderTotals(snapshot, localized, locale),
   };
 }
@@ -1281,6 +1360,7 @@ h1{border-bottom:2px solid #0f2d3d;padding-bottom:12px;color:#0f2d3d}
 .invoice-lines th{background:#dbebf7;color:#0d3b66;text-align:left;padding:8px 10px;font-size:11px;font-weight:700;letter-spacing:.04em;border-top:1px solid #b8d5ec;border-bottom:1px solid #b8d5ec}
 .invoice-lines td{border-bottom:1px solid #e2e8f0;padding:8px 10px;vertical-align:top;font-size:12px}
 .invoice-lines th.amount,.invoice-lines td.amount{text-align:right;white-space:nowrap}
+.qty-total-cell{white-space:normal!important;overflow-wrap:anywhere}
 .qty-total-cell,.total-amount-cell{border:1.5px solid #0d3b66!important;background:#fff;font-weight:700;text-align:right}
 .invoice-bottom-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;margin-top:24px;align-items:start}
 .invoice-terms-card{font-size:11.5px;color:#1e293b;line-height:1.5}

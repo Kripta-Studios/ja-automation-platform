@@ -23,7 +23,14 @@ function fixture() {
   const member = value.sqlite
     .prepare('SELECT id FROM project_member WHERE project_id=? AND user_id=?')
     .get(value.project.id, value.worker.userId) as { id: string };
-  return { ...value, finance, policy, memberId: member.id };
+  return {
+    ...value,
+    finance,
+    worker: stepUpB5Principal(value.sqlite, value.worker, 'expense-policy-worker'),
+    manager: stepUpB5Principal(value.sqlite, value.manager, 'expense-policy-manager'),
+    policy,
+    memberId: member.id,
+  };
 }
 
 describe('per-assignment expense policy', () => {
@@ -61,6 +68,7 @@ describe('per-assignment expense policy', () => {
     value.policy.setProjectReimbursementDefault(value.finance, {
       projectId: value.project.id,
       expectedVersion: projectVersion.version,
+      effectiveFrom: '2026-08-01',
       mode: 'at_cost',
       reason: 'Reimburse project worker expenses',
     });
@@ -75,6 +83,7 @@ describe('per-assignment expense policy', () => {
     value.policy.setWorkerReimbursementOverride(value.finance, {
       projectMemberId: value.memberId,
       expectedVersion: memberVersion.version,
+      effectiveFrom: '2026-08-02',
       mode: 'none',
       reason: 'Worker has nonreimbursable terms',
     });
@@ -87,6 +96,7 @@ describe('per-assignment expense policy', () => {
       value.policy.setWorkerReimbursementOverride(value.finance, {
         projectMemberId: value.memberId,
         expectedVersion: memberVersion.version,
+        effectiveFrom: '2026-08-02',
         mode: 'at_cost',
         reason: 'Stale edit should conflict',
       }),
@@ -94,6 +104,7 @@ describe('per-assignment expense policy', () => {
     value.policy.setWorkerReimbursementOverride(value.finance, {
       projectMemberId: value.memberId,
       expectedVersion: memberVersion.version + 1,
+      effectiveFrom: '2026-08-03',
       mode: null,
       reason: 'Return to project default',
     });

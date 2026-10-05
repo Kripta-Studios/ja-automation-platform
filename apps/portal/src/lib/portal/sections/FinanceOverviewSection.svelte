@@ -1285,6 +1285,8 @@
       'Expense currency conversion is missing for a source record.',
     missing_person_forecast_rate:
       'Applicable forecast rates could not be resolved for planned remaining hours.',
+    fixed_client_units_require_dated_forecast:
+      'Daily or weekly customer rates cannot be forecast from planned hours alone. Actual approved work is priced by full worked units.',
   };
 
   const financeAlertMessages: Record<string, string> = {

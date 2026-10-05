@@ -33,7 +33,23 @@
 
 <div class="terms-fields">
   <label
-    >{t('Customer hourly rate')} ({currency})<input
+    >{t('Customer billing unit')}<select bind:value={config.customerRateBasis}>
+      <option value="hourly">{t('Hourly')}</option><option value="daily">{t('Daily')}</option
+      ><option value="weekly">{t('Weekly')}</option>
+    </select><small
+      >{t(
+        'Charge the full rate once per person for each worked day or Monday–Sunday week with approved work. Actual hours and worker pay remain independent.',
+      )}</small
+    ></label
+  >
+  <label
+    >{t(
+      config.customerRateBasis === 'daily'
+        ? 'Customer daily rate'
+        : config.customerRateBasis === 'weekly'
+          ? 'Customer weekly rate'
+          : 'Customer hourly rate',
+    )} ({currency})<input
       inputmode="decimal"
       bind:value={config.customerHourlyRate}
       aria-invalid={Boolean(errors.customerHourlyRate)}

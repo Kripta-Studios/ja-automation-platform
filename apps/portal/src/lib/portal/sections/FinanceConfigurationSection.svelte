@@ -300,7 +300,7 @@
     });
 
   const assignmentRuleLabel = (rule: Row, moneyKey: string): string =>
-    `${ruleMoney(rule, moneyKey, 'currency')} · ${rowValue(rule, 'effectiveFrom', 'effective_from')} → ${rowValue(rule, 'effectiveTo', 'effective_to') || translate('open-ended')}`;
+    `${ruleMoney(rule, moneyKey === 'hourly_rate_minor' && ['daily', 'weekly'].includes(rowValue(rule, 'rateBasis', 'rate_basis')) ? 'unit_rate_minor' : moneyKey, 'currency')}${moneyKey === 'hourly_rate_minor' ? ` / ${translate(rowValue(rule, 'rateBasis', 'rate_basis') === 'daily' ? 'Daily' : rowValue(rule, 'rateBasis', 'rate_basis') === 'weekly' ? 'Weekly' : 'Hourly')}` : ''} · ${rowValue(rule, 'effectiveFrom', 'effective_from')} → ${rowValue(rule, 'effectiveTo', 'effective_to') || translate('open-ended')}`;
 
   function failedAssignmentRuleUnavailable(
     terms: Row,
@@ -2574,8 +2574,19 @@
                       {controlledValue('category', rowValue(rule, 'category')) ||
                         translate('All categories')} · {moneyLabel(
                         rule,
-                        'hourlyRateMinor',
-                        'hourly_rate_minor',
+                        rowValue(rule, 'rateBasis', 'rate_basis') === 'hourly'
+                          ? 'hourlyRateMinor'
+                          : 'unitRateMinor',
+                        rowValue(rule, 'rateBasis', 'rate_basis') === 'hourly'
+                          ? 'hourly_rate_minor'
+                          : 'unit_rate_minor',
+                      )}
+                      · {translate(
+                        rowValue(rule, 'rateBasis', 'rate_basis') === 'daily'
+                          ? 'Daily'
+                          : rowValue(rule, 'rateBasis', 'rate_basis') === 'weekly'
+                            ? 'Weekly'
+                            : 'Hourly',
                       )}
                       · {rowValue(rule, 'effectiveFrom', 'effective_from')} →
                       {rowValue(rule, 'effectiveTo', 'effective_to') || translate('open-ended')}
@@ -2593,6 +2604,16 @@
                         class="admin-form-grid"
                         use:formValidation
                       >
+                        <input
+                          type="hidden"
+                          name="rateBasis"
+                          value={rowValue(rule, 'rateBasis', 'rate_basis') || 'hourly'}
+                        />
+                        {#if rowValue(rule, 'rateBasis', 'rate_basis') !== 'hourly'}<input
+                            type="hidden"
+                            name="hourlyRateMinor"
+                            value="0"
+                          />{/if}
                         <input type="hidden" name="supersedesId" value={rowValue(rule, 'id')} />
                         <input
                           type="hidden"
@@ -2640,24 +2661,61 @@
                         />
                         <Field
                           id={`finance-client-edit-rate-${rowValue(rule, 'id')}`}
-                          label={translate('Hourly rate')}
+                          label={translate(
+                            rowValue(rule, 'rateBasis', 'rate_basis') === 'daily'
+                              ? 'Customer daily rate'
+                              : rowValue(rule, 'rateBasis', 'rate_basis') === 'weekly'
+                                ? 'Customer weekly rate'
+                                : 'Hourly rate',
+                          )}
                           required
                         >
                           <input
                             type="hidden"
-                            name="hourlyRateMinor"
-                            value={failedValue('supersedeClientLaborRate', 'hourlyRateMinor') ??
-                              rowValue(rule, 'hourlyRateMinor', 'hourly_rate_minor') ??
+                            name={rowValue(rule, 'rateBasis', 'rate_basis') === 'hourly'
+                              ? 'hourlyRateMinor'
+                              : 'unitRateMinor'}
+                            value={failedValue(
+                              'supersedeClientLaborRate',
+                              rowValue(rule, 'rateBasis', 'rate_basis') === 'hourly'
+                                ? 'hourlyRateMinor'
+                                : 'unitRateMinor',
+                            ) ??
+                              rowValue(
+                                rule,
+                                rowValue(rule, 'rateBasis', 'rate_basis') === 'hourly'
+                                  ? 'hourlyRateMinor'
+                                  : 'unitRateMinor',
+                                rowValue(rule, 'rateBasis', 'rate_basis') === 'hourly'
+                                  ? 'hourly_rate_minor'
+                                  : 'unit_rate_minor',
+                              ) ??
                               '0'}
                           />
                           <input
                             type="text"
                             inputmode="decimal"
                             value={minorToDecimal(
-                              failedValue('supersedeClientLaborRate', 'hourlyRateMinor') ??
-                                rowValue(rule, 'hourlyRateMinor', 'hourly_rate_minor'),
+                              failedValue(
+                                'supersedeClientLaborRate',
+                                rowValue(rule, 'rateBasis', 'rate_basis') === 'hourly'
+                                  ? 'hourlyRateMinor'
+                                  : 'unitRateMinor',
+                              ) ??
+                                rowValue(
+                                  rule,
+                                  rowValue(rule, 'rateBasis', 'rate_basis') === 'hourly'
+                                    ? 'hourlyRateMinor'
+                                    : 'unitRateMinor',
+                                  rowValue(rule, 'rateBasis', 'rate_basis') === 'hourly'
+                                    ? 'hourly_rate_minor'
+                                    : 'unit_rate_minor',
+                                ),
                             )}
-                            data-minor-target="hourlyRateMinor"
+                            data-minor-target={rowValue(rule, 'rateBasis', 'rate_basis') ===
+                            'hourly'
+                              ? 'hourlyRateMinor'
+                              : 'unitRateMinor'}
                             oninput={syncDecimalToMinor}
                             required
                           />

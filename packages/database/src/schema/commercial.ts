@@ -14,6 +14,7 @@ export const clientLaborRates = sqliteTable('client_labor_rate', {
   effectiveTo: text('effective_to'),
   ...lifecycle,
   rateBasis: text('rate_basis'),
+  unitRateMinor: integer('unit_rate_minor'),
   overtimeMethod: text('overtime_method'),
   overtimeMultiplierBps: integer('overtime_multiplier_bps'),
   overtimeRateMinor: integer('overtime_rate_minor'),

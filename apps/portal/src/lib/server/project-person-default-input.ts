@@ -7,6 +7,7 @@ const amount = z.string({ error: amountError }).trim().regex(amountPattern, { er
 export const projectPersonConfigSchema = z
   .object({
     customerHourlyRate: amount,
+    customerRateBasis: z.enum(['hourly', 'daily', 'weekly']).default('hourly'),
     internalCostHourlyRate: amount,
     workerPayType: z.enum(
       [

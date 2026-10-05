@@ -1,3 +1,4 @@
+import { clientBillingUnit } from '../commercial/client-labor-charge.ts';
 import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { newId, type Principal } from '@ja/domain';
@@ -53,6 +54,7 @@ export type ProjectPersonTermsInput = Readonly<{
   expectedFingerprint: string;
   effectiveFrom: string;
   customerHourlyRate: string;
+  customerRateBasis?: 'hourly' | 'daily' | 'weekly';
   internalCostHourlyRate?: string;
   pinRates?: boolean;
   workerPayType:
@@ -322,6 +324,7 @@ export class ProjectBillingSetupRepository {
     name: string;
     customerRate: string | null;
     customerRateAmount: string;
+    customerRateBasis: 'hourly' | 'daily' | 'weekly';
     internalCostAmount: string;
     defaultOrigin: string | null;
     scheduledRateDates: string[];
@@ -385,6 +388,7 @@ export class ProjectBillingSetupRepository {
             name: row.name,
             customerRate: null,
             customerRateAmount: '',
+            customerRateBasis: 'hourly',
             internalCostAmount: '',
             defaultOrigin: null,
             scheduledRateDates: [],
@@ -409,7 +413,11 @@ export class ProjectBillingSetupRepository {
             issues: ['commercial_terms_unavailable'],
           };
         }
-        const rate = terms.clientLaborRate?.rule.hourly_rate_minor;
+        const basis = clientBillingUnit(terms.clientLaborRate?.rule.rate_basis);
+        const rate =
+          basis === 'hourly'
+            ? terms.clientLaborRate?.rule.hourly_rate_minor
+            : terms.clientLaborRate?.rule.unit_rate_minor;
         const policy = this.sqlite
           .prepare(
             `SELECT payer,worker_reimbursement,client_recovery,markup_bps
@@ -449,8 +457,9 @@ export class ProjectBillingSetupRepository {
           customerRate:
             rate == null
               ? null
-              : `${terms.clientLaborRate?.rule.currency ?? ''} ${(BigInt(rate) / 100n).toString()}.${(BigInt(rate) % 100n).toString().padStart(2, '0')}/h`,
+              : `${terms.clientLaborRate?.rule.currency ?? ''} ${(BigInt(rate) / 100n).toString()}.${(BigInt(rate) % 100n).toString().padStart(2, '0')}/${basis === 'daily' ? 'day' : basis === 'weekly' ? 'week' : 'h'}`,
           customerRateAmount: decimalFromHundredths(rate),
+          customerRateBasis: basis,
           internalCostAmount: decimalFromHundredths(terms.internalCost?.rule.hourly_rate_minor),
           scheduledRateDates: (
             this.sqlite
@@ -484,7 +493,10 @@ export class ProjectBillingSetupRepository {
           expenseConfigured: Boolean(policy),
           activeExpensePayers,
           expensePayer: policy?.payer ?? 'worker',
-          workerReimbursement: reimbursement.mode ?? policy?.worker_reimbursement ?? 'at_cost',
+          workerReimbursement:
+            policy?.payer && policy.payer !== 'worker'
+              ? 'none'
+              : (reimbursement.mode ?? policy?.worker_reimbursement ?? 'at_cost'),
           reimbursementSource: reimbursement.workerOverride === null ? 'inherit' : 'override',
           inheritedWorkerReimbursement:
             reimbursement.projectDefault ?? inheritedPolicy?.worker_reimbursement ?? 'at_cost',
@@ -509,7 +521,7 @@ export class ProjectBillingSetupRepository {
       .all(projectId, workerId);
     const client = this.sqlite
       .prepare(
-        'SELECT id,version,effective_from,effective_to,hourly_rate_minor FROM client_labor_rate WHERE project_id=? AND (worker_id=? OR worker_id IS NULL) ORDER BY id',
+        'SELECT id,version,effective_from,effective_to,hourly_rate_minor,rate_basis,unit_rate_minor FROM client_labor_rate WHERE project_id=? AND (worker_id=? OR worker_id IS NULL) ORDER BY id',
       )
       .all(projectId, workerId);
     const pay = this.sqlite
@@ -568,7 +580,10 @@ export class ProjectBillingSetupRepository {
       throw new ValidationError('Person terms reference is invalid');
     if (!dayPattern.test(input.effectiveFrom) || Number.isNaN(Date.parse(input.effectiveFrom)))
       throw new ValidationError('Person terms effective date is invalid');
-    const customerMinor = decimalHundredths(input.customerHourlyRate, 'Customer hourly rate');
+    const customerMinor = decimalHundredths(input.customerHourlyRate, 'Customer rate');
+    const customerBasis = input.customerRateBasis ?? 'hourly';
+    if (!['hourly', 'daily', 'weekly'].includes(customerBasis))
+      throw new ValidationError('Choose a valid customer billing unit');
     const internalMinor =
       input.internalCostHourlyRate === undefined
         ? undefined
@@ -615,7 +630,7 @@ export class ProjectBillingSetupRepository {
         throw new ValidationError('Choose an effective date within this active project assignment');
       const billed = this.sqlite
         .prepare(
-          "SELECT 1 FROM invoice WHERE project_id=? AND period_end>=? AND state NOT IN ('void','cancelled') LIMIT 1",
+          "SELECT 1 FROM invoice WHERE project_id=? AND period_end>=? AND state NOT IN ('draft','void','cancelled','superseded') LIMIT 1",
         )
         .get(input.projectId, input.effectiveFrom);
       const settled = this.sqlite
@@ -647,7 +662,12 @@ export class ProjectBillingSetupRepository {
             terms.clientLaborRate!.provenance.source,
           )) ||
         selectedClient.category !== null ||
-        BigInt(selectedClient.hourly_rate_minor) !== customerMinor;
+        clientBillingUnit(selectedClient.rate_basis) !== customerBasis ||
+        BigInt(
+          customerBasis === 'hourly'
+            ? selectedClient.hourly_rate_minor
+            : (selectedClient.unit_rate_minor ?? '0'),
+        ) !== customerMinor;
       const payChanged =
         !selectedPay ||
         (input.pinRates === true &&
@@ -698,7 +718,9 @@ export class ProjectBillingSetupRepository {
                   eligibleForPercentage: selectedClient.eligible_for_percentage === 1,
                 }
               : {}),
-            hourlyRateMinor: customerMinor,
+            hourlyRateMinor: customerBasis === 'hourly' ? customerMinor : 0n,
+            rateBasis: customerBasis,
+            unitRateMinor: customerBasis === 'hourly' ? undefined : customerMinor,
             effectiveFrom: input.effectiveFrom,
             effectiveTo: member.ends_on || undefined,
           }).id;

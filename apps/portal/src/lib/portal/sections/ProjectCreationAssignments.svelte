@@ -26,6 +26,7 @@
   };
   const empty = (): Record<string, string> => ({
     customerHourlyRate: '',
+    customerRateBasis: 'hourly',
     internalCostHourlyRate: '',
     workerPayType: 'Hourly',
     workerPayAmount: '',
@@ -53,13 +54,13 @@
       effectiveFrom:
         defaults?.effectiveFrom ??
         String(values?.startDate ?? new Date().toISOString().slice(0, 10)),
-      config: defaults?.config ?? empty(),
+      config: { ...empty(), ...defaults?.config },
       rows: (Array.isArray(rows) ? rows : [])
         .filter((row) => row && typeof row === 'object')
         .map((row) => ({
           ...row,
           hasIndividualTerms: row.mode === 'override',
-          config: row.config ?? empty(),
+          config: { ...empty(), ...row.config },
         })),
     };
   });
@@ -290,7 +291,15 @@
                           <dd>{draftValue(row.endsOn)}</dd>
                         </div>
                         <div>
-                          <dt>{t('Customer hourly rate')} ({currency})</dt>
+                          <dt>
+                            {t(
+                              config.customerRateBasis === 'daily'
+                                ? 'Customer daily rate'
+                                : config.customerRateBasis === 'weekly'
+                                  ? 'Customer weekly rate'
+                                  : 'Customer hourly rate',
+                            )} ({currency})
+                          </dt>
                           <dd>{draftValue(config.customerHourlyRate)}</dd>
                         </div>
                         <div>

@@ -197,18 +197,24 @@ export function updateIssuerDocumentSettings(
   });
 }
 
-/** Assigned canonical successor revisions share the issuer's genesis bridge identity. */
-export function resolveInvoiceIssuerAuthority(
+type IssuerInterval = Record<string, unknown> & {
+  revision_id: string;
+  assignment_from: string;
+  assignment_to: string | null;
+  effective_from: string;
+  effective_to: string | null;
+};
+function issuerIntervals(
   sqlite: DatabaseSync,
   projectId: string,
   legalEntityId: string,
   currency: string,
   periodStart: string,
   periodEnd: string,
-) {
+): IssuerInterval[] {
   return sqlite
     .prepare(
-      `SELECT rev.*,bridge.legacy_legal_entity_id
+      `SELECT rev.*,bridge.legacy_legal_entity_id,a.effective_from assignment_from,a.effective_to assignment_to
     FROM effective_project_legal_entity_assignment a JOIN legal_entity_revision rev ON rev.revision_id=a.legal_entity_revision_id
     JOIN legal_entity_revision genesis ON genesis.series_id=rev.series_id AND genesis.predecessor_revision_id IS NULL
     JOIN legal_entity_revision_bridge bridge ON bridge.canonical_revision_id=genesis.revision_id
@@ -218,9 +224,97 @@ export function resolveInvoiceIssuerAuthority(
     WHERE a.project_id=? AND bridge.legacy_legal_entity_id=? AND rev.base_currency=?
       AND a.effective_from<=? AND (a.effective_to IS NULL OR a.effective_to>=?)
       AND rev.effective_from<=? AND (rev.effective_to IS NULL OR rev.effective_to>=?)
-    ORDER BY a.effective_from DESC,rev.revision_number DESC,a.assignment_id DESC LIMIT 1`,
+    ORDER BY rev.revision_number DESC,a.effective_from,a.assignment_id`,
     )
-    .get(projectId, legalEntityId, currency, periodStart, periodEnd, periodStart, periodEnd);
+    .all(
+      projectId,
+      legalEntityId,
+      currency,
+      periodEnd,
+      periodStart,
+      periodEnd,
+      periodStart,
+    ) as IssuerInterval[];
+}
+const followingDay = (date: string) =>
+  new Date(Date.parse(`${date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+const precedingDay = (date: string) =>
+  new Date(Date.parse(`${date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+
+/** Adjacent assignments of the same reviewed revision provide continuous authority.
+ * Gaps, different revisions, currencies and deployment identities never merge. */
+export function resolveInvoiceIssuerAuthority(
+  sqlite: DatabaseSync,
+  projectId: string,
+  legalEntityId: string,
+  currency: string,
+  periodStart: string,
+  periodEnd: string,
+) {
+  const candidates = issuerIntervals(
+    sqlite,
+    projectId,
+    legalEntityId,
+    currency,
+    periodStart,
+    periodEnd,
+  ).filter(
+    (row) =>
+      row.effective_from <= periodStart && (!row.effective_to || row.effective_to >= periodEnd),
+  );
+  for (const revisionId of new Set(candidates.map((row) => row.revision_id))) {
+    const intervals = candidates.filter((row) => row.revision_id === revisionId);
+    let cursor = periodStart;
+    for (const interval of intervals) {
+      if (interval.assignment_from > cursor) break;
+      const end = interval.assignment_to ?? '9999-12-31';
+      if (end < cursor) continue;
+      if (end >= periodEnd) return intervals[0];
+      cursor = followingDay(end);
+    }
+  }
+  return undefined;
+}
+
+/** Safe date-only diagnostics; call only after invoice finance authorization. */
+export function invoiceIssuerCoverageIssue(
+  sqlite: DatabaseSync,
+  projectId: string,
+  legalEntityId: string,
+  currency: string,
+  periodStart: string,
+  periodEnd: string,
+) {
+  const intervals = issuerIntervals(
+    sqlite,
+    projectId,
+    legalEntityId,
+    currency,
+    periodStart,
+    periodEnd,
+  )
+    .map((row) => ({
+      start: row.assignment_from > row.effective_from ? row.assignment_from : row.effective_from,
+      end:
+        (row.assignment_to ?? '9999-12-31') < (row.effective_to ?? '9999-12-31')
+          ? (row.assignment_to ?? '9999-12-31')
+          : (row.effective_to ?? '9999-12-31'),
+    }))
+    .filter((row) => row.end >= row.start)
+    .sort((a, b) => a.start.localeCompare(b.start));
+  let cursor = periodStart;
+  for (const interval of intervals) {
+    if (interval.end < cursor) continue;
+    if (interval.start > cursor)
+      return {
+        kind: 'gap',
+        missingFrom: cursor,
+        missingTo: interval.start > periodEnd ? periodEnd : precedingDay(interval.start),
+      } as const;
+    if (interval.end >= periodEnd) return { kind: 'revision_change' } as const;
+    cursor = followingDay(interval.end);
+  }
+  return { kind: 'gap', missingFrom: cursor, missingTo: periodEnd } as const;
 }
 
 export function effectivePurchaseReference(

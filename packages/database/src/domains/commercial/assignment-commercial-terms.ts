@@ -78,6 +78,8 @@ export type ClientLaborRateRow = Readonly<{
   category: string | null;
   currency: Currency;
   hourly_rate_minor: string;
+  rate_basis?: string;
+  unit_rate_minor?: string | null;
   overtime_method: OvertimeMethod;
   overtime_multiplier_bps: number | null;
   overtime_rate_minor: string | null;
@@ -155,7 +157,7 @@ type RuleWithScope = Readonly<{
 
 const SELECT = {
   client: `SELECT id,project_id,worker_id,category,currency,
-    CAST(hourly_rate_minor AS TEXT) hourly_rate_minor,overtime_method,overtime_multiplier_bps,
+    CAST(hourly_rate_minor AS TEXT) hourly_rate_minor,rate_basis,CAST(unit_rate_minor AS TEXT) unit_rate_minor,overtime_method,overtime_multiplier_bps,
     CAST(overtime_rate_minor AS TEXT) overtime_rate_minor,eligible_for_percentage,
     effective_from,effective_to,version FROM client_labor_rate`,
   compensation: `SELECT id,worker_id,project_id,currency,CAST(rate_minor AS TEXT) rate_minor,

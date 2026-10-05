@@ -25,6 +25,7 @@ export class ProjectDefaultsDateConflictError extends ConflictError {
 export type ProjectPersonDefaultsConfig = Pick<
   ProjectPersonTermsInput,
   | 'customerHourlyRate'
+  | 'customerRateBasis'
   | 'workerPayType'
   | 'workerPayAmount'
   | 'percentageBasis'
@@ -127,6 +128,8 @@ export class ProjectPersonDefaultsRepository {
     date(input.effectiveFrom);
     const c = input.config;
     minor(c.customerHourlyRate);
+    if (!['hourly', 'daily', 'weekly'].includes(c.customerRateBasis ?? 'hourly'))
+      throw new ValidationError('Choose a valid customer billing unit');
     minor(c.internalCostHourlyRate);
     const pay = minor(c.workerPayAmount);
     const markup = minor(c.markupPercent || '0');

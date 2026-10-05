@@ -28,6 +28,10 @@ import {
   technicalReportInputSchema,
   timeInputSchema,
 } from '@ja/schemas';
+import {
+  ClientLaborChargeAllocator,
+  clientBillingUnit,
+} from './domains/commercial/client-labor-charge.ts';
 import { recordAuditEvent } from './core/audit.ts';
 import { assertActiveAccount, assertLiveSession } from './core/authorization.ts';
 import { canonicalJson, sha256 as canonicalSha256 } from './core/canonical-json.ts';
@@ -311,6 +315,8 @@ type CompensationInput = Readonly<{
 }>;
 
 type LaborRateInput = Readonly<{
+  rateBasis?: 'hourly' | 'daily' | 'weekly';
+  unitRateMinor?: bigint;
   projectId: string;
   workerId?: string;
   category?: string;
@@ -396,6 +402,8 @@ type CompensationRuleRow = {
 };
 
 type LaborRateRow = {
+  rate_basis?: string;
+  unit_rate_minor?: string | null;
   id: string;
   project_id: string;
   worker_id: string | null;
@@ -1280,6 +1288,16 @@ export class V3Repository {
         throw new V3ValidationError('End date must follow the effective date');
     }
     if (input.hourlyRateMinor < 0n) throw new V3ValidationError('Client rate cannot be negative');
+    const rateBasis = input.rateBasis ?? 'hourly';
+    if (!['hourly', 'daily', 'weekly'].includes(rateBasis))
+      throw new V3ValidationError('Choose a valid client billing unit');
+    if (
+      rateBasis !== 'hourly' &&
+      (input.unitRateMinor === undefined || input.unitRateMinor < 0n || category)
+    )
+      throw new V3ValidationError(
+        'Daily and weekly customer rates require a unit price and apply to all time categories',
+      );
     if (input.overtimeMethod === 'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME')
       throw new V3ValidationError(
         'Percentage of eligible client overtime is a worker-compensation method',
@@ -1308,8 +1326,8 @@ export class V3Repository {
         `INSERT INTO client_labor_rate(
           id,project_id,worker_id,category,currency,hourly_rate_minor,effective_from,effective_to,
           created_at,updated_at,rate_basis,overtime_method,overtime_multiplier_bps,
-          overtime_rate_minor,eligible_for_percentage,notes
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          overtime_rate_minor,eligible_for_percentage,notes,unit_rate_minor
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       )
       .run(
         id,
@@ -1317,19 +1335,20 @@ export class V3Repository {
         workerId,
         category,
         input.currency,
-        sqliteInteger(input.hourlyRateMinor, 'Client rate'),
+        rateBasis === 'hourly' ? sqliteInteger(input.hourlyRateMinor, 'Client rate') : 0,
         input.effectiveFrom,
         effectiveTo,
         now,
         now,
-        'hourly',
-        input.overtimeMethod ?? 'BASE_RATE_MULTIPLIER',
+        rateBasis,
+        rateBasis === 'hourly' ? (input.overtimeMethod ?? 'BASE_RATE_MULTIPLIER') : 'NONE',
         input.overtimeMultiplierBps ?? 10_000,
         input.overtimeRateMinor === undefined
           ? null
           : sqliteInteger(input.overtimeRateMinor, 'Client overtime rate'),
         input.eligibleForPercentage === false ? 0 : 1,
         input.notes ?? null,
+        rateBasis === 'hourly' ? null : sqliteInteger(input.unitRateMinor!, 'Client unit price'),
       );
     this.audit(principal, 'client_rate.create', 'client_labor_rate', id, {
       projectId: input.projectId,
@@ -1448,7 +1467,7 @@ export class V3Repository {
                 CAST(clr.hourly_rate_minor AS TEXT) hourly_rate_minor,clr.effective_from,clr.effective_to,
                 clr.created_at,clr.updated_at,clr.rate_basis,clr.overtime_method,
                 clr.overtime_multiplier_bps,CAST(clr.overtime_rate_minor AS TEXT) overtime_rate_minor,
-                clr.eligible_for_percentage,clr.notes,clr.version,
+                clr.eligible_for_percentage,clr.notes,clr.version,clr.rate_basis,CAST(clr.unit_rate_minor AS TEXT) unit_rate_minor,
                 p.project_number,p.name project_name,u.name worker_name
          FROM client_labor_rate clr
          JOIN project p ON p.id=clr.project_id
@@ -2269,6 +2288,8 @@ export class V3Repository {
     id: string;
     currency: V3Currency;
     hourlyRateMinor: string;
+    rateBasis: string;
+    unitRateMinor: string | null;
     effectiveRateMinor: string;
     eligibleForPercentage: boolean;
   }> | null {
@@ -2280,6 +2301,8 @@ export class V3Repository {
       id: rule.id,
       currency: rule.currency,
       hourlyRateMinor: String(rule.hourly_rate_minor),
+      rateBasis: clientBillingUnit(rule.rate_basis),
+      unitRateMinor: rule.unit_rate_minor ?? null,
       effectiveRateMinor: this.clientRateAmount({ category }, rule).toString(),
       eligibleForPercentage: rule.eligible_for_percentage === 1,
     };
@@ -2298,6 +2321,8 @@ export class V3Repository {
     id: string;
     currency: V3Currency;
     hourlyRateMinor: string;
+    rateBasis: string;
+    unitRateMinor: string | null;
     effectiveRateMinor: string;
     eligibleForPercentage: boolean;
   }> | null {
@@ -2312,6 +2337,8 @@ export class V3Repository {
       id: rule.id,
       currency: rule.currency,
       hourlyRateMinor: String(rule.hourly_rate_minor),
+      rateBasis: clientBillingUnit(rule.rate_basis),
+      unitRateMinor: rule.unit_rate_minor ?? null,
       effectiveRateMinor: this.clientRateAmount({ category }, rule).toString(),
       eligibleForPercentage: rule.eligible_for_percentage === 1,
     };
@@ -2361,6 +2388,7 @@ export class V3Repository {
   }
 
   private clientRateAmount(row: Pick<TimeRow, 'category'>, rate: LaborRateRow): bigint {
+    if (clientBillingUnit(rate.rate_basis) !== 'hourly') return BigInt(rate.unit_rate_minor ?? '0');
     const base = BigInt(rate.hourly_rate_minor);
     if (row.category === 'overtime') {
       if (rate.overtime_method === 'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME') return base;
@@ -2377,6 +2405,29 @@ export class V3Repository {
       });
     }
     return base;
+  }
+
+  private clientRevenueForSource(row: TimeRow, rate: LaborRateRow): bigint {
+    const unit = clientBillingUnit(rate.rate_basis);
+    if (unit === 'hourly')
+      return hourlyRateForMinutes(
+        money(row.project_currency, this.clientRateAmount(row, rate)),
+        row.minutes,
+      ).minorUnits;
+    const actual = this.sqlite.prepare('SELECT category FROM time_entry WHERE id=?').get(row.id) as
+      | { category: string }
+      | undefined;
+    if (actual && actual.category !== row.category) return 0n;
+    return new ClientLaborChargeAllocator(this.sqlite).charge({
+      sourceId: row.id,
+      projectId: row.project_id,
+      workerId: row.worker_id,
+      workDate: row.work_date,
+      currency: row.project_currency,
+      minutes: row.minutes,
+      unit,
+      rateMinor: this.clientRateAmount(row, rate),
+    }).amountMinor;
   }
 
   private internalCostAmount(row: Pick<TimeRow, 'category'>, rate: InternalCostRow): bigint {
@@ -2409,10 +2460,7 @@ export class V3Repository {
         row.billability_state === 'non_billable'
       )
         return 0n;
-      const clientAmount = hourlyRateForMinutes(
-        money(row.project_currency, this.clientRateAmount(row, clientRate)),
-        minutes,
-      ).minorUnits;
+      const clientAmount = this.clientRevenueForSource(row, clientRate);
       return percentageOfEligibleClientLabor({
         currency: row.project_currency,
         eligibleLaborMinor: clientAmount,
@@ -2423,10 +2471,7 @@ export class V3Repository {
     if (row.category === 'overtime') {
       if (rule.overtime_method === 'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME') {
         if (!clientRate) return 0n;
-        const clientAmount = hourlyRateForMinutes(
-          money(row.project_currency, this.clientRateAmount(row, clientRate)),
-          minutes,
-        ).minorUnits;
+        const clientAmount = this.clientRevenueForSource(row, clientRate);
         return applyBasisPoints(money(row.project_currency, clientAmount), rule.percentage_bps ?? 0)
           .minorUnits;
       }
@@ -2824,10 +2869,7 @@ export class V3Repository {
     basis: SettlementBasis | null,
     clientRate: LaborRateRow,
   ): bigint {
-    const direct = hourlyRateForMinutes(
-      money(row.project_currency, this.clientRateAmount(row, clientRate)),
-      row.minutes,
-    ).minorUnits;
+    const direct = this.clientRevenueForSource(row, clientRate);
     if (basis === 'ISSUED_ELIGIBLE_LABOR' || basis === 'COLLECTED_ELIGIBLE_LABOR') {
       const invoiceRows = this.sqlite
         .prepare(
@@ -4154,8 +4196,14 @@ export class V3Repository {
           sum +
           (slice.rateMinor === null
             ? 0n
-            : hourlyRateForMinutes(money(project.currency, slice.rateMinor), slice.minutes)
-                .minorUnits),
+            : this.clientRevenueForSource(
+                {
+                  ...row,
+                  minutes: slice.minutes,
+                  category: slice.category === 'overtime' ? 'overtime' : row.category,
+                },
+                slice.rate!,
+              )),
         0n,
       );
       if (!approved) {
@@ -4195,8 +4243,14 @@ export class V3Repository {
           sum +
           (slice.rateMinor === null
             ? 0n
-            : hourlyRateForMinutes(money(project.currency, slice.rateMinor), slice.minutes)
-                .minorUnits),
+            : this.clientRevenueForSource(
+                {
+                  ...row,
+                  minutes: slice.minutes,
+                  category: slice.category === 'overtime' ? 'overtime' : row.category,
+                },
+                slice.rate!,
+              )),
         0n,
       );
       const cost = economicRules.reduce(
@@ -4259,7 +4313,11 @@ export class V3Repository {
         );
         billableMinutes += sourceBillableMinutes;
         const firstPriced = pricedClientSlices.find((slice) => slice.rateMinor !== null);
-        if (firstPriced?.rateMinor !== null && firstPriced?.rateMinor !== undefined) {
+        if (
+          firstPriced?.rateMinor !== null &&
+          firstPriced?.rateMinor !== undefined &&
+          clientBillingUnit(firstPriced.rate?.rate_basis) === 'hourly'
+        ) {
           const workerDayKey = `${row.worker_id}:${row.work_date}`;
           const daily = dailyBillable.get(workerDayKey) ?? {
             workerId: row.worker_id,
@@ -4788,6 +4846,14 @@ export class V3Repository {
         clientRate?.currency === project.currency
       ) {
         const cost = this.internalCostAmount({ category: 'regular' }, internalRate);
+        if (clientBillingUnit(clientRate.rate_basis) !== 'hourly') {
+          if (plannedRemainingMinutes !== null && plannedRemainingMinutes > 0)
+            forecastCommercialIssues.push({
+              code: 'fixed_client_units_require_dated_forecast',
+              sourceId: worker.worker_id,
+            });
+          continue;
+        }
         const clientCharge = this.clientRateAmount({ category: 'regular' }, clientRate);
         forecastRatesByWorker.set(worker.worker_id, { cost, client: clientCharge });
         fallbackCostRate += cost;

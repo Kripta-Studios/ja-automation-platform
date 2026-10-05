@@ -1,0 +1,226 @@
+{
+  "capturedOn": "2026-10-06",
+  "environment": "Isolated loopback BBS clone; no production mutations. Clone deployment metadata is inherited, not proof of production execution.",
+  "projectId": "01a10c51-a391-7288-aad1-cb38be43f496",
+  "project": "C-0050-P-20261005 · BBS · Ejemplo de manual",
+  "authentication": "Genuine active fictional role account; credentials/private cookies remain outside Git.",
+  "browser": "Native Playwright Chromium; no injected UI/CSS or fabricated state. Screenshot crops preserve native content.",
+  "responsiveWidths": [
+    1440,
+    768,
+    390
+  ],
+  "pageOverflow": false,
+  "historicalSources": "Original billed October2–5 records and finalized settlements unchanged. Synthetic role work datedOctober6/15.",
+  "harnessLimits": [
+    "Some helper waits/navigation attempts timed out without mutation; final states separately checked.",
+    "A mistaken /today route was404; native Today is app root.",
+    "First Worker statement October15 operator runner omitted handler and dead-lettered jobs; failed history retained. FreshOctober15–16 processed normally."
+  ],
+  "sources": {
+    "sharedWorker1": "01a10e39-e917-75e9-a409-ae68422dd80e",
+    "sharedWorker2": "01a10e39-e919-7273-afd6-b9a4f3c6c870",
+    "crewExpense": "01a10e3a-6df9-7199-b8ac-3e5c341e2ed8",
+    "individualWorker1": "01a10e3f-128a-74d9-bcdd-97cb4c82e661",
+    "individualWorker2Original": "01a10e3f-128d-708d-9d96-36ec5e69777b",
+    "individualWorker2Corrected": "01a10e44-382e-726a-a4d2-ab86de8a8858",
+    "ownDaily": "01a10e3f-d66e-74ef-a31d-2f45783d7179",
+    "ownTime": "01a10e45-a232-736d-9e08-410615506499",
+    "ownTechnical": "01a10e45-bfe0-7148-b071-a4474f8ada8e"
+  },
+  "actualPasses": [
+    "GenuineChiefordinaryWorker role; dated grantsOct1–31Worker1/2.",
+    "Shared2h EACH twopeople→separateDrafts→individualSubmit; bothremainSubmitted.",
+    "Individual0.5h/1hTravel→SavewithSubmitcheckbox; PMApproved0.5h andreturned1h.",
+    "Chiefdelegated1h→linked0.75h→Submit→PMApproved; originalpreserved.",
+    "Single20USDcrewreceiptdraft→allocation10+10twoexistingcrewsourceIDs→Submit→PMApproved.",
+    "ChiefownDaily andTechnical saved/submitted→PMApproved.",
+    "Chiefown0.25h saved→ownweeklySubmit→PMApproved.",
+    "ChiefownMyPay only; historicalsyntheticUSD400/20 notrealbankevidence.",
+    "NativeApprovals403, Finance403. Crewdesktop/tablet/phone nooverflow."
+  ],
+  "expectedBlocks": {
+    "approvals": 403,
+    "finance": 403
+  },
+  "notRun": [
+    "Account/delegation changes",
+    "Review-enabledChief approval actions",
+    "Draftwithdrawal",
+    "Reportattachment/PDF/customeracceptance",
+    "Profile/securitychanges",
+    "Actualbank/emaildelivery"
+  ],
+  "handoff": "October6shared2h+2h remainSubmitted; delegatedexpensePMApproved but Financeclassification/payment not asserted.",
+  "screenshots": [
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/01-chief-crew-one-selected.png",
+      "sha256": "eeb120864e8c077c0def18afa738003e61e906b30f4b6825e619586f24665bf9",
+      "width": 737,
+      "height": 856
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/02-chief-crew-shared-filled.png",
+      "sha256": "2abe5628f3b9a5fa85dc1199869ad00104d8e9aaa234a8acf1a478e9c5e05f37",
+      "width": 1136,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/03-chief-crew-saved.png",
+      "sha256": "4a1542eac48d2a23bdb5b0cf7a1518c7fd2889b8f18ec5526c17c5830415af97",
+      "width": 1136,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/04-chief-expense-filled.png",
+      "sha256": "3e41b52b395f23622e5ab3a20a09b666084dc4a531fcf177320bfa578bf2023b",
+      "width": 544,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/05-chief-receipt-split-filled.png",
+      "sha256": "de70b76e7b442b5e637f27c892873a1008b3755b4c8736781cd6814f3915bf08",
+      "width": 737,
+      "height": 572
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/06-chief-receipt-allocation-saved.png",
+      "sha256": "e404ba2a357f96f8c595e3c311ae9f98667582f403f077a9f05922b6f399838a",
+      "width": 1104,
+      "height": 539
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/07-chief-crew-submitted.png",
+      "sha256": "998570f165b917613381674f747c1eb93ad8c65d3149b8360cedbf4b25d8a14a",
+      "width": 1104,
+      "height": 230
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/08-chief-individual-filled.png",
+      "sha256": "502bed4bd14c893f74db285a160c2e488518eb9761b9016bfa0714ce3cfea086",
+      "width": 1104,
+      "height": 909
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/09-chief-individual-submitted.png",
+      "sha256": "4eeb950ba9640dff6ad2548c2f3cdb27c34a8372a52203ee8e03f69ebb853971",
+      "width": 1104,
+      "height": 230
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/10-chief-phone.png",
+      "sha256": "88648a9620ef4c6c8e69f9e5051e6fd1ad384a6d73f86d3d5a4a5c3ea8941b9b",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/11-chief-tablet.png",
+      "sha256": "3aeaa4e31aa69eed7cf51267f2b782aa7bcd818e708337d3d1d063584b90105e",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/12-chief-daily-filled.png",
+      "sha256": "679517d38a88906aa6400cfe6a96d5b723d7e004ee124d2fc70910674c38d125",
+      "width": 544,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/13-chief-shared-expense-saved.png",
+      "sha256": "411b5559372a905bda66cc3c9a0bb58eb97b2e56ab343f47ac0289cc13c78239",
+      "width": 1136,
+      "height": 1052
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/14-chief-shared-expense-submitted.png",
+      "sha256": "98bfc1a95419864a67972daf3e558db34ba388be6afcfae15678de7745cb0f59",
+      "width": 1136,
+      "height": 1001
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/15-chief-daily-saved.png",
+      "sha256": "d0bcb054698be1d3a04019f0464c5c3928bab17161b3b43ed3476b39ab0686ff",
+      "width": 1136,
+      "height": 280
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/16-chief-daily-submitted.png",
+      "sha256": "44d493dabd10f7ec4fe1b96aeffab8487993dd09401baf4f90848cf0b3cf217b",
+      "width": 1136,
+      "height": 280
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/17-chief-own-pay.png",
+      "sha256": "879dea22d3cae17f3eaf412aa6baa1ad1c9a6c098dec9a524366eeb688545dc8",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/18-chief-returned-time.png",
+      "sha256": "065e910269a0b2a3da3ded4d39e3006dd7d9bc23ea2a4690adbb66d70b8bf1da",
+      "width": 832,
+      "height": 1467
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/19-chief-correction-filled.png",
+      "sha256": "9f966faa9d5f448ab0c40cbc8a702a7dca04a15fd9bd20c4b81ba87d0937ac61",
+      "width": 756,
+      "height": 519
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/20-chief-correction-draft.png",
+      "sha256": "0ee46fd8a76c8a0f8c858ecca4719103b1d76691b6df09659b44e5a31c52ef9e",
+      "width": 832,
+      "height": 763
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/21-chief-correction-submitted.png",
+      "sha256": "1150d6770fbdc243e58ad63232e40456d9b1f504ab3fdea19b4d86b35f0a781b",
+      "width": 832,
+      "height": 633
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/22-chief-own-time-filled.png",
+      "sha256": "af61567a2b84156d3baae66dccf50090ef91fab4d9308f626d129171e59b9b10",
+      "width": 544,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/23-chief-own-week-before-submit.png",
+      "sha256": "f2d7b89779d047f55ce417f976c8323280d2e42bdd1863ee655ea6ac7886c8b4",
+      "width": 1104,
+      "height": 392
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/23b-chief-own-time-submitted.png",
+      "sha256": "cb9219fc35ffe30aa15a6d126ee2aeaa6d664cd58b153890e70a514d885ba138",
+      "width": 1136,
+      "height": 224
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/24-chief-technical-filled.png",
+      "sha256": "667318a027723ec9e64eaaaeaba48cd49a17cb37ccceecf65367921f1ce26812",
+      "width": 544,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/25-chief-technical-saved.png",
+      "sha256": "6e0c99bbb03bfc624acdc2ed8f41debd1bd66ba28718870c67b8211b2806cedf",
+      "width": 1136,
+      "height": 224
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/26-chief-technical-submitted.png",
+      "sha256": "0cad11754b7957e2ae41fd6c4fa28bd405ebe7df14fc21605cd8cd5310fd9010",
+      "width": 1136,
+      "height": 224
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/27-chief-correction-approved.png",
+      "sha256": "a881900d3b981f7257c9ebe6297cfd9e8dfa134aa1f3b91830a4a3e9f840ed43",
+      "width": 1104,
+      "height": 300
+    }
+  ],
+  "phoneRecapture": "Fresh rebuilt runtime; closed navigation; settled viewport confirmed visually;390pixels nooverflow/pageerrors/POST."
+}

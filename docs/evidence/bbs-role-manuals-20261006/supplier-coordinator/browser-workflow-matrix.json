@@ -1,0 +1,213 @@
+{
+  "environment": "isolated loopback native portal, clone only",
+  "project": "C-0050-P-20261005 BBS manual example",
+  "role": "supplier-coordinator",
+  "source_date_scope": "Synthetic future October 6+ work records only; Owner current UTC day 5 dated access/coverage setup.",
+  "credentials": "private external cookie/password files excluded from Git and manuals",
+  "workflows": [
+    {
+      "workflow": "native-login-and-projectauthorization",
+      "status": "PASS",
+      "evidence": "Owner created supplier/coordinator and authorized same BBS October 5\u201331; actual native login, private cookie jar."
+    },
+    {
+      "workflow": "directory-technician-add",
+      "status": "PASS",
+      "evidence": "Add technician saved a fictional directory-only person October 6\u201331. No login account created by coordinator."
+    },
+    {
+      "workflow": "team-time-save",
+      "status": "PASS",
+      "evidence": "Two eligible technicians each recorded 2 hours on October 6; two native drafts total 4 hours."
+    },
+    {
+      "workflow": "team-time-submit",
+      "status": "PASS",
+      "evidence": "Select up to 100 drafts and Submit selected to J&A submitted both sources."
+    },
+    {
+      "workflow": "returned-correction",
+      "status": "PASS",
+      "evidence": "Owner returned directory technician 2 hours; coordinator created 1.5-hour linked correction, submitted it, and Owner approved. Original preserved and explicitly superseded/excluded."
+    },
+    {
+      "workflow": "active-report-total",
+      "status": "PASS",
+      "evidence": "Native report shows active approved 2 + 1.5 = 3.5 hours, without counting the original again."
+    },
+    {
+      "workflow": "native-csv-download",
+      "status": "PASS",
+      "evidence": "Native CSV downloaded at original submitted 4-hour stage; historical export remains unchanged after later correction."
+    },
+    {
+      "workflow": "own-time",
+      "status": "PASS",
+      "evidence": "Own October 8 quarter-hour saved and submitted with 15 minutes; awaits authorized Owner review."
+    },
+    {
+      "workflow": "own-daily",
+      "status": "PASS",
+      "evidence": "Own October 8 Daily saved, submitted and approved operationally by PM."
+    },
+    {
+      "workflow": "own-preview-scoped-fix",
+      "status": "PASS",
+      "evidence": "After fix, authenticated own Daily preview returned 200; exact known other-worker report preview returned 404. Screenshots 24\u201326 and preview-access-check.json."
+    },
+    {
+      "workflow": "restricted-finance-billing-review",
+      "status": "PASS",
+      "evidence": "Finance, Billing and Approvals returned 403. No financial or J&A review privileges granted."
+    },
+    {
+      "workflow": "navigation-responsive",
+      "status": "PASS",
+      "evidence": "Native supplier and own operational workspaces opened; 1440 desktop, 390 phone and 768 tablet captures."
+    },
+    {
+      "workflow": "expense-own-save-submit",
+      "status": "INSPECTED_NOT_RUN",
+      "evidence": "Own expense form opened and unsaved values deliberately abandoned. No coordinator purchase, submission or payment claimed."
+    },
+    {
+      "workflow": "technical-own-lifecycle",
+      "status": "NOT_RUN",
+      "evidence": "Coordinator Technical lifecycle not run; guide cross-references the verified External/Worker procedures."
+    },
+    {
+      "workflow": "print-pdf",
+      "status": "INSPECTED_NOT_RUN",
+      "evidence": "Print / save PDF visible; print action not executed."
+    },
+    {
+      "workflow": "ordinary-draft-edit-discard",
+      "status": "INSPECTED_NOT_RUN",
+      "evidence": "Correct draft / Discard draft visible; ordinary edit/discard transitions not executed."
+    },
+    {
+      "workflow": "different-hours-mode",
+      "status": "INSPECTED_NOT_RUN",
+      "evidence": "Different hours mode visible; positive batch used Same hours for everyone."
+    },
+    {
+      "workflow": "security-availability-mutation",
+      "status": "INSPECTED_NOT_RUN",
+      "evidence": "Own Profile inspected; no coordinator availability or security enrollment mutation."
+    }
+  ],
+  "external_claims": "NONE: no production business mutation, actual customer signature, outward email, real purchase, live dispatch or bank payment.",
+  "screenshots": [
+    {
+      "file": "screenshots/01-coordinator-authorized-personnel.png",
+      "sha256": "1ba3f7405735858b33927af334c4fc7e0d1c57a6dedd3c8badca4779614cf589"
+    },
+    {
+      "file": "screenshots/02-coordinator-add-technician-before.png",
+      "sha256": "aac162916faef8e146729503344ba65a507a5be2dadad0513aa343cc653a768a"
+    },
+    {
+      "file": "screenshots/03-coordinator-eligible-roster.png",
+      "sha256": "107f460081fa0cc0dba607969867c14a10deb0f9819646315bbcab2ab43d1c36"
+    },
+    {
+      "file": "screenshots/04-coordinator-selected-team-hours.png",
+      "sha256": "e2a3de862e90012c2f3d3f9bf7d3528ba459dd8b653de508ec1fe3c5a87c7206"
+    },
+    {
+      "file": "screenshots/05-coordinator-drafts-saved.png",
+      "sha256": "abad01fac85cb0e41adde6a9b2cff4df5e98003c019da635e5a30736690281a4"
+    },
+    {
+      "file": "screenshots/06-coordinator-submit-selected.png",
+      "sha256": "4a871b77fe5a1ab135a96a647f737b3f2420182a0c7178129871607c49033b63"
+    },
+    {
+      "file": "screenshots/07-coordinator-submitted-team.png",
+      "sha256": "cf5f1a5485135c854dc77cd8cabba57495ddd833f3a76380cb5636a7fedf3056"
+    },
+    {
+      "file": "screenshots/08-coordinator-operational-report.png",
+      "sha256": "9f4e1efb04bbb03ddfb07a12fd98d9a893d81fb8b845af3de9fad1e5f8b9847a"
+    },
+    {
+      "file": "screenshots/09-coordinator-operational-phone.png",
+      "sha256": "145f4410391d28ec1a42074f9e6d62e452c0fbaf33af9fe40a661e9f9f769e8a"
+    },
+    {
+      "file": "screenshots/10-coordinator-returned-source.png",
+      "sha256": "519508a8f6fe1e5185aac469f5e99472acc3ee8bfa47ece921ba5688b457f13c"
+    },
+    {
+      "file": "screenshots/11-coordinator-correction-draft.png",
+      "sha256": "967b2b2f6ed1484310e3ed0f22ed65e94db15b1175185aa67bf054941b882173"
+    },
+    {
+      "file": "screenshots/12-coordinator-correction-submitted.png",
+      "sha256": "0074a032427231558b25db32023a17b54344da1980dc2b40c040a087ceef60b5"
+    },
+    {
+      "file": "screenshots/13-coordinator-approved-no-double-count.png",
+      "sha256": "b8fd2c36135358dafa0f3ecff8b881ad18dbeca00930f25498f3a6cc6ec24f78"
+    },
+    {
+      "file": "screenshots/14-coordinator-finance-denied.png",
+      "sha256": "2da5f140c85eb1b622c26c76a2def7ef9a3dbdada0f46db602af1d53f9acefdc"
+    },
+    {
+      "file": "screenshots/15-coordinator-personnel-tablet.png",
+      "sha256": "c641c9e38edb6b907328d23741399586519bac989763d72f1163f2cf89b53f28"
+    },
+    {
+      "file": "screenshots/16-coordinator-own-time-form.png",
+      "sha256": "24bfd60083cfc5f1398755271dc1d7927255e0e5a8e6075a5174aeea5f3737f1"
+    },
+    {
+      "file": "screenshots/17-coordinator-own-time-submitted.png",
+      "sha256": "bd46e7fca6478e19f6d9686c29f1ca9338718712eea45622e29fb13c437be148"
+    },
+    {
+      "file": "screenshots/18-coordinator-own-expense-form.png",
+      "sha256": "5dad67b9413af5021e3fff055185c06b9f3f6817d3cdc04f7b63f2292c3df7e5"
+    },
+    {
+      "file": "screenshots/19-coordinator-daily-form.png",
+      "sha256": "8de34b7ed91e2a846acebbecef09eac0aeed687ffd10aa880b694034fc511ba7"
+    },
+    {
+      "file": "screenshots/20-coordinator-daily-submitted.png",
+      "sha256": "83e2845a69a152b1a6f3bb988e933a6a21148b1cb26851c3c19528810fa8c0ca"
+    },
+    {
+      "file": "screenshots/21-coordinator-profile.png",
+      "sha256": "de5e6124954589fcca9b0663a15d54690bceed5899fdd88ede0e00f6a7e70b56"
+    },
+    {
+      "file": "screenshots/22-coordinator-help.png",
+      "sha256": "af316cb9cba44b93b7ff10b9085d0e5435f0f654f8023a93760b7ec2d83a70ba"
+    },
+    {
+      "file": "screenshots/23-coordinator-approvals-denied.png",
+      "sha256": "2da5f140c85eb1b622c26c76a2def7ef9a3dbdada0f46db602af1d53f9acefdc"
+    },
+    {
+      "file": "screenshots/24-coordinator-own-report-preview-fixed.png",
+      "sha256": "758dc1102b3c7af5c587017abc44462f1b01c5810d8a7e17a15449f94bc9113f"
+    },
+    {
+      "file": "screenshots/25-coordinator-own-preview-native.png",
+      "sha256": "cefb0a4e4bbd94e08e25936ddd481ed375c4bd02ecbfca9df7618fcd2a912b8c"
+    },
+    {
+      "file": "screenshots/26-coordinator-other-report-preview-denied.png",
+      "sha256": "ba2df9627200b22cfd90c9dd555e335f3c821be8d8876501e4e0ff679cd9125d"
+    }
+  ],
+  "phone_capture_verification": "PM More drawer labels and Coordinator Profile recaptured at390 after hydration/transition settled; no CSS injection. Coordinator Help recaptured at1440 after viewport settled. Visual inspection confirmed readable labels/titles.",
+  "remaining_transient_frames_fixed": {
+    "checks": "Native Escape then wait until #portal-navigation inert=true and rect.right<=0 before capture, no CSS injection",
+    "captures": [
+      "15-coordinator-personnel-tablet.png"
+    ]
+  }
+}

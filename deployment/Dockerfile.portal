@@ -13,7 +13,11 @@ COPY docs/manuals/Employee_Field_Guide_EN.pdf docs/manuals/Employee_Field_Guide_
      docs/manuals/Supplier_Operations_Guide.pdf docs/manuals/Supplier_Operations_Guide_PT-BR.pdf \
      docs/manuals/Administration_Finance_Guide.pdf docs/manuals/Administration_Finance_Guide_PT-BR.pdf \
      docs/manuals/Project_to_Invoice_Quick_Guide_EN.pdf \
-     docs/manuals/BBS_Project_to_Client_Invoices_Guide_EN.pdf ./manuals/
+     docs/manuals/BBS_Project_to_Client_Invoices_Guide_EN.pdf \
+     docs/manuals/BBS_Worker_Manual_EN.pdf docs/manuals/BBS_Crew_Chief_Manual_EN.pdf \
+     docs/manuals/BBS_Project_Manager_Manual_EN.pdf docs/manuals/BBS_Finance_Manual_EN.pdf docs/manuals/BBS_Owner_Manual_EN.pdf \
+     docs/manuals/BBS_Auditor_Manual_EN.pdf docs/manuals/BBS_Supplier_Coordinator_Manual_EN.pdf \
+     docs/manuals/BBS_External_Technician_Manual_EN.pdf ./manuals/
 RUN pnpm install --frozen-lockfile
 RUN env \
     JA_DATABASE_PATH=/tmp/jaautomation-release-build.sqlite \

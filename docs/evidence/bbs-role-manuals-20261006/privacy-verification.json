@@ -1,0 +1,6 @@
+{
+  "status": "PASS",
+  "capturedAt": "2026-10-05T23:49:30.437519+00:00",
+  "filesChecked": 288,
+  "checks": "Literal private passwords and session-cookie values absent from public sources, evidence and extracted PDF text; secret values never exported"
+}

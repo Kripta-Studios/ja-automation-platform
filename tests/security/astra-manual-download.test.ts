@@ -213,4 +213,39 @@ describe('Help PDF authorization boundary', () => {
     });
     expect(unavailable.headers.get('cache-control')).toBe('private, no-store');
   });
+
+  it('protects current BBS role courses using the persisted role and supplier profile', async () => {
+    const worker = stepUpB5Principal(fixture.sqlite, fixture.worker, 'bbs-worker');
+    const manager = stepUpB5Principal(fixture.sqlite, fixture.manager, 'bbs-manager');
+    const finance = stepUpB5Principal(fixture.sqlite, fixture.finance, 'bbs-finance');
+    const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'bbs-owner');
+    for (const [principal, id] of [
+      [worker, 'bbs-worker-manual'],
+      [worker, 'bbs-chief-manual'],
+      [manager, 'bbs-manager-manual'],
+      [finance, 'bbs-finance-manual'],
+      [owner, 'bbs-owner-manual'],
+    ] as const) {
+      const response = await GET(event(principal, id, '?lang=es') as never);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('x-help-manual-language')).toBe('en');
+      expect(response.headers.get('cache-control')).toBe('private, no-store');
+      expect(
+        Buffer.from(await response.arrayBuffer())
+          .subarray(0, 5)
+          .toString(),
+      ).toBe('%PDF-');
+    }
+    for (const id of ['bbs-finance-manual', 'bbs-owner-manual', 'bbs-auditor-manual']) {
+      expect((await GET(event(worker, id, '', 'owner_admin') as never)).status).toBe(404);
+    }
+    expect((await GET(event(finance, 'bbs-owner-manual') as never)).status).toBe(404);
+    supplierProfile(worker.userId, 'supplier_coordinator');
+    expect((await GET(event(worker, 'bbs-worker-manual') as never)).status).toBe(404);
+    expect((await GET(event(worker, 'bbs-supplier-coordinator-manual') as never)).status).toBe(200);
+    expect((await GET(event(worker, 'bbs-external-technician-manual') as never)).status).toBe(404);
+    supplierProfile(worker.userId, 'external_technician');
+    expect((await GET(event(worker, 'bbs-external-technician-manual') as never)).status).toBe(200);
+    expect((await GET(event(worker, 'bbs-supplier-coordinator-manual') as never)).status).toBe(404);
+  });
 });

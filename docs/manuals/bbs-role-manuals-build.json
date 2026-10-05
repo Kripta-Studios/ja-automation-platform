@@ -1,0 +1,755 @@
+{
+  "revision": "2026-10-06",
+  "project": "C-0050-P-20261005",
+  "reports": [
+    {
+      "role": "auditor",
+      "filename": "BBS_Auditor_Manual_EN.pdf",
+      "pages": 27,
+      "landscape": 10,
+      "missing": 0,
+      "overflows": [],
+      "instructionBlocks": 107,
+      "instructionText": "PASS",
+      "bytes": 393729,
+      "sha256": "c036652405abde0c4261af0aff89a39c61c89926ba85980ebafd163efa9be2ee",
+      "figures": [
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/12-auditor-phone-navigation.png",
+          "sha256": "553295104f7133de31b414649d9e63626be2324c9608ed425d63d4f8071f0c4b"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/02-auditor-issued-invoice-register.png",
+          "sha256": "539354c4c09286ff3c67983d5953150cb087188d985aa7663bdc5e28dc1efbeb"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/03-auditor-phone-invoice-card.png",
+          "sha256": "1c4690abebaba5522f80770c9b573bc67cea32e0e71feb8a47f7218f61b608af"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/04-auditor-final-pdf-view.png",
+          "sha256": "93922192f18f2d04130a396bd7bdf1988583f866a34948d560903a2a820d8b8d"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/07-auditor-ledger-filters-tablet.png",
+          "sha256": "3ea759ba75e693c521c708759c656d91967655cff4139c129624ba307f2e8ddb"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/08-auditor-customer-balances.png",
+          "sha256": "7e81dff0db4d81e1453f42b373569bcc2f62400d2a4f64e7786c5bbe8cf2228b"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/01-auditor-settlements-read-only.png",
+          "sha256": "fbe3a85942c1adfd2277cfb8c05844edef422773ac9f603598d50fd8cb90ccb2"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/09-auditor-empty-accounting-register.png",
+          "sha256": "625db8e99948c763b61dc46adc3192ae2d9a93ecee7f3c54987c111ec2174878"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/05-auditor-fictional-approval-audit-event.png",
+          "sha256": "3e822b94927854313c7b25c8b0a8e7a0236be954aeb9adcce0cb8840ff23c916"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/10-auditor-daily-report-register.png",
+          "sha256": "49871ef37fdbf662b5147f7a7e956d67e7e50f3d44816924ea25bab52c606992"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/11-auditor-approved-daily-read-only.png",
+          "sha256": "6ebd87457f6e514061c90721991d7d87e689c901c0c5832a2ebe33602647ed10"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/13-auditor-ready-daily-download.png",
+          "sha256": "de9c97215d4e48ed116ae60536653b2d1c3b6332e57c3fd02858ccf9397b0e67"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/06-auditor-approval-route-denied.png",
+          "sha256": "d51fa7ffdcb3d09ae21d929ba96e2296feef45f1c79df7b2285a686c51b21f9e"
+        }
+      ]
+    },
+    {
+      "role": "chief",
+      "filename": "BBS_Crew_Chief_Manual_EN.pdf",
+      "pages": 41,
+      "landscape": 16,
+      "missing": 0,
+      "overflows": [],
+      "instructionBlocks": 144,
+      "instructionText": "PASS",
+      "bytes": 1557875,
+      "sha256": "6cb7034f404ba6cf71ad1169f6ae6dac31424b4af7983e71210a37269f4bd6ae",
+      "figures": [
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/02-chief-crew-shared-filled.png",
+          "sha256": "2abe5628f3b9a5fa85dc1199869ad00104d8e9aaa234a8acf1a478e9c5e05f37"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/03-chief-crew-saved.png",
+          "sha256": "4a1542eac48d2a23bdb5b0cf7a1518c7fd2889b8f18ec5526c17c5830415af97"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/07-chief-crew-submitted.png",
+          "sha256": "998570f165b917613381674f747c1eb93ad8c65d3149b8360cedbf4b25d8a14a"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/08-chief-individual-filled.png",
+          "sha256": "502bed4bd14c893f74db285a160c2e488518eb9761b9016bfa0714ce3cfea086"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/09-chief-individual-submitted.png",
+          "sha256": "4eeb950ba9640dff6ad2548c2f3cdb27c34a8372a52203ee8e03f69ebb853971"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/18-chief-returned-time.png",
+          "sha256": "065e910269a0b2a3da3ded4d39e3006dd7d9bc23ea2a4690adbb66d70b8bf1da"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/19-chief-correction-filled.png",
+          "sha256": "9f966faa9d5f448ab0c40cbc8a702a7dca04a15fd9bd20c4b81ba87d0937ac61"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/27-chief-correction-approved.png",
+          "sha256": "a881900d3b981f7257c9ebe6297cfd9e8dfa134aa1f3b91830a4a3e9f840ed43"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/04-chief-expense-filled.png",
+          "sha256": "3e41b52b395f23622e5ab3a20a09b666084dc4a531fcf177320bfa578bf2023b"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/13-chief-shared-expense-saved.png",
+          "sha256": "411b5559372a905bda66cc3c9a0bb58eb97b2e56ab343f47ac0289cc13c78239"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/14-chief-shared-expense-submitted.png",
+          "sha256": "98bfc1a95419864a67972daf3e558db34ba388be6afcfae15678de7745cb0f59"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/05-chief-receipt-split-filled.png",
+          "sha256": "de70b76e7b442b5e637f27c892873a1008b3755b4c8736781cd6814f3915bf08"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/06-chief-receipt-allocation-saved.png",
+          "sha256": "e404ba2a357f96f8c595e3c311ae9f98667582f403f077a9f05922b6f399838a"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/22-chief-own-time-filled.png",
+          "sha256": "af61567a2b84156d3baae66dccf50090ef91fab4d9308f626d129171e59b9b10"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/23-chief-own-week-before-submit.png",
+          "sha256": "f2d7b89779d047f55ce417f976c8323280d2e42bdd1863ee655ea6ac7886c8b4"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/23b-chief-own-time-submitted.png",
+          "sha256": "cb9219fc35ffe30aa15a6d126ee2aeaa6d664cd58b153890e70a514d885ba138"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/12-chief-daily-filled.png",
+          "sha256": "679517d38a88906aa6400cfe6a96d5b723d7e004ee124d2fc70910674c38d125"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/16-chief-daily-submitted.png",
+          "sha256": "44d493dabd10f7ec4fe1b96aeffab8487993dd09401baf4f90848cf0b3cf217b"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/24-chief-technical-filled.png",
+          "sha256": "667318a027723ec9e64eaaaeaba48cd49a17cb37ccceecf65367921f1ce26812"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/26-chief-technical-submitted.png",
+          "sha256": "0cad11754b7957e2ae41fd6c4fa28bd405ebe7df14fc21605cd8cd5310fd9010"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/17-chief-own-pay.png",
+          "sha256": "879dea22d3cae17f3eaf412aa6baa1ad1c9a6c098dec9a524366eeb688545dc8"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/10-chief-phone.png",
+          "sha256": "88648a9620ef4c6c8e69f9e5051e6fd1ad384a6d73f86d3d5a4a5c3ea8941b9b"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/11-chief-tablet.png",
+          "sha256": "3aeaa4e31aa69eed7cf51267f2b782aa7bcd818e708337d3d1d063584b90105e"
+        }
+      ]
+    },
+    {
+      "role": "external-technician",
+      "filename": "BBS_External_Technician_Manual_EN.pdf",
+      "pages": 34,
+      "landscape": 14,
+      "missing": 0,
+      "overflows": [],
+      "instructionBlocks": 121,
+      "instructionText": "PASS",
+      "bytes": 2607314,
+      "sha256": "b58466d202eb3dbbdaef3754799e1d1a2d4e17689a0855afd666c492ab48d6c4",
+      "figures": [
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/01-external-own-time.png",
+          "sha256": "da3306217fe0f76a8a0faebbbcd878d3c72126033bdc5a55248c642a0e6d03b9"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/03-external-time-filled.png",
+          "sha256": "83c3f994e4893acfedf9ef9ccd0b9deed3e217911f8383e0dab25d56f0f10904"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/04-external-submitted-own-source.png",
+          "sha256": "0e4bffaa208b81cb4be065e02c8439868c54ef137fde7206dd735cc5eb842e1a"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/05-external-returned-correction.png",
+          "sha256": "13e35fb7c88ad2b3b424272a485b93fe7b0501dbad22661c53c821ec4842a2a3"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/06-external-corrected-draft.png",
+          "sha256": "2f62d2c4f3e12977cbed6d8ef28fb940af8217845406c1442358d4ed51b4c9b0"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/07-external-correction-submitted.png",
+          "sha256": "3b624cf30755581d03bc14e9dc84f37ecd02861195fc4a8d689fde2a4e0665d1"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/14-external-expense-draft.png",
+          "sha256": "d06776dcd90b2c1b74a425230d4563829bb01539bea2e85ef61f1e95ad441b22"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/15-external-expense-submitted.png",
+          "sha256": "4fa29384878ff7c5cca300e52115b313d5a65cafa7a0e59281789a50453af4d5"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/10-external-daily-form.png",
+          "sha256": "5702946ac8937bf3e00dd217792eff370eaaeb0f3ab8577f3584dc49630a6558"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/27-external-daily-approved-source.png",
+          "sha256": "904689ebaa7a628dfa30831b1066925199a6dd161446e6cd487447bc0e18bbd7"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/16-external-technical-filled.png",
+          "sha256": "f212bcb26ae8ed2b1446a2b311e0de7246eddabe4996284be1632c090ab913d4"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/26-external-technical-approved.png",
+          "sha256": "730c51e29aee6eb56e3f329e946dbe7b1b7babc693769cf908ef6d4646b05df1"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/25-external-daily-ready.png",
+          "sha256": "904689ebaa7a628dfa30831b1066925199a6dd161446e6cd487447bc0e18bbd7"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/20-external-operational-current.png",
+          "sha256": "14b6e5e79299ebc4c2abcca9db2c3a4b45d547254a0bb397274b5f10d50742bc"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/21-external-phone-report.png",
+          "sha256": "a2bfa60b7f5934997540d51b2c7dc0e833ff6dc34f94eeb60e4618d1e39aba4d"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/22-external-tablet-report.png",
+          "sha256": "053c2fbd3dac4ecbe5da9579c39fd0ff36d9f609f9be8b122487aeae441a949c"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/23-external-profile.png",
+          "sha256": "34c3cf7812588f653cab2e8db71dc688996c7c24a975bfae1dfcb49cbac99df7"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/24-external-help.png",
+          "sha256": "56dd8cf8cfd6fd785cdd20675c40930c8bdd022ecbadbe4277ff7e2e8b0ffdae"
+        }
+      ]
+    },
+    {
+      "role": "finance",
+      "filename": "BBS_Finance_Manual_EN.pdf",
+      "pages": 52,
+      "landscape": 19,
+      "missing": 0,
+      "overflows": [],
+      "instructionBlocks": 190,
+      "instructionText": "PASS",
+      "bytes": 989825,
+      "sha256": "df811b0230780b9e90fccd65271c0f434bc9af140835ff6bd5985589103ef7d9",
+      "figures": [
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/02-finance-overview-phone.png",
+          "sha256": "c72b1b7965583c309ef497b082dcac8d200e4b7a555f17df7d5229edc6ecfbb6"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/03-finance-mobile-navigation.png",
+          "sha256": "a5cf0edf76e4c332d3725fc49e8220d3a1685a0ff4258c4cb234073a71c89185"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/04-finance-review-active-lab-sources.png",
+          "sha256": "29341a850f47ea1677df134035a295201c7bf784ef19644cd54238675a4bb6b6"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/05-finance-expense-classification-input.png",
+          "sha256": "70d69d2b73a4f763bee5df955c6311388c2607b156b5fec432ca6eb57aacd1fa"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/07-finance-reviewed-expense-ready-action.png",
+          "sha256": "1dcd193e9aaee617b5930630951acfe4571a7072952a58e8a2b6f60a2af679da"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/31-finance-weekly-labor-stream.png",
+          "sha256": "0fc20b42d45c9cc63d6d2a644a673e7f4163dfa59d21b859a659f561fb330077"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/32-finance-monthly-expense-stream.png",
+          "sha256": "efc286dd08797a8bbac2fe4d63717a2a7f471a29aa9b33fae01f9cad73031109"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/09-finance-debit-approved.png",
+          "sha256": "3b3c734771a28176550b9e8d829ecb7ce52b8e2c070ddca0ee71a69713690a3d"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/10-finance-issue-confirmation-input.png",
+          "sha256": "5546baa0c50972a22da40bb9b4e54d00e7ead336754df2d1d2d785740108bc31"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/11-finance-debit-issued-ready.png",
+          "sha256": "421341a1e907bfc7e4212bf404992fac2ec2f542d9bc23ed4194b5ec17b0c5dc"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/21-finance-native-debit-final-pdf.png",
+          "sha256": "93922192f18f2d04130a396bd7bdf1988583f866a34948d560903a2a820d8b8d"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/12-finance-collection-input.png",
+          "sha256": "b488cd7eb0df0ed26aed0cb70323c9232c23da2352907560ec03b2d3f4138db5"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/13-finance-collected-501.png",
+          "sha256": "268923a3142d9c26a86a7e9361841c338f66c5534b7c868a8154b56b18f72aea"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/14-finance-collection-reversal-input.png",
+          "sha256": "81aef5a63a9db517ee059db484fae0517a760a21967a593ee450366eaa954cea"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/15-finance-collection-reversed-history.png",
+          "sha256": "32133a2dfc421539398fe475f216d8ebcb74b9953c6990a9b392d71026584ca8"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/08-finance-adjustment-input.png",
+          "sha256": "885a1eaca2a5419d09d350518c4b9f83ffe0302a905c2ff16850f49da80afe7e"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/16-finance-worker-payment-input.png",
+          "sha256": "5a1466775024ed4bf9817a7950008a1cb296627f0cfe2d225b874877b053b124"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/17-finance-worker-payment-partial.png",
+          "sha256": "4d820af4b53b144c26fa956f1ba64c5fd9fd525c37be51f02dbad9ed0a7b1542"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/18-finance-worker-reversal-input.png",
+          "sha256": "f757c5ad5cf695405f21ccde0c532ce824e607661de50edaea890b4892770953"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/19-finance-worker-payment-reversed.png",
+          "sha256": "9901d8397c447d03901d70c1589a891f48b80ac174da07d640fc874a394c0a56"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/22-finance-reimbursement-input-desktop.png",
+          "sha256": "322474d4444ffe139abf5c90487a8d8660fa70a65fad4a013113ba3e247401a1"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/24-finance-reimbursement-input-phone.png",
+          "sha256": "40c7403c458f0049d8df976ebbdf6d04db49ba8df4cfdd99d01d29070a21f2ba"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/25-finance-reimbursement-saved.png",
+          "sha256": "a50d92969f99a39300bbcf743265206bfe0395a37c964e29b6dc1be5db18c271"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/29-finance-current-project-economics.png",
+          "sha256": "91407d704fe7b38454f4211563cc35b4dfdbda174635fa021ecbb183c8bb628b"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/30-finance-current-cash.png",
+          "sha256": "5913de8410aa1ce9dd32490db83efa7fb746650617d98e6f29ecf422f72ee1d2"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/28-finance-project-export-control.png",
+          "sha256": "6c0c63228c3b08558f98542976e91c992a57fd91b7f15ae0fffda14339e6cf8a"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/26-finance-accounting-input.png",
+          "sha256": "656a8da5c87a8ef48510da255e3524b1394a673f10930f19e7e9a693bc15004b"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/27-finance-accounting-native-blocker.png",
+          "sha256": "54a142d1016a4df1c27437a737c780c19d1705c47e9f1fd43c4d615168bc72e6"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/33-finance-close-source-controls.png",
+          "sha256": "5cccf379d1fd493808d72fc991c233f5e1a3f5f61722679a0486ee9ac55bae20"
+        }
+      ]
+    },
+    {
+      "role": "manager",
+      "filename": "BBS_Project_Manager_Manual_EN.pdf",
+      "pages": 54,
+      "landscape": 24,
+      "missing": 0,
+      "overflows": [],
+      "instructionBlocks": 232,
+      "instructionText": "PASS",
+      "bytes": 2375581,
+      "sha256": "96cb209ef3f03da37c1a2b787a0ec8b234496e309379d8574d90798b3a8fd490",
+      "figures": [
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/05-pm-dashboard.png",
+          "sha256": "b30aaa254ec86d186e59d9fd1ebf34c7a1d2b2084c355963cb0ba7a97ab3c399"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/24-pm-more-navigation-phone.png",
+          "sha256": "23499ba35157e4b0e0bb087279faf093888019f2a25e230ee5101b8861d84ab2"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/25-pm-planning-tablet.png",
+          "sha256": "478db017fecb0538052057afe91750b8472587db9bca840ae9ccab70f9714f67"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/05-pm-dashboard.png",
+          "sha256": "b30aaa254ec86d186e59d9fd1ebf34c7a1d2b2084c355963cb0ba7a97ab3c399"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/34-pm-project-overview-landscape.png",
+          "sha256": "bc2f6348368ec7d63da6e17a83cdd083777fbc87a058956259f309b09cd418d7"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/09-pm-team-workspace.png",
+          "sha256": "f63e6049d38a5363b63a10585f0b2cf1e29c09e55edb7a6b53e77c18004a243f"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/10-pm-assignment-controls.png",
+          "sha256": "90622b288b4f16f3d0b20b57601e3fe1c9381c140650c8f8a8daebd25feab0b4"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/03-pm-expense-operational-review.png",
+          "sha256": "895286aff36fd4f4379d28d3aae2dfb3985b4789b7d6597fda868a71a236e673"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/23-pm-approvals-phone.png",
+          "sha256": "bae6eee476026a7925aba8374ad4107aa4c09530b6caabc693a8491741dcd6dd"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/01-pm-return-action.png",
+          "sha256": "a6d63467e31206c4e1e3aeeec2167bb4f656eab3eb0d0112a894d8ff6d08c529"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/26-pm-reports-workspace.png",
+          "sha256": "21137df8c8bd85701fac8149bb3a9eb9a6ea5a59b37b4864c4b65a1b98ff2081"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/08-pm-chief-technical-approved.png",
+          "sha256": "dfe2a24ae006a8fd74568efaf4f8c88377d4aa83cc2485717ea391101d82adca"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/27-pm-period-review.png",
+          "sha256": "ef56aae1f87a89ff2e2c6d65810e1fd6c6606ce1d84d02fd6fefd01e43b68132"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/28-pm-customer-signoff-workspace.png",
+          "sha256": "65c8f1cd41285954fa09df913f1578e429fa32386cfa14bbcdd74f5f5066a3f2"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/07-pm-publish-plan-before.png",
+          "sha256": "244a0b5d1e9a774bfd1d002a62738e08943a6ba5ef53b85ab38f676facbe80d7"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/32-pm-published-plan-details.png",
+          "sha256": "3dbcd1a233ed09140a784493391a298688d92e70a9d80f66a7e15fd34f11a083"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/33-pm-plan-update-saved.png",
+          "sha256": "1a8e7341ad06d1649d245e1ccb6b69b6ca6b6ce259867e6765fac98504371168"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/21-pm-availability-saved.png",
+          "sha256": "710f7affbc0f5aed37d838368c77176920bb7493fc8aa1a5251c5400555cc2d5"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/14-pm-own-time-form.png",
+          "sha256": "c1365e1e6b504f1bfa447f0db4948172ba715eb6056fa54af93ba286a1f8e921"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/15-pm-own-time-submitted.png",
+          "sha256": "248d01cf76dd10904bcf05456cea4e9f35f2608b9282840c95e71452f909456f"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/16-pm-expenses-register.png",
+          "sha256": "ca173400bb8a50480a51e7478555aade02427b4454d905c8918f7ee20c37bba7"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/29-pm-pay-own-scope.png",
+          "sha256": "36ba92f0be7827aa0c4baa90ff9a9795062d2702708ea82ac6f2ba5fcf30680a"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/11-pm-documents.png",
+          "sha256": "ea0001c1b34e75ac66efca03bcf18c6736d1746314630c873df8c5a688ec2df0"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/12-pm-document-upload-result.png",
+          "sha256": "97df5a03452ac503da3bedbed118e38d83691764a868a13d0eca216dc2705eda"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/17-pm-notifications.png",
+          "sha256": "093f0fdea625f60be943ba43aef296f3826fc97e06b218f03f76aca7efe26557"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/19-pm-help.png",
+          "sha256": "0133b17c2af6010b4c9f33ddfaba35892baeda0cf38d1733148c7a5144184ac6"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/22-pm-finance-denied.png",
+          "sha256": "c9ecbcc08b69e846c288a884e2efd75178ffd4f1d10e88777befe5ee1b0d85ed"
+        }
+      ]
+    },
+    {
+      "role": "owner",
+      "filename": "BBS_Owner_Manual_EN.pdf",
+      "pages": 211,
+      "landscape": 68,
+      "missing": 0,
+      "overflows": [],
+      "instructionBlocks": 48,
+      "instructionText": "PASS",
+      "bytes": 8088677,
+      "sha256": "194395131391193eea76152739fc8a1a64efeba951d9e572a485448ce381104e",
+      "figures": [],
+      "introductionPages": 8,
+      "coursePages": 203,
+      "nativeAttachments": 6,
+      "nativeInvoiceAnnexPages": 6,
+      "nativeInvoiceStreamsUnchanged": true,
+      "courseAnnotationsRetained": 135
+    },
+    {
+      "role": "supplier-coordinator",
+      "filename": "BBS_Supplier_Coordinator_Manual_EN.pdf",
+      "pages": 44,
+      "landscape": 22,
+      "missing": 0,
+      "overflows": [],
+      "instructionBlocks": 186,
+      "instructionText": "PASS",
+      "bytes": 2320037,
+      "sha256": "a68cab9ce2db3b85ec20aa3baafc25bef3b85b234949781803130de5f0fd5623",
+      "figures": [
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/01-coordinator-authorized-personnel.png",
+          "sha256": "1ba3f7405735858b33927af334c4fc7e0d1c57a6dedd3c8badca4779614cf589"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/09-coordinator-operational-phone.png",
+          "sha256": "145f4410391d28ec1a42074f9e6d62e452c0fbaf33af9fe40a661e9f9f769e8a"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/15-coordinator-personnel-tablet.png",
+          "sha256": "c641c9e38edb6b907328d23741399586519bac989763d72f1163f2cf89b53f28"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/23-coordinator-approvals-denied.png",
+          "sha256": "2da5f140c85eb1b622c26c76a2def7ef9a3dbdada0f46db602af1d53f9acefdc"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/01-coordinator-authorized-personnel.png",
+          "sha256": "1ba3f7405735858b33927af334c4fc7e0d1c57a6dedd3c8badca4779614cf589"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/02-coordinator-add-technician-before.png",
+          "sha256": "aac162916faef8e146729503344ba65a507a5be2dadad0513aa343cc653a768a"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/03-coordinator-eligible-roster.png",
+          "sha256": "107f460081fa0cc0dba607969867c14a10deb0f9819646315bbcab2ab43d1c36"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/04-coordinator-selected-team-hours.png",
+          "sha256": "e2a3de862e90012c2f3d3f9bf7d3528ba459dd8b653de508ec1fe3c5a87c7206"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/05-coordinator-drafts-saved.png",
+          "sha256": "abad01fac85cb0e41adde6a9b2cff4df5e98003c019da635e5a30736690281a4"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/06-coordinator-submit-selected.png",
+          "sha256": "4a871b77fe5a1ab135a96a647f737b3f2420182a0c7178129871607c49033b63"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/07-coordinator-submitted-team.png",
+          "sha256": "cf5f1a5485135c854dc77cd8cabba57495ddd833f3a76380cb5636a7fedf3056"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/10-coordinator-returned-source.png",
+          "sha256": "519508a8f6fe1e5185aac469f5e99472acc3ee8bfa47ece921ba5688b457f13c"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/11-coordinator-correction-draft.png",
+          "sha256": "967b2b2f6ed1484310e3ed0f22ed65e94db15b1175185aa67bf054941b882173"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/12-coordinator-correction-submitted.png",
+          "sha256": "0074a032427231558b25db32023a17b54344da1980dc2b40c040a087ceef60b5"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/13-coordinator-approved-no-double-count.png",
+          "sha256": "b8fd2c36135358dafa0f3ecff8b881ad18dbeca00930f25498f3a6cc6ec24f78"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/08-coordinator-operational-report.png",
+          "sha256": "9f4e1efb04bbb03ddfb07a12fd98d9a893d81fb8b845af3de9fad1e5f8b9847a"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/13-coordinator-approved-no-double-count.png",
+          "sha256": "b8fd2c36135358dafa0f3ecff8b881ad18dbeca00930f25498f3a6cc6ec24f78"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/16-coordinator-own-time-form.png",
+          "sha256": "24bfd60083cfc5f1398755271dc1d7927255e0e5a8e6075a5174aeea5f3737f1"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/17-coordinator-own-time-submitted.png",
+          "sha256": "bd46e7fca6478e19f6d9686c29f1ca9338718712eea45622e29fb13c437be148"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/18-coordinator-own-expense-form.png",
+          "sha256": "5dad67b9413af5021e3fff055185c06b9f3f6817d3cdc04f7b63f2292c3df7e5"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/19-coordinator-daily-form.png",
+          "sha256": "8de34b7ed91e2a846acebbecef09eac0aeed687ffd10aa880b694034fc511ba7"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/20-coordinator-daily-submitted.png",
+          "sha256": "83e2845a69a152b1a6f3bb988e933a6a21148b1cb26851c3c19528810fa8c0ca"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/25-coordinator-own-preview-native.png",
+          "sha256": "cefb0a4e4bbd94e08e25936ddd481ed375c4bd02ecbfca9df7618fcd2a912b8c"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/21-coordinator-profile.png",
+          "sha256": "de5e6124954589fcca9b0663a15d54690bceed5899fdd88ede0e00f6a7e70b56"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/22-coordinator-help.png",
+          "sha256": "af316cb9cba44b93b7ff10b9085d0e5435f0f654f8023a93760b7ec2d83a70ba"
+        }
+      ]
+    },
+    {
+      "role": "worker",
+      "filename": "BBS_Worker_Manual_EN.pdf",
+      "pages": 45,
+      "landscape": 17,
+      "missing": 0,
+      "overflows": [],
+      "instructionBlocks": 167,
+      "instructionText": "PASS",
+      "bytes": 2075044,
+      "sha256": "792ed373aac8d311c3de4b22695e32e4411fd2992d9055b24cf8fe684b69b0e2",
+      "figures": [
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/01-today-desktop.png",
+          "sha256": "b834ac91a03cf8a3f6b0033871c0270db93e656a640fc5a2a44af0a4f14f2f53"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/33-worker-upcoming-plan.png",
+          "sha256": "f59a380e28f2f678e0b542a896b2867b3b97c99471dec15766a1adc6360ad338"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/02-time-filled-desktop.png",
+          "sha256": "c685a4776454dc2ef3cfd8bc26f535cf951d74d3031d3a592652aa733d9762b0"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/03-time-saved-desktop.png",
+          "sha256": "dfcf646b049139423a6f04ccc823bc3037016f730314faa1c21af96390e31e9c"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/05-time-submitted.png",
+          "sha256": "1528915e1692bf04fc1664a98d9c4b4a10f304f133d041de1b1bf9c2166942fc"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/26-worker2-week-draft-summary.png",
+          "sha256": "eaf1d1881f482d14b48f76d6cb35e8b5fdc765c18d58b7c337f84cb142869731"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/23-worker2-returned.png",
+          "sha256": "46e1db3b53b22e97715227b0f07e34721b1c3571694352d0e1435f39977c7e6f"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/24-worker2-correction-filled.png",
+          "sha256": "f6f2c780728b478c85776f7399c3432f5db30cfc8a3d75d454779f992b9c9786"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/28-worker2-corrected-register.png",
+          "sha256": "406b047feb500ad75424169c896fe12b250c8974aa83c42100c838e04199d9fd"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/20-worker-settlement-correction-blocked.png",
+          "sha256": "e09864794732cebd48b9fc37302fd4fb4cb82c58694574d6d2227b988a2f879e"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/06-expense-filled.png",
+          "sha256": "7b0e4eb16f794bc7aa9adfff42bd1f8b190ba2184e054881055a7826f12de24e"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/07-expense-saved-receipt.png",
+          "sha256": "35fa2094416c40e276d82833e84cc91fa903b5e10be585fb78ecb78b02ef12e4"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/08-expense-submitted.png",
+          "sha256": "b1f39042f79db3b4862a91a38228ce639e1c03989f06a84117e6e41dd8f0ed6b"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/09-daily-filled.png",
+          "sha256": "ff69b5f343cb7fc1c46f0e389ea47f0da5f5aaf2eb5522be75805c429c8346a6"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/10-daily-saved.png",
+          "sha256": "360695fa3f2c919ecf5921222e6d49bfef333b55ab2ebba044efe9b0189cfa5a"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/11-daily-submitted.png",
+          "sha256": "796ae4ad93ce6d474c850795d2d915dfba307ca70598382db555a7c436fa9f80"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/12-technical-filled.png",
+          "sha256": "c18c134ae215e066a71b1310ee789cb19354ab667a2e2d7d2e4795d0d339fd33"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/14-technical-submitted.png",
+          "sha256": "2b1d0bebf6d65b0f50f9d67cce1634778fc53023bc9d6426694b8ecd09999ab7"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/15-own-my-pay.png",
+          "sha256": "b940b31fb71fded5de70740913a5b3215d896824187cd8b837bfecd6311a2d6c"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/32-worker-statement-ready.png",
+          "sha256": "59e304faa66ed3a79eb8f2c0c4f1cf5dbe73dd5fb46b56ed3fb6654f548ac95c"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/16-worker-phone-time.png",
+          "sha256": "8ce92872a4338f04bcf3ab68010810d4677b7be5c430581b7464715a9913a477"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/17-worker-tablet-time.png",
+          "sha256": "3ee5f3de660f60107e04ac80e07f22573a418e3fa9cee39a1f32b560e183facc"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/30-worker-profile-reference.png",
+          "sha256": "fb8e445b21f17f45c5e90911c2d3203e057a2545f327088b55d2a2577e77a163"
+        }
+      ]
+    }
+  ]
+}

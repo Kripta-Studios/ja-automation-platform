@@ -1,0 +1,251 @@
+{
+  "environment": "isolated loopback native portal, clone only",
+  "project": "C-0050-P-20261005 BBS manual example",
+  "role": "manager",
+  "source_date_scope": "Synthetic future October 6+ work records only; Owner current UTC day 5 dated access/coverage setup.",
+  "credentials": "private external cookie/password files excluded from Git and manuals",
+  "workflows": [
+    {
+      "workflow": "native-login",
+      "status": "PASS",
+      "evidence": "Owner created an active fictional PM; Continue to workspace used native authentication. Cookie jar remains private."
+    },
+    {
+      "workflow": "dated-membership-and-review",
+      "status": "PASS",
+      "evidence": "Owner assigned PM to BBS with Can review and dated USD 45 internal cost / USD 60 compensation coverage. Current UTC day 5 coverage resolved the initial empty project scope."
+    },
+    {
+      "workflow": "worker-own-correction-review",
+      "status": "PASS",
+      "evidence": "Worker 2 original 3 hours returned Needs changes; submitted 2.5-hour linked replacement approved by PM. Original preserved."
+    },
+    {
+      "workflow": "chief-delegated-correction-review",
+      "status": "PASS",
+      "evidence": "Worker 2 original chief-recorded 1 hour returned; submitted 0.75-hour linked replacement approved by PM. Current 150 + 45 minutes = 3.25 hours."
+    },
+    {
+      "workflow": "operational-expense-review",
+      "status": "PASS",
+      "evidence": "Synthetic USD 12 worker, USD 20 allocated crew and USD 8 external receipts approved operationally. No Finance classification or payment."
+    },
+    {
+      "workflow": "daily-technical-review",
+      "status": "PASS",
+      "evidence": "Worker, Chief and External Daily/Technical sources plus Coordinator Daily were approved through the genuine PM session."
+    },
+    {
+      "workflow": "planning-publish-update",
+      "status": "PASS",
+      "evidence": "Worker 2 October 16 08:00\u201310:00 UTC plan published for 2 hours, then site note updated with Save assignment. Zero actual October 16 time entries."
+    },
+    {
+      "workflow": "own-time",
+      "status": "PASS",
+      "evidence": "Own October 8 half-hour source saved and submitted with 30 minutes; awaits another authorized reviewer."
+    },
+    {
+      "workflow": "availability",
+      "status": "PASS",
+      "evidence": "Own October 16 08:00\u201310:00 UTC availability saved and verified in reopened table."
+    },
+    {
+      "workflow": "documents",
+      "status": "PASS",
+      "evidence": "Native UTF-8 fixture upload and download succeeded with identical SHA-256: 847e4e65d78b721f04fe089beb4edfe82b7440fc7046a02ca52bcd65c0d71934."
+    },
+    {
+      "workflow": "own-pay-privacy",
+      "status": "PASS",
+      "evidence": "My Pay with another-worker query remained PM own 0.5-hour / USD 30 pending scope. No other worker compensation exposed."
+    },
+    {
+      "workflow": "role-denials",
+      "status": "PASS",
+      "evidence": "Finance and Audit returned 403. Only exact authorized role/scope checks were performed."
+    },
+    {
+      "workflow": "workspace-navigation",
+      "status": "PASS",
+      "evidence": "Native navigation opened all documented PM workspaces; 1440 desktop, 390 phone and 768 tablet captures."
+    },
+    {
+      "workflow": "assignment-mutating-controls",
+      "status": "INSPECTED_NOT_RUN",
+      "evidence": "Assignment date/edit/removal controls inspected; other workers\u2019 historical assignments left unchanged."
+    },
+    {
+      "workflow": "expense-own-creation",
+      "status": "NOT_RUN",
+      "evidence": "Own PM expense creation documented as reference; operational expense approval tested separately."
+    },
+    {
+      "workflow": "own-report-creation",
+      "status": "NOT_RUN",
+      "evidence": "Own PM report creation documented as reference; operational review of others\u2019 submitted reports tested separately."
+    },
+    {
+      "workflow": "security-enrollment",
+      "status": "NOT_RUN",
+      "evidence": "Passkey and MFA inspected; no security credential/device changes."
+    },
+    {
+      "workflow": "notification-mark-read",
+      "status": "NOT_RUN",
+      "evidence": "Inbox empty; no Mark read mutation claimed."
+    },
+    {
+      "workflow": "financial/customer-lifecycle",
+      "status": "OUTSIDE_ROLE",
+      "evidence": "PM did not generate a customer period file, record acceptance, Finance classify, invoice, settle or pay."
+    }
+  ],
+  "external_claims": "NONE: no production business mutation, actual customer signature, outward email, real purchase, live dispatch or bank payment.",
+  "screenshots": [
+    {
+      "file": "screenshots/01-pm-return-action.png",
+      "sha256": "a6d63467e31206c4e1e3aeeec2167bb4f656eab3eb0d0112a894d8ff6d08c529"
+    },
+    {
+      "file": "screenshots/02-pm-daily-review.png",
+      "sha256": "9d6d2ef9cec12f06ac646cd9eb8907fecef910394de68a0115e460fe94c34a81"
+    },
+    {
+      "file": "screenshots/03-pm-expense-operational-review.png",
+      "sha256": "895286aff36fd4f4379d28d3aae2dfb3985b4789b7d6597fda868a71a236e673"
+    },
+    {
+      "file": "screenshots/04-pm-project-overview.png",
+      "sha256": "e34a855377a351933558f95c54c1d56837a0f7e91cb7758d0bd4c25dca5414a7"
+    },
+    {
+      "file": "screenshots/05-pm-dashboard.png",
+      "sha256": "b30aaa254ec86d186e59d9fd1ebf34c7a1d2b2084c355963cb0ba7a97ab3c399"
+    },
+    {
+      "file": "screenshots/06-pm-planning.png",
+      "sha256": "93d01c609966849d69921b12194beb3309e167a4142955f63cd0a1362a3c0365"
+    },
+    {
+      "file": "screenshots/07-pm-publish-plan-before.png",
+      "sha256": "244a0b5d1e9a774bfd1d002a62738e08943a6ba5ef53b85ab38f676facbe80d7"
+    },
+    {
+      "file": "screenshots/08-pm-chief-technical-approved.png",
+      "sha256": "dfe2a24ae006a8fd74568efaf4f8c88377d4aa83cc2485717ea391101d82adca"
+    },
+    {
+      "file": "screenshots/09-pm-team-workspace.png",
+      "sha256": "f63e6049d38a5363b63a10585f0b2cf1e29c09e55edb7a6b53e77c18004a243f"
+    },
+    {
+      "file": "screenshots/10-pm-assignment-controls.png",
+      "sha256": "90622b288b4f16f3d0b20b57601e3fe1c9381c140650c8f8a8daebd25feab0b4"
+    },
+    {
+      "file": "screenshots/11-pm-documents.png",
+      "sha256": "ea0001c1b34e75ac66efca03bcf18c6736d1746314630c873df8c5a688ec2df0"
+    },
+    {
+      "file": "screenshots/12-pm-document-upload-result.png",
+      "sha256": "97df5a03452ac503da3bedbed118e38d83691764a868a13d0eca216dc2705eda"
+    },
+    {
+      "file": "screenshots/13-pm-own-pay.png",
+      "sha256": "fa9dbfaeffd26cd0943806c9a154954f7f09654383df7a3b02767d1407c99832"
+    },
+    {
+      "file": "screenshots/14-pm-own-time-form.png",
+      "sha256": "c1365e1e6b504f1bfa447f0db4948172ba715eb6056fa54af93ba286a1f8e921"
+    },
+    {
+      "file": "screenshots/15-pm-own-time-submitted.png",
+      "sha256": "248d01cf76dd10904bcf05456cea4e9f35f2608b9282840c95e71452f909456f"
+    },
+    {
+      "file": "screenshots/16-pm-expenses-register.png",
+      "sha256": "ca173400bb8a50480a51e7478555aade02427b4454d905c8918f7ee20c37bba7"
+    },
+    {
+      "file": "screenshots/17-pm-notifications.png",
+      "sha256": "093f0fdea625f60be943ba43aef296f3826fc97e06b218f03f76aca7efe26557"
+    },
+    {
+      "file": "screenshots/18-pm-profile.png",
+      "sha256": "710f7affbc0f5aed37d838368c77176920bb7493fc8aa1a5251c5400555cc2d5"
+    },
+    {
+      "file": "screenshots/19-pm-help.png",
+      "sha256": "0133b17c2af6010b4c9f33ddfaba35892baeda0cf38d1733148c7a5144184ac6"
+    },
+    {
+      "file": "screenshots/20-pm-availability-form.png",
+      "sha256": "aaebf4a2ff528bf9fd585492098ad76139c83a2ce2b93afbde25be4d12286f79"
+    },
+    {
+      "file": "screenshots/21-pm-availability-saved.png",
+      "sha256": "710f7affbc0f5aed37d838368c77176920bb7493fc8aa1a5251c5400555cc2d5"
+    },
+    {
+      "file": "screenshots/22-pm-finance-denied.png",
+      "sha256": "c9ecbcc08b69e846c288a884e2efd75178ffd4f1d10e88777befe5ee1b0d85ed"
+    },
+    {
+      "file": "screenshots/23-pm-approvals-phone.png",
+      "sha256": "bae6eee476026a7925aba8374ad4107aa4c09530b6caabc693a8491741dcd6dd"
+    },
+    {
+      "file": "screenshots/24-pm-more-navigation-phone.png",
+      "sha256": "23499ba35157e4b0e0bb087279faf093888019f2a25e230ee5101b8861d84ab2"
+    },
+    {
+      "file": "screenshots/25-pm-planning-tablet.png",
+      "sha256": "478db017fecb0538052057afe91750b8472587db9bca840ae9ccab70f9714f67"
+    },
+    {
+      "file": "screenshots/26-pm-reports-workspace.png",
+      "sha256": "21137df8c8bd85701fac8149bb3a9eb9a6ea5a59b37b4864c4b65a1b98ff2081"
+    },
+    {
+      "file": "screenshots/27-pm-period-review.png",
+      "sha256": "ef56aae1f87a89ff2e2c6d65810e1fd6c6606ce1d84d02fd6fefd01e43b68132"
+    },
+    {
+      "file": "screenshots/28-pm-customer-signoff-workspace.png",
+      "sha256": "65c8f1cd41285954fa09df913f1578e429fa32386cfa14bbcdd74f5f5066a3f2"
+    },
+    {
+      "file": "screenshots/29-pm-pay-own-scope.png",
+      "sha256": "36ba92f0be7827aa0c4baa90ff9a9795062d2702708ea82ac6f2ba5fcf30680a"
+    },
+    {
+      "file": "screenshots/30-pm-audit-denied.png",
+      "sha256": "c9ecbcc08b69e846c288a884e2efd75178ffd4f1d10e88777befe5ee1b0d85ed"
+    },
+    {
+      "file": "screenshots/31-pm-published-planning.png",
+      "sha256": "ef667e23fe60e34ce08ea6c4f742b7f33466892349555004daa83aac6b40cac0"
+    },
+    {
+      "file": "screenshots/32-pm-published-plan-details.png",
+      "sha256": "3dbcd1a233ed09140a784493391a298688d92e70a9d80f66a7e15fd34f11a083"
+    },
+    {
+      "file": "screenshots/33-pm-plan-update-saved.png",
+      "sha256": "1a8e7341ad06d1649d245e1ccb6b69b6ca6b6ce259867e6765fac98504371168"
+    },
+    {
+      "file": "screenshots/34-pm-project-overview-landscape.png",
+      "sha256": "bc2f6348368ec7d63da6e17a83cdd083777fbc87a058956259f309b09cd418d7"
+    }
+  ],
+  "phone_capture_verification": "PM More drawer labels and Coordinator Profile recaptured at390 after hydration/transition settled; no CSS injection. Coordinator Help recaptured at1440 after viewport settled. Visual inspection confirmed readable labels/titles.",
+  "remaining_transient_frames_fixed": {
+    "checks": "Native Escape then wait until #portal-navigation inert=true and rect.right<=0 before capture, no CSS injection",
+    "captures": [
+      "23-pm-approvals-phone.png",
+      "25-pm-planning-tablet.png"
+    ]
+  }
+}

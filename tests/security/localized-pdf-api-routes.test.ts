@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { AccessDeniedError, ConflictError } from '@ja/database';
 import { FIELD_REPORT_TEMPLATE_VERSION } from '@ja/domain';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -197,6 +198,17 @@ describe('localized PDF HTTP lifecycle', () => {
     const previousRoot = process.env.JA_DOCUMENT_ROOT;
     process.env.JA_DOCUMENT_ROOT = root;
     const bytes = Buffer.from('%PDF-1.7\n1 0 obj\nendobj\n%%EOF\n', 'ascii');
+    // The download rechecks the current source revision after the asynchronous file read.
+    const sourceSqlite = new DatabaseSync(':memory:');
+    sourceSqlite.exec(`
+      CREATE TABLE project(id TEXT PRIMARY KEY,project_number TEXT);
+      CREATE TABLE daily_report(id TEXT PRIMARY KEY,project_id TEXT,work_date TEXT,summary TEXT,version INTEGER);
+      CREATE TABLE localized_pdf_variant(variant_id TEXT PRIMARY KEY,owner_type TEXT,owner_id TEXT,owner_revision_id TEXT);
+      INSERT INTO project VALUES('project-1','C-TEST-001');
+      INSERT INTO daily_report VALUES('daily-1','project-1','2026-08-23','daily résumé',1);
+      INSERT INTO localized_pdf_variant VALUES('variant-pt','daily_report','daily-1','daily-1:v1');
+    `);
+    Object.assign(context.sqlite, { prepare: sourceSqlite.prepare.bind(sourceSqlite) });
     const storageKey = 'localized-pdf/daily_report/daily-1/report.pdf';
     const targetDirectory = join(root, 'localized-pdf', 'daily_report', 'daily-1');
     mkdirSync(targetDirectory, { recursive: true });
@@ -223,10 +235,41 @@ describe('localized PDF HTTP lifecycle', () => {
       expect(response.headers.get('cross-origin-resource-policy')).toBe('same-origin');
       expect(response.headers.get('content-security-policy')).toBe('sandbox');
       expect(response.headers.get('content-disposition')).toContain(
-        "filename*=UTF-8''daily%20r%C3%A9sum%C3%A9%20pt.pdf",
+        "filename*=UTF-8''Relatorio-diario-C-TEST-001-2026-08-23-daily-r-sum-v1-pt-BR.pdf",
       );
       expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
+      sourceSqlite.exec('UPDATE daily_report SET version=2');
+      const stale = await downloadLocalizedPdf({
+        locals,
+        params: { variantId: 'variant-pt' },
+      } as never);
+      expect(stale.status).toBe(404);
+
+      const periodDirectory = join(root, 'localized-pdf', 'period_report', 'period-1');
+      mkdirSync(periodDirectory, { recursive: true });
+      writeFileSync(join(periodDirectory, 'report.pdf'), bytes);
+      context.localizedPdf.resolveLocalizedPdfDownload.mockReturnValue({
+        ...variant,
+        ownerType: 'period_report',
+        ownerId: 'period-1',
+        status: 'ready',
+        semanticFilename: 'period résumé pt.pdf',
+        storageKey: 'localized-pdf/period_report/period-1/report.pdf',
+        mediaType: 'application/pdf',
+        byteLength: bytes.byteLength,
+        contentSha256: createHash('sha256').update(bytes).digest('hex'),
+      });
+      const unicode = await downloadLocalizedPdf({
+        locals,
+        params: { variantId: 'variant-pt' },
+      } as never);
+      expect(unicode.status).toBe(200);
+      expect(unicode.headers.get('content-disposition')).toContain(
+        "filename*=UTF-8''period%20r%C3%A9sum%C3%A9%20pt.pdf",
+      );
+      expect(Buffer.from(await unicode.arrayBuffer())).toEqual(bytes);
     } finally {
+      sourceSqlite.close();
       if (previousRoot === undefined) delete process.env.JA_DOCUMENT_ROOT;
       else process.env.JA_DOCUMENT_ROOT = previousRoot;
       rmSync(root, { recursive: true, force: true });

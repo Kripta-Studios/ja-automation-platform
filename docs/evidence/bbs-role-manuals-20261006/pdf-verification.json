@@ -1,0 +1,77 @@
+{
+  "status": "PASS",
+  "manuals": [
+    {
+      "role": "auditor",
+      "pages": 27,
+      "landscape": 10,
+      "figures": 13,
+      "sha256": "c036652405abde0c4261af0aff89a39c61c89926ba85980ebafd163efa9be2ee",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "chief",
+      "pages": 41,
+      "landscape": 16,
+      "figures": 23,
+      "sha256": "6cb7034f404ba6cf71ad1169f6ae6dac31424b4af7983e71210a37269f4bd6ae",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "external-technician",
+      "pages": 34,
+      "landscape": 14,
+      "figures": 18,
+      "sha256": "b58466d202eb3dbbdaef3754799e1d1a2d4e17689a0855afd666c492ab48d6c4",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "finance",
+      "pages": 52,
+      "landscape": 19,
+      "figures": 29,
+      "sha256": "df811b0230780b9e90fccd65271c0f434bc9af140835ff6bd5985589103ef7d9",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "manager",
+      "pages": 54,
+      "landscape": 24,
+      "figures": 27,
+      "sha256": "96cb209ef3f03da37c1a2b787a0ec8b234496e309379d8574d90798b3a8fd490",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "owner",
+      "pages": 211,
+      "landscape": 68,
+      "figures": 0,
+      "sha256": "194395131391193eea76152739fc8a1a64efeba951d9e572a485448ce381104e",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "supplier-coordinator",
+      "pages": 44,
+      "landscape": 22,
+      "figures": 25,
+      "sha256": "a68cab9ce2db3b85ec20aa3baafc25bef3b85b234949781803130de5f0fd5623",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "worker",
+      "pages": 45,
+      "landscape": 17,
+      "figures": 23,
+      "sha256": "792ed373aac8d311c3de4b22695e32e4411fd2992d9055b24cf8fe684b69b0e2",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    }
+  ]
+}

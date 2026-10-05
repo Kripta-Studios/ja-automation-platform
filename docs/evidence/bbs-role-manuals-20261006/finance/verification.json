@@ -1,0 +1,187 @@
+{
+  "environment": "Isolated copied BBS runtime at loopback5179; never production",
+  "projectId": "01a10c51-a391-7288-aad1-cb38be43f496",
+  "projectCode": "C-0050-P-20261005",
+  "roleAccounts": "Genuine newly created Active fictional accounts, authenticated by native login; cookies kept outside repository",
+  "timeBasis": "October6 Europe/Madrid role practice; server UTC dates can still be October5",
+  "externalClaims": {
+    "bankTransfer": false,
+    "customerEmailDelivery": false,
+    "realAccountantApproval": false,
+    "realCustomerSignature": false
+  },
+  "browser": "Playwright Chromium, sole isolated context per role; contexts closed after capture",
+  "originalIssuedMasters": [
+    {
+      "id": "01a10c63-be27-7728-8655-69a5bba6cc72",
+      "number": "JA-DEMO--2026-000001",
+      "length": 363553,
+      "sha256": "1ca5cbf312e4d548113aeec930608c01bb766c70a673753210f960531a4486bb",
+      "status": 200,
+      "unchanged": true
+    },
+    {
+      "id": "01a10c5d-83ff-72a2-988d-7ad68220b383",
+      "number": "JA-DEMO--2026-000002",
+      "length": 362147,
+      "sha256": "f1e717119c3fa76bb5152e3f70b1494c514d16e96d1285f81a567492a4f725d3",
+      "status": 200,
+      "unchanged": true
+    },
+    {
+      "id": "01a10cb5-ec04-7109-af1a-c49ae34b0116",
+      "number": "JA-DEMO--2026-000003",
+      "length": 368137,
+      "sha256": "bd58a2292b4e4b1eb169dcc38f0d97cacb31e532dd685535dd7156c144ddb21b",
+      "status": 200,
+      "unchanged": true
+    }
+  ],
+  "role": "finance_admin",
+  "checks": [
+    {
+      "id": "classification",
+      "status": "PASS",
+      "expenseId": "01a10e37-09d3-73eb-8bdc-367b4243c759",
+      "workDate": "2026-10-06",
+      "purchaseMinor": 1200,
+      "currency": "USD",
+      "customerRecoveryMinor": 1200,
+      "workerReimbursementMinor": 1200,
+      "taxRatePercent": 0,
+      "overrideSavedPolicy": false,
+      "observed": "Saved Classified state, then native Record Finance review"
+    },
+    {
+      "id": "adjustment",
+      "status": "PASS",
+      "type": "debit",
+      "originalInvoiceId": "01a10cb5-ec04-7109-af1a-c49ae34b0116",
+      "adjustmentInvoiceId": "01a10e57-e243-755a-8c8a-82365be49314",
+      "number": "JA-DEMO--2026-000004",
+      "currency": "USD",
+      "totalMinor": 100,
+      "states": [
+        "draft",
+        "approved",
+        "issued"
+      ],
+      "sourceConsumption": "Amount-only adjustment; no new worker source billed",
+      "artifactInitialStatus": 409,
+      "artifactAfterNativeProcessing": {
+        "status": 200,
+        "length": 358310,
+        "sha256": "c11a97560e9f7c9ff906908dcfbe2fe42aa3bb05702691c0eb2b1686c749c9d8"
+      }
+    },
+    {
+      "id": "collection-reversal",
+      "status": "PASS",
+      "invoiceId": "01a10cb5-ec04-7109-af1a-c49ae34b0116",
+      "paymentId": "01a10e59-8642-777b-a84f-e788d586fb92",
+      "simulatedAmountMinor": 100,
+      "effectiveDate": "2026-10-05",
+      "reasonCode": "entry_correction",
+      "before": {
+        "netCollectedMinor": 50000,
+        "receivableMinor": 176000
+      },
+      "afterReceipt": {
+        "netCollectedMinor": 50100,
+        "receivableMinor": 175900
+      },
+      "afterReversal": {
+        "netCollectedMinor": 50000,
+        "receivableMinor": 176000
+      },
+      "originalAndReversalPreserved": true
+    },
+    {
+      "id": "compensation-payment-reversal",
+      "status": "PASS",
+      "settlementId": "01a10d55-d5a5-7539-8e5e-4eb75e01839d",
+      "paymentEventId": "01a10e5b-24d7-72f0-826f-3d4727ea8e63",
+      "reviewedMinor": 72000,
+      "expectedPaymentDate": "2026-11-03",
+      "simulatedPaymentMinor": 100,
+      "afterPayment": {
+        "paidMinor": 100,
+        "remainingMinor": 71900
+      },
+      "afterFullReversal": {
+        "paidMinor": 0,
+        "remainingMinor": 72000
+      },
+      "reviewedSnapshotAndExpectedDateUnchanged": true,
+      "bothEventsPreserved": true
+    },
+    {
+      "id": "reimbursement",
+      "status": "PASS",
+      "expenseId": "01a10e37-09d3-73eb-8bdc-367b4243c759",
+      "visibleAmount": "$12.00",
+      "hiddenAmountMinor": 1200,
+      "widths": [
+        1440,
+        768,
+        390
+      ],
+      "documentWidths": [
+        1440,
+        768,
+        390
+      ],
+      "reference": "BBS-ROLE-SYNTHETIC-REIMBURSEMENT-12-USD",
+      "result": "Reimbursed",
+      "actualTimestamp": "2026-10-05T23:21:28.594Z",
+      "transactionCountInExercise": 1
+    },
+    {
+      "id": "project-xlsx",
+      "status": "PASS",
+      "periodStart": "2026-10-01",
+      "periodEnd": "2026-10-05",
+      "httpStatus": 200,
+      "length": 14645,
+      "sha256": "7a645cc9f32d902f9bfccf7823bb56e4e811b258d6681cc947f64e4e042ff7ff",
+      "filename": "ja-C-0050-P-20261005-finance-2026-10-01-2026-10-05.xlsx",
+      "scopeNote": "Fresh period can include later role practice debit issued same UTC date; original checkpoint workbook remains historical"
+    },
+    {
+      "id": "accounting",
+      "status": "BLOCKED",
+      "action": "Generate pack",
+      "periodStart": "2026-10-01",
+      "periodEnd": "2026-10-05",
+      "errorCode": "ACCOUNTING_PACK_ISSUER_EFFECTIVE_DATE_GAP",
+      "selectedDatesRetained": true,
+      "packs": 0,
+      "observed": "Archived issuer legal revision fails period-end coverage; native Contact support offered; no history altered"
+    },
+    {
+      "id": "saved-streams",
+      "status": "PASS",
+      "observed": "Read Weekly Labor and Monthly Expense with effective dates; no configuration save"
+    },
+    {
+      "id": "close-period",
+      "status": "REFERENCE",
+      "observed": "Actual Finance Close sources inputs inspected; no period closure submitted"
+    },
+    {
+      "id": "source-linked-draft-edit-recalculate",
+      "status": "REFERENCE",
+      "observed": "Source-checked procedure; not performed on original issued masters"
+    },
+    {
+      "id": "external-dispatch",
+      "status": "NOT RUN",
+      "observed": "Finance role inspected by source; mail disabled; separately labelled previous Owner synthetic queue/failure reference only"
+    },
+    {
+      "id": "new-compensation-finalization",
+      "status": "NOT RUN",
+      "observed": "Existing snapshots read; no overlapping new finalized period created"
+    }
+  ]
+}

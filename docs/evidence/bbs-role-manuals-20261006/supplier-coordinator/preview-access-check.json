@@ -1,0 +1,15 @@
+{
+  "environment": "isolated loopback runtime",
+  "role": "supplier_coordinator",
+  "method": "authenticated exact known object GET, own and known other-worker report only",
+  "results": [
+    {
+      "check": "coordinator_own_daily",
+      "status": 200
+    },
+    {
+      "check": "other_worker_daily",
+      "status": 404
+    }
+  ]
+}

@@ -44,3 +44,4 @@ Thumbs.db
 docs/manuals/Portal_Test_Accounts.private.md
 docs/evidence/**/trace.zip
 scripts/tmp-*.mjs
+/.venv-manuals/

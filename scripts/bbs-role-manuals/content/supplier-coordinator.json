@@ -1,0 +1,505 @@
+{
+  "role": "supplier-coordinator",
+  "title": "Supplier Coordinator · BBS operational course",
+  "subtitle": "Authorized supplier personnel, actual team hours, corrections and operational reporting",
+  "chapters": [
+    {
+      "id": "start",
+      "title": "Start with a supplier access profile, not an Owner account",
+      "route": "Sign in → Supplier team",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "The Supplier Coordinator is an operational supplier profile linked to a supplier company and dated project authorization. Its underlying account can display Worker in Profile; the supplier access profile determines the restricted supplier workspace. It does not grant Finance, invoices, employee pay or J&A approval rights.",
+        "This exercise uses fictional BBS ROLE LAB Training Supplier on the SAME BBS project C-0050-P-20261005. The Owner created the supplier and accounts, authorized this coordinator for BBS October 5–31, and assigned the external technician. All work narratives and receipts are synthetic training."
+      ],
+      "steps": [
+        "Use your own single-use invitation or assigned sign-in credentials. Enter email and password and choose Continue to workspace.",
+        "Open Supplier team. Confirm BBS in Installation / project and verify the project/date scope before recording technicians or hours.",
+        "Open Profile and confirm your own account. A Worker base-role label does not mean you have internal employee finance privileges.",
+        "Ask the Owner to verify supplier linkage, active account status, authorization dates and the correct coordinator when a project is absent."
+      ],
+      "checks": [
+        "Native Owner onboarding and actual coordinator login succeeded; no role or session was fabricated.",
+        "The coordinator project selector contained only the authorized BBS installation."
+      ],
+      "recovery": [
+        "If no installation is offered, stop and request dated authorization from the Owner. Do not create an unrelated supplier or project.",
+        "Never share the Owner’s login with the supplier team. An operational directory record is not a login account."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/01-coordinator-authorized-personnel.png",
+          "caption": "Actual supplier coordinator session: authorized BBS project and supplier personnel scope.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "navigation",
+      "title": "Use the coordinator’s restricted navigation",
+      "route": "Supplier team → Time / Expenses / Reports / Operational report",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "Supplier team handles authorized personnel and team-hour drafts. Time, Expenses and Reports handle your own operational sources. Operational report shows permitted supplier work and approval state. Profile and Help support your own account and role guidance.",
+        "Finance, Billing and Approvals are restricted to other authorized roles. The coordinator can submit work to J&A; it cannot approve those sources or certify client acceptance."
+      ],
+      "steps": [
+        "Use Personnel, Record team hours and Operational report tabs in Supplier team.",
+        "Select BBS, From, To and Language in Project and reporting period; choose Apply filters before interpreting a list or total.",
+        "On a phone use the visible primary navigation and More where offered. Scroll within long tables rather than assuming hidden columns are absent.",
+        "Use Profile for your own expertise, availability and security; use Help for the Supplier Coordinator path."
+      ],
+      "checks": [
+        "Coordinator desktop, 390-phone and 768-tablet views were captured.",
+        "Direct Finance and Billing requests returned 403 Access restricted; Approvals also returned 403."
+      ],
+      "recovery": [
+        "Contact an owner is the handoff from a restricted screen. Returning to Supplier team does not grant the denied action.",
+        "Recheck filters after a successful save: the resulting route may retain project/dates but change the active workspace tab."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/09-coordinator-operational-phone.png",
+          "caption": "Actual coordinator operational report on a phone.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/15-coordinator-personnel-tablet.png",
+          "caption": "Actual coordinator authorized personnel on a tablet.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/23-coordinator-approvals-denied.png",
+          "caption": "Actual coordinator 403: submitted work is approved by J&A, not the supplier coordinator.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "personnel",
+      "title": "Inspect supplier technicians and assignment dates",
+      "route": "Supplier team → Personnel",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "Personnel lists technicians in the authorized supplier installation. An external technician with an Owner-created login and a coordinator-created directory-only technician are different. Adding a person here does not issue credentials or grant platform roles.",
+        "Eligibility for team entry depends on dated assignment covering the work date. Set the intended date before selecting the roster; a technician starting October 6 must not be recorded for October 5."
+      ],
+      "steps": [
+        "Select BBS and the relevant reporting period, choose Apply filters, then open Personnel.",
+        "Inspect the technician name, supplier/company, contact and assignment start/end. Confirm the existing person before adding another.",
+        "For a technician who needs login access, ask the Owner to create/link the proper external technician profile; do not send them the coordinator’s password.",
+        "For a date or supplier mismatch, ask the Owner to correct the authorization/linkage before entering work."
+      ],
+      "checks": [
+        "BBS showed the Owner-linked external technician October 5–31 and the later coordinator-added directory technician October 6–31.",
+        "The native add-person screen explicitly distinguishes directory creation from Owner-managed login access."
+      ],
+      "recovery": [
+        "If a person is missing from Record team hours, compare their dated assignment with Work date and current project.",
+        "If you see a similarly named existing person, reuse it through the authorized linkage rather than creating a duplicate directory entry."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/01-coordinator-authorized-personnel.png",
+          "caption": "Actual coordinator Personnel: native authorized supplier scope.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "add-technician",
+      "title": "Add a directory technician to the authorized installation",
+      "route": "Personnel → Add technician",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "The coordinator can add a technician directory record to an installation they are authorized to coordinate. The saved record supports operational hours; it does not create a password, invitation or J&A Finance account.",
+        "The exercise added BBS ROLE LAB Coordinator-recorded Technician with a reserved example.test contact, explicit synthetic notes and assignment October 6–31."
+      ],
+      "steps": [
+        "Open Add technician in Personnel after selecting BBS.",
+        "Enter the person’s Name, Email, Company and Notes. Use the actual supplier relationship and make the intended directory-only nature clear.",
+        "Enter Starts on and Ends on covering the permitted work dates. Check these against installation authorization.",
+        "Choose Save. Reopen Personnel and verify the name and date range persisted.",
+        "If this person needs their own portal, hand the existing person/supplier/project reference to the Owner for access provisioning."
+      ],
+      "checks": [
+        "Native coordinator Save succeeded and Changes saved appeared. Personnel showed the new fictional technician October 6–31.",
+        "No credentials were created or emailed by this directory action."
+      ],
+      "recovery": [
+        "If authorization dates do not cover the proposed assignment, resolve authorization with Owner first.",
+        "Do not repeatedly press Save after a timeout without checking Personnel for the existing record."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/02-coordinator-add-technician-before.png",
+          "caption": "Actual coordinator Add technician form before native directory save.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "batch",
+      "title": "Record shared actual hours for selected technicians",
+      "route": "Supplier team → Record team hours",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "Team entry creates separate traceable draft sources per selected technician. The same-hours mode is appropriate only when everyone actually worked that duration; different-hours mode is available for different actual durations. Planning is not evidence of actual work.",
+        "The positive exercise selected two eligible technicians on October 6, saved 2 actual hours each and produced 4 team hours in two drafts. No live field activity is asserted."
+      ],
+      "steps": [
+        "Open Record team hours. Select BBS and set Work date October 6 before selecting the eligible roster.",
+        "Use Find technician or Add visible to selection. Check each selected person and assignment dates; Clear selection resets the roster.",
+        "Choose Same hours for everyone when accurate, or Different hours for each person when needed. Select Work or Travel as appropriate.",
+        "Enter Actual hours and Work performed. Add start/end times only when known and check that they agree with the duration.",
+        "Choose Save selected drafts. Read the saved batch summary and review each person/date/duration in the resulting Operational report list."
+      ],
+      "checks": [
+        "Native coordinator batch save reported 2 drafts, BBS, October 6 and 4 team hours. Each source identified Recorded by the coordinator.",
+        "Different-hours mode and clock-time entry were inspected but not executed in this packet."
+      ],
+      "recovery": [
+        "If eligibility changes after selecting a different date, recheck the selected roster. Do not record a technician outside assignment coverage.",
+        "If a save fails, inspect the visible error and the current drafts before retrying; do not create a second batch for the same actual event."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/03-coordinator-eligible-roster.png",
+          "caption": "Actual coordinator team-entry screen with dated eligible roster.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/04-coordinator-selected-team-hours.png",
+          "caption": "Actual coordinator selected technician batch before Save selected drafts.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/05-coordinator-drafts-saved.png",
+          "caption": "Actual native save result: two traceable drafts totalling four team hours.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "drafts",
+      "title": "Review and submit drafts to J&A",
+      "route": "Supplier team → Operational report → Submit selected to J&A",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "A saved draft has not entered J&A review. Correct draft or Discard draft is offered only in the supported ordinary draft state. Submitting ends silent direct editing; later changes use the correction workflow.",
+        "The selection action selects up to 100 drafts. Its exact scope depends on the current installation/date filter; read the person/date of every selected draft."
+      ],
+      "steps": [
+        "Open Operational report within Supplier team and inspect each Draft row, duration, summary and Recorded by attribution.",
+        "For one source choose Submit to J&A after review. For the intended filtered batch use Select up to 100 drafts, check the selected count, then Submit selected to J&A.",
+        "Confirm the resulting message says the intended drafts were submitted and each row shows Submitted.",
+        "Send the project/date/source handoff to the J&A reviewer. Wait for Approved or Needs changes; do not enter the same work again while waiting.",
+        "If an ordinary draft is wrong, use Correct draft or Discard draft with the offered controls before submission. Those draft-edit/discard transitions were inspected, not executed here."
+      ],
+      "checks": [
+        "Native coordinator submission reported 2 drafts submitted to J&A, and both original 2-hour rows became Submitted.",
+        "The coordinator had no J&A Approvals action; actual review was performed through Owner/PM role sessions."
+      ],
+      "recovery": [
+        "If one record blocks batch submission, fix the required draft facts/evidence and retry the supported batch after rechecking state.",
+        "If submitted work is wrong, ask the reviewer to return it and follow the linked correction procedure instead of overwriting it."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/06-coordinator-submit-selected.png",
+          "caption": "Actual coordinator batch selection before submission.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/07-coordinator-submitted-team.png",
+          "caption": "Actual native result: both drafts submitted to J&A.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "correction",
+      "title": "Correct returned team work and preserve the original",
+      "route": "Supplier team → Operational report → Create correction draft",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "The supported correction creates a linked new source and preserves the returned original. A reason and at least one changed operational fact are required. The replacement must be submitted and reviewed again.",
+        "The exercise corrected the directory technician from 2 to 1.5 actual hours. The external technician’s separate 2-hour source remained intact."
+      ],
+      "steps": [
+        "Ask the J&A reviewer to return the incorrect source with a specific reason. Refresh the filtered Supplier team report and verify Needs changes.",
+        "In that source’s Create correction draft form check Work date and Category; change Duration in hours to the confirmed actual value, update Work performed and enter Reason for correction.",
+        "Choose Create correction draft. Verify the new 1.5-hour Draft, its recorded-by attribution and the preserved 2-hour original.",
+        "Choose Submit to J&A on the linked draft. Confirm Submitted and hand the replacement reference to the reviewer.",
+        "After J&A approval, open the native Operational report and verify 3.5 total actual hours: 2 external +1.5 directory technician. The original 2-hour directory source must be excluded."
+      ],
+      "checks": [
+        "Native correction, direct resubmission and Owner operational approval succeeded. The Supplier team source history explicitly showed Superseded — excluded from total.",
+        "Native Operational report showed only the active 2 h and 1.5 h Approved sources with 3.5 h total."
+      ],
+      "recovery": [
+        "If the source is locked by billing or finalized settlement, preserve it and contact Owner/Finance for the supported adjustment. Do not create an unrelated replacement source.",
+        "A linked correction draft is not an ordinary editable draft. Review all facts before creation; use permitted withdrawal/recreation if offered for an unsubmitted error."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/10-coordinator-returned-source.png",
+          "caption": "Actual coordinator source returned Needs changes by J&A.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/11-coordinator-correction-draft.png",
+          "caption": "Actual linked 1.5-hour draft with original explicitly superseded.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/12-coordinator-correction-submitted.png",
+          "caption": "Actual linked correction submitted for re-review.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/13-coordinator-approved-no-double-count.png",
+          "caption": "Actual native Operational report: approved 3.5 h total, with no original-source double counting.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "export",
+      "title": "Export an operational report with the right meaning",
+      "route": "Operational report → Apply filters → Download CSV",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "The supplier Operational report contains work and approval status. It does not certify payment, customer acceptance, client rates, internal cost or compensation. The coordinator sees permitted team activity; the external technician’s own report sees only that technician’s activity.",
+        "CSV is a native data download. Print / save PDF invokes the browser print flow; it is distinct from an issued invoice or generated customer-acceptance report."
+      ],
+      "steps": [
+        "Open Operational report. Select BBS, From, To and Language; choose Apply filters.",
+        "Compare Total actual hours with the listed active sources and their states. After correction use the 3.5-hour active total, not the earlier 4-hour original batch.",
+        "Choose Download CSV and open the returned file in a spreadsheet. Check project, period, people, durations, states and recorded-by attribution.",
+        "For a printable copy choose Print / save PDF and review the browser preview before saving. This print action was visible but not executed in the packet.",
+        "Retain the filtered export with its period and purpose; do not send it as proof that a customer accepted work or a worker was paid."
+      ],
+      "checks": [
+        "Actual coordinator Download CSV succeeded with native filename operational-report-2026-10-06-2026-10-31.csv.",
+        "The export captured at submission stage contains the original 4-hour submitted batch; later approved report screenshots demonstrate the corrected 3.5-hour state. The old export was not rewritten as if generated later."
+      ],
+      "recovery": [
+        "If an export differs from the screen, check when it was downloaded and whether the report was refreshed after correction/approval.",
+        "If a download fails, preserve the error and give Owner the role/project/filter details; do not export another person’s unrelated records."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/08-coordinator-operational-report.png",
+          "caption": "Actual coordinator report at original submitted 4-hour stage; native CSV downloaded then.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/13-coordinator-approved-no-double-count.png",
+          "caption": "Actual later approved 3.5-hour report after correction; the original download remains truthful.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "own-time",
+      "title": "Record your own work separately from technician team hours",
+      "route": "Time → Log time",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "Time concerns your own operational source. Supplier team batch hours concern the selected technicians. Do not log the same actual event in both places for the same person.",
+        "The coordinator exercise saved and submitted a separate 0.25-hour October 8 documentation activity under the coordinator account. It remains Submitted; this packet did not approve or financially classify it."
+      ],
+      "steps": [
+        "Open Time and filter BBS and the intended dates. Choose Log time.",
+        "Confirm Assigned project, Date, Operational category, Actual hours and Activity summary name your own actual activity.",
+        "Choose Save draft, inspect the saved source, then Submit after checking its facts.",
+        "For a weekly submission inspect every included draft before Submit all week drafts. Linked corrections need their supported individual Submit path.",
+        "Wait for J&A review. If returned, use Create corrected draft with a reason and explicitly submit the linked replacement."
+      ],
+      "checks": [
+        "Native own-source save and submission succeeded with 15 minutes, distinct from the technician batch.",
+        "The PM Time queue did not display this coordinator source in the final check; it remains submitted for an authorized Owner review handoff."
+      ],
+      "recovery": [
+        "If a reviewer cannot find the source, send its exact ID, project, date and Submitted state; do not enter another quarter-hour to force attention.",
+        "If a date/form change is unsaved, Cancel or leaving may request confirmation. Discard only when you intend to abandon those unsaved values."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/16-coordinator-own-time-form.png",
+          "caption": "Actual coordinator own Log time modal, distinct from supplier team entry.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/17-coordinator-own-time-submitted.png",
+          "caption": "Actual coordinator own quarter-hour source submitted for review.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "own-expenses",
+      "title": "Record your own receipt facts without financial classification",
+      "route": "Expenses → Record expense",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "The coordinator Expenses screen is limited to their own expense sources. Supplier team coordination does not grant access to J&A commercial classification or other workers’ reimbursement amounts.",
+        "The native own expense form was opened and inspected, then its unsaved values were deliberately abandoned. No coordinator purchase, expense submission or repayment was recorded by this packet."
+      ],
+      "steps": [
+        "Open Expenses and choose Record expense. Confirm BBS and the actual Date.",
+        "Choose Category and optionally Time expense occurred in the project site’s local time. Link Related logged hours only when the expense belongs to that source.",
+        "Enter Vendor, Amount, Currency, Who paid, Description and Payment method; attach the receipt image or PDF.",
+        "Choose Save draft, open and inspect the saved source and receipt, then Submit through the supported source/weekly flow. These save/submission steps are reference here, not executed coordinator evidence.",
+        "J&A reviews the facts; Finance determines customer recovery, reimbursement and actual payment afterward."
+      ],
+      "checks": [
+        "Actual coordinator form fields and own-register scope were inspected. No rates or Finance treatment controls were present.",
+        "The native receipt hint accepted JPG, PNG, HEIC or PDF up to 10 MB. Required evidence must exist before the supported submission succeeds."
+      ],
+      "recovery": [
+        "If required receipt evidence is missing, attach the correct receipt to the draft; do not classify it yourself to bypass the requirement.",
+        "If Who paid or Currency is wrong after submission, request the supported correction rather than changing the amount to compensate."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/18-coordinator-own-expense-form.png",
+          "caption": "Actual coordinator own expense form: receipt and operational payer facts; no financial classification.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "daily",
+      "title": "Create and submit your own Daily report",
+      "route": "Reports → New daily report",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "A Daily report records narrative context, not actual time or client acceptance. The coordinator’s own report does not impersonate the technician who performed another source’s work.",
+        "The exercise saved an October 8 fictional coordinator documentation handover, submitted it and obtained genuine PM operational approval."
+      ],
+      "steps": [
+        "Open Reports, filter BBS and October 8, and choose New daily report.",
+        "Enter Work date, optional Site / shift, Shift summary and Tasks completed. Add Problems found, Corrective actions, downtime/standby/open items and Next-day plan as applicable.",
+        "Choose Save daily report. Open the new source, confirm Work performed by and Report created by are correct, and inspect the saved narrative.",
+        "Choose Submit for review. Verify Submitted and send the source to J&A.",
+        "After operational review, verify Approved and the reviewer attribution. Do not equate that state with customer signature or payment."
+      ],
+      "checks": [
+        "Native coordinator draft save and Submit for review succeeded. Genuine PM Approve report succeeded afterward.",
+        "Own report source text and native embedded preview are accessible after the scoped authorization fix. Authenticated own preview returned 200; an exact known other-worker preview returned 404. No broader report scope was granted."
+      ],
+      "recovery": [
+        "If the preview says it could not load, retain the source, give Owner the exact report and error, and avoid uploading an invented replacement PDF.",
+        "If returned, change the permitted draft/correction facts and explicitly resubmit; mere saving is not a review handoff."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/19-coordinator-daily-form.png",
+          "caption": "Actual coordinator Daily report form for their own narrative.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/20-coordinator-daily-submitted.png",
+          "caption": "Actual coordinator report Submitted; subsequent PM review approved its operational facts.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/25-coordinator-own-preview-native.png",
+          "caption": "Actual coordinator native Daily preview after the scoped fix: own approved synthetic report renders successfully; another worker’s preview remains denied.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "technical",
+      "title": "Use Technical / PLC reports for traceable change narratives",
+      "route": "Reports → New technical report / Technical / PLC",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "Technical reports explain before/after behavior, reason and change context. They do not prove a production machine was changed or authorize unsafe work. Use actual evidence and the technician/author relationship permitted by the app.",
+        "This coordinator packet did not create a Technical source; its exact native report workflow is shared with the separately verified External Technician and Worker guides. Follow that role’s real creation lesson for your own permitted source and state."
+      ],
+      "steps": [
+        "Open Reports and choose Technical / PLC to inspect your permitted technical register.",
+        "For a genuine new source choose New technical report, identify BBS and the correct work date, title and equipment/change context.",
+        "Complete the visible technical fields and narratives before saving: describe behavior before, behavior after and why the change was made.",
+        "Save the draft, reopen to inspect the structured human-readable content and source attribution, then Submit for review.",
+        "J&A reviews the technical facts; Finance/Owner generates the customer-safe period output and records the exact signed copy when required."
+      ],
+      "checks": [
+        "Coordinator Reports provides the own operational reporting navigation. Coordinator Technical creation/review/generation is explicitly NOT RUN in this packet.",
+        "External Technician guide provides a positive synthetic Technical save→submit→PM review example on the same BBS project."
+      ],
+      "recovery": [
+        "Preserve technical snapshots and evidence when corrected. Do not overwrite a previously accepted native PDF.",
+        "If a required change field or evidence is unknown, leave the source as draft and ask the responsible person; do not invent an equipment result."
+      ],
+      "figures": []
+    },
+    {
+      "id": "profile-help",
+      "title": "Maintain your own availability and secure access",
+      "route": "Profile → Expertise and availability / Account security → Help",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "Coordinator Profile holds own expertise and availability without exposing compensation or client rates. Availability uses UTC. Security settings concern your own signed-in account, not an inspected supplier technician.",
+        "The Help screenshot includes the new English Supplier Coordinator BBS course and the broader supplier operations reference. Choose the role-specific course first, then consult the reference for shared tasks."
+      ],
+      "steps": [
+        "Open Profile and verify your own name/email. Inspect expertise and availability before recording or arranging work.",
+        "For an actual availability change choose Add availability, enter UTC Starts/Ends, select the status and Note, save and reopen. This mutation was not executed for the coordinator packet.",
+        "Use Register passkey or Enable MFA only on your own device with secure recovery storage. These controls were inspected; no credential/device mutation was performed.",
+        "Open Help, choose the desired language and Supplier Coordinator starting path. English role guides may be linked as a language fallback.",
+        "Sign out after use. Use the organization’s approved contact path for an access problem rather than sharing another role’s credentials."
+      ],
+      "checks": [
+        "Actual coordinator Profile and Help loaded, including own workforce scope and role-specific starting guidance.",
+        "No passwords, cookies, tokens or MFA recovery material were included in screenshots or manuals."
+      ],
+      "recovery": [
+        "An account labelled Worker in Profile may still carry a supplier restriction; request the correct profile/linkage from Owner rather than trying Finance routes.",
+        "Report UI problems with role, BBS reference, date, source state and exact action/error; omit private credentials."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/21-coordinator-profile.png",
+          "caption": "Actual coordinator phone Profile: own expertise and availability.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/22-coordinator-help.png",
+          "caption": "Actual coordinator Help after catalog integration: the new Supplier Coordinator BBS course and shared supplier reference are both available.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "handoff",
+      "title": "Finish the supplier operational cycle",
+      "route": "Personnel → Drafts → J&A review → Operational report",
+      "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+      "paragraphs": [
+        "The coordinator’s cycle is authorized personnel, accurate actual team drafts, explicit submission, returned correction when needed and an operational status export. J&A operational approval, Finance payment and customer acceptance are separate handoffs.",
+        "Browser-executed coverage: native login and dated supplier scope, directory technician Save, same-hour batch Save/Submit, 2→1.5 h linked correction/Submit→Owner approval, active 3.5 h report, native CSV, own 0.25 h Time submission, own Daily save/submit→PM approval, own-report preview 200 with other-worker 404, navigation/responsive views and Finance/Billing/Approvals 403. Own expense save/submit, Technical mutation, print-to-PDF, security enrollment and ordinary draft discard/edit remain inspected/reference or NOT RUN as stated."
+      ],
+      "steps": [
+        "Confirm BBS authorization and each technician’s work-date coverage before entering actual hours.",
+        "Review saved sources and submit the intended batch only once. Send the reviewer a clear project/date/source handoff.",
+        "Follow Needs changes through a linked correction and re-review; compare active totals with the retained original history.",
+        "Export the operational report with the correct period/state and describe its meaning. Hand financial and customer-acceptance questions to authorized J&A users.",
+        "Keep your own Time, Expenses and Reports distinct from technician team sources and report unresolved access/preview problems."
+      ],
+      "checks": [
+        "No production data, real equipment, live dispatch, customer consent, outward mail or bank payment was changed or asserted by this training packet.",
+        "Original BBS invoices and finalized financial history were preserved."
+      ],
+      "recovery": [
+        "Do not duplicate work to fix a locked source or substitute an operational CSV for an issued invoice.",
+        "If access ends or assignment dates expire, ask Owner to review the genuine authorization. A directory record alone cannot restore login."
+      ],
+      "figures": []
+    }
+  ]
+}

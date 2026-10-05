@@ -97,6 +97,28 @@ const guide = (
   },
 });
 
+/** Current role courses remain separate from the historical grouped references. */
+const bbsRoleGuide = (
+  persona: ManualPersona,
+  title: string,
+  stem: string,
+  audience: Exclude<ManualAudience, 'quick-start'>,
+  description: string,
+): ManualDefinition => ({
+  id: `bbs-${persona}-manual`,
+  title: { en: title, es: `${title} (en inglés)`, pt: `${title} (em inglês)` },
+  description: {
+    en: description,
+    es: 'Manual ilustrado en inglés para este perfil: procedimientos BBS, capturas, verificaciones y resolución de problemas.',
+    pt: 'Manual ilustrado em inglês para este perfil: procedimentos BBS, capturas, verificações e resolução de problemas.',
+  },
+  audience,
+  locales: ['en'],
+  revision: '2026-10-06',
+  allowedPersonas: [persona],
+  assets: { en: { sourceName: `BBS_${stem}_Manual_EN.pdf` } },
+});
+
 export const manualCatalog: readonly ManualDefinition[] = [
   {
     id: 'employee-field-guide',
@@ -182,6 +204,65 @@ export const manualCatalog: readonly ManualDefinition[] = [
     allowedPersonas: ['owner', 'finance'],
     assets: { en: { sourceName: 'BBS_Project_to_Client_Invoices_Guide_EN.pdf' } },
   },
+  bbsRoleGuide(
+    'worker',
+    'Worker: BBS field operations',
+    'Worker',
+    'work-projects',
+    'Illustrated English course: own hours, expenses, reports, corrections and My Pay in the BBS training project.',
+  ),
+  {
+    ...bbsRoleGuide(
+      'worker',
+      'Crew chief: BBS team operations',
+      'Crew_Chief',
+      'work-projects',
+      'Illustrated English course for a Worker with dated crew delegation; team entry, review boundaries and handoffs.',
+    ),
+    id: 'bbs-chief-manual',
+  },
+  bbsRoleGuide(
+    'manager',
+    'Project manager: BBS operations',
+    'Project_Manager',
+    'work-projects',
+    'Illustrated English course: assigned project oversight, operational review, reporting and role handoffs.',
+  ),
+  bbsRoleGuide(
+    'finance',
+    'Finance: BBS financial operations',
+    'Finance',
+    'administration-finance',
+    'Illustrated English course: commercial review, invoices, collections, compensation and reconciliation.',
+  ),
+  bbsRoleGuide(
+    'owner',
+    'Owner: BBS operating manual',
+    'Owner',
+    'administration-finance',
+    'Owner role handoffs and the full illustrated BBS course, including issued training invoices and landscape exports.',
+  ),
+  bbsRoleGuide(
+    'auditor',
+    'Auditor: BBS read-only review',
+    'Auditor',
+    'administration-finance',
+    'Illustrated English course: read-only financial and audit review, evidence and access boundaries.',
+  ),
+  bbsRoleGuide(
+    'supplier-coordinator',
+    'Supplier coordinator: BBS operations',
+    'Supplier_Coordinator',
+    'supplier-operations',
+    'Illustrated English course: authorized supplier project scope, personnel, team work and operational reporting.',
+  ),
+  bbsRoleGuide(
+    'external-technician',
+    'External technician: BBS field work',
+    'External_Technician',
+    'supplier-operations',
+    'Illustrated English course: assigned supplier work, own actual time, expenses, reports and corrections.',
+  ),
 ];
 
 /** Legacy links resolve to a group, whose access is checked against the current persisted persona. */
@@ -228,12 +309,17 @@ export function manualsForPersona(persona: ManualPersona | null): readonly Manua
       manual.allowedPersonas.includes(persona) ||
       (persona === 'owner' && manual.audience !== 'quick-start'),
   );
-  if (persona === 'owner')
-    available.sort(
-      (a, b) =>
-        Number(b.audience === 'administration-finance') -
-        Number(a.audience === 'administration-finance'),
-    );
+  // Put the account's current course before older references and other-role courses.
+  const primary = `bbs-${persona}-manual`;
+  available.sort(
+    (a, b) =>
+      Number(b.id === primary) - Number(a.id === primary) ||
+      b.revision.localeCompare(a.revision) ||
+      (persona === 'owner'
+        ? Number(b.audience === 'administration-finance') -
+          Number(a.audience === 'administration-finance')
+        : 0),
+  );
   return available.map(
     ({ id, title, description, audience, allowedPersonas, locales, revision }) => ({
       id,

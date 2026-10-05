@@ -1,0 +1,469 @@
+{
+  "role": "chief",
+  "title": "Chief · BBS crew operations",
+  "subtitle": "Dated delegation, team hours, shared receipts, corrections and own Worker responsibilities",
+  "chapters": [
+    {
+      "id": "chief-start",
+      "title": "Understand Chief authority before recording crew work",
+      "route": "Sign in → Crew hours",
+      "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
+      "paragraphs": [
+        "Chief is an ordinary Worker account with dated person/project delegation. Account role, project assignment, crew-chief delegation and Can review permission are separate. In this BBS example the Chief may record for Worker 1 and Worker 2 during October 1–31; assignment review permission is off.",
+        "Before practising obtain an operator training URL, own account, visible environment identity, permitted scope and reset instructions. No shared training credentials are provided. Live company links remain live company services. Every illustrated mutation here is fictional and isolated.",
+        "Crew hours handles delegated operational entry. Time, Expenses, Reports and My Pay still handle your own Worker records. Delegation does not reveal crew compensation or grant Finance access; Chief authenticated Approvals and Finance requests returned 403."
+      ],
+      "steps": [
+        "Confirm your own Chief account and the isolated environment. Open Crew hours.",
+        "Select Project and Work date, then Show project. Check that intended members are offered for this date."
+      ],
+      "checks": [
+        "The delegated crew list is date-specific. The October 1–31 grant covers the worked October 6 and 15 examples."
+      ],
+      "recovery": [
+        "Ask the Owner to correct expired/missing delegation or assignment. Do not select another account to gain access."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/02-chief-crew-shared-filled.png",
+          "caption": "Actual Chief delegated entry controls; authority comes from dated grants, not the word Chief.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "chief-shared",
+      "title": "Save the same actual hours for multiple crew members",
+      "route": "Crew hours → Log team hours",
+      "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
+      "paragraphs": [
+        "Same hours for each selected member means the full duration applies to each person. Two selected workers at 2 h creates two 2 h sources, total 4 actual hours; it does not split a shared 2 h total.",
+        "The October 6 bench setup is explicit simulated activity with no live equipment changes. Each saved row retains its worker and source ID."
+      ],
+      "steps": [
+        "Select Project and Work date and Show project. Tick only the authorized Team members who actually worked.",
+        "Choose Same hours for each selected member. Enter Hours per member 2, category and Work performed.",
+        "Leave Submit for approval now off to inspect the saved drafts; use Save 2 people. Inspect each 2 h row.",
+        "Use each intended row’s Submit action and confirm Submitted."
+      ],
+      "checks": [
+        "Two separate 2 h sources were saved and submitted; both remain awaiting operational review in this packet. Chief did not approve them."
+      ],
+      "recovery": [
+        "If one person/time is wrong, correct that draft through its permitted row controls before submitting. Do not save another batch while trying to locate the first one."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/03-chief-crew-saved.png",
+          "caption": "Native saved 2 h+2 h Draft rows for the two selected delegates.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/07-chief-crew-submitted.png",
+          "caption": "Both separate sources Submitted; review permission remains a separate handoff.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "chief-individual",
+      "title": "Use different actual hours and submit deliberately",
+      "route": "Crew hours → Different hours for each member",
+      "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
+      "paragraphs": [
+        "The October 15 exercise entered 0.5 h for Worker 1 and 1 h for Worker 2, category Travel. Individual hours reflect each person’s actual activity. Checking Submit for approval now combines save and submission; it does not approve the work."
+      ],
+      "steps": [
+        "Select the authorized members and Different hours for each member. Enter each worker’s hours, category and shared factual Work performed.",
+        "Review the selected date/member names and tick Submit for approval now only when ready. Use Save 2 people.",
+        "Inspect both resulting rows and their states. The PM approved Worker 1’s 0.5 h and returned Worker 2’s 1 h for 0.75 h correction."
+      ],
+      "checks": [
+        "Separate 30 minute and 60 minute sources were saved as Submitted. Their later review outcomes are independent."
+      ],
+      "recovery": [
+        "An absent member or blocked date requires Owner delegation/assignment review. An unsent row can be corrected through its current controls; reviewed history requires the proper linked process."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/08-chief-individual-filled.png",
+          "caption": "Actual individual-hours form before saving 0.5 h and 1 h.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/09-chief-individual-submitted.png",
+          "caption": "Saved native individual sources, Submitted for operational review.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "chief-correction",
+      "title": "Correct a delegated returned entry",
+      "route": "Crew hours → View time → Create corrected draft",
+      "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
+      "paragraphs": [
+        "The genuine PM returned Worker 2’s 1 h travel source with a 0.75 h reason. The delegated Chief could create and submit a linked replacement because the October 15 period was outside that worker’s finalized October 1–14 settlement. Delegation is still checked for the source/date."
+      ],
+      "steps": [
+        "Open the returned crew source using View time. Read Needs changes and the reviewer’s reason.",
+        "In Create corrected draft enter Reason, Work date, Time category, Actual hours 0.75 and factual Work performed. Create the correction.",
+        "Inspect the new Draft and original link. Use Submit for approval now on this crew correction detail.",
+        "After PM review, refresh the selected date and inspect the Approved replacement."
+      ],
+      "checks": [
+        "The original 1 h remains Needs changes; the linked 45 minute 0.75 h replacement is Approved. Worker 1’s 0.5 h remains separately Approved."
+      ],
+      "recovery": [
+        "A settled/paid compensation guard requires Finance’s explicit adjustment; do not duplicate a crew entry or change its date/person to evade it. The Chief does not gain self-approval by creating a correction."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/18-chief-returned-time.png",
+          "caption": "Native returned delegated source and reviewer reason.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/19-chief-correction-filled.png",
+          "caption": "Actual delegated correction form 1 h→0.75 h with reason.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/27-chief-correction-approved.png",
+          "caption": "Current crew rows: Approved 0.5 h and 0.75 h, historical original 1 h preserved.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "chief-expense",
+      "title": "Record one crew expense with its actual payer",
+      "route": "Crew hours → Add expense for [worker]",
+      "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
+      "paragraphs": [
+        "The Chief recorded one explicitly synthetic USD 20 meal receipt for Worker 2, paid by Worker. The link preselects the delegated worker/source. Record expense for is restricted to the Chief and authorized delegates; it does not grant arbitrary person access.",
+        "Expense owner, payer and later allocation are distinct. A Chief can record delegated operational facts without seeing another worker’s reimbursement details. No real purchase or transfer occurred."
+      ],
+      "steps": [
+        "From the intended crew row choose Add expense for that worker. Check Record expense for, Project, Date and related hours.",
+        "Attach the single receipt and fill Category, Amount 20, Currency USD, Who paid and factual Description. Save draft.",
+        "Open the saved detail and inspect the source/receipt/payer. Use Submit only after the receipt allocation and facts are verified."
+      ],
+      "checks": [
+        "Exactly one USD 20 expense was saved. Genuine PM operational approval followed submission. Finance classification/payment is a separate handoff."
+      ],
+      "recovery": [
+        "Use permitted draft/correction controls for wrong values. Do not create a separate full 20 expense for every crew member."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/04-chief-expense-filled.png",
+          "caption": "Actual delegated expense form, USD 20 single synthetic receipt.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/13-chief-shared-expense-saved.png",
+          "caption": "Saved delegated expense; another worker’s private reimbursement values are not exposed.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/14-chief-shared-expense-submitted.png",
+          "caption": "Crew expense Submitted, later operationally approved by PM.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "chief-allocation",
+      "title": "Split one receipt across worked sources",
+      "route": "Crew hours → Allocate one crew receipt",
+      "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
+      "paragraphs": [
+        "Allocation distributes a single purchase across source shifts; it does not multiply the purchase, choose new reimbursement recipients or create invoices. The USD 20 receipt was split 10+10 across the two October 6 crew sources.",
+        "The selected set must include at least two valid crew time sources and the expense’s initially related shift. The allocation sum must match the one receipt amount."
+      ],
+      "steps": [
+        "Select the saved Receipt expense and the related crew time entries.",
+        "Enter Amount for worker 10 for each of the two selected sources, then Save receipt allocation.",
+        "Refresh Allocate one crew receipt and inspect the saved split and expense total."
+      ],
+      "checks": [
+        "One expense USD 20 remains; allocations USD 10+USD 10 sum 20. The originally linked Worker 2 shift is included."
+      ],
+      "recovery": [
+        "Allocated receipts can lock draft edit actions. Investigate the existing allocation/expense with the reviewer rather than making duplicate expenses or altering hours to force a split."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/05-chief-receipt-split-filled.png",
+          "caption": "Native allocation form selects two sources and 10+10 amounts.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/06-chief-receipt-allocation-saved.png",
+          "caption": "Actual saved split of one USD 20 receipt; allocation is not worker payment.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "chief-review",
+      "title": "Hand operational work to the permitted reviewer",
+      "route": "Crew hours → submitted sources; reviewer → Approvals",
+      "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
+      "paragraphs": [
+        "The Chief’s delegation permits the exercised recording/correction operations, but this Chief has no review permission. The genuine assigned PM reviewed the sources using its own account. Finance then reviews financial treatment where applicable.",
+        "Operational approval, billability, customer invoicing, worker settlement, reimbursement and cash payment are separate stages. A Chief should not assume a submitted row is paid or invoice-ready."
+      ],
+      "steps": [
+        "Inspect each member’s source state after submission. Send the PM record IDs, work date and any material evidence or safety concern.",
+        "Read a returned reason on the actual source. Correct through the permitted linked flow; do not silently overwrite history.",
+        "Hand financial policy/settlement issues to Finance/Owner."
+      ],
+      "checks": [
+        "Worker 2 corrections and Worker 1 Oct 15 travel are Approved. The two October 6 shared 2 h crew rows remain Submitted in this evidence packet."
+      ],
+      "recovery": [
+        "If Approvals is denied, ask the Owner who has review permission. Never borrow the reviewer’s account."
+      ],
+      "figures": []
+    },
+    {
+      "id": "chief-own-time",
+      "title": "Record and submit your own Chief hours separately",
+      "route": "Time → Log time; Submit this week",
+      "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
+      "paragraphs": [
+        "The Chief’s own actual work belongs in its own Worker Time workspace. Crew entries for delegates do not include the Chief’s duration. The exercise saved 0.25 h own handover on October 6.",
+        "This ordinary own draft was submitted using the native Submit this week flow. Bulk submission concerns your own selected-week drafts; it is not a universal batch submission of everyone’s crew records."
+      ],
+      "steps": [
+        "Open Time, choose Log time and record your own project/date/actual hours/activity. Save draft and inspect the row.",
+        "Open Submit this week, select the week beginning October 5, inspect its one draft and choose Submit all week drafts.",
+        "Open the source and confirm Submitted; the genuine PM subsequently approved it."
+      ],
+      "checks": [
+        "One own 15 minute Chief source progressed Draft→Submitted→Approved. Delegated member durations are separate."
+      ],
+      "recovery": [
+        "Check the own draft count before submitting a week. For linked or financially guarded sources use exact record controls and Finance handoff."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/22-chief-own-time-filled.png",
+          "caption": "Chief own Worker Time form, 0.25 h fictional handover.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/23-chief-own-week-before-submit.png",
+          "caption": "Native own-week draft summary before bulk submission.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/23b-chief-own-time-submitted.png",
+          "caption": "Own Chief source Submitted; PM approval followed.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "chief-daily",
+      "title": "Write a Chief daily handover report",
+      "route": "Reports → New daily report",
+      "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
+      "paragraphs": [
+        "Chief reporting uses the Chief’s own author account. The native own Daily form has no arbitrary-worker selector. Delegated time entry does not imply report author impersonation.",
+        "Write factual crew coordination/conditions, with member source IDs when needed. A Daily report does not replace each actual timesheet or prove customer acceptance."
+      ],
+      "steps": [
+        "Select Project, Work date and Site / shift; fill Shift summary and Tasks completed. Include actual problems/actions, downtime, standby, open items, next day plan and safety flag where applicable.",
+        "Use Save daily report. Inspect the Draft, then Submit for review.",
+        "Confirm Submitted and the permitted reviewer’s later state."
+      ],
+      "checks": [
+        "Chief own fictional crew-handover report was saved, submitted and operationally approved by the genuine PM."
+      ],
+      "recovery": [
+        "Use draft edits before submission. For later corrections, preserve approved history and follow the offered report correction or reviewer handoff."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/12-chief-daily-filled.png",
+          "caption": "Native own-author Chief Daily form; no delegation-based impersonation.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/16-chief-daily-submitted.png",
+          "caption": "Chief Daily report Submitted, subsequently PM Approved.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "chief-technical",
+      "title": "Document your technical findings and validation",
+      "route": "Reports → New technical report",
+      "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
+      "paragraphs": [
+        "The Chief’s Technical report is its own authored evidence, separate from crew hours and customer billing. This worked system is explicitly a fictional bench; no live PLC change occurred.",
+        "Capture equipment identifiers, Problem / symptom, Diagnosis / root cause, Change performed, production impact, validation/result, open risk and rollback. Safety/change authorization remains governed by real responsible-person procedures."
+      ],
+      "steps": [
+        "Open New technical report and identify Project, Work date and System / machine; fill applicable machine/platform/version fields and factual technical narrative.",
+        "Use Save PLC report, inspect the Draft, then Submit for review.",
+        "Check review state and hand genuine risks/open work to the responsible PM/technical reviewer."
+      ],
+      "checks": [
+        "Chief own Technical source progressed Draft→Submitted→Approved through genuine PM review."
+      ],
+      "recovery": [
+        "Do not use a report submission as permission to modify live equipment or fabricate successful validation. Attachment/PDF generation for this own report was not exercised here."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/24-chief-technical-filled.png",
+          "caption": "Native fictional Chief Technical form.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/26-chief-technical-submitted.png",
+          "caption": "Own Technical Submitted; operational approval followed.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "chief-pay",
+      "title": "Read only your own pay and reimbursements",
+      "route": "My Pay → Apply period",
+      "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
+      "paragraphs": [
+        "The Chief sees its own compensation, not crew members’ agreements/payments. The historical October 1–4 snapshot shows 10 actual hours, USD 400 approved compensation and USD 20 approved reimbursement; copied training payment records have no claim to a real bank transfer.",
+        "Customer daily/weekly/hourly units and invoice cadence do not dictate worker settlement or payment cadence. Expected date, reviewed amount, paid and remaining are different fields. Source estimates follow dated worker rules, not crew receipt allocations."
+      ],
+      "steps": [
+        "Select your intended From / Through dates and Apply period.",
+        "Read approved/pending estimates separately, then the reviewed settlement’s own period, planned date and paid/remaining values.",
+        "Use Worker statement generation only for your own account and wait for ready artifacts before downloading."
+      ],
+      "checks": [
+        "Crew hour delegation does not expose Worker 1/2 private pay. A split receipt does not create compensation or prove reimbursement."
+      ],
+      "recovery": [
+        "Send missing-rule/settlement/reimbursement questions to Finance with your own source/period. Do not infer another person’s pay from recorded hours."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/17-chief-own-pay.png",
+          "caption": "Actual Chief own historical training payment view; not crew payroll visibility.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "chief-mobile",
+      "title": "Operate crew controls on a phone or tablet",
+      "route": "Crew hours → Project / Work date",
+      "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
+      "paragraphs": [
+        "Phone/tablet views preserve the same dated delegation checks. Use More or the navigation drawer for destinations outside the bottom bar. Intentional internal table scrolling is different from page-level overflow."
+      ],
+      "steps": [
+        "Choose Project and Work date before selecting members. On narrow screens review the chosen names and individual durations carefully.",
+        "Scroll to the saved crew rows or allocation section after saving; verify the result before repeating an action."
+      ],
+      "checks": [
+        "Crew views were checked at 1440, 768 and 390 pixels with no page-level horizontal overflow."
+      ],
+      "recovery": [
+        "If a control is clipped, report the width and precise action with a safe screenshot. Do not re-save the same batch to compensate for a hidden result."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/10-chief-phone.png",
+          "caption": "Native 390 pixel Chief crew viewport.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/11-chief-tablet.png",
+          "caption": "Native 768 pixel Chief crew viewport.",
+          "orientation": "portrait"
+        }
+      ]
+    },
+    {
+      "id": "chief-profile-help",
+      "title": "Manage your own profile and ask for support",
+      "route": "Profile; Notifications; Help",
+      "context": "Reference procedure · current controls/source checked; mutations not exercised in this role lab",
+      "paragraphs": [
+        "Profile expertise and availability affect planning, not delegation/review permission or actual hours. Security belongs to your individual account: passkey Device name/Register passkey and authenticator setup/recovery should be kept private. These changes were not performed in the Chief lab.",
+        "Notifications can lead to returned sources or pending work; marking read does not approve them. Help’s verified contact is admin@j-aautomation.com. Live portal/webmail links are live services. No support message was sent."
+      ],
+      "steps": [
+        "Maintain genuine own expertise/availability using offered Profile controls. Ask the Owner for crew delegation, account status or review permission changes.",
+        "Follow a notification to its current record and inspect state before acting.",
+        "Send support the environment, role, project/record ID, date, intended action and exact message. Exclude credentials/private pay."
+      ],
+      "checks": [
+        "Chief GET Finance and Approvals returned 403. Delegation is not financial or approval authority."
+      ],
+      "recovery": [
+        "If a crew member disappears, check selected date and Owner-grant coverage. If a source is settlement locked, hand it to Finance; do not substitute credentials or duplicate history."
+      ],
+      "figures": []
+    },
+    {
+      "id": "chief-checklist",
+      "title": "Verify the crew handover",
+      "route": "Crew hours → Reports → own Time → reviewer handoff",
+      "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
+      "paragraphs": [
+        "Use a single handover list for the selected workday; crew recording, your own work and financial review remain separate."
+      ],
+      "steps": [
+        "Confirm environment/account/project/date and delegated member coverage.",
+        "Save each member’s actual duration/category once; inspect shared per person versus individual amounts.",
+        "Record each purchase once; allocate one shared receipt only across valid linked shifts and verify the sum.",
+        "Submit intended crew rows and your own Time/report drafts.",
+        "Read review returns and create linked corrections where allowed. Send settlement guards to Finance.",
+        "Confirm current member states and own report states; tell PM which sources remain Submitted/open and which risks remain unresolved."
+      ],
+      "checks": [
+        "Lab passes: shared/individual native crew entry, separate Submitted sources, single receipt 20 allocation 10+10, delegated correction 1→0.75 PM Approved, own weekly time Submit and own Daily/Technical PM Approved, denied Approvals/Finance and responsive views."
+      ],
+      "recovery": [
+        "Reference-only: delegation/account setup, review-enabled Chief actions, draft withdrawal, report attachment/PDF/customer acceptance, own security/profile mutations, bank/email delivery and actual payroll. The illustrated Chief had no review permission."
+      ],
+      "figures": []
+    },
+    {
+      "id": "chief-evidence",
+      "title": "What was verified and what remains a reference",
+      "route": "Verification appendix",
+      "context": "Isolated BBS role lab · actual browser outcomes and explicit limits",
+      "paragraphs": [
+        "Native authenticated browser records, synthetic receipt fixtures and SHA-256 capture manifests are maintained with the guide. Account secrets are excluded. Original billed October 2–5 history and finalized worker settlements were preserved.",
+        "Actual saved/submitted/returned/approved states are distinguished from controls merely inspected. The Owner/PM/Finance handoffs used their own genuine role sessions. This evidence does not claim real bank transfers, live equipment changes or production transactions."
+      ],
+      "steps": [
+        "Chief used an ordinary Worker account with dated October 1–31 grants for Worker 1/2.",
+        "Shared two-hour-per-person entries saved as separate drafts and submitted; both remain awaiting operational review.",
+        "Different 0.5-hour/1-hour Travel entries saved and submitted; PM approved the first and returned the second.",
+        "Delegated 1-hour source corrected to 0.75 hour through a linked replacement, submitted and PM approved.",
+        "One USD 20 receipt allocated 10+10 across two crew sources, submitted and PM approved.",
+        "Chief own Daily and Technical reports saved, submitted and PM approved.",
+        "Chief own 0.25-hour source saved, submitted through its own weekly flow and PM approved.",
+        "Own My Pay historical training snapshot inspected; no crew private compensation exposed.",
+        "Approvals and Finance denied; desktop/tablet/phone Crew pages fit their viewports."
+      ],
+      "checks": [
+        "See the adjacent task checklist and role capture manifest for source IDs, screen widths, artifact integrity and expected permission denials."
+      ],
+      "recovery": [
+        "Reference-only or unperformed here: Account/delegation changes; Review-enabled Chief approval actions; Draft withdrawal; Report attachment/PDF/customer acceptance; Profile/security changes; Actual bank/email delivery."
+      ],
+      "figures": []
+    }
+  ]
+}

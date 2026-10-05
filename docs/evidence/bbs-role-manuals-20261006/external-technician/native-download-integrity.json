@@ -1,0 +1,16 @@
+[
+  {
+    "kind": "receipt",
+    "status": 200,
+    "bytes": 32473,
+    "sha256": "56794efb35af12744659cf144d6a50a154cd0a258ae0af0a8a7c61b8e77ed0b8",
+    "match": true
+  },
+  {
+    "kind": "daily",
+    "status": 200,
+    "bytes": 306944,
+    "sha256": "88c0ba2c4fc37695c4dd6a18752ac123b32ebf86d319538b8d647e7cd5fd9338",
+    "match": true
+  }
+]

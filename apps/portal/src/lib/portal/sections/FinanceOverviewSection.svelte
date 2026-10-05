@@ -3664,6 +3664,12 @@
                 'reimbursementState',
                 'reimbursement_state',
               )}
+              {@const reimbursementAmountToRecord = retainedFinanceValue(
+                'recordReimbursement',
+                String(reimbursement.id),
+                'amountMinor',
+                String(reimbursement.reimbursementAmountMinor ?? ''),
+              )}
               <article
                 class="finance-overview__reimbursement"
                 data-reimbursement-id={value(reimbursement, 'id')}
@@ -3708,16 +3714,13 @@
                     onsubmit={rememberFinanceScroll}
                   >
                     <input type="hidden" name="expenseId" value={reimbursement.id} />
-                    <input
-                      type="hidden"
-                      name="amountMinor"
-                      value={retainedFinanceValue(
-                        'recordReimbursement',
-                        String(reimbursement.id),
-                        'amountMinor',
-                        String(reimbursement.reimbursementAmountMinor ?? ''),
-                      )}
-                    />
+                    <div class="finance-overview__reimbursement-amount">
+                      <small>{translate('Amount')}</small>
+                      <strong data-reimbursement-reviewed-amount
+                        >{displayMoney(reimbursementAmountToRecord, reimbursement.currency)}</strong
+                      >
+                    </div>
+                    <input type="hidden" name="amountMinor" value={reimbursementAmountToRecord} />
                     <label>
                       <span>{translate('Payment reference')}</span>
                       <input
@@ -4606,6 +4609,12 @@
     align-items: end;
     gap: 0.55rem;
     min-width: min(27rem, 100%);
+  }
+
+  .finance-overview__reimbursement-amount {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 0.2rem;
   }
 
   .finance-overview__empty {

@@ -1,0 +1,281 @@
+{
+  "capturedOn": "2026-10-06",
+  "environment": "Isolated loopback BBS clone; no production mutations. Clone deployment metadata is inherited, not proof of production execution.",
+  "projectId": "01a10c51-a391-7288-aad1-cb38be43f496",
+  "project": "C-0050-P-20261005 · BBS · Ejemplo de manual",
+  "authentication": "Genuine active fictional role account; credentials/private cookies remain outside Git.",
+  "browser": "Native Playwright Chromium; no injected UI/CSS or fabricated state. Screenshot crops preserve native content.",
+  "responsiveWidths": [
+    1440,
+    768,
+    390
+  ],
+  "pageOverflow": false,
+  "historicalSources": "Original billed October2–5 records and finalized settlements unchanged. Synthetic role work datedOctober6/15.",
+  "harnessLimits": [
+    "Some helper waits/navigation attempts timed out without mutation; final states separately checked.",
+    "A mistaken /today route was404; native Today is app root.",
+    "First Worker statement October15 operator runner omitted handler and dead-lettered jobs; failed history retained. FreshOctober15–16 processed normally."
+  ],
+  "sources": {
+    "worker1ReturnedTime": "01a10e35-5597-73cc-aa1f-1883ef3bd94f",
+    "worker1Expense": "01a10e37-09d3-73eb-8bdc-367b4243c759",
+    "worker1Receipt": "01a10e37-099f-7604-8e46-2032b429a955",
+    "workerDaily": "01a10e37-d274-7630-a8c6-187f8bbfc7b9",
+    "workerTechnical": "01a10e38-63d5-701d-a865-f56b3320e365",
+    "worker2Original": "01a10e3e-811a-712f-a048-9dfb0c5e4ef1",
+    "worker2Corrected": "01a10e43-4f0b-74b8-8b1b-76c5b84991ad",
+    "worker2DelegatedCorrected": "01a10e44-382e-726a-a4d2-ab86de8a8858"
+  },
+  "actualPasses": [
+    "Own time Save draft→Submit→PMreturned; expected correctionguard409 for finalized Worker1period, no replacement.",
+    "Worker2 own3h→returned→linked2.5h→Submit→PMapproved; originalpreserved.",
+    "Own expense12USDWorkerpayer syntheticreceipt Save→Submit→PMApproved→Financeclassification+review.",
+    "Own Daily andTechnical Save→Submit→genuinePMApproved.",
+    "Own selectedOct15currentapproved195minutes=3.25h; old3h+1h originals notdoublecounted.",
+    "PMpublishedOct16plan2h appearsUpcomingassignments; noactualOct16work.",
+    "Own statementOct15–16PDF+CSVReady andnative downloads200 exactcanonicalhash.",
+    "Worker1otherWorker2statementPDF/CSV404; Finance403; Billing403; otherworkerTime403; ownprivateReceipt200.",
+    "Timephone/tablet/desktop no pagehorizontaloverflow."
+  ],
+  "expectedBlocks": {
+    "settledCorrection": 409,
+    "finance": 403,
+    "billing": 403,
+    "otherWorkerTime": 403,
+    "otherWorkerStatement": 404
+  },
+  "notRun": [
+    "Account invitation/security recovery",
+    "Weekly table/layoutcopy mutations",
+    "Bulk expense and bulk linkedcorrection submission",
+    "Reportattachments/customer acceptance",
+    "Own skills/availability/security mutations",
+    "Actualbanktransfer/emaildelivery"
+  ],
+  "nativeArtifacts": [
+    {
+      "artifact_id": "01a10e4d-82f5-738a-acd2-ce8e005c7393",
+      "status": "ready",
+      "byte_length": 306324,
+      "content_sha256": "cfa09e7d17cf51daef22d788d6e705947eb5a18b9706160abad964b0c20db74b",
+      "format": "pdf",
+      "approvedMinutes": 195,
+      "ownHttp": 200,
+      "otherWorkerHttp": 404,
+      "hashMatch": true
+    },
+    {
+      "artifact_id": "01a10e4d-82f7-7339-95c8-3eae7f1f4d8c",
+      "status": "ready",
+      "byte_length": 1652,
+      "content_sha256": "40315f6e78bd23214affb65ae6074335f694737863706d4b50f96d1939fe3356",
+      "format": "csv",
+      "approvedMinutes": 195,
+      "ownHttp": 200,
+      "otherWorkerHttp": 404,
+      "hashMatch": true
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/01-today-desktop.png",
+      "sha256": "b834ac91a03cf8a3f6b0033871c0270db93e656a640fc5a2a44af0a4f14f2f53",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/02-time-filled-desktop.png",
+      "sha256": "c685a4776454dc2ef3cfd8bc26f535cf951d74d3031d3a592652aa733d9762b0",
+      "width": 544,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/03-time-saved-desktop.png",
+      "sha256": "dfcf646b049139423a6f04ccc823bc3037016f730314faa1c21af96390e31e9c",
+      "width": 1178,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/04-time-draft-detail.png",
+      "sha256": "330cf09f18408fd26a57c352567f84a6aea4b6c86c8273755234c60fa364d89c",
+      "width": 1136,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/05-time-submitted.png",
+      "sha256": "1528915e1692bf04fc1664a98d9c4b4a10f304f133d041de1b1bf9c2166942fc",
+      "width": 1136,
+      "height": 1001
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/06-expense-filled.png",
+      "sha256": "7b0e4eb16f794bc7aa9adfff42bd1f8b190ba2184e054881055a7826f12de24e",
+      "width": 544,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/07-expense-saved-receipt.png",
+      "sha256": "35fa2094416c40e276d82833e84cc91fa903b5e10be585fb78ecb78b02ef12e4",
+      "width": 1136,
+      "height": 1001
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/08-expense-submitted.png",
+      "sha256": "b1f39042f79db3b4862a91a38228ce639e1c03989f06a84117e6e41dd8f0ed6b",
+      "width": 1136,
+      "height": 1001
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/09-daily-filled.png",
+      "sha256": "ff69b5f343cb7fc1c46f0e389ea47f0da5f5aaf2eb5522be75805c429c8346a6",
+      "width": 544,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/10-daily-saved.png",
+      "sha256": "360695fa3f2c919ecf5921222e6d49bfef333b55ab2ebba044efe9b0189cfa5a",
+      "width": 1136,
+      "height": 365
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/11-daily-submitted.png",
+      "sha256": "796ae4ad93ce6d474c850795d2d915dfba307ca70598382db555a7c436fa9f80",
+      "width": 1136,
+      "height": 280
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/12-technical-filled.png",
+      "sha256": "c18c134ae215e066a71b1310ee789cb19354ab667a2e2d7d2e4795d0d339fd33",
+      "width": 544,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/13-technical-saved.png",
+      "sha256": "8972069a593d38a363a95abb3b66887353b372ae4046d02d910590a61b2462a7",
+      "width": 1136,
+      "height": 280
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/14-technical-submitted.png",
+      "sha256": "2b1d0bebf6d65b0f50f9d67cce1634778fc53023bc9d6426694b8ecd09999ab7",
+      "width": 1136,
+      "height": 280
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/15-own-my-pay.png",
+      "sha256": "b940b31fb71fded5de70740913a5b3215d896824187cd8b837bfecd6311a2d6c",
+      "width": 1178,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/16-worker-phone-time.png",
+      "sha256": "8ce92872a4338f04bcf3ab68010810d4677b7be5c430581b7464715a9913a477",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/17-worker-tablet-time.png",
+      "sha256": "3ee5f3de660f60107e04ac80e07f22573a418e3fa9cee39a1f32b560e183facc",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/18-time-returned.png",
+      "sha256": "3d151a12bbfdf62d52be2f14b7e465772ac0fc7b5d9cf82ec50a9ebb9ce32458",
+      "width": 1136,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/19-worker-correction-filled.png",
+      "sha256": "d0674e3cfa172904d9c7395f83f532412bbc43843f6b4fc7b3a2e2751df60494",
+      "width": 1094,
+      "height": 752
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/20-worker-settlement-correction-blocked.png",
+      "sha256": "e09864794732cebd48b9fc37302fd4fb4cb82c58694574d6d2227b988a2f879e",
+      "width": 1136,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/21-worker2-time-filled.png",
+      "sha256": "f8a0e5e409a04d23844b2370b1145d59a1d30132df54651c686d5f892010c857",
+      "width": 544,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/22-worker2-submitted.png",
+      "sha256": "0da9f1faa91f0a0951418c48dcedbdc8a9637a5cb0bf5eac4f3d6f399ab83edc",
+      "width": 1136,
+      "height": 1001
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/23-worker2-returned.png",
+      "sha256": "46e1db3b53b22e97715227b0f07e34721b1c3571694352d0e1435f39977c7e6f",
+      "width": 1136,
+      "height": 224
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/24-worker2-correction-filled.png",
+      "sha256": "f6f2c780728b478c85776f7399c3432f5db30cfc8a3d75d454779f992b9c9786",
+      "width": 1094,
+      "height": 752
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/25-worker2-correction-draft.png",
+      "sha256": "2576c05c6c7115cffc1c982a68d80db307249bf4aa59c11944b13e49aeb2db58",
+      "width": 1136,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/26-worker2-week-draft-summary.png",
+      "sha256": "eaf1d1881f482d14b48f76d6cb35e8b5fdc765c18d58b7c337f84cb142869731",
+      "width": 1062,
+      "height": 275
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/27-worker2-correction-submitted.png",
+      "sha256": "5c74775c6df13e81caafa2858b97fd1f42fd37ad34ae40640682461f82248da4",
+      "width": 1136,
+      "height": 1061
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/28-worker2-corrected-register.png",
+      "sha256": "406b047feb500ad75424169c896fe12b250c8974aa83c42100c838e04199d9fd",
+      "width": 1104,
+      "height": 684
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/29-worker-statement-queued.png",
+      "sha256": "d2dbfbf479947fa55f5b6a517edf56b8d2821ed9dc6961859fb70f5f069dd214",
+      "width": 1178,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/30-worker-profile-reference.png",
+      "sha256": "fb8e445b21f17f45c5e90911c2d3203e057a2545f327088b55d2a2577e77a163",
+      "width": 1178,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/31-worker-statement-new-queued.png",
+      "sha256": "83991403bc1389b451e5f91d64629ac947884794dd9d8a101776a025aa3dd200",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/32-worker-statement-ready.png",
+      "sha256": "59e304faa66ed3a79eb8f2c0c4f1cf5dbe73dd5fb46b56ed3fb6654f548ac95c",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/33-worker-upcoming-plan.png",
+      "sha256": "f59a380e28f2f678e0b542a896b2867b3b97c99471dec15766a1adc6360ad338",
+      "width": 1440,
+      "height": 1000
+    }
+  ],
+  "phoneRecapture": "Fresh rebuilt runtime; closed navigation; settled viewport confirmed visually;390pixels nooverflow/pageerrors/POST."
+}

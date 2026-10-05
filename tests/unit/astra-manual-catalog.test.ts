@@ -19,16 +19,32 @@ const references = [
   'administration-finance-reference',
 ] as const;
 const roleMatrix = [
-  ['worker', undefined, ['employee-field-guide', 'work-projects-reference']],
-  ['project_manager', undefined, ['work-projects-reference']],
-  ['finance_admin', undefined, ['administration-finance-reference', 'bbs-project-invoices-guide']],
-  ['auditor_read_only', undefined, ['administration-finance-reference']],
-  ['worker', 'supplier_coordinator', ['supplier-operations-reference']],
-  ['worker', 'external_technician', ['supplier-operations-reference']],
+  [
+    'worker',
+    undefined,
+    ['bbs-worker-manual', 'bbs-chief-manual', 'employee-field-guide', 'work-projects-reference'],
+  ],
+  ['project_manager', undefined, ['bbs-manager-manual', 'work-projects-reference']],
+  [
+    'finance_admin',
+    undefined,
+    ['bbs-finance-manual', 'bbs-project-invoices-guide', 'administration-finance-reference'],
+  ],
+  ['auditor_read_only', undefined, ['bbs-auditor-manual', 'administration-finance-reference']],
+  [
+    'worker',
+    'supplier_coordinator',
+    ['bbs-supplier-coordinator-manual', 'supplier-operations-reference'],
+  ],
+  [
+    'worker',
+    'external_technician',
+    ['bbs-external-technician-manual', 'supplier-operations-reference'],
+  ],
 ] as const;
 
 describe('Help manual catalog', () => {
-  it('keeps seven personas but publishes three shared references with exact EN/PT-BR assets', () => {
+  it('keeps seven personas, historical references and current BBS role courses', () => {
     expect(manualRevision).toBe('2026-09-22');
     expect(manualPersonas).toHaveLength(7);
     expect(manualAudiences).toEqual([
@@ -40,6 +56,14 @@ describe('Help manual catalog', () => {
       'employee-field-guide',
       ...references,
       'bbs-project-invoices-guide',
+      'bbs-worker-manual',
+      'bbs-chief-manual',
+      'bbs-manager-manual',
+      'bbs-finance-manual',
+      'bbs-owner-manual',
+      'bbs-auditor-manual',
+      'bbs-supplier-coordinator-manual',
+      'bbs-external-technician-manual',
     ]);
     expect(manualCatalog[0]?.locales).toEqual(['en', 'es', 'pt']);
     for (const [id, audience, stem, personas] of [
@@ -85,8 +109,16 @@ describe('Help manual catalog', () => {
       expect(personaForRole(role, profile)).toBeTruthy();
     }
     expect(manualsForRole('owner_admin').map((manual) => manual.id)).toEqual([
-      'administration-finance-reference',
+      'bbs-owner-manual',
+      'bbs-finance-manual',
+      'bbs-auditor-manual',
+      'bbs-worker-manual',
+      'bbs-chief-manual',
+      'bbs-manager-manual',
+      'bbs-supplier-coordinator-manual',
+      'bbs-external-technician-manual',
       'bbs-project-invoices-guide',
+      'administration-finance-reference',
       'work-projects-reference',
       'supplier-operations-reference',
     ]);
@@ -108,6 +140,26 @@ describe('Help manual catalog', () => {
     for (const role of ['worker', 'project_manager', 'auditor_read_only'])
       expect(manualForRole('bbs-project-invoices-guide', role)).toBeNull();
     expect((await readManualPdf(guide!, 'en')).subarray(0, 5).toString()).toBe('%PDF-');
+  });
+
+  it('keeps current role PDFs within their persisted persona boundary', async () => {
+    for (const [role, profile, ids] of roleMatrix) {
+      for (const guide of manualCatalog.filter((item) => item.revision === '2026-10-06')) {
+        const allowed = (ids as readonly string[]).includes(guide.id);
+        expect(Boolean(manualForRole(guide.id, role, profile))).toBe(allowed);
+        if (allowed) {
+          expect(guide.locales).toEqual(['en']);
+          expect((await readManualPdf(guide, 'en')).subarray(0, 5).toString()).toBe('%PDF-');
+        }
+      }
+    }
+    // A delegation guide is instructional; reading it never grants delegation.
+    expect(manualForRole('bbs-chief-manual', 'worker')).toBeTruthy();
+    expect(manualForRole('bbs-finance-manual', 'worker')).toBeNull();
+    expect(manualForRole('bbs-worker-manual', 'worker', 'external_technician')).toBeNull();
+    expect(
+      manualForRole('bbs-supplier-coordinator-manual', 'worker', 'external_technician'),
+    ).toBeNull();
   });
 
   it('reads allowlisted PDFs from the portal working directory', async () => {

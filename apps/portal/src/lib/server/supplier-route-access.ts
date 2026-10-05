@@ -33,6 +33,10 @@ export function supplierRouteAllowed(path: string): boolean {
     );
   }
   if (/^\/crew\/time\/[^/]+$/u.test(route)) return true;
+  // Own operational report previews and receipt links use these nested endpoints.
+  // The handlers retain live-session, report ownership and document classification checks.
+  if (/^\/reports\/(?!period\/|review\/|export\/)[^/]+\/preview$/u.test(route)) return true;
+  if (/^\/api\/documents\/[^/]+$/u.test(route)) return true;
   if (/^\/help\/[^/]+(?:\/download)?$/u.test(route)) return true;
   if (/^\/api\/auth(?:\/|$)/u.test(route)) return true;
   if (route === '/api/security/mfa') return true;

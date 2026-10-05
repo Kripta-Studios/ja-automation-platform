@@ -65,15 +65,15 @@ describe('Invoice PDF preview surface', () => {
     expect(value).not.toContain('data:application/pdf');
   });
 
-  it('renders Open/Download from the frozen snapshot with the current invoice layout', () => {
+  it('downloads the stored integrity-checked invoice PDF without rerendering', () => {
     const route = readFileSync(
       resolve(process.cwd(), 'apps/portal/src/routes/app/api/invoices/[id]/pdf/+server.ts'),
       'utf8',
     );
     expect(route).toContain('servePrivateArtifact');
-    expect(route).toContain('invoicePdf');
-    expect(route).toContain('invoiceSnapshot');
-    expect(route).toContain('generateBytes');
+    expect(route).toContain('invoicePdfMetadata');
+    expect(route).not.toContain('invoiceSnapshot');
+    expect(route).not.toContain('generateBytes');
   });
 
   it('renders queued, running, failed and unavailable states explicitly', () => {
@@ -92,7 +92,9 @@ describe('Invoice PDF preview surface', () => {
   it('polls active PDF jobs through SvelteKit invalidation and cleans up at terminal state', () => {
     const value = source();
 
-    expect(value).toContain("import { beforeNavigate, invalidateAll } from '$app/navigation';");
+    expect(value).toMatch(
+      /import\s*\{[^}]*beforeNavigate[^}]*invalidateAll[^}]*\}\s*from '\$app\/navigation'/,
+    );
     expect(value).toContain("from '$lib/portal/invoice-pdf-polling';");
     expect(value).toContain('createInvoicePdfPollingController');
     expect(value).toContain("pdfPolling.update(hasDraftPreview ? 'unavailable' : pdfStatus);");
@@ -226,7 +228,14 @@ describe('Invoice PDF preview surface', () => {
     const value = source();
     const css = styles();
 
-    expect(value).toContain('data-mobile-representation="cards"');
+    const document = readFileSync(
+      resolve(process.cwd(), 'packages/reporting/src/invoice-document.ts'),
+      'utf8',
+    );
+    expect(value).toContain('renderInvoiceDocument');
+    expect(document).toContain('@media screen and (max-width:600px)');
+    expect(document).toContain('.invoice-meta{grid-template-columns:repeat(2,minmax(0,1fr))}');
+    expect(document).toContain('.invoice-bottom-grid{grid-template-columns:1fr}');
     expect(value).toContain('aria-labelledby="invoice-pdf-heading"');
     expect(css).toContain('.invoice-pdf-panel__frame-wrap iframe');
     expect(css).toContain('min-height: 2.75rem');

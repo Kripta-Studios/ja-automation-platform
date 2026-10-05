@@ -1,0 +1,26 @@
+
+ RUN  v4.1.11 /home/kripta/ja-manual-main-publish-20261005-side
+
+ ❯ tests/integration/finance-truth-reversal.test.ts (6 tests | 1 failed) 118581ms
+     × attributes historical project costs through one unambiguous billing rule without a canonical assignment 87115ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/integration/finance-truth-reversal.test.ts > Client Essential finance truth and payment reversals > attributes historical project costs through one unambiguous billing rule without a canonical assignment
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/integration/finance-truth-reversal.test.ts:334:3
+    332|   });
+    333|
+    334|   it('attributes historical project costs through one unambiguous bill…
+       |   ^
+    335|     const { sqlite, repository, v3, finance, manager, worker, project,…
+    336|       canonicalAuthority: false,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 4 passed (5)
+      Tests  1 failed | 48 passed (49)
+   Start at  21:30:11
+   Duration  154.41s (transform 3.36s, setup 0ms, import 4.76s, tests 148.67s, environment 0ms)

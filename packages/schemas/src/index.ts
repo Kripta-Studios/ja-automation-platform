@@ -665,46 +665,56 @@ export const invoicePlanningDatesInputSchema = z
   .strict();
 
 /** Draft presentation edits never authorize changes to issued accounting history. */
-export const invoiceDraftDetailsInputSchema = z.object({
-  expectedVersion: z.coerce.number().int().positive(),
-  expectedBillingRuleVersion: z.coerce.number().int().positive().optional(),
-  invoiceDate: z.iso.date().optional(),
-  dueDate: z.union([z.iso.date(), z.literal('')]).optional(),
-  paymentTermsDays: z.coerce.number().int().min(0).max(365).optional(),
-  expectedProjectVersion: z.coerce.number().int().positive().optional(),
-  expectedIssuerSettingsVersion: z.coerce.number().int().nonnegative().optional(),
-  purchaseNo: z.string().trim().max(160).optional(),
-  termsAndInstructions: z.object({
+export const invoiceDraftDetailsInputSchema = z
+  .object({
+    expectedVersion: z.coerce.number().int().positive(),
+    expectedBillingRuleVersion: z.coerce.number().int().positive().optional(),
+    invoiceDate: z.iso.date().optional(),
+    dueDate: z.union([z.iso.date(), z.literal('')]).optional(),
+    paymentTermsDays: z.coerce.number().int().min(0).max(365).optional(),
+    expectedProjectVersion: z.coerce.number().int().positive().optional(),
+    expectedIssuerSettingsVersion: z.coerce.number().int().nonnegative().optional(),
+    purchaseNo: z.string().trim().max(160).optional(),
+    termsAndInstructions: z
+      .object({
+        bankSwiftNumber: z.string().trim().max(160).optional(),
+        bankAccountNumber: z.string().trim().max(160).optional(),
+        bankName: z.string().trim().max(300).optional(),
+        beneficiary: z.string().trim().max(300).optional(),
+        pastDueNotice: z.string().trim().max(2000).optional(),
+      })
+      .strict()
+      .optional(),
+    companyInfo: z
+      .object({
+        name: z.string().trim().max(300).optional(),
+        division: z.string().trim().max(300).optional(),
+        phone: z.string().trim().max(80).optional(),
+        address: z.string().trim().max(2000).optional(),
+        email: z.union([z.email().max(254), z.literal('')]).optional(),
+        website: z.string().trim().max(500).optional(),
+      })
+      .strict()
+      .optional(),
+    discountMinor: z.string().regex(/^\d+$/u).optional(),
+  })
+  .strict();
+
+export const issuerDocumentSettingsInputSchema = z
+  .object({
+    legalEntityId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/u),
+    currency: currencySchema,
+    expectedVersion: z.coerce.number().int().nonnegative(),
     bankSwiftNumber: z.string().trim().max(160).optional(),
     bankAccountNumber: z.string().trim().max(160).optional(),
     bankName: z.string().trim().max(300).optional(),
     beneficiary: z.string().trim().max(300).optional(),
-    pastDueNotice: z.string().trim().max(2000).optional(),
-  }).strict().optional(),
-  companyInfo: z.object({
-    name: z.string().trim().max(300).optional(),
-    division: z.string().trim().max(300).optional(),
-    phone: z.string().trim().max(80).optional(),
-    address: z.string().trim().max(2000).optional(),
-    email: z.union([z.email().max(254), z.literal('')]).optional(),
-    website: z.string().trim().max(500).optional(),
-  }).strict().optional(),
-  discountMinor: z.string().regex(/^\d+$/u).optional(),
-}).strict();
-
-export const issuerDocumentSettingsInputSchema = z.object({
-  legalEntityId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/u),
-  currency: currencySchema,
-  expectedVersion: z.coerce.number().int().nonnegative(),
-  bankSwiftNumber: z.string().trim().max(160).optional(),
-  bankAccountNumber: z.string().trim().max(160).optional(),
-  bankName: z.string().trim().max(300).optional(),
-  beneficiary: z.string().trim().max(300).optional(),
-  companyDivision: z.string().trim().max(300).optional(),
-  companyPhone: z.string().trim().max(80).optional(),
-  companyEmail: z.union([z.email().max(254), z.literal('')]).optional(),
-  companyWebsite: z.string().trim().max(500).optional(),
-}).strict();
+    companyDivision: z.string().trim().max(300).optional(),
+    companyPhone: z.string().trim().max(80).optional(),
+    companyEmail: z.union([z.email().max(254), z.literal('')]).optional(),
+    companyWebsite: z.string().trim().max(500).optional(),
+  })
+  .strict();
 
 export const invoicePeriodSchema = z.object({
   billingRuleId: uuidSchema,
@@ -908,7 +918,9 @@ export const legalEntityInputSchema = z.object({
 });
 
 export const invoiceNumberPolicyInputSchema = z.object({
-  legalEntityId: uuidSchema,
+  // Default issuers can retain a historical identifier rather than a UUID.
+  // The repository still validates the selected active issuer and Owner authority.
+  legalEntityId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/u),
   prefix: z.string().trim().min(1).max(30),
   digits: z.coerce.number().int().min(4).max(10),
   effectiveFrom: z.iso.date(),
@@ -916,7 +928,9 @@ export const invoiceNumberPolicyInputSchema = z.object({
 });
 
 export const taxProfileInputSchema = z.object({
-  legalEntityId: z.union([z.literal(''), uuidSchema]).optional(),
+  legalEntityId: z
+    .union([z.literal(''), z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/u)])
+    .optional(),
   name: z.string().trim().min(2).max(160),
   currency: currencySchema,
   effectiveFrom: z.iso.date(),

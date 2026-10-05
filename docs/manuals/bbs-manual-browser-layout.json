@@ -1,0 +1,37 @@
+{
+  "bodyPages": 172,
+  "missingImages": [],
+  "overflows": [],
+  "appendixLinks": [
+    {
+      "target": "native-a",
+      "contentsPage": 3,
+      "rect": [
+        0,
+        818.984375,
+        638.953125,
+        20.71875
+      ]
+    },
+    {
+      "target": "native-b",
+      "contentsPage": 3,
+      "rect": [
+        0,
+        852.703125,
+        638.953125,
+        20.71875
+      ]
+    },
+    {
+      "target": "native-c",
+      "contentsPage": 3,
+      "rect": [
+        0,
+        886.421875,
+        638.953125,
+        20.71875
+      ]
+    }
+  ]
+}

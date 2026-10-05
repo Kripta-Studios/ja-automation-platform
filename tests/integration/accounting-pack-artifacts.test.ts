@@ -178,7 +178,7 @@ async function runWithRunningBarrier(
   `;
   const worker = new Worker(source, {
     eval: true,
-    execArgv: ['--experimental-strip-types'],
+    execArgv: ['--experimental-transform-types'],
     workerData: {
       databasePath: join(directory, 'app.db'),
       documentRoot: join(directory, 'documents'),

@@ -34,6 +34,7 @@ export type PrivateArtifactSubject = Readonly<{
   entityType: 'accounting_pack' | 'invoice' | 'period_report';
   entityId: string;
   projectId?: string;
+  invoiceState?: string;
   /** Audience is present for period reports so routes can retain the same
    * object-scope authorization while applying stronger controls to internal
    * finance/audit artifacts. */
@@ -58,9 +59,8 @@ export type PrivateArtifactDownloadOptions = Readonly<{
   loadMetadata: () => PrivateArtifactMetadata;
   expectedMediaType?: string;
   /**
-   * When set, the response is this renderer output rather than the stored
-   * file. Used for invoice PDFs so Open/Download present the frozen snapshot
-   * with the current invoice layout without mutating a terminal stored artifact.
+   * Optional renderer for previews. Terminal invoices always serve their
+   * stored, integrity-checked artifact, even when a caller supplies a renderer.
    */
   generateBytes?: () => Uint8Array;
 }>;
@@ -308,7 +308,7 @@ export function authorizePrivateArtifact(
     if (!isFinanceReadableRole(principal)) return null;
     const row = sqlite
       .prepare(
-        `SELECT i.id,i.project_id
+        `SELECT i.id,i.project_id,i.state
          FROM invoice i
          JOIN project p ON p.id=i.project_id
          WHERE i.id=?
@@ -321,13 +321,14 @@ export function authorizePrivateArtifact(
         identity.tenant_id,
         identity.deployment_id,
         identity.deployment_id,
-      ) as { id: string; project_id: string } | undefined;
+      ) as { id: string; project_id: string; state: string } | undefined;
     if (!row) return null;
     return {
       kind,
       entityType: 'invoice',
       entityId: row.id,
       projectId: row.project_id,
+      invoiceState: row.state,
       tenantId: identity.tenant_id,
       deploymentId: identity.deployment_id,
     };
@@ -1165,7 +1166,10 @@ async function servePrivateArtifactChecked(
     return conflict('Private artifact path is invalid', options.kind, correlationId);
   }
 
-  if (options.generateBytes) {
+  if (
+    options.generateBytes &&
+    (subject.kind !== 'invoice' || ['draft', 'approved'].includes(subject.invoiceState ?? ''))
+  ) {
     let generated: Uint8Array;
     try {
       generated = options.generateBytes();

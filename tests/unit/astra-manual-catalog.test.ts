@@ -86,9 +86,9 @@ describe('Help manual catalog', () => {
     }
     expect(manualsForRole('owner_admin').map((manual) => manual.id)).toEqual([
       'administration-finance-reference',
+      'bbs-project-invoices-guide',
       'work-projects-reference',
       'supplier-operations-reference',
-      'bbs-project-invoices-guide',
     ]);
     for (const [alias, canonical] of Object.entries(manualAliases))
       expect(manualForRole(alias, 'owner_admin')?.id).toBe(canonical);
@@ -100,6 +100,10 @@ describe('Help manual catalog', () => {
   it('allows the English BBS guide only for owner and Finance', async () => {
     const guide = manualForRole('bbs-project-invoices-guide', 'owner_admin');
     expect(guide?.locales).toEqual(['en']);
+    expect(guide?.audience).toBe('administration-finance');
+    expect(guide?.revision).toBe('2026-10-05');
+    expect(guide?.description.en).toContain('final training invoices');
+    expect(guide?.description.en).not.toContain('23-page');
     expect(manualForRole('bbs-project-invoices-guide', 'finance_admin')).toBeTruthy();
     for (const role of ['worker', 'project_manager', 'auditor_read_only'])
       expect(manualForRole('bbs-project-invoices-guide', role)).toBeNull();

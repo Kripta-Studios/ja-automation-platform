@@ -2172,6 +2172,8 @@ export class V3Repository {
             id: selected.clientLaborRate.rule.id,
             currency: selected.clientLaborRate.rule.currency,
             hourlyRateMinor: selected.clientLaborRate.rule.hourly_rate_minor,
+            rateBasis: clientBillingUnit(selected.clientLaborRate.rule.rate_basis),
+            unitRateMinor: selected.clientLaborRate.rule.unit_rate_minor ?? null,
             provenance: selected.clientLaborRate.provenance,
           }
         : null,

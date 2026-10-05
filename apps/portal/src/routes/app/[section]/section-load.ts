@@ -989,7 +989,12 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 allowGlobalInternalCost: member.allow_global_internal_cost_fallback === 1,
                 workerExpenseReimbursementOverride: reimbursement.workerOverride,
                 workerExpenseReimbursementEffectiveFrom: reimbursement.overrideEffectiveFrom,
-                clientRateMinor: terms.clientLaborRate?.hourlyRateMinor ?? null,
+                clientRateMinor:
+                  terms.clientLaborRate?.rateBasis === 'daily' ||
+                  terms.clientLaborRate?.rateBasis === 'weekly'
+                    ? terms.clientLaborRate.unitRateMinor
+                    : (terms.clientLaborRate?.hourlyRateMinor ?? null),
+                clientRateBasis: terms.clientLaborRate?.rateBasis ?? null,
                 clientCurrency: terms.clientLaborRate?.currency ?? null,
                 clientSource: terms.clientLaborRate?.provenance.source ?? null,
                 clientRuleId: terms.clientLaborRate?.id ?? null,

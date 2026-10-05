@@ -1,0 +1,16 @@
+Earlier discovery run; failures were corrected and rerun in the named final logs. See parent README for exact qualifications.
+
+ RUN  v4.1.11 /home/kripta/ja-manual-main-publish-20261005-side
+
+ ❯ tests/integration/accounting-pack-artifacts.test.ts (13 tests | 1 failed) 86881ms
+     × exposes a deterministic running lease before the artifact handler completes 5092ms
+ ❯ tests/regression/worker-reports-ui.test.ts (9 tests | 3 failed) 50ms
+     × orders field reports and keeps the attention card scoped to the selected field tab 17ms
+     × places Daily and Technical forms in the existing responsive sheet 14ms
+     × keeps period generation behind the Finance/Owner role gate 5ms
+
+
+ Test Files  2 failed | 5 passed (7)
+      Tests  4 failed | 61 passed (65)
+   Start at  22:07:48
+   Duration  96.43s (transform 4.26s, setup 0ms, import 6.51s, tests 88.73s, environment 1ms)

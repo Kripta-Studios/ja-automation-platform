@@ -1,0 +1,11 @@
+[
+  {
+    "step": "Capture settlement and reimbursement results",
+    "result": "PASS"
+  },
+  {
+    "step": "Refresh project XLSX after final collection",
+    "result": "PASS",
+    "suggestedFilename": "ja-C-0050-P-20261005-finance-2026-10-01-2026-10-05.xlsx"
+  }
+]

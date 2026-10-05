@@ -368,3 +368,8 @@ pnpm test:e2e
 Also run applicable migration-upgrade, backup/restore, artifact openability/failure-injection, finance/integrity, security/RBAC, responsive, and final integration reviews. Historical strict-RTM tooling may remain as a roadmap diagnostic, but 207-row completeness and deferred data-leakage gates do not control the Client Essential verdict.
 
 **Release verdict:** `CLIENT READY` only when every non-conditional Client Essential requirement and applicable DoD item is `PASS` with evidence, required gates pass, documentation matches behavior, and independent integration review has no Essential blocker. Historical V3.1–V3.4/207-row/42-step failures are deferred roadmap, not release blockers.
+
+
+## 2026-10-05 scoped BBS Owner manual delivery
+
+User-authorized swarm packets and dependencies are recorded in [the evidence ledger](docs/evidence/bbs-owner-completion-20261005/README.md). Finance, Owner operational browser verification and manual production are integrated; source code is frozen after targeted gates and cross-author reviews. Fresh whole-change sign-off and supplementary Owner/browser coverage precede the supported production ZIP deployment. This packet does not change the global Client Essential verdict or supply real external approvals.

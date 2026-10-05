@@ -1,0 +1,22 @@
+{
+  "runtime": "isolated built candidate",
+  "status": "paid",
+  "label": "✓ Paid",
+  "colors": {
+    "foreground": "rgb(247, 247, 245)",
+    "background": "rgb(67, 66, 61)",
+    "border": "rgb(121, 118, 109)"
+  },
+  "badgeColors": {
+    "foreground": "rgb(144, 227, 170)",
+    "background": "rgb(41, 57, 45)"
+  },
+  "badgeContrast": 8.00846327825768,
+  "widths": [
+    1440,
+    390
+  ],
+  "phoneOverflow": false,
+  "browserErrors": [],
+  "canonicalPdfChanged": false
+}

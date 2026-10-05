@@ -1,6 +1,7 @@
 import { fail, isActionFailure } from '@sveltejs/kit';
 import {
   AccessDeniedError,
+  AccountingPackRevisionError,
   ConflictError,
   ReadinessError,
   ValidationError,
@@ -452,7 +453,8 @@ export function billingProblemFor(
       error instanceof ConflictError ||
       error instanceof V3ConflictError ||
       error instanceof ValidationError ||
-      error instanceof V3ValidationError
+      error instanceof V3ValidationError ||
+      error instanceof AccountingPackRevisionError
     )
   )
     return undefined;
@@ -697,6 +699,19 @@ export function billingProblemFor(
       'problem.billing.issuerApprovedInvoiceBlocksArchive',
       'This issuer has an approved invoice. Review and issue or recalculate that invoice before deciding whether to archive the issuer.',
       'review_invoice',
+    );
+  if (
+    operation === 'createAccountingPack' &&
+    error instanceof AccountingPackRevisionError &&
+    message ===
+      'No legal-entity revision is effective at the deterministic period cut (effective-date gap)'
+  )
+    return known(
+      409,
+      'ACCOUNTING_PACK_ISSUER_EFFECTIVE_DATE_GAP',
+      'problem.billing.packIssuerEffectiveDateGap',
+      'An invoice issuer has no legal revision covering this Accounting Pack’s period end. Contact support to review the dated issuer history. Your selected period is retained; changing current issuer details does not repair historical coverage.',
+      'contact_support',
     );
   if (
     operation === 'createAccountingPack' &&

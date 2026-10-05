@@ -1,0 +1,10 @@
+{
+  "environment": "isolated loopback training",
+  "result": "BLOCKED",
+  "actionType": "failure",
+  "code": "ACCOUNTING_PACK_ISSUER_EFFECTIVE_DATE_GAP",
+  "retainedPeriodStart": "2026-10-01",
+  "retainedPeriodEnd": "2026-10-05",
+  "remedy": "contact_support",
+  "issuedHistoryRewritten": false
+}

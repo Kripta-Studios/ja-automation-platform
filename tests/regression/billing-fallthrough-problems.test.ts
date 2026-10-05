@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   AccessDeniedError,
+  AccountingPackRevisionError,
   ConflictError,
   ValidationError,
   V3AccessDeniedError,
@@ -13,6 +14,22 @@ import {
 } from '../../apps/portal/src/lib/server/actions/billing-actions';
 
 describe('billing fallthrough problems', () => {
+  it('explains an Accounting Pack issuer date gap without proposing a historical rewrite', () => {
+    const error = new AccountingPackRevisionError(
+      'No legal-entity revision is effective at the deterministic period cut (effective-date gap)',
+    );
+    const result = billingActionFailure(error, 'createAccountingPack', 'owner_admin', {
+      periodStart: '2026-10-01',
+      periodEnd: '2026-10-05',
+      reportLocale: 'en',
+    });
+    expect(result.status).toBe(409);
+    expect(result.data).toMatchObject({
+      code: 'ACCOUNTING_PACK_ISSUER_EFFECTIVE_DATE_GAP',
+      remedies: [{ id: 'contact_support' }],
+      values: { periodStart: '2026-10-01', periodEnd: '2026-10-05' },
+    });
+  });
   it.each([
     [
       new AccessDeniedError('Live authenticated session required'),

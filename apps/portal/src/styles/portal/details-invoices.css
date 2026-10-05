@@ -114,7 +114,26 @@
 
 .invoice-preview-page .detail-nav a,
 .invoice-preview-page .detail-nav button {
-  color: #ebebe9;
+  color: #f7f7f5;
+  background: #43423d;
+  border: 1px solid #79766d;
+}
+
+.invoice-preview-page .detail-nav a:hover,
+.invoice-preview-page .detail-nav button:hover {
+  background: #53524c;
+}
+
+.invoice-preview-page .detail-nav [data-ui='status-badge'] {
+  color: #f7f7f5;
+  background: #43423d;
+  border-color: #79766d;
+}
+
+.invoice-preview-page .detail-nav [data-ui='status-badge'][data-variant='success'] {
+  color: #90e3aa;
+  background: #29392d;
+  border-color: #7db68d;
 }
 
 .invoice-paper {

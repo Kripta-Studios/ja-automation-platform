@@ -16,11 +16,51 @@ afterEach(() => {
 
 function fixture(): B5LifecycleSecurityFixture {
   const value = createB5LifecycleSecurityFixture();
+  // Operational worker access revalidates a live session as well as assignment coverage.
+  value.worker = stepUpB5Principal(value.sqlite, value.worker, 'commercial-terms-worker');
   fixtures.push(value);
   return value;
 }
 
 describe('effective assignment commercial terms', () => {
+  it.each([
+    ['daily', 60_000n],
+    ['weekly', 150_000n],
+  ] as const)('projects the customer %s unit price independently of hourly pay', (basis, rate) => {
+    const value = fixture();
+    const finance = stepUpB5Principal(value.sqlite, value.finance, `unit-${basis}`);
+    value.v3.createCompensationRule(finance, {
+      projectId: value.project.id,
+      workerId: 'b5-worker',
+      currency: 'EUR',
+      ruleType: 'Hourly',
+      rateMinor: 3_000n,
+      effectiveFrom: '2026-08-01',
+    });
+    value.v3.createClientLaborRate(finance, {
+      projectId: value.project.id,
+      workerId: 'b5-worker',
+      currency: 'EUR',
+      hourlyRateMinor: 0n,
+      rateBasis: basis,
+      unitRateMinor: rate,
+      effectiveFrom: '2026-08-01',
+    });
+    const terms = value.v3.resolveAssignmentCommercialTerms(
+      finance,
+      value.project.id,
+      'b5-worker',
+      'regular',
+      '2026-08-10',
+    );
+    expect(terms.clientLaborRate).toMatchObject({
+      rateBasis: basis,
+      unitRateMinor: rate.toString(),
+      hourlyRateMinor: '0',
+    });
+    expect(terms.workerCompensation).toMatchObject({ ruleType: 'Hourly', rateMinor: '3000' });
+  });
+
   it('keeps seven €55 customer rates and one €70 rate independent of each worker pay', () => {
     const value = fixture();
     const finance = stepUpB5Principal(value.sqlite, value.finance, 'mixed-rates');

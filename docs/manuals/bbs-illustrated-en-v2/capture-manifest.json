@@ -1,11 +1,25 @@
 {
   "capturedOn": "2026-10-05",
-  "environment": "production",
+  "environments": [
+    "Saved fictional BBS operational example and pre-issue production read-only captures",
+    "Isolated local training database for issue, payment, reversal, account, correction and reporting browser exercises"
+  ],
   "project": "C-0050-P-20261005",
   "interfaceLanguage": "English",
   "fictionalData": true,
-  "screenshots": "Original pixels; browser screenshots cropped at capture to avoid fixed-toolbar obstruction. Enlarged on separate pages.",
-  "nativePDFs": "Three unissued native English-template downloads, appended unchanged and embedded as attachments; retain issuer payment instructions.",
+  "screenshots": "Original browser pixels; cropped at capture to show relevant controls and avoid unrelated private records. Screenshot captions distinguish initial and isolated lifecycle states.",
+  "workbookPreviews": "Original pre-issue XLSX values and formats rendered in a read-only browser viewer; not Microsoft Excel. Original files embedded without cell editing. A separate after-lifecycle XLSX snapshot is labeled separately when present.",
+  "paymentTest": "Initial production example settlements unpaid; isolated simulated payment/reversal and reimbursement events demonstrate application bookkeeping. No real bank transfer or customer email.",
+  "nativePDFs": "Three native FINAL issued training downloads, appended unchanged and embedded as attachments. No preview-watermark removal.",
+  "accountantApproval": "Synthetic training timestamp is fixture data; no genuine accountant approval is asserted.",
+  "correctedInvoiceWizard": {
+    "project": "C-0050-P-20261005",
+    "streamType": "Labor",
+    "cadence": "Manual",
+    "selectedStreamId": "01a10c63-bd67-746f-bcbe-7d3ddb17cc0b",
+    "readOnlyCapture": true,
+    "newInvoiceCreated": false
+  },
   "figures": [
     {
       "name": "18-ja-default-issuer.png",
@@ -36,10 +50,6 @@
       "sha256": "640e365a6535cf3931964929df7d75188c7dc23c387bd87c0cffbe4d72ce7a7d"
     },
     {
-      "name": "32-create-budget.png",
-      "sha256": "633d1785cbe2e1390eafa475e26810ae6afe916c06a4509e8142ec5a519faae0"
-    },
-    {
       "name": "35-worker-daily-rates.png",
       "sha256": "662e7fb6677f0a9eca02c20e14ba54a24402302f9a6a1c225a14f984b3e81b1e"
     },
@@ -66,10 +76,6 @@
     {
       "name": "41-new-stream-delivery.png",
       "sha256": "a70ea7f7036852bf42f137a96edc08f7763042ed48b72b3c4d97ea150fba7731"
-    },
-    {
-      "name": "42-create-invoice-wizard.png",
-      "sha256": "cd6749bdcf0b9f2561b1430e40d5eb8728856d9acc6c8fc2e89017c4c84cabc1"
     },
     {
       "name": "43-invoice-period.png",
@@ -142,6 +148,222 @@
     {
       "name": "63-create-assignment-header.png",
       "sha256": "546b410b9fcc417d9277d060fcc7b6b0f5246dffd40ba0daf25a71267a9a50de"
+    },
+    {
+      "name": "64-worker-settlement-period.png",
+      "sha256": "006dfbf52910058dab329941237834fe6e2c8d871cf13f9407078c4648d8ef42"
+    },
+    {
+      "name": "66-worker-payment-dates.png",
+      "sha256": "18052e02efacf8be72120ca42ebec65f8214b7a8fdd579e683776c53262fa5eb"
+    },
+    {
+      "name": "67-worker-actual-payment-register.png",
+      "sha256": "7bfe9b3d0dd65bc53aa9a6288362c0869759045d0ae4984db9243e16a6384c63"
+    },
+    {
+      "name": "68-download-finance-workbook.png",
+      "sha256": "b12c0688b60433288bcd2eab631e0faa4a336334e57c2eeeba486eebe0b49a1a"
+    },
+    {
+      "name": "69-download-expenses-workbook.png",
+      "sha256": "6ec2f7a2ae9c76c860d02b8385d466e447b05234c837f899d52af77f58625987"
+    },
+    {
+      "name": "71-xlsx-summary-economics.png",
+      "sha256": "faa95a558507d602e7687c1536537363c5f01aceb787d556acaf8fb2035c2216"
+    },
+    {
+      "name": "72-xlsx-summary-cash.png",
+      "sha256": "50c92f1e801c1c08688ea3f8d6fa202b5e13e307785989da1ce2615f1e95f8f9"
+    },
+    {
+      "name": "73-xlsx-labor-hours.png",
+      "sha256": "3477583cf8e1e751d0453cbf4777eb66ab7fe6d6e89fadaa5253c023dbb95a9d"
+    },
+    {
+      "name": "73b-xlsx-labor-hours.png",
+      "sha256": "600e66bdd09c38d9881812673810734a8ca5cdf6cb5fa634b3d2a0ae44ecf635"
+    },
+    {
+      "name": "74-xlsx-labor-economics.png",
+      "sha256": "80129c10b7a0fec952a48562aface29add155e5e67cadc5ebb1c45e6e1372bd1"
+    },
+    {
+      "name": "74b-xlsx-labor-economics.png",
+      "sha256": "97ca4d0b3911cf6ec59732346a03581b234b60f5dc715e0ae02bfa7cb6eec8f7"
+    },
+    {
+      "name": "75-xlsx-expense-payers.png",
+      "sha256": "85f46b9630b9fa715d4552ababd8c42a8e49a3e7ef70819d40a5f4c710ca3539"
+    },
+    {
+      "name": "76-xlsx-expense-recovery.png",
+      "sha256": "8d44410e726e2859eab769dff3cb56d9d37804b1459a0cbe9f044b75b1227d57"
+    },
+    {
+      "name": "77-xlsx-invoices.png",
+      "sha256": "baee320c794696f27b6ea16dbf02c761132d14fdc3e51f8bbb43bae6689de4a0"
+    },
+    {
+      "name": "78-xlsx-invoice-expenses.png",
+      "sha256": "967e416e0855961d520312d3242589b82f55e14bd9eed3d6430d3f590786ee86"
+    },
+    {
+      "name": "79-xlsx-unbilled.png",
+      "sha256": "a9f156b3f77640e29453593c447f0ce399407a819192ede2fda21ec1b1f19094"
+    },
+    {
+      "name": "79b-xlsx-unbilled.png",
+      "sha256": "5f0dc66e0fcea4fd1ba6a3e25f485eb30c9a3f2dd61dd1607c9ff602a5d13dc2"
+    },
+    {
+      "name": "80-xlsx-expense-register.png",
+      "sha256": "a77cbde52b6f8c68a55fea25657a3672eec5908097d47c9b0ac21d74d940d71e"
+    },
+    {
+      "name": "81-xlsx-expense-totals.png",
+      "sha256": "923ac7334c4a3ef0c723243986545479c54b97116e9d89a0d54b76d615dbac25"
+    },
+    {
+      "name": "82-xlsx-expense-reimbursement.png",
+      "sha256": "5219ecafcf4cb3049ce5c589a107837ec07123ca026d45b66a98990aac5fb978"
+    },
+    {
+      "name": "83-xlsx-after-cash.png",
+      "sha256": "dcfe6024c09bd51a265e5ca19350d327167b3fca14cb8126608aac43f1cfedc7"
+    },
+    {
+      "name": "84-xlsx-after-invoices.png",
+      "sha256": "d2e6536535c9e439ab53e3b9fa2b52fc0482fee9d2f81007475e6d75b4a7a7a6"
+    },
+    {
+      "name": "85-xlsx-after-reimbursements.png",
+      "sha256": "6557c1fa22c8e3e1203d343576b29bebc31857bc030cfa37973f1c0bcdbdaee7"
+    },
+    {
+      "name": "86-training-numbering-policy.png",
+      "sha256": "fb7cc4442703ee1a439d86a9bf39df1241f8ff39e70d93f462b527502fa21caf"
+    },
+    {
+      "name": "95-project-budgets-and-report-switches.png",
+      "sha256": "623f9b2ecc6ce448e5bce6bcd8fd1f8811f2a00ad8b95e6adde112aff018599b"
+    },
+    {
+      "name": "lab-correct-labor-wizard.png",
+      "sha256": "980a78f0127c18507fa5154335f8159424eb76e21b68629a4b443fc2b9e15cde"
+    },
+    {
+      "name": "lab-finance-accounting-result.png",
+      "sha256": "310aa43619dbee20a2395f23502ab93d2fcae522649d5864d829d2debe8ac643"
+    },
+    {
+      "name": "lab-finance-reimbursements-cropped.png",
+      "sha256": "2f057fa04531c4b03089f860193c44a3aff07e7d4cfa47074eb3c472f5c52063"
+    },
+    {
+      "name": "lab-finance-settlements-cropped.png",
+      "sha256": "7e33a94efe01f25719e358ed6f5019fcc30490c73859507a40de36175f0560cf"
+    },
+    {
+      "name": "lab-finance-worker-payment-complete.png",
+      "sha256": "786efae1204bc75cb9966fa732e6540dfd6f75ee584137e4e52f5c7f0c0fb56c"
+    },
+    {
+      "name": "lab-finance-worker-payment-reversed.png",
+      "sha256": "467221430e9c2cdcb905b90c975f026ea64ab197fe0c7c130fa5c2b1c55d4d74"
+    },
+    {
+      "name": "lab-invoice-toolbar-ready.png",
+      "sha256": "281fa0c5cc641a01ee8972f8bb3c9105649282f1a60edbe3e3321d1c84ac1db2"
+    },
+    {
+      "name": "lab-owner-02-team-create-user.png",
+      "sha256": "683221c0e6af7647e7c567576456c3aa5b4407af7ce83ec05470133b279da232"
+    },
+    {
+      "name": "lab-owner-05-team-local-account-after.png",
+      "sha256": "4ea0bd43a44c7c33daac359038a4e37107a42d5d3052a7efa258a04339e79809"
+    },
+    {
+      "name": "lab-owner-06-project-assignment-before.png",
+      "sha256": "dfa73e322942099bab0055d395abdd3e291216e3a1a8636af8dab43fab490987"
+    },
+    {
+      "name": "lab-owner-07-project-assignment-after.png",
+      "sha256": "3c77478fc2d5eab13905660ebd115f5401bc4a906451adbac02e85bb0420cfd0"
+    },
+    {
+      "name": "lab-owner-08-week-time-before.png",
+      "sha256": "5c34e43d9f561a59fe81915ffc034ab63f715f6960370293968de2b93b6156f6"
+    },
+    {
+      "name": "lab-owner-09-week-time-after.png",
+      "sha256": "23427a8b40cb3ac22bf0118bf152ff6500dc50660154772deef04716a2f53da9"
+    },
+    {
+      "name": "lab-owner-12-approval-return-before.png",
+      "sha256": "d97422a7031e91c9a95316218faf876cd280f90f305eeb469dd67a7d10d6db91"
+    },
+    {
+      "name": "lab-owner-13-approval-return-after.png",
+      "sha256": "de976349804160038b88407ad49e6455a2aefbe167be8cec31d674381d00b0e9"
+    },
+    {
+      "name": "lab-owner-14-correction-six-hours-before.png",
+      "sha256": "1c86972e39238cffe215bfc5f323d5ba9ec4deaa1f5cb3c812a7505da4529e79"
+    },
+    {
+      "name": "lab-owner-15-correction-six-hours-draft.png",
+      "sha256": "e70c85e1df9f6e5f887b344c1d42185ad6db37050ca7c05c16dcbace67d8c80d"
+    },
+    {
+      "name": "lab-owner-17-correction-submitted-queue.png",
+      "sha256": "ac137d3b14b63894c7c7201e9988ee8a3ec48de217296064b1163a60765c4cea"
+    },
+    {
+      "name": "lab-owner-27-owner-correction-direct-submit-before.png",
+      "sha256": "5869cba7cb2f9abf69ced2349737be57348d0d56b3f0aa7f00c7244f2e2a1d44"
+    },
+    {
+      "name": "lab-owner-28-owner-correction-direct-submit-after.png",
+      "sha256": "272910c5924eae09f91397ca2705dd6ec25a4def1b450bac69ae2ff861578fcc"
+    },
+    {
+      "name": "lab-owner-29-six-hour-finance-review-before.png",
+      "sha256": "e4f9abb4e281c8e6df0b2997eaf6047064e8b706bcb75753fcb8c2bb556d14d4"
+    },
+    {
+      "name": "lab-owner-30-six-hour-finance-reviewed.png",
+      "sha256": "d626c3ca709c79bb9aff8d2bc7d0b241bd7071fc4fa04c5d40c8ef42339b67a8"
+    },
+    {
+      "name": "lab-owner-33-daily-report-entry.png",
+      "sha256": "868b83d7c2c893c4881cfb5db65f1877c3a32a34c07765f93b3381328754b207"
+    },
+    {
+      "name": "lab-owner-36-daily-report-approval-before.png",
+      "sha256": "177e975ebd217b4b1784ec001adc4c8337eef98ef50f6a9d18618ce2d4704743"
+    },
+    {
+      "name": "lab-owner-37-period-report-generator.png",
+      "sha256": "3f32b66595ecac8610fcf25c21024fa108139e5a4b32da270d60fcf027ae269e"
+    },
+    {
+      "name": "lab-owner-45-technical-report-approval-before.png",
+      "sha256": "8669e57eccc5513633b54eabe150bf622abc61b8e78fd3b2bd30a90112de8eb3"
+    },
+    {
+      "name": "lab-owner-48-customer-report-native-pdf-ready.png",
+      "sha256": "2fcaaee40b0aab440287c25337ced7599e04713865afaadd02c19f18757c8eef"
+    },
+    {
+      "name": "lab-owner-signoff-evidence-form.png",
+      "sha256": "b44ab17596f6b648f5cc6613f09d64518e93db60a2d0eb5849ff8e96b70f2b48"
+    },
+    {
+      "name": "lab-owner-signoff-ready-summary.png",
+      "sha256": "bda384629ad0c43ed5092c24c88a801e2af5dd35482815a53f510159e139e8fd"
     }
   ]
 }

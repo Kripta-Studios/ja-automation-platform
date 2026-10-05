@@ -768,9 +768,13 @@
                   'clientRateMinor',
                   'clientCurrency',
                 )}
-                {translate('per hour')} · {translate('Source')}: {termsSourceLabel(
-                  rowValue(terms, 'clientSource'),
-                )}
+                / {translate(
+                  rowValue(terms, 'clientRateBasis') === 'daily'
+                    ? 'Daily'
+                    : rowValue(terms, 'clientRateBasis') === 'weekly'
+                      ? 'Weekly'
+                      : 'Hourly',
+                )} · {translate('Source')}: {termsSourceLabel(rowValue(terms, 'clientSource'))}
               </small>
               <small>
                 {translate('Worker pay')}: {ruleMoney(terms, 'payRateMinor', 'payCurrency')}

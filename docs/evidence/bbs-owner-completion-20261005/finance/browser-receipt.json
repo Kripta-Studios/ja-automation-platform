@@ -1,0 +1,12 @@
+[
+  {
+    "step": "exact finalized settlement retry retains selected BBS project and source shows 10 hours",
+    "result": "PASS",
+    "url": "http://127.0.0.1:5179/j-aautomation/app/finance?%2FsettleCompensation=&view=economic&source=settlements&project=01a10c51-a391-7288-aad1-cb38be43f496&lang=en"
+  },
+  {
+    "step": "simulated partial worker payment $100 additional to preexisting $200, chief balance $100",
+    "result": "PASS",
+    "url": "http://127.0.0.1:5179/j-aautomation/app/finance?%2FsettleCompensation=&view=economic&source=settlements&project=01a10c51-a391-7288-aad1-cb38be43f496&lang=en"
+  }
+]

@@ -1,6 +1,7 @@
 <script lang="ts">
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
+  import StatusBadge from '$lib/portal/ui/StatusBadge.svelte';
   import { beforeNavigate, invalidateAll, goto } from '$app/navigation';
   import { enhance } from '$app/forms';
   import { base } from '$app/paths';
@@ -71,6 +72,40 @@
   const preview = $derived(data.preview as { invoice: InvoiceRow; lines: Row[]; taxes: Row[] });
   const invoice = $derived(preview.invoice);
   const invoiceState = $derived(String(invoice.state ?? '').toLowerCase());
+  const invoiceStatusLabel = $derived(
+    (
+      {
+        draft: 'Draft',
+        approved: 'Approved',
+        issued: 'Issued',
+        sent: 'Sent',
+        partially_paid: 'Partially paid',
+        paid: 'Paid',
+        overdue: 'Overdue',
+        void: 'Void',
+        credited: 'Credited',
+        credit_note: 'Credit note',
+      } as Record<string, string>
+    )[invoiceState] ?? invoiceState,
+  );
+  function invoiceStatusVariant(
+    state: string,
+  ): 'neutral' | 'success' | 'warning' | 'danger' | 'info' {
+    switch (state) {
+      case 'draft':
+        return 'neutral';
+      case 'paid':
+        return 'success';
+      case 'overdue':
+        return 'warning';
+      case 'void':
+        return 'danger';
+      case 'credited':
+      case 'credit_note':
+      default:
+        return 'info';
+    }
+  }
   const hasDraftPreview = $derived(
     ['draft', 'approved'].includes(invoiceState) &&
       (invoice.invoice_number === null || invoice.invoice_number === undefined) &&
@@ -895,6 +930,11 @@
     ><button type="button" class="print-trigger" onclick={() => window.print()}
       ><PrintIcon /> {t('Print Report')}</button
     >
+    <StatusBadge
+      variant={invoiceStatusVariant(invoiceState)}
+      text={invoiceState === 'paid' ? `✓ ${t(invoiceStatusLabel)}` : t(invoiceStatusLabel)}
+      data-invoice-status={invoiceState}
+    />
   </nav>
   {#if hasDraftPreview}
     <section class="invoice-pdf-panel no-print" aria-labelledby="invoice-pdf-heading">

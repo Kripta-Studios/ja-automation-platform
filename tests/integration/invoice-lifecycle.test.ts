@@ -157,7 +157,7 @@ describe('invoice lifecycle coverage', () => {
           company_info: Record<string, unknown>;
         }
       ).company_info,
-    ).not.toHaveProperty('phone');
+    ).toHaveProperty('phone', '');
     // A stored historical/custom snapshot remains authoritative; only the
     // unsafe fallback for newly generated previews is removed.
     const originalSnapshot = (

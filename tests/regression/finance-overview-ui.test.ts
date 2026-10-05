@@ -110,8 +110,16 @@ describe('Finance Overview section architecture', () => {
   it('keeps actions and timelines explicit while preserving accessibility safeguards', () => {
     const component = source();
 
-    expect(component).toContain('action="?/settleCompensation"');
-    expect(component).toContain('action="?/recordReimbursement&view=economic&source=expenses"');
+    expect(component).toContain('?/settleCompensation&view=economic&source=settlements&project=');
+    expect(component).toContain('encodeURIComponent(String(data.selectedProjectId ??');
+    expect(component).toContain('?/recordReimbursement&view=economic&source=expenses&project=');
+    expect(component).toContain(
+      '?/recordCompensationPayment&view=economic&source=settlements&project=',
+    );
+    // A reversal can restore an earlier net-paid amount. Its append-only event
+    // count must advance the new payment command while retries keep the same key.
+    expect(component).toContain('compensationPaymentCommandKey(');
+    expect(component).toContain('settlementPayments.length,');
     expect(component).toContain('compensationTimeline');
     expect(component).toContain('Expected payment');
     expect(component).toContain('Compensation finalized');

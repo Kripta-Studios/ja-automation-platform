@@ -7,6 +7,20 @@ const sourceRoot = resolve(process.cwd(), 'apps/portal/src');
 const read = (path: string): string => readFileSync(resolve(sourceRoot, path), 'utf8');
 
 describe('Client Essential reports UI', () => {
+  it('offers correction withdrawal only when the draft actually has a correction link', () => {
+    const route = read('routes/app/reports/[id]/+page.server.ts');
+    const withdrawal = route.slice(
+      route.indexOf('canWithdrawCorrection:'),
+      route.indexOf('canSubmitDraft:'),
+    );
+
+    expect(withdrawal).toMatch(
+      /Boolean\(correctionActor\)\s*&&\s*detail\.report\.approval_state === 'draft'/u,
+    );
+    expect(withdrawal).toContain('correctionActor?.actor_user_id === context.principal.userId');
+    expect(withdrawal).toContain("context.principal.role === 'owner_admin'");
+  });
+
   it('organizes Reports into three accessible first-level tabs', () => {
     const source = read('lib/portal/sections/ReportSection.svelte');
 
@@ -43,7 +57,10 @@ describe('Client Essential reports UI', () => {
     expect(source).toContain('operationalStatusMatches(');
     expect(source).toContain('fieldReportsForActiveTab');
     expect(source).toContain("registerHref({ view: activeFieldTab, status: 'attention' })");
-    expect(source).toContain('const statusOptions = $derived([');
+    expect(source).toContain('const statusOptions = $derived(reportStatusOptions(activeTab));');
+    expect(source).toContain('function reportStatusOptions(tab: ReportTab): string[]');
+    expect(source).toContain("tab === 'signoff'");
+    expect(source).toContain("['needs_report', 'ready_for_signature', 'signed', 'invalid'");
     expect(source).toContain("'attention',");
     expect(source).toContain('{#each statusOptions as item}');
     expect(source).toContain('value={item}');
@@ -62,8 +79,10 @@ describe('Client Essential reports UI', () => {
     expect(source.indexOf('<ResponsiveSheet')).toBeLessThan(
       source.indexOf('data-report-entry-surface="technical"'),
     );
-    expect(source).toContain('action="?/createDailyReport"');
-    expect(source).toContain('action="?/createTechnicalReport"');
+    expect(source).toContain("action={registerActionHref('createDailyReport', 'daily')}");
+    expect(source).toContain("action={registerActionHref('createTechnicalReport', 'technical')}");
+    expect(source).toContain('return `${registerHref({ view })}&/${action}`;');
+    expect(source).toContain("params.set('lang', $page.url.searchParams.get('lang')!)");
     expect(source).toContain("handleOfflineDraft(event, 'daily_report')");
     expect(source).toContain("handleOfflineDraft(event, 'technical_report')");
     expect(source).toContain('const result = await saveOfflineDraft(event, entityType);');
@@ -127,7 +146,8 @@ describe('Client Essential reports UI', () => {
       "['owner_admin', 'finance_admin'].includes(String(data.user.role ?? ''))",
     );
     expect(source).toContain("surface === 'generate' && canGeneratePeriodReports");
-    expect(source).toContain('action="?/generatePeriodReports"');
+    expect(source).toContain("action={registerActionHref('generatePeriodReports')}");
+    expect(source).toContain("!isAuditor && ['owner_admin', 'finance_admin'].includes");
     expect(source).toContain('Finance / Owner action');
   });
 });

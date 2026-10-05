@@ -1,0 +1,463 @@
+{
+  "downloads": [
+    {
+      "file": "BBS-project-finance-2026-10-01_2026-10-05.xlsx",
+      "sha256": "730cbd586403ee5d86ec2888fa1610ad38ece4056a4e4231accc41ea73fe6a2d",
+      "worksheets": [
+        "Summary",
+        "Labor",
+        "Expenses",
+        "Unbilled WIP",
+        "Daily minimum",
+        "Invoices",
+        "Invoice expenses",
+        "Milestones",
+        "Alerts"
+      ]
+    },
+    {
+      "file": "BBS-expenses-2026-10-02_2026-10-03.xlsx",
+      "sha256": "ab2b753146f084426097e0bc3529e340d2bc9cc87a6739d22a3b1e728b50206d",
+      "worksheets": [
+        "Expenses",
+        "Totals by currency"
+      ]
+    },
+    {
+      "file": "BBS-project-finance-after-lifecycle.xlsx",
+      "sha256": "9b75131962ab9180cd82a19c73740d7c3a191ba84180c507ee2e4110bf89b6fb",
+      "worksheets": [
+        "Summary",
+        "Labor",
+        "Expenses",
+        "Unbilled WIP",
+        "Daily minimum",
+        "Invoices",
+        "Invoice expenses",
+        "Milestones",
+        "Alerts"
+      ]
+    }
+  ],
+  "views": [
+    {
+      "key": "71-xlsx-summary-economics",
+      "file": "BBS-project-finance-2026-10-01_2026-10-05.xlsx",
+      "sheet": "Summary",
+      "columns": [
+        "A",
+        "B",
+        "C"
+      ],
+      "originalRows": [
+        1,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24
+      ],
+      "title": "Summary \u00b7 hours, costs and potential revenue"
+    },
+    {
+      "key": "72-xlsx-summary-cash",
+      "file": "BBS-project-finance-2026-10-01_2026-10-05.xlsx",
+      "sheet": "Summary",
+      "columns": [
+        "A",
+        "B",
+        "C"
+      ],
+      "originalRows": [
+        1,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "title": "Summary \u00b7 issued invoices, collection and forecast"
+    },
+    {
+      "key": "73-xlsx-labor-hours",
+      "file": "BBS-project-finance-2026-10-01_2026-10-05.xlsx",
+      "sheet": "Labor",
+      "columns": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+      ],
+      "originalRows": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "title": "Labor \u00b7 actual and billable hours (rows 1\u20137)"
+    },
+    {
+      "key": "74-xlsx-labor-economics",
+      "file": "BBS-project-finance-2026-10-01_2026-10-05.xlsx",
+      "sheet": "Labor",
+      "columns": [
+        "A",
+        "B",
+        "C",
+        "H",
+        "I",
+        "J",
+        "K",
+        "L",
+        "M"
+      ],
+      "originalRows": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "title": "Labor \u00b7 rates and economics (rows 1\u20137)"
+    },
+    {
+      "key": "73b-xlsx-labor-hours",
+      "file": "BBS-project-finance-2026-10-01_2026-10-05.xlsx",
+      "sheet": "Labor",
+      "columns": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+      ],
+      "originalRows": [
+        1,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "title": "Labor \u00b7 actual and billable hours (rows 8\u201313)"
+    },
+    {
+      "key": "74b-xlsx-labor-economics",
+      "file": "BBS-project-finance-2026-10-01_2026-10-05.xlsx",
+      "sheet": "Labor",
+      "columns": [
+        "A",
+        "B",
+        "C",
+        "H",
+        "I",
+        "J",
+        "K",
+        "L",
+        "M"
+      ],
+      "originalRows": [
+        1,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "title": "Labor \u00b7 rates and economics (rows 8\u201313)"
+    },
+    {
+      "key": "75-xlsx-expense-payers",
+      "file": "BBS-project-finance-2026-10-01_2026-10-05.xlsx",
+      "sheet": "Expenses",
+      "columns": [
+        "B",
+        "C",
+        "D",
+        "F",
+        "G",
+        "H",
+        "I",
+        "J",
+        "K"
+      ],
+      "originalRows": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "title": "Expenses \u00b7 payer, receipt and reimbursement"
+    },
+    {
+      "key": "76-xlsx-expense-recovery",
+      "file": "BBS-project-finance-2026-10-01_2026-10-05.xlsx",
+      "sheet": "Expenses",
+      "columns": [
+        "B",
+        "C",
+        "D",
+        "L",
+        "M",
+        "N",
+        "O",
+        "P",
+        "Q",
+        "R",
+        "S",
+        "T"
+      ],
+      "originalRows": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "title": "Expenses \u00b7 company cost and customer recovery"
+    },
+    {
+      "key": "77-xlsx-invoices",
+      "file": "BBS-project-finance-2026-10-01_2026-10-05.xlsx",
+      "sheet": "Invoices",
+      "columns": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "I",
+        "J"
+      ],
+      "originalRows": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "title": "Invoices \u00b7 draft totals and zero collections"
+    },
+    {
+      "key": "78-xlsx-invoice-expenses",
+      "file": "BBS-project-finance-2026-10-01_2026-10-05.xlsx",
+      "sheet": "Invoice expenses",
+      "columns": [
+        "A",
+        "C",
+        "E",
+        "F",
+        "G"
+      ],
+      "originalRows": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "title": "Invoice expenses \u00b7 the three charged expense lines"
+    },
+    {
+      "key": "79-xlsx-unbilled",
+      "file": "BBS-project-finance-2026-10-01_2026-10-05.xlsx",
+      "sheet": "Unbilled WIP",
+      "columns": [
+        "A",
+        "B",
+        "C",
+        "E",
+        "F"
+      ],
+      "originalRows": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "title": "Unbilled WIP \u00b7 approved amounts not issued (rows 1\u20139)"
+    },
+    {
+      "key": "79b-xlsx-unbilled",
+      "file": "BBS-project-finance-2026-10-01_2026-10-05.xlsx",
+      "sheet": "Unbilled WIP",
+      "columns": [
+        "A",
+        "B",
+        "C",
+        "E",
+        "F"
+      ],
+      "originalRows": [
+        1,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "title": "Unbilled WIP \u00b7 approved amounts not issued (rows 10\u201316)"
+    },
+    {
+      "key": "80-xlsx-expense-register",
+      "file": "BBS-expenses-2026-10-02_2026-10-03.xlsx",
+      "sheet": "Expenses",
+      "columns": [
+        "A",
+        "C",
+        "D",
+        "E",
+        "F",
+        "H",
+        "I",
+        "J",
+        "K"
+      ],
+      "originalRows": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "title": "Expense register export \u00b7 the four source purchases"
+    },
+    {
+      "key": "82-xlsx-expense-reimbursement",
+      "file": "BBS-expenses-2026-10-02_2026-10-03.xlsx",
+      "sheet": "Expenses",
+      "columns": [
+        "A",
+        "D",
+        "I",
+        "J",
+        "K",
+        "L",
+        "M",
+        "N"
+      ],
+      "originalRows": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "title": "Expense register export \u00b7 reimbursement status"
+    },
+    {
+      "key": "81-xlsx-expense-totals",
+      "file": "BBS-expenses-2026-10-02_2026-10-03.xlsx",
+      "sheet": "Totals by currency",
+      "columns": [
+        "A",
+        "B"
+      ],
+      "originalRows": [
+        1,
+        2
+      ],
+      "title": "Expense register export \u00b7 totals by currency"
+    },
+    {
+      "key": "83-xlsx-after-cash",
+      "file": "BBS-project-finance-after-lifecycle.xlsx",
+      "sheet": "Summary",
+      "columns": [
+        "A",
+        "B",
+        "C"
+      ],
+      "originalRows": [
+        1,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "title": "After lifecycle \u00b7 issued invoices and simulated collections"
+    },
+    {
+      "key": "84-xlsx-after-invoices",
+      "file": "BBS-project-finance-after-lifecycle.xlsx",
+      "sheet": "Invoices",
+      "columns": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "I",
+        "J"
+      ],
+      "originalRows": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "title": "After lifecycle \u00b7 three confirmed invoice states"
+    },
+    {
+      "key": "85-xlsx-after-reimbursements",
+      "file": "BBS-project-finance-after-lifecycle.xlsx",
+      "sheet": "Expenses",
+      "columns": [
+        "B",
+        "C",
+        "D",
+        "F",
+        "G",
+        "H",
+        "I",
+        "J",
+        "K"
+      ],
+      "originalRows": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "title": "After lifecycle \u00b7 recorded simulated reimbursements"
+    }
+  ],
+  "previewMethod": "OpenXML values and number formats from original downloads rendered in an offline browser; no spreadsheet cells modified."
+}

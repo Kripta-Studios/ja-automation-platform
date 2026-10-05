@@ -1,0 +1,56 @@
+[
+  {
+    "step": "Simulated reimbursement 01a10c58-33ad-757d-ae1f-d5a848572979",
+    "result": "PASS",
+    "responseStatus": 200,
+    "actionType": "success",
+    "bankTransfers": 0
+  },
+  {
+    "step": "Simulated reimbursement 01a10c58-3a65-72ac-8f85-a78f49be9194",
+    "result": "PASS",
+    "responseStatus": 200,
+    "actionType": "success",
+    "bankTransfers": 0
+  },
+  {
+    "step": "Responsive finance 1440",
+    "result": "PASS",
+    "buttonsVisible": true,
+    "workerSelectVisible": true,
+    "bodyOverflow": false
+  },
+  {
+    "step": "Responsive finance 768",
+    "result": "PASS",
+    "buttonsVisible": true,
+    "workerSelectVisible": true,
+    "bodyOverflow": false
+  },
+  {
+    "step": "Responsive finance 390",
+    "result": "PASS",
+    "buttonsVisible": true,
+    "workerSelectVisible": true,
+    "bodyOverflow": false
+  },
+  {
+    "step": "Responsive finance 360",
+    "result": "PASS",
+    "buttonsVisible": true,
+    "workerSelectVisible": true,
+    "bodyOverflow": false
+  },
+  {
+    "step": "Commercial person client rates show unit basis",
+    "result": "PASS",
+    "dailyVisible": true,
+    "weeklyVisible": true
+  },
+  {
+    "step": "Download project finance XLSX after issue collection and worker payment",
+    "result": "PASS",
+    "file": "BBS-project-finance-after-lifecycle.xlsx",
+    "suggestedFilename": "ja-C-0050-P-20261005-finance-2026-10-01-2026-10-05.xlsx"
+  }
+]

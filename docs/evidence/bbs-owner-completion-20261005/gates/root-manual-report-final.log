@@ -1,0 +1,8 @@
+
+ RUN  v4.1.11 /home/kripta/ja-manual-main-publish-20261005-side
+
+
+ Test Files  4 passed (4)
+      Tests  24 passed (24)
+   Start at  22:16:04
+   Duration  23.93s (transform 1.97s, setup 0ms, import 3.06s, tests 20.25s, environment 1ms)

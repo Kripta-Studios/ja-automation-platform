@@ -1,0 +1,139 @@
+{
+  "environment": "Isolated loopback training copy; no production writes or bank transfers by this agent",
+  "scope": "BBS fictional saved example only",
+  "browser": "Playwright Chromium with independent Owner context; 1440x900,768x1024,390x844,360x844; manual crops at1920x1200",
+  "results": [
+    {
+      "workflow": "Weekly client labor, monthly expenses vs manually selected worker settlements and expected payment dates",
+      "status": "PASS",
+      "qualification": "No per-worker automatic payroll cadence setting exists; settlement period and dates are chosen manually. FixedPerBillingPeriod is one configured amount per chosen settlement period, not automatic weekly payroll."
+    },
+    {
+      "workflow": "Exact repeat of finalized chief Oct1-Oct4 settlement",
+      "status": "PASS",
+      "evidence": "browser-receipt.json",
+      "result": "BBS stays selected; original settled_at retained; reviewed400; source600minutes displayed10hrs"
+    },
+    {
+      "workflow": "Source units and daily/weekly person charge display",
+      "status": "PASS",
+      "result": "APPROVED_TIME shows10/13/0hrs; daily customer600 and weekly1500 use correctunit labels"
+    },
+    {
+      "workflow": "Worker compensation partial payment -> reverse -> pay remaining",
+      "status": "PASS",
+      "result": "Clone preexisting200+added100-reversal100+final200=net400; chief remaining0. Browser discovered repeated idempotency key after reversal; fixed UI key includes append-only event count, repository replay guards retained.",
+      "evidence": [
+        "partial-worker-payment.png",
+        "worker-payment-reversed.png",
+        "worker-payment-complete.png"
+      ]
+    },
+    {
+      "workflow": "Worker expense reimbursements",
+      "status": "PASS",
+      "result": "Simulated reimbursements20+100+60=180; company-paid50 remainsnotapplicable; no bank transfers",
+      "evidence": "reimbursements-cropped.png"
+    },
+    {
+      "workflow": "Customer invoice partial and full collection",
+      "status": "PASS",
+      "result": "Expense182:simulated100 then82 ->paid; mixed2260 remainspartial500. Totalcollected682,receivable3990",
+      "evidence": [
+        "collection-100.00.png",
+        "collection-82.00.png"
+      ]
+    },
+    {
+      "workflow": "Final invoice issuance",
+      "status": "NOT RUN by this agent",
+      "qualification": "Three issued invoices existed in isolated fixture; observed numbered issued/partially-paid states and ready PDFs; no real accountantapproval supplied; productionissuance remainsblocked"
+    },
+    {
+      "workflow": "Issued PDF byte immutability at download",
+      "status": "PASS after root correction",
+      "result": "All three actual UI downloads match stored master SHA256, byte length and bytes; repeated authenticated downloads identical",
+      "evidence": "issued-pdf-integrity-after-fix.json"
+    },
+    {
+      "workflow": "Fresh projectfinance workbook",
+      "status": "PASS",
+      "evidence": "BBS-project-finance-after-lifecycle.xlsx",
+      "result": "Issued4672,collected682,AR3990,hours42.5,companycost1750,contribution2922,WIP0"
+    },
+    {
+      "workflow": "Accounting Pack generation Oct1-Oct5",
+      "status": "BLOCKED",
+      "result": "ACCOUNTING_PACK_ISSUER_EFFECTIVE_DATE_GAP; dates retained,Contactsupport visible. Nohistoricalrewrite performed; generateprocess/download/finalize notrun for thisclone"
+    },
+    {
+      "workflow": "Finance responsive rendering",
+      "status": "PASS (scoped)",
+      "result": "Finalize button,workerselect and persistentlabels visible; sourcecards and paymentregisters stack; no bodyoverflow; deliberatehorizontaltable scroll; visuallyinspected390px capture",
+      "evidence": [
+        "finance-1440.png",
+        "finance-768.png",
+        "finance-390.png",
+        "finance-360.png"
+      ]
+    }
+  ],
+  "storedInvoices": [
+    {
+      "id": "01a10c63-be27-7728-8655-69a5bba6cc72",
+      "invoice_number": "JA-DEMO--2026-000001",
+      "state": "issued",
+      "total_minor": 223000,
+      "pdf_sha256": "1ca5cbf312e4d548113aeec930608c01bb766c70a673753210f960531a4486bb"
+    },
+    {
+      "id": "01a10c5d-83ff-72a2-988d-7ad68220b383",
+      "invoice_number": "JA-DEMO--2026-000002",
+      "state": "paid",
+      "total_minor": 18200,
+      "pdf_sha256": "f1e717119c3fa76bb5152e3f70b1494c514d16e96d1285f81a567492a4f725d3"
+    },
+    {
+      "id": "01a10cb5-ec04-7109-af1a-c49ae34b0116",
+      "invoice_number": "JA-DEMO--2026-000003",
+      "state": "partially_paid",
+      "total_minor": 226000,
+      "pdf_sha256": "bd58a2292b4e4b1eb169dcc38f0d97cacb31e532dd685535dd7156c144ddb21b"
+    }
+  ],
+  "settlements": [
+    {
+      "period_start": "2026-10-01",
+      "period_end": "2026-10-04",
+      "source_basis": "APPROVED_TIME",
+      "source_amount_minor": 600,
+      "amount_minor": 40000,
+      "settled_at": "2026-10-05T18:30:45.906Z",
+      "expected_payment_on": "2026-10-09"
+    },
+    {
+      "period_start": "2026-10-01",
+      "period_end": "2026-10-31",
+      "source_basis": "APPROVED_TIME",
+      "source_amount_minor": 780,
+      "amount_minor": 72000,
+      "settled_at": "2026-10-05T18:31:31.493Z",
+      "expected_payment_on": "2026-11-03"
+    },
+    {
+      "period_start": "2026-10-01",
+      "period_end": "2026-10-14",
+      "source_basis": "APPROVED_TIME",
+      "source_amount_minor": 0,
+      "amount_minor": 90000,
+      "settled_at": "2026-10-05T18:31:45.131Z",
+      "expected_payment_on": "2026-10-16"
+    }
+  ],
+  "exportSha256": "9b75131962ab9180cd82a19c73740d7c3a191ba84180c507ee2e4110bf89b6fb",
+  "tests": {
+    "initial": "50 tests43passed7failed:legacy Workerfixtures missinglivesessions; blankphone legacyexpectedmissing",
+    "afterFixtureCorrection": "49tests48passed1timeout underhostmemorypressure; replacement-after-reversal added subsequently, rootserializedrerun pending",
+    "final": "Root serialized lifecycle, authenticated Worker compensation, invoice integrity/preview, and Accounting artifact checks passed; see parent gate logs. Earlier failed discovery logs remain qualified."
+  }
+}

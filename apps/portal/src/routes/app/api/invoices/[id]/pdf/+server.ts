@@ -1,11 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { RequestHandler } from '@sveltejs/kit';
-import { invoicePdf, type InvoiceTemplateSnapshot } from '@ja/reporting';
 import { openPortalRepository } from '$lib/server/portal-repository';
-import {
-  privateArtifactProblem,
-  servePrivateArtifact,
-} from '$lib/server/private-artifact-access';
+import { privateArtifactProblem, servePrivateArtifact } from '$lib/server/private-artifact-access';
 
 export const GET: RequestHandler = async ({ locals, params }) => {
   const correlationId = locals.correlationId || randomUUID();
@@ -24,10 +20,6 @@ export const GET: RequestHandler = async ({ locals, params }) => {
       id: invoiceId,
       expectedMediaType: 'application/pdf',
       loadMetadata: () => repository.v3.invoicePdfMetadata(repository.principal, invoiceId),
-      generateBytes: () => {
-        const snapshot = repository.v3.invoiceSnapshot(repository.principal, invoiceId);
-        return invoicePdf(snapshot as InvoiceTemplateSnapshot);
-      },
     });
   } catch (cause) {
     console.error('Unexpected invoice PDF download failure', {

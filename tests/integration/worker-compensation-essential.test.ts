@@ -109,7 +109,11 @@ function fixture(): CompensationFixture {
     role: 'project_manager',
     projectIds: new Set(),
   };
-  const worker: Principal = { userId: 'worker', role: 'worker', projectIds: new Set() };
+  const worker = authenticatedPrincipal(
+    sqlite,
+    { userId: 'worker', role: 'worker', projectIds: new Set() },
+    'worker-compensation',
+  );
   const client = repository.createClient(owner, {
     legalName: 'Essential Compensation Client',
     displayName: 'Essential Compensation Client',

@@ -1,0 +1,14 @@
+Earlier discovery run; failures were corrected and rerun in the named final logs. See parent README for exact qualifications.
+
+ RUN  v4.1.11 /home/kripta/ja-manual-main-publish-20261005-side
+
+ ❯ tests/integration/worker-compensation-essential.test.ts (3 tests | 3 failed) 15020ms
+     × uses source work dates for assignment membership and excludes future or expired rows 4987ms
+     × reconciles hourly, daily, fixed, percentage, pending and project totals without double count 4800ms
+     × makes finalized reimbursement retries idempotent and rejects changed final truth 5230ms
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  3 failed | 13 passed (16)
+   Start at  21:44:34
+   Duration  86.57s (transform 1.44s, setup 0ms, import 2.88s, tests 82.84s, environment 0ms)

@@ -1,0 +1,12 @@
+{
+  "capturedAt": "2026-10-05T19:35:18.376191+00:00",
+  "environment": "production",
+  "operation": "read-only immutable financial baseline",
+  "issuedCount": 0,
+  "issuedFinancialSnapshotSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "llcNumberingPolicyCount": 0,
+  "payment": {
+    "count": 0,
+    "rowsSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  }
+}

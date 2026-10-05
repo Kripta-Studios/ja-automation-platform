@@ -1,0 +1,38 @@
+[
+  {
+    "invoiceNumber": "JA-DEMO--2026-000001",
+    "state": "issued",
+    "status": "PASS",
+    "downloadSha256": "1ca5cbf312e4d548113aeec930608c01bb766c70a673753210f960531a4486bb",
+    "storedSha256": "1ca5cbf312e4d548113aeec930608c01bb766c70a673753210f960531a4486bb",
+    "byteLength": 363553,
+    "storedByteLength": 363553,
+    "byteIdenticalToStoredMaster": true,
+    "repeatedDownloadIdentical": true,
+    "productionWrites": 0
+  },
+  {
+    "invoiceNumber": "JA-DEMO--2026-000002",
+    "state": "paid",
+    "status": "PASS",
+    "downloadSha256": "f1e717119c3fa76bb5152e3f70b1494c514d16e96d1285f81a567492a4f725d3",
+    "storedSha256": "f1e717119c3fa76bb5152e3f70b1494c514d16e96d1285f81a567492a4f725d3",
+    "byteLength": 362147,
+    "storedByteLength": 362147,
+    "byteIdenticalToStoredMaster": true,
+    "repeatedDownloadIdentical": true,
+    "productionWrites": 0
+  },
+  {
+    "invoiceNumber": "JA-DEMO--2026-000003",
+    "state": "partially_paid",
+    "status": "PASS",
+    "downloadSha256": "bd58a2292b4e4b1eb169dcc38f0d97cacb31e532dd685535dd7156c144ddb21b",
+    "storedSha256": "bd58a2292b4e4b1eb169dcc38f0d97cacb31e532dd685535dd7156c144ddb21b",
+    "byteLength": 368137,
+    "storedByteLength": 368137,
+    "byteIdenticalToStoredMaster": true,
+    "repeatedDownloadIdentical": true,
+    "productionWrites": 0
+  }
+]

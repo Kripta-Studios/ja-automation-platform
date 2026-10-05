@@ -2,6 +2,7 @@
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { decimalHoursFromMinutes } from '../minute-hours';
+  import { compensationPaymentCommandKey } from '../compensation-payment-command';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { enhance } from '$app/forms';
   import { beforeNavigate } from '$app/navigation';
@@ -954,6 +955,13 @@
     const [whole, fraction] = hours.split('.');
     const grouped = whole!.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return `${grouped}${fraction ? `.${fraction}` : ''} ${translate('hrs')}`;
+  }
+
+  function displaySettlementSource(settlement: Row): string {
+    const source = value(settlement, 'sourceAmountMinor', 'source_amount_minor');
+    return value(settlement, 'sourceBasis', 'source_basis') === 'APPROVED_TIME'
+      ? displayHours(source)
+      : displayMoney(source, settlement.currency);
   }
 
   function consumptionTone(valueToFormat: unknown): 'ok' | 'warning' | 'danger' {
@@ -3082,7 +3090,11 @@
                 'Worker choices belong to the selected project, including past assignments. Choose dates to show only people whose assignment covers the full period.',
               )}
             </p>
-            <form method="POST" action="?/settleCompensation" class="finance-overview__action-form">
+            <form
+              method="POST"
+              action={`?/settleCompensation&view=economic&source=settlements&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}&lang=${encodeURIComponent(locale)}`}
+              class="finance-overview__action-form"
+            >
               <input type="hidden" name="projectId" value={data.selectedProjectId} />
               <label>
                 <span>{translate('Worker')}</span>
@@ -3155,6 +3167,14 @@
                     value: `${value(row, 'periodStart', 'period_start')} → ${value(row, 'periodEnd', 'period_end')}`,
                   },
                   {
+                    label: translate('Basis'),
+                    value: value(row, 'sourceBasis', 'source_basis') || '—',
+                  },
+                  {
+                    label: translate('Source'),
+                    value: displaySettlementSource(row),
+                  },
+                  {
                     label: translate('Amount'),
                     value: displayMoney(row.amountMinor, row.currency),
                   },
@@ -3208,12 +3228,7 @@
                         )}</td
                       >
                       <td>{value(settlement, 'sourceBasis', 'source_basis') || '—'}</td>
-                      <td
-                        >{displayMoney(
-                          value(settlement, 'sourceAmountMinor', 'source_amount_minor'),
-                          settlement.currency,
-                        )}</td
-                      >
+                      <td>{displaySettlementSource(settlement)}</td>
                       <td>{displayMoney(settlement.amountMinor, settlement.currency)}</td>
                       <td
                         >{displayMoney(
@@ -3378,7 +3393,7 @@
                   {#if value(settlement, 'state', 'status') === 'settled' && BigInt(remainingMinor || '0') > 0n}
                     <form
                       method="POST"
-                      action="?/recordCompensationPayment&view=economic&source=settlements"
+                      action={`?/recordCompensationPayment&view=economic&source=settlements&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}&lang=${encodeURIComponent(locale)}`}
                       class="finance-overview__payment-form"
                       data-finance-action="recordCompensationPayment"
                       use:formValidation
@@ -3394,7 +3409,11 @@
                           'recordCompensationPayment',
                           settlementId,
                           'idempotencyKey',
-                          `compensation-payment:${settlementId}:${value(settlement, 'paidAmountMinor', 'paid_amount_minor') || '0'}`,
+                          compensationPaymentCommandKey(
+                            settlementId,
+                            value(settlement, 'paidAmountMinor', 'paid_amount_minor') || '0',
+                            settlementPayments.length,
+                          ),
                         )}
                       />
                       <label>
@@ -3681,7 +3700,7 @@
                 {#if canWriteFinance && reimbursementState !== 'reimbursed'}
                   <form
                     method="POST"
-                    action="?/recordReimbursement&view=economic&source=expenses"
+                    action={`?/recordReimbursement&view=economic&source=expenses&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}&lang=${encodeURIComponent(locale)}`}
                     class="finance-overview__reimbursement-form"
                     data-finance-action="recordReimbursement"
                     use:formValidation

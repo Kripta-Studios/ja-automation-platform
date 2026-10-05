@@ -88,6 +88,7 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
         ...detail,
         attachments,
         canWithdrawCorrection:
+          Boolean(correctionActor) &&
           detail.report.approval_state === 'draft' &&
           (correctionActor?.actor_user_id === context.principal.userId ||
             context.principal.role === 'owner_admin'),

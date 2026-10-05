@@ -1,0 +1,26 @@
+Earlier discovery run; failures were corrected and rerun in the named final logs. See parent README for exact qualifications.
+
+ RUN  v4.1.11 /home/kripta/ja-manual-main-publish-20261005-side
+
+ ❯ tests/regression/invoice-preview-ui.test.ts (13 tests | 3 failed) 43ms
+     × keeps lifecycle badges aligned with the billing register semantics 9ms
+     × polls active PDF jobs through SvelteKit invalidation and cleans up at terminal state 7ms
+     × keeps the preview panel and invoice line items usable on small screens 7ms
+ ❯ tests/security/issued-invoice-artifact-immutability.test.ts (11 tests | 11 failed) 4835ms
+     × returns byte-identical stored PDF for issued despite a supplied newer renderer 3ms
+     × returns byte-identical stored PDF for sent despite a supplied newer renderer 1ms
+     × returns byte-identical stored PDF for partially_paid despite a supplied newer renderer 0ms
+     × returns byte-identical stored PDF for paid despite a supplied newer renderer 0ms
+     × returns byte-identical stored PDF for overdue despite a supplied newer renderer 0ms
+     × returns byte-identical stored PDF for void despite a supplied newer renderer 0ms
+     × returns byte-identical stored PDF for credited despite a supplied newer renderer 0ms
+     × permits an explicit preview renderer for draft 0ms
+     × permits an explicit preview renderer for approved 0ms
+     × blocks a corrupted terminal PDF rather than silently rerendering it 0ms
+     × checks stored length before serving a terminal invoice 0ms
+
+
+ Test Files  2 failed | 6 passed (8)
+      Tests  14 failed | 74 passed (88)
+   Start at  21:50:06
+   Duration  60.97s (transform 2.75s, setup 0ms, import 4.48s, tests 55.21s, environment 1ms)

@@ -1,0 +1,135 @@
+{
+  "scope": "Isolated BBS LAB Owner browser captures, 2026-10-05; no production financial authorization implied",
+  "screenshots": [
+    {
+      "file": "screenshots/02-team-create-user.png",
+      "sha256": "683221c0e6af7647e7c567576456c3aa5b4407af7ce83ec05470133b279da232",
+      "bytes": 58920
+    },
+    {
+      "file": "screenshots/04-team-local-account-before.png",
+      "sha256": "6279fe2ab2d143fd1a084ec7717f1546218381339b17fe47932af82fb7a83431",
+      "bytes": 65058
+    },
+    {
+      "file": "screenshots/05-team-local-account-after.png",
+      "sha256": "4ea0bd43a44c7c33daac359038a4e37107a42d5d3052a7efa258a04339e79809",
+      "bytes": 74263
+    },
+    {
+      "file": "screenshots/06-project-assignment-before.png",
+      "sha256": "dfa73e322942099bab0055d395abdd3e291216e3a1a8636af8dab43fab490987",
+      "bytes": 87376
+    },
+    {
+      "file": "screenshots/07-project-assignment-after.png",
+      "sha256": "3c77478fc2d5eab13905660ebd115f5401bc4a906451adbac02e85bb0420cfd0",
+      "bytes": 73775
+    },
+    {
+      "file": "screenshots/08-week-time-before.png",
+      "sha256": "5c34e43d9f561a59fe81915ffc034ab63f715f6960370293968de2b93b6156f6",
+      "bytes": 91515
+    },
+    {
+      "file": "screenshots/09-week-time-after.png",
+      "sha256": "23427a8b40cb3ac22bf0118bf152ff6500dc50660154772deef04716a2f53da9",
+      "bytes": 90579
+    },
+    {
+      "file": "screenshots/10-submit-week-before.png",
+      "sha256": "2ae148cd3baa7c8a62fe04e8e8c7e700e5c72fce33a845c1d5cf03c2bd77ac37",
+      "bytes": 37483
+    },
+    {
+      "file": "screenshots/12-approval-return-before.png",
+      "sha256": "d97422a7031e91c9a95316218faf876cd280f90f305eeb469dd67a7d10d6db91",
+      "bytes": 58792
+    },
+    {
+      "file": "screenshots/13-approval-return-after.png",
+      "sha256": "de976349804160038b88407ad49e6455a2aefbe167be8cec31d674381d00b0e9",
+      "bytes": 17283
+    },
+    {
+      "file": "screenshots/14-correction-six-hours-before.png",
+      "sha256": "1c86972e39238cffe215bfc5f323d5ba9ec4deaa1f5cb3c812a7505da4529e79",
+      "bytes": 49515
+    },
+    {
+      "file": "screenshots/15-correction-six-hours-draft.png",
+      "sha256": "e70c85e1df9f6e5f887b344c1d42185ad6db37050ca7c05c16dcbace67d8c80d",
+      "bytes": 217647
+    },
+    {
+      "file": "screenshots/17-correction-submitted-queue.png",
+      "sha256": "ac137d3b14b63894c7c7201e9988ee8a3ec48de217296064b1163a60765c4cea",
+      "bytes": 27715
+    },
+    {
+      "file": "screenshots/27-owner-correction-direct-submit-before.png",
+      "sha256": "5869cba7cb2f9abf69ced2349737be57348d0d56b3f0aa7f00c7244f2e2a1d44",
+      "bytes": 220371
+    },
+    {
+      "file": "screenshots/28-owner-correction-direct-submit-after.png",
+      "sha256": "272910c5924eae09f91397ca2705dd6ec25a4def1b450bac69ae2ff861578fcc",
+      "bytes": 208932
+    },
+    {
+      "file": "screenshots/29-six-hour-finance-review-before.png",
+      "sha256": "e4f9abb4e281c8e6df0b2997eaf6047064e8b706bcb75753fcb8c2bb556d14d4",
+      "bytes": 25636
+    },
+    {
+      "file": "screenshots/30-six-hour-finance-reviewed.png",
+      "sha256": "d626c3ca709c79bb9aff8d2bc7d0b241bd7071fc4fa04c5d40c8ef42339b67a8",
+      "bytes": 209818
+    },
+    {
+      "file": "screenshots/31-correction-one-hour-queue.png",
+      "sha256": "798b6482f679b6ff8874556778d03402796ae05b4ee0d4fed998715b8618f0bf",
+      "bytes": 27868
+    },
+    {
+      "file": "screenshots/33-daily-report-entry.png",
+      "sha256": "868b83d7c2c893c4881cfb5db65f1877c3a32a34c07765f93b3381328754b207",
+      "bytes": 43570
+    },
+    {
+      "file": "screenshots/36-daily-report-approval-before.png",
+      "sha256": "177e975ebd217b4b1784ec001adc4c8337eef98ef50f6a9d18618ce2d4704743",
+      "bytes": 21844
+    },
+    {
+      "file": "screenshots/37-period-report-generator.png",
+      "sha256": "3f32b66595ecac8610fcf25c21024fa108139e5a4b32da270d60fcf027ae269e",
+      "bytes": 33534
+    },
+    {
+      "file": "screenshots/39-customer-period-before-approval.png",
+      "sha256": "bc5d28098319e6152d6dee44934d940fc48832b21ceece55dd0a5c3ef642605b",
+      "bytes": 40478
+    },
+    {
+      "file": "screenshots/45-technical-report-approval-before.png",
+      "sha256": "8669e57eccc5513633b54eabe150bf622abc61b8e78fd3b2bd30a90112de8eb3",
+      "bytes": 21058
+    },
+    {
+      "file": "screenshots/46-customer-report-ready-for-signature.png",
+      "sha256": "17ba92d58c0898d0a2bfa158d4250d028f428961582b8734087a3e263c6c1271",
+      "bytes": 76431
+    },
+    {
+      "file": "screenshots/47-ordinary-daily-draft-actions.png",
+      "sha256": "0a94e0cc26ad70fa55241029781e9be09a0331e80d581c759e4d41af590049d1",
+      "bytes": 3265
+    },
+    {
+      "file": "screenshots/48-customer-report-native-pdf-ready.png",
+      "sha256": "2fcaaee40b0aab440287c25337ced7599e04713865afaadd02c19f18757c8eef",
+      "bytes": 28460
+    }
+  ]
+}

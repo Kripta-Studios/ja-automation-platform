@@ -508,6 +508,15 @@
         </form>
       </section>
     {/if}
+    {#if !data.ownDraft && data.ownerCorrectionDraftVersion != null && !submissionBlocked && !data.linkedPair}
+      <section class="detail-panel record-detail-copy" aria-label={t('Corrected time entry')}>
+        <form method="POST" action="?/submitTime" onsubmit={rememberScroll}>
+          <input type="hidden" name="id" value={String(record.id)} />
+          <input type="hidden" name="version" value={data.ownerCorrectionDraftVersion} />
+          <button type="submit">{t('Submit')}</button>
+        </form>
+      </section>
+    {/if}
     {#if data.canWithdrawCorrection}
       <section class="detail-panel record-detail-copy" aria-label={t('Withdraw correction draft')}>
         {#if withdrawProblem}

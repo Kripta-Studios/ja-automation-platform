@@ -4,6 +4,7 @@ import { AccessDeniedError, ValidationError } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { reportActions } from '$lib/server/actions/operations-actions';
 import { timeActions } from '$lib/server/actions/time-actions';
+import { ownerCorrectionDraftVersion } from '$lib/portal/time-detail-actions';
 import {
   timeCorrectionDependency,
   timeCorrectionDependencyProblem,
@@ -216,6 +217,17 @@ export const load: PageServerLoad = ({ locals, params }) => {
       activeCorrection,
       correctionRequestId,
       ownDraft,
+      ownerCorrectionDraftVersion: ownerCorrectionDraftVersion({
+        role: context.principal.role,
+        userId: context.principal.userId,
+        correctionActor: correctionStatus.correction_actor,
+        approvalState: String(record.approval_state),
+        invoiceId: correctionStatus.invoice_id,
+        billingStatus: correctionStatus.billing_status,
+        billingLockId: correctionStatus.billing_lock_id,
+        lockedAt: correctionStatus.locked_at,
+        version: correctionStatus.version,
+      }),
       linkedPair,
       canCreateCorrection,
       canWithdrawCorrection,

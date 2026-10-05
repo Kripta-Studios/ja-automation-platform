@@ -12,6 +12,7 @@ import {
 } from '@ja/database';
 import type { Principal, Role } from '@ja/domain';
 import { installB5TestDeploymentIdentity } from '../fixtures/b5-test-environment.js';
+import { compensationPaymentCommandKey } from '../../apps/portal/src/lib/portal/compensation-payment-command';
 
 const directories: string[] = [];
 const restoreDeploymentIdentities: Array<() => void> = [];
@@ -188,7 +189,7 @@ function setup(options: { canonicalAuthority?: boolean } = {}) {
       ...terms,
     });
   const manager = repository.principalFor('manager');
-  const worker = repository.principalFor('worker');
+  const worker = authenticatedPrincipal(sqlite, repository.principalFor('worker'));
   v3.createClientLaborRate(finance, {
     projectId: project.id,
     workerId: 'worker',
@@ -285,7 +286,7 @@ describe('Client Essential finance truth and payment reversals', () => {
     const otherPayment = v3.recordCompensationPayment(finance, {
       ...paymentInput,
       reference: 'BANK-WORKER-REVERSAL-TWO',
-      idempotencyKey: 'worker-reversal-original-two',
+      idempotencyKey: compensationPaymentCommandKey(settlementId, '100', 1),
     });
     const input = {
       paymentEventId: payment.id,
@@ -329,6 +330,26 @@ describe('Client Essential finance truth and payment reversals', () => {
         )
         .get(),
     ).toEqual({ count: 1 });
+    // The reversal restores net paid to 100. A new remaining payment must not
+    // collide with the earlier command created at that same net-paid amount.
+    const replacementInput = {
+      ...paymentInput,
+      reference: 'BANK-WORKER-REPLACEMENT',
+      idempotencyKey: compensationPaymentCommandKey(settlementId, '100', 3),
+    };
+    const replacement = v3.recordCompensationPayment(finance, replacementInput);
+    expect(replacement).toMatchObject({ idempotent: false });
+    expect(v3.recordCompensationPayment(finance, replacementInput)).toEqual({
+      id: replacement.id,
+      idempotent: true,
+    });
+    expect(
+      sqlite
+        .prepare(
+          'SELECT COUNT(*) count FROM worker_compensation_payment_event WHERE settlement_id=?',
+        )
+        .get(settlementId),
+    ).toEqual({ count: 4 });
   });
 
   it('attributes historical project costs through one unambiguous billing rule without a canonical assignment', () => {

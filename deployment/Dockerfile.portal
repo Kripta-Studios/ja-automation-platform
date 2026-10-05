@@ -11,7 +11,9 @@ COPY deployment ./deployment
 COPY docs/manuals/Employee_Field_Guide_EN.pdf docs/manuals/Employee_Field_Guide_ES.pdf docs/manuals/Employee_Field_Guide_PT-BR.pdf \
      docs/manuals/Work_Projects_Guide.pdf docs/manuals/Work_Projects_Guide_PT-BR.pdf \
      docs/manuals/Supplier_Operations_Guide.pdf docs/manuals/Supplier_Operations_Guide_PT-BR.pdf \
-     docs/manuals/Administration_Finance_Guide.pdf docs/manuals/Administration_Finance_Guide_PT-BR.pdf ./manuals/
+     docs/manuals/Administration_Finance_Guide.pdf docs/manuals/Administration_Finance_Guide_PT-BR.pdf \
+     docs/manuals/Project_to_Invoice_Quick_Guide_EN.pdf \
+     docs/manuals/BBS_Project_to_Client_Invoices_Guide_EN.pdf ./manuals/
 RUN pnpm install --frozen-lockfile
 RUN env \
     JA_DATABASE_PATH=/tmp/jaautomation-release-build.sqlite \

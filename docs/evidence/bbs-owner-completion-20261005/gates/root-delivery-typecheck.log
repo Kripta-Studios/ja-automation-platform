@@ -1,0 +1,11 @@
+Scope: 10 of 11 workspace projects
+$ tsc --noEmit
+$ tsc --noEmit
+$ tsc --noEmit
+$ tsc --noEmit
+$ tsc --noEmit
+$ tsc --noEmit
+$ tsc --noEmit
+$ tsc --noEmit
+$ tsc --noEmit
+$ svelte-kit sync && tsc --noEmit -p tsconfig.json

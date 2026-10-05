@@ -1,0 +1,66 @@
+
+ RUN  v4.1.11 /home/kripta/ja-manual-main-publish-20261005-side
+
+ ❯ tests/integration/accounting-pack-revision-service.test.ts (52 tests | 1 failed) 289004ms
+     × serializes concurrent same-key revisions across two SQLite connections 4832ms
+(node:1362925) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ tests/migrations/accounting-pack-signed-credit-migration.test.ts (2 tests | 1 failed) 7011ms
+     × upgrades a populated schema 47 without changing snapshot bytes, references or guards 2079ms
+ ❯ tests/integration/accounting-pack-action.test.ts (2 tests | 2 failed) 351ms
+     × accepts the exact browser FormData period without rewriting it to a calendar month 193ms
+     × rejects invalid periods, expired sessions and denied roles 154ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/migrations/accounting-pack-signed-credit-migration.test.ts > 0048 signed accounting-pack credit balances > upgrades a populated schema 47 without changing snapshot bytes, references or guards
+Error: Accounting Pack source authority mismatch: invoice:invoice-1:missing_authoritative_row
+ ❯ normalizeSnapshot packages/database/src/domains/accounting-pack/accounting-pack-revision-service.ts:3570:11
+    3568|   );
+    3569|   if (sourceAuthority.reasons.length > 0)
+    3570|     throw new AccountingPackRevisionError(
+       |           ^
+    3571|       `Accounting Pack source authority mismatch: ${sourceAuthority.re…
+    3572|     );
+ ❯ work packages/database/src/domains/accounting-pack/accounting-pack-revision-service.ts:4158:24
+ ❯ runImmediateTransaction packages/database/src/core/transaction.ts:34:22
+ ❯ AccountingPackRevisionService.createCanonicalRevision packages/database/src/domains/accounting-pack/accounting-pack-revision-service.ts:4756:12
+ ❯ tests/migrations/accounting-pack-signed-credit-migration.test.ts:318:30
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/integration/accounting-pack-action.test.ts > Accounting Pack action boundary > accepts the exact browser FormData period without rewriting it to a calendar month
+Error: Command failed: /home/kripta/bbs-manual-demo-20261005-side/node-bin/node --experimental-strip-types /home/kripta/ja-manual-main-publish-20261005-side/packages/database/src/demo-seed.ts
+ ❯ seedDemoDatabase tests/integration/accounting-pack-action.test.ts:44:3
+     42|   process.env.JA_MIGRATIONS_PATH = resolve('migrations');
+     43|   process.env.JA_FIXTURE_SENTINEL = fixtureSentinel;
+     44|   execFileSync(
+       |   ^
+     45|     process.execPath,
+     46|     ['--experimental-strip-types', resolve('packages/database/src/demo…
+ ❯ tests/integration/accounting-pack-action.test.ts:189:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/integration/accounting-pack-action.test.ts > Accounting Pack action boundary > rejects invalid periods, expired sessions and denied roles
+Error: Command failed: /home/kripta/bbs-manual-demo-20261005-side/node-bin/node --experimental-strip-types /home/kripta/ja-manual-main-publish-20261005-side/packages/database/src/demo-seed.ts
+ ❯ seedDemoDatabase tests/integration/accounting-pack-action.test.ts:44:3
+     42|   process.env.JA_MIGRATIONS_PATH = resolve('migrations');
+     43|   process.env.JA_FIXTURE_SENTINEL = fixtureSentinel;
+     44|   execFileSync(
+       |   ^
+     45|     process.execPath,
+     46|     ['--experimental-strip-types', resolve('packages/database/src/demo…
+ ❯ tests/integration/accounting-pack-action.test.ts:208:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/integration/accounting-pack-revision-service.test.ts > AccountingPackRevisionService > serializes concurrent same-key revisions across two SQLite connections
+SyntaxError: TypeScript parameter property is not supported in strip-only mode
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  3 failed | 3 passed (6)
+      Tests  4 failed | 78 passed (82)
+   Start at  23:37:52
+   Duration  384.12s (transform 2.68s, setup 0ms, import 4.59s, tests 378.55s, environment 3ms)

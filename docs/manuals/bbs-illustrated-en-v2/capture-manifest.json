@@ -1,8 +1,10 @@
 {
   "capturedOn": "2026-10-05",
   "environments": [
-    "Saved fictional BBS operational example and pre-issue production read-only captures",
-    "Isolated local training database for issue, payment, reversal, account, correction and reporting browser exercises"
+    "Original BBS pre-issue: historical fictional operational example and production read-only captures",
+    "Isolated BBS lifecycle: copied original sources, canonical issued masters and simulated ledgers/private document exercises",
+    "Separate onboarding lab: C-0050-P-20261006 entry/report/planning and C-0050-P-050901 supplier/empty-project lifecycle",
+    "New Accounting demo: separate all-synthetic portfolio/C-0002-P-002 for financial exceptions and separate August/October Accounting snapshots"
   ],
   "project": "C-0050-P-20261005",
   "interfaceLanguage": "English",
@@ -254,6 +256,26 @@
       "sha256": "980a78f0127c18507fa5154335f8159424eb76e21b68629a4b443fc2b9e15cde"
     },
     {
+      "name": "lab-corrected-saved-time-register.png",
+      "sha256": "ae62f0b1643577d8d0c119a98d94a40971777076abc50df21e891aedc4b58099"
+    },
+    {
+      "name": "lab-daily-report-top-fields.png",
+      "sha256": "a47eb2ef0cd236b3397323ad5489013145d4df595bca86c5b5874b1db0c4f6c0"
+    },
+    {
+      "name": "lab-documents-saved-private-row.png",
+      "sha256": "63e2a03df7389411e0d967ab39df9432b358f6a53c9130f48e1bd0cbe3561bb6"
+    },
+    {
+      "name": "lab-documents-upload-fields.png",
+      "sha256": "c28ba931ee8aab805860804d3a27520cd7c957c4e98184db587537ced02289ae"
+    },
+    {
+      "name": "lab-email-failed-retry.png",
+      "sha256": "836c66006494665adf614f26a36d21092ccb7a33dcb769f4c173e9ad54c169f7"
+    },
+    {
       "name": "lab-finance-accounting-result.png",
       "sha256": "310aa43619dbee20a2395f23502ab93d2fcae522649d5864d829d2debe8ac643"
     },
@@ -274,8 +296,32 @@
       "sha256": "467221430e9c2cdcb905b90c975f026ea64ab197fe0c7c130fa5c2b1c55d4d74"
     },
     {
-      "name": "lab-invoice-toolbar-ready.png",
-      "sha256": "281fa0c5cc641a01ee8972f8bb3c9105649282f1a60edbe3e3321d1c84ac1db2"
+      "name": "lab-initial-copied-settlement.png",
+      "sha256": "5ec6618979dabd25e70e79d5bc520b5de28a3f191e9a1d60d01cad01aeac8d08"
+    },
+    {
+      "name": "lab-issued-unpaid-invoice-heading.png",
+      "sha256": "326fd06e840bd4518a1bab8044e7019b65aa60d4fdb10694b012318cb1c16f46"
+    },
+    {
+      "name": "lab-new-accounting-final.png",
+      "sha256": "d546264685acb92a000e1b764dda4b0a2f06a856e044cbf45edfb6c11e1a2a73"
+    },
+    {
+      "name": "lab-new-accounting-review.png",
+      "sha256": "cf08f38dd4e72ccb159265c837d5f45b4af9f96cb6be3847f35c9beb1368194f"
+    },
+    {
+      "name": "lab-new-collection-reversal.png",
+      "sha256": "5a0fd84c9cd1bc4843fd19d9b4e5dbf3433ea85f4a5d7ee7b966ca25f0f4daf1"
+    },
+    {
+      "name": "lab-new-issued-credit-ready.png",
+      "sha256": "f9928c5fc0892f500f7263838297892fa21c0fef3e7fc26316e8055a79fc4c9b"
+    },
+    {
+      "name": "lab-new-weekly-close-controls.png",
+      "sha256": "dcf461a99561b6f0f8cceaec4f2998ed271a510b565702b2b5a71b30f3bd94b2"
     },
     {
       "name": "lab-owner-02-team-create-user.png",
@@ -296,10 +342,6 @@
     {
       "name": "lab-owner-08-week-time-before.png",
       "sha256": "5c34e43d9f561a59fe81915ffc034ab63f715f6960370293968de2b93b6156f6"
-    },
-    {
-      "name": "lab-owner-09-week-time-after.png",
-      "sha256": "23427a8b40cb3ac22bf0118bf152ff6500dc50660154772deef04716a2f53da9"
     },
     {
       "name": "lab-owner-12-approval-return-before.png",
@@ -338,10 +380,6 @@
       "sha256": "d626c3ca709c79bb9aff8d2bc7d0b241bd7071fc4fa04c5d40c8ef42339b67a8"
     },
     {
-      "name": "lab-owner-33-daily-report-entry.png",
-      "sha256": "868b83d7c2c893c4881cfb5db65f1877c3a32a34c07765f93b3381328754b207"
-    },
-    {
       "name": "lab-owner-36-daily-report-approval-before.png",
       "sha256": "177e975ebd217b4b1784ec001adc4c8337eef98ef50f6a9d18618ce2d4704743"
     },
@@ -362,8 +400,37 @@
       "sha256": "b44ab17596f6b648f5cc6613f09d64518e93db60a2d0eb5849ff8e96b70f2b48"
     },
     {
-      "name": "lab-owner-signoff-ready-summary.png",
-      "sha256": "bda384629ad0c43ed5092c24c88a801e2af5dd35482815a53f510159e139e8fd"
+      "name": "lab-partial-worker-settlement.png",
+      "sha256": "de8e16edfa5d4c41320a5f726991661ba9cc360797b670afd35249eafcb41f80"
+    },
+    {
+      "name": "lab-supplier-authorize.png",
+      "sha256": "51f6b73cda7c71ddde06a3c0acdca650494104b3a247a2ec5b976570159696c7"
+    },
+    {
+      "name": "lab-supplier-create.png",
+      "sha256": "2bdaef5f454f86691c4bba5ed3d59da12487ff7ff84b2c3e87cda241a974532b"
+    },
+    {
+      "name": "lab-supplier-profile.png",
+      "sha256": "79d730d45b5356fb96490216fd718b8c7415f94dd31692b162217ec4d7de3773"
+    },
+    {
+      "name": "lab-synthetic-signoff-accepted.png",
+      "sha256": "70f8c81cf3d6d057cda614081847b112d960332029983afec9875191cbfe5465"
+    },
+    {
+      "name": "lab-synthetic-signoff-replacement.png",
+      "sha256": "5cc4f34332c82b3d430714b87394cadfe4368771c8563f1f907e9ddd37184f65"
+    },
+    {
+      "name": "lab-technical-readable-details.png",
+      "sha256": "6550f2f081e4c3c47380e06af294c9738d559024f590f75f66f4388f8fee62f3"
     }
-  ]
+  ],
+  "operatorTrainingAccessSupplied": false,
+  "livePortalLinks": "Visibly labelled Live company portal; never enter the isolated simulation",
+  "practicePrerequisites": "Operator-provisioned URL, own training account, visible deployment identity, authorized fictional scope and reset procedure",
+  "signoffTest": "Marked synthetic v2 acceptance, invalidation and replacement v3; genuine customer acceptance not asserted; optional fixture was not_scanned",
+  "accountingTest": "Separate synthetic October native five-format generation/download/review/final pass with zero review counts, cross-month evidence links and void-date cut verified; historical August advisories and original BBS October issuer coverage failure remain distinct"
 }

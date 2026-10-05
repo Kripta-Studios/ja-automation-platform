@@ -2686,8 +2686,14 @@ function validateAuthoritativeSourceItems(
       try {
         if (!effectiveAtMatchesAuthority(item.normalizedEffectiveAt, sourceDate))
           reasons.push(`${kind}:${sourceId}:effective_at_mismatch`);
-        if (!sourceDateInPeriodFor(sourceDate, sourceProjectId, sourceTimezone))
-          reasons.push(`${kind}:${sourceId}:effective_date_outside_period`);
+        // Frozen children follow an already validated issued parent into its
+        // cut while preserving the actual source date. Older operational facts
+        // remain in their own periods; no child may come from after the cut.
+        const dateInCut =
+          kind === 'invoice_source' || kind === 'commercial_manifest'
+            ? sourceDateAtOrBeforePeriodEndFor(sourceDate, sourceProjectId, sourceTimezone)
+            : sourceDateInPeriodFor(sourceDate, sourceProjectId, sourceTimezone);
+        if (!dateInCut) reasons.push(`${kind}:${sourceId}:effective_date_outside_period`);
       } catch {
         reasons.push(`${kind}:${sourceId}:invalid_effective_date`);
       }

@@ -1,25 +1,30 @@
 {
-  "guidePages": 172,
-  "totalPages": 178,
+  "guidePages": 197,
+  "totalPages": 203,
   "contents": [
     [
       "Start here \u00b7 Owner access and this guide",
-      5,
+      6,
       "owner-first-access"
     ],
     [
+      "Before practising \u00b7 obtain a separate training environment",
+      7,
+      "before-practising"
+    ],
+    [
       "Owner navigation \u00b7 choose the workspace",
-      6,
+      8,
       "owner-navigation"
     ],
     [
       "Person, role, assignment and review permission",
-      7,
+      9,
       "owner-access-model"
     ],
     [
       "Create workforce access \u00b7 exact controls",
-      8,
+      10,
       "owner-team-onboarding"
     ],
     [
@@ -28,308 +33,368 @@
       "bbs-inspect-or-create"
     ],
     [
-      "Initial data sheet \u00b7 before the first work record",
+      "Understand the operating cycle",
       14,
-      "bbs-initial-sheet"
-    ],
-    [
-      "Translate the contract into independent settings",
-      15,
-      "contract-decisions"
-    ],
-    [
-      "Overtime and full units \u00b7 verify both sides",
-      16,
-      "overtime-reference"
-    ],
-    [
-      "1 \u00b7 Understand the complete workflow",
-      17,
       "chapter-1"
     ],
     [
-      "2 \u00b7 Create a client and project",
-      19,
+      "Create a client and project",
+      16,
       "chapter-2"
     ],
     [
       "Project, client and budget field reference",
-      20,
+      17,
       "client-fields"
     ],
     [
       "Optional worker table during project creation",
-      27,
+      24,
       "creation-people"
     ],
     [
-      "3 \u00b7 Project defaults and person overrides",
+      "Initial data sheet \u00b7 before the first work record",
+      29,
+      "bbs-initial-sheet"
+    ],
+    [
+      "Project defaults and person overrides",
       30,
       "chapter-3"
     ],
     [
-      "4 \u00b7 J&A issuer and invoice details",
+      "Translate the contract into independent settings",
       33,
+      "contract-decisions"
+    ],
+    [
+      "J&A issuer and invoice details",
+      34,
       "chapter-4"
     ],
     [
-      "5 \u00b7 Crew chief: hourly billing and hourly pay",
-      36,
+      "Crew chief: hourly billing and hourly pay",
+      37,
       "chapter-5"
     ],
     [
-      "6 \u00b7 Technician 1: full daily customer charge",
-      39,
+      "Technician 1: full daily customer charge",
+      40,
       "chapter-6"
     ],
     [
-      "7 \u00b7 Technician 2: weekly charge, fixed-period pay",
-      42,
+      "Technician 2: weekly charge, fixed-period pay",
+      43,
       "chapter-7"
     ],
     [
-      "8 \u00b7 More compensation and expense options",
-      45,
+      "More compensation and expense options",
+      46,
       "chapter-8"
     ],
     [
       "Customer hourly/daily/weekly unit meanings",
-      46,
+      47,
       "billing-unit-meaning"
     ],
     [
-      "9 \u00b7 Assign the crew and chief",
-      47,
+      "Configure overtime \u00b7 separate customer, worker and cost rules",
+      48,
+      "overtime-reference"
+    ],
+    [
+      "Daily minimum, caps and forecast \u00b7 reference exercises",
+      50,
+      "alternative-contracts"
+    ],
+    [
+      "Assign the crew and chief",
+      51,
       "chapter-9"
     ],
     [
-      "10 \u00b7 Record and submit time",
-      51,
-      "chapter-10"
-    ],
-    [
-      "11 \u00b7 Stage 1: 35 approved actual hours",
+      "Supplier setup and personnel \u00b7 exact tested controls",
       53,
-      "chapter-11"
+      "suppliers-owner"
     ],
     [
-      "12 \u00b7 Record expenses and a shared receipt",
+      "Team role, external profile and access removal",
+      55,
+      "supplier-access-lifecycle"
+    ],
+    [
+      "Separate labor and expense billing streams",
       56,
-      "chapter-12"
-    ],
-    [
-      "13 \u00b7 Four approved, Finance-reviewed expenses",
-      60,
-      "chapter-13"
-    ],
-    [
-      "14 \u00b7 Worker and chief views",
-      62,
-      "chapter-14"
-    ],
-    [
-      "15 \u00b7 Separate labor and expense billing streams",
-      65,
       "chapter-15"
     ],
     [
       "Billing stream prerequisites",
-      66,
+      57,
       "stream-prerequisites"
     ],
     [
       "Stream field meanings and defaults",
-      67,
+      58,
       "stream-core-fields"
     ],
     [
-      "16 \u00b7 Create the 35-hour client invoice",
-      72,
-      "chapter-16"
-    ],
-    [
-      "Invoice prerequisites and 12 review stages",
-      73,
-      "invoice-prerequisites"
-    ],
-    [
-      "17 \u00b7 Create the client expense invoice",
-      78,
-      "chapter-17"
-    ],
-    [
-      "18 \u00b7 One invoice with hourly, daily and weekly units",
-      80,
-      "chapter-18"
-    ],
-    [
-      "19 \u00b7 Issuer coverage and legal revisions",
-      82,
+      "Issuer coverage and legal revisions",
+      63,
       "chapter-19"
     ],
     [
-      "20 \u00b7 Edit a draft and download its PDF",
-      83,
-      "chapter-20"
+      "Planning, skills and availability \u00b7 tested lab cycle",
+      64,
+      "planning-skills-availability"
     ],
     [
-      "Invoice edit/save scope",
-      84,
-      "invoice-edit-fields"
+      "Owner weekly entry \u00b7 actual hours and layout copy",
+      65,
+      "planning-owner-time"
     ],
     [
-      "21 \u00b7 Approve, issue and send to the client",
-      87,
-      "chapter-21"
+      "Record and submit time",
+      68,
+      "chapter-10"
     ],
     [
-      "22 \u00b7 Final checks and troubleshooting",
-      88,
-      "chapter-22"
+      "Record expenses and a shared receipt",
+      71,
+      "chapter-12"
+    ],
+    [
+      "Foreign-currency expense \u00b7 supported escalation",
+      76,
+      "foreign-currency-remedy"
+    ],
+    [
+      "Review an active queue \u00b7 Owner and Finance handoff",
+      77,
+      "operational-review"
     ],
     [
       "Correct time by its current state",
-      89,
+      80,
       "correction-states"
     ],
     [
       "Worked correction \u00b7 eight hours should be six",
-      90,
+      81,
       "correction-worked"
     ],
     [
-      "Review an active queue \u00b7 Owner and Finance handoff",
-      96,
-      "operational-review"
+      "Stage 1: 35 approved actual hours",
+      89,
+      "chapter-11"
+    ],
+    [
+      "Four approved, Finance-reviewed expenses",
+      91,
+      "chapter-13"
     ],
     [
       "Reports and customer acceptance \u00b7 distinct evidence",
-      101,
+      94,
       "report-model"
     ],
     [
       "Create and review a Daily report",
-      102,
+      95,
       "daily-report-procedure"
     ],
     [
+      "Technical / PLC report \u00b7 tested review procedure",
+      98,
+      "technical-report-procedure"
+    ],
+    [
       "Generate the customer-safe period file",
-      105,
+      100,
       "period-report-procedure"
     ],
     [
       "Record genuine sign-off against the exact version",
-      108,
+      103,
       "signoff-evidence"
     ],
     [
+      "Training acceptance, invalidation and a replacement version",
+      105,
+      "signoff-simulated-completion"
+    ],
+    [
+      "Create the 35-hour client invoice",
+      108,
+      "chapter-16"
+    ],
+    [
+      "Invoice prerequisites and 12 review stages",
+      109,
+      "invoice-prerequisites"
+    ],
+    [
+      "Create the client expense invoice",
+      114,
+      "chapter-17"
+    ],
+    [
+      "One invoice with hourly, daily and weekly units",
+      116,
+      "chapter-18"
+    ],
+    [
+      "Edit a draft and download its PDF",
+      118,
+      "chapter-20"
+    ],
+    [
+      "Invoice edit/save scope",
+      119,
+      "invoice-edit-fields"
+    ],
+    [
+      "Pre-issue checkpoint and troubleshooting",
+      122,
+      "chapter-22"
+    ],
+    [
       "Choose numbering \u00b7 business approval and training data",
-      111,
+      123,
       "final-numbering"
     ],
     [
       "Final invoice issuance \u00b7 exact tested progression",
-      113,
+      125,
       "final-issue-procedure"
     ],
     [
-      "Deliver an issued invoice and check the result",
-      115,
+      "Dispatch \u00b7 explicit email consent and failure recovery",
+      127,
       "invoice-dispatch"
     ],
     [
+      "Issued correction \u00b7 linked credit and void safeguards",
+      129,
+      "issued-correction"
+    ],
+    [
       "Record collections \u00b7 partial, later and correction",
-      116,
+      131,
       "collections-procedure"
     ],
     [
-      "Reimburse a worker expense \u00b7 exact tested register",
-      117,
-      "expense-reimbursement"
-    ],
-    [
-      "Accounting Pack \u00b7 generate, review and finalize",
-      119,
-      "accounting-pack"
-    ],
-    [
-      "Finance figures \u00b7 economic position versus cash",
-      120,
-      "economic-meaning"
-    ],
-    [
-      "Planning and Owner time-entry tools",
-      121,
-      "planning-owner-time"
-    ],
-    [
-      "Suppliers and external personnel \u00b7 operating order",
-      124,
-      "suppliers-owner"
-    ],
-    [
-      "Project lifecycle, documents and history",
-      125,
-      "owner-close-and-history"
-    ],
-    [
-      "Notifications, Profile and recovery",
-      126,
-      "owner-profile-and-help"
-    ],
-    [
-      "23 \u00b7 Different worker payment periods and dates",
-      127,
+      "Different worker payment periods and dates",
+      133,
       "worker-schedules"
     ],
     [
-      "24 \u00b7 Spreadsheet exports: hours, costs and revenue",
-      140,
+      "Reimburse a worker expense \u00b7 exact tested register",
+      147,
+      "expense-reimbursement"
+    ],
+    [
+      "Worker and chief views",
+      149,
+      "chapter-14"
+    ],
+    [
+      "Finance figures \u00b7 economic position versus cash",
+      152,
+      "economic-meaning"
+    ],
+    [
+      "Spreadsheet exports: hours, costs and revenue",
+      153,
       "spreadsheet-exports"
     ],
     [
-      "Technical / PLC report \u00b7 tested review procedure",
-      162,
-      "technical-report-procedure"
+      "Reconcile internal costing with compensation owed",
+      157,
+      "cost-reconciliation"
     ],
     [
       "After lifecycle XLSX \u00b7 compare a second snapshot",
-      164,
+      176,
       "after-lifecycle-workbook"
     ],
     [
+      "Weekly close \u00b7 reviewed sources and a later arrival",
+      180,
+      "weekly-close-procedure"
+    ],
+    [
+      "Project closure and archive \u00b7 exact tested empty-project cycle",
+      182,
+      "owner-close-and-history"
+    ],
+    [
+      "Accounting Pack \u00b7 generate, review and finalize",
+      183,
+      "accounting-pack"
+    ],
+    [
+      "Accounting demo \u00b7 reviewed October pack finalized",
+      184,
+      "accounting-success"
+    ],
+    [
+      "Accounting period \u00b7 invoices, cash and older work dates",
+      185,
+      "accounting-period-reconciliation"
+    ],
+    [
       "Accounting error \u00b7 understand the retained dates",
-      168,
+      188,
       "accounting-gap-remedy"
     ],
     [
+      "Documents \u00b7 register, classify and recover a private file",
+      190,
+      "private-documents"
+    ],
+    [
+      "Audit, notifications, security and Help \u00b7 exact scope",
+      192,
+      "owner-profile-and-help"
+    ],
+    [
       "UX corrections and remaining operating limits",
-      170,
+      193,
       "ux-improvements"
     ],
     [
-      "Verified scope \u00b7 read this before copying an example",
-      171,
+      "Owner completion checklist \u00b7 verify the business result",
+      194,
+      "owner-task-checklist"
+    ],
+    [
+      "Validation matrix \u00b7 completed, reference and blocked",
+      195,
       "verification-scope"
     ],
     [
+      "Evidence history \u00b7 keep snapshots and outcomes separate",
+      196,
+      "testing-history"
+    ],
+    [
       "Final issued invoice PDFs \u00b7 original downloads",
-      172,
+      197,
       "appendices"
     ],
     [
       "Appendix A \u00b7 Actual labor PDF",
-      173,
+      198,
       "native-a"
     ],
     [
       "Appendix B \u00b7 Actual expense PDF",
-      175,
+      200,
       "native-b"
     ],
     [
       "Appendix C \u00b7 Actual hour/day/week PDF",
-      177,
+      202,
       "native-c"
     ]
   ],
@@ -339,1204 +404,1576 @@
       "title": "BBS \u00b7 Project to client invoices",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
     },
     {
       "key": "contents-1",
-      "title": "Contents \u00b7 Setup and operations",
+      "title": "Contents \u00b7 Course tasks (1/4)",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
     },
     {
       "key": "contents-2",
-      "title": "Contents \u00b7 Billing and PDFs",
+      "title": "Contents \u00b7 Course tasks (2/4)",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
     },
     {
       "key": "contents-3",
-      "title": "Contents \u00b7 Worker payments and spreadsheet exports",
+      "title": "Contents \u00b7 Course tasks (3/4)",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "contents-4",
+      "title": "Contents \u00b7 Course tasks (4/4)",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
     },
     {
       "key": "owner-first-access",
       "title": "Start here \u00b7 Owner access and this guide",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "before-practising",
+      "title": "Before practising \u00b7 obtain a separate training environment",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
     },
     {
       "key": "owner-navigation",
       "title": "Owner navigation \u00b7 choose the workspace",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
     },
     {
       "key": "owner-access-model",
       "title": "Person, role, assignment and review permission",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
     },
     {
       "key": "owner-team-onboarding",
       "title": "Create workforce access \u00b7 exact controls",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
     },
     {
       "key": "lab-team-access-image",
       "title": "Owner \u00b7 create local access before assignment",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
       "key": "lab-team-active-image",
       "title": "Owner \u00b7 new active training account, zero assignments",
       "toc": false,
       "wide": true,
-      "figure": true
-    },
-    {
-      "key": "lab-assignment-image",
-      "title": "Owner \u00b7 assign the account to a dated project",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "lab-assignment-result-image",
-      "title": "Owner \u00b7 account now has one saved assignment",
-      "toc": false,
-      "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
       "key": "bbs-inspect-or-create",
       "title": "Two learning paths \u00b7 inspect or build",
       "toc": true,
       "wide": false,
-      "figure": false
-    },
-    {
-      "key": "bbs-initial-sheet",
-      "title": "Initial data sheet \u00b7 before the first work record",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "contract-decisions",
-      "title": "Translate the contract into independent settings",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "overtime-reference",
-      "title": "Overtime and full units \u00b7 verify both sides",
-      "toc": true,
-      "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "chapter-1",
-      "title": "1 \u00b7 Understand the complete workflow",
+      "title": "Understand the operating cycle",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "project-prerequisites",
       "title": "Before creating the project",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "chapter-2",
-      "title": "2 \u00b7 Create a client and project",
+      "title": "Create a client and project",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "client-fields",
       "title": "Client fields \u00b7 what to enter",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "project-basics-image",
       "title": "Create project \u00b7 required and optional basics",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "project-fields",
       "title": "Project fields \u00b7 basics and dates",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "commercial-project",
       "title": "Commercial defaults \u00b7 models and hours",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "commercial-image",
       "title": "Project commercial defaults",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "budget-fields",
       "title": "Budgets and reporting \u00b7 optional controls",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "budget-image",
       "title": "Project budgets and report requirements",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "creation-people",
       "title": "Optional worker table during creation",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "creation-assignment-image",
       "title": "Optional assignments \u00b7 worker, dates and terms source",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "creation-terms-image",
       "title": "Optional assignment \u00b7 individual terms enlarged",
       "toc": false,
       "wide": false,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "lab-assignment-image",
+      "title": "Owner \u00b7 assign the account to a dated project",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-assignment-result-image",
+      "title": "Owner \u00b7 account now has one saved assignment",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "bbs-initial-sheet",
+      "title": "Initial data sheet \u00b7 before the first work record",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "chapter-3",
-      "title": "3 \u00b7 Project defaults and person overrides",
+      "title": "Project defaults and person overrides",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "find-person-image",
       "title": "Where to find Review each person",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "dated-terms",
       "title": "Effective dates, overrides and bulk controls",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "contract-decisions",
+      "title": "Translate the contract into independent settings",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "chapter-4",
-      "title": "4 \u00b7 J&A issuer and invoice details",
+      "title": "J&A issuer and invoice details",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "issuer-setup-image",
       "title": "Project billing \u00b7 issuer, taxes, cadence and delivery",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "issuer-directories",
       "title": "Issuer settings and tax profiles",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "chapter-5",
-      "title": "5 \u00b7 Crew chief: hourly billing and hourly pay",
+      "title": "Crew chief: hourly billing and hourly pay",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "person-5-rates",
       "title": "Person terms \u00b7 customer charge, cost and worker pay",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "person-5-expenses",
       "title": "Person terms \u00b7 reimbursement and customer expense recovery",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "chapter-6",
-      "title": "6 \u00b7 Technician 1: full daily customer charge",
+      "title": "Technician 1: full daily customer charge",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "person-6-rates",
       "title": "Person terms \u00b7 customer charge, cost and worker pay",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "person-6-expenses",
       "title": "Person terms \u00b7 reimbursement and customer expense recovery",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "chapter-7",
-      "title": "7 \u00b7 Technician 2: weekly charge, fixed-period pay",
+      "title": "Technician 2: weekly charge, fixed-period pay",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "person-7-rates",
       "title": "Person terms \u00b7 customer charge, cost and worker pay",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "person-7-expenses",
       "title": "Person terms \u00b7 reimbursement and customer expense recovery",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "chapter-8",
-      "title": "8 \u00b7 More compensation and expense options",
+      "title": "More compensation and expense options",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "billing-unit-meaning",
       "title": "Customer unit and worker compensation \u00b7 two decisions",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "overtime-reference",
+      "title": "Configure overtime \u00b7 separate customer, worker and cost rules",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "worker-trigger-limits",
+      "title": "Percentage compensation \u00b7 precise basis and trigger",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "alternative-contracts",
+      "title": "Daily minimum, caps and forecast \u00b7 reference exercises",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "chapter-9",
-      "title": "9 \u00b7 Assign the crew and chief",
+      "title": "Assign the crew and chief",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "assign-chief-image",
       "title": "Owner \u00b7 assigning the crew chief",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
-      "key": "chief-hours-image",
-      "title": "Chief \u00b7 shared or individual team hours",
-      "toc": false,
+      "key": "suppliers-owner",
+      "title": "Supplier setup and personnel \u00b7 exact tested controls",
+      "toc": true,
       "wide": false,
-      "figure": true
+      "figure": false,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
-      "key": "chief-receipt-image",
-      "title": "Chief \u00b7 one shared crew receipt",
+      "key": "supplier-example-image",
+      "title": "Supplier setup, profile and installation authorization",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
-      "key": "chapter-10",
-      "title": "10 \u00b7 Record and submit time",
+      "key": "supplier-access-lifecycle",
+      "title": "Team role, external profile and access removal",
       "toc": true,
       "wide": false,
-      "figure": false
-    },
-    {
-      "key": "worker-time-image",
-      "title": "Worker \u00b7 Log time fields",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "chapter-11",
-      "title": "11 \u00b7 Stage 1: 35 approved actual hours",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "approved-time-image",
-      "title": "Stage 1 \u00b7 six approved records, 35 hours",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "finance-complete-image",
-      "title": "Finance review \u00b7 completed queue",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "chapter-12",
-      "title": "12 \u00b7 Record expenses and a shared receipt",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "expense-entry-fields",
-      "title": "Expense-entry fields \u00b7 amount and evidence",
-      "toc": false,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "expense-source-image",
-      "title": "Record expense \u00b7 project, date and category",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "expense-money-image",
-      "title": "Record expense \u00b7 amount, payer and evidence",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "chapter-13",
-      "title": "13 \u00b7 Four approved, Finance-reviewed expenses",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "approved-expense-image",
-      "title": "Stage 1 \u00b7 the four approved expenses",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "chapter-14",
-      "title": "14 \u00b7 Worker and chief views",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "worker-pay-summary-image",
-      "title": "Worker My Pay \u00b7 amount and project period",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "worker-pay-activity-image",
-      "title": "Worker My Pay \u00b7 supporting activities",
-      "toc": false,
-      "wide": true,
-      "figure": true
+      "figure": false,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
       "key": "chapter-15",
-      "title": "15 \u00b7 Separate labor and expense billing streams",
+      "title": "Separate labor and expense billing streams",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "stream-prerequisites",
       "title": "Prerequisites \u00b7 creating a billing stream",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "stream-core-fields",
       "title": "New billing stream \u00b7 project, sources and timing",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "stream-cadence-image",
       "title": "New billing stream \u00b7 source and cadence controls",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "stream-delivery-fields",
       "title": "New billing stream \u00b7 delivery and defaults",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "stream-delivery-image",
       "title": "New billing stream \u00b7 recipient, PO, terms and automation",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "cadence-options",
       "title": "Cadence options \u00b7 which period do they mean?",
       "toc": false,
       "wide": false,
-      "figure": false
-    },
-    {
-      "key": "chapter-16",
-      "title": "16 \u00b7 Create the 35-hour client invoice",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "invoice-prerequisites",
-      "title": "Prerequisites \u00b7 creating an invoice draft",
-      "toc": false,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "invoice-wizard",
-      "title": "Create invoice \u00b7 every review step",
-      "toc": false,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "invoice-project-image",
-      "title": "Create invoice \u00b7 project/stream and review stages",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "invoice-period-image",
-      "title": "Create invoice \u00b7 service-period dates",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "labor-lines-image",
-      "title": "Labor draft \u00b7 six sources, USD 2,230",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "chapter-17",
-      "title": "17 \u00b7 Create the client expense invoice",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "expense-lines-image",
-      "title": "Customer expense draft \u00b7 USD 182",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "chapter-18",
-      "title": "18 \u00b7 One invoice with hourly, daily and weekly units",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "mixed-lines-image",
-      "title": "Labor draft \u00b7 hours, full day and full week",
-      "toc": false,
-      "wide": true,
-      "figure": true
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "chapter-19",
-      "title": "19 \u00b7 Issuer coverage and legal revisions",
+      "title": "Issuer coverage and legal revisions",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
-      "key": "chapter-20",
-      "title": "20 \u00b7 Edit a draft and download its PDF",
+      "key": "planning-skills-availability",
+      "title": "Planning, skills and availability \u00b7 tested lab cycle",
       "toc": true,
       "wide": false,
-      "figure": false
-    },
-    {
-      "key": "invoice-edit-fields",
-      "title": "Invoice detail edits \u00b7 where each value is saved",
-      "toc": false,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "invoice-dates-image",
-      "title": "Draft details \u00b7 saved invoice and due dates",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "pdf-button-image",
-      "title": "Download the actual draft PDF",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "chapter-21",
-      "title": "21 \u00b7 Approve, issue and send to the client",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "chapter-22",
-      "title": "22 \u00b7 Final checks and troubleshooting",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "correction-states",
-      "title": "Correct time by its current state",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "correction-worked",
-      "title": "Worked correction \u00b7 eight hours should be six",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "lab-correction-form-image",
-      "title": "Returned source \u00b7 six-hour owner correction",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "lab-correction-saved-image",
-      "title": "Linked correction \u00b7 original eight hours preserved",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "lab-correction-review-image",
-      "title": "Correction submitted \u00b7 ready for review",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "lab-direct-correction-submit-image",
-      "title": "Linked correction \u00b7 individual Submit control",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "lab-direct-correction-result-image",
-      "title": "Linked correction \u00b7 saved Submitted state",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "operational-review",
-      "title": "Review an active queue \u00b7 Owner and Finance handoff",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "lab-review-active-image",
-      "title": "Active review \u00b7 return eight hours with a reason",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "lab-review-result-image",
-      "title": "Returned source \u00b7 saved Needs changes state",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "lab-finance-active-image",
-      "title": "Finance review \u00b7 six corrected hours and commercial treatment",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "lab-finance-reviewed-image",
-      "title": "Corrected time \u00b7 Finance review saved Billable",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "report-model",
-      "title": "Reports and customer acceptance \u00b7 distinct evidence",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "daily-report-procedure",
-      "title": "Create and review a Daily report",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "lab-daily-form-image",
-      "title": "Daily report \u00b7 actual worker/date and completed work",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "lab-daily-review-image",
-      "title": "Submitted Daily report \u00b7 active approval action",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "period-report-procedure",
-      "title": "Generate the customer-safe period file",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "lab-customer-pdf-ready-image",
-      "title": "Approved customer period \u00b7 English PDF Ready and Download",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "lab-period-refresh-image",
-      "title": "Refresh period records \u00b7 customer-facing content choice",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "signoff-evidence",
-      "title": "Record genuine sign-off against the exact version",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "lab-signoff-ready-image",
-      "title": "Customer report \u00b7 Ready for signature, acceptance pending",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "lab-signoff-form-image",
-      "title": "Exact version binding \u00b7 signed-copy evidence form",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "final-numbering",
-      "title": "Choose numbering \u00b7 business approval and training data",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "lab-numbering-form-image",
-      "title": "Training numbering \u00b7 synthetic approval timestamp",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "final-issue-procedure",
-      "title": "Final invoice issuance \u00b7 exact tested progression",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "lab-issued-ready-image",
-      "title": "Final invoice \u00b7 Ready download and lifecycle controls",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "invoice-dispatch",
-      "title": "Deliver an issued invoice and check the result",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "collections-procedure",
-      "title": "Record collections \u00b7 partial, later and correction",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "expense-reimbursement",
-      "title": "Reimburse a worker expense \u00b7 exact tested register",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "lab-reimbursed-image",
-      "title": "Reimbursement results \u00b7 three expenses, USD 180",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "accounting-pack",
-      "title": "Accounting Pack \u00b7 generate, review and finalize",
-      "toc": true,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "economic-meaning",
-      "title": "Finance figures \u00b7 economic position versus cash",
-      "toc": true,
-      "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
       "key": "planning-owner-time",
-      "title": "Planning and Owner time-entry tools",
+      "title": "Owner weekly entry \u00b7 actual hours and layout copy",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
       "key": "lab-week-image",
       "title": "Owner \u00b7 enter actual work in the weekly table",
       "toc": false,
       "wide": false,
-      "figure": true
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
-      "key": "lab-week-result-image",
-      "title": "Owner \u00b7 saved daily drafts, 9.5 hours",
+      "key": "lab-week-register-image",
+      "title": "Saved original time and linked corrections \u00b7 current register",
       "toc": false,
-      "wide": false,
-      "figure": true
+      "wide": true,
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
-      "key": "suppliers-owner",
-      "title": "Suppliers and external personnel \u00b7 operating order",
+      "key": "chapter-10",
+      "title": "Record and submit time",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
-      "key": "owner-close-and-history",
-      "title": "Project lifecycle, documents and history",
+      "key": "worker-time-image",
+      "title": "Worker \u00b7 Log time fields",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "chief-hours-image",
+      "title": "Chief \u00b7 shared or individual team hours",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "chapter-12",
+      "title": "Record expenses and a shared receipt",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
-      "key": "owner-profile-and-help",
-      "title": "Notifications, Profile and recovery",
+      "key": "expense-entry-fields",
+      "title": "Expense-entry fields \u00b7 amount and evidence",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "expense-source-image",
+      "title": "Record expense \u00b7 project, date and category",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "expense-money-image",
+      "title": "Record expense \u00b7 amount, payer and evidence",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "chief-receipt-image",
+      "title": "Chief \u00b7 one shared crew receipt",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "foreign-currency-remedy",
+      "title": "Foreign-currency expense \u00b7 supported escalation",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
-      "key": "worker-schedules",
-      "title": "23 \u00b7 Different worker payment periods and dates",
+      "key": "operational-review",
+      "title": "Review an active queue \u00b7 Owner and Finance handoff",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
-      "key": "worker-payment-prerequisites",
-      "title": "Worker payment prerequisites and period selection",
+      "key": "lab-review-active-image",
+      "title": "Active review \u00b7 return eight hours with a reason",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
-      "key": "worker-settlement-steps",
-      "title": "Finalize one worker\u2019s compensation \u00b7 exact steps",
-      "toc": false,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "worker-period-image",
-      "title": "Actual BBS settlement form \u00b7 worker and dates",
+      "key": "lab-review-result-image",
+      "title": "Returned source \u00b7 saved Needs changes state",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
-      "key": "worker-period-examples",
-      "title": "Three saved BBS compensation periods",
-      "toc": false,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "lab-final-settlements-image",
-      "title": "Compensation sources \u00b7 corrected hours and retained project",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "worker-planning-steps",
-      "title": "Set different expected payment dates \u00b7 exact steps",
-      "toc": false,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "worker-dates-image",
-      "title": "Actual payment planning \u00b7 independent saved dates",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "worker-actual-payment",
-      "title": "Record actual payment only after a real transfer",
-      "toc": false,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "lab-payment-reversal-image",
-      "title": "Worker payment \u00b7 retained payment and reversal",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "lab-payment-complete-image",
-      "title": "Worker payment \u00b7 finalized obligation fully paid in training",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "worker-payment-register-image",
-      "title": "Actual payment register \u00b7 shown without submitting",
-      "toc": false,
-      "wide": false,
-      "figure": true
-    },
-    {
-      "key": "worker-trigger-limits",
-      "title": "Percentage settlement triggers and tested limits",
-      "toc": false,
-      "wide": false,
-      "figure": false
-    },
-    {
-      "key": "spreadsheet-exports",
-      "title": "24 \u00b7 Spreadsheet exports: hours, costs and revenue",
+      "key": "correction-states",
+      "title": "Correct time by its current state",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
     },
     {
-      "key": "finance-export-button-image",
-      "title": "Actual app \u00b7 download the project finance workbook",
-      "toc": false,
-      "wide": true,
-      "figure": true
+      "key": "correction-worked",
+      "title": "Worked correction \u00b7 eight hours should be six",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
-      "key": "spreadsheet-sheets",
-      "title": "Pre-issue finance workbook \u00b7 what each tab means",
+      "key": "lab-correction-form-image",
+      "title": "Returned source \u00b7 six-hour owner correction",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
-      "key": "spreadsheet-reconciliation",
-      "title": "Pre-issue snapshot \u00b7 economic meanings",
+      "key": "lab-correction-saved-image",
+      "title": "Linked correction \u00b7 original eight hours preserved",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
-      "key": "71-xlsx-summary-economics",
-      "title": "Summary \u00b7 hours, costs and potential revenue",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "72-xlsx-summary-cash",
-      "title": "Summary \u00b7 issued invoices, collection and forecast",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "73-xlsx-labor-hours",
-      "title": "Labor \u00b7 actual and billable hours (rows 1\u20137)",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "74-xlsx-labor-economics",
-      "title": "Labor \u00b7 rates and economics (rows 1\u20137)",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "73b-xlsx-labor-hours",
-      "title": "Labor \u00b7 actual and billable hours (rows 8\u201313)",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "74b-xlsx-labor-economics",
-      "title": "Labor \u00b7 rates and economics (rows 8\u201313)",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "75-xlsx-expense-payers",
-      "title": "Expenses \u00b7 payer, receipt and reimbursement",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "76-xlsx-expense-recovery",
-      "title": "Expenses \u00b7 company cost and customer recovery",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "77-xlsx-invoices",
-      "title": "Invoices \u00b7 draft totals and zero collections",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "78-xlsx-invoice-expenses",
-      "title": "Invoice expenses \u00b7 the three charged expense lines",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "79-xlsx-unbilled",
-      "title": "Unbilled WIP \u00b7 approved amounts not issued (rows 1\u20139)",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "79b-xlsx-unbilled",
-      "title": "Unbilled WIP \u00b7 approved amounts not issued (rows 10\u201316)",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "80-xlsx-expense-register",
-      "title": "Expense register export \u00b7 the four source purchases",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "82-xlsx-expense-reimbursement",
-      "title": "Expense register export \u00b7 reimbursement status",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "81-xlsx-expense-totals",
-      "title": "Expense register export \u00b7 totals by currency",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "expense-workbook-steps",
-      "title": "Download the separate expense register workbook",
+      "key": "lab-correction-review-image",
+      "title": "Correction submitted \u00b7 ready for review",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
-      "key": "expense-export-button-image",
-      "title": "Actual app \u00b7 export only the filtered BBS expenses",
-      "toc": false,
-      "wide": true,
-      "figure": true
-    },
-    {
-      "key": "spreadsheet-verified-scope",
-      "title": "Spreadsheet verification and original workbook attachments",
+      "key": "lab-direct-correction-submit-image",
+      "title": "Linked correction \u00b7 individual Submit control",
       "toc": false,
       "wide": false,
-      "figure": false
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-direct-correction-result-image",
+      "title": "Linked correction \u00b7 saved Submitted state",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-finance-active-image",
+      "title": "Finance review \u00b7 six corrected hours and commercial treatment",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-finance-reviewed-image",
+      "title": "Corrected time \u00b7 Finance review saved Billable",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "chapter-11",
+      "title": "Stage 1: 35 approved actual hours",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "approved-time-image",
+      "title": "Stage 1 \u00b7 six approved records, 35 hours",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "chapter-13",
+      "title": "Four approved, Finance-reviewed expenses",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "approved-expense-image",
+      "title": "Stage 1 \u00b7 the four approved expenses",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "finance-complete-image",
+      "title": "Finance review \u00b7 completed queue",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "report-model",
+      "title": "Reports and customer acceptance \u00b7 distinct evidence",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "daily-report-procedure",
+      "title": "Create and review a Daily report",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "lab-daily-form-image",
+      "title": "Daily report \u00b7 actual worker/date and completed work",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-daily-review-image",
+      "title": "Submitted Daily report \u00b7 active approval action",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
       "key": "technical-report-procedure",
       "title": "Technical / PLC report \u00b7 tested review procedure",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
     },
     {
       "key": "lab-technical-approval-image",
-      "title": "Submitted technical report \u00b7 Approve report action",
+      "title": "Technical report \u00b7 approval and readable selected details",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "period-report-procedure",
+      "title": "Generate the customer-safe period file",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "lab-period-refresh-image",
+      "title": "Refresh period records \u00b7 customer-facing content choice",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-customer-pdf-ready-image",
+      "title": "Approved customer period \u00b7 English PDF Ready and Download",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "signoff-evidence",
+      "title": "Record genuine sign-off against the exact version",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "lab-signoff-form-image",
+      "title": "Exact version binding \u00b7 signed-copy evidence form",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "signoff-simulated-completion",
+      "title": "Training acceptance, invalidation and a replacement version",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-signoff-completed-image",
+      "title": "Synthetic v2 acceptance \u00b7 exact signer/version binding",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-signoff-replacement-image",
+      "title": "Replacement v3 \u00b7 Ready after fresh approval and generation",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "chapter-16",
+      "title": "Create the 35-hour client invoice",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "invoice-prerequisites",
+      "title": "Prerequisites \u00b7 creating an invoice draft",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "invoice-wizard",
+      "title": "Create invoice \u00b7 every review step",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "invoice-project-image",
+      "title": "Create invoice \u00b7 project/stream and review stages",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "invoice-period-image",
+      "title": "Create invoice \u00b7 service-period dates",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "labor-lines-image",
+      "title": "Labor draft \u00b7 six sources, USD 2,230",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "chapter-17",
+      "title": "Create the client expense invoice",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "expense-lines-image",
+      "title": "Customer expense draft \u00b7 USD 182",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "chapter-18",
+      "title": "One invoice with hourly, daily and weekly units",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "mixed-lines-image",
+      "title": "Labor draft \u00b7 hours, full day and full week",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "chapter-20",
+      "title": "Edit a draft and download its PDF",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "invoice-edit-fields",
+      "title": "Invoice detail edits \u00b7 where each value is saved",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "invoice-dates-image",
+      "title": "Draft details \u00b7 saved invoice and due dates",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "pdf-button-image",
+      "title": "Download the actual draft PDF",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "chapter-22",
+      "title": "Pre-issue checkpoint and troubleshooting",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "final-numbering",
+      "title": "Choose numbering \u00b7 business approval and training data",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "lab-numbering-form-image",
+      "title": "Training numbering \u00b7 synthetic approval timestamp",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "final-issue-procedure",
+      "title": "Final invoice issuance \u00b7 exact tested progression",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-issued-ready-image",
+      "title": "Issued unpaid labor invoice \u00b7 final Ready PDF",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "invoice-dispatch",
+      "title": "Dispatch \u00b7 explicit email consent and failure recovery",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "New Accounting demo \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-dispatch-image",
+      "title": "Email delivery error \u00b7 actual queued-event retry state",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "New Accounting demo \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "issued-correction",
+      "title": "Issued correction \u00b7 linked credit and void safeguards",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "New Accounting demo \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-issued-adjustment-image",
+      "title": "Linked issued credit \u00b7 Ready PDF and separate credit balance",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "New Accounting demo \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "collections-procedure",
+      "title": "Record collections \u00b7 partial, later and correction",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-collection-image",
+      "title": "Partial reversal \u00b7 original receipt and retained reason",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "New Accounting demo \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "worker-schedules",
+      "title": "Different worker payment periods and dates",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "worker-payment-prerequisites",
+      "title": "Worker payment prerequisites and period selection",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "worker-settlement-steps",
+      "title": "Finalize one worker\u2019s compensation \u00b7 exact steps",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "worker-period-image",
+      "title": "Actual BBS settlement form \u00b7 worker and dates",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "worker-period-examples",
+      "title": "Three saved BBS compensation periods",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "worker-planning-steps",
+      "title": "Set different expected payment dates \u00b7 exact steps",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "worker-dates-image",
+      "title": "Actual payment planning \u00b7 independent saved dates",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "worker-actual-payment",
+      "title": "Record actual payment only after a real transfer",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "worker-payment-register-image",
+      "title": "Initial unpaid baseline \u00b7 actual-payment form",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "lab-initial-settlement-image",
+      "title": "Copied settlement start \u00b7 USD 200 paid, USD 200 remaining",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-partial-worker-payment-image",
+      "title": "Additional partial payment \u00b7 USD 300 paid, USD 100 remaining",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-payment-reversal-image",
+      "title": "Worker payment \u00b7 retained payment and reversal",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-payment-complete-image",
+      "title": "Worker payment \u00b7 finalized obligation fully paid in training",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-final-settlements-image",
+      "title": "Compensation sources \u00b7 corrected hours and retained project",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "expense-reimbursement",
+      "title": "Reimburse a worker expense \u00b7 exact tested register",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-reimbursed-image",
+      "title": "Reimbursement results \u00b7 three expenses, USD 180",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "chapter-14",
+      "title": "Worker and chief views",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "worker-pay-summary-image",
+      "title": "Worker My Pay \u00b7 amount and project period",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "worker-pay-activity-image",
+      "title": "Worker My Pay \u00b7 supporting activities",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "economic-meaning",
+      "title": "Finance figures \u00b7 economic position versus cash",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "spreadsheet-exports",
+      "title": "Spreadsheet exports: hours, costs and revenue",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "finance-export-button-image",
+      "title": "Actual app \u00b7 download the project finance workbook",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "spreadsheet-sheets",
+      "title": "Pre-issue finance workbook \u00b7 what each tab means",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "spreadsheet-reconciliation",
+      "title": "Pre-issue snapshot \u00b7 economic meanings",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "cost-reconciliation",
+      "title": "Reconcile internal costing with compensation owed",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "71-xlsx-summary-economics",
+      "title": "Summary \u00b7 hours, costs and potential revenue",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "72-xlsx-summary-cash",
+      "title": "Summary \u00b7 issued invoices, collection and forecast",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "73-xlsx-labor-hours",
+      "title": "Labor \u00b7 actual and billable hours (rows 1\u20137)",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "74-xlsx-labor-economics",
+      "title": "Labor \u00b7 rates and economics (rows 1\u20137)",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "73b-xlsx-labor-hours",
+      "title": "Labor \u00b7 actual and billable hours (rows 8\u201313)",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "74b-xlsx-labor-economics",
+      "title": "Labor \u00b7 rates and economics (rows 8\u201313)",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "75-xlsx-expense-payers",
+      "title": "Expenses \u00b7 payer, receipt and reimbursement",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "76-xlsx-expense-recovery",
+      "title": "Expenses \u00b7 company cost and customer recovery",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "77-xlsx-invoices",
+      "title": "Invoices \u00b7 draft totals and zero collections",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "78-xlsx-invoice-expenses",
+      "title": "Invoice expenses \u00b7 the three charged expense lines",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "79-xlsx-unbilled",
+      "title": "Unbilled WIP \u00b7 approved amounts not issued (rows 1\u20139)",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "79b-xlsx-unbilled",
+      "title": "Unbilled WIP \u00b7 approved amounts not issued (rows 10\u201316)",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "expense-workbook-steps",
+      "title": "Download the separate expense register workbook",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "expense-export-button-image",
+      "title": "Actual app \u00b7 export only the filtered BBS expenses",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "80-xlsx-expense-register",
+      "title": "Expense register export \u00b7 the four source purchases",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "82-xlsx-expense-reimbursement",
+      "title": "Expense register export \u00b7 reimbursement status",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "81-xlsx-expense-totals",
+      "title": "Expense register export \u00b7 totals by currency",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Original BBS pre-issue \u00b7 Historical snapshot"
+    },
+    {
+      "key": "spreadsheet-verified-scope",
+      "title": "Spreadsheet verification and original workbook attachments",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
     },
     {
       "key": "after-lifecycle-workbook",
       "title": "After lifecycle XLSX \u00b7 compare a second snapshot",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
     },
     {
       "key": "83-xlsx-after-cash",
       "title": "After lifecycle \u00b7 issued invoices and simulated collections",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
     },
     {
       "key": "84-xlsx-after-invoices",
       "title": "After lifecycle \u00b7 three confirmed invoice states",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
     },
     {
       "key": "85-xlsx-after-reimbursements",
       "title": "After lifecycle \u00b7 recorded simulated reimbursements",
       "toc": false,
       "wide": true,
-      "figure": true
+      "figure": true,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "weekly-close-procedure",
+      "title": "Weekly close \u00b7 reviewed sources and a later arrival",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "New Accounting demo \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-weekly-close-image",
+      "title": "Weekly stream \u00b7 Close sources for a chosen week",
+      "toc": false,
+      "wide": false,
+      "figure": true,
+      "context": "New Accounting demo \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "owner-close-and-history",
+      "title": "Project closure and archive \u00b7 exact tested empty-project cycle",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "accounting-pack",
+      "title": "Accounting Pack \u00b7 generate, review and finalize",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "accounting-success",
+      "title": "Accounting demo \u00b7 reviewed October pack finalized",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "New Accounting demo \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "accounting-period-reconciliation",
+      "title": "Accounting period \u00b7 invoices, cash and older work dates",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "New Accounting demo \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-accounting-review-image",
+      "title": "October Ready pack \u00b7 review counts zero for this scope",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "New Accounting demo \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-accounting-finalized-image",
+      "title": "October final version \u00b7 five canonical downloads verified",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "New Accounting demo \u00b7 Read-only demonstration"
     },
     {
       "key": "accounting-gap-remedy",
       "title": "Accounting error \u00b7 understand the retained dates",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Isolated BBS lifecycle \u00b7 Historical coverage error"
     },
     {
       "key": "lab-accounting-blocker-image",
       "title": "Accounting error: your selected period is preserved",
       "toc": false,
       "wide": false,
-      "figure": true
+      "figure": true,
+      "context": "Isolated BBS lifecycle \u00b7 Historical coverage error"
+    },
+    {
+      "key": "private-documents",
+      "title": "Documents \u00b7 register, classify and recover a private file",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "lab-documents-image",
+      "title": "Private document \u00b7 exact classification and saved download controls",
+      "toc": false,
+      "wide": true,
+      "figure": true,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "owner-profile-and-help",
+      "title": "Audit, notifications, security and Help \u00b7 exact scope",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
     },
     {
       "key": "ux-improvements",
       "title": "UX corrections and remaining operating limits",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "owner-task-checklist",
+      "title": "Owner completion checklist \u00b7 verify the business result",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
     },
     {
       "key": "verification-scope",
-      "title": "Verified scope \u00b7 read this before copying an example",
+      "title": "Validation matrix \u00b7 completed, reference and blocked",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
+    },
+    {
+      "key": "testing-history",
+      "title": "Evidence history \u00b7 keep snapshots and outcomes separate",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 Scope stated on this page"
     },
     {
       "key": "appendices",
       "title": "Final issued invoice PDFs \u00b7 original downloads",
       "toc": true,
       "wide": false,
-      "figure": false
+      "figure": false,
+      "context": "Isolated BBS lifecycle \u00b7 Read-only demonstration"
     }
   ]
 }

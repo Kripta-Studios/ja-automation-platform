@@ -1,0 +1,14 @@
+$ vite build --config deployment/vite.jobs.config.ts
+vite v8.2.1 building ssr environment for production...
+
+transforming...✓ 186 modules transformed.
+rendering chunks...
+computing gzip size...
+deployment/jobs-build/alerts.mjs                 1.28 kB
+deployment/jobs-build/storage-safety.mjs         3.51 kB
+deployment/jobs-build/backup-verify.mjs          7.41 kB
+deployment/jobs-build/backup.mjs                10.71 kB
+deployment/jobs-build/continuity-backup.mjs     71.94 kB
+deployment/jobs-build/jobs-run.mjs           1,997.24 kB │ gzip: 435.11 kB
+
+✓ built in 364ms

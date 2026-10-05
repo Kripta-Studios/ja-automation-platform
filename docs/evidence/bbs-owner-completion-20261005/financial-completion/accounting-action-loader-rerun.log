@@ -1,0 +1,40 @@
+
+ RUN  v4.1.11 /home/kripta/ja-manual-main-publish-20261005-side
+
+ ❯ tests/integration/accounting-pack-action.test.ts (2 tests | 2 failed) 11206ms
+     × accepts the exact browser FormData period without rewriting it to a calendar month 5534ms
+     × rejects invalid periods, expired sessions and denied roles 5670ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/integration/accounting-pack-action.test.ts > Accounting Pack action boundary > accepts the exact browser FormData period without rewriting it to a calendar month
+Error: Command failed: /home/kripta/bbs-manual-demo-20261005-side/node-bin/node --experimental-transform-types /home/kripta/ja-manual-main-publish-20261005-side/packages/database/src/demo-seed.ts
+ ❯ seedDemoDatabase tests/integration/accounting-pack-action.test.ts:44:3
+     42|   process.env.JA_MIGRATIONS_PATH = resolve('migrations');
+     43|   process.env.JA_FIXTURE_SENTINEL = fixtureSentinel;
+     44|   execFileSync(
+       |   ^
+     45|     process.execPath,
+     46|     ['--experimental-transform-types', resolve('packages/database/src/…
+ ❯ tests/integration/accounting-pack-action.test.ts:189:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/integration/accounting-pack-action.test.ts > Accounting Pack action boundary > rejects invalid periods, expired sessions and denied roles
+Error: Command failed: /home/kripta/bbs-manual-demo-20261005-side/node-bin/node --experimental-transform-types /home/kripta/ja-manual-main-publish-20261005-side/packages/database/src/demo-seed.ts
+ ❯ seedDemoDatabase tests/integration/accounting-pack-action.test.ts:44:3
+     42|   process.env.JA_MIGRATIONS_PATH = resolve('migrations');
+     43|   process.env.JA_FIXTURE_SENTINEL = fixtureSentinel;
+     44|   execFileSync(
+       |   ^
+     45|     process.execPath,
+     46|     ['--experimental-transform-types', resolve('packages/database/src/…
+ ❯ tests/integration/accounting-pack-action.test.ts:208:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  23:46:30
+   Duration  14.07s (transform 2.19s, setup 0ms, import 2.69s, tests 11.21s, environment 0ms)

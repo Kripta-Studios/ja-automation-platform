@@ -28,7 +28,7 @@ for link in checks['appendixLinks']:
     appendix='abc'.index(link['target'][-1]);x,y,width,height=link['rect']
     left=15*72/25.4+x*.75;top=841.92-16*72/25.4-y*.75
     writer.add_annotation(link['contentsPage'],Link(rect=(left,top-height*.75,left+width*.75,top),target_page_index=layout['guidePages']+appendix*2,fit=Fit.fit()))
-writer.add_metadata({'/Title':'BBS · Owner operating reference and final invoice lab','/Author':'J&A Automation','/Subject':'Illustrated Owner operations; genuinely application-issued isolated training invoices; original pre-issue spreadsheet snapshots','/Keywords':'BBS, Owner, Finance, hourly, daily, weekly, compensation, expenses, final invoice, training, XLSX'})
+writer.add_metadata({'/Title':'BBS · Owner operating reference and final invoice lab','/Author':'J&A Automation','/Subject':'Owner operating course; isolated issued training invoices; historical pre-issue and later lifecycle XLSX; explicit environments and verified/reference boundaries','/Keywords':'BBS, Owner, Finance, hourly, daily, weekly, compensation, expenses, final invoice, training, XLSX'})
 assert len(writer.pages)==layout['totalPages']
 out=DOCS/'BBS_Project_to_Client_Invoices_Guide_EN.pdf';tmp=out.with_suffix('.pdf.tmp')
 with tmp.open('wb') as f:writer.write(f)

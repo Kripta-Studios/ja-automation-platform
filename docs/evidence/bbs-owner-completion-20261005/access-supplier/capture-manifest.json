@@ -1,0 +1,75 @@
+{
+  "scope": "Isolated fictional BBS lab UI only; account navigation excluded; visually reviewed by root",
+  "captures": [
+    {
+      "file": "screenshots/01-supplier-form-desktop.png",
+      "bytes": 20481,
+      "sha256": "2bdaef5f454f86691c4bba5ed3d59da12487ff7ff84b2c3e87cda241a974532b"
+    },
+    {
+      "file": "screenshots/02-external-technician-form-desktop.png",
+      "bytes": 58103,
+      "sha256": "4be3c9a0b7287afef9f13c4909f49d9ad1ee6386058e99005597b959cf916ee1"
+    },
+    {
+      "file": "screenshots/03-access-profile-desktop.png",
+      "bytes": 15337,
+      "sha256": "79d730d45b5356fb96490216fd718b8c7415f94dd31692b162217ec4d7de3773"
+    },
+    {
+      "file": "screenshots/04-access-profile-phone-390.png",
+      "bytes": 15160,
+      "sha256": "e47b069f7527a001a8dcd6f77207ee275bc04aa784b25ca9fa20208781a85f28"
+    },
+    {
+      "file": "screenshots/06-supplier-authorization-desktop.png",
+      "bytes": 16089,
+      "sha256": "51f6b73cda7c71ddde06a3c0acdca650494104b3a247a2ec5b976570159696c7"
+    },
+    {
+      "file": "screenshots/07-supplier-coordinator-form.png",
+      "bytes": 58949,
+      "sha256": "bcbcb5e31da1930166d141af1cfc17d73cfb8d8a867fe89d12657b6f3081e2c9"
+    },
+    {
+      "file": "screenshots/08-technician-assignment-form-desktop.png",
+      "bytes": 15877,
+      "sha256": "7f3766534c12b34435e870c591bbb01c5f81c804b8dcebbff97ccb06b4280724"
+    },
+    {
+      "file": "screenshots/09-project-actions.png",
+      "bytes": 2363,
+      "sha256": "8bfead0f895bed4b6f7d2a1c5c2929d415243baa7fb47e3d2d2ae1185b66b62b"
+    },
+    {
+      "file": "screenshots/11-begin-close-ready.png",
+      "bytes": 24128,
+      "sha256": "23271ceb7029a8dd3a262a3479ff2f8687db7894c4c938c9e083535d416fdda3"
+    },
+    {
+      "file": "screenshots/12-closing-action-panel.png",
+      "bytes": 22704,
+      "sha256": "92fa434d141672c96d83a26abb7ba58488746e316ab45c3e304980e6a3b0efd6"
+    },
+    {
+      "file": "screenshots/13-close-project-ready.png",
+      "bytes": 24770,
+      "sha256": "bb882eda427300f52760547cb37bbc7f61c3f40b32c5f657c5694a078922497d"
+    },
+    {
+      "file": "screenshots/14-archive-option.png",
+      "bytes": 2248,
+      "sha256": "6e64737651dcc72a46e780e8e08dbafa426d23dd8267aa940bf2fcbbc93de7d3"
+    },
+    {
+      "file": "screenshots/15-archive-project-ready.png",
+      "bytes": 4072,
+      "sha256": "dcdd8e1e9c2fa602a9170b1bc273e47b8a807f4ae40fa1babd861a05519f0ce7"
+    },
+    {
+      "file": "screenshots/16-archived-restore-control.png",
+      "bytes": 2175,
+      "sha256": "ce1d689db482cbba12cc257ef1abd6e64a209a7cbb8bb35e304e2cbbc7199321"
+    }
+  ]
+}

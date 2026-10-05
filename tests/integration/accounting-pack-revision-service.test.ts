@@ -267,7 +267,7 @@ async function runConcurrentRevisions(
     () =>
       new Worker(source, {
         eval: true,
-        execArgv: ['--experimental-strip-types'],
+        execArgv: ['--experimental-transform-types'],
         workerData: {
           databasePath,
           input: revisionInput,

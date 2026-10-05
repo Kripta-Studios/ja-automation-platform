@@ -1,0 +1,137 @@
+{
+  "fixture": "All-synthetic independent demo5180; no production principals, accountant approvals, customers, actual work, bank transfers or delivery",
+  "projectId": "01a10ddb-c74f-7114-9e57-1342db537a4f",
+  "projectNumber": "C-0002-P-002",
+  "invoiceMasters": [
+    {
+      "id": "01a10ddb-c8ff-7394-a3a0-8780138f462b",
+      "invoice_number": "DEMO-2026-00001",
+      "state": "partially_paid",
+      "stream_type": "labor",
+      "currency": "USD",
+      "subtotal_minor": 7600000,
+      "tax_minor": 380000,
+      "total_minor": 7980000,
+      "pdf_status": "ready",
+      "pdf_sha256": "0e28d606989e8d74d2c3747771790f83ed5e4d0128d99edae6248ab0bc3fc087",
+      "pdf_byte_length": 356107,
+      "pdf_storage_key": "invoices/01a10ddb-c8ff-7394-a3a0-8780138f462b/2026.10.01.1.pdf",
+      "voided_at": null,
+      "actualCanonicalLength": 356107,
+      "actualCanonicalSha256": "0e28d606989e8d74d2c3747771790f83ed5e4d0128d99edae6248ab0bc3fc087"
+    },
+    {
+      "id": "01a10de6-0f72-72bd-b02d-f1450d244b14",
+      "invoice_number": "DEMO-2026-00002",
+      "state": "issued",
+      "stream_type": "adjustment",
+      "currency": "USD",
+      "subtotal_minor": -10000,
+      "tax_minor": 0,
+      "total_minor": -10000,
+      "pdf_status": "ready",
+      "pdf_sha256": "b0bb8ec6ceb9035c0ecd949b256b2315acbe0e5656135079b643c3c10f634be1",
+      "pdf_byte_length": 353151,
+      "pdf_storage_key": "invoices/01a10de6-0f72-72bd-b02d-f1450d244b14/2026.10.01.1.pdf",
+      "voided_at": null,
+      "actualCanonicalLength": 353151,
+      "actualCanonicalSha256": "b0bb8ec6ceb9035c0ecd949b256b2315acbe0e5656135079b643c3c10f634be1"
+    },
+    {
+      "id": "01a10ded-cfab-764f-8e70-08aa6e1c07fa",
+      "invoice_number": "DEMO-2026-00003",
+      "state": "void",
+      "stream_type": "adjustment",
+      "currency": "USD",
+      "subtotal_minor": 1000,
+      "tax_minor": 0,
+      "total_minor": 1000,
+      "pdf_status": "ready",
+      "pdf_sha256": "68843d7c0655c7880181028f8e05e3068fe9be2d919554b74650a53aa4657a8d",
+      "pdf_byte_length": 354335,
+      "pdf_storage_key": "invoices/01a10ded-cfab-764f-8e70-08aa6e1c07fa/2026.10.01.1.pdf",
+      "voided_at": "2026-10-05T21:18:31.223Z",
+      "actualCanonicalLength": 354335,
+      "actualCanonicalSha256": "68843d7c0655c7880181028f8e05e3068fe9be2d919554b74650a53aa4657a8d"
+    }
+  ],
+  "collections": [
+    {
+      "id": "01a10de3-0e94-747e-bab6-1ab79d1ef1f3",
+      "invoice_id": "01a10ddb-c8ff-7394-a3a0-8780138f462b",
+      "currency": "USD",
+      "amount_minor": 10000,
+      "received_at": "2026-10-05T21:05:46.620Z",
+      "reference": "SYNTHETIC TRAINING ONLY - NO BANK TRANSFER"
+    }
+  ],
+  "collectionReversals": [
+    {
+      "id": "01a10de3-5a5c-768b-9c24-740680093169",
+      "original_payment_id": "01a10de3-0e94-747e-bab6-1ab79d1ef1f3",
+      "invoice_id": "01a10ddb-c8ff-7394-a3a0-8780138f462b",
+      "currency": "USD",
+      "amount_minor": 5000,
+      "effective_at": "2026-10-05T21:06:06.025Z",
+      "reason_code": "entry_correction",
+      "reason_text": "Synthetic training correction: only USD 50 belongs to this invoice"
+    }
+  ],
+  "bookedCollectionNetMinor": 5000,
+  "adjustments": [
+    {
+      "original_invoice_id": "01a10ddb-c8ff-7394-a3a0-8780138f462b",
+      "adjustment_invoice_id": "01a10de6-0f72-72bd-b02d-f1450d244b14",
+      "adjustment_type": "credit",
+      "reason": "SYNTHETIC TRAINING ONLY: credit USD 100 to correct customer charge"
+    },
+    {
+      "original_invoice_id": "01a10ddb-c8ff-7394-a3a0-8780138f462b",
+      "adjustment_invoice_id": "01a10ded-cfab-764f-8e70-08aa6e1c07fa",
+      "adjustment_type": "debit",
+      "reason": "SYNTHETIC TRAINING ONLY: debit for void cancellation lesson"
+    }
+  ],
+  "closedWeeklyPeriod": {
+    "billing_rule_id": "01a10ddb-c8f7-70de-8881-d36cb92e532a",
+    "period_start": "2026-08-10",
+    "period_end": "2026-08-16",
+    "state": "closed",
+    "closed_at": "2026-10-05T21:13:13.789Z"
+  },
+  "lateSource": {
+    "id": "01a10deb-c304-736a-91ef-84c5b2b4d1e9",
+    "work_date": "2026-08-13",
+    "minutes": 30,
+    "approval_state": "approved",
+    "billability_state": "billable",
+    "billing_status": "unlocked",
+    "invoice_id": null,
+    "version": 4
+  },
+  "lateSourceInvoiceLinks": 0,
+  "lateRecoveryDraft": {
+    "id": "01a10def-f4e7-703d-80d4-75b951a8eb7b",
+    "actualNetMinor": 7600000,
+    "actualTaxMinor": 380000,
+    "actualGrossMinor": 7980000,
+    "description": "Fixed-price project fee",
+    "billingModel": "all_in",
+    "sourceCount": 1,
+    "expectedHourlyRecoveryNotSupported": true,
+    "nativeCleanup": "Discard draft with explicit reason; draft removed and late source remains unbilled. No approval or issuance."
+  },
+  "outboxEvents": [
+    {
+      "id": "01a10de8-3e78-7725-a279-85d72ed64170",
+      "topic": "invoice.email.requested",
+      "aggregate_id": "01a10ddb-c8ff-7394-a3a0-8780138f462b",
+      "attempts": 2,
+      "last_error": "JA_SMTP_URL is required",
+      "available_at": "2026-10-05T21:13:53.123Z",
+      "failed_at": null,
+      "delivered_at": null
+    }
+  ],
+  "emailDelivery": "Bounded native outbox handler with SMTP URL guaranteed undefined. Attempts1 and2 fail before network, UI retry pending; never SMTP accepted or inbox delivered."
+}

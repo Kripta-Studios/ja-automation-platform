@@ -1,0 +1,16 @@
+{
+  "fixture": "All-synthetic independent demo5180; no production authority modified",
+  "status": "BLOCKED",
+  "periodStart": "2026-10-01",
+  "periodEnd": "2026-10-05",
+  "expected": "Generate a current Accounting Pack containing issued invoice, credit, net collection and preserving void history",
+  "actualBrowser": "Action failure400; generic Check the submitted values and try again; dates retained; no pack created",
+  "nativeDiagnostic": "Accounting Pack source authority mismatch",
+  "issues": [
+    "Voided debit invoice and adjustment source/manifest were included in legacy snapshot but absent from canonical source cut; source authority rejects non-issued parent/missing authoritative row",
+    "Six August time invoice sources and matching commercial manifests in invoice issued October are rejected as effective_date_outside_period for October Accounting Pack"
+  ],
+  "location": "packages/database/src/domains/accounting-pack/accounting-pack-revision-service.ts normalizeSnapshot around line3564, called from V3Repository.createCanonicalAccountingPackMetadata/createAccountingPack",
+  "remediation": "Root investigating classification and bounded fix; no production data, history, source authority, invoice PDF or seed dates changed to force success",
+  "successfulCase": "August current pack successfully reviewed with explicit advisories and finalized; does not establish October case support"
+}

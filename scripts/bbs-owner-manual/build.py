@@ -17,7 +17,7 @@ def steps(*items):
 def note(text):
     return '<aside>'+text+'</aside>'
 def route(text, url=''):
-    return '<div class="route"><strong>Go here:</strong> '+text + ('<br><a href="'+html.escape(BASE+url, quote=True)+'">Open this workspace</a>' if url else '') + '</div>'
+    return '<div class="route"><strong>Go here:</strong> '+text + ('<br><a href="'+html.escape(BASE+url, quote=True)+'">Live company portal · open this workspace</a>' if url else '') + '</div>'
 def add(title, body, image=None, caption=''):
     original.append((title, body, image, caption))
 
@@ -40,9 +40,10 @@ def pair(key, title, filenames, caption):
     pages.append({'key':key,'title':title,'body':'<figure class="pair">'+''.join('<img src="bbs-illustrated-en-v2/'+name+'">' for name in filenames)+'<figcaption>'+caption+'</figcaption></figure>','toc':False,'wide':True,'figure':True})
 
 page('cover','BBS · Project to client invoices', '<p class="lead">An illustrated BBS worked lab and Owner operating reference.</p><p>English instructions · Actual application captures · Downloaded invoice PDFs included.</p><p>Training project: <strong>BBS · Ejemplo de manual</strong><br>Project number: <strong>C-0050-P-20261005</strong></p>'+table(['Example','Approved sources','Final training invoice PDF'],[['Stage 1 · 1–4 October','35 actual hours','USD 2,230 labor'],['Expenses · October','4 expenses; USD 230 spent','USD 182 customer expense recovery'],['Stage 2 · 5–11 October','7.5 actual hours; hour/day/week units','USD 2,260 labor']])+note('This separate BBS project contains fictional training records. Original BBS Mexico and Junkers are outside the exercise. The three final invoices in the annex were genuinely approved and issued by the application in an isolated training database. Their totals and invoice numbers are preserved. Numbering approval and payment evidence in the training database are simulations, never proof of accountant approval or a real transfer. No customer email was sent.')+'<p>Use the contents pages to find a task. Each chapter gives the role, exact navigation path, fields to fill and buttons to click. Important forms have a separate enlarged screenshot page. Saved example names/descriptions are quoted exactly as displayed, including their original record language.</p>')
-page('contents-1','Contents · Setup and operations','')
-page('contents-2','Contents · Billing and PDFs','')
-page('contents-3','Contents · Worker payments and spreadsheet exports','')
+page('contents-1','Contents · Course tasks (1/4)','')
+page('contents-2','Contents · Course tasks (2/4)','')
+page('contents-3','Contents · Course tasks (3/4)','')
+page('contents-4','Contents · Course tasks (4/4)','')
 
 routes = {
 1: ('Owner → Projects; workers/chief → Time, Expenses or Crew; reviewer → Approvals; Owner/Finance → Billing','/projects?lang=en'),
@@ -173,6 +174,12 @@ build_evidence_chapters()
 
 page('appendices','Final issued invoice PDFs · original downloads', '<p>The following six pages reproduce the three original two-page FINAL application downloads. Each has a final invoice number and no preview watermark. The files were produced by the genuine approval/issue workflow in an isolated training database.</p>'+table(['Appendix','Final invoice number / example','Total'],[['A','JA-DEMO--2026-000001 · 1–4 October labor','USD 2,230'],['B','JA-DEMO--2026-000002 · October customer expenses','USD 182'],['C','JA-DEMO--2026-000003 · 5–11 October hour/day/week labor','USD 2,260']])+note('These are confirmed training invoices, not invoices sent to a real customer. The synthetic training approval timestamp is not evidence of an accountant approving a production policy. The original PDFs are appended without altering their invoice state, number, amounts or bank fields. The native double separator reflects the stored JA-DEMO- prefix; a proposed production prefix without a trailing separator is discussed in the issuance chapter.')+'<p>Save exact files from the PDF Attachments panel or from the adjacent bbs-example-artifacts directory in the repository. The final pages retain their native pagination and payment instructions. Compare the final number, service period, quantity units and totals with the worked examples.</p>',toc=True)
 
+exec(compile((ROOT/'editorial-chapters.py').read_text(), '<editorial-chapters>', 'exec'))
+build_editorial_chapters()
+exec(compile((ROOT/'financial-completion-chapters.py').read_text(), '<financial-completion-chapters>', 'exec'))
+build_financial_completion()
+order_course()
+
 guide_count = len(pages)
 index = {p['key']:n for n,p in enumerate(pages,1)}
 entries = [(p['title'],index[p['key']],p['key']) for p in pages if p['toc']]
@@ -180,8 +187,8 @@ extra = [('Project, client and budget field reference',index['client-fields'],'c
 entries.extend(extra)
 entries.sort(key=lambda x:x[1])
 entries.extend([('Appendix A · Actual labor PDF',guide_count+1,'native-a'),('Appendix B · Actual expense PDF',guide_count+3,'native-b'),('Appendix C · Actual hour/day/week PDF',guide_count+5,'native-c')])
-chunk=(len(entries)+2)//3
-for idx,part in enumerate([entries[:chunk],entries[chunk:2*chunk],entries[2*chunk:]],1):
+chunk=(len(entries)+3)//4
+for idx,part in enumerate([entries[:chunk],entries[chunk:2*chunk],entries[2*chunk:3*chunk],entries[3*chunk:]],1):
     p=pages[index['contents-'+str(idx)]-1]
     p['body']='<p>Click a chapter link where supported, or go to its printed page number. Large screenshot pages follow their instructions.</p><div class="toc">'+''.join('<div><a href="#'+key+'">'+html.escape(title)+'</a><strong>'+str(num)+'</strong></div>' for title,num,key in part)+'</div>'
 
@@ -189,7 +196,7 @@ css='''@page{size:A4;margin:16mm 15mm 15mm}@page wide{size:A4 landscape;margin:1
 output='<!doctype html><html lang="en"><head><meta charset="utf-8"><title>BBS · Owner operating reference and final invoice lab</title><style>'+css+'</style></head><body>'
 for num,p in enumerate(pages,1):
     classes='page'+(' wide' if p['wide'] else '')+(' figure-page' if p['figure'] else '')
-    output+='<section class="'+classes+'" id="'+p['key']+'"><div class="tag">J&amp;A Automation · Owner and team illustrated manual</div><h1>'+html.escape(p['title'])+'</h1><div class="content">'+p['body']+'</div><footer class="footer"><span>Fictional BBS examples · English · 5 October 2026</span><span>'+str(num)+' / '+str(guide_count+6)+'</span></footer></section>'
+    output+='<section class="'+classes+'" id="'+p['key']+'"><div class="tag">J&amp;A · '+html.escape(p['context'])+'</div><h1>'+html.escape(p['title'])+'</h1><div class="content">'+p['body']+'</div><footer class="footer"><span>Fictional examples · English · 5 October 2026</span><span>'+str(num)+' / '+str(guide_count+6)+'</span></footer></section>'
 output+='</body></html>'
 (DOCS/(NAME+'.html')).write_text(output)
 
@@ -197,6 +204,24 @@ meta={'guidePages':guide_count,'totalPages':guide_count+6,'contents':entries,'pa
 (DOCS/'bbs-manual-layout.json').write_text(json.dumps(meta,indent=2)+'\n')
 used_figures = sorted({Path(m).name for p in pages for m in __import__('re').findall(r'src="([^"]+)"', p['body'])})
 manifest={'capturedOn':'2026-10-05','environments':['Saved fictional BBS operational example and pre-issue production read-only captures','Isolated local training database for issue, payment, reversal, account, correction and reporting browser exercises'],'project':'C-0050-P-20261005','interfaceLanguage':'English','fictionalData':True,'screenshots':'Original browser pixels; cropped at capture to show relevant controls and avoid unrelated private records. Screenshot captions distinguish initial and isolated lifecycle states.','workbookPreviews':'Original pre-issue XLSX values and formats rendered in a read-only browser viewer; not Microsoft Excel. Original files embedded without cell editing. A separate after-lifecycle XLSX snapshot is labeled separately when present.','paymentTest':'Initial production example settlements unpaid; isolated simulated payment/reversal and reimbursement events demonstrate application bookkeeping. No real bank transfer or customer email.','nativePDFs':'Three native FINAL issued training downloads, appended unchanged and embedded as attachments. No preview-watermark removal.','accountantApproval':'Synthetic training timestamp is fixture data; no genuine accountant approval is asserted.','correctedInvoiceWizard':{'project':'C-0050-P-20261005','streamType':'Labor','cadence':'Manual','selectedStreamId':'01a10c63-bd67-746f-bcbe-7d3ddb17cc0b','readOnlyCapture':True,'newInvoiceCreated':False},'figures':[{'name':name,'sha256':hashlib.sha256((FIG/name).read_bytes()).hexdigest()} for name in used_figures]}
+manifest.update({
+    'environments': [
+        'Original BBS pre-issue: historical fictional operational example and production read-only captures',
+        'Isolated BBS lifecycle: copied original sources, canonical issued masters and simulated ledgers/private document exercises',
+        'Separate onboarding lab: C-0050-P-20261006 entry/report/planning and C-0050-P-050901 supplier/empty-project lifecycle',
+        'New Accounting demo: separate all-synthetic portfolio/C-0002-P-002 for financial exceptions and separate August/October Accounting snapshots',
+    ],
+    'operatorTrainingAccessSupplied': False,
+    'livePortalLinks': 'Visibly labelled Live company portal; never enter the isolated simulation',
+    'practicePrerequisites': 'Operator-provisioned URL, own training account, visible deployment identity, authorized fictional scope and reset procedure',
+    'signoffTest': 'Marked synthetic v2 acceptance, invalidation and replacement v3; genuine customer acceptance not asserted; optional fixture was not_scanned',
+    'accountingTest': 'Separate synthetic October native five-format generation/download/review/final pass with zero review counts, cross-month evidence links and void-date cut verified; historical August advisories and original BBS October issuer coverage failure remain distinct',
+})
 (FIG/'capture-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 (DOCS/(NAME+'.md')).write_text('# BBS · Owner operating reference and final invoice lab\n\n'+str(guide_count+6)+'-page illustrated English guide with numbered contents, explicit role handoffs, setup prerequisites, correction/reporting procedures, final invoice lifecycle, worker settlements, and landscape previews of hours, expenses, costs, revenue and cash workbook ranges.\n\n- [PDF]('+NAME+'.pdf)\n- [Printable HTML]('+NAME+'.html)\n- [Capture provenance](bbs-illustrated-en-v2/capture-manifest.json)\n- [Build and verification](../../scripts/bbs-owner-manual/README.md)\n\nTraining project `C-0050-P-20261005` is separate from original BBS and Junkers. Preserve the worked calculations: Stage 1 is 35 approved hours and USD 2,230 labor; customer expense recovery is USD 182 from USD 230 spent; Stage 2 is 7.5 actual hours billed in hourly/daily/weekly units for USD 2,260. The six final annex pages and embedded originals are genuinely application-issued **training** invoices `JA-DEMO--2026-000001`, `000002`, `000003`, produced in isolation and appended without modifying their state, totals or contents.\n\nProduction financial history is unchanged by isolated issue/payment tests. Synthetic training approval timestamps are not real accountant approval. Payment, collection and reimbursement demonstrations are simulated ledger entries, not bank transfers; no customer email was sent. Three original XLSX files are attached: two pre-issue baseline examples and one separately labeled after-lifecycle snapshot. The guide distinguishes browser-tested workflows from source-checked references and untested external processes; it does not claim universal Owner-function validation.\n')
 print(json.dumps({'guidePages':guide_count,'totalPages':guide_count+6,'figures':len(manifest['figures']),'contentsEntries':len(entries)}))
+with (DOCS/(NAME+'.md')).open('a') as markdown:
+    markdown.write('\n---\n\n## Operating course\n\nThe following chapters mirror the printable HTML. Figure paths point to the original browser captures beside this file.\n\n')
+    for p in pages:
+        markdown.write('<a id="'+p['key']+'"></a>\n\n## '+p['title']+'\n\n**Context: '+p['context']+'**\n\n'+p['body']+'\n\n')
+    markdown.write('## Native final invoice originals\n\n- [Final labor invoice](bbs-example-artifacts/BBS-DEMO-labor-issued-en.pdf)\n- [Final expense invoice](bbs-example-artifacts/BBS-DEMO-expense-issued-en.pdf)\n- [Final mixed-unit invoice](bbs-example-artifacts/BBS-DEMO-mixed-issued-en.pdf)\n')

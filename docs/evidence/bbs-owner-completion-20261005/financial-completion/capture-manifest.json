@@ -1,0 +1,135 @@
+{
+  "scope": "Isolated fictional demo only; root visually reviewed crops for account/business privacy",
+  "captures": [
+    {
+      "file": "01-email-delivery-controls.png",
+      "bytes": 22237,
+      "sha256": "2ca564d81fde3ce2a11b566fb41fe9dbace8eee9530845a992c9184bfc209f5d"
+    },
+    {
+      "file": "03-lab-weekly-stream-setup.png",
+      "bytes": 83379,
+      "sha256": "6001e48f9ff5ed28f965173ec0036bc7a24591a0c67be0db36418e78384767b5"
+    },
+    {
+      "file": "04-lab-project-issuing-authority.png",
+      "bytes": 37652,
+      "sha256": "ad2a40f84205af45d4842361a636714bb5bf116e03c76af421d78dcf372dea58"
+    },
+    {
+      "file": "05-weekly-draft-period.png",
+      "bytes": 69761,
+      "sha256": "62a4295fb2f54b2455fb7c94d3155b841a8fff0f66cdfdf0eba827102bd5165d"
+    },
+    {
+      "file": "10-accounting-generate-training.png",
+      "bytes": 37746,
+      "sha256": "b489caf26d36c9fdab1288966e3409fa636ed94d9c4ee3879da451cca566718b"
+    },
+    {
+      "file": "11-accounting-queued.png",
+      "bytes": 40730,
+      "sha256": "e4400f30d8fe92bc4757e56a2fc3b7d17770976656b51e625ad6b4c5850213e4"
+    },
+    {
+      "file": "12-accounting-review-ready.png",
+      "bytes": 52166,
+      "sha256": "470dc1c504022a937729b4017c4792b38c9dd58b193b06993ef4ee003cec0787"
+    },
+    {
+      "file": "13-accounting-final-version.png",
+      "bytes": 11967,
+      "sha256": "4c1f89eac94681f81658e45950a82dbc07d532edb97d402e52c6a22f4c0175cd"
+    },
+    {
+      "file": "20-synthetic-collection-entry.png",
+      "bytes": 22813,
+      "sha256": "999aac3f884d34cf96617a160ff34b2f65a6851df260604a332f68f6f4fee46c"
+    },
+    {
+      "file": "21-synthetic-collection-reversal.png",
+      "bytes": 28880,
+      "sha256": "5a0fd84c9cd1bc4843fd19d9b4e5dbf3433ea85f4a5d7ee7b966ca25f0f4daf1"
+    },
+    {
+      "file": "23-credit-adjustment-draft.png",
+      "bytes": 74532,
+      "sha256": "c90bd1695db12d2bc7011f2517001244e1e49941f55b51b18fda8273bd360538"
+    },
+    {
+      "file": "24-void-blocked-unreversed-collection.png",
+      "bytes": 23150,
+      "sha256": "87acfebdbbba91a64de6e2ae41d851f0825401f5cde4f7d2dbdcead2e2362b23"
+    },
+    {
+      "file": "25-issued-credit-note-ready.png",
+      "bytes": 62833,
+      "sha256": "936631d37b2ab010f5a7de5aaca6a84319f93cae7df45f7034de7f9959d6d343"
+    },
+    {
+      "file": "26-dispatch-explicit-consent.png",
+      "bytes": 22098,
+      "sha256": "fc96f6e15aae4ed7383b5bc06e98728140cbdd905d19451270ce536de9229d0f"
+    },
+    {
+      "file": "27-email-queued-no-delivery-claim.png",
+      "bytes": 22989,
+      "sha256": "0c7d11120da9b9c6a9730b82e9d0d38844801a376697ef23beaf269bdb047fad"
+    },
+    {
+      "file": "28-email-configuration-failure-retry.png",
+      "bytes": 25106,
+      "sha256": "836c66006494665adf614f26a36d21092ccb7a33dcb769f4c173e9ad54c169f7"
+    },
+    {
+      "file": "29-void-uncollected-controls.png",
+      "bytes": 18959,
+      "sha256": "d8faa1ef31c586563e6875af09f2e3b8d50113193518dc91e09be26a16f6fb00"
+    },
+    {
+      "file": "29b-void-retained-numbered-history.png",
+      "bytes": 47176,
+      "sha256": "0a23a7ff310375d6bb11082128567ec937fd3b7fdc33af40af21d57bc6e7c202"
+    },
+    {
+      "file": "30-weekly-close-controls.png",
+      "bytes": 18749,
+      "sha256": "dcf461a99561b6f0f8cceaec4f2998ed271a510b565702b2b5a71b30f3bd94b2"
+    },
+    {
+      "file": "31-late-source-draft-entry.png",
+      "bytes": 42905,
+      "sha256": "62555a1882e049d504aa37ee56356cfd78f7a41c8c6bce81303b2e6e6b617775"
+    },
+    {
+      "file": "33-late-manual-stream-attempt.png",
+      "bytes": 72745,
+      "sha256": "da3e30c15b19512bd3115041d7cf8dc8c4f48ae477d04dfe57e962fe642bce24"
+    },
+    {
+      "file": "34-late-manual-draft-contract-amount.png",
+      "bytes": 81013,
+      "sha256": "38730b57295ed2768fe539fdd4b249412b95d48598773c6b749d883a09c9c663"
+    },
+    {
+      "file": "40-accounting-october-clean-scope.png",
+      "bytes": 39505,
+      "sha256": "d395548e0cbd93eaa79c98c08ae8ba7698016a5863f86677c1654e68de711271"
+    },
+    {
+      "file": "41-accounting-october-readiness.png",
+      "bytes": 43244,
+      "sha256": "f0da9e5d2277c4be5f5f330fc62b048aebc8a835f2070bbd2e4c09fabfe98bbd"
+    },
+    {
+      "file": "42-accounting-october-ready-review.png",
+      "bytes": 47967,
+      "sha256": "cf08f38dd4e72ccb159265c837d5f45b4af9f96cb6be3847f35c9beb1368194f"
+    },
+    {
+      "file": "43-accounting-october-final.png",
+      "bytes": 11847,
+      "sha256": "d546264685acb92a000e1b764dda4b0a2f06a856e044cbf45edfb6c11e1a2a73"
+    }
+  ]
+}

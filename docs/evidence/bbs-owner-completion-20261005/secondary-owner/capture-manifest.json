@@ -1,0 +1,115 @@
+{
+  "scope": "Retained fictional planning and heading-only route captures; no production business writes",
+  "captures": [
+    {
+      "file": "screenshots/audit-after-lab-changes-heading.png",
+      "bytes": 3019,
+      "sha256": "9b8344e6bfefde017f40dcddd0c12f48bcd4478fe6139a8481a7021ad226abb5"
+    },
+    {
+      "file": "screenshots/audit-desktop-heading.png",
+      "bytes": 3019,
+      "sha256": "9b8344e6bfefde017f40dcddd0c12f48bcd4478fe6139a8481a7021ad226abb5"
+    },
+    {
+      "file": "screenshots/availability-after-edit.png",
+      "bytes": 63897,
+      "sha256": "e7c906e28bd96525ab59b066f9e7db6d90ab57ee613c89c5f3cb6348b449ff05"
+    },
+    {
+      "file": "screenshots/availability-before-edit.png",
+      "bytes": 59224,
+      "sha256": "c3de6c89420df0c9ca7abde0e78edaafc61f68f0526a2e6f3c0da5f7fad81a1f"
+    },
+    {
+      "file": "screenshots/availability-calendar-after.png",
+      "bytes": 62359,
+      "sha256": "a202004965455992284473269290eabf714e906717a9b55a1f794e8c72c03e73"
+    },
+    {
+      "file": "screenshots/availability-calendar-before.png",
+      "bytes": 53267,
+      "sha256": "a029cc4c76eb1d42b14922b41525c86becc3c83dbb9a0240473c4818883ef5d1"
+    },
+    {
+      "file": "screenshots/availability-calendar-phone-390.png",
+      "bytes": 56898,
+      "sha256": "814530e5e6c44af72028826c598d9ab180420df2dc7f7d9b609a640e0d489146"
+    },
+    {
+      "file": "screenshots/availability-editor-before.png",
+      "bytes": 26769,
+      "sha256": "5f4237cbd25427243f5a5f4974745d58b975ccd1083d15eb8baca26a5189efc3"
+    },
+    {
+      "file": "screenshots/availability-editor-modify-before.png",
+      "bytes": 28974,
+      "sha256": "231dd8399d9c8269fcddc21bd9a8b6d3715ed484917087c25be238bb395ab2ca"
+    },
+    {
+      "file": "screenshots/expertise-assigned-desktop.png",
+      "bytes": 22600,
+      "sha256": "7cf80c5b4c9c8f490348229068816d90a84cf8268dc9e2296abb04554511bf09"
+    },
+    {
+      "file": "screenshots/expertise-registered-desktop.png",
+      "bytes": 39331,
+      "sha256": "7561fbe8cbc951b14b0a59318d2e438d6d9a3e16fe47242a2ca4edd09708efc3"
+    },
+    {
+      "file": "screenshots/help-desktop-heading.png",
+      "bytes": 5998,
+      "sha256": "beacf91b2de49621fa293b17dbb541a13feeeffc5a7a005b9054a11cec85bf30"
+    },
+    {
+      "file": "screenshots/notifications-desktop-heading.png",
+      "bytes": 3487,
+      "sha256": "0f8f27f15c4a663d440439f2f5cf1f7dc9c1fa75d8efc9af4ccc6f0d5d9398d8"
+    },
+    {
+      "file": "screenshots/planning-agenda-phone-390-scrolled.png",
+      "bytes": 11322,
+      "sha256": "068c389c91cdf785bf114b3d8317b8e6e9c12452afcee9ddae058c9e604db7bc"
+    },
+    {
+      "file": "screenshots/planning-assignment-after.png",
+      "bytes": 180971,
+      "sha256": "242bb87f6618f4f348f26a7293eaaf8ab0c4b654d4427766711e4af5afd9af8a"
+    },
+    {
+      "file": "screenshots/planning-assignment-before.png",
+      "bytes": 58758,
+      "sha256": "b254592670faffa53bb80d55467bf19cc795b48021490920be7161cdeecc3a1f"
+    },
+    {
+      "file": "screenshots/planning-calendar-after-cancel-desktop.png",
+      "bytes": 39342,
+      "sha256": "f18d43ae856222f4eee6191aeb93b38cc879beeaf1d5a54e2c9e69e9833ab5cc"
+    },
+    {
+      "file": "screenshots/planning-calendar-agenda-desktop.png",
+      "bytes": 45759,
+      "sha256": "01d056681d782db00cc6e53872cb5fc3262cfc3dd1f74a8da8b5bf12aac423b0"
+    },
+    {
+      "file": "screenshots/planning-calendar-agenda-phone-390.png",
+      "bytes": 42194,
+      "sha256": "e60d1edc157ffe854c8d4fed8017654e650f547395a93770f4446baa235074d8"
+    },
+    {
+      "file": "screenshots/planning-record-details.png",
+      "bytes": 3314,
+      "sha256": "622d8ef7b8b2856ef68555edb0545f44907ba3976caba67b6fe55c53a3de1c2e"
+    },
+    {
+      "file": "screenshots/planning-record-open-desktop.png",
+      "bytes": 5124,
+      "sha256": "0af929b6ee09464850fba4ca206f04ebb69c8a66972ecd114b7c143384d22940"
+    },
+    {
+      "file": "screenshots/profile-own-desktop-heading.png",
+      "bytes": 5252,
+      "sha256": "892b30fd9aabf3f50ba7a1e137cf945bade11622a49d68cd6e2cbac606273b1a"
+    }
+  ]
+}

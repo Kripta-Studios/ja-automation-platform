@@ -41,6 +41,7 @@
   } from '$lib/portal/ui/safe-session-storage';
   import type { ProblemData } from '$lib/problem/contract';
   import { reviewCopy, type ReviewLocale } from '../../review/copy';
+  import { decodeTechnicalReportChange } from '@ja/schemas';
 
   type Row = Record<string, unknown>;
   type FollowupView = Row & {
@@ -247,12 +248,46 @@
   const internal = $derived(audience === 'internal');
   const customerAudience = $derived(audience === 'customer');
   const previewSourceFields = $derived([
-    { name:'projectSettings', label:t('Open project'), href:`${base}/app/projects/${encodeURIComponent(String(project.id))}` },
-    { name:'timeSources', label:t('Review source time entries'), href:`${base}/app/time?project=${encodeURIComponent(String(project.id))}&from=${encodeURIComponent(String(report.periodStart))}&to=${encodeURIComponent(String(report.periodEnd))}` },
-    ...(['owner_admin', 'finance_admin'].includes(userRole) ? [{ name:'commercialSources', label:t('Review project calculation'), href:`${base}/app/projects/${encodeURIComponent(String(project.id))}/calculation` }] : []),
-    ...dailyReports.filter((row) => row.id).map((row) => ({ name:`source:daily:${String(row.id)}`, label:t('Open daily source report'), href:`${base}/app/reports/${encodeURIComponent(String(row.id))}` })),
-    ...technicalReports.filter((row) => row.id).map((row) => ({ name:`source:technical:${String(row.id)}`, label:t('Open technical source report'), href:`${base}/app/reports/${encodeURIComponent(String(row.id))}` })),
-    ...((report.timeSummary ?? []) as Row[]).filter((row) => row.id).map((row) => ({ name:`source:time:${String(row.id)}`, label:t('Open source time entry'), href:`${base}/app/time/${encodeURIComponent(String(row.id))}` })),
+    {
+      name: 'projectSettings',
+      label: t('Open project'),
+      href: `${base}/app/projects/${encodeURIComponent(String(project.id))}`,
+    },
+    {
+      name: 'timeSources',
+      label: t('Review source time entries'),
+      href: `${base}/app/time?project=${encodeURIComponent(String(project.id))}&from=${encodeURIComponent(String(report.periodStart))}&to=${encodeURIComponent(String(report.periodEnd))}`,
+    },
+    ...(['owner_admin', 'finance_admin'].includes(userRole)
+      ? [
+          {
+            name: 'commercialSources',
+            label: t('Review project calculation'),
+            href: `${base}/app/projects/${encodeURIComponent(String(project.id))}/calculation`,
+          },
+        ]
+      : []),
+    ...dailyReports
+      .filter((row) => row.id)
+      .map((row) => ({
+        name: `source:daily:${String(row.id)}`,
+        label: t('Open daily source report'),
+        href: `${base}/app/reports/${encodeURIComponent(String(row.id))}`,
+      })),
+    ...technicalReports
+      .filter((row) => row.id)
+      .map((row) => ({
+        name: `source:technical:${String(row.id)}`,
+        label: t('Open technical source report'),
+        href: `${base}/app/reports/${encodeURIComponent(String(row.id))}`,
+      })),
+    ...((report.timeSummary ?? []) as Row[])
+      .filter((row) => row.id)
+      .map((row) => ({
+        name: `source:time:${String(row.id)}`,
+        label: t('Open source time entry'),
+        href: `${base}/app/time/${encodeURIComponent(String(row.id))}`,
+      })),
   ]);
   const customerConformity = $derived((report.conformity ?? null) as Row | null);
   const followup = $derived((report.followup ?? null) as FollowupView | null);
@@ -720,11 +755,13 @@
     {locale}
     sourceFields={previewSourceFields}
   />
-  <p class="no-print form-help">{locale === 'es'
-    ? 'Los valores calculados enlazan a sus registros de origen. Después de cambiar una fuente autorizada, recalcule el reporte para crear una nueva versión; las versiones aprobadas y firmadas conservan su historial.'
-    : locale === 'pt'
-      ? 'Os valores calculados vinculam aos registros de origem. Após alterar uma fonte autorizada, recalcule o relatório para criar uma nova versão; versões aprovadas e assinadas preservam seu histórico.'
-      : 'Calculated values link to their source records. After changing an authorized source, recalculate the report to create a new version; approved and signed versions preserve their history.'}</p>
+  <p class="no-print form-help">
+    {locale === 'es'
+      ? 'Los valores calculados enlazan a sus registros de origen. Después de cambiar una fuente autorizada, recalcule el reporte para crear una nueva versión; las versiones aprobadas y firmadas conservan su historial.'
+      : locale === 'pt'
+        ? 'Os valores calculados vinculam aos registros de origem. Após alterar uma fonte autorizada, recalcule o relatório para criar uma nova versão; versões aprovadas e assinadas preservam seu histórico.'
+        : 'Calculated values link to their source records. After changing an authorized source, recalculate the report to create a new version; approved and signed versions preserve their history.'}
+  </p>
 
   {#if reportPdfFailure?.surface === 'header'}
     <div
@@ -1587,13 +1624,20 @@
         <h2>{t('Technical / PLC records')}</h2>
         <span>{technicalReports.length + technicalChanges.length}</span>
       </div>
-      {#each technicalReports as item}<a
-          class="record-card-link"
-          href={item.id ? reportLink(item.id) : `${base}/app/reports`}
-          ><strong>{display(item.system)}</strong><small
-            >{display(item.site)} · {display(item.changes)}</small
-          ></a
-        >{/each}
+      {#each technicalReports as item}
+        {@const changes = item.changes ?? item.changeSummary ?? item.change_summary}
+        {@const changeFields = decodeTechnicalReportChange(changes)}
+        <a class="record-card-link" href={item.id ? reportLink(item.id) : `${base}/app/reports`}
+          ><strong>{display(item.system)}</strong><small>{display(item.site)}</small>
+          {#if changeFields}
+            <small>{t('Problem / symptom')}: {changeFields.problemSymptom}</small>
+            <small>{t('Diagnosis / root cause')}: {changeFields.diagnosisRootCause}</small>
+            <small>{t('Change performed')}: {changeFields.changePerformed}</small>
+          {:else}
+            <small>{display(changes)}</small>
+          {/if}
+        </a>
+      {/each}
       {#each technicalChanges as item}<article>
           <div>
             <strong>{display(item.component)}</strong><small
@@ -1802,6 +1846,7 @@
 
   .customer-signoff__body {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
     padding-top: 1rem;
   }
@@ -1926,12 +1971,19 @@
 
   .customer-signoff__form {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.9rem;
     max-width: 42rem;
     padding: 1rem;
     border: 1px solid #e6e6e4;
     border-radius: 0.7rem;
     background: #fbfbfa;
+  }
+
+  .customer-signoff__form code,
+  .period-followup :global(.period-followup__binding code) {
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .customer-signoff__form h3 {
@@ -2077,6 +2129,9 @@
   .signature-field {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
     gap: 0.4rem;
   }
 

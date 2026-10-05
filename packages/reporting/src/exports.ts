@@ -2323,16 +2323,18 @@ export function workerStatementHtml(snapshot: WorkerStatementSnapshot): string {
     },
   );
   return layout(
-      copy.title,
-      `${snapshot.worker.name} · ${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
-      `<section class="grid">${summary}</section><p class="muted">${htmlEscape(common.approvedHours)}: ${htmlEscape(minutesAsHours(snapshot.approvedMinutes) || snapshot.approvedMinutes)} · ${htmlEscape(copy.pendingHours)}: ${htmlEscape(minutesAsHours(snapshot.pendingMinutes) || snapshot.pendingMinutes)}</p><h2>${htmlEscape(copy.ownActivity)}</h2>${activityTable}<h2>${htmlEscape(copy.settlements)}</h2>${settlementTable}<h2>${htmlEscape(copy.ownReimbursableExpenses)}</h2>${expenseTable}`,
-      locale,
-      workerStatementCss,
-      WORKER_STATEMENT_TEMPLATE_VERSION,
+    copy.title,
+    `${snapshot.worker.name} · ${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
+    `<section class="grid">${summary}</section><p class="muted">${htmlEscape(common.approvedHours)}: ${htmlEscape(minutesAsHours(snapshot.approvedMinutes) || snapshot.approvedMinutes)} · ${htmlEscape(copy.pendingHours)}: ${htmlEscape(minutesAsHours(snapshot.pendingMinutes) || snapshot.pendingMinutes)}</p><h2>${htmlEscape(copy.ownActivity)}</h2>${activityTable}<h2>${htmlEscape(copy.settlements)}</h2>${settlementTable}<h2>${htmlEscape(copy.ownReimbursableExpenses)}</h2>${expenseTable}`,
+    locale,
+    workerStatementCss,
+    WORKER_STATEMENT_TEMPLATE_VERSION,
   );
 }
 
-export function workerStatementPdf(snapshot: Parameters<typeof workerStatementHtml>[0]): Uint8Array {
+export function workerStatementPdf(
+  snapshot: Parameters<typeof workerStatementHtml>[0],
+): Uint8Array {
   return renderHtmlToPdf(workerStatementHtml(snapshot));
 }
 
@@ -3059,121 +3061,121 @@ export function accountingPackHtml(
     knownMoney(rowCurrency(snapshot.collections?.[index] ?? {}), row[3] ?? ''),
   ]);
   return layout(
-      copy.accountingPack,
-      `${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
-      [
-        legalEntityName
-          ? `<p class="muted">${htmlEscape(copy.legalEntity)}: ${htmlEscape(legalEntityName)} · ${htmlEscape(String(snapshotCurrency))}</p>`
-          : '',
-        `<section class="grid">${totals || `<div class="muted">${copy.noTotals}</div>`}</section>`,
-        `<h2>${copy.totalsByCurrency}</h2>`,
-        byCurrency || `<p class="muted">${copy.noCurrencyBreakdown}</p>`,
-        `<h2>${copy.invoiceRegister}</h2>`,
-        htmlTable(
-          [
-            copy.invoiceNumber,
-            copy.client,
-            copy.project,
-            copy.stream,
-            copy.invoicePeriodOrDate,
-            copy.invoiceTotalWithTax,
-          ],
-          invoiceRows,
-          copy.noInvoiceLines,
-          {
-            amountIndexes: [5],
-            columnWidths: [15, 18, 18, 15, 17, 17],
-            footer: invoiceRows.length
-              ? [
-                  copy.total,
-                  '',
-                  '',
-                  '',
-                  '',
-                  registerTotal(
-                    snapshot.invoiceRegister,
-                    invoiceSource.map((row) => row[5] ?? ''),
-                  ),
-                ]
-              : undefined,
-          },
-        ),
-        `<h2>${copy.workerCosts}</h2>`,
-        htmlTable(
-          [copy.worker, copy.project, copy.hours, copy.approvedWorkerCompensation],
-          workerRows,
-          copy.noTotals,
-          {
-            amountIndexes: [3],
-            footer: workerRows.length
-              ? [
-                  copy.total,
-                  '',
-                  `${totalWorkerHours.toFixed(2)} h`,
-                  registerTotal(
-                    snapshot.workerCosts,
-                    workerSource.map((row) => row.amount),
-                  ),
-                ]
-              : undefined,
-          },
-        ),
-        `<h2>${copy.expenses}</h2>`,
-        htmlTable(
-          [
-            copy.date,
-            copy.worker,
-            copy.project,
-            copy.expenseOrVendor,
-            copy.recordedExpenseWithTax,
-            copy.companyExpenseCost,
-            copy.clientBillableExpense,
-            copy.workerReimbursementEligiblePaid,
-          ],
-          expenseRows,
-          copy.noTotals,
-          {
-            amountIndexes: [4, 5, 6, 7],
-            columnWidths: [8, 10, 11, 16, 12, 12, 12, 19],
-            footer: expenseRows.length
-              ? [
-                  copy.total,
-                  '',
-                  '',
-                  '',
-                  expenseTotal('recordedMinor', 'sourceCurrency'),
-                  expenseTotal('companyCostMinor', 'projectCurrency'),
-                  expenseTotal('billingAmountMinor', 'projectCurrency'),
-                  `${expenseTotal('reimbursementAmountMinor', 'sourceCurrency')} / ${expenseTotal('reimbursedAmountMinor', 'sourceCurrency')}`,
-                ]
-              : undefined,
-          },
-        ),
-        expenseRows.length ? `<p class="muted">${htmlEscape(copy.unavailableAmountNote)}</p>` : '',
-        `<h2>${copy.collections}</h2>`,
-        htmlTable(
-          [copy.invoiceNumber, copy.client, copy.date, copy.collectedThisPeriod],
-          collectionRows,
-          copy.noTotals,
-          {
-            amountIndexes: [3],
-            footer: collectionRows.length
-              ? [
-                  copy.total,
-                  '',
-                  '',
-                  registerTotal(
-                    snapshot.collections,
-                    collectionSource.map((row) => row[3] ?? ''),
-                  ),
-                ]
-              : undefined,
-          },
-        ),
-      ].join(''),
-      locale,
-      accountingPackCss,
-      ACCOUNTING_PACK_PDF_TEMPLATE_VERSION,
+    copy.accountingPack,
+    `${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
+    [
+      legalEntityName
+        ? `<p class="muted">${htmlEscape(copy.legalEntity)}: ${htmlEscape(legalEntityName)} · ${htmlEscape(String(snapshotCurrency))}</p>`
+        : '',
+      `<section class="grid">${totals || `<div class="muted">${copy.noTotals}</div>`}</section>`,
+      `<h2>${copy.totalsByCurrency}</h2>`,
+      byCurrency || `<p class="muted">${copy.noCurrencyBreakdown}</p>`,
+      `<h2>${copy.invoiceRegister}</h2>`,
+      htmlTable(
+        [
+          copy.invoiceNumber,
+          copy.client,
+          copy.project,
+          copy.stream,
+          copy.invoicePeriodOrDate,
+          copy.invoiceTotalWithTax,
+        ],
+        invoiceRows,
+        copy.noInvoiceLines,
+        {
+          amountIndexes: [5],
+          columnWidths: [15, 18, 18, 15, 17, 17],
+          footer: invoiceRows.length
+            ? [
+                copy.total,
+                '',
+                '',
+                '',
+                '',
+                registerTotal(
+                  snapshot.invoiceRegister,
+                  invoiceSource.map((row) => row[5] ?? ''),
+                ),
+              ]
+            : undefined,
+        },
+      ),
+      `<h2>${copy.workerCosts}</h2>`,
+      htmlTable(
+        [copy.worker, copy.project, copy.hours, copy.approvedWorkerCompensation],
+        workerRows,
+        copy.noTotals,
+        {
+          amountIndexes: [3],
+          footer: workerRows.length
+            ? [
+                copy.total,
+                '',
+                `${totalWorkerHours.toFixed(2)} h`,
+                registerTotal(
+                  snapshot.workerCosts,
+                  workerSource.map((row) => row.amount),
+                ),
+              ]
+            : undefined,
+        },
+      ),
+      `<h2>${copy.expenses}</h2>`,
+      htmlTable(
+        [
+          copy.date,
+          copy.worker,
+          copy.project,
+          copy.expenseOrVendor,
+          copy.recordedExpenseWithTax,
+          copy.companyExpenseCost,
+          copy.clientBillableExpense,
+          copy.workerReimbursementEligiblePaid,
+        ],
+        expenseRows,
+        copy.noTotals,
+        {
+          amountIndexes: [4, 5, 6, 7],
+          columnWidths: [8, 10, 11, 16, 12, 12, 12, 19],
+          footer: expenseRows.length
+            ? [
+                copy.total,
+                '',
+                '',
+                '',
+                expenseTotal('recordedMinor', 'sourceCurrency'),
+                expenseTotal('companyCostMinor', 'projectCurrency'),
+                expenseTotal('billingAmountMinor', 'projectCurrency'),
+                `${expenseTotal('reimbursementAmountMinor', 'sourceCurrency')} / ${expenseTotal('reimbursedAmountMinor', 'sourceCurrency')}`,
+              ]
+            : undefined,
+        },
+      ),
+      expenseRows.length ? `<p class="muted">${htmlEscape(copy.unavailableAmountNote)}</p>` : '',
+      `<h2>${copy.collections}</h2>`,
+      htmlTable(
+        [copy.invoiceNumber, copy.client, copy.date, copy.collectedThisPeriod],
+        collectionRows,
+        copy.noTotals,
+        {
+          amountIndexes: [3],
+          footer: collectionRows.length
+            ? [
+                copy.total,
+                '',
+                '',
+                registerTotal(
+                  snapshot.collections,
+                  collectionSource.map((row) => row[3] ?? ''),
+                ),
+              ]
+            : undefined,
+        },
+      ),
+    ].join(''),
+    locale,
+    accountingPackCss,
+    ACCOUNTING_PACK_PDF_TEMPLATE_VERSION,
   );
 }
 
@@ -3269,6 +3271,20 @@ export function periodReportHtml(
           `${localizedCopy[locale].sourceExpenses} ${formatReportInteger(sourceCounts.expenses ?? 0, locale)}`,
         ]),
   ].join(' · ');
+  const technicalDetail = (row: Row): string => {
+    const change = technicalReportChangeFields(row);
+    return [
+      [copy.problemSymptom, change.problemSymptom],
+      [copy.diagnosisRootCause, change.diagnosisRootCause],
+      [copy.changePerformed, change.changePerformed],
+    ]
+      .filter(
+        (entry): entry is [string, string] =>
+          typeof entry[1] === 'string' && Boolean(entry[1].trim()),
+      )
+      .map(([label, narrative]) => `${label}: ${narrative}`)
+      .join('\n');
+  };
   const operationalRows = [
     ...(snapshot.dailyReports ?? []).map((row) => ({
       sourceField: `source:daily:${String(row.id ?? '')}`,
@@ -3287,7 +3303,7 @@ export function periodReportHtml(
         locale,
       ),
       worker: String(row.workerDisplay ?? row.worker ?? row.workerName ?? row.worker_name ?? ''),
-      detail: String(row.change_summary ?? row.changeSummary ?? ''),
+      detail: technicalDetail(row),
       minutes: null as number | null,
       status: row.approval_state ?? row.approvalState,
     })),
@@ -3396,17 +3412,16 @@ export function periodReportHtml(
   }
 
   return layout(
-      copy.projectPeriodReport,
-      `${project.title}${project.title ? ' · ' : ''}${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
-      customer
-        ? `<h2>${copy.operationalRecord}</h2><div class="grid">${reportField(copy.project, project.title, 'projectSettings')}${reportField(copy.client, project.clientName, 'projectSettings')}${publicMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p>${operationalTable}${customerSignatureBlock(locale)}`
-        : `<h2>${copy.calculation}</h2><div class="grid">${reportField(copy.project, project.title, 'projectSettings')}${reportField(copy.client, project.clientName, 'projectSettings')}${publicMetrics}${internalMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p>${calculationTable}<h2>${copy.operationalRecord}</h2>${operationalTable}`,
-      locale,
-      periodReportCss,
-      PERIOD_REPORT_TEMPLATE_VERSION,
+    copy.projectPeriodReport,
+    `${project.title}${project.title ? ' · ' : ''}${formatReportDate(snapshot.periodStart, locale)} → ${formatReportDate(snapshot.periodEnd, locale)}`,
+    customer
+      ? `<h2>${copy.operationalRecord}</h2><div class="grid">${reportField(copy.project, project.title, 'projectSettings')}${reportField(copy.client, project.clientName, 'projectSettings')}${publicMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p>${operationalTable}${customerSignatureBlock(locale)}`
+      : `<h2>${copy.calculation}</h2><div class="grid">${reportField(copy.project, project.title, 'projectSettings')}${reportField(copy.client, project.clientName, 'projectSettings')}${publicMetrics}${internalMetrics}</div><p class="muted">${htmlEscape(copy.sourceRecords)}: ${htmlEscape(sources)}</p>${calculationTable}<h2>${copy.operationalRecord}</h2>${operationalTable}`,
+    locale,
+    periodReportCss,
+    PERIOD_REPORT_TEMPLATE_VERSION,
   );
 }
-
 
 export function periodReportPdf(snapshot: Parameters<typeof periodReportHtml>[0]): Uint8Array {
   return renderHtmlToPdf(periodReportHtml(snapshot));
@@ -3592,7 +3607,10 @@ function htmlTable(
   };
   const head = headers.map((header, index) => cell(header, index, 'th')).join('');
   const body = rows
-    .map((row, index) => `<tr${options?.rowFieldKeys?.[index] ? ` data-report-field="${htmlEscape(options.rowFieldKeys[index])}"` : ''}>${row.map((value, index) => cell(value, index, 'td')).join('')}</tr>`)
+    .map(
+      (row, index) =>
+        `<tr${options?.rowFieldKeys?.[index] ? ` data-report-field="${htmlEscape(options.rowFieldKeys[index])}"` : ''}>${row.map((value, index) => cell(value, index, 'td')).join('')}</tr>`,
+    )
     .join('');
   const footer =
     options?.footer && options.footer.length === headers.length
@@ -3657,27 +3675,33 @@ export function dailyReportHtml(snapshot: DailyReportSnapshot): string {
     reportField(
       copy.siteShift,
       reportNarrative(snapshot, 'siteShift', 'site_shift', 'siteName', 'site_name'),
-      'siteShift'),
+      'siteShift',
+    ),
     reportField(
       copy.downtimeMinutes,
       reportNarrative(snapshot, 'downtimeMinutes', 'downtime_minutes'),
-      'downtimeMinutes'),
-    reportField(copy.standbyReason, reportNarrative(snapshot, 'standbyReason', 'standby_reason'), 'standbyReason'),
+      'downtimeMinutes',
+    ),
+    reportField(
+      copy.standbyReason,
+      reportNarrative(snapshot, 'standbyReason', 'standby_reason'),
+      'standbyReason',
+    ),
     reportField(
       copy.customerContact,
       reportNarrative(snapshot, 'customerContact', 'customer_contact'),
-      'customerContact'),
+      'customerContact',
+    ),
   ].join('');
   return layout(
-      copy.dailyReport,
-      `${project.title}${project.title && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
-      `<h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div>${reportParagraph(copy.summary, snapshot.summary, 'summary')}${reportParagraph(copy.tasksCompleted, reportNarrative(snapshot, 'tasksCompleted', 'tasks_completed'), 'tasksCompleted')}${reportParagraph(copy.problemsFound, reportNarrative(snapshot, 'problemsFound', 'problems_found'), 'problemsFound')}${reportParagraph(copy.correctiveActions, reportNarrative(snapshot, 'correctiveActions', 'corrective_actions'), 'correctiveActions')}${reportParagraph(copy.clientDecisions, reportNarrative(snapshot, 'clientDecisions', 'client_decisions'), 'clientDecisions')}${reportParagraph(copy.openItems, reportNarrative(snapshot, 'openItems', 'open_items'), 'openItems')}${reportParagraph(copy.blockers, reportNarrative(snapshot, 'blockers'), 'blockers')}${reportParagraph(copy.nextDayPlan, reportNarrative(snapshot, 'nextDayPlan', 'next_day_plan'), 'nextDayPlan')}`,
-      locale,
-      fieldReportCss,
-      FIELD_REPORT_TEMPLATE_VERSION,
+    copy.dailyReport,
+    `${project.title}${project.title && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
+    `<h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div>${reportParagraph(copy.summary, snapshot.summary, 'summary')}${reportParagraph(copy.tasksCompleted, reportNarrative(snapshot, 'tasksCompleted', 'tasks_completed'), 'tasksCompleted')}${reportParagraph(copy.problemsFound, reportNarrative(snapshot, 'problemsFound', 'problems_found'), 'problemsFound')}${reportParagraph(copy.correctiveActions, reportNarrative(snapshot, 'correctiveActions', 'corrective_actions'), 'correctiveActions')}${reportParagraph(copy.clientDecisions, reportNarrative(snapshot, 'clientDecisions', 'client_decisions'), 'clientDecisions')}${reportParagraph(copy.openItems, reportNarrative(snapshot, 'openItems', 'open_items'), 'openItems')}${reportParagraph(copy.blockers, reportNarrative(snapshot, 'blockers'), 'blockers')}${reportParagraph(copy.nextDayPlan, reportNarrative(snapshot, 'nextDayPlan', 'next_day_plan'), 'nextDayPlan')}`,
+    locale,
+    fieldReportCss,
+    FIELD_REPORT_TEMPLATE_VERSION,
   );
 }
-
 
 export function dailyReportPdf(snapshot: Parameters<typeof dailyReportHtml>[0]): Uint8Array {
   return renderHtmlToPdf(dailyReportHtml(snapshot));
@@ -3756,13 +3780,18 @@ export function technicalReportHtml(snapshot: TechnicalReportSnapshot): string {
     ),
     reportField(copy.client, project.clientName, 'projectSettings'),
     reportField(copy.date, formatReportDate(date, locale)),
-    reportField(copy.system, snapshot.system ?? snapshot.systemName ?? snapshot.system_name, 'systemName'),
+    reportField(
+      copy.system,
+      snapshot.system ?? snapshot.systemName ?? snapshot.system_name,
+      'systemName',
+    ),
     reportField(copy.site, snapshot.site ?? snapshot.plantSite ?? snapshot.plant_site, 'plantSite'),
     reportField(copy.area, snapshot.area ?? snapshot.areaLine ?? snapshot.area_line, 'areaLine'),
     reportField(
       copy.station,
       snapshot.station ?? snapshot.stationMachine ?? snapshot.station_machine,
-      'stationMachine'),
+      'stationMachine',
+    ),
     reportField(copy.status, translateReportStatus(status, locale)),
     reportField(copy.safetyRelated, translateReportBoolean(safety, locale), 'safetyRelated'),
   ].join('');
@@ -3771,9 +3800,21 @@ export function technicalReportHtml(snapshot: TechnicalReportSnapshot): string {
     [copy.plcPlatform, snapshot.plcPlatform ?? snapshot.plc_platform, 'plcPlatform'],
     [copy.controller, snapshot.controller, 'controller'],
     [copy.hmiScada, snapshot.hmiScada ?? snapshot.hmi_scada, 'hmiScada'],
-    [copy.networkProtocol, snapshot.networkProtocol ?? snapshot.network_protocol, 'networkProtocol'],
-    [copy.softwareVersion, snapshot.softwareVersion ?? snapshot.software_version, 'softwareVersion'],
-    [copy.programReference, snapshot.programReference ?? snapshot.program_reference, 'programReference'],
+    [
+      copy.networkProtocol,
+      snapshot.networkProtocol ?? snapshot.network_protocol,
+      'networkProtocol',
+    ],
+    [
+      copy.softwareVersion,
+      snapshot.softwareVersion ?? snapshot.software_version,
+      'softwareVersion',
+    ],
+    [
+      copy.programReference,
+      snapshot.programReference ?? snapshot.program_reference,
+      'programReference',
+    ],
   ]
     .map(([label, value, field]) => reportField(String(label), value, String(field)))
     .join('');
@@ -3791,15 +3832,17 @@ export function technicalReportHtml(snapshot: TechnicalReportSnapshot): string {
       ? `<h2>${copy.technicalChanges}</h2><table><thead><tr><th>${copy.date}</th><th>${copy.detail}</th><th>${copy.changeSummary}</th><th>${copy.status}</th></tr></thead><tbody>${changeRows}</tbody></table>`
       : '';
   return layout(
-      copy.technicalReport,
-      `${project.title}${project.title && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
-      `<section class="report-section"><h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div></section>${technicalDetails ? `<section class="report-section"><h2>${copy.technicalRecords}</h2><div class="grid">${technicalDetails}</div></section>` : ''}<section class="report-section"><h2>${copy.changeSummary}</h2><div class="grid">${reportField(copy.problemSymptom, changeFields.problemSymptom, 'problemSymptom')}${reportField(copy.diagnosisRootCause, changeFields.diagnosisRootCause, 'diagnosisRootCause')}${reportField(copy.changePerformed, changeFields.changePerformed, 'changePerformed')}${reportField(copy.productionImpact, snapshot.productionImpact ?? snapshot.production_impact, 'productionImpact')}${reportField(copy.validation, snapshot.validation, 'validation')}${reportField(copy.validationResult, snapshot.validationResult ?? snapshot.validation_result, 'validationResult')}${reportField(copy.openRisk, snapshot.openRisk ?? snapshot.open_risk, 'openRisk')}${reportField(copy.rollbackPlan, snapshot.rollbackPlan ?? snapshot.rollbackInformation ?? snapshot.rollback_information, 'rollbackPlan')}</div></section>${changesSection}`,
-      locale,
-      fieldReportCss,
-      FIELD_REPORT_TEMPLATE_VERSION,
+    copy.technicalReport,
+    `${project.title}${project.title && date ? ' · ' : ''}${formatReportDate(date, locale)}`,
+    `<section class="report-section"><h2>${copy.operationalRecord}</h2><div class="grid">${fields}</div></section>${technicalDetails ? `<section class="report-section"><h2>${copy.technicalRecords}</h2><div class="grid">${technicalDetails}</div></section>` : ''}<section class="report-section"><h2>${copy.changeSummary}</h2><div class="grid">${reportField(copy.problemSymptom, changeFields.problemSymptom, 'problemSymptom')}${reportField(copy.diagnosisRootCause, changeFields.diagnosisRootCause, 'diagnosisRootCause')}${reportField(copy.changePerformed, changeFields.changePerformed, 'changePerformed')}${reportField(copy.productionImpact, snapshot.productionImpact ?? snapshot.production_impact, 'productionImpact')}${reportField(copy.validation, snapshot.validation, 'validation')}${reportField(copy.validationResult, snapshot.validationResult ?? snapshot.validation_result, 'validationResult')}${reportField(copy.openRisk, snapshot.openRisk ?? snapshot.open_risk, 'openRisk')}${reportField(copy.rollbackPlan, snapshot.rollbackPlan ?? snapshot.rollbackInformation ?? snapshot.rollback_information, 'rollbackPlan')}</div></section>${changesSection}`,
+    locale,
+    fieldReportCss,
+    FIELD_REPORT_TEMPLATE_VERSION,
   );
 }
 
-export function technicalReportPdf(snapshot: Parameters<typeof technicalReportHtml>[0]): Uint8Array {
+export function technicalReportPdf(
+  snapshot: Parameters<typeof technicalReportHtml>[0],
+): Uint8Array {
   return renderHtmlToPdf(technicalReportHtml(snapshot));
 }

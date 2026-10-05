@@ -43,7 +43,7 @@ function seedDemoDatabase(): Readonly<{
   process.env.JA_FIXTURE_SENTINEL = fixtureSentinel;
   execFileSync(
     process.execPath,
-    ['--experimental-strip-types', resolve('packages/database/src/demo-seed.ts')],
+    ['--experimental-transform-types', resolve('packages/database/src/demo-seed.ts')],
     {
       cwd: process.cwd(),
       env: {

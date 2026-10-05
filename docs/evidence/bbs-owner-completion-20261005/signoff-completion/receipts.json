@@ -1,0 +1,38 @@
+{
+  "scope": "SYNTHETIC TRAINING ONLY: NOT ACTUAL CUSTOMER ACCEPTANCE",
+  "fixture_sha256": "9eb7b6d7a6c28832d1b3f74cdcf7a7f27fbd8fcf3af5fd937bc1237557e6603b",
+  "original_conformity_preserved": [
+    {
+      "snapshot_version": 2,
+      "snapshot_sha256": "a715117e0d1f50fa89669da8de52c9899416833e1b0ab37603700f0e50825abf",
+      "report_pdf_sha256": "24136e31741a36217f34e6dd02676804b8a0a97dd5475770d877e640aca1950a",
+      "report_pdf_byte_length": 322264,
+      "signer_name": "TRAINING ONLY Customer Representative",
+      "signer_identity": "training-customer@example.test",
+      "signed_at": "2026-10-05T00:00:00.000Z",
+      "preserved_native_pdf_exists": true,
+      "preserved_native_pdf_sha256": "24136e31741a36217f34e6dd02676804b8a0a97dd5475770d877e640aca1950a"
+    }
+  ],
+  "append_only_invalidation": [
+    {
+      "reason": "SYNTHETIC TRAINING ONLY: invalidate the fictional acceptance exercise to demonstrate replacement report handling; this is not actual customer acceptance.",
+      "occurred_at": "2026-10-05T21:23:58.225Z"
+    }
+  ],
+  "current_replacement": [
+    {
+      "state": "approved",
+      "snapshot_version": 3,
+      "snapshot_sha256": "d879581504e74229a50487831a1e497efe167ae22e47e3b02b40a6e5da0e4252",
+      "pdf_sha256": "a0d1325c1886bdeea91ff5eef2514dc12e835116eb2e3c4649617b10c090f5c6"
+    }
+  ],
+  "artifact_runner": {
+    "processed": 2,
+    "failed": 0,
+    "overdueMarked": 0,
+    "scope": "Expected onboarding-project snapshotv3 canonical and localized PDF jobs only; no scanner override"
+  },
+  "native_replacement_download_sha256": "a0d1325c1886bdeea91ff5eef2514dc12e835116eb2e3c4649617b10c090f5c6"
+}

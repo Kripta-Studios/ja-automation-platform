@@ -8739,7 +8739,11 @@ export class V3Repository {
             reconciliation: JSON.parse(existing.reconciliation_json) as unknown,
           };
       }
-      const ledger = this.masterLedger(principal, { start: periodStart, end: periodEnd });
+      // The ledger UI retains void history. The Accounting Pack includes only
+      // invoices active at its cut; masterLedger evaluates later voids as of end.
+      const ledger = this.masterLedger(principal, { start: periodStart, end: periodEnd }).filter(
+        (row) => row.billingStatus !== 'void' && row.paymentStatus !== 'void',
+      );
       const deployment = this.sqlite
         .prepare('SELECT tenant_id,deployment_id FROM deployment_identity WHERE singleton=1')
         .get() as { tenant_id: string; deployment_id: string } | undefined;
@@ -10007,10 +10011,9 @@ export class V3Repository {
             itemKind: 'invoice_source',
             sourceId: `${invoice.invoiceId}:${source.source_type}:${source.source_id}`,
             itemVersion: source.source_version,
-            // The issued link is immutable, but the source belongs to the
-            // accounting cut of its operational business date. Using the
-            // invoice issue date here would let a late-issued time/expense
-            // migrate between periods and disagree with the manifest item.
+            // Retain the operational business date as frozen link provenance.
+            // An invoice belongs to its issue-date cut, so required child
+            // evidence may predate it without moving operational costs.
             effectiveAt:
               commercialSourceBusinessDates.get(
                 `${invoice.invoiceId}\u0000${source.source_type}\u0000${source.source_id}`,

@@ -315,7 +315,15 @@ describe('0048 signed accounting-pack credit balances', () => {
     const schema47 = copyMigrationTree(47);
     const { databasePath, sqlite } = openFixtureDatabase(schema47);
     const { principal, service } = seedAccountingSources(sqlite, false);
+    // Current authority reads the replacement-aware view introduced in 73.
+    // Schema 47 has no replacements: a connection-only identity view lets the
+    // current fixture builder read its actual assignments without changing the
+    // historical main schema that this upgrade test must preserve.
+    sqlite.exec(
+      'CREATE TEMP VIEW effective_project_legal_entity_assignment AS SELECT * FROM main.project_legal_entity_assignment',
+    );
     const revision = service.createCanonicalRevision(principal, revisionInput(false, true));
+    sqlite.exec('DROP VIEW temp.effective_project_legal_entity_assignment');
     const beforeSnapshot = sqlite
       .prepare('SELECT * FROM accounting_pack_revision_snapshot WHERE revision_id=?')
       .get(revision.revisionId) as SnapshotRow;
@@ -378,7 +386,7 @@ describe('0048 signed accounting-pack credit balances', () => {
       expect(integrityCheck(upgraded.sqlite)).toBe('ok');
       expect(
         upgraded.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get(),
-      ).toEqual({ version: 67 });
+      ).toEqual({ version: 74 });
     } finally {
       upgraded.sqlite.close();
     }

@@ -1,0 +1,168 @@
+{
+  "fixture": "All-synthetic independent training runtime; no production identities or ledger",
+  "packId": "01a10de3-c052-7008-bcb6-274c411a1b78",
+  "period": {
+    "start": "2026-08-01",
+    "end": "2026-08-31"
+  },
+  "state": "final",
+  "actualBrowserSteps": [
+    "Sign in with newly provisioned synthetic Owner credentials",
+    "Accounting > Generate monthly Accounting Pack > Aug1\u201331 > Generate pack",
+    "Queued actual UI",
+    "Run native runArtifactJobs in isolated database/document root only",
+    "Ready > Review before finalizing",
+    "Authenticated browser GET of all five linked artifacts: HTTP 200 matching canonical hashes and lengths",
+    "Finalize reviewed version: actual UI final"
+  ],
+  "reconciliation": {
+    "invoiceRegisterGrossByCurrency": {},
+    "invoiceRegisterNetByCurrency": {},
+    "directCostByCurrency": {
+      "USD": "2271275"
+    },
+    "invoiceSourceCount": 0,
+    "commercialManifestCount": 0,
+    "sourceItemCount": 137,
+    "sourceMismatchCount": 0,
+    "approvedTimeEntryCount": 41,
+    "approvedExpenseCount": 41,
+    "missingCostRuleCount": 0,
+    "pendingRecordCount": 4,
+    "unclassifiedExpenseCount": 30,
+    "missingDocumentCount": 30,
+    "paymentCount": 0,
+    "collectedInMonthByCurrency": {},
+    "workerCostSourceByCurrency": {
+      "USD": "1858275"
+    },
+    "expenseCostSourceByCurrency": {
+      "USD": "413000"
+    },
+    "directCostSourceByCurrency": {
+      "USD": "2271275"
+    },
+    "contributionByCurrency": {},
+    "checks": {
+      "invoiceSources": true,
+      "payments": true,
+      "workerCosts": true,
+      "expenses": true,
+      "directCosts": true,
+      "contribution": true
+    },
+    "reconciles": true,
+    "canonicalRevision": {
+      "status": "current",
+      "revisions": [
+        {
+          "revisionId": "fp-accounting-pack-revision-76407258a9c254aa423a7a62a3b029020a1fe4b9",
+          "seriesId": "fp-accounting-pack-series-36d85a03fd1ab51f6e76bce912aed79839a4b396",
+          "sourceCutId": "fp-source-cut-4fed6515ba41d0590bfdf0886ac8257ddacf5fa9",
+          "legalEntityRevisionId": "ce-legal-entity-revision-7c1812e4823dbc24d3e2dfe8bd3fcccbadd88bd0",
+          "entityBridgeId": "ce-legal-entity-bridge-8240acc12f3453a66d28df3ea78421226fd136a6",
+          "legacyRunBridgeId": null,
+          "snapshotSha256": "2d883ebc504c921ac978b14930063b00c8204aaba3122ca2e5aadd2e6c8505ed",
+          "reconciliationSha256": "fd608742ab019de308485f9b4c4e0fa3b7d9c4599a89294c30a87cac23b16fdd",
+          "idempotent": false
+        }
+      ],
+      "missingCurrencies": []
+    }
+  },
+  "totals": {
+    "currency": "USD",
+    "laborInvoicedMinor": "0",
+    "expenseInvoicedMinor": "0",
+    "milestoneOtherInvoicedMinor": "0",
+    "totalInvoicedMinor": "0",
+    "taxInvoicedMinor": "0",
+    "grossInvoicedMinor": "0",
+    "collectedMinor": "0",
+    "outstandingMinor": "0",
+    "workerCompensationMinor": "1380875",
+    "internalLaborCostMinor": "1858275",
+    "travelCostMinor": "361500",
+    "otherDirectCostMinor": "51500",
+    "directCostMinor": "2271275",
+    "contributionMinor": "-2271275",
+    "contributionMarginBps": "0",
+    "legalEntityId": "01a10ddb-c811-743e-80ff-d4942b66be8d"
+  },
+  "totalsByCurrency": [
+    {
+      "currency": "USD",
+      "laborInvoicedMinor": "0",
+      "expenseInvoicedMinor": "0",
+      "milestoneOtherInvoicedMinor": "0",
+      "totalInvoicedMinor": "0",
+      "taxInvoicedMinor": "0",
+      "grossInvoicedMinor": "0",
+      "collectedMinor": "0",
+      "outstandingMinor": "0",
+      "workerCompensationMinor": "1380875",
+      "internalLaborCostMinor": "1858275",
+      "travelCostMinor": "361500",
+      "otherDirectCostMinor": "51500",
+      "directCostMinor": "2271275",
+      "contributionMinor": "-2271275",
+      "contributionMarginBps": "0",
+      "legalEntityId": "01a10ddb-c811-743e-80ff-d4942b66be8d"
+    }
+  ],
+  "exports": [
+    {
+      "export_type": "expense_csv",
+      "storage_key": "accounting-packs/01a10de3-c052-7008-bcb6-274c411a1b78/expense_csv-2026.09.02.2.csv",
+      "sha256": "1bd90356d7315ac88e5b67b18c596e6e0fbe345e6b527e7bd2cbc61f9f449b5c",
+      "byte_length": 17131,
+      "httpStatus": 200,
+      "actualSha256": "1bd90356d7315ac88e5b67b18c596e6e0fbe345e6b527e7bd2cbc61f9f449b5c",
+      "actualLength": 17131
+    },
+    {
+      "export_type": "invoice_csv",
+      "storage_key": "accounting-packs/01a10de3-c052-7008-bcb6-274c411a1b78/invoice_csv-2026.09.02.2.csv",
+      "sha256": "c46a472194efb8caa384eed109ec71efcc3976b0eff6ab8b0f3754dd64a23724",
+      "byte_length": 111,
+      "httpStatus": 200,
+      "actualSha256": "c46a472194efb8caa384eed109ec71efcc3976b0eff6ab8b0f3754dd64a23724",
+      "actualLength": 111
+    },
+    {
+      "export_type": "json",
+      "storage_key": "accounting-packs/01a10de3-c052-7008-bcb6-274c411a1b78/json-2026.09.02.2.json",
+      "sha256": "fa3106470ae102c4feea42c5a59624ab1500d6fc292c9cb108b42a14294261b3",
+      "byte_length": 182990,
+      "httpStatus": 200,
+      "actualSha256": "fa3106470ae102c4feea42c5a59624ab1500d6fc292c9cb108b42a14294261b3",
+      "actualLength": 182990
+    },
+    {
+      "export_type": "pdf",
+      "storage_key": "accounting-packs/01a10de3-c052-7008-bcb6-274c411a1b78/pdf-2026.10.01.1.pdf",
+      "sha256": "4401e13d6ffe12d19d7829940080ea68088f374a28bbf7a0fe49c74824763bea",
+      "byte_length": 360441,
+      "httpStatus": 200,
+      "actualSha256": "4401e13d6ffe12d19d7829940080ea68088f374a28bbf7a0fe49c74824763bea",
+      "actualLength": 360441
+    },
+    {
+      "export_type": "xlsx",
+      "storage_key": "accounting-packs/01a10de3-c052-7008-bcb6-274c411a1b78/xlsx-2026.09.22.1.xlsx",
+      "sha256": "afe47dbd0d0736f0e04a0cd0bc4fd827d592fe443d1fb4699876923fbdf66d95",
+      "byte_length": 15304,
+      "httpStatus": 200,
+      "actualSha256": "afe47dbd0d0736f0e04a0cd0bc4fd827d592fe443d1fb4699876923fbdf66d95",
+      "actualLength": 15304
+    }
+  ],
+  "harnessIssue": "Initial old build chunk HTTP500 resolved by runtime restart; no product source change required",
+  "reviewAdvisoryMeaning": {
+    "scope": "Entire authorized Owner portfolio, work/spent/report dates within Aug1\u201331; no project filter in generation",
+    "pending4": "Draft/submitted/needs_changes time entries, expenses, daily reports or technical reports remain unapproved",
+    "unclassified30": "Approved expenses with commercial_classification_state other than classified",
+    "missingDocuments30": "Expenses not rejected/void lacking receipt_document_id",
+    "meaning": "Exact reconciliation proves selected included figures tie out, not operational completeness. Finalizing preserves this intentionally incomplete synthetic training snapshot; it does not approve pending records or supply receipts. In actual operation review each count, resolve genuine omissions, generate new version before finalizing as appropriate."
+  }
+}

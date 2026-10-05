@@ -1,0 +1,36 @@
+{
+  "scope": "All captures demonstrate synthetic training only, never actual customer acceptance",
+  "crop": "72px sticky global navigation removed from locator captures for account privacy; business controls unchanged",
+  "screenshots": [
+    {
+      "file": "screenshots/01-synthetic-training-upload.png",
+      "sha256": "1dda3c37752874e7dcf2a3648619fe370e742c7f8463b933383c36119ffff54f",
+      "bytes": 79028
+    },
+    {
+      "file": "screenshots/03-synthetic-training-acceptance.png",
+      "sha256": "787750eb9a9eac3a5ca09b5d3e043e3d375a11c8915477d59bce1637203718b9",
+      "bytes": 49701
+    },
+    {
+      "file": "screenshots/04-synthetic-training-invalidation-before.png",
+      "sha256": "481d58f496cf0f8d6f6f0e11b619e06a39ced5f0892dff61793f223121fe3d93",
+      "bytes": 73813
+    },
+    {
+      "file": "screenshots/05-synthetic-training-acceptance-invalidated.png",
+      "sha256": "2ea90bed04e1923bc1aa6e0bcd7475ea5997369590c693feea66fd44d3b179c4",
+      "bytes": 68822
+    },
+    {
+      "file": "screenshots/06-synthetic-training-replacement-v3-needs-review.png",
+      "sha256": "ce2747360812c1e79c05ed982fd0a4078035c7de17198ab7f551893f3ae0aab5",
+      "bytes": 32336
+    },
+    {
+      "file": "screenshots/07-synthetic-training-replacement-v3-ready.png",
+      "sha256": "b4d54991aac24d79d801402d8014428f76027a549f9cb987ccc3250c2d2de3e1",
+      "bytes": 67399
+    }
+  ]
+}

@@ -483,10 +483,38 @@ for (const [projectId, key, canReview] of assignments) {
 }
 const projectIdsByUser = (key: string) =>
   assignments.filter((row) => row[1] === key).map((row) => row[0]);
-const worker = principal('worker', 'worker', projectIdsByUser('worker'));
-const worker2 = principal('worker2', 'worker', projectIdsByUser('worker2'));
-const worker3 = principal('worker3', 'worker', projectIdsByUser('worker3'));
-const manager = principal('manager', 'project_manager', projectIdsByUser('manager'));
+const liveOperationalPrincipal = (actor: Principal): Principal => {
+  const user = sqlite.prepare('SELECT role,status FROM user WHERE id=?').get(actor.userId) as
+    | { role: Role; status: string }
+    | undefined;
+  if (!user || user.status !== 'active' || user.role !== actor.role)
+    throw new Error('An operational fixture principal requires its active persisted role.');
+  const sessionId = newId();
+  const now = new Date().toISOString();
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,NULL)',
+    )
+    .run(
+      sessionId,
+      newId(),
+      actor.userId,
+      new Date(Date.now() + 60 * 60_000).toISOString(),
+      now,
+      now,
+    );
+  return { ...actor, sessionId };
+};
+const worker = liveOperationalPrincipal(principal('worker', 'worker', projectIdsByUser('worker')));
+const worker2 = liveOperationalPrincipal(
+  principal('worker2', 'worker', projectIdsByUser('worker2')),
+);
+const worker3 = liveOperationalPrincipal(
+  principal('worker3', 'worker', projectIdsByUser('worker3')),
+);
+const manager = liveOperationalPrincipal(
+  principal('manager', 'project_manager', projectIdsByUser('manager')),
+);
 
 const skills = [
   ['PLC-COMM', 'PLC commissioning'],

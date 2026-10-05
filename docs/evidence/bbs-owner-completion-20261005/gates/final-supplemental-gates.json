@@ -1,0 +1,31 @@
+{
+  "capturedAt": "2026-10-05T21:59:28.242777+00:00",
+  "scope": "Final supplemental source and tests; scoped release, not global CLIENT_READY",
+  "runtime": "Node24.19.0/pnpm11.22.0",
+  "results": {
+    "workspaceTypecheck": "PASS; root-delivery-typecheck.log",
+    "scopedESLint": "PASS; root-delivery-lint.log",
+    "scopedPrettier": "PASS; root-delivery-format.log",
+    "portalProductionBuild": "PASS; root-supplemental-responsive-build.log",
+    "jobsProductionBuild": "PASS; root-delivery-jobs-build.log",
+    "crossMonthAccountingBoundaries": "8/8 PASS; ../financial-completion/accounting-cut-boundaries-tests.log",
+    "technicalNarratives": "8/8 PASS; root-technical-details.log",
+    "accountingCompatibility": "All82cases have PASS evidence across qualified discovery+focused reruns; no single later82/82 invocation claimed",
+    "historicalSignedCreditUpgrade": "2/2 PASS; root-signed-credit-migration-final.log",
+    "nativeAccountingOctober": "PASS; ../financial-completion/accounting-october-success-receipt.json",
+    "nativeTechnicalPhone": "PASS; ../editorial/technical-readability-runtime.json"
+  },
+  "testedSourceSha256": {
+    "apps/portal/src/routes/app/billing/invoices/[id]/+page.svelte": "accb335dffdb13e88b1d3f042c66c4e8321b07773fae41bf7e8df4ab93ca52c8",
+    "apps/portal/src/routes/app/reports/period/[id]/+page.svelte": "d96f88de4b6c4a2f88c10641fa127a06e777dea0d987dcecf661e5513824da8d",
+    "packages/database/src/v3-repository.ts": "cd5aeb3faad6ff867921398d0f6a74224b324e4ae657040006d69220f7db5fa8",
+    "packages/database/src/domains/accounting-pack/accounting-pack-revision-service.ts": "3d97da1c9f185bb5b5b0dd3abddb767f4c7fb5ec31c2941d263348e4aa55b970",
+    "packages/database/src/demo-seed.ts": "296f208ad67cfc075509f2fc4d798f604f688832829729c6dfc8faf245b9dd7a",
+    "packages/reporting/src/exports.ts": "80a85d13bb0239c8ebb074c9859d9812c848c545fb47ec299b2eb023c1cf17d2",
+    "tests/integration/accounting-pack-cut-boundaries.test.ts": "63a0bb89a80e4f83018ea62cd7bca7b3d276aa6e1f7f5752cea16571b4a32187",
+    "tests/unit/period-report-technical-details.test.ts": "17833e6f9ca5610d4c3446138f160b86f67a52f321d58c63d6b39d07c75b9f51",
+    "tests/integration/accounting-pack-revision-service.test.ts": "edf2d090e9f0f9aff4ec8354960e4a643b7aae6f08e789f9ba34a0323745f922",
+    "tests/integration/accounting-pack-action.test.ts": "3e15f170b1b47e3377a247ba8eedf036f9c4ab7e41f3e9b1ecba5dd80817d6cd",
+    "tests/migrations/accounting-pack-signed-credit-migration.test.ts": "14209ef07370d1808cfd19643ba99dca86ca0aba45163bde216758ee36f0f7bf"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "runtime": "isolated training clone, one newly created known-safe fictional PDF",
+  "project": "C-0050-P-20261005",
+  "documentId": "01a10dea-c1fb-7389-aba0-ff2fac671423",
+  "actualBrowserSteps": [
+    "Documents > Register a private artifact > select project/type/access/sensitivity/description/File > Upload and register hash",
+    "Locate new fictional file row",
+    "Download via actual Owner UI, compare downloaded bytes/hash to native stored master and uploaded fixture",
+    "Authenticated Worker with verified access to the same project receives privacy-preserving404 for finance-only committed document before archiving",
+    "Archive > required Archive reason > Archive document"
+  ],
+  "documentAccess": "Finance, Owner and Auditor only",
+  "sensitivity": "sensitive",
+  "uploadState": "committed",
+  "scanStatus": "not_scanned",
+  "scanClaim": "No malware scan was performed: this fixture uses optional scan configuration; scanner helper refused when no scan job existed",
+  "ownerDownloadStatus": 200,
+  "workerPrivateDownloadStatus": 404,
+  "byteLength": 743,
+  "sha256": "b5e4137d76ce38ba7f694be09b02d27f509da0ec1a5b2cca3774dfaace601c1b",
+  "archivedAt": "2026-10-05T21:18:14.972Z",
+  "nativeMasterRetained": true,
+  "viewports": [
+    1440,
+    390
+  ],
+  "harnessCorrections": [
+    "Expected generic403 corrected to intentional privacy-preserving404",
+    "Archive assertion corrected: native state stays committed, archived_at records archival. No second archive or database state modification performed."
+  ]
+}

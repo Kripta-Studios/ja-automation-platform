@@ -1,0 +1,23 @@
+{
+  "capturedAt": "2026-10-05T21:55:15.252Z",
+  "environment": "isolated clone 5179",
+  "operation": "Authenticated read-only existing v3 period page; no report refresh, generation or business POST",
+  "labels": [
+    "Problem / symptom",
+    "Diagnosis / root cause",
+    "Change performed"
+  ],
+  "rawTechnicalSchemaVisible": false,
+  "phoneWidth": 390,
+  "phoneOverflow": false,
+  "pageErrors": [],
+  "businessPosts": 0,
+  "artifactBoundary": "No artifact job or generation requested; original v2/v3 masters remain the historical files verified in the signoff receipt",
+  "screenshotSha256": "6550f2f081e4c3c47380e06af294c9738d559024f590f75f66f4388f8fee62f3",
+  "browserConfiguration": {
+    "cspBypass": false,
+    "injectedStyles": false,
+    "source": "Final command ran with the responsive diagnostic flag absent; reviewed compiled CSS served by the built portal"
+  },
+  "sourceSha256": "d96f88de4b6c4a2f88c10641fa127a06e777dea0d987dcecf661e5513824da8d"
+}

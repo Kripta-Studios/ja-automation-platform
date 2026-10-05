@@ -1,0 +1,165 @@
+{
+  "id": "BBS-ACCOUNTING-FIX-03",
+  "status": "PASS",
+  "fixture": "Separate all-synthetic demo5180, native supported seed and authenticated Owner UI; no production financial transactions",
+  "scope": "UTC demo fixture with October issue-date cut and older August operational sources; not proof for every timezone/boundary",
+  "periodStart": "2026-10-01",
+  "periodEnd": "2026-10-05",
+  "packId": "01a10e07-56d7-745e-b461-467fdc81fc91",
+  "generatedAt": "2026-10-05T21:45:24.439Z",
+  "steps": [
+    "Generate monthly Accounting Pack; enter October1\u20135 and English; Generate pack",
+    "Native isolated runArtifactJobs processed only accounting artifact job; all five Ready",
+    "Authenticated browser GET of all five formats; SHA256 and byte length matched canonical metadata",
+    "Review before finalizing: pending0/unclassified0/missingdocs0/reconciliationissues0/changesNone",
+    "Finalize reviewed version via actual UI; persisted final after reload",
+    "Repeat five GETs after finalization: bytes unchanged; original/credit/void issued masters unchanged"
+  ],
+  "review": {
+    "pendingRecords": 0,
+    "unclassifiedExpenses": 0,
+    "missingDocuments": 0,
+    "reconciliationIssues": 0,
+    "changesSinceGeneration": "None detected"
+  },
+  "browserDownloads": [
+    {
+      "label": "PDF \u00b7 Ready",
+      "url": "/j-aautomation/app/api/accounting-pack/01a10e07-56d7-745e-b461-467fdc81fc91/pdf",
+      "status": 200,
+      "byteLength": 330785,
+      "sha256": "dba8ae1c6b860a58ea45280fab9a745c8b9133275e0c881bdf48904a6a0fd21f"
+    },
+    {
+      "label": "XLSX \u00b7 Ready",
+      "url": "/j-aautomation/app/api/accounting-pack/01a10e07-56d7-745e-b461-467fdc81fc91/xlsx",
+      "status": 200,
+      "byteLength": 6090,
+      "sha256": "57d419813618ac48440151207c4a16235a658386dac6a172768fdaa5c9a2b81e"
+    },
+    {
+      "label": "Invoice CSV \u00b7 Ready",
+      "url": "/j-aautomation/app/api/accounting-pack/01a10e07-56d7-745e-b461-467fdc81fc91/invoice_csv",
+      "status": 200,
+      "byteLength": 792,
+      "sha256": "c6db97592ed5d7b6a95a26e7f82b57abcf451674e0363f96d42ee91343f25c1e"
+    },
+    {
+      "label": "Expense CSV \u00b7 Ready",
+      "url": "/j-aautomation/app/api/accounting-pack/01a10e07-56d7-745e-b461-467fdc81fc91/expense_csv",
+      "status": 200,
+      "byteLength": 146,
+      "sha256": "1903e1df33f8e1210719a75aa55a3fdc7478d43639c13c201d7a5a2fdef323cb"
+    },
+    {
+      "label": "JSON \u00b7 Ready",
+      "url": "/j-aautomation/app/api/accounting-pack/01a10e07-56d7-745e-b461-467fdc81fc91/json",
+      "status": 200,
+      "byteLength": 29703,
+      "sha256": "e47486a5e73ef193aa1d85194fd3b1f0a8444d64d2c996e6802885c47874d2b7"
+    }
+  ],
+  "postFinalBrowserDownloads": [
+    {
+      "label": "PDF \u00b7 Ready",
+      "status": 200,
+      "byteLength": 330785,
+      "sha256": "dba8ae1c6b860a58ea45280fab9a745c8b9133275e0c881bdf48904a6a0fd21f"
+    },
+    {
+      "label": "XLSX \u00b7 Ready",
+      "status": 200,
+      "byteLength": 6090,
+      "sha256": "57d419813618ac48440151207c4a16235a658386dac6a172768fdaa5c9a2b81e"
+    },
+    {
+      "label": "Invoice CSV \u00b7 Ready",
+      "status": 200,
+      "byteLength": 792,
+      "sha256": "c6db97592ed5d7b6a95a26e7f82b57abcf451674e0363f96d42ee91343f25c1e"
+    },
+    {
+      "label": "Expense CSV \u00b7 Ready",
+      "status": 200,
+      "byteLength": 146,
+      "sha256": "1903e1df33f8e1210719a75aa55a3fdc7478d43639c13c201d7a5a2fdef323cb"
+    },
+    {
+      "label": "JSON \u00b7 Ready",
+      "status": 200,
+      "byteLength": 29703,
+      "sha256": "e47486a5e73ef193aa1d85194fd3b1f0a8444d64d2c996e6802885c47874d2b7"
+    }
+  ],
+  "nativeInvoiceMasterIntegrity": [
+    {
+      "invoiceId": "01a10ddb-c8ff-7394-a3a0-8780138f462b",
+      "status": 200,
+      "byteLength": 356107,
+      "sha256": "0e28d606989e8d74d2c3747771790f83ed5e4d0128d99edae6248ab0bc3fc087",
+      "unchanged": true
+    },
+    {
+      "invoiceId": "01a10de6-0f72-72bd-b02d-f1450d244b14",
+      "status": 200,
+      "byteLength": 353151,
+      "sha256": "b0bb8ec6ceb9035c0ecd949b256b2315acbe0e5656135079b643c3c10f634be1",
+      "unchanged": true
+    },
+    {
+      "invoiceId": "01a10ded-cfab-764f-8e70-08aa6e1c07fa",
+      "status": 200,
+      "byteLength": 354335,
+      "sha256": "68843d7c0655c7880181028f8e05e3068fe9be2d919554b74650a53aa4657a8d",
+      "unchanged": true
+    }
+  ],
+  "totalsUSD": {
+    "netInvoiced": "75900.00",
+    "taxInvoiced": "3800.00",
+    "grossInvoiced": "79700.00",
+    "collectedNet": "50.00",
+    "outstanding": "79650.00",
+    "internalLaborCost": "0.00",
+    "directCost": "0.00",
+    "contribution": "75900.00"
+  },
+  "meaning": "Original gross79,800 less issued credit100. Voided debit10 excluded at this cut. August operational work/costs remain in August; required immutable child links follow invoice into its October issue-date cut. This period contribution is not whole-project profit.",
+  "historyPreserved": "Prior August finalized pack retained; no invoice/source/manifest date, hash, numbering, approval or immutable financial row changed",
+  "screenshots": [
+    "42-accounting-october-ready-review.png",
+    "43-accounting-october-final.png"
+  ],
+  "regressionTests": {
+    "newBoundarySuite": "8/8 PASS; accounting-cut-boundaries-tests.log",
+    "compatibilityInitial": "78/82 PASS; initial four fixture failures retained in accounting-compatibility-tests.log",
+    "revisionServiceQualifiedCoverage": "51/52 initial PASS plus failed concurrency case focused1/1 PASS after Node24 loader change; all52 cases have passing evidence, full52 suite not repeated",
+    "concurrentNativeWorkers": "Focused rerun1/1 PASS; accounting-concurrency-loader-rerun.log; actual two SQLite worker connections and every concurrency assertion unchanged",
+    "artifactSuite": "13/13 PASS in compatibility packet",
+    "finalizationAndActionFailure": "Units passed in compatibility packet",
+    "nativeActionBoundary": "2/2 PASS after Node24 loader and genuine operational fixture sessions; accounting-action-native-session-rerun.log; invalid period, denied role, expired session, exact accepted period and write counts enforced",
+    "signedCreditMigration": "Root owns schema47 fixture compatibility correction and final rerun; see root gate evidence",
+    "eslint": "PASS; accounting-fixture-lint.log and accounting-cut-boundaries-lint.log",
+    "databaseTypecheck": "PASS; accounting-database-typecheck.log",
+    "formatAndDiff": "Prettier PASS; git diff --check PASS"
+  },
+  "sourceSnapshot": {
+    "activeInvoiceCount": 2,
+    "invoiceSourceCount": 7,
+    "commercialManifestCount": 8,
+    "sourceItemCount": 19,
+    "collectionAndReversalItemCount": 2,
+    "ordinaryWorkerCostCount": 0,
+    "expenseCount": 0,
+    "frozenChildBusinessDates": [
+      "2026-08-10",
+      "2026-08-12",
+      "2026-08-14",
+      "2026-10-05"
+    ],
+    "canonicalSnapshotSha256": "2a94cddde3f78a006449cd7c584facacb30cf0005c8af418bfc54308dac2b608",
+    "canonicalReconciliationSha256": "c7d016b54eb2e00f96a2e23a778ea33cde7070c6de28f9129c596a71674b56fa"
+  },
+  "sourceFrozenAt": "2026-10-05T21:53:20Z",
+  "fixtureCorrection": "Supported synthetic demo seed now creates genuine unique one-hour session rows for its three Workers and manager, after checking the actual active persisted role. Same project scope and permissions retained; no policy/amount/source/history change."
+}

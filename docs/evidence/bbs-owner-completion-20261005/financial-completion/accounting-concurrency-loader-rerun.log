@@ -1,0 +1,12 @@
+
+ RUN  v4.1.11 /home/kripta/ja-manual-main-publish-20261005-side
+
+(node:1366933) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1366933) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 51 skipped (52)
+   Start at  23:44:48
+   Duration  7.53s (transform 1.50s, setup 0ms, import 1.83s, tests 5.56s, environment 0ms)

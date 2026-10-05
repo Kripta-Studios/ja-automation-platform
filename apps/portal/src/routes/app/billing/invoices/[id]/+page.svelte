@@ -969,7 +969,7 @@
       <div class="invoice-pdf-panel__heading">
         <div>
           <p class="invoice-pdf-panel__eyebrow">{t('PDF')}</p>
-          <h2 id="invoice-pdf-heading">{t('Preview')}</h2>
+          <h2 id="invoice-pdf-heading">{t('Invoice')} · {t('PDF')}</h2>
         </div>
         <span
           class="invoice-pdf-panel__status"

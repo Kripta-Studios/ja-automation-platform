@@ -1,0 +1,50 @@
+{
+  "scope": "Isolated fictional demo only; root visually reviewed crops for account/business privacy",
+  "captures": [
+    {
+      "file": "corrected-saved-time-register.png",
+      "bytes": 69712,
+      "sha256": "ae62f0b1643577d8d0c119a98d94a40971777076abc50df21e891aedc4b58099"
+    },
+    {
+      "file": "daily-report-top-fields.png",
+      "bytes": 48275,
+      "sha256": "a47eb2ef0cd236b3397323ad5489013145d4df595bca86c5b5874b1db0c4f6c0"
+    },
+    {
+      "file": "documents-saved-phone-row.png",
+      "bytes": 14245,
+      "sha256": "4bed82fd501eae585740974d3e3e5e5a1130ca1e4af9b5822703c11751072703"
+    },
+    {
+      "file": "documents-saved-private-row.png",
+      "bytes": 15047,
+      "sha256": "63e2a03df7389411e0d967ab39df9432b358f6a53c9130f48e1bd0cbe3561bb6"
+    },
+    {
+      "file": "documents-upload-fields.png",
+      "bytes": 47941,
+      "sha256": "c28ba931ee8aab805860804d3a27520cd7c957c4e98184db587537ced02289ae"
+    },
+    {
+      "file": "issued-unpaid-invoice-heading.png",
+      "bytes": 17180,
+      "sha256": "326fd06e840bd4518a1bab8044e7019b65aa60d4fdb10694b012318cb1c16f46"
+    },
+    {
+      "file": "issued-unpaid-invoice-pdf-panel.png",
+      "bytes": 12442,
+      "sha256": "0cc532c8f5d13c2e0aa99dfaf34f2c33aeea06aa401bde7f05d578f1bb40c8dd"
+    },
+    {
+      "file": "issued-unpaid-invoice-phone-panel.png",
+      "bytes": 12297,
+      "sha256": "6098c64d9f612bf21dc244180039726d18645868877d9e5e5182e5b239253715"
+    },
+    {
+      "file": "technical-report-readable-details.png",
+      "bytes": 20329,
+      "sha256": "6550f2f081e4c3c47380e06af294c9738d559024f590f75f66f4388f8fee62f3"
+    }
+  ]
+}

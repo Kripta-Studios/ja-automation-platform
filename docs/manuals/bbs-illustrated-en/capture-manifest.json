@@ -1,0 +1,75 @@
+{
+  "capturedOn": "2026-10-05",
+  "environment": "production",
+  "sourceCommit": "213df24a",
+  "project": "C-0050-P-20261005",
+  "fictionalData": true,
+  "interfaceLanguage": "English",
+  "nativeInvoices": "Unissued drafts only; bank footer excluded from public screenshots",
+  "figures": [
+    {
+      "name": "01-project-team.png",
+      "sha256": "529238965786ed708bc20e4e101c33fb8f28a31c6f555316328add0fb833a447"
+    },
+    {
+      "name": "06-chief-crew-hours-shared-receipt.png",
+      "sha256": "7e2e3135e46ff20786d516489d908a4bc0e4feaaa854da3cd1aa3fbdce4fc95f"
+    },
+    {
+      "name": "07-chief-individual-crew-hours.png",
+      "sha256": "6ac203e4e7c2f56c1e34b2dadc9fa0c13e30e0bb25f7f00c76313e9ccbee949f"
+    },
+    {
+      "name": "10-worker-expenses.png",
+      "sha256": "ac6c1dff9eb2c60fab5da8a40256eead4922800e719e457f1071b59ae6117a8c"
+    },
+    {
+      "name": "11-worker-fixed-period-pay.png",
+      "sha256": "d973b2e3d5538aaa44b5bb02c1602934f534f4854d180eac438d7fd5456543fa"
+    },
+    {
+      "name": "17-create-project-form.png",
+      "sha256": "f50d339720dd8359c0f11063a03327053a4d43370b9c885689a0628a8049ec64"
+    },
+    {
+      "name": "18-ja-default-issuer.png",
+      "sha256": "6e3e8c8340949b67657ff095a073ca73e3f38e5e04bff877d3c9fab71d97d37d"
+    },
+    {
+      "name": "19-chief-hourly.png",
+      "sha256": "b3abcb237a0734c32c8685b83f13e40f0de0a93147f3cfd7a5ace4771ea04686"
+    },
+    {
+      "name": "20-worker-daily.png",
+      "sha256": "02163464455f7d64e0c59a450a6691deb9a8fdd56a7fdc2bec5d18d5b1bbda50"
+    },
+    {
+      "name": "21-worker-weekly.png",
+      "sha256": "4051cdd516db444fd90aa9e07c11de63b5f76878348307ca017d85828c6d95f9"
+    },
+    {
+      "name": "22-labor-lines.png",
+      "sha256": "63b77d28fa7cf34129894c710acb2a73d705b954ccd2e0ec755ffa5f17f817f8"
+    },
+    {
+      "name": "23-expense-lines.png",
+      "sha256": "28cd5ffef62328a81c55719538d0189db9c4449d0a13b6449165de4ec8133feb"
+    },
+    {
+      "name": "24-mixed-lines.png",
+      "sha256": "e67c2a294bf6e7d56645056c7f2d15353dc941bc7e62443845da825a5e27c90d"
+    },
+    {
+      "name": "25-finance-hours.png",
+      "sha256": "a5dee0288611a1c0499f484aeb8f49e4c528fb4c682a66d3c04d867dcdc34f9e"
+    },
+    {
+      "name": "26-finance-expenses.png",
+      "sha256": "967b9a26cde55cff681bcbc69da8b8d2d7851ca7e39c7a43b13b0a0fd22ef5a3"
+    },
+    {
+      "name": "27-pdf-download.png",
+      "sha256": "60e40a4888e6fcb94d1a6552f6d580f750f9885e093c7021cbdb8f44810e8cb2"
+    }
+  ]
+}

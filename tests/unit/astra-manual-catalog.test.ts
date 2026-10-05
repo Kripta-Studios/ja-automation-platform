@@ -21,7 +21,7 @@ const references = [
 const roleMatrix = [
   ['worker', undefined, ['employee-field-guide', 'work-projects-reference']],
   ['project_manager', undefined, ['work-projects-reference']],
-  ['finance_admin', undefined, ['administration-finance-reference']],
+  ['finance_admin', undefined, ['administration-finance-reference', 'bbs-project-invoices-guide']],
   ['auditor_read_only', undefined, ['administration-finance-reference']],
   ['worker', 'supplier_coordinator', ['supplier-operations-reference']],
   ['worker', 'external_technician', ['supplier-operations-reference']],
@@ -39,6 +39,7 @@ describe('Help manual catalog', () => {
     expect(manualCatalog.map((manual) => manual.id)).toEqual([
       'employee-field-guide',
       ...references,
+      'bbs-project-invoices-guide',
     ]);
     expect(manualCatalog[0]?.locales).toEqual(['en', 'es', 'pt']);
     for (const [id, audience, stem, personas] of [
@@ -87,12 +88,22 @@ describe('Help manual catalog', () => {
       'administration-finance-reference',
       'work-projects-reference',
       'supplier-operations-reference',
+      'bbs-project-invoices-guide',
     ]);
     for (const [alias, canonical] of Object.entries(manualAliases))
       expect(manualForRole(alias, 'owner_admin')?.id).toBe(canonical);
     expect(manualForRole('employee-field-guide', 'owner_admin')).toBeNull();
     expect(manualsForRole('unknown')).toEqual([]);
     expect(manualForRole('does-not-exist', 'worker')).toBeNull();
+  });
+
+  it('allows the English BBS guide only for owner and Finance', async () => {
+    const guide = manualForRole('bbs-project-invoices-guide', 'owner_admin');
+    expect(guide?.locales).toEqual(['en']);
+    expect(manualForRole('bbs-project-invoices-guide', 'finance_admin')).toBeTruthy();
+    for (const role of ['worker', 'project_manager', 'auditor_read_only'])
+      expect(manualForRole('bbs-project-invoices-guide', role)).toBeNull();
+    expect((await readManualPdf(guide!, 'en')).subarray(0, 5).toString()).toBe('%PDF-');
   });
 
   it('reads allowlisted PDFs from the portal working directory', async () => {

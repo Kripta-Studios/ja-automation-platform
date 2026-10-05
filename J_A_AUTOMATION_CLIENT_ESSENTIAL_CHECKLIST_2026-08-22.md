@@ -1720,3 +1720,11 @@ The closed AFTER used **93 calls = 61 investigation + 32 restoration**, within s
 - Same-revision adjacent issuer assignments now cover a continuous period; real gaps remain blocked with exact missing dates and a repair link. Different revisions are not silently merged.
 - Limitation: hourly included-minute hybrid billing rejects fixed customer units; remaining-hour forecasts do not invent billable days/weeks. Two existing invoice-template-registry assertions also fail on baseline 074903db (changed parent layout and invisible editing attributes); no full-suite or overall client-readiness PASS is claimed.
 - Side-conversation isolation prohibits delegated independent review; financial changes received a separate solo source/diff review and targeted execution evidence. Production/browser/manual evidence is recorded separately when completed.
+
+### Production and illustrated-guide evidence (2026-10-05)
+
+- Feature commit `213df24a`, release SHA `1ebfcc3599b030ed270c6d82ba58feeedbf92f6c066ee331b7de756e32eb3ad5`: official deploy completed with backup/health gates; live migration 74, zero FK violations and SQLite integrity `ok`.
+- New fictional BBS project `C-0050-P-20261005`: original six parts total 2100 minutes (35 hours), all operationally approved/Finance-reviewed; four expenses all approved/classified/Finance-reviewed.
+- Browser-saved October 5 person agreements retain hourly chief billing, USD 600/day technician 1, USD 1500/week technician 2, independent pay and payer policies after reload. Six new split parts total 450 minutes; draft exact money: USD 2260, with no duplicate day/week charge. Existing drafts retain USD 2230 labor and USD 182 expenses. All three native PDFs successfully downloaded in English.
+- Worker 1 Time, worker 2 My Pay and chief Crew were checked in one private browser session; no customer-rate leakage in worker screens. Original BBS/Junkers project/member/source/stream/invoice hashes match the pre-exercise baselines.
+- English manual: 23 A4 pages, 16 real production screenshots, explicit separate client expense invoice and approval/issuance/sending path. Fictional drafts remain unissued/unsent/unpaid. PDF layout checked; bank footers and all credentials/cookies excluded. Help catalog unit tests: four passed; portal typecheck passed. Catalog restricts this financial training guide to owner and Finance.

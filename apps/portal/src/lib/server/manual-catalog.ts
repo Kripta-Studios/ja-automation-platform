@@ -164,6 +164,24 @@ export const manualCatalog: readonly ManualDefinition[] = [
     ],
     'Administration_Finance_Guide',
   ),
+  {
+    id: 'bbs-project-invoices-guide',
+    title: {
+      en: 'BBS: Project to client invoices',
+      es: 'BBS: Project to client invoices (English)',
+      pt: 'BBS: Project to client invoices (English)',
+    },
+    description: {
+      en: '23-page illustrated guide: project setup, person rates, crew, time, expenses and client invoice PDFs.',
+      es: 'English illustrated guide to project setup, person rates, crew, time, expenses and client invoice PDFs.',
+      pt: 'English illustrated guide to project setup, person rates, crew, time, expenses and client invoice PDFs.',
+    },
+    audience: 'quick-start',
+    locales: ['en'],
+    revision: '2026-10-05',
+    allowedPersonas: ['owner', 'finance'],
+    assets: { en: { sourceName: 'BBS_Project_to_Client_Invoices_Guide_EN.pdf' } },
+  },
 ];
 
 /** Legacy links resolve to a group, whose access is checked against the current persisted persona. */

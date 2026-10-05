@@ -298,7 +298,7 @@
       "after-lifecycle-workbook"
     ],
     [
-      "Accounting generation \u00b7 a real tested blocker",
+      "Accounting error \u00b7 understand the retained dates",
       168,
       "accounting-gap-remedy"
     ],
@@ -1505,14 +1505,14 @@
     },
     {
       "key": "accounting-gap-remedy",
-      "title": "Accounting generation \u00b7 a real tested blocker",
+      "title": "Accounting error \u00b7 understand the retained dates",
       "toc": true,
       "wide": false,
       "figure": false
     },
     {
       "key": "lab-accounting-blocker-image",
-      "title": "Accounting \u00b7 selected dates retained on coverage failure",
+      "title": "Accounting error: your selected period is preserved",
       "toc": false,
       "wide": false,
       "figure": true

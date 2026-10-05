@@ -38,13 +38,19 @@ def build_evidence_chapters():
     for item in json.loads((FIG/'workbook-previews.json').read_text())['views']:
         if 'after-lifecycle' in item['file']:
             fig(item['key'],item['title'],item['key']+'.png','Read-only landscape preview from the original after-lifecycle XLSX. Confirmed training invoice states and simulated collection/reimbursement entries; no bank transfer or customer email is asserted.',wide=True)
-    page('accounting-gap-remedy','Accounting generation · a real tested blocker',
-        '<p>The isolated browser attempted Generate pack for <strong>1–5 October 2026</strong>. It returned <strong>ACCOUNTING_PACK_ISSUER_EFFECTIVE_DATE_GAP</strong>: an issuer has no legal revision covering the Accounting Pack’s period end.</p>'
-        +steps('The selected period and English language remain in the form. Read the specific error instead of repeatedly submitting.',
-            'Use the offered <strong>Contact support</strong> action to have the dated issuer history reviewed. Changing current issuer details cannot repair missing historical coverage.',
-            'Once the genuine history issue is resolved, generate the pack for the intended period, review Ready artifacts and finalize the reviewed version. Do not choose an unrelated period merely to suppress the warning.')
-        +note('No Accounting Pack was generated/finalized by this blocked browser attempt. The operating procedure describes the normal supported lifecycle; the verification table records this limitation.'),toc=True)
-    insert_figure_after('accounting-gap-remedy','lab-accounting-blocker-image','Accounting · selected dates retained on coverage failure','lab-finance-accounting-result.png','The actual blocked form preserves the selected dates and offers Contact support. No generated artifact or finalization is claimed.',wide=False)
+    page('accounting-gap-remedy','Accounting error · understand the retained dates',
+        '<p>The isolated browser attempted <strong>Generate pack</strong> for <strong>1–5 October 2026</strong>. It returned <strong>ACCOUNTING_PACK_ISSUER_EFFECTIVE_DATE_GAP</strong>. The form still shows the selected dates and English language, so the Owner can investigate and retry the intended period without entering it again. <strong>Preserving the selection is successful form behavior; pack generation is blocked.</strong></p>'
+        '<p>An Accounting Pack includes portfolio and historical currency/issuer records, rather than only the BBS USD invoice example. An archived issuer can still be included when historical sources refer to it. In this training clone, the blocking issuer <strong>QA-W48-EUR was already archived</strong>; archiving it again would not remove that history.</p>'
+        +table(['Verified training history','Why the check fails or passes'],[
+            ['QA-W48-EUR legal revision','Valid from 1 October until 5 October 2026, with the end exclusive. It therefore does not cover any time on 5 October.'],
+            ['Selected pack period end','The coverage check uses 5 October 2026 at 23:59:59.999 UTC. QA-W48-EUR has no legal revision covering that instant.'],
+            ['J&A USD issuer, JA-USA','Its revision starts 7 September 2026 with no end. It covers the selected period end and is not the cause of this error.'],
+        ])
+        +steps('Keep the intended period. Read the error and use <strong>Contact support</strong> to review the genuine issuer history and the historical sources that refer to it.',
+            'Resolve only a verified historical-data issue through the supported process. Do not extend dates, invent a successor revision or purge sources merely to force generation.',
+            'After that review resolves the coverage issue, retry the intended period, review Ready artifacts and finalize the reviewed version.')
+        +note('Legal issuer revision coverage is separate from invoice frequency, worker payment frequency and accountant approval of invoice numbering. No Accounting Pack was generated or finalized by this blocked attempt, and no production issuer history was changed.'),toc=True)
+    insert_figure_after('accounting-gap-remedy','lab-accounting-blocker-image','Accounting error: your selected period is preserved','lab-finance-accounting-result.png','The blocked form retains 1–5 October 2026 and English so the intended scope is available for investigation and retry. This confirms the form behavior; generation has failed because the archived training issuer QA-W48-EUR lacks a legal revision covering the period end. Contact support is offered. The J&A USD issuer is covered. No Accounting Pack artifact or finalization is claimed.',wide=False)
     page('ux-improvements','UX corrections and remaining operating limits',table(['Finding','Current behavior / operating guidance'],[
         ['Settlement returns to wrong project','Finalization/retry now preserves selected project, economic view and settlement source. Browser confirmed BBS heading remains selected.'],
         ['Approved minutes formatted as money','Source is duration: 600 minutes → 10 hours, 780 minutes → 13 hours. Percentage monetary bases retain currency. Finalized monetary amounts are separate.'],

@@ -41,7 +41,7 @@ The earlier failed discovery runs are preserved with qualifications; they are no
 
 This is a scoped manual/UX/security release. Three canonical final documents are genuinely application-issued in the isolated training database, rather than PDFs with watermarks erased. Production invoices were not issued using a fabricated approval. Recommended future policy: prefix `JA-USA`, six digits, effective 2026-10-05, producing `JA-USA-2026-000001`; the approval timestamp must come from genuine accountant approval.
 
-The saved October 1–5 Accounting Pack is blocked by a legal-entity revision date gap at the deterministic period cut. The observed failure retains scope and gives Contact support. Broader Owner reference chapters and external approval/signature/dispatch/bank processes are qualified individually in the manual and workflow matrices. This evidence does not certify every Owner lifecycle or universal independent-novice training success.
+The saved October 1–5 Accounting Pack is blocked by the already-archived QA-W48-EUR issuer: its revision ends on October 5 (exclusive), so it does not cover the October 5 23:59:59.999 UTC period cut. Historical portfolio sources still refer to that issuer. JA-USA is covered and is not the cause. Pages 168–169 explain the distinction between retaining form dates and generating a pack. The observed failure retains scope and gives Contact support. Broader Owner reference chapters and external approval/signature/dispatch/bank processes are qualified individually in the manual and workflow matrices. This evidence does not certify every Owner lifecycle or universal independent-novice training success.
 
 ## Deployment
 

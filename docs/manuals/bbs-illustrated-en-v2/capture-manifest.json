@@ -1,0 +1,147 @@
+{
+  "capturedOn": "2026-10-05",
+  "environment": "production",
+  "project": "C-0050-P-20261005",
+  "interfaceLanguage": "English",
+  "fictionalData": true,
+  "screenshots": "Original pixels; browser screenshots cropped at capture to avoid fixed-toolbar obstruction. Enlarged on separate pages.",
+  "nativePDFs": "Three unissued native English-template downloads, appended unchanged and embedded as attachments; retain issuer payment instructions.",
+  "figures": [
+    {
+      "name": "18-ja-default-issuer.png",
+      "sha256": "6e3e8c8340949b67657ff095a073ca73e3f38e5e04bff877d3c9fab71d97d37d"
+    },
+    {
+      "name": "22-labor-lines.png",
+      "sha256": "63b77d28fa7cf34129894c710acb2a73d705b954ccd2e0ec755ffa5f17f817f8"
+    },
+    {
+      "name": "23-expense-lines.png",
+      "sha256": "28cd5ffef62328a81c55719538d0189db9c4449d0a13b6449165de4ec8133feb"
+    },
+    {
+      "name": "24-mixed-lines.png",
+      "sha256": "e67c2a294bf6e7d56645056c7f2d15353dc941bc7e62443845da825a5e27c90d"
+    },
+    {
+      "name": "27-pdf-download.png",
+      "sha256": "60e40a4888e6fcb94d1a6552f6d580f750f9885e093c7021cbdb8f44810e8cb2"
+    },
+    {
+      "name": "29-create-project-basics.png",
+      "sha256": "7de4647d505b6dfa87019cf0d417230d811b817947d6d75bb8e1be24a638798e"
+    },
+    {
+      "name": "31-create-commercial.png",
+      "sha256": "640e365a6535cf3931964929df7d75188c7dc23c387bd87c0cffbe4d72ce7a7d"
+    },
+    {
+      "name": "32-create-budget.png",
+      "sha256": "633d1785cbe2e1390eafa475e26810ae6afe916c06a4509e8142ec5a519faae0"
+    },
+    {
+      "name": "35-worker-daily-rates.png",
+      "sha256": "662e7fb6677f0a9eca02c20e14ba54a24402302f9a6a1c225a14f984b3e81b1e"
+    },
+    {
+      "name": "36-worker-daily-expenses.png",
+      "sha256": "96a110707816547fc35732b2efdccabbc021ecf6db3f00b43d9bac354480ca20"
+    },
+    {
+      "name": "37-worker-pay-summary.png",
+      "sha256": "c385354304669ea6c0ec270d00f6890719821a091e9798448079c733a145cf8b"
+    },
+    {
+      "name": "38-worker-pay-project.png",
+      "sha256": "c3f75ea80920fea7e2157ac9ee775569652c5fdf1774b9eb64a9b1c564ad48a5"
+    },
+    {
+      "name": "39-worker-pay-activity.png",
+      "sha256": "238ea1f30581cf0a6d881e8010d0bd2b072ccf6cb58e8e2b46842ed8a0911b94"
+    },
+    {
+      "name": "40-new-stream-cadence.png",
+      "sha256": "d471e86fb4b4cfbfbe3f667a60819c6bbe5ef8fd385cacf5d1274820dd36fbb9"
+    },
+    {
+      "name": "41-new-stream-delivery.png",
+      "sha256": "a70ea7f7036852bf42f137a96edc08f7763042ed48b72b3c4d97ea150fba7731"
+    },
+    {
+      "name": "42-create-invoice-wizard.png",
+      "sha256": "cd6749bdcf0b9f2561b1430e40d5eb8728856d9acc6c8fc2e89017c4c84cabc1"
+    },
+    {
+      "name": "43-invoice-period.png",
+      "sha256": "18dc04a24c8033a8d5c99048870f430bc1300530387a0cb904f197cd4c3e878a"
+    },
+    {
+      "name": "44-edit-draft-dates.png",
+      "sha256": "310c96f7bbd9d04335b84a3aafd741c8fc4154052e6582ac3d4af69fcef56430"
+    },
+    {
+      "name": "46-assign-chief.png",
+      "sha256": "75d164c74d2fb48078718d6621dc99d73f239d9d405843af16bcd75244f30206"
+    },
+    {
+      "name": "47-worker-log-time.png",
+      "sha256": "1639ebe780ad29d5f9c12e1d66b9eeeaac33a40174ed0e80e3b25f20401705b7"
+    },
+    {
+      "name": "48-chief-team-hours.png",
+      "sha256": "d7353e2e0d1c6b3f59a88272e4ae5367d95b915cfa9ea10e8acc6e648e487b87"
+    },
+    {
+      "name": "49-chief-shared-receipt.png",
+      "sha256": "c78be1796af6f913ed075aa77be3cb1132c719c1592109316484ca3d39d9bd80"
+    },
+    {
+      "name": "51-review-person-location.png",
+      "sha256": "c104e9063aa73733e06aee5f8e10752c15332c53b407a804bb4bf31e56a6512e"
+    },
+    {
+      "name": "52-chief-rates.png",
+      "sha256": "eda2f9dc83d998987c950c92223c098ef408b0e91869ef333e43162344d0aa7c"
+    },
+    {
+      "name": "53-chief-expenses.png",
+      "sha256": "a4a5a19286c0cca62215af3fd4c4a8c9b48ee0711a1361a96ca3cc436e5584f8"
+    },
+    {
+      "name": "54-weekly-rates.png",
+      "sha256": "fd69f12fee04543e68b0fcec6fc1bbf36fd7978966644bf15187f74afd2a70fe"
+    },
+    {
+      "name": "55-weekly-expenses.png",
+      "sha256": "966352df1b16bcb140c57150acc3562a876b5ad29a922c472c18f9863b18758a"
+    },
+    {
+      "name": "56-expense-source-fields.png",
+      "sha256": "fc524729521b27002dcc33901af08e34bcf5bde34ca886f187946aeee7809ffd"
+    },
+    {
+      "name": "57-expense-money-fields.png",
+      "sha256": "f85f89e7740b24a78d7e03077bffc1b12f483b8903c7f47be84c2875f6f6dec5"
+    },
+    {
+      "name": "59-create-assignment-terms.png",
+      "sha256": "c59e171b691f4df2363ac4c68123e769a4290eb0393ff7d2a0c649355cb1812f"
+    },
+    {
+      "name": "60-stage1-approved-35-hours.png",
+      "sha256": "f58642760c5cccf81bb1accb3a7bf94f18867cb7b8af47ffcb3c3122378a5ff2"
+    },
+    {
+      "name": "61-four-approved-expenses.png",
+      "sha256": "8a1bade46501613740d725d8035009dbf79e82f021b5d90fa0eff565a16d4624"
+    },
+    {
+      "name": "62-finance-review-cleared.png",
+      "sha256": "3df283b64342a7c9c28d000e758e9bea8c946fd2b0265c20942299668836df9b"
+    },
+    {
+      "name": "63-create-assignment-header.png",
+      "sha256": "546b410b9fcc417d9277d060fcc7b6b0f5246dffd40ba0daf25a71267a9a50de"
+    }
+  ]
+}

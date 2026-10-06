@@ -1,0 +1,30 @@
+{
+  "capturedAt": "2026-10-06T17:38:34.539774+00:00",
+  "environment": "Isolated authenticated BBS PM, Worker and role Help sessions",
+  "operations": "Native PM form input without upload/save; existing Worker Ready statement inspected; read-only Help and download checks. No business POST.",
+  "screenshots": [
+    {
+      "path": "docs/evidence/bbs-privacy-20261006/manager/screenshots/pm-upload-neutral-description.png",
+      "sha256": "d7cc3d43947f6930af4ca80ffe5890efa82baf9f1305f2d89682018dc4f5a715",
+      "caption": "Native upload controls with neutral operational description; file selection pending."
+    },
+    {
+      "path": "docs/evidence/bbs-privacy-20261006/external-technician/screenshots/help-current-role-library.png",
+      "sha256": "49f774e2abd582f11d8c0e2956afe97549d93668d14b9890c2b027c475016b57",
+      "caption": "Native authenticated role capture; no invented business state."
+    },
+    {
+      "path": "docs/evidence/bbs-privacy-20261006/supplier-coordinator/screenshots/help-current-role-library.png",
+      "sha256": "ed7addfc310e80083f2812237b22b2a6a87c989d06192c99a1f2fea0d0f296a6",
+      "caption": "Native authenticated role capture; no invented business state."
+    },
+    {
+      "path": "docs/evidence/bbs-privacy-20261006/worker/screenshots/worker-statement-ready.png",
+      "sha256": "6479503e37f928cbed0846fe969e680d1fe55dfb31207531f024f6beb23aecdf",
+      "caption": "Native authenticated role capture; no invented business state."
+    }
+  ],
+  "pageErrors": 0,
+  "httpErrors": 0,
+  "verifiedAt": "2026-10-06T17:47:16.753336+00:00"
+}

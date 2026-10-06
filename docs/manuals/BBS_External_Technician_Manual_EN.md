@@ -7,9 +7,9 @@ Authorized own work, expenses, reports, corrections and supplier operational evi
 
 The company portal https://j-aautomation.com/j-aautomation/app is LIVE. A link to it never enters a simulation. For practice obtain a separately provisioned training URL, your own account, the permitted fictional project and dates, a visible environment identifier and the trainer’s reset procedure. Without those, use this guide as a read-only demonstration and enter only authorized genuine work.
 
-Original BBS operational examples and some historical unpaid settlements were saved on the live deployment; their original exports were downloaded there. Later fictional issuance, payment, acceptance, correction and readiness exercises used isolated copies or separate synthetic portfolios. Each chapter identifies its dataset and checkpoint. A later screenshot does not change an earlier saved workbook or issued master.
+Original BBS examples include historical live-deployment records. Later training exercises used isolated copies. Each chapter identifies its dataset and checkpoint. Follow the dates and saved states shown for that exercise.
 
-A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials. Inspect another person’s permitted operational record without signing in as them. Ordinary workers and project managers do not receive customer prices, internal cost, margins or another worker’s compensation.
+A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials and follow the tasks assigned to your role. Check the selected project and person before recording work.
 
 ### Verify the result
 
@@ -70,11 +70,11 @@ Review is determined by the actual source, base role and current dated grants. C
 
 | Source / recorder | Operational reviewer and prerequisite | Next handoff |
 | --- | --- | --- |
-| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Owner/Finance records commercial Billable or Non-billable review separately. |
-| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Finance review follows Owner approval. |
-| Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Owner/Finance classifies customer recovery and worker reimbursement separately. |
+| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Submit the checked work to the authorized reviewer and verify the resulting state. |
+| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Verify the resulting review state. |
+| Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Verify the expense review state. Direct reimbursement questions to the Owner. |
 | Daily and Technical reports, including supplier profiles | Owner or Finance; assigned PM with current project review grant and permitted project scope. | Owner/Finance prepares the customer period report and version-bound acceptance where required. |
-| PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Personal reports/pay outputs remain own scope; financial treatment belongs to Owner/Finance. |
+| PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Use the appropriate personal output and verify the review state. |
 
 ### If you get stuck
 
@@ -101,7 +101,7 @@ Before practising obtain an operator-provided training URL, own account, visible
 
 ### Verify the result
 
-- Your assigned BBS project is available. Finance, Billing, My Pay and supplier team administration are outside this role.
+- Your assigned BBS project is available. Use the operational workspaces shown in your own navigation.
 
 ### If you get stuck
 
@@ -207,7 +207,7 @@ Go here: Expenses → Record expense
 
 Context: Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records
 
-The worked expense is explicitly synthetic USD 8 tools/consumables on October 7, Worker payer. The receipt states no real purchase or payment. Your purchase facts are visible to you; Finance classification, customer recovery and reimbursement are later distinct decisions.
+The worked expense is explicitly synthetic USD 8 tools/consumables on October 7, Worker payer. The receipt states no real purchase or payment. Record your actual purchase facts accurately; reimbursement is a later separate step.
 
 The actual form accepts JPG/PNG/HEIC/PDF receipt evidence up to 10 MB. Preserve the original currency and payer. A registered upload is not a universal assertion that an antivirus scan completed.
 
@@ -219,7 +219,7 @@ The actual form accepts JPG/PNG/HEIC/PDF receipt evidence up to 10 MB. Preserve 
 
 ### Verify the result
 
-- One USD 8 expense and one receipt exist. No Finance review, reimbursement payment or client invoice is claimed for this External exercise.
+- One USD 8 expense and one receipt exist. No reimbursement payment is claimed for this External exercise.
 
 ### If you get stuck
 
@@ -227,7 +227,7 @@ The actual form accepts JPG/PNG/HEIC/PDF receipt evidence up to 10 MB. Preserve 
 
 ![Own saved USD 8 Draft with registered synthetic receipt.](../evidence/bbs-role-manuals-20261006/external-technician/screenshots/14-external-expense-draft.png)
 
-![Own purchase Submitted, then PM Approved; financial treatment is separate.](../evidence/bbs-role-manuals-20261006/external-technician/screenshots/15-external-expense-submitted.png)
+![Own purchase Submitted, then PM Approved; reimbursement remains a separate step.](../evidence/bbs-role-manuals-20261006/external-technician/screenshots/15-external-expense-submitted.png)
 
 <a id="external-daily"></a>
 ## Write and submit your own daily field report
@@ -338,7 +338,7 @@ The final October 6–7 export contains two Approved rows: 120 minutes on Octobe
 
 ### Verify the result
 
-- Native final CSV external-final-oct06-07.csv has two Approved rows and nine operational columns. No rate, internal cost, margin or pay column is present.
+- Native final CSV external-final-oct06-07.csv has two Approved rows and nine operational columns.
 
 ### If you get stuck
 
@@ -379,7 +379,7 @@ Go here: Profile → Expertise and availability; Account security
 
 Context: Reference procedure · current own-role controls/source checked; mutations not exercised
 
-Expertise and availability are planning inputs, distinct from supplier authorization/project assignment. The own profile was inspected natively; no security or profile mutations occurred here. A generic workforce-profile Worker label does not grant internal Worker financial workspaces.
+Expertise and availability are planning inputs, distinct from supplier authorization/project assignment. The own profile was inspected natively; no security or profile mutations occurred here. A generic workforce-profile Worker label does not change the supplier access profile.
 
 Add expertise offers expertise/proficiency. Add availability opens dated UTC availability windows. Passkey registration uses Device name and Register passkey. Authenticator setup/recovery material is sensitive; never include it in report evidence.
 
@@ -392,7 +392,7 @@ For invitation and sign-in use Access · activate the invitation and sign in (ac
 
 ### Verify the result
 
-- Skills/availability do not grant review, supplier administration, private-pay or billing rights. Security success is not claimed from read-only controls.
+- Skills/availability do not grant review or supplier-administration permission. Security success is not claimed from read-only controls.
 
 ### If you get stuck
 
@@ -409,32 +409,32 @@ Context: Isolated BBS supplier role lab · genuine External Technician account �
 
 Help’s invitation lesson distinguishes mailbox-linked access and a single-use external invitation; there is no public signup. Supplier operations guidance has different paths for technician/coordinator.
 
-The verified support contact is admin@j-aautomation.com. Live company portal/webmail links are live services. No email was sent in this exercise. External Technician has no My Pay workspace: supplier commercial/payment questions belong to the coordinator/Finance using their authorized process.
+The verified support contact is admin@j-aautomation.com. Live company portal/webmail links are live services. No email was sent in this exercise. For questions outside your operational workspace, contact your supplier coordinator or the designated J&A contact.
 
 ### Do the task
 
 1. Read the External technician starting path and normal-day guidance in Help.
-2. Send actual source errors to the operational reviewer; supplier authorization/account questions to Owner/coordinator; financial issues to coordinator/Finance.
+2. Send actual source errors to the operational reviewer; supplier authorization and account questions to Owner/coordinator; reimbursement questions to your designated contact.
 3. Include environment, role, project/record ID, date, intended action and exact message. Use safe screenshots without session cookies/passwords/recovery codes.
 
 ### Verify the result
 
-- My Pay, Finance, Billing, supplier team and another Worker’s time returned 403. Unrelated report/receipt returned 404 after the own-output route fix.
+- Requests outside the authorized workspace were denied. Unrelated report/receipt requests returned 404 after the own-output route fix.
 
 ### If you get stuck
 
 - Do not use another account to work around denial or publish private receipt links. Marking/reading a notification, where offered, is not approval or acceptance.
 
-![Native External Technician Help path and invitation guidance.](../evidence/bbs-role-manuals-20261006/external-technician/screenshots/24-external-help.png)
+![Native External Technician Help path and invitation guidance.](../evidence/bbs-privacy-20261006/external-technician/screenshots/help-current-role-library.png)
 
 <a id="external-assignment-planning-targets"></a>
 ## Planning appendix · assignment dates and expected targets
 
 Go here: Sign in → Time → Week of → Open week
 
-Context: Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production records or financial changes
+Context: Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production changes
 
-Project membership gives dated access to record work; a published plan describes intended work; Expected in the weekly timesheet comes from the effective working schedule. These are three separate records. None creates actual hours, approval, customer charges or pay automatically.
+Project membership gives dated access to record work; a published plan describes intended work; Expected in the weekly timesheet comes from the effective working schedule. These are three separate records. None creates actual hours or approval automatically.
 
 The Owner published a two-hour October 22 assignment for this External Technician. Publishing succeeded, but this restricted profile has no Today agenda or Planning calendar. Sign-in/root opens Time; navigation contains Time, Expenses, Reports, Operational report, Profile and Help. Direct Today and Planning links show Access restricted. This is the current profile limitation, not proof of an absent project assignment.
 
@@ -454,7 +454,7 @@ After Owner approval, the weekly status reads Needs note because actual differs 
 
 - Native own two-hour save/submission and subsequent Owner approval succeeded. The Owner-created plan remained a separate published record.
 - External Operational report on October 23 totals only the technician’s own one hour; coordinator’s team report totals two hours. Another technician’s known source returned Access restricted.
-- Client rates, company cost, margin, supplier payment and colleagues’ compensation are outside this operational workspace.
+- The operational workspace shows the assigned project, actual records and authorized planning context.
 
 ### If you get stuck
 
@@ -473,7 +473,7 @@ After Owner approval, the weekly status reads Needs note because actual differs 
 
 Go here: Reports → New daily report → Save daily report → Submit for review
 
-Context: Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production records or financial changes
+Context: Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production changes
 
 There is no separate worker-goal screen with Accept, Reject or Mark completed buttons. Use operational Daily report fields to describe completed work, unresolved items and intended next steps. A next-day plan is narrative context; it does not publish a shift, create actual time or guarantee a task was done.
 
@@ -484,7 +484,7 @@ Time and Daily reports have separate handoffs in this supplier profile. Submitte
 ### Do the task
 
 1. Open Reports and choose New daily report. Select BBS and Work date 2026-10-22; provide Site / shift and Shift summary.
-2. Fill Tasks completed with what happened, Open items with remaining questions and Next-day plan with proposed work. Keep private rates, costs, pay and client-commercial arrangements out of operational narratives.
+2. Fill Tasks completed with what happened, Open items with remaining questions and Next-day plan with proposed work. Keep operational narratives focused on the work, evidence and next action.
 3. Choose Save daily report, reopen the new source and inspect the saved fields and Work performed by / Report created by attribution.
 4. Choose Submit for review. Saving alone leaves a draft. After reviewer action refresh and verify Approved.
 5. When the plan or facts change, coordinate with the Owner and use the supported linked correction for a reviewed report. Do not overwrite approved history or invent a task-completion control.
@@ -497,7 +497,7 @@ Time and Daily reports have separate handoffs in this supplier profile. Submitte
 ### If you get stuck
 
 - If a time reviewer cannot find supplier hours in the PM queue, hand the exact project, work date and source ID to an authorized J&A Owner; do not submit duplicate time.
-- Approval is operational review. Continue the separate customer sign-off or financial process only through an authorized role.
+- Approval is operational review. Customer sign-off remains a separate workflow for the designated authorized role.
 
 ![Saved approved operational facts: Tasks completed, Open items and Next-day plan. These narrative goals do not create planning or actual-time records.](../evidence/bbs-planning-20261006/external-technician/screenshots/14-external-goals-approved-fields.png)
 
@@ -510,7 +510,7 @@ Go here: Time → Expenses → Reports → Operational report
 
 Context: Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records
 
-Use this task checklist for genuine authorized work in your own account. Saved, submitted, approved, financially reviewed and paid are separate states.
+Use this task checklist for genuine authorized work in your own account. Saved, submitted and approved are separate states.
 
 ### Do the task
 
@@ -579,4 +579,4 @@ A final Accounting cut succeeded in a separate clean Finance portfolio; an Audit
 
 ### Verify the result
 
-- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding. Out-of-role financial information is intentionally excluded from operational guides.
+- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding.

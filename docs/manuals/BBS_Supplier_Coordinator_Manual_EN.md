@@ -7,9 +7,9 @@ Authorized supplier personnel, actual team hours, corrections and operational re
 
 The company portal https://j-aautomation.com/j-aautomation/app is LIVE. A link to it never enters a simulation. For practice obtain a separately provisioned training URL, your own account, the permitted fictional project and dates, a visible environment identifier and the trainer’s reset procedure. Without those, use this guide as a read-only demonstration and enter only authorized genuine work.
 
-Original BBS operational examples and some historical unpaid settlements were saved on the live deployment; their original exports were downloaded there. Later fictional issuance, payment, acceptance, correction and readiness exercises used isolated copies or separate synthetic portfolios. Each chapter identifies its dataset and checkpoint. A later screenshot does not change an earlier saved workbook or issued master.
+Original BBS examples include historical live-deployment records. Later training exercises used isolated copies. Each chapter identifies its dataset and checkpoint. Follow the dates and saved states shown for that exercise.
 
-A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials. Inspect another person’s permitted operational record without signing in as them. Ordinary workers and project managers do not receive customer prices, internal cost, margins or another worker’s compensation.
+A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials and follow the tasks assigned to your role. Check the selected project and person before recording work.
 
 ### Verify the result
 
@@ -70,11 +70,11 @@ Review is determined by the actual source, base role and current dated grants. C
 
 | Source / recorder | Operational reviewer and prerequisite | Next handoff |
 | --- | --- | --- |
-| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Owner/Finance records commercial Billable or Non-billable review separately. |
-| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Finance review follows Owner approval. |
-| Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Owner/Finance classifies customer recovery and worker reimbursement separately. |
+| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Submit the checked work to the authorized reviewer and verify the resulting state. |
+| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Verify the resulting review state. |
+| Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Verify the expense review state. Direct reimbursement questions to the Owner. |
 | Daily and Technical reports, including supplier profiles | Owner or Finance; assigned PM with current project review grant and permitted project scope. | Owner/Finance prepares the customer period report and version-bound acceptance where required. |
-| PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Personal reports/pay outputs remain own scope; financial treatment belongs to Owner/Finance. |
+| PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Use the appropriate personal output and verify the review state. |
 
 ### If you get stuck
 
@@ -87,14 +87,14 @@ Go here: Sign in → Supplier team
 
 Context: Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.
 
-The Supplier Coordinator is an operational supplier profile linked to a supplier company and dated project authorization. Its underlying account can display Worker in Profile; the supplier access profile determines the restricted supplier workspace. It does not grant Finance, invoices, employee pay or J&A approval rights.
+The Supplier Coordinator is an operational supplier profile linked to a supplier company and dated project authorization. Its underlying account can display Worker in Profile; the supplier access profile determines the restricted supplier workspace. It does not grant J&A approval rights.
 
 This exercise uses fictional BBS ROLE LAB Training Supplier on the SAME BBS project C-0050-P-20261005. The Owner created the supplier and accounts, authorized this coordinator for BBS October 5–31, and assigned the external technician. All work narratives and receipts are synthetic training.
 
 ### Do the task
 
 1. Use your own single-use invitation or assigned sign-in credentials. Enter email and password and choose Continue to workspace.
-2. Open Supplier team. Confirm BBS in Installation / project and verify the project/date scope before recording technicians or hours.
+2. Open Profile and confirm your own account. A Worker base-role label does not change your supplier access profile.
 3. Open Profile and confirm your own account. A Worker base-role label does not mean you have internal employee finance privileges.
 4. Ask the Owner to verify supplier linkage, active account status, authorization dates and the correct coordinator when a project is absent.
 
@@ -119,7 +119,7 @@ Context: Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB r
 
 Supplier team handles authorized personnel and team-hour drafts. Time, Expenses and Reports handle your own operational sources. Operational report shows permitted supplier work and approval state. Profile and Help support your own account and role guidance.
 
-Finance, Billing and Approvals are restricted to other authorized roles. The coordinator can submit work to J&A; it cannot approve those sources or certify client acceptance.
+The coordinator can submit work to J&A; it cannot approve those sources or certify client acceptance. Use the authorized operational workspaces shown in your navigation.
 
 ### Do the task
 
@@ -131,7 +131,7 @@ Finance, Billing and Approvals are restricted to other authorized roles. The coo
 ### Verify the result
 
 - Coordinator desktop, 390-phone and 768-tablet views were captured.
-- Direct Finance and Billing requests returned 403 Access restricted; Approvals also returned 403.
+- Requests outside the coordinator’s authorized workspace returned 403 Access restricted.
 
 ### If you get stuck
 
@@ -293,7 +293,7 @@ The final October 6 filter shows 120 Approved minutes for the external technicia
 
 ### Verify the result
 
-- Final native CSV matches Approved sources 01a10e4b-c33e-7033-a065-d3980b92c94d and 01a10e50-5f09-7290-8a50-92767e39e3f0. It contains operational activity and recorder attribution, with no commercial amounts.
+- Final native CSV matches Approved sources 01a10e4b-c33e-7033-a065-d3980b92c94d and 01a10e50-5f09-7290-8a50-92767e39e3f0. It contains operational activity and recorder attribution.
 
 ### If you get stuck
 
@@ -426,9 +426,9 @@ Go here: Profile → Expertise and availability / Account security → Help
 
 Context: Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.
 
-Coordinator Profile holds own expertise and availability without exposing compensation or client rates. Availability uses UTC. Security settings concern your own signed-in account, not an inspected supplier technician.
+Coordinator Profile holds your own expertise and availability. Availability uses UTC. Security settings concern your own signed-in account, not an inspected supplier technician.
 
-The Help screenshot includes the new English Supplier Coordinator BBS course and the broader supplier operations reference. Choose the role-specific course first, then consult the reference for shared tasks.
+Help provides the English Supplier Coordinator BBS course. Use its role-specific procedures and the shared access, security and recovery sections included in this course.
 
 For invitation and sign-in use Access · activate the invitation and sign in (access). For MFA, devices and recovery use Security · verify your own device and recovery options (security).
 
@@ -452,7 +452,7 @@ For invitation and sign-in use Access · activate the invitation and sign in (ac
 
 ![Actual coordinator phone Profile: own expertise and availability.](../evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/21-coordinator-profile.png)
 
-![Actual coordinator Help after catalog integration: the new Supplier Coordinator BBS course and shared supplier reference are both available.](../evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/22-coordinator-help.png)
+![Current coordinator Help: the Supplier Coordinator BBS course is available for this role.](../evidence/bbs-privacy-20261006/supplier-coordinator/screenshots/help-current-role-library.png)
 
 <a id="handoff"></a>
 ## Finish the supplier operational cycle
@@ -470,17 +470,17 @@ Native coverage includes saved roster inspection, selected team draft save/submi
 1. Confirm BBS authorization and each technician’s work-date coverage before entering actual hours.
 2. Review saved sources and submit the intended batch only once. Send the reviewer a clear project/date/source handoff.
 3. Follow Needs changes through a linked correction and re-review; compare active totals with the retained original history.
-4. Export the operational report with the correct period/state and describe its meaning. Hand financial and customer-acceptance questions to authorized J&A users.
+4. Export the operational report with the correct period/state and describe its meaning. Hand customer-acceptance and other out-of-scope questions to the designated J&A contact.
 5. Keep your own Time, Expenses and Reports distinct from technician team sources and report unresolved access/preview problems.
 
 ### Verify the result
 
 - No production data, real equipment, live dispatch, customer consent, outward mail or bank payment was changed or asserted by this training packet.
-- Original BBS invoices and finalized financial history were preserved.
+- Existing BBS records and finalized history were preserved.
 
 ### If you get stuck
 
-- Do not duplicate work to fix a locked source or substitute an operational CSV for an issued invoice.
+- Do not duplicate work to fix a locked source. Explain the source ID, period and exact message to the designated contact.
 - If access ends or assignment dates expire, ask Owner to review the genuine authorization. A directory record alone cannot restore login.
 
 <a id="supplier-planning-team-handoff"></a>
@@ -488,13 +488,13 @@ Native coverage includes saved roster inspection, selected team draft save/submi
 
 Go here: Supplier team → Record team hours → Operational report
 
-Context: Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production records or financial changes
+Context: Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production changes
 
 Supplier project authorization and personnel assignment establish who may work and on which dates. Internal published planning is separate. Supplier Coordinator navigation opens Supplier team and does not expose Today or Planning; the direct Planning route returns Access restricted. Arrange operational instructions through the Owner’s approved coordination process.
 
 The native October 23 exercise selected two existing fictional supplier technicians, used Same hours for everyone and entered one actual hour. Save selected drafts created two individual sources totaling two team hours, attributed to their respective technicians and Recorded by the coordinator. Shared entry is not one combined person record.
 
-The actual work form remains a factual record. It does not accept a goal, finalize worker pay or disclose customer rates. A technician can inspect their own coordinator-recorded hour but cannot inspect the other technician’s source.
+The actual work form remains a factual record. It does not accept a goal or finalize a payment. A technician can inspect their own coordinator-recorded hour; other technicians’ sources remain outside their authorized scope.
 
 ### Do the task
 
@@ -526,7 +526,7 @@ The actual work form remains a factual record. It does not accept a goal, finali
 
 Go here: Supplier team → Record team hours; own Reports → Daily
 
-Context: Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production records or financial changes
+Context: Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production changes
 
 The worked supplier authorization and technician assignments end October 31. Moving Work date to November 1 removed both eligible technicians, cleared the selection and disabled Save selected drafts. The app’s No matching records hint mentions search/status generically; in this exercise the actual reason was date coverage. No November 1 source was saved.
 
@@ -545,7 +545,7 @@ Use your own Daily report’s Tasks completed, Open items and Next-day plan for 
 ### Verify the result
 
 - Changing the native team form to an uncovered date removed eligible personnel and disabled saving. Read-only database verification confirmed zero exercise sources on November 1.
-- Native restricted Planning showed Access restricted and a Supplier recovery link. Rates, costs, billing, pay and finance controls remained outside the coordinator workspace.
+- Native restricted Planning showed Access restricted and a Supplier recovery link. The coordinator returned to the authorized operational workspace.
 
 ### If you get stuck
 
@@ -609,4 +609,4 @@ A final Accounting cut succeeded in a separate clean Finance portfolio; an Audit
 
 ### Verify the result
 
-- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding. Out-of-role financial information is intentionally excluded from operational guides.
+- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding.

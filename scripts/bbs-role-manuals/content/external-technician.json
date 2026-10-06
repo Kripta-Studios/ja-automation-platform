@@ -19,7 +19,7 @@
         "Use Profile and Help for own workforce/security settings and guidance."
       ],
       "checks": [
-        "Your assigned BBS project is available. Finance, Billing, My Pay and supplier team administration are outside this role."
+        "Your assigned BBS project is available. Use the operational workspaces shown in your own navigation."
       ],
       "recovery": [
         "Ask the Owner/coordinator to investigate account, supplier authorization or assignment dates when the intended project is absent. Do not borrow an account or create duplicate work."
@@ -143,7 +143,7 @@
       "route": "Expenses → Record expense",
       "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
       "paragraphs": [
-        "The worked expense is explicitly synthetic USD 8 tools/consumables on October 7, Worker payer. The receipt states no real purchase or payment. Your purchase facts are visible to you; Finance classification, customer recovery and reimbursement are later distinct decisions.",
+        "The worked expense is explicitly synthetic USD 8 tools/consumables on October 7, Worker payer. The receipt states no real purchase or payment. Record your actual purchase facts accurately; reimbursement is a later separate step.",
         "The actual form accepts JPG/PNG/HEIC/PDF receipt evidence up to 10 MB. Preserve the original currency and payer. A registered upload is not a universal assertion that an antivirus scan completed."
       ],
       "steps": [
@@ -152,7 +152,7 @@
         "Use Submit. Genuine PM operationally approved this expense. Open private receipt now succeeds through your own authorized account."
       ],
       "checks": [
-        "One USD 8 expense and one receipt exist. No Finance review, reimbursement payment or client invoice is claimed for this External exercise."
+        "One USD 8 expense and one receipt exist. No reimbursement payment is claimed for this External exercise."
       ],
       "recovery": [
         "If receipt access or scan processing fails, report the document/expense ID and exact status. Do not create another expense while checking the first. Reviewed expense corrections follow the current permitted correction/handoff process."
@@ -165,7 +165,7 @@
         },
         {
           "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/15-external-expense-submitted.png",
-          "caption": "Own purchase Submitted, then PM Approved; financial treatment is separate.",
+          "caption": "Own purchase Submitted, then PM Approved; reimbursement remains a separate step.",
           "orientation": "landscape"
         }
       ]
@@ -294,7 +294,7 @@
         "For later work choose a new date range and describe its actual total; never carry the historical 2.75 h forward."
       ],
       "checks": [
-        "Native final CSV external-final-oct06-07.csv has two Approved rows and nine operational columns. No rate, internal cost, margin or pay column is present."
+        "Native final CSV external-final-oct06-07.csv has two Approved rows and nine operational columns."
       ],
       "recovery": [
         "If screen and CSV differ, check filters and source states before escalating. Keep both the historical checkpoint and later export identity."
@@ -344,7 +344,7 @@
       "route": "Profile → Expertise and availability; Account security",
       "context": "Reference procedure · current own-role controls/source checked; mutations not exercised",
       "paragraphs": [
-        "Expertise and availability are planning inputs, distinct from supplier authorization/project assignment. The own profile was inspected natively; no security or profile mutations occurred here. A generic workforce-profile Worker label does not grant internal Worker financial workspaces.",
+        "Expertise and availability are planning inputs, distinct from supplier authorization/project assignment. The own profile was inspected natively; no security or profile mutations occurred here. A generic workforce-profile Worker label does not change the supplier access profile.",
         "Add expertise offers expertise/proficiency. Add availability opens dated UTC availability windows. Passkey registration uses Device name and Register passkey. Authenticator setup/recovery material is sensitive; never include it in report evidence.",
         "For invitation and sign-in use Access · activate the invitation and sign in (access). For MFA, devices and recovery use Security · verify your own device and recovery options (security)."
       ],
@@ -353,7 +353,7 @@
         "For an authorized account-security change use your own device/authenticator prompts and verify completion before signing out. Store recovery codes in an approved password manager."
       ],
       "checks": [
-        "Skills/availability do not grant review, supplier administration, private-pay or billing rights. Security success is not claimed from read-only controls."
+        "Skills/availability do not grant review or supplier-administration permission. Security success is not claimed from read-only controls."
       ],
       "recovery": [
         "Ask the Owner/coordinator for authorization/assignment changes and Owner/support for access recovery. Do not share credentials."
@@ -373,22 +373,22 @@
       "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
       "paragraphs": [
         "Help’s invitation lesson distinguishes mailbox-linked access and a single-use external invitation; there is no public signup. Supplier operations guidance has different paths for technician/coordinator.",
-        "The verified support contact is admin@j-aautomation.com. Live company portal/webmail links are live services. No email was sent in this exercise. External Technician has no My Pay workspace: supplier commercial/payment questions belong to the coordinator/Finance using their authorized process."
+        "The verified support contact is admin@j-aautomation.com. Live company portal/webmail links are live services. No email was sent in this exercise. For questions outside your operational workspace, contact your supplier coordinator or the designated J&A contact."
       ],
       "steps": [
         "Read the External technician starting path and normal-day guidance in Help.",
-        "Send actual source errors to the operational reviewer; supplier authorization/account questions to Owner/coordinator; financial issues to coordinator/Finance.",
+        "Send actual source errors to the operational reviewer; supplier authorization and account questions to Owner/coordinator; reimbursement questions to your designated contact.",
         "Include environment, role, project/record ID, date, intended action and exact message. Use safe screenshots without session cookies/passwords/recovery codes."
       ],
       "checks": [
-        "My Pay, Finance, Billing, supplier team and another Worker’s time returned 403. Unrelated report/receipt returned 404 after the own-output route fix."
+        "Requests outside the authorized workspace were denied. Unrelated report/receipt requests returned 404 after the own-output route fix."
       ],
       "recovery": [
         "Do not use another account to work around denial or publish private receipt links. Marking/reading a notification, where offered, is not approval or acceptance."
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/24-external-help.png",
+          "src": "docs/evidence/bbs-privacy-20261006/external-technician/screenshots/help-current-role-library.png",
           "caption": "Native External Technician Help path and invitation guidance.",
           "orientation": "landscape"
         }
@@ -398,9 +398,9 @@
       "id": "external-assignment-planning-targets",
       "title": "Planning appendix · assignment dates and expected targets",
       "route": "Sign in → Time → Week of → Open week",
-      "context": "Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production records or financial changes",
+      "context": "Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production changes",
       "paragraphs": [
-        "Project membership gives dated access to record work; a published plan describes intended work; Expected in the weekly timesheet comes from the effective working schedule. These are three separate records. None creates actual hours, approval, customer charges or pay automatically.",
+        "Project membership gives dated access to record work; a published plan describes intended work; Expected in the weekly timesheet comes from the effective working schedule. These are three separate records. None creates actual hours or approval automatically.",
         "The Owner published a two-hour October 22 assignment for this External Technician. Publishing succeeded, but this restricted profile has no Today agenda or Planning calendar. Sign-in/root opens Time; navigation contains Time, Expenses, Reports, Operational report, Profile and Help. Direct Today and Planning links show Access restricted. This is the current profile limitation, not proof of an absent project assignment.",
         "The effective schedule sets eight expected weekday hours. Our technician separately saved and submitted two fictional actual hours on October 22. The weekly row therefore shows Actual 2.00h, Expected 8.00h and Difference −6.00h, even though the published plan is two hours. The later coordinator-recorded October 23 hour contributes another one hour to the weekly total.",
         "After Owner approval, the weekly status reads Needs note because actual differs from expected; the underlying source remains Approved. It is a schedule-variance prompt, not a rejection, payment state or instruction to invent six missing hours. Ask the Owner how to explain the genuine difference."
@@ -415,7 +415,7 @@
       "checks": [
         "Native own two-hour save/submission and subsequent Owner approval succeeded. The Owner-created plan remained a separate published record.",
         "External Operational report on October 23 totals only the technician’s own one hour; coordinator’s team report totals two hours. Another technician’s known source returned Access restricted.",
-        "Client rates, company cost, margin, supplier payment and colleagues’ compensation are outside this operational workspace."
+        "The operational workspace shows the assigned project, actual records and authorized planning context."
       ],
       "recovery": [
         "If BBS is missing, send the Owner/coordinator your intended project and work date. They must check active account, supplier association, supplier authorization and dated project assignment. Do not borrow a login or duplicate sources.",
@@ -444,7 +444,7 @@
       "id": "external-operational-goals-handoff",
       "title": "Describe completed work, open goals and the next shift",
       "route": "Reports → New daily report → Save daily report → Submit for review",
-      "context": "Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production records or financial changes",
+      "context": "Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production changes",
       "paragraphs": [
         "There is no separate worker-goal screen with Accept, Reject or Mark completed buttons. Use operational Daily report fields to describe completed work, unresolved items and intended next steps. A next-day plan is narrative context; it does not publish a shift, create actual time or guarantee a task was done.",
         "The October 22 synthetic report describes a fictional wiring-list review under Tasks completed, a diagram requiring clarification under Open items and a conditional follow-up under Next-day plan. It was saved, submitted and operationally approved by the genuine Project Manager. No customer acceptance, equipment change or payment is asserted.",
@@ -452,7 +452,7 @@
       ],
       "steps": [
         "Open Reports and choose New daily report. Select BBS and Work date 2026-10-22; provide Site / shift and Shift summary.",
-        "Fill Tasks completed with what happened, Open items with remaining questions and Next-day plan with proposed work. Keep private rates, costs, pay and client-commercial arrangements out of operational narratives.",
+        "Fill Tasks completed with what happened, Open items with remaining questions and Next-day plan with proposed work. Keep operational narratives focused on the work, evidence and next action.",
         "Choose Save daily report, reopen the new source and inspect the saved fields and Work performed by / Report created by attribution.",
         "Choose Submit for review. Saving alone leaves a draft. After reviewer action refresh and verify Approved.",
         "When the plan or facts change, coordinate with the Owner and use the supported linked correction for a reviewed report. Do not overwrite approved history or invent a task-completion control."
@@ -463,7 +463,7 @@
       ],
       "recovery": [
         "If a time reviewer cannot find supplier hours in the PM queue, hand the exact project, work date and source ID to an authorized J&A Owner; do not submit duplicate time.",
-        "Approval is operational review. Continue the separate customer sign-off or financial process only through an authorized role."
+        "Approval is operational review. Customer sign-off remains a separate workflow for the designated authorized role."
       ],
       "figures": [
         {
@@ -484,7 +484,7 @@
       "route": "Time → Expenses → Reports → Operational report",
       "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
       "paragraphs": [
-        "Use this task checklist for genuine authorized work in your own account. Saved, submitted, approved, financially reviewed and paid are separate states."
+        "Use this task checklist for genuine authorized work in your own account. Saved, submitted and approved are separate states."
       ],
       "steps": [
         "Verify own account/environment/project/date authorization.",

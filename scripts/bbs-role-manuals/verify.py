@@ -1,6 +1,6 @@
 """Validate generated role PDFs, evidence hashes and attachment integrity."""
 from pathlib import Path
-import hashlib,json,re
+import hashlib,json,re,os
 from pypdf import PdfReader
 
 root=Path(__file__).resolve().parents[2]
@@ -32,6 +32,15 @@ for item in report['reports']:
   assert hashlib.sha256((root/figure['path']).read_bytes()).hexdigest()==figure['sha256'], 'Screenshot changed after rendering'
  if item['role']!='owner':
   assert item['figures'], 'Missing illustrated role evidence'
+  assert not reader.attachments, 'Non-Owner guide has embedded attachments'
+  prose=' '.join(p.extract_text() for p in reader.pages)
+  private=re.compile(r'\b(?:margins?|contribution|profit|profitability|internal\s+(?:(?:hourly|labor|loaded)\s+)?costs?|loaded\s+(?:labor\s+)?costs?|company\s+(?:direct\s+)?costs?|project\s+cost(?:ing)?)\b',re.I)
+  assert not private.search(prose), f"Owner-only economics in PDF: {item['role']}"
+  comparisons=re.compile(r'\b(?:economic data|customer expense recovery is a different|independently of the customer invoice cadence|does not set worker pay)\b',re.I)
+  assert not comparisons.search(prose), f"Private business comparison in PDF: {item['role']}"
+  if item['role'] not in {'finance','auditor'}:
+   hidden=re.compile(r'\b(?:(?:client|customer)\s+(?:(?:charge|billing|hourly|daily|weekly)\s+)?(?:prices?|rates?)|(?:other\s+workers?|another\s+worker|colleagues?|another\s+person)[’\']?s?\s+(?:pay|compensation|wages?))\b',re.I)
+   assert not hidden.search(prose), f"Hidden-business warning in PDF: {item['role']}"
  else:
   assert len(reader.attachments)==6
   course=PdfReader(docs/'BBS_Project_to_Client_Invoices_Guide_EN.pdf',strict=True)
@@ -39,4 +48,6 @@ for item in report['reports']:
   for n in range(1,7):assert reader.pages[-n].get_contents().get_data()==course.pages[-n].get_contents().get_data()
  results.append({'role':item['role'],'pages':len(reader.pages),'landscape':sum(float(p.mediabox.width)>float(p.mediabox.height) for p in reader.pages),'figures':len(item['figures']),'sha256':item['sha256'],'strictPdf':'PASS','imageHashes':'PASS'})
 print(json.dumps(results,indent=2))
-(root/'docs/evidence/bbs-role-manuals-20261006/pdf-verification.json').write_text(json.dumps({'status':'PASS','manuals':results},indent=2)+'\n')
+output=root/os.environ.get('BBS_PDF_VERIFICATION_OUTPUT','docs/evidence/bbs-role-manuals-20261006/pdf-verification.json')
+output.parent.mkdir(parents=True,exist_ok=True)
+output.write_text(json.dumps({'status':'PASS','manuals':results},indent=2)+'\n')

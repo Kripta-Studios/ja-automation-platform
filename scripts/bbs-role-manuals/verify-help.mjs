@@ -98,6 +98,8 @@ try {
     )
       throw new Error(`${role}: wrong role library`);
     result.library = ids;
+    if (role !== 'owner' && JSON.stringify([...ids].sort()) !== JSON.stringify([...permitted[role]].sort()))
+      throw new Error(`${role}: unreviewed reference in role library`);
     for (const width of [1440, 768, 390, 360]) {
       await page.setViewportSize({ width, height: 1000 });
       await page.goto(`${base.origin}/j-aautomation/app/help?lang=en`);
@@ -147,6 +149,20 @@ try {
         status: r.status(),
         expected: allowed ? 'allowed' : 'denied',
       });
+    }
+    for (const target of [
+      'bbs-project-invoices-guide', 'employee-field-guide',
+      'work-projects-reference', 'supplier-operations-reference',
+      'administration-finance-reference', 'worker-reference',
+      'project-manager-reference', 'supplier-coordinator-reference',
+      'external-technician-reference', 'owner-reference',
+      'finance-reference', 'auditor-reference',
+    ]) {
+      const r = await ctx.request.get(`${base.origin}/j-aautomation/app/help/${target}/download?lang=en`);
+      const allowed = role === 'owner';
+      if (r.status() !== (allowed ? 200 : 404))
+        throw new Error(`${role}: Owner archive ${target} unexpected status ${r.status()}`);
+      result.downloadMatrix.push({target,status:r.status(),expected:allowed ? 'allowed' : 'denied'});
     }
     await page.goto(`${base.origin}/j-aautomation/app/help?lang=es`);
     await page.locator(`[data-manual-id="${id}"] .language-fallback`).waitFor();

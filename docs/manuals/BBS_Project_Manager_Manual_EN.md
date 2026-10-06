@@ -7,9 +7,9 @@ Assigned projects, planning, operational review, corrections, reports and precis
 
 The company portal https://j-aautomation.com/j-aautomation/app is LIVE. A link to it never enters a simulation. For practice obtain a separately provisioned training URL, your own account, the permitted fictional project and dates, a visible environment identifier and the trainer’s reset procedure. Without those, use this guide as a read-only demonstration and enter only authorized genuine work.
 
-Original BBS operational examples and some historical unpaid settlements were saved on the live deployment; their original exports were downloaded there. Later fictional issuance, payment, acceptance, correction and readiness exercises used isolated copies or separate synthetic portfolios. Each chapter identifies its dataset and checkpoint. A later screenshot does not change an earlier saved workbook or issued master.
+Original BBS examples include historical live-deployment records. Later training exercises used isolated copies. Each chapter identifies its dataset and checkpoint. Follow the dates and saved states shown for that exercise.
 
-A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials. Inspect another person’s permitted operational record without signing in as them. Ordinary workers and project managers do not receive customer prices, internal cost, margins or another worker’s compensation.
+A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials and follow the tasks assigned to your role. Check the selected project and person before recording work.
 
 ### Verify the result
 
@@ -70,11 +70,11 @@ Review is determined by the actual source, base role and current dated grants. C
 
 | Source / recorder | Operational reviewer and prerequisite | Next handoff |
 | --- | --- | --- |
-| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Owner/Finance records commercial Billable or Non-billable review separately. |
-| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Finance review follows Owner approval. |
-| Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Owner/Finance classifies customer recovery and worker reimbursement separately. |
+| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Submit the checked work to the authorized reviewer and verify the resulting state. |
+| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Verify the resulting review state. |
+| Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Verify the expense review state. Direct reimbursement questions to the Owner. |
 | Daily and Technical reports, including supplier profiles | Owner or Finance; assigned PM with current project review grant and permitted project scope. | Owner/Finance prepares the customer period report and version-bound acceptance where required. |
-| PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Personal reports/pay outputs remain own scope; financial treatment belongs to Owner/Finance. |
+| PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Use the appropriate personal output and verify the review state. |
 
 ### If you get stuck
 
@@ -87,16 +87,16 @@ Go here: Sign in → Dashboard
 
 Context: Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.
 
-The Project Manager coordinates assigned projects and reviews operational facts. Account access, project membership, review permission and crew delegation are separate records. Having the Project Manager role does not automatically assign every project or authorize financial decisions.
+The Project Manager coordinates assigned projects and reviews operational facts. Account access, project membership, review permission and crew delegation are separate records. Having the Project Manager role does not automatically assign every project.
 
-This guide uses the same saved BBS project as the Owner and other role guides. The fictional Project Manager account was created through Owner Team, signed in normally, assigned to BBS and granted Can review. The Owner configured the required dated internal-cost and compensation coverage. Those setup actions belong to the Owner; this guide never asks you to create a duplicate BBS project.
+This guide uses the same saved BBS project as the Owner and other role guides. The fictional Project Manager account was created through Owner Team, signed in normally, assigned to BBS and granted Can review. The Owner completed the required dated project setup. Those setup actions belong to the Owner; this guide never asks you to create a duplicate BBS project.
 
 ### Do the task
 
 1. Use your own invitation or company account. Open the portal sign-in screen, enter the account email and password, and choose Continue to workspace.
 2. Check that the account shown in Profile is yours and the role is Project manager. Never use the Owner or another worker’s credentials to reach a missing control.
 3. Open Dashboard and confirm BBS is in your authorized project scope. Open Projects and identify C-0050-P-20261005 before recording or reviewing anything.
-4. Ask the Owner to verify active account status, dated project membership and Can review before starting this exercise. Assignment and commercial coverage must include the work date; current access also depends on the current application date.
+4. Ask the Owner to verify active account status, dated project membership and Can review before starting this exercise. Assignment coverage must include the work date; current access also depends on the current application date.
 
 ### Verify the result
 
@@ -149,7 +149,7 @@ Go here: Dashboard → authorized project
 
 Context: Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.
 
-Dashboard provides operational oversight. Recorded hours and activity counts are not invoice revenue, compensation settlements or cash collected. Open the underlying register to inspect its scope and state.
+Dashboard provides operational oversight. Recorded hours and activity counts describe the displayed operational scope. Open the underlying register to inspect its dates and state.
 
 ### Do the task
 
@@ -159,13 +159,13 @@ Dashboard provides operational oversight. Recorded hours and activity counts are
 
 ### Verify the result
 
-- The fictional PM dashboard displayed only authorized BBS project oversight. Financial portfolio workspaces were absent.
+- The fictional PM dashboard displayed only authorized BBS project oversight.
 - A cleared queue is a completion check; it does not replace inspecting an actionable record first.
 
 ### If you get stuck
 
 - If the number differs from a register, compare date range, workers, state filters and whether the dashboard figure means recorded or reviewed activity.
-- Escalate economic or billing questions to Finance or the Owner rather than interpreting operational hours as money.
+- Escalate questions outside the displayed operational scope to the Owner with the relevant project and source IDs.
 
 ![Actual PM Dashboard: operational oversight of the BBS training project.](../evidence/bbs-role-manuals-20261006/manager/screenshots/05-pm-dashboard.png)
 
@@ -188,12 +188,12 @@ Project identity includes reference, client, status, schedule and timezone. BBS 
 ### Verify the result
 
 - Native PM project detail and Team were opened. The project was scoped to BBS.
-- The three canonical BBS invoice records were preserved; this PM packet created no project duplicate or invoice.
+- Existing BBS records were preserved; this PM packet created no duplicate project.
 
 ### If you get stuck
 
 - Include archived projects only when looking for historical work. Do not reopen or duplicate archived work to circumvent a blocked source.
-- Project closing, commercial contracts and company billing belong to the authorized Owner/Finance process. Seek that handoff when those controls are unavailable.
+- Seek the Owner’s handoff for project closing or other actions unavailable in your authorized workspace.
 
 ![Actual PM project Overview: authorized BBS operational scope.](../evidence/bbs-role-manuals-20261006/manager/screenshots/34-pm-project-overview-landscape.png)
 
@@ -204,7 +204,7 @@ Go here: Team / Projects → assignments
 
 Context: Native isolated BBS role exercise · C-0050-P-20261005 · synthetic October 2026 work only
 
-Project membership and Can review are separate permissions. Assign only people whose work and dated coverage are authorized; the Owner maintains commercial coverage. PM screens do not expose commercial amounts.
+Project membership and Can review are separate permissions. Assign only people whose work and dated coverage are authorized; the Owner completes the required project setup.
 
 ### Do the task
 
@@ -215,7 +215,7 @@ Project membership and Can review are separate permissions. Assign only people w
 ### Verify the result
 
 - Update assignment was executed successfully and restored. Assign worker fields were inspected; a new assignment was not executed because available people already had overlapping membership.
-- Native supplier membership date changes were rejected by the dated cost/compensation coverage guard. The attempted changes did not save. Ask the Owner to resolve coverage.
+- Native supplier membership date changes were rejected by the dated coverage guard. The attempted changes did not save. Ask the Owner to resolve coverage.
 
 ### If you get stuck
 
@@ -317,7 +317,7 @@ Go here: Reports → customer period report → Customer follow-up
 
 Context: Native isolated BBS role exercise · C-0050-P-20261005 · synthetic October 2026 work only
 
-Approved time and reports are period inputs. Finance or Owner refreshes period reports and creates the customer artifact. PM then reads the exact customer version permitted by project scope; financial views remain restricted.
+Approved time and reports are period inputs. Finance or Owner refreshes period reports and creates the customer artifact. PM then reads the exact customer version permitted by project scope.
 
 The October 13–19 customer snapshot is v2 with content hash 85ba28d58be5c1f0c582266794df84fc491344508b23c63a33659b0ce98d6042. It contains the approved period inputs present at generation, including the coordinator Daily and 3.75 internal time hours displayed as 3.8 h. Later records do not silently rewrite this snapshot.
 
@@ -330,7 +330,7 @@ The October 13–19 customer snapshot is v2 with content hash 85ba28d58be5c1f0c5
 
 ### Verify the result
 
-- Native Finance generation, PM exact-version approval and the Ready acceptance queue were verified. No customer signature, acceptance event or payment was invented. PM saw operational hours/activity, without client rates, internal cost, margin or another worker’s pay.
+- Native Finance generation, PM exact-version approval and the Ready acceptance queue were verified. No customer signature, acceptance event or payment was invented. PM saw the approved operational hours and activity.
 
 ### If you get stuck
 
@@ -349,7 +349,7 @@ Go here: Planning → Publish field assignment
 
 Context: Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.
 
-Planning is an expectation and coordination tool. It does not create recorded work, approvals, invoice units or worker pay. Planning and worker agendas explicitly display UTC.
+Planning is an expectation and coordination tool. It does not create recorded work or approvals. Planning and worker agendas explicitly display UTC.
 
 The positive BBS exercise published a future October 16 08:00–10:00 UTC assignment for Worker 2, planned 2 hours, fictional bench site and required expertise.
 
@@ -408,11 +408,11 @@ A published assignment can be edited through its own record. Updating the plan d
 
 Go here: Planning → October 20; Worker / Chief: Today; Approvals
 
-Context: Isolated BBS planning and crew lab · October 20–25, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.
+Context: Isolated BBS planning and crew lab · October 20–25, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Earlier examples retain their original date scope.
 
 The Owner published one common October 20 08:00–16:00 UTC plan to the Chief and two existing technicians. This created three planning records, one per person. Their separate Worker-role agendas each showed an eight-hour BBS plan. Project membership and dated chief delegation remained separate prerequisites.
 
-Actual work differed: Technician 1 personally recorded six hours; the Chief recorded seven hours for Technician 2 through the delegated Crew workspace; the Chief personally recorded eight hours. Each source was submitted individually and reviewed by a separate Project Manager account. No colleague’s compensation or customer pricing is needed for this operational handoff.
+Actual work differed: Technician 1 personally recorded six hours; the Chief recorded seven hours for Technician 2 through the delegated Crew workspace; the Chief personally recorded eight hours. Each source was submitted individually and reviewed by a separate Project Manager account.
 
 ### Do the task
 
@@ -434,7 +434,7 @@ Actual work differed: Technician 1 personally recorded six hours; the Chief reco
 
 ![Owner-created shared BBS plan visible in the authorized planning agenda: one record per person, each 480 planned minutes.](../evidence/bbs-planning-20261006/owner/screenshots/03-owner-three-published-plans.png)
 
-![Separate Worker 1 view after PM review: six actual hours versus an eight-hour expectation. This operational table deliberately excludes all compensation estimates.](../evidence/bbs-planning-20261006/worker/screenshots/07-worker1-approved-needs-note.png)
+![Separate Worker 1 view after PM review: six actual hours versus an eight-hour expectation.](../evidence/bbs-planning-20261006/worker/screenshots/07-worker1-approved-needs-note.png)
 
 ![Actual Project Manager calendar at 768-pixel tablet width, with the three October 20 planning records.](../evidence/bbs-planning-20261006/manager/screenshots/05-pm-joint-planning-tablet.png)
 
@@ -445,7 +445,7 @@ Actual work differed: Technician 1 personally recorded six hours; the Chief reco
 
 Go here: Planning; Worker: Today and Time; Owner: Projects → Expected Working Schedule
 
-Context: Isolated BBS planning and crew lab · October 20–25, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.
+Context: Isolated BBS planning and crew lab · October 20–25, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Earlier examples retain their original date scope.
 
 The Owner configures Expected Working Schedule through Projects → More actions. It has an effective date, IANA timezone and a minutes value for each weekday. The BBS lab’s October 19 schedule is 480 minutes Monday–Friday and zero on weekends. This reference is separate from published planning and never creates actual work.
 
@@ -453,7 +453,7 @@ The October 21 practice plan was edited to three hours, 09:00–12:00 UTC. Worke
 
 Planning and worker agendas display UTC. On October 20, 08:00–16:00 UTC means 10:00–18:00 Europe/Madrid or 04:00–12:00 America/New_York. Convert for the actual date, because daylight-saving changes can alter the offset.
 
-There is no generic worker-goal Accept / Reject / Mark completed workflow. Use assignments for coordination, expected hours for comparison and Daily / Technical reports for actual progress and blockers. Project milestones are separate project checkpoints; ask the Owner or Finance to establish any financial milestone terms. This operational exercise creates no milestone charges.
+There is no generic worker-goal Accept / Reject / Mark completed workflow. Use assignments for coordination, expected hours for comparison and Daily / Technical reports for actual progress and blockers. Project milestones are separate project checkpoints; ask the Owner to establish any required milestone configuration.
 
 After the earlier planning tables, the Owner added an explicitly synthetic October 23-only membership for Technician 1 in the existing fictional onboarding project. The later Worker weekly table shows Friday Expected and Difference as — because two own projects cover that day. Earlier screenshots still correctly show Friday eight hours and weekly forty before that extra assignment. No actual work was entered in the second project.
 
@@ -477,14 +477,14 @@ The earlier cancellation screenshots are a historical checkpoint, not the final 
 ### If you get stuck
 
 - The External Technician profile has restricted Time / Expenses / Reports access and currently no internal Today agenda or Planning calendar, even when the Owner publishes a plan. Confirm its schedule through the authorized operational handoff.
-- Operational screenshots and hours comparisons do not authorize access to client rates, loaded costs, margins or another person’s pay. Route financial interpretation to Finance or the Owner.
+- Use screenshots and hours comparisons to explain operational issues within your authorized project. Send questions outside that scope to the Owner.
 - After a publish-field validation message, correct the highlighted field and recheck the retained person, UTC interval, planned quantity, Site and Required expertise before retrying.
 
 ![PM published record reopened after editing: October 21 09:00–12:00 UTC, 180 planned minutes and the saved fictional site.](../evidence/bbs-planning-20261006/manager/screenshots/02-pm-updated-plan-persisted.png)
 
 ![Separate Worker 1 agenda after the edit: the published three-hour practice plan appears alongside the eight-hour crew plan.](../evidence/bbs-planning-20261006/owner/screenshots/07-worker-updated-three-hour-agenda.png)
 
-![Separate Worker 1 weekly table: planned three hours does not replace the independently configured eight-hour Wednesday expectation. This crop contains no pay figures. This is the earlier checkpoint, before the additional October 23 one-day membership; its Friday eight-hour expectation and weekly forty-hour target remain correct for that saved stage.](../evidence/bbs-planning-20261006/owner/screenshots/06-worker-planned-three-expected-eight.png)
+![Separate Worker 1 weekly table: planned three hours does not replace the independently configured eight-hour Wednesday expectation. This is the earlier checkpoint, before the additional October 23 one-day membership; its Friday eight-hour expectation and weekly forty-hour target remain correct for that saved stage.](../evidence/bbs-planning-20261006/owner/screenshots/06-worker-planned-three-expected-eight.png)
 
 ![Actual PM Cancel assignment control for the separate October 22 Worker 2 practice plan. Verify the worker and interval before cancelling.](../evidence/bbs-planning-20261006/manager/screenshots/03-pm-before-cancel.png)
 
@@ -494,7 +494,7 @@ The earlier cancellation screenshots are a historical checkpoint, not the final 
 
 ![Additional PM October 25 practice publication reopened after correcting an invalid interval: saved UTC 08:00–10:00, 120 planned minutes, fictional Site and Required expertise. No actual work was generated.](../evidence/bbs-planning-20261006/manager/screenshots/08-pm-fixed-publication-persisted.png)
 
-![Later isolated checkpoint, after an additional one-day project membership on October 23: Friday Actual is zero and Expected / Difference are unknown (—). October 20 remains six actual versus eight expected hours. Earlier weekly tables precede this added membership and correctly show Friday eight expected hours. This operational crop contains no prices, costs or compensation.](../evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png)
+![Later isolated checkpoint, after an additional one-day project membership on October 23: Friday Actual is zero and Expected / Difference are unknown (—). October 20 remains six actual versus eight expected hours. Earlier weekly tables precede this added membership and correctly show Friday eight expected hours.](../evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png)
 
 ![Final planning summary after later synthetic schedules: nine Published and one Cancelled; earlier cancellation figures remain historical checkpoints.](../evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm05-final-planning-summary.png)
 
@@ -505,7 +505,7 @@ Go here: Profile → Expertise and availability
 
 Context: Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.
 
-Profile lets the PM inspect authorized workforce expertise and availability without exposing other workers’ compensation. Availability windows and Planning use UTC. Account security below the workforce profile concerns your own signed-in account.
+Profile lets the PM inspect authorized workforce expertise and availability. Availability windows and Planning use UTC. Account security below the workforce profile concerns your own signed-in account.
 
 The positive exercise saved only the fictional PM’s own available October 16 08:00–10:00 UTC window. No other person’s real availability was changed.
 
@@ -550,12 +550,12 @@ The positive exercise saved 0.50 actual hour on October 8 for the fictional PM�
 ### Verify the result
 
 - The PM source was genuinely saved and Submitted with 30 minutes.
-- The source was not approved, financially classified or invoiced. Personal pay showed a pending estimate rather than proof of payment.
+- The source was not approved. Personal My Pay showed a pending estimate rather than proof of payment.
 
 ### If you get stuck
 
 - Correct an ordinary draft before submission. Once submitted, follow a returned linked correction and explicit resubmission.
-- If finalized settlement or billing coverage blocks a correction, hand off to Finance/Owner with the exact error.
+- If a guard blocks a correction, hand off to Finance/Owner with the exact error and source ID.
 
 ![Actual PM Log time form for personal operational work.](../evidence/bbs-role-manuals-20261006/manager/screenshots/14-pm-own-time-form.png)
 
@@ -568,7 +568,7 @@ Go here: Expenses → Record expense / Approvals Expenses
 
 Context: Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.
 
-Expenses records receipt evidence and operational facts: project, date, category, vendor, currency, amount and who paid. The amount spent, customer recovery and worker reimbursement are separate decisions. The PM operationally approved existing synthetic receipts; PM own expense creation was not executed here.
+Expenses records receipt evidence and operational facts: project, date, category, vendor, currency, amount and who paid. Record the actual purchase facts; reimbursement is a later separate step. The PM operationally approved existing synthetic receipts; PM own expense creation was not executed here.
 
 ### Do the task
 
@@ -576,12 +576,12 @@ Expenses records receipt evidence and operational facts: project, date, category
 2. Open the receipt/source and check the event, amount, currency, payer and any linked logged hours. Required receipt missing needs supporting evidence before submission or review.
 3. For your own permitted new expense choose Record expense, enter the factual fields and attach the receipt, then Save draft and inspect it before Submit. This is an inspected reference path in the PM packet.
 4. For another submitted expense, go to Approvals → Expenses and Approve correct operational facts or return a specific Required change.
-5. Send Finance the approved source for commercial classification and the later reimbursement/payment process.
+5. Send Finance the approved source for the later reimbursement review and payment process.
 
 ### Verify the result
 
 - PM operational approvals succeeded for the fictional USD 12 worker supply receipt, USD 20 allocated shared meal and USD 8 external expense.
-- No reimbursement date, payee, customer markup or actual payment was recorded by the PM packet.
+- No reimbursement date, payee or actual payment was recorded by the PM packet.
 
 ### If you get stuck
 
@@ -597,7 +597,7 @@ Go here: My Pay → From / Through → Apply period
 
 Context: Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.
 
-My Pay is always limited to your signed-in account’s activity, compensation and reimbursement. Reviewing another worker’s operational record does not permit seeing their compensation.
+My Pay identifies your signed-in account’s own activity, compensation and reimbursement. Confirm that identity and the selected period before reading the statement.
 
 Estimated compensation, approved compensation, finalized settlement, expected payment date and recorded actual payment mean different things. A settlement is not a bank transfer.
 
@@ -605,21 +605,19 @@ Estimated compensation, approved compensation, finalized settlement, expected pa
 
 1. Open My Pay and select From and Through; choose Apply period.
 2. Review approved and pending estimates, Own activity detail, Settlement status and Reimbursement status for that period.
-3. Compare the source state with the estimate. For the PM October 8 half-hour Submitted source, the October 1–31 view showed USD 30 pending estimate under the fictional USD 60/hour rule.
+3. Compare the source state with your own estimate. For the PM October 8 half-hour Submitted source, the October 1–31 view showed a pending estimate; it did not prove that payment occurred.
 4. Use Generate report for your own worker statement if needed. Statement generation was not executed in this PM packet.
 5. If an amount or expected payment is wrong, give Finance the source/project/period and the observed difference.
 
 ### Verify the result
 
-- Native My Pay opened. Even a URL query naming Worker 2 kept the PM’s own 0.5-hour/ USD 30 pending scope; it exposed no other worker’s compensation.
+- Native My Pay opened within the signed-in PM’s own scope and selected period. A URL query naming a different person did not change that scope.
 - The PM packet created no settlement or actual payment.
 
 ### If you get stuck
 
 - Check period first: the default view ended on the current day, excluding future October 8 training activity.
 - Do not assume an estimate is money owed today or money received. Ask Finance about settlement and payment evidence separately.
-
-![Actual PM My Pay: own pending USD 30 estimate despite another-worker query parameter.](../evidence/bbs-role-manuals-20261006/manager/screenshots/29-pm-pay-own-scope.png)
 
 <a id="documents"></a>
 ## Register and retrieve a private project document
@@ -630,7 +628,7 @@ Context: Native isolated BBS role exercise · C-0050-P-20261005 · synthetic Oct
 
 Sensitivity labels describe content handling. Document audience/access is a separate scope decision. The PM Upload document form exposes Project, Artifact type, Sensitivity, Description and File; it does not expose the Owner’s Document access selector.
 
-PM can work with permitted project documents. Finance/Owner/Auditor-only documents require their authorized audience and remain outside PM operational scope. Ask the Owner/Finance to register material needing that audience.
+Register only permitted operational project documents. Ask the Owner to register material needing an audience or access control unavailable in your upload form.
 
 ### Do the task
 
@@ -640,13 +638,13 @@ PM can work with permitted project documents. Finance/Owner/Auditor-only documen
 
 ### Verify the result
 
-- Native PM document 01a11186-4194-7524-a61a-dcd5a4deb734 was registered within BBS. It is a synthetic project note containing no client rate, cost, margin, pay or claimed business event. Native private retrieval was executed.
+- Native PM document 01a11186-4194-7524-a61a-dcd5a4deb734 was registered within BBS. It is a synthetic operational project note, with no claimed business event. Native private retrieval was executed.
 
 ### If you get stuck
 
 - If retrieval is denied, verify project scope and document audience with the Owner. Never widen sensitivity or audience to bypass access.
 
-![Actual PM form has Sensitivity, without an Owner-only Document access selector.](../evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm06-actual-sensitivity-upload-form.png)
+![Native PM upload form with a fictional operational description. Select the file before Upload and register hash. This capture shows the input stage; it does not register a new document.](../evidence/bbs-privacy-20261006/manager/screenshots/pm-upload-neutral-description.png)
 
 ![Saved synthetic private project document and permitted metadata.](../evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm06-saved-private-document-scope.png)
 
@@ -690,7 +688,7 @@ For invitation and sign-in use Access · activate the invitation and sign in (ac
 
 For own expenses use Category, Date, Amount, Currency, Who paid, Description, Payment method and private receipt; verify the saved receipt before Submit. Operational approval is distinct from reimbursement. The own-expense procedure is source-checked here, not claimed newly executed.
 
-Use My Pay only for your own statement. Check worker, period, included sources, currency and actual payout state. No other worker’s pay belongs in PM planning or evidence. No new PM payout was created in this exercise.
+Use My Pay for your own statement. Check your identity, period, included sources, currency and actual payout state. No new PM payout was created in this exercise.
 
 ### Do the task
 
@@ -717,7 +715,7 @@ Go here: Dashboard → Planning → Approvals → Reports
 
 Context: Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.
 
-A practical PM day starts with authorized scope and future plans, moves through actual-source review and correction, and ends with report and finance handoffs. Finance remains responsible for commercial treatment and payment lifecycle; Owner remains responsible for company access and policy.
+A practical PM day starts with authorized scope and future plans, moves through actual-source review and correction, and ends with report and reimbursement handoffs. Finance handles the reimbursement/payment lifecycle; Owner maintains company access and policy.
 
 Native coverage includes saved/restored membership dates, Reject and Needs changes decisions, author linked recovery and PM approval, actual Approved Technical attribution, Finance-created customer v2 followed by PM approval and Ready signature queue, private document registration and matching retrieval, populated notification to current source, own Daily approval by Owner and Ready PDF download. New Assign worker, own expense and statement generation remain source-checked references. See Verification · current coverage and historical evidence (verification).
 
@@ -726,17 +724,17 @@ Native coverage includes saved/restored membership dates, Reject and Needs chang
 1. Confirm BBS project identity, timezone and your active membership. Check future Planning against availability.
 2. Review submitted sources in the correct Approvals tab. Return incorrect facts with precise reasons and re-review submitted linked corrections.
 3. Check approved Daily/Technical narratives and the exact customer period queue. Send Finance/Owner the approved source/period handoff.
-4. Record personal work under your own source and send it to another reviewer. Check My Pay independently of crew economics.
+4. Record personal work under your own source and send it to another reviewer. Check your own My Pay separately.
 5. Retain authorized project evidence, investigate processing/access errors, and report unresolved issues with exact source references.
 
 ### Verify the result
 
 - No live email, customer signature, dispatch, purchase, bank payment or production business mutation occurred in this training packet.
-- The BBS original invoice and finalized compensation history remained unchanged.
+- Existing BBS records and finalized history remained unchanged.
 
 ### If you get stuck
 
-- Do not solve a locked history problem by duplicating a project, time source or invoice. Use the supported correction or audited financial adjustment.
+- Do not solve a locked history problem by duplicating a project or time source. Use the supported correction or Owner handoff.
 - When a task belongs to another role, send a clear handoff: source, project, period, state, required result and reason.
 
 <a id="recovery-matrix"></a>
@@ -789,4 +787,4 @@ A final Accounting cut succeeded in a separate clean Finance portfolio; an Audit
 
 ### Verify the result
 
-- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding. Out-of-role financial information is intentionally excluded from operational guides.
+- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding.

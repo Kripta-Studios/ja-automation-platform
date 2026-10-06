@@ -97,7 +97,8 @@ const guide = (
   },
 });
 
-/** Current role courses remain separate from the historical grouped references. */
+/** Only reviewed current courses are shared with non-Owner personas.
+ * Historical grouped/quick-start references remain in the Owner archive. */
 const bbsRoleGuide = (
   persona: ManualPersona,
   title: string,
@@ -135,7 +136,7 @@ export const manualCatalog: readonly ManualDefinition[] = [
     audience: 'quick-start',
     locales: manualLocales,
     revision: manualRevision,
-    allowedPersonas: ['worker'],
+    allowedPersonas: ['owner'],
     assets: {
       en: { sourceName: 'Employee_Field_Guide_EN.pdf' },
       es: { sourceName: 'Employee_Field_Guide_ES.pdf' },
@@ -145,7 +146,7 @@ export const manualCatalog: readonly ManualDefinition[] = [
   guide(
     'work-projects-reference',
     'work-projects',
-    ['worker', 'manager'],
+    ['owner'],
     ['Work and projects guide', 'Guía de trabajo y proyectos', 'Guia de trabalho e projetos'],
     [
       'Shared chapters for field work and project management; follow the path for your role.',
@@ -157,7 +158,7 @@ export const manualCatalog: readonly ManualDefinition[] = [
   guide(
     'supplier-operations-reference',
     'supplier-operations',
-    ['supplier-coordinator', 'external-technician'],
+    ['owner'],
     [
       'Supplier operations guide',
       'Guía de operaciones de proveedores',
@@ -173,7 +174,7 @@ export const manualCatalog: readonly ManualDefinition[] = [
   guide(
     'administration-finance-reference',
     'administration-finance',
-    ['owner', 'finance', 'auditor'],
+    ['owner'],
     [
       'Administration, finance and audit guide',
       'Guía de administración, finanzas y auditoría',
@@ -201,7 +202,7 @@ export const manualCatalog: readonly ManualDefinition[] = [
     audience: 'administration-finance',
     locales: ['en'],
     revision: '2026-10-06',
-    allowedPersonas: ['owner', 'finance'],
+    allowedPersonas: ['owner'],
     assets: { en: { sourceName: 'BBS_Project_to_Client_Invoices_Guide_EN.pdf' } },
   },
   bbsRoleGuide(

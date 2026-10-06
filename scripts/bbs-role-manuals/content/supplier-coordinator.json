@@ -9,12 +9,12 @@
       "route": "Sign in → Supplier team",
       "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
       "paragraphs": [
-        "The Supplier Coordinator is an operational supplier profile linked to a supplier company and dated project authorization. Its underlying account can display Worker in Profile; the supplier access profile determines the restricted supplier workspace. It does not grant Finance, invoices, employee pay or J&A approval rights.",
+        "The Supplier Coordinator is an operational supplier profile linked to a supplier company and dated project authorization. Its underlying account can display Worker in Profile; the supplier access profile determines the restricted supplier workspace. It does not grant J&A approval rights.",
         "This exercise uses fictional BBS ROLE LAB Training Supplier on the SAME BBS project C-0050-P-20261005. The Owner created the supplier and accounts, authorized this coordinator for BBS October 5–31, and assigned the external technician. All work narratives and receipts are synthetic training."
       ],
       "steps": [
         "Use your own single-use invitation or assigned sign-in credentials. Enter email and password and choose Continue to workspace.",
-        "Open Supplier team. Confirm BBS in Installation / project and verify the project/date scope before recording technicians or hours.",
+        "Open Profile and confirm your own account. A Worker base-role label does not change your supplier access profile.",
         "Open Profile and confirm your own account. A Worker base-role label does not mean you have internal employee finance privileges.",
         "Ask the Owner to verify supplier linkage, active account status, authorization dates and the correct coordinator when a project is absent."
       ],
@@ -41,7 +41,7 @@
       "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
       "paragraphs": [
         "Supplier team handles authorized personnel and team-hour drafts. Time, Expenses and Reports handle your own operational sources. Operational report shows permitted supplier work and approval state. Profile and Help support your own account and role guidance.",
-        "Finance, Billing and Approvals are restricted to other authorized roles. The coordinator can submit work to J&A; it cannot approve those sources or certify client acceptance."
+        "The coordinator can submit work to J&A; it cannot approve those sources or certify client acceptance. Use the authorized operational workspaces shown in your navigation."
       ],
       "steps": [
         "Use Personnel, Record team hours and Operational report tabs in Supplier team.",
@@ -51,7 +51,7 @@
       ],
       "checks": [
         "Coordinator desktop, 390-phone and 768-tablet views were captured.",
-        "Direct Finance and Billing requests returned 403 Access restricted; Approvals also returned 403."
+        "Requests outside the coordinator’s authorized workspace returned 403 Access restricted."
       ],
       "recovery": [
         "Contact an owner is the handoff from a restricted screen. Returning to Supplier team does not grant the denied action.",
@@ -236,7 +236,7 @@
         "Retain the earlier 4 h Submitted export as before history; use supplier-final-oct06.csv for the final 3.5 h Approved evidence."
       ],
       "checks": [
-        "Final native CSV matches Approved sources 01a10e4b-c33e-7033-a065-d3980b92c94d and 01a10e50-5f09-7290-8a50-92767e39e3f0. It contains operational activity and recorder attribution, with no commercial amounts."
+        "Final native CSV matches Approved sources 01a10e4b-c33e-7033-a065-d3980b92c94d and 01a10e50-5f09-7290-8a50-92767e39e3f0. It contains operational activity and recorder attribution."
       ],
       "recovery": [
         "Compare the same dates, technician scope and review states before reporting a discrepancy."
@@ -397,8 +397,8 @@
       "route": "Profile → Expertise and availability / Account security → Help",
       "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
       "paragraphs": [
-        "Coordinator Profile holds own expertise and availability without exposing compensation or client rates. Availability uses UTC. Security settings concern your own signed-in account, not an inspected supplier technician.",
-        "The Help screenshot includes the new English Supplier Coordinator BBS course and the broader supplier operations reference. Choose the role-specific course first, then consult the reference for shared tasks.",
+        "Coordinator Profile holds your own expertise and availability. Availability uses UTC. Security settings concern your own signed-in account, not an inspected supplier technician.",
+        "Help provides the English Supplier Coordinator BBS course. Use its role-specific procedures and the shared access, security and recovery sections included in this course.",
         "For invitation and sign-in use Access · activate the invitation and sign in (access). For MFA, devices and recovery use Security · verify your own device and recovery options (security)."
       ],
       "steps": [
@@ -423,8 +423,8 @@
           "orientation": "portrait"
         },
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/22-coordinator-help.png",
-          "caption": "Actual coordinator Help after catalog integration: the new Supplier Coordinator BBS course and shared supplier reference are both available.",
+          "src": "docs/evidence/bbs-privacy-20261006/supplier-coordinator/screenshots/help-current-role-library.png",
+          "caption": "Current coordinator Help: the Supplier Coordinator BBS course is available for this role.",
           "orientation": "landscape"
         }
       ]
@@ -442,15 +442,15 @@
         "Confirm BBS authorization and each technician’s work-date coverage before entering actual hours.",
         "Review saved sources and submit the intended batch only once. Send the reviewer a clear project/date/source handoff.",
         "Follow Needs changes through a linked correction and re-review; compare active totals with the retained original history.",
-        "Export the operational report with the correct period/state and describe its meaning. Hand financial and customer-acceptance questions to authorized J&A users.",
+        "Export the operational report with the correct period/state and describe its meaning. Hand customer-acceptance and other out-of-scope questions to the designated J&A contact.",
         "Keep your own Time, Expenses and Reports distinct from technician team sources and report unresolved access/preview problems."
       ],
       "checks": [
         "No production data, real equipment, live dispatch, customer consent, outward mail or bank payment was changed or asserted by this training packet.",
-        "Original BBS invoices and finalized financial history were preserved."
+        "Existing BBS records and finalized history were preserved."
       ],
       "recovery": [
-        "Do not duplicate work to fix a locked source or substitute an operational CSV for an issued invoice.",
+        "Do not duplicate work to fix a locked source. Explain the source ID, period and exact message to the designated contact.",
         "If access ends or assignment dates expire, ask Owner to review the genuine authorization. A directory record alone cannot restore login."
       ],
       "figures": []
@@ -459,11 +459,11 @@
       "id": "supplier-planning-team-handoff",
       "title": "Planning appendix · turn work instructions into actual team facts",
       "route": "Supplier team → Record team hours → Operational report",
-      "context": "Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production records or financial changes",
+      "context": "Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production changes",
       "paragraphs": [
         "Supplier project authorization and personnel assignment establish who may work and on which dates. Internal published planning is separate. Supplier Coordinator navigation opens Supplier team and does not expose Today or Planning; the direct Planning route returns Access restricted. Arrange operational instructions through the Owner’s approved coordination process.",
         "The native October 23 exercise selected two existing fictional supplier technicians, used Same hours for everyone and entered one actual hour. Save selected drafts created two individual sources totaling two team hours, attributed to their respective technicians and Recorded by the coordinator. Shared entry is not one combined person record.",
-        "The actual work form remains a factual record. It does not accept a goal, finalize worker pay or disclose customer rates. A technician can inspect their own coordinator-recorded hour but cannot inspect the other technician’s source."
+        "The actual work form remains a factual record. It does not accept a goal or finalize a payment. A technician can inspect their own coordinator-recorded hour; other technicians’ sources remain outside their authorized scope."
       ],
       "steps": [
         "Open Supplier team. Choose BBS under Installation / project and Record team hours. Confirm each technician’s displayed assignment dates cover 2026-10-23.",
@@ -503,7 +503,7 @@
       "id": "supplier-coverage-goals-troubleshooting",
       "title": "Coverage appendix · missing people, dates and work goals",
       "route": "Supplier team → Record team hours; own Reports → Daily",
-      "context": "Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production records or financial changes",
+      "context": "Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production changes",
       "paragraphs": [
         "The worked supplier authorization and technician assignments end October 31. Moving Work date to November 1 removed both eligible technicians, cleared the selection and disabled Save selected drafts. The app’s No matching records hint mentions search/status generically; in this exercise the actual reason was date coverage. No November 1 source was saved.",
         "An assigned project and a published plan are not interchangeable. This coordinator profile cannot inspect an internal agenda, publish plans or accept goals. A current supplier grant still does not enable the internal Planning calendar.",
@@ -518,7 +518,7 @@
       ],
       "checks": [
         "Changing the native team form to an uncovered date removed eligible personnel and disabled saving. Read-only database verification confirmed zero exercise sources on November 1.",
-        "Native restricted Planning showed Access restricted and a Supplier recovery link. Rates, costs, billing, pay and finance controls remained outside the coordinator workspace."
+        "Native restricted Planning showed Access restricted and a Supplier recovery link. The coordinator returned to the authorized operational workspace."
       ],
       "recovery": [
         "Include role, supplier, project, intended work date and exact missing/disabled control in an access request. Never include passwords or session material.",

@@ -12,8 +12,12 @@ export function commonChapters(role) {
     title: 'Before practising · live and training access',
     paragraphs: [
       'The company portal https://j-aautomation.com/j-aautomation/app is LIVE. A link to it never enters a simulation. For practice obtain a separately provisioned training URL, your own account, the permitted fictional project and dates, a visible environment identifier and the trainer’s reset procedure. Without those, use this guide as a read-only demonstration and enter only authorized genuine work.',
-      'Original BBS operational examples and some historical unpaid settlements were saved on the live deployment; their original exports were downloaded there. Later fictional issuance, payment, acceptance, correction and readiness exercises used isolated copies or separate synthetic portfolios. Each chapter identifies its dataset and checkpoint. A later screenshot does not change an earlier saved workbook or issued master.',
-      'A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials. Inspect another person’s permitted operational record without signing in as them. Ordinary workers and project managers do not receive customer prices, internal cost, margins or another worker’s compensation.',
+      financial
+        ? 'Original BBS examples include historical live-deployment records. Later financial training exercises used isolated copies or separate synthetic portfolios. Each chapter identifies its dataset and checkpoint. A later screenshot does not change an earlier saved workbook or issued document.'
+        : 'Original BBS examples include historical live-deployment records. Later training exercises used isolated copies. Each chapter identifies its dataset and checkpoint. Follow the dates and saved states shown for that exercise.',
+      owner
+        ? 'A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials. Inspect another person’s permitted operational record without signing in as them. Ordinary workers and project managers do not receive customer prices, internal cost, margins or another worker’s compensation.'
+        : 'A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials and follow the tasks assigned to your role. Check the selected project and person before recording work.',
     ],
     checks: [
       'Confirm your displayed identity, the environment, project number and work dates before saving. For training/reset or lost access contact admin@j-aautomation.com; send the route, role, project/record reference, time and visible error. Keep passwords, activation links, recovery codes and cookies private.',
@@ -104,17 +108,21 @@ export function commonChapters(role) {
         [
           'Internal own or chief-delegated time',
           'Owner or Finance; assigned PM with current active Can review membership for this project.',
-          'Owner/Finance records commercial Billable or Non-billable review separately.',
+          financial
+            ? 'Owner/Finance records commercial Billable or Non-billable review separately.'
+            : 'Submit the checked work to the authorized reviewer and verify the resulting state.',
         ],
         [
           'External/supplier time, including coordinator own time',
           'Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue.',
-          'Finance review follows Owner approval.',
+          financial ? 'Finance review follows Owner approval.' : 'Verify the resulting review state.',
         ],
         [
           'Own/delegated expenses',
           'Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence.',
-          'Owner/Finance classifies customer recovery and worker reimbursement separately.',
+          financial
+            ? 'Owner/Finance completes the required classification and reimbursement review.'
+            : 'Verify the expense review state. Direct reimbursement questions to the Owner.',
         ],
         [
           'Daily and Technical reports, including supplier profiles',
@@ -124,7 +132,7 @@ export function commonChapters(role) {
         [
           'PM’s own work',
           'Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title.',
-          'Personal reports/pay outputs remain own scope; financial treatment belongs to Owner/Finance.',
+          'Use the appropriate personal output and verify the review state.',
         ],
       ],
     },
@@ -204,7 +212,7 @@ export function commonChapters(role) {
       'A final Accounting cut succeeded in a separate clean Finance portfolio; an Auditor read and downloaded its outputs. Original BBS issuer-history and source-reconciliation blockers remain documented. Email transport, real bank movement, accountant approval and genuine customer acceptance are outside the synthetic tests.',
     ],
     checks: [
-      'For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding. Out-of-role financial information is intentionally excluded from operational guides.',
+      'For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding.',
     ],
   };
   return { before: [practice, access, trainer, review], after: [recovery, security, verification] };

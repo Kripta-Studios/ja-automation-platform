@@ -7,9 +7,9 @@ Read-only financial evidence, immutable history, source reconciliation and autho
 
 The company portal https://j-aautomation.com/j-aautomation/app is LIVE. A link to it never enters a simulation. For practice obtain a separately provisioned training URL, your own account, the permitted fictional project and dates, a visible environment identifier and the trainer’s reset procedure. Without those, use this guide as a read-only demonstration and enter only authorized genuine work.
 
-Original BBS operational examples and some historical unpaid settlements were saved on the live deployment; their original exports were downloaded there. Later fictional issuance, payment, acceptance, correction and readiness exercises used isolated copies or separate synthetic portfolios. Each chapter identifies its dataset and checkpoint. A later screenshot does not change an earlier saved workbook or issued master.
+Original BBS examples include historical live-deployment records. Later financial training exercises used isolated copies or separate synthetic portfolios. Each chapter identifies its dataset and checkpoint. A later screenshot does not change an earlier saved workbook or issued document.
 
-A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials. Inspect another person’s permitted operational record without signing in as them. Ordinary workers and project managers do not receive customer prices, internal cost, margins or another worker’s compensation.
+A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials and follow the tasks assigned to your role. Check the selected project and person before recording work.
 
 ### Verify the result
 
@@ -72,9 +72,9 @@ Review is determined by the actual source, base role and current dated grants. C
 | --- | --- | --- |
 | Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Owner/Finance records commercial Billable or Non-billable review separately. |
 | External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Finance review follows Owner approval. |
-| Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Owner/Finance classifies customer recovery and worker reimbursement separately. |
+| Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Owner/Finance completes the required classification and reimbursement review. |
 | Daily and Technical reports, including supplier profiles | Owner or Finance; assigned PM with current project review grant and permitted project scope. | Owner/Finance prepares the customer period report and version-bound acceptance where required. |
-| PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Personal reports/pay outputs remain own scope; financial treatment belongs to Owner/Finance. |
+| PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Use the appropriate personal output and verify the review state. |
 
 ### If you get stuck
 
@@ -124,18 +124,15 @@ The weekly timesheet compares Actual against the effective Expected schedule. Di
 
 There is no dedicated worker-goal acceptance or completion workflow. Daily/Technical reports describe completed tasks, problems and next steps. Project milestones and commercial budgets have separate lifecycles; meeting a hours target is not evidence that a milestone is approved.
 
-In this screenshot, client revenue and billable hours remain zero because this new operational exercise has not completed Finance billability review. Zero here is not an agreed zero customer rate. A source-row compensation projection is not a finalized settlement balance; review fixed-period agreements at their applicable settlement scope.
-
 ### Do the task
 
 1. Select C-0050-P-20261005 · BBS · Ejemplo de manual. Open Source records → Time entries.
 2. Use Search: Source records to enter 2026-10-20. Read the filtered count, individual worker, actual hours, source state and billing state; the broader Time source records count still describes the full selected project.
 3. Confirm the three Approved operational sources show six, seven and eight hours. Follow the exact source link when investigating a discrepancy; do not substitute planned hours for recorded time.
-4. Keep worker expected-hours targets separate from client daily minimums, full-day/full-week billing units and contractual worker compensation.
 
 ### Verify the result
 
-- All three rows are Approved and Unlocked; the source screenshot was taken before additional Finance classification. The application retains 21 hours of actual work and does not manufacture the missing three planned hours.
+- The three sources are Approved and retain 21 hours of actual work. Planning did not manufacture the missing three hours.
 - Auditor access is read-only. Report discrepancies to the Owner/Finance rather than editing plans, approving time or changing financial rules.
 
 ### If you get stuck
@@ -143,34 +140,30 @@ In this screenshot, client revenue and billable hours remain zero because this n
 - For incorrect actual work, request the state-appropriate operational correction. For an incorrect plan or expected schedule, ask the Owner or authorized Project Manager. These are different records.
 - Supplier time follows the J&A Owner operational-review handoff, whereas an authorized Project Manager may review the supplier Daily report. A missing supplier time item in the ordinary PM queue does not justify duplicate entry.
 
-![Actual Auditor session · October 20 filter selects three Approved synthetic BBS sources: 8 h Chief, 6 h Technician 1 and 7 h Technician 2. Finance billability review is separate; plans did not create these source rows.](../evidence/bbs-planning-20261006/auditor/screenshots/01-auditor-Oct20-actual-sources.png)
-
 <a id="auditor-financial-scope"></a>
-## Read the economic position without confusing cash
+## Review invoice and collection totals
 
-Go here: Finance Overview → Economic Review → BBS
+Go here: Collections / Ledger → intended project/currency
 
 Context: Reference procedure · checked against current source; not yet executed in this role lab
 
-Actual time, approved time, billable time, WIP, issued invoices, collected cash and receivable are separate measures. Contribution reflects the calculation scope and cost basis; it is not a complete statutory profit figure.
+Review numbered documents, their face amounts, recorded collections, reversals and outstanding balances within the selected scope. An application payment record is not independent bank evidence.
 
-Worker compensation is an entitlement calculation; internal loaded labor cost is an economic basis. They may overlap, so do not add both twice. Settled, planned payment and actually paid are separate.
-
-The original BBS baseline 1–5 October has 42.5 actual hours, USD 4,672 issued, USD 682 net collected, USD 3,990 receivable, USD 1,750 direct cost and USD 2,922 contribution. Later 6 October role exercises and audit timestamps are explicitly separate; use the actual chosen period rather than forcing these baseline totals.
+Keep project, currency, relevant dates, document IDs and the capture time with your findings. Later authorized events can change a register total.
 
 ### Do the task
 
-1. Select BBS and the intended period. Read the visible currency and current scope.
-2. Follow an amount into Source records; compare approved operational date, commercial rule, invoice issue date and payment effective date.
-3. Read budget/forecast/expected dates as planning and compare them only to the relevant actual basis.
+1. Select the intended project and currency. Open the exact invoice and its collection history.
+2. Compare invoice amount minus recorded net collections to its remaining balance. Review separate credit balances using the cash reconciliation lesson.
+3. Preserve the source references and relevant document versions with the finding.
 
 ### Verify the result
 
-- A missing/blank value is not presumed zero. A period excluding old costs can show a high contribution without proving whole-project profit.
+- The selected invoice and cash-event references reconcile. A missing value is not presumed zero.
 
 ### If you get stuck
 
-- For a discrepancy retain the exact filters, source IDs and visible values. Ask Finance to explain the basis; an Auditor does not correct commercial terms or post balancing records.
+- Send Finance/Owner the precise filters, document IDs, observed amounts and discrepancy. Auditor does not post balancing records.
 
 <a id="auditor-invoices"></a>
 ## Inspect a numbered native invoice and its sources
@@ -231,13 +224,11 @@ At the captured BBS cut, gross receivable is USD 4,591, credit balance USD 1, cu
 
 ### Verify the result
 
-- A receipt is not profit; an invoice is not bank evidence; a reversal is not a refund. Original documents, cash events and linked credit history remain preserved.
+- An application receipt is not independent bank evidence; a reversal entry does not perform a bank refund. Original documents, cash events and linked credit history remain preserved.
 
 ### If you get stuck
 
 - Ask Finance for an authorized allocation/refund procedure if needed. Auditor has no cash posting or reversal controls.
-
-![Scoped Auditor ledger after synthetic receipt/reversal: receivables, credit and customer net position remain distinct.](../evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/07-auditor-credit-receipt-reversal-reconciliation.png)
 
 <a id="auditor-worker-obligations"></a>
 ## Inspect compensation and reimbursement privately
@@ -246,9 +237,9 @@ Go here: Economic Review → Source records → Settlements → Compensation set
 
 Context: Worked example · actual Auditor inspected BBS compensation settlements and reimbursement history in Economic Review. Payment, finalization and reimbursement forms were absent.
 
-Authorized audit financial views can include sensitive worker compensation, payee/payment references, expense reimbursement and internal costs. Keep these with the authorized financial/audit audience; never attach them to a customer-facing report.
+Review the authorized settlement and reimbursement records. Keep the relevant references in the restricted audit record and share only the necessary finding with its responsible recipient.
 
-Customer invoice cadence does not determine worker payment frequency. A worker settlement period, expected payment date and actual paid event are independent selections. There is no automatic worker payroll cadence setting in this release.
+Check the settlement period, expected payment date and recorded payment event against the applicable instructions. There is no automatic payroll cadence setting in this release.
 
 A finalized obligation and paid cash have separate history. The existing USD 720 reviewed settlement remains USD 720 after a USD 1 payment and its reversal. A new Custom approved adjustment compensation rule is not an automatic amendment/unlock of that final snapshot. A mistaken full expense reimbursement has no ordinary partial/backdate/reversal control in this UI; route the exact record and actual timestamp to Finance/Owner support.
 
@@ -257,7 +248,7 @@ A finalized obligation and paid cash have separate history. The existing USD 720
 1. Select BBS and open Settlements. Check worker/project/period, Reviewed settlement, Actual paid and Remaining.
 2. Read source duration as hours/minutes and money with its currency. For a fixed-period rule, zero source duration does not by itself invalidate an agreed fixed amount.
 3. Inspect actual payment and reversal event references; compare the current remaining obligation.
-4. Below Settlements, read Worker reimbursement queue and distinguish receipt purchase, payer, worker reimbursement and customer recovery.
+4. Below Settlements, inspect the Worker reimbursement queue. Compare the expense reference, recorded reimbursement and supporting evidence.
 
 ### Verify the result
 
@@ -280,13 +271,13 @@ A pack is an authorized portfolio cut, with exact dates/version and independent 
 
 The separate all-synthetic October 1–6 portfolio pack was generated, reviewed with zero advisories and finalized by Finance. Auditor verified final and successfully downloaded all five native formats. This separate success does not repair or replace BBS history.
 
-Invoice inclusion follows issue dates. Frozen older source links can accompany included invoices as evidence without moving the historical operational costs to the new issue-date cut. A zero reconciliation count alone does not prove every operational source/receipt is complete.
+Invoice inclusion follows issue dates. Frozen older source links can accompany included invoices as evidence without moving the historical source work dates to the new issue-date cut. A zero reconciliation count alone does not prove every operational source/receipt is complete.
 
 ### Do the task
 
 1. Open Accounting → Accounting Pack register. Locate the exact period/version and read current/stale/final independently from each output’s Ready/Queued/Failed state.
 2. Download PDF, XLSX, Invoice CSV, Expense CSV and JSON only when their authenticated Ready links are available. Verify their filenames, cut, currency and content; retain sensitive outputs privately.
-3. Reconcile included invoices/cash/source references with the frozen cut and identify outside-period operational costs or omitted sources. Request Finance’s review notes where needed.
+3. Reconcile included invoices/cash/source references with the frozen cut and identify outside-period source work dates or omitted sources. Request Finance’s review notes where needed.
 4. Retain the historical final version. Request a new reviewed version from Finance for later source corrections; do not treat it as an editable live workbook.
 
 ### Verify the result
@@ -344,7 +335,7 @@ Context: Worked example · actual Auditor read approved fictional BBS Daily repo
 
 Customer-facing period reports/sign-off, internal financial reports, invoices and Accounting Packs have different audiences and purposes. Operational report approval is separate from customer acceptance against an exact report/PDF snapshot.
 
-A customer document must not expose worker compensation, internal cost or company margin. An internal finance/audit output can expose these only to its authorized audience. Private downloads require authorization on every request.
+Use the approved document for its intended audience. Keep its source/version reference with the audit record and use authorized private downloads.
 
 The Auditor session verified Reports read-only and an approved fictional Daily source. Its PDF was not generated. An export request was denied by the read-only boundary; an Owner/authorized creator must prepare a missing artifact. The final interface omits the unsupported Generate/Retry actions for Auditor.
 
@@ -480,4 +471,4 @@ A final Accounting cut succeeded in a separate clean Finance portfolio; an Audit
 
 ### Verify the result
 
-- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding. Out-of-role financial information is intentionally excluded from operational guides.
+- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding.

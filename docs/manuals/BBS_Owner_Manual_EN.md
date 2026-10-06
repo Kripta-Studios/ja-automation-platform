@@ -7,7 +7,7 @@ Role responsibilities, team handoffs and the complete illustrated BBS course.
 
 The company portal https://j-aautomation.com/j-aautomation/app is LIVE. A link to it never enters a simulation. For practice obtain a separately provisioned training URL, your own account, the permitted fictional project and dates, a visible environment identifier and the trainer’s reset procedure. Without those, use this guide as a read-only demonstration and enter only authorized genuine work.
 
-Original BBS operational examples and some historical unpaid settlements were saved on the live deployment; their original exports were downloaded there. Later fictional issuance, payment, acceptance, correction and readiness exercises used isolated copies or separate synthetic portfolios. Each chapter identifies its dataset and checkpoint. A later screenshot does not change an earlier saved workbook or issued master.
+Original BBS examples include historical live-deployment records. Later financial training exercises used isolated copies or separate synthetic portfolios. Each chapter identifies its dataset and checkpoint. A later screenshot does not change an earlier saved workbook or issued document.
 
 A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials. Inspect another person’s permitted operational record without signing in as them. Ordinary workers and project managers do not receive customer prices, internal cost, margins or another worker’s compensation.
 
@@ -72,9 +72,9 @@ Review is determined by the actual source, base role and current dated grants. C
 | --- | --- | --- |
 | Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Owner/Finance records commercial Billable or Non-billable review separately. |
 | External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Finance review follows Owner approval. |
-| Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Owner/Finance classifies customer recovery and worker reimbursement separately. |
+| Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Owner/Finance completes the required classification and reimbursement review. |
 | Daily and Technical reports, including supplier profiles | Owner or Finance; assigned PM with current project review grant and permitted project scope. | Owner/Finance prepares the customer period report and version-bound acceptance where required. |
-| PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Personal reports/pay outputs remain own scope; financial treatment belongs to Owner/Finance. |
+| PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Use the appropriate personal output and verify the review state. |
 
 ### If you get stuck
 
@@ -467,6 +467,82 @@ Context: Isolated BBS copy · separate October 13–18 customer report v2. The h
 
 ![New native customer-period PDF, October 13–18 v2: selected technical facts are populated in Detail. The separately preserved old blank-detail example remains historical.](../evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/39-native-customer-period-pdf-page1.png)
 
+<a id="owner-private-dated-terms"></a>
+## Owner reference · dated terms and calculation inputs
+
+Go here: Commercial Configuration; Projects → BBS → Billing → Review each person
+
+Context: Owner reference · historical isolated Finance-role evidence retained for Owner review only; original capture dates and amounts remain unchanged.
+
+Project defaults, saved person terms and their effective dates determine treatment. Customer billing units, worker compensation and internal hourly cost are independent. Saving unchanged existing overrides may leave their original effective dates; changing a future value creates a new dated rule. Copying draft terms does not save them.
+
+The original Technician 1 customer day rate remains USD 600 for the October 26 invoice. A separate synthetic November 1 practice agreement saves USD 610/day, while internal cost USD 35/h and the selected Daily worker compensation USD 240/day remain independent. An attempted October 31 save was rejected because the existing finalized October settlement overlaps that date. No historical invoice or reviewed settlement was rewritten.
+
+### Do the task
+
+1. Open Projects → BBS → Billing. Continue through the invoice-setup steps to 3. Review each person; select the intended person.
+2. Set Terms effective from. Review Customer billing unit (Hourly/Daily/Weekly) and the corresponding Customer hourly/daily/weekly rate (USD), Internal hourly cost (USD), Worker compensation method and Worker compensation rate/percentage. Percentage methods also require the displayed eligible basis.
+3. Review Expense payer, Worker reimbursement source (project default or person override), Reimburse worker, Charge customer for expense and any markup. The expense treatment saves only the selected payer’s policy.
+4. Use Save these rates as explicit person overrides when intentionally preserving inherited rates. Click that person’s Save person terms, wait for Assignment commercial rules saved, then reopen and verify the effective rule/date and no unsaved changes.
+
+### Verify the result
+
+- Worker methods include Hourly, Daily, Fixed per billing period, Fixed project amount and Percentage of eligible client labor. A fixed period calculation is not an automatic weekly/monthly bank-payment cadence.
+- Existing terms on the same date are immutable. New dates must avoid issued invoices and finalized obligations; a later date does not unlock earlier sources.
+
+### If you get stuck
+
+- Retain the person, intended effective date and overlap message. Use a later legitimate date or the supported obligation-correction handoff; do not reverse cash to bypass historical terms.
+
+![Separate synthetic future agreement: November 1 customer day rate USD 610, independent cost and worker pay.](../evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/33-finance-future-november-terms-input.png)
+
+![Saved future person terms. The October invoice retains its USD 600/day rule.](../evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/35-finance-future-terms-saved.png)
+
+<a id="owner-private-project-economics"></a>
+## Owner reference · project economics and workbook interpretation
+
+Go here: Economic Review → BBS; Projects → BBS → Billing → Invoices and advanced settings
+
+Context: Owner reference · historical isolated Finance-role evidence retained for Owner review only; original capture dates and amounts remain unchanged.
+
+Actual/approved/billable hours, potential customer charges or WIP, issued invoice totals, collections and receivables are different. Contribution is an economic calculation within the view’s scope, not cash or a complete statutory profit statement.
+
+Internal loaded labor cost and worker compensation can overlap economically. Do not add the loaded cost and the separate compensation display twice. Planning/reference hours, forecasts and expected dates never create actual work or cash.
+
+Download finance export produces native XLSX. Summary, Labor, Expenses, Unbilled WIP, Daily minimum, Invoices, Invoice expenses, Milestones and Alerts explain the source basis. Empty values are not automatically zero.
+
+The current role-lab overview after additional approved practice work shows 50.75 actual hours, USD 4,673 invoiced, USD 1,888.25 direct cost and USD 2,795.75 contribution. These differ from the original checkpoint because later worker/chief/correction sources and the separate USD 1 debit exist. The practice debit was issued October 5 UTC during October 6 local training, so a fresh October 1–5 export can include it. Compare document/source identity and generation time as well as dates.
+
+The displayed Direct project result uses Revenue candidate USD 4,684, including USD 11 approved unbilled WIP: USD 4,684 − USD 1,888.25 direct cost = USD 2,795.75. It does not subtract cost from USD 4,673 invoiced. Net receivable is USD 3,991 after the separate USD 1 debit; receivable and projected contribution are different measures.
+
+The current overview also displays Finance records need review for incomplete projection data. Investigate those alerts before treating displayed cost/revenue as a complete reconciled contract result; missing configuration is not zero cost.
+
+The tested project Download finance export used the explicit October 26–26 period carried by the project link; the downloaded filename contains that cut. The normal Project Billing screen has no general export date picker. Date correction controls appear only for an invalid period/export failure. The default project lookback runs from the previous UTC month start through today; Accounting defaults instead to the previous complete month. How this project is calculated has Period start / Period end and Review period, but its return link does not automatically carry that selected cut into the workbook export.
+
+### Do the task
+
+1. Select BBS and the intended dates. Follow an unexpected figure into its source records and dated rules.
+2. Open Projects → BBS → Billing → Invoices and advanced settings → Download finance export.
+3. Verify the semantic project/date filename, then open Summary and relevant source sheets.
+4. Compare work dates, invoice issue dates and collection/reversal dates before comparing project workbook, ledger and Accounting period totals.
+5. For an authorized dated project link, verify its period and Download finance export; confirm the resulting filename and workbook dates. For another cut use the supported dated link or request one from Finance/support. Do not assume invoice issue-date filtering is the source work-date cut or that a Collections export date control exists.
+
+### Verify the result
+
+- The original 1–5 October example excludes separately labelled 6 October role practice. Workbook export does not approve or issue anything. A portfolio file can contain other authorized projects and must stay with its financial audience.
+
+### If you get stuck
+
+- For a mismatch check scope, currency, approvals, cost model, source links, issue date and missing rules. Ask support with the exact record/code; do not edit an issued source to force a total.
+
+![Current BBS role-lab economics after additional practice. These are not the original 42.5-hour / three-invoice checkpoint totals.](../evidence/bbs-role-manuals-20261006/finance/screenshots/29-finance-current-project-economics.png)
+
+![Current cash and receivable remain separate from economic contribution. The separate USD 1 debit adds a new receivable.](../evidence/bbs-role-manuals-20261006/finance/screenshots/30-finance-current-cash.png)
+
+![Actual Finance project Billing controls: Download finance export reads the chosen period; it does not approve or issue work.](../evidence/bbs-role-manuals-20261006/finance/screenshots/28-finance-project-export-control.png)
+
+![Native project finance export control; the tested filename confirms October 26–26. No ordinary date picker is shown here.](../evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/19-finance-export-control.png)
+
 <a id="recovery-matrix"></a>
 ## Recovery · sources, obligations and immutable history
 
@@ -517,7 +593,7 @@ A final Accounting cut succeeded in a separate clean Finance portfolio; an Audit
 
 ### Verify the result
 
-- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding. Out-of-role financial information is intentionally excluded from operational guides.
+- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding.
 
 
 <a id="course-owner-first-access"></a>

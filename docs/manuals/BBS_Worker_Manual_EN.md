@@ -7,9 +7,9 @@ Own actual hours, expenses, reports, corrections, compensation and secure handof
 
 The company portal https://j-aautomation.com/j-aautomation/app is LIVE. A link to it never enters a simulation. For practice obtain a separately provisioned training URL, your own account, the permitted fictional project and dates, a visible environment identifier and the trainer’s reset procedure. Without those, use this guide as a read-only demonstration and enter only authorized genuine work.
 
-Original BBS operational examples and some historical unpaid settlements were saved on the live deployment; their original exports were downloaded there. Later fictional issuance, payment, acceptance, correction and readiness exercises used isolated copies or separate synthetic portfolios. Each chapter identifies its dataset and checkpoint. A later screenshot does not change an earlier saved workbook or issued master.
+Original BBS examples include historical live-deployment records. Later training exercises used isolated copies. Each chapter identifies its dataset and checkpoint. Follow the dates and saved states shown for that exercise.
 
-A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials. Inspect another person’s permitted operational record without signing in as them. Ordinary workers and project managers do not receive customer prices, internal cost, margins or another worker’s compensation.
+A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials and follow the tasks assigned to your role. Check the selected project and person before recording work.
 
 ### Verify the result
 
@@ -70,11 +70,11 @@ Review is determined by the actual source, base role and current dated grants. C
 
 | Source / recorder | Operational reviewer and prerequisite | Next handoff |
 | --- | --- | --- |
-| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Owner/Finance records commercial Billable or Non-billable review separately. |
-| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Finance review follows Owner approval. |
-| Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Owner/Finance classifies customer recovery and worker reimbursement separately. |
+| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Submit the checked work to the authorized reviewer and verify the resulting state. |
+| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Verify the resulting review state. |
+| Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Verify the expense review state. Direct reimbursement questions to the Owner. |
 | Daily and Technical reports, including supplier profiles | Owner or Finance; assigned PM with current project review grant and permitted project scope. | Owner/Finance prepares the customer period report and version-bound acceptance where required. |
-| PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Personal reports/pay outputs remain own scope; financial treatment belongs to Owner/Finance. |
+| PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Use the appropriate personal output and verify the review state. |
 
 ### If you get stuck
 
@@ -149,7 +149,7 @@ Context: Isolated readiness lab · same Worker 2 persona · synthetic October 12
 
 The worked receipt is a synthetic USD 3 tools purchase by Worker 2 on October 12 in the unlocked readiness project. It explicitly says training only and no real purchase. Saving and submitting are operational steps; reimbursement and bank payment remain separate.
 
-The native form accepts JPG, PNG, HEIC or PDF receipts up to 10 MB. Operational purchase amount, who paid, worker reimbursement and customer recovery are separate. Preserve the actual receipt currency and payer.
+The native form accepts JPG, PNG, HEIC or PDF receipts up to 10 MB. Preserve the actual receipt amount, currency and payer. Record reimbursement information separately from the purchase facts.
 
 ### Do the task
 
@@ -178,7 +178,7 @@ Go here: Reports → New daily report
 
 Context: Isolated readiness lab · own Worker 2 report · synthetic October 12, 2026
 
-A daily report tells the operational story. It does not create actual hours, technical approval, customer acceptance or an invoice. The Worker exercise describes a fictional bench inspection and has its own report ID.
+A daily report tells the operational story. It does not create actual hours, technical approval or customer acceptance. The Worker exercise describes a fictional bench inspection and has its own report ID.
 
 The actual form begins with Project, Work date, Site / shift, Shift summary and Tasks completed. It also offers Problems found, Corrective actions, Downtime minutes, Standby reason, Open items, Next day plan and a safety flag. Report actual conditions, including genuine risks; this training bench had no live production change.
 
@@ -295,7 +295,7 @@ Missing receipt rules are state-specific. The deployed weekly table creates rece
 
 ### If you get stuck
 
-- A linked correction does not offer unrestricted editing after creation. Use Withdraw correction draft only while offered and unsubmitted; reviewed, allocated, billed or reimbursed sources can require the reviewer/Finance handoff. No purchase amount is multiplied by creating its linked correction.
+- A linked correction does not offer unrestricted editing after creation. Use Withdraw correction draft only while offered and unsubmitted; a reviewed, allocated, reimbursed or otherwise locked source can require the reviewer/Finance handoff. No purchase amount is multiplied by creating its linked correction.
 
 ![Native full weekly save form for the initial October7/8 receipt-optional drafts; the separate October10/11 receipt-backed exercise follows in the attachment and submission captures.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-week-expense-full-save.png)
 
@@ -332,7 +332,7 @@ Review every value before creating the correction: a linked time correction has 
 
 ### If you get stuck
 
-- If a correction is already submitted, use its current state and the reviewer’s next offered control. Finalized compensation, shared receipt or billing guards require the responsible Finance/Owner handoff; do not create an unlinked duplicate.
+- If a correction is already submitted, use its current state and the reviewer’s next offered control. For a locked source, send the exact message and record ID to the responsible Owner or Finance contact; do not create an unlinked duplicate.
 
 ![Own normal returned source in the unlocked readiness project.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-normal-returned.png)
 
@@ -382,9 +382,9 @@ Go here: My Pay → From / Through → Apply period
 
 Context: Isolated BBS role lab · genuine Worker account · fictional October 2026 records
 
-My Pay displays your own activity and governed compensation estimates, reviewed settlements, expected dates, actual recorded payments and reimbursement information. Customer invoice frequency and worker payment frequency are independent. Owner/Finance choose settlement periods and expected payment dates; there is no automatic worker payroll cadence demonstrated here.
+My Pay displays your own activity and governed compensation estimates, reviewed settlements, expected dates, actual recorded payments and reimbursement information. Owner/Finance choose settlement periods and expected payment dates; there is no automatic worker payroll cadence demonstrated here.
 
-Worker 1’s historical monthly settlement is USD 720, scheduled November 3, actual paid zero. Daily compensation can differ from actual hours and customer billing units. Worker 2’s October 15–16 approved 195 minutes shows a USD 900 Fixed Per Billing Period estimate; it is not an hourly prorated amount or proof that USD 900 was paid.
+Use your own statement to inspect the selected period and included activity. The October 15–16 training statement contains 195 approved minutes. Read the current estimate, reviewed settlement and recorded payment state separately; an estimate does not prove payment.
 
 Exact activity is 2.5 h + 0.75 h = 3.25 h. My Pay summary rounds to one decimal (3.3 h and 0.8 h travel); rounding is not extra work. “No reviewed payments outstanding” can coexist with an estimate that has not yet become a reviewed settlement. A recorded payment is a business entry, not independent proof of a bank transfer.
 
@@ -392,17 +392,15 @@ Exact activity is 2.5 h + 0.75 h = 3.25 h. My Pay summary rounds to one decimal 
 
 1. Select From and Through, then Apply period. Read approved and pending amounts separately by currency.
 2. Open the compensation statement/activity detail and compare exact time records. Read reviewed settlement period, scheduled date, paid and remaining balances independently.
-3. Check reimbursement obligations separately from compensation and customer charges.
+3. Check your reimbursement obligations separately from your compensation.
 
 ### Verify the result
 
-- You see your own pay, not another worker’s or customer invoice economics. Selected source dates may differ from a settlement’s wider period.
+- Confirm that My Pay identifies your own account. Selected source dates may differ from a settlement’s wider period.
 
 ### If you get stuck
 
-- Ask Finance about missing rules, period coverage, reimbursement classification, payment references or discrepancies. Do not infer worker pay from a customer invoice or a planned date.
-
-![Worker 1 own historical payment snapshot: scheduled is distinct from paid.](../evidence/bbs-role-manuals-20261006/worker/screenshots/15-own-my-pay.png)
+- Ask Finance about missing rules, period coverage, reimbursement classification, payment references or discrepancies. A planned date alone does not prove payment.
 
 <a id="worker-statement"></a>
 ## Generate your own statement and check readiness
@@ -411,7 +409,7 @@ Go here: My Pay → Worker statement
 
 Context: Isolated BBS role lab · genuine Worker account · fictional October 2026 records
 
-Generate report queues an own-worker PDF and CSV for the selected period. It does not expose Finance’s project workbook. Queued, Ready and failed/preparation states must be checked before downloading.
+Generate report queues an own-worker PDF and CSV for the selected period. Queued, Ready and failed/preparation states must be checked before downloading.
 
 The historical October 15–16 own Worker 2 request became Ready in both PDF and CSV. Its downloaded statement contains 195 approved minutes across two current linked sources. The selected From / Through dates determine the requested statement period.
 
@@ -429,7 +427,7 @@ The historical October 15–16 own Worker 2 request became Ready in both PDF and
 
 - For a failed or indefinitely queued statement, ask the Owner/support to inspect the artifact job using the period and exact status. Do not repeatedly submit the same request or claim that Queued means a delivered file.
 
-![Native own Worker statement Ready for October 15–16; PDF and CSV downloaded separately.](../evidence/bbs-role-manuals-20261006/worker/screenshots/32-worker-statement-ready.png)
+![Native own Worker statement panel: PDF and CSV are Ready for the selected October 15–16 period. Download each format from its Ready link.](../evidence/bbs-privacy-20261006/worker/screenshots/worker-statement-ready.png)
 
 <a id="worker-settlement-guard"></a>
 ## Hand settled compensation changes to Finance
@@ -438,9 +436,9 @@ Go here: Time → returned source → Create corrected draft
 
 Context: Isolated BBS role lab · genuine Worker account · fictional October 2026 records
 
-The Worker 1 October 6 source was fresh and unbilled, yet its worker compensation period was already covered by a finalized October 1–31 settlement. Attempting the returned 4 h → 3.5 h correction was refused.
+The Worker 1 October 6 source was fresh, yet its own compensation period was already covered by a finalized October 1–31 settlement. Attempting the returned 4 h → 3.5 h correction was refused.
 
-The exact message was: “This time has settled or paid worker compensation. Contact Finance for an explicit adjustment before any new correction.” A fresh work date or absence of an invoice does not override a finalized worker-side settlement.
+The exact message was: “This time has settled or paid worker compensation. Contact Finance for an explicit adjustment before any new correction.” A fresh work date does not override a finalized own settlement.
 
 A recorded payment reversal changes payment history; it does not automatically unlock the finalized compensation obligation or make operational replacement available. Finance owns the explicit adjustment/revision lifecycle; the Owner coordinates missing authority or support. Provide the source ID, project, work date, obligation period and exact guard. See common Recovery matrix (recovery-matrix).
 
@@ -453,7 +451,7 @@ For a correction to an already-finalized entitlement, hand the original source, 
 
 ### Verify the result
 
-- No replacement draft was created by the refused operation. The finalized USD 720 settlement was not changed.
+- No replacement draft was created by the refused operation. The finalized own settlement was not changed.
 
 ### If you get stuck
 
@@ -468,7 +466,7 @@ Go here: Today → Upcoming assignments
 
 Context: Isolated BBS role lab · genuine Worker account · fictional October 2026 records
 
-Planning is a reference. The PM published a fictional October 16 assignment from 08:00 to 10:00 UTC with two planned hours. The Worker sees it under Upcoming assignments. Publishing this plan did not create a timesheet, compensation settlement or customer invoice.
+Planning is a reference. The PM published a fictional October 16 assignment from 08:00 to 10:00 UTC with two planned hours. The Worker sees it under Upcoming assignments. Publishing this plan did not create a timesheet or complete any work.
 
 Check the timezone displayed by the page and the work date on the source. The isolated runtime Today date is October 5 UTC; later dated role exercises are explicit training examples.
 
@@ -511,7 +509,7 @@ Technician 1 then recorded six actual hours personally. The Chief recorded seven
 ### Verify the result
 
 - The connected browser test ended with one approved source per person: Technician 1 six hours, Technician 2 seven hours, Chief eight hours. No time was created by publishing the plan.
-- Your operational screens do not disclose client charge rates, internal labor costs, margins or colleagues’ compensation. Own pay remains a separate personal view.
+- Verify your own actual records and authorized project details. Read your own My Pay separately when needed.
 
 ### If you get stuck
 
@@ -529,7 +527,7 @@ Go here: Time → Week of → Open week
 
 Context: Isolated BBS planning lab · synthetic October 20, 2026 work · genuine role sessions · no production hours
 
-The Owner configures the project’s effective working schedule in minutes for each weekday. In this training scope, the schedule is effective October 19 with 480 minutes on Monday–Friday and zero on Saturday/Sunday. Eight expected hours are a planning target; they do not create hours, compensation settlements or invoice lines.
+The Owner configures the project’s effective working schedule in minutes for each weekday. In this training scope, the schedule is effective October 19 with 480 minutes on Monday–Friday and zero on Saturday/Sunday. Eight expected hours are a planning target; they do not create actual work records.
 
 Expected is determined from dated project membership and its effective schedule, rather than by adding published plans. A three-hour published plan can therefore coexist with an eight-hour daily Expected figure. Where the application cannot determine an unambiguous target, it displays a dash instead of inventing one.
 
@@ -549,7 +547,7 @@ The final additional training checkpoint is later than the earlier weekly screen
 ### Verify the result
 
 - Technician 1: 6 − 8 = −2 hours. Technician 2: 7 − 8 = −1 hour. Chief: 8 − 8 = zero hours, with an Approved weekly status.
-- Approval records operational truth; it does not redefine the working schedule or turn a planning target into a contractual pay or customer charge rule.
+- Approval records operational truth; it does not redefine the working schedule.
 - In the later browser test, Friday October 23 showed Actual 0.00h, Expected — and Difference —; October 20 remained six actual versus eight expected hours, −2.00h and Needs note. No second-project actual hours were created. The current project selector still showed only the permitted BBS project.
 
 ### If you get stuck
@@ -559,7 +557,7 @@ The final additional training checkpoint is later than the earlier weekly screen
 
 ![Technician 1’s own weekly comparison after PM approval: October 20 Actual 6.00h, Expected 8.00h, Difference −2.00h and Needs note. The source itself remains Approved.](../evidence/bbs-planning-20261006/worker/screenshots/07-worker1-approved-needs-note.png)
 
-![The same Technician 1 October 20 six-hour source is Approved. Needs note belongs to the weekly target comparison; it is not a returned source. Customer billability remains a separate workflow.](../evidence/bbs-planning-20261006/worker/screenshots/12-worker1-source-approved.png)
+![The same Technician 1 October 20 six-hour source is Approved. Needs note belongs to the weekly target comparison; it is not a returned source.](../evidence/bbs-planning-20261006/worker/screenshots/12-worker1-source-approved.png)
 
 ![Technician 2’s own view after the Chief’s seven-hour source was submitted and PM approved: Expected remains eight hours and Difference is −1.00h.](../evidence/bbs-planning-20261006/worker/screenshots/08-worker2-chief-recorded-needs-note.png)
 
@@ -569,7 +567,7 @@ The final additional training checkpoint is later than the earlier weekly screen
 
 ![Actual phone view of the October 20 comparison. Labelled fields retain six actual hours, eight expected hours, −2 hours and Needs note.](../evidence/bbs-planning-20261006/worker/screenshots/10-worker-phone-weekly-comparison.png)
 
-![Later isolated checkpoint, after an additional one-day project membership on October 23: Friday Actual is zero and Expected / Difference are unknown (—). October 20 remains six actual versus eight expected hours. Earlier weekly tables precede this added membership and correctly show Friday eight expected hours. This operational crop contains no prices, costs or compensation.](../evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png)
+![Later isolated checkpoint, after an additional one-day project membership on October 23: Friday Actual is zero and Expected / Difference are unknown (—). October 20 remains six actual versus eight expected hours. Earlier weekly tables precede this added membership and correctly show Friday eight expected hours.](../evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png)
 
 <a id="worker-plan-goals-troubleshooting"></a>
 ## Handle a missing plan and understand what a work goal means
@@ -582,7 +580,7 @@ A project assignment and a published plan are separate. The Today screen can say
 
 There is no worker task-goal lifecycle with Accept, Reject or Mark completed buttons on these cards. The work target is planning context. Record progress and outcomes in Activity summary and Daily/Technical reports, then submit through the normal review workflow. Project milestones are separate project checkpoints.
 
-Crew delegation adds dated permission for a Chief to record selected colleagues’ actual work. It does not publish plans, create a team-wide agenda, expose colleagues’ compensation or grant operational approval authority.
+Crew delegation adds dated permission for a Chief to record selected colleagues’ actual work. It does not publish plans, create a team-wide agenda or grant operational approval authority.
 
 ### Do the task
 
@@ -599,7 +597,7 @@ Crew delegation adds dated permission for a Chief to record selected colleagues�
 ### If you get stuck
 
 - An expired project assignment or crew delegation is different from a missing plan. Ask the Owner to review the appropriate dated access record; a plan alone does not grant permission.
-- Escalate with the project, work date and record state. Keep credentials, client prices, costs and other workers’ pay out of reports and screenshots.
+- Escalate with the project, work date and record state. Include only the operational information needed to explain the issue.
 
 ![Actual Today screen before plan publication: assigned project count is one, no plan is published for today, and actual work may still be recorded for assigned projects.](../evidence/bbs-planning-20261006/worker/screenshots/01-worker-no-published-today.png)
 
@@ -677,11 +675,11 @@ Help provides role guides and Contact support. The verified support address is a
 
 ### Verify the result
 
-- Authenticated Worker GETs returned 403 for Finance, Billing and another worker’s time; own receipt returned 200. An archived Finance-only document returned 404, which alone does not prove the active-document access rule.
+- Requests outside the Worker’s authorized workspace were denied; the own receipt was available. An archived document returned 404, which alone does not prove the active-document access rule.
 
 ### If you get stuck
 
-- Never include session cookies, passwords, recovery codes or another worker’s private pay. Permission denial is a handoff signal, not a reason to switch credentials.
+- Never include session cookies, passwords or recovery codes. Permission denial is a handoff signal, not a reason to switch credentials.
 
 <a id="worker-checklist"></a>
 ## Finish a workday and verify the handoff
@@ -701,11 +699,11 @@ The October 6 readiness audit adds explicit native-browser outcomes and state-sp
 3. Record each purchase once, preserve payer/currency and attach its real authorized receipt.
 4. Save and submit the required Daily and Technical reports with genuine factual evidence.
 5. Read returned reasons; create linked corrections where permitted, or hand settlement locks to Finance.
-6. Check approved/pending sources and own My Pay; follow reimbursement/settlement questions separately from client billing.
+6. Check approved/pending sources and your own My Pay; send reimbursement and settlement questions to the designated contact.
 
 ### Verify the result
 
-- Lab passes: native time/expense/report saving and submission, successful linked correction and PM approval, expected finalized-settlement guard, own receipt access, denied unrelated financial access and responsive views.
+- Lab passes: native time/expense/report saving and submission, successful linked correction and PM approval, expected finalized-settlement guard, own receipt access, denied unrelated access and responsive views.
 - Readiness native results: own ordinary and current linked time correction Submitted together, count 2→0; receipt-backed weekly expenses and returned expense recovery, own Daily/Technical Ready PDF downloads before submission, and own statement PDF/CSV downloads. See the readiness per-ID audit for exact current states.
 
 ### If you get stuck
@@ -719,7 +717,7 @@ Go here: Verification appendix
 
 Context: Isolated BBS role lab · actual browser outcomes and explicit limits
 
-Native authenticated browser records, synthetic receipt fixtures and SHA-256 capture manifests are maintained with the guide. Account secrets are excluded. Original billed October 2–5 history and finalized worker settlements were preserved.
+Native authenticated browser records, synthetic receipt fixtures and SHA-256 capture manifests are maintained with the guide. Account secrets are excluded. Original October 2–5 history and finalized worker settlements were preserved.
 
 Actual saved/submitted/returned/approved states are distinguished from controls merely inspected. The Owner/PM/Finance handoffs used their own genuine role sessions. This evidence does not claim real bank transfers, live equipment changes or production transactions.
 
@@ -736,7 +734,7 @@ The October 6 readiness audit adds explicit native-browser outcomes and state-sp
 5. October 15 current approved activity 195 minutes=3.25 hours; old 3-hour and 1-hour sources excluded from current totals.
 6. A published October 16 two-hour plan appeared under Upcoming assignments without creating actual time.
 7. Own October 15–16 PDF and CSV statements Ready, native downloads 200, exact stored hash and length match.
-8. Another Worker’s statement downloads returned 404; Finance/Billing/other-worker Time denied; own private receipt accessible.
+8. Requests for unrelated records were denied; the own private receipt was accessible.
 9. Desktop 1440, tablet 768 and phone 390 Time pages fit their viewports.
 10. Additional connected planning lab: Owner published October 20 eight-hour plans to all three original workers; each saw their own card with zero actual time before native entry. Technician 1 saved/submitted six hours, the Chief saved/submitted seven for Technician 2 plus eight of its own; PM approved all three.
 11. Additional weekly comparison: 6/8/−2 and 7/8/−1 displayed Needs note after approval; Chief 8/8/0 displayed Approved. Before membership coverage Expected was a dash. Native desktop/tablet/phone agenda and crew views fit 1440/768/390 viewports.
@@ -799,4 +797,4 @@ A final Accounting cut succeeded in a separate clean Finance portfolio; an Audit
 
 ### Verify the result
 
-- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding. Out-of-role financial information is intentionally excluded from operational guides.
+- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding.

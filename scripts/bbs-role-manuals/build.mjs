@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { chromium } from 'playwright';
 import { commonChapters } from './common.mjs';
+import { assertManualPrivacy } from './privacy.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const output = resolve(root, 'docs/manuals');
@@ -78,6 +79,7 @@ try {
     const stem = `BBS_${labels[data.role]}_Manual_EN`;
     const common = commonChapters(data.role);
     const chapters = [...common.before, ...data.chapters, ...common.after];
+    assertManualPrivacy(data.role, chapters);
     const figures = [];
     const units = [];
     const courseRequiredText = [];

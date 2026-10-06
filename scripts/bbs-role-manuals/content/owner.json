@@ -1,6 +1,6 @@
 {
   "role": "owner",
-  "title": "Owner \u00b7 BBS operating manual",
+  "title": "Owner · BBS operating manual",
   "subtitle": "Role responsibilities, team handoffs and the complete illustrated BBS course.",
   "chapters": [
     {
@@ -10,7 +10,7 @@
         "This PDF combines the Owner introduction and the detailed BBS course under one master task contents and continuous reading-page numbers. Use task bookmarks and stable section titles to navigate; the native invoice annex preserves its original document pagination. Original screenshots, native issued training invoice pages and all six attachments remain intact.",
         "The course was verified against the 5 October release and explains the original BBS pre-issue checkpoint, the isolated BBS financial lifecycle, a separate onboarding correction lab and a clean Accounting reference. Each context is explicitly labelled. The role guides retain the original historical BBS scope and name separate readiness projects explicitly. Ordinary Worker/Chief corrections use the clean project C-0050-P-2026100601; Accounting also uses a separate synthetic portfolio. Their later operational and financial practice records are separate exercises; the original course totals remain a historical checkpoint taken before those additions. Reconcile the saved scope and state, rather than assuming every screenshot is the current project total.",
         "This is an operating reference and worked lab. The course marks source-checked procedures and known limits; a described control does not prove every optional contract, mail transport or account-security scenario was exercised.",
-        "Use your own Owner account for administration and a separate genuine role account to verify the receiving experience. As Owner, inspect and resolve account status, dated membership, supplier authorization, issuing authority and policy yourself within your authority; ask Finance, the company accountant or an authorized project lead for their inputs rather than sending yourself an Ask Owner instruction. Access \u00b7 activate the invitation and sign in (access), Security \u00b7 verify your own device and recovery options (security) and Trainer setup \u00b7 prepare a normal cycle before exceptions (trainer-setup) give the current shared procedures."
+        "Use your own Owner account for administration and a separate genuine role account to verify the receiving experience. As Owner, inspect and resolve account status, dated membership, supplier authorization, issuing authority and policy yourself within your authority; ask Finance, the company accountant or an authorized project lead for their inputs rather than sending yourself an Ask Owner instruction. Access · activate the invitation and sign in (access), Security · verify your own device and recovery options (security) and Trainer setup · prepare a normal cycle before exceptions (trainer-setup) give the current shared procedures."
       ],
       "checks": [
         "Follow the master task contents for first onboarding, or use the task bookmarks for a specific job. Native invoice annex pages retain their separate invoice numbering.",
@@ -20,19 +20,19 @@
     {
       "id": "owner-access",
       "title": "Owner account, assignments and delegation",
-      "route": "Team \u2192 account and access controls; Projects \u2192 BBS \u2192 Team; Crew \u2192 select BBS",
+      "route": "Team → account and access controls; Projects → BBS → Team; Crew → select BBS",
       "paragraphs": [
         "Owner is the platform administration role. Creating a person or account does not assign a project. Review permission, dated crew delegation and supplier authorization are additional scoped grants. A chief is a Worker with delegation; Supplier Coordinator and External Technician are restricted Worker profiles.",
         "Use the active account provisioned for your own role and verify its current status before handing over access. Historical training account records do not establish that a present login is available. Account creation and project assignment are separate saved steps."
       ],
       "steps": [
         "Use the course first-access and Team chapters to create or locate the person. Select the permitted platform role or supplier profile and verify the saved active access.",
-        "Open BBS \u2192 Team and establish the person\u2019s dated project membership. For a PM, confirm project-management scope and the separate Can review value on that membership. Inspect account, dates and saved permission yourself before the receiving-role check.",
-        "For a crew chief, use Crew \u2192 Assign a crew chief and verify the saved delegation interval and affected crew. Delegation authorizes scoped crew recording; it does not establish review authority. Use Review authority \u00b7 who receives each source (review-authority) to choose the supported receiving reviewer.",
+        "Open BBS → Team and establish the person’s dated project membership. For a PM, confirm project-management scope and the separate Can review value on that membership. Inspect account, dates and saved permission yourself before the receiving-role check.",
+        "For a crew chief, use Crew → Assign a crew chief and verify the saved delegation interval and affected crew. Delegation authorizes scoped crew recording; it does not establish review authority. Use Review authority · who receives each source (review-authority) to choose the supported receiving reviewer.",
         "For a supplier, create/link supplier personnel, authorize the supplier on the BBS project, and establish each technician assignment. Confirm the restricted profile before handing over access."
       ],
       "checks": [
-        "Check your own Profile identity and Owner role, the intended environment and the selected project before administrative changes. Then verify the receiving person\u2019s navigation in a separate role context.",
+        "Check your own Profile identity and Owner role, the intended environment and the selected project before administrative changes. Then verify the receiving person’s navigation in a separate role context.",
         "Sign in through a separate account context for each person. Verify their actual navigation and scoped project visibility.",
         "Do not use an Owner session to demonstrate a Worker, manager or supplier workflow."
       ],
@@ -44,20 +44,20 @@
     {
       "id": "owner-review-grants",
       "title": "Grant or revoke the exact project review permission",
-      "route": "Projects \u2192 Update assignment \u2192 Can review",
+      "route": "Projects → Update assignment → Can review",
       "context": "Source-checked current controls; existing genuine role review exercises are recorded in the companion guides. This paragraph does not claim a new grant/revoke mutation.",
       "paragraphs": [
         "Can review is a project-membership value, separate from account role, project-manager ownership, crew delegation and supplier authorization. Review authority is source-specific: supplier technician time is Owner-reviewed; the authorized PM report review demonstrated in the companion guides is a separate handoff. A checkbox alone does not make every role a supported reviewer.",
-        "Use Review authority \u00b7 who receives each source (review-authority) for the current receiving-role matrix and Recovery \u00b7 sources, obligations and immutable history (recovery-matrix) for the effect of review and correction."
+        "Use Review authority · who receives each source (review-authority) for the current receiving-role matrix and Recovery · sources, obligations and immutable history (recovery-matrix) for the effect of review and correction."
       ],
       "steps": [
-        "Open Projects \u2192 Update assignment and locate the exact project/person membership. Confirm Starts on, Ends on and Planned hours before changing permission.",
+        "Open Projects → Update assignment and locate the exact project/person membership. Confirm Starts on, Ends on and Planned hours before changing permission.",
         "To grant, select Can review; to revoke, clear Can review. Choose Update assignment and reload the same membership. Verify the persisted checkbox and dates. Revoke this permission separately from ending project access.",
         "Ask the receiving person to reload their own permitted workspace and inspect a real eligible source. A saved grant is configuration evidence; the actual receiving action depends on role, source state, dates and scope."
       ],
       "checks": [
         "Can review can be selected or cleared on Update assignment. This grant/revoke procedure was checked in current source; a new permission mutation was not executed in this bounded Owner update.",
-        "The current BBS native exercises separately verified PM review of internal Worker 2 time and coordinator Daily/Technical reports, Owner review of supplier time, and Owner review of the PM\u2019s own Daily. They do not establish a universal self-review denial."
+        "The current BBS native exercises separately verified PM review of internal Worker 2 time and coordinator Daily/Technical reports, Owner review of supplier time, and Owner review of the PM’s own Daily. They do not establish a universal self-review denial."
       ],
       "recovery": [
         "If a review control remains unavailable, inspect current source state, scope and supported role before altering membership. Do not use a chief grant or an unrestricted replacement account to bypass the receiving-role boundary."
@@ -69,11 +69,11 @@
       "paragraphs": [
         "Worker: BBS_Worker_Manual_EN.pdf covers their own actual hours, expenses, reports, corrections and My Pay. All ordinary Worker test accounts share this procedure.",
         "Crew chief: BBS_Crew_Chief_Manual_EN.pdf covers dated delegation and team operations in addition to the Worker basics.",
-        "Project manager: BBS_Project_Manager_Manual_EN.pdf covers scoped operational oversight, review and reporting. Customer prices, commercial expense classification, internal cost and another worker\u2019s pay belong to authorized financial roles.",
+        "Project manager: BBS_Project_Manager_Manual_EN.pdf covers scoped operational oversight, review and reporting. Customer prices, commercial expense classification, internal cost and another worker’s pay belong to authorized financial roles.",
         "Finance: BBS_Finance_Manual_EN.pdf covers commercial treatment, invoice lifecycle, collections, compensation and reconciliation. Genuine company/accountant inputs remain prerequisites for live legal issuance.",
         "Auditor: BBS_Auditor_Manual_EN.pdf covers read-only financial and audit evidence. Read access does not grant mutation authority.",
-        "Supplier Coordinator: BBS_Supplier_Coordinator_Manual_EN.pdf covers authorized supplier personnel and operational team work. External Technician: BBS_External_Technician_Manual_EN.pdf covers the technician\u2019s own assigned supplier work. Their restricted profiles take precedence over ordinary Worker navigation.",
-        "For current permission and recovery procedures use the shared chapters Access \u00b7 activate the invitation and sign in (access); Security \u00b7 verify your own device and recovery options (security); Review authority \u00b7 who receives each source (review-authority); Recovery \u00b7 sources, obligations and immutable history (recovery-matrix); Trainer setup \u00b7 prepare a normal cycle before exceptions (trainer-setup); and Verification \u00b7 current coverage and historical evidence (verification). Their task titles replace shifting page references."
+        "Supplier Coordinator: BBS_Supplier_Coordinator_Manual_EN.pdf covers authorized supplier personnel and operational team work. External Technician: BBS_External_Technician_Manual_EN.pdf covers the technician’s own assigned supplier work. Their restricted profiles take precedence over ordinary Worker navigation.",
+        "For current permission and recovery procedures use the shared chapters Access · activate the invitation and sign in (access); Security · verify your own device and recovery options (security); Review authority · who receives each source (review-authority); Recovery · sources, obligations and immutable history (recovery-matrix); Trainer setup · prepare a normal cycle before exceptions (trainer-setup); and Verification · current coverage and historical evidence (verification). Their task titles replace shifting page references."
       ],
       "checks": [
         "Open Help with each role and confirm the correct current English guide is available. Restricted role downloads use the same persisted persona decision as the Help list.",
@@ -82,28 +82,28 @@
       "steps": [
         "Receive operational source IDs, project, dates, state and the requested outcome from each role. Inspect the exact current source before acting; notification acknowledgement and operational approval are not financial payment or customer acceptance.",
         "Give Auditor read-only receiving tasks: inspect numbered invoice/source links (auditor-invoices), collection/reversal history (auditor-cash), worker obligations privately (auditor-worker-obligations), preserved Accounting artifacts (auditor-accounting), audit actor/time/reason (auditor-audit), and report/private scope (auditor-outputs). Route an identified mutation to Owner/Finance using Verify read-only boundaries and hand off a finding (auditor-boundary).",
-        "For the October 13\u201319 customer handoff, Finance generated the customer snapshot, PM reviewed/approved the exact version and the queue became Ready for signature. Actual customer acceptance remains a later authorized event. See Finance Generate a customer-safe report and receive the PM handoff (finance-customer-report) and PM customer-followup.",
-        "Review current native coverage in Verification \u00b7 current coverage and historical evidence (verification), including supplier weekly ordinary/correction eligibility, Owner supplier-time review, PM report review, Finance payment/obligation recovery and Auditor receiving reads. A source-checked optional control is not a completed business event."
+        "For the October 13–19 customer handoff, Finance generated the customer snapshot, PM reviewed/approved the exact version and the queue became Ready for signature. Actual customer acceptance remains a later authorized event. See Finance Generate a customer-safe report and receive the PM handoff (finance-customer-report) and PM customer-followup.",
+        "Review current native coverage in Verification · current coverage and historical evidence (verification), including supplier weekly ordinary/correction eligibility, Owner supplier-time review, PM report review, Finance payment/obligation recovery and Auditor receiving reads. A source-checked optional control is not a completed business event."
       ]
     },
     {
       "id": "owner-clean-setup",
       "title": "Prepare a clean project and its legal billing prerequisites",
-      "route": "Clients \u2192 Projects \u2192 Finance \u2192 Commercial Configuration \u2192 Billing \u2192 Configure billing",
+      "route": "Clients → Projects → Finance → Commercial Configuration → Billing → Configure billing",
       "context": "Ordered source-checked receiving procedure. No new legal issuer, tax profile, numbering policy or live invoice was created by this Owner introduction update.",
       "paragraphs": [
         "Use a clean authorized project for a new cycle, and preserve the existing BBS course as historical evidence. Obtain genuine contract, issuer and accountant-approved tax/numbering inputs before live issuance. Training legal details and approval timestamps are simulations.",
-        "Billing\u2019s New invoice issuer form creates the issuer directory record. It has Code, Legal name, Currency, Issuer address and phone, and Tax or registration identifier (optional), followed by Save legal entity. That form does not expose revision effective dates. Reviewed canonical revision and project-authority dates belong to Finance \u2192 Commercial Configuration \u2192 Project issuing authority."
+        "Billing’s New invoice issuer form creates the issuer directory record. It has Code, Legal name, Currency, Issuer address and phone, and Tax or registration identifier (optional), followed by Save legal entity. That form does not expose revision effective dates. Reviewed canonical revision and project-authority dates belong to Finance → Commercial Configuration → Project issuing authority."
       ],
       "steps": [
-        "Verify the active client and its commercial identity. In Projects \u2192 Create project complete Client, Name, Cost center code, Currency, Site timezone, Start date, planned end if known and Expected hours / day. The cost center must end with digits used for the project-number suffix. Choose the agreed Billing model and optional budgets; Create project, then inspect the saved project.",
+        "Verify the active client and its commercial identity. In Projects → Create project complete Client, Name, Cost center code, Currency, Site timezone, Start date, planned end if known and Expected hours / day. The cost center must end with digits used for the project-number suffix. Choose the agreed Billing model and optional budgets; Create project, then inspect the saved project.",
         "Establish genuine dated internal-cost and compensation coverage before assigning workers. Use project defaults or person agreements as appropriate, then verify saved membership, reviewer permission and required operational reports. Publish planning separately from actual work.",
-        "In Billing \u2192 Configure billing \u2192 New invoice issuer, complete the actual directory fields listed above and Save legal entity. Reopen the issuer directory and check the saved identity/currency.",
-        "In Finance \u2192 Commercial Configuration \u2192 Project issuing authority, select an existing reviewed Issuing legal entity revision or use Create issuing legal entity revision with verified legal details, effective dates and Reason for this revision. Save legal entity revision; then select Project, Issuing legal entity revision, Effective from, optional Effective to and Reason, and Save issuing authority. Verify the saved project authority history covers the intended work/invoice dates.",
-        "In Billing \u2192 Configure billing \u2192 New tax profile choose Invoice issuer (J&A Automation) or the authorized Global profile, Name, Currency, Effective from, Component, Tax rate and Compound tax where applicable. Save tax profile. A later effective date does not automatically replace another stream\u2019s selected profile.",
+        "In Billing → Configure billing → New invoice issuer, complete the actual directory fields listed above and Save legal entity. Reopen the issuer directory and check the saved identity/currency.",
+        "In Finance → Commercial Configuration → Project issuing authority, select an existing reviewed Issuing legal entity revision or use Create issuing legal entity revision with verified legal details, effective dates and Reason for this revision. Save legal entity revision; then select Project, Issuing legal entity revision, Effective from, optional Effective to and Reason, and Save issuing authority. Verify the saved project authority history covers the intended work/invoice dates.",
+        "In Billing → Configure billing → New tax profile choose Invoice issuer (J&A Automation) or the authorized Global profile, Name, Currency, Effective from, Component, Tax rate and Compound tax where applicable. Save tax profile. A later effective date does not automatically replace another stream’s selected profile.",
         "In Invoice numbering policy select Legal entity, Prefix, Digits, Effective from and genuine Accountant approved at, then Save numbering policy. Verify the intended issuer/date coverage; do not fabricate accountant approval.",
         "Create New billing stream with the intended project, stream/cadence, effective date, issuer, tax profile, currency, template and recipient/payment terms. Inspect the saved stream before generating a draft. Follow Finance: Create and review a billing stream (finance-streams).",
-        "Record and operationally review actual sources, complete Finance treatment and verify the draft\u2019s issuer/tax/numbering prerequisites. Issue only through the reviewed lifecycle. Generate the Accounting portfolio cut after the underlying records are ready; changing a project filter elsewhere does not narrow that Accounting generation."
+        "Record and operationally review actual sources, complete Finance treatment and verify the draft’s issuer/tax/numbering prerequisites. Issue only through the reviewed lifecycle. Generate the Accounting portfolio cut after the underlying records are ready; changing a project filter elsewhere does not narrow that Accounting generation."
       ],
       "checks": [
         "Legal issuer directory, canonical revision, dated project authority, tax profile, numbering policy and billing stream are distinct saved records. Inspect each actual saved identity and effective interval.",
@@ -116,27 +116,27 @@
     {
       "id": "owner-plan-membership",
       "title": "Assign access, publish a crew plan and verify each worker",
-      "route": "Projects \u2192 BBS \u2192 Team; Crew; Planning \u2192 Publish field assignment",
-      "context": "Isolated BBS planning and crew lab \u00b7 October 20\u201325, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
+      "route": "Projects → BBS → Team; Crew; Planning → Publish field assignment",
+      "context": "Isolated BBS planning and crew lab · October 20–25, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
       "paragraphs": [
         "Project membership gives a person dated project access. A published plan supplies a work interval, optional planned hours and site. An expected working schedule supplies a weekday hours target. These are separate controls: assigning a person does not publish a shift, and publishing a shift does not create actual work.",
-        "The connected BBS exercise uses the existing Chief, Technician 1 and Technician 2. The Owner publishes the same October 20 08:00\u201316:00 UTC interval and eight planned hours to all three. The chief\u2019s dated delegation is verified separately before team time entry."
+        "The connected BBS exercise uses the existing Chief, Technician 1 and Technician 2. The Owner publishes the same October 20 08:00–16:00 UTC interval and eight planned hours to all three. The chief’s dated delegation is verified separately before team time entry."
       ],
       "steps": [
-        "Open BBS (C-0050-P-20261005) \u2192 Team. Confirm the three people are active and their project-assignment dates cover October 20. Do not recreate existing people or duplicate their membership.",
-        "Open Crew, select BBS and inspect the saved chief delegation. Its date range and the chief\u2019s and colleague\u2019s project assignments must all cover the work date. A chief can record delegated crew hours; this grant does not itself authorize approval.",
-        "Open Planning \u2192 Publish field assignment. Select BBS, set Start (UTC) to 2026-10-20 08:00 and End (UTC, optional) to 2026-10-20 16:00, then select the Chief, Technician 1 and Technician 2 checkboxes.",
+        "Open BBS (C-0050-P-20261005) → Team. Confirm the three people are active and their project-assignment dates cover October 20. Do not recreate existing people or duplicate their membership.",
+        "Open Crew, select BBS and inspect the saved chief delegation. Its date range and the chief’s and colleague’s project assignments must all cover the work date. A chief can record delegated crew hours; this grant does not itself authorize approval.",
+        "Open Planning → Publish field assignment. Select BBS, set Start (UTC) to 2026-10-20 08:00 and End (UTC, optional) to 2026-10-20 16:00, then select the Chief, Technician 1 and Technician 2 checkboxes.",
         "Enter 8 in Planned hours (optional) and a genuine operational site description. Required expertise is an operational planning field. Review every selected person, date and optional field before choosing Publish assignment.",
         "Choose the October 20 calendar day. The agenda must contain three separate published records, each with 480 planned minutes. Open a published record to verify its worker and interval.",
-        "Ask each person to use their own Worker account \u2192 Today \u2192 Upcoming assignments. They should see their own eight-hour BBS card. Workers do not edit the Owner\u2019s plan; they request a correction from the Owner or authorized Project Manager."
+        "Ask each person to use their own Worker account → Today → Upcoming assignments. They should see their own eight-hour BBS card. Workers do not edit the Owner’s plan; they request a correction from the Owner or authorized Project Manager."
       ],
       "checks": [
-        "The Owner\u2019s native multi-worker publication saved exactly three published records. A narrowly scoped read-only check found zero October 20 BBS actual-time entries immediately after publication.",
+        "The Owner’s native multi-worker publication saved exactly three published records. A narrowly scoped read-only check found zero October 20 BBS actual-time entries immediately after publication.",
         "Separate Chief, Technician 1 and Technician 2 browser sessions displayed the plan. The later 6 / 7 / 8 actual hours were entered separately, submitted and approved; they were never generated from the eight-hour plans."
       ],
       "recovery": [
-        "If a checkbox is missing, compare the selected planning dates with the person\u2019s active project-assignment interval and current authorization. Publishing does not grant access.",
-        "If Today says No published assignment for today while an upcoming card exists, compare the card\u2019s date with today in UTC. The person can still record authorized actual work for their assigned projects.",
+        "If a checkbox is missing, compare the selected planning dates with the person’s active project-assignment interval and current authorization. Publishing does not grant access.",
+        "If Today says No published assignment for today while an upcoming card exists, compare the card’s date with today in UTC. The person can still record authorized actual work for their assigned projects.",
         "If an interval error appears, correct End so it is after Start, then verify the retained workers, planned quantity, Site and Required expertise before choosing Publish assignment again."
       ],
       "figures": [
@@ -160,28 +160,28 @@
     {
       "id": "owner-expected-hours",
       "title": "Set expected hours and interpret the weekly difference",
-      "route": "Projects \u2192 More actions \u2192 Expected Working Schedule; Worker: Time \u2192 Weekly timesheet",
-      "context": "Isolated BBS planning and crew lab \u00b7 October 20\u201325, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
+      "route": "Projects → More actions → Expected Working Schedule; Worker: Time → Weekly timesheet",
+      "context": "Isolated BBS planning and crew lab · October 20–25, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
       "paragraphs": [
-        "Expected hours are reference targets derived from the effective project working schedule and the worker\u2019s dated assignment. They are not the sum of planned assignments and do not change actual recorded time, worker compensation or customer billing.",
-        "The BBS lab uses an expected schedule effective October 19: Monday\u2013Friday 480 minutes (8 hours), Saturday\u2013Sunday 0. The existing America/New_York timezone is retained. Saving this form also applies its timezone to the project; confirm the company\u2019s correct IANA timezone before saving.",
-        "A later isolated checkpoint adds a second project membership for Technician 1 on October 23 only, in the existing fictional onboarding project. Both own memberships cover that Friday, so the application leaves Expected and Difference unknown (\u2014) instead of adding or choosing project targets. The earlier tables precede this addition; they correctly show Friday eight hours. No actual work was entered for the second project."
+        "Expected hours are reference targets derived from the effective project working schedule and the worker’s dated assignment. They are not the sum of planned assignments and do not change actual recorded time, worker compensation or customer billing.",
+        "The BBS lab uses an expected schedule effective October 19: Monday–Friday 480 minutes (8 hours), Saturday–Sunday 0. The existing America/New_York timezone is retained. Saving this form also applies its timezone to the project; confirm the company’s correct IANA timezone before saving.",
+        "A later isolated checkpoint adds a second project membership for Technician 1 on October 23 only, in the existing fictional onboarding project. Both own memberships cover that Friday, so the application leaves Expected and Difference unknown (—) instead of adding or choosing project targets. The earlier tables precede this addition; they correctly show Friday eight hours. No actual work was entered for the second project."
       ],
       "steps": [
         "Open Projects, choose BBS as the action context, open More actions and select Expected Working Schedule. Confirm the Project selector is C-0050-P-20261005.",
         "Keep Timezone as America/New_York for this saved BBS exercise. Enter Effective from 2026-10-19. Enter 480 in Mon, Tue, Wed, Thu and Fri minutes, and 0 in Sat and Sun minutes. The inputs are minutes, not hours.",
-        "Choose Save schedule. Verify Expected schedule saved. Ask the worker to reopen Time and use Week of 2026-10-19 \u2192 Open week so the weekly table loads the new effective schedule.",
+        "Choose Save schedule. Verify Expected schedule saved. Ask the worker to reopen Time and use Week of 2026-10-19 → Open week so the weekly table loads the new effective schedule.",
         "Read Actual as time actually recorded, Expected as the weekday target, and Difference as Actual minus Expected. The reference schedule applies by effective date and project-assignment coverage.",
-        "After operational approval, compare October 20: Technician 1 has 6.00h Actual, 8.00h Expected, \u22122.00h Difference and Needs note; Technician 2 has 7.00h / 8.00h / \u22121.00h and Needs note; Chief has 8.00h / 8.00h / 0.00h and Approved.",
+        "After operational approval, compare October 20: Technician 1 has 6.00h Actual, 8.00h Expected, −2.00h Difference and Needs note; Technician 2 has 7.00h / 8.00h / −1.00h and Needs note; Chief has 8.00h / 8.00h / 0.00h and Approved.",
         "Open the underlying source to verify its actual approval state. Needs note is the weekly difference indicator for approved time outside the expectation; it does not return or reject the approved source. Record the operational explanation through the appropriate activity/report workflow; there is no separate Mark goal completed control."
       ],
       "checks": [
         "The native Owner save persisted the dated 480 / 0 schedule and retained the BBS project timezone. Separate Worker weekly tables displayed the expected values after reload.",
         "The three actual-time source rows remained Approved with their original 360 / 420 / 480 minutes. No hours were increased to force agreement with the eight-hour target.",
-        "The later browser checkpoint showed October 23 Actual 0.00h, Expected \u2014 and Difference \u2014, while October 20 retained Actual 6.00h / Expected 8.00h / Difference \u22122.00h. The future-only second project was absent from the current Worker project selector; only the target comparison counted its dated membership."
+        "The later browser checkpoint showed October 23 Actual 0.00h, Expected — and Difference —, while October 20 retained Actual 6.00h / Expected 8.00h / Difference −2.00h. The future-only second project was absent from the current Worker project selector; only the target comparison counted its dated membership."
       ],
       "recovery": [
-        "A dash (\u2014) means the application cannot determine an effective target for that day; it does not mean zero hours or a failed time submission. Check assignment dates and the dated schedule.",
+        "A dash (—) means the application cannot determine an effective target for that day; it does not mean zero hours or a failed time submission. Check assignment dates and the dated schedule.",
         "If several project assignments cover the same day, the application does not add their targets together without an allocation rule. Resolve the dated membership/schedule yourself, involving the authorized project lead as needed; continue recording truthful actual time. The later October 23 checkpoint demonstrates this rule through a saved one-day second assignment.",
         "Zero is a valid target, such as the configured BBS weekend. A negative difference without actual records is planning context, not a missing bank payment or invoice."
       ],
@@ -203,7 +203,7 @@
         },
         {
           "src": "docs/evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png",
-          "caption": "Later isolated checkpoint, after an additional one-day project membership on October 23: Friday Actual is zero and Expected / Difference are unknown (\u2014). October 20 remains six actual versus eight expected hours. Earlier weekly tables precede this added membership and correctly show Friday eight expected hours. This operational crop contains no prices, costs or compensation.",
+          "caption": "Later isolated checkpoint, after an additional one-day project membership on October 23: Friday Actual is zero and Expected / Difference are unknown (—). October 20 remains six actual versus eight expected hours. Earlier weekly tables precede this added membership and correctly show Friday eight expected hours. This operational crop contains no prices, costs or compensation.",
           "orientation": "landscape"
         }
       ]
@@ -211,11 +211,11 @@
     {
       "id": "owner-planning-time-goals",
       "title": "Keep planned hours, local time and work goals distinct",
-      "route": "Planning \u2192 Published assignments; Worker: Today and Time; Reports",
-      "context": "Isolated BBS planning and crew lab \u00b7 October 20\u201325, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
+      "route": "Planning → Published assignments; Worker: Today and Time; Reports",
+      "context": "Isolated BBS planning and crew lab · October 20–25, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
       "paragraphs": [
-        "The Project Manager\u2019s separate October 21 practice plan was edited from two hours to three hours, 09:00\u201312:00 UTC. Worker 1\u2019s agenda shows Planned: 3 h, while the Wednesday timesheet expectation remains 8.00h from the project schedule. Editing a plan does not rewrite that schedule.",
-        "Planning and worker agendas display UTC explicitly. On October 20, 08:00\u201316:00 UTC is 10:00\u201318:00 in Europe/Madrid and 04:00\u201312:00 in America/New_York. These conversions apply to that date; daylight-saving transitions can change the offset. Enter the intended UTC interval rather than assuming the form uses the browser or project timezone.",
+        "The Project Manager’s separate October 21 practice plan was edited from two hours to three hours, 09:00–12:00 UTC. Worker 1’s agenda shows Planned: 3 h, while the Wednesday timesheet expectation remains 8.00h from the project schedule. Editing a plan does not rewrite that schedule.",
+        "Planning and worker agendas display UTC explicitly. On October 20, 08:00–16:00 UTC is 10:00–18:00 in Europe/Madrid and 04:00–12:00 in America/New_York. These conversions apply to that date; daylight-saving transitions can change the offset. Enter the intended UTC interval rather than assuming the form uses the browser or project timezone.",
         "There is no generic worker-goal module with Accept, Reject or Mark completed actions. Use published assignments for coordination, the expected schedule for reference hours, actual time for work performed and Daily / Technical reports for progress and deliverables. Project milestones are separate project checkpoints with their own permitted workflow; they are not personal hours targets."
       ],
       "steps": [
@@ -225,8 +225,8 @@
         "Use Daily / Technical reports to describe completed work and blockers. Submit truthful actual hours separately. Operational review, Finance classification and money records remain later, distinct steps."
       ],
       "checks": [
-        "Native PM editing persisted October 21 09:00\u201312:00 UTC, 180 minutes and the updated fictional site. Worker 1 saw the changed three-hour card; that day still showed Expected 8.00h and Actual 0.00h.",
-        "A separate October 22 Technician 2 practice plan was cancelled through the PM browser. It disappeared from the worker\u2019s upcoming agenda while its database record retained cancelled status. No actual time was created for that cancelled plan."
+        "Native PM editing persisted October 21 09:00–12:00 UTC, 180 minutes and the updated fictional site. Worker 1 saw the changed three-hour card; that day still showed Expected 8.00h and Actual 0.00h.",
+        "A separate October 22 Technician 2 practice plan was cancelled through the PM browser. It disappeared from the worker’s upcoming agenda while its database record retained cancelled status. No actual time was created for that cancelled plan."
       ],
       "recovery": [
         "If the plan and weekly expectation differ, inspect both controls before changing anything. A short assignment within a full working day can legitimately have different planned and expected hours.",
@@ -253,16 +253,16 @@
     {
       "id": "owner-planning-recovery",
       "title": "Troubleshoot missing plans, expired coverage and unknown targets",
-      "route": "Projects \u2192 BBS \u2192 Team; Planning; Worker: Today and Time",
-      "context": "Isolated BBS planning and crew lab \u00b7 October 20\u201325, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
+      "route": "Projects → BBS → Team; Planning; Worker: Today and Time",
+      "context": "Isolated BBS planning and crew lab · October 20–25, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
       "paragraphs": [
         "Use the person, project and work date as the diagnostic key. Account status, project membership, published planning, expected schedule and crew delegation answer different questions. An empty calendar is not proof that the account lacks project access.",
-        "Supplier profiles have a further visibility restriction: an Owner can publish a plan for an eligible External Technician, but that profile currently opens its restricted Time / Expenses / Reports workspace and has no internal Worker Today agenda or Planning calendar. Give the technician the agreed schedule through the company\u2019s operational handoff; the restricted profile still records its own actual work."
+        "Supplier profiles have a further visibility restriction: an Owner can publish a plan for an eligible External Technician, but that profile currently opens its restricted Time / Expenses / Reports workspace and has no internal Worker Today agenda or Planning calendar. Give the technician the agreed schedule through the company’s operational handoff; the restricted profile still records its own actual work."
       ],
       "steps": [
         "No plan for today: confirm the UTC day shown in Your workday. Expand Your assigned projects and compare Upcoming assignments. Publish or correct the authorized plan yourself, or hand the exact change to an authorized PM.",
-        "Worker missing from Publish field assignment: inspect the selected start/end and the worker\u2019s active project-assignment interval. In the BBS lab, the supplier-personnel coverage ends October 31; those profiles are absent from November 1 worker choices.",
-        "Expected shows \u2014: open the intended week and compare each day with assignment and schedule effective dates. Worker 1\u2019s September 28\u201330 precede the October 1 assignment, so Actual is 0.00h and Expected / Difference are \u2014. From October 1, the saved effective target appears.",
+        "Worker missing from Publish field assignment: inspect the selected start/end and the worker’s active project-assignment interval. In the BBS lab, the supplier-personnel coverage ends October 31; those profiles are absent from November 1 worker choices.",
+        "Expected shows —: open the intended week and compare each day with assignment and schedule effective dates. Worker 1’s September 28–30 precede the October 1 assignment, so Actual is 0.00h and Expected / Difference are —. From October 1, the saved effective target appears.",
         "Needs note after approval: inspect the Actual / Expected difference and open the source. Request an explanation or a genuine source correction as appropriate; do not replace actual hours with the target.",
         "A restricted external account lacks Today / Planning: use its documented Time, Reports and supplier handoff. Changing the account to an unrestricted role solely to expose planning would change its privacy and permissions."
       ],
@@ -278,7 +278,7 @@
         },
         {
           "src": "docs/evidence/bbs-planning-20261006/owner/screenshots/05-worker-missing-expected-before-membership.png",
-          "caption": "Separate Worker 1 weekly table: September 28\u201330 precede their October 1 assignment, so Expected and Difference are unknown (\u2014). Later days in the same week have effective expectations.",
+          "caption": "Separate Worker 1 weekly table: September 28–30 precede their October 1 assignment, so Expected and Difference are unknown (—). Later days in the same week have effective expectations.",
           "orientation": "landscape"
         }
       ],
@@ -287,7 +287,7 @@
     {
       "id": "owner-money",
       "title": "Supervise the financial cycle",
-      "route": "Finance \u2192 Commercial Configuration; Approvals; Billing; Collections / Ledger; compensation and reimbursement registers",
+      "route": "Finance → Commercial Configuration; Approvals; Billing; Collections / Ledger; compensation and reimbursement registers",
       "paragraphs": [
         "Invoice cadence and worker payment cadence are separate contracts. Select the project and worker settlement period explicitly; an issued invoice is neither a worker payment nor a bank receipt. The BBS lab verifies independent invoice and compensation periods in the detailed course.",
         "The original BBS before/after workbook figures retain their historical scope: USD 4,672 issued, USD 682 collected and USD 3,990 receivable. Configured labor cost USD 1,520 plus direct expenses USD 230 produces USD 1,750 configured company cost. Contractual compensation USD 2,100 is USD 580 above the configured labor estimate. Contribution USD 2,922 uses the configured cost basis; it is not proof of final cash profit. Do not add both labor cost and compensation as if they were independent expenses."
@@ -307,19 +307,19 @@
     {
       "id": "owner-commercial-references",
       "title": "Check optional commercial models, milestones and forecasts",
-      "route": "Project \u2192 Edit project; Finance \u2192 Commercial Configuration; Project \u2192 Milestones; Finance \u2192 Overview",
+      "route": "Project → Edit project; Finance → Commercial Configuration; Project → Milestones; Finance → Overview",
       "context": "Source-checked optional controls. These contract variants were not newly executed in this Owner update; the original BBS worked totals keep their historical scope.",
       "paragraphs": [
         "Actual time, customer labor revenue, worker compensation, internal cost and planning forecasts are different quantities. Configure only the agreed contract and inspect the resulting calculation before issuing or finalizing obligations. A planning budget alone does not cap billing."
       ],
       "steps": [
-        "Customer fixed labor: in Project \u2192 Edit project inspect Commercial model and Explicit fixed labor price. All-in keeps labor hourly unless an explicit fixed labor price is configured; included expenses alone do not imply fixed-price labor. Save the authorized project change, reopen it and inspect the calculation explanation. This optional mutation is reference-only here.",
-        "Worker fixed compensation: in Finance \u2192 Commercial Configuration use Rule type Fixed per billing period or Fixed project amount, the corresponding Fixed period amount / Fixed project amount, worker/project, Currency, effective interval and Settlement trigger. Inspect the saved rule and settlement scope before finalization; do not infer worker pay from the customer fixed price.",
+        "Customer fixed labor: in Project → Edit project inspect Commercial model and Explicit fixed labor price. All-in keeps labor hourly unless an explicit fixed labor price is configured; included expenses alone do not imply fixed-price labor. Save the authorized project change, reopen it and inspect the calculation explanation. This optional mutation is reference-only here.",
+        "Worker fixed compensation: in Finance → Commercial Configuration use Rule type Fixed per billing period or Fixed project amount, the corresponding Fixed period amount / Fixed project amount, worker/project, Currency, effective interval and Settlement trigger. Inspect the saved rule and settlement scope before finalization; do not infer worker pay from the customer fixed price.",
         "Percentage compensation: select Rule type Percentage of eligible client labor, Percentage and Percentage basis. Available bases are Client labor before tax, Client labor after approved discount, Issued eligible labor and Collected eligible labor. Settlement trigger is separately Approved billable labor, Invoice issue or Client payment. Verify Eligible for percentage compensation on applicable client labor rates and inspect eligible source/collection shares; the percentage does not automatically include taxes or expenses.",
         "Client minimum: inspect Client minimum hours in Edit project, or Client daily minimum hours in Create project. This commercial top-up applies once per worker/project/day and does not change actual time or compensation. Compare eligible labor and Daily minimum adjustments in the calculation explanation.",
         "Cap: choose the agreed capped T&M Commercial model and PO cap. Inspect remaining contractual cap and generated labor/expense treatment; Revenue budget and Planned labor hours are planning inputs rather than substitute cap controls.",
-        "Milestone: Project \u2192 Milestones \u2192 Create or edit milestones opens Owner management fields Project, Name, Description, Amount and Due date. Verify the saved draft, then use the permitted submission/review workflow. Calculation includes approved milestones only while un-invoiced; a milestone is not a worker-hours goal.",
-        "Forecast: open Finance \u2192 Overview \u2192 Planned / Expected, then Estimate to complete. Check Planning basis available or No detailed plan, planned reference hours/minutes and the underlying rates/budgets. Missing planned-person rates or daily/weekly units without dated unit planning can leave the estimate unavailable. Use the displayed explanation before treating a forecast as complete; it creates no actual hours, collected revenue or paid cash."
+        "Milestone: Project → Milestones → Create or edit milestones opens Owner management fields Project, Name, Description, Amount and Due date. Verify the saved draft, then use the permitted submission/review workflow. Calculation includes approved milestones only while un-invoiced; a milestone is not a worker-hours goal.",
+        "Forecast: open Finance → Overview → Planned / Expected, then Estimate to complete. Check Planning basis available or No detailed plan, planned reference hours/minutes and the underlying rates/budgets. Missing planned-person rates or daily/weekly units without dated unit planning can leave the estimate unavailable. Use the displayed explanation before treating a forecast as complete; it creates no actual hours, collected revenue or paid cash."
       ],
       "checks": [
         "These optional controls and labels were checked in current source. No fixed/percentage/minimum/cap/milestone contract mutation or new forecast completion is claimed here. Use Finance: Check dated agreements and independent pay rules (finance-commercial) and Explain economics, cash and workbook exports (finance-economics) for receiving review."
@@ -331,12 +331,12 @@
     {
       "id": "owner-accounting",
       "title": "Accounting coverage and period close",
-      "route": "Accounting \u2192 Generate monthly Accounting Pack \u2192 Period start / Period end / Report language \u2192 Generate pack",
+      "route": "Accounting → Generate monthly Accounting Pack → Period start / Period end / Report language → Generate pack",
       "paragraphs": [
-        "The detailed course\u2019s Accounting coverage-gap example is a historical blocked BBS checkpoint. Use the PDF outline and Accounting task title to find it; the former page number is not a current navigation instruction. ACCOUNTING_PACK_ISSUER_EFFECTIVE_DATE_GAP means the requested portfolio dates lack complete effective legal issuer coverage. No finalized pack is created by failed generation.",
+        "The detailed course’s Accounting coverage-gap example is a historical blocked BBS checkpoint. Use the PDF outline and Accounting task title to find it; the former page number is not a current navigation instruction. ACCOUNTING_PACK_ISSUER_EFFECTIVE_DATE_GAP means the requested portfolio dates lack complete effective legal issuer coverage. No finalized pack is created by failed generation.",
         "The selected dates remain in the form after this failure so that the Owner can inspect the missing issuer/date coverage. Retained dates are a recovery behavior, not a claim that generation succeeded. Review the displayed issuer and missing interval, correct genuinely authorized coverage or select the intended supported interval, and regenerate. Do not rewrite archived issuer history merely to pass the example.",
         "The course also includes a successful clean-scope Accounting Pack with independent ready downloads and reconciliation. That clean demonstration is explicitly separate from the historically blocked BBS configuration. A finalized pack describes its selected cut; later work or documents can require a new pack.",
-        "Accounting generation is a portfolio date cut. Its form exposes Period start, Period end and Report language (English, Portugu\u00eas (BR), Spanish); it has no project or legal-entity selector. A selected project elsewhere does not narrow the cut. The previous complete month is initially filled in; inspect and deliberately change the dates when required."
+        "Accounting generation is a portfolio date cut. Its form exposes Period start, Period end and Report language (English, Português (BR), Spanish); it has no project or legal-entity selector. A selected project elsewhere does not narrow the cut. The previous complete month is initially filled in; inspect and deliberately change the dates when required."
       ],
       "checks": [
         "Wait for the independent outputs to reach Ready. Download and reconcile each artifact before finalization. Queued and failed are not ready.",
@@ -355,13 +355,13 @@
     {
       "id": "owner-readiness-closeout",
       "title": "Verify populated closeout and the current Accounting recovery",
-      "context": "Isolated BBS copy \u00b7 6 October 2026. Final packages are preserved; Owner reopening returned the project to Active with a new draft revision.",
+      "context": "Isolated BBS copy · 6 October 2026. Final packages are preserved; Owner reopening returned the project to Active with a new draft revision.",
       "paragraphs": [
-        "The detailed course task Populated closeout \u00b7 final packages and supported reopening contains the full sequence. The shown Revision 1 \u00b7 Final belongs to the populated isolated BBS copy, with five technical reports, six numbered invoices, collections and approved expenses. Unpaid obligations remain visible; finalizing a package does not settle them.",
+        "The detailed course task Populated closeout · final packages and supported reopening contains the full sequence. The shown Revision 1 · Final belongs to the populated isolated BBS copy, with five technical reports, six numbered invoices, collections and approved expenses. Unpaid obligations remain visible; finalizing a package does not settle them.",
         "The current Accounting source-reconciliation warning is separate from ACCOUNTING_PACK_ISSUER_EFFECTIVE_DATE_GAP. It means preserved financial obligations/source history do not reconcile in the requested cut. The failed action retains the selected dates and offers Contact support; it does not generate a final pack. A clean separate Finance portfolio succeeds without rewriting this history."
       ],
       "checks": [
-        "Prepare closeout draft \u2192 review both audience snapshots \u2192 Confirm client publication \u2192 Finalize both packages produced native Ready client/internal ZIPs. Owner Reason \u2192 Reopen created revision 2, restored Active and kept revision 1 files intact.",
+        "Prepare closeout draft → review both audience snapshots → Confirm client publication → Finalize both packages produced native Ready client/internal ZIPs. Owner Reason → Reopen created revision 2, restored Active and kept revision 1 files intact.",
         "Accounting failure retained 2026-10-26 and 2026-10-31 at desktop, 360/390 phone and 768 tablet widths. Use the actual error/remedy; reversing a payment is not a source reconciliation repair."
       ],
       "figures": [
@@ -377,7 +377,7 @@
         },
         {
           "src": "docs/evidence/bbs-readiness-20261006/owner-common/owner/screenshots/accounting-source-reconciliation-retained-dates.png",
-          "caption": "Current Accounting failure: selected October 26\u201331 dates remain in the form and Contact support is explicit. This is a blocked generation, not a successful Accounting cut.",
+          "caption": "Current Accounting failure: selected October 26–31 dates remain in the form and Contact support is explicit. This is a blocked generation, not a successful Accounting cut.",
           "orientation": "landscape"
         }
       ]
@@ -385,11 +385,11 @@
     {
       "id": "owner-current-technical-output",
       "title": "Inspect current customer technical details before delivery",
-      "context": "Isolated BBS copy \u00b7 separate October 13\u201318 customer report v2. The historical blank-Detail master and October 13\u201319 PM handoff remain unchanged.",
+      "context": "Isolated BBS copy · separate October 13–18 customer report v2. The historical blank-Detail master and October 13–19 PM handoff remain unchanged.",
       "steps": [
         "Receive the reviewed Technical source and choose the customer-safe period/content in Reports. The current exercise explicitly selected approved October 16 technical report 01a1117d-a645-738f-adae-f60c4e5a3f4a.",
         "Review and approve the exact period snapshot, generate its native PDF and wait for Ready. Open or download the output and inspect Problem / symptom, Diagnosis and Change performed in the Detail column before delivery.",
-        "Verify period October 13\u201318, version 2 and report reference 01a111a4-577e-7293-a86c-6b749091a51b. This is a new output, not an edit to the old master or reuse of its acceptance. Obtain any required fresh acceptance against this version through the supported evidence workflow."
+        "Verify period October 13–18, version 2 and report reference 01a111a4-577e-7293-a86c-6b749091a51b. This is a new output, not an edit to the old master or reuse of its acceptance. Obtain any required fresh acceptance against this version through the supported evidence workflow."
       ],
       "checks": [
         "The application-native two-page PDF returned successfully and displayed the selected technical facts in Detail. No old generated/signed master was overwritten and no customer signature was asserted."
@@ -397,8 +397,93 @@
       "figures": [
         {
           "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/39-native-customer-period-pdf-page1.png",
-          "caption": "New native customer-period PDF, October 13\u201318 v2: selected technical facts are populated in Detail. The separately preserved old blank-detail example remains historical.",
+          "caption": "New native customer-period PDF, October 13–18 v2: selected technical facts are populated in Detail. The separately preserved old blank-detail example remains historical.",
           "orientation": "portrait"
+        }
+      ]
+    },
+    {
+      "id": "owner-private-dated-terms",
+      "title": "Owner reference · dated terms and calculation inputs",
+      "route": "Commercial Configuration; Projects → BBS → Billing → Review each person",
+      "context": "Owner reference · historical isolated Finance-role evidence retained for Owner review only; original capture dates and amounts remain unchanged.",
+      "paragraphs": [
+        "Project defaults, saved person terms and their effective dates determine treatment. Customer billing units, worker compensation and internal hourly cost are independent. Saving unchanged existing overrides may leave their original effective dates; changing a future value creates a new dated rule. Copying draft terms does not save them.",
+        "The original Technician 1 customer day rate remains USD 600 for the October 26 invoice. A separate synthetic November 1 practice agreement saves USD 610/day, while internal cost USD 35/h and the selected Daily worker compensation USD 240/day remain independent. An attempted October 31 save was rejected because the existing finalized October settlement overlaps that date. No historical invoice or reviewed settlement was rewritten."
+      ],
+      "steps": [
+        "Open Projects → BBS → Billing. Continue through the invoice-setup steps to 3. Review each person; select the intended person.",
+        "Set Terms effective from. Review Customer billing unit (Hourly/Daily/Weekly) and the corresponding Customer hourly/daily/weekly rate (USD), Internal hourly cost (USD), Worker compensation method and Worker compensation rate/percentage. Percentage methods also require the displayed eligible basis.",
+        "Review Expense payer, Worker reimbursement source (project default or person override), Reimburse worker, Charge customer for expense and any markup. The expense treatment saves only the selected payer’s policy.",
+        "Use Save these rates as explicit person overrides when intentionally preserving inherited rates. Click that person’s Save person terms, wait for Assignment commercial rules saved, then reopen and verify the effective rule/date and no unsaved changes."
+      ],
+      "checks": [
+        "Worker methods include Hourly, Daily, Fixed per billing period, Fixed project amount and Percentage of eligible client labor. A fixed period calculation is not an automatic weekly/monthly bank-payment cadence.",
+        "Existing terms on the same date are immutable. New dates must avoid issued invoices and finalized obligations; a later date does not unlock earlier sources."
+      ],
+      "recovery": [
+        "Retain the person, intended effective date and overlap message. Use a later legitimate date or the supported obligation-correction handoff; do not reverse cash to bypass historical terms."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/33-finance-future-november-terms-input.png",
+          "caption": "Separate synthetic future agreement: November 1 customer day rate USD 610, independent cost and worker pay.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/35-finance-future-terms-saved.png",
+          "caption": "Saved future person terms. The October invoice retains its USD 600/day rule.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "owner-private-project-economics",
+      "title": "Owner reference · project economics and workbook interpretation",
+      "route": "Economic Review → BBS; Projects → BBS → Billing → Invoices and advanced settings",
+      "context": "Owner reference · historical isolated Finance-role evidence retained for Owner review only; original capture dates and amounts remain unchanged.",
+      "paragraphs": [
+        "Actual/approved/billable hours, potential customer charges or WIP, issued invoice totals, collections and receivables are different. Contribution is an economic calculation within the view’s scope, not cash or a complete statutory profit statement.",
+        "Internal loaded labor cost and worker compensation can overlap economically. Do not add the loaded cost and the separate compensation display twice. Planning/reference hours, forecasts and expected dates never create actual work or cash.",
+        "Download finance export produces native XLSX. Summary, Labor, Expenses, Unbilled WIP, Daily minimum, Invoices, Invoice expenses, Milestones and Alerts explain the source basis. Empty values are not automatically zero.",
+        "The current role-lab overview after additional approved practice work shows 50.75 actual hours, USD 4,673 invoiced, USD 1,888.25 direct cost and USD 2,795.75 contribution. These differ from the original checkpoint because later worker/chief/correction sources and the separate USD 1 debit exist. The practice debit was issued October 5 UTC during October 6 local training, so a fresh October 1–5 export can include it. Compare document/source identity and generation time as well as dates.",
+        "The displayed Direct project result uses Revenue candidate USD 4,684, including USD 11 approved unbilled WIP: USD 4,684 − USD 1,888.25 direct cost = USD 2,795.75. It does not subtract cost from USD 4,673 invoiced. Net receivable is USD 3,991 after the separate USD 1 debit; receivable and projected contribution are different measures.",
+        "The current overview also displays Finance records need review for incomplete projection data. Investigate those alerts before treating displayed cost/revenue as a complete reconciled contract result; missing configuration is not zero cost.",
+        "The tested project Download finance export used the explicit October 26–26 period carried by the project link; the downloaded filename contains that cut. The normal Project Billing screen has no general export date picker. Date correction controls appear only for an invalid period/export failure. The default project lookback runs from the previous UTC month start through today; Accounting defaults instead to the previous complete month. How this project is calculated has Period start / Period end and Review period, but its return link does not automatically carry that selected cut into the workbook export."
+      ],
+      "steps": [
+        "Select BBS and the intended dates. Follow an unexpected figure into its source records and dated rules.",
+        "Open Projects → BBS → Billing → Invoices and advanced settings → Download finance export.",
+        "Verify the semantic project/date filename, then open Summary and relevant source sheets.",
+        "Compare work dates, invoice issue dates and collection/reversal dates before comparing project workbook, ledger and Accounting period totals.",
+        "For an authorized dated project link, verify its period and Download finance export; confirm the resulting filename and workbook dates. For another cut use the supported dated link or request one from Finance/support. Do not assume invoice issue-date filtering is the source work-date cut or that a Collections export date control exists."
+      ],
+      "checks": [
+        "The original 1–5 October example excludes separately labelled 6 October role practice. Workbook export does not approve or issue anything. A portfolio file can contain other authorized projects and must stay with its financial audience."
+      ],
+      "recovery": [
+        "For a mismatch check scope, currency, approvals, cost model, source links, issue date and missing rules. Ask support with the exact record/code; do not edit an issued source to force a total."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/29-finance-current-project-economics.png",
+          "caption": "Current BBS role-lab economics after additional practice. These are not the original 42.5-hour / three-invoice checkpoint totals.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/30-finance-current-cash.png",
+          "caption": "Current cash and receivable remain separate from economic contribution. The separate USD 1 debit adds a new receivable.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/28-finance-project-export-control.png",
+          "caption": "Actual Finance project Billing controls: Download finance export reads the chosen period; it does not approve or issue work.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/19-finance-export-control.png",
+          "caption": "Native project finance export control; the tested filename confirms October 26–26. No ordinary date picker is shown here.",
+          "orientation": "landscape"
         }
       ]
     }

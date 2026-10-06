@@ -11,7 +11,7 @@
       "paragraphs": [
         "Chief is an ordinary Worker account with dated person/project delegation. Account role, project assignment, crew delegation and Can review are separate. The readiness example uses C-0050-P-2026100601 with an entry-only Chief and Worker 2 assigned October 1–31. Worker 1 has a separate October 1–8 assignment/grant for the October 7 two-person receipt exercise. Both people’s project assignments and the delegation must cover today as well as the selected work date.",
         "Before practising obtain an operator training URL, own account, visible environment identity, permitted scope and reset instructions. No shared training credentials are provided. Live company links remain live company services. Every illustrated mutation here is fictional and isolated.",
-        "Crew hours handles delegated operational entry. Time, Expenses, Reports and My Pay still handle your own Worker records. Delegation does not reveal crew compensation or grant Finance access; Chief authenticated Approvals and Finance requests returned 403.",
+        "Crew hours handles delegated operational entry. Time, Expenses, Reports and My Pay still handle your own Worker records. The illustrated entry-only delegation does not grant approval permission; requests outside this authorized workspace were denied.",
         "For account access and recovery, use the common Access (access), Security (security), Review authority (review-authority) and Trainer setup (trainer-setup) sections. Those controls are shared across roles; a job title does not grant access."
       ],
       "steps": [
@@ -100,7 +100,7 @@
       "context": "Isolated readiness lab · actual Chief-entered single USD 20 receipt · October 7, 2026",
       "paragraphs": [
         "Record one purchase with its actual attributed worker, payer and related hours. The tested Add expense for Worker 2 link preselected the readiness project, October 7 date and Worker 2’s 0.5-hour Travel source. The receipt explicitly says synthetic training only.",
-        "Record expense for, Who paid and later allocation are distinct. Here one USD 20 meal expense was recorded for Worker 2, paid by Worker, then split 10+10 across two valid shifts. The allocation does not create another purchase or reveal colleagues’ reimbursement/pay."
+        "Record expense for, Who paid and later allocation are distinct. Here one USD 20 meal expense was recorded for Worker 2, paid by Worker, then split 10+10 across two valid shifts. The allocation does not create another purchase."
       ],
       "steps": [
         "From the intended saved crew row choose Add expense for that worker. Check Record expense for, Project, Date and Related logged hours.",
@@ -143,7 +143,7 @@
         "If the saved split is wrong, stop at the protected allocation and give the Owner/reviewer the expense ID, allocation ID, both source IDs, receipt amount and intended split."
       ],
       "checks": [
-        "The actual native saved allocation totals USD20 across two USD10 rows. After separate native Submit actions, the independent Owner approved the receipt and both crew time sources. Exact IDs/states are in the readiness manifest. Allocation is not reimbursement, worker settlement, invoice issuance or bank payment."
+        "The actual native saved allocation totals USD20 across two USD10 rows. After separate native Submit actions, the independent Owner approved the receipt and both crew time sources. Exact IDs/states are in the readiness manifest. Allocation alone does not prove reimbursement or bank payment."
       ],
       "recovery": [
         "Allocated receipts can lock draft edit actions. Investigate the existing allocation/expense with the reviewer rather than making duplicate expenses or altering hours to force a split."
@@ -177,14 +177,14 @@
       "route": "Crew hours → submitted sources; reviewer → Approvals",
       "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
       "paragraphs": [
-        "The tested entry-only Chief uses an ordinary Worker account with dated delegation. The Owner independently reviewed the new two crew sources and one allocated receipt. Finance reviews any later financial treatment.",
-        "Operational approval, billability, customer invoicing, worker settlement, reimbursement and cash payment are separate stages. A Chief should not assume a submitted row is paid or invoice-ready.",
+        "The tested entry-only Chief uses an ordinary Worker account with dated delegation. The Owner independently reviewed the new two crew sources and one allocated receipt. The designated contact handles subsequent reimbursement questions.",
+        "Submission, operational approval, reimbursement and payment are separate stages. A Chief should not assume a submitted row is approved or paid.",
         "A Worker assignment Can review grant leaves the base role Worker and does not enable Approvals. Source checks require the appropriate base PM/Owner/Finance authority plus current project scope. A review-capable Chief variant is unavailable on this Worker-role deployment; no Chief self-review success is claimed. See common Review authority (review-authority)."
       ],
       "steps": [
         "Inspect each member’s source state after submission. Send the PM record IDs, work date and any material evidence or safety concern.",
         "Read a returned reason on the actual source. Correct through the permitted linked flow; do not silently overwrite history.",
-        "Hand financial policy/settlement issues to Finance/Owner."
+        "Hand settlement and reimbursement questions to Finance/Owner."
       ],
       "checks": [
         "Read source states after every action. The new own weekly sources and report/receipt exercises have explicit IDs and current states in the readiness manifest; earlier PM-approved records remain historical examples."
@@ -213,7 +213,7 @@
         "Actual Chief own weekly result: ordinary 15-minute source plus linked 45-minute correction Submitted, original 60-minute source Needs changes, incorrect withdrawn 54-minute draft retained in history."
       ],
       "recovery": [
-        "Check the own draft count before submitting a week. For linked or financially guarded sources use exact record controls and Finance handoff."
+        "Check the own draft count before submitting a week. For linked or locked sources use exact record controls and the designated contact."
       ],
       "figures": [
         {
@@ -322,7 +322,7 @@
       "route": "Reports → New technical report",
       "context": "Isolated readiness lab · own Chief authored report · synthetic October 12, 2026",
       "paragraphs": [
-        "The Chief’s Technical report is its own authored evidence, separate from crew hours and customer billing. This worked system is explicitly a fictional bench; no live PLC change occurred.",
+        "The Chief’s Technical report is its own authored evidence, separate from crew hours. This worked system is explicitly a fictional bench; no live PLC change occurred.",
         "Capture equipment identifiers, Problem / symptom, Diagnosis / root cause, Change performed, production impact, validation/result, open risk and rollback. Safety/change authorization remains governed by real responsible-person procedures.",
         "The own readiness Draft’s source PDF was generated in English, checked Ready with Refresh and downloaded as a readable native file before Submit for review. Language selects English, Spanish or Portuguese; the output remains scoped to this own authored operational report."
       ],
@@ -361,9 +361,9 @@
       "route": "My Pay → Apply period",
       "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
       "paragraphs": [
-        "The Chief sees its own compensation, not crew members’ agreements/payments. The historical October 1–4 snapshot shows 10 actual hours, USD 400 approved compensation and USD 20 approved reimbursement; copied training payment records have no claim to a real bank transfer.",
-        "Customer daily/weekly/hourly units and invoice cadence do not dictate worker settlement or payment cadence. Expected date, reviewed amount, paid and remaining are different fields. Source estimates follow dated worker rules, not crew receipt allocations.",
-        "The native own Chief October 1–6 statement was generated and both PDF and CSV downloaded Ready. It contains 735 approved minutes for this Chief only. These historical synthetic records do not claim a real bank transfer; no crew member’s private statement was accessed."
+        "My Pay identifies your own account. Check the historical October 1–4 period and its included actual activity before reading the settlement and reimbursement states. Copied training payment records have no claim to a real bank transfer.",
+        "Expected date, reviewed amount, paid and remaining are different fields. Your source estimates follow your dated compensation rules. Crew receipt allocations do not determine your compensation.",
+        "The native own Chief October 1–6 statement was generated and both PDF and CSV downloaded Ready. It contains 735 approved minutes for this Chief. These historical synthetic records do not claim a real bank transfer."
       ],
       "steps": [
         "Set From and Through, then Apply period. Confirm the displayed dates before requesting a statement.",
@@ -371,17 +371,12 @@
         "In Worker statement choose Generate report. While preparing, use Check statement status if offered or allow status to refresh. Download PDF and CSV independently only when Ready. Open both files and confirm identity, date range and own activity."
       ],
       "checks": [
-        "Crew hour delegation does not expose Worker 1/2 private pay. A split receipt does not create compensation or prove reimbursement."
+        "Confirm your own account and selected period before reading My Pay. A split receipt does not prove reimbursement."
       ],
       "recovery": [
-        "Send missing-rule/settlement/reimbursement questions to Finance with your own source/period. Do not infer another person’s pay from recorded hours."
+        "Send missing-rule, settlement and reimbursement questions to Finance with your own source and period."
       ],
       "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/17-chief-own-pay.png",
-          "caption": "Actual Chief own historical training payment view; not crew payroll visibility.",
-          "orientation": "landscape"
-        },
         {
           "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-statement-ready.png",
           "caption": "Native own Chief Worker statement: both PDF and CSV Ready for the selected historical training period.",
@@ -407,8 +402,8 @@
         "Agree who records each person’s actual work. A technician should inspect an existing Chief-recorded source instead of duplicating it."
       ],
       "checks": [
-        "Planning creates neither actual hours nor compensation settlements or client invoice lines.",
-        "Chief authority remains limited to dated delegated operational entry. It does not grant Approvals, Finance, client rates, project cost/margin or access to colleagues’ pay."
+        "Planning creates no actual hours.",
+        "Chief authority remains limited to dated delegated operational entry and the Owner’s explicit grants."
       ],
       "recovery": [
         "No published assignment for today can coexist with valid project membership. Use accurate authorized actual records and ask for the missing plan to be published if needed.",
@@ -417,7 +412,7 @@
       "figures": [
         {
           "src": "docs/evidence/bbs-planning-20261006/chief/screenshots/01-chief-own-upcoming-plan.png",
-          "caption": "Chief’s own Today agenda shows the October 20 eight-hour plan. The card is operational context; it does not list the technicians’ private pay or create crew time.",
+          "caption": "Chief’s own Today agenda shows the October 20 eight-hour plan. The card is operational context; it does not create crew time.",
           "orientation": "landscape"
         }
       ]
@@ -485,7 +480,7 @@
       "steps": [
         "Open your own Time page, enter the week containing the work date and click Open week.",
         "Read Actual, Expected, Difference and Status on the day’s row. Difference is actual minus expected.",
-        "Inspect your source’s own approval state separately. Crew delegation does not entitle you to inspect colleagues’ compensation while checking their operational hours.",
+        "Inspect the source’s own approval state separately from the weekly comparison.",
         "On a phone, the labelled daily card replaces the wide table. Open day entries locates the actual sources for that date."
       ],
       "checks": [
@@ -494,7 +489,7 @@
       ],
       "recovery": [
         "Ask the Owner to review assignment dates, effective schedule and any ambiguous multiple-project allocation when Expected is missing or incorrect.",
-        "Keep reports operational. Do not include client billing rates, internal costs, margins or colleagues’ compensation in crew handover documents."
+        "Keep crew handovers focused on the work performed, dates, source records and next actions."
       ],
       "figures": [
         {
@@ -552,10 +547,10 @@
       "steps": [
         "Maintain genuine own expertise/availability using offered Profile controls. Ask the Owner for crew delegation, account status or review permission changes.",
         "Follow a notification to its current record and inspect state before acting.",
-        "Send support the environment, role, project/record ID, date, intended action and exact message. Exclude credentials/private pay."
+        "Send support the environment, role, project/record ID, date, intended action and exact message. Exclude passwords and recovery material."
       ],
       "checks": [
-        "Chief GET Finance and Approvals returned 403. Delegation is not financial or approval authority."
+        "Requests outside the Chief’s authorized workspace returned 403. Delegation is not approval authority."
       ],
       "recovery": [
         "If a crew member disappears, check selected date and Owner-grant coverage. If a source is settlement locked, hand it to Finance; do not substitute credentials or duplicate history."
@@ -568,7 +563,7 @@
       "route": "Crew hours → Reports → own Time → reviewer handoff",
       "context": "Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation",
       "paragraphs": [
-        "Use a single handover list for the selected workday; crew recording, your own work and financial review remain separate.",
+        "Use a single handover list for the selected workday; crew recording, your own work and independent review remain separate.",
         "The October 6 readiness audit adds explicit native-browser outcomes and state-specific limits. Per-ID status and source IDs are recorded under docs/evidence/bbs-readiness-20261006/worker-chief. Earlier planning/role-lab screenshots retain their original historical scope; they are not the state of the new readiness sources."
       ],
       "steps": [
@@ -606,11 +601,11 @@
         "One USD 20 receipt allocated 10+10 across two crew sources, submitted and PM approved.",
         "Chief own Daily and Technical reports saved, submitted and PM approved.",
         "Chief own 0.25-hour source saved, submitted through its own weekly flow and PM approved.",
-        "Own My Pay historical training snapshot inspected; no crew private compensation exposed.",
+        "Own My Pay historical training snapshot inspected within the signed-in account.",
         "Approvals and Finance denied; desktop/tablet/phone Crew pages fit their viewports.",
         "Additional connected planning lab: original Chief and both technicians received individual eight-hour October 20 plans. Technician 1 authored six actual hours, Chief authored seven delegated hours for Technician 2 and eight personal hours; all three were independently PM approved, with exactly one source each.",
         "Additional expected-hours comparison: Chief’s own weekly day showed 8/8/0 Approved; technicians’ own views showed 6/8/−2 and 7/8/−1 Needs note while underlying sources remained Approved. Dated crew recorder attribution and individual totals were confirmed.",
-        "Additional native role/privacy tests: Worker Finance and Chief Approvals returned expected 403; no client prices, internal costing, margins or colleagues’ compensation appeared in the new operational captures."
+        "Additional native role checks: requests outside the authorized operational workspace returned expected denials; new captures show the intended project and source records."
       ],
       "checks": [
         "See the adjacent task checklist and role capture manifest for source IDs, screen widths, artifact integrity and expected permission denials."

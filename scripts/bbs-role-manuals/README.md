@@ -33,6 +33,8 @@ Use plain text, not HTML. Each procedural chapter explains prerequisites, exact 
 
 Root owns renderer, shared introduction, catalog and integration. Workers own their persona JSON and evidence folders. Every guide distinguishes live portal links from isolated practice; no embedded live credentials.
 
+Business pricing comparisons, costing and margin explanations belong only in the Owner course. A warning that names those concepts is itself a disclosure. Non-Owner instructions explain the role's own task and intended audience directly. `privacy.mjs` checks all source prose, tables and captions and rejects previously reviewed sensitive figures before rendering; `privacy.test.mjs` covers warnings, comparisons and screenshot regressions. PDF verification checks extracted text and attachments as well. Visually inspect new screenshots; text checks cannot read their pixels. The Help catalog serves only the reviewed role courses to non-Owner personas. Older mixed reference families and their aliases are Owner-only archives in the portal.
+
 Build from the repository root with Node 24 and Playwright Chromium:
 
 ```sh

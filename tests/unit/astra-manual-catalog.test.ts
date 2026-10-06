@@ -22,24 +22,24 @@ const roleMatrix = [
   [
     'worker',
     undefined,
-    ['bbs-worker-manual', 'bbs-chief-manual', 'employee-field-guide', 'work-projects-reference'],
+    ['bbs-worker-manual', 'bbs-chief-manual'],
   ],
-  ['project_manager', undefined, ['bbs-manager-manual', 'work-projects-reference']],
+  ['project_manager', undefined, ['bbs-manager-manual']],
   [
     'finance_admin',
     undefined,
-    ['bbs-finance-manual', 'bbs-project-invoices-guide', 'administration-finance-reference'],
+    ['bbs-finance-manual'],
   ],
-  ['auditor_read_only', undefined, ['bbs-auditor-manual', 'administration-finance-reference']],
+  ['auditor_read_only', undefined, ['bbs-auditor-manual']],
   [
     'worker',
     'supplier_coordinator',
-    ['bbs-supplier-coordinator-manual', 'supplier-operations-reference'],
+    ['bbs-supplier-coordinator-manual'],
   ],
   [
     'worker',
     'external_technician',
-    ['bbs-external-technician-manual', 'supplier-operations-reference'],
+    ['bbs-external-technician-manual'],
   ],
 ] as const;
 
@@ -67,18 +67,18 @@ describe('Help manual catalog', () => {
     ]);
     expect(manualCatalog[0]?.locales).toEqual(['en', 'es', 'pt']);
     for (const [id, audience, stem, personas] of [
-      ['work-projects-reference', 'work-projects', 'Work_Projects_Guide', ['worker', 'manager']],
+      ['work-projects-reference', 'work-projects', 'Work_Projects_Guide', ['owner']],
       [
         'supplier-operations-reference',
         'supplier-operations',
         'Supplier_Operations_Guide',
-        ['supplier-coordinator', 'external-technician'],
+        ['owner'],
       ],
       [
         'administration-finance-reference',
         'administration-finance',
         'Administration_Finance_Guide',
-        ['owner', 'finance', 'auditor'],
+        ['owner'],
       ],
     ] as const) {
       const manual = manualCatalog.find((item) => item.id === id);
@@ -119,24 +119,25 @@ describe('Help manual catalog', () => {
       'bbs-external-technician-manual',
       'bbs-project-invoices-guide',
       'administration-finance-reference',
+      'employee-field-guide',
       'work-projects-reference',
       'supplier-operations-reference',
     ]);
     for (const [alias, canonical] of Object.entries(manualAliases))
       expect(manualForRole(alias, 'owner_admin')?.id).toBe(canonical);
-    expect(manualForRole('employee-field-guide', 'owner_admin')).toBeNull();
+    expect(manualForRole('employee-field-guide', 'owner_admin')).toBeTruthy();
     expect(manualsForRole('unknown')).toEqual([]);
     expect(manualForRole('does-not-exist', 'worker')).toBeNull();
   });
 
-  it('allows the English BBS guide only for owner and Finance', async () => {
+  it('keeps the English BBS business reference Owner-only', async () => {
     const guide = manualForRole('bbs-project-invoices-guide', 'owner_admin');
     expect(guide?.locales).toEqual(['en']);
     expect(guide?.audience).toBe('administration-finance');
     expect(guide?.revision).toBe('2026-10-06');
     expect(guide?.description.en).toContain('final training invoices');
     expect(guide?.description.en).not.toContain('23-page');
-    expect(manualForRole('bbs-project-invoices-guide', 'finance_admin')).toBeTruthy();
+    expect(manualForRole('bbs-project-invoices-guide', 'finance_admin')).toBeNull();
     for (const role of ['worker', 'project_manager', 'auditor_read_only'])
       expect(manualForRole('bbs-project-invoices-guide', role)).toBeNull();
     expect((await readManualPdf(guide!, 'en')).subarray(0, 5).toString()).toBe('%PDF-');

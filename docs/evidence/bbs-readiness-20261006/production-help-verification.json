@@ -1,0 +1,108 @@
+{
+  "status": "PASS",
+  "capturedAt": "2026-10-06T15:07:32.961Z",
+  "environment": "production",
+  "operations": "Read-only genuine existing Owner Help and native download controls; no business POST",
+  "guides": [
+    {
+      "role": "owner",
+      "id": "bbs-owner-manual",
+      "httpStatus": 200,
+      "bytes": 9173862,
+      "sha256": "7bd45e0e1df79386def13944d0a51058f2ca90785e81bb62f8f6f0d76b0a1f96",
+      "nativeDownload": "PASS",
+      "privateHeaders": "PASS"
+    },
+    {
+      "role": "finance",
+      "id": "bbs-finance-manual",
+      "httpStatus": 200,
+      "bytes": 2316082,
+      "sha256": "efb23d30a401ebb6b0a55a641a1e2d5bea91d2b08680ef9dfd41182c9873a1d5",
+      "nativeDownload": "PASS",
+      "privateHeaders": "PASS"
+    },
+    {
+      "role": "manager",
+      "id": "bbs-manager-manual",
+      "httpStatus": 200,
+      "bytes": 4523599,
+      "sha256": "10afdbb0876036c6ece52bd877f637fb8040ef6c17eaa38cd016f3ebd77aa697",
+      "nativeDownload": "PASS",
+      "privateHeaders": "PASS"
+    },
+    {
+      "role": "auditor",
+      "id": "bbs-auditor-manual",
+      "httpStatus": 200,
+      "bytes": 1064501,
+      "sha256": "87c1884bcf9fdd4ae855b9c286942d10c30de24f4e8d16f37155776c3d386e61",
+      "nativeDownload": "PASS",
+      "privateHeaders": "PASS"
+    },
+    {
+      "role": "worker",
+      "id": "bbs-worker-manual",
+      "httpStatus": 200,
+      "bytes": 3588443,
+      "sha256": "76fc9933b9c5ce6ec19123f76d6bad7140c539b8f187ee8314f343defc601dc4",
+      "nativeDownload": "PASS",
+      "privateHeaders": "PASS"
+    },
+    {
+      "role": "chief",
+      "id": "bbs-chief-manual",
+      "httpStatus": 200,
+      "bytes": 2402434,
+      "sha256": "2163e6ef03f7a7d49281656183dcee8efa87ac96e81e8fe11b6f8f615ef1015c",
+      "nativeDownload": "PASS",
+      "privateHeaders": "PASS"
+    },
+    {
+      "role": "supplier-coordinator",
+      "id": "bbs-supplier-coordinator-manual",
+      "httpStatus": 200,
+      "bytes": 4054259,
+      "sha256": "5ff5d790788c742d36181dba5f07cad22c0e7e7d425543a808e232a361fb829d",
+      "nativeDownload": "PASS",
+      "privateHeaders": "PASS"
+    },
+    {
+      "role": "external-technician",
+      "id": "bbs-external-technician-manual",
+      "httpStatus": 200,
+      "bytes": 3855002,
+      "sha256": "cf3f2f8d245682161bf7c7b18ed61f8084ca3f156bb44374f5cbb610295e054b",
+      "nativeDownload": "PASS",
+      "privateHeaders": "PASS"
+    }
+  ],
+  "widths": [
+    {
+      "width": 1440,
+      "documentWidth": 1440,
+      "clipped": 0,
+      "status": "PASS"
+    },
+    {
+      "width": 768,
+      "documentWidth": 768,
+      "clipped": 0,
+      "status": "PASS"
+    },
+    {
+      "width": 390,
+      "documentWidth": 390,
+      "clipped": 0,
+      "status": "PASS"
+    },
+    {
+      "width": 360,
+      "documentWidth": 360,
+      "clipped": 0,
+      "status": "PASS"
+    }
+  ],
+  "spanishEnglishFallback": "PASS",
+  "anonymousStatus": 401
+}

@@ -47,5 +47,13 @@
     ],
     "staticPrivacySafeSupportMessage": "PASS"
   },
-  "nativeRejectedTime": "Actual Worker2 source shows Rejected and reviewer/Owner handoff, with no Create corrected draft control"
+  "nativeRejectedTime": "Actual Worker2 source shows Rejected and reviewer/Owner handoff, with no Create corrected draft control",
+  "productionDeployment": {
+    "status": "PASS",
+    "deployedSourceCommit": "a7f8a2c601a34b15a8177f82604deb946c7123af",
+    "receipt": "deployment-receipt.json",
+    "nativePdfDownloads": 8,
+    "protectedBusinessTablesUnchanged": 45,
+    "productionOperations": "Read-only Help, downloads, health and database hashes; no business mutations"
+  }
 }

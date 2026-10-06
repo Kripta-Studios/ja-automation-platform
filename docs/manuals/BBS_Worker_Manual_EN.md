@@ -16,6 +16,8 @@ The eight Worker test accounts in the private credentials document use the same 
 
 Each screenshot is an exercise checkpoint. Later fictional role entries and financial events are additional to the original October 1–5 workbook totals. Reopening the project or selecting the same dates does not restore that checkpoint. Read captions before comparing amounts or states.
 
+The assignment and expected-hours supplement uses a separate isolated October 20–23 synthetic exercise. Project access, a published work plan and a dated working-hours target are separate records. Workers record actual work and report progress independently; a plan never creates actual hours or a payment.
+
 ### Verify the result
 
 - Confirm your displayed account, role or supplier profile, the project number and the dates before saving.
@@ -78,6 +80,121 @@ Check the timezone displayed by the page and the work date on the source. The is
 - Ask the PM/Owner to correct an incorrect or missing published plan. Record genuine authorized actual work rather than copying a plan into fictitious hours.
 
 ![Actual Worker 2 upcoming published two-hour plan; no October 16 actual time was created.](../evidence/bbs-role-manuals-20261006/worker/screenshots/33-worker-upcoming-plan.png)
+
+## Follow a published assignment through actual work and review
+
+Go here: Today → Upcoming assignments → Time → Submit this week
+
+Context: Isolated BBS planning lab · synthetic October 20, 2026 work · genuine role sessions · no production hours
+
+Three controls have different purposes. A dated project assignment gives you project access. A published planning assignment describes intended work. The effective working schedule supplies the Expected hours in your weekly Time view. None records the work for you.
+
+In this connected training exercise, the Owner published October 20, 08:00–16:00 UTC with eight planned hours for the fictional Chief and Technicians 1 and 2. Each person saw their own assignment card. Before anyone saved time, there were zero actual hours for that date.
+
+Technician 1 then recorded six actual hours personally. The Chief recorded seven hours for Technician 2 through dated crew delegation and recorded eight Chief hours separately. These are synthetic future-dated training records in an isolated copy; do not copy them into the live portal.
+
+### Do the task
+
+1. Open Today → Upcoming assignments. Read the project, date, UTC interval, site and Planned hours. Open project displays your permitted project context.
+2. After genuine work, open Time → Log time. Select Assigned project and Date, enter Actual duration and Activity summary, then Save draft. In the illustrated exercise, Technician 1 saved six hours rather than copying the eight-hour plan.
+3. Check the saved register and weekly row. Select the correct week with Week of → Open week. Use Submit or Submit all week drafts only after checking every draft in that displayed week.
+4. An authorized Owner or Project Manager reviews the submitted internal-worker source in Approvals. Refresh your own Time view to see the resulting state; submitting or receiving a plan does not approve it.
+5. If the Chief already recorded your hours, inspect the existing source before adding another. The seven-hour delegated source belongs to Technician 2 and is visible in that worker’s own Time view; it is not seven Chief hours.
+
+### Verify the result
+
+- The connected browser test ended with one approved source per person: Technician 1 six hours, Technician 2 seven hours, Chief eight hours. No time was created by publishing the plan.
+- Your operational screens do not disclose client charge rates, internal labor costs, margins or colleagues’ compensation. Own pay remains a separate personal view.
+
+### If you get stuck
+
+- Ask the Owner/PM to correct an inaccurate published plan. You do not edit it from the assignment card.
+- Explain real progress and a shorter or longer shift in your Activity summary and Daily/Technical report. Record actual work rather than padding hours to match a target.
+
+![Technician 1 sees the October 20 eight-hour plan under Upcoming assignments. Today is October 6 in this isolated snapshot; project membership exists although no plan is published for today.](../evidence/bbs-planning-20261006/worker/screenshots/02-worker1-upcoming-plan.png)
+
+![Native Technician 1 Log time form: six actual hours are entered independently of the eight-hour plan. This is synthetic isolated training work.](../evidence/bbs-planning-20261006/worker/screenshots/05-worker1-actual-six-hours-form.png)
+
+## Read Expected, Difference and Needs note correctly
+
+Go here: Time → Week of → Open week
+
+Context: Isolated BBS planning lab · synthetic October 20, 2026 work · genuine role sessions · no production hours
+
+The Owner configures the project’s effective working schedule in minutes for each weekday. In this training scope, the schedule is effective October 19 with 480 minutes on Monday–Friday and zero on Saturday/Sunday. Eight expected hours are a planning target; they do not create hours, compensation settlements or invoice lines.
+
+Expected is determined from dated project membership and its effective schedule, rather than by adding published plans. A three-hour published plan can therefore coexist with an eight-hour daily Expected figure. Where the application cannot determine an unambiguous target, it displays a dash instead of inventing one.
+
+Difference means actual minus expected for that day. After operational approval, Technician 1 shows 6.00h Actual, 8.00h Expected and −2.00h Difference; Technician 2 shows 7.00h, 8.00h and −1.00h. Both weekly rows say Needs note because approved actual work differs from the target. The underlying time sources remain Approved.
+
+Needs note is an explanatory comparison status. This exercise found no dedicated Add note or Clear Needs note control and it did not block the PM from approving accurate time. A report explaining the difference does not automatically remove this comparison label.
+
+The final additional training checkpoint is later than the earlier weekly screenshots. The Owner gave Technician 1 another project membership covering October 23 only. Two own project assignments now cover that Friday, so Expected and Difference are —. This means an unambiguous target is unavailable; it does not mean a zero-hour schedule, missing actual source or missing saved BBS plan. The earlier tables correctly show Friday eight expected hours and a forty-hour week before this extra membership.
+
+### Do the task
+
+1. Open Time, select the week containing the work date, and click Open week.
+2. Read the daily row, not just the weekly total. A partly completed week can show a large negative weekly Difference because future or unworked scheduled days have zero actual hours.
+3. Check the source record’s own approval state separately from the weekly comparison status.
+4. On a phone, use the daily card with its labelled Actual, Expected, Difference and Status fields. Open day entries opens the matching actual sources.
+
+### Verify the result
+
+- Technician 1: 6 − 8 = −2 hours. Technician 2: 7 − 8 = −1 hour. Chief: 8 − 8 = zero hours, with an Approved weekly status.
+- Approval records operational truth; it does not redefine the working schedule or turn a planning target into a contractual pay or customer charge rule.
+- In the later browser test, Friday October 23 showed Actual 0.00h, Expected — and Difference —; October 20 remained six actual versus eight expected hours, −2.00h and Needs note. No second-project actual hours were created. The current project selector still showed only the permitted BBS project.
+
+### If you get stuck
+
+- If Expected is a dash, ask the Owner to check dated project membership and effective schedule coverage. Before the October 1 membership in this example, September 28–30 have no Expected figure.
+- If multiple project assignments make the target ambiguous, ask the Owner to investigate the allocation. Do not pick a target by adding plans or duplicating time.
+
+![Technician 1’s own weekly comparison after PM approval: October 20 Actual 6.00h, Expected 8.00h, Difference −2.00h and Needs note. The source itself remains Approved.](../evidence/bbs-planning-20261006/worker/screenshots/07-worker1-approved-needs-note.png)
+
+![The same Technician 1 October 20 six-hour source is Approved. Needs note belongs to the weekly target comparison; it is not a returned source. Customer billability remains a separate workflow.](../evidence/bbs-planning-20261006/worker/screenshots/12-worker1-source-approved.png)
+
+![Technician 2’s own view after the Chief’s seven-hour source was submitted and PM approved: Expected remains eight hours and Difference is −1.00h.](../evidence/bbs-planning-20261006/worker/screenshots/08-worker2-chief-recorded-needs-note.png)
+
+![Worker-view comparison after an October 21 plan was updated to three planned hours: the dated working schedule still supplies eight Expected hours. Planned hours do not overwrite Expected. This is the earlier checkpoint, before the additional October 23 one-day membership; its Friday eight-hour expectation and weekly forty-hour target remain correct for that saved stage.](../evidence/bbs-planning-20261006/owner/screenshots/06-worker-planned-three-expected-eight.png)
+
+![Worker-view troubleshooting: September 28–30 are before the October 1 project membership, so Expected and Difference are dashes. This screenshot contains operational hours only.](../evidence/bbs-planning-20261006/owner/screenshots/05-worker-missing-expected-before-membership.png)
+
+![Actual phone view of the October 20 comparison. Labelled fields retain six actual hours, eight expected hours, −2 hours and Needs note.](../evidence/bbs-planning-20261006/worker/screenshots/10-worker-phone-weekly-comparison.png)
+
+![Later isolated checkpoint, after an additional one-day project membership on October 23: Friday Actual is zero and Expected / Difference are unknown (—). October 20 remains six actual versus eight expected hours. Earlier weekly tables precede this added membership and correctly show Friday eight expected hours. This operational crop contains no prices, costs or compensation.](../evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png)
+
+## Handle a missing plan and understand what a work goal means
+
+Go here: Today → Your assigned projects; Time; Reports
+
+Context: Isolated BBS planning lab · synthetic October 20, 2026 work · genuine role sessions · no production hours
+
+A project assignment and a published plan are separate. The Today screen can say No published assignment for today while Your assigned projects contains the project. The page explicitly allows actual work to be recorded for authorized projects; absence of a planning card is not evidence that project access was removed.
+
+There is no worker task-goal lifecycle with Accept, Reject or Mark completed buttons on these cards. The work target is planning context. Record progress and outcomes in Activity summary and Daily/Technical reports, then submit through the normal review workflow. Project milestones are separate project checkpoints.
+
+Crew delegation adds dated permission for a Chief to record selected colleagues’ actual work. It does not publish plans, create a team-wide agenda, expose colleagues’ compensation or grant operational approval authority.
+
+### Do the task
+
+1. If no plan is shown, inspect Your assigned projects and confirm the work date. Ask the Owner/PM whether they intended to publish a plan for that date.
+2. If a permitted project is missing from Log time, ask the Owner to check account status, assignment dates and project availability before entering work elsewhere.
+3. If the card’s dates, site or hours are incorrect, ask the plan manager to Save assignment changes. Continue to record accurate actual work within valid authorization.
+4. Use your Daily report for completed tasks, remaining work, issues and handover; use a Technical report for specific technical findings or changes.
+
+### Verify the result
+
+- No assignment-card acceptance or completion click is required or available. Saving/submitting actual records and reports provides the operational handoff.
+- Desktop, tablet and phone native screens were checked. The phone work card and weekly daily card retain their labels without horizontal page overflow.
+
+### If you get stuck
+
+- An expired project assignment or crew delegation is different from a missing plan. Ask the Owner to review the appropriate dated access record; a plan alone does not grant permission.
+- Escalate with the project, work date and record state. Keep credentials, client prices, costs and other workers’ pay out of reports and screenshots.
+
+![Actual Today screen before plan publication: assigned project count is one, no plan is published for today, and actual work may still be recorded for assigned projects.](../evidence/bbs-planning-20261006/worker/screenshots/01-worker-no-published-today.png)
+
+![Native phone assignment card: operational project, UTC interval, site and Planned hours only. The card offers Open project, with no Accept/Reject/Mark completed workflow.](../evidence/bbs-planning-20261006/worker/screenshots/09-worker-phone-own-assignment.png)
 
 ## Save and inspect actual time
 
@@ -504,6 +621,8 @@ Actual saved/submitted/returned/approved states are distinguished from controls 
 7. Own October 15–16 PDF and CSV statements Ready, native downloads 200, exact stored hash and length match.
 8. Another Worker’s statement downloads returned 404; Finance/Billing/other-worker Time denied; own private receipt accessible.
 9. Desktop 1440, tablet 768 and phone 390 Time pages fit their viewports.
+10. Additional connected planning lab: Owner published October 20 eight-hour plans to all three original workers; each saw their own card with zero actual time before native entry. Technician 1 saved/submitted six hours, the Chief saved/submitted seven for Technician 2 plus eight of its own; PM approved all three.
+11. Additional weekly comparison: 6/8/−2 and 7/8/−1 displayed Needs note after approval; Chief 8/8/0 displayed Approved. Before membership coverage Expected was a dash. Native desktop/tablet/phone agenda and crew views fit 1440/768/390 viewports.
 
 ### Verify the result
 

@@ -1,0 +1,246 @@
+{
+  "scope": "Isolated BBS planning lab; fictional work only; production not mutated",
+  "project_id": "01a10c51-a391-7288-aad1-cb38be43f496",
+  "work_date": "2026-10-20",
+  "actual_source_count": 3,
+  "actual_sources": [
+    {
+      "id": "01a110b8-f4e7-752e-9b17-799207571879",
+      "worker_id": "01a10c51-a140-707b-9210-21b341b4d4ee",
+      "fictional_worker": "BBS DEMO - Tecnico 1",
+      "work_date": "2026-10-20",
+      "minutes": 360,
+      "approval_state": "approved",
+      "approved_by": "01a10e36-5067-76bd-83c1-eac4037da8bd",
+      "recorded_by_user_id": null,
+      "grant_id": null,
+      "delegation_starts_on": null,
+      "delegation_ends_on": null,
+      "delegation_status": null
+    },
+    {
+      "id": "01a110b9-755e-7470-b1d5-6dce6e0b3d12",
+      "worker_id": "01a10c51-a2ad-74c8-ae12-e377be6b6942",
+      "fictional_worker": "BBS DEMO - Tecnico 2",
+      "work_date": "2026-10-20",
+      "minutes": 420,
+      "approval_state": "approved",
+      "approved_by": "01a10e36-5067-76bd-83c1-eac4037da8bd",
+      "recorded_by_user_id": "01a10c51-9ff2-77d1-a994-de141701efe3",
+      "grant_id": "01a10c56-4779-71cc-9c19-2456822576f6",
+      "delegation_starts_on": "2026-10-01",
+      "delegation_ends_on": "2026-10-31",
+      "delegation_status": "active"
+    },
+    {
+      "id": "01a110b9-ac46-736d-9a05-1e0ed75da1c6",
+      "worker_id": "01a10c51-9ff2-77d1-a994-de141701efe3",
+      "fictional_worker": "BBS DEMO - Jefe de crew",
+      "work_date": "2026-10-20",
+      "minutes": 480,
+      "approval_state": "approved",
+      "approved_by": "01a10e36-5067-76bd-83c1-eac4037da8bd",
+      "recorded_by_user_id": null,
+      "grant_id": null,
+      "delegation_starts_on": null,
+      "delegation_ends_on": null,
+      "delegation_status": null
+    }
+  ],
+  "published_plans": [
+    {
+      "id": "01a110b7-cfb3-721d-953e-3d65ba033611",
+      "worker_id": "01a10c51-9ff2-77d1-a994-de141701efe3",
+      "starts_at": "2026-10-20T08:00:00.000Z",
+      "ends_at": "2026-10-20T16:00:00.000Z",
+      "planned_minutes": 480,
+      "status": "published",
+      "site": "BBS planning lab · fictional crew bench"
+    },
+    {
+      "id": "01a110b7-cfb5-77f3-bfd4-db97f1b9af86",
+      "worker_id": "01a10c51-a140-707b-9210-21b341b4d4ee",
+      "starts_at": "2026-10-20T08:00:00.000Z",
+      "ends_at": "2026-10-20T16:00:00.000Z",
+      "planned_minutes": 480,
+      "status": "published",
+      "site": "BBS planning lab · fictional crew bench"
+    },
+    {
+      "id": "01a110b7-cfb6-770e-93fb-a05151f4ebfe",
+      "worker_id": "01a10c51-a2ad-74c8-ae12-e377be6b6942",
+      "starts_at": "2026-10-20T08:00:00.000Z",
+      "ends_at": "2026-10-20T16:00:00.000Z",
+      "planned_minutes": 480,
+      "status": "published",
+      "site": "BBS planning lab · fictional crew bench"
+    }
+  ],
+  "audit_actor_mapping": [
+    {
+      "action": "time.create",
+      "entity_id": "01a110b8-f4e7-752e-9b17-799207571879",
+      "actor_id": "01a10c51-a140-707b-9210-21b341b4d4ee"
+    },
+    {
+      "action": "time.create",
+      "entity_id": "01a110b8-f4e7-752e-9b17-799207571879",
+      "actor_id": "01a10c51-a140-707b-9210-21b341b4d4ee"
+    },
+    {
+      "action": "time.submit",
+      "entity_id": "01a110b8-f4e7-752e-9b17-799207571879",
+      "actor_id": "01a10c51-a140-707b-9210-21b341b4d4ee"
+    },
+    {
+      "action": "time.create",
+      "entity_id": "01a110b9-755e-7470-b1d5-6dce6e0b3d12",
+      "actor_id": "01a10c51-9ff2-77d1-a994-de141701efe3"
+    },
+    {
+      "action": "time.submit",
+      "entity_id": "01a110b9-755e-7470-b1d5-6dce6e0b3d12",
+      "actor_id": "01a10c51-9ff2-77d1-a994-de141701efe3"
+    },
+    {
+      "action": "time.create",
+      "entity_id": "01a110b9-ac46-736d-9a05-1e0ed75da1c6",
+      "actor_id": "01a10c51-9ff2-77d1-a994-de141701efe3"
+    },
+    {
+      "action": "time.create",
+      "entity_id": "01a110b9-ac46-736d-9a05-1e0ed75da1c6",
+      "actor_id": "01a10c51-9ff2-77d1-a994-de141701efe3"
+    },
+    {
+      "action": "time.submit",
+      "entity_id": "01a110b9-ac46-736d-9a05-1e0ed75da1c6",
+      "actor_id": "01a10c51-9ff2-77d1-a994-de141701efe3"
+    },
+    {
+      "action": "time.approved",
+      "entity_id": "01a110b8-f4e7-752e-9b17-799207571879",
+      "actor_id": "01a10e36-5067-76bd-83c1-eac4037da8bd"
+    },
+    {
+      "action": "time.approved",
+      "entity_id": "01a110b9-755e-7470-b1d5-6dce6e0b3d12",
+      "actor_id": "01a10e36-5067-76bd-83c1-eac4037da8bd"
+    },
+    {
+      "action": "time.approved",
+      "entity_id": "01a110b9-ac46-736d-9a05-1e0ed75da1c6",
+      "actor_id": "01a10e36-5067-76bd-83c1-eac4037da8bd"
+    }
+  ],
+  "workflow": "Owner publication → individual Worker/Chief cards → actual draft saves → submission → genuine PM operational review",
+  "ui_comparisons": [
+    {
+      "persona": "Technician 1",
+      "actual_hours": 6,
+      "expected_hours": 8,
+      "difference_hours": -2,
+      "weekly_status": "Needs note",
+      "source_status": "Approved"
+    },
+    {
+      "persona": "Technician 2",
+      "actual_hours": 7,
+      "expected_hours": 8,
+      "difference_hours": -1,
+      "weekly_status": "Needs note",
+      "source_status": "Approved"
+    },
+    {
+      "persona": "Chief",
+      "actual_hours": 8,
+      "expected_hours": 8,
+      "difference_hours": 0,
+      "weekly_status": "Approved",
+      "source_status": "Approved"
+    }
+  ],
+  "browser_errors": {
+    "unexpected_page_errors": 0,
+    "unexpected_console_errors": 0,
+    "unexpected_http_errors": 0,
+    "expected_permission_denials": [
+      "Worker Finance:403",
+      "Chief Approvals:403"
+    ]
+  },
+  "limits": [
+    "Future-dated October 20 synthetic time was accepted by the isolated runtime; this is not production operational activity.",
+    "No dedicated Add note/Clear Needs note or Accept/Reject/Mark completed worker goal controls were present.",
+    "No financial actions, compensation settlement or invoice creation were performed.",
+    "PM excludes supplier-origin time from its approval queue by policy; external Daily report was separately PM approved. Owner performs supplier-time operational review."
+  ],
+  "post_build_native_recapture": {
+    "checks": [
+      {
+        "role": "worker",
+        "name": "02-worker1-upcoming-plan.png",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "overflow": false
+      },
+      {
+        "role": "worker",
+        "name": "09-worker-phone-own-assignment.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "overflow": false
+      },
+      {
+        "role": "worker",
+        "name": "10-worker-phone-weekly-comparison.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "overflow": false
+      },
+      {
+        "role": "worker",
+        "name": "12-worker1-source-approved.png",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "overflow": false
+      },
+      {
+        "role": "chief",
+        "name": "01-chief-own-upcoming-plan.png",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "overflow": false
+      },
+      {
+        "role": "chief",
+        "name": "10-chief-phone-own-weekly-comparison.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "overflow": false
+      },
+      {
+        "role": "worker",
+        "name": "03-worker2-upcoming-plan.png",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        },
+        "overflow": false
+      }
+    ],
+    "errors": []
+  }
+}

@@ -16,6 +16,8 @@ The eight Worker test accounts in the private credentials document use the same 
 
 Each screenshot is an exercise checkpoint. Later fictional role entries and financial events are additional to the original October 1–5 workbook totals. Reopening the project or selecting the same dates does not restore that checkpoint. Read captions before comparing amounts or states.
 
+The assignment and expected-hours supplement uses a separate isolated October 20–23 synthetic exercise. Project access, a published work plan and a dated working-hours target are separate records. Workers record actual work and report progress independently; a plan never creates actual hours or a payment.
+
 ### Verify the result
 
 - Confirm your displayed account, role or supplier profile, the project number and the dates before saving.
@@ -53,6 +55,80 @@ Before practising obtain an operator-provided training URL, own account, visible
 - Ask the Owner/coordinator to investigate account, supplier authorization or assignment dates when the intended project is absent. Do not borrow an account or create duplicate work.
 
 ![Native own External Technician Time workspace and narrow role navigation.](../evidence/bbs-role-manuals-20261006/external-technician/screenshots/01-external-own-time.png)
+
+## Understand assignment access, published plans and expected hours
+
+Go here: Sign in → Time → Week of → Open week
+
+Context: Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production records or financial changes
+
+Project membership gives dated access to record work; a published plan describes intended work; Expected in the weekly timesheet comes from the effective working schedule. These are three separate records. None creates actual hours, approval, customer charges or pay automatically.
+
+The Owner published a two-hour October 22 assignment for this External Technician. Publishing succeeded, but this restricted profile has no Today agenda or Planning calendar. Sign-in/root opens Time; navigation contains Time, Expenses, Reports, Operational report, Profile and Help. Direct Today and Planning links show Access restricted. This is the current profile limitation, not proof of an absent project assignment.
+
+The effective schedule sets eight expected weekday hours. Our technician separately saved and submitted two fictional actual hours on October 22. The weekly row therefore shows Actual 2.00h, Expected 8.00h and Difference −6.00h, even though the published plan is two hours. The later coordinator-recorded October 23 hour contributes another one hour to the weekly total.
+
+After Owner approval, the weekly status reads Needs note because actual differs from expected; the underlying source remains Approved. It is a schedule-variance prompt, not a rejection, payment state or instruction to invent six missing hours. Ask the Owner how to explain the genuine difference.
+
+### Do the task
+
+1. Sign in with your own External Technician account and confirm the training environment. Open Time; verify BBS is available in Assigned project before entering work.
+2. For this exercise set Week of to 2026-10-19 and choose Open week. Inspect the October 22 daily row and open its day entries to inspect the actual source separately.
+3. If the Owner tells you a plan was published, obtain the operational time/site instructions through the approved coordinator or Owner communication channel. This profile cannot inspect or accept the internal agenda card.
+4. Record only work actually performed through Log time → Save draft → individual Submit. Check the source becomes Submitted, then Approved after authorized J&A Owner review.
+5. Compare Actual, Expected and Difference. The eight-hour schedule target is not changed by a two-hour plan or by submission.
+
+### Verify the result
+
+- Native own two-hour save/submission and subsequent Owner approval succeeded. The Owner-created plan remained a separate published record.
+- External Operational report on October 23 totals only the technician’s own one hour; coordinator’s team report totals two hours. Another technician’s known source returned Access restricted.
+- Client rates, company cost, margin, supplier payment and colleagues’ compensation are outside this operational workspace.
+
+### If you get stuck
+
+- If BBS is missing, send the Owner/coordinator your intended project and work date. They must check active account, supplier association, supplier authorization and dated project assignment. Do not borrow a login or duplicate sources.
+- If Planning or Today is unavailable, return to Time. Creating another assignment or repeatedly requesting the denied page does not add the restricted agenda feature.
+- An unavailable Expected value is displayed as — when a usable effective schedule/unique assignment cannot be determined. Ask the Owner to investigate scope and dates; do not treat it as zero actual work.
+
+![Approved October 22 source: weekly Actual 2.00h, Expected 8.00h, Difference −6.00h and Needs note. The weekly total also includes the separate October 23 hour.](../evidence/bbs-planning-20261006/external-technician/screenshots/15-external-approved-hours-needs-note.png)
+
+![Native External Technician Planning route: Access restricted with a Time recovery link. The same role has no Today or Planning navigation.](../evidence/bbs-planning-20261006/external-technician/screenshots/07-external-planning-unavailable.png)
+
+![External own operational report: only their one approved coordinator-recorded October 23 hour, with correct Recorded by attribution.](../evidence/bbs-planning-20261006/external-technician/screenshots/16-external-own-approved-hour.png)
+
+## Describe completed work, open goals and the next shift
+
+Go here: Reports → New daily report → Save daily report → Submit for review
+
+Context: Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production records or financial changes
+
+There is no separate worker-goal screen with Accept, Reject or Mark completed buttons. Use operational Daily report fields to describe completed work, unresolved items and intended next steps. A next-day plan is narrative context; it does not publish a shift, create actual time or guarantee a task was done.
+
+The October 22 synthetic report describes a fictional wiring-list review under Tasks completed, a diagram requiring clarification under Open items and a conditional follow-up under Next-day plan. It was saved, submitted and operationally approved by the genuine Project Manager. No customer acceptance, equipment change or payment is asserted.
+
+Time and Daily reports have separate handoffs in this supplier profile. Submitted supplier time is reviewed by an authorized J&A Owner; the ordinary Project Manager Time queue excludes supplier hours. The Project Manager successfully reviewed this Daily report in the Reports queue.
+
+### Do the task
+
+1. Open Reports and choose New daily report. Select BBS and Work date 2026-10-22; provide Site / shift and Shift summary.
+2. Fill Tasks completed with what happened, Open items with remaining questions and Next-day plan with proposed work. Keep private rates, costs, pay and client-commercial arrangements out of operational narratives.
+3. Choose Save daily report, reopen the new source and inspect the saved fields and Work performed by / Report created by attribution.
+4. Choose Submit for review. Saving alone leaves a draft. After reviewer action refresh and verify Approved.
+5. When the plan or facts change, coordinate with the Owner and use the supported linked correction for a reviewed report. Do not overwrite approved history or invent a task-completion control.
+
+### Verify the result
+
+- Native save → Submit for review → PM Approve report completed. The approved report retains Tasks completed, Open items and Next-day plan.
+- The separate two-hour actual source is Owner Approved. Narrative tasks did not create or alter its duration.
+
+### If you get stuck
+
+- If a time reviewer cannot find supplier hours in the PM queue, hand the exact project, work date and source ID to an authorized J&A Owner; do not submit duplicate time.
+- Approval is operational review. Continue the separate customer sign-off or financial process only through an authorized role.
+
+![Saved approved operational facts: Tasks completed, Open items and Next-day plan. These narrative goals do not create planning or actual-time records.](../evidence/bbs-planning-20261006/external-technician/screenshots/14-external-goals-approved-fields.png)
+
+![Same synthetic Daily source after genuine PM approval. Its Approved badge is separate from time approval and customer acceptance.](../evidence/bbs-planning-20261006/external-technician/screenshots/13-external-goals-report-approved.png)
 
 ## Save your own actual time and submit it
 

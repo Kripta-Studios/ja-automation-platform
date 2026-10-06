@@ -16,6 +16,8 @@ The eight Worker test accounts in the private credentials document use the same 
 
 Each screenshot is an exercise checkpoint. Later fictional role entries and financial events are additional to the original October 1–5 workbook totals. Reopening the project or selecting the same dates does not restore that checkpoint. Read captions before comparing amounts or states.
 
+The assignment and expected-hours supplement uses a separate isolated October 20–23 synthetic exercise. Project access, a published work plan and a dated working-hours target are separate records. Workers record actual work and report progress independently; a plan never creates actual hours or a payment.
+
 ### Verify the result
 
 - Confirm your displayed account, role or supplier profile, the project number and the dates before saving.
@@ -280,6 +282,80 @@ CSV is a native data download. Print / save PDF invokes the browser print flow; 
 ![Actual coordinator report at original submitted 4-hour stage; native CSV downloaded then.](../evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/08-coordinator-operational-report.png)
 
 ![Actual later approved 3.5-hour report after correction; the original download remains truthful.](../evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/13-coordinator-approved-no-double-count.png)
+
+## Turn authorized work instructions into traceable team hours
+
+Go here: Supplier team → Record team hours → Operational report
+
+Context: Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production records or financial changes
+
+Supplier project authorization and personnel assignment establish who may work and on which dates. Internal published planning is separate. Supplier Coordinator navigation opens Supplier team and does not expose Today or Planning; the direct Planning route returns Access restricted. Arrange operational instructions through the Owner’s approved coordination process.
+
+The native October 23 exercise selected two existing fictional supplier technicians, used Same hours for everyone and entered one actual hour. Save selected drafts created two individual sources totaling two team hours, attributed to their respective technicians and Recorded by the coordinator. Shared entry is not one combined person record.
+
+The actual work form remains a factual record. It does not accept a goal, finalize worker pay or disclose customer rates. A technician can inspect their own coordinator-recorded hour but cannot inspect the other technician’s source.
+
+### Do the task
+
+1. Open Supplier team. Choose BBS under Installation / project and Record team hours. Confirm each technician’s displayed assignment dates cover 2026-10-23.
+2. Choose Add visible to selection or select the intended technicians individually. Verify two selected. Set Work date 2026-10-23, Same hours for everyone, Actual hours 1 and the fictional Work performed summary.
+3. Choose Save selected drafts. Confirm Batch saved: 2 drafts and 2 team hours. Saving alone does not submit them.
+4. Set From and To to 2026-10-23 and choose Apply filters. Inspect both separate drafts, then Select up to 100 drafts. Verify the selection is exactly the intended two before Submit selected to J&A.
+5. Open Operational report with the same project/date filter. Verify total two hours, individual one-hour rows and Recorded by attribution. Authorized J&A Owner review subsequently changes both sources to Approved.
+
+### Verify the result
+
+- Native two-person batch save, explicit submission and Owner operational approval succeeded. Both source IDs retained 60 minutes and the correct person attribution.
+- Coordinator report totals 2; External Technician report totals only their own 1. Native desktop, tablet and phone report views loaded without application errors.
+
+### If you get stuck
+
+- If drafts are absent immediately after saving, inspect the selected report period: a successful October 23 save is outside an October 1–6 filter. Update From/To before considering another save.
+- Supplier hours are excluded from the ordinary PM Time approval queue. Hand their project/date/source IDs to an authorized J&A Owner; PM report review is a different workflow.
+- Preserve the source and request a linked correction for reviewed facts. Do not enter another hour to attract review.
+
+![Native two-technician selection: one hour each, not two hours for each person.](../evidence/bbs-planning-20261006/supplier-coordinator/screenshots/02-supplier-two-technicians-one-hour.png)
+
+![Two distinct one-hour sources Submitted, both Recorded by the Supplier Coordinator.](../evidence/bbs-planning-20261006/supplier-coordinator/screenshots/05-supplier-submitted-team.png)
+
+![After authorized Owner review: two Approved one-hour sources and total actual hours 2.](../evidence/bbs-planning-20261006/supplier-coordinator/screenshots/11-supplier-approved-two-hour-total.png)
+
+## Resolve missing personnel, expired dates and work-goal questions
+
+Go here: Supplier team → Record team hours; own Reports → Daily
+
+Context: Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production records or financial changes
+
+The worked supplier authorization and technician assignments end October 31. Moving Work date to November 1 removed both eligible technicians, cleared the selection and disabled Save selected drafts. The app’s No matching records hint mentions search/status generically; in this exercise the actual reason was date coverage. No November 1 source was saved.
+
+An assigned project and a published plan are not interchangeable. This coordinator profile cannot inspect an internal agenda, publish plans or accept goals. A current supplier grant still does not enable the internal Planning calendar.
+
+Use your own Daily report’s Tasks completed, Open items and Next-day plan for truthful coordination notes. Those fields record narrative progress rather than a task status, a published shift, actual hours or customer acceptance. The External Technician chapter demonstrates the same native narrative fields through save, submission and PM operational approval.
+
+### Do the task
+
+1. When personnel disappear, first verify Work date and the displayed assignment interval. Clear an accidental search and confirm BBS before requesting scope changes.
+2. For November 1 in this exercise, stop: coverage ended October 31. Ask the Owner to confirm a genuinely authorized extension and supplier/project relationship. Do not shift the date to make a prohibited work entry save.
+3. When a plan is missing, obtain the instructions from the authorized Owner/coordinator channel; return to Supplier team instead of repeatedly opening the denied Planning route.
+4. For your own coordination narrative open Reports → New daily report. Describe your own completed tasks, unresolved items and proposed next-day steps, then follow Save daily report → Submit for review and the permitted review handoff.
+5. For technician time inspect individual attribution and active totals. A goal description or future plan does not supply actual work evidence.
+
+### Verify the result
+
+- Changing the native team form to an uncovered date removed eligible personnel and disabled saving. Read-only database verification confirmed zero exercise sources on November 1.
+- Native restricted Planning showed Access restricted and a Supplier recovery link. Rates, costs, billing, pay and finance controls remained outside the coordinator workspace.
+
+### If you get stuck
+
+- Include role, supplier, project, intended work date and exact missing/disabled control in an access request. Never include passwords or session material.
+- A directory technician may have no login. Ask the Owner to distinguish personnel creation, individual account activation, supplier authorization and dated project assignment.
+- For expected-hour discrepancies in your own Time screen, use the effective schedule target and Actual minus Expected; do not interpret a plan duration as the schedule target. Ask the Owner to investigate an unavailable — expectation.
+
+![November 1 lies outside October 31 coverage: no eligible technicians, zero selected and disabled Save selected drafts. No time was created.](../evidence/bbs-planning-20261006/supplier-coordinator/screenshots/07-supplier-expired-coverage-blocked.png)
+
+![Native Supplier Coordinator Planning restriction and Supplier recovery route. This is the profile boundary, not missing project coverage.](../evidence/bbs-planning-20261006/supplier-coordinator/screenshots/08-supplier-planning-unavailable.png)
+
+![Phone operational report preserves person, actual duration, state and attribution. This capture is the Submitted checkpoint before Owner review.](../evidence/bbs-planning-20261006/supplier-coordinator/screenshots/10-supplier-report-phone.png)
 
 ## Record your own work separately from technician team hours
 

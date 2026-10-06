@@ -38,6 +38,40 @@
       ]
     },
     {
+      "id": "finance-planning-actual",
+      "title": "Reconcile a work plan with actual source hours",
+      "route": "Economic Review → select BBS → Source records → Time entries",
+      "context": "Worked example · separate isolated BBS assignment lab · synthetic October 20, 2026 · authenticated Finance browser session after operational approval",
+      "paragraphs": [
+        "Project membership permits dated access; a published planning assignment is an operational reference. Expected working hours are a separate dated schedule. None of these creates actual time, Finance review, an invoice, a compensation settlement or a payment.",
+        "The isolated October 20 exercise published eight planned hours to each of three internal workers. Their separately saved and operationally approved sources contain six hours for Technician 1, seven for Technician 2 recorded by the delegated Chief, and eight for the Chief: 21 actual hours, not the 24 planned hours. This synthetic exercise is outside the original October 1–5 financial checkpoint.",
+        "The weekly timesheet compares Actual against the effective Expected schedule. Difference is Actual minus Expected; Needs note flags a mismatch and can coexist with an Approved source. It does not mean a finalized payment or a failed operational approval. A missing expected figure is not assumed to be zero.",
+        "There is no dedicated worker-goal acceptance or completion workflow. Daily/Technical reports describe completed tasks, problems and next steps. Project milestones and commercial budgets have separate lifecycles; meeting a hours target is not evidence that a milestone is approved.",
+        "In this screenshot, client revenue and billable hours remain zero because this new operational exercise has not completed Finance billability review. Zero here is not an agreed zero customer rate. A source-row compensation projection is not a finalized settlement balance; review fixed-period agreements at their applicable settlement scope."
+      ],
+      "steps": [
+        "Select C-0050-P-20261005 · BBS · Ejemplo de manual. Open Source records → Time entries.",
+        "Use Search: Source records to enter 2026-10-20. Read the filtered count, individual worker, actual hours, source state and billing state; the broader Time source records count still describes the full selected project.",
+        "Confirm the three Approved operational sources show six, seven and eight hours. Follow the exact source link when investigating a discrepancy; do not substitute planned hours for recorded time.",
+        "Keep worker expected-hours targets separate from client daily minimums, full-day/full-week billing units and contractual worker compensation."
+      ],
+      "checks": [
+        "All three rows are Approved and Unlocked; the source screenshot was taken before additional Finance classification. The application retains 21 hours of actual work and does not manufacture the missing three planned hours.",
+        "Finance determines commercial treatment separately; do not finalize obligations from an hours target."
+      ],
+      "recovery": [
+        "For incorrect actual work, request the state-appropriate operational correction. For an incorrect plan or expected schedule, ask the Owner or authorized Project Manager. These are different records.",
+        "Supplier time follows the J&A Owner operational-review handoff, whereas an authorized Project Manager may review the supplier Daily report. A missing supplier time item in the ordinary PM queue does not justify duplicate entry."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-planning-20261006/finance/screenshots/01-finance-Oct20-actual-sources.png",
+          "caption": "Actual Finance session · October 20 filter selects three Approved synthetic BBS sources: 8 h Chief, 6 h Technician 1 and 7 h Technician 2. Finance billability review is separate; plans did not create these source rows.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
       "id": "finance-boundaries",
       "title": "Know your authority and the Owner handoffs",
       "route": "Billing → Configure billing; Projects → project → Billing",

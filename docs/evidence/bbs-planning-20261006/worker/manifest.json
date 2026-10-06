@@ -1,0 +1,142 @@
+{
+  "role": "worker",
+  "scope": "Isolated BBS planning lab",
+  "screenshots": [
+    {
+      "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/01-worker-no-published-today.png",
+      "sha256": "24d1182b6b9f9addf424e3f00b723cde8524116cfae7fa0cf8e24efa54b40288",
+      "width": 1104,
+      "height": 721,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/02-worker1-upcoming-plan.png",
+      "sha256": "5ad49464ba693a24d639a84f7db99c9aa9e4dfd3c27f6312144a50b3c5d4cb6f",
+      "width": 1104,
+      "height": 1206,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/03-worker2-upcoming-plan.png",
+      "sha256": "9eed5ec0db23740d6bcab4542702299b251e43585bf586b3ce42d25a34233908",
+      "width": 1104,
+      "height": 1206,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/04-plan-zero-actual-worker2.png",
+      "sha256": "355602f868d4a3345e95cca518c5aa93e2487cd64c7cd42bf65772fb473b9371",
+      "width": 1104,
+      "height": 1163,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/05-worker1-actual-six-hours-form.png",
+      "sha256": "cd65637a2468db3c0b242b66012b5af7a4cb507002d00df70c2bcdcf2a7b5159",
+      "width": 503,
+      "height": 878,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/06-worker1-draft-six-versus-eight.png",
+      "sha256": "614f019f9178c763a93aa7807a28d9f5a3b722f11baa9f1e4a9b8a90b2392a30",
+      "width": 1104,
+      "height": 1163,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/07-worker1-approved-needs-note.png",
+      "sha256": "0a415ee921a90b52bad671390135a078a44f3edd00beb77c6d61dba41fedd718",
+      "width": 1053,
+      "height": 535,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/08-worker2-chief-recorded-needs-note.png",
+      "sha256": "7aa4442b0e432f06749947c49397af2b725cbf37763251ade619070cda11f0bb",
+      "width": 1053,
+      "height": 535,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/09-worker-phone-own-assignment.png",
+      "sha256": "2b8791367210b216806e293c89fa8a226d7440792e113377c27dbb27b7a071ff",
+      "width": 358,
+      "height": 228,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/10-worker-phone-weekly-comparison.png",
+      "sha256": "885469f7d462d8f8ec856634acd71a622bdebb15dddc333a8166ea7791d7549e",
+      "width": 324,
+      "height": 279,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/11-worker-tablet-own-assignment.png",
+      "sha256": "e5b1da07c228f9ade0cc4f00bfc1c113890c3196bcee1472cdb9c1ed74cf357b",
+      "width": 720,
+      "height": 989,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/12-worker1-source-approved.png",
+      "sha256": "36e4e360747459ccc9673dcc5ef832cf814d7845526f99fd7f1b1cf648388e30",
+      "width": 1134,
+      "height": 637,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    }
+  ],
+  "supplementaryCrossRoleScreenshots": [
+    {
+      "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png",
+      "sha256": "9877dd70076980681590f937fe50647ea50f172ef321e6eb25112c163598f156",
+      "width": 1053,
+      "height": 535,
+      "authenticity": "Native authenticated Worker1 browser; operational-only crop with full dates, no financial or compensation values"
+    }
+  ],
+  "multipleProjectFollowUp": {
+    "status": "PASS",
+    "nativeWorkerView": {
+      "status": "PASS",
+      "responseStatus": 200,
+      "oct20": [
+        "Tue\n2026-10-20",
+        "6.00h",
+        "8.00h",
+        "-2.00h",
+        "Regular time 6.00h",
+        "Needs note"
+      ],
+      "oct23": [
+        "Fri\n2026-10-23",
+        "0.00h",
+        "—",
+        "—",
+        "—",
+        "—"
+      ],
+      "selectors": [
+        {
+          "name": "project",
+          "labels": [
+            "All projects",
+            "C-0050-P-20261005 — BBS · Ejemplo de manual"
+          ]
+        }
+      ],
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [],
+        "httpErrors": []
+      },
+      "layout": {
+        "viewport": 1440,
+        "documentWidth": 1440
+      }
+    },
+    "fixture": "Owner-created explicit synthetic Oct23-only second membership with two scoped rules; no second-project actual work",
+    "snapshotChronology": "Figure09 is after added membership; earlier weekly images precede it and correctly show Friday8h/weekly40h."
+  }
+}

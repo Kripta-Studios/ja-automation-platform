@@ -1,0 +1,33 @@
+{
+  "verdict": "SHIP",
+  "recordedAt": "2026-10-06T11:12:15.251830+00:00",
+  "reviewer": "Independent read-only assignment_manual_review agent",
+  "blockingFindings": [],
+  "sourceReview": "Planning field retention and dated target ambiguity preserve authorization and supplier restrictions",
+  "privacyReview": "Restricted-role additions contain operational information without client rates, costs, margins or colleagues compensation",
+  "pdfReview": {
+    "manuals": 8,
+    "totalPages": 608,
+    "hashesAndInstructions": "PASS",
+    "actualRenderedPages": [
+      "Owner18",
+      "ProjectManager52",
+      "Worker21"
+    ],
+    "chronology": "Earlier single-project and later overlapping-membership checkpoints clearly distinguished",
+    "ownerPreservation": "203 course page texts, six attachments and six final invoice streams identical"
+  },
+  "testEvidence": {
+    "scopedRegressionPassed": 115,
+    "planningFormE2EPassed": 4,
+    "supplierSmokePassed": 12,
+    "nativeAmbiguity": "PASS"
+  },
+  "finalHelpIntegration": "PASS: eight genuine role contexts, download matrix, canonical hashes and four widths",
+  "documentedLimits": [
+    "External profiles lack internal Today and Planning navigation",
+    "No generic goal acceptance/completion module",
+    "Needs note does not reverse source approval"
+  ],
+  "publicationStatus": "Production deployment receipt is recorded separately after deployment"
+}

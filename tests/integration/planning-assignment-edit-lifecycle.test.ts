@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
 } from '../fixtures/b5-lifecycle-security-fixture';
 
 const fixtures: ReturnType<typeof createB5LifecycleSecurityFixture>[] = [];
@@ -70,7 +71,8 @@ describe('published planning assignment lifecycle', () => {
       .run('2026-09-01', f.project.id, f.worker.userId);
     expect(f.repository.listPlanning(f.manager).map((row) => row.id)).toContain(f.assignment.id);
     expect(f.repository.listPlanning(f.owner).map((row) => row.id)).toContain(f.assignment.id);
-    expect(f.repository.listPlanning(f.worker)).toEqual([]);
+    const workerSession = stepUpB5Principal(f.sqlite, f.worker, 'planning-membership-read');
+    expect(f.repository.listPlanning(workerSession)).toEqual([]);
     expect(
       f.repository.cancelPlanningAssignment(f.manager, { id: f.assignment.id, version: 1 }),
     ).toEqual({ id: f.assignment.id, version: 2 });

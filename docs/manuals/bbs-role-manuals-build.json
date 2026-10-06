@@ -5,18 +5,22 @@
     {
       "role": "auditor",
       "filename": "BBS_Auditor_Manual_EN.pdf",
-      "pages": 27,
-      "landscape": 10,
+      "pages": 31,
+      "landscape": 11,
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 107,
+      "instructionBlocks": 122,
       "instructionText": "PASS",
-      "bytes": 393729,
-      "sha256": "c036652405abde0c4261af0aff89a39c61c89926ba85980ebafd163efa9be2ee",
+      "bytes": 462079,
+      "sha256": "d910c57e365e8b18257fbe45c8f3509f2e549750056c0689947e54b9c8df3ac3",
       "figures": [
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/12-auditor-phone-navigation.png",
           "sha256": "553295104f7133de31b414649d9e63626be2324c9608ed425d63d4f8071f0c4b"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/auditor/screenshots/01-auditor-Oct20-actual-sources.png",
+          "sha256": "15dacc2126b4042e36607dfe48686d9c373ca53d50c663259725630627512936"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/02-auditor-issued-invoice-register.png",
@@ -71,18 +75,22 @@
     {
       "role": "chief",
       "filename": "BBS_Crew_Chief_Manual_EN.pdf",
-      "pages": 41,
-      "landscape": 16,
+      "pages": 56,
+      "landscape": 21,
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 144,
+      "instructionBlocks": 192,
       "instructionText": "PASS",
-      "bytes": 1557875,
-      "sha256": "6cb7034f404ba6cf71ad1169f6ae6dac31424b4af7983e71210a37269f4bd6ae",
+      "bytes": 1794369,
+      "sha256": "029dbe2c113ad169169685c5f045dcc4085ec22cfd8cbc34b2b390f440e7ce00",
       "figures": [
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/02-chief-crew-shared-filled.png",
           "sha256": "2abe5628f3b9a5fa85dc1199869ad00104d8e9aaa234a8acf1a478e9c5e05f37"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/01-chief-own-upcoming-plan.png",
+          "sha256": "5c15ce5819a4b2fa894683c488426460a029bce7c54992f2375a41ceaa411cc5"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/03-chief-crew-saved.png",
@@ -99,6 +107,22 @@
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/09-chief-individual-submitted.png",
           "sha256": "4eeb950ba9640dff6ad2548c2f3cdb27c34a8372a52203ee8e03f69ebb853971"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/02-chief-delegated-seven-hours-form.png",
+          "sha256": "bb720f5d4103c13f5509539de419367552be57a5dc80b6cd75e604f86dd11770"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/03-chief-worker2-saved-draft.png",
+          "sha256": "33c079f2fbd5b2adec9cddff441505ae9025401d54adb4d95f0af28feeba66bd"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/04-chief-own-eight-hours-form.png",
+          "sha256": "b8b3ecfc35b93eed8e7c282a7de328299228d7467148f9243f2f6baddaf5cd7d"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/09-chief-delegated-approved-record.png",
+          "sha256": "9019f3c13fe8f34444d01560420a1b16e19ff2278eebd044cb7ae82d366d208b"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/18-chief-returned-time.png",
@@ -145,6 +169,14 @@
           "sha256": "cb9219fc35ffe30aa15a6d126ee2aeaa6d664cd58b153890e70a514d885ba138"
         },
         {
+          "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/06-chief-own-approved-eight-hours.png",
+          "sha256": "d70f1db621ecd682cf9b72a92067756104a272ee731570f9c8752d8c4f53eaef"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/10-chief-phone-own-weekly-comparison.png",
+          "sha256": "32e45818cc929ae26be2141d5518754a873bc0817d0b861b777c008f948d97b0"
+        },
+        {
           "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/12-chief-daily-filled.png",
           "sha256": "679517d38a88906aa6400cfe6a96d5b723d7e004ee124d2fc70910674c38d125"
         },
@@ -177,18 +209,38 @@
     {
       "role": "external-technician",
       "filename": "BBS_External_Technician_Manual_EN.pdf",
-      "pages": 34,
-      "landscape": 14,
+      "pages": 44,
+      "landscape": 18,
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 121,
+      "instructionBlocks": 154,
       "instructionText": "PASS",
-      "bytes": 2607314,
-      "sha256": "b58466d202eb3dbbdaef3754799e1d1a2d4e17689a0855afd666c492ab48d6c4",
+      "bytes": 3083832,
+      "sha256": "cb1aafd723653befdf5e829c7b7d1d6bac6c4e52d0929b26b313811421c94ddc",
       "figures": [
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/01-external-own-time.png",
           "sha256": "da3306217fe0f76a8a0faebbbcd878d3c72126033bdc5a55248c642a0e6d03b9"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/external-technician/screenshots/15-external-approved-hours-needs-note.png",
+          "sha256": "2af58950056c8a91101d4316056d40d87988b7cd601d5e42871288e8dc65ad91"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/external-technician/screenshots/07-external-planning-unavailable.png",
+          "sha256": "70676804b7bebd46cd0afbd2e79f998b953547c04c4b7f66e68849f3b7afe1e0"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/external-technician/screenshots/16-external-own-approved-hour.png",
+          "sha256": "30c19e9cc39aab371ef1f71331d9c60d705b032dae5172426663ffeab305bc23"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/external-technician/screenshots/14-external-goals-approved-fields.png",
+          "sha256": "023b5d647bbc9d00fd8667382ef02dd1f8f07dc9c79c374789d95b53b34c8c1b"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/external-technician/screenshots/13-external-goals-report-approved.png",
+          "sha256": "b166a026de86fe7b17bcb437aa7e5029d01da3a147be308b7f00893e3a44f5bd"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/03-external-time-filled.png",
@@ -263,14 +315,14 @@
     {
       "role": "finance",
       "filename": "BBS_Finance_Manual_EN.pdf",
-      "pages": 52,
-      "landscape": 19,
+      "pages": 56,
+      "landscape": 20,
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 190,
+      "instructionBlocks": 205,
       "instructionText": "PASS",
-      "bytes": 989825,
-      "sha256": "df811b0230780b9e90fccd65271c0f434bc9af140835ff6bd5985589103ef7d9",
+      "bytes": 1057988,
+      "sha256": "623e3742f51df2ba9122d6453e2639c49f8b8f98a33f3db8c1751c0356d6fe64",
       "figures": [
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/02-finance-overview-phone.png",
@@ -279,6 +331,10 @@
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/03-finance-mobile-navigation.png",
           "sha256": "a5cf0edf76e4c332d3725fc49e8220d3a1685a0ff4258c4cb234073a71c89185"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/finance/screenshots/01-finance-Oct20-actual-sources.png",
+          "sha256": "c995285550311b9d13f34c9969af47ece1d6632fb8c5caf668505fa0fdf34de6"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/04-finance-review-active-lab-sources.png",
@@ -393,14 +449,14 @@
     {
       "role": "manager",
       "filename": "BBS_Project_Manager_Manual_EN.pdf",
-      "pages": 54,
-      "landscape": 24,
+      "pages": 71,
+      "landscape": 34,
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 232,
+      "instructionBlocks": 273,
       "instructionText": "PASS",
-      "bytes": 2375581,
-      "sha256": "96cb209ef3f03da37c1a2b787a0ec8b234496e309379d8574d90798b3a8fd490",
+      "bytes": 2724314,
+      "sha256": "680c5971446198c9adf83e5b328ff6b1eb009fa164e6151148bed431b4c8d085",
       "figures": [
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/05-pm-dashboard.png",
@@ -471,6 +527,54 @@
           "sha256": "1a8e7341ad06d1649d245e1ccb6b69b6ca6b6ce259867e6765fac98504371168"
         },
         {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/03-owner-three-published-plans.png",
+          "sha256": "7fc965319a32a75bbb13ead2af6d9c2b9746366012f5f51dd89d4ba7fe91591c"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/07-worker1-approved-needs-note.png",
+          "sha256": "0a415ee921a90b52bad671390135a078a44f3edd00beb77c6d61dba41fedd718"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/05-pm-joint-planning-tablet.png",
+          "sha256": "46eb6ecdd8e75363449d7dcff82b53582070ac29f630ad2ee84bc22d3a30cebb"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/06-pm-planning-phone.png",
+          "sha256": "7ce43237463e46cf647c0e6c730e9c03b5e6a682dfddddf3e6cd1e8208463233"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/02-pm-updated-plan-persisted.png",
+          "sha256": "8849b7fafc262f1847c217301691538ff28d736f9fc42f5dd3e8b29b9ba74d58"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/07-worker-updated-three-hour-agenda.png",
+          "sha256": "f27ccccf192ddc67a9d78c5c410d151263e78f71d22f9ce179e27474f8795173"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/06-worker-planned-three-expected-eight.png",
+          "sha256": "0a415ee921a90b52bad671390135a078a44f3edd00beb77c6d61dba41fedd718"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/03-pm-before-cancel.png",
+          "sha256": "c0ed310ffc77cde904b64705b22e7c362e648591acb6e19184bf3e124da25e87"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/04-pm-calendar-after-cancel.png",
+          "sha256": "64ef13c9ea71d8334a34c3268405aa94bafd07f99c7da5bb6e00ca76b5ad92df"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/05-worker-missing-expected-before-membership.png",
+          "sha256": "136eb7e7695ddadf9acc73ef4915bca5fe45395ca5fd8f27ce6c91b009d46154"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/08-pm-fixed-publication-persisted.png",
+          "sha256": "af107ed64b85e86d5c9b86a051b85848a8c2e371f1bcbb1e3791ce373fbce76b"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png",
+          "sha256": "9877dd70076980681590f937fe50647ea50f172ef321e6eb25112c163598f156"
+        },
+        {
           "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/21-pm-availability-saved.png",
           "sha256": "710f7affbc0f5aed37d838368c77176920bb7493fc8aa1a5251c5400555cc2d5"
         },
@@ -515,16 +619,65 @@
     {
       "role": "owner",
       "filename": "BBS_Owner_Manual_EN.pdf",
-      "pages": 211,
-      "landscape": 68,
+      "pages": 232,
+      "landscape": 78,
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 48,
+      "instructionBlocks": 109,
       "instructionText": "PASS",
-      "bytes": 8088677,
-      "sha256": "194395131391193eea76152739fc8a1a64efeba951d9e572a485448ce381104e",
-      "figures": [],
-      "introductionPages": 8,
+      "bytes": 8630472,
+      "sha256": "feb18cb2604b8116261d81696c9385e4d2c79d741867b778729548553fb2fe6b",
+      "figures": [
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/01-owner-publish-joint-plan.png",
+          "sha256": "89921d9b16da1815f335c98ea5219ecb017a7e04c84d80223ef9b6f6eef53aae"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/03-owner-three-published-plans.png",
+          "sha256": "7fc965319a32a75bbb13ead2af6d9c2b9746366012f5f51dd89d4ba7fe91591c"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/02-worker1-upcoming-plan.png",
+          "sha256": "5ad49464ba693a24d639a84f7db99c9aa9e4dfd3c27f6312144a50b3c5d4cb6f"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/02-owner-expected-schedule-before.png",
+          "sha256": "38a8beaf4c51ad1c47a590186e15746ef611ea1c5eaa3ac1563e6ad3030d8773"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/07-worker1-approved-needs-note.png",
+          "sha256": "0a415ee921a90b52bad671390135a078a44f3edd00beb77c6d61dba41fedd718"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/06-chief-own-approved-eight-hours.png",
+          "sha256": "d70f1db621ecd682cf9b72a92067756104a272ee731570f9c8752d8c4f53eaef"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png",
+          "sha256": "9877dd70076980681590f937fe50647ea50f172ef321e6eb25112c163598f156"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/07-worker-updated-three-hour-agenda.png",
+          "sha256": "f27ccccf192ddc67a9d78c5c410d151263e78f71d22f9ce179e27474f8795173"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/06-worker-planned-three-expected-eight.png",
+          "sha256": "0a415ee921a90b52bad671390135a078a44f3edd00beb77c6d61dba41fedd718"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/08-owner-fixed-optional-fields.png",
+          "sha256": "12be9cc2ae0d62d1bf05fd781f3a006533782537908a87a2235eafafada07c6d"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/04-owner-expired-worker-not-eligible.png",
+          "sha256": "6922a46098fb6632104314054566b5cda4c469011aad96b5d0a8054ad1b96d6a"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/05-worker-missing-expected-before-membership.png",
+          "sha256": "136eb7e7695ddadf9acc73ef4915bca5fe45395ca5fd8f27ce6c91b009d46154"
+        }
+      ],
+      "introductionPages": 29,
       "coursePages": 203,
       "nativeAttachments": 6,
       "nativeInvoiceAnnexPages": 6,
@@ -534,14 +687,14 @@
     {
       "role": "supplier-coordinator",
       "filename": "BBS_Supplier_Coordinator_Manual_EN.pdf",
-      "pages": 44,
-      "landscape": 22,
+      "pages": 55,
+      "landscape": 27,
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 186,
+      "instructionBlocks": 219,
       "instructionText": "PASS",
-      "bytes": 2320037,
-      "sha256": "a68cab9ce2db3b85ec20aa3baafc25bef3b85b234949781803130de5f0fd5623",
+      "bytes": 2803748,
+      "sha256": "23f249df9e9cd9bdae07e89318b7c22b7b126d6b7a7f087cdad263a49104317d",
       "figures": [
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/01-coordinator-authorized-personnel.png",
@@ -612,6 +765,30 @@
           "sha256": "b8fd2c36135358dafa0f3ecff8b881ad18dbeca00930f25498f3a6cc6ec24f78"
         },
         {
+          "path": "docs/evidence/bbs-planning-20261006/supplier-coordinator/screenshots/02-supplier-two-technicians-one-hour.png",
+          "sha256": "376403fe6c9b6b369a53dbbf0ea1be4d9a6bca620e6d186070e0c7990aa457db"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/supplier-coordinator/screenshots/05-supplier-submitted-team.png",
+          "sha256": "43c177089a47fa31351c3137c26a9f344ee0c900b51c696a80327d47cc22a38c"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/supplier-coordinator/screenshots/11-supplier-approved-two-hour-total.png",
+          "sha256": "f6df98643cf88305fdbef63d47128a93fa5d710ab2ea4136183afbc599df3568"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/supplier-coordinator/screenshots/07-supplier-expired-coverage-blocked.png",
+          "sha256": "f97bfae5ddafcd8b0df3d35dfcb3f890233c2189565657011f28c5d2dd862082"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/supplier-coordinator/screenshots/08-supplier-planning-unavailable.png",
+          "sha256": "2da5f140c85eb1b622c26c76a2def7ef9a3dbdada0f46db602af1d53f9acefdc"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/supplier-coordinator/screenshots/10-supplier-report-phone.png",
+          "sha256": "dfffbb3e62f6e0e56bfab9795912d334a9593f7e488aae7142d932269fb2effd"
+        },
+        {
           "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/16-coordinator-own-time-form.png",
           "sha256": "24bfd60083cfc5f1398755271dc1d7927255e0e5a8e6075a5174aeea5f3737f1"
         },
@@ -648,14 +825,14 @@
     {
       "role": "worker",
       "filename": "BBS_Worker_Manual_EN.pdf",
-      "pages": 45,
-      "landscape": 17,
+      "pages": 63,
+      "landscape": 25,
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 167,
+      "instructionBlocks": 218,
       "instructionText": "PASS",
-      "bytes": 2075044,
-      "sha256": "792ed373aac8d311c3de4b22695e32e4411fd2992d9055b24cf8fe684b69b0e2",
+      "bytes": 2561671,
+      "sha256": "96c98ad744d16fea1bcf9ecd243be653dd457eacf43dd89339afce1ec11ef8c4",
       "figures": [
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/01-today-desktop.png",
@@ -664,6 +841,50 @@
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/33-worker-upcoming-plan.png",
           "sha256": "f59a380e28f2f678e0b542a896b2867b3b97c99471dec15766a1adc6360ad338"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/02-worker1-upcoming-plan.png",
+          "sha256": "5ad49464ba693a24d639a84f7db99c9aa9e4dfd3c27f6312144a50b3c5d4cb6f"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/05-worker1-actual-six-hours-form.png",
+          "sha256": "cd65637a2468db3c0b242b66012b5af7a4cb507002d00df70c2bcdcf2a7b5159"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/07-worker1-approved-needs-note.png",
+          "sha256": "0a415ee921a90b52bad671390135a078a44f3edd00beb77c6d61dba41fedd718"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/12-worker1-source-approved.png",
+          "sha256": "36e4e360747459ccc9673dcc5ef832cf814d7845526f99fd7f1b1cf648388e30"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/08-worker2-chief-recorded-needs-note.png",
+          "sha256": "7aa4442b0e432f06749947c49397af2b725cbf37763251ade619070cda11f0bb"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/06-worker-planned-three-expected-eight.png",
+          "sha256": "0a415ee921a90b52bad671390135a078a44f3edd00beb77c6d61dba41fedd718"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/05-worker-missing-expected-before-membership.png",
+          "sha256": "136eb7e7695ddadf9acc73ef4915bca5fe45395ca5fd8f27ce6c91b009d46154"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/10-worker-phone-weekly-comparison.png",
+          "sha256": "885469f7d462d8f8ec856634acd71a622bdebb15dddc333a8166ea7791d7549e"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png",
+          "sha256": "9877dd70076980681590f937fe50647ea50f172ef321e6eb25112c163598f156"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/01-worker-no-published-today.png",
+          "sha256": "24d1182b6b9f9addf424e3f00b723cde8524116cfae7fa0cf8e24efa54b40288"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/09-worker-phone-own-assignment.png",
+          "sha256": "2b8791367210b216806e293c89fa8a226d7440792e113377c27dbb27b7a071ff"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/02-time-filled-desktop.png",

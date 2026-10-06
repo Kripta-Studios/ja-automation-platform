@@ -16,6 +16,8 @@ The eight Worker test accounts in the private credentials document use the same 
 
 Each screenshot is an exercise checkpoint. Later fictional role entries and financial events are additional to the original October 1–5 workbook totals. Reopening the project or selecting the same dates does not restore that checkpoint. Read captions before comparing amounts or states.
 
+The assignment and expected-hours supplement uses a separate isolated October 20–23 synthetic exercise. Project access, a published work plan and a dated working-hours target are separate records. Workers record actual work and report progress independently; a plan never creates actual hours or a payment.
+
 ### Verify the result
 
 - Confirm your displayed account, role or supplier profile, the project number and the dates before saving.
@@ -355,6 +357,95 @@ A published assignment can be edited through its own record. Updating the plan d
 - Coordinate a genuine cancellation with the worker; do not assume a changed plan deletes recorded history.
 
 ![Actual PM Save assignment result after changing the fictional site note.](../evidence/bbs-role-manuals-20261006/manager/screenshots/33-pm-plan-update-saved.png)
+
+## Follow a shared plan through crew work and review
+
+Go here: Planning → October 20; Worker / Chief: Today; Approvals
+
+Context: Isolated BBS planning and crew lab · October 20–25, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.
+
+The Owner published one common October 20 08:00–16:00 UTC plan to the Chief and two existing technicians. This created three planning records, one per person. Their separate Worker-role agendas each showed an eight-hour BBS plan. Project membership and dated chief delegation remained separate prerequisites.
+
+Actual work differed: Technician 1 personally recorded six hours; the Chief recorded seven hours for Technician 2 through the delegated Crew workspace; the Chief personally recorded eight hours. Each source was submitted individually and reviewed by a separate Project Manager account. No colleague’s compensation or customer pricing is needed for this operational handoff.
+
+### Do the task
+
+1. Open Planning, choose October 20 and inspect the three BBS agenda records. Confirm project, worker, UTC interval and 480 planned minutes for each.
+2. Ask each worker to check Today → Upcoming assignments using their own account. They do not accept or complete the plan with a task button; they record and report actual work separately.
+3. For delegated crew entry, have the Chief check project, date and managed worker before saving individual actual hours. Avoid duplicating a crew-entered source through a worker’s own time form.
+4. Open Approvals for BBS and October 20. Review the submitted 6 / 7 / 8 hours and operational notes. Choose the supported Approve control for each truthful source.
+5. Ask the workers to reopen Time → Week of 2026-10-19. Technician 1 shows Actual 6.00h, Expected 8.00h, Difference −2.00h and Needs note; Technician 2 shows 7.00h / 8.00h / −1.00h and Needs note; Chief shows 8.00h / 8.00h / 0.00h and Approved.
+
+### Verify the result
+
+- Native multi-worker publication created no actual time. Later separately authored sources persisted Approved with 360 / 420 / 480 minutes and the correct creator identities.
+- Needs note is a weekly comparison indicator for approved time differing from its expectation. The underlying source remains Approved. Explain the work difference in operational notes/reports; never force actual hours to match a target.
+
+### If you get stuck
+
+- A chief’s ability to record crew time does not automatically grant review authority. Ask the Owner to verify the separate review permission.
+- If a worker reports a missing plan, compare today in UTC, project membership and the published plan date. If the actual source is wrong, use the correction chapter rather than editing planning.
+
+![Owner-created shared BBS plan visible in the authorized planning agenda: one record per person, each 480 planned minutes.](../evidence/bbs-planning-20261006/owner/screenshots/03-owner-three-published-plans.png)
+
+![Separate Worker 1 view after PM review: six actual hours versus an eight-hour expectation. This operational table deliberately excludes all compensation estimates.](../evidence/bbs-planning-20261006/worker/screenshots/07-worker1-approved-needs-note.png)
+
+![Actual Project Manager calendar at 768-pixel tablet width, with the three October 20 planning records.](../evidence/bbs-planning-20261006/manager/screenshots/05-pm-joint-planning-tablet.png)
+
+![Actual Project Manager selected-day agenda at 390-pixel phone width. The three worker records display their UTC intervals and planned quantities.](../evidence/bbs-planning-20261006/manager/screenshots/06-pm-planning-phone.png)
+
+## Distinguish planned hours, expected hours and work goals
+
+Go here: Planning; Worker: Today and Time; Owner: Projects → Expected Working Schedule
+
+Context: Isolated BBS planning and crew lab · October 20–25, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.
+
+The Owner configures Expected Working Schedule through Projects → More actions. It has an effective date, IANA timezone and a minutes value for each weekday. The BBS lab’s October 19 schedule is 480 minutes Monday–Friday and zero on weekends. This reference is separate from published planning and never creates actual work.
+
+The October 21 practice plan was edited to three hours, 09:00–12:00 UTC. Worker 1 sees Planned: 3 h, while the Wednesday timesheet still expects 8.00h and records 0.00h until actual work is entered. Creation displays Planned hours; the edit form displays Planned minutes, so three hours is 180 minutes.
+
+Planning and worker agendas display UTC. On October 20, 08:00–16:00 UTC means 10:00–18:00 Europe/Madrid or 04:00–12:00 America/New_York. Convert for the actual date, because daylight-saving changes can alter the offset.
+
+There is no generic worker-goal Accept / Reject / Mark completed workflow. Use assignments for coordination, expected hours for comparison and Daily / Technical reports for actual progress and blockers. Project milestones are separate project checkpoints; ask the Owner or Finance to establish any financial milestone terms. This operational exercise creates no milestone charges.
+
+After the earlier planning tables, the Owner added an explicitly synthetic October 23-only membership for Technician 1 in the existing fictional onboarding project. The later Worker weekly table shows Friday Expected and Difference as — because two own projects cover that day. Earlier screenshots still correctly show Friday eight hours and weekly forty before that extra assignment. No actual work was entered in the second project.
+
+### Do the task
+
+1. Open an existing Published assignments record, edit the interval, Planned minutes and optional site, and choose Save assignment. Reopen it to verify persistence and ask the worker to reload Today.
+2. To cancel a plan, identify the correct project, person and dates and choose Cancel assignment. Check the calendar and the worker’s upcoming agenda. Cancellation does not erase or correct an actual-time source.
+3. If Today has no plan but lists Your assigned projects, check whether the plan is future or has not been published. Membership alone does not publish a shift.
+4. If the worker is unavailable in the publish form, ask the Owner to check active account status and project-assignment coverage for the selected interval. Supplier personnel with coverage ending October 31 are not eligible on November 1.
+5. If Expected is —, ask the Owner to check membership and effective schedule dates. Zero is a valid target; — means unknown. Worker 1’s September 28–30 precede their October 1 membership and therefore show unknown expectations.
+6. If multiple projects cover the day, do not add their targets together yourself. The application leaves the expectation unknown where it lacks a single effective project/schedule. Resolve the planning allocation with the Owner; the later October 23 one-day second-assignment checkpoint demonstrates the unknown target.
+
+### Verify the result
+
+- Native PM edit saved 180 minutes, updated UTC dates and site; the Worker agenda reflected those values after reload. The weekly expected eight hours did not change.
+- A separate October 22 Worker 2 plan was cancelled natively and disappeared from the Worker agenda. Its retained record has cancelled status and no actual-time source was generated.
+- The later separate Worker session showed October 23 Actual 0.00h / Expected — / Difference — while the main October 20 six actual and eight expected hours stayed unchanged. Counting a future own membership for ambiguity did not expose that project in the current selector or add actual records.
+
+### If you get stuck
+
+- The External Technician profile has restricted Time / Expenses / Reports access and currently no internal Today agenda or Planning calendar, even when the Owner publishes a plan. Confirm its schedule through the authorized operational handoff.
+- Operational screenshots and hours comparisons do not authorize access to client rates, loaded costs, margins or another person’s pay. Route financial interpretation to Finance or the Owner.
+- After a publish-field validation message, correct the highlighted field and recheck the retained person, UTC interval, planned quantity, Site and Required expertise before retrying.
+
+![PM published record reopened after editing: October 21 09:00–12:00 UTC, 180 planned minutes and the saved fictional site.](../evidence/bbs-planning-20261006/manager/screenshots/02-pm-updated-plan-persisted.png)
+
+![Separate Worker 1 agenda after the edit: the published three-hour practice plan appears alongside the eight-hour crew plan.](../evidence/bbs-planning-20261006/owner/screenshots/07-worker-updated-three-hour-agenda.png)
+
+![Separate Worker 1 weekly table: planned three hours does not replace the independently configured eight-hour Wednesday expectation. This crop contains no pay figures. This is the earlier checkpoint, before the additional October 23 one-day membership; its Friday eight-hour expectation and weekly forty-hour target remain correct for that saved stage.](../evidence/bbs-planning-20261006/owner/screenshots/06-worker-planned-three-expected-eight.png)
+
+![Actual PM Cancel assignment control for the separate October 22 Worker 2 practice plan. Verify the worker and interval before cancelling.](../evidence/bbs-planning-20261006/manager/screenshots/03-pm-before-cancel.png)
+
+![October 22 agenda after cancellation: the Worker 2 practice plan has disappeared; the separate external-technician two-hour plan remains.](../evidence/bbs-planning-20261006/manager/screenshots/04-pm-calendar-after-cancel.png)
+
+![Separate Worker 1 historical week: dashes before the October 1 assignment demonstrate an unknown expected target, rather than a zero-hour schedule.](../evidence/bbs-planning-20261006/owner/screenshots/05-worker-missing-expected-before-membership.png)
+
+![Additional PM October 25 practice publication reopened after correcting an invalid interval: saved UTC 08:00–10:00, 120 planned minutes, fictional Site and Required expertise. No actual work was generated.](../evidence/bbs-planning-20261006/manager/screenshots/08-pm-fixed-publication-persisted.png)
+
+![Later isolated checkpoint, after an additional one-day project membership on October 23: Friday Actual is zero and Expected / Difference are unknown (—). October 20 remains six actual versus eight expected hours. Earlier weekly tables precede this added membership and correctly show Friday eight expected hours. This operational crop contains no prices, costs or compensation.](../evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png)
 
 ## Maintain expertise and availability in the correct scope
 

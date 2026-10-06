@@ -1452,6 +1452,8 @@
   let planningEnds = $state('');
   let planningProjectId = $state('');
   let planningWorkerIds = $state<string[]>([]);
+  let planningSite = $state('');
+  let planningRequiredSkill = $state('');
   let planningRequestKey = $state('');
   $effect(() => {
     if (!planningRequestKey) planningRequestKey = crypto.randomUUID();
@@ -1477,6 +1479,8 @@
     planningRequestKey = String(values.requestKey ?? planningRequestKey);
     planningStarts = String(values.startsAt ?? '');
     planningEnds = String(values.endsAt ?? '');
+    planningSite = String(values.site ?? '');
+    planningRequiredSkill = String(values.requiredSkill ?? '');
   });
   const planningEligibleWorkers = $derived(
     (data.workers ?? []).filter(
@@ -6720,18 +6724,11 @@
                 class="field-error"
                 role="alert">{planningFieldMessage('plannedMinutes', 'createPlanning')}</small
               >{/if}<label
-              >{translate('Site (optional)')}<input
-                name="site"
-                value={planningFailure?.operation === 'createPlanning'
-                  ? String(planningFailure.values?.site ?? '')
-                  : ''}
-              /></label
+              >{translate('Site (optional)')}<input name="site" bind:value={planningSite} /></label
             ><label
               >{translate('Required expertise')}<input
                 name="requiredSkill"
-                value={planningFailure?.operation === 'createPlanning'
-                  ? String(planningFailure.values?.requiredSkill ?? '')
-                  : ''}
+                bind:value={planningRequiredSkill}
               /></label
             ><button
               disabled={Boolean(

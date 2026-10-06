@@ -16,6 +16,8 @@ The eight Worker test accounts in the private credentials document use the same 
 
 Each screenshot is an exercise checkpoint. Later fictional role entries and financial events are additional to the original October 1–5 workbook totals. Reopening the project or selecting the same dates does not restore that checkpoint. Read captions before comparing amounts or states.
 
+The assignment and expected-hours supplement uses a separate isolated October 20–23 synthetic exercise. Project access, a published work plan and a dated working-hours target are separate records. Workers record actual work and report progress independently; a plan never creates actual hours or a payment.
+
 ### Verify the result
 
 - Confirm your displayed account, role or supplier profile, the project number and the dates before saving.
@@ -52,6 +54,39 @@ Crew hours handles delegated operational entry. Time, Expenses, Reports and My P
 - Ask the Owner to correct expired/missing delegation or assignment. Do not select another account to gain access.
 
 ![Actual Chief delegated entry controls; authority comes from dated grants, not the word Chief.](../evidence/bbs-role-manuals-20261006/chief/screenshots/02-chief-crew-shared-filled.png)
+
+## Read your own plan and distinguish crew authority
+
+Go here: Today → Upcoming assignments; Crew hours → Project / Work date
+
+Context: Isolated BBS planning lab · synthetic October 20, 2026 work · genuine role sessions · no production hours
+
+The Owner/PM publishes a work plan to assigned people. Selecting the Chief and both technicians creates an individual published planning row for each person. Your Today agenda shows your own plan; dated crew delegation does not turn it into a combined crew agenda.
+
+In this connected isolated example, October 20 is planned for 08:00–16:00 UTC with eight planned hours per person. Publication initially created zero actual time. The Owner separately configured an expected weekday schedule of 480 minutes from October 19.
+
+Project membership, work planning and crew delegation are separate dated controls. Both the Chief and managed worker need project coverage for the work date, and the delegation must cover that date. Receiving a plan does not grant permission to record another worker’s hours.
+
+There are no Accept, Reject or Mark completed goal buttons on the assignment cards. Use Activity summary and Daily/Technical reports to describe completed tasks, remaining work, problems and handover.
+
+### Do the task
+
+1. Open Today → Upcoming assignments and read your own project, date, UTC times, site and Planned hours.
+2. Ask the Owner/PM to correct a wrong or missing published plan; the Chief does not edit it from Today.
+3. Open Crew hours, select Project and Work date, and click Show project. Confirm that the intended technicians appear under Team members before entering any hours.
+4. Agree who records each person’s actual work. A technician should inspect an existing Chief-recorded source instead of duplicating it.
+
+### Verify the result
+
+- Planning creates neither actual hours nor compensation settlements or client invoice lines.
+- Chief authority remains limited to dated delegated operational entry. It does not grant Approvals, Finance, client rates, project cost/margin or access to colleagues’ pay.
+
+### If you get stuck
+
+- No published assignment for today can coexist with valid project membership. Use accurate authorized actual records and ask for the missing plan to be published if needed.
+- If Crew hours says no active delegated workers, ask the Owner to check the selected work date, both project assignments and the dated delegation. A future plan is not a replacement for those permissions.
+
+![Chief’s own Today agenda shows the October 20 eight-hour plan. The card is operational context; it does not list the technicians’ private pay or create crew time.](../evidence/bbs-planning-20261006/chief/screenshots/01-chief-own-upcoming-plan.png)
 
 ## Save the same actual hours for multiple crew members
 
@@ -107,6 +142,44 @@ The October 15 exercise entered 0.5 h for Worker 1 and 1 h for Worker 2, categor
 ![Actual individual-hours form before saving 0.5 h and 1 h.](../evidence/bbs-role-manuals-20261006/chief/screenshots/08-chief-individual-filled.png)
 
 ![Saved native individual sources, Submitted for operational review.](../evidence/bbs-role-manuals-20261006/chief/screenshots/09-chief-individual-submitted.png)
+
+## Complete one shared plan with different individual actual hours
+
+Go here: Crew hours → Log team hours; Time → Log time; reviewer → Approvals
+
+Context: Isolated BBS planning lab · synthetic October 20, 2026 work · genuine role sessions · no production hours
+
+The eight-hour plan was the same for all three people, but actual work differed. Technician 1 personally recorded six hours. The Chief recorded seven for Technician 2 through Crew hours, then eight Chief hours separately through its own Time form.
+
+This exercise demonstrates a handoff, not automatic plan completion: actual sources are saved, checked, submitted and independently reviewed. All three synthetic October 20 records were approved by the genuine Project Manager account in the isolated copy.
+
+### Do the task
+
+1. Confirm Technician 1 has already recorded their six-hour source. Do not select that technician in the Chief form for the same work.
+2. In Crew hours, choose October 20 and the BBS project. Select only Technician 2, enter seven Hours per member and an accurate Work performed summary, then Save 1 person. Selecting one member is supported.
+3. Inspect Entries recorded on October 20. The row must belong to Technician 2, show seven hours and Draft. Click Submit after checking the details.
+4. Open your own Time → Log time, select the same project and work date, enter eight actual hours and your own Activity summary, then Save draft.
+5. Check your displayed week and Submit all week drafts. This submits your own Chief drafts, not a second copy of the delegated technician’s source.
+6. The Owner/PM opens Approvals and reviews the three internal-worker sources. Return to Crew hours to verify the seven-hour row says Approved; each worker checks their own Time view.
+
+### Verify the result
+
+- Final source totals are Technician 1 six hours, Technician 2 seven hours and Chief eight hours; exactly one source per person.
+- The seven-hour source retains Technician 2 as worker and the Chief as delegated recorder. Chief’s own Time contains eight hours, not fifteen.
+- Submission is a handoff for review. Chief delegation itself does not grant permission to approve these sources.
+
+### If you get stuck
+
+- If the wrong person or duration is selected, fix the draft before submission. After submission use the returned/correction workflow described in the correction chapter.
+- If a duplicate warning appears, inspect existing personal and crew sources rather than treating the published plan as permission to save another identical entry.
+
+![Native Crew hours form selects only Technician 2 and seven actual hours. Technician 1 records their own work, so that checkbox is left unselected.](../evidence/bbs-planning-20261006/chief/screenshots/02-chief-delegated-seven-hours-form.png)
+
+![Saved delegated seven-hour draft remains tied to Technician 2 and exposes Submit for the operational handoff.](../evidence/bbs-planning-20261006/chief/screenshots/03-chief-worker2-saved-draft.png)
+
+![Chief records its own eight hours separately in the personal Time form. This is synthetic isolated training work.](../evidence/bbs-planning-20261006/chief/screenshots/04-chief-own-eight-hours-form.png)
+
+![After genuine PM review, the delegated Technician 2 seven-hour source is Approved in Crew hours.](../evidence/bbs-planning-20261006/chief/screenshots/09-chief-delegated-approved-record.png)
 
 ## Correct a delegated returned entry
 
@@ -248,6 +321,41 @@ This ordinary own draft was submitted using the native Submit this week flow. Bu
 ![Native own-week draft summary before bulk submission.](../evidence/bbs-role-manuals-20261006/chief/screenshots/23-chief-own-week-before-submit.png)
 
 ![Own Chief source Submitted; PM approval followed.](../evidence/bbs-role-manuals-20261006/chief/screenshots/23b-chief-own-time-submitted.png)
+
+## Reconcile your own weekly target without changing actual work
+
+Go here: Time → Week of → Open week
+
+Context: Isolated BBS planning lab · synthetic October 20, 2026 work · genuine role sessions · no production hours
+
+Expected comes from the effective working schedule and dated project coverage, not from adding published plans or crew sources. In this example, Monday–Friday target 480 minutes each and Saturday/Sunday target zero.
+
+The Chief’s own October 20 row is Actual 8.00h, Expected 8.00h and Difference 0.00h, with Approved status. Technician 1’s personal view is 6/8/−2 and Technician 2’s is 7/8/−1; their weekly comparison rows show Needs note after operational approval.
+
+Needs note flags an approved duration different from the daily expectation. It does not mean the source was returned, and it did not prevent approval. No dedicated Add note or Clear Needs note action was present in the tested controls. Explain differences in the source summary and reports; the comparison can continue to show Needs note.
+
+The weekly total includes scheduled days with no actual records, including future training dates. Check the specific day when reconciling a finished shift. Do not copy a target into fictitious hours or add delegated colleagues’ hours to your own totals.
+
+### Do the task
+
+1. Open your own Time page, enter the week containing the work date and click Open week.
+2. Read Actual, Expected, Difference and Status on the day’s row. Difference is actual minus expected.
+3. Inspect your source’s own approval state separately. Crew delegation does not entitle you to inspect colleagues’ compensation while checking their operational hours.
+4. On a phone, the labelled daily card replaces the wide table. Open day entries locates the actual sources for that date.
+
+### Verify the result
+
+- Your eight-hour source remains eight actual hours even though you also recorded a colleague’s seven-hour source.
+- An unknown expectation displays a dash. The application requires unambiguous effective membership/schedule coverage before showing a target.
+
+### If you get stuck
+
+- Ask the Owner to review assignment dates, effective schedule and any ambiguous multiple-project allocation when Expected is missing or incorrect.
+- Keep reports operational. Do not include client billing rates, internal costs, margins or colleagues’ compensation in crew handover documents.
+
+![Chief’s own weekly comparison after PM approval: October 20 Actual 8.00h, Expected 8.00h, Difference 0.00h and Approved.](../evidence/bbs-planning-20261006/chief/screenshots/06-chief-own-approved-eight-hours.png)
+
+![Native phone view of the Chief’s own October 20 daily comparison; eight actual hours match eight expected hours.](../evidence/bbs-planning-20261006/chief/screenshots/10-chief-phone-own-weekly-comparison.png)
 
 ## Write a Chief daily handover report
 
@@ -426,6 +534,9 @@ Actual saved/submitted/returned/approved states are distinguished from controls 
 7. Chief own 0.25-hour source saved, submitted through its own weekly flow and PM approved.
 8. Own My Pay historical training snapshot inspected; no crew private compensation exposed.
 9. Approvals and Finance denied; desktop/tablet/phone Crew pages fit their viewports.
+10. Additional connected planning lab: original Chief and both technicians received individual eight-hour October 20 plans. Technician 1 authored six actual hours, Chief authored seven delegated hours for Technician 2 and eight personal hours; all three were independently PM approved, with exactly one source each.
+11. Additional expected-hours comparison: Chief’s own weekly day showed 8/8/0 Approved; technicians’ own views showed 6/8/−2 and 7/8/−1 Needs note while underlying sources remained Approved. Dated crew recorder attribution and individual totals were confirmed.
+12. Additional native role/privacy tests: Worker Finance and Chief Approvals returned expected 403; no client prices, internal costing, margins or colleagues’ compensation appeared in the new operational captures.
 
 ### Verify the result
 

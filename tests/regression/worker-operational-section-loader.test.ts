@@ -119,6 +119,7 @@ beforeEach(() => {
     UPDATE project SET timezone='UTC',name=id,project_number=id;
     INSERT INTO expense VALUES('expired-expense','expired-project','worker','2026-09-30','','Expired expense summary','meals',NULL);
     INSERT INTO daily_report VALUES('expired-report','expired-project','worker','2026-09-30','Expired report summary');
+    ALTER TABLE expense ADD COLUMN approval_state TEXT DEFAULT 'draft';
   `);
   repository = setupRepository();
   openPortalRepository.mockReturnValue({
@@ -134,12 +135,12 @@ afterEach(() => {
 });
 
 describe('operational section loader safe Worker DTOs', () => {
-  it('only derives weekly expected targets for currently authorized project IDs and effective days', async () => {
+  it('only derives visible schedule targets on effective days without ambiguous own memberships', async () => {
     const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
     expect(data.timesheet.days.map((day) => day.expectedMinutes)).toEqual([
       null,
       null,
-      480,
+      null,
       480,
       480,
       0,
@@ -162,6 +163,91 @@ describe('operational section loader safe Worker DTOs', () => {
       ],
     });
   });
+
+  it.each([
+    ['overlapping', '2026-10-04'],
+    ['hidden-only', '2026-10-01'],
+  ])(
+    'returns no expected target for an %s future hidden project without widening operational DTOs',
+    async (_scenario, currentEndsOn) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-09-30T12:00:00Z'));
+      sqlite.exec(`
+        UPDATE project_member SET status='inactive' WHERE project_id='expired-project';
+        UPDATE project_member SET starts_on='2026-09-28',ends_on='${currentEndsOn}' WHERE project_id='current-project';
+        INSERT INTO project VALUES('future-hidden-project','active','UTC','Private future project','Future project number',NULL);
+        INSERT INTO project_member VALUES('future-hidden-project','worker','active','2026-10-02','2026-10-04');
+        INSERT INTO schedule VALUES('future-hidden-project','2026-09-01',NULL,600,600,600,600,600,0,0);
+      `);
+      const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
+      expect(data.timesheet.days.map((day) => day.expectedMinutes)).toEqual([
+        480,
+        480,
+        480,
+        480,
+        null,
+        null,
+        null,
+      ]);
+      expect(data.projects).toEqual([{ id: 'current-project' }]);
+      expect(repository.listTimeForScope).toHaveBeenCalled();
+      for (const hidden of [
+        'future-hidden-project',
+        'Private future project',
+        'Future project number',
+      ])
+        expect(JSON.stringify(data)).not.toContain(hidden);
+    },
+  );
+
+  it.each([
+    ['another worker', 'another-worker', 'active', 'active'],
+    ['inactive membership', 'worker', 'inactive', 'active'],
+    ['archived project', 'worker', 'active', 'archived'],
+  ])(
+    'does not count an unrelated %s as a competing target',
+    async (_scenario, workerId, memberStatus, projectStatus) => {
+      sqlite.exec(`
+      UPDATE project_member SET status='inactive' WHERE project_id='expired-project';
+      UPDATE project_member SET starts_on='2026-09-28',ends_on='2026-10-04' WHERE project_id='current-project';
+      INSERT INTO project VALUES('unrelated-project','${projectStatus}','UTC','Private unrelated project','Unrelated number',NULL);
+      INSERT INTO project_member VALUES('unrelated-project','${workerId}','${memberStatus}','2026-10-02','2026-10-04');
+    `);
+      const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
+      expect(data.timesheet.days.map((day) => day.expectedMinutes)).toEqual([
+        480, 480, 480, 480, 480, 0, 0,
+      ]);
+      expect(JSON.stringify(data)).not.toContain('unrelated-project');
+    },
+  );
+
+  it.each(['external_technician', 'supplier_coordinator'])(
+    'preserves the existing dated operational scope for a %s profile',
+    async (profile) => {
+      sqlite.exec(`
+        INSERT INTO supplier_user_profile VALUES('worker','${profile}','supplier');
+        INSERT INTO supplier VALUES('supplier','active');
+        INSERT INTO supplier_project_grant VALUES('supplier','worker','current-project','active','2026-09-30','2026-10-03');
+        INSERT INTO project VALUES('future-hidden-project','active','UTC','Private future project','Future project number',NULL);
+        INSERT INTO project_member VALUES('future-hidden-project','worker','active','2026-10-02','2026-10-04');
+      `);
+      const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
+      expect(data.timesheet.days.map((day) => day.expectedMinutes)).toEqual([
+        null,
+        null,
+        480,
+        480,
+        480,
+        0,
+        null,
+      ]);
+      expect(data.projects).toEqual([{ id: 'current-project' }]);
+      expect(data.weeklyPay).toBeUndefined();
+      expect(JSON.stringify(data)).not.toContain('estimatedApprovedMinor');
+      expect(JSON.stringify(data)).not.toContain('future-hidden-project');
+      expect(JSON.stringify(data)).not.toContain('expired-project');
+    },
+  );
 
   it('returns no past schedule targets for authoritative empty current assignment scope', async () => {
     repository.listAssignedProjects.mockReturnValue([]);

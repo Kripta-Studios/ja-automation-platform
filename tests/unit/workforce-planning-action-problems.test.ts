@@ -23,7 +23,7 @@ vi.mock('$lib/server/portal-repository', async (importOriginal) => {
         principal: { userId: 'owner-1', role: 'owner_admin' },
         sqlite: { close: vi.fn() },
         repository: {
-          createPlanningAssignment: () => throwIfConfigured('createPlanning'),
+          createPlanningAssignments: () => throwIfConfigured('createPlanning'),
           updatePlanningAssignment: () => throwIfConfigured('updatePlanning'),
           cancelPlanningAssignment: () => throwIfConfigured('cancelPlanning'),
           createSkill: () => throwIfConfigured('createSkill'),
@@ -72,6 +72,7 @@ describe('planning, skill, and availability action problems', () => {
           {
             projectId,
             workerId,
+            requestKey: recordId,
             startsAt: '2026-09-25T08:00',
             endsAt: '2026-09-25T16:00',
             plannedMinutes: '480',
@@ -128,6 +129,7 @@ describe('planning, skill, and availability action problems', () => {
           {
             projectId,
             workerId,
+            requestKey: recordId,
             startsAt: '2026-09-25T08:00',
             endsAt: '2026-09-25T16:00',
             plannedMinutes: '480',

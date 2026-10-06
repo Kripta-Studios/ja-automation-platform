@@ -168,6 +168,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   to: weekEnd,
                 }),
               };
+        // Internal workers' own future memberships can make a selected day's
+        // target ambiguous even while those projects are absent from current
+        // operational access. Count those identities internally, but join
+        // schedule values only for visible projects and never return the rows.
+        // Supplier profiles retain their dated operational membership scope.
         const weeklySchedules: WeeklyProjectSchedule[] =
           context.principal.role !== 'worker' || timeProjectIds.length === 0
             ? []
@@ -183,10 +188,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                      JOIN project p ON p.id=pm.project_id
                 LEFT JOIN schedule s
                        ON s.project_id=pm.project_id
+                      AND s.project_id IN (${timeProjectIds.map(() => '?').join(',')})
                       AND s.effective_from <= ?
                       AND (s.effective_to IS NULL OR s.effective_to >= ?)
                     WHERE pm.user_id=?
-                      AND pm.project_id IN (${timeProjectIds.map(() => '?').join(',')})
+                      ${restrictedProfile ? `AND pm.project_id IN (${timeProjectIds.map(() => '?').join(',')})` : ''}
                       AND pm.status='active'
                       AND p.status IN ('active','planned','paused')
                       AND pm.starts_on <= ?
@@ -194,10 +200,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                     ORDER BY pm.project_id,s.effective_from DESC`,
                 )
                 .all(
+                  ...timeProjectIds,
                   week.weekEnd,
                   weekStart,
                   context.principal.userId,
-                  ...timeProjectIds,
+                  ...(restrictedProfile ? timeProjectIds : []),
                   week.weekEnd,
                   weekStart,
                 ) as WeeklyProjectSchedule[]);

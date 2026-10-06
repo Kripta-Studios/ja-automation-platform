@@ -1,0 +1,62 @@
+{
+  "capturedAt": "2026-10-06T11:11:00.122116+00:00",
+  "status": "PASS",
+  "scope": "Bounded planning forms, dated expected targets, authorization/privacy, manual catalog and planned-assignment lifecycle",
+  "regression": {
+    "files": 9,
+    "passed": 115,
+    "command": "pnpm exec vitest run tests/regression/worker-operational-section-loader.test.ts tests/regression/section-load-authorization.test.ts tests/regression/portal-week.test.ts tests/planning-calendar.test.ts tests/unit/planning-agenda.test.ts tests/unit/workforce-planning-action-problems.test.ts tests/unit/astra-manual-catalog.test.ts tests/security/supplier-route-access.test.ts tests/integration/planning-assignment-edit-lifecycle.test.ts --no-file-parallelism"
+  },
+  "planningFormE2E": {
+    "passed": 4,
+    "roles": [
+      "owner",
+      "manager"
+    ],
+    "viewports": [
+      "desktop",
+      "phone-390"
+    ],
+    "checks": [
+      "optional fields survive checkbox changes",
+      "invalid interval retains values and creates no row",
+      "recovery publishes exact values",
+      "zero actual time fabricated"
+    ]
+  },
+  "portalTypecheck": "PASS",
+  "scopedEslint": "PASS",
+  "fixtures": "Stale plural createPlanning mock, required request key, valid Worker session and real search projection column repaired; security/privacy assertions retained. E2E fixtures use separate cost centres/work dates to avoid legitimate overlap guards.",
+  "productionPortalBuild": "PASS; configured isolated build database",
+  "supplierFinalBuildSmoke": {
+    "checks": 12,
+    "status": "PASS",
+    "widths": [
+      1440,
+      390
+    ],
+    "businessWrites": 0
+  },
+  "pdfs": {
+    "roles": 8,
+    "pages": 608,
+    "figurePlacements": 213,
+    "strictPdf": "PASS",
+    "instructionText": "PASS",
+    "screenshotHashes": "PASS",
+    "ownerCoursePagesPreserved": 203,
+    "ownerAttachmentsPreserved": 6,
+    "ownerNativeInvoiceStreamsUnchanged": true
+  },
+  "help": {
+    "genuineRoleContexts": 8,
+    "widths": [
+      1440,
+      768,
+      390,
+      360
+    ],
+    "nativeDownloadHashes": "PASS",
+    "allowedDeniedRoleMatrix": "PASS"
+  }
+}

@@ -6,12 +6,17 @@ import { chromium } from 'playwright';
 
 const root = process.cwd();
 const base = new URL(process.env.BBS_ROLE_QA_ORIGIN ?? 'http://127.0.0.1:5179');
-if (base.hostname !== '127.0.0.1' || base.port !== '5179')
+if (base.hostname !== '127.0.0.1' || !['5179', '5180'].includes(base.port))
   throw new Error('Isolated runtime required');
 const privateRoot = process.env.BBS_ROLE_QA_PRIVATE_ROOT;
 if (!privateRoot)
   throw new Error('Set the private cookie directory; never place credentials in evidence');
-const output = resolve(root, 'docs/evidence/bbs-role-manuals-20261006/help');
+const output = resolve(
+  root,
+  base.port === '5180'
+    ? 'docs/evidence/bbs-planning-20261006/help'
+    : 'docs/evidence/bbs-role-manuals-20261006/help',
+);
 const specs = [
   ['owner', 'owner.cookies', 'bbs-owner-manual', 'BBS_Owner_Manual_EN.pdf'],
   ['finance', 'role-finance.cookies', 'bbs-finance-manual', 'BBS_Finance_Manual_EN.pdf'],

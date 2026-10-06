@@ -1,0 +1,323 @@
+{
+  "generatedAt": "2026-10-06T10:46:56.149679+00:00",
+  "project": "C-0050-P-20261005",
+  "environment": "Built actual application against isolated BBS training clone; no production mutations",
+  "browser": "Playwright Chromium",
+  "mutations": "Native visible forms/buttons only; SQLite checks read-only",
+  "documentation": "Exact application controls, dated targets, operational handoffs, timezone and truthful goals/profile boundaries",
+  "privacy": "All depicted people/records fictional; Worker weekly table crops exclude own compensation before reuse in PM; no client prices, internal costs, margins or colleague pay in PM images",
+  "scopeBoundaries": [
+    {
+      "scenario": "Generic worker Accept/Reject/Mark completed goals",
+      "status": "not-an-existing-feature",
+      "reason": "Published plans, reference expected hours, actual work/reports and project milestones are distinguished; no nonexistent goal record was fabricated."
+    }
+  ],
+  "harnessInterruption": {
+    "status": "resolved",
+    "event": "An E2E build replaced compiled chunks beneath the isolated server, causing transient HTTP500. No POST during interruption. Root restarted final stable build; clean native retests succeeded.",
+    "productionAffected": false
+  },
+  "postFix": {
+    "ownerDesktop": {
+      "status": "PASS",
+      "viewportWidth": 1440,
+      "actions": [
+        "type Site/expertise before worker selection",
+        "check two workers",
+        "uncheck/recheck",
+        "invalid End before Start (expected HTTP400)",
+        "correct End and publish"
+      ],
+      "savedPlanIds": [
+        "01a110ca-3865-76a1-a608-2b46d2d111c6",
+        "01a110ca-3866-736e-8d05-2d7eaca844ec"
+      ],
+      "savedMinutes": 120,
+      "savedSite": "BBS planning lab · preserved Owner site",
+      "savedExpertise": "BBS training PLC"
+    },
+    "projectManagerPhone": {
+      "status": "PASS",
+      "viewportWidth": 390,
+      "actions": [
+        "type Site/expertise before worker selection",
+        "check/uncheck/recheck",
+        "invalid End before Start (expected HTTP400)",
+        "verify all restored field values",
+        "correct End and publish"
+      ],
+      "savedPlanIds": ["01a110cb-8ec5-763a-a2d0-050f04e2aadf"],
+      "savedMinutes": 120,
+      "savedSite": "BBS planning lab · preserved PM site",
+      "savedExpertise": "BBS training PLC"
+    },
+    "automaticActualTime": {
+      "status": "PASS",
+      "dates": ["2026-10-24", "2026-10-25"],
+      "rows": 0
+    },
+    "responsiveLayout": {
+      "status": "PASS",
+      "viewportAndDocumentWidths": [
+        {
+          "viewport": 1440,
+          "documentWidth": 1440
+        },
+        {
+          "viewport": 768,
+          "documentWidth": 768
+        },
+        {
+          "viewport": 390,
+          "documentWidth": 390
+        }
+      ]
+    },
+    "diagnostics": {
+      "finalCleanPageErrors": 0,
+      "finalCleanConsoleErrors": 0,
+      "finalUnexpectedHttpErrors": 0,
+      "intentionalInvalidIntervalResponses": [400, 400]
+    }
+  },
+  "records": [
+    {
+      "id": "01a110b7-cfb3-721d-953e-3d65ba033611",
+      "worker_id": "01a10c51-9ff2-77d1-a994-de141701efe3",
+      "starts_at": "2026-10-20T08:00:00.000Z",
+      "ends_at": "2026-10-20T16:00:00.000Z",
+      "planned_minutes": 480,
+      "status": "published",
+      "version": 2,
+      "site": "BBS planning lab · fictional crew bench",
+      "required_skill": null
+    },
+    {
+      "id": "01a110b7-cfb5-77f3-bfd4-db97f1b9af86",
+      "worker_id": "01a10c51-a140-707b-9210-21b341b4d4ee",
+      "starts_at": "2026-10-20T08:00:00.000Z",
+      "ends_at": "2026-10-20T16:00:00.000Z",
+      "planned_minutes": 480,
+      "status": "published",
+      "version": 2,
+      "site": "BBS planning lab · fictional crew bench",
+      "required_skill": null
+    },
+    {
+      "id": "01a110b7-cfb6-770e-93fb-a05151f4ebfe",
+      "worker_id": "01a10c51-a2ad-74c8-ae12-e377be6b6942",
+      "starts_at": "2026-10-20T08:00:00.000Z",
+      "ends_at": "2026-10-20T16:00:00.000Z",
+      "planned_minutes": 480,
+      "status": "published",
+      "version": 2,
+      "site": "BBS planning lab · fictional crew bench",
+      "required_skill": null
+    },
+    {
+      "id": "01a110ba-9ea3-75ad-ad49-f01ce41eeb49",
+      "worker_id": "01a10c51-a140-707b-9210-21b341b4d4ee",
+      "starts_at": "2026-10-21T09:00:00.000Z",
+      "ends_at": "2026-10-21T12:00:00.000Z",
+      "planned_minutes": 180,
+      "status": "published",
+      "version": 2,
+      "site": "BBS planning lab · updated PM practice bench",
+      "required_skill": null
+    },
+    {
+      "id": "01a110b9-9c39-74eb-8673-632e9894e83a",
+      "worker_id": "01a10e3e-81af-77f5-8ca1-93388b7a3408",
+      "starts_at": "2026-10-22T08:00:00.000Z",
+      "ends_at": "2026-10-22T10:00:00.000Z",
+      "planned_minutes": 120,
+      "status": "published",
+      "version": 1,
+      "site": "BBS planning lab · fictional supplier bench",
+      "required_skill": null
+    },
+    {
+      "id": "01a110bc-0896-76d5-a9fe-854b99064137",
+      "worker_id": "01a10c51-a2ad-74c8-ae12-e377be6b6942",
+      "starts_at": "2026-10-22T12:00:00.000Z",
+      "ends_at": "2026-10-22T14:00:00.000Z",
+      "planned_minutes": 120,
+      "status": "cancelled",
+      "version": 2,
+      "site": "BBS planning lab · cancel practice",
+      "required_skill": null
+    },
+    {
+      "id": "01a110ca-3865-76a1-a608-2b46d2d111c6",
+      "worker_id": "01a10c51-a140-707b-9210-21b341b4d4ee",
+      "starts_at": "2026-10-24T08:00:00.000Z",
+      "ends_at": "2026-10-24T10:00:00.000Z",
+      "planned_minutes": 120,
+      "status": "published",
+      "version": 1,
+      "site": "BBS planning lab · preserved Owner site",
+      "required_skill": "BBS training PLC"
+    },
+    {
+      "id": "01a110ca-3866-736e-8d05-2d7eaca844ec",
+      "worker_id": "01a10c51-a2ad-74c8-ae12-e377be6b6942",
+      "starts_at": "2026-10-24T08:00:00.000Z",
+      "ends_at": "2026-10-24T10:00:00.000Z",
+      "planned_minutes": 120,
+      "status": "published",
+      "version": 1,
+      "site": "BBS planning lab · preserved Owner site",
+      "required_skill": "BBS training PLC"
+    },
+    {
+      "id": "01a110cb-8ec5-763a-a2d0-050f04e2aadf",
+      "worker_id": "01a10c51-a140-707b-9210-21b341b4d4ee",
+      "starts_at": "2026-10-25T08:00:00.000Z",
+      "ends_at": "2026-10-25T10:00:00.000Z",
+      "planned_minutes": 120,
+      "status": "published",
+      "version": 1,
+      "site": "BBS planning lab · preserved PM site",
+      "required_skill": "BBS training PLC"
+    }
+  ],
+  "role": "owner",
+  "scenarios": [
+    "native three-person publication",
+    "zero actual time immediately after main publication",
+    "date-effective weekday480/weekend0 reference schedule",
+    "separate Worker and Chief comparison after review",
+    "no-plan-today with membership and future plan",
+    "expired dated supplier eligibility",
+    "pre-assignment expected target shown as unknown",
+    "external-technician native plan publication",
+    "form selection and validation recovery after fix",
+    "native existing-finance guard409, exact two authorised scoped rules, one-day second assignment and unknown future target without widening current project visibility"
+  ],
+  "screenshots": [
+    {
+      "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/01-owner-publish-joint-plan.png",
+      "sha256": "89921d9b16da1815f335c98ea5219ecb017a7e04c84d80223ef9b6f6eef53aae",
+      "width": 1104,
+      "height": 1091
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/02-owner-expected-schedule-before.png",
+      "sha256": "38a8beaf4c51ad1c47a590186e15746ef611ea1c5eaa3ac1563e6ad3030d8773",
+      "width": 1104,
+      "height": 723
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/03-owner-three-published-plans.png",
+      "sha256": "7fc965319a32a75bbb13ead2af6d9c2b9746366012f5f51dd89d4ba7fe91591c",
+      "width": 1104,
+      "height": 259
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/04-owner-expired-worker-not-eligible.png",
+      "sha256": "6922a46098fb6632104314054566b5cda4c469011aad96b5d0a8054ad1b96d6a",
+      "width": 1104,
+      "height": 888
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/05-worker-missing-expected-before-membership.png",
+      "sha256": "136eb7e7695ddadf9acc73ef4915bca5fe45395ca5fd8f27ce6c91b009d46154",
+      "width": 1053,
+      "height": 535
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/06-worker-planned-three-expected-eight.png",
+      "sha256": "0a415ee921a90b52bad671390135a078a44f3edd00beb77c6d61dba41fedd718",
+      "width": 1053,
+      "height": 535
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/07-worker-updated-three-hour-agenda.png",
+      "sha256": "f27ccccf192ddc67a9d78c5c410d151263e78f71d22f9ce179e27474f8795173",
+      "width": 1104,
+      "height": 433
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/08-owner-fixed-optional-fields.png",
+      "sha256": "12be9cc2ae0d62d1bf05fd781f3a006533782537908a87a2235eafafada07c6d",
+      "width": 1104,
+      "height": 1091
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png",
+      "sha256": "9877dd70076980681590f937fe50647ea50f172ef321e6eb25112c163598f156",
+      "width": 1053,
+      "height": 535,
+      "authenticity": "Native authenticated Worker1 browser; operational-only crop with full dates, no financial or compensation values"
+    }
+  ],
+  "multipleProjectFollowUp": {
+    "status": "PASS after narrow own-membership ambiguity fix",
+    "guard": {
+      "status": "PASS",
+      "expectedResponse": 409,
+      "message": "Assignment needs internal cost and compensation covering every assigned date.",
+      "postAttemptMemberCostCompensationCounts": [0, 0, 0]
+    },
+    "fixture": {
+      "project": "C-0050-P-20261006",
+      "projectId": "01a10d79-4ce0-70e7-b1d5-a1d6040acb53",
+      "worker": "BBS DEMO - Tecnico 1",
+      "workerId": "01a10c51-a140-707b-9210-21b341b4d4ee",
+      "startsOn": "2026-10-23",
+      "endsOn": "2026-10-23",
+      "memberId": "01a110d5-cc3f-749d-a11f-7c87ce0b9b21",
+      "internalCostRule": {
+        "id": "01a110d5-cc42-74c9-a41e-7bb343908f36",
+        "currency": "USD",
+        "hourlyRateMinor": 100,
+        "effectiveFrom": "2026-10-23",
+        "effectiveTo": "2026-10-23"
+      },
+      "compensationRule": {
+        "id": "01a110d5-cc44-712d-9c98-ec1d5c6a0aa9",
+        "currency": "USD",
+        "rateMinor": 100,
+        "basis": "hourly",
+        "effectiveFrom": "2026-10-23",
+        "effectiveTo": "2026-10-23"
+      },
+      "notes": "Explicit synthetic training fixture only; no real contract or approval. No global or original BBS rules changed.",
+      "actualTimeRows": 0
+    },
+    "preFixWorkerView": {
+      "date": "2026-10-23",
+      "actualHours": "0.00",
+      "expectedHours": "8.00",
+      "differenceHours": "-8.00",
+      "visibleProjects": 1
+    },
+    "cause": "Only currently accessible project IDs were counted for ambiguity; a future-only second assignment was ignored. Corrected by counting own membership identities while retaining schedule/actual/profile privacy; final native result is recorded below.",
+    "postFixWorkerView": {
+      "responseStatus": 200,
+      "date": "2026-10-23",
+      "actualHours": "0.00",
+      "expected": "—",
+      "difference": "—",
+      "mainOctober20ActualHours": "6.00",
+      "mainOctober20ExpectedHours": "8.00",
+      "currentSelectorLabels": ["All projects", "C-0050-P-20261005 — BBS · Ejemplo de manual"],
+      "hiddenProjectExposed": false,
+      "newActualTimeRows": 0,
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [],
+        "httpErrors": []
+      }
+    },
+    "chronology": "Earlier weekly figures precede the added one-day second membership and correctly show Friday8h/weekly40h; later figure09 shows Fridayunknown and preserves mainOctober20hours.",
+    "finalScreenshot": {
+      "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png",
+      "sha256": "9877dd70076980681590f937fe50647ea50f172ef321e6eb25112c163598f156",
+      "width": 1053,
+      "height": 535,
+      "authenticity": "Native authenticated Worker1 browser; operational-only crop with full dates, no financial or compensation values"
+    }
+  }
+}

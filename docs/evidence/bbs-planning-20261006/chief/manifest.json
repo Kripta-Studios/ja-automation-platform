@@ -1,0 +1,76 @@
+{
+  "role": "chief",
+  "scope": "Isolated BBS planning lab",
+  "screenshots": [
+    {
+      "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/01-chief-own-upcoming-plan.png",
+      "sha256": "5c15ce5819a4b2fa894683c488426460a029bce7c54992f2375a41ceaa411cc5",
+      "width": 1104,
+      "height": 832,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/02-chief-delegated-seven-hours-form.png",
+      "sha256": "bb720f5d4103c13f5509539de419367552be57a5dc80b6cd75e604f86dd11770",
+      "width": 737,
+      "height": 856,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/03-chief-worker2-saved-draft.png",
+      "sha256": "33c079f2fbd5b2adec9cddff441505ae9025401d54adb4d95f0af28feeba66bd",
+      "width": 1104,
+      "height": 178,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/04-chief-own-eight-hours-form.png",
+      "sha256": "b8b3ecfc35b93eed8e7c282a7de328299228d7467148f9243f2f6baddaf5cd7d",
+      "width": 503,
+      "height": 878,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/05-pm-three-person-review-queue.png",
+      "sha256": "73ca238b5f2d74d58dd4e5fcc1ac8fcbf6b5151a5f578c1c46d5893bbd30523f",
+      "width": 1178,
+      "height": 2103,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/06-chief-own-approved-eight-hours.png",
+      "sha256": "d70f1db621ecd682cf9b72a92067756104a272ee731570f9c8752d8c4f53eaef",
+      "width": 1053,
+      "height": 535,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/07-chief-phone-crew-approved.png",
+      "sha256": "a7dd3041586f9788194f15dd6bec6b68476ec1815a2d7cfc4a0e06c21b2777b0",
+      "width": 358,
+      "height": 2288,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/08-chief-tablet-crew-approved.png",
+      "sha256": "c596affe62f47276584898f293535f78187985a5199c1c0426acd16801552927",
+      "width": 736,
+      "height": 1863,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/09-chief-delegated-approved-record.png",
+      "sha256": "9019f3c13fe8f34444d01560420a1b16e19ff2278eebd044cb7ae82d366d208b",
+      "width": 1104,
+      "height": 159,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/10-chief-phone-own-weekly-comparison.png",
+      "sha256": "32e45818cc929ae26be2141d5518754a873bc0817d0b861b777c008f948d97b0",
+      "width": 324,
+      "height": 279,
+      "authenticity": "Native authenticated browser screenshot; fictional BBS operational scope only"
+    }
+  ]
+}

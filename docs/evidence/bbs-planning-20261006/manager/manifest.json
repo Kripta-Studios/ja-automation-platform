@@ -1,0 +1,316 @@
+{
+  "generatedAt": "2026-10-06T10:46:56.149679+00:00",
+  "project": "C-0050-P-20261005",
+  "environment": "Built actual application against isolated BBS training clone; no production mutations",
+  "browser": "Playwright Chromium",
+  "mutations": "Native visible forms/buttons only; SQLite checks read-only",
+  "documentation": "Exact application controls, dated targets, operational handoffs, timezone and truthful goals/profile boundaries",
+  "privacy": "All depicted people/records fictional; Worker weekly table crops exclude own compensation before reuse in PM; no client prices, internal costs, margins or colleague pay in PM images",
+  "scopeBoundaries": [
+    {
+      "scenario": "Generic worker Accept/Reject/Mark completed goals",
+      "status": "not-an-existing-feature",
+      "reason": "Published plans, reference expected hours, actual work/reports and project milestones are distinguished; no nonexistent goal record was fabricated."
+    }
+  ],
+  "harnessInterruption": {
+    "status": "resolved",
+    "event": "An E2E build replaced compiled chunks beneath the isolated server, causing transient HTTP500. No POST during interruption. Root restarted final stable build; clean native retests succeeded.",
+    "productionAffected": false
+  },
+  "postFix": {
+    "ownerDesktop": {
+      "status": "PASS",
+      "viewportWidth": 1440,
+      "actions": [
+        "type Site/expertise before worker selection",
+        "check two workers",
+        "uncheck/recheck",
+        "invalid End before Start (expected HTTP400)",
+        "correct End and publish"
+      ],
+      "savedPlanIds": [
+        "01a110ca-3865-76a1-a608-2b46d2d111c6",
+        "01a110ca-3866-736e-8d05-2d7eaca844ec"
+      ],
+      "savedMinutes": 120,
+      "savedSite": "BBS planning lab · preserved Owner site",
+      "savedExpertise": "BBS training PLC"
+    },
+    "projectManagerPhone": {
+      "status": "PASS",
+      "viewportWidth": 390,
+      "actions": [
+        "type Site/expertise before worker selection",
+        "check/uncheck/recheck",
+        "invalid End before Start (expected HTTP400)",
+        "verify all restored field values",
+        "correct End and publish"
+      ],
+      "savedPlanIds": ["01a110cb-8ec5-763a-a2d0-050f04e2aadf"],
+      "savedMinutes": 120,
+      "savedSite": "BBS planning lab · preserved PM site",
+      "savedExpertise": "BBS training PLC"
+    },
+    "automaticActualTime": {
+      "status": "PASS",
+      "dates": ["2026-10-24", "2026-10-25"],
+      "rows": 0
+    },
+    "responsiveLayout": {
+      "status": "PASS",
+      "viewportAndDocumentWidths": [
+        {
+          "viewport": 1440,
+          "documentWidth": 1440
+        },
+        {
+          "viewport": 768,
+          "documentWidth": 768
+        },
+        {
+          "viewport": 390,
+          "documentWidth": 390
+        }
+      ]
+    },
+    "diagnostics": {
+      "finalCleanPageErrors": 0,
+      "finalCleanConsoleErrors": 0,
+      "finalUnexpectedHttpErrors": 0,
+      "intentionalInvalidIntervalResponses": [400, 400]
+    }
+  },
+  "records": [
+    {
+      "id": "01a110b7-cfb3-721d-953e-3d65ba033611",
+      "worker_id": "01a10c51-9ff2-77d1-a994-de141701efe3",
+      "starts_at": "2026-10-20T08:00:00.000Z",
+      "ends_at": "2026-10-20T16:00:00.000Z",
+      "planned_minutes": 480,
+      "status": "published",
+      "version": 2,
+      "site": "BBS planning lab · fictional crew bench",
+      "required_skill": null
+    },
+    {
+      "id": "01a110b7-cfb5-77f3-bfd4-db97f1b9af86",
+      "worker_id": "01a10c51-a140-707b-9210-21b341b4d4ee",
+      "starts_at": "2026-10-20T08:00:00.000Z",
+      "ends_at": "2026-10-20T16:00:00.000Z",
+      "planned_minutes": 480,
+      "status": "published",
+      "version": 2,
+      "site": "BBS planning lab · fictional crew bench",
+      "required_skill": null
+    },
+    {
+      "id": "01a110b7-cfb6-770e-93fb-a05151f4ebfe",
+      "worker_id": "01a10c51-a2ad-74c8-ae12-e377be6b6942",
+      "starts_at": "2026-10-20T08:00:00.000Z",
+      "ends_at": "2026-10-20T16:00:00.000Z",
+      "planned_minutes": 480,
+      "status": "published",
+      "version": 2,
+      "site": "BBS planning lab · fictional crew bench",
+      "required_skill": null
+    },
+    {
+      "id": "01a110ba-9ea3-75ad-ad49-f01ce41eeb49",
+      "worker_id": "01a10c51-a140-707b-9210-21b341b4d4ee",
+      "starts_at": "2026-10-21T09:00:00.000Z",
+      "ends_at": "2026-10-21T12:00:00.000Z",
+      "planned_minutes": 180,
+      "status": "published",
+      "version": 2,
+      "site": "BBS planning lab · updated PM practice bench",
+      "required_skill": null
+    },
+    {
+      "id": "01a110b9-9c39-74eb-8673-632e9894e83a",
+      "worker_id": "01a10e3e-81af-77f5-8ca1-93388b7a3408",
+      "starts_at": "2026-10-22T08:00:00.000Z",
+      "ends_at": "2026-10-22T10:00:00.000Z",
+      "planned_minutes": 120,
+      "status": "published",
+      "version": 1,
+      "site": "BBS planning lab · fictional supplier bench",
+      "required_skill": null
+    },
+    {
+      "id": "01a110bc-0896-76d5-a9fe-854b99064137",
+      "worker_id": "01a10c51-a2ad-74c8-ae12-e377be6b6942",
+      "starts_at": "2026-10-22T12:00:00.000Z",
+      "ends_at": "2026-10-22T14:00:00.000Z",
+      "planned_minutes": 120,
+      "status": "cancelled",
+      "version": 2,
+      "site": "BBS planning lab · cancel practice",
+      "required_skill": null
+    },
+    {
+      "id": "01a110ca-3865-76a1-a608-2b46d2d111c6",
+      "worker_id": "01a10c51-a140-707b-9210-21b341b4d4ee",
+      "starts_at": "2026-10-24T08:00:00.000Z",
+      "ends_at": "2026-10-24T10:00:00.000Z",
+      "planned_minutes": 120,
+      "status": "published",
+      "version": 1,
+      "site": "BBS planning lab · preserved Owner site",
+      "required_skill": "BBS training PLC"
+    },
+    {
+      "id": "01a110ca-3866-736e-8d05-2d7eaca844ec",
+      "worker_id": "01a10c51-a2ad-74c8-ae12-e377be6b6942",
+      "starts_at": "2026-10-24T08:00:00.000Z",
+      "ends_at": "2026-10-24T10:00:00.000Z",
+      "planned_minutes": 120,
+      "status": "published",
+      "version": 1,
+      "site": "BBS planning lab · preserved Owner site",
+      "required_skill": "BBS training PLC"
+    },
+    {
+      "id": "01a110cb-8ec5-763a-a2d0-050f04e2aadf",
+      "worker_id": "01a10c51-a140-707b-9210-21b341b4d4ee",
+      "starts_at": "2026-10-25T08:00:00.000Z",
+      "ends_at": "2026-10-25T10:00:00.000Z",
+      "planned_minutes": 120,
+      "status": "published",
+      "version": 1,
+      "site": "BBS planning lab · preserved PM site",
+      "required_skill": "BBS training PLC"
+    }
+  ],
+  "role": "manager",
+  "scenarios": [
+    "authorized shared BBS planning visibility",
+    "native separate Oct21 publication",
+    "edit/reopen exact180min interval and site",
+    "Worker sees edited three-hour plan with unchanged eight-hour expectation",
+    "separate Oct22 cancel with retained cancelled record",
+    "cancelled plan absent from Worker agenda",
+    "zero actual time for edit/cancel practice sources",
+    "desktop/tablet/phone operational planning",
+    "form selection and validation recovery after fix",
+    "native existing-finance guard409, exact two authorised scoped rules, one-day second assignment and unknown future target without widening current project visibility"
+  ],
+  "screenshots": [
+    {
+      "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/01-pm-publish-edit-practice.png",
+      "sha256": "1f339d4995714ceaf9837c3b89e37329d3cef8e57aefcd5d6ae222388783e5f2",
+      "width": 1104,
+      "height": 1091
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/02-pm-updated-plan-persisted.png",
+      "sha256": "8849b7fafc262f1847c217301691538ff28d736f9fc42f5dd3e8b29b9ba74d58",
+      "width": 1104,
+      "height": 513
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/03-pm-before-cancel.png",
+      "sha256": "c0ed310ffc77cde904b64705b22e7c362e648591acb6e19184bf3e124da25e87",
+      "width": 1060,
+      "height": 458
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/04-pm-calendar-after-cancel.png",
+      "sha256": "64ef13c9ea71d8334a34c3268405aa94bafd07f99c7da5bb6e00ca76b5ad92df",
+      "width": 1104,
+      "height": 114
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/05-pm-joint-planning-tablet.png",
+      "sha256": "46eb6ecdd8e75363449d7dcff82b53582070ac29f630ad2ee84bc22d3a30cebb",
+      "width": 720,
+      "height": 688
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/06-pm-planning-phone.png",
+      "sha256": "7ce43237463e46cf647c0e6c730e9c03b5e6a682dfddddf3e6cd1e8208463233",
+      "width": 358,
+      "height": 323
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/07-pm-fixed-fields-phone.png",
+      "sha256": "b441c0a51304021b7402bccf147e27930b8892d95c6845524a0f9904b93e9cca",
+      "width": 358,
+      "height": 1398
+    },
+    {
+      "path": "docs/evidence/bbs-planning-20261006/manager/screenshots/08-pm-fixed-publication-persisted.png",
+      "sha256": "af107ed64b85e86d5c9b86a051b85848a8c2e371f1bcbb1e3791ce373fbce76b",
+      "width": 1104,
+      "height": 513
+    }
+  ],
+  "multipleProjectFollowUp": {
+    "status": "PASS after narrow own-membership ambiguity fix",
+    "guard": {
+      "status": "PASS",
+      "expectedResponse": 409,
+      "message": "Assignment needs internal cost and compensation covering every assigned date.",
+      "postAttemptMemberCostCompensationCounts": [0, 0, 0]
+    },
+    "fixture": {
+      "project": "C-0050-P-20261006",
+      "projectId": "01a10d79-4ce0-70e7-b1d5-a1d6040acb53",
+      "worker": "BBS DEMO - Tecnico 1",
+      "workerId": "01a10c51-a140-707b-9210-21b341b4d4ee",
+      "startsOn": "2026-10-23",
+      "endsOn": "2026-10-23",
+      "memberId": "01a110d5-cc3f-749d-a11f-7c87ce0b9b21",
+      "internalCostRule": {
+        "id": "01a110d5-cc42-74c9-a41e-7bb343908f36",
+        "currency": "USD",
+        "hourlyRateMinor": 100,
+        "effectiveFrom": "2026-10-23",
+        "effectiveTo": "2026-10-23"
+      },
+      "compensationRule": {
+        "id": "01a110d5-cc44-712d-9c98-ec1d5c6a0aa9",
+        "currency": "USD",
+        "rateMinor": 100,
+        "basis": "hourly",
+        "effectiveFrom": "2026-10-23",
+        "effectiveTo": "2026-10-23"
+      },
+      "notes": "Explicit synthetic training fixture only; no real contract or approval. No global or original BBS rules changed.",
+      "actualTimeRows": 0
+    },
+    "preFixWorkerView": {
+      "date": "2026-10-23",
+      "actualHours": "0.00",
+      "expectedHours": "8.00",
+      "differenceHours": "-8.00",
+      "visibleProjects": 1
+    },
+    "cause": "Only currently accessible project IDs were counted for ambiguity; a future-only second assignment was ignored. Corrected by counting own membership identities while retaining schedule/actual/profile privacy; final native result is recorded below.",
+    "postFixWorkerView": {
+      "responseStatus": 200,
+      "date": "2026-10-23",
+      "actualHours": "0.00",
+      "expected": "—",
+      "difference": "—",
+      "mainOctober20ActualHours": "6.00",
+      "mainOctober20ExpectedHours": "8.00",
+      "currentSelectorLabels": ["All projects", "C-0050-P-20261005 — BBS · Ejemplo de manual"],
+      "hiddenProjectExposed": false,
+      "newActualTimeRows": 0,
+      "diagnostics": {
+        "pageErrors": [],
+        "consoleErrors": [],
+        "httpErrors": []
+      }
+    },
+    "chronology": "Earlier weekly figures precede the added one-day second membership and correctly show Friday8h/weekly40h; later figure09 shows Fridayunknown and preserves mainOctober20hours.",
+    "finalScreenshot": {
+      "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png",
+      "sha256": "9877dd70076980681590f937fe50647ea50f172ef321e6eb25112c163598f156",
+      "width": 1053,
+      "height": 535,
+      "authenticity": "Native authenticated Worker1 browser; operational-only crop with full dates, no financial or compensation values"
+    }
+  }
+}

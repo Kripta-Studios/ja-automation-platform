@@ -1,0 +1,38 @@
+{
+  "executedAt": "2026-10-06T11:03:14.286Z",
+  "environment": "isolated BBS planning lab, rebuilt production-mode application on port 5180",
+  "mode": "read-only after native login",
+  "allPass": true,
+  "results": [
+    {
+      "role": "supplier-coordinator",
+      "page": "team-operational-report",
+      "width": 1440,
+      "status": 200,
+      "approved": true,
+      "documentOverflow": false,
+      "restrictedNavigationAbsent": true
+    },
+    {
+      "role": "supplier-coordinator",
+      "page": "team-operational-report",
+      "width": 390,
+      "status": 200,
+      "approved": true,
+      "documentOverflow": false,
+      "restrictedNavigationAbsent": true
+    },
+    {
+      "role": "supplier-coordinator",
+      "page": "/planning",
+      "status": 403,
+      "friendlyRestriction": true
+    },
+    {
+      "role": "supplier-coordinator",
+      "page": "/today",
+      "status": 403,
+      "friendlyRestriction": true
+    }
+  ]
+}

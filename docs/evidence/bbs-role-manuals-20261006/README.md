@@ -1,5 +1,7 @@
 # BBS role manuals · verification evidence
 
+This records the original role-manual release checkpoint. The subsequent [assignment, crew and expected-hours supplement](../bbs-planning-20261006/README.md) updates all eight PDFs to 608 total pages and adds its own browser, regression, privacy and publication evidence. Original scenario counts below remain historical evidence, not the current artifact totals.
+
 This edition supplies eight English manuals for the roles/access profiles in the private credentials document: Owner, Finance Administrator, Project Manager, read-only Auditor, Worker, Crew Chief, Supplier Coordinator and External Technician. All new role exercises use **BBS · Ejemplo de manual, C-0050-P-20261005**, in an isolated database with genuine separate active role accounts. Historical production test accounts were not reactivated. Credentials, cookies, raw authenticated pages and private runtime files stay outside Git.
 
 The [manual index](../../manuals/README.md) links every PDF and editable instructions. The [build manifest](../../manuals/bbs-role-manuals-build.json) records final page counts, orientations, instruction checks, screenshot hashes and PDF hashes. The [strict PDF verification](pdf-verification.json) checks source instructions in the rendered PDFs. The Owner PDF appends the verified 203-page course and preserves its six native attachments, six original invoice annex pages and 135 course annotations. Its printed course numbering restarts after the role introduction.

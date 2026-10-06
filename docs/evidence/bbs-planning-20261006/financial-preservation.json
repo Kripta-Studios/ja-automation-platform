@@ -1,0 +1,274 @@
+{
+  "capturedAt": "2026-10-06T11:09:31.383099+00:00",
+  "environment": "isolated BBS assignment lab",
+  "source": "preserved pre-exercise training database versus new clone; no raw financial rows exported",
+  "status": "PASS",
+  "financialTables": {
+    "compensation_rule": {
+      "originalCount": 49,
+      "labCount": 50,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [
+        "01a110d5-cc44-712d-9c98-ec1d5c6a0aa9"
+      ],
+      "unchanged": false
+    },
+    "compensation_settlement": {
+      "originalCount": 3,
+      "labCount": 3,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "compensation_settlement_authority_event_v2": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "compensation_settlement_collection_batch": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "compensation_settlement_revision_v2": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "compensation_settlement_series_v2": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "expense_reimbursement_event_v2": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "internal_cost_rule": {
+      "originalCount": 46,
+      "labCount": 47,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [
+        "01a110d5-cc42-74c9-a41e-7bb343908f36"
+      ],
+      "unchanged": false
+    },
+    "invoice": {
+      "originalCount": 5,
+      "labCount": 5,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_adjustment": {
+      "originalCount": 1,
+      "labCount": 1,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_approved_supersession": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_chain_anchor": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_collection_allocation": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_collection_batch": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_collection_component": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_commercial_source_manifest": {
+      "originalCount": 24,
+      "labCount": 24,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_event": {
+      "originalCount": 4,
+      "labCount": 4,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_line": {
+      "originalCount": 27,
+      "labCount": 27,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_number_policy": {
+      "originalCount": 1,
+      "labCount": 1,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_overcredit_authorization": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_overcredit_consumption": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_payment_reversal_event": {
+      "originalCount": 1,
+      "labCount": 1,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "invoice_source": {
+      "originalCount": 24,
+      "labCount": 24,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "legal_entity": {
+      "originalCount": 3,
+      "labCount": 3,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "legal_entity_revision": {
+      "originalCount": 2,
+      "labCount": 2,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "legal_entity_revision_bridge": {
+      "originalCount": 2,
+      "labCount": 2,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "payment": {
+      "originalCount": 4,
+      "labCount": 4,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "project_commercial_policy": {
+      "originalCount": 1,
+      "labCount": 1,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "project_legal_entity_assignment": {
+      "originalCount": 9,
+      "labCount": 9,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "project_legal_entity_assignment_replacement": {
+      "originalCount": 1,
+      "labCount": 1,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "reimbursement_preference_revision": {
+      "originalCount": 62,
+      "labCount": 62,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "reimbursement_principal_authority_event": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "reimbursement_principal_revision": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "reimbursement_principal_series": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "reimbursement_reversal_event": {
+      "originalCount": 0,
+      "labCount": 0,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    },
+    "worker_compensation_payment_event": {
+      "originalCount": 6,
+      "labCount": 6,
+      "originalRowsUnchanged": true,
+      "addedFixtureIds": [],
+      "unchanged": true
+    }
+  },
+  "syntheticRules": {
+    "scope": "Separate fictional onboarding project; Technician 1 membership only October 23, 2026",
+    "purpose": "Native UI prerequisite for two-project expected-hours ambiguity test",
+    "internalCost": "USD 1/hour; October 23 only",
+    "compensation": "USD 1/hour; October 23 only",
+    "originalBBSAgreementsChanged": false,
+    "actualTimeOrFinancialEventsCreatedForSecondProject": false
+  },
+  "quickCheck": "ok",
+  "foreignKeyErrors": 0
+}

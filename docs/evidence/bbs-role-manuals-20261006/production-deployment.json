@@ -1,0 +1,53 @@
+{
+  "status": "PASS",
+  "recordedAt": "2026-10-05T23:59:35.130824+00:00",
+  "sourceCommit": "33660ea4a11d23530fe7a8d876c6c5694580828a",
+  "archiveSha256": "b3e8030c8d3a4549d624179fa948f9cab107fef312f4187c4dec6ca691522504",
+  "archiveName": "jaautomation-bbs-roles-33660ea4.zip",
+  "bytes": 385267661,
+  "deployedSourceCommit": "33660ea4a11d23530fe7a8d876c6c5694580828a",
+  "canonicalEntrypoint": "/usr/local/sbin/jaautomation-zip-deploy",
+  "startedAt": "2026-10-05T23:54:33.365277+00:00",
+  "finishedAt": "2026-10-05T23:58:34.706148+00:00",
+  "releasePath": "/opt/jaautomation/releases/ja-automation-b3e8030c8d3a4549d624179fa948f9cab107fef312f4187c4dec6ca691522504",
+  "backup": {
+    "directory": "/var/backups/jaautomation/2026-10-05T235817129Z-380761b9-531f-486e-8969-df07f9d59876",
+    "documents": 27,
+    "databaseSha256": "f844216babbb01b6c39a06945dc4b63b60c057729b6b7a3d5a4ae6cd6a766b11",
+    "createdBeforeReplacement": true
+  },
+  "rollbackImages": "Previous active image pair tagged before activation; two older recent rollback pairs also preserved",
+  "healthAndJobs": "Canonical local readiness, systemd jobs/service actor and both public URL checks passed",
+  "publicInternalReadinessStatus": 404,
+  "liveHelp": {
+    "context": "existing production Owner",
+    "nativeDownloads": 8,
+    "exactFinalPdfHashes": "PASS",
+    "viewportWidths": [
+      1440,
+      768,
+      390,
+      360
+    ],
+    "anonymousStatus": 401,
+    "otherRoleContexts": "Eight genuine isolated sessions and full role guide matrix verified before deployment"
+  },
+  "protectedFinancialTables": {
+    "count": 20,
+    "allCountsAndHashesMatch": true,
+    "quickCheck": "ok",
+    "foreignKeyErrors": 0
+  },
+  "timers": {
+    "jaautomation-jobs.timer": "active",
+    "jaautomation-backup.timer": "active",
+    "jaautomation-zip-deploy.timer": "active"
+  },
+  "releaseRecovery": {
+    "initialDiskGuard": "Stopped before production replacement because fewer than 5 GiB free",
+    "unusedBuildCacheReclaimed": "4.37 GB",
+    "exportDiskPressure": "Recovered by removing four obsolete unused J&A image pairs; active images, two recent rollback pairs, source releases, databases, private documents and backups preserved",
+    "freeDiskAfterDeployment": "5.8 GiB"
+  },
+  "scope": "English role manuals and bounded UI/access fixes; no production synthetic financial transactions, account reactivation or global Client Essential acceptance assertion"
+}

@@ -30,3 +30,9 @@ The first isolated Worker statement attempt failed because the private operator 
 [Production predeployment hashes](production-predeploy-financial-hashes.json) contain only counts/hashes, with no row data. Deployment and postdeployment verification are recorded separately after the canonical release. This delivery does not promote a global Client Essential acceptance verdict.
 
 [Independent final review](independent-review.md), [visual checks](visual-verification.json), and [privacy checks](privacy-verification.json) accompany the final edition.
+
+## Production publication
+
+Source commit `33660ea4a11d23530fe7a8d876c6c5694580828a` was pushed to `main` and canonically deployed. [Deployment receipt](production-deployment.json) records the archive, pre-replacement backup, rollback protection, readiness, jobs and timer checks. [Live Owner Help downloads](production-help-verification.json) match all eight final PDF hashes through the native controls at four widths; the complete role matrix was verified in genuine isolated sessions before deployment. [Protected financial tables](production-postdeploy-financial-hashes.json) retain all 20 predeployment counts and hashes, with SQLite integrity passing and zero foreign-key errors. No fictional role accounts or financial events were added to production.
+
+The initial disk guard stopped the release before activation. Unused build cache and four obsolete J&A image pairs were retired; active images and recent rollback pairs, source releases, private data and backups were preserved. The canonical retry completed successfully. This evidence-only publication records the deployed source commit explicitly; it does not change application code or the eight PDF hashes.

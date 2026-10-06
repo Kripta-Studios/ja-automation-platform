@@ -1,0 +1,121 @@
+{
+  "status": "PASS",
+  "capturedAt": "2026-10-05T23:58:46.526015+00:00",
+  "environment": "production",
+  "operation": "read-only financial preservation verification; no row data exported",
+  "tables": {
+    "compensation_settlement": {
+      "count": 3,
+      "sha256": "01a6d05bc3974828b35c4756af1105f4fafe28dd41b90f40ba4e7c9de1939cc9",
+      "matchesBefore": true
+    },
+    "compensation_settlement_authority_event_v2": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "matchesBefore": true
+    },
+    "compensation_settlement_collection_batch": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "matchesBefore": true
+    },
+    "compensation_settlement_revision_v2": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "matchesBefore": true
+    },
+    "compensation_settlement_series_v2": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "matchesBefore": true
+    },
+    "expense": {
+      "count": 66,
+      "sha256": "fb1979bec27156e9ce491f05f7370cf0466f1452788d12098b6fc3b24585ca19",
+      "matchesBefore": true
+    },
+    "expense_reimbursement_event_v2": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "matchesBefore": true
+    },
+    "invoice": {
+      "count": 4,
+      "sha256": "50048e63dcae7852e7c0b376667b8663ee5cd47d6dae84faae54f7d48ee69a2c",
+      "matchesBefore": true
+    },
+    "invoice_commercial_source_manifest": {
+      "count": 23,
+      "sha256": "fd8a384df4aa055f8ea4dc30c7b1283600d897d1bd4a517842f9c8f2f79e6878",
+      "matchesBefore": true
+    },
+    "invoice_line": {
+      "count": 26,
+      "sha256": "798b11e423ac5d70c0b81a2d7a03cfa88d8897bf760d5ab83ea8087f59298fb5",
+      "matchesBefore": true
+    },
+    "invoice_number_policy": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "matchesBefore": true
+    },
+    "invoice_payment_reversal_event": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "matchesBefore": true
+    },
+    "invoice_source": {
+      "count": 23,
+      "sha256": "96afaf89855f743a1c9cfee2680fc3e99a3d8fb443ad64ca60b97229272c4305",
+      "matchesBefore": true
+    },
+    "legal_entity": {
+      "count": 3,
+      "sha256": "36036e3ae75daa13d14ce0548f390875ea93c1a12ae1ede8a81d1ce74a828165",
+      "matchesBefore": true
+    },
+    "legal_entity_revision": {
+      "count": 2,
+      "sha256": "08a71fa231c4da7fd7a923f5fbc1944801b83d7a4488ec44dc0ca1190697795b",
+      "matchesBefore": true
+    },
+    "payment": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "matchesBefore": true
+    },
+    "project_legal_entity_assignment": {
+      "count": 8,
+      "sha256": "32b3e7f72cf737dae1c4efc941196404d74f1e7dcb1055cedd0a18e7a13b8ce4",
+      "matchesBefore": true
+    },
+    "reimbursement_reversal_event": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "matchesBefore": true
+    },
+    "time_entry": {
+      "count": 78,
+      "sha256": "1f3ebe695c3d8c90398b7484ed4a8f06a956798c470bfe3e96e0ee1da1107c8f",
+      "matchesBefore": true
+    },
+    "worker_compensation_payment_event": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "matchesBefore": true
+    }
+  },
+  "quickCheck": "ok",
+  "foreignKeyErrors": 0,
+  "timers": {
+    "jaautomation-jobs.timer": "active",
+    "jaautomation-backup.timer": "active",
+    "jaautomation-zip-deploy.timer": "active"
+  },
+  "http": {
+    "https://j-aautomation.com/j-aautomation/en": 200,
+    "https://j-aautomation.com/j-aautomation/app/login": 200,
+    "https://j-aautomation.com/j-aautomation/app/api/health": 200,
+    "http://127.0.0.1:5100/j-aautomation/health/ready": 200
+  }
+}

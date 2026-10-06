@@ -3,3 +3,6 @@ deployment/scripts/jaautomation-zip-deploy text eol=lf
 
 migrations/**/*.sql text eol=lf
 migrations/**/*.json text eol=lf
+
+# Preserve application-native evidence bytes, including BOM and CRLF endings.
+docs/evidence/bbs-readiness-20261006/external-supplier-pm/artifacts/*.csv -text -diff

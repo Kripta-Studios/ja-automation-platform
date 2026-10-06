@@ -13,9 +13,10 @@ if (!privateRoot)
   throw new Error('Set the private cookie directory; never place credentials in evidence');
 const output = resolve(
   root,
-  base.port === '5180'
-    ? 'docs/evidence/bbs-planning-20261006/help'
-    : 'docs/evidence/bbs-role-manuals-20261006/help',
+  process.env.BBS_ROLE_QA_OUTPUT_ROOT ??
+    (base.port === '5180'
+      ? 'docs/evidence/bbs-planning-20261006/help'
+      : 'docs/evidence/bbs-role-manuals-20261006/help'),
 );
 const specs = [
   ['owner', 'owner.cookies', 'bbs-owner-manual', 'BBS_Owner_Manual_EN.pdf'],

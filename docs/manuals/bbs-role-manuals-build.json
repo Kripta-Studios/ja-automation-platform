@@ -5,15 +5,116 @@
     {
       "role": "auditor",
       "filename": "BBS_Auditor_Manual_EN.pdf",
-      "pages": 31,
-      "landscape": 11,
+      "pages": 46,
+      "landscape": 21,
+      "sections": [
+        {
+          "key": "practice",
+          "title": "Before practising \u00b7 live and training access",
+          "page": 3
+        },
+        {
+          "key": "access",
+          "title": "Access \u00b7 activate the invitation and sign in",
+          "page": 4
+        },
+        {
+          "key": "trainer-setup",
+          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "page": 7
+        },
+        {
+          "key": "review-authority",
+          "title": "Review authority \u00b7 who receives each source",
+          "page": 8
+        },
+        {
+          "key": "auditor-start",
+          "title": "Start with an individual Auditor account",
+          "page": 9
+        },
+        {
+          "key": "auditor-planning-actual",
+          "title": "Reconcile a work plan with actual source hours",
+          "page": 11
+        },
+        {
+          "key": "auditor-financial-scope",
+          "title": "Read the economic position without confusing cash",
+          "page": 14
+        },
+        {
+          "key": "auditor-invoices",
+          "title": "Inspect a numbered native invoice and its sources",
+          "page": 15
+        },
+        {
+          "key": "auditor-cash",
+          "title": "Reconcile collections and their reversals",
+          "page": 22
+        },
+        {
+          "key": "auditor-worker-obligations",
+          "title": "Inspect compensation and reimbursement privately",
+          "page": 24
+        },
+        {
+          "key": "auditor-accounting",
+          "title": "Review a preserved Accounting cut and its artifacts",
+          "page": 26
+        },
+        {
+          "key": "auditor-audit",
+          "title": "Trace who changed what and when",
+          "page": 29
+        },
+        {
+          "key": "auditor-outputs",
+          "title": "Read the appropriate report and private output",
+          "page": 34
+        },
+        {
+          "key": "auditor-boundary",
+          "title": "Verify read-only boundaries and hand off a finding",
+          "page": 40
+        },
+        {
+          "key": "auditor-finish",
+          "title": "Complete the review and protect its evidence",
+          "page": 42
+        },
+        {
+          "key": "recovery-matrix",
+          "title": "Recovery \u00b7 sources, obligations and immutable history",
+          "page": 43
+        },
+        {
+          "key": "security",
+          "title": "Security \u00b7 verify your own device and recovery options",
+          "page": 44
+        },
+        {
+          "key": "verification",
+          "title": "Verification \u00b7 current coverage and historical evidence",
+          "page": 46
+        }
+      ],
+      "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 122,
+      "instructionBlocks": 156,
       "instructionText": "PASS",
-      "bytes": 462079,
-      "sha256": "d910c57e365e8b18257fbe45c8f3509f2e549750056c0689947e54b9c8df3ac3",
+      "bytes": 1064501,
+      "sha256": "87c1884bcf9fdd4ae855b9c286942d10c30de24f4e8d16f37155776c3d386e61",
       "figures": [
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
+          "sha256": "9649c9fdffbde7a5bd7939994344c80beba4f8040fce76b202b0be12af0d7bcf"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-used-invitation.png",
+          "sha256": "4fabac4ceb7b5c24e0b5f3fbbf2291166c7d7b5b0bf323d85e33eadd8a8e7e7f"
+        },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/12-auditor-phone-navigation.png",
           "sha256": "553295104f7133de31b414649d9e63626be2324c9608ed425d63d4f8071f0c4b"
@@ -23,36 +124,52 @@
           "sha256": "15dacc2126b4042e36607dfe48686d9c373ca53d50c663259725630627512936"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/02-auditor-issued-invoice-register.png",
-          "sha256": "539354c4c09286ff3c67983d5953150cb087188d985aa7663bdc5e28dc1efbeb"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/02-auditor-full-invoice-register.png",
+          "sha256": "53ff512909722df649dc8766b17a24e757e5b119a2aafb9873975c136e26b97a"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/03-auditor-phone-invoice-card.png",
-          "sha256": "1c4690abebaba5522f80770c9b573bc67cea32e0e71feb8a47f7218f61b608af"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/16-auditor-register-dates-and-amounts.png",
+          "sha256": "f2fdeee7cd8aa407a0d25b05415649d06d41eb17e95525a67c9162b1730f6106"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/04-auditor-final-pdf-view.png",
-          "sha256": "93922192f18f2d04130a396bd7bdf1988583f866a34948d560903a2a820d8b8d"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/15-auditor-register-money-status-ready.png",
+          "sha256": "93228672ddb81fb056371257eff25028f7175ab307b349193f73caaa35d85f64"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/07-auditor-ledger-filters-tablet.png",
-          "sha256": "3ea759ba75e693c521c708759c656d91967655cff4139c129624ba307f2e8ddb"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/03-auditor-normal-invoice-source-line.png",
+          "sha256": "cdee6a25e662896a04c158278b9ca95f989df94c9906a0aba2bb5cc9e63f4d02"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/08-auditor-customer-balances.png",
-          "sha256": "7e81dff0db4d81e1453f42b373569bcc2f62400d2a4f64e7786c5bbe8cf2228b"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/04-auditor-source-actual-hour.png",
+          "sha256": "465bd2186e706e8715804c149016e3b37186c9b388ba00a78a68b1b1285b8e90"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/07-auditor-credit-receipt-reversal-reconciliation.png",
+          "sha256": "01d5822ee3fb09ca6f28e41fa3f5ecc6550497ff507239c8e516fd4ac2863610"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/01-auditor-settlements-read-only.png",
           "sha256": "fbe3a85942c1adfd2277cfb8c05844edef422773ac9f603598d50fd8cb90ccb2"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/09-auditor-empty-accounting-register.png",
-          "sha256": "625db8e99948c763b61dc46adc3192ae2d9a93ecee7f3c54987c111ec2174878"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/01-auditor-populated-ready-pack.png",
+          "sha256": "1acab8f9d3b20fc40e4fb10b4dddc0eb3c079e9895c7719a9bfd1a26c294cd95"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/05-auditor-fictional-approval-audit-event.png",
-          "sha256": "3e822b94927854313c7b25c8b0a8e7a0236be954aeb9adcce0cb8840ff23c916"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/09-auditor-clean-final-pack.png",
+          "sha256": "142aeb245ad36db02a0d4f1d8e30e46e5909bca90f6cd903ec8c3cef38eb0cb1"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/11-auditor-source-finance-review-event.png",
+          "sha256": "e138d475f7adbc74e7681847e199c9199f90ddb9afe89cd5b4eef8200f272a06"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/10-auditor-invoice-audit-chain.png",
+          "sha256": "d1ed868696a0f703657faa515856db823cff8ca55b970ffa4779fd815cdf4e74"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/06-auditor-payment-audit-event.png",
+          "sha256": "1f655451393fd1c05c8f7a589d3256deaa4941fb9610020bb3b8ab9aa0a66b66"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/10-auditor-daily-report-register.png",
@@ -67,38 +184,176 @@
           "sha256": "de9c97215d4e48ed116ae60536653b2d1c3b6332e57c3fd02858ccf9397b0e67"
         },
         {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/13-auditor-repaired-customer-period-desktop.png",
+          "sha256": "45b293a26ffef4d09b597f801b9723c8709e7aa88f8c829bad3fd527b7d50afe"
+        },
+        {
           "path": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/06-auditor-approval-route-denied.png",
           "sha256": "d51fa7ffdcb3d09ae21d929ba96e2296feef45f1c79df7b2285a686c51b21f9e"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/security-mfa-enabled.png",
+          "sha256": "f3ab3fe1d6156193d75ac7d070984752bfe69b2f441d56da927cdc74d663a0c5"
         }
-      ]
+      ],
+      "assembled": true,
+      "outlineEntries": 19
     },
     {
       "role": "chief",
       "filename": "BBS_Crew_Chief_Manual_EN.pdf",
-      "pages": 56,
-      "landscape": 21,
+      "pages": 69,
+      "landscape": 25,
+      "sections": [
+        {
+          "key": "practice",
+          "title": "Before practising \u00b7 live and training access",
+          "page": 3
+        },
+        {
+          "key": "access",
+          "title": "Access \u00b7 activate the invitation and sign in",
+          "page": 4
+        },
+        {
+          "key": "trainer-setup",
+          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "page": 7
+        },
+        {
+          "key": "review-authority",
+          "title": "Review authority \u00b7 who receives each source",
+          "page": 8
+        },
+        {
+          "key": "chief-start",
+          "title": "Understand Chief authority before recording crew work",
+          "page": 9
+        },
+        {
+          "key": "chief-shared",
+          "title": "Save the same actual hours for multiple crew members",
+          "page": 11
+        },
+        {
+          "key": "chief-individual",
+          "title": "Use different actual hours and submit deliberately",
+          "page": 13
+        },
+        {
+          "key": "chief-expense",
+          "title": "Record one crew expense with its actual payer",
+          "page": 16
+        },
+        {
+          "key": "chief-allocation",
+          "title": "Split one receipt across worked sources",
+          "page": 19
+        },
+        {
+          "key": "chief-review",
+          "title": "Hand operational work to the permitted reviewer",
+          "page": 24
+        },
+        {
+          "key": "chief-own-time",
+          "title": "Record and submit your own Chief hours separately",
+          "page": 25
+        },
+        {
+          "key": "chief-correction",
+          "title": "Correct a delegated returned entry",
+          "page": 30
+        },
+        {
+          "key": "chief-daily",
+          "title": "Write a Chief daily handover report",
+          "page": 34
+        },
+        {
+          "key": "chief-technical",
+          "title": "Document your technical findings and validation",
+          "page": 38
+        },
+        {
+          "key": "chief-pay",
+          "title": "Read only your own pay and reimbursements",
+          "page": 42
+        },
+        {
+          "key": "chief-planning-targets",
+          "title": "Read your own plan and distinguish crew authority",
+          "page": 45
+        },
+        {
+          "key": "chief-connected-work",
+          "title": "Complete one shared plan with different individual actual hours",
+          "page": 48
+        },
+        {
+          "key": "chief-expected-comparison",
+          "title": "Reconcile your own weekly target without changing actual work",
+          "page": 54
+        },
+        {
+          "key": "chief-mobile",
+          "title": "Operate crew controls on a phone or tablet",
+          "page": 58
+        },
+        {
+          "key": "chief-profile-help",
+          "title": "Manage your own profile and ask for support",
+          "page": 61
+        },
+        {
+          "key": "chief-checklist",
+          "title": "Verify the crew handover",
+          "page": 62
+        },
+        {
+          "key": "chief-evidence",
+          "title": "What was verified and what remains a reference",
+          "page": 64
+        },
+        {
+          "key": "recovery-matrix",
+          "title": "Recovery \u00b7 sources, obligations and immutable history",
+          "page": 66
+        },
+        {
+          "key": "security",
+          "title": "Security \u00b7 verify your own device and recovery options",
+          "page": 67
+        },
+        {
+          "key": "verification",
+          "title": "Verification \u00b7 current coverage and historical evidence",
+          "page": 69
+        }
+      ],
+      "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 192,
+      "instructionBlocks": 232,
       "instructionText": "PASS",
-      "bytes": 1794369,
-      "sha256": "029dbe2c113ad169169685c5f045dcc4085ec22cfd8cbc34b2b390f440e7ce00",
+      "bytes": 2402434,
+      "sha256": "2163e6ef03f7a7d49281656183dcee8efa87ac96e81e8fe11b6f8f615ef1015c",
       "figures": [
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
+          "sha256": "9649c9fdffbde7a5bd7939994344c80beba4f8040fce76b202b0be12af0d7bcf"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-used-invitation.png",
+          "sha256": "4fabac4ceb7b5c24e0b5f3fbbf2291166c7d7b5b0bf323d85e33eadd8a8e7e7f"
+        },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/02-chief-crew-shared-filled.png",
           "sha256": "2abe5628f3b9a5fa85dc1199869ad00104d8e9aaa234a8acf1a478e9c5e05f37"
         },
         {
-          "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/01-chief-own-upcoming-plan.png",
-          "sha256": "5c15ce5819a4b2fa894683c488426460a029bce7c54992f2375a41ceaa411cc5"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/03-chief-crew-saved.png",
-          "sha256": "4a1542eac48d2a23bdb5b0cf7a1518c7fd2889b8f18ec5526c17c5830415af97"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/07-chief-crew-submitted.png",
-          "sha256": "998570f165b917613381674f747c1eb93ad8c65d3149b8360cedbf4b25d8a14a"
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-shared-full-save.png",
+          "sha256": "4528e6ecafdd8ba1925941cc01dc000c0ac5f983e8b569a068da1f3005010786"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/08-chief-individual-filled.png",
@@ -107,6 +362,94 @@
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/09-chief-individual-submitted.png",
           "sha256": "4eeb950ba9640dff6ad2548c2f3cdb27c34a8372a52203ee8e03f69ebb853971"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-expense-context-full-save.png",
+          "sha256": "4fb9c1ba41aa3ad6e41f48da2fdee114f83e7a1ec7e851805d76ce67e07dba74"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-wrong-receipt-withdrawn.png",
+          "sha256": "164f2f0d987db974ce69e5d91fe2057adfe9b32dd14e657861c96c660e496437"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-receipt-allocation-full-save.png",
+          "sha256": "ce2b028478982c82be118b8e7ccf4726e901165ec7d36719ca9fd8129f436402"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-receipt-allocation-saved2.png",
+          "sha256": "b9dd6560e2b03c7506e74aeeef7277ff2de13a1ce93fb93e9d60034eea83d55e"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-allocated-receipt-limit.png",
+          "sha256": "78196e741140c57d60bb68ba0c94e10f51e16ef9ad88cd8d98a473790501ba78"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-crew-reviewed.png",
+          "sha256": "440fb5b623cc240f5326ddce6d950386ebcf38e6af572660324deff2269a8292"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-normal-correction-draft.png",
+          "sha256": "12937e1949c926a0f8a505054ecde0bd33df8fd06f93958ec7606f9a0f3747e2"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-wrong-correction-withdrawn.png",
+          "sha256": "1be43a17d4c20edaf0e3a5037551daa5afc15839beb9a3288f588da7e08a3e15"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-week-before-submit.png",
+          "sha256": "7d91604e9894d91b2b960c3dcc0182f44b029e0fd10745840202a995b5e07e8c"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-week-after-submit.png",
+          "sha256": "c7dc6252f762d9117ea6363c80345364c926d758bdc10c5d09f61c1312ca3f78"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/18-chief-returned-time.png",
+          "sha256": "065e910269a0b2a3da3ded4d39e3006dd7d9bc23ea2a4690adbb66d70b8bf1da"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/19-chief-correction-filled.png",
+          "sha256": "9f966faa9d5f448ab0c40cbc8a702a7dca04a15fd9bd20c4b81ba87d0937ac61"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/27-chief-correction-approved.png",
+          "sha256": "a881900d3b981f7257c9ebe6297cfd9e8dfa134aa1f3b91830a4a3e9f840ed43"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-daily-full-save.png",
+          "sha256": "6da2bbc4f1600d743874c060a4f006753340eb1b12400577b0e54daf6c2fb3e7"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-daily-ready-presubmit.png",
+          "sha256": "8c9a294d51cb8b85fc35c4a177e753b924d915c8868864999b4b4af9585275d3"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-daily-presubmit-native-output.png",
+          "sha256": "62a589b46f5fcfe368dcb379650f0b8846963b9209e44324827735d80f5610f9"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-technical-full-save.png",
+          "sha256": "1265ddf602ef58fe96071db29e0290b7ebe7bafcac8431801c02658e9b332fc6"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-technical-ready-presubmit.png",
+          "sha256": "e0eb046210da1f072bc3776dffed46b9db98759bf4b3ce761f2991454933f7ad"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-technical-presubmit-native-output.png",
+          "sha256": "1670893681be3830ec707282a3469a7aecda42c3fb84aafaec7dd428d6726b4e"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/17-chief-own-pay.png",
+          "sha256": "879dea22d3cae17f3eaf412aa6baa1ad1c9a6c098dec9a524366eeb688545dc8"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-statement-ready.png",
+          "sha256": "6479503e37f928cbed0846fe969e680d1fe55dfb31207531f024f6beb23aecdf"
+        },
+        {
+          "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/01-chief-own-upcoming-plan.png",
+          "sha256": "5c15ce5819a4b2fa894683c488426460a029bce7c54992f2375a41ceaa411cc5"
         },
         {
           "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/02-chief-delegated-seven-hours-form.png",
@@ -125,50 +468,6 @@
           "sha256": "9019f3c13fe8f34444d01560420a1b16e19ff2278eebd044cb7ae82d366d208b"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/18-chief-returned-time.png",
-          "sha256": "065e910269a0b2a3da3ded4d39e3006dd7d9bc23ea2a4690adbb66d70b8bf1da"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/19-chief-correction-filled.png",
-          "sha256": "9f966faa9d5f448ab0c40cbc8a702a7dca04a15fd9bd20c4b81ba87d0937ac61"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/27-chief-correction-approved.png",
-          "sha256": "a881900d3b981f7257c9ebe6297cfd9e8dfa134aa1f3b91830a4a3e9f840ed43"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/04-chief-expense-filled.png",
-          "sha256": "3e41b52b395f23622e5ab3a20a09b666084dc4a531fcf177320bfa578bf2023b"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/13-chief-shared-expense-saved.png",
-          "sha256": "411b5559372a905bda66cc3c9a0bb58eb97b2e56ab343f47ac0289cc13c78239"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/14-chief-shared-expense-submitted.png",
-          "sha256": "98bfc1a95419864a67972daf3e558db34ba388be6afcfae15678de7745cb0f59"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/05-chief-receipt-split-filled.png",
-          "sha256": "de70b76e7b442b5e637f27c892873a1008b3755b4c8736781cd6814f3915bf08"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/06-chief-receipt-allocation-saved.png",
-          "sha256": "e404ba2a357f96f8c595e3c311ae9f98667582f403f077a9f05922b6f399838a"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/22-chief-own-time-filled.png",
-          "sha256": "af61567a2b84156d3baae66dccf50090ef91fab4d9308f626d129171e59b9b10"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/23-chief-own-week-before-submit.png",
-          "sha256": "f2d7b89779d047f55ce417f976c8323280d2e42bdd1863ee655ea6ac7886c8b4"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/23b-chief-own-time-submitted.png",
-          "sha256": "cb9219fc35ffe30aa15a6d126ee2aeaa6d664cd58b153890e70a514d885ba138"
-        },
-        {
           "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/06-chief-own-approved-eight-hours.png",
           "sha256": "d70f1db621ecd682cf9b72a92067756104a272ee731570f9c8752d8c4f53eaef"
         },
@@ -177,50 +476,245 @@
           "sha256": "32e45818cc929ae26be2141d5518754a873bc0817d0b861b777c008f948d97b0"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/12-chief-daily-filled.png",
-          "sha256": "679517d38a88906aa6400cfe6a96d5b723d7e004ee124d2fc70910674c38d125"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/16-chief-daily-submitted.png",
-          "sha256": "44d493dabd10f7ec4fe1b96aeffab8487993dd09401baf4f90848cf0b3cf217b"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/24-chief-technical-filled.png",
-          "sha256": "667318a027723ec9e64eaaaeaba48cd49a17cb37ccceecf65367921f1ce26812"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/26-chief-technical-submitted.png",
-          "sha256": "0cad11754b7957e2ae41fd6c4fa28bd405ebe7df14fc21605cd8cd5310fd9010"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/17-chief-own-pay.png",
-          "sha256": "879dea22d3cae17f3eaf412aa6baa1ad1c9a6c098dec9a524366eeb688545dc8"
-        },
-        {
           "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/10-chief-phone.png",
           "sha256": "88648a9620ef4c6c8e69f9e5051e6fd1ad384a6d73f86d3d5a4a5c3ea8941b9b"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/11-chief-tablet.png",
           "sha256": "3aeaa4e31aa69eed7cf51267f2b782aa7bcd818e708337d3d1d063584b90105e"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/security-mfa-enabled.png",
+          "sha256": "f3ab3fe1d6156193d75ac7d070984752bfe69b2f441d56da927cdc74d663a0c5"
         }
-      ]
+      ],
+      "assembled": true,
+      "outlineEntries": 26
     },
     {
       "role": "external-technician",
       "filename": "BBS_External_Technician_Manual_EN.pdf",
-      "pages": 44,
-      "landscape": 18,
+      "pages": 57,
+      "landscape": 21,
+      "sections": [
+        {
+          "key": "practice",
+          "title": "Before practising \u00b7 live and training access",
+          "page": 3
+        },
+        {
+          "key": "access",
+          "title": "Access \u00b7 activate the invitation and sign in",
+          "page": 4
+        },
+        {
+          "key": "trainer-setup",
+          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "page": 7
+        },
+        {
+          "key": "review-authority",
+          "title": "Review authority \u00b7 who receives each source",
+          "page": 8
+        },
+        {
+          "key": "external-start",
+          "title": "Start with authorized supplier access",
+          "page": 9
+        },
+        {
+          "key": "external-time",
+          "title": "First shift: save actual time, then submit",
+          "page": 11
+        },
+        {
+          "key": "external-correction",
+          "title": "Correct returned time and verify Owner approval",
+          "page": 14
+        },
+        {
+          "key": "external-week",
+          "title": "Review a week and submit eligible drafts",
+          "page": 17
+        },
+        {
+          "key": "external-expense",
+          "title": "Record an own purchase with its private receipt",
+          "page": 21
+        },
+        {
+          "key": "external-daily",
+          "title": "Write and submit your own daily field report",
+          "page": 24
+        },
+        {
+          "key": "external-technical",
+          "title": "Save technical facts and private evidence before submission",
+          "page": 27
+        },
+        {
+          "key": "external-report-output",
+          "title": "Generate, check and download the saved report version",
+          "page": 32
+        },
+        {
+          "key": "external-operational",
+          "title": "Reconcile an exact period with its native CSV",
+          "page": 35
+        },
+        {
+          "key": "external-mobile",
+          "title": "Use narrow screens and check saved results",
+          "page": 37
+        },
+        {
+          "key": "external-profile",
+          "title": "Maintain your workforce profile and individual security",
+          "page": 40
+        },
+        {
+          "key": "external-help",
+          "title": "Use Help and hand problems to the correct role",
+          "page": 42
+        },
+        {
+          "key": "external-assignment-planning-targets",
+          "title": "Planning appendix \u00b7 assignment dates and expected targets",
+          "page": 44
+        },
+        {
+          "key": "external-operational-goals-handoff",
+          "title": "Describe completed work, open goals and the next shift",
+          "page": 49
+        },
+        {
+          "key": "external-checklist",
+          "title": "Complete the technician handoff",
+          "page": 53
+        },
+        {
+          "key": "recovery-matrix",
+          "title": "Recovery \u00b7 sources, obligations and immutable history",
+          "page": 54
+        },
+        {
+          "key": "security",
+          "title": "Security \u00b7 verify your own device and recovery options",
+          "page": 55
+        },
+        {
+          "key": "verification",
+          "title": "Verification \u00b7 current coverage and historical evidence",
+          "page": 57
+        }
+      ],
+      "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 154,
+      "instructionBlocks": 183,
       "instructionText": "PASS",
-      "bytes": 3083832,
-      "sha256": "cb1aafd723653befdf5e829c7b7d1d6bac6c4e52d0929b26b313811421c94ddc",
+      "bytes": 3855002,
+      "sha256": "cf3f2f8d245682161bf7c7b18ed61f8084ca3f156bb44374f5cbb610295e054b",
       "figures": [
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
+          "sha256": "9649c9fdffbde7a5bd7939994344c80beba4f8040fce76b202b0be12af0d7bcf"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-used-invitation.png",
+          "sha256": "4fabac4ceb7b5c24e0b5f3fbbf2291166c7d7b5b0bf323d85e33eadd8a8e7e7f"
+        },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/01-external-own-time.png",
           "sha256": "da3306217fe0f76a8a0faebbbcd878d3c72126033bdc5a55248c642a0e6d03b9"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et03-full-save-draft.png",
+          "sha256": "771942bc93d4d97a2c3aa2f885de635623e1a0d25cc6d77996594d9af8732bc1"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et03-draft-saved-result.png",
+          "sha256": "ef4db70dab419f4860cd5ef5f9d89d4efbea909dc7097a4c369c9a5529925e92"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et04-linked-correction-full-form.png",
+          "sha256": "e6c16ac0a8cc9edb231a1603a9757c7976db4b5c3053f8eb94804099672be44c"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et04-oct13-approved-correction.png",
+          "sha256": "f375be77bdf933e7c2c2d9e749b2af19558d7c7ad594eefd98ef7f0cc6cb8231"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et02-approved-time-needs-note.png",
+          "sha256": "c10bebaba4a852f16297d5eb132d422ebbb92e0406ca43d8ffd6d72e02fa32a4"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/s06-external-weekly-ordinary-correction-before.png",
+          "sha256": "30c240a901a4fd034c57a3abbc71b5be6e2877967aac2b8dce2383593d45ad7d"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/s06-external-weekly-success-actual-states.png",
+          "sha256": "16ced73997105597e1b0843839e72af284747e66d9236a65dd7cfbf16b4e1c3c"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/14-external-expense-draft.png",
+          "sha256": "d06776dcd90b2c1b74a425230d4563829bb01539bea2e85ef61f1e95ad441b22"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/15-external-expense-submitted.png",
+          "sha256": "4fa29384878ff7c5cca300e52115b313d5a65cafa7a0e59281789a50453af4d5"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/10-external-daily-form.png",
+          "sha256": "5702946ac8937bf3e00dd217792eff370eaaeb0f3ab8577f3584dc49630a6558"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/27-external-daily-approved-source.png",
+          "sha256": "904689ebaa7a628dfa30831b1066925199a6dd161446e6cd487447bc0e18bbd7"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-own-technical-full-save-form.png",
+          "sha256": "62e3a9db221a3fade57f427620d81dc9db04e034bbdf5d1aa2096c0cde42a51e"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-evidence-type-file-notes-upload.png",
+          "sha256": "65a6ee4f7385e795a99f5660bb7239afbb83a8269a8b339af6c53f36c326efcc"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-saved-evidence-metadata.png",
+          "sha256": "5a328c8c6e999cb1a786aea75f6eb0439a3f14621c8158419753abc405213842"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-approved-attribution.png",
+          "sha256": "702681d8b0ca2eff9357e6b957608cebf07df905b8cf55b0044fb81545750cf3"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-readable-native-preview.png",
+          "sha256": "b8f377064f5e8ddf660007f168369b0aeeb104272d648d4763bb850d6123c5f1"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-ready-native-technical.png",
+          "sha256": "7b666d28527122ded10a077963fcf0107fa305e6fbe44b08849eb8dcc4b33e08"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et05-historical-period-approved-2-75h.png",
+          "sha256": "3e5c940e1381a02c238ee46d483530ce7f098fd152cc8699af478676e8196935"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/21-external-phone-report.png",
+          "sha256": "a2bfa60b7f5934997540d51b2c7dc0e833ff6dc34f94eeb60e4618d1e39aba4d"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/22-external-tablet-report.png",
+          "sha256": "053c2fbd3dac4ecbe5da9579c39fd0ff36d9f609f9be8b122487aeae441a949c"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/23-external-profile.png",
+          "sha256": "34c3cf7812588f653cab2e8db71dc688996c7c24a975bfae1dfcb49cbac99df7"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/24-external-help.png",
+          "sha256": "56dd8cf8cfd6fd785cdd20675c40930c8bdd022ecbadbe4277ff7e2e8b0ffdae"
         },
         {
           "path": "docs/evidence/bbs-planning-20261006/external-technician/screenshots/15-external-approved-hours-needs-note.png",
@@ -243,87 +737,176 @@
           "sha256": "b166a026de86fe7b17bcb437aa7e5029d01da3a147be308b7f00893e3a44f5bd"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/03-external-time-filled.png",
-          "sha256": "83c3f994e4893acfedf9ef9ccd0b9deed3e217911f8383e0dab25d56f0f10904"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/04-external-submitted-own-source.png",
-          "sha256": "0e4bffaa208b81cb4be065e02c8439868c54ef137fde7206dd735cc5eb842e1a"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/05-external-returned-correction.png",
-          "sha256": "13e35fb7c88ad2b3b424272a485b93fe7b0501dbad22661c53c821ec4842a2a3"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/06-external-corrected-draft.png",
-          "sha256": "2f62d2c4f3e12977cbed6d8ef28fb940af8217845406c1442358d4ed51b4c9b0"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/07-external-correction-submitted.png",
-          "sha256": "3b624cf30755581d03bc14e9dc84f37ecd02861195fc4a8d689fde2a4e0665d1"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/14-external-expense-draft.png",
-          "sha256": "d06776dcd90b2c1b74a425230d4563829bb01539bea2e85ef61f1e95ad441b22"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/15-external-expense-submitted.png",
-          "sha256": "4fa29384878ff7c5cca300e52115b313d5a65cafa7a0e59281789a50453af4d5"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/10-external-daily-form.png",
-          "sha256": "5702946ac8937bf3e00dd217792eff370eaaeb0f3ab8577f3584dc49630a6558"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/27-external-daily-approved-source.png",
-          "sha256": "904689ebaa7a628dfa30831b1066925199a6dd161446e6cd487447bc0e18bbd7"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/16-external-technical-filled.png",
-          "sha256": "f212bcb26ae8ed2b1446a2b311e0de7246eddabe4996284be1632c090ab913d4"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/26-external-technical-approved.png",
-          "sha256": "730c51e29aee6eb56e3f329e946dbe7b1b7babc693769cf908ef6d4646b05df1"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/25-external-daily-ready.png",
-          "sha256": "904689ebaa7a628dfa30831b1066925199a6dd161446e6cd487447bc0e18bbd7"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/20-external-operational-current.png",
-          "sha256": "14b6e5e79299ebc4c2abcca9db2c3a4b45d547254a0bb397274b5f10d50742bc"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/21-external-phone-report.png",
-          "sha256": "a2bfa60b7f5934997540d51b2c7dc0e833ff6dc34f94eeb60e4618d1e39aba4d"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/22-external-tablet-report.png",
-          "sha256": "053c2fbd3dac4ecbe5da9579c39fd0ff36d9f609f9be8b122487aeae441a949c"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/23-external-profile.png",
-          "sha256": "34c3cf7812588f653cab2e8db71dc688996c7c24a975bfae1dfcb49cbac99df7"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/24-external-help.png",
-          "sha256": "56dd8cf8cfd6fd785cdd20675c40930c8bdd022ecbadbe4277ff7e2e8b0ffdae"
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/security-mfa-enabled.png",
+          "sha256": "f3ab3fe1d6156193d75ac7d070984752bfe69b2f441d56da927cdc74d663a0c5"
         }
-      ]
+      ],
+      "assembled": true,
+      "outlineEntries": 23
     },
     {
       "role": "finance",
       "filename": "BBS_Finance_Manual_EN.pdf",
-      "pages": 56,
-      "landscape": 20,
+      "pages": 79,
+      "landscape": 38,
+      "sections": [
+        {
+          "key": "practice",
+          "title": "Before practising \u00b7 live and training access",
+          "page": 3
+        },
+        {
+          "key": "access",
+          "title": "Access \u00b7 activate the invitation and sign in",
+          "page": 4
+        },
+        {
+          "key": "trainer-setup",
+          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "page": 7
+        },
+        {
+          "key": "review-authority",
+          "title": "Review authority \u00b7 who receives each source",
+          "page": 8
+        },
+        {
+          "key": "finance-start",
+          "title": "Start with your Finance account",
+          "page": 9
+        },
+        {
+          "key": "finance-planning-actual",
+          "title": "Reconcile a work plan with actual source hours",
+          "page": 12
+        },
+        {
+          "key": "finance-boundaries",
+          "title": "Know your authority and the Owner handoffs",
+          "page": 15
+        },
+        {
+          "key": "finance-review",
+          "title": "Review actual work after operational approval",
+          "page": 16
+        },
+        {
+          "key": "finance-expenses",
+          "title": "Classify an expense before Finance review",
+          "page": 19
+        },
+        {
+          "key": "finance-commercial",
+          "title": "Check dated agreements and independent pay rules",
+          "page": 23
+        },
+        {
+          "key": "finance-streams",
+          "title": "Create and review a billing stream",
+          "page": 27
+        },
+        {
+          "key": "finance-draft",
+          "title": "Create and review the customer invoice draft",
+          "page": 30
+        },
+        {
+          "key": "finance-issue",
+          "title": "Approve, issue and download a final invoice",
+          "page": 34
+        },
+        {
+          "key": "finance-dispatch",
+          "title": "Deliver an invoice and inspect the real result",
+          "page": 36
+        },
+        {
+          "key": "finance-collections",
+          "title": "Record a collection and correct it with a reversal",
+          "page": 37
+        },
+        {
+          "key": "finance-adjustment",
+          "title": "Correct an issued amount without rewriting its master",
+          "page": 41
+        },
+        {
+          "key": "finance-settlements",
+          "title": "Finalize a worker\u2019s compensation period",
+          "page": 43
+        },
+        {
+          "key": "finance-worker-payments",
+          "title": "Record and reverse an actual worker-side payment",
+          "page": 44
+        },
+        {
+          "key": "finance-reimbursement",
+          "title": "Record a verified expense reimbursement",
+          "page": 49
+        },
+        {
+          "key": "finance-economics",
+          "title": "Explain economics, cash and workbook exports",
+          "page": 54
+        },
+        {
+          "key": "finance-accounting",
+          "title": "Generate, review and finalize an Accounting Pack",
+          "page": 60
+        },
+        {
+          "key": "finance-close",
+          "title": "Close a billing period and handle late work",
+          "page": 65
+        },
+        {
+          "key": "finance-customer-report",
+          "title": "Generate a customer-safe report and receive the PM handoff",
+          "page": 67
+        },
+        {
+          "key": "finance-obligation-correction",
+          "title": "Handle a finalized obligation correction without unlocking history",
+          "page": 74
+        },
+        {
+          "key": "finance-recovery",
+          "title": "Finish the cycle and hand off an exception",
+          "page": 75
+        },
+        {
+          "key": "recovery-matrix",
+          "title": "Recovery \u00b7 sources, obligations and immutable history",
+          "page": 76
+        },
+        {
+          "key": "security",
+          "title": "Security \u00b7 verify your own device and recovery options",
+          "page": 77
+        },
+        {
+          "key": "verification",
+          "title": "Verification \u00b7 current coverage and historical evidence",
+          "page": 79
+        }
+      ],
+      "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 205,
+      "instructionBlocks": 260,
       "instructionText": "PASS",
-      "bytes": 1057988,
-      "sha256": "623e3742f51df2ba9122d6453e2639c49f8b8f98a33f3db8c1751c0356d6fe64",
+      "bytes": 2316082,
+      "sha256": "efb23d30a401ebb6b0a55a641a1e2d5bea91d2b08680ef9dfd41182c9873a1d5",
       "figures": [
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
+          "sha256": "9649c9fdffbde7a5bd7939994344c80beba4f8040fce76b202b0be12af0d7bcf"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-used-invitation.png",
+          "sha256": "4fabac4ceb7b5c24e0b5f3fbbf2291166c7d7b5b0bf323d85e33eadd8a8e7e7f"
+        },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/02-finance-overview-phone.png",
           "sha256": "c72b1b7965583c309ef497b082dcac8d200e4b7a555f17df7d5229edc6ecfbb6"
@@ -335,6 +918,14 @@
         {
           "path": "docs/evidence/bbs-planning-20261006/finance/screenshots/01-finance-Oct20-actual-sources.png",
           "sha256": "c995285550311b9d13f34c9969af47ece1d6632fb8c5caf668505fa0fdf34de6"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/02-finance-fresh-review-before.png",
+          "sha256": "4eb29a7d4eae57bb5765bb340be7a77da955a5d56e01bf020924b5634f3121d8"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/04-finance-time-billable-after.png",
+          "sha256": "a9bf6994d2b2c1790245a9f31a7e2e479da5d61ba806395cccf9fc3ee6ba65b6"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/04-finance-review-active-lab-sources.png",
@@ -349,48 +940,52 @@
           "sha256": "1dcd193e9aaee617b5930630951acfe4571a7072952a58e8a2b6f60a2af679da"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/31-finance-weekly-labor-stream.png",
-          "sha256": "0fc20b42d45c9cc63d6d2a644a673e7f4163dfa59d21b859a659f561fb330077"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/33-finance-future-november-terms-input.png",
+          "sha256": "0e54371315c7df76272f6b73c0ecd7e5b5e2bc55bed98c896f6b35607936badd"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/32-finance-monthly-expense-stream.png",
-          "sha256": "efc286dd08797a8bbac2fe4d63717a2a7f471a29aa9b33fae01f9cad73031109"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/35-finance-future-terms-saved.png",
+          "sha256": "b0f65c7f5570ab66b6f1beaaaa0b9679717597da2b6db27b2821a13008406a10"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/09-finance-debit-approved.png",
-          "sha256": "3b3c734771a28176550b9e8d829ecb7ce52b8e2c070ddca0ee71a69713690a3d"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/08-finance-new-stream-filled.png",
+          "sha256": "a00c2ee05cd982070449407a20ea3e5809e635dad1cb1fd0a69f1a1e3d9d3965"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/10-finance-issue-confirmation-input.png",
-          "sha256": "5546baa0c50972a22da40bb9b4e54d00e7ead336754df2d1d2d785740108bc31"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/25-finance-saved-manual-stream.png",
+          "sha256": "8f68e2f040a6a9ceb3f242e211741e69d3a9f340d77c4a78deea9a425fd97d7a"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/11-finance-debit-issued-ready.png",
-          "sha256": "421341a1e907bfc7e4212bf404992fac2ec2f542d9bc23ed4194b5ec17b0c5dc"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/09-finance-wizard-included-source.png",
+          "sha256": "ba272347ddb06f11f7af2cce432ba26c5339173096e94c55183867caf7f1832b"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/21-finance-native-debit-final-pdf.png",
-          "sha256": "93922192f18f2d04130a396bd7bdf1988583f866a34948d560903a2a820d8b8d"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/10-finance-wizard-preview.png",
+          "sha256": "32b3086a895f28d9d76ec3752b004361c81f433b2e08e174da0682f18e092a2d"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/12-finance-collection-input.png",
-          "sha256": "b488cd7eb0df0ed26aed0cb70323c9232c23da2352907560ec03b2d3f4138db5"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/12-finance-normal-draft-source-table.png",
+          "sha256": "aed1b0cc2bed1bd3d1a93486c19294c7f9bf7e4521ac9ea0719d7e16f2cf7630"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/13-finance-collected-501.png",
-          "sha256": "268923a3142d9c26a86a7e9361841c338f66c5534b7c868a8154b56b18f72aea"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/15-finance-normal-issued-ready.png",
+          "sha256": "d971fec79e9e3c8c5850a0010e35770e6984bfaced8f7cc276913057dd6a5f41"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/14-finance-collection-reversal-input.png",
-          "sha256": "81aef5a63a9db517ee059db484fae0517a760a21967a593ee450366eaa954cea"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/21-finance-normal-receipt-input.png",
+          "sha256": "741f8cb8f7db0fc978313f8f7b509bb1cb35a3f8bff70673c89b9b5b3e95c4bc"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/15-finance-collection-reversed-history.png",
-          "sha256": "32133a2dfc421539398fe475f216d8ebcb74b9953c6990a9b392d71026584ca8"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/22-finance-normal-receipt-saved.png",
+          "sha256": "3ba36a55ca014720811eced604d8745f38645ef443c56d4e740e041aa0e8898a"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/08-finance-adjustment-input.png",
-          "sha256": "885a1eaca2a5419d09d350518c4b9f83ffe0302a905c2ff16850f49da80afe7e"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/24-finance-normal-reversed-history.png",
+          "sha256": "e005f2396c956ee0ea0907c0115c4dc931ee4d65f461481c722e922d4ebaab69"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/18-finance-credit-input.png",
+          "sha256": "3144ee117c84341f54475a96545f3d5c427b375be0551672aece5cce2f808c29"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/16-finance-worker-payment-input.png",
@@ -433,31 +1028,216 @@
           "sha256": "6c0c63228c3b08558f98542976e91c992a57fd91b7f15ae0fffda14339e6cf8a"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/26-finance-accounting-input.png",
-          "sha256": "656a8da5c87a8ef48510da255e3524b1394a673f10930f19e7e9a693bc15004b"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/19-finance-export-control.png",
+          "sha256": "2914ac59740802bd3555c01729e70fbd2f554884b8684276302d24c4002aafa3"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/27-finance-accounting-native-blocker.png",
-          "sha256": "54a142d1016a4df1c27437a737c780c19d1705c47e9f1fd43c4d615168bc72e6"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/20-finance-accounting-review.png",
+          "sha256": "1d82b239f22b878867ba32d8588b8e9e74bcebbf75500faec0c8ce839b1b31fc"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/33-finance-close-source-controls.png",
-          "sha256": "5cccf379d1fd493808d72fc991c233f5e1a3f5f61722679a0486ee9ac55bae20"
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/31-finance-clean-ready-review.png",
+          "sha256": "c4cc4b374757352a0b3f9727b3d42dd521f4269b1d414937d7712c8bfdafa371"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/34-finance-clean-final-accounting.png",
+          "sha256": "492fb1f2c16b8f5163e3e6409c0f8e506fa4ed931e20c8cc7c775003ba59ecdc"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/26-finance-close-source-input.png",
+          "sha256": "a42715300879ab36af528a165aa2fbe12a1ef663659005bd97741de60e8d831a"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/05-finance-report-input.png",
+          "sha256": "0e7e562ae6183ee9ed829925645f98a3faaad56863c137b380cf7af337adde12"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/06-finance-customer-period-ready.png",
+          "sha256": "803ea512d0f0d34ed196ad9e7d63d1c33a1c5fd9d2167f83ab7b770112aa40fc"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/30-finance-pm-approved-customer-report.png",
+          "sha256": "87c543026247dbb04b5d0ea2bdf65396966bd48b2feb956f8c6f5b116b5b222e"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/36-finance-selected-technical-period-input.png",
+          "sha256": "1335d0bd1c48052a1ed9b7a3974abdff9281e4125245e0a5d06e792deee1f539"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/39-native-customer-period-pdf-page1.png",
+          "sha256": "6221ab62585ff733a006a4479f1799a4e4107aae1518b60abfc1c64950dca270"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/security-mfa-enabled.png",
+          "sha256": "f3ab3fe1d6156193d75ac7d070984752bfe69b2f441d56da927cdc74d663a0c5"
         }
-      ]
+      ],
+      "assembled": true,
+      "outlineEntries": 29
     },
     {
       "role": "manager",
       "filename": "BBS_Project_Manager_Manual_EN.pdf",
-      "pages": 71,
+      "pages": 79,
       "landscape": 34,
+      "sections": [
+        {
+          "key": "practice",
+          "title": "Before practising \u00b7 live and training access",
+          "page": 3
+        },
+        {
+          "key": "access",
+          "title": "Access \u00b7 activate the invitation and sign in",
+          "page": 4
+        },
+        {
+          "key": "trainer-setup",
+          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "page": 7
+        },
+        {
+          "key": "review-authority",
+          "title": "Review authority \u00b7 who receives each source",
+          "page": 8
+        },
+        {
+          "key": "start",
+          "title": "Start with your account and assigned scope",
+          "page": 9
+        },
+        {
+          "key": "navigation",
+          "title": "Find the right workspace on desktop and phone",
+          "page": 12
+        },
+        {
+          "key": "dashboard",
+          "title": "Use Dashboard to decide where to act",
+          "page": 15
+        },
+        {
+          "key": "projects",
+          "title": "Inspect the project before changing its team",
+          "page": 17
+        },
+        {
+          "key": "team",
+          "title": "Assign workers and verify saved membership dates",
+          "page": 19
+        },
+        {
+          "key": "review",
+          "title": "Review a submitted source using the correct decision",
+          "page": 23
+        },
+        {
+          "key": "corrections",
+          "title": "Verify author recovery and approve the linked replacement",
+          "page": 26
+        },
+        {
+          "key": "reports",
+          "title": "Review authored Daily and Technical facts with attribution",
+          "page": 28
+        },
+        {
+          "key": "customer-followup",
+          "title": "Review the ready customer version and acceptance queue",
+          "page": 30
+        },
+        {
+          "key": "planning",
+          "title": "Publish a future plan without creating actual time",
+          "page": 34
+        },
+        {
+          "key": "plan-update",
+          "title": "Change a published assignment and verify persistence",
+          "page": 37
+        },
+        {
+          "key": "plan-connected-crew",
+          "title": "Follow a shared plan through crew work and review",
+          "page": 39
+        },
+        {
+          "key": "plan-targets-recovery",
+          "title": "Distinguish planned hours, expected hours and work goals",
+          "page": 45
+        },
+        {
+          "key": "availability",
+          "title": "Maintain expertise and availability in the correct scope",
+          "page": 56
+        },
+        {
+          "key": "own-time",
+          "title": "Record your own operational time and hand it off",
+          "page": 58
+        },
+        {
+          "key": "expenses",
+          "title": "Inspect receipts and distinguish operational review from repayment",
+          "page": 61
+        },
+        {
+          "key": "pay",
+          "title": "Read only your own compensation and payment status",
+          "page": 63
+        },
+        {
+          "key": "documents",
+          "title": "Register and retrieve a private project document",
+          "page": 65
+        },
+        {
+          "key": "notifications",
+          "title": "Follow a notification to the current permitted source",
+          "page": 68
+        },
+        {
+          "key": "security-help",
+          "title": "Complete own reports and use the shared access/security procedures",
+          "page": 71
+        },
+        {
+          "key": "day-checklist",
+          "title": "Complete the PM operational cycle and hand off",
+          "page": 74
+        },
+        {
+          "key": "recovery-matrix",
+          "title": "Recovery \u00b7 sources, obligations and immutable history",
+          "page": 76
+        },
+        {
+          "key": "security",
+          "title": "Security \u00b7 verify your own device and recovery options",
+          "page": 77
+        },
+        {
+          "key": "verification",
+          "title": "Verification \u00b7 current coverage and historical evidence",
+          "page": 79
+        }
+      ],
+      "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 273,
+      "instructionBlocks": 274,
       "instructionText": "PASS",
-      "bytes": 2724314,
-      "sha256": "680c5971446198c9adf83e5b328ff6b1eb009fa164e6151148bed431b4c8d085",
+      "bytes": 4523599,
+      "sha256": "10afdbb0876036c6ece52bd877f637fb8040ef6c17eaa38cd016f3ebd77aa697",
       "figures": [
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
+          "sha256": "9649c9fdffbde7a5bd7939994344c80beba4f8040fce76b202b0be12af0d7bcf"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-used-invitation.png",
+          "sha256": "4fabac4ceb7b5c24e0b5f3fbbf2291166c7d7b5b0bf323d85e33eadd8a8e7e7f"
+        },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/05-pm-dashboard.png",
           "sha256": "b30aaa254ec86d186e59d9fd1ebf34c7a1d2b2084c355963cb0ba7a97ab3c399"
@@ -479,40 +1259,44 @@
           "sha256": "bc2f6348368ec7d63da6e17a83cdd083777fbc87a058956259f309b09cd418d7"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/09-pm-team-workspace.png",
-          "sha256": "f63e6049d38a5363b63a10585f0b2cf1e29c09e55edb7a6b53e77c18004a243f"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm01-worker2-update-dates-before.png",
+          "sha256": "7b41f3e90899d3e93e659c663a2acbdac17e210f1abd9ba1ee95e07ef062c08c"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/10-pm-assignment-controls.png",
-          "sha256": "90622b288b4f16f3d0b20b57601e3fe1c9381c140650c8f8a8daebd25feab0b4"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm01-worker2-membership-saved.png",
+          "sha256": "c125892ba80c159427d11e2c266a441b4afe3dbc388abd7b6a6abf8cbe197d56"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/03-pm-expense-operational-review.png",
-          "sha256": "895286aff36fd4f4379d28d3aae2dfb3985b4789b7d6597fda868a71a236e673"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm01-worker2-restored-membership.png",
+          "sha256": "dee2e3ebc08623e7bbd56a16e521ece41400cc570bd8b3728bd4f92df8c54d7d"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/23-pm-approvals-phone.png",
-          "sha256": "bae6eee476026a7925aba8374ad4107aa4c09530b6caabc693a8491741dcd6dd"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm02-reject-reason-action.png",
+          "sha256": "0212dbb2f7b74705ae2432092ea7d157957e3863735457748b69035a2ef1f9d9"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/01-pm-return-action.png",
-          "sha256": "a6d63467e31206c4e1e3aeeec2167bb4f656eab3eb0d0112a894d8ff6d08c529"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm02-needs-changes-action.png",
+          "sha256": "dafcf3edf20a61388aa05074c7d59944383f1bbb8b188a95ff024d60b56cacc2"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/26-pm-reports-workspace.png",
-          "sha256": "21137df8c8bd85701fac8149bb3a9eb9a6ea5a59b37b4864c4b65a1b98ff2081"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm02-correction-approved-source.png",
+          "sha256": "c96a7e8e6af115922b4d45b72b69140ca4e18775364b3ee70fef6269bb5475ac"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/08-pm-chief-technical-approved.png",
-          "sha256": "dfe2a24ae006a8fd74568efaf4f8c88377d4aa83cc2485717ea391101d82adca"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm03-approved-technical-reviewer-summary.png",
+          "sha256": "0226728b899e0f51479da0255eef37442d05987a3324a7c2411a1e725176f124"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/27-pm-period-review.png",
-          "sha256": "ef56aae1f87a89ff2e2c6d65810e1fd6c6606ce1d84d02fd6fefd01e43b68132"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm04-customer-safe-reviewed-version.png",
+          "sha256": "d02bd5785fff1f9266e8290647b2984c622252b2141a674a7afa58a5c2d903c2"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/28-pm-customer-signoff-workspace.png",
-          "sha256": "65c8f1cd41285954fa09df913f1578e429fa32386cfa14bbcdd74f5f5066a3f2"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm04-approved-customer-exact-version.png",
+          "sha256": "92aa0b914955d940176ba416594a9fa2082ebaae497fc0ee129483b4a46f113d"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm04-ready-acceptance-queue.png",
+          "sha256": "0d9e23dd5044c3afae65626b7e15529c857454cba446411f3f4ec22783420bb7"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/07-pm-publish-plan-before.png",
@@ -575,6 +1359,10 @@
           "sha256": "9877dd70076980681590f937fe50647ea50f172ef321e6eb25112c163598f156"
         },
         {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm05-final-planning-summary.png",
+          "sha256": "d4ca3a6f050fd2153d1c9296cdb5902cbb05760b10cc74732229363f324de907"
+        },
+        {
           "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/21-pm-availability-saved.png",
           "sha256": "710f7affbc0f5aed37d838368c77176920bb7493fc8aa1a5251c5400555cc2d5"
         },
@@ -595,39 +1383,655 @@
           "sha256": "36ba92f0be7827aa0c4baa90ff9a9795062d2702708ea82ac6f2ba5fcf30680a"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/11-pm-documents.png",
-          "sha256": "ea0001c1b34e75ac66efca03bcf18c6736d1746314630c873df8c5a688ec2df0"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm06-actual-sensitivity-upload-form.png",
+          "sha256": "825a84ec7dc50737e210f39b2416e484e21c0c94d7ac05af8a4fd0107973b263"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/12-pm-document-upload-result.png",
-          "sha256": "97df5a03452ac503da3bedbed118e38d83691764a868a13d0eca216dc2705eda"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm06-saved-private-document-scope.png",
+          "sha256": "9688aa940f7cd5743b30f197852d7ef0f347a73b51b011aeb2a38d664f9b6d60"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/17-pm-notifications.png",
-          "sha256": "093f0fdea625f60be943ba43aef296f3826fc97e06b218f03f76aca7efe26557"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm07-populated-native-notifications.png",
+          "sha256": "20d59f3a5f125eb02310289b652fa632ea24d16df29e9d8c193f4bf63456e798"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/19-pm-help.png",
-          "sha256": "0133b17c2af6010b4c9f33ddfaba35892baeda0cf38d1733148c7a5144184ac6"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm07-notification-current-approved-source.png",
+          "sha256": "2d9fee24b7a7806a83fbc8b71a56e335c26e896a78cfaf3c2224c7af492d6055"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/22-pm-finance-denied.png",
-          "sha256": "c9ecbcc08b69e846c288a884e2efd75178ffd4f1d10e88777befe5ee1b0d85ed"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm08-own-daily-filled-form.png",
+          "sha256": "5987840c9308f3c6eb503dd52f0a7e5598d74fa6ccce4ac47ad2ecd7a40cc637"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm08-own-daily-ready.png",
+          "sha256": "b371dd40045b1feafdee2f916a07e763c20fc37e8f0f60d70a9be650a877c3ff"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/security-mfa-enabled.png",
+          "sha256": "f3ab3fe1d6156193d75ac7d070984752bfe69b2f441d56da927cdc74d663a0c5"
         }
-      ]
+      ],
+      "assembled": true,
+      "outlineEntries": 29
     },
     {
       "role": "owner",
       "filename": "BBS_Owner_Manual_EN.pdf",
-      "pages": 232,
-      "landscape": 78,
+      "pages": 255,
+      "landscape": 84,
+      "sections": [
+        {
+          "key": "practice",
+          "title": "Before practising \u00b7 live and training access",
+          "page": 7
+        },
+        {
+          "key": "access",
+          "title": "Access \u00b7 activate the invitation and sign in",
+          "page": 8
+        },
+        {
+          "key": "trainer-setup",
+          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "page": 11
+        },
+        {
+          "key": "review-authority",
+          "title": "Review authority \u00b7 who receives each source",
+          "page": 12
+        },
+        {
+          "key": "owner-course",
+          "title": "Use this Owner manual",
+          "page": 13
+        },
+        {
+          "key": "owner-access",
+          "title": "Owner account, assignments and delegation",
+          "page": 14
+        },
+        {
+          "key": "owner-review-grants",
+          "title": "Grant or revoke the exact project review permission",
+          "page": 16
+        },
+        {
+          "key": "owner-handoffs",
+          "title": "Give each person the right guide",
+          "page": 17
+        },
+        {
+          "key": "owner-clean-setup",
+          "title": "Prepare a clean project and its legal billing prerequisites",
+          "page": 19
+        },
+        {
+          "key": "owner-plan-membership",
+          "title": "Assign access, publish a crew plan and verify each worker",
+          "page": 21
+        },
+        {
+          "key": "owner-expected-hours",
+          "title": "Set expected hours and interpret the weekly difference",
+          "page": 26
+        },
+        {
+          "key": "owner-planning-time-goals",
+          "title": "Keep planned hours, local time and work goals distinct",
+          "page": 32
+        },
+        {
+          "key": "owner-planning-recovery",
+          "title": "Troubleshoot missing plans, expired coverage and unknown targets",
+          "page": 37
+        },
+        {
+          "key": "owner-money",
+          "title": "Supervise the financial cycle",
+          "page": 41
+        },
+        {
+          "key": "owner-commercial-references",
+          "title": "Check optional commercial models, milestones and forecasts",
+          "page": 42
+        },
+        {
+          "key": "owner-accounting",
+          "title": "Accounting coverage and period close",
+          "page": 44
+        },
+        {
+          "key": "owner-readiness-closeout",
+          "title": "Verify populated closeout and the current Accounting recovery",
+          "page": 46
+        },
+        {
+          "key": "owner-current-technical-output",
+          "title": "Inspect current customer technical details before delivery",
+          "page": 50
+        },
+        {
+          "key": "recovery-matrix",
+          "title": "Recovery \u00b7 sources, obligations and immutable history",
+          "page": 52
+        },
+        {
+          "key": "security",
+          "title": "Security \u00b7 verify your own device and recovery options",
+          "page": 53
+        },
+        {
+          "key": "verification",
+          "title": "Verification \u00b7 current coverage and historical evidence",
+          "page": 55
+        },
+        {
+          "key": "course-owner-first-access",
+          "title": "Start here \u00b7 Owner access and this guide",
+          "page": 56
+        },
+        {
+          "key": "course-before-practising",
+          "title": "Before practising \u00b7 obtain a separate training environment",
+          "page": 57
+        },
+        {
+          "key": "course-owner-navigation",
+          "title": "Owner navigation \u00b7 choose the workspace",
+          "page": 58
+        },
+        {
+          "key": "course-owner-access-model",
+          "title": "Person, role, assignment and review permission",
+          "page": 59
+        },
+        {
+          "key": "course-owner-team-onboarding",
+          "title": "Create workforce access \u00b7 exact controls",
+          "page": 60
+        },
+        {
+          "key": "course-bbs-inspect-or-create",
+          "title": "Two learning paths \u00b7 inspect or build",
+          "page": 63
+        },
+        {
+          "key": "course-chapter-1",
+          "title": "Understand the operating cycle",
+          "page": 64
+        },
+        {
+          "key": "course-project-prerequisites",
+          "title": "Before creating the project",
+          "page": 65
+        },
+        {
+          "key": "course-chapter-2",
+          "title": "Create a client and project",
+          "page": 66
+        },
+        {
+          "key": "course-client-fields",
+          "title": "Client fields \u00b7 what to enter",
+          "page": 67
+        },
+        {
+          "key": "course-project-fields",
+          "title": "Project fields \u00b7 basics and dates",
+          "page": 69
+        },
+        {
+          "key": "course-commercial-project",
+          "title": "Commercial defaults \u00b7 models and hours",
+          "page": 70
+        },
+        {
+          "key": "course-budget-fields",
+          "title": "Budgets and reporting \u00b7 optional controls",
+          "page": 72
+        },
+        {
+          "key": "course-creation-people",
+          "title": "Optional worker table during creation",
+          "page": 74
+        },
+        {
+          "key": "course-bbs-initial-sheet",
+          "title": "Initial data sheet \u00b7 before the first work record",
+          "page": 79
+        },
+        {
+          "key": "course-chapter-3",
+          "title": "Project defaults and person overrides",
+          "page": 80
+        },
+        {
+          "key": "course-dated-terms",
+          "title": "Effective dates, overrides and bulk controls",
+          "page": 82
+        },
+        {
+          "key": "course-contract-decisions",
+          "title": "Translate the contract into independent settings",
+          "page": 83
+        },
+        {
+          "key": "course-chapter-4",
+          "title": "J&A issuer and invoice details",
+          "page": 84
+        },
+        {
+          "key": "course-issuer-directories",
+          "title": "Issuer settings and tax profiles",
+          "page": 86
+        },
+        {
+          "key": "course-chapter-5",
+          "title": "Crew chief: hourly billing and hourly pay",
+          "page": 87
+        },
+        {
+          "key": "course-chapter-6",
+          "title": "Technician 1: full daily customer charge",
+          "page": 90
+        },
+        {
+          "key": "course-chapter-7",
+          "title": "Technician 2: weekly charge, fixed-period pay",
+          "page": 93
+        },
+        {
+          "key": "course-chapter-8",
+          "title": "More compensation and expense options",
+          "page": 96
+        },
+        {
+          "key": "course-billing-unit-meaning",
+          "title": "Customer unit and worker compensation \u00b7 two decisions",
+          "page": 97
+        },
+        {
+          "key": "course-overtime-reference",
+          "title": "Configure overtime \u00b7 separate customer, worker and cost rules",
+          "page": 98
+        },
+        {
+          "key": "course-worker-trigger-limits",
+          "title": "Percentage compensation \u00b7 precise basis and trigger",
+          "page": 99
+        },
+        {
+          "key": "course-alternative-contracts",
+          "title": "Daily minimum, caps and forecast \u00b7 reference exercises",
+          "page": 100
+        },
+        {
+          "key": "course-chapter-9",
+          "title": "Assign the crew and chief",
+          "page": 101
+        },
+        {
+          "key": "course-suppliers-owner",
+          "title": "Supplier setup and personnel \u00b7 exact tested controls",
+          "page": 103
+        },
+        {
+          "key": "course-supplier-access-lifecycle",
+          "title": "Team role, external profile and access removal",
+          "page": 105
+        },
+        {
+          "key": "course-chapter-15",
+          "title": "Separate labor and expense billing streams",
+          "page": 106
+        },
+        {
+          "key": "course-stream-prerequisites",
+          "title": "Prerequisites \u00b7 creating a billing stream",
+          "page": 107
+        },
+        {
+          "key": "course-stream-core-fields",
+          "title": "New billing stream \u00b7 project, sources and timing",
+          "page": 108
+        },
+        {
+          "key": "course-stream-delivery-fields",
+          "title": "New billing stream \u00b7 delivery and defaults",
+          "page": 110
+        },
+        {
+          "key": "course-cadence-options",
+          "title": "Cadence options \u00b7 which period do they mean?",
+          "page": 112
+        },
+        {
+          "key": "course-chapter-19",
+          "title": "Issuer coverage and legal revisions",
+          "page": 113
+        },
+        {
+          "key": "course-planning-skills-availability",
+          "title": "Planning, skills and availability \u00b7 tested lab cycle",
+          "page": 114
+        },
+        {
+          "key": "course-planning-owner-time",
+          "title": "Owner weekly entry \u00b7 actual hours and layout copy",
+          "page": 115
+        },
+        {
+          "key": "course-chapter-10",
+          "title": "Record and submit time",
+          "page": 118
+        },
+        {
+          "key": "course-chapter-12",
+          "title": "Record expenses and a shared receipt",
+          "page": 121
+        },
+        {
+          "key": "course-expense-entry-fields",
+          "title": "Expense-entry fields \u00b7 amount and evidence",
+          "page": 122
+        },
+        {
+          "key": "course-foreign-currency-remedy",
+          "title": "Foreign-currency expense \u00b7 supported escalation",
+          "page": 126
+        },
+        {
+          "key": "course-operational-review",
+          "title": "Review an active queue \u00b7 Owner and Finance handoff",
+          "page": 127
+        },
+        {
+          "key": "course-correction-states",
+          "title": "Correct time by its current state",
+          "page": 130
+        },
+        {
+          "key": "course-correction-worked",
+          "title": "Worked correction \u00b7 eight hours should be six",
+          "page": 131
+        },
+        {
+          "key": "course-chapter-11",
+          "title": "Stage 1: 35 approved actual hours",
+          "page": 139
+        },
+        {
+          "key": "course-chapter-13",
+          "title": "Four approved, Finance-reviewed expenses",
+          "page": 141
+        },
+        {
+          "key": "course-report-model",
+          "title": "Reports and customer acceptance \u00b7 distinct evidence",
+          "page": 144
+        },
+        {
+          "key": "course-daily-report-procedure",
+          "title": "Create and review a Daily report",
+          "page": 145
+        },
+        {
+          "key": "course-technical-report-procedure",
+          "title": "Technical / PLC report \u00b7 tested review procedure",
+          "page": 148
+        },
+        {
+          "key": "course-period-report-procedure",
+          "title": "Generate the customer-safe period file",
+          "page": 150
+        },
+        {
+          "key": "course-signoff-evidence",
+          "title": "Record genuine sign-off against the exact version",
+          "page": 153
+        },
+        {
+          "key": "course-signoff-simulated-completion",
+          "title": "Training acceptance, invalidation and a replacement version",
+          "page": 155
+        },
+        {
+          "key": "course-chapter-16",
+          "title": "Create the 35-hour client invoice",
+          "page": 158
+        },
+        {
+          "key": "course-invoice-prerequisites",
+          "title": "Prerequisites \u00b7 creating an invoice draft",
+          "page": 159
+        },
+        {
+          "key": "course-invoice-wizard",
+          "title": "Create invoice \u00b7 every review step",
+          "page": 160
+        },
+        {
+          "key": "course-chapter-17",
+          "title": "Create the client expense invoice",
+          "page": 164
+        },
+        {
+          "key": "course-chapter-18",
+          "title": "One invoice with hourly, daily and weekly units",
+          "page": 166
+        },
+        {
+          "key": "course-chapter-20",
+          "title": "Edit a draft and download its PDF",
+          "page": 168
+        },
+        {
+          "key": "course-invoice-edit-fields",
+          "title": "Invoice detail edits \u00b7 where each value is saved",
+          "page": 169
+        },
+        {
+          "key": "course-chapter-22",
+          "title": "Pre-issue checkpoint and troubleshooting",
+          "page": 172
+        },
+        {
+          "key": "course-final-numbering",
+          "title": "Numbering policy \u00b7 approved inputs and neutral example",
+          "page": 173
+        },
+        {
+          "key": "course-final-issue-procedure",
+          "title": "Final invoice issuance \u00b7 exact tested progression",
+          "page": 175
+        },
+        {
+          "key": "course-invoice-dispatch",
+          "title": "Dispatch \u00b7 explicit email consent and failure recovery",
+          "page": 177
+        },
+        {
+          "key": "course-issued-correction",
+          "title": "Issued correction \u00b7 linked credit and void safeguards",
+          "page": 179
+        },
+        {
+          "key": "course-credit-receiving",
+          "title": "Credit balance \u00b7 allocation and refund boundary",
+          "page": 180
+        },
+        {
+          "key": "course-collections-procedure",
+          "title": "Record collections \u00b7 partial, later and correction",
+          "page": 182
+        },
+        {
+          "key": "course-worker-schedules",
+          "title": "Different worker payment periods and dates",
+          "page": 184
+        },
+        {
+          "key": "course-worker-payment-prerequisites",
+          "title": "Worker payment prerequisites and period selection",
+          "page": 185
+        },
+        {
+          "key": "course-worker-settlement-steps",
+          "title": "Finalize one worker\u2019s compensation \u00b7 exact steps",
+          "page": 186
+        },
+        {
+          "key": "course-worker-period-examples",
+          "title": "Three saved BBS compensation periods",
+          "page": 188
+        },
+        {
+          "key": "course-worker-planning-steps",
+          "title": "Set different expected payment dates \u00b7 exact steps",
+          "page": 189
+        },
+        {
+          "key": "course-worker-actual-payment",
+          "title": "Record actual payment only after a real transfer",
+          "page": 191
+        },
+        {
+          "key": "course-expense-reimbursement",
+          "title": "Reimburse a worker expense \u00b7 exact tested register",
+          "page": 198
+        },
+        {
+          "key": "course-chapter-14",
+          "title": "Worker and chief views",
+          "page": 200
+        },
+        {
+          "key": "course-economic-meaning",
+          "title": "Finance figures \u00b7 economic position versus cash",
+          "page": 203
+        },
+        {
+          "key": "course-spreadsheet-exports",
+          "title": "Spreadsheet exports: hours, costs and revenue",
+          "page": 204
+        },
+        {
+          "key": "course-spreadsheet-sheets",
+          "title": "Pre-issue finance workbook \u00b7 what each tab means",
+          "page": 206
+        },
+        {
+          "key": "course-spreadsheet-reconciliation",
+          "title": "Pre-issue snapshot \u00b7 economic meanings",
+          "page": 207
+        },
+        {
+          "key": "course-cost-reconciliation",
+          "title": "Reconcile internal costing with compensation owed",
+          "page": 208
+        },
+        {
+          "key": "course-expense-workbook-steps",
+          "title": "Download the separate expense register workbook",
+          "page": 221
+        },
+        {
+          "key": "course-spreadsheet-verified-scope",
+          "title": "Spreadsheet verification and original workbook attachments",
+          "page": 226
+        },
+        {
+          "key": "course-after-lifecycle-workbook",
+          "title": "After lifecycle XLSX \u00b7 compare a second snapshot",
+          "page": 227
+        },
+        {
+          "key": "course-weekly-close-procedure",
+          "title": "Weekly close \u00b7 reviewed sources and a later arrival",
+          "page": 231
+        },
+        {
+          "key": "course-owner-close-and-history",
+          "title": "Project closure and archive \u00b7 exact tested empty-project cycle",
+          "page": 233
+        },
+        {
+          "key": "course-populated-closeout",
+          "title": "Populated closeout \u00b7 final packages and supported reopening",
+          "page": 234
+        },
+        {
+          "key": "course-accounting-pack",
+          "title": "Accounting Pack \u00b7 generate, review and finalize",
+          "page": 235
+        },
+        {
+          "key": "course-accounting-success",
+          "title": "Accounting demo \u00b7 reviewed October pack finalized",
+          "page": 236
+        },
+        {
+          "key": "course-accounting-period-reconciliation",
+          "title": "Accounting period \u00b7 invoices, cash and older work dates",
+          "page": 237
+        },
+        {
+          "key": "course-accounting-gap-remedy",
+          "title": "Accounting error \u00b7 understand the retained dates",
+          "page": 240
+        },
+        {
+          "key": "course-private-documents",
+          "title": "Documents \u00b7 register, classify and recover a private file",
+          "page": 242
+        },
+        {
+          "key": "course-owner-profile-and-help",
+          "title": "Audit, notifications, security and Help \u00b7 exact scope",
+          "page": 244
+        },
+        {
+          "key": "course-ux-improvements",
+          "title": "UX corrections and remaining operating limits",
+          "page": 245
+        },
+        {
+          "key": "course-owner-task-checklist",
+          "title": "Owner completion checklist \u00b7 verify the business result",
+          "page": 246
+        },
+        {
+          "key": "course-verification-scope",
+          "title": "Validation matrix \u00b7 completed, reference and blocked",
+          "page": 247
+        },
+        {
+          "key": "course-testing-history",
+          "title": "Evidence history \u00b7 keep snapshots and outcomes separate",
+          "page": 248
+        },
+        {
+          "key": "course-appendices",
+          "title": "Final issued invoice PDFs \u00b7 original downloads",
+          "page": 249
+        }
+      ],
+      "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 109,
+      "instructionBlocks": 563,
       "instructionText": "PASS",
-      "bytes": 8630472,
-      "sha256": "feb18cb2604b8116261d81696c9385e4d2c79d741867b778729548553fb2fe6b",
+      "bytes": 9173862,
+      "sha256": "7bd45e0e1df79386def13944d0a51058f2ca90785e81bb62f8f6f0d76b0a1f96",
       "figures": [
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
+          "sha256": "9649c9fdffbde7a5bd7939994344c80beba4f8040fce76b202b0be12af0d7bcf"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-used-invitation.png",
+          "sha256": "4fabac4ceb7b5c24e0b5f3fbbf2291166c7d7b5b0bf323d85e33eadd8a8e7e7f"
+        },
         {
           "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/01-owner-publish-joint-plan.png",
           "sha256": "89921d9b16da1815f335c98ea5219ecb017a7e04c84d80223ef9b6f6eef53aae"
@@ -675,27 +2079,578 @@
         {
           "path": "docs/evidence/bbs-planning-20261006/owner/screenshots/05-worker-missing-expected-before-membership.png",
           "sha256": "136eb7e7695ddadf9acc73ef4915bca5fe45395ca5fd8f27ce6c91b009d46154"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/owner/screenshots/owner-populated-closeout-final.png",
+          "sha256": "ca0b0105f639c7d315cd0357e3b5a9b672a297e14042afeb8e899283fd5e055e"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/owner/screenshots/owner-populated-closeout-reopen-form.png",
+          "sha256": "97892bdb9466ae3fad501afe244cc0ff1a0fedaae9fde2b1290d80389c6f3cb7"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/owner/screenshots/accounting-source-reconciliation-retained-dates.png",
+          "sha256": "5b64f8f79a945faaa4163b540667a82fc1e923c48a31dbfd245191a4ddae4f07"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/39-native-customer-period-pdf-page1.png",
+          "sha256": "6221ab62585ff733a006a4479f1799a4e4107aae1518b60abfc1c64950dca270"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/security-mfa-enabled.png",
+          "sha256": "f3ab3fe1d6156193d75ac7d070984752bfe69b2f441d56da927cdc74d663a0c5"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-02-team-create-user.png",
+          "sha256": "683221c0e6af7647e7c567576456c3aa5b4407af7ce83ec05470133b279da232"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-05-team-local-account-after.png",
+          "sha256": "4ea0bd43a44c7c33daac359038a4e37107a42d5d3052a7efa258a04339e79809"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/29-create-project-basics.png",
+          "sha256": "7de4647d505b6dfa87019cf0d417230d811b817947d6d75bb8e1be24a638798e"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/31-create-commercial.png",
+          "sha256": "640e365a6535cf3931964929df7d75188c7dc23c387bd87c0cffbe4d72ce7a7d"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/95-project-budgets-and-report-switches.png",
+          "sha256": "623f9b2ecc6ce448e5bce6bcd8fd1f8811f2a00ad8b95e6adde112aff018599b"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/63-create-assignment-header.png",
+          "sha256": "546b410b9fcc417d9277d060fcc7b6b0f5246dffd40ba0daf25a71267a9a50de"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/59-create-assignment-terms.png",
+          "sha256": "c59e171b691f4df2363ac4c68123e769a4290eb0393ff7d2a0c649355cb1812f"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-06-project-assignment-before.png",
+          "sha256": "dfa73e322942099bab0055d395abdd3e291216e3a1a8636af8dab43fab490987"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-07-project-assignment-after.png",
+          "sha256": "3c77478fc2d5eab13905660ebd115f5401bc4a906451adbac02e85bb0420cfd0"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/51-review-person-location.png",
+          "sha256": "c104e9063aa73733e06aee5f8e10752c15332c53b407a804bb4bf31e56a6512e"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/18-ja-default-issuer.png",
+          "sha256": "6e3e8c8340949b67657ff095a073ca73e3f38e5e04bff877d3c9fab71d97d37d"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/52-chief-rates.png",
+          "sha256": "eda2f9dc83d998987c950c92223c098ef408b0e91869ef333e43162344d0aa7c"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/53-chief-expenses.png",
+          "sha256": "a4a5a19286c0cca62215af3fd4c4a8c9b48ee0711a1361a96ca3cc436e5584f8"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/35-worker-daily-rates.png",
+          "sha256": "662e7fb6677f0a9eca02c20e14ba54a24402302f9a6a1c225a14f984b3e81b1e"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/36-worker-daily-expenses.png",
+          "sha256": "96a110707816547fc35732b2efdccabbc021ecf6db3f00b43d9bac354480ca20"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/54-weekly-rates.png",
+          "sha256": "fd69f12fee04543e68b0fcec6fc1bbf36fd7978966644bf15187f74afd2a70fe"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/55-weekly-expenses.png",
+          "sha256": "966352df1b16bcb140c57150acc3562a876b5ad29a922c472c18f9863b18758a"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/46-assign-chief.png",
+          "sha256": "75d164c74d2fb48078718d6621dc99d73f239d9d405843af16bcd75244f30206"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-supplier-create.png",
+          "sha256": "2bdaef5f454f86691c4bba5ed3d59da12487ff7ff84b2c3e87cda241a974532b"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-supplier-profile.png",
+          "sha256": "79d730d45b5356fb96490216fd718b8c7415f94dd31692b162217ec4d7de3773"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-supplier-authorize.png",
+          "sha256": "51f6b73cda7c71ddde06a3c0acdca650494104b3a247a2ec5b976570159696c7"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/40-new-stream-cadence.png",
+          "sha256": "d471e86fb4b4cfbfbe3f667a60819c6bbe5ef8fd385cacf5d1274820dd36fbb9"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/41-new-stream-delivery.png",
+          "sha256": "a70ea7f7036852bf42f137a96edc08f7763042ed48b72b3c4d97ea150fba7731"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-08-week-time-before.png",
+          "sha256": "5c34e43d9f561a59fe81915ffc034ab63f715f6960370293968de2b93b6156f6"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-corrected-saved-time-register.png",
+          "sha256": "ae62f0b1643577d8d0c119a98d94a40971777076abc50df21e891aedc4b58099"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/47-worker-log-time.png",
+          "sha256": "1639ebe780ad29d5f9c12e1d66b9eeeaac33a40174ed0e80e3b25f20401705b7"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/48-chief-team-hours.png",
+          "sha256": "d7353e2e0d1c6b3f59a88272e4ae5367d95b915cfa9ea10e8acc6e648e487b87"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/56-expense-source-fields.png",
+          "sha256": "fc524729521b27002dcc33901af08e34bcf5bde34ca886f187946aeee7809ffd"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/57-expense-money-fields.png",
+          "sha256": "f85f89e7740b24a78d7e03077bffc1b12f483b8903c7f47be84c2875f6f6dec5"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/49-chief-shared-receipt.png",
+          "sha256": "c78be1796af6f913ed075aa77be3cb1132c719c1592109316484ca3d39d9bd80"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-12-approval-return-before.png",
+          "sha256": "d97422a7031e91c9a95316218faf876cd280f90f305eeb469dd67a7d10d6db91"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-13-approval-return-after.png",
+          "sha256": "de976349804160038b88407ad49e6455a2aefbe167be8cec31d674381d00b0e9"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-14-correction-six-hours-before.png",
+          "sha256": "1c86972e39238cffe215bfc5f323d5ba9ec4deaa1f5cb3c812a7505da4529e79"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-15-correction-six-hours-draft.png",
+          "sha256": "e70c85e1df9f6e5f887b344c1d42185ad6db37050ca7c05c16dcbace67d8c80d"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-17-correction-submitted-queue.png",
+          "sha256": "ac137d3b14b63894c7c7201e9988ee8a3ec48de217296064b1163a60765c4cea"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-27-owner-correction-direct-submit-before.png",
+          "sha256": "5869cba7cb2f9abf69ced2349737be57348d0d56b3f0aa7f00c7244f2e2a1d44"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-28-owner-correction-direct-submit-after.png",
+          "sha256": "272910c5924eae09f91397ca2705dd6ec25a4def1b450bac69ae2ff861578fcc"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-29-six-hour-finance-review-before.png",
+          "sha256": "e4f9abb4e281c8e6df0b2997eaf6047064e8b706bcb75753fcb8c2bb556d14d4"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-30-six-hour-finance-reviewed.png",
+          "sha256": "d626c3ca709c79bb9aff8d2bc7d0b241bd7071fc4fa04c5d40c8ef42339b67a8"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/60-stage1-approved-35-hours.png",
+          "sha256": "f58642760c5cccf81bb1accb3a7bf94f18867cb7b8af47ffcb3c3122378a5ff2"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/61-four-approved-expenses.png",
+          "sha256": "8a1bade46501613740d725d8035009dbf79e82f021b5d90fa0eff565a16d4624"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/62-finance-review-cleared.png",
+          "sha256": "3df283b64342a7c9c28d000e758e9bea8c946fd2b0265c20942299668836df9b"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-daily-report-top-fields.png",
+          "sha256": "a47eb2ef0cd236b3397323ad5489013145d4df595bca86c5b5874b1db0c4f6c0"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-36-daily-report-approval-before.png",
+          "sha256": "177e975ebd217b4b1784ec001adc4c8337eef98ef50f6a9d18618ce2d4704743"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-45-technical-report-approval-before.png",
+          "sha256": "8669e57eccc5513633b54eabe150bf622abc61b8e78fd3b2bd30a90112de8eb3"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-technical-readable-details.png",
+          "sha256": "6550f2f081e4c3c47380e06af294c9738d559024f590f75f66f4388f8fee62f3"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-37-period-report-generator.png",
+          "sha256": "3f32b66595ecac8610fcf25c21024fa108139e5a4b32da270d60fcf027ae269e"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-48-customer-report-native-pdf-ready.png",
+          "sha256": "2fcaaee40b0aab440287c25337ced7599e04713865afaadd02c19f18757c8eef"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-owner-signoff-evidence-form.png",
+          "sha256": "b44ab17596f6b648f5cc6613f09d64518e93db60a2d0eb5849ff8e96b70f2b48"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-synthetic-signoff-accepted.png",
+          "sha256": "70f8c81cf3d6d057cda614081847b112d960332029983afec9875191cbfe5465"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-synthetic-signoff-replacement.png",
+          "sha256": "5cc4f34332c82b3d430714b87394cadfe4368771c8563f1f907e9ddd37184f65"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-correct-labor-wizard.png",
+          "sha256": "980a78f0127c18507fa5154335f8159424eb76e21b68629a4b443fc2b9e15cde"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/43-invoice-period.png",
+          "sha256": "18dc04a24c8033a8d5c99048870f430bc1300530387a0cb904f197cd4c3e878a"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/22-labor-lines.png",
+          "sha256": "63b77d28fa7cf34129894c710acb2a73d705b954ccd2e0ec755ffa5f17f817f8"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/23-expense-lines.png",
+          "sha256": "28cd5ffef62328a81c55719538d0189db9c4449d0a13b6449165de4ec8133feb"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/24-mixed-lines.png",
+          "sha256": "e67c2a294bf6e7d56645056c7f2d15353dc941bc7e62443845da825a5e27c90d"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/44-edit-draft-dates.png",
+          "sha256": "310c96f7bbd9d04335b84a3aafd741c8fc4154052e6582ac3d4af69fcef56430"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/27-pdf-download.png",
+          "sha256": "60e40a4888e6fcb94d1a6552f6d580f750f9885e093c7021cbdb8f44810e8cb2"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/86-training-numbering-policy.png",
+          "sha256": "fb7cc4442703ee1a439d86a9bf39df1241f8ff39e70d93f462b527502fa21caf"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-issued-unpaid-invoice-heading.png",
+          "sha256": "326fd06e840bd4518a1bab8044e7019b65aa60d4fdb10694b012318cb1c16f46"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-email-failed-retry.png",
+          "sha256": "836c66006494665adf614f26a36d21092ccb7a33dcb769f4c173e9ad54c169f7"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-new-issued-credit-ready.png",
+          "sha256": "f9928c5fc0892f500f7263838297892fa21c0fef3e7fc26316e8055a79fc4c9b"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-new-collection-reversal.png",
+          "sha256": "5a0fd84c9cd1bc4843fd19d9b4e5dbf3433ea85f4a5d7ee7b966ca25f0f4daf1"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/64-worker-settlement-period.png",
+          "sha256": "006dfbf52910058dab329941237834fe6e2c8d871cf13f9407078c4648d8ef42"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/66-worker-payment-dates.png",
+          "sha256": "18052e02efacf8be72120ca42ebec65f8214b7a8fdd579e683776c53262fa5eb"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/67-worker-actual-payment-register.png",
+          "sha256": "7bfe9b3d0dd65bc53aa9a6288362c0869759045d0ae4984db9243e16a6384c63"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-initial-copied-settlement.png",
+          "sha256": "5ec6618979dabd25e70e79d5bc520b5de28a3f191e9a1d60d01cad01aeac8d08"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-partial-worker-settlement.png",
+          "sha256": "de8e16edfa5d4c41320a5f726991661ba9cc360797b670afd35249eafcb41f80"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-finance-worker-payment-reversed.png",
+          "sha256": "467221430e9c2cdcb905b90c975f026ea64ab197fe0c7c130fa5c2b1c55d4d74"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-finance-worker-payment-complete.png",
+          "sha256": "786efae1204bc75cb9966fa732e6540dfd6f75ee584137e4e52f5c7f0c0fb56c"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-finance-settlements-cropped.png",
+          "sha256": "7e33a94efe01f25719e358ed6f5019fcc30490c73859507a40de36175f0560cf"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-finance-reimbursements-cropped.png",
+          "sha256": "2f057fa04531c4b03089f860193c44a3aff07e7d4cfa47074eb3c472f5c52063"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/37-worker-pay-summary.png",
+          "sha256": "c385354304669ea6c0ec270d00f6890719821a091e9798448079c733a145cf8b"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/38-worker-pay-project.png",
+          "sha256": "c3f75ea80920fea7e2157ac9ee775569652c5fdf1774b9eb64a9b1c564ad48a5"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/39-worker-pay-activity.png",
+          "sha256": "238ea1f30581cf0a6d881e8010d0bd2b072ccf6cb58e8e2b46842ed8a0911b94"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/68-download-finance-workbook.png",
+          "sha256": "b12c0688b60433288bcd2eab631e0faa4a336334e57c2eeeba486eebe0b49a1a"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/71-xlsx-summary-economics.png",
+          "sha256": "faa95a558507d602e7687c1536537363c5f01aceb787d556acaf8fb2035c2216"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/72-xlsx-summary-cash.png",
+          "sha256": "50c92f1e801c1c08688ea3f8d6fa202b5e13e307785989da1ce2615f1e95f8f9"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/73-xlsx-labor-hours.png",
+          "sha256": "3477583cf8e1e751d0453cbf4777eb66ab7fe6d6e89fadaa5253c023dbb95a9d"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/74-xlsx-labor-economics.png",
+          "sha256": "80129c10b7a0fec952a48562aface29add155e5e67cadc5ebb1c45e6e1372bd1"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/73b-xlsx-labor-hours.png",
+          "sha256": "600e66bdd09c38d9881812673810734a8ca5cdf6cb5fa634b3d2a0ae44ecf635"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/74b-xlsx-labor-economics.png",
+          "sha256": "97ca4d0b3911cf6ec59732346a03581b234b60f5dc715e0ae02bfa7cb6eec8f7"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/75-xlsx-expense-payers.png",
+          "sha256": "85f46b9630b9fa715d4552ababd8c42a8e49a3e7ef70819d40a5f4c710ca3539"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/76-xlsx-expense-recovery.png",
+          "sha256": "8d44410e726e2859eab769dff3cb56d9d37804b1459a0cbe9f044b75b1227d57"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/77-xlsx-invoices.png",
+          "sha256": "baee320c794696f27b6ea16dbf02c761132d14fdc3e51f8bbb43bae6689de4a0"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/78-xlsx-invoice-expenses.png",
+          "sha256": "967e416e0855961d520312d3242589b82f55e14bd9eed3d6430d3f590786ee86"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/79-xlsx-unbilled.png",
+          "sha256": "a9f156b3f77640e29453593c447f0ce399407a819192ede2fda21ec1b1f19094"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/79b-xlsx-unbilled.png",
+          "sha256": "5f0dc66e0fcea4fd1ba6a3e25f485eb30c9a3f2dd61dd1607c9ff602a5d13dc2"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/69-download-expenses-workbook.png",
+          "sha256": "6ec2f7a2ae9c76c860d02b8385d466e447b05234c837f899d52af77f58625987"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/80-xlsx-expense-register.png",
+          "sha256": "a77cbde52b6f8c68a55fea25657a3672eec5908097d47c9b0ac21d74d940d71e"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/82-xlsx-expense-reimbursement.png",
+          "sha256": "5219ecafcf4cb3049ce5c589a107837ec07123ca026d45b66a98990aac5fb978"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/81-xlsx-expense-totals.png",
+          "sha256": "923ac7334c4a3ef0c723243986545479c54b97116e9d89a0d54b76d615dbac25"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/83-xlsx-after-cash.png",
+          "sha256": "dcfe6024c09bd51a265e5ca19350d327167b3fca14cb8126608aac43f1cfedc7"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/84-xlsx-after-invoices.png",
+          "sha256": "d2e6536535c9e439ab53e3b9fa2b52fc0482fee9d2f81007475e6d75b4a7a7a6"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/85-xlsx-after-reimbursements.png",
+          "sha256": "6557c1fa22c8e3e1203d343576b29bebc31857bc030cfa37973f1c0bcdbdaee7"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-new-weekly-close-controls.png",
+          "sha256": "dcf461a99561b6f0f8cceaec4f2998ed271a510b565702b2b5a71b30f3bd94b2"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-new-accounting-review.png",
+          "sha256": "cf08f38dd4e72ccb159265c837d5f45b4af9f96cb6be3847f35c9beb1368194f"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-new-accounting-final.png",
+          "sha256": "d546264685acb92a000e1b764dda4b0a2f06a856e044cbf45edfb6c11e1a2a73"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-finance-accounting-result.png",
+          "sha256": "310aa43619dbee20a2395f23502ab93d2fcae522649d5864d829d2debe8ac643"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-documents-upload-fields.png",
+          "sha256": "c28ba931ee8aab805860804d3a27520cd7c957c4e98184db587537ced02289ae"
+        },
+        {
+          "path": "docs/manuals/bbs-illustrated-en-v2/lab-documents-saved-private-row.png",
+          "sha256": "63e2a03df7389411e0d967ab39df9432b358f6a53c9130f48e1bd0cbe3561bb6"
         }
       ],
-      "introductionPages": 29,
-      "coursePages": 203,
       "nativeAttachments": 6,
       "nativeInvoiceAnnexPages": 6,
       "nativeInvoiceStreamsUnchanged": true,
-      "courseAnnotationsRetained": 135
+      "courseIntegrated": true,
+      "bodyPages": 249,
+      "assembled": true,
+      "outlineEntries": 123
     },
     {
       "role": "supplier-coordinator",
       "filename": "BBS_Supplier_Coordinator_Manual_EN.pdf",
-      "pages": 55,
-      "landscape": 27,
+      "pages": 62,
+      "landscape": 21,
+      "sections": [
+        {
+          "key": "practice",
+          "title": "Before practising \u00b7 live and training access",
+          "page": 3
+        },
+        {
+          "key": "access",
+          "title": "Access \u00b7 activate the invitation and sign in",
+          "page": 4
+        },
+        {
+          "key": "trainer-setup",
+          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "page": 7
+        },
+        {
+          "key": "review-authority",
+          "title": "Review authority \u00b7 who receives each source",
+          "page": 8
+        },
+        {
+          "key": "start",
+          "title": "Start with a supplier access profile, not an Owner account",
+          "page": 9
+        },
+        {
+          "key": "navigation",
+          "title": "Use the coordinator\u2019s restricted navigation",
+          "page": 11
+        },
+        {
+          "key": "personnel",
+          "title": "Verify the saved supplier roster and dates",
+          "page": 14
+        },
+        {
+          "key": "add-technician",
+          "title": "Add a directory technician with the exact fields",
+          "page": 16
+        },
+        {
+          "key": "batch",
+          "title": "Record actual duration for selected technicians",
+          "page": 18
+        },
+        {
+          "key": "drafts",
+          "title": "Inspect each saved team draft and submit to J&A",
+          "page": 21
+        },
+        {
+          "key": "correction",
+          "title": "Create a linked correction for returned team work",
+          "page": 24
+        },
+        {
+          "key": "export",
+          "title": "Keep the before checkpoint and export the final filtered totals",
+          "page": 27
+        },
+        {
+          "key": "own-time",
+          "title": "Keep your own work separate and submit eligible weekly drafts",
+          "page": 30
+        },
+        {
+          "key": "own-expenses",
+          "title": "Save your own expense receipt and submit the facts",
+          "page": 33
+        },
+        {
+          "key": "daily",
+          "title": "Create, submit and download your own Daily report",
+          "page": 36
+        },
+        {
+          "key": "technical",
+          "title": "Create, submit and download your own Technical / PLC report",
+          "page": 39
+        },
+        {
+          "key": "profile-help",
+          "title": "Maintain your own availability and secure access",
+          "page": 43
+        },
+        {
+          "key": "handoff",
+          "title": "Finish the supplier operational cycle",
+          "page": 47
+        },
+        {
+          "key": "supplier-planning-team-handoff",
+          "title": "Planning appendix \u00b7 turn work instructions into actual team facts",
+          "page": 49
+        },
+        {
+          "key": "supplier-coverage-goals-troubleshooting",
+          "title": "Coverage appendix \u00b7 missing people, dates and work goals",
+          "page": 54
+        },
+        {
+          "key": "recovery-matrix",
+          "title": "Recovery \u00b7 sources, obligations and immutable history",
+          "page": 59
+        },
+        {
+          "key": "security",
+          "title": "Security \u00b7 verify your own device and recovery options",
+          "page": 60
+        },
+        {
+          "key": "verification",
+          "title": "Verification \u00b7 current coverage and historical evidence",
+          "page": 62
+        }
+      ],
+      "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 219,
+      "instructionBlocks": 200,
       "instructionText": "PASS",
-      "bytes": 2803748,
-      "sha256": "23f249df9e9cd9bdae07e89318b7c22b7b126d6b7a7f087cdad263a49104317d",
+      "bytes": 4054259,
+      "sha256": "5ff5d790788c742d36181dba5f07cad22c0e7e7d425543a808e232a361fb829d",
       "figures": [
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
+          "sha256": "9649c9fdffbde7a5bd7939994344c80beba4f8040fce76b202b0be12af0d7bcf"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-used-invitation.png",
+          "sha256": "4fabac4ceb7b5c24e0b5f3fbbf2291166c7d7b5b0bf323d85e33eadd8a8e7e7f"
+        },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/01-coordinator-authorized-personnel.png",
           "sha256": "1ba3f7405735858b33927af334c4fc7e0d1c57a6dedd3c8badca4779614cf589"
@@ -709,60 +2664,88 @@
           "sha256": "c641c9e38edb6b907328d23741399586519bac989763d72f1163f2cf89b53f28"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/23-coordinator-approvals-denied.png",
-          "sha256": "2da5f140c85eb1b622c26c76a2def7ef9a3dbdada0f46db602af1d53f9acefdc"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc01-saved-roster-dates.png",
+          "sha256": "f7e293d6d151466edbe4ca2ec4769606aa32e31a1489c1b1cf98c705c43da040"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/01-coordinator-authorized-personnel.png",
-          "sha256": "1ba3f7405735858b33927af334c4fc7e0d1c57a6dedd3c8badca4779614cf589"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc02-add-technician-labels.png",
+          "sha256": "5f7fb12050b0fd4cfb56c9cccabf798833ecd8b7811b6989c726ffde285fbe2d"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/02-coordinator-add-technician-before.png",
-          "sha256": "aac162916faef8e146729503344ba65a507a5be2dadad0513aa343cc653a768a"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc03-focused-selected-names-date-hours.png",
+          "sha256": "a3d9a626caa32ae6f4d880cb95055e30fa13cce37298fae406b138d411f8c15f"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/03-coordinator-eligible-roster.png",
-          "sha256": "107f460081fa0cc0dba607969867c14a10deb0f9819646315bbcab2ab43d1c36"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc03-native-batch-save-results.png",
+          "sha256": "4c84dbfc2ec797daf9710215514a8cd4b8c2d286ded4c9f829ba69172ad12059"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/04-coordinator-selected-team-hours.png",
-          "sha256": "e2a3de862e90012c2f3d3f9bf7d3528ba459dd8b653de508ec1fe3c5a87c7206"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc03-native-submission-result.png",
+          "sha256": "fd0a0e2aea94d3b60d3104c8ac2c74df239a38184618bed1f6c228c70a97c7c3"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/05-coordinator-drafts-saved.png",
-          "sha256": "abad01fac85cb0e41adde6a9b2cff4df5e98003c019da635e5a30736690281a4"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc03-reviewed-selected-drafts.png",
+          "sha256": "f3387cf570c907a92567ca7b04f53b2bed5584d5c4bdb6c3359288189ee5fe64"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/06-coordinator-submit-selected.png",
-          "sha256": "4a871b77fe5a1ab135a96a647f737b3f2420182a0c7178129871607c49033b63"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc03-focused-native-correction-form.png",
+          "sha256": "5a93f8a883e3e3738916f0d1a65b8a16ced5a744e78dd4604e80687082644791"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/07-coordinator-submitted-team.png",
-          "sha256": "cf5f1a5485135c854dc77cd8cabba57495ddd833f3a76380cb5636a7fedf3056"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/10-coordinator-returned-source.png",
-          "sha256": "519508a8f6fe1e5185aac469f5e99472acc3ee8bfa47ece921ba5688b457f13c"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/11-coordinator-correction-draft.png",
-          "sha256": "967b2b2f6ed1484310e3ed0f22ed65e94db15b1175185aa67bf054941b882173"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/12-coordinator-correction-submitted.png",
-          "sha256": "0074a032427231558b25db32023a17b54344da1980dc2b40c040a087ceef60b5"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/13-coordinator-approved-no-double-count.png",
-          "sha256": "b8fd2c36135358dafa0f3ecff8b881ad18dbeca00930f25498f3a6cc6ec24f78"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc03-final-reviewed-correction-chain.png",
+          "sha256": "68740c7970068cf9e32ef71e6435415326f264267a93cacceb0294eb3f41d324"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/08-coordinator-operational-report.png",
           "sha256": "9f4e1efb04bbb03ddfb07a12fd98d9a893d81fb8b845af3de9fad1e5f8b9847a"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/13-coordinator-approved-no-double-count.png",
-          "sha256": "b8fd2c36135358dafa0f3ecff8b881ad18dbeca00930f25498f3a6cc6ec24f78"
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc04-matching-approved-3-5h.png",
+          "sha256": "aec07bdddc216219bd7f6b4abf427a4218c4b3f7b8fffb5a28e5cb87e229b15c"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/s06-coordinator-two-eligible-drafts.png",
+          "sha256": "223eb7152b5f169d5efe214f20d9b64d86d53dbe98afed4e4a1fd9c2c37352a3"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/s06-coordinator-source-states-after.png",
+          "sha256": "8e1d83dd3a42dbb3c37de38af56ae8f9c676efa5a2eb1a94fe06e8e720570a30"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-expense-complete-receipt-form.png",
+          "sha256": "d4264f78f2ba6332ac343cf1b42518c6bdf40d6a0749e2cf4173283cb3ed3c46"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-submitted-receipt-source.png",
+          "sha256": "a35b5722a31ed62f6c454625832430ecb44fecb019739065c9ad5e3b62eaee0e"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-daily-form.png",
+          "sha256": "54f6f58a17acc600790afe975f1e88f52293742475e2783bae4ea71a65a692f5"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-daily-ready-native.png",
+          "sha256": "9b157f33356b24db9c1a84cc9d2d0f912862ca425b76b69c365c0f95325f4ecb"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-technical-complete-form.png",
+          "sha256": "9e3f51a82223458601b2d15995dfef63aedc925b6002149a4f52069d6597865c"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-upload-verified-before-submit.png",
+          "sha256": "476ba71fef21916581937cd65deebbe536a6a6fc97987826960c0a028e8227c5"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-technical-ready-native.png",
+          "sha256": "10277fe79c1e19fc2ff9c5aa7bbc90b7eb0d93d7b40f621de5570b031d6c3129"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/21-coordinator-profile.png",
+          "sha256": "de5e6124954589fcca9b0663a15d54690bceed5899fdd88ede0e00f6a7e70b56"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/22-coordinator-help.png",
+          "sha256": "af316cb9cba44b93b7ff10b9085d0e5435f0f654f8023a93760b7ec2d83a70ba"
         },
         {
           "path": "docs/evidence/bbs-planning-20261006/supplier-coordinator/screenshots/02-supplier-two-technicians-one-hour.png",
@@ -789,54 +2772,287 @@
           "sha256": "dfffbb3e62f6e0e56bfab9795912d334a9593f7e488aae7142d932269fb2effd"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/16-coordinator-own-time-form.png",
-          "sha256": "24bfd60083cfc5f1398755271dc1d7927255e0e5a8e6075a5174aeea5f3737f1"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/17-coordinator-own-time-submitted.png",
-          "sha256": "bd46e7fca6478e19f6d9686c29f1ca9338718712eea45622e29fb13c437be148"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/18-coordinator-own-expense-form.png",
-          "sha256": "5dad67b9413af5021e3fff055185c06b9f3f6817d3cdc04f7b63f2292c3df7e5"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/19-coordinator-daily-form.png",
-          "sha256": "8de34b7ed91e2a846acebbecef09eac0aeed687ffd10aa880b694034fc511ba7"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/20-coordinator-daily-submitted.png",
-          "sha256": "83e2845a69a152b1a6f3bb988e933a6a21148b1cb26851c3c19528810fa8c0ca"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/25-coordinator-own-preview-native.png",
-          "sha256": "cefb0a4e4bbd94e08e25936ddd481ed375c4bd02ecbfca9df7618fcd2a912b8c"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/21-coordinator-profile.png",
-          "sha256": "de5e6124954589fcca9b0663a15d54690bceed5899fdd88ede0e00f6a7e70b56"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/supplier-coordinator/screenshots/22-coordinator-help.png",
-          "sha256": "af316cb9cba44b93b7ff10b9085d0e5435f0f654f8023a93760b7ec2d83a70ba"
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/security-mfa-enabled.png",
+          "sha256": "f3ab3fe1d6156193d75ac7d070984752bfe69b2f441d56da927cdc74d663a0c5"
         }
-      ]
+      ],
+      "assembled": true,
+      "outlineEntries": 24
     },
     {
       "role": "worker",
       "filename": "BBS_Worker_Manual_EN.pdf",
-      "pages": 63,
-      "landscape": 25,
+      "pages": 84,
+      "landscape": 31,
+      "sections": [
+        {
+          "key": "practice",
+          "title": "Before practising \u00b7 live and training access",
+          "page": 3
+        },
+        {
+          "key": "access",
+          "title": "Access \u00b7 activate the invitation and sign in",
+          "page": 4
+        },
+        {
+          "key": "trainer-setup",
+          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "page": 7
+        },
+        {
+          "key": "review-authority",
+          "title": "Review authority \u00b7 who receives each source",
+          "page": 8
+        },
+        {
+          "key": "worker-start",
+          "title": "Start with your own account",
+          "page": 9
+        },
+        {
+          "key": "worker-time",
+          "title": "Save and inspect actual time",
+          "page": 12
+        },
+        {
+          "key": "worker-expense",
+          "title": "Record one expense with private receipt evidence",
+          "page": 15
+        },
+        {
+          "key": "worker-daily",
+          "title": "Save and submit a daily field report",
+          "page": 19
+        },
+        {
+          "key": "worker-technical",
+          "title": "Describe a technical change without treating it as permission",
+          "page": 23
+        },
+        {
+          "key": "worker-week",
+          "title": "Submit your own displayed week and verify every source",
+          "page": 27
+        },
+        {
+          "key": "worker-expense-exceptions",
+          "title": "Use expense batch tools and corrections carefully",
+          "page": 30
+        },
+        {
+          "key": "worker-correction",
+          "title": "Correct returned time and retain history",
+          "page": 37
+        },
+        {
+          "key": "worker-report-evidence",
+          "title": "Understand report PDFs, attachments and customer acceptance",
+          "page": 41
+        },
+        {
+          "key": "worker-pay",
+          "title": "Read your own compensation and reimbursement",
+          "page": 46
+        },
+        {
+          "key": "worker-statement",
+          "title": "Generate your own statement and check readiness",
+          "page": 48
+        },
+        {
+          "key": "worker-settlement-guard",
+          "title": "Hand settled compensation changes to Finance",
+          "page": 50
+        },
+        {
+          "key": "worker-planning",
+          "title": "Read a plan without creating actual hours",
+          "page": 52
+        },
+        {
+          "key": "worker-connected-plan",
+          "title": "Follow a published assignment through actual work and review",
+          "page": 54
+        },
+        {
+          "key": "worker-expected-hours",
+          "title": "Read Expected, Difference and Needs note correctly",
+          "page": 58
+        },
+        {
+          "key": "worker-plan-goals-troubleshooting",
+          "title": "Handle a missing plan and understand what a work goal means",
+          "page": 67
+        },
+        {
+          "key": "worker-mobile",
+          "title": "Use phone and tablet views",
+          "page": 71
+        },
+        {
+          "key": "worker-profile",
+          "title": "Maintain expertise, availability and account security",
+          "page": 74
+        },
+        {
+          "key": "worker-help",
+          "title": "Use notifications and escalate the right record",
+          "page": 76
+        },
+        {
+          "key": "worker-checklist",
+          "title": "Finish a workday and verify the handoff",
+          "page": 77
+        },
+        {
+          "key": "worker-evidence",
+          "title": "What was verified and what remains a reference",
+          "page": 79
+        },
+        {
+          "key": "recovery-matrix",
+          "title": "Recovery \u00b7 sources, obligations and immutable history",
+          "page": 81
+        },
+        {
+          "key": "security",
+          "title": "Security \u00b7 verify your own device and recovery options",
+          "page": 82
+        },
+        {
+          "key": "verification",
+          "title": "Verification \u00b7 current coverage and historical evidence",
+          "page": 84
+        }
+      ],
+      "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 218,
+      "instructionBlocks": 266,
       "instructionText": "PASS",
-      "bytes": 2561671,
-      "sha256": "96c98ad744d16fea1bcf9ecd243be653dd457eacf43dd89339afce1ec11ef8c4",
+      "bytes": 3588443,
+      "sha256": "76fc9933b9c5ce6ec19123f76d6bad7140c539b8f187ee8314f343defc601dc4",
       "figures": [
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
+          "sha256": "9649c9fdffbde7a5bd7939994344c80beba4f8040fce76b202b0be12af0d7bcf"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-used-invitation.png",
+          "sha256": "4fabac4ceb7b5c24e0b5f3fbbf2291166c7d7b5b0bf323d85e33eadd8a8e7e7f"
+        },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/01-today-desktop.png",
           "sha256": "b834ac91a03cf8a3f6b0033871c0270db93e656a640fc5a2a44af0a4f14f2f53"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-first-shift-full-save-draft.png",
+          "sha256": "0f2c221dc24665bea897599a89670e6e34ecba60e1641c15a2beb71fedc7ed2c"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-first-shift-submitted.png",
+          "sha256": "64b9de4528d327cac1d5694c8257ef046c578dfa2e850710ac9c03201c58762c"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-single-expense-full-save.png",
+          "sha256": "24fa4866d566a78ac3916e0390594d5fc17138683a2044bd67a7bd4d3dfda6e5"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-single-expense-saved.png",
+          "sha256": "9451d753b92b506b52b2e4e99370adab990366d2ee0e08eb845f1c69e0b7caa6"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-single-expense-submitted.png",
+          "sha256": "c899f9b13aeb706eba4749d7d2fb8814aba30e86c1d64bcf6d0724121e34b949"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-full-save.png",
+          "sha256": "d32daceabdd1674d3480e443c563bcec611df32a7389acaa29770cb000f3dfac"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-ready-presubmit.png",
+          "sha256": "8c9a294d51cb8b85fc35c4a177e753b924d915c8868864999b4b4af9585275d3"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-presubmit-native-output.png",
+          "sha256": "66ffc5acf18f174e811c1781aa6579c7068e125c7c08027e01319ef435821acd"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-technical-full-save.png",
+          "sha256": "1d97bb0a59e2f065d098404445e4753bdf55e38419deca8844b5add9c925dd67"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-technical-ready-presubmit.png",
+          "sha256": "e0eb046210da1f072bc3776dffed46b9db98759bf4b3ce761f2991454933f7ad"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-technical-presubmit-native-output.png",
+          "sha256": "d8e96259e9b41ce62ed9801154e31a2214d635611c7149dd55c1dbf5f2075fc5"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-week-before-submit.png",
+          "sha256": "7d91604e9894d91b2b960c3dcc0182f44b029e0fd10745840202a995b5e07e8c"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-week-after-submit.png",
+          "sha256": "c7dc6252f762d9117ea6363c80345364c926d758bdc10c5d09f61c1312ca3f78"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-week-expense-full-save.png",
+          "sha256": "426c6d63420723da94c33c9062a0cf96897991c3cb9ae53123cfd2ec3af12642"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-draft-a-receipt-attach-full-save.png",
+          "sha256": "767d77241f20126592e9063b8ddfb76d74fef8bb66b40697a6d8ac519098deb5"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-draft-b-receipt-attach-full-save.png",
+          "sha256": "cf4e18fc6f8bf61225a7c2f56817298a3c6b9c08b411123372bac67823c55d9c"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-expenses-week-receipts-after-submit.png",
+          "sha256": "69462ecf3e46047b1acdb48d13925bf81bf6879778b3281a2ca198373906eef0"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-expense-correction-submitted.png",
+          "sha256": "518456b40ad3d25f6b37fd1ea853fe6daa281b305d145f9b14e96efd89ee5a81"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-normal-returned.png",
+          "sha256": "3b101848819ce6bf1cc1bc8f440f6f94d18a06fa950255a1032487833efb3e88"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-normal-correction-draft.png",
+          "sha256": "fef4ccae0f7628a814b2eacb1aa6fb7f7862b6c47a0c80517b4de781f3077ce5"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-wrong-correction-withdrawn.png",
+          "sha256": "3b101848819ce6bf1cc1bc8f440f6f94d18a06fa950255a1032487833efb3e88"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-returned-edited.png",
+          "sha256": "6aafc6e50c42019fc75d8a5435168749bf5738974fcfb164e3f206ff2037ca64"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-current-spanish-ready.png",
+          "sha256": "7e2e6ca517ecf8d942f8d59627b1857f9a4def9f5d82d47a13f27ec483f589f9"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-current-es-native-output.png",
+          "sha256": "0fe066198927ce582cc829d3a489cbd1147658a0aa3c483800d6fea585cfc5f7"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/15-own-my-pay.png",
+          "sha256": "b940b31fb71fded5de70740913a5b3215d896824187cd8b837bfecd6311a2d6c"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/32-worker-statement-ready.png",
+          "sha256": "59e304faa66ed3a79eb8f2c0c4f1cf5dbe73dd5fb46b56ed3fb6654f548ac95c"
+        },
+        {
+          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/20-worker-settlement-correction-blocked.png",
+          "sha256": "e09864794732cebd48b9fc37302fd4fb4cb82c58694574d6d2227b988a2f879e"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/33-worker-upcoming-plan.png",
@@ -887,78 +3103,6 @@
           "sha256": "2b8791367210b216806e293c89fa8a226d7440792e113377c27dbb27b7a071ff"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/02-time-filled-desktop.png",
-          "sha256": "c685a4776454dc2ef3cfd8bc26f535cf951d74d3031d3a592652aa733d9762b0"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/03-time-saved-desktop.png",
-          "sha256": "dfcf646b049139423a6f04ccc823bc3037016f730314faa1c21af96390e31e9c"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/05-time-submitted.png",
-          "sha256": "1528915e1692bf04fc1664a98d9c4b4a10f304f133d041de1b1bf9c2166942fc"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/26-worker2-week-draft-summary.png",
-          "sha256": "eaf1d1881f482d14b48f76d6cb35e8b5fdc765c18d58b7c337f84cb142869731"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/23-worker2-returned.png",
-          "sha256": "46e1db3b53b22e97715227b0f07e34721b1c3571694352d0e1435f39977c7e6f"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/24-worker2-correction-filled.png",
-          "sha256": "f6f2c780728b478c85776f7399c3432f5db30cfc8a3d75d454779f992b9c9786"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/28-worker2-corrected-register.png",
-          "sha256": "406b047feb500ad75424169c896fe12b250c8974aa83c42100c838e04199d9fd"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/20-worker-settlement-correction-blocked.png",
-          "sha256": "e09864794732cebd48b9fc37302fd4fb4cb82c58694574d6d2227b988a2f879e"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/06-expense-filled.png",
-          "sha256": "7b0e4eb16f794bc7aa9adfff42bd1f8b190ba2184e054881055a7826f12de24e"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/07-expense-saved-receipt.png",
-          "sha256": "35fa2094416c40e276d82833e84cc91fa903b5e10be585fb78ecb78b02ef12e4"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/08-expense-submitted.png",
-          "sha256": "b1f39042f79db3b4862a91a38228ce639e1c03989f06a84117e6e41dd8f0ed6b"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/09-daily-filled.png",
-          "sha256": "ff69b5f343cb7fc1c46f0e389ea47f0da5f5aaf2eb5522be75805c429c8346a6"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/10-daily-saved.png",
-          "sha256": "360695fa3f2c919ecf5921222e6d49bfef333b55ab2ebba044efe9b0189cfa5a"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/11-daily-submitted.png",
-          "sha256": "796ae4ad93ce6d474c850795d2d915dfba307ca70598382db555a7c436fa9f80"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/12-technical-filled.png",
-          "sha256": "c18c134ae215e066a71b1310ee789cb19354ab667a2e2d7d2e4795d0d339fd33"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/14-technical-submitted.png",
-          "sha256": "2b1d0bebf6d65b0f50f9d67cce1634778fc53023bc9d6426694b8ecd09999ab7"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/15-own-my-pay.png",
-          "sha256": "b940b31fb71fded5de70740913a5b3215d896824187cd8b837bfecd6311a2d6c"
-        },
-        {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/32-worker-statement-ready.png",
-          "sha256": "59e304faa66ed3a79eb8f2c0c4f1cf5dbe73dd5fb46b56ed3fb6654f548ac95c"
-        },
-        {
           "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/16-worker-phone-time.png",
           "sha256": "8ce92872a4338f04bcf3ab68010810d4677b7be5c430581b7464715a9913a477"
         },
@@ -969,8 +3113,14 @@
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/30-worker-profile-reference.png",
           "sha256": "fb8e445b21f17f45c5e90911c2d3203e057a2545f327088b55d2a2577e77a163"
+        },
+        {
+          "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/security-mfa-enabled.png",
+          "sha256": "f3ab3fe1d6156193d75ac7d070984752bfe69b2f441d56da927cdc74d663a0c5"
         }
-      ]
+      ],
+      "assembled": true,
+      "outlineEntries": 29
     }
   ]
 }

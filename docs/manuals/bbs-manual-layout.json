@@ -1,6 +1,6 @@
 {
-  "guidePages": 197,
-  "totalPages": 203,
+  "guidePages": 199,
+  "totalPages": 205,
   "contents": [
     [
       "Start here \u00b7 Owner access and this guide",
@@ -258,7 +258,7 @@
       "chapter-22"
     ],
     [
-      "Choose numbering \u00b7 business approval and training data",
+      "Numbering policy \u00b7 approved inputs and neutral example",
       123,
       "final-numbering"
     ],
@@ -278,123 +278,133 @@
       "issued-correction"
     ],
     [
+      "Credit balance \u00b7 allocation and refund boundary",
+      130,
+      "credit-receiving"
+    ],
+    [
       "Record collections \u00b7 partial, later and correction",
-      131,
+      132,
       "collections-procedure"
     ],
     [
       "Different worker payment periods and dates",
-      133,
+      134,
       "worker-schedules"
     ],
     [
       "Reimburse a worker expense \u00b7 exact tested register",
-      147,
+      148,
       "expense-reimbursement"
     ],
     [
       "Worker and chief views",
-      149,
+      150,
       "chapter-14"
     ],
     [
       "Finance figures \u00b7 economic position versus cash",
-      152,
+      153,
       "economic-meaning"
     ],
     [
       "Spreadsheet exports: hours, costs and revenue",
-      153,
+      154,
       "spreadsheet-exports"
     ],
     [
       "Reconcile internal costing with compensation owed",
-      157,
+      158,
       "cost-reconciliation"
     ],
     [
       "After lifecycle XLSX \u00b7 compare a second snapshot",
-      176,
+      177,
       "after-lifecycle-workbook"
     ],
     [
       "Weekly close \u00b7 reviewed sources and a later arrival",
-      180,
+      181,
       "weekly-close-procedure"
     ],
     [
       "Project closure and archive \u00b7 exact tested empty-project cycle",
-      182,
+      183,
       "owner-close-and-history"
     ],
     [
+      "Populated closeout \u00b7 final packages and supported reopening",
+      184,
+      "populated-closeout"
+    ],
+    [
       "Accounting Pack \u00b7 generate, review and finalize",
-      183,
+      185,
       "accounting-pack"
     ],
     [
       "Accounting demo \u00b7 reviewed October pack finalized",
-      184,
+      186,
       "accounting-success"
     ],
     [
       "Accounting period \u00b7 invoices, cash and older work dates",
-      185,
+      187,
       "accounting-period-reconciliation"
     ],
     [
       "Accounting error \u00b7 understand the retained dates",
-      188,
+      190,
       "accounting-gap-remedy"
     ],
     [
       "Documents \u00b7 register, classify and recover a private file",
-      190,
+      192,
       "private-documents"
     ],
     [
       "Audit, notifications, security and Help \u00b7 exact scope",
-      192,
+      194,
       "owner-profile-and-help"
     ],
     [
       "UX corrections and remaining operating limits",
-      193,
+      195,
       "ux-improvements"
     ],
     [
       "Owner completion checklist \u00b7 verify the business result",
-      194,
+      196,
       "owner-task-checklist"
     ],
     [
       "Validation matrix \u00b7 completed, reference and blocked",
-      195,
+      197,
       "verification-scope"
     ],
     [
       "Evidence history \u00b7 keep snapshots and outcomes separate",
-      196,
+      198,
       "testing-history"
     ],
     [
       "Final issued invoice PDFs \u00b7 original downloads",
-      197,
+      199,
       "appendices"
     ],
     [
       "Appendix A \u00b7 Actual labor PDF",
-      198,
+      200,
       "native-a"
     ],
     [
       "Appendix B \u00b7 Actual expense PDF",
-      200,
+      202,
       "native-b"
     ],
     [
       "Appendix C \u00b7 Actual hour/day/week PDF",
-      202,
+      204,
       "native-c"
     ]
   ],
@@ -1377,7 +1387,7 @@
     },
     {
       "key": "final-numbering",
-      "title": "Choose numbering \u00b7 business approval and training data",
+      "title": "Numbering policy \u00b7 approved inputs and neutral example",
       "toc": true,
       "wide": false,
       "figure": false,
@@ -1430,6 +1440,14 @@
       "wide": false,
       "figure": false,
       "context": "New Accounting demo \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "credit-receiving",
+      "title": "Credit balance \u00b7 allocation and refund boundary",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Reference procedure \u00b7 supported receiving handoff"
     },
     {
       "key": "lab-issued-adjustment-image",
@@ -1854,6 +1872,14 @@
       "wide": false,
       "figure": false,
       "context": "Separate onboarding lab \u00b7 Read-only demonstration"
+    },
+    {
+      "key": "populated-closeout",
+      "title": "Populated closeout \u00b7 final packages and supported reopening",
+      "toc": true,
+      "wide": false,
+      "figure": false,
+      "context": "Isolated BBS copy \u00b7 6 October readiness exercise"
     },
     {
       "key": "accounting-pack",

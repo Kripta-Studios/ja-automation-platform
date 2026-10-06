@@ -43,7 +43,7 @@ node scripts/bbs-role-manuals/build.mjs
 .venv-manuals/bin/python scripts/bbs-role-manuals/verify.py
 ```
 
-The Python steps require pypdf 6.19.0. Keep the virtual environment out of Git. The renderer measures text blocks, splits continuations, places each figure on a dedicated portrait or landscape page, checks missing images, geometry and every instruction block, and produces PDF/portable HTML/Markdown plus SHA-256 evidence. The Owner introduction is followed by the verified 203-page course; its original internal numbering restarts and its six native attachments and invoice annex are retained. Always rerun the renderer before Owner assembly; repeated assembly of an already combined file is rejected.
+The Python steps require pypdf 6.19.0. Keep the virtual environment out of Git. The renderer measures text blocks, splits continuations, places each figure on a dedicated portrait or landscape page, checks missing images, geometry and every instruction block, and produces PDF/portable HTML/Markdown plus SHA-256 evidence. The Owner introduction and course are integrated under one master task contents and continuous reading-page numbers. Original dataset context labels are preserved on imported pages. All eight PDFs receive task bookmarks; the Owner keeps its six native attachments and six unchanged invoice annex pages, whose native pagination remains separate. Always rerun the renderer before Owner assembly; repeated assembly of an already combined file is rejected.
 
 The eight role guides are English editions. Spanish and Portuguese Help interfaces advertise an English fallback; the historical translated guide families remain separate. No translation completeness is claimed for these new PDFs.
 

@@ -93,38 +93,49 @@
       "id": "auditor-invoices",
       "title": "Inspect a numbered native invoice and its sources",
       "route": "Collections / Ledger → invoice link; direct Billing read view",
-      "context": "Worked example · actual Auditor opened the BBS Billing register and native issued PDF page. All three original invoice PDF downloads returned 200 with their preserved SHA-256 hashes. No invoice writes are allowed.",
+      "context": "Worked examples · AU01–AU02 · actual Auditor read the full BBS register and complete normal-invoice source table; originals and native issued artifacts preserved.",
       "paragraphs": [
-        "The original BBS final invoice annex has three application-issued training numbers: JA-DEMO--2026-000001 labor USD 2,230; 000002 expense USD 182; 000003 mixed labor USD 2,260. The double separator is historical training numbering and is preserved.",
-        "Issued documents are immutable financial snapshots. A credit/debit/correction is a new linked document, and void retains the original number/native master. Draft/approved previews are not final confirmed invoices.",
-        "Read the upper Invoice · PDF panel for native issued-master readiness. A separate optional language-output panel can be Not generated yet without changing the final issued invoice or its native master."
+        "The original three issued BBS training invoices remain JA-DEMO--2026-000001 USD 2,230, 000002 USD 182 and 000003 USD 2,260, totaling USD 4,672. Separate practice documents are the prior USD 1 debit 000004, normal source-based USD 600 invoice 000005 and its −USD 1 credit 000006. The historical double separator is preserved.",
+        "The complete register columns are Invoice, Client, Project (cost center/PO), Dates, Amount, Balance (receivable / credit), Status, PDF and Actions. Scroll horizontally on a small screen or read the responsive card; a viewport showing only amount/status is incomplete evidence. Dates show issue/planned and collection context, not necessarily work dates.",
+        "Invoice lifecycle, native PDF readiness and cash state are independent. An issued invoice is an immutable snapshot; linked adjustments are new documents. The upper native Invoice · PDF panel can be Ready while optional language output is Not generated yet."
       ],
       "steps": [
-        "Open Collections / Ledger and follow the invoice link, or use the documented Billing read view. The normal Auditor menu has no Billing entry. Check number, issuer, customer/project/cost center, service dates, currency, tax and total.",
-        "Check the visible lifecycle state separately from PDF Ready/Queued/Failed.",
-        "Download the authorized Ready native PDF and compare its number/amount to the register.",
-        "Inspect linked adjustment and source references without treating them as a rewrite of the original face amount."
+        "Open Collections / Ledger and follow an invoice, or the authorized direct Billing read view. Filter Project to BBS and retain invoice ID, number, issuer, client/project/cost center, cut, currency/tax and face amount.",
+        "Read all register columns. Follow the normal invoice and compare its entire one-line table with its source: Actual recorded 1 h, Qty 1 day, Unit price USD 600 and total USD 600.",
+        "Open the exact Time source to verify October 26, Technician 1, operational approval, Finance Billable and unchanged actual duration. Reconcile against the dated full-day rule, not a later/current hourly assumption.",
+        "Use the native Ready PDF download where authorized and compare its stored master with the register. Retain sensitive issuer/bank/contact data privately; public evidence can show the native state and complete source table."
       ],
       "checks": [
-        "The PDF is the stored issued master, not a regenerated draft. A collected-state change does not change its native bytes. Audit access does not permit editing, approval, issue or void."
+        "The normal source ID is 01a11177-53be-76f2-9eef-023d5e7d3624; invoice ID 01a1117c-ec5d-750b-be30-47caa07cb3db. Read-only corroboration records source version 4 allocated USD 600 against dated daily rule 01a10cb5-5d0e-71e9-b76c-299609468e00 effective October 5. Rule/link IDs may require an authorized support evidence extract; they are not all printed in the UI.",
+        "The new November 1 USD 610/day agreement does not change the October issued USD 600 line. Plans, actual duration, billing quantity and worker obligation are different records."
       ],
       "recovery": [
-        "A denied/unavailable artifact requires an authorized support investigation. Retain the ID/state/error; do not bypass private storage or obtain another user’s URL/session."
+        "Report a mismatch with exact invoice/source/version/rule IDs, scope and expected formula. Auditor does not edit sources, approve, issue, void or alter stored financial artifacts."
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/02-auditor-issued-invoice-register.png",
-          "caption": "Read-only BBS register with the three original issued training invoices.",
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/02-auditor-full-invoice-register.png",
+          "caption": "Auditor register identity columns: Invoice, Client and Project. Scroll horizontally to read the remaining columns.",
           "orientation": "landscape"
         },
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/03-auditor-phone-invoice-card.png",
-          "caption": "The mixed invoice on a phone: USD 2,260 face amount, USD 1,760 remaining and Partially paid.",
-          "orientation": "portrait"
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/16-auditor-register-dates-and-amounts.png",
+          "caption": "The same native rows after horizontal scrolling: Project/date context, Amount and Balance.",
+          "orientation": "landscape"
         },
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/04-auditor-final-pdf-view.png",
-          "caption": "Actual Auditor native issued PDF view. Downloads read the frozen issued artifact.",
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/15-auditor-register-money-status-ready.png",
+          "caption": "The same rows at the right: amounts, receivable/credit balances, lifecycle, native PDF readiness and read-only Manage links.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/03-auditor-normal-invoice-source-line.png",
+          "caption": "Complete one-line normal invoice: actual 1 h, billing 1 day × USD 600.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/04-auditor-source-actual-hour.png",
+          "caption": "Exact linked operational source remains one actual hour with Billable treatment.",
           "orientation": "landscape"
         }
       ]
@@ -133,32 +144,27 @@
       "id": "auditor-cash",
       "title": "Reconcile collections and their reversals",
       "route": "Collections / Ledger",
-      "context": "Worked example · actual Auditor inspected Collections / Ledger filters and BBS customer balances. No Record payment or Reverse payment forms were offered. Later synthetic role events are separate from this historical snapshot.",
+      "context": "Worked example · AU03 · actual read-only comparison after Finance posted a credit, receipt and cash reversal; all are isolated synthetic evidence.",
       "paragraphs": [
-        "The ledger reports received money and append-only reversal history. Gross receipt minus reversals equals net collection; invoice total minus net gives its remaining receivable. An invoice credit is a separate commercial document, not a cash receipt.",
-        "Training payment references explicitly identify simulated ledger entries. A recorded event is not independent bank evidence. A reversal corrects the recorded receipt; the application does not perform a refund transfer."
+        "Invoice 000005 has USD 600 face amount. Its synthetic USD 1 receipt reduced invoice outstanding to USD 599; the full USD 1 reversal restores net cash USD 0 and outstanding USD 600. Credit invoice 000006 remains −USD 1 with a USD 1 available credit balance. Cash reversal did not cancel that credit or allocate it to the original invoice.",
+        "At the captured BBS cut, gross receivable is USD 4,591, credit balance USD 1, customer net outstanding USD 4,590 and net collections USD 682. The USD 600 invoice’s own outstanding remains USD 600. Later authorized records can change aggregate views; retain the capture date and scope rather than asserting these are permanent totals."
       ],
       "steps": [
-        "Use Search ledger, Collection status, Client, Project, Currency and Receivable aging to isolate the BBS invoice, then Apply filters. The inspected ledger does not offer a separate receipt-date filter.",
-        "Open its collection/payment history. Match amount, effective/received date, reference and linked reversal to each event.",
-        "Calculate gross, reversals, net and outstanding for that document.",
-        "Compare the same issue/collection period with the project and Accounting outputs."
+        "Select the exact BBS project/customer/currency scope in Collections / Ledger. Read invoice face amount, remaining receivable and separate credit balances.",
+        "Open the selected invoice’s collection history and compare gross receipts minus reversals to net collected. Follow the original payment/reference and each reversal amount/date/reason.",
+        "Compare customer gross receivable minus available credits to customer net outstanding. Do not silently subtract a credit from another invoice’s individual remaining amount.",
+        "Record any discrepancy in a finding with invoice/payment/reversal/credit IDs, date/currency scope and the differing measures."
       ],
       "checks": [
-        "Original receipt and reversal both remain present. An invoice with partial collection still has a balance. No Record payment or Reverse payment business control is available to Auditor."
+        "A receipt is not profit; an invoice is not bank evidence; a reversal is not a refund. Original documents, cash events and linked credit history remain preserved."
       ],
       "recovery": [
-        "Ask Finance to investigate an error using the specific event ID/reference. Do not request deletion of the original event or infer a bank refund from a reversal state."
+        "Ask Finance for an authorized allocation/refund procedure if needed. Auditor has no cash posting or reversal controls."
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/07-auditor-ledger-filters-tablet.png",
-          "caption": "Actual ledger filter controls on a tablet; apply a BBS project filter before interpretation.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/08-auditor-customer-balances.png",
-          "caption": "Read-only BBS balances at the original checkpoint: USD 4,672 issued, USD 682 collected and USD 3,990 receivable.",
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/07-auditor-credit-receipt-reversal-reconciliation.png",
+          "caption": "Scoped Auditor ledger after synthetic receipt/reversal: receivables, credit and customer net position remain distinct.",
           "orientation": "landscape"
         }
       ]
@@ -170,7 +176,8 @@
       "context": "Worked example · actual Auditor inspected BBS compensation settlements and reimbursement history in Economic Review. Payment, finalization and reimbursement forms were absent.",
       "paragraphs": [
         "Authorized audit financial views can include sensitive worker compensation, payee/payment references, expense reimbursement and internal costs. Keep these with the authorized financial/audit audience; never attach them to a customer-facing report.",
-        "Customer invoice cadence does not determine worker payment frequency. A worker settlement period, expected payment date and actual paid event are independent selections. There is no automatic worker payroll cadence setting in this release."
+        "Customer invoice cadence does not determine worker payment frequency. A worker settlement period, expected payment date and actual paid event are independent selections. There is no automatic worker payroll cadence setting in this release.",
+        "A finalized obligation and paid cash have separate history. The existing USD 720 reviewed settlement remains USD 720 after a USD 1 payment and its reversal. A new Custom approved adjustment compensation rule is not an automatic amendment/unlock of that final snapshot. A mistaken full expense reimbursement has no ordinary partial/backdate/reversal control in this UI; route the exact record and actual timestamp to Finance/Owner support."
       ],
       "steps": [
         "Select BBS and open Settlements. Check worker/project/period, Reviewed settlement, Actual paid and Remaining.",
@@ -196,28 +203,33 @@
       "id": "auditor-accounting",
       "title": "Review a preserved Accounting cut and its artifacts",
       "route": "Accounting → Accounting Pack register",
-      "context": "Worked example · actual Auditor opened the Accounting register in the original copied BBS environment: no packs exist. Generate/Finalize controls were absent. Successful ready/finalized Accounting is a separately labelled Owner training reference, not an Auditor-created pack.",
+      "context": "Worked examples · AU04 · actual Auditor read a populated BBS October 1–6 pack and downloaded all five Ready formats; separately read/downloaded Finance’s finalized synthetic portfolio cut.",
       "paragraphs": [
-        "A pack is a portfolio cut; it can include multiple projects/legal entities/currencies. It is not the same scope as a project workbook. Read its dates and version before reconciling.",
-        "Invoice values follow issue dates. Validated frozen older source links accompany included invoices as evidence, while old operational labor/expense costs stay in their original period. A document void by the cut is excluded; one voided later can remain in an earlier historical cut.",
-        "The original BBS October 1–5 portfolio has an archived-issuer effective-date gap. The successful zero-advisory October Accounting demonstration in the Owner guide is a separate all-synthetic portfolio. An Auditor must not infer that it repaired BBS history."
+        "A pack is an authorized portfolio cut, with exact dates/version and independent artifact states; it can contain multiple projects/issuers/currencies. The BBS October 1–6 pack is populated and has Ready PDF, XLSX, Invoice CSV, Expense CSV and JSON. Finance retained its unresolved advisories; it is not finalized.",
+        "The separate all-synthetic October 1–6 portfolio pack was generated, reviewed with zero advisories and finalized by Finance. Auditor verified final and successfully downloaded all five native formats. This separate success does not repair or replace BBS history.",
+        "Invoice inclusion follows issue dates. Frozen older source links can accompany included invoices as evidence without moving the historical operational costs to the new issue-date cut. A zero reconciliation count alone does not prove every operational source/receipt is complete."
       ],
       "steps": [
-        "Locate the exact period/version. Distinguish queued/Ready/Failed artifacts, current/stale and final historical version.",
-        "Download only the authorized Ready PDF, XLSX, Invoice CSV, Expense CSV and JSON controls actually present.",
-        "Inspect reconciliation, pending/unclassified/missing-document advisories and changes since generation where exposed by the read view.",
-        "Compare included figures to exact source rows and acknowledge any omitted or outside-period operational evidence."
+        "Open Accounting → Accounting Pack register. Locate the exact period/version and read current/stale/final independently from each output’s Ready/Queued/Failed state.",
+        "Download PDF, XLSX, Invoice CSV, Expense CSV and JSON only when their authenticated Ready links are available. Verify their filenames, cut, currency and content; retain sensitive outputs privately.",
+        "Reconcile included invoices/cash/source references with the frozen cut and identify outside-period operational costs or omitted sources. Request Finance’s review notes where needed.",
+        "Retain the historical final version. Request a new reviewed version from Finance for later source corrections; do not treat it as an editable live workbook."
       ],
       "checks": [
-        "Reconciliation 0 does not prove all operational work/evidence is complete. Final history remains preserved; later corrections require a new reviewed version by Finance. Auditor cannot Generate pack or Finalize reviewed version."
+        "Auditor has no Generate pack, Review before finalizing or Finalize reviewed version controls. The Ready count may be zero after a pack becomes final even though all five final downloads remain Ready."
       ],
       "recovery": [
-        "For a historical issuer/source mismatch retain the pack ID, period and error. Ask Finance/Owner/support for the legitimate resolution; never alter dates, remove source links or fabricate approval."
+        "Retain pack ID, period/version, artifact type/state and the exact error for Finance/Owner/support. No private-storage bypass or shared elevated session is required."
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/09-auditor-empty-accounting-register.png",
-          "caption": "Auditor read-only Accounting register: zero packs in this environment. Ask Finance/Owner to generate a valid pack; no missing artifact can be invented.",
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/01-auditor-populated-ready-pack.png",
+          "caption": "Actual Auditor populated BBS portfolio pack: five native Ready download formats.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/09-auditor-clean-final-pack.png",
+          "caption": "Separate synthetic portfolio finalized by Finance: Auditor read-only final version and all five Ready outputs.",
           "orientation": "landscape"
         }
       ]
@@ -226,27 +238,38 @@
       "id": "auditor-audit",
       "title": "Trace who changed what and when",
       "route": "Audit",
-      "context": "Worked example · actual Auditor used Business & security and inspected one BBS fictional time approval event and its details. The event is later role practice, not evidence of the original October 1–5 hours.",
+      "context": "Worked example · AU05 · actual Auditor opened native time Finance-review, invoice issue and receipt audit details; exact chain and reversal ledger were corroborated read-only.",
       "paragraphs": [
-        "Audit is the append-only evidence workspace available to Owner and Auditor. Finance does not receive this menu/workspace merely because it may change financial data.",
-        "Use actor/action/object/time and correlation evidence to distinguish creation, approval, issue, payment, reversal and correction. A successful account login or reading a notification is not business approval."
+        "Audit shows append-only events with action, entity type/ID, UTC timestamp, Actor ID and View details. Business & security omits job-service lifecycle; Job service and All activity provide the other views. Older events / Latest events page through history; the current Audit page does not expose a dedicated actor/project/date filter form.",
+        "The tested chain is source create → submit → operational approval → Finance review → invoice draft creation → approve → issue → payment record. Owner performed the on-behalf source actions; the synthetic Finance actor performed billability and financial actions. The duplicate time.create audit rows refer to one source ID and do not mean duplicate hours.",
+        "Invoice cash reversal is preserved in its immutable reversal ledger with actor and reference. This release does not emit an ordinary audit_event row for that reversal. Correlate the ledger rather than inventing a missing Audit action. Audit UI prints Actor ID; ask Owner for a restricted ID-to-account crosswalk when a resolved identity is necessary."
       ],
       "steps": [
-        "Open Audit. Choose Business & security for business/security events, Job service for background lifecycle, or All activity. Each page shows up to 50 events; use Older events and Latest events to traverse history.",
-        "Locate the exact object/event on the loaded page and expand its View details disclosure. Read action, entity type/ID, Actor ID, UTC timestamp and event details. Global Search workspace is separate from the audit event list.",
-        "Compare the event with the referenced current record and preserved original/correction chain. The audit list has no project/actor/date-entry filter form in this release.",
-        "Provide a restricted event/source extract with exact IDs to the responsible reviewer if an inconsistency needs explanation."
+        "Use the appropriate Audit view, then Older events until the relevant UTC range. Open View details for the exact entity ID and compare its action payload with the source/document.",
+        "Trace source 01a11177-53be-76f2-9eef-023d5e7d3624 to invoice 01a1117c-ec5d-750b-be30-47caa07cb3db and payment 01a11184-3d1c-7608-b5cc-a240af9f46f0. Verify amount/currency, action sequence and actor authority.",
+        "Follow reversal 01a11184-db1f-77f3-860b-abf58cf2c4b1 in the native immutable cash ledger; preserve both receipt and reversal. Resolve actor IDs through an authorized Owner/account evidence crosswalk, never guess a name.",
+        "Write a finding as: scope/cut and currency; expected invariant; observed difference; invoice/source/version/rule/payment/reversal IDs; UTC actor/action evidence; impact; requested Owner/Finance action; retest evidence and status."
       ],
       "checks": [
-        "A final state has supporting events and relevant source versions. Audit rows are history, not editable current configuration."
+        "Synthetic Finance actor ID 01a10e34-4faa-74fe-8b88-636b879e852b resolves to BBS ROLE LAB Finance. Owner-session identity remains restricted in public evidence. A missing Audit row does not justify deletion, duplicate cash or invented events."
       ],
       "recovery": [
-        "An absent event can reflect filters/scope or a failed action rather than a completed change. Inspect the exact returned state before concluding that history is missing. Auditor does not purge or overwrite events."
+        "For missing/inconsistent evidence preserve the exact IDs and native ledger/capture; request authorized support reconciliation. Auditor reports findings and does not repair business records."
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/05-auditor-fictional-approval-audit-event.png",
-          "caption": "One scoped BBS time approval audit event. View details exposes evidence; it does not edit business records.",
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/11-auditor-source-finance-review-event.png",
+          "caption": "Native Audit detail for the exact source’s Finance review; actor ID and timestamp preserved.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/10-auditor-invoice-audit-chain.png",
+          "caption": "Native invoice.issue event for normal invoice 000005.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/06-auditor-payment-audit-event.png",
+          "caption": "Native payment.record audit detail; cash reversal is reconciled through its own immutable ledger.",
           "orientation": "landscape"
         }
       ]
@@ -255,18 +278,20 @@
       "id": "auditor-outputs",
       "title": "Read the appropriate report and private output",
       "route": "Direct Reports read view → BBS → Daily / Technical · PLC",
-      "context": "Worked example · actual Auditor read approved fictional BBS Daily reports in both missing-PDF and Ready states. Generate/Retry were absent; Refresh remained. The Ready English report offered Download, and its authorized native GET returned 200 with a verified hash. Auditor did not generate the artifact.",
+      "context": "Worked example · actual Auditor read approved fictional BBS Daily reports in both missing-PDF and Ready states. Generate/Retry were absent; Refresh remained. The Ready English report offered Download, and its authorized native GET returned 200 with a verified hash. Auditor did not generate the artifact. Customer period detail was retested at 1440 and 390 pixels after the bounded read fix: no approval, follow-up or signed-copy capture forms.",
       "paragraphs": [
         "Customer-facing period reports/sign-off, internal financial reports, invoices and Accounting Packs have different audiences and purposes. Operational report approval is separate from customer acceptance against an exact report/PDF snapshot.",
         "A customer document must not expose worker compensation, internal cost or company margin. An internal finance/audit output can expose these only to its authorized audience. Private downloads require authorization on every request.",
         "The Auditor session verified Reports read-only and an approved fictional Daily source. Its PDF was not generated. An export request was denied by the read-only boundary; an Owner/authorized creator must prepare a missing artifact. The final interface omits the unsupported Generate/Retry actions for Auditor.",
-        "A different approved BBS External Technician Daily report already had an English PDF prepared by its authorized creator. Auditor’s Ready view kept Download and Refresh while Generate/Retry remained absent. Its authenticated download returned 200, 306,944 bytes. Reading or downloading did not change the operational record or artifact."
+        "A different approved BBS External Technician Daily report already had an English PDF prepared by its authorized creator. Auditor’s Ready view kept Download and Refresh while Generate/Retry remained absent. Its authenticated download returned 200, 306,944 bytes. Reading or downloading did not change the operational record or artifact.",
+        "Supported authorized read destinations include Finance Overview, Economic Review, Collections / Ledger, Accounting and Audit from navigation, plus linked Billing/invoice, Time/Expense details and Reports read views. A menu omission does not add write permission. Customer period detail authorization permits Auditor snapshot/PDF reads; an incidental reviewer-follow-up check was corrected so it no longer blocks that read. Auditor receives no approval, follow-up or signed-copy capture controls."
       ],
       "steps": [
         "Open /j-aautomation/app/reports?view=daily in the same signed-in portal, select BBS, apply filters and open the exact report. The normal Auditor menu has no Reports item. For Technical / PLC select its report type. Verify project, date, type, version and audience.",
         "Open only Ready artifacts. A quarantined or failed uploaded file is not verified evidence.",
         "If acceptance is relevant, check the evidence state, signer information and exact associated snapshot/PDF; distinguish synthetic training acceptance from a real signature.",
-        "Keep the original downloaded file and its source/version reference in the restricted audit record."
+        "Keep the original downloaded file and its source/version reference in the restricted audit record.",
+        "Follow native record links with your own session. For customer reports verify the safe audience, exact version/hash and canonical PDF readiness; protect internal report/financial output audiences. For denied unavailable routes retain the route/record and ask Owner/support rather than borrowing a session."
       ],
       "checks": [
         "Downloading does not create customer acceptance. Underlying content changes can require invalidation/replacement rather than silently reusing an old signed snapshot."
@@ -289,6 +314,11 @@
         {
           "src": "docs/evidence/bbs-role-manuals-20261006/auditor/screenshots/13-auditor-ready-daily-download.png",
           "caption": "Actual Auditor Ready report: Download and Refresh remain available; Generate/Retry are absent. This artifact was prepared by its authorized creator, not by Auditor.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/auditor/screenshots/13-auditor-repaired-customer-period-desktop.png",
+          "caption": "Auditor safely reads exact approved customer snapshot and PDF readiness; financial write controls are absent.",
           "orientation": "landscape"
         }
       ]

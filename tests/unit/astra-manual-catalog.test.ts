@@ -133,7 +133,7 @@ describe('Help manual catalog', () => {
     const guide = manualForRole('bbs-project-invoices-guide', 'owner_admin');
     expect(guide?.locales).toEqual(['en']);
     expect(guide?.audience).toBe('administration-finance');
-    expect(guide?.revision).toBe('2026-10-05');
+    expect(guide?.revision).toBe('2026-10-06');
     expect(guide?.description.en).toContain('final training invoices');
     expect(guide?.description.en).not.toContain('23-page');
     expect(manualForRole('bbs-project-invoices-guide', 'finance_admin')).toBeTruthy();

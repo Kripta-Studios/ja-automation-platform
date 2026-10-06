@@ -1,0 +1,556 @@
+{
+  "environment": "Isolated local SSR http://127.0.0.1:5180; runtime clone only",
+  "project": "C-0050-P-20261005 / 01a10c51-a391-7288-aad1-cb38be43f496",
+  "new_work_period": "October 13–19, 2026; clearly synthetic offline documentation/receipt examples",
+  "verification": "Native Playwright role cookies/login and UI actions. Readonly runtime/source verification supplements native evidence; no SQL writes or fabricated browser state. No production business mutation, email, acceptance, bank payment or real equipment change.",
+  "findings": [
+    {
+      "id": "ET01",
+      "role": "external-technician",
+      "chapter_anchor": "external-time",
+      "status": "Native verified",
+      "evidence": "First-shift own time precedes planning appendices; assigned project and actual work procedure."
+    },
+    {
+      "id": "ET02",
+      "role": "external-technician",
+      "chapter_anchor": "external-week",
+      "status": "Native + source verified",
+      "evidence": "Approved October13 actual1/expected8/difference−7 shows Needs note; no clearing control. Explanation may not clear calculated predicate."
+    },
+    {
+      "id": "ET03",
+      "role": "external-technician",
+      "chapter_anchor": "external-time",
+      "status": "Native verified",
+      "evidence": "Full Save draft form, persisted draft result and individual Submit; original 01a11176-38c3-713d-92a2-e4f5ab3d9240."
+    },
+    {
+      "id": "ET04",
+      "role": "external-technician",
+      "chapter_anchor": "external-correction",
+      "status": "Native verified",
+      "evidence": "Linked correction 01a1117a-6cef-7576-900b-329b43e9ecb0 Approved1h; Owner approver verified in readonly source data; UI shows timestamp."
+    },
+    {
+      "id": "ET05",
+      "role": "external-technician",
+      "chapter_anchor": "external-operational",
+      "status": "Native verified",
+      "evidence": "Historical Oct6–7 final CSV exactly2Approved rows/165min/2.75h; broader later period explicitly distinguished."
+    },
+    {
+      "id": "ET06",
+      "role": "external-technician",
+      "chapter_anchor": "external-technical;external-report-output",
+      "status": "Native verified",
+      "evidence": "OwnTechnical01a11186-932c-7459-84fb-791179b96c66 Approvedv3; Technical attachment/File/Notes/Upload saved before Submit; native preview/ReadyEnglishPDF/download."
+    },
+    {
+      "id": "SC01",
+      "role": "supplier-coordinator",
+      "chapter_anchor": "personnel",
+      "status": "Native verified",
+      "evidence": "Saved roster inspected: externalOct5–31, directoryOct6–31."
+    },
+    {
+      "id": "SC02",
+      "role": "supplier-coordinator",
+      "chapter_anchor": "add-technician",
+      "status": "Native fields + historical save verified",
+      "evidence": "Exact required/optional form labels; prior saved directory retained. No duplicate Add execution during remediation."
+    },
+    {
+      "id": "SC03",
+      "role": "supplier-coordinator",
+      "chapter_anchor": "batch;drafts;correction",
+      "status": "Native verified",
+      "evidence": "Two .5h sourcesOct14 saved/submitted; Owner mixed review; .25h correction returned for wording, final01a11197-6484-75a6-8c75-dd7a30b82764 Approved. Native focused selection and correction forms captured."
+    },
+    {
+      "id": "SC04",
+      "role": "supplier-coordinator",
+      "chapter_anchor": "export",
+      "status": "Native verified",
+      "evidence": "Old4hSubmitted before retained; new exactOct6 CSV2Approvedrows/210min/3.5h matches final filtered screen."
+    },
+    {
+      "id": "SC05",
+      "role": "supplier-coordinator",
+      "chapter_anchor": "own-expenses;daily;technical",
+      "status": "Native verified",
+      "evidence": "OwnUSD6.50expense01a11180-9dbf-7543-bdc9-f851e7de886a Submitted with private receipt. Daily01a11177-1c99-725d-a2e9-0f36830cea4e andTechnical01a1117d-a645-738f-adae-f60c4e5a3f4a Approvedv3/ReadyEnglish/nativePDFdownloads."
+    },
+    {
+      "id": "SC06",
+      "role": "supplier-coordinator",
+      "chapter_anchor": "start;handoff;supplier-coverage-goals-troubleshooting",
+      "status": "Content + native scope verified",
+      "evidence": "Normal personnel/time/review/export/own sources course precedes planning/coverage appendices; one Planning restriction example retained."
+    },
+    {
+      "id": "PM01",
+      "role": "manager",
+      "chapter_anchor": "team",
+      "status": "Native Update; Assign reference",
+      "evidence": "Worker2 dates updated toOct1–31 then restored open-ended via native Update/reload. Assignfieldsinspected; new Assign not run because overlapping existing memberships. Supplierdateupdate409coverageguard left saved dates unchanged."
+    },
+    {
+      "id": "PM02",
+      "role": "manager",
+      "chapter_anchor": "review;corrections",
+      "status": "Native verified",
+      "evidence": "Worker2Oct17Rejected01a11182-241b-74a7-8ad1-fc97a79e39ee versusNeedschanges01a11182-2cc0-7526-9344-32c28151b219; authorcorrection01a11183-46a0-743e-92fc-e0760db21f77 submitted/PMApproved."
+    },
+    {
+      "id": "PM03",
+      "role": "manager",
+      "chapter_anchor": "reports",
+      "status": "Native verified",
+      "evidence": "ActualApproved coordinatorTechnical v3 with coordinator work/report authorship and PM Reviewedby attribution."
+    },
+    {
+      "id": "PM04",
+      "role": "manager",
+      "chapter_anchor": "customer-followup",
+      "status": "Native coordinated verified",
+      "evidence": "Financecreatedperiod01a11179-da79-7298-baa2-074d02192e78 Oct13–19v2/hash85ba28d58be5c1f0c582266794df84fc491344508b23c63a33659b0ce98d6042; PMexactversionApproved; acceptancequeueReadyforsignature. No customer acceptance or financial fields."
+    },
+    {
+      "id": "PM05",
+      "role": "manager",
+      "chapter_anchor": "plan-targets-recovery",
+      "status": "Native historical + final verified",
+      "evidence": "Historicalcancellation retained; finalBBSsnapshot9Published/1Cancelled. Planning creates no actual time."
+    },
+    {
+      "id": "PM06",
+      "role": "manager",
+      "chapter_anchor": "documents",
+      "status": "Native + source verified",
+      "evidence": "PMformSensitivitywithoutaudienceselector. Newpermittedprojectdocument01a11186-4194-7524-a61a-dcd5a4deb734 registered/nativelyretrieved identicalbytes/hash. Saved/NotScanned not claimed clean."
+    },
+    {
+      "id": "PM07",
+      "role": "manager",
+      "chapter_anchor": "notifications",
+      "status": "Native verified",
+      "evidence": "PopulatedReportapprovednotification followedexactPMownDaily/currentApprovedsource; permittedGenerate/Ready/download exercised. Markread not business state."
+    },
+    {
+      "id": "PM08",
+      "role": "manager",
+      "chapter_anchor": "security-help;expenses;pay",
+      "status": "Native own report; precise references",
+      "evidence": "PMownDaily01a11185-3b39-770f-91e5-29cc4809f223 Submitted/OwnerApprovedv3/ReadyEnglish/download. Ownexpense/statement procedures sourcechecked; shared access/security references precise. No PMpayout/securityenrollment newly claimed."
+    },
+    {
+      "id": "S05",
+      "role": "all",
+      "chapter_anchor": "review-authority references",
+      "status": "Native + source verified",
+      "evidence": "SuppliertechnicianTIME Ownerreview; PMcoordinatorDaily/Technical review is separate. Internalreviewdependscan_review scopedpermission. No universal self-review denial asserted."
+    },
+    {
+      "id": "S06",
+      "role": "external-technician;supplier-coordinator",
+      "chapter_anchor": "external-week;own-time",
+      "status": "Native verified",
+      "evidence": "ExternaleligibleIDs01a1117a-6cef-7576-900b-329b43e9ecb0(correction),01a1117a-ab69-72fe-9fe3-d618ef3ac078(ordinary),v1,count2,bothSubmittedthenOwnerApproved. CoordinatoreligibleIDs01a11181-c862-75f1-a8a7-96688534e4c6(correction),01a11181-d654-7628-afb8-8a4ea00b4539(ordinary),v1,count2,bothSubmitted. OriginalsNeedschanges retained."
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/artifacts/et06-technical-en.pdf",
+      "bytes": 323791,
+      "sha256": "36798117199b87495bd3aebf6aef2cc0be9e2fde2e95cc4d3b317151aa3fe0eb"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/artifacts/external-final-oct06-07.csv",
+      "bytes": 595,
+      "sha256": "8deb8875ae0342b1c4f81613fba1f5b2e288de778a586960ed3ed25d265614b6"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/artifacts/pm06-retrieved-private-note.txt",
+      "bytes": 266,
+      "sha256": "4ed45d3646765411a7f1a58cf308ab57edcf4071b2205aec4385bab1f8108799"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/artifacts/pm08-own-daily-en.pdf",
+      "bytes": 306609,
+      "sha256": "72295c119568ba8cf3b0feaab02048f3ce8146fc33fcc91d69d932c7ed550787"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/artifacts/sc05-daily-en.pdf",
+      "bytes": 307682,
+      "sha256": "d811d133cc2b3ab7845d01eea45d89faefeed96a012580839941334db95e3372"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/artifacts/sc05-technical-en.pdf",
+      "bytes": 323978,
+      "sha256": "0fdaa2d2c907b7a5adc45e1ffe19a048bbfd24b1a7b6569f259b307356bd9324"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/artifacts/supplier-final-oct06.csv",
+      "bytes": 590,
+      "sha256": "e6c7f4090e5be77fe5f22aa3b3f18e5d8a3c11a6a616fb735e7e564d99c0caf0"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/author-recovery/screenshots/pm02-author-rejected-no-correction.png",
+      "bytes": 267746,
+      "sha256": "ece10652475ce17c6f12a7c8c116b7dd12ed5956b89f48868cf16e2988686bf1"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/author-recovery/screenshots/pm02-author-returned-correction-form.png",
+      "bytes": 318133,
+      "sha256": "9397b6e716baf7994f4b5321fe4359d527a932f613aac8d8ce65eaf57d365c86"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et02-approved-time-needs-note.png",
+      "bytes": 289437,
+      "sha256": "c10bebaba4a852f16297d5eb132d422ebbb92e0406ca43d8ffd6d72e02fa32a4"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et03-draft-saved-result.png",
+      "bytes": 110185,
+      "sha256": "ef4db70dab419f4860cd5ef5f9d89d4efbea909dc7097a4c369c9a5529925e92"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et03-full-save-draft.png",
+      "bytes": 50233,
+      "sha256": "771942bc93d4d97a2c3aa2f885de635623e1a0d25cc6d77996594d9af8732bc1"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et03-own-submitted.png",
+      "bytes": 244334,
+      "sha256": "8f5b9ad7f672bfaebc7dab1d7703be1ba84ece8a63ab701c74e46207c1e0c160"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et04-corrected-approved-source-reviewer.png",
+      "bytes": 266125,
+      "sha256": "e70da455b4a861c4daa515bcca890cf7f599922dd7f87631ba6d9f6cd5ecbabd"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et04-linked-correction-full-form.png",
+      "bytes": 311683,
+      "sha256": "e6c16ac0a8cc9edb231a1603a9757c7976db4b5c3053f8eb94804099672be44c"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et04-oct13-approved-correction.png",
+      "bytes": 261722,
+      "sha256": "f375be77bdf933e7c2c2d9e749b2af19558d7c7ad594eefd98ef7f0cc6cb8231"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et05-historical-period-approved-2-75h.png",
+      "bytes": 119394,
+      "sha256": "3e5c940e1381a02c238ee46d483530ce7f098fd152cc8699af478676e8196935"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-approved-attribution.png",
+      "bytes": 35051,
+      "sha256": "702681d8b0ca2eff9357e6b957608cebf07df905b8cf55b0044fb81545750cf3"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-evidence-type-file-notes-upload.png",
+      "bytes": 23878,
+      "sha256": "65a6ee4f7385e795a99f5660bb7239afbb83a8269a8b339af6c53f36c326efcc"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-own-technical-full-save-form.png",
+      "bytes": 51767,
+      "sha256": "62e3a9db221a3fade57f427620d81dc9db04e034bbdf5d1aa2096c0cde42a51e"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-readable-approved-technical.png",
+      "bytes": 626144,
+      "sha256": "682342da4c84a89a6f555c5ed0fb3bb934514712afb1ecf84321717bc1ef5d8c"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-readable-native-preview.png",
+      "bytes": 174719,
+      "sha256": "b8f377064f5e8ddf660007f168369b0aeeb104272d648d4763bb850d6123c5f1"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-ready-native-technical.png",
+      "bytes": 246404,
+      "sha256": "7b666d28527122ded10a077963fcf0107fa305e6fbe44b08849eb8dcc4b33e08"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-saved-evidence-metadata.png",
+      "bytes": 67246,
+      "sha256": "5a328c8c6e999cb1a786aea75f6eb0439a3f14621c8158419753abc405213842"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/s06-external-weekly-ordinary-correction-before.png",
+      "bytes": 338200,
+      "sha256": "30c240a901a4fd034c57a3abbc71b5be6e2877967aac2b8dce2383593d45ad7d"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/s06-external-weekly-success-actual-states.png",
+      "bytes": 289216,
+      "sha256": "16ced73997105597e1b0843839e72af284747e66d9236a65dd7cfbf16b4e1c3c"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm01-restored-final-membership.png",
+      "bytes": 7712,
+      "sha256": "0ac74cbf6b30aa525b341968b1695c9740eb9b369bde67ee96a0f8ea022c6b18"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm01-saved-dated-membership.png",
+      "bytes": 7712,
+      "sha256": "0ac74cbf6b30aa525b341968b1695c9740eb9b369bde67ee96a0f8ea022c6b18"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm01-update-assignment-date-form.png",
+      "bytes": 8973,
+      "sha256": "dbc7c04cdb7c0275bd591fbbc57645d1ae872a1861594a9a34f547be7f31b8d7"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm01-worker2-membership-saved.png",
+      "bytes": 7741,
+      "sha256": "c125892ba80c159427d11e2c266a441b4afe3dbc388abd7b6a6abf8cbe197d56"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm01-worker2-restored-membership.png",
+      "bytes": 8013,
+      "sha256": "dee2e3ebc08623e7bbd56a16e521ece41400cc570bd8b3728bd4f92df8c54d7d"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm01-worker2-update-dates-before.png",
+      "bytes": 9040,
+      "sha256": "7b41f3e90899d3e93e659c663a2acbdac17e210f1abd9ba1ee95e07ef062c08c"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm02-correction-approved-source.png",
+      "bytes": 275729,
+      "sha256": "c96a7e8e6af115922b4d45b72b69140ca4e18775364b3ee70fef6269bb5475ac"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm02-needs-changes-action.png",
+      "bytes": 66802,
+      "sha256": "dafcf3edf20a61388aa05074c7d59944383f1bbb8b188a95ff024d60b56cacc2"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm02-reject-reason-action.png",
+      "bytes": 59783,
+      "sha256": "0212dbb2f7b74705ae2432092ea7d157957e3863735457748b69035a2ef1f9d9"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm03-approved-technical-reviewer-summary.png",
+      "bytes": 37333,
+      "sha256": "0226728b899e0f51479da0255eef37442d05987a3324a7c2411a1e725176f124"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm03-coordinator-daily-approved.png",
+      "bytes": 326377,
+      "sha256": "0bda331577177c6c436cde2ba7d41d64f8f499d48c466a4b97fab8fb5c77e27a"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm03-technical-approved-attribution.png",
+      "bytes": 713600,
+      "sha256": "2d2b127c281d920a7395c5efa8e6bcda775fd24d38f31a0c820c9d1882290395"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm04-approved-customer-exact-version.png",
+      "bytes": 478689,
+      "sha256": "92aa0b914955d940176ba416594a9fa2082ebaae497fc0ee129483b4a46f113d"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm04-customer-safe-reviewed-version.png",
+      "bytes": 508170,
+      "sha256": "d02bd5785fff1f9266e8290647b2984c622252b2141a674a7afa58a5c2d903c2"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm04-ready-acceptance-queue.png",
+      "bytes": 227814,
+      "sha256": "0d9e23dd5044c3afae65626b7e15529c857454cba446411f3f4ec22783420bb7"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm05-final-planning-summary.png",
+      "bytes": 364034,
+      "sha256": "d4ca3a6f050fd2153d1c9296cdb5902cbb05760b10cc74732229363f324de907"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm06-actual-sensitivity-upload-form.png",
+      "bytes": 45903,
+      "sha256": "825a84ec7dc50737e210f39b2416e484e21c0c94d7ac05af8a4fd0107973b263"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm06-saved-private-document-scope.png",
+      "bytes": 196928,
+      "sha256": "9688aa940f7cd5743b30f197852d7ef0f347a73b51b011aeb2a38d664f9b6d60"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm07-notification-current-approved-source.png",
+      "bytes": 573832,
+      "sha256": "2d9fee24b7a7806a83fbc8b71a56e335c26e896a78cfaf3c2224c7af492d6055"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm07-populated-native-notifications.png",
+      "bytes": 103012,
+      "sha256": "20d59f3a5f125eb02310289b652fa632ea24d16df29e9d8c193f4bf63456e798"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm08-own-daily-draft-source.png",
+      "bytes": 516518,
+      "sha256": "a28526cb89303a54a301a4d6707899d477f94bab4a88e51c46e4cbb9d8addaf1"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm08-own-daily-filled-form.png",
+      "bytes": 42100,
+      "sha256": "5987840c9308f3c6eb503dd52f0a7e5598d74fa6ccce4ac47ad2ecd7a40cc637"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm08-own-daily-ready.png",
+      "bytes": 298391,
+      "sha256": "b371dd40045b1feafdee2f916a07e763c20fc37e8f0f60d70a9be650a877c3ff"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/owner-review/screenshots/owner-et04-return-reason.png",
+      "bytes": 60479,
+      "sha256": "afb8a2f8ec0b7a9ca0c7099a28422400062b87d94cc34c1454d0290eb7f28818"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/s06-coordinator-source-states-after.png",
+      "bytes": 274071,
+      "sha256": "8e1d83dd3a42dbb3c37de38af56ae8f9c676efa5a2eb1a94fe06e8e720570a30"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/s06-coordinator-two-eligible-drafts.png",
+      "bytes": 323132,
+      "sha256": "223eb7152b5f169d5efe214f20d9b64d86d53dbe98afed4e4a1fd9c2c37352a3"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/s06-coordinator-weekly-success.png",
+      "bytes": 284301,
+      "sha256": "cc8bfba6cde02cccd0eaf132c08d627eb23ed04a7efaedab2d63ce1c639cd676"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc01-personnel-saved-roster.png",
+      "bytes": 99995,
+      "sha256": "3ad6719f6b2ccfdaeb6fb5c1f8288d8a048731364884b6cd885269f49a993db0"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc01-saved-roster-dates.png",
+      "bytes": 109965,
+      "sha256": "f7e293d6d151466edbe4ca2ec4769606aa32e31a1489c1b1cf98c705c43da040"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc02-add-technician-labels.png",
+      "bytes": 148676,
+      "sha256": "5f7fb12050b0fd4cfb56c9cccabf798833ecd8b7811b6989c726ffde285fbe2d"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc03-final-reviewed-correction-chain.png",
+      "bytes": 73384,
+      "sha256": "68740c7970068cf9e32ef71e6435415326f264267a93cacceb0294eb3f41d324"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc03-focused-native-correction-form.png",
+      "bytes": 27483,
+      "sha256": "5a93f8a883e3e3738916f0d1a65b8a16ced5a744e78dd4604e80687082644791"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc03-focused-selected-names-date-hours.png",
+      "bytes": 55343,
+      "sha256": "a3d9a626caa32ae6f4d880cb95055e30fa13cce37298fae406b138d411f8c15f"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc03-native-batch-save-results.png",
+      "bytes": 193780,
+      "sha256": "4c84dbfc2ec797daf9710215514a8cd4b8c2d286ded4c9f829ba69172ad12059"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc03-native-submission-result.png",
+      "bytes": 126740,
+      "sha256": "fd0a0e2aea94d3b60d3104c8ac2c74df239a38184618bed1f6c228c70a97c7c3"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc03-reviewed-selected-drafts.png",
+      "bytes": 210353,
+      "sha256": "f3387cf570c907a92567ca7b04f53b2bed5584d5c4bdb6c3359288189ee5fe64"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc04-matching-approved-3-5h.png",
+      "bytes": 121939,
+      "sha256": "aec07bdddc216219bd7f6b4abf427a4218c4b3f7b8fffb5a28e5cb87e229b15c"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-daily-generation-state.png",
+      "bytes": 310893,
+      "sha256": "6471ef83b2c59087a642d642a33c57a6537de5e76cf809a1ee91920e0e5a3937"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-daily-ready-native.png",
+      "bytes": 312441,
+      "sha256": "9b157f33356b24db9c1a84cc9d2d0f912862ca425b76b69c365c0f95325f4ecb"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-evidence-type-file-notes-before-upload.png",
+      "bytes": 24193,
+      "sha256": "dd35d5cb3b5df5d6dd884950799d2d50511e4b8e44733d32d0897e2a7339afbc"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-expense-save-result.png",
+      "bytes": 328205,
+      "sha256": "9079c57d871c30f727ad58ca378f2a8b37529874191f85a9190072534935e05a"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-daily-form.png",
+      "bytes": 43454,
+      "sha256": "54f6f58a17acc600790afe975f1e88f52293742475e2783bae4ea71a65a692f5"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-daily-submitted.png",
+      "bytes": 104397,
+      "sha256": "ff66fde0ba3d4fcdb45a01d6b53a82e8df34a44003f0bad0daf7c3008168cc5a"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-expense-complete-receipt-form.png",
+      "bytes": 63328,
+      "sha256": "d4264f78f2ba6332ac343cf1b42518c6bdf40d6a0749e2cf4173283cb3ed3c46"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-expense-submitted-native.png",
+      "bytes": 301734,
+      "sha256": "5e571df0003b2c5fbf715294b57abf49508992abb56dff86752ae445dddc0c74"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-submitted-receipt-source.png",
+      "bytes": 259194,
+      "sha256": "a35b5722a31ed62f6c454625832430ecb44fecb019739065c9ad5e3b62eaee0e"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-technical-complete-form.png",
+      "bytes": 55771,
+      "sha256": "9e3f51a82223458601b2d15995dfef63aedc925b6002149a4f52069d6597865c"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-technical-submitted.png",
+      "bytes": 630764,
+      "sha256": "e96579494b9fdfb53e700eed84ca511cad8f1fa6da332b34dc1da73c0b59a08b"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-technical-readable-draft-evidence-fields.png",
+      "bytes": 711671,
+      "sha256": "513de32dc20f0bf8b67a8c7bf46b9e038405dea61bc7b386143129eb87ab1f86"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-technical-ready-native.png",
+      "bytes": 275613,
+      "sha256": "10277fe79c1e19fc2ff9c5aa7bbc90b7eb0d93d7b40f621de5570b031d6c3129"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-upload-verified-before-submit.png",
+      "bytes": 747915,
+      "sha256": "476ba71fef21916581937cd65deebbe536a6a6fc97987826960c0a028e8227c5"
+    }
+  ],
+  "limitations": [
+    "New Assign worker execution not performed; native saved/restored Update is completed and Assign exact fields are inspected.",
+    "Layout copy, PM own expense/statement generation and role-specific device security mutations remain source-checked references; parent shared access/security chapters own their native evidence.",
+    "A second-level supplier correction retained its intermediate source as Rejected on the final Supplier report, rather than Needs changes. This exact observed state is documented; parent informed.",
+    "No customer signature/acceptance or payout completion claimed.",
+    "Full release build, rendered page references and common chapter generation belong to parent."
+  ]
+}

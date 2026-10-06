@@ -1,0 +1,27 @@
+{
+  "environment": "Isolated training database; approved localhost WebAuthn origin",
+  "credentialsPublished": false,
+  "checks": [
+    {
+      "task": "Invitation activation and first password sign-in",
+      "result": "PASS"
+    },
+    {
+      "task": "Optional MFA enrollment, six-digit verification and disable",
+      "result": "PASS"
+    },
+    {
+      "task": "Passkey registered and persisted",
+      "result": "PASS",
+      "scope": "Browser virtual training authenticator on approved localhost origin"
+    },
+    {
+      "task": "Own passkey revoke",
+      "result": "PASS"
+    },
+    {
+      "task": "Used invitation recovery state",
+      "result": "PASS"
+    }
+  ]
+}

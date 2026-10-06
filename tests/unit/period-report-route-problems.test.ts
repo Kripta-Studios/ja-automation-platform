@@ -11,6 +11,11 @@ const scenario = vi.hoisted(() => ({
   refreshAccessError: '',
   refreshCalls: 0,
   recordedSignoff: false,
+  role: 'finance_admin',
+  snapshotDenied: false,
+  snapshotCalls: 0,
+  pdfCalls: 0,
+  followupReads: 0,
 }));
 
 vi.mock('$lib/server/private-artifact-access', () => ({
@@ -28,6 +33,9 @@ vi.mock('@ja/database', async (importOriginal) => {
     ...original,
     PeriodFollowupRepository: class {
       getReportFollowup() {
+        scenario.followupReads += 1;
+        if (scenario.role === 'auditor_read_only')
+          throw new original.PeriodFollowupAccessDeniedError('Project review role required');
         return null;
       }
       recordEvent() {
@@ -45,7 +53,7 @@ vi.mock('$lib/server/portal-repository', async (importOriginal) => {
   return {
     ...original,
     openPortalRepository: () => ({
-      principal: { userId: 'finance-1', role: 'finance_admin', projectIds: new Set(['project-1']) },
+      principal: { userId: 'finance-1', role: scenario.role, projectIds: new Set(['project-1']) },
       sqlite: {
         close: () => {},
         prepare(sql: string) {
@@ -68,6 +76,9 @@ vi.mock('$lib/server/portal-repository', async (importOriginal) => {
       },
       v3: {
         periodReportSnapshot() {
+          scenario.snapshotCalls += 1;
+          if (scenario.snapshotDenied)
+            throw new database.V3AccessDeniedError('Project access required');
           return { project: { id: 'project-1' }, audience: 'customer' };
         },
         listPeriodReports() {
@@ -82,6 +93,7 @@ vi.mock('$lib/server/portal-repository', async (importOriginal) => {
           ];
         },
         periodReportPdfMetadata() {
+          scenario.pdfCalls += 1;
           return { storageKey: 'reports/report-1/report.pdf' };
         },
         reserveUpload() {
@@ -100,6 +112,8 @@ vi.mock('$lib/server/portal-repository', async (importOriginal) => {
           return { id: 'conformity-1' };
         },
         approvePeriodReport() {
+          if (scenario.role === 'auditor_read_only')
+            throw new database.V3AccessDeniedError('Read-only role');
           if (scenario.approvalError) throw new database.V3ConflictError(scenario.approvalError);
           return { changed: true, id: 'report-1', snapshotVersion: 1 };
         },
@@ -170,6 +184,11 @@ beforeEach(() => {
   scenario.refreshAccessError = '';
   scenario.refreshCalls = 0;
   scenario.recordedSignoff = false;
+  scenario.role = 'finance_admin';
+  scenario.snapshotDenied = false;
+  scenario.snapshotCalls = 0;
+  scenario.pdfCalls = 0;
+  scenario.followupReads = 0;
 });
 
 describe('period report action problems', () => {
@@ -467,5 +486,62 @@ describe('period report action problems', () => {
       remedies: [{ id: 'review_signoff' }],
     });
     expect(JSON.stringify(result.data)).not.toContain('existing document');
+  });
+});
+
+describe('Auditor period report read access', () => {
+  function auditorLoad() {
+    return load({
+      locals: { user: { id: 'auditor-1', role: 'auditor_read_only' } },
+      params: { id: 'report-1' },
+      url: new URL('http://localhost/j-aautomation/app/reports/period/report-1'),
+      cookies: { get: () => undefined },
+    } as never);
+  }
+
+  it('reads the authenticated customer snapshot and PDF without reviewer follow-up access', async () => {
+    scenario.role = 'auditor_read_only';
+    const result = await auditorLoad();
+    expect(result).toMatchObject({
+      pendingSignoffEvidence: null,
+      report: {
+        id: 'report-1',
+        audience: 'customer',
+        snapshotVersion: 2,
+        pdfReady: true,
+        followup: null,
+      },
+    });
+    expect(scenario.snapshotCalls).toBe(1);
+    expect(scenario.pdfCalls).toBe(1);
+    expect(scenario.followupReads).toBe(0);
+  });
+
+  it('retains snapshot authorization before exposing metadata or PDF readiness', async () => {
+    scenario.role = 'auditor_read_only';
+    scenario.snapshotDenied = true;
+    let denied: unknown;
+    try {
+      auditorLoad();
+    } catch (caught) {
+      denied = caught;
+    }
+    expect(denied).toMatchObject({ status: 404 });
+    expect(scenario.snapshotCalls).toBe(1);
+    expect(scenario.pdfCalls).toBe(0);
+    expect(scenario.followupReads).toBe(0);
+  });
+
+  it('keeps Auditor approval forbidden after allowing the read', async () => {
+    scenario.role = 'auditor_read_only';
+    const result = await actions.approve!({
+      locals: { user: { id: 'auditor-1', role: 'auditor_read_only' } },
+      params: { id: 'report-1' },
+      request: request({ expectedSnapshotVersion: '2', expectedSnapshotSha256: 'a'.repeat(64) }),
+    } as never);
+    expect(result).toMatchObject({
+      status: 403,
+      data: { code: 'PERIOD_REPORT_PERMISSION_REQUIRED' },
+    });
   });
 });

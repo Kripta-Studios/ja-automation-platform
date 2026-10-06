@@ -1,0 +1,1177 @@
+{
+  "auditDate": "2026-10-06",
+  "source": "User-supplied 608-page readiness audit",
+  "scope": "72 documentation actions; not 72 independent software defects",
+  "baseline": [
+    {
+      "filename": "BBS_Auditor_Manual_EN.pdf",
+      "sha256": "d910c57e365e8b18257fbe45c8f3509f2e549750056c0689947e54b9c8df3ac3"
+    },
+    {
+      "filename": "BBS_Crew_Chief_Manual_EN.pdf",
+      "sha256": "029dbe2c113ad169169685c5f045dcc4085ec22cfd8cbc34b2b390f440e7ce00"
+    },
+    {
+      "filename": "BBS_External_Technician_Manual_EN.pdf",
+      "sha256": "cb1aafd723653befdf5e829c7b7d1d6bac6c4e52d0929b26b313811421c94ddc"
+    },
+    {
+      "filename": "BBS_Finance_Manual_EN.pdf",
+      "sha256": "623e3742f51df2ba9122d6453e2639c49f8b8f98a33f3db8c1751c0356d6fe64"
+    },
+    {
+      "filename": "BBS_Owner_Manual_EN.pdf",
+      "sha256": "feb18cb2604b8116261d81696c9385e4d2c79d741867b778729548553fb2fe6b"
+    },
+    {
+      "filename": "BBS_Project_Manager_Manual_EN.pdf",
+      "sha256": "680c5971446198c9adf83e5b328ff6b1eb009fa164e6151148bed431b4c8d085"
+    },
+    {
+      "filename": "BBS_Supplier_Coordinator_Manual_EN.pdf",
+      "sha256": "23f249df9e9cd9bdae07e89318b7c22b7b126d6b7a7f087cdad263a49104317d"
+    },
+    {
+      "filename": "BBS_Worker_Manual_EN.pdf",
+      "sha256": "96c98ad744d16fea1bcf9ecd243be653dd457eacf43dd89339afce1ec11ef8c4"
+    }
+  ],
+  "items": [
+    {
+      "id": "S01",
+      "role": "shared",
+      "priority": "P1",
+      "finding": "Recipient first login, activation and recovery",
+      "status": "addressed",
+      "sections": [
+        "access"
+      ],
+      "evidence": [
+        "owner-common/access-security-checks.json"
+      ],
+      "validation": "native activation/sign-in/used invitation; expired/offline/lost-access paths are precise references"
+    },
+    {
+      "id": "S02",
+      "role": "shared",
+      "priority": "P2",
+      "finding": "Task bookmarks and unambiguous page references",
+      "status": "addressed",
+      "sections": [
+        "contents",
+        "PDF task outline"
+      ],
+      "evidence": [
+        "../../manuals/bbs-role-manuals-build.json"
+      ],
+      "validation": "generated continuous page map and task bookmarks; native invoice pagination preserved"
+    },
+    {
+      "id": "S03",
+      "role": "shared",
+      "priority": "P2",
+      "finding": "Separate operating instructions from testing provenance",
+      "status": "addressed",
+      "sections": [
+        "practice",
+        "verification"
+      ],
+      "evidence": [
+        "../../../scripts/bbs-role-manuals/common.mjs"
+      ],
+      "validation": "operating instructions separated from bounded verification appendix; historical provenance retained"
+    },
+    {
+      "id": "S04",
+      "role": "shared",
+      "priority": "P1",
+      "finding": "Reproducible trainer setup and resettable lesson scopes",
+      "status": "addressed",
+      "sections": [
+        "trainer-setup"
+      ],
+      "evidence": [
+        "worker-chief/state-manifest.json"
+      ],
+      "validation": "required own identity, unused project/period, source state/locks, expected result and operator database+document reset; no public training URL asserted"
+    },
+    {
+      "id": "S05",
+      "role": "shared",
+      "priority": "P1",
+      "finding": "Source-specific operational review authority matrix",
+      "status": "addressed",
+      "sections": [
+        "review-authority references"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native + source verified: SuppliertechnicianTIME Ownerreview; PMcoordinatorDaily/Technical review is separate. Internalreviewdependscan_review scopedpermission. No universal self-review denial asserted."
+    },
+    {
+      "id": "S06",
+      "role": "shared",
+      "priority": "P1",
+      "finding": "Verify weekly linked-correction submission by role and state",
+      "status": "addressed",
+      "sections": [
+        "external-week",
+        "own-time"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native verified: ExternaleligibleIDs01a1117a-6cef-7576-900b-329b43e9ecb0(correction),01a1117a-ab69-72fe-9fe3-d618ef3ac078(ordinary),v1,count2,bothSubmittedthenOwnerApproved. CoordinatoreligibleIDs01a11181-c862-75f1-a8a7-96688534e4c6(correction),01a11181-d654-7628-afb8-8a4ea00b4539(ordinary),v1,count2,bothSubmitted. OriginalsNeedschanges retained."
+    },
+    {
+      "id": "S07",
+      "role": "shared",
+      "priority": "P1",
+      "finding": "Resolve finalized-compensation correction receiving handoff",
+      "status": "addressed",
+      "sections": [
+        "recovery-matrix",
+        "finance-obligation-correction"
+      ],
+      "evidence": [
+        "finance-auditor/README.md"
+      ],
+      "validation": "preserved finalized obligation; explicit Finance/support receiving result; cash reversal/prospective adjustment does not unlock history"
+    },
+    {
+      "id": "S08",
+      "role": "shared",
+      "priority": "P1",
+      "finding": "Expense and report correction state procedures",
+      "status": "addressed",
+      "sections": [
+        "recovery-matrix",
+        "worker-expense-exceptions",
+        "finance-obligation-correction"
+      ],
+      "evidence": [
+        "worker-chief/state-manifest.json"
+      ],
+      "validation": "native returned expense/report recovery and exact state-dependent routes, protected/evidence locks explicitly bounded"
+    },
+    {
+      "id": "S09",
+      "role": "shared",
+      "priority": "P2",
+      "finding": "Executable own-account security and availability reference",
+      "status": "addressed",
+      "sections": [
+        "security"
+      ],
+      "evidence": [
+        "owner-common/access-security-checks.json"
+      ],
+      "validation": "actual shared-recipient MFA verify and passkey register/revoke; device/lost-access and availability references labelled"
+    },
+    {
+      "id": "S10",
+      "role": "shared",
+      "priority": "P2",
+      "finding": "Release-specific role capability and validation inventory",
+      "status": "addressed",
+      "sections": [
+        "verification"
+      ],
+      "evidence": [
+        "capability-inventory.json"
+      ],
+      "validation": "release-based role task inventory, permission and validation boundaries; out-of-role areas intentional"
+    },
+    {
+      "id": "ET01",
+      "role": "external-technician",
+      "priority": "P2",
+      "finding": "First shift before advanced planning",
+      "status": "addressed",
+      "sections": [
+        "external-time"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native verified: First-shift own time precedes planning appendices; assigned project and actual work procedure."
+    },
+    {
+      "id": "ET02",
+      "role": "external-technician",
+      "priority": "P2",
+      "finding": "Needs note operational response",
+      "status": "addressed",
+      "sections": [
+        "external-week"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native + source verified: Approved October13 actual1/expected8/difference\u22127 shows Needs note; no clearing control. Explanation may not clear calculated predicate."
+    },
+    {
+      "id": "ET03",
+      "role": "external-technician",
+      "priority": "P2",
+      "finding": "Replace transient Saving capture",
+      "status": "addressed",
+      "sections": [
+        "external-time"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native verified: Full Save draft form, persisted draft result and individual Submit; original 01a11176-38c3-713d-92a2-e4f5ab3d9240."
+    },
+    {
+      "id": "ET04",
+      "role": "external-technician",
+      "priority": "P1",
+      "finding": "Show actual Approved correction outcome",
+      "status": "addressed",
+      "sections": [
+        "external-correction"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native verified: Linked correction 01a1117a-6cef-7576-900b-329b43e9ecb0 Approved1h; Owner approver verified in readonly source data; UI shows timestamp."
+    },
+    {
+      "id": "ET05",
+      "role": "external-technician",
+      "priority": "P2",
+      "finding": "Scope historical 2.75-hour export",
+      "status": "addressed",
+      "sections": [
+        "external-operational"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native verified: Historical Oct6\u20137 final CSV exactly2Approved rows/165min/2.75h; broader later period explicitly distinguished."
+    },
+    {
+      "id": "ET06",
+      "role": "external-technician",
+      "priority": "P2",
+      "finding": "Readable technical output and evidence upload",
+      "status": "addressed",
+      "sections": [
+        "external-technical",
+        "external-report-output"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native verified: OwnTechnical01a11186-932c-7459-84fb-791179b96c66 Approvedv3; Technical attachment/File/Notes/Upload saved before Submit; native preview/ReadyEnglishPDF/download."
+    },
+    {
+      "id": "SC01",
+      "role": "supplier-coordinator",
+      "priority": "P2",
+      "finding": "Saved personnel roster and coverage",
+      "status": "addressed",
+      "sections": [
+        "personnel"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native verified: Saved roster inspected: externalOct5\u201331, directoryOct6\u201331."
+    },
+    {
+      "id": "SC02",
+      "role": "supplier-coordinator",
+      "priority": "P1",
+      "finding": "Exact Add technician control and required fields",
+      "status": "addressed",
+      "sections": [
+        "add-technician"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native fields + historical save verified: Exact required/optional form labels; prior saved directory retained. No duplicate Add execution during remediation."
+    },
+    {
+      "id": "SC03",
+      "role": "supplier-coordinator",
+      "priority": "P2",
+      "finding": "Readable team batch and correction controls",
+      "status": "addressed",
+      "sections": [
+        "batch",
+        "drafts",
+        "correction"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native verified: Two .5h sourcesOct14 saved/submitted; Owner mixed review; .25h correction returned for wording, final01a11197-6484-75a6-8c75-dd7a30b82764 Approved. Native focused selection and correction forms captured."
+    },
+    {
+      "id": "SC04",
+      "role": "supplier-coordinator",
+      "priority": "P2",
+      "finding": "Matching corrected Approved CSV",
+      "status": "addressed",
+      "sections": [
+        "export"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native verified: Old4hSubmitted before retained; new exactOct6 CSV2Approvedrows/210min/3.5h matches final filtered screen."
+    },
+    {
+      "id": "SC05",
+      "role": "supplier-coordinator",
+      "priority": "P1",
+      "finding": "Complete own expense and report output cycle",
+      "status": "addressed",
+      "sections": [
+        "own-expenses",
+        "daily",
+        "technical"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native verified: OwnUSD6.50expense01a11180-9dbf-7543-bdc9-f851e7de886a Submitted with private receipt. Daily01a11177-1c99-725d-a2e9-0f36830cea4e andTechnical01a1117d-a645-738f-adae-f60c4e5a3f4a Approvedv3/ReadyEnglish/nativePDFdownloads."
+    },
+    {
+      "id": "SC06",
+      "role": "supplier-coordinator",
+      "priority": "P2",
+      "finding": "Consolidate planning restrictions",
+      "status": "addressed",
+      "sections": [
+        "start",
+        "handoff",
+        "supplier-coverage-goals-troubleshooting"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Content + native scope verified: Normal personnel/time/review/export/own sources course precedes planning/coverage appendices; one Planning restriction example retained."
+    },
+    {
+      "id": "CC01",
+      "role": "chief",
+      "priority": "P2",
+      "finding": "Complete project, receipt and save controls",
+      "status": "addressed",
+      "sections": [
+        "chief-shared, chief-expense"
+      ],
+      "evidence": [
+        "worker-chief/audit-status.md",
+        "worker-chief/state-manifest.json",
+        "worker-chief/native-artifacts.json"
+      ],
+      "validation": "Revised / tested: Native full contextual form shows selected Worker2, project, date, linked30min Travel shift, receipt and full Save draft. Both worker grants/assignments cover current and work date."
+    },
+    {
+      "id": "CC02",
+      "role": "chief",
+      "priority": "P1",
+      "finding": "Supported allocation and submission order",
+      "status": "addressed",
+      "sections": [
+        "chief-allocation, chief-review"
+      ],
+      "evidence": [
+        "worker-chief/audit-status.md",
+        "worker-chief/state-manifest.json",
+        "worker-chief/native-artifacts.json"
+      ],
+      "validation": "Revised / tested: Two saved30min shifts, one distinct USD20 Meals receipt, eligible native split10+10, Save allocation, expense+time Submit, independent Owner Approved. Exact minor-unit sums verified."
+    },
+    {
+      "id": "CC03",
+      "role": "chief",
+      "priority": "P2",
+      "finding": "Mistaken correction and receipt split recovery",
+      "status": "addressed",
+      "sections": [
+        "chief-own-time, chief-correction, chief-expense, chief-allocation"
+      ],
+      "evidence": [
+        "worker-chief/audit-status.md",
+        "worker-chief/state-manifest.json",
+        "worker-chief/native-artifacts.json"
+      ],
+      "validation": "Revised / tested with explicit limits: Wrong own54min correction withdrawn; accurate45min correction Submitted weekly. Incorrect unallocated Hotel receipt withdrawn; identical-file recreation blocked as existing private content with no new expense. Distinct synthetic purchase B supplied the allocation exercise. No Unallocate control; saved split error requires Owner/reviewer handoff, source checked plus native protected-control inspection."
+    },
+    {
+      "id": "CC04",
+      "role": "chief",
+      "priority": "P1",
+      "finding": "Own report and worker statement outputs",
+      "status": "addressed",
+      "sections": [
+        "chief-daily, chief-technical, chief-pay"
+      ],
+      "evidence": [
+        "worker-chief/audit-status.md",
+        "worker-chief/state-manifest.json",
+        "worker-chief/native-artifacts.json"
+      ],
+      "validation": "Revised / tested: Own Oct12 report PDFs Ready/downloaded/readable before submission; returned Daily edited/resubmitted same ID version5. Own historical Oct1\u20136 statement generated, PDF/CSV Ready/downloaded;735 approved minutes."
+    },
+    {
+      "id": "CC05",
+      "role": "chief",
+      "priority": "P1",
+      "finding": "Entry-only scope and separately granted review variant",
+      "status": "addressed",
+      "sections": [
+        "chief-start, chief-review, chief-profile-help"
+      ],
+      "evidence": [
+        "worker-chief/audit-status.md",
+        "worker-chief/state-manifest.json",
+        "worker-chief/native-artifacts.json"
+      ],
+      "validation": "Revised / source checked; entry-only native denial retained: Worker-role Chief delegation enables entry, not Approvals. Parent verified Worker+Can review leaves base Worker; source requires base PM/Owner/Finance authority and applicable current project scope. No review-capable Chief/self-review success claimed on this deployment. Common review-authority owns shared grant matrix."
+    },
+    {
+      "id": "WK01",
+      "role": "worker",
+      "priority": "P2",
+      "finding": "First shift before detailed planning",
+      "status": "addressed",
+      "sections": [
+        "worker-start, worker-time, worker-expense; planning follows ordinary cycle"
+      ],
+      "evidence": [
+        "worker-chief/audit-status.md",
+        "worker-chief/state-manifest.json",
+        "worker-chief/native-artifacts.json"
+      ],
+      "validation": "Revised / tested: Same Worker 2 first shift Oct7 and own Oct12 receipt before the planning chapters."
+    },
+    {
+      "id": "WK02",
+      "role": "worker",
+      "priority": "P2",
+      "finding": "Complete Save draft button",
+      "status": "addressed",
+      "sections": [
+        "worker-time, worker-expense"
+      ],
+      "evidence": [
+        "worker-chief/audit-status.md",
+        "worker-chief/state-manifest.json",
+        "worker-chief/native-artifacts.json"
+      ],
+      "validation": "Revised / tested: Native full forms show complete Save draft buttons. Tall viewport recapture filled the same fields without saving another record."
+    },
+    {
+      "id": "WK03",
+      "role": "worker",
+      "priority": "P1",
+      "finding": "Unlocked ordinary correction exercise",
+      "status": "addressed",
+      "sections": [
+        "worker-correction"
+      ],
+      "evidence": [
+        "worker-chief/audit-status.md",
+        "worker-chief/state-manifest.json",
+        "worker-chief/native-artifacts.json"
+      ],
+      "validation": "Revised / tested: Unlocked returned 120min original preserved; wrong105min linked draft withdrawn; accurate90min replacement Submitted. Finalized exception follows ordinary recovery."
+    },
+    {
+      "id": "WK04",
+      "role": "worker",
+      "priority": "P1",
+      "finding": "Weekly expense evidence and returned correction",
+      "status": "addressed",
+      "sections": [
+        "worker-expense-exceptions"
+      ],
+      "evidence": [
+        "worker-chief/audit-status.md",
+        "worker-chief/state-manifest.json",
+        "worker-chief/native-artifacts.json"
+      ],
+      "validation": "Revised / tested with explicit limit: Own saved Oct10/11 USD5/7 drafts separately edited, each received matching private receipt, selected-week Submitted. Oct10 returned original retained and receipt-preserving description correction Submitted. Required missing-receipt weekly rejection is source checked only: native weekly create explicitly creates receipt-optional drafts. No such domain fixture was fabricated."
+    },
+    {
+      "id": "WK05",
+      "role": "worker",
+      "priority": "P1",
+      "finding": "Own Daily and Technical PDF generation",
+      "status": "addressed",
+      "sections": [
+        "worker-daily, worker-technical, worker-report-evidence"
+      ],
+      "evidence": [
+        "worker-chief/audit-status.md",
+        "worker-chief/state-manifest.json",
+        "worker-chief/native-artifacts.json"
+      ],
+      "validation": "Revised / tested: Own Oct12 Daily/Technical Draft PDF Generate\u2192Refresh\u2192Ready\u2192native Download before Submit. Four first-page output images show readable content across Worker/Chief. Worker ordinary returned Daily edited/resubmitted same ID version5; current Spanish PDF downloaded Ready. Approved linked report correction remains source checked."
+    },
+    {
+      "id": "WK06",
+      "role": "worker",
+      "priority": "P2",
+      "finding": "Keep Ready statement and isolate historical failure",
+      "status": "addressed",
+      "sections": [
+        "worker-statement, worker-evidence"
+      ],
+      "evidence": [
+        "worker-chief/audit-status.md",
+        "worker-chief/state-manifest.json",
+        "worker-chief/native-artifacts.json"
+      ],
+      "validation": "Revised / tested: Historical own Oct15\u201316 statement native PDF/CSV downloaded Ready, 195 approved minutes. Initial isolated runner failure retained only in appendix."
+    },
+    {
+      "id": "AU01",
+      "role": "auditor",
+      "priority": "P1",
+      "finding": "Complete invoice-to-source reconciliation",
+      "status": "addressed",
+      "sections": [
+        "auditor-invoices"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#au01",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Manual: `auditor-invoices`. Evidence: [full line](auditor/screenshots/03-auditor-normal-invoice-source-line.png), [actual source](auditor/screenshots/04-auditor-source-actual-hour.png). Exact IDs/formula/hash in manifest. Original 000001\u2013000003 masters and USD 4,672 annex remain preserved separately."
+    },
+    {
+      "id": "AU02",
+      "role": "auditor",
+      "priority": "P2",
+      "finding": "Readable amount, state and readiness columns",
+      "status": "addressed",
+      "sections": [
+        "auditor-invoices"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#au02",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Manual: `auditor-invoices`. Evidence: [identity columns](auditor/screenshots/02-auditor-full-invoice-register.png), [dates and amounts](auditor/screenshots/16-auditor-register-dates-and-amounts.png), [balances/status/PDF](auditor/screenshots/15-auditor-register-money-status-ready.png). Source: Billing register responsive table/card definitions."
+    },
+    {
+      "id": "AU03",
+      "role": "auditor",
+      "priority": "P1",
+      "finding": "Invoice outstanding versus customer net credit balance",
+      "status": "addressed",
+      "sections": [
+        "auditor-cash"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#au03",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Manual: `auditor-cash`. Evidence: [scoped reconciliation](auditor/screenshots/07-auditor-credit-receipt-reversal-reconciliation.png). Original invoice face/PDF, separate credit, receipt and reversal remain immutable."
+    },
+    {
+      "id": "AU04",
+      "role": "auditor",
+      "priority": "P1",
+      "finding": "Populated read-only Accounting Pack",
+      "status": "addressed",
+      "sections": [
+        "auditor-accounting"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#au04",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Manual: `auditor-accounting`. Evidence: [BBS Ready](auditor/screenshots/01-auditor-populated-ready-pack.png), [separate final read](auditor/screenshots/09-auditor-clean-final-pack.png). No empty-register substitute or Owner account used for Auditor verification."
+    },
+    {
+      "id": "AU05",
+      "role": "auditor",
+      "priority": "P2",
+      "finding": "Full event chain and finding handoff",
+      "status": "addressed",
+      "sections": [
+        "auditor-audit"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#au05",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Reversal has an immutable ledger row with Finance actor, USD 1, `entry_correction` and recorded timestamp; this release creates no ordinary audit_event for that reversal. Manual explains the separate ledger evidence rather than fabricating an Audit entry. Actor ID resolution requires Owner\u2019s restricted account crosswalk; native UI does not print resolved account names."
+    },
+    {
+      "id": "AU06",
+      "role": "auditor",
+      "priority": "P2",
+      "finding": "Supported direct read navigation",
+      "status": "addressed",
+      "sections": [
+        "auditor-start",
+        "auditor-invoices",
+        "auditor-outputs",
+        "auditor-boundary",
+        "reports/period/[id]/+page.server.ts",
+        "tests/unit/period-report-route-problems.test.ts"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#au06",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "The approved customer period detail previously returned 404 because `load` called reviewer-only `getReportFollowup` for Auditor. Minimal fix skips that follow-up call while retaining canonical snapshot/project authorization and PDF verification. Focused route tests: 18 passed, including Auditor read, denied snapshot authorization before metadata, and approval 403. After the coordinated rebuild, the native Auditor page rendered the approved exact v2 customer report with PDF readiness and no approval/follow-up/signed-copy capture forms (`safeForms=[]`), zero page/HTTP errors at both widths."
+    },
+    {
+      "id": "PM01",
+      "role": "manager",
+      "priority": "P1",
+      "finding": "Actual assignment and saved membership screenshots",
+      "status": "addressed",
+      "sections": [
+        "team"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native Update; Assign reference: Worker2 dates updated toOct1\u201331 then restored open-ended via native Update/reload. Assignfieldsinspected; new Assign not run because overlapping existing memberships. Supplierdateupdate409coverageguard left saved dates unchanged."
+    },
+    {
+      "id": "PM02",
+      "role": "manager",
+      "priority": "P2",
+      "finding": "Reject versus Needs changes decisions",
+      "status": "addressed",
+      "sections": [
+        "review",
+        "corrections"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native verified: Worker2Oct17Rejected01a11182-241b-74a7-8ad1-fc97a79e39ee versusNeedschanges01a11182-2cc0-7526-9344-32c28151b219; authorcorrection01a11183-46a0-743e-92fc-e0760db21f77 submitted/PMApproved."
+    },
+    {
+      "id": "PM03",
+      "role": "manager",
+      "priority": "P1",
+      "finding": "Actual Approved Technical report outcome",
+      "status": "addressed",
+      "sections": [
+        "reports"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native verified: ActualApproved coordinatorTechnical v3 with coordinator work/report authorship and PM Reviewedby attribution."
+    },
+    {
+      "id": "PM04",
+      "role": "manager",
+      "priority": "P1",
+      "finding": "Completed customer-report receiving handoff",
+      "status": "addressed",
+      "sections": [
+        "customer-followup"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native coordinated verified: Financecreatedperiod01a11179-da79-7298-baa2-074d02192e78 Oct13\u201319v2/hash85ba28d58be5c1f0c582266794df84fc491344508b23c63a33659b0ce98d6042; PMexactversionApproved; acceptancequeueReadyforsignature. No customer acceptance or financial fields."
+    },
+    {
+      "id": "PM05",
+      "role": "manager",
+      "priority": "P2",
+      "finding": "Cumulative cancellation coverage",
+      "status": "addressed",
+      "sections": [
+        "plan-targets-recovery"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native historical + final verified: Historicalcancellation retained; finalBBSsnapshot9Published/1Cancelled. Planning creates no actual time."
+    },
+    {
+      "id": "PM06",
+      "role": "manager",
+      "priority": "P2",
+      "finding": "Document audience versus sensitivity",
+      "status": "addressed",
+      "sections": [
+        "documents"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native + source verified: PMformSensitivitywithoutaudienceselector. Newpermittedprojectdocument01a11186-4194-7524-a61a-dcd5a4deb734 registered/nativelyretrieved identicalbytes/hash. Saved/NotScanned not claimed clean."
+    },
+    {
+      "id": "PM07",
+      "role": "manager",
+      "priority": "P2",
+      "finding": "Actionable notification and separate read state",
+      "status": "addressed",
+      "sections": [
+        "notifications"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native verified: PopulatedReportapprovednotification followedexactPMownDaily/currentApprovedsource; permittedGenerate/Ready/download exercised. Markread not business state."
+    },
+    {
+      "id": "PM08",
+      "role": "manager",
+      "priority": "P2",
+      "finding": "Precise role-safe own-work references",
+      "status": "addressed",
+      "sections": [
+        "security-help",
+        "expenses",
+        "pay"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json",
+        "external-supplier-pm/README.md"
+      ],
+      "validation": "Native own report; precise references: PMownDaily01a11185-3b39-770f-91e5-29cc4809f223 Submitted/OwnerApprovedv3/ReadyEnglish/download. Ownexpense/statement procedures sourcechecked; shared access/security references precise. No PMpayout/securityenrollment newly claimed."
+    },
+    {
+      "id": "FN01",
+      "role": "finance",
+      "priority": "P1",
+      "finding": "Exact Record Finance review before and after",
+      "status": "addressed",
+      "sections": [
+        "finance-review"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#fn01",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Manual: `finance-review`. Evidence: [before review](finance/screenshots/02-finance-fresh-review-before.png), [saved source](finance/screenshots/04-finance-time-billable-after.png). Source: Time entry actions/operational reviewer authorization, Finance review action."
+    },
+    {
+      "id": "FN02",
+      "role": "finance",
+      "priority": "P1",
+      "finding": "Dated agreement and new stream setup",
+      "status": "addressed",
+      "sections": [
+        "finance-commercial",
+        "finance-streams",
+        "ProjectBillingSetup.svelte",
+        "project-billing-setup-repository.ts::savePersonTerms",
+        "BillingSection.svelte"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#fn02",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "The attempted October 31 person terms were rejected for overlap with a finalized October settlement. A distinct November 1 change to USD 610/day saved rule `01a11194-52ce-74bf-bd38-e64c0243799f` and override `01a11194-52d8-72ff-91e5-2c7d43400f0b`; October USD 600/day invoice history remained unchanged. Merely saving unchanged existing overrides does not manufacture a new rate date."
+    },
+    {
+      "id": "FN03",
+      "role": "finance",
+      "priority": "P1",
+      "finding": "Normal source-based invoice wizard and final issue",
+      "status": "addressed",
+      "sections": [
+        "finance-draft",
+        "finance-issue",
+        "PortalRepository"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#fn03",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Manuals: `finance-draft`, `finance-issue`. Evidence: [Included records](finance/screenshots/09-finance-wizard-included-source.png), [Preview](finance/screenshots/10-finance-wizard-preview.png), [full source table](finance/screenshots/12-finance-normal-draft-source-table.png), [Issued and native PDF Ready](finance/screenshots/15-finance-normal-issued-ready.png). Source: invoice wizard and `PortalRepository` draft/approve/issue/source manifest functions. Native PDF hash/bytes are in the manifest."
+    },
+    {
+      "id": "FN04",
+      "role": "finance",
+      "priority": "P1",
+      "finding": "Customer period report and sign-off",
+      "status": "addressed",
+      "sections": [
+        "finance-customer-report",
+        "reports/period/[id]",
+        "customer-conformity-repository.ts"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#fn04",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Manual: `finance-customer-report`. Evidence: [period input](finance/screenshots/05-finance-report-input.png), [safe generated report](finance/screenshots/06-finance-customer-period-ready.png), [receiving approved exact version](finance/screenshots/30-finance-pm-approved-customer-report.png). Source: `reports/period/[id]` load/actions/page; `customer-conformity-repository.ts` exact-version/hash/canonical PDF/signed-copy verification and append-only invalidation. Actual controls: Signed PDF copy, Signer name, Signer identity, Customer signature date, Record verified signed-copy evidence; Invalidate sign-off \u2192 Reason for invalidation \u2192 Confirm invalidation. Printed signature lines and operational follow-up are not signed evidence."
+    },
+    {
+      "id": "FN05",
+      "role": "finance",
+      "priority": "P1",
+      "finding": "Credit, Debit and Correction decision and reconciliation",
+      "status": "addressed",
+      "sections": [
+        "finance-adjustment",
+        "finance-collections",
+        "repository.ts::createInvoiceAdjustment",
+        "v3-repository.ts"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#fn05",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Manuals: `finance-adjustment`, `finance-collections`. Evidence: [Credit input](finance/screenshots/18-finance-credit-input.png), [receipt input](finance/screenshots/21-finance-normal-receipt-input.png), [receipt saved](finance/screenshots/22-finance-normal-receipt-saved.png), [immutable reversal history](finance/screenshots/24-finance-normal-reversed-history.png). Source: `repository.ts::createInvoiceAdjustment`: Credit negative absolute, Debit positive absolute, Correction input sign; current positive-only form makes a positive Correction an increase, not replacement. `v3-repository.ts` payment/reversal functions retain append-only cash history."
+    },
+    {
+      "id": "FN06",
+      "role": "finance",
+      "priority": "P1",
+      "finding": "Finalized obligation amendment boundary",
+      "status": "addressed",
+      "sections": [
+        "finance-obligation-correction",
+        "finance-settlements",
+        "finance-worker-payments",
+        "FinanceConfigurationSection.svelte",
+        "project-billing-setup-repository.ts"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#fn06",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Manual: `finance-obligation-correction`; existing `finance-settlements` and `finance-worker-payments` retain their separate snapshot/payment exercises. Source: `FinanceConfigurationSection.svelte` Rule type \u2192 Custom approved adjustment / Approved adjustment amount / Save compensation rule; settlement/source mismatch guard; `project-billing-setup-repository.ts` overlap guard. Receiving handoff requires settlement/source IDs, frozen/current amounts/terms, reason, legitimate approval and the exact native error. No SQL surgery instructions."
+    },
+    {
+      "id": "FN07",
+      "role": "finance",
+      "priority": "P1",
+      "finding": "Full reimbursement and timestamp limitations",
+      "status": "addressed",
+      "sections": [
+        "finance-reimbursement",
+        "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/22-finance-reimbursement-input-desktop.png",
+        "25-finance-reimbursement-saved.png",
+        "FinanceOverviewSection.svelte",
+        "v3-repository.ts::recordReimbursement",
+        "finance-actions.ts::recordReimbursement"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#fn07",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Manual: `finance-reimbursement`. Existing evidence: `docs/evidence/bbs-role-manuals-20261006/finance/screenshots/22-finance-reimbursement-input-desktop.png`, `25-finance-reimbursement-saved.png`. Source: `FinanceOverviewSection.svelte` reimbursement form; `v3-repository.ts::recordReimbursement`; `finance-actions.ts::recordReimbursement`. Compensation-payment reversal is a different ledger operation and cannot be substituted."
+    },
+    {
+      "id": "FN08",
+      "role": "finance",
+      "priority": "P2",
+      "finding": "Actual export date selection and snapshot scope",
+      "status": "addressed",
+      "sections": [
+        "finance-economics",
+        "projects/[id]/+page.server.ts",
+        "iso-date.ts::defaultLookbackPeriod",
+        "previousCompleteMonth"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#fn08",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Manual: `finance-economics`. Evidence: [actual export control](finance/screenshots/19-finance-export-control.png); private native workbook hash in manifest. Source: `projects/[id]/+page.server.ts`, project export URL/control; `iso-date.ts::defaultLookbackPeriod` previous UTC month start through today; Accounting separately uses `previousCompleteMonth`. Source work dates and invoice issue dates remain different cut rules."
+    },
+    {
+      "id": "FN09",
+      "role": "finance",
+      "priority": "P1",
+      "finding": "Successful Finance Accounting Pack cycle",
+      "status": "addressed",
+      "sections": [
+        "finance-accounting",
+        "AccountingSection.svelte",
+        "AccountingPackArtifactStatus.svelte",
+        "accounting-pack-finalization.ts"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#fn09",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Separate all-synthetic portfolio: Finance generated October 1\u20136 pack `01a1118e-2286-76bc-a914-28f15b7a64eb`; all five Ready. Review zero advisories / None detected, then **Finalize reviewed version** saved `final`. Actual Auditor login/downloads followed. An empty September pack correctly exposed issuer-related Finalization unavailable; it was not treated as a positive finalize."
+    },
+    {
+      "id": "FN10",
+      "role": "finance",
+      "priority": "P2",
+      "finding": "Late work and closure support boundary",
+      "status": "addressed",
+      "sections": [
+        "finance-close"
+      ],
+      "evidence": [
+        "finance-auditor/README.md#fn10",
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "Manual: `finance-close`. Evidence: [Close sources exact cut](finance/screenshots/26-finance-close-source-input.png), saved period ID in manifest. Source: billing close-period action and cadence validation; project-closeout authority. Weekly cut is Monday\u2013Sunday; a later source/correction does not silently join an issued invoice. Receiving support handoff includes work date/source, stream/cadence, closed period, invoice/settlement references and native message."
+    },
+    {
+      "id": "OW01",
+      "role": "owner",
+      "priority": "P1",
+      "finding": "Integrated master task contents and course navigation",
+      "status": "addressed",
+      "sections": [
+        "contents",
+        "PDF task outline"
+      ],
+      "evidence": [
+        "../../manuals/bbs-role-manuals-build.json"
+      ],
+      "validation": "integrated single course, one master contents, continuous reading pagination and native annex"
+    },
+    {
+      "id": "OW02",
+      "role": "owner",
+      "priority": "P1",
+      "finding": "Generated stable prose cross-references",
+      "status": "addressed",
+      "sections": [
+        "course-bbs-inspect-or-create",
+        "course-chapter-17",
+        "owner-accounting"
+      ],
+      "evidence": [
+        "../../../scripts/bbs-owner-manual/readiness-chapters.py"
+      ],
+      "validation": "stable initial-data, issue/delivery and Accounting anchors replace stale prose references"
+    },
+    {
+      "id": "OW03",
+      "role": "owner",
+      "priority": "P2",
+      "finding": "Owner checks versus support and employee own access",
+      "status": "addressed",
+      "sections": [
+        "owner-course",
+        "owner-access"
+      ],
+      "evidence": [
+        "../../../scripts/bbs-role-manuals/content/owner.json"
+      ],
+      "validation": "Owner checks personally; own-account role verification; genuine receiving role/support handoffs"
+    },
+    {
+      "id": "OW04",
+      "role": "owner",
+      "priority": "P1",
+      "finding": "Review grant, revoke and verification",
+      "status": "addressed",
+      "sections": [
+        "owner-review-grants",
+        "review-authority"
+      ],
+      "evidence": [
+        "external-supplier-pm/manifest.json"
+      ],
+      "validation": "exact Can review grant/revoke/date/base-role/save/reload source-checked procedure; native separate reviewer exercises retained"
+    },
+    {
+      "id": "OW05",
+      "role": "owner",
+      "priority": "P1",
+      "finding": "Clean project and genuine issuer prerequisite setup",
+      "status": "addressed",
+      "sections": [
+        "owner-clean-setup"
+      ],
+      "evidence": [
+        "../../../scripts/bbs-role-manuals/content/owner.json"
+      ],
+      "validation": "ordered initial legal directory/revision/project authority/tax/numbering/stream/source prerequisites; actual source-checked controls distinct"
+    },
+    {
+      "id": "OW06",
+      "role": "owner",
+      "priority": "P2",
+      "finding": "Enabled alternative commercial mechanisms",
+      "status": "addressed",
+      "sections": [
+        "owner-commercial-references",
+        "course-alternative-contracts",
+        "course-worker-trigger-limits"
+      ],
+      "evidence": [
+        "../../../scripts/bbs-role-manuals/content/owner.json"
+      ],
+      "validation": "enabled fixed/percentage/minimum/cap/milestone/forecast exact reference mechanisms and explicit unexecuted scope"
+    },
+    {
+      "id": "OW07",
+      "role": "owner",
+      "priority": "P1",
+      "finding": "Consistent verified weekly correction instructions",
+      "status": "addressed",
+      "sections": [
+        "course-planning-owner-time",
+        "worker-week",
+        "chief-own-time"
+      ],
+      "evidence": [
+        "worker-chief/state-manifest.json"
+      ],
+      "validation": "consistent actual eligible-linked weekly rule, individual Submit remains precise option"
+    },
+    {
+      "id": "OW08",
+      "role": "owner",
+      "priority": "P2",
+      "finding": "Current populated technical-detail output",
+      "status": "addressed",
+      "sections": [
+        "owner-current-technical-output"
+      ],
+      "evidence": [
+        "finance-auditor/manifest.json"
+      ],
+      "validation": "new native October13\u201318v2 selected Technical Detail populated; old blank output remains preserved"
+    },
+    {
+      "id": "OW09",
+      "role": "owner",
+      "priority": "P2",
+      "finding": "Neutral numbering example and approved-input checklist",
+      "status": "addressed",
+      "sections": [
+        "course-final-numbering"
+      ],
+      "evidence": [
+        "../../../scripts/bbs-owner-manual/readiness-chapters.py"
+      ],
+      "validation": "neutral illustrative TRAINING/6digit inputs with genuine approval checklist; unchanged JA-DEMO native masters"
+    },
+    {
+      "id": "OW10",
+      "role": "owner",
+      "priority": "P1",
+      "finding": "Credit allocation or refund supported boundary",
+      "status": "addressed",
+      "sections": [
+        "course-credit-receiving",
+        "finance-adjustment"
+      ],
+      "evidence": [
+        "finance-auditor/README.md"
+      ],
+      "validation": "separate credit/receipt/reversal balances; no fabricated allocation/refund control; explicit accounting/support receiving boundary"
+    },
+    {
+      "id": "OW11",
+      "role": "owner",
+      "priority": "P1",
+      "finding": "Accurate historical production versus isolated provenance",
+      "status": "addressed",
+      "sections": [
+        "practice",
+        "verification"
+      ],
+      "evidence": [
+        "../../../scripts/bbs-role-manuals/common.mjs"
+      ],
+      "validation": "historical fictional production operational/settlement/export evidence distinguished from later isolated mutations"
+    },
+    {
+      "id": "OW12",
+      "role": "owner",
+      "priority": "P2",
+      "finding": "Actual finance export period controls",
+      "status": "addressed",
+      "sections": [
+        "course-spreadsheet-exports",
+        "finance-economics"
+      ],
+      "evidence": [
+        "../../../scripts/bbs-owner-manual/readiness-chapters.py"
+      ],
+      "validation": "actual page date parameters/default/link filename and snapshot time, no invented normal selector"
+    },
+    {
+      "id": "OW13",
+      "role": "owner",
+      "priority": "P1",
+      "finding": "Populated project closeout and retained obligations",
+      "status": "addressed",
+      "sections": [
+        "course-populated-closeout",
+        "owner-readiness-closeout"
+      ],
+      "evidence": [
+        "owner-common/closeout-checks.json"
+      ],
+      "validation": "populated native final ZIPs, Closed state, Owner Reason/Reopen Active/new draft and preserved obligations"
+    },
+    {
+      "id": "OW14",
+      "role": "owner",
+      "priority": "P2",
+      "finding": "Exact portfolio Accounting scope",
+      "status": "addressed",
+      "sections": [
+        "owner-accounting",
+        "course-accounting-pack"
+      ],
+      "evidence": [
+        "finance-auditor/README.md"
+      ],
+      "validation": "exact portfolio Period start/end/language, no project/entity selector; separate successful/broken datasets"
+    },
+    {
+      "id": "OW15",
+      "role": "owner",
+      "priority": "P2",
+      "finding": "Current Auditor, security and capability references",
+      "status": "addressed",
+      "sections": [
+        "owner-handoffs",
+        "security",
+        "verification"
+      ],
+      "evidence": [
+        "capability-inventory.json"
+      ],
+      "validation": "current Auditor/security task references and role coverage inventory, historical tests kept as bounded provenance"
+    }
+  ],
+  "summary": {
+    "actions": 72,
+    "addressed": 72,
+    "definition": "Documentation correction completed with named native evidence, precise reference or explicit support boundary; does not mean72softwarebugs or universal tests passed."
+  }
+}

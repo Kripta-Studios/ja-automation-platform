@@ -1,0 +1,287 @@
+{
+  "nativeBrowserCaptures": true,
+  "formRecapture": "Filled native forms recaptured at taller viewport without submitting again; all controls remain native. PDF page PNGs are native downloaded outputs rendered with pdftoppm.",
+  "privacy": "Own fictional persona and operational crew details only; no customer rates/internal cost/margin/colleague pay. Private cookies, input fixtures, downloads and raw dumps remain outside repository.",
+  "files": [
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-allocated-receipt-limit.png",
+      "bytes": 250619,
+      "sha256": "78196e741140c57d60bb68ba0c94e10f51e16ef9ad88cd8d98a473790501ba78"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-allocated-receipt-reviewed.png",
+      "bytes": 252392,
+      "sha256": "5166699412c4fded07cb63b64bf368f5de0cfee7561b00f91333d30eb28e517c"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-allocated-receipt-submitted.png",
+      "bytes": 252424,
+      "sha256": "f7936a587dabb0f782b302c9d5264102f415dba390e856a5881d781c74ba80df"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-crew-reviewed.png",
+      "bytes": 101437,
+      "sha256": "440fb5b623cc240f5326ddce6d950386ebcf38e6af572660324deff2269a8292"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-crew-submitted2.png",
+      "bytes": 116163,
+      "sha256": "aa190acd2a082b1bd11587d8d11972383f8778cc87fe1270d777b486b69f73a3"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-daily-full-save.png",
+      "bytes": 58530,
+      "sha256": "6da2bbc4f1600d743874c060a4f006753340eb1b12400577b0e54daf6c2fb3e7"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-daily-pdf-ready.png",
+      "bytes": 16484,
+      "sha256": "8c9a294d51cb8b85fc35c4a177e753b924d915c8868864999b4b4af9585275d3"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-daily-presubmit-native-output.png",
+      "bytes": 57999,
+      "sha256": "62a589b46f5fcfe368dcb379650f0b8846963b9209e44324827735d80f5610f9"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-daily-ready-presubmit.png",
+      "bytes": 16484,
+      "sha256": "8c9a294d51cb8b85fc35c4a177e753b924d915c8868864999b4b4af9585275d3"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-daily-returned-edited.png",
+      "bytes": 101586,
+      "sha256": "4b4e0a3e4453da83a2faf96f80d4d359966a85287c1633049b6c4cd07cd1ab8d"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-expense-context-full-save.png",
+      "bytes": 99424,
+      "sha256": "4fb9c1ba41aa3ad6e41f48da2fdee114f83e7a1ec7e851805d76ce67e07dba74"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-normal-correction-draft.png",
+      "bytes": 252971,
+      "sha256": "12937e1949c926a0f8a505054ecde0bd33df8fd06f93958ec7606f9a0f3747e2"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-receipt-allocation-full-save.png",
+      "bytes": 57335,
+      "sha256": "ce2b028478982c82be118b8e7ccf4726e901165ec7d36719ca9fd8129f436402"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-receipt-allocation-saved2.png",
+      "bytes": 122216,
+      "sha256": "b9dd6560e2b03c7506e74aeeef7277ff2de13a1ce93fb93e9d60034eea83d55e"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-shared-full-save.png",
+      "bytes": 45860,
+      "sha256": "4528e6ecafdd8ba1925941cc01dc000c0ac5f983e8b569a068da1f3005010786"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-statement-ready.png",
+      "bytes": 17837,
+      "sha256": "6479503e37f928cbed0846fe969e680d1fe55dfb31207531f024f6beb23aecdf"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-technical-full-save.png",
+      "bytes": 90923,
+      "sha256": "1265ddf602ef58fe96071db29e0290b7ebe7bafcac8431801c02658e9b332fc6"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-technical-presubmit-native-output.png",
+      "bytes": 61584,
+      "sha256": "1670893681be3830ec707282a3469a7aecda42c3fb84aafaec7dd428d6726b4e"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-technical-ready-presubmit.png",
+      "bytes": 16902,
+      "sha256": "e0eb046210da1f072bc3776dffed46b9db98759bf4b3ce761f2991454933f7ad"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-technical-submitted2.png",
+      "bytes": 112154,
+      "sha256": "e78e48ee3c1c8222d82d444df86979f9fa0424a85ffed569d028b2e88cdaab0d"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-week-after-submit.png",
+      "bytes": 17076,
+      "sha256": "c7dc6252f762d9117ea6363c80345364c926d758bdc10c5d09f61c1312ca3f78"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-week-before-submit.png",
+      "bytes": 31438,
+      "sha256": "7d91604e9894d91b2b960c3dcc0182f44b029e0fd10745840202a995b5e07e8c"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-wrong-correction-withdrawn.png",
+      "bytes": 251712,
+      "sha256": "1be43a17d4c20edaf0e3a5037551daa5afc15839beb9a3288f588da7e08a3e15"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-wrong-receipt-withdrawn.png",
+      "bytes": 247761,
+      "sha256": "164f2f0d987db974ce69e5d91fe2057adfe9b32dd14e657861c96c660e496437"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/owner-w1-current-crew-grant.png",
+      "bytes": 87746,
+      "sha256": "ee9a3ddfc30977ed3a2a2d86703a6d1a3a23cfa3d1c0e3ef22a3ef99150979f1"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/owner-worker2-chief-grant.png",
+      "bytes": 68648,
+      "sha256": "d25f04899952d57b3ced1049904aa6aca47d91f0219aadfd652cbb9ddeb24f33"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-current-es-native-output.png",
+      "bytes": 59618,
+      "sha256": "0fe066198927ce582cc829d3a489cbd1147658a0aa3c483800d6fea585cfc5f7"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-current-spanish-ready.png",
+      "bytes": 16826,
+      "sha256": "7e2e6ca517ecf8d942f8d59627b1857f9a4def9f5d82d47a13f27ec483f589f9"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-full-save.png",
+      "bytes": 62640,
+      "sha256": "d32daceabdd1674d3480e443c563bcec611df32a7389acaa29770cb000f3dfac"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-presubmit-native-output.png",
+      "bytes": 59701,
+      "sha256": "66ffc5acf18f174e811c1781aa6579c7068e125c7c08027e01319ef435821acd"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-ready-presubmit.png",
+      "bytes": 16484,
+      "sha256": "8c9a294d51cb8b85fc35c4a177e753b924d915c8868864999b4b4af9585275d3"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-returned-edited.png",
+      "bytes": 129372,
+      "sha256": "6aafc6e50c42019fc75d8a5435168749bf5738974fcfb164e3f206ff2037ca64"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-returned.png",
+      "bytes": 280030,
+      "sha256": "3765af7229518c53a60144f4b0d5c10546dca75c3936efc71a76b7c8125c14c4"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-draft-a-receipt-attach-full-save.png",
+      "bytes": 48341,
+      "sha256": "767d77241f20126592e9063b8ddfb76d74fef8bb66b40697a6d8ac519098deb5"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-draft-b-receipt-attach-full-save.png",
+      "bytes": 48158,
+      "sha256": "cf4e18fc6f8bf61225a7c2f56817298a3c6b9c08b411123372bac67823c55d9c"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-expense-a-returned.png",
+      "bytes": 260551,
+      "sha256": "572bce601484d23b62a166a7e6e7833d2d4ef659d58ac2ed80ed6cd77c475c9b"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-expense-correction-draft.png",
+      "bytes": 254220,
+      "sha256": "efc7228f352bdb0604414ac3a21ca0953bb36de10e94c765e35c1aa72f57a864"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-expense-correction-submitted.png",
+      "bytes": 256783,
+      "sha256": "518456b40ad3d25f6b37fd1ea853fe6daa281b305d145f9b14e96efd89ee5a81"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-expense-optional-receipt-submit.png",
+      "bytes": 18292,
+      "sha256": "54d875e1a06b144ebec724723f593987fed4e3ba9d58321551af0b35097c3339"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-expenses-week-receipts-after-submit.png",
+      "bytes": 19897,
+      "sha256": "69462ecf3e46047b1acdb48d13925bf81bf6879778b3281a2ca198373906eef0"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-expenses-week-receipts-before-submit.png",
+      "bytes": 17209,
+      "sha256": "e2355e3b9eb04276a9dd2a75cb1de9d4538f7c2ad3cc439030349449ffc6e471"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-first-shift-full-save-draft.png",
+      "bytes": 43362,
+      "sha256": "0f2c221dc24665bea897599a89670e6e34ecba60e1641c15a2beb71fedc7ed2c"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-first-shift-submitted.png",
+      "bytes": 251157,
+      "sha256": "64b9de4528d327cac1d5694c8257ef046c578dfa2e850710ac9c03201c58762c"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-historical-statement-ready.png",
+      "bytes": 17715,
+      "sha256": "60643d14ae5f462113cae1c372b9bc26e3a403781ec498b804b7333c5e708bac"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-normal-correction-draft.png",
+      "bytes": 254006,
+      "sha256": "fef4ccae0f7628a814b2eacb1aa6fb7f7862b6c47a0c80517b4de781f3077ce5"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-normal-returned.png",
+      "bytes": 253605,
+      "sha256": "3b101848819ce6bf1cc1bc8f440f6f94d18a06fa950255a1032487833efb3e88"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-single-expense-full-save.png",
+      "bytes": 78484,
+      "sha256": "24fa4866d566a78ac3916e0390594d5fc17138683a2044bd67a7bd4d3dfda6e5"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-single-expense-saved.png",
+      "bytes": 256628,
+      "sha256": "9451d753b92b506b52b2e4e99370adab990366d2ee0e08eb845f1c69e0b7caa6"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-single-expense-submitted.png",
+      "bytes": 257729,
+      "sha256": "c899f9b13aeb706eba4749d7d2fb8814aba30e86c1d64bcf6d0724121e34b949"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-technical-full-save.png",
+      "bytes": 91005,
+      "sha256": "1d97bb0a59e2f065d098404445e4753bdf55e38419deca8844b5add9c925dd67"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-technical-presubmit-native-output.png",
+      "bytes": 61963,
+      "sha256": "d8e96259e9b41ce62ed9801154e31a2214d635611c7149dd55c1dbf5f2075fc5"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-technical-ready-presubmit.png",
+      "bytes": 16902,
+      "sha256": "e0eb046210da1f072bc3776dffed46b9db98759bf4b3ce761f2991454933f7ad"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-week-after-submit.png",
+      "bytes": 17076,
+      "sha256": "c7dc6252f762d9117ea6363c80345364c926d758bdc10c5d09f61c1312ca3f78"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-week-before-submit.png",
+      "bytes": 31438,
+      "sha256": "7d91604e9894d91b2b960c3dcc0182f44b029e0fd10745840202a995b5e07e8c"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-week-expense-full-save.png",
+      "bytes": 68226,
+      "sha256": "426c6d63420723da94c33c9062a0cf96897991c3cb9ae53123cfd2ec3af12642"
+    },
+    {
+      "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-wrong-correction-withdrawn.png",
+      "bytes": 253605,
+      "sha256": "3b101848819ce6bf1cc1bc8f440f6f94d18a06fa950255a1032487833efb3e88"
+    }
+  ]
+}

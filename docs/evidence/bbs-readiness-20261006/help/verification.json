@@ -1,0 +1,688 @@
+{
+  "status": "PASS",
+  "origin": "http://127.0.0.1:5180",
+  "project": "C-0050-P-20261005",
+  "checkedAt": "2026-10-06T14:54:23.344Z",
+  "anonymous": 401,
+  "results": [
+    {
+      "role": "owner",
+      "manual": "bbs-owner-manual",
+      "widths": [
+        {
+          "width": 1440,
+          "documentWidth": 1440,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 768,
+          "documentWidth": 768,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 390,
+          "documentWidth": 390,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 360,
+          "documentWidth": 360,
+          "clipped": 0,
+          "status": "PASS"
+        }
+      ],
+      "downloadMatrix": [
+        {
+          "target": "bbs-owner-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-finance-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-manager-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-auditor-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-worker-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-chief-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-supplier-coordinator-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-external-technician-manual",
+          "status": 200,
+          "expected": "allowed"
+        }
+      ],
+      "library": [
+        "bbs-owner-manual",
+        "bbs-finance-manual",
+        "bbs-auditor-manual",
+        "bbs-worker-manual",
+        "bbs-chief-manual",
+        "bbs-manager-manual",
+        "bbs-supplier-coordinator-manual",
+        "bbs-external-technician-manual",
+        "bbs-project-invoices-guide",
+        "administration-finance-reference",
+        "work-projects-reference",
+        "supplier-operations-reference"
+      ],
+      "uiDownload": {
+        "status": "PASS",
+        "bytes": 9173862,
+        "sha256": "7bd45e0e1df79386def13944d0a51058f2ca90785e81bb62f8f6f0d76b0a1f96",
+        "suggestedFilename": "bbs-owner-manual-EN-2026-10-06.pdf"
+      },
+      "spanishHelpEnglishFallback": "PASS"
+    },
+    {
+      "role": "finance",
+      "manual": "bbs-finance-manual",
+      "widths": [
+        {
+          "width": 1440,
+          "documentWidth": 1440,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 768,
+          "documentWidth": 768,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 390,
+          "documentWidth": 390,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 360,
+          "documentWidth": 360,
+          "clipped": 0,
+          "status": "PASS"
+        }
+      ],
+      "downloadMatrix": [
+        {
+          "target": "bbs-owner-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-finance-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-manager-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-auditor-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-worker-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-chief-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-supplier-coordinator-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-external-technician-manual",
+          "status": 404,
+          "expected": "denied"
+        }
+      ],
+      "library": [
+        "bbs-finance-manual",
+        "bbs-project-invoices-guide",
+        "administration-finance-reference"
+      ],
+      "uiDownload": {
+        "status": "PASS",
+        "bytes": 2316082,
+        "sha256": "efb23d30a401ebb6b0a55a641a1e2d5bea91d2b08680ef9dfd41182c9873a1d5",
+        "suggestedFilename": "bbs-finance-manual-EN-2026-10-06.pdf"
+      },
+      "spanishHelpEnglishFallback": "PASS"
+    },
+    {
+      "role": "manager",
+      "manual": "bbs-manager-manual",
+      "widths": [
+        {
+          "width": 1440,
+          "documentWidth": 1440,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 768,
+          "documentWidth": 768,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 390,
+          "documentWidth": 390,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 360,
+          "documentWidth": 360,
+          "clipped": 0,
+          "status": "PASS"
+        }
+      ],
+      "downloadMatrix": [
+        {
+          "target": "bbs-owner-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-finance-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-manager-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-auditor-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-worker-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-chief-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-supplier-coordinator-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-external-technician-manual",
+          "status": 404,
+          "expected": "denied"
+        }
+      ],
+      "library": [
+        "bbs-manager-manual",
+        "work-projects-reference"
+      ],
+      "uiDownload": {
+        "status": "PASS",
+        "bytes": 4523599,
+        "sha256": "10afdbb0876036c6ece52bd877f637fb8040ef6c17eaa38cd016f3ebd77aa697",
+        "suggestedFilename": "bbs-manager-manual-EN-2026-10-06.pdf"
+      },
+      "spanishHelpEnglishFallback": "PASS"
+    },
+    {
+      "role": "auditor",
+      "manual": "bbs-auditor-manual",
+      "widths": [
+        {
+          "width": 1440,
+          "documentWidth": 1440,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 768,
+          "documentWidth": 768,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 390,
+          "documentWidth": 390,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 360,
+          "documentWidth": 360,
+          "clipped": 0,
+          "status": "PASS"
+        }
+      ],
+      "downloadMatrix": [
+        {
+          "target": "bbs-owner-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-finance-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-manager-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-auditor-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-worker-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-chief-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-supplier-coordinator-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-external-technician-manual",
+          "status": 404,
+          "expected": "denied"
+        }
+      ],
+      "library": [
+        "bbs-auditor-manual",
+        "administration-finance-reference"
+      ],
+      "uiDownload": {
+        "status": "PASS",
+        "bytes": 1064501,
+        "sha256": "87c1884bcf9fdd4ae855b9c286942d10c30de24f4e8d16f37155776c3d386e61",
+        "suggestedFilename": "bbs-auditor-manual-EN-2026-10-06.pdf"
+      },
+      "spanishHelpEnglishFallback": "PASS"
+    },
+    {
+      "role": "worker",
+      "manual": "bbs-worker-manual",
+      "widths": [
+        {
+          "width": 1440,
+          "documentWidth": 1440,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 768,
+          "documentWidth": 768,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 390,
+          "documentWidth": 390,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 360,
+          "documentWidth": 360,
+          "clipped": 0,
+          "status": "PASS"
+        }
+      ],
+      "downloadMatrix": [
+        {
+          "target": "bbs-owner-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-finance-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-manager-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-auditor-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-worker-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-chief-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-supplier-coordinator-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-external-technician-manual",
+          "status": 404,
+          "expected": "denied"
+        }
+      ],
+      "library": [
+        "bbs-worker-manual",
+        "bbs-chief-manual",
+        "employee-field-guide",
+        "work-projects-reference"
+      ],
+      "uiDownload": {
+        "status": "PASS",
+        "bytes": 3588443,
+        "sha256": "76fc9933b9c5ce6ec19123f76d6bad7140c539b8f187ee8314f343defc601dc4",
+        "suggestedFilename": "bbs-worker-manual-EN-2026-10-06.pdf"
+      },
+      "spanishHelpEnglishFallback": "PASS"
+    },
+    {
+      "role": "chief",
+      "manual": "bbs-chief-manual",
+      "widths": [
+        {
+          "width": 1440,
+          "documentWidth": 1440,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 768,
+          "documentWidth": 768,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 390,
+          "documentWidth": 390,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 360,
+          "documentWidth": 360,
+          "clipped": 0,
+          "status": "PASS"
+        }
+      ],
+      "downloadMatrix": [
+        {
+          "target": "bbs-owner-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-finance-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-manager-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-auditor-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-worker-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-chief-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-supplier-coordinator-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-external-technician-manual",
+          "status": 404,
+          "expected": "denied"
+        }
+      ],
+      "library": [
+        "bbs-worker-manual",
+        "bbs-chief-manual",
+        "employee-field-guide",
+        "work-projects-reference"
+      ],
+      "uiDownload": {
+        "status": "PASS",
+        "bytes": 2402434,
+        "sha256": "2163e6ef03f7a7d49281656183dcee8efa87ac96e81e8fe11b6f8f615ef1015c",
+        "suggestedFilename": "bbs-chief-manual-EN-2026-10-06.pdf"
+      },
+      "spanishHelpEnglishFallback": "PASS"
+    },
+    {
+      "role": "supplier-coordinator",
+      "manual": "bbs-supplier-coordinator-manual",
+      "widths": [
+        {
+          "width": 1440,
+          "documentWidth": 1440,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 768,
+          "documentWidth": 768,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 390,
+          "documentWidth": 390,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 360,
+          "documentWidth": 360,
+          "clipped": 0,
+          "status": "PASS"
+        }
+      ],
+      "downloadMatrix": [
+        {
+          "target": "bbs-owner-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-finance-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-manager-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-auditor-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-worker-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-chief-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-supplier-coordinator-manual",
+          "status": 200,
+          "expected": "allowed"
+        },
+        {
+          "target": "bbs-external-technician-manual",
+          "status": 404,
+          "expected": "denied"
+        }
+      ],
+      "library": [
+        "bbs-supplier-coordinator-manual",
+        "supplier-operations-reference"
+      ],
+      "uiDownload": {
+        "status": "PASS",
+        "bytes": 4054259,
+        "sha256": "5ff5d790788c742d36181dba5f07cad22c0e7e7d425543a808e232a361fb829d",
+        "suggestedFilename": "bbs-supplier-coordinator-manual-EN-2026-10-06.pdf"
+      },
+      "spanishHelpEnglishFallback": "PASS"
+    },
+    {
+      "role": "external-technician",
+      "manual": "bbs-external-technician-manual",
+      "widths": [
+        {
+          "width": 1440,
+          "documentWidth": 1440,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 768,
+          "documentWidth": 768,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 390,
+          "documentWidth": 390,
+          "clipped": 0,
+          "status": "PASS"
+        },
+        {
+          "width": 360,
+          "documentWidth": 360,
+          "clipped": 0,
+          "status": "PASS"
+        }
+      ],
+      "downloadMatrix": [
+        {
+          "target": "bbs-owner-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-finance-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-manager-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-auditor-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-worker-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-chief-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-supplier-coordinator-manual",
+          "status": 404,
+          "expected": "denied"
+        },
+        {
+          "target": "bbs-external-technician-manual",
+          "status": 200,
+          "expected": "allowed"
+        }
+      ],
+      "library": [
+        "bbs-external-technician-manual",
+        "supplier-operations-reference"
+      ],
+      "uiDownload": {
+        "status": "PASS",
+        "bytes": 3855002,
+        "sha256": "cf3f2f8d245682161bf7c7b18ed61f8084ca3f156bb44374f5cbb610295e054b",
+        "suggestedFilename": "bbs-external-technician-manual-EN-2026-10-06.pdf"
+      },
+      "spanishHelpEnglishFallback": "PASS"
+    }
+  ]
+}

@@ -526,7 +526,9 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
         ? null
         : currentConformityForReport(context, params.id);
     const followup =
-      locals.user.role === 'worker' || metadata?.audience !== 'customer'
+      locals.user.role === 'worker' ||
+      locals.user.role === 'auditor_read_only' ||
+      metadata?.audience !== 'customer'
         ? null
         : new PeriodFollowupRepository(context.sqlite).getReportFollowup(
             context.principal,

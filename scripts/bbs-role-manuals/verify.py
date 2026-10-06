@@ -16,6 +16,9 @@ for item in report['reports']:
  assert not item['missing'] and not item['overflows']
  assert item.get('instructionText')=='PASS'
  assert all(p.extract_text().strip() for p in reader.pages), 'Blank page'
+ assert len(reader.outline)>=len(item['sections']), 'Missing task bookmarks'
+ for section in item['sections']:
+  assert re.sub(r'\s+','',section['title']) in re.sub(r'\s+','',reader.pages[section['page']-1].extract_text()), 'Wrong task page reference'
  # Chromium may wrap a semantic filename after a hyphen; PDF extraction inserts
  # whitespace within that word. Preserve every non-whitespace character in order.
  normalize=lambda s: re.sub(r'\s+','',s)

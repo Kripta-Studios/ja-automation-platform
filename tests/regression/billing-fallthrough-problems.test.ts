@@ -14,6 +14,24 @@ import {
 } from '../../apps/portal/src/lib/server/actions/billing-actions';
 
 describe('billing fallthrough problems', () => {
+  it('retains an Accounting cut and sends source mismatch to support without exposing financial IDs', () => {
+    const error = new AccountingPackRevisionError(
+      'Accounting Pack source authority mismatch: compensation:private-worker:private-project:private-issuer:amount_mismatch',
+    );
+    const result = billingActionFailure(error, 'createAccountingPack', 'finance_admin', {
+      periodStart: '2026-10-26',
+      periodEnd: '2026-10-31',
+      reportLocale: 'en',
+    });
+    expect(result.status).toBe(409);
+    expect(result.data).toMatchObject({
+      code: 'ACCOUNTING_PACK_SOURCE_RECONCILIATION_REQUIRED',
+      remedies: [{ id: 'contact_support' }],
+      values: { periodStart: '2026-10-26', periodEnd: '2026-10-31' },
+    });
+    expect(JSON.stringify(result.data)).not.toContain('private-worker');
+    expect(JSON.stringify(result.data)).not.toContain('amount_mismatch');
+  });
   it('explains an Accounting Pack issuer date gap without proposing a historical rewrite', () => {
     const error = new AccountingPackRevisionError(
       'No legal-entity revision is effective at the deterministic period cut (effective-date gap)',

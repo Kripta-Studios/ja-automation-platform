@@ -3032,6 +3032,7 @@ export const PORTAL_ACTION_KEYS = [
   'problem.billing.creditRestoreChanged',
   'problem.billing.packDeploymentIdentityMissing',
   'problem.billing.packIssuerEffectiveDateGap',
+  'problem.billing.packSourceReconciliationRequired',
   'problem.billing.packExpenseCurrencyReviewRequired',
   'problem.billing.streamSelectionRequired',
   'problem.billing.fixedAmountInvalid',

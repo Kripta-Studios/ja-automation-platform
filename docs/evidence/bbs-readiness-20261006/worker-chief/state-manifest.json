@@ -1,0 +1,241 @@
+{
+  "environment": "Isolated native runtime 127.0.0.1:5180; synthetic records only",
+  "projectId": "01a11177-f600-702b-8ae3-da9101ab9bfd",
+  "observedOn": "2026-10-06",
+  "weeklyTime": {
+    "week": "2026-10-05\u21922026-10-11",
+    "worker": {
+      "beforeDraftCount": 2,
+      "afterDraftCount": 0,
+      "submittedIds": [
+        "01a1117f-078e-73ea-abbd-516ccfe62825",
+        "01a1117f-8c36-70bd-ab30-c266080d802f"
+      ]
+    },
+    "chief": {
+      "beforeDraftCount": 2,
+      "afterDraftCount": 0,
+      "submittedIds": [
+        "01a11180-b972-7579-920f-77e0e15a030a",
+        "01a11180-dc64-776c-b9e0-e6adbfd843cb"
+      ]
+    },
+    "eligibleCurrentCorrections": "Both native flows included current linked correction plus ordinary draft; withdrawn corrections excluded"
+  },
+  "weeklyExpenses": {
+    "worker": "Worker2",
+    "week": "2026-10-05\u21922026-10-11",
+    "beforeDraftCount": 2,
+    "afterDraftCount": 0,
+    "submittedIds": [
+      "01a11189-d6d4-701f-af8f-afd6f3b38c10",
+      "01a11189-d6d9-7317-a43a-5a3e12ce6687"
+    ],
+    "receiptAttachment": "Each saved draft edited natively and received its own matching receipt before Submit this week"
+  },
+  "records": {
+    "workerTime": [
+      {
+        "id": "01a1117d-309f-77fb-a18c-0bbe279bfafa",
+        "approval_state": "needs_changes",
+        "version": 3,
+        "work_date": "2026-10-07",
+        "minutes": 120
+      },
+      {
+        "id": "01a1117e-c13c-7075-aa7c-d3c5a3fb9605",
+        "approval_state": "rejected",
+        "version": 2,
+        "work_date": "2026-10-07",
+        "minutes": 105
+      },
+      {
+        "id": "01a1117f-078e-73ea-abbd-516ccfe62825",
+        "approval_state": "submitted",
+        "version": 2,
+        "work_date": "2026-10-07",
+        "minutes": 90
+      },
+      {
+        "id": "01a1117f-8c36-70bd-ab30-c266080d802f",
+        "approval_state": "submitted",
+        "version": 2,
+        "work_date": "2026-10-08",
+        "minutes": 30
+      }
+    ],
+    "chiefTime": [
+      {
+        "id": "01a1117f-fa73-71ad-a909-45c3f86c4ecb",
+        "approval_state": "needs_changes",
+        "version": 3,
+        "work_date": "2026-10-10",
+        "minutes": 60
+      },
+      {
+        "id": "01a11180-71e7-7410-a7cb-b11651682222",
+        "approval_state": "rejected",
+        "version": 2,
+        "work_date": "2026-10-10",
+        "minutes": 54
+      },
+      {
+        "id": "01a11180-b972-7579-920f-77e0e15a030a",
+        "approval_state": "submitted",
+        "version": 2,
+        "work_date": "2026-10-10",
+        "minutes": 45
+      },
+      {
+        "id": "01a11180-dc64-776c-b9e0-e6adbfd843cb",
+        "approval_state": "submitted",
+        "version": 2,
+        "work_date": "2026-10-11",
+        "minutes": 15
+      }
+    ],
+    "crewTime": [
+      {
+        "id": "01a1118e-296e-766d-8fd8-8dd77ae04b43",
+        "approval_state": "approved",
+        "version": 3,
+        "work_date": "2026-10-07",
+        "minutes": 30
+      },
+      {
+        "id": "01a1118e-2970-76df-b311-6584120e70d9",
+        "approval_state": "approved",
+        "version": 3,
+        "work_date": "2026-10-07",
+        "minutes": 30
+      }
+    ],
+    "workerExpense": [
+      {
+        "id": "01a11189-d6d4-701f-af8f-afd6f3b38c10",
+        "approval_state": "needs_changes",
+        "version": 4,
+        "spent_on": "2026-10-10",
+        "category": "meals",
+        "amount_minor": 500,
+        "receipt_document_id": "01a1118b-04bf-7424-8d63-9e2eb0155a6f",
+        "receipt_required": 0
+      },
+      {
+        "id": "01a11189-d6d9-7317-a43a-5a3e12ce6687",
+        "approval_state": "submitted",
+        "version": 3,
+        "spent_on": "2026-10-11",
+        "category": "meals",
+        "amount_minor": 700,
+        "receipt_document_id": "01a1118b-4c25-7338-af4d-de5fda6eca87",
+        "receipt_required": 0
+      },
+      {
+        "id": "01a1118c-79c2-7206-b703-c5316dd3b957",
+        "approval_state": "submitted",
+        "version": 2,
+        "spent_on": "2026-10-10",
+        "category": "meals",
+        "amount_minor": 500,
+        "receipt_document_id": "01a1118b-04bf-7424-8d63-9e2eb0155a6f",
+        "receipt_required": 0
+      },
+      {
+        "id": "01a1119a-87cc-7062-93f4-182d2bc084b4",
+        "approval_state": "submitted",
+        "version": 2,
+        "spent_on": "2026-10-12",
+        "category": "tools",
+        "amount_minor": 300,
+        "receipt_document_id": "01a1119a-8788-70da-b295-776d2bd0a10d",
+        "receipt_required": 1
+      }
+    ],
+    "chiefExpense": [
+      {
+        "id": "01a1118e-9f1a-7175-91b4-c9f1347c72cd",
+        "approval_state": "void",
+        "version": 2,
+        "spent_on": "2026-10-07",
+        "category": "hotel",
+        "amount_minor": 2000,
+        "receipt_document_id": "01a1118e-9eda-7734-a2df-e1edab886389",
+        "receipt_required": 1
+      },
+      {
+        "id": "01a1118f-6a82-742a-a485-523a26d5c5c2",
+        "approval_state": "void",
+        "version": 2,
+        "spent_on": "2026-10-07",
+        "category": "hotel",
+        "amount_minor": 2000,
+        "receipt_document_id": null,
+        "receipt_required": 0
+      },
+      {
+        "id": "01a11198-2ea8-7195-8510-f4f544b7517f",
+        "approval_state": "approved",
+        "version": 3,
+        "spent_on": "2026-10-07",
+        "category": "meals",
+        "amount_minor": 2000,
+        "receipt_document_id": "01a11198-2b11-73d1-adb2-0f8b43295320",
+        "receipt_required": 1
+      }
+    ],
+    "daily": [
+      {
+        "id": "01a11182-cd2f-7304-96fb-917a59941f5a",
+        "approval_state": "submitted",
+        "version": 5,
+        "work_date": "2026-10-12"
+      },
+      {
+        "id": "01a11184-737c-714d-8eae-67c8932b50af",
+        "approval_state": "submitted",
+        "version": 5,
+        "work_date": "2026-10-12"
+      }
+    ],
+    "technical": [
+      {
+        "id": "01a11183-2b3c-77f5-91c5-344803375bfd",
+        "approval_state": "submitted",
+        "version": 2,
+        "report_date": "2026-10-12"
+      },
+      {
+        "id": "01a11184-a787-7707-bcf1-82eace4ba9bd",
+        "approval_state": "submitted",
+        "version": 2,
+        "report_date": "2026-10-12"
+      }
+    ]
+  },
+  "allocation": [
+    {
+      "id": "01a11198-5bfe-70bd-bbae-ddad3b1620bf",
+      "expense_id": "01a11198-2ea8-7195-8510-f4f544b7517f",
+      "total_minor": 2000,
+      "allocation_count": 2,
+      "time_entry_id": "01a1118e-296e-766d-8fd8-8dd77ae04b43",
+      "amount_minor": 1000
+    },
+    {
+      "id": "01a11198-5bfe-70bd-bbae-ddad3b1620bf",
+      "expense_id": "01a11198-2ea8-7195-8510-f4f544b7517f",
+      "total_minor": 2000,
+      "allocation_count": 2,
+      "time_entry_id": "01a1118e-2970-76df-b311-6584120e70d9",
+      "amount_minor": 1000
+    }
+  ],
+  "limits": [
+    "Weekly expense missing-required-receipt rejection source checked only: supported weekly create writes receiptRequired false; no artificial DB mutations used.",
+    "Same receipt content cannot be recreated after withdrawal: native duplicate guard saved no expense. A distinct synthetic Meals purchase supplied the allocation exercise.",
+    "Chief Worker Can review grant alone does not supply base PM review role.",
+    "Returned ordinary Daily report edits/resubmits same record version; linked report correction requires approved/unlocked/current eligible source. Approved report correction source checked only.",
+    "No bank/email/signature/customer acceptance/live equipment changes claimed."
+  ]
+}

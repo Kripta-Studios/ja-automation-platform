@@ -2,43 +2,98 @@
 
 Dated delegation, team hours, shared receipts, corrections and own Worker responsibilities
 
-## Before you practise · access and scope
+<a id="practice"></a>
+## Before practising · live and training access
 
-This English guide uses BBS · Ejemplo de manual, project C-0050-P-20261005. The screenshots were taken using the stated role in an isolated database running the application. Training entries, payments, approvals and documents are fictional. They do not prove a real bank transfer, accountant approval or customer acceptance.
+The company portal https://j-aautomation.com/j-aautomation/app is LIVE. A link to it never enters a simulation. For practice obtain a separately provisioned training URL, your own account, the permitted fictional project and dates, a visible environment identifier and the trainer’s reset procedure. Without those, use this guide as a read-only demonstration and enter only authorized genuine work.
 
-The company portal at https://j-aautomation.com/j-aautomation/app is LIVE. Training uses a separate URL and database. Before practising, obtain the isolated URL, your own role account and permitted exercises from the company administrator; verify the BBS project number. Without isolated access, treat these screenshots as read-only demonstrations and perform only authorized real work.
+Original BBS operational examples and some historical unpaid settlements were saved on the live deployment; their original exports were downloaded there. Later fictional issuance, payment, acceptance, correction and readiness exercises used isolated copies or separate synthetic portfolios. Each chapter identifies its dataset and checkpoint. A later screenshot does not change an earlier saved workbook or issued master.
 
-Use your own credentials. Do not borrow an Owner, Finance or colleague account. A platform role, project assignment, review permission, supplier authorization and dated crew delegation are separate requirements. Changing one does not automatically grant the others.
-
-Select English in the workspace language control to follow the labels used here. Some saved BBS record names remain in their original language. On a phone open the navigation drawer to see full workspace names. Recheck the selected project and date range after every navigation.
-
-The eight Worker test accounts in the private credentials document use the same Worker workflow. Crew chief is a dated delegation attached to a Worker account. Supplier Coordinator and External Technician are restricted profiles attached to Worker accounts. This guide never includes account passwords.
-
-Each screenshot is an exercise checkpoint. Later fictional role entries and financial events are additional to the original October 1–5 workbook totals. Reopening the project or selecting the same dates does not restore that checkpoint. Read captions before comparing amounts or states.
-
-The assignment and expected-hours supplement uses a separate isolated October 20–23 synthetic exercise. Project access, a published work plan and a dated working-hours target are separate records. Workers record actual work and report progress independently; a plan never creates actual hours or a payment.
+A role, project membership, review permission, supplier authorization and dated crew delegation are separate. Use your own credentials. Inspect another person’s permitted operational record without signing in as them. Ordinary workers and project managers do not receive customer prices, internal cost, margins or another worker’s compensation.
 
 ### Verify the result
 
-- Confirm your displayed account, role or supplier profile, the project number and the dates before saving.
-- For training access, scope or reset help, contact the company administrator at admin@j-aautomation.com. Include the role, route, project number, time and visible error; omit passwords, cookies and private customer or worker documents.
+- Confirm your displayed identity, the environment, project number and work dates before saving. For training/reset or lost access contact admin@j-aautomation.com; send the route, role, project/record reference, time and visible error. Keep passwords, activation links, recovery codes and cookies private.
 
 ### If you get stuck
 
-- An empty project selector often means missing or expired assignment or authorization. Ask the Owner to check coverage for the date you are entering; do not create a duplicate project.
-- A form shown in a screenshot can depend on role, source state or effective date. Use the documented role handoff when a control is absent.
+- For an empty project selector, ask the Owner to check account status and assignment/authorization coverage. Do not create a duplicate project or borrow another account.
 
+<a id="access"></a>
+## Access · activate the invitation and sign in
+
+Go here: Your trusted invitation → Activate your account → Return to sign in → Profile
+
+### Do the task
+
+1. Check the portal address and named account against the invitation provided by the Owner. There is no public sign-up. For an already provisioned account, use the sign-in method supplied to you; do not attempt to activate someone else’s invitation.
+2. For a single-use activation link, open Activate your account. Enter Full name and choose a Password of at least 12 characters, then Activate account. Wait for Account activated. You can sign in now. Do not repeatedly submit while Activating… is displayed.
+3. Choose Return to sign in. Enter your account Email and Password and select Continue to workspace. If you previously enabled MFA, complete Verify your identity with the current Six-digit code and Verify and continue. Use a recovery code only through the offered Use a recovery code control.
+4. Open Profile and verify the own-account name/email/role in Account security. Check the navigation and assigned project. A newly activated account can have zero assignments; activation alone does not grant project access or supplier/chief authority.
+
+### Verify the result
+
+- The activation success message precedes the separate sign-in. The illustrated new Worker signed in and reached their own Profile; no assignment or financial permission was implied.
+
+### If you get stuck
+
+- An expired or already used link displays This invitation could not be activated. It may have expired or already been used. If activation already succeeded, return to sign in. Otherwise request a new invitation from the Owner; reloading does not renew the old link.
+- For offline, temporarily unavailable or rate-limited activation, retain the entered name/password privately, restore connectivity or wait for the displayed retry interval, then retry. An unconfirmed response is not proof of an active account.
+- For an incorrect password, inactive account or lost access, contact admin@j-aautomation.com from your verified account/contact channel. Supply identity and the visible error; never send the password. This guide does not promise a public password-reset form. The initial Owner is provisioned by the platform operator; an existing Owner provisions the remaining team.
+
+![Isolated new recipient: the native activation success message. The password remains masked; this is separate from sign-in.](../evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png)
+
+![Reusing the same single-use training invitation shows the genuine recovery message. Return to sign in if already activated; otherwise request a new invitation.](../evidence/bbs-readiness-20261006/owner-common/screenshots/access-used-invitation.png)
+
+<a id="trainer-setup"></a>
+## Trainer setup · prepare a normal cycle before exceptions
+
+Ask the trainer to provide the following checkpoint sheet before reproducing a lesson. Reusing a shared historical BBS period does not reset it. A production URL is never a training switch.
+
+| Checkpoint | Required starting condition |
+| --- | --- |
+| Identity and environment | Own correctly provisioned role/profile; isolated URL and visible environment identity. |
+| Project and dates | Exact project number, timezone and unused eligible lesson dates; membership and relevant grants cover both current access and the work date. |
+| Source state | Named source IDs and durations/amounts; ordinary starting drafts/submissions; no unrelated correction already open. |
+| Financial/evidence locks | List issued/closed periods, finalized settlements and signed report versions. Teach ordinary correction on an unlocked scope first. |
+| Expected outcome | Saved state, source count, actual total and appropriate own/customer/internal output. Include the receiving role and result. |
+| Reset | Operator restores the prepared database AND private documents together to the named checkpoint while training is stopped. Trainees do not delete financial history to reset a lesson. |
+
+### Verify the result
+
+- The new normal Worker/Chief lesson uses BBS READINESS · normal work cycle (C-0050-P-2026100601) with initially unfinalized October work. Original BBS locked-period examples are exceptions. External/Supplier/PM October 13–19 and Finance October 26 demonstrations are separately labelled; Accounting can use a separate clean synthetic portfolio.
+
+<a id="review-authority"></a>
+## Review authority · who receives each source
+
+Review is determined by the actual source, base role and current dated grants. Chief delegation alone grants recording, not approval. A Worker with Can review checked does not become a Project Manager or Finance user. Send a factual correction reason with every return.
+
+| Source / recorder | Operational reviewer and prerequisite | Next handoff |
+| --- | --- | --- |
+| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Owner/Finance records commercial Billable or Non-billable review separately. |
+| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Finance review follows Owner approval. |
+| Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Owner/Finance classifies customer recovery and worker reimbursement separately. |
+| Daily and Technical reports, including supplier profiles | Owner or Finance; assigned PM with current project review grant and permitted project scope. | Owner/Finance prepares the customer period report and version-bound acceptance where required. |
+| PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Personal reports/pay outputs remain own scope; financial treatment belongs to Owner/Finance. |
+
+### If you get stuck
+
+- If the intended source is absent, check source type, state, dates, assignment/review grant and supplier authorization before searching another queue. A review-enabled Worker Chief variant is not exposed by the current role model; Owner must provision the genuinely permitted reviewer role and grant. Never use a colleague’s credentials to bypass this boundary.
+
+<a id="chief-start"></a>
 ## Understand Chief authority before recording crew work
 
 Go here: Sign in → Crew hours
 
 Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
 
-Chief is an ordinary Worker account with dated person/project delegation. Account role, project assignment, crew-chief delegation and Can review permission are separate. In this BBS example the Chief may record for Worker 1 and Worker 2 during October 1–31; assignment review permission is off.
+Chief is an ordinary Worker account with dated person/project delegation. Account role, project assignment, crew delegation and Can review are separate. The readiness example uses C-0050-P-2026100601 with an entry-only Chief and Worker 2 assigned October 1–31. Worker 1 has a separate October 1–8 assignment/grant for the October 7 two-person receipt exercise. Both people’s project assignments and the delegation must cover today as well as the selected work date.
 
 Before practising obtain an operator training URL, own account, visible environment identity, permitted scope and reset instructions. No shared training credentials are provided. Live company links remain live company services. Every illustrated mutation here is fictional and isolated.
 
 Crew hours handles delegated operational entry. Time, Expenses, Reports and My Pay still handle your own Worker records. Delegation does not reveal crew compensation or grant Finance access; Chief authenticated Approvals and Finance requests returned 403.
+
+For account access and recovery, use the common Access (access), Security (security), Review authority (review-authority) and Trainer setup (trainer-setup) sections. Those controls are shared across roles; a job title does not grant access.
 
 ### Do the task
 
@@ -47,7 +102,7 @@ Crew hours handles delegated operational entry. Time, Expenses, Reports and My P
 
 ### Verify the result
 
-- The delegated crew list is date-specific. The October 1–31 grant covers the worked October 6 and 15 examples.
+- The actual new-project crew list offered Worker 1 and Worker 2 for October 7 after the required current and work-date coverage was granted. A future-only October 9 grant did not offer that worker today.
 
 ### If you get stuck
 
@@ -55,6 +110,317 @@ Crew hours handles delegated operational entry. Time, Expenses, Reports and My P
 
 ![Actual Chief delegated entry controls; authority comes from dated grants, not the word Chief.](../evidence/bbs-role-manuals-20261006/chief/screenshots/02-chief-crew-shared-filled.png)
 
+<a id="chief-shared"></a>
+## Save the same actual hours for multiple crew members
+
+Go here: Crew hours → Log team hours
+
+Context: Isolated readiness lab · genuine entry-only Chief · two delegated workers · October 7, 2026
+
+Same hours for each selected member applies the full duration to each person. This exercise saved 0.5-hour Travel for Worker 1 and 0.5-hour Travel for Worker 2: two separate 30-minute sources, one hour total. These are distinct from Worker 2’s own regular-work correction.
+
+The activity is explicitly synthetic shared crew travel. Each saved row retains its own person, date and ID; the Chief’s own time remains separate.
+
+### Do the task
+
+1. Choose Project and Work date → Show project. Check that current delegation and both assignment date ranges cover the people and selected date.
+2. Tick only the actual Team members. Choose Same hours for each selected member, enter Hours per member, Time category and factual Work performed.
+3. Leave Submit for approval now off; use the full Save 2 people button. Inspect the two saved Draft sources before adding a receipt.
+4. After verifying each source and the single receipt/allocation, use each intended row’s Submit action and confirm Submitted; the permitted reviewer acts separately.
+
+### Verify the result
+
+- Native readiness result: separate 30-minute Travel Draft sources for two people. The receipt exercise follows those specific eligible sources; it does not add the Chief’s own time.
+
+### If you get stuck
+
+- If one person/time is wrong, correct that draft through its permitted row controls before submitting. Do not save another batch while trying to locate the first one.
+
+![Native two-person crew form, including full Save 2 people control.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-shared-full-save.png)
+
+<a id="chief-individual"></a>
+## Use different actual hours and submit deliberately
+
+Go here: Crew hours → Different hours for each member
+
+Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
+
+The October 15 exercise entered 0.5 h for Worker 1 and 1 h for Worker 2, category Travel. Individual hours reflect each person’s actual activity. Checking Submit for approval now combines save and submission; it does not approve the work.
+
+### Do the task
+
+1. Select the authorized members and Different hours for each member. Enter each worker’s hours, category and shared factual Work performed.
+2. Review the selected date/member names and tick Submit for approval now only when ready. Use Save 2 people.
+3. Inspect both resulting rows and their states. The PM approved Worker 1’s 0.5 h and returned Worker 2’s 1 h for 0.75 h correction.
+
+### Verify the result
+
+- Separate 30 minute and 60 minute sources were saved as Submitted. Their later review outcomes are independent.
+
+### If you get stuck
+
+- An absent member or blocked date requires Owner delegation/assignment review. An unsent row can be corrected through its current controls; reviewed history requires the proper linked process.
+
+![Actual individual-hours form before saving 0.5 h and 1 h.](../evidence/bbs-role-manuals-20261006/chief/screenshots/08-chief-individual-filled.png)
+
+![Saved native individual sources, Submitted for operational review.](../evidence/bbs-role-manuals-20261006/chief/screenshots/09-chief-individual-submitted.png)
+
+<a id="chief-expense"></a>
+## Record one crew expense with its actual payer
+
+Go here: Crew hours → Add expense for [worker]
+
+Context: Isolated readiness lab · actual Chief-entered single USD 20 receipt · October 7, 2026
+
+Record one purchase with its actual attributed worker, payer and related hours. The tested Add expense for Worker 2 link preselected the readiness project, October 7 date and Worker 2’s 0.5-hour Travel source. The receipt explicitly says synthetic training only.
+
+Record expense for, Who paid and later allocation are distinct. Here one USD 20 meal expense was recorded for Worker 2, paid by Worker, then split 10+10 across two valid shifts. The allocation does not create another purchase or reveal colleagues’ reimbursement/pay.
+
+### Do the task
+
+1. From the intended saved crew row choose Add expense for that worker. Check Record expense for, Project, Date and Related logged hours.
+2. Select Meals, attach the one receipt and enter Amount 20, Currency USD, Who paid Worker, Vendor and factual Description. Use Save draft, then reopen the exact saved expense.
+3. Allocate the receipt only after its facts and linked source are accurate. Inspect the saved split, use the expense detail Submit, and verify Submitted before handing it to the permitted reviewer.
+
+### Verify the result
+
+- One current USD 20 Meals expense carries the actual synthetic receipt and initial Worker 2 source; the two allocations total that one purchase.
+
+### If you get stuck
+
+- Before allocation, an incorrect Chief-entered expense Draft can offer Withdraw crew expense draft with a reason. The native test retained the incorrect receipt as Withdrawn. Uploading its identical file again was blocked as existing private content; no new expense was saved. Ask the Owner to resolve the original receipt rather than evading duplicate protection. A separate, distinct synthetic Meals purchase was used for the allocation exercise. Once allocated, protected changes need the Owner/reviewer handoff.
+
+![Native linked expense form shows worker, project, date, related shift, receipt and full Save draft button.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-expense-context-full-save.png)
+
+![Supported pre-allocation recovery: incorrect crew expense Draft withdrawn with a reason.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-wrong-receipt-withdrawn.png)
+
+<a id="chief-allocation"></a>
+## Split one receipt across worked sources
+
+Go here: Crew hours → Allocate one crew receipt
+
+Context: Isolated readiness lab · actual single-receipt allocation and state limits
+
+First save the two actual crew time sources, then save one Chief-entered receipt expense linked to one of them. In this exercise the expense and shifts belong to the same readiness project and October 7 date.
+
+Select at least two eligible time rows for different workers, including the expense’s originally linked Worker 2 shift and the attributed/payer worker. Enter a positive amount for each. The preview must show the amounts exactly match the one USD 20 receipt: 10 + 10 = 20.
+
+After Save receipt allocation, inspect the saved group and one expense. This deployed flow provides no Unallocate control. An allocated receipt is protected from ordinary changes to amount, person, project/date, linked shift and receipt file. A mistaken saved split requires the Owner/reviewer support handoff; do not create another full expense or change hours to force the split.
+
+### Do the task
+
+1. In Allocate one crew receipt choose Receipt expense after the single expense is saved.
+2. Select the eligible Worker 1 and Worker 2 shifts; include the initial linked Worker 2 source. Enter Amount for each worker 10 and confirm Amounts match the receipt.
+3. Use Save receipt allocation. Reopen the saved allocation and expense, verify USD 10 + USD 10 = USD 20, then Submit the expense and intended time rows for review.
+4. If the saved split is wrong, stop at the protected allocation and give the Owner/reviewer the expense ID, allocation ID, both source IDs, receipt amount and intended split.
+
+### Verify the result
+
+- The actual native saved allocation totals USD20 across two USD10 rows. After separate native Submit actions, the independent Owner approved the receipt and both crew time sources. Exact IDs/states are in the readiness manifest. Allocation is not reimbursement, worker settlement, invoice issuance or bank payment.
+
+### If you get stuck
+
+- Allocated receipts can lock draft edit actions. Investigate the existing allocation/expense with the reviewer rather than making duplicate expenses or altering hours to force a split.
+
+![Native selection of the one saved receipt and eligible two-person 10+10 allocation.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-receipt-allocation-full-save.png)
+
+![Actual saved split of one USD 20 receipt.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-receipt-allocation-saved2.png)
+
+![Native allocated-receipt detail and its current offered controls; no Unallocate or unrestricted edit is offered.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-allocated-receipt-limit.png)
+
+![Both separate crew shifts Approved after independent native Owner review; one allocated receipt is also Approved.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-crew-reviewed.png)
+
+<a id="chief-review"></a>
+## Hand operational work to the permitted reviewer
+
+Go here: Crew hours → submitted sources; reviewer → Approvals
+
+Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
+
+The tested entry-only Chief uses an ordinary Worker account with dated delegation. The Owner independently reviewed the new two crew sources and one allocated receipt. Finance reviews any later financial treatment.
+
+Operational approval, billability, customer invoicing, worker settlement, reimbursement and cash payment are separate stages. A Chief should not assume a submitted row is paid or invoice-ready.
+
+A Worker assignment Can review grant leaves the base role Worker and does not enable Approvals. Source checks require the appropriate base PM/Owner/Finance authority plus current project scope. A review-capable Chief variant is unavailable on this Worker-role deployment; no Chief self-review success is claimed. See common Review authority (review-authority).
+
+### Do the task
+
+1. Inspect each member’s source state after submission. Send the PM record IDs, work date and any material evidence or safety concern.
+2. Read a returned reason on the actual source. Correct through the permitted linked flow; do not silently overwrite history.
+3. Hand financial policy/settlement issues to Finance/Owner.
+
+### Verify the result
+
+- Read source states after every action. The new own weekly sources and report/receipt exercises have explicit IDs and current states in the readiness manifest; earlier PM-approved records remain historical examples.
+
+### If you get stuck
+
+- If Approvals is denied, ask the Owner who has review permission. Never borrow the reviewer’s account.
+
+<a id="chief-own-time"></a>
+## Record and submit your own Chief hours separately
+
+Go here: Time → Log time; Submit this week
+
+Context: Isolated readiness lab · actual Chief own ordinary and linked correction weekly submission
+
+Your own Time records remain separate from delegated crew rows. The readiness test returned a one-hour Chief source for a correction to 0.75 hour, withdrew an incorrect 0.9-hour correction with a reason, and recreated the accurate linked 0.75-hour draft.
+
+A separate 0.25-hour own draft and the active linked 0.75-hour correction both submitted through the Chief’s own displayed October 5–11 week. Two drafts became Submitted and zero remained. That count does not include delegated people’s crew rows.
+
+### Do the task
+
+1. Use your own Time → Log time → Save draft for your actual personal work. Read a returned own source’s reason separately from crew corrections.
+2. For a wrong unsubmitted linked correction, use Why withdraw this draft? → Withdraw correction draft, then recreate from the original with accurate values. Linked time drafts have no unrestricted Edit control after creation.
+3. Choose Week of → Open week. Inspect ordinary and correction sources, then Submit all week drafts.
+4. Open each exact source and confirm Submitted plus zero remaining own drafts. Independent operational review is still required.
+
+### Verify the result
+
+- Actual Chief own weekly result: ordinary 15-minute source plus linked 45-minute correction Submitted, original 60-minute source Needs changes, incorrect withdrawn 54-minute draft retained in history.
+
+### If you get stuck
+
+- Check the own draft count before submitting a week. For linked or financially guarded sources use exact record controls and Finance handoff.
+
+![Own accurate linked 0.75-hour correction Draft.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-normal-correction-draft.png)
+
+![Own incorrect linked correction was actually withdrawn before submission.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-wrong-correction-withdrawn.png)
+
+![Own selected week includes two eligible drafts.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-week-before-submit.png)
+
+![Native own weekly action completed; zero remaining drafts, with both source states independently checked.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-week-after-submit.png)
+
+<a id="chief-correction"></a>
+## Correct a delegated returned entry
+
+Go here: Crew hours → View time → Create corrected draft
+
+Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
+
+The genuine PM returned Worker 2’s 1 h travel source with a 0.75 h reason. The delegated Chief could create and submit a linked replacement because the October 15 period was outside that worker’s finalized October 1–14 settlement. Delegation is still checked for the source/date.
+
+### Do the task
+
+1. Open the returned crew source using View time. Read Needs changes and the reviewer’s reason.
+2. In Create corrected draft enter Reason, Work date, Time category, Actual hours 0.75 and factual Work performed. Create the correction.
+3. Inspect the new Draft and original link. Use Submit for approval now on this crew correction detail.
+4. After PM review, refresh the selected date and inspect the Approved replacement.
+
+### Verify the result
+
+- The original 1 h remains Needs changes; the linked 45 minute 0.75 h replacement is Approved. Worker 1’s 0.5 h remains separately Approved.
+
+### If you get stuck
+
+- A settled/paid compensation guard requires Finance’s explicit adjustment; do not duplicate a crew entry or change its date/person to evade it. The Chief does not gain self-approval by creating a correction.
+
+![Native returned delegated source and reviewer reason.](../evidence/bbs-role-manuals-20261006/chief/screenshots/18-chief-returned-time.png)
+
+![Actual delegated correction form 1 h→0.75 h with reason.](../evidence/bbs-role-manuals-20261006/chief/screenshots/19-chief-correction-filled.png)
+
+![Current crew rows: Approved 0.5 h and 0.75 h, historical original 1 h preserved.](../evidence/bbs-role-manuals-20261006/chief/screenshots/27-chief-correction-approved.png)
+
+<a id="chief-daily"></a>
+## Write a Chief daily handover report
+
+Go here: Reports → New daily report
+
+Context: Isolated readiness lab · own Chief authored report · synthetic October 12, 2026
+
+Chief reporting uses the Chief’s own author account. The native own Daily form has no arbitrary-worker selector. Delegated time entry does not imply report author impersonation.
+
+Write factual crew coordination/conditions, with member source IDs when needed. A Daily report does not replace each actual timesheet or prove customer acceptance.
+
+The own readiness Draft’s source PDF was generated in English, checked Ready with Refresh and downloaded as a readable native file before Submit for review. Language selects English, Spanish or Portuguese; the output remains scoped to this own authored operational report.
+
+The Owner actually returned the readiness Daily report. The Chief edited its next-day handover with Save changes and resubmitted the same report ID. Return recovery is a versioned edit of an ordinary source; it is not the Approved-source linked correction flow.
+
+### Do the task
+
+1. Select Project, Work date and Site / shift; fill Shift summary and Tasks completed. Include actual problems/actions, downtime, standby, open items, next day plan and safety flag where applicable.
+2. Use Save daily report. Inspect the Draft, then Submit for review.
+3. Confirm Submitted and the permitted reviewer’s later state.
+
+### Verify the result
+
+- Actual own Daily Draft → Ready PDF → native Download → Submitted was tested. A draft PDF and report submission do not establish customer acceptance.
+
+### If you get stuck
+
+- Ordinary Draft and Needs changes reports can be edited with the offered Save changes control and resubmitted as the same versioned source. Approved unlocked reports may offer a linked correction; the created correction is not freely editable. A finalized period snapshot requires the authorized Owner/PM handoff.
+
+![Own Chief Daily form with the complete native save control.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-daily-full-save.png)
+
+![Own source PDF Ready while the report remained Draft.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-daily-ready-presubmit.png)
+
+![First page rendered from the actual own Chief Daily browser-downloaded PDF.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-daily-presubmit-native-output.png)
+
+<a id="chief-technical"></a>
+## Document your technical findings and validation
+
+Go here: Reports → New technical report
+
+Context: Isolated readiness lab · own Chief authored report · synthetic October 12, 2026
+
+The Chief’s Technical report is its own authored evidence, separate from crew hours and customer billing. This worked system is explicitly a fictional bench; no live PLC change occurred.
+
+Capture equipment identifiers, Problem / symptom, Diagnosis / root cause, Change performed, production impact, validation/result, open risk and rollback. Safety/change authorization remains governed by real responsible-person procedures.
+
+The own readiness Draft’s source PDF was generated in English, checked Ready with Refresh and downloaded as a readable native file before Submit for review. Language selects English, Spanish or Portuguese; the output remains scoped to this own authored operational report.
+
+### Do the task
+
+1. Open New technical report and identify Project, Work date and System / machine; fill applicable machine/platform/version fields and factual technical narrative.
+2. Use Save PLC report, inspect the Draft, then Submit for review.
+3. Check review state and hand genuine risks/open work to the responsible PM/technical reviewer.
+
+### Verify the result
+
+- Actual own Technical Draft → Ready PDF → native Download → Submitted was tested. A draft PDF and report submission do not establish customer acceptance.
+
+### If you get stuck
+
+- Ordinary Draft and Needs changes reports can be edited with the offered Save changes control and resubmitted as the same versioned source. Approved unlocked reports may offer a linked correction; the created correction is not freely editable. A finalized period snapshot requires the authorized Owner/PM handoff.
+
+![Own Chief Technical form with the complete native save control.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-technical-full-save.png)
+
+![Own source PDF Ready while the report remained Draft.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-technical-ready-presubmit.png)
+
+![First page rendered from the actual own Chief Technical browser-downloaded PDF.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-technical-presubmit-native-output.png)
+
+<a id="chief-pay"></a>
+## Read only your own pay and reimbursements
+
+Go here: My Pay → Apply period
+
+Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
+
+The Chief sees its own compensation, not crew members’ agreements/payments. The historical October 1–4 snapshot shows 10 actual hours, USD 400 approved compensation and USD 20 approved reimbursement; copied training payment records have no claim to a real bank transfer.
+
+Customer daily/weekly/hourly units and invoice cadence do not dictate worker settlement or payment cadence. Expected date, reviewed amount, paid and remaining are different fields. Source estimates follow dated worker rules, not crew receipt allocations.
+
+The native own Chief October 1–6 statement was generated and both PDF and CSV downloaded Ready. It contains 735 approved minutes for this Chief only. These historical synthetic records do not claim a real bank transfer; no crew member’s private statement was accessed.
+
+### Do the task
+
+1. Set From and Through, then Apply period. Confirm the displayed dates before requesting a statement.
+2. Read your own approved/pending estimates and reviewed settlement/payment fields separately.
+3. In Worker statement choose Generate report. While preparing, use Check statement status if offered or allow status to refresh. Download PDF and CSV independently only when Ready. Open both files and confirm identity, date range and own activity.
+
+### Verify the result
+
+- Crew hour delegation does not expose Worker 1/2 private pay. A split receipt does not create compensation or prove reimbursement.
+
+### If you get stuck
+
+- Send missing-rule/settlement/reimbursement questions to Finance with your own source/period. Do not infer another person’s pay from recorded hours.
+
+![Actual Chief own historical training payment view; not crew payroll visibility.](../evidence/bbs-role-manuals-20261006/chief/screenshots/17-chief-own-pay.png)
+
+![Native own Chief Worker statement: both PDF and CSV Ready for the selected historical training period.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-statement-ready.png)
+
+<a id="chief-planning-targets"></a>
 ## Read your own plan and distinguish crew authority
 
 Go here: Today → Upcoming assignments; Crew hours → Project / Work date
@@ -88,61 +454,7 @@ There are no Accept, Reject or Mark completed goal buttons on the assignment car
 
 ![Chief’s own Today agenda shows the October 20 eight-hour plan. The card is operational context; it does not list the technicians’ private pay or create crew time.](../evidence/bbs-planning-20261006/chief/screenshots/01-chief-own-upcoming-plan.png)
 
-## Save the same actual hours for multiple crew members
-
-Go here: Crew hours → Log team hours
-
-Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
-
-Same hours for each selected member means the full duration applies to each person. Two selected workers at 2 h creates two 2 h sources, total 4 actual hours; it does not split a shared 2 h total.
-
-The October 6 bench setup is explicit simulated activity with no live equipment changes. Each saved row retains its worker and source ID.
-
-### Do the task
-
-1. Select Project and Work date and Show project. Tick only the authorized Team members who actually worked.
-2. Choose Same hours for each selected member. Enter Hours per member 2, category and Work performed.
-3. Leave Submit for approval now off to inspect the saved drafts; use Save 2 people. Inspect each 2 h row.
-4. Use each intended row’s Submit action and confirm Submitted.
-
-### Verify the result
-
-- Two separate 2 h sources were saved and submitted; both remain awaiting operational review in this packet. Chief did not approve them.
-
-### If you get stuck
-
-- If one person/time is wrong, correct that draft through its permitted row controls before submitting. Do not save another batch while trying to locate the first one.
-
-![Native saved 2 h+2 h Draft rows for the two selected delegates.](../evidence/bbs-role-manuals-20261006/chief/screenshots/03-chief-crew-saved.png)
-
-![Both separate sources Submitted; review permission remains a separate handoff.](../evidence/bbs-role-manuals-20261006/chief/screenshots/07-chief-crew-submitted.png)
-
-## Use different actual hours and submit deliberately
-
-Go here: Crew hours → Different hours for each member
-
-Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
-
-The October 15 exercise entered 0.5 h for Worker 1 and 1 h for Worker 2, category Travel. Individual hours reflect each person’s actual activity. Checking Submit for approval now combines save and submission; it does not approve the work.
-
-### Do the task
-
-1. Select the authorized members and Different hours for each member. Enter each worker’s hours, category and shared factual Work performed.
-2. Review the selected date/member names and tick Submit for approval now only when ready. Use Save 2 people.
-3. Inspect both resulting rows and their states. The PM approved Worker 1’s 0.5 h and returned Worker 2’s 1 h for 0.75 h correction.
-
-### Verify the result
-
-- Separate 30 minute and 60 minute sources were saved as Submitted. Their later review outcomes are independent.
-
-### If you get stuck
-
-- An absent member or blocked date requires Owner delegation/assignment review. An unsent row can be corrected through its current controls; reviewed history requires the proper linked process.
-
-![Actual individual-hours form before saving 0.5 h and 1 h.](../evidence/bbs-role-manuals-20261006/chief/screenshots/08-chief-individual-filled.png)
-
-![Saved native individual sources, Submitted for operational review.](../evidence/bbs-role-manuals-20261006/chief/screenshots/09-chief-individual-submitted.png)
-
+<a id="chief-connected-work"></a>
 ## Complete one shared plan with different individual actual hours
 
 Go here: Crew hours → Log team hours; Time → Log time; reviewer → Approvals
@@ -181,147 +493,7 @@ This exercise demonstrates a handoff, not automatic plan completion: actual sour
 
 ![After genuine PM review, the delegated Technician 2 seven-hour source is Approved in Crew hours.](../evidence/bbs-planning-20261006/chief/screenshots/09-chief-delegated-approved-record.png)
 
-## Correct a delegated returned entry
-
-Go here: Crew hours → View time → Create corrected draft
-
-Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
-
-The genuine PM returned Worker 2’s 1 h travel source with a 0.75 h reason. The delegated Chief could create and submit a linked replacement because the October 15 period was outside that worker’s finalized October 1–14 settlement. Delegation is still checked for the source/date.
-
-### Do the task
-
-1. Open the returned crew source using View time. Read Needs changes and the reviewer’s reason.
-2. In Create corrected draft enter Reason, Work date, Time category, Actual hours 0.75 and factual Work performed. Create the correction.
-3. Inspect the new Draft and original link. Use Submit for approval now on this crew correction detail.
-4. After PM review, refresh the selected date and inspect the Approved replacement.
-
-### Verify the result
-
-- The original 1 h remains Needs changes; the linked 45 minute 0.75 h replacement is Approved. Worker 1’s 0.5 h remains separately Approved.
-
-### If you get stuck
-
-- A settled/paid compensation guard requires Finance’s explicit adjustment; do not duplicate a crew entry or change its date/person to evade it. The Chief does not gain self-approval by creating a correction.
-
-![Native returned delegated source and reviewer reason.](../evidence/bbs-role-manuals-20261006/chief/screenshots/18-chief-returned-time.png)
-
-![Actual delegated correction form 1 h→0.75 h with reason.](../evidence/bbs-role-manuals-20261006/chief/screenshots/19-chief-correction-filled.png)
-
-![Current crew rows: Approved 0.5 h and 0.75 h, historical original 1 h preserved.](../evidence/bbs-role-manuals-20261006/chief/screenshots/27-chief-correction-approved.png)
-
-## Record one crew expense with its actual payer
-
-Go here: Crew hours → Add expense for [worker]
-
-Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
-
-The Chief recorded one explicitly synthetic USD 20 meal receipt for Worker 2, paid by Worker. The link preselects the delegated worker/source. Record expense for is restricted to the Chief and authorized delegates; it does not grant arbitrary person access.
-
-Expense owner, payer and later allocation are distinct. A Chief can record delegated operational facts without seeing another worker’s reimbursement details. No real purchase or transfer occurred.
-
-### Do the task
-
-1. From the intended crew row choose Add expense for that worker. Check Record expense for, Project, Date and related hours.
-2. Attach the single receipt and fill Category, Amount 20, Currency USD, Who paid and factual Description. Save draft.
-3. Open the saved detail and inspect the source/receipt/payer. Use Submit only after the receipt allocation and facts are verified.
-
-### Verify the result
-
-- Exactly one USD 20 expense was saved. Genuine PM operational approval followed submission. Finance classification/payment is a separate handoff.
-
-### If you get stuck
-
-- Use permitted draft/correction controls for wrong values. Do not create a separate full 20 expense for every crew member.
-
-![Actual delegated expense form, USD 20 single synthetic receipt.](../evidence/bbs-role-manuals-20261006/chief/screenshots/04-chief-expense-filled.png)
-
-![Saved delegated expense; another worker’s private reimbursement values are not exposed.](../evidence/bbs-role-manuals-20261006/chief/screenshots/13-chief-shared-expense-saved.png)
-
-![Crew expense Submitted, later operationally approved by PM.](../evidence/bbs-role-manuals-20261006/chief/screenshots/14-chief-shared-expense-submitted.png)
-
-## Split one receipt across worked sources
-
-Go here: Crew hours → Allocate one crew receipt
-
-Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
-
-Allocation distributes a single purchase across source shifts; it does not multiply the purchase, choose new reimbursement recipients or create invoices. The USD 20 receipt was split 10+10 across the two October 6 crew sources.
-
-The selected set must include at least two valid crew time sources and the expense’s initially related shift. The allocation sum must match the one receipt amount.
-
-### Do the task
-
-1. Select the saved Receipt expense and the related crew time entries.
-2. Enter Amount for worker 10 for each of the two selected sources, then Save receipt allocation.
-3. Refresh Allocate one crew receipt and inspect the saved split and expense total.
-
-### Verify the result
-
-- One expense USD 20 remains; allocations USD 10+USD 10 sum 20. The originally linked Worker 2 shift is included.
-
-### If you get stuck
-
-- Allocated receipts can lock draft edit actions. Investigate the existing allocation/expense with the reviewer rather than making duplicate expenses or altering hours to force a split.
-
-![Native allocation form selects two sources and 10+10 amounts.](../evidence/bbs-role-manuals-20261006/chief/screenshots/05-chief-receipt-split-filled.png)
-
-![Actual saved split of one USD 20 receipt; allocation is not worker payment.](../evidence/bbs-role-manuals-20261006/chief/screenshots/06-chief-receipt-allocation-saved.png)
-
-## Hand operational work to the permitted reviewer
-
-Go here: Crew hours → submitted sources; reviewer → Approvals
-
-Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
-
-The Chief’s delegation permits the exercised recording/correction operations, but this Chief has no review permission. The genuine assigned PM reviewed the sources using its own account. Finance then reviews financial treatment where applicable.
-
-Operational approval, billability, customer invoicing, worker settlement, reimbursement and cash payment are separate stages. A Chief should not assume a submitted row is paid or invoice-ready.
-
-### Do the task
-
-1. Inspect each member’s source state after submission. Send the PM record IDs, work date and any material evidence or safety concern.
-2. Read a returned reason on the actual source. Correct through the permitted linked flow; do not silently overwrite history.
-3. Hand financial policy/settlement issues to Finance/Owner.
-
-### Verify the result
-
-- Worker 2 corrections and Worker 1 Oct 15 travel are Approved. The two October 6 shared 2 h crew rows remain Submitted in this evidence packet.
-
-### If you get stuck
-
-- If Approvals is denied, ask the Owner who has review permission. Never borrow the reviewer’s account.
-
-## Record and submit your own Chief hours separately
-
-Go here: Time → Log time; Submit this week
-
-Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
-
-The Chief’s own actual work belongs in its own Worker Time workspace. Crew entries for delegates do not include the Chief’s duration. The exercise saved 0.25 h own handover on October 6.
-
-This ordinary own draft was submitted using the native Submit this week flow. Bulk submission concerns your own selected-week drafts; it is not a universal batch submission of everyone’s crew records.
-
-### Do the task
-
-1. Open Time, choose Log time and record your own project/date/actual hours/activity. Save draft and inspect the row.
-2. Open Submit this week, select the week beginning October 5, inspect its one draft and choose Submit all week drafts.
-3. Open the source and confirm Submitted; the genuine PM subsequently approved it.
-
-### Verify the result
-
-- One own 15 minute Chief source progressed Draft→Submitted→Approved. Delegated member durations are separate.
-
-### If you get stuck
-
-- Check the own draft count before submitting a week. For linked or financially guarded sources use exact record controls and Finance handoff.
-
-![Chief own Worker Time form, 0.25 h fictional handover.](../evidence/bbs-role-manuals-20261006/chief/screenshots/22-chief-own-time-filled.png)
-
-![Native own-week draft summary before bulk submission.](../evidence/bbs-role-manuals-20261006/chief/screenshots/23-chief-own-week-before-submit.png)
-
-![Own Chief source Submitted; PM approval followed.](../evidence/bbs-role-manuals-20261006/chief/screenshots/23b-chief-own-time-submitted.png)
-
+<a id="chief-expected-comparison"></a>
 ## Reconcile your own weekly target without changing actual work
 
 Go here: Time → Week of → Open week
@@ -357,88 +529,7 @@ The weekly total includes scheduled days with no actual records, including futur
 
 ![Native phone view of the Chief’s own October 20 daily comparison; eight actual hours match eight expected hours.](../evidence/bbs-planning-20261006/chief/screenshots/10-chief-phone-own-weekly-comparison.png)
 
-## Write a Chief daily handover report
-
-Go here: Reports → New daily report
-
-Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
-
-Chief reporting uses the Chief’s own author account. The native own Daily form has no arbitrary-worker selector. Delegated time entry does not imply report author impersonation.
-
-Write factual crew coordination/conditions, with member source IDs when needed. A Daily report does not replace each actual timesheet or prove customer acceptance.
-
-### Do the task
-
-1. Select Project, Work date and Site / shift; fill Shift summary and Tasks completed. Include actual problems/actions, downtime, standby, open items, next day plan and safety flag where applicable.
-2. Use Save daily report. Inspect the Draft, then Submit for review.
-3. Confirm Submitted and the permitted reviewer’s later state.
-
-### Verify the result
-
-- Chief own fictional crew-handover report was saved, submitted and operationally approved by the genuine PM.
-
-### If you get stuck
-
-- Use draft edits before submission. For later corrections, preserve approved history and follow the offered report correction or reviewer handoff.
-
-![Native own-author Chief Daily form; no delegation-based impersonation.](../evidence/bbs-role-manuals-20261006/chief/screenshots/12-chief-daily-filled.png)
-
-![Chief Daily report Submitted, subsequently PM Approved.](../evidence/bbs-role-manuals-20261006/chief/screenshots/16-chief-daily-submitted.png)
-
-## Document your technical findings and validation
-
-Go here: Reports → New technical report
-
-Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
-
-The Chief’s Technical report is its own authored evidence, separate from crew hours and customer billing. This worked system is explicitly a fictional bench; no live PLC change occurred.
-
-Capture equipment identifiers, Problem / symptom, Diagnosis / root cause, Change performed, production impact, validation/result, open risk and rollback. Safety/change authorization remains governed by real responsible-person procedures.
-
-### Do the task
-
-1. Open New technical report and identify Project, Work date and System / machine; fill applicable machine/platform/version fields and factual technical narrative.
-2. Use Save PLC report, inspect the Draft, then Submit for review.
-3. Check review state and hand genuine risks/open work to the responsible PM/technical reviewer.
-
-### Verify the result
-
-- Chief own Technical source progressed Draft→Submitted→Approved through genuine PM review.
-
-### If you get stuck
-
-- Do not use a report submission as permission to modify live equipment or fabricate successful validation. Attachment/PDF generation for this own report was not exercised here.
-
-![Native fictional Chief Technical form.](../evidence/bbs-role-manuals-20261006/chief/screenshots/24-chief-technical-filled.png)
-
-![Own Technical Submitted; operational approval followed.](../evidence/bbs-role-manuals-20261006/chief/screenshots/26-chief-technical-submitted.png)
-
-## Read only your own pay and reimbursements
-
-Go here: My Pay → Apply period
-
-Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
-
-The Chief sees its own compensation, not crew members’ agreements/payments. The historical October 1–4 snapshot shows 10 actual hours, USD 400 approved compensation and USD 20 approved reimbursement; copied training payment records have no claim to a real bank transfer.
-
-Customer daily/weekly/hourly units and invoice cadence do not dictate worker settlement or payment cadence. Expected date, reviewed amount, paid and remaining are different fields. Source estimates follow dated worker rules, not crew receipt allocations.
-
-### Do the task
-
-1. Select your intended From / Through dates and Apply period.
-2. Read approved/pending estimates separately, then the reviewed settlement’s own period, planned date and paid/remaining values.
-3. Use Worker statement generation only for your own account and wait for ready artifacts before downloading.
-
-### Verify the result
-
-- Crew hour delegation does not expose Worker 1/2 private pay. A split receipt does not create compensation or prove reimbursement.
-
-### If you get stuck
-
-- Send missing-rule/settlement/reimbursement questions to Finance with your own source/period. Do not infer another person’s pay from recorded hours.
-
-![Actual Chief own historical training payment view; not crew payroll visibility.](../evidence/bbs-role-manuals-20261006/chief/screenshots/17-chief-own-pay.png)
-
+<a id="chief-mobile"></a>
 ## Operate crew controls on a phone or tablet
 
 Go here: Crew hours → Project / Work date
@@ -464,6 +555,7 @@ Phone/tablet views preserve the same dated delegation checks. Use More or the na
 
 ![Native 768 pixel Chief crew viewport.](../evidence/bbs-role-manuals-20261006/chief/screenshots/11-chief-tablet.png)
 
+<a id="chief-profile-help"></a>
 ## Manage your own profile and ask for support
 
 Go here: Profile; Notifications; Help
@@ -488,6 +580,7 @@ Notifications can lead to returned sources or pending work; marking read does no
 
 - If a crew member disappears, check selected date and Owner-grant coverage. If a source is settlement locked, hand it to Finance; do not substitute credentials or duplicate history.
 
+<a id="chief-checklist"></a>
 ## Verify the crew handover
 
 Go here: Crew hours → Reports → own Time → reviewer handoff
@@ -495,6 +588,8 @@ Go here: Crew hours → Reports → own Time → reviewer handoff
 Context: Isolated BBS role lab · genuine Chief Worker account · dated October 1–31 delegation
 
 Use a single handover list for the selected workday; crew recording, your own work and financial review remain separate.
+
+The October 6 readiness audit adds explicit native-browser outcomes and state-specific limits. Per-ID status and source IDs are recorded under docs/evidence/bbs-readiness-20261006/worker-chief. Earlier planning/role-lab screenshots retain their original historical scope; they are not the state of the new readiness sources.
 
 ### Do the task
 
@@ -508,11 +603,13 @@ Use a single handover list for the selected workday; crew recording, your own wo
 ### Verify the result
 
 - Lab passes: shared/individual native crew entry, separate Submitted sources, single receipt 20 allocation 10+10, delegated correction 1→0.75 PM Approved, own weekly time Submit and own Daily/Technical PM Approved, denied Approvals/Finance and responsive views.
+- Readiness native results: own ordinary and current linked time correction Submitted together, count2→0; two crew shifts and one single allocated receipt independently Owner Approved; own Daily/Technical Ready PDF downloads before submission, returned Daily edit/resubmit, and own statement PDF/CSV downloads. See the per-ID audit for exact current states.
 
 ### If you get stuck
 
-- Reference-only: delegation/account setup, review-enabled Chief actions, draft withdrawal, report attachment/PDF/customer acceptance, own security/profile mutations, bank/email delivery and actual payroll. The illustrated Chief had no review permission.
+- Reference-only: review-capable Chief approval actions, customer acceptance, own profile/security changes and real bank/email/payroll delivery. Worker-role review permission alone does not enable Approvals. Wrong unallocated crew receipts were withdrawn natively; saved allocation changes require the documented support handoff.
 
+<a id="chief-evidence"></a>
 ## What was verified and what remains a reference
 
 Go here: Verification appendix
@@ -522,6 +619,8 @@ Context: Isolated BBS role lab · actual browser outcomes and explicit limits
 Native authenticated browser records, synthetic receipt fixtures and SHA-256 capture manifests are maintained with the guide. Account secrets are excluded. Original billed October 2–5 history and finalized worker settlements were preserved.
 
 Actual saved/submitted/returned/approved states are distinguished from controls merely inspected. The Owner/PM/Finance handoffs used their own genuine role sessions. This evidence does not claim real bank transfers, live equipment changes or production transactions.
+
+The October 6 readiness audit adds explicit native-browser outcomes and state-specific limits. Per-ID status and source IDs are recorded under docs/evidence/bbs-readiness-20261006/worker-chief. Earlier planning/role-lab screenshots retain their original historical scope; they are not the state of the new readiness sources.
 
 ### Do the task
 
@@ -544,4 +643,56 @@ Actual saved/submitted/returned/approved states are distinguished from controls 
 
 ### If you get stuck
 
-- Reference-only or unperformed here: Account/delegation changes; Review-enabled Chief approval actions; Draft withdrawal; Report attachment/PDF/customer acceptance; Profile/security changes; Actual bank/email delivery.
+- The historical labs above retain their own scope. This readiness audit additionally tested native dated assignment/delegation setup, wrong unallocated receipt withdrawal, own weekly ordinary/linked correction submission, own Daily/Technical Ready PDF downloads and returned Daily editing, and own statement PDF/CSV downloads. Chief review-capable approval, customer acceptance, profile/security changes and live bank/email remain unperformed.
+
+<a id="recovery-matrix"></a>
+## Recovery · sources, obligations and immutable history
+
+Use the role’s worked correction lesson and the current record controls. A new purchase is different from a correction to an existing purchase. A payment reversal records a cash-entry correction; it does not amend a finalized compensation entitlement or unlock its time sources.
+
+| State | Supported next action |
+| --- | --- |
+| Ordinary Draft | Use Edit/Save draft where present; attach the actual receipt/evidence before Submit. Inspect each saved draft after weekly table entry. |
+| Submitted | Read current state and reviewer handoff. Do not create another source merely because review is pending. |
+| Needs changes | Read the reason. Time uses Create corrected draft where available, then submit/review the linked replacement. A returned Daily/Technical report instead offers Edit and Save changes on the same report, then Submit for review; follow the exact role lesson. |
+| Rejected | Inspect the reason and contact reviewer/Owner. The time detail does not offer the same linked-correction route as Needs changes; do not assume that route exists. |
+| Approved, unlocked | Use the offered linked correction, preserving the original. Re-review the replacement and refresh affected unissued drafts/report versions through their supported controls. |
+| Issued, financially locked or finalized compensation | Stop source editing. Send source ID/project/date, original/correct values, reason, affected invoice/settlement and payment references to Owner/Finance. If no authorized amendment control exists, escalate to platform support. |
+
+### If you get stuck
+
+- For a finalized-compensation guard, send the exact source/date/reason and requested factual correction to Finance/Owner. Wait for a documented authorized resolution and explicit instruction about the source lock. Do not reverse a payment, change work dates or duplicate hours to evade the guard.
+
+<a id="security"></a>
+## Security · verify your own device and recovery options
+
+Go here: Profile → Account security; Profile → Add availability
+
+### Do the task
+
+1. Check Account security identifies YOUR account even when an authorized workforce profile inspection shows another worker above it. Enroll only your own device. MFA is optional in this release.
+2. For a passkey, enter Device name and choose Register passkey on the approved secure portal. Complete your device’s creation confirmation. Verify Passkey registered for this account, the registered count and named device row. Cancelled/failed registration is not enrollment.
+3. To retire your own lost/obsolete passkey, first confirm you retain another working sign-in method. Select Revoke on the exact device and verify Passkey revoked and removal of its row. If you cannot sign in, use the verified support route rather than another person’s session.
+4. For an authenticator, choose Enable MFA. Keep the setup URI and one-time recovery codes private in the approved password manager. Add the URI to your authenticator, enter its current six-digit Authenticator code and choose Verify MFA. Verify Enabled and Disable MFA appear; enabling without verification is not completed enrollment.
+5. At a later MFA sign-in use Six-digit code → Verify and continue. If the authenticator is unavailable, choose Use a recovery code and enter one unused stored code. If neither method is available, contact admin@j-aautomation.com for identity-verified recovery. Do not send recovery codes or the setup URI to support.
+6. To remove optional MFA while signed in, choose Disable MFA and verify Not enabled/Enable MFA. Confirm the intended own account before doing so. A successful settings change is separate from recovering a lost account.
+7. Where Add availability is offered, fill Starts, Ends, Availability and Note using the displayed time basis, then Save availability. Verify the saved interval/status/note in the list; use Edit availability on that row and save the changed values. Availability is not project membership, a published shift or actual hours.
+
+![Isolated recipient’s authenticator setup was verified; the native Enabled state is shown after secret URI/recovery codes disappeared. No usable security material is published.](../evidence/bbs-readiness-20261006/owner-common/screenshots/security-mfa-enabled.png)
+
+<a id="verification"></a>
+## Verification · current coverage and historical evidence
+
+English readiness edition: 6 October 2026, based on repository abc12c0961b2 with the recorded readiness fixes. The publication receipt identifies the final commit and deployment. This edition teaches the permitted ordinary cycle and supported handoffs; it does not certify every contract, device or external service.
+
+The current evidence lives in docs/evidence/bbs-readiness-20261006. Its correction register maps all 72 suite findings to tasks, browser evidence or precise reference/support boundaries. Role manifests identify source IDs, state transitions and downloaded artifacts. Historical 5 October outputs remain historical; new screenshots do not rewrite their totals or private bytes.
+
+Recipient activation, actual authenticator verification and own passkey registration/revocation were exercised on a separate isolated recipient. The same account controls are shared, but enrollment was not repeated for every role or physical device. Offline/expired-link and lost-device paths remain precise references where not separately executed.
+
+Weekly submission was exercised with one ordinary draft and one eligible linked correction for Worker, Chief, External Technician and Supplier Coordinator: two selected drafts became two Submitted sources and zero remaining drafts. This does not guarantee that locked, withdrawn, out-of-scope or ineligible corrections will submit.
+
+A final Accounting cut succeeded in a separate clean Finance portfolio; an Auditor read and downloaded its outputs. Original BBS issuer-history and source-reconciliation blockers remain documented. Email transport, real bank movement, accountant approval and genuine customer acceptance are outside the synthetic tests.
+
+### Verify the result
+
+- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding. Out-of-role financial information is intentionally excluded from operational guides.

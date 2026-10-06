@@ -580,7 +580,13 @@
         {#if !data.activeCorrection && data.canCreateCorrection}
           <a href="#time-correction-title">{t('Create corrected draft')} <DirectionIcon /></a>
         {:else if !data.activeCorrection}
-          <p>{t('The recorded worker must create a corrected draft from their Time register.')}</p>
+          <p>
+            {record.approval_state === 'rejected'
+              ? t(
+                  'This record was rejected. Contact the reviewer or Owner before recording replacement work.',
+                )
+              : t('The recorded worker must create a corrected draft from their Time register.')}
+          </p>
         {/if}
       </section>
     {/if}

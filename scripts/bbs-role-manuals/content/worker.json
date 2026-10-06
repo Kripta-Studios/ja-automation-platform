@@ -9,9 +9,10 @@
       "route": "Sign in → Today",
       "context": "Isolated BBS role lab · genuine Worker account · fictional October 2026 records",
       "paragraphs": [
-        "Use the individual active Worker account provisioned by your Owner. Person, account, project assignment and approval permission are separate. An invitation or password does not itself assign a project. This course uses BBS DEMO - Tecnico 1 and Tecnico 2 in C-0050-P-20261005 · BBS · Ejemplo de manual.",
+        "Use the individual active Worker account provisioned by your Owner. Person, account, project assignment and approval permission are separate. An invitation or password does not itself assign a project. The first-shift and normal correction exercise uses BBS DEMO - Tecnico 2 in C-0050-P-2026100601 · BBS READINESS · normal work cycle, with synthetic October 7–12, 2026 records in the isolated lab. Earlier C-0050-P-20261005 records are historical examples.",
         "Before practising, obtain an operator-provided training URL, your own training account, a visible deployment identifier, permitted scope and reset instructions. This guide does not supply a shared training login. Live company portal links open the live company service; they never enter the isolated demonstration. Do not enter simulated work, expenses or payments in the live portal.",
-        "Today is your landing page. Time records actual work; Expenses records purchases and evidence; Reports records daily and technical facts; My Pay shows your own compensation and reimbursements; Profile manages your workforce profile and security. Notifications and Help are in the navigation. Crew hours is useful only when the Owner has granted applicable delegation."
+        "Today is your landing page. Time records actual work; Expenses records purchases and evidence; Reports records daily and technical facts; My Pay shows your own compensation and reimbursements; Profile manages your workforce profile and security. Notifications and Help are in the navigation. Crew hours is useful only when the Owner has granted applicable delegation.",
+        "For account access and recovery, use the common Access (access), Security (security), Review authority (review-authority) and Trainer setup (trainer-setup) sections. Those controls are shared across roles; a job title does not grant access."
       ],
       "steps": [
         "Sign in with your own account. Confirm the account, language and environment before entering data.",
@@ -28,6 +29,406 @@
         {
           "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/01-today-desktop.png",
           "caption": "Worker Today: native own-account navigation and assigned BBS project.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "worker-time",
+      "title": "Save and inspect actual time",
+      "route": "Time → Log time",
+      "context": "Isolated readiness lab · own Worker 2 account · unlocked new project · synthetic October 7, 2026",
+      "paragraphs": [
+        "Record the work you actually performed. The isolated first shift saved two hours on October 7 for Worker 2 in the new training project, then submitted it separately for review. The Owner returned that source; the normal linked correction below changes it to 1.5 hours while preserving its history. Decimal hours are duration: 3.5 means three hours thirty minutes.",
+        "Category describes operational activity. Selecting Overtime does not by itself promise a premium; approved compensation rules determine money. Add start/end times is optional; do not invent clock times from duration. Add meal expense with these hours is a separate expense input."
+      ],
+      "steps": [
+        "Open Log time. Select Project and Date; choose the operational category and enter Actual hours and Activity summary. Fill offered site/detail fields with facts.",
+        "Use Save draft. Open the saved row and check person, date, project, category and actual duration before submitting.",
+        "Use individual Submit on the time detail. Confirm Submitted; saving a draft alone does not send it for review."
+      ],
+      "checks": [
+        "The saved own source showed Draft, then Submitted after the explicit Submit action. The returned original remains Needs changes; saving or submitting does not approve the source."
+      ],
+      "recovery": [
+        "Edit an unsent draft through its permitted draft controls. If uncertain whether Save succeeded, reload the date-filtered register and open the existing row before trying again."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-first-shift-full-save-draft.png",
+          "caption": "Own Worker 2 first-shift form, including the full Save draft button; two synthetic hours in the unlocked readiness project.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-first-shift-submitted.png",
+          "caption": "The same source after Submit: Submitted, awaiting independent operational review.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "worker-expense",
+      "title": "Record one expense with private receipt evidence",
+      "route": "Expenses → Record expense",
+      "context": "Isolated readiness lab · same Worker 2 persona · synthetic October 12, 2026 purchase",
+      "paragraphs": [
+        "The worked receipt is a synthetic USD 3 tools purchase by Worker 2 on October 12 in the unlocked readiness project. It explicitly says training only and no real purchase. Saving and submitting are operational steps; reimbursement and bank payment remain separate.",
+        "The native form accepts JPG, PNG, HEIC or PDF receipts up to 10 MB. Operational purchase amount, who paid, worker reimbursement and customer recovery are separate. Preserve the actual receipt currency and payer."
+      ],
+      "steps": [
+        "Choose Record expense. Attach Receipt image or PDF, select Project, Date and Category, and fill Amount, Currency, Who paid and Description. Vendor/payment method and local time/related hours are offered contextual fields.",
+        "Check the full Save draft control, then use it. Reopen the exact saved expense and inspect worker, date, payer, USD 3 amount and attached private receipt.",
+        "Use Submit on the expense detail. Verify Submitted and hand the record ID to the permitted operational reviewer. Finance later decides applicable treatment; no reimbursement or bank payment is claimed."
+      ],
+      "checks": [
+        "One own Worker 2 receipt-backed USD 3 tools expense is Submitted. The separate weekly exercise attaches receipts to each saved draft before selected-week submission."
+      ],
+      "recovery": [
+        "If receipt processing or permission prevents access, use the precise document status/message and ask support. Uploading/registered does not universally mean antivirus-clean. Do not duplicate a purchase while checking a failed submission."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-single-expense-full-save.png",
+          "caption": "Native own Worker 2 receipt form with the full Save draft button.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-single-expense-saved.png",
+          "caption": "Saved own receipt-backed draft ready for inspection.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-single-expense-submitted.png",
+          "caption": "Actual Submitted state after native Submit.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "worker-daily",
+      "title": "Save and submit a daily field report",
+      "route": "Reports → New daily report",
+      "context": "Isolated readiness lab · own Worker 2 report · synthetic October 12, 2026",
+      "paragraphs": [
+        "A daily report tells the operational story. It does not create actual hours, technical approval, customer acceptance or an invoice. The Worker exercise describes a fictional bench inspection and has its own report ID.",
+        "The actual form begins with Project, Work date, Site / shift, Shift summary and Tasks completed. It also offers Problems found, Corrective actions, Downtime minutes, Standby reason, Open items, Next day plan and a safety flag. Report actual conditions, including genuine risks; this training bench had no live production change.",
+        "The readiness exercise saved an own Draft, generated its English source PDF, checked Ready with Refresh and downloaded the readable native file before Submit for review. The PDF panel’s Language selects English, Spanish or Portuguese independently of the navigation language."
+      ],
+      "steps": [
+        "Choose New daily report. Complete Project, Work date and the factual summary/tasks; fill applicable problems/actions/downtime/next-step fields.",
+        "Use Save daily report. Open the Draft report and inspect its header and content. Saving/autosaving content does not submit it.",
+        "Use Submit for review. Confirm Submitted. The genuine PM approved this source in the role lab."
+      ],
+      "checks": [
+        "Own Daily Draft → Ready source PDF → native download → Submitted was tested in the readiness project. A readable pre-submission PDF is a snapshot of that draft; it is not operational approval or customer acceptance."
+      ],
+      "recovery": [
+        "Correct an unsent draft using its available edit controls. For submitted/returned/approved reports, use the offered correction flow or hand the specific record to the reviewer; do not overwrite approved history."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-full-save.png",
+          "caption": "Own Worker 2 Daily form with its complete native save button.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-ready-presubmit.png",
+          "caption": "Own source PDF Ready while the report was still Draft.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-presubmit-native-output.png",
+          "caption": "First page rendered from the actual own browser-downloaded Daily PDF.",
+          "orientation": "portrait"
+        }
+      ]
+    },
+    {
+      "id": "worker-technical",
+      "title": "Describe a technical change without treating it as permission",
+      "route": "Reports → New technical report",
+      "context": "Isolated readiness lab · own Worker 2 report · synthetic October 12, 2026",
+      "paragraphs": [
+        "Technical reports identify a system and document Problem / symptom, Diagnosis / root cause, Change performed, validation, remaining risk and rollback. Submitting a report does not authorize a live PLC change or substitute for your employer’s safety/change-control procedure.",
+        "The exercised report is explicitly a fictional bench. Offered fields include System / machine, Plant / site, Area / line, Station / machine, System type, PLC platform, Controller, HMI / SCADA, Network / protocol, Software version and Program / project reference. The actual save label is Save PLC report.",
+        "The readiness exercise saved an own Draft, generated its English source PDF, checked Ready with Refresh and downloaded the readable native file before Submit for review. The PDF panel’s Language selects English, Spanish or Portuguese independently of the navigation language."
+      ],
+      "steps": [
+        "Choose New technical report. Identify the equipment and write the problem, diagnosis and change in readable factual language.",
+        "Fill Production impact, Validation performed/result, Open risk / issue, Rollback plan and safety impact where applicable. Use Save PLC report.",
+        "Open the Draft and inspect the details; use Submit for review, then verify the reviewer’s resulting state."
+      ],
+      "checks": [
+        "Own Technical Draft → Ready source PDF → native download → Submitted was tested in the readiness project. A readable pre-submission PDF is a snapshot of that draft; it is not operational approval or customer acceptance."
+      ],
+      "recovery": [
+        "A missing validation or safety decision needs a real responsible-person handoff. Do not invent a successful validation to make the report look complete."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-technical-full-save.png",
+          "caption": "Own Worker 2 Technical form with its complete native save button.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-technical-ready-presubmit.png",
+          "caption": "Own source PDF Ready while the report was still Draft.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-technical-presubmit-native-output.png",
+          "caption": "First page rendered from the actual own browser-downloaded Technical PDF.",
+          "orientation": "portrait"
+        }
+      ]
+    },
+    {
+      "id": "worker-week",
+      "title": "Submit your own displayed week and verify every source",
+      "route": "Time → Log time; Week of → Open week → Submit all week drafts",
+      "context": "Isolated readiness lab · actual own Worker 2 weekly submission · October 5–11, 2026",
+      "paragraphs": [
+        "For your own Worker account, enter each worked day through Log time and Save draft. The deployed Enter a week in a table time-entry form is an Owner control; it is not present in this Worker screen. Inspect existing sources before adding another day.",
+        "Use Week of → Open week to choose the displayed submission week. The own weekly action can include an eligible active linked correction as well as an ordinary draft. In this test, the October 7 corrected 1.5-hour draft and October 8 ordinary 0.5-hour draft were both submitted together.",
+        "Copy previous week layout is a separate reference control. It copies layout with zero hours, not an assertion that last week’s work happened again. Inspect the displayed Previous week and This week before Add this week’s layout; do not treat a zero-hour layout as completed actual work."
+      ],
+      "steps": [
+        "Save accurate own daily work with Log time → Save draft, then open every intended source and verify its current state.",
+        "Select Week of → Open week. Read the displayed date range and draft count; review ordinary sources and any correction’s original link.",
+        "Choose Submit all week drafts. Refresh the page, open each source and verify Submitted plus the remaining draft count. A count alone is not evidence that a specific source was sent."
+      ],
+      "checks": [
+        "Actual own Worker 2 result: two eligible drafts before submission, both named source records Submitted afterwards, zero remaining drafts. The original two-hour returned source and withdrawn wrong correction were preserved."
+      ],
+      "recovery": [
+        "A blocked or changed draft must be reviewed through its exact record. Do not repeatedly resubmit the whole week to force a guarded source."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-week-before-submit.png",
+          "caption": "Own selected week before the actual weekly action: two drafts, including an active linked correction.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-week-after-submit.png",
+          "caption": "After the native weekly action: zero drafts; the record-state manifest independently confirms both ordinary and correction sources Submitted.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "worker-expense-exceptions",
+      "title": "Use expense batch tools and corrections carefully",
+      "route": "Expenses → Enter a week in a table → Save weekly expense drafts → Edit → Submit this week",
+      "context": "Isolated readiness lab · actual own weekly expenses, receipt attachment and returned expense correction",
+      "paragraphs": [
+        "The weekly table saves up to one purchase per worked day for one project and your own account. Choose the project and week first; changing either can clear unsaved rows after confirmation. Enter actual category, amount, currency, payer, vendor and description. The exact save button is Save weekly expense drafts.",
+        "The tested October 10 and 11 purchases were USD 5 and USD 7. Each saved draft was opened with Edit, its own matching receipt was attached with Save changes, and the displayed October 5–11 week was then submitted. Two drafts became Submitted and zero remained.",
+        "Missing receipt rules are state-specific. The deployed weekly table creates receipt-optional drafts; an earlier USD 5 + USD 7 set therefore submitted without receipts. Where a saved draft requires a receipt, the weekly UI disables Submit this week and the repository validates the whole set. That required-missing saved-draft branch was source-checked, but was not created through a supported native control in this lab. Attach the required evidence rather than assuming every receipt-free draft is blocked."
+      ],
+      "steps": [
+        "Open Enter a week in a table. Set Project, Week containing, Currency and Who paid before entering rows; use Save weekly expense drafts.",
+        "Open each saved draft through Edit, use Attach receipt (optional), select the correct date/amount receipt and Save changes. Reopen the exact expense to verify Registered private receipt.",
+        "Choose the intended Week containing → Show week. Inspect every included draft and use Submit this week. Confirm each record’s Submitted state and the remaining count.",
+        "For a returned expense, read Review reason and use Create corrected draft when offered. Review all values and the receipt: leave the attachment empty to retain the original receipt, or attach its genuine replacement. Create the linked draft, inspect it, then Submit."
+      ],
+      "checks": [
+        "Actual October 10/11 receipt-backed submission: exactly two expense IDs, USD 5 + USD 7, each with its own registered receipt, both Submitted and zero remaining drafts.",
+        "The USD 5 source was subsequently returned for clearer description. A linked corrected draft retained the same receipt, date, currency and purchase amount and was Submitted; the original remains Needs changes."
+      ],
+      "recovery": [
+        "A linked correction does not offer unrestricted editing after creation. Use Withdraw correction draft only while offered and unsubmitted; reviewed, allocated, billed or reimbursed sources can require the reviewer/Finance handoff. No purchase amount is multiplied by creating its linked correction."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-week-expense-full-save.png",
+          "caption": "Native full weekly save form for the initial October7/8 receipt-optional drafts; the separate October10/11 receipt-backed exercise follows in the attachment and submission captures.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-draft-a-receipt-attach-full-save.png",
+          "caption": "Edit the saved USD 5 draft and attach its matching October 10 synthetic receipt before Save changes.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-draft-b-receipt-attach-full-save.png",
+          "caption": "The separate saved USD 7 draft receives its own matching October 11 receipt.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-expenses-week-receipts-after-submit.png",
+          "caption": "Actual selected-week result: zero remaining drafts.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-expense-correction-submitted.png",
+          "caption": "Returned USD 5 expense now has a linked Submitted correction with its original receipt retained.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "worker-correction",
+      "title": "Correct returned time and retain history",
+      "route": "Time → returned source → Create corrected draft",
+      "context": "Isolated readiness lab · own Worker 2 normal correction · unlocked October 7, 2026",
+      "paragraphs": [
+        "The Owner returned Worker 2’s two-hour readiness-project source with a reason requesting 1.5 actual hours. The source is outside any finalized obligation in this new project. Create corrected draft creates an audited linked replacement and preserves the original.",
+        "Review every value before creating the correction: a linked time correction has no Edit draft control after creation. If an unsubmitted correction is wrong, use Withdraw correction draft with a reason, return to the original and create the correct replacement. This exercise actually withdrew a wrong 1.75-hour draft and recreated a 1.5-hour draft."
+      ],
+      "steps": [
+        "Open the Needs changes source and read Review reason. Use Create corrected draft.",
+        "Enter the correct Actual hours, date/category/activity and a concrete Correction reason; create the draft and inspect its original link.",
+        "For an incorrect unsubmitted linked draft, enter Why withdraw this draft? and use Withdraw correction draft. Confirm the original is available again, then create the accurate replacement.",
+        "Submit individually or through the eligible own displayed week. This exercise used weekly submission for the corrected 1.5-hour source alongside a separate ordinary draft."
+      ],
+      "checks": [
+        "The original remains Needs changes. The wrong correction is withdrawn in audit history (stored as rejected), and the current linked 90-minute correction is Submitted. Operational approval remains the reviewer’s next action.",
+        "The older October 15–16 statement with 195 approved minutes is a historical verified example; it is not the status or total of this new correction exercise."
+      ],
+      "recovery": [
+        "If a correction is already submitted, use its current state and the reviewer’s next offered control. Finalized compensation, shared receipt or billing guards require the responsible Finance/Owner handoff; do not create an unlinked duplicate."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-normal-returned.png",
+          "caption": "Own normal returned source in the unlocked readiness project.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-normal-correction-draft.png",
+          "caption": "The accurate linked 1.5-hour Draft after withdrawal of the incorrect draft.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-wrong-correction-withdrawn.png",
+          "caption": "Native withdrawal returned to the original source; the audit preserves the attempted correction.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "worker-report-evidence",
+      "title": "Understand report PDFs, attachments and customer acceptance",
+      "route": "Reports → your report detail",
+      "context": "Isolated readiness lab · native own PDF, attachment and returned Daily edit",
+      "paragraphs": [
+        "Use the own report PDF panel: choose Language, Generate report, then Refresh to check preparation. Download appears for the selected current Ready variant. Queued is not a finished file. A later source edit requires a fresh current PDF; the earlier downloaded snapshot remains earlier evidence.",
+        "An own Worker 2 Daily text attachment was actually uploaded as private supporting evidence while Draft. Allowed types include PDF, ZIP, common images and UTF-8 text, with the displayed 50 MB limit. Registered evidence and an available native download are separate from antivirus status; read the current status before relying on a file.",
+        "Report recovery differs from time and expenses. An ordinary Draft or Needs changes report can be edited through Modify report / Save changes and resubmitted as the same versioned source. This was actually tested for the returned Daily report. An Approved report offers Create corrected draft when unlocked; the resulting linked correction is not an unrestricted editable draft. A report included in a finalized period can require the authorized review/Owner handoff.",
+        "Customer period PDFs and customer acceptance are separate authorized workflows. Own source approval does not record a signature. The lab created no customer signature or acceptance."
+      ],
+      "steps": [
+        "Before Submit for review, inspect saved report facts and authorized attachments. Generate and open the current own PDF when needed.",
+        "If returned, read the reviewer reason, edit only the offered fields, use Save changes and Submit for review; verify the same ID’s new version and state.",
+        "For an Approved source, use the offered linked correction flow and review every value before creation. For a finalized-period guard, send source ID, period/version, exact message and intended change to the Owner/PM."
+      ],
+      "checks": [
+        "Worker 2 returned Daily was edited and resubmitted as the same source. A fresh Spanish variant of the changed source reached Ready and was downloaded as version 5; the earlier English version 1 remains the pre-submission snapshot."
+      ],
+      "recovery": [
+        "Do not promise Edit on a linked report correction or a finalized source. Do not fabricate signer evidence or claim a downloaded report was delivered to a customer."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-returned-edited.png",
+          "caption": "Native versioned edit of an ordinary Needs changes Daily report.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-current-spanish-ready.png",
+          "caption": "Spanish source variant Ready after the returned report was changed and resubmitted.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-current-es-native-output.png",
+          "caption": "Readable native Spanish PDF of the current version 5 source.",
+          "orientation": "portrait"
+        }
+      ]
+    },
+    {
+      "id": "worker-pay",
+      "title": "Read your own compensation and reimbursement",
+      "route": "My Pay → From / Through → Apply period",
+      "context": "Isolated BBS role lab · genuine Worker account · fictional October 2026 records",
+      "paragraphs": [
+        "My Pay displays your own activity and governed compensation estimates, reviewed settlements, expected dates, actual recorded payments and reimbursement information. Customer invoice frequency and worker payment frequency are independent. Owner/Finance choose settlement periods and expected payment dates; there is no automatic worker payroll cadence demonstrated here.",
+        "Worker 1’s historical monthly settlement is USD 720, scheduled November 3, actual paid zero. Daily compensation can differ from actual hours and customer billing units. Worker 2’s October 15–16 approved 195 minutes shows a USD 900 Fixed Per Billing Period estimate; it is not an hourly prorated amount or proof that USD 900 was paid.",
+        "Exact activity is 2.5 h + 0.75 h = 3.25 h. My Pay summary rounds to one decimal (3.3 h and 0.8 h travel); rounding is not extra work. “No reviewed payments outstanding” can coexist with an estimate that has not yet become a reviewed settlement. A recorded payment is a business entry, not independent proof of a bank transfer."
+      ],
+      "steps": [
+        "Select From and Through, then Apply period. Read approved and pending amounts separately by currency.",
+        "Open the compensation statement/activity detail and compare exact time records. Read reviewed settlement period, scheduled date, paid and remaining balances independently.",
+        "Check reimbursement obligations separately from compensation and customer charges."
+      ],
+      "checks": [
+        "You see your own pay, not another worker’s or customer invoice economics. Selected source dates may differ from a settlement’s wider period."
+      ],
+      "recovery": [
+        "Ask Finance about missing rules, period coverage, reimbursement classification, payment references or discrepancies. Do not infer worker pay from a customer invoice or a planned date."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/15-own-my-pay.png",
+          "caption": "Worker 1 own historical payment snapshot: scheduled is distinct from paid.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "worker-statement",
+      "title": "Generate your own statement and check readiness",
+      "route": "My Pay → Worker statement",
+      "context": "Isolated BBS role lab · genuine Worker account · fictional October 2026 records",
+      "paragraphs": [
+        "Generate report queues an own-worker PDF and CSV for the selected period. It does not expose Finance’s project workbook. Queued, Ready and failed/preparation states must be checked before downloading.",
+        "The historical October 15–16 own Worker 2 request became Ready in both PDF and CSV. Its downloaded statement contains 195 approved minutes across two current linked sources. The selected From / Through dates determine the requested statement period."
+      ],
+      "steps": [
+        "Set From October15 and Through October16 for the historical example, choose Apply period and confirm the dates, then Generate report. Use your real intended period during ordinary work.",
+        "If queued, use Check statement status after processing. Use the offered PDF/CSV downloads only when Ready.",
+        "Check your identity, period, activity and currency in the downloaded output."
+      ],
+      "checks": [
+        "PDF and CSV Ready were observed in the native UI. Both own downloads succeeded. The artifact contains 195 approved minutes, two linked current sources, the selected October 15–16 period and the Worker 2 identity. The statement is scoped to the own account."
+      ],
+      "recovery": [
+        "For a failed or indefinitely queued statement, ask the Owner/support to inspect the artifact job using the period and exact status. Do not repeatedly submit the same request or claim that Queued means a delivered file."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/32-worker-statement-ready.png",
+          "caption": "Native own Worker statement Ready for October 15–16; PDF and CSV downloaded separately.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "worker-settlement-guard",
+      "title": "Hand settled compensation changes to Finance",
+      "route": "Time → returned source → Create corrected draft",
+      "context": "Isolated BBS role lab · genuine Worker account · fictional October 2026 records",
+      "paragraphs": [
+        "The Worker 1 October 6 source was fresh and unbilled, yet its worker compensation period was already covered by a finalized October 1–31 settlement. Attempting the returned 4 h → 3.5 h correction was refused.",
+        "The exact message was: “This time has settled or paid worker compensation. Contact Finance for an explicit adjustment before any new correction.” A fresh work date or absence of an invoice does not override a finalized worker-side settlement.",
+        "A recorded payment reversal changes payment history; it does not automatically unlock the finalized compensation obligation or make operational replacement available. Finance owns the explicit adjustment/revision lifecycle; the Owner coordinates missing authority or support. Provide the source ID, project, work date, obligation period and exact guard. See common Recovery matrix (recovery-matrix).",
+        "For a correction to an already-finalized entitlement, hand the original source, settlement ID, period, reason and intended facts to Finance/Owner. The supported response is a support-controlled historical adjustment. A prospective rule change or Custom approved adjustment for a later period does not rewrite that finalized obligation, and cash payment reversal does not unlock it. See common Recovery matrix (recovery-matrix)."
+      ],
+      "steps": [
+        "Read the guard and keep the existing returned source intact.",
+        "Send Finance/Owner the source ID, worker, project, date, current/desired hours and correction reason. Wait for their supported explicit adjustment process."
+      ],
+      "checks": [
+        "No replacement draft was created by the refused operation. The finalized USD 720 settlement was not changed."
+      ],
+      "recovery": [
+        "Do not add an unlinked replacement, shift the work date, change the worker or ask someone to erase settlement history to bypass the guard."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/20-worker-settlement-correction-blocked.png",
+          "caption": "Actual expected guard for Worker 1; this is a tested blocked state, not a successful correction.",
           "orientation": "landscape"
         }
       ]
@@ -200,349 +601,6 @@
       ]
     },
     {
-      "id": "worker-time",
-      "title": "Save and inspect actual time",
-      "route": "Time → Log time",
-      "context": "Isolated BBS role lab · genuine Worker account · fictional October 2026 records",
-      "paragraphs": [
-        "The first exercise saved four actual hours on October 6 for Worker 1. The fictional activity states that no live equipment was changed. Decimal hours represent duration: 3.5 means three hours thirty minutes, not three hours five minutes.",
-        "Category describes operational activity. Selecting Overtime does not by itself promise a premium; approved compensation rules determine money. Add start/end times is optional; do not invent clock times from duration. Add meal expense with these hours is a separate expense input."
-      ],
-      "steps": [
-        "Open Log time. Select Project and Date; choose the operational category and enter Actual hours and Activity summary. Fill offered site/detail fields with facts.",
-        "Use Save draft. Open the saved row and check person, date, project, category and actual duration before submitting.",
-        "Use individual Submit on the time detail. Confirm Submitted; saving a draft alone does not send it for review."
-      ],
-      "checks": [
-        "Native saved row and detail showed 4 h, first Draft then Submitted. The source has its own record ID."
-      ],
-      "recovery": [
-        "Edit an unsent draft through its permitted draft controls. If uncertain whether Save succeeded, reload the date-filtered register and open the existing row before trying again."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/02-time-filled-desktop.png",
-          "caption": "Actual Worker 1 form before Save draft; fictional four-hour October 6 exercise.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/03-time-saved-desktop.png",
-          "caption": "Saved Draft in the date-filtered native register; saving is separate from submission.",
-          "orientation": "landscape"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/05-time-submitted.png",
-          "caption": "Same source after individual Submit: Submitted, waiting for operational review.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "worker-week",
-      "title": "Enter a week and submit eligible drafts",
-      "route": "Time → Enter a week in a table; Submit this week",
-      "context": "Reference procedure · current controls/source checked; mutations not exercised in this role lab",
-      "paragraphs": [
-        "The weekly table is a faster entry tool for your own actual daily work. Blank days are skipped. Planned hours remain separate. Review existing rows first so a second table save does not duplicate a day already entered.",
-        "Copy previous week layout copies layout with zero hours. It does not assert that last week’s work happened again. Select the destination Week of, choose Copy previous week layout, inspect displayed Previous week and This week, then Add this week’s layout. There are no editable Source/Destination date fields in that flow.",
-        "Submit all week drafts handles eligible drafts for your own selected week. A linked correction may appear in the draft count; do not assume weekly submission universally excludes corrections. This lab used individual Submit for the correction so its original link could be inspected. Chief’s own ordinary weekly submission was separately exercised."
-      ],
-      "steps": [
-        "Open Enter a week in a table; set Week of and Project, then enter actual hours and activities on worked days. Use Save daily drafts.",
-        "Open Submit this week. Select the week, read the draft count and inspect each relevant draft before Submit all week drafts.",
-        "Refresh the register and inspect resulting states. For a correction, individual detail Submit makes the original/replacement link easy to verify."
-      ],
-      "checks": [
-        "Draft is distinct from Submitted. A zero-hour copied layout is incomplete until actual work is entered."
-      ],
-      "recovery": [
-        "A blocked or changed draft must be reviewed through its exact record. Do not repeatedly resubmit the whole week to force a guarded source."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/26-worker2-week-draft-summary.png",
-          "caption": "Native Worker 2 weekly summary included one linked correction draft; this figure does not claim a bulk correction submission test.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "worker-correction",
-      "title": "Correct returned time and retain history",
-      "route": "Time → returned source → Create corrected draft",
-      "context": "Isolated BBS role lab · genuine Worker account · fictional October 2026 records",
-      "paragraphs": [
-        "Worker 2 recorded three hours on October 15, outside their finalized October 1–14 settlement. The genuine PM returned it for a correction to 2.5 hours. A correction creates a linked replacement and preserves the original record.",
-        "After a corrected draft is created, inspect all values and the original link before submission; the detail does not offer an unrestricted edit of that correction. An unsubmitted correction may offer Withdraw correction draft with a required reason; withdrawal was observed as a control but not exercised here."
-      ],
-      "steps": [
-        "Open the Needs changes source and read the reviewer’s reason. Use Create corrected draft.",
-        "Set Actual hours to 2.5, review date/category/activity and enter a concrete Correction reason. Create the draft.",
-        "Open the linked Draft and use individual Submit. The permitted reviewer then operationally approves it.",
-        "Filter October 15 and inspect the current register. Do not add the old and replacement durations together."
-      ],
-      "checks": [
-        "The original 3 h remains Needs changes; the linked 2.5 h is Approved. Together with the separately corrected delegated travel entry of 0.75 h, current approved activity is 195 minutes = 3.25 h."
-      ],
-      "recovery": [
-        "If the reason or values are wrong, contact the reviewer before creating another version. No duplicate unlinked row should be used as a correction."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/23-worker2-returned.png",
-          "caption": "Worker 2 original source returned by the genuine PM.",
-          "orientation": "landscape"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/24-worker2-correction-filled.png",
-          "caption": "Native correction form changes three hours to 2.5 and requires a reason.",
-          "orientation": "landscape"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/28-worker2-corrected-register.png",
-          "caption": "Current approved 2.5 h + 0.75 h; historical original sources remain visible without counting twice.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "worker-settlement-guard",
-      "title": "Hand settled compensation changes to Finance",
-      "route": "Time → returned source → Create corrected draft",
-      "context": "Isolated BBS role lab · genuine Worker account · fictional October 2026 records",
-      "paragraphs": [
-        "The Worker 1 October 6 source was fresh and unbilled, yet its worker compensation period was already covered by a finalized October 1–31 settlement. Attempting the returned 4 h → 3.5 h correction was refused.",
-        "The exact message was: “This time has settled or paid worker compensation. Contact Finance for an explicit adjustment before any new correction.” A fresh work date or absence of an invoice does not override a finalized worker-side settlement."
-      ],
-      "steps": [
-        "Read the guard and keep the existing returned source intact.",
-        "Send Finance/Owner the source ID, worker, project, date, current/desired hours and correction reason. Wait for their supported explicit adjustment process."
-      ],
-      "checks": [
-        "No replacement draft was created by the refused operation. The finalized USD 720 settlement was not changed."
-      ],
-      "recovery": [
-        "Do not add an unlinked replacement, shift the work date, change the worker or ask someone to erase settlement history to bypass the guard."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/20-worker-settlement-correction-blocked.png",
-          "caption": "Actual expected guard for Worker 1; this is a tested blocked state, not a successful correction.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "worker-expense",
-      "title": "Record one expense with private receipt evidence",
-      "route": "Expenses → Record expense",
-      "context": "Isolated BBS role lab · genuine Worker account · fictional October 2026 records",
-      "paragraphs": [
-        "The worked expense is an explicitly synthetic USD 12 tools/consumables purchase on October 6, paid by Worker 1. Its image says training only and no real purchase. A receipt upload is private evidence, not proof that Finance has approved reimbursement or that a bank transfer happened.",
-        "The native form accepts JPG, PNG, HEIC or PDF receipts up to 10 MB. Operational purchase amount, who paid, worker reimbursement and customer recovery are separate. Preserve the actual receipt currency and payer."
-      ],
-      "steps": [
-        "Choose Record expense. Attach Receipt image or PDF, select Project, Date and Category, and fill Amount, Currency, Who paid and Description. Vendor/payment method and local time/related hours are offered contextual fields.",
-        "Use Save draft. Open the saved expense and inspect the registered private receipt and all purchase values.",
-        "Use Submit on the detail. The genuine PM operationally approved the expense; Finance then saved Reimburse at cost / Bill at cost and recorded Finance review."
-      ],
-      "checks": [
-        "Exactly one expense exists for USD 12, Worker payer, with its registered receipt. Own receipt download returned HTTP 200. Financial eligibility does not itself record reimbursement."
-      ],
-      "recovery": [
-        "If receipt processing or permission prevents access, use the precise document status/message and ask support. Uploading/registered does not universally mean antivirus-clean. Do not duplicate a purchase while checking a failed submission."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/06-expense-filled.png",
-          "caption": "Actual own Worker expense form with a conspicuously synthetic receipt.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/07-expense-saved-receipt.png",
-          "caption": "Saved expense with registered receipt; reimbursement and customer billing remain separate.",
-          "orientation": "landscape"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/08-expense-submitted.png",
-          "caption": "Submitted expense handed to operational review, then Finance classification.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "worker-expense-exceptions",
-      "title": "Use expense batch tools and corrections carefully",
-      "route": "Expenses → Enter a week in a table; Submit this week",
-      "context": "Reference procedure · current controls/source checked; mutations not exercised in this role lab",
-      "paragraphs": [
-        "The weekly expense table records actual purchases, not planned budgets. Save daily drafts creates the offered day/project/person rows; attach each required receipt through the saved draft’s permitted edit flow. A worker-paid cost may be non-reimbursable or non-billable under its dated policy.",
-        "Expense weekly submission checks the selected own draft set. A changed row or missing required evidence can block the set; resolve the named record rather than creating replacements. A returned or financially linked expense follows its permitted state-specific correction process."
-      ],
-      "steps": [
-        "Inspect existing expense rows and period before using the weekly table. Enter actual category, amount, currency, payer and description, then Save daily drafts.",
-        "Open each draft and attach/verify its receipt before submission.",
-        "Read the draft count under Submit this week and inspect results after submitting. For an already submitted/reviewed expense, open its detail and use only controls actually offered for that state."
-      ],
-      "checks": [
-        "Purchase totals agree with the receipts. A worker cannot make an expense reimbursable simply by selecting Worker as payer."
-      ],
-      "recovery": [
-        "Hand reviewed, paid or billed expense corrections to the applicable reviewer/Finance with original evidence. Never change a real purchase currency to avoid a missing conversion rule."
-      ],
-      "figures": []
-    },
-    {
-      "id": "worker-daily",
-      "title": "Save and submit a daily field report",
-      "route": "Reports → New daily report",
-      "context": "Isolated BBS role lab · genuine Worker account · fictional October 2026 records",
-      "paragraphs": [
-        "A daily report tells the operational story. It does not create actual hours, technical approval, customer acceptance or an invoice. The Worker exercise describes a fictional bench inspection and has its own report ID.",
-        "The actual form begins with Project, Work date, Site / shift, Shift summary and Tasks completed. It also offers Problems found, Corrective actions, Downtime minutes, Standby reason, Open items, Next day plan and a safety flag. Report actual conditions, including genuine risks; this training bench had no live production change."
-      ],
-      "steps": [
-        "Choose New daily report. Complete Project, Work date and the factual summary/tasks; fill applicable problems/actions/downtime/next-step fields.",
-        "Use Save daily report. Open the Draft report and inspect its header and content. Saving/autosaving content does not submit it.",
-        "Use Submit for review. Confirm Submitted. The genuine PM approved this source in the role lab."
-      ],
-      "checks": [
-        "Saved report progressed Draft → Submitted → Approved without adding hours. Submitted attachments/content are read-only in this account."
-      ],
-      "recovery": [
-        "Correct an unsent draft using its available edit controls. For submitted/returned/approved reports, use the offered correction flow or hand the specific record to the reviewer; do not overwrite approved history."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/09-daily-filled.png",
-          "caption": "Worker Daily form: actual top fields and fictional bench details.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/10-daily-saved.png",
-          "caption": "Saved Daily Draft header.",
-          "orientation": "landscape"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/11-daily-submitted.png",
-          "caption": "Daily Submitted after the separate review action; PM approval followed.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "worker-technical",
-      "title": "Describe a technical change without treating it as permission",
-      "route": "Reports → New technical report",
-      "context": "Isolated BBS role lab · genuine Worker account · fictional October 2026 records",
-      "paragraphs": [
-        "Technical reports identify a system and document Problem / symptom, Diagnosis / root cause, Change performed, validation, remaining risk and rollback. Submitting a report does not authorize a live PLC change or substitute for your employer’s safety/change-control procedure.",
-        "The exercised report is explicitly a fictional bench. Offered fields include System / machine, Plant / site, Area / line, Station / machine, System type, PLC platform, Controller, HMI / SCADA, Network / protocol, Software version and Program / project reference. The actual save label is Save PLC report."
-      ],
-      "steps": [
-        "Choose New technical report. Identify the equipment and write the problem, diagnosis and change in readable factual language.",
-        "Fill Production impact, Validation performed/result, Open risk / issue, Rollback plan and safety impact where applicable. Use Save PLC report.",
-        "Open the Draft and inspect the details; use Submit for review, then verify the reviewer’s resulting state."
-      ],
-      "checks": [
-        "The Worker report reached Submitted and was operationally approved by the genuine PM. No real PLC or live equipment was modified."
-      ],
-      "recovery": [
-        "A missing validation or safety decision needs a real responsible-person handoff. Do not invent a successful validation to make the report look complete."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/12-technical-filled.png",
-          "caption": "Native Technical form for the fictional worker bench.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/14-technical-submitted.png",
-          "caption": "Technical report Submitted; it remains distinct from actual time and customer sign-off.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "worker-report-evidence",
-      "title": "Understand report PDFs, attachments and customer acceptance",
-      "route": "Reports → your report detail",
-      "context": "Reference procedure · current controls/source checked; mutations not exercised in this role lab",
-      "paragraphs": [
-        "Permitted private attachments are evidence associated with a report. The offered upload types include PDF, ZIP, common images and UTF-8 text, with the displayed 50 MB limit. Use the actual type/note fields and current draft controls; do not upload unrelated personal or financial records.",
-        "A customer period PDF is a separate versioned report assembled by an authorized role. Customer acceptance binds genuine signer/evidence to the prepared version. Your own Daily or Technical approval does not itself establish customer sign-off. If underlying content changes, an authorized refresh creates a later version; it must not silently rewrite a signed snapshot."
-      ],
-      "steps": [
-        "Before submitting a report, attach the required authorized evidence through its attachment controls and verify the registered status.",
-        "Where Download is offered, wait for the artifact’s ready state and open the native file. Hand missing/failed artifacts to the named responsible role.",
-        "Give the PM/Owner the report ID when its contents must be included in a period report or customer acceptance workflow."
-      ],
-      "checks": [
-        "Content, audience and report version are known. A downloaded report is not a recorded customer signature."
-      ],
-      "recovery": [
-        "Do not attach fabricated signed evidence, share private attachment links, or assume a saved draft has been delivered. Attachment/PDF/signature actions were not performed for these role reports."
-      ],
-      "figures": []
-    },
-    {
-      "id": "worker-pay",
-      "title": "Read your own compensation and reimbursement",
-      "route": "My Pay → From / Through → Apply period",
-      "context": "Isolated BBS role lab · genuine Worker account · fictional October 2026 records",
-      "paragraphs": [
-        "My Pay displays your own activity and governed compensation estimates, reviewed settlements, expected dates, actual recorded payments and reimbursement information. Customer invoice frequency and worker payment frequency are independent. Owner/Finance choose settlement periods and expected payment dates; there is no automatic worker payroll cadence demonstrated here.",
-        "Worker 1’s historical monthly settlement is USD 720, scheduled November 3, actual paid zero. Daily compensation can differ from actual hours and customer billing units. Worker 2’s October 15–16 approved 195 minutes shows a USD 900 Fixed Per Billing Period estimate; it is not an hourly prorated amount or proof that USD 900 was paid.",
-        "Exact activity is 2.5 h + 0.75 h = 3.25 h. My Pay summary rounds to one decimal (3.3 h and 0.8 h travel); rounding is not extra work. “No reviewed payments outstanding” can coexist with an estimate that has not yet become a reviewed settlement. A recorded payment is a business entry, not independent proof of a bank transfer."
-      ],
-      "steps": [
-        "Select From and Through, then Apply period. Read approved and pending amounts separately by currency.",
-        "Open the compensation statement/activity detail and compare exact time records. Read reviewed settlement period, scheduled date, paid and remaining balances independently.",
-        "Check reimbursement obligations separately from compensation and customer charges."
-      ],
-      "checks": [
-        "You see your own pay, not another worker’s or customer invoice economics. Selected source dates may differ from a settlement’s wider period."
-      ],
-      "recovery": [
-        "Ask Finance about missing rules, period coverage, reimbursement classification, payment references or discrepancies. Do not infer worker pay from a customer invoice or a planned date."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/15-own-my-pay.png",
-          "caption": "Worker 1 own historical payment snapshot: scheduled is distinct from paid.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "worker-statement",
-      "title": "Generate your own statement and check readiness",
-      "route": "My Pay → Worker statement",
-      "context": "Isolated BBS role lab · genuine Worker account · fictional October 2026 records",
-      "paragraphs": [
-        "Generate report queues an own-worker PDF and CSV for the selected period. It does not expose Finance’s project workbook. Queued, Ready and failed/preparation states must be checked before downloading.",
-        "The first October 15 attempt encountered an isolated operator-runner configuration error: its handler was unavailable. Its failed job history was preserved. A fresh October 15–16 native request was processed by the ordinary Worker Statement handler. Both PDF and CSV became Ready and were downloaded through the own Worker account; the receipt records their canonical hash checks."
-      ],
-      "steps": [
-        "Apply the intended From / Through dates and choose Generate report.",
-        "If queued, use Check statement status after processing. Use the offered PDF/CSV downloads only when Ready.",
-        "Check your identity, period, activity and currency in the downloaded output."
-      ],
-      "checks": [
-        "PDF and CSV Ready were observed in the native UI. Both own downloads succeeded. The artifact contains 195 approved minutes, two linked current sources, the selected October 15–16 period and the Worker 2 identity. The statement is scoped to the own account."
-      ],
-      "recovery": [
-        "For a failed or indefinitely queued statement, ask the Owner/support to inspect the artifact job using the period and exact status. Do not repeatedly submit the same request or claim that Queued means a delivered file."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/32-worker-statement-ready.png",
-          "caption": "Native own Worker statement Ready for October 15–16; PDF and CSV downloaded separately.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
       "id": "worker-mobile",
       "title": "Use phone and tablet views",
       "route": "Time; Expenses; Reports; More",
@@ -629,7 +687,8 @@
       "route": "Today → Time → Expenses → Reports → My Pay",
       "context": "Isolated BBS role lab · genuine Worker account · fictional October 2026 records",
       "paragraphs": [
-        "Use this task checklist on your own project. A saved draft is not a completed workday, and a submitted source still needs the appropriate review."
+        "Use this task checklist on your own project. A saved draft is not a completed workday, and a submitted source still needs the appropriate review.",
+        "The October 6 readiness audit adds explicit native-browser outcomes and state-specific limits. Per-ID status and source IDs are recorded under docs/evidence/bbs-readiness-20261006/worker-chief. Earlier planning/role-lab screenshots retain their original historical scope; they are not the state of the new readiness sources."
       ],
       "steps": [
         "Confirm account/environment/project/date; inspect plans without treating them as actual work.",
@@ -640,10 +699,11 @@
         "Check approved/pending sources and own My Pay; follow reimbursement/settlement questions separately from client billing."
       ],
       "checks": [
-        "Lab passes: native time/expense/report saving and submission, successful linked correction and PM approval, expected finalized-settlement guard, own receipt access, denied unrelated financial access and responsive views."
+        "Lab passes: native time/expense/report saving and submission, successful linked correction and PM approval, expected finalized-settlement guard, own receipt access, denied unrelated financial access and responsive views.",
+        "Readiness native results: own ordinary and current linked time correction Submitted together, count 2→0; receipt-backed weekly expenses and returned expense recovery, own Daily/Technical Ready PDF downloads before submission, and own statement PDF/CSV downloads. See the readiness per-ID audit for exact current states."
       ],
       "recovery": [
-        "Reference-only here: account onboarding/sign-in reset, weekly table/layout-copy mutations, bulk expense submission, report attachments/customer acceptance, expertise/availability/security mutations and real bank/email delivery. Native statement result is documented in the evidence appendix."
+        "Reference-only: account onboarding/security recovery, layout copying, customer acceptance, own expertise/availability/security changes, and real bank/email delivery. A required missing receipt weekly guard was source checked; the native weekly form creates receipt-optional drafts, so this lab does not claim a missing-required-receipt runtime test."
       ],
       "figures": []
     },
@@ -654,7 +714,9 @@
       "context": "Isolated BBS role lab · actual browser outcomes and explicit limits",
       "paragraphs": [
         "Native authenticated browser records, synthetic receipt fixtures and SHA-256 capture manifests are maintained with the guide. Account secrets are excluded. Original billed October 2–5 history and finalized worker settlements were preserved.",
-        "Actual saved/submitted/returned/approved states are distinguished from controls merely inspected. The Owner/PM/Finance handoffs used their own genuine role sessions. This evidence does not claim real bank transfers, live equipment changes or production transactions."
+        "Actual saved/submitted/returned/approved states are distinguished from controls merely inspected. The Owner/PM/Finance handoffs used their own genuine role sessions. This evidence does not claim real bank transfers, live equipment changes or production transactions.",
+        "Historical runner exception: the first October 15 statement attempt failed because the isolated operator handler was unavailable. That failed job remains in history. A fresh October 15–16 request subsequently produced the verified Ready PDF and CSV; this setup failure is not the ordinary statement procedure.",
+        "The October 6 readiness audit adds explicit native-browser outcomes and state-specific limits. Per-ID status and source IDs are recorded under docs/evidence/bbs-readiness-20261006/worker-chief. Earlier planning/role-lab screenshots retain their original historical scope; they are not the state of the new readiness sources."
       ],
       "steps": [
         "Own time saved and submitted; the PM returned it, and the finalized-settlement correction was refused without creating a replacement.",
@@ -673,7 +735,7 @@
         "See the adjacent task checklist and role capture manifest for source IDs, screen widths, artifact integrity and expected permission denials."
       ],
       "recovery": [
-        "Reference-only or unperformed here: Account invitation/security recovery; Weekly table/layout copy mutations; Bulk expense and bulk linked correction submission; Report attachments/customer acceptance; Own skills/availability/security mutations; Actual bank transfer/email delivery."
+        "The historical labs above retain their own scope. This readiness audit additionally tested weekly ordinary/linked correction submission, weekly receipt attachment/submission and returned expense recovery, own report PDF generation/download and returned ordinary report editing, and own Ready statement downloads. Customer acceptance, live email/bank delivery and profile/security changes remain unperformed. Required missing receipt weekly rejection remains source checked."
       ],
       "figures": []
     }

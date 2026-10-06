@@ -200,7 +200,7 @@ export const manualCatalog: readonly ManualDefinition[] = [
     },
     audience: 'administration-finance',
     locales: ['en'],
-    revision: '2026-10-05',
+    revision: '2026-10-06',
     allowedPersonas: ['owner', 'finance'],
     assets: { en: { sourceName: 'BBS_Project_to_Client_Invoices_Guide_EN.pdf' } },
   },
@@ -314,6 +314,7 @@ export function manualsForPersona(persona: ManualPersona | null): readonly Manua
   available.sort(
     (a, b) =>
       Number(b.id === primary) - Number(a.id === primary) ||
+      Number(b.id.endsWith('-manual')) - Number(a.id.endsWith('-manual')) ||
       b.revision.localeCompare(a.revision) ||
       (persona === 'owner'
         ? Number(b.audience === 'administration-finance') -

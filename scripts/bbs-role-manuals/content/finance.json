@@ -1,16 +1,16 @@
 {
   "role": "finance",
-  "title": "Finance · BBS operating cycle",
+  "title": "Finance \u00b7 BBS operating cycle",
   "subtitle": "Financial review, customer billing, collections, worker obligations, exports and closing",
   "chapters": [
     {
       "id": "finance-start",
       "title": "Start with your Finance account",
-      "route": "Sign in → Finance Overview",
-      "context": "Worked example · actual Finance account in the isolated BBS role lab; navigation and phone drawer verified. Later role practice is separate from the original October 1–5 checkpoint.",
+      "route": "Sign in \u2192 Finance Overview",
+      "context": "Worked example \u00b7 actual Finance account in the isolated BBS role lab; navigation and phone drawer verified. Later role practice is separate from the original October 1\u20135 checkpoint.",
       "paragraphs": [
-        "Use the individual Finance account issued by the Owner. The platform role is finance_admin. Sign in with your own credentials; the Owner is responsible for creating and activating access. The worked project is C-0050-P-20261005 — BBS · Ejemplo de manual. Original BBS Mexico and Junkers are outside this exercise.",
-        "Practice only in a separately authorized training environment. The native issued training invoices, numbering approval fixture and simulated money records are not production transactions. New 6 October role exercises are separate from the original 1–5 October calculation examples.",
+        "Use the individual Finance account issued by the Owner. The platform role is finance_admin. Sign in with your own credentials; the Owner is responsible for creating and activating access. The worked project is C-0050-P-20261005 \u2014 BBS \u00b7 Ejemplo de manual. Original BBS Mexico and Junkers are outside this exercise.",
+        "Practice only in a separately authorized training environment. The native issued training invoices, numbering approval fixture and simulated money records are not production transactions. New 6 October role exercises are separate from the original 1\u20135 October calculation examples.",
         "Finance Overview is the starting control view; Economic Review provides source records and settlements; Commercial Configuration holds dated commercial treatment; Billing creates and manages customer documents; Collections / Ledger records receipts and reversals; Accounting creates a portfolio period pack. Notifications, Profile and Help support your own account."
       ],
       "steps": [
@@ -22,7 +22,7 @@
         "The project selector and heading agree. You see Finance navigation, not Owner administration or Audit."
       ],
       "recovery": [
-        "An absent project, inactive account or permission error requires an Owner/support handoff. Do not borrow another person’s account."
+        "An absent project, inactive account or permission error requires an Owner/support handoff. Do not borrow another person\u2019s account."
       ],
       "figures": [
         {
@@ -40,17 +40,17 @@
     {
       "id": "finance-planning-actual",
       "title": "Reconcile a work plan with actual source hours",
-      "route": "Economic Review → select BBS → Source records → Time entries",
-      "context": "Worked example · separate isolated BBS assignment lab · synthetic October 20, 2026 · authenticated Finance browser session after operational approval",
+      "route": "Economic Review \u2192 select BBS \u2192 Source records \u2192 Time entries",
+      "context": "Worked example \u00b7 separate isolated BBS assignment lab \u00b7 synthetic October 20, 2026 \u00b7 authenticated Finance browser session after operational approval",
       "paragraphs": [
         "Project membership permits dated access; a published planning assignment is an operational reference. Expected working hours are a separate dated schedule. None of these creates actual time, Finance review, an invoice, a compensation settlement or a payment.",
-        "The isolated October 20 exercise published eight planned hours to each of three internal workers. Their separately saved and operationally approved sources contain six hours for Technician 1, seven for Technician 2 recorded by the delegated Chief, and eight for the Chief: 21 actual hours, not the 24 planned hours. This synthetic exercise is outside the original October 1–5 financial checkpoint.",
+        "The isolated October 20 exercise published eight planned hours to each of three internal workers. Their separately saved and operationally approved sources contain six hours for Technician 1, seven for Technician 2 recorded by the delegated Chief, and eight for the Chief: 21 actual hours, not the 24 planned hours. This synthetic exercise is outside the original October 1\u20135 financial checkpoint.",
         "The weekly timesheet compares Actual against the effective Expected schedule. Difference is Actual minus Expected; Needs note flags a mismatch and can coexist with an Approved source. It does not mean a finalized payment or a failed operational approval. A missing expected figure is not assumed to be zero.",
         "There is no dedicated worker-goal acceptance or completion workflow. Daily/Technical reports describe completed tasks, problems and next steps. Project milestones and commercial budgets have separate lifecycles; meeting a hours target is not evidence that a milestone is approved.",
         "In this screenshot, client revenue and billable hours remain zero because this new operational exercise has not completed Finance billability review. Zero here is not an agreed zero customer rate. A source-row compensation projection is not a finalized settlement balance; review fixed-period agreements at their applicable settlement scope."
       ],
       "steps": [
-        "Select C-0050-P-20261005 · BBS · Ejemplo de manual. Open Source records → Time entries.",
+        "Select C-0050-P-20261005 \u00b7 BBS \u00b7 Ejemplo de manual. Open Source records \u2192 Time entries.",
         "Use Search: Source records to enter 2026-10-20. Read the filtered count, individual worker, actual hours, source state and billing state; the broader Time source records count still describes the full selected project.",
         "Confirm the three Approved operational sources show six, seven and eight hours. Follow the exact source link when investigating a discrepancy; do not substitute planned hours for recorded time.",
         "Keep worker expected-hours targets separate from client daily minimums, full-day/full-week billing units and contractual worker compensation."
@@ -66,7 +66,7 @@
       "figures": [
         {
           "src": "docs/evidence/bbs-planning-20261006/finance/screenshots/01-finance-Oct20-actual-sources.png",
-          "caption": "Actual Finance session · October 20 filter selects three Approved synthetic BBS sources: 8 h Chief, 6 h Technician 1 and 7 h Technician 2. Finance billability review is separate; plans did not create these source rows.",
+          "caption": "Actual Finance session \u00b7 October 20 filter selects three Approved synthetic BBS sources: 8 h Chief, 6 h Technician 1 and 7 h Technician 2. Finance billability review is separate; plans did not create these source rows.",
           "orientation": "landscape"
         }
       ]
@@ -74,8 +74,8 @@
     {
       "id": "finance-boundaries",
       "title": "Know your authority and the Owner handoffs",
-      "route": "Billing → Configure billing; Projects → project → Billing",
-      "context": "Reference procedure · checked against current source; not yet executed in this role lab",
+      "route": "Billing \u2192 Configure billing; Projects \u2192 project \u2192 Billing",
+      "context": "Reference procedure \u00b7 checked against current source; not yet executed in this role lab",
       "paragraphs": [
         "Finance may review billability and expense treatment, maintain permitted commercial rules and billing streams, create/review customer invoices, issue an approved invoice under an existing numbering policy, record collections and worker-side payments, and generate/review/finalize Accounting Packs. Every operation is still checked on the server against a live account and the applicable record.",
         "Owner-only tasks include legal invoice issuer/numbering policy setup and voiding an issued invoice. Finance does not gain Owner account management or the Audit workspace. A source-linked draft can also require Owner intervention to discard. Client billing units, worker pay calculation and internal cost basis are independent.",
@@ -97,30 +97,41 @@
     {
       "id": "finance-review",
       "title": "Review actual work after operational approval",
-      "route": "Approvals → Finance review",
-      "context": "Reference procedure · checked against current source; not yet executed in this role lab",
+      "route": "Approvals \u2192 Finance review",
+      "context": "Worked example \u00b7 FN01 \u00b7 actual Finance Record Finance review on a separate synthetic October 26 source; before and saved after states verified.",
       "paragraphs": [
-        "A worker submits operational facts. An Owner, permitted project reviewer or delegated chief handles the applicable operational review. Finance review begins only after operational approval; it determines financial eligibility without changing actual hours.",
-        "Use Search Finance review to isolate the BBS record by worker/date/project. An empty queue demonstrates that nothing matching needs Finance review; it is not proof that a particular missing source was approved or paid."
+        "Operational approval and Finance billability are separate decisions. Internal time can be reviewed by Owner/Finance or a Project Manager with the applicable project grant; a Chief assignment alone does not authorize approval. Supplier TIME is an Owner review handoff. Finance review then determines commercial eligibility without changing actual hours.",
+        "The October 26 training source records one hour for Technician 1. Owner created/submitted/operationally approved the authorized on-behalf example; Finance selected Billable and recorded its Finance review. It was subsequently included in the normal USD 600 invoice under the existing full-day agreement. This is separate from the original October 1\u20135 checkpoint and the October 20 planning exercise."
       ],
       "steps": [
-        "Open the exact operationally approved time record. Check project, person, work date, actual duration, category, current version and any correction link.",
-        "In the Finance review row select Billable or Non-billable according to the contract, then use its Finance review action.",
-        "Reopen the relevant Economic Review source and verify its reviewed billability. Repeat independently for each source."
+        "Open Approvals and use Search Finance review to identify the exact BBS person/date/source. Review actual duration, operational Approved state, category, current version and correction links.",
+        "In that row choose Commercial treatment \u2192 Billable or Non-billable under the dated agreement. Click Record Finance review once.",
+        "Reload the exact source detail or Economic Review source row. Verify the saved billability and unchanged actual duration before invoice preparation."
       ],
       "checks": [
-        "Actual hours remain unchanged. Only the intended financial treatment changes. A returned, submitted or active correction record must first complete its operational workflow."
+        "Before review the one-hour source needed Finance classification; after review it is Billable and still one actual hour. An empty filtered queue alone does not establish a missing source\u2019s state."
       ],
       "recovery": [
         "If the source is absent, inspect operational state, person/project scope, search filters, dated rules, correction state and existing invoice links. Ask the operational reviewer to correct the real source; never duplicate it to make billing work."
       ],
-      "figures": []
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/02-finance-fresh-review-before.png",
+          "caption": "Before Record Finance review: approved October 26 one-hour synthetic source and its commercial-treatment control.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/04-finance-time-billable-after.png",
+          "caption": "Saved source after Finance review: Actual 1 h and Billable. Issuance later locks the source independently.",
+          "orientation": "landscape"
+        }
+      ]
     },
     {
       "id": "finance-expenses",
       "title": "Classify an expense before Finance review",
-      "route": "Approvals → Finance review → Classify expense in Finance",
-      "context": "Worked example · actual Finance account classified the new fictional October 6 USD 12 worker expense using saved at-cost policy, then recorded Finance review. No purchase or reimbursement transfer occurred.",
+      "route": "Approvals \u2192 Finance review \u2192 Classify expense in Finance",
+      "context": "Worked example \u00b7 actual Finance account classified the new fictional October 6 USD 12 worker expense using saved at-cost policy, then recorded Finance review. No purchase or reimbursement transfer occurred.",
       "paragraphs": [
         "Purchase amount, payer, worker reimbursement, company direct cost and customer recovery are separate. The original BBS expenses demonstrate USD 230 spent, USD 180 reimbursable and USD 182 charged to the client.",
         "Check the receipt, currency, worker-paid versus company-paid payer, work date and project before classifying. A document in quarantine or awaiting a scan is not a usable verified receipt. Customer billability alone does not prove worker reimbursement.",
@@ -130,7 +141,7 @@
         "Open Classify expense in Finance for the exact expense. Review existing expense and reimbursement policy/date coverage.",
         "Choose the offered commercial treatment and reimbursement classification using the approved agreement; enter only supported verified project-currency values. Save the classification.",
         "Return to Approvals, inspect the classified expense and complete Finance review.",
-        "Verify the source’s customer recovery, company cost, reimbursement obligation and review state separately in Economic Review."
+        "Verify the source\u2019s customer recovery, company cost, reimbursement obligation and review state separately in Economic Review."
       ],
       "checks": [
         "The purchase amount and operational evidence remain intact. Reimbursement and customer recovery are not both assumed equal to the receipt."
@@ -159,55 +170,68 @@
     {
       "id": "finance-commercial",
       "title": "Check dated agreements and independent pay rules",
-      "route": "Commercial Configuration; Projects → BBS → Billing → Review each person",
-      "context": "Reference procedure · checked against current source; not yet executed in this role lab",
+      "route": "Commercial Configuration; Projects \u2192 BBS \u2192 Billing \u2192 Review each person",
+      "context": "Worked example \u00b7 FN02 \u00b7 actual Finance future dated person agreement saved for November 1; October 31 overlap rejection retained. Field alternatives checked in current source.",
       "paragraphs": [
-        "Project defaults and saved person overrides determine financial treatment on their effective dates. Customer hourly/day/week rates do not set the worker’s pay. Internal loaded hourly cost is a further independent economic basis.",
-        "Worker compensation can use Hourly, Daily, Fixed per billing period, fixed project or percentage methods according to the actual rule. Fixed per billing period is a calculation method, not automatic weekly payroll. There is no saved automatic weekly/monthly worker payment cadence in this release."
+        "Project defaults, saved person terms and their effective dates determine treatment. Customer billing units, worker compensation and internal hourly cost are independent. Saving unchanged existing overrides may leave their original effective dates; changing a future value creates a new dated rule. Copying draft terms does not save them.",
+        "The original Technician 1 customer day rate remains USD 600 for the October 26 invoice. A separate synthetic November 1 practice agreement saves USD 610/day, while internal cost USD 35/h and the selected Daily worker compensation USD 240/day remain independent. An attempted October 31 save was rejected because the existing finalized October settlement overlaps that date. No historical invoice or reviewed settlement was rewritten."
       ],
       "steps": [
-        "Select the same BBS project and person. Review the current saved rule, effective date, currency and any earlier agreement covering the work.",
-        "When authorized to change a future agreement, enter the exact contract values and effective date, then save the appropriate form. Copying values into a draft form alone does not persist them.",
-        "Reopen the saved rule and check its date coverage before finance review or settlement."
+        "Open Projects \u2192 BBS \u2192 Billing. Continue through the invoice-setup steps to 3. Review each person; select the intended person.",
+        "Set Terms effective from. Review Customer billing unit (Hourly/Daily/Weekly) and the corresponding Customer hourly/daily/weekly rate (USD), Internal hourly cost (USD), Worker compensation method and Worker compensation rate/percentage. Percentage methods also require the displayed eligible basis.",
+        "Review Expense payer, Worker reimbursement source (project default or person override), Reimburse worker, Charge customer for expense and any markup. The expense treatment saves only the selected payer\u2019s policy.",
+        "Use Save these rates as explicit person overrides when intentionally preserving inherited rates. Click that person\u2019s Save person terms, wait for Assignment commercial rules saved, then reopen and verify the effective rule/date and no unsaved changes."
       ],
       "checks": [
-        "Earlier approved work keeps its applicable historical terms. A later agreement does not silently rewrite an issued invoice or finalized settlement."
+        "Worker methods include Hourly, Daily, Fixed per billing period, Fixed project amount and Percentage of eligible client labor. A fixed period calculation is not an automatic weekly/monthly bank-payment cadence.",
+        "Existing terms on the same date are immutable. New dates must avoid issued invoices and finalized obligations; a later date does not unlock earlier sources."
       ],
       "recovery": [
-        "Missing, conflicting or expired terms require a reviewed dated agreement. Do not choose an arbitrary rate until a calculation happens to look right. Owner issuer revisions/numbering are a separate handoff."
+        "Retain the person, intended effective date and overlap message. Use a later legitimate date or the supported obligation-correction handoff; do not reverse cash to bypass historical terms."
       ],
-      "figures": []
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/33-finance-future-november-terms-input.png",
+          "caption": "Separate synthetic future agreement: November 1 customer day rate USD 610, independent cost and worker pay.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/35-finance-future-terms-saved.png",
+          "caption": "Saved future person terms. The October invoice retains its USD 600/day rule.",
+          "orientation": "landscape"
+        }
+      ]
     },
     {
       "id": "finance-streams",
       "title": "Create and review a billing stream",
-      "route": "Billing → Billing streams → Configure billing",
-      "context": "Worked example · actual Finance account inspected the saved BBS Labor and Expense streams, their effective dates and distinct Manual/Weekly/Monthly cadences. Adding/changing streams and automatic draft execution are source-checked reference procedures; no stream configuration was changed.",
+      "route": "Billing \u2192 Billing streams \u2192 Configure billing",
+      "context": "Worked example \u00b7 FN02 \u00b7 Finance saved a new Manual Labor stream effective October 26 under the existing approved synthetic issuer/numbering fixture.",
       "paragraphs": [
-        "A stream separates the customer document flow from worker settlement and expense reimbursement. Labor, Expense and permitted mixed streams have a customer invoice cadence, issuer, currency, effective dates and tax/reporting settings.",
-        "The original BBS opening Labor stream uses a manual partial-week period. Copy its verified starting state only when inspecting the saved example; do not create a duplicate invoice for sources already issued."
+        "A billing stream chooses cadence, output template and invoice defaults. It does not set worker pay, manufacture approved sources or establish accountant approval. Saving the later Labor stream ended the previous Weekly stream on October 25; its historical invoice snapshots remain intact.",
+        "The tested stream uses Labor, Manual, effective October 26, JA-USA issuer, USD and Labor detailed template. Tax profile None requires the displayed review. Owner controls legal-issuer revisions and approved numbering; Finance uses an already authorized configuration."
       ],
       "steps": [
-        "Select the client/project and inspect existing streams before adding one.",
-        "Use Configure billing. Choose Project, Legal entity, Stream type, Cadence, Currency and Effective from plus the actual offered period/tax/report fields.",
-        "Review the configuration summary, save the stream, then reopen Manage stream to verify the persisted values.",
-        "For an automatic cadence, inspect the expected proposed period and ready sources; automatic processing does not waive reporting, acceptance or finance checks."
+        "Open Billing \u2192 Configure billing. In the billing-stream form select Project, Stream (Labor/Expenses/Milestone/Other), Cadence and Effective from.",
+        "Cadence options are Weekly, Every 14 days, Semi-monthly, Monthly, Custom, Milestone and Manual. Review Anchor date where shown; Every 14 days requires an anchor. Semi-monthly uses days 1\u201315 and 16\u2013month end. Manual requires an explicit invoice/closing cut.",
+        "Set Invoice issuer (J&A Automation), Tax profile, Invoice template, Recipient email, Billing contact, Payment terms (days) and PO reference. Currency follows the project/issuer setup. Grouping follows the chosen template.",
+        "Choose Generate drafts when stream is due only when intended; click Save billing stream. Find the saved stream and verify its dates, cadence, issuer and historical predecessor."
       ],
       "checks": [
-        "Stream dates and issuer coverage include the intended work and issue date. Invoice cadence remains independent of worker payment periods."
+        "Issuer coverage and approved numbering must cover actual issue dates. A populated proposed numbering convention is not genuine approval. A stream cannot override source readiness or customer acceptance requirements."
       ],
       "recovery": [
-        "Finance can maintain permitted stream settings. Owner must resolve unavailable issuer/numbering authority. Do not switch issuer merely to evade an uncovered historical period."
+        "For issuer/numbering gaps ask Owner with the intended stream and issue date. Preserve archived historical issuers and old invoice masters."
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/31-finance-weekly-labor-stream.png",
-          "caption": "Saved Labor stream: Weekly customer invoicing from October 5. It does not set worker payment frequency.",
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/08-finance-new-stream-filled.png",
+          "caption": "Actual filled new Manual Labor stream before Save billing stream.",
           "orientation": "landscape"
         },
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/32-finance-monthly-expense-stream.png",
-          "caption": "Saved Expense stream: Monthly cadence from October 1. Reimbursement and customer expense recovery remain independent.",
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/25-finance-saved-manual-stream.png",
+          "caption": "Saved October 26 Manual Labor stream and explicit Close sources controls.",
           "orientation": "landscape"
         }
       ]
@@ -215,68 +239,67 @@
     {
       "id": "finance-draft",
       "title": "Create and review the customer invoice draft",
-      "route": "Billing → Invoices → Create invoice",
-      "context": "Reference procedure · checked against current source; not yet executed in this role lab",
+      "route": "Billing \u2192 Invoices \u2192 Create invoice",
+      "context": "Worked example \u00b7 FN03 \u00b7 actual normal source-based invoice draft for October 26; the earlier USD 1 debit is a separate amount-only exercise.",
       "paragraphs": [
-        "A draft reserves or calculates eligible sources but has no final invoice number. Its preview honestly identifies it as a draft. A draft PDF is never a confirmed invoice.",
-        "The create wizard reviews project, stream, period, eligible sources, commercial calculation, client/issuer information, reporting and financial totals. Exact labels and blocked checks are the working instructions; do not continue through an unresolved requirement."
+        "Create invoice builds a draft snapshot from eligible approved, Finance-reviewed sources in the selected stream and cut. Save does not issue, number, send or collect the invoice. Review source inclusion and exclusions before saving.",
+        "The tested normal invoice includes one October 26 source with one actual hour. Its dated full-day customer rule charges one day \u00d7 USD 600 = USD 600. Do not multiply the current hourly rate by actual hours when the applicable agreement uses a full-day unit. Worker pay and internal cost remain separate."
       ],
       "steps": [
-        "Select BBS and the correct Labor or Expense stream. Enter the intended Period start/end and output language.",
-        "Review each numbered wizard stage. Match source IDs, actual hours, customer units, expense treatment, tax and total to the agreement.",
-        "Create the draft once, then open Manage for the saved document.",
-        "Use Edit draft for permitted document/stream fields, save, and reread totals. Shared issuer/stream edits may affect more than the current draft."
+        "Click Create invoice. Select Client / project and the exact Billing stream, then review Labor / expenses.",
+        "Set Period start and Period end; click Check selected period. Inspect Included records and Excluded / pending, following the exact source when investigating a blocker. The tested Manual cut is October 26\u201326.",
+        "Continue through Taxes, Invoice data, Banking / payment and Commercial adjustments. Verify authorized legal/customer details and currency, then Preview.",
+        "At Save / issue use Save invoice draft. Reopen the saved draft, reconcile its entire line table and source references, and resolve any discrepancies before approval."
       ],
       "checks": [
-        "The saved period/stream and eligible source rows are correct. Existing issued source links do not count a second time."
+        "The draft source line shows Actual recorded 1 h, Qty 1 day, Unit price USD 600 and line total USD 600. Dated source terms govern the invoice; planned hours do not create a charge."
       ],
       "recovery": [
-        "If Create returns an existing invoice for that stream/period, inspect that existing document. Late work is not silently appended to an issued PDF. A new stream on an all-in project may inherit the full fixed fee; it is not an automatic hourly recovery route."
+        "Correct the supported operational/commercial prerequisite and recheck the draft. Do not duplicate a source or modify historical invoices to force inclusion."
       ],
-      "figures": []
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/09-finance-wizard-included-source.png",
+          "caption": "Native Included records stage: the approved and Finance-reviewed October 26 source.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/10-finance-wizard-preview.png",
+          "caption": "Preview confirms project and October 26\u201326 cut before saving a draft.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/12-finance-normal-draft-source-table.png",
+          "caption": "Complete one-line draft reconciliation: one day at USD 600 while actual work remains 1 h.",
+          "orientation": "landscape"
+        }
+      ]
     },
     {
       "id": "finance-issue",
       "title": "Approve, issue and download a final invoice",
-      "route": "Billing → Invoices → Manage → Approve → Issue invoice",
-      "context": "Worked example · actual Finance account approved and issued the fictional USD 1 debit under the existing Owner-configured synthetic numbering fixture. Native artifact processing reached Ready; authorized final PDF download returned 200. Recalculate and source-linked draft editing are source-checked reference procedures, not executed in this role lab.",
+      "route": "Billing \u2192 Invoices \u2192 Manage \u2192 Approve \u2192 Issue invoice",
+      "context": "Worked example \u00b7 FN03 \u00b7 Finance approved and issued normal source-based JA-DEMO--2026-000005, USD 600; native final PDF downloaded privately.",
       "paragraphs": [
-        "Approval and issuance are different states. Under an existing approved Owner numbering policy, authorized Finance can issue the reviewed approved document. Issuance allocates the number and preserves a historical financial snapshot.",
-        "Before issuance, compare customer/project identifiers, cost center, issuer, currency, issue/due/service dates, eligible source treatment, tax and total. A draft preview is an aid to this review, not evidence of issuance.",
-        "The actual Finance-issued training debit is JA-DEMO--2026-000004, USD 1.00. Its issue date is October 5 in the server’s UTC view, during the October 6 local role exercise. This new document is excluded from the original three-invoice worked totals.",
-        "Use the upper Invoice · PDF panel’s Ready/Open PDF/Download PDF controls for the native issued master. An optional lower language-output panel can say Not generated yet while this master is already Ready; that is not a draft state or permission to rewrite the issued master."
+        "Draft \u2192 Approved \u2192 Issued are distinct states. Issuing binds the invoice number and immutable native master under the existing issuer/numbering policy. PDF Ready is an artifact state, separate from invoice lifecycle and collection.",
+        "The actual training invoice JA-DEMO--2026-000005 is USD 600. It was issued October 6 for the October 26 training service cut under the approved synthetic fixture. This future-service training example is not a production recommendation or accountant approval. Public evidence shows the status and source table; the native PDF remains private because inherited issuer bank/contact details are confidential."
       ],
       "steps": [
-        "On the reviewed draft click Approve. Verify approved state.",
-        "If an approved unissued calculation needs refresh, enter a genuine Recalculation reason and use Recalculate and review draft. Recheck the resulting draft before approving again.",
-        "Select the offered report language and click Issue invoice once. Wait for the final artifact to become Ready.",
-        "Open the invoice PDF and download through its authorized control. Verify number, issued state, total and native PDF."
+        "In Billing \u2192 Invoices locate the saved normal draft and open Manage. Review the entire source table, period, issuer, customer, totals and prerequisites.",
+        "Click Approve, then reopen and confirm Approved. Use Issue invoice with the intended supported language under the approved policy.",
+        "Reload Manage and verify final number, Issued, amount and PDF \u00b7 Ready. Use Download PDF for the native issued master; compare number and total with the register.",
+        "Record delivery and collection separately only after the corresponding real event. A Ready PDF does not prove either event."
       ],
       "checks": [
-        "The document has a real application-assigned training number and final Ready PDF. Its PDF does not show Draft invoice or Draft preview. Ready is distinct from queued/failed."
+        "The native master download succeeded and its hash is retained in the readiness evidence. Cash reversal and separate adjustments do not alter this USD 600 face amount or its issued bytes."
       ],
       "recovery": [
-        "Finance cannot invent numbering approval or void an issued invoice. Escalate a blocked issuer/numbering check to the Owner. Preserve an issued master; use a new authorized adjustment/correction instead of editing history."
+        "Queued means wait for normal processing; investigate an actual Failed message and permitted retry. For missing issuer coverage/numbering ask Owner with invoice ID and intended date. Optional language variants can be Not generated yet while the upper native issued master is Ready."
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/09-finance-debit-approved.png",
-          "caption": "Saved Approved state: the USD 1 adjustment has not yet received an invoice number.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/10-finance-issue-confirmation-input.png",
-          "caption": "Before issuance: review the invoice and choose report language EN; Issue invoice fixes the snapshot and assigns a number.",
-          "orientation": "landscape"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/11-finance-debit-issued-ready.png",
-          "caption": "Immediately after Issue invoice: JA-DEMO--2026-000004, USD 1 and Issued. PDF processing is still queued at this checkpoint; issuance and artifact readiness are separate.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/21-finance-native-debit-final-pdf.png",
-          "caption": "The same synthetic debit’s canonical Invoice · PDF panel after processing: Ready, with authenticated Open and Download controls. The earlier numbered record establishes its issued state.",
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/15-finance-normal-issued-ready.png",
+          "caption": "Finance\u2019s normal source-based invoice: JA-DEMO--2026-000005, USD 600, Issued, native PDF Ready.",
           "orientation": "landscape"
         }
       ]
@@ -284,8 +307,8 @@
     {
       "id": "finance-dispatch",
       "title": "Deliver an invoice and inspect the real result",
-      "route": "Billing → Invoices → Manage → Send by email; More actions → Mark sent",
-      "context": "Reference procedure · checked against current source; not yet executed in this role lab",
+      "route": "Billing \u2192 Invoices \u2192 Manage \u2192 Send by email; More actions \u2192 Mark sent",
+      "context": "Reference procedure \u00b7 checked against current source; not yet executed in this role lab",
       "paragraphs": [
         "Downloading does not send a document. Mark sent records manual delivery; it does not invoke email. Use that control only after genuine delivery. Send by email requires an explicit recipient and Yes consent.",
         "Training email is disabled. A previous bounded synthetic test verified queuing and failed automatic retry before network delivery. This guide does not claim customer email, SMTP acceptance or inbox arrival."
@@ -294,7 +317,7 @@
         "After reviewing the native final PDF, open Send by email. Enter the verified Invoice recipient email.",
         "Choose No to decline, or Yes only when delivery is authorized and correctly configured. Inspect the per-recipient result.",
         "Distinguish Queued, delivery error/automatic retry pending and SMTP acceptance from actual inbox confirmation.",
-        "While an invoice still shows Issued and More actions → Mark sent is offered, use it only after verified delivery by another channel. A partially paid/paid record may omit that manual action; do not invent a dispatch event or claim the absent control sent an email."
+        "While an invoice still shows Issued and More actions \u2192 Mark sent is offered, use it only after verified delivery by another channel. A partially paid/paid record may omit that manual action; do not invent a dispatch event or claim the absent control sent an email."
       ],
       "checks": [
         "The recipient, consent and delivery state match what happened. A repeated identical invoice/recipient/PDF command is idempotent. Collection remains a separate process."
@@ -307,85 +330,79 @@
     {
       "id": "finance-collections",
       "title": "Record a collection and correct it with a reversal",
-      "route": "Billing → Invoices → Manage → Record payment; Collections / Ledger",
-      "context": "Worked example · actual Finance account recorded a synthetic USD 1 receipt on the mixed invoice, then reversed that exact receipt. No bank transfer occurred. Net collection and receivable returned to USD 500 and USD 1,760; both events remain in history.",
+      "route": "Billing \u2192 Invoices \u2192 Manage \u2192 Record payment; Collections / Ledger",
+      "context": "Worked example \u00b7 FN05 \u00b7 actual USD 1 receipt and full reversal on the new USD 600 normal invoice. Both events are synthetic; no bank transfer or refund occurred.",
       "paragraphs": [
-        "Record only verified money received in real operation. Training receipt/reversal entries are explicitly simulated; the application does not move bank funds.",
-        "The ledger preserves Gross, Reversals, Net and Outstanding. A reversal corrects the posted ledger receipt and is not itself a bank refund. The original payment remains in history.",
-        "The USD 2,260 mixed invoice starts with USD 500 net collected and USD 1,760 remaining. Recording the USD 1 practice receipt gives USD 501 collected / USD 1,759 remaining. Reverse only the BBS ROLE GUIDE SYNTHETIC receipt for USD 1, effective October 5, reason Entry correction. Net amounts return to USD 500 / USD 1,760. The separate USD 1 debit still adds its own receivable; reversing a collection does not cancel an adjustment."
+        "Invoice face amount, invoice-specific cash and customer net position are separate measures. Record payment posts cash against the selected positive invoice. An issued credit is a separate customer balance; it does not automatically allocate to another invoice or represent a bank refund.",
+        "The tested USD 600 invoice becomes USD 1 net collected / USD 599 outstanding after the synthetic receipt. Reversing that exact USD 1 receipt restores gross USD 1, reversals USD 1, net USD 0 and invoice outstanding USD 600. Its separate USD 1 credit remains issued."
       ],
       "steps": [
-        "Open the intended numbered invoice and Record payment. Enter Amount, verify Currency, choose Received on and provide Payment reference.",
-        "Save, then verify the collection entry and remaining receivable in Collections / Ledger and the invoice detail.",
-        "To correct the specific receipt, open Collections and reversals and enter Reversal amount, Effective date, Reason code and Reason. Click Reverse payment.",
-        "Reopen and reconcile gross receipt minus reversals equals net; invoice total minus net equals outstanding."
+        "Open the exact invoice\u2019s Manage \u2192 Record payment. Enter Payment amount, Received on and Payment reference / note; verify the displayed currency and real receipt evidence. Click Record payment.",
+        "Reload and check invoice-specific Collected, Outstanding and payment history before a retry.",
+        "Open Collections and reversals. Select the exact receipt and enter the offered Reversal amount, effective date, reason code and explicit reason; submit the reversal.",
+        "Reload both invoice and project/customer ledger. Reconcile gross receipt minus reversal to net collection, then compare the separate credit balance to customer net outstanding."
       ],
       "checks": [
-        "Partial collection leaves a balance. The original invoice face/PDF remains unchanged. A repeated money command must not double count."
+        "A reversal corrects recorded cash history and retains both events. It does not delete the receipt, cancel the credit, change issued totals, unlock a source or prove money was refunded."
       ],
       "recovery": [
-        "An overpayment/over-reversal, incorrect currency or invalid effective date is a blocking check. Inspect existing events before retrying; preserve the posted original and use the supported reversal for an error."
+        "For duplicate/overpayment or a changed balance inspect the latest events and remaining amount; never delete posted history or use another invoice to hide an error."
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/12-finance-collection-input.png",
-          "caption": "Before recording: USD 1.00, currency USD, the displayed received date and an explicitly synthetic reference.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/13-finance-collected-501.png",
-          "caption": "Saved receipt history: the original USD 500 receipt and new synthetic USD 1 practice receipt are separate entries.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/14-finance-collection-reversal-input.png",
-          "caption": "Before reversal: identify only the USD 1 practice receipt, enter effective date, Entry correction and the synthetic reason.",
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/21-finance-normal-receipt-input.png",
+          "caption": "Before synthetic receipt: verify the selected USD 600 invoice, USD 1 and reference.",
           "orientation": "landscape"
         },
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/15-finance-collection-reversed-history.png",
-          "caption": "Saved append-only history: the USD 1 receipt has a USD 1 reversal; the original USD 500 receipt remains.",
-          "orientation": "portrait"
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/22-finance-normal-receipt-saved.png",
+          "caption": "Saved receipt: USD 1 collected, USD 599 outstanding.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/24-finance-normal-reversed-history.png",
+          "caption": "Saved reversal retains the receipt and reversal: gross 1, reversals 1, net 0; invoice outstanding returns to USD 600.",
+          "orientation": "landscape"
         }
       ]
     },
     {
       "id": "finance-adjustment",
       "title": "Correct an issued amount without rewriting its master",
-      "route": "Billing → Invoices → Manage → Create adjustment",
-      "context": "Worked example · actual Finance account created a separate synthetic USD 1 debit linked to JA-DEMO--2026-000003, approved it and issued JA-DEMO--2026-000004. Original three issued PDF hashes remain unchanged. Credit/correction types are reference procedures, not executed in this role lab.",
+      "route": "Billing \u2192 Invoices \u2192 Manage \u2192 Create adjustment",
+      "context": "Worked examples \u00b7 FN05 \u00b7 earlier USD 1 debit preserved; new USD 1 credit linked to the normal USD 600 invoice, approved and issued by Finance.",
       "paragraphs": [
-        "Create adjustment offers Credit, Debit or Correction with a positive input amount and explicit reason. A credit creates a separate negative draft. Review, approve and issue that new document under the policy.",
-        "A linked credit is not a receipt of money. The original invoice total remains preserved. Finance does not have the Owner’s issued Void control; an invoice with collections also needs a reviewed collection remedy before permitted voiding."
+        "Create adjustment offers Credit, Debit and Correction with Adjustment amount and Reason. The current form requires a positive amount. Credit creates a negative linked amount, Debit a positive linked amount, and Correction retains the entered sign; therefore a positive Correction in this UI increases the balance. It is not a full replacement invoice.",
+        "The original three BBS native invoices remain USD 4,672. The earlier amount-only debit JA-DEMO--2026-000004 remains USD 1. New source invoice 000005 is USD 600 and linked credit 000006 is \u2212USD 1. The credit leaves the original face amount/PDF intact and creates a separate credit balance. No automatic allocation or refund is demonstrated."
       ],
       "steps": [
-        "Open the original final document, confirm its number and reason for correction, then Create adjustment.",
-        "Choose the correct type, enter Amount and an auditable reason. Inspect the newly saved linked draft and sign of the result.",
-        "Review → Approve → Issue invoice and verify its own number, state and final PDF.",
-        "Reconcile both documents and the ledger. Hand an Owner-only void or replacement decision to the Owner with exact document/payment IDs."
+        "Open the original final invoice \u2192 Manage \u2192 Create adjustment. Verify original number, currency and correction reason.",
+        "Choose Adjustment type, enter a positive Adjustment amount and a precise Reason. Click Create adjustment.",
+        "Reopen the new linked draft; verify its signed amount, original reference and reason. Approve and issue it under the existing authorized policy.",
+        "Reconcile original face amount, linked adjustment, invoice-specific receipts/reversals and customer net position separately."
       ],
       "checks": [
-        "Both original and correction remain traceable. No original source amount, invoice number or native PDF is overwritten."
+        "Do not treat a credit\u2019s positive displayed available balance as additional receivable. The application exposes no ordinary credit-to-invoice allocation or bank-refund workflow here."
       ],
       "recovery": [
-        "The UI has no direct universal issued Replace operation. Do not promise Create for the same issued/voided period will create a replacement. A source-linked draft may require Owner discard; provide the reason and source IDs."
+        "Escalate a required negative correction/replacement or credit allocation/refund that the displayed controls cannot express. Do not rewrite an issued document or record fictitious cash."
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/08-finance-adjustment-input.png",
-          "caption": "Before creating: Debit, USD 1.00 and an explicit synthetic training reason. No new worker source is billed by this amount-only adjustment.",
-          "orientation": "portrait"
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/18-finance-credit-input.png",
+          "caption": "New synthetic USD 1 Credit linked to normal invoice 000005; the earlier USD 1 Debit remains a separate exercise.",
+          "orientation": "landscape"
         }
       ]
     },
     {
       "id": "finance-settlements",
-      "title": "Finalize a worker’s compensation period",
-      "route": "Economic Review → BBS → Source records → Settlements",
-      "context": "Worked example · actual Finance account inspected the three existing finalized BBS settlements and independently tested payment/reversal on Technician 1. Finalize compensation and Save expected date here are source-checked reference procedures; no overlapping new settlement was created.",
+      "title": "Finalize a worker\u2019s compensation period",
+      "route": "Economic Review \u2192 BBS \u2192 Source records \u2192 Settlements",
+      "context": "Worked example \u00b7 actual Finance account inspected the three existing finalized BBS settlements and independently tested payment/reversal on Technician 1. Finalize compensation and Save expected date here are source-checked reference procedures; no overlapping new settlement was created.",
       "paragraphs": [
         "Before finalization, confirm full-period assignment coverage, dated pay rules, approved work, currency, active corrections and any existing finalized period. Choose the agreed worker period independently of the customer invoice cadence.",
-        "The BBS chief’s opening example is ten approved hours at USD 40/h = USD 400. Source duration is hours/minutes; it must never be read as currency. A fixed-period amount can have zero source duration and still be a valid agreed amount.",
+        "The BBS chief\u2019s opening example is ten approved hours at USD 40/h = USD 400. Source duration is hours/minutes; it must never be read as currency. A fixed-period amount can have zero source duration and still be a valid agreed amount.",
         "Future-ending periods in the earlier training example contain only work already recorded; they are not forecasts. Real payroll should wait until the agreed period is complete."
       ],
       "steps": [
@@ -405,12 +422,12 @@
     {
       "id": "finance-worker-payments",
       "title": "Record and reverse an actual worker-side payment",
-      "route": "Economic Review → Settlements → Actual worker or supplier payments",
-      "context": "Worked example · actual Finance account registered a synthetic USD 1 partial payment on the existing Technician 1 settlement, then fully reversed that exact payment. Native bank-transfer warnings were retained; no bank transfer occurred. The finalized compensation snapshot was not changed.",
+      "route": "Economic Review \u2192 Settlements \u2192 Actual worker or supplier payments",
+      "context": "Worked example \u00b7 actual Finance account registered a synthetic USD 1 partial payment on the existing Technician 1 settlement, then fully reversed that exact payment. Native bank-transfer warnings were retained; no bank transfer occurred. The finalized compensation snapshot was not changed.",
       "paragraphs": [
         "Use a finalized settlement and verified real transfer in actual operation. Authorized supplier payees depend on the existing worker/supplier relationship; do not select an arbitrary company.",
         "Payment history is append-only. The tested isolated training payment/reversal does not prove a bank transfer. A corrected or reversed payment leaves the appropriate remaining obligation.",
-        "The existing Technician 1 reviewed settlement is USD 720 for October 1–31 with expected payment November 3. It was deliberately finalized early in training and contains the saved snapshot only; this is not a recommendation to close an incomplete real pay period. The practice payment gives USD 1 paid / USD 719 remaining; full reversal restores USD 0 paid / USD 720 remaining. The planned date and reviewed amount stay unchanged, and both payment events remain visible. No new worker work is settled or invoiced in this practice."
+        "The existing Technician 1 reviewed settlement is USD 720 for October 1\u201331 with expected payment November 3. It was deliberately finalized early in training and contains the saved snapshot only; this is not a recommendation to close an incomplete real pay period. The practice payment gives USD 1 paid / USD 719 remaining; full reversal restores USD 0 paid / USD 720 remaining. The planned date and reviewed amount stay unchanged, and both payment events remain visible. No new worker work is settled or invoiced in this practice."
       ],
       "steps": [
         "In the correct settlement choose Payee, Actual payment amount, Actual payment date and Payment reference; add Note if needed.",
@@ -450,11 +467,12 @@
     {
       "id": "finance-reimbursement",
       "title": "Record a verified expense reimbursement",
-      "route": "Economic Review → Source records → Settlements → Worker reimbursement queue",
-      "context": "Worked example · actual Finance account verified visible USD 12 against hidden reviewed 1200 minor units at 1440/768/390 widths, then recorded the authorized synthetic reimbursement once. Saved Reimbursed state and actual timestamp were verified. No bank transfer occurred.",
+      "route": "Economic Review \u2192 Source records \u2192 Settlements \u2192 Worker reimbursement queue",
+      "context": "Worked example \u00b7 actual Finance account verified visible USD 12 against hidden reviewed 1200 minor units at 1440/768/390 widths, then recorded the authorized synthetic reimbursement once. Saved Reimbursed state and actual timestamp were verified. No bank transfer occurred.",
       "paragraphs": [
         "A Finance-reviewed worker-paid expense can create a reimbursement obligation under its dated treatment. Company-paid purchases do not automatically become money owed to the worker. Customer expense recovery is a different invoice amount.",
-        "The new fictional October 6 bench-supplies expense is USD 12. Finance recorded BBS-ROLE-SYNTHETIC-REIMBURSEMENT-12-USD only in the isolated lab; the native saved state is Reimbursed with actual timestamp October 5 23:21:28 UTC. This practice adds a reimbursement event separate from the original USD 180 checkpoint and does not bill the new worker source. The intended reviewed amount is visible before Mark reimbursed."
+        "The new fictional October 6 bench-supplies expense is USD 12. Finance recorded BBS-ROLE-SYNTHETIC-REIMBURSEMENT-12-USD only in the isolated lab; the native saved state is Reimbursed with actual timestamp October 5 23:21:28 UTC. This practice adds a reimbursement event separate from the original USD 180 checkpoint and does not bill the new worker source. The intended reviewed amount is visible before Mark reimbursed.",
+        "Mark reimbursed records the full reviewed worker reimbursement in one operation. The current UI supplies the displayed reviewed amount, a Payment reference and server recording timestamp; it offers no editable payment date, partial amount or reimbursement reversal control. Source validation rejects partial reimbursement and a different second final truth. An expected reimbursement date is planning, not the actual reimbursement timestamp."
       ],
       "steps": [
         "Select BBS and open Settlements. Find Worker reimbursement queue. Verify the exact worker, expense, reviewed amount, currency and receipt.",
@@ -465,7 +483,8 @@
         "Marking reimbursed records actual-state evidence; it is not a bank-transfer instruction. Customer invoices and purchase amount are unchanged."
       ],
       "recovery": [
-        "If no reimbursement is owed or a source is not ready, inspect payer, classification, receipt and Finance review. Do not pay the same purchase twice or treat invoice collection as reimbursement."
+        "If no reimbursement is owed or a source is not ready, inspect payer, classification, receipt and Finance review. Do not pay the same purchase twice or treat invoice collection as reimbursement.",
+        "For a mistaken full reimbursement or backdated/partial requirement retain expense ID, reviewed amount/currency, reference and actual recorded timestamp and ask authorized Finance/Owner support. Do not record a compensation-payment reversal as an expense reimbursement reversal."
       ],
       "figures": [
         {
@@ -488,24 +507,26 @@
     {
       "id": "finance-economics",
       "title": "Explain economics, cash and workbook exports",
-      "route": "Economic Review → BBS; Projects → BBS → Billing → Invoices and advanced settings",
-      "context": "Worked example · actual Finance account inspected current BBS economics and downloaded the October 1–5 native project XLSX with status 200 and its semantic filename. It includes later practice events issued on the same UTC date; original workbook checkpoint totals are historical, not forced current totals.",
+      "route": "Economic Review \u2192 BBS; Projects \u2192 BBS \u2192 Billing \u2192 Invoices and advanced settings",
+      "context": "Worked example \u00b7 actual Finance account inspected current BBS economics and downloaded the October 1\u20135 native project XLSX with status 200 and its semantic filename. It includes later practice events issued on the same UTC date; original workbook checkpoint totals are historical, not forced current totals.",
       "paragraphs": [
-        "Actual/approved/billable hours, potential customer charges or WIP, issued invoice totals, collections and receivables are different. Contribution is an economic calculation within the view’s scope, not cash or a complete statutory profit statement.",
+        "Actual/approved/billable hours, potential customer charges or WIP, issued invoice totals, collections and receivables are different. Contribution is an economic calculation within the view\u2019s scope, not cash or a complete statutory profit statement.",
         "Internal loaded labor cost and worker compensation can overlap economically. Do not add the loaded cost and the separate compensation display twice. Planning/reference hours, forecasts and expected dates never create actual work or cash.",
         "Download finance export produces native XLSX. Summary, Labor, Expenses, Unbilled WIP, Daily minimum, Invoices, Invoice expenses, Milestones and Alerts explain the source basis. Empty values are not automatically zero.",
-        "The current role-lab overview after additional approved practice work shows 50.75 actual hours, USD 4,673 invoiced, USD 1,888.25 direct cost and USD 2,795.75 contribution. These differ from the original checkpoint because later worker/chief/correction sources and the separate USD 1 debit exist. The practice debit was issued October 5 UTC during October 6 local training, so a fresh October 1–5 export can include it. Compare document/source identity and generation time as well as dates.",
-        "The displayed Direct project result uses Revenue candidate USD 4,684, including USD 11 approved unbilled WIP: USD 4,684 − USD 1,888.25 direct cost = USD 2,795.75. It does not subtract cost from USD 4,673 invoiced. Net receivable is USD 3,991 after the separate USD 1 debit; receivable and projected contribution are different measures.",
-        "The current overview also displays Finance records need review for incomplete projection data. Investigate those alerts before treating displayed cost/revenue as a complete reconciled contract result; missing configuration is not zero cost."
+        "The current role-lab overview after additional approved practice work shows 50.75 actual hours, USD 4,673 invoiced, USD 1,888.25 direct cost and USD 2,795.75 contribution. These differ from the original checkpoint because later worker/chief/correction sources and the separate USD 1 debit exist. The practice debit was issued October 5 UTC during October 6 local training, so a fresh October 1\u20135 export can include it. Compare document/source identity and generation time as well as dates.",
+        "The displayed Direct project result uses Revenue candidate USD 4,684, including USD 11 approved unbilled WIP: USD 4,684 \u2212 USD 1,888.25 direct cost = USD 2,795.75. It does not subtract cost from USD 4,673 invoiced. Net receivable is USD 3,991 after the separate USD 1 debit; receivable and projected contribution are different measures.",
+        "The current overview also displays Finance records need review for incomplete projection data. Investigate those alerts before treating displayed cost/revenue as a complete reconciled contract result; missing configuration is not zero cost.",
+        "The tested project Download finance export used the explicit October 26\u201326 period carried by the project link; the downloaded filename contains that cut. The normal Project Billing screen has no general export date picker. Date correction controls appear only for an invalid period/export failure. The default project lookback runs from the previous UTC month start through today; Accounting defaults instead to the previous complete month. How this project is calculated has Period start / Period end and Review period, but its return link does not automatically carry that selected cut into the workbook export."
       ],
       "steps": [
         "Select BBS and the intended dates. Follow an unexpected figure into its source records and dated rules.",
-        "Open Projects → BBS → Billing → Invoices and advanced settings → Download finance export.",
+        "Open Projects \u2192 BBS \u2192 Billing \u2192 Invoices and advanced settings \u2192 Download finance export.",
         "Verify the semantic project/date filename, then open Summary and relevant source sheets.",
-        "Compare work dates, invoice issue dates and collection/reversal dates before comparing project workbook, ledger and Accounting period totals."
+        "Compare work dates, invoice issue dates and collection/reversal dates before comparing project workbook, ledger and Accounting period totals.",
+        "For an authorized dated project link, verify its period and Download finance export; confirm the resulting filename and workbook dates. For another cut use the supported dated link or request one from Finance/support. Do not assume invoice issue-date filtering is the source work-date cut or that a Collections export date control exists."
       ],
       "checks": [
-        "The original 1–5 October example excludes separately labelled 6 October role practice. Workbook export does not approve or issue anything. A portfolio file can contain other authorized projects and must stay with its financial audience."
+        "The original 1\u20135 October example excludes separately labelled 6 October role practice. Workbook export does not approve or issue anything. A portfolio file can contain other authorized projects and must stay with its financial audience."
       ],
       "recovery": [
         "For a mismatch check scope, currency, approvals, cost model, source links, issue date and missing rules. Ask support with the exact record/code; do not edit an issued source to force a total."
@@ -525,40 +546,50 @@
           "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/28-finance-project-export-control.png",
           "caption": "Actual Finance project Billing controls: Download finance export reads the chosen period; it does not approve or issue work.",
           "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/19-finance-export-control.png",
+          "caption": "Native project finance export control; the tested filename confirms October 26\u201326. No ordinary date picker is shown here.",
+          "orientation": "landscape"
         }
       ]
     },
     {
       "id": "finance-accounting",
       "title": "Generate, review and finalize an Accounting Pack",
-      "route": "Accounting → Generate monthly Accounting Pack",
-      "context": "Worked example · actual Finance account attempted October 1–5 Accounting generation in the original copied BBS portfolio and received the preserved issuer-history coverage blocker. Selected dates remained intact and Packs stayed 0. Review/finalization of a successful pack is a separately labelled Owner reference, not a Finance role-lab success.",
+      "route": "Accounting \u2192 Generate monthly Accounting Pack",
+      "context": "Worked examples \u00b7 FN09 \u00b7 Finance generated a populated BBS-portfolio October 1\u20136 pack and reviewed its advisories. A separate all-synthetic portfolio completed Finance generation, zero-advisory review and finalization; Auditor downloaded all five outputs.",
       "paragraphs": [
-        "Accounting is an authorized portfolio period, not a BBS-only workbook. Generate queues independent PDF, XLSX, Invoice CSV, Expense CSV and JSON artifacts. Normal Finance users wait for processing; they do not run deployment or job commands.",
-        "The copied BBS October 1–5 portfolio is blocked by preserved archived issuer QA-W48-EUR coverage ending October 5 exclusive. Its dates remain selected. Archiving again, inventing a successor revision or deleting sources is not a remedy.",
-        "A separately labelled all-synthetic Accounting portfolio successfully generated/finalized October 1–5 with zero review advisories in the Owner lab. That reference is a different database/issuer history and does not repair the BBS coverage gap."
+        "Accounting is a portfolio period, not a BBS-only project workbook. Generate queues independent PDF, XLSX, Invoice CSV, Expense CSV and JSON artifacts. A user waits for ordinary processing and refreshes the UI; private operator job commands are not part of this role procedure.",
+        "In the BBS copied portfolio, October 1\u20136 produced five Ready formats but Review showed Pending 35, Unclassified expenses 4, Missing documents 16 and Reconciliation issues 2. That pack was not finalized. The new October 26 source also conflicts with the pre-existing finalized monthly obligation for a later cut; keep that history for support.",
+        "The separate all-synthetic demo portfolio October 1\u20136 pack completed all five Ready outputs and zero review advisories with None detected under Changes since generation. Finance clicked Finalize reviewed version; the saved state is final. This demonstrates the role workflow without asserting that BBS blockers were repaired."
       ],
       "steps": [
-        "Expand Generate monthly Accounting Pack and enter Period start, Period end and Report language; click Generate pack.",
-        "Wait for each format to show Ready, then download through the authenticated control. Queued/Failed are truthful separate states.",
-        "Open Review before finalizing. Investigate Pending records, Unclassified expenses, Missing documents, Reconciliation issues and Changes since generation.",
-        "Reconcile included figures and establish the legitimate reviewed cut with responsible accounting. Regenerate if sources changed, then Finalize reviewed version when permitted."
+        "Expand Generate monthly Accounting Pack. Enter Period start, Period end and Report language; the default is the previous complete UTC month. Click Generate pack.",
+        "Wait for each format to show Ready. Download the needed authenticated formats and distinguish Queued/Failed for each output. A failed format does not make another Ready format unavailable.",
+        "Open Review before finalizing. Inspect Pending records, Unclassified expenses, Missing documents, Reconciliation issues and Changes since generation; follow each applicable review link and reconcile the legitimate cut.",
+        "For a current reconciled pack with legitimate issuer coverage and completed review, click Finalize reviewed version. Reload and verify final. If source truth later changes, preserve this historical pack and Generate new version."
       ],
       "checks": [
-        "A zero reconciliation count does not prove every omitted operational record or receipt is complete. Final preserves the reviewed version; later source changes require another version. Older frozen invoice evidence follows its issue-date cut without moving old costs."
+        "Ready files are review artifacts, not finalization. A zero reconciliation count alone does not prove all operational work or receipt evidence is complete. The separate empty September cut correctly exposed Finalization unavailable because it had no confirmed issuer."
       ],
       "recovery": [
-        "For the actual BBS issuer gap retain the intended dates and use Contact support. Never fabricate accountant approval, issuer coverage or evidence to obtain Ready. Artifact failure/retry requires investigation of the stated artifact, not a manual production command."
+        "Preserve intended dates, pack ID and error/advisories for Owner/support. Never fabricate issuer coverage, accountant approval, documents or remove sources to force finalization. Retry only the offered failed artifact after resolving its cause."
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/26-finance-accounting-input.png",
-          "caption": "Before generation: portfolio Accounting period October 1–5 and report language English. This is not a BBS-only workbook.",
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/20-finance-accounting-review.png",
+          "caption": "Populated BBS portfolio pack: Ready outputs with unresolved review advisories; no finalization was performed.",
           "orientation": "landscape"
         },
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/27-finance-accounting-native-blocker.png",
-          "caption": "Actual native failure: historical issuer coverage is missing at period end. Dates remain selected; Contact support is the supported handoff.",
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/31-finance-clean-ready-review.png",
+          "caption": "Separate synthetic portfolio: all five outputs Ready, zero review advisories and no detected changes.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/34-finance-clean-final-accounting.png",
+          "caption": "Actual Finance finalization of the separate October 1\u20136 synthetic portfolio; historical BBS remains separate.",
           "orientation": "landscape"
         }
       ]
@@ -566,37 +597,111 @@
     {
       "id": "finance-close",
       "title": "Close a billing period and handle late work",
-      "route": "Billing → Billing streams → Manage stream → Close sources",
-      "context": "Worked example · actual Finance account inspected the saved Weekly Labor stream and its Close sources date/language controls. No closing transition was executed in this role lab. Successful weekly close and late-source handling are a separately labelled Owner training reference.",
+      "route": "Billing \u2192 Billing streams \u2192 Manage stream \u2192 Close sources",
+      "context": "Worked example \u00b7 FN10 \u00b7 actual Finance Close sources for the new Manual Labor stream October 26\u201326 after normal invoice issuance. Weekly/late-work behavior checked in source; project closure is separate.",
       "paragraphs": [
-        "Close sources is separate from invoice issuance, customer acceptance, worker payment and project closure. Required reports and acceptance must be genuinely satisfied for the selected snapshot.",
-        "For weekly cadence use the exact Monday–Sunday period. Closing locks eligible leftover approved sources and queues reports. Late operational work does not silently join an already issued invoice; customer treatment follows the actual agreement."
+        "Close sources records a billing-period closure and queues the required period reports. It does not issue invoices, collect cash, sign a customer report, amend a finalized worker obligation or close the project. At the billing-close capture BBS remained Active. A later separate Owner closeout finalized a historical package and closed the project, then supported Owner Reopen returned it to Active. Those transitions preserve the earlier final package and issued-source locks.",
+        "Use Monday\u2013Sunday for a Weekly cut; Manual uses the explicit selected dates. Closing eligible leftover sources does not silently add later work to an issued invoice. A correction/late source needs its supported operational review, Finance treatment and subsequent document/period handling under the agreement."
       ],
       "steps": [
-        "Select the correct BBS stream and inspect its open/closed period and readiness reasons.",
-        "In Close sources enter Close period start, Close period end and Report language, then use Close sources when ready.",
-        "Verify closed state and independently queued/Ready customer/internal report outputs.",
-        "For a late entry, complete its operational and Finance review, inspect whether it is unbilled/unlocked, and decide its correct contract treatment with the Owner."
+        "Open Billing \u2192 Billing streams, locate the exact BBS stream and expand its management details. Verify cadence/effective dates and the intended invoice/source cut.",
+        "In Close sources enter Close period start, Close period end and Report language. Review readiness and click Close sources. The tested Manual cut was October 26\u201326.",
+        "Reload the stream and report register; inspect the saved closed period and separately queued/Ready customer and internal report artifacts.",
+        "For late work retain the original work date and source link. Review whether it belongs to a later eligible period or requires an explicit adjustment/support handoff. Never change dates merely to evade a closed period."
       ],
       "checks": [
-        "The original issued number/total/PDF remains intact. A fixed/all-in additional-work source is not automatically an extra hourly charge."
+        "The tested billing period is closed and the original one-hour source remains locked by its issued USD 600 invoice. Invoice bytes, finalized compensation and project lifecycle are independent. No new late-work source was manufactured in this exercise."
       ],
       "recovery": [
-        "If dates/readiness or an existing closed period block the action, correct the supported prerequisite or inspect existing closure; do not create duplicate work/periods. The successful weekly-close/late-work lesson in the Owner manual uses a clearly separate synthetic Accounting project."
+        "For a closed-period conflict give Owner/Finance/support the source ID/work date, stream ID/cadence, closed cut, invoice/settlement references and exact message. Project closeout is an Owner process with its own blockers."
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/finance/screenshots/33-finance-close-source-controls.png",
-          "caption": "Actual Finance Close sources inputs in the saved weekly stream. These controls were inspected without submitting a closure; dates must match the Monday–Sunday period and stream coverage.",
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/26-finance-close-source-input.png",
+          "caption": "Finance\u2019s explicit Manual October 26\u201326 Close sources cut. Project closeout is a different action.",
           "orientation": "landscape"
         }
       ]
     },
     {
+      "id": "finance-customer-report",
+      "title": "Generate a customer-safe report and receive the PM handoff",
+      "route": "Reports \u2192 Refresh period reports; Project period report \u2192 Reports / Client Sign-off",
+      "context": "Worked example \u00b7 FN04 / S05\u2013S06 \u00b7 Finance generated the October 13\u201319 customer-safe snapshot; authorized PM approved exact version 2. Signed-copy capture and invalidation are source-checked procedures, not performed events.",
+      "paragraphs": [
+        "Customer and internal period reports are separate artifacts. The customer-safe Hours and activity summary contains approved hours and Daily activities; technical content requires the selected supported content mode. It excludes financial amounts, worker compensation and internal margins.",
+        "Finance generated October 13\u201319 after the PM-approved coordinator Daily source. The PM approved exact version 2 / hash 85ba28d58be5c1f0c582266794df84fc491344508b23c63a33659b0ce98d6042: 3.8 approved hours, one Daily report and three Time sources. Finance reloaded CUSTOMER PRIVATE \u00b7 APPROVED and Ready for signature. No signature, email delivery, staff dispatch or bank event was fabricated.",
+        "A separate October 13\u201318 exercise selected Hours, activity and selected technical reports plus the approved October 16 Technical record. Finance reviewed and approved the generated v2 snapshot. Its native two-page PDF includes the structured problem, diagnosis and change detail; it preserves the earlier PM-approved October 13\u201319 snapshot. No customer signing was recorded."
+      ],
+      "steps": [
+        "Open /j-aautomation/app/reports in your signed-in portal, expand Refresh period reports and select Open period refresh. Set Project, Period start, Period end, Report language and Customer report content; click Refresh reports. For Hours, activity and selected technical reports, explicitly check the approved Technical reports to include.",
+        "Wait for ordinary artifact processing. Open the Customer period report and verify its canonical Open PDF, audience, exact version/hash, approved source counts and selected content. The lower optional language panel is a separate artifact status.",
+        "Receive the PM\u2019s approval for that exact snapshot; reload and verify Approved / Ready for signature. Operational follow-up records staff Shared/Exported/Awaiting named signatory/Returned/Disputed events with the required date/reference, not customer acceptance.",
+        "Only after genuine customer signing, use Capture verified signed-copy evidence: upload Signed PDF copy, enter Signer name, optional Signer identity and Customer signature date, then Record verified signed-copy evidence. The verified private PDF must bind to the exact snapshot version/hash; pending scan or changed version requires the stated recovery."
+      ],
+      "checks": [
+        "Operational approval is not a customer signature. A signature line printed in the report is not evidence. Keep internal reports and economic data away from the customer audience.",
+        "An active sign-off binds its original report/PDF/evidence. Authorized Finance can use Invalidate sign-off \u2192 Reason for invalidation \u2192 Confirm invalidation before a changed snapshot/return/dispute; the old signed evidence and invalidation remain historical. Re-review and collect genuine new signed evidence for a new version."
+      ],
+      "recovery": [
+        "For returned/disputed or stale evidence receive the exact report ID/version/hash, PM review note and customer reason. Do not invent a signature or rebind old signed bytes to new content."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/05-finance-report-input.png",
+          "caption": "Finance period-refresh input: October 13\u201319, English and Hours and activity summary.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/06-finance-customer-period-ready.png",
+          "caption": "Generated customer-safe report before PM approval: source hours/activities and canonical Open PDF.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/30-finance-pm-approved-customer-report.png",
+          "caption": "Receiving Finance view after authorized PM approval: exact v2, Ready for signature and no signed-copy/follow-up history.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/36-finance-selected-technical-period-input.png",
+          "caption": "Separate October 13\u201318 customer-safe cut: choose the technical content mode and explicitly select the approved October 16 Technical record.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/finance-auditor/finance/screenshots/39-native-customer-period-pdf-page1.png",
+          "caption": "Actual new native customer PDF, page 1: approved Technical source detail is populated. Signature lines are blank; this is report output, not signed evidence.",
+          "orientation": "portrait"
+        }
+      ]
+    },
+    {
+      "id": "finance-obligation-correction",
+      "title": "Handle a finalized obligation correction without unlocking history",
+      "route": "Economic Review \u2192 Settlements; Commercial Configuration \u2192 Compensation rules",
+      "context": "Source-checked boundary \u00b7 FN06 / S07\u2013S08 \u00b7 native finalized-payment reversal history and dated-agreement overlap rejection verified; no obligation amendment or invented approval was posted.",
+      "paragraphs": [
+        "A finalized worker settlement freezes its reviewed source amounts and terms. Cash payment/reversal changes net paid and remaining; it does not amend that obligation or unlock the original source. The existing USD 720 October settlement remains USD 720 after its synthetic USD 1 payment and reversal.",
+        "Commercial Configuration does offer Rule type \u2192 Custom approved adjustment, Approved adjustment amount and Save compensation rule. This creates a new scoped/datetime rule for an independently approved adjustment; it is not an ordinary edit of a previously finalized settlement. The current settlement UI offers no general Replace finalized obligation or Unlock source action."
+      ],
+      "steps": [
+        "Open the exact settlement and compare frozen period/amount/source snapshot with payment and reversal history. Keep the original obligation and cash events separate.",
+        "For an independently approved new adjustment, review the real approval and choose its Worker, Project scope, Currency, Rule type \u2192 Custom approved adjustment, Approved adjustment amount and Rate basis, Effective from, optional Effective to and Notes; save and verify the resulting rule through the supported procedure. Do not invent approval to populate the form.",
+        "If the required correction concerns an already finalized period and cannot be represented by the displayed supported flow, hand off to Owner/Finance support with project/person/settlement IDs, frozen/current source comparison, dated terms, reason and expected change.",
+        "Retain the support decision and any new append-only authorized evidence. Reconcile the resulting obligation and cash independently before a genuine remaining payment."
+      ],
+      "checks": [
+        "Reversing cash never unlocks issued work or historical obligations. New dated agreements avoid overlaps; database surgery and deletion are not user recovery procedures."
+      ],
+      "recovery": [
+        "Use the precise native overlap/finalized-source message. Support must assess an explicit authorized correction path; do not keep retrying finalization with altered dates or arbitrary rules."
+      ],
+      "figures": []
+    },
+    {
       "id": "finance-recovery",
       "title": "Finish the cycle and hand off an exception",
       "route": "Finance Overview; Help; Profile",
-      "context": "Reference procedure · checked against current source; not yet executed in this role lab",
+      "context": "Reference procedure \u00b7 checked against current source; not yet executed in this role lab",
       "paragraphs": [
         "Check actual obligations and balances after each workflow. A read notification is not business approval; a final invoice is not delivery or collection; a reviewed settlement is not paid cash; a Ready artifact is not acceptance.",
         "Keep dates, references, source IDs and visible error codes in a restricted support handoff. Never send broad portfolio exports, credentials or unrelated worker payment information to a customer."

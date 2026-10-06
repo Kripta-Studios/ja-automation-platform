@@ -1,0 +1,51 @@
+{
+  "capturedAt": "2026-10-06T14:52:04.066641+00:00",
+  "baselineCommit": "abc12c0961b2c80996cbf49d8e992e0076d0f478",
+  "scope": "Bounded native role flows, precise references and support boundaries; not universal novice certification.",
+  "unitTests": {
+    "billingAndPeriodRoute": 42,
+    "timeDetailAndCorrection": 30,
+    "manualCatalogAndDownload": 12,
+    "total": 84,
+    "status": "PASS"
+  },
+  "portalTypecheck": "PASS",
+  "portalProductionBuild": "PASS; baseline compiler warnings retained",
+  "nativeHelp": {
+    "roles": 8,
+    "widths": [
+      360,
+      390,
+      768,
+      1440
+    ],
+    "downloadsAndDeniedRoleAccess": "PASS"
+  },
+  "pdf": "Eight strict reads; no missing instructions/images or layout overflow; image hashes match; task/bookmark targets verified; Owner249body+6unchangednativeannexpages and6unchangedattachments",
+  "independentReview": "Two read-only reviewers passed current app changes and current assembledOwnerSHA7bd45e0e1df79386def13944d0a51058f2ca90785e81bb62f8f6f0d76b0a1f96; caught/fixed source context loss, repeat assembly guard and future-page bookmark bug",
+  "knownBoundaries": [
+    "No bank transfer, genuine customer signature, accountant approval or SMTP inbox delivery asserted.",
+    "Finalized compensation amendment, credit allocation/refund and unsupported evidence recovery use explicit supported handoffs.",
+    "Optional contract variants and unexecuted device/recovery states remain labelled source-checked references."
+  ],
+  "appFixes": [
+    "Auditor authorized customer-period read no longer fails through reviewer-only metadata",
+    "Accounting source reconciliation mismatch retains selected dates with typed409privacy-safe support remedy",
+    "Rejected time directs user to reviewer/Owner instead of an absent corrected-draft control"
+  ],
+  "scopedLint": "PASS",
+  "nativeAccountingFailure": {
+    "selectedDatesRetained": [
+      "2026-10-26",
+      "2026-10-31"
+    ],
+    "widths": [
+      360,
+      390,
+      768,
+      1440
+    ],
+    "staticPrivacySafeSupportMessage": "PASS"
+  },
+  "nativeRejectedTime": "Actual Worker2 source shows Rejected and reviewer/Owner handoff, with no Create corrected draft control"
+}

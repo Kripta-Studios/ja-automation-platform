@@ -703,6 +703,18 @@ export function billingProblemFor(
   if (
     operation === 'createAccountingPack' &&
     error instanceof AccountingPackRevisionError &&
+    message.startsWith('Accounting Pack source authority mismatch: ')
+  )
+    return known(
+      409,
+      'ACCOUNTING_PACK_SOURCE_RECONCILIATION_REQUIRED',
+      'problem.billing.packSourceReconciliationRequired',
+      'This Accounting Pack does not reconcile with its preserved financial sources. Contact support to review the affected obligations and source history. Your selected dates are retained; reversing a payment or changing historical records is not a repair.',
+      'contact_support',
+    );
+  if (
+    operation === 'createAccountingPack' &&
+    error instanceof AccountingPackRevisionError &&
     message ===
       'No legal-entity revision is effective at the deterministic period cut (effective-date gap)'
   )

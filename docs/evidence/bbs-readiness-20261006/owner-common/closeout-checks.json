@@ -1,0 +1,89 @@
+{
+  "status": "PASS",
+  "environment": "isolated BBS copy",
+  "project": "C-0050-P-20261005",
+  "nativeActions": [
+    "Prepare closeout draft",
+    "Confirm client publication",
+    "Finalize both packages",
+    "Download client ZIP",
+    "Download internal ZIP",
+    "Owner Reason \u2192 Reopen"
+  ],
+  "outstandingObligationsPreserved": true,
+  "packages": [
+    {
+      "audience": "client",
+      "sha256": "9eec6cb9d4a193bc3bc87d91f4bcac9e69e05740631d92446caaf87575f5273c",
+      "bytes": 13802,
+      "files": [
+        "closeout.json",
+        "document-index.csv",
+        "closeout-summary.pdf",
+        "manifest.json"
+      ],
+      "manifest": {
+        "audience": "client",
+        "files": [
+          {
+            "byteLength": 2623,
+            "name": "closeout.json",
+            "sha256": "10ae2da04800d338bceb9769ed12158d1464976930543bb17d632d4e318ef5e1"
+          },
+          {
+            "byteLength": 36,
+            "name": "document-index.csv",
+            "sha256": "73538b8afad3d147eacebde1c22b29c06312b2a439035b951414bf26744d766d"
+          },
+          {
+            "byteLength": 10144,
+            "name": "closeout-summary.pdf",
+            "sha256": "2ea6a980a60e46ce48fb60bedf4a1d015f7579ea158ae2b6acb91c900a68acc0"
+          }
+        ],
+        "revisionId": "01a1119a-75f1-7639-b592-84c56c458c13",
+        "revisionNumber": 1,
+        "schemaVersion": 1,
+        "summaryRendererVersion": "closeout-summary-2026.09.22.1"
+      }
+    },
+    {
+      "audience": "internal",
+      "sha256": "ebf396944dc56d61a21f6119acd0661bb1650cf4d87e4eff4291a70a935cefcc",
+      "bytes": 44794,
+      "files": [
+        "closeout.json",
+        "document-index.csv",
+        "closeout-summary.pdf",
+        "manifest.json"
+      ],
+      "manifest": {
+        "audience": "internal",
+        "files": [
+          {
+            "byteLength": 14286,
+            "name": "closeout.json",
+            "sha256": "fe4b34f89d1c7921ccae2a7fa9d8b181cb2a92a29158895336e711fbac5aa5e3"
+          },
+          {
+            "byteLength": 1473,
+            "name": "document-index.csv",
+            "sha256": "418a48f50523ccf3f681cdc6e63e276ee6104f0d6853f451709576281734f5f4"
+          },
+          {
+            "byteLength": 28031,
+            "name": "closeout-summary.pdf",
+            "sha256": "62d5ee7daa6983a763ab49e828c2749293c6e924573a42333398f107796e5bf9"
+          }
+        ],
+        "revisionId": "01a1119a-75f1-7639-b592-84c56c458c13",
+        "revisionNumber": 1,
+        "schemaVersion": 1,
+        "summaryRendererVersion": "closeout-summary-2026.09.22.1"
+      }
+    }
+  ],
+  "projectStatusAfterFinalize": "closed",
+  "projectStatusAfterOwnerReopen": "active",
+  "reopeningPreservesFinalPackages": true
+}

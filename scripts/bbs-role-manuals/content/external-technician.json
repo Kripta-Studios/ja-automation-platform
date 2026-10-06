@@ -33,8 +33,370 @@
       ]
     },
     {
+      "id": "external-time",
+      "title": "First shift: save actual time, then submit",
+      "route": "Time → Log time",
+      "context": "Native isolated BBS role exercise · C-0050-P-20261005 · synthetic October 2026 work only",
+      "paragraphs": [
+        "Begin with your own assigned project and actual work. Published plans and expected hours are planning information; neither creates time. The October 13 example records fictional documentation work, not a real dispatch.",
+        "A draft remains editable. Submit only after checking project, work date, duration and activity. Submission sends supplier time to Owner review and locks ordinary editing. See Review authority · who receives each source (review-authority) and Recovery · sources, obligations and immutable history (recovery-matrix)."
+      ],
+      "steps": [
+        "Open Time and choose Log time. Select BBS, Work date 2026-10-13, Category Regular time, Duration in hours 1.25 and a precise synthetic activity summary.",
+        "Check any site, shift or break fields against the actual work. Choose Save draft and wait for the saved result; a Saving label is a transient state.",
+        "Open the saved source, confirm 1.25 h and Draft, then choose Submit. Verify Submitted on that source."
+      ],
+      "checks": [
+        "Native Save draft and Submit succeeded. Original source 01a11176-38c3-713d-92a2-e4f5ab3d9240 was later returned for correction; its current state is Needs changes."
+      ],
+      "recovery": [
+        "If save fails, correct the visible validation error and verify whether a source was created before retrying. Never create a duplicate to replace a submitted source."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et03-full-save-draft.png",
+          "caption": "Complete native first-shift form immediately before Save draft.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et03-draft-saved-result.png",
+          "caption": "Saved draft result; this checkpoint precedes submission and later review.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "external-correction",
+      "title": "Correct returned time and verify Owner approval",
+      "route": "Time → returned source → Create corrected draft",
+      "context": "Native isolated BBS role exercise · C-0050-P-20261005 · synthetic October 2026 work only",
+      "paragraphs": [
+        "Needs changes preserves the submitted source and reviewer reason. A correction creates a linked replacement; it does not silently overwrite approved or submitted history.",
+        "The October 13 original records 1.25 h. Owner requested one actual hour; the replacement records 1 h. The original remains Needs changes and the replacement is Approved."
+      ],
+      "steps": [
+        "Open the returned source and read the reason. Choose Create corrected draft.",
+        "Confirm date, category and actual duration; write the corrected activity and Reason for correction. Choose Create correction draft.",
+        "Check the linked draft and original link. Submit individually or include the eligible draft in Submit this week. After Owner review, reopen the replacement and verify Approved and its approved timestamp."
+      ],
+      "checks": [
+        "Correction 01a1117a-6cef-7576-900b-329b43e9ecb0 is Approved; the saved linked original remains visible. The isolated audit also verified Owner as the recorded approver. The source screen shows the approval timestamp, rather than a reviewer-name field."
+      ],
+      "recovery": [
+        "If a reason remains unclear, ask the Owner/coordinator before submitting. An explanation does not itself change review state."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et04-linked-correction-full-form.png",
+          "caption": "Actual linked correction form with corrected duration and reason.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et04-oct13-approved-correction.png",
+          "caption": "Actual October 13 linked replacement: Approved, 1 h, original link and approval timestamp.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "external-week",
+      "title": "Review a week and submit eligible drafts",
+      "route": "Time → Weekly timesheet",
+      "context": "Native isolated BBS role exercise · C-0050-P-20261005 · synthetic October 2026 work only",
+      "paragraphs": [
+        "Actual is saved work. Expected is a planning target. Difference is actual minus expected. Needs note can remain on approved days whose actual hours differ from the target: October 13 shows actual 1 h, expected 8 h and difference −7 h.",
+        "There is no weekly control that promises to clear Needs note. Record a truthful explanation in the source activity or correction reason where appropriate; that text may not remove the calculated indicator.",
+        "Copy previous week layout prepares draft structure; it never proves that copied work occurred. This copy action was source-checked, not executed in this exercise."
+      ],
+      "steps": [
+        "Open week 2026-10-12 and inspect dates, actual, expected, difference and source states.",
+        "Before Submit this week, identify every eligible draft and its actual work. The native October 12–18 exercise included ordinary draft 01a1117a-ab69-72fe-9fe3-d618ef3ac078 and linked correction draft 01a1117a-6cef-7576-900b-329b43e9ecb0, both version 1.",
+        "Choose Submit this week. Verify success and reopen both sources: each became Submitted. Owner subsequently approved both. The returned original stayed Needs changes and an already approved October 14 row was excluded."
+      ],
+      "checks": [
+        "Native eligibility count was 2 and both exact source IDs changed state successfully; count alone was not treated as proof."
+      ],
+      "recovery": [
+        "Do not manufacture eight hours to match Expected. Resolve actual source errors with a linked correction; explain a genuine short day truthfully."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et02-approved-time-needs-note.png",
+          "caption": "Approved actual time still shows Needs note where the expected target differs.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/s06-external-weekly-ordinary-correction-before.png",
+          "caption": "Before: eligible ordinary and linked correction drafts in the displayed week.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/s06-external-weekly-success-actual-states.png",
+          "caption": "After weekly submission: both exact sources became Submitted; later Owner approval is shown separately.",
+          "orientation": "portrait"
+        }
+      ]
+    },
+    {
+      "id": "external-expense",
+      "title": "Record an own purchase with its private receipt",
+      "route": "Expenses → Record expense",
+      "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
+      "paragraphs": [
+        "The worked expense is explicitly synthetic USD 8 tools/consumables on October 7, Worker payer. The receipt states no real purchase or payment. Your purchase facts are visible to you; Finance classification, customer recovery and reimbursement are later distinct decisions.",
+        "The actual form accepts JPG/PNG/HEIC/PDF receipt evidence up to 10 MB. Preserve the original currency and payer. A registered upload is not a universal assertion that an antivirus scan completed."
+      ],
+      "steps": [
+        "Choose Record expense. Attach Receipt image or PDF; select Project, Date and Category. Enter Vendor, Amount 8, Currency USD, Who paid Worker and factual Description; fill applicable time/related-hours/payment context.",
+        "Use Save draft and open the saved expense. Check the registered receipt and purchase fields.",
+        "Use Submit. Genuine PM operationally approved this expense. Open private receipt now succeeds through your own authorized account."
+      ],
+      "checks": [
+        "One USD 8 expense and one receipt exist. No Finance review, reimbursement payment or client invoice is claimed for this External exercise."
+      ],
+      "recovery": [
+        "If receipt access or scan processing fails, report the document/expense ID and exact status. Do not create another expense while checking the first. Reviewed expense corrections follow the current permitted correction/handoff process."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/14-external-expense-draft.png",
+          "caption": "Own saved USD 8 Draft with registered synthetic receipt.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/15-external-expense-submitted.png",
+          "caption": "Own purchase Submitted, then PM Approved; financial treatment is separate.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "external-daily",
+      "title": "Write and submit your own daily field report",
+      "route": "Reports → New daily report",
+      "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
+      "paragraphs": [
+        "Daily reports record operational facts, not timesheet hours, supplier payment or customer acceptance. This report’s author is the genuine External Technician account. Its fictional summary says no live equipment.",
+        "Fields include Project, Work date, Site / shift, Shift summary, Tasks completed, Problems found, Corrective actions, Downtime minutes, Standby reason, Open items, Next day plan and safety impact. Include genuine problems and next steps; do not invent a successful outcome."
+      ],
+      "steps": [
+        "Choose New daily report and fill the actual work date/project and factual summary/tasks. Fill relevant operational exceptions and next steps.",
+        "Use Save daily report. Open the Draft and inspect saved contents. Autosaving or saving edits does not submit.",
+        "Use Submit for review. Confirm Submitted and the permitted reviewer’s later state."
+      ],
+      "checks": [
+        "Own Daily progressed Draft→Submitted→Approved through genuine PM review. It did not add hours or record a customer signature."
+      ],
+      "recovery": [
+        "Edit only through offered unsent-draft controls. For returned/approved content, preserve history and use a supported correction or reviewer handoff."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/10-external-daily-form.png",
+          "caption": "Native own Daily input in the role lab.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/27-external-daily-approved-source.png",
+          "caption": "Own Daily after separate submission and genuine PM operational approval; ready output is a later step.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "external-technical",
+      "title": "Save technical facts and private evidence before submission",
+      "route": "Reports → New report → Technical / PLC",
+      "context": "Native isolated BBS role exercise · C-0050-P-20261005 · synthetic October 2026 work only",
+      "paragraphs": [
+        "Record system identity, observed issue, diagnosis, change, validation result, production impact, open risks and rollback. The October 19 example is an offline synthetic documentation bench; it claims no live PLC change.",
+        "Private evidence is a separate saved attachment. Scan status describes processing; Storage Saved and Scan Not scanned do not mean a clean security scan."
+      ],
+      "steps": [
+        "Choose Technical / PLC, your BBS project and Report date 2026-10-19. Complete the technical fields and Save draft.",
+        "In private evidence select Evidence type Technical attachment, choose File and enter Notes explaining the evidence and scope. Choose Upload private evidence.",
+        "Before Submit verify the listed filename, attachment version, size, hash, Storage Saved and scan status. In this exercise upload preceded submission.",
+        "Submit the saved report. Reopen the exact source after PM review and check Approved, work author, report creator, reviewer and source version."
+      ],
+      "checks": [
+        "Native report 01a11186-932c-7459-84fb-791179b96c66 reached Approved v3. Its attachment was registered at v2 before Submit. Evidence types available in this Technical form also include PLC backup · before and PLC backup · after."
+      ],
+      "recovery": [
+        "If an upload fails, verify whether metadata exists before retrying. Keep backups and customer evidence private; never infer scan success from an upload success."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-own-technical-full-save-form.png",
+          "caption": "Complete native Technical form before Save draft.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-evidence-type-file-notes-upload.png",
+          "caption": "Actual Evidence type, File, Notes and Upload private evidence controls.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-saved-evidence-metadata.png",
+          "caption": "Saved private attachment metadata, including the actual Not scanned status.",
+          "orientation": "landscape"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-approved-attribution.png",
+          "caption": "Approved source attribution and reviewer for the saved Technical report.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "external-report-output",
+      "title": "Generate, check and download the saved report version",
+      "route": "Own Daily / Technical source → PDF",
+      "context": "Native isolated BBS role exercise · C-0050-P-20261005 · synthetic October 2026 work only",
+      "paragraphs": [
+        "The native preview reflects saved source data. A generated PDF is tied to source version and language; it does not approve the source or certify customer acceptance."
+      ],
+      "steps": [
+        "Open your saved report and inspect its native preview. Select English, Spanish or Portuguese, then choose Generate report.",
+        "Queued means the artifact is being prepared. Use Refresh until the exact version/language becomes Ready; do not treat Queued as downloadable completion.",
+        "Choose Download on the Ready variant. Check project, report date, author, version, language and technical facts against the source."
+      ],
+      "checks": [
+        "October 19 Technical source v3 was generated in English, became Ready and was downloaded natively as Technical-report-C-0050-P-20261005-2026-10-19-SYNTHETIC-ET06-documentation-bench-v3-en-US.pdf."
+      ],
+      "recovery": [
+        "If a PDF is stale after a source change, generate the new saved version and compare its identity. Preserve prior version history."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-readable-native-preview.png",
+          "caption": "Readable native Technical document preview from saved facts.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-ready-native-technical.png",
+          "caption": "Ready English v3 variant with native Download.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "external-operational",
+      "title": "Reconcile an exact period with its native CSV",
+      "route": "Operational report → date filters → Download CSV",
+      "context": "Native isolated BBS role exercise · C-0050-P-20261005 · synthetic October 2026 work only",
+      "paragraphs": [
+        "The earlier 2.75 h total is a historical October 6–7 checkpoint, not the current full-month total. Later October records were added. Use exact dates to reproduce it.",
+        "The final October 6–7 export contains two Approved rows: 120 minutes on October 6, source 01a10e4b-c33e-7033-a065-d3980b92c94d, and the 45-minute October 7 correction 01a10e53-31a7-7509-86a4-7a134a731e6c. Total 165 minutes = 2.75 h. The returned 60-minute original is not counted as approved work."
+      ],
+      "steps": [
+        "Open Operational report, select BBS and filter From 2026-10-06 to To 2026-10-07.",
+        "Check technician, dates, duration, State and Recorded by. Choose Download CSV and compare the two exported rows with the filtered screen.",
+        "For later work choose a new date range and describe its actual total; never carry the historical 2.75 h forward."
+      ],
+      "checks": [
+        "Native final CSV external-final-oct06-07.csv has two Approved rows and nine operational columns. No rate, internal cost, margin or pay column is present."
+      ],
+      "recovery": [
+        "If screen and CSV differ, check filters and source states before escalating. Keep both the historical checkpoint and later export identity."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et05-historical-period-approved-2-75h.png",
+          "caption": "Exact October 6–7 final filtered screen: two Approved rows totaling 2.75 h, matching the final native CSV.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "external-mobile",
+      "title": "Use narrow screens and check saved results",
+      "route": "Time; Expenses; Reports; Operational report",
+      "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
+      "paragraphs": [
+        "Use role navigation and narrow-screen menu controls. Review account/project/date/member fields carefully before saving. A table’s internal horizontal-scroll hint is different from page-level overflow."
+      ],
+      "steps": [
+        "On a phone open the required workspace through navigation and apply the intended scope.",
+        "After saving or submitting, reopen the existing source to verify its result rather than repeating the action."
+      ],
+      "checks": [
+        "Operational report checked at 390 and 768 pixels: page width of the scrollable page matches viewport width; native two-source report retained. Desktop 1440 was also inspected."
+      ],
+      "recovery": [
+        "Report clipped controls with a safe screenshot, width, environment and exact action. Never save duplicate records to compensate for a hidden result."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/21-external-phone-report.png",
+          "caption": "Native 390 pixel external own operational report.",
+          "orientation": "portrait"
+        },
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/22-external-tablet-report.png",
+          "caption": "Native 768 pixel external own operational report.",
+          "orientation": "portrait"
+        }
+      ]
+    },
+    {
+      "id": "external-profile",
+      "title": "Maintain your workforce profile and individual security",
+      "route": "Profile → Expertise and availability; Account security",
+      "context": "Reference procedure · current own-role controls/source checked; mutations not exercised",
+      "paragraphs": [
+        "Expertise and availability are planning inputs, distinct from supplier authorization/project assignment. The own profile was inspected natively; no security or profile mutations occurred here. A generic workforce-profile Worker label does not grant internal Worker financial workspaces.",
+        "Add expertise offers expertise/proficiency. Add availability opens dated UTC availability windows. Passkey registration uses Device name and Register passkey. Authenticator setup/recovery material is sensitive; never include it in report evidence.",
+        "For invitation and sign-in use Access · activate the invitation and sign in (access). For MFA, devices and recovery use Security · verify your own device and recovery options (security)."
+      ],
+      "steps": [
+        "Check your own expertise and UTC calendar. Use offered own-profile controls only for genuine information.",
+        "For an authorized account-security change use your own device/authenticator prompts and verify completion before signing out. Store recovery codes in an approved password manager."
+      ],
+      "checks": [
+        "Skills/availability do not grant review, supplier administration, private-pay or billing rights. Security success is not claimed from read-only controls."
+      ],
+      "recovery": [
+        "Ask the Owner/coordinator for authorization/assignment changes and Owner/support for access recovery. Do not share credentials."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/23-external-profile.png",
+          "caption": "Own workforce profile inspected without generating any security secret.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
+      "id": "external-help",
+      "title": "Use Help and hand problems to the correct role",
+      "route": "Help",
+      "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
+      "paragraphs": [
+        "Help’s invitation lesson distinguishes mailbox-linked access and a single-use external invitation; there is no public signup. Supplier operations guidance has different paths for technician/coordinator.",
+        "The verified support contact is admin@j-aautomation.com. Live company portal/webmail links are live services. No email was sent in this exercise. External Technician has no My Pay workspace: supplier commercial/payment questions belong to the coordinator/Finance using their authorized process."
+      ],
+      "steps": [
+        "Read the External technician starting path and normal-day guidance in Help.",
+        "Send actual source errors to the operational reviewer; supplier authorization/account questions to Owner/coordinator; financial issues to coordinator/Finance.",
+        "Include environment, role, project/record ID, date, intended action and exact message. Use safe screenshots without session cookies/passwords/recovery codes."
+      ],
+      "checks": [
+        "My Pay, Finance, Billing, supplier team and another Worker’s time returned 403. Unrelated report/receipt returned 404 after the own-output route fix."
+      ],
+      "recovery": [
+        "Do not use another account to work around denial or publish private receipt links. Marking/reading a notification, where offered, is not approval or acceptance."
+      ],
+      "figures": [
+        {
+          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/24-external-help.png",
+          "caption": "Native External Technician Help path and invitation guidance.",
+          "orientation": "landscape"
+        }
+      ]
+    },
+    {
       "id": "external-assignment-planning-targets",
-      "title": "Understand assignment access, published plans and expected hours",
+      "title": "Planning appendix · assignment dates and expected targets",
       "route": "Sign in → Time → Week of → Open week",
       "context": "Isolated BBS planning lab · real role browser sessions · fictional October 22–23, 2026 work · no production records or financial changes",
       "paragraphs": [
@@ -117,342 +479,6 @@
       ]
     },
     {
-      "id": "external-time",
-      "title": "Save your own actual time and submit it",
-      "route": "Time → Log time",
-      "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
-      "paragraphs": [
-        "Actual hours describe work performed, independently of supplier plans or invoices. The exercise saved one hour on October 7 for fictional documentation work. Decimal 0.75 hour means 45 minutes; it is not 75 minutes.",
-        "Operational category describes activity. Choosing Overtime does not set a premium. Start/end times and meal expense are optional separate inputs; do not invent clock times from a duration."
-      ],
-      "steps": [
-        "Choose Log time. Select Assigned project and Date, then Operational category, Actual hours and Activity summary.",
-        "Use Save draft. Open the saved source and verify account, project, date, duration and activity.",
-        "Use individual Submit and confirm Submitted. Saving alone is not submission or approval."
-      ],
-      "checks": [
-        "One native one-hour own source was saved and submitted. It retained its own ID and history."
-      ],
-      "recovery": [
-        "If Save seems uncertain, reload the filtered register and locate the existing row before trying again. Edit an unsent ordinary draft only through the current permitted controls."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/03-external-time-filled.png",
-          "caption": "Actual filled own time form before Save draft: one-hour fictional October 7 exercise.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/04-external-submitted-own-source.png",
-          "caption": "Same own source Submitted to its permitted operational reviewer.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "external-correction",
-      "title": "Correct returned time through a linked replacement",
-      "route": "Time → Needs changes source → Create corrected draft",
-      "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
-      "paragraphs": [
-        "The Owner returned the one-hour source because actual duration was 0.75 hour. The technician created a linked correction rather than another unrelated time row. The original one-hour Needs changes record remains preserved.",
-        "Review every value before creating a correction: linked correction drafts do not offer unrestricted editing after creation. An unsubmitted Withdraw correction draft control requires a reason; withdrawal was inspected, not exercised."
-      ],
-      "steps": [
-        "Open the original source and read the reviewer’s reason. Use Create corrected draft.",
-        "Review project/date/category/activity, enter Actual hours 0.75 and a concrete Correction reason; create the draft.",
-        "Open the linked Draft, inspect its original link and use individual Submit.",
-        "After reviewer approval inspect the current operational report/register rather than adding the old and replacement hours."
-      ],
-      "checks": [
-        "Own corrected 45 minute source is Approved; original 60 minute source remains Needs changes. With coordinator-recorded 2 hours, current activity totals 165 minutes=2.75 hours."
-      ],
-      "recovery": [
-        "A settled, invoiced or otherwise locked source may require Finance/Owner adjustment. Send the original ID and intended factual change; never shift dates or create duplicate work to evade a guard."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/05-external-returned-correction.png",
-          "caption": "Native returned one-hour source and correction reason.",
-          "orientation": "landscape"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/06-external-corrected-draft.png",
-          "caption": "Linked 0.75-hour Draft retains the original source.",
-          "orientation": "landscape"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/07-external-correction-submitted.png",
-          "caption": "Correction individually submitted, then operationally approved.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "external-week",
-      "title": "Review weekly tools without copying fictitious work",
-      "route": "Time → Enter a week in a table; Submit this week",
-      "context": "Reference procedure · current own-role controls/source checked; mutations not exercised",
-      "paragraphs": [
-        "Weekly tools save your own daily drafts for actual work. Blank days are skipped. Review existing entries first to avoid duplicates. A copied previous-week layout carries zero hours and does not create evidence that work happened again.",
-        "Copy previous week layout: choose the destination Week of, inspect displayed Previous week / This week, then Add this week’s layout. These are displayed periods, not editable Source/Destination fields. Weekly draft submission can include eligible linked corrections; this course used individual correction Submit to inspect the original link."
-      ],
-      "steps": [
-        "For a genuine workweek open Enter a week in a table, select Week of/project and fill worked days, then Save daily drafts.",
-        "Review saved records. Under Submit this week inspect the own-week draft count before Submit all week drafts.",
-        "For a linked correction use individual detail Submit when you need to inspect its history carefully."
-      ],
-      "checks": [
-        "Draft, Submitted and Approved remain distinct. A zero-hour copied layout still needs genuine actual work."
-      ],
-      "recovery": [
-        "Resolve the exact blocked/changed record. Do not keep submitting the entire week to force a guarded correction."
-      ],
-      "figures": []
-    },
-    {
-      "id": "external-expense",
-      "title": "Record an own purchase with its private receipt",
-      "route": "Expenses → Record expense",
-      "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
-      "paragraphs": [
-        "The worked expense is explicitly synthetic USD 8 tools/consumables on October 7, Worker payer. The receipt states no real purchase or payment. Your purchase facts are visible to you; Finance classification, customer recovery and reimbursement are later distinct decisions.",
-        "The actual form accepts JPG/PNG/HEIC/PDF receipt evidence up to 10 MB. Preserve the original currency and payer. A registered upload is not a universal assertion that an antivirus scan completed."
-      ],
-      "steps": [
-        "Choose Record expense. Attach Receipt image or PDF; select Project, Date and Category. Enter Vendor, Amount 8, Currency USD, Who paid Worker and factual Description; fill applicable time/related-hours/payment context.",
-        "Use Save draft and open the saved expense. Check the registered receipt and purchase fields.",
-        "Use Submit. Genuine PM operationally approved this expense. Open private receipt now succeeds through your own authorized account."
-      ],
-      "checks": [
-        "One USD 8 expense and one receipt exist. No Finance review, reimbursement payment or client invoice is claimed for this External exercise."
-      ],
-      "recovery": [
-        "If receipt access or scan processing fails, report the document/expense ID and exact status. Do not create another expense while checking the first. Reviewed expense corrections follow the current permitted correction/handoff process."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/14-external-expense-draft.png",
-          "caption": "Own saved USD 8 Draft with registered synthetic receipt.",
-          "orientation": "landscape"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/15-external-expense-submitted.png",
-          "caption": "Own purchase Submitted, then PM Approved; financial treatment is separate.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "external-daily",
-      "title": "Write and submit your own daily field report",
-      "route": "Reports → New daily report",
-      "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
-      "paragraphs": [
-        "Daily reports record operational facts, not timesheet hours, supplier payment or customer acceptance. This report’s author is the genuine External Technician account. Its fictional summary says no live equipment.",
-        "Fields include Project, Work date, Site / shift, Shift summary, Tasks completed, Problems found, Corrective actions, Downtime minutes, Standby reason, Open items, Next day plan and safety impact. Include genuine problems and next steps; do not invent a successful outcome."
-      ],
-      "steps": [
-        "Choose New daily report and fill the actual work date/project and factual summary/tasks. Fill relevant operational exceptions and next steps.",
-        "Use Save daily report. Open the Draft and inspect saved contents. Autosaving or saving edits does not submit.",
-        "Use Submit for review. Confirm Submitted and the permitted reviewer’s later state."
-      ],
-      "checks": [
-        "Own Daily progressed Draft→Submitted→Approved through genuine PM review. It did not add hours or record a customer signature."
-      ],
-      "recovery": [
-        "Edit only through offered unsent-draft controls. For returned/approved content, preserve history and use a supported correction or reviewer handoff."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/10-external-daily-form.png",
-          "caption": "Native own Daily input in the role lab.",
-          "orientation": "landscape"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/27-external-daily-approved-source.png",
-          "caption": "Own Daily after separate submission and genuine PM operational approval; ready output is a later step.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "external-technical",
-      "title": "Document technical facts and validation",
-      "route": "Reports → New technical report",
-      "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
-      "paragraphs": [
-        "The exercised system is a fictional bench. No PLC program changed and no live validation is claimed. A technical report is evidence, not authorization to modify equipment or substitute for safety/change-control requirements.",
-        "Identify System / machine and applicable Plant / site, Area / line, Station / machine, System type, PLC platform, Controller, HMI / SCADA, Network / protocol, Software version and Program / project reference. Record Problem / symptom, Diagnosis / root cause, Change performed, production impact, validation/result, open risk and rollback."
-      ],
-      "steps": [
-        "Choose New technical report. Select Project and Work date, identify equipment and enter readable factual diagnosis/change/validation/risk fields.",
-        "Use Save PLC report. Open the Draft and inspect the source.",
-        "Use Submit for review and inspect the permitted reviewer’s later state."
-      ],
-      "checks": [
-        "Own Technical source saved, submitted and genuinely PM Approved. Native readable preview access was rechecked after a route-admission fix."
-      ],
-      "recovery": [
-        "A real unresolved hazard/validation need belongs with the responsible technical lead/PM. Do not fabricate clean validation to complete a form."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/16-external-technical-filled.png",
-          "caption": "Actual technical input for the clearly fictional external bench.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/26-external-technical-approved.png",
-          "caption": "Own Technical operationally Approved; rebuilt native readable preview works.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "external-report-output",
-      "title": "Generate a ready own report PDF and preserve version meaning",
-      "route": "Reports → own report detail → Generate report",
-      "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
-      "paragraphs": [
-        "The own Daily was approved before this output example. Choose the report language and Generate report; generation is asynchronous. Queued is not a downloaded file. Refresh/check its state and use Download only when Ready.",
-        "Initial testing discovered that the role route list blocked own previews and receipts even though their own record pages offered links. A bounded route fix retained existing session and exact object-scope checks. Rebuilt runtime checks confirmed own Daily/Technical previews and own receipt 200 while unrelated report/receipt 404 and financial routes 403 remained protected. The earlier 403 evidence is preserved as history, not the final operating result.",
-        "Private report evidence can be uploaded through Evidence type, File and Notes using the permitted draft controls. Offered types/limits are displayed; this role exercise did not upload report attachments. A Daily/Technical PDF is separate from reviewed customer period acceptance or supplier billing."
-      ],
-      "steps": [
-        "On the own approved Daily choose English and Generate report. Wait for Queued processing.",
-        "Refresh until Ready and use Download / Download English. Open the native PDF and verify author/project/date/content.",
-        "Before report submission, use permitted private evidence controls for authorized attachments; never include unrelated people’s financial/private records."
-      ],
-      "checks": [
-        "Native English Daily reached Ready and the own download succeeded. Own preview and receipt access works; unrelated source evidence remains inaccessible."
-      ],
-      "recovery": [
-        "If Queued never completes, ask support to inspect the artifact using report ID/language/status. If preview/receipt denied, report exact URL/status; never use another account or fabricate a screenshot."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/25-external-daily-ready.png",
-          "caption": "Actual rebuilt role view: own Approved Daily, ready English PDF and working preview.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "external-operational",
-      "title": "Reconcile and download your own operational activity",
-      "route": "Operational report → Apply filters",
-      "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
-      "paragraphs": [
-        "This report contains operational work and approval status only. It does not certify supplier payment, compensation or customer acceptance. The technician sees its own coordinator-recorded work and its own corrected work, with Recorded by identifying the actor.",
-        "For October 6–31, current activity is 2 hrecorded by the supplier coordinator plus 0.75 hrecorded/corrected by the technician, total 2.75 h. The superseded 1 h source is not counted again. The CSV’s nine columns describe project, technician, date, category, actual hours/minutes, activity, state and recorder; it contains no pay/rates."
-      ],
-      "steps": [
-        "Select Installation / project, From, To and Language; use Apply filters. Check the displayed date range and person before interpreting totals.",
-        "Inspect each current source’s duration, state and Recorded by.",
-        "Use Download CSV and open the native output. Print / save PDF uses the browser’s print flow; no separately generated operational PDF was saved in this lab."
-      ],
-      "checks": [
-        "Own operational CSV downloaded successfully: two rows, 120+45 minutes=165 minutes, 2.75 h, only this technician."
-      ],
-      "recovery": [
-        "If empty, check filters and authorization dates before assuming work is missing. Reconcile source states/corrections; do not add rows to match a planned total."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/20-external-operational-current.png",
-          "caption": "Native filtered own activity: coordinator 2 h plus own approved 0.75 h.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "external-mobile",
-      "title": "Use narrow screens and check saved results",
-      "route": "Time; Expenses; Reports; Operational report",
-      "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
-      "paragraphs": [
-        "Use role navigation and narrow-screen menu controls. Review account/project/date/member fields carefully before saving. A table’s internal horizontal-scroll hint is different from page-level overflow."
-      ],
-      "steps": [
-        "On a phone open the required workspace through navigation and apply the intended scope.",
-        "After saving or submitting, reopen the existing source to verify its result rather than repeating the action."
-      ],
-      "checks": [
-        "Operational report checked at 390 and 768 pixels: page width of the scrollable page matches viewport width; native two-source report retained. Desktop 1440 was also inspected."
-      ],
-      "recovery": [
-        "Report clipped controls with a safe screenshot, width, environment and exact action. Never save duplicate records to compensate for a hidden result."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/21-external-phone-report.png",
-          "caption": "Native 390 pixel external own operational report.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/22-external-tablet-report.png",
-          "caption": "Native 768 pixel external own operational report.",
-          "orientation": "portrait"
-        }
-      ]
-    },
-    {
-      "id": "external-profile",
-      "title": "Maintain your workforce profile and individual security",
-      "route": "Profile → Expertise and availability; Account security",
-      "context": "Reference procedure · current own-role controls/source checked; mutations not exercised",
-      "paragraphs": [
-        "Expertise and availability are planning inputs, distinct from supplier authorization/project assignment. The own profile was inspected natively; no security or profile mutations occurred here. A generic workforce-profile Worker label does not grant internal Worker financial workspaces.",
-        "Add expertise offers expertise/proficiency. Add availability opens dated UTC availability windows. Passkey registration uses Device name and Register passkey. Authenticator setup/recovery material is sensitive; never include it in report evidence."
-      ],
-      "steps": [
-        "Check your own expertise and UTC calendar. Use offered own-profile controls only for genuine information.",
-        "For an authorized account-security change use your own device/authenticator prompts and verify completion before signing out. Store recovery codes in an approved password manager."
-      ],
-      "checks": [
-        "Skills/availability do not grant review, supplier administration, private-pay or billing rights. Security success is not claimed from read-only controls."
-      ],
-      "recovery": [
-        "Ask the Owner/coordinator for authorization/assignment changes and Owner/support for access recovery. Do not share credentials."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/23-external-profile.png",
-          "caption": "Own workforce profile inspected without generating any security secret.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
-      "id": "external-help",
-      "title": "Use Help and hand problems to the correct role",
-      "route": "Help",
-      "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
-      "paragraphs": [
-        "Help’s invitation lesson distinguishes mailbox-linked access and a single-use external invitation; there is no public signup. Supplier operations guidance has different paths for technician/coordinator.",
-        "The verified support contact is admin@j-aautomation.com. Live company portal/webmail links are live services. No email was sent in this exercise. External Technician has no My Pay workspace: supplier commercial/payment questions belong to the coordinator/Finance using their authorized process."
-      ],
-      "steps": [
-        "Read the External technician starting path and normal-day guidance in Help.",
-        "Send actual source errors to the operational reviewer; supplier authorization/account questions to Owner/coordinator; financial issues to coordinator/Finance.",
-        "Include environment, role, project/record ID, date, intended action and exact message. Use safe screenshots without session cookies/passwords/recovery codes."
-      ],
-      "checks": [
-        "My Pay, Finance, Billing, supplier team and another Worker’s time returned 403. Unrelated report/receipt returned 404 after the own-output route fix."
-      ],
-      "recovery": [
-        "Do not use another account to work around denial or publish private receipt links. Marking/reading a notification, where offered, is not approval or acceptance."
-      ],
-      "figures": [
-        {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/24-external-help.png",
-          "caption": "Native External Technician Help path and invitation guidance.",
-          "orientation": "landscape"
-        }
-      ]
-    },
-    {
       "id": "external-checklist",
       "title": "Complete the technician handoff",
       "route": "Time → Expenses → Reports → Operational report",
@@ -469,10 +495,10 @@
         "Give reviewer/coordinator source IDs and unresolved issues; never claim customer acceptance/pay from operational approval."
       ],
       "checks": [
-        "Verified: own time 1→0.75 linked correction approved; coordinator 2 h separately visible; own expense 8 USD with receipt approved; own Daily/Technical submitted+approved; own Daily Ready PDF download; own operational CSV; own preview/receipt positive and unrelated/private financial denial; phone/tablet fit."
+        "Native coverage includes saved first-shift time, linked correction and Owner approval, ordinary plus correction weekly submission with exact IDs, private Technical upload before Submit, PM Technical approval, Ready English PDF download and exact filtered historical CSV. See Verification · current coverage and historical evidence (verification)."
       ],
       "recovery": [
-        "Reference-only: onboarding/reset, weekly table/layout copy/bulk mutations, report attachments, profile/security changes, browser print PDF completion, customer acceptance, real bank/email delivery."
+        "Layout copying, browser print completion and new customer acceptance remain reference-only. Use the shared access/security chapters for their verified procedures."
       ],
       "figures": []
     }

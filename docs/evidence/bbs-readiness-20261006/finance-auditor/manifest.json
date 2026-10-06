@@ -1,0 +1,516 @@
+{
+  "scope": "Isolated synthetic Finance/Auditor readiness exercises; no production transactions, signatures, dispatch or bank events.",
+  "mainPortfolioProject": "01a10c51-a391-7288-aad1-cb38be43f496",
+  "objects": {
+    "source": "01a11177-53be-76f2-9eef-023d5e7d3624",
+    "manualStream": "01a1117b-f753-77d9-8e1f-19bb4315fc58",
+    "normalInvoice": "01a1117c-ec5d-750b-be30-47caa07cb3db",
+    "creditInvoice": "01a11182-26eb-77e8-b0e4-0b58e5875cb3",
+    "receipt": "01a11184-3d1c-7608-b5cc-a240af9f46f0",
+    "cashReversal": "01a11184-db1f-77f3-860b-abf58cf2c4b1",
+    "closedManualPeriod": "01a11187-4b16-75e6-835b-28bdb1f4f125",
+    "customerReport": "01a11179-da79-7298-baa2-074d02192e78",
+    "bbsAccountingPack": "01a11180-8605-74a7-9266-ff43c6637a4c",
+    "separateFinalAccountingPack": "01a1118e-2286-76bc-a914-28f15b7a64eb",
+    "historicalDayRule": "01a10cb5-5d0e-71e9-b76c-299609468e00",
+    "futureNovemberDayRule": "01a11194-52ce-74bf-bd38-e64c0243799f"
+  },
+  "sourceReconciliation": {
+    "actualMinutes": 60,
+    "workDate": "2026-10-26",
+    "sourceVersionAtInvoice": 4,
+    "sourceSha256": "4752dc92391c717f71e54503479ecda7222fcf9810b242190237a581c5893308",
+    "billingUnit": "daily",
+    "quantity": 1,
+    "currency": "USD",
+    "unitRateMinor": 60000,
+    "allocatedNetMinor": 60000,
+    "originalNetMinor": 60000,
+    "remainingNetMinor": 0
+  },
+  "customerReport": {
+    "snapshotVersion": 2,
+    "snapshotSha256": "85ba28d58be5c1f0c582266794df84fc491344508b23c63a33659b0ce98d6042",
+    "state": "approved",
+    "signature": "none recorded",
+    "followup": "none recorded",
+    "actualHours": 3.8,
+    "dailyReports": 1,
+    "timeEntries": 3
+  },
+  "auditChain": [
+    {
+      "id": "01a11177-53be-76f2-9eef-044754890d32",
+      "action": "time.create",
+      "entity_type": "time_entry",
+      "entity_id": "01a11177-53be-76f2-9eef-023d5e7d3624",
+      "actor_id": "01a01ac1-d6e6-751d-a9b3-4693809b4ba1",
+      "occurred_at": "2026-10-06T13:46:35.326Z",
+      "actorResolution": "Owner training session (restricted account identity)"
+    },
+    {
+      "id": "01a11177-53bf-753a-a6c5-8c193bcc4f39",
+      "action": "time.create",
+      "entity_type": "time_entry",
+      "entity_id": "01a11177-53be-76f2-9eef-023d5e7d3624",
+      "actor_id": "01a01ac1-d6e6-751d-a9b3-4693809b4ba1",
+      "occurred_at": "2026-10-06T13:46:35.327Z",
+      "actorResolution": "Owner training session (restricted account identity)"
+    },
+    {
+      "id": "01a11177-be4a-72a4-be3b-7a85837318c3",
+      "action": "time.submit",
+      "entity_type": "time_entry",
+      "entity_id": "01a11177-53be-76f2-9eef-023d5e7d3624",
+      "actor_id": "01a01ac1-d6e6-751d-a9b3-4693809b4ba1",
+      "occurred_at": "2026-10-06T13:47:02.602Z",
+      "actorResolution": "Owner training session (restricted account identity)"
+    },
+    {
+      "id": "01a11177-fb59-702c-947e-901f63e549e9",
+      "action": "time.approved",
+      "entity_type": "time_entry",
+      "entity_id": "01a11177-53be-76f2-9eef-023d5e7d3624",
+      "actor_id": "01a01ac1-d6e6-751d-a9b3-4693809b4ba1",
+      "occurred_at": "2026-10-06T13:47:18.233Z",
+      "actorResolution": "Owner training session (restricted account identity)"
+    },
+    {
+      "id": "01a11178-0058-702f-8eeb-9c42337891c7",
+      "action": "time.finance_review",
+      "entity_type": "time_entry",
+      "entity_id": "01a11177-53be-76f2-9eef-023d5e7d3624",
+      "actor_id": "01a10e34-4faa-74fe-8b88-636b879e852b",
+      "occurred_at": "2026-10-06T13:47:19.513Z",
+      "actorResolution": "BBS ROLE LAB Finance"
+    },
+    {
+      "id": "01a1117c-ec6d-7140-830e-553950a025bf",
+      "action": "invoice.draft_create",
+      "entity_type": "invoice",
+      "entity_id": "01a1117c-ec5d-750b-be30-47caa07cb3db",
+      "actor_id": "01a10e34-4faa-74fe-8b88-636b879e852b",
+      "occurred_at": "2026-10-06T13:52:42.093Z",
+      "actorResolution": "BBS ROLE LAB Finance"
+    },
+    {
+      "id": "01a1117e-5ae1-75da-a852-7f652a9433f4",
+      "action": "invoice.approve",
+      "entity_type": "invoice",
+      "entity_id": "01a1117c-ec5d-750b-be30-47caa07cb3db",
+      "actor_id": "01a10e34-4faa-74fe-8b88-636b879e852b",
+      "occurred_at": "2026-10-06T13:54:15.906Z",
+      "actorResolution": "BBS ROLE LAB Finance"
+    },
+    {
+      "id": "01a1117e-8a98-712d-967e-9045847a9365",
+      "action": "invoice.issue",
+      "entity_type": "invoice",
+      "entity_id": "01a1117c-ec5d-750b-be30-47caa07cb3db",
+      "actor_id": "01a10e34-4faa-74fe-8b88-636b879e852b",
+      "occurred_at": "2026-10-06T13:54:28.121Z",
+      "actorResolution": "BBS ROLE LAB Finance"
+    },
+    {
+      "id": "01a1117e-e623-72ff-a14b-41bbafc49a94",
+      "action": "artifact.access",
+      "entity_type": "invoice",
+      "entity_id": "01a1117c-ec5d-750b-be30-47caa07cb3db",
+      "actor_id": "01a10e34-4faa-74fe-8b88-636b879e852b",
+      "occurred_at": "2026-10-06T13:54:51.555Z",
+      "actorResolution": "BBS ROLE LAB Finance"
+    },
+    {
+      "id": "01a11182-26f0-760a-a469-9968f6bb50fd",
+      "action": "invoice.adjustment.create",
+      "entity_type": "invoice",
+      "entity_id": "01a11182-26eb-77e8-b0e4-0b58e5875cb3",
+      "actor_id": "01a10e34-4faa-74fe-8b88-636b879e852b",
+      "occurred_at": "2026-10-06T13:58:24.752Z",
+      "actorResolution": "BBS ROLE LAB Finance"
+    },
+    {
+      "id": "01a11182-b132-7078-913a-1bfd78d89ed1",
+      "action": "invoice.approve",
+      "entity_type": "invoice",
+      "entity_id": "01a11182-26eb-77e8-b0e4-0b58e5875cb3",
+      "actor_id": "01a10e34-4faa-74fe-8b88-636b879e852b",
+      "occurred_at": "2026-10-06T13:59:00.146Z",
+      "actorResolution": "BBS ROLE LAB Finance"
+    },
+    {
+      "id": "01a11182-ba5e-77a4-8d85-2bc21acc3666",
+      "action": "invoice.issue",
+      "entity_type": "invoice",
+      "entity_id": "01a11182-26eb-77e8-b0e4-0b58e5875cb3",
+      "actor_id": "01a10e34-4faa-74fe-8b88-636b879e852b",
+      "occurred_at": "2026-10-06T13:59:02.494Z",
+      "actorResolution": "BBS ROLE LAB Finance"
+    },
+    {
+      "id": "01a11184-3d29-75f8-8862-07796bdc6c88",
+      "action": "payment.record",
+      "entity_type": "payment",
+      "entity_id": "01a11184-3d1c-7608-b5cc-a240af9f46f0",
+      "actor_id": "01a10e34-4faa-74fe-8b88-636b879e852b",
+      "occurred_at": "2026-10-06T14:00:41.513Z",
+      "actorResolution": "BBS ROLE LAB Finance"
+    }
+  ],
+  "cashReversalAuditRow": false,
+  "cashReversalEvidence": "native immutable invoice reversal history and invoice_payment_reversal_event; actor BBS ROLE LAB Finance; amountMinor100; entry_correction; recorded2026-10-06T14:01:21.943Z",
+  "artifacts": [
+    {
+      "privateFilename": "fn03-native-final-invoice.pdf",
+      "nativeBrowserDownload": true,
+      "byteLength": 360726,
+      "sha256": "802303f360a47a0759b19336f610f1e1d41d6b429bf440fe841f05198050697a",
+      "published": false
+    },
+    {
+      "privateFilename": "fn08-project-finance-oct26.xlsx",
+      "nativeBrowserDownload": true,
+      "byteLength": 12944,
+      "sha256": "a4b09e6dd7869fd157daad764ec6e8ff0e35e00e4822c21f8f12c5a27c2ea632",
+      "published": false
+    },
+    {
+      "privateFilename": "au04-pack.pdf",
+      "nativeBrowserDownload": true,
+      "byteLength": 353495,
+      "sha256": "3ecbc21918801f8d1fd3a10716202e428ff2ac8c552a503175e3a28cb7ef9641",
+      "published": false
+    },
+    {
+      "privateFilename": "au04-pack.xlsx",
+      "nativeBrowserDownload": true,
+      "byteLength": 15591,
+      "sha256": "5eb3c5432f440511bd2bd94364639f1e31694a5e883efc59991552c2c24b0464",
+      "published": false
+    },
+    {
+      "privateFilename": "au04-invoice.csv",
+      "nativeBrowserDownload": true,
+      "byteLength": 1611,
+      "sha256": "d6c61c8d0ff64bb1456fa21e578f06370d1d2a965af3e6d44a077f0dba84ad57",
+      "published": false
+    },
+    {
+      "privateFilename": "au04-expense.csv",
+      "nativeBrowserDownload": true,
+      "byteLength": 5557,
+      "sha256": "ac2aa263ace2a0f29a4800bcf8ac55df5dee50fa2f6c4da422d450c56e9f6889",
+      "published": false
+    },
+    {
+      "privateFilename": "au04-pack.json",
+      "nativeBrowserDownload": true,
+      "byteLength": 200209,
+      "sha256": "d6bda69bb0dc1481a9968789236d9f83bee5229da56f9c291b5e0463a8b3f246",
+      "published": false
+    },
+    {
+      "privateFilename": "clean-dumps/au04-clean-final.pdf",
+      "nativeBrowserDownload": true,
+      "byteLength": 321118,
+      "sha256": "6e2ded2298af4e3b6f94492767a6528329042b11bc686c36d00e0ae629e493df",
+      "published": false
+    },
+    {
+      "privateFilename": "clean-dumps/au04-clean-final.xlsx",
+      "nativeBrowserDownload": true,
+      "byteLength": 5047,
+      "sha256": "3ae66860339017a900f30aa0d38ca371cc0ab4dfc8603d1caa8cee6cf29956db",
+      "published": false
+    },
+    {
+      "privateFilename": "clean-dumps/au04-clean-final-invoice.csv",
+      "nativeBrowserDownload": true,
+      "byteLength": 477,
+      "sha256": "31389a483b8475635761402a9cae0788538a889aef8e7c755ba3f6a88f84c9f3",
+      "published": false
+    },
+    {
+      "privateFilename": "clean-dumps/au04-clean-final-expense.csv",
+      "nativeBrowserDownload": true,
+      "byteLength": 146,
+      "sha256": "1903e1df33f8e1210719a75aa55a3fdc7478d43639c13c201d7a5a2fdef323cb",
+      "published": false
+    },
+    {
+      "privateFilename": "clean-dumps/au04-clean-final.json",
+      "nativeBrowserDownload": true,
+      "byteLength": 20712,
+      "sha256": "15791ce1f105abb70c4f2e7a2f377cce45e115680698914d959c720d8bbb0fb2",
+      "published": false
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "auditor/screenshots/01-auditor-populated-ready-pack.png",
+      "byteLength": 36727,
+      "sha256": "1acab8f9d3b20fc40e4fb10b4dddc0eb3c079e9895c7719a9bfd1a26c294cd95"
+    },
+    {
+      "file": "auditor/screenshots/02-auditor-full-invoice-register.png",
+      "byteLength": 60456,
+      "sha256": "53ff512909722df649dc8766b17a24e757e5b119a2aafb9873975c136e26b97a"
+    },
+    {
+      "file": "auditor/screenshots/03-auditor-normal-invoice-source-line.png",
+      "byteLength": 15876,
+      "sha256": "cdee6a25e662896a04c158278b9ca95f989df94c9906a0aba2bb5cc9e63f4d02"
+    },
+    {
+      "file": "auditor/screenshots/04-auditor-source-actual-hour.png",
+      "byteLength": 238996,
+      "sha256": "465bd2186e706e8715804c149016e3b37186c9b388ba00a78a68b1b1285b8e90"
+    },
+    {
+      "file": "auditor/screenshots/05-auditor-credit-ledger.png",
+      "byteLength": 197576,
+      "sha256": "e3066a75091bec5f96d790dfeda56622e135455d9092c1f80f141b192c5d1d91"
+    },
+    {
+      "file": "auditor/screenshots/06-auditor-payment-audit-event.png",
+      "byteLength": 22640,
+      "sha256": "1f655451393fd1c05c8f7a589d3256deaa4941fb9610020bb3b8ab9aa0a66b66"
+    },
+    {
+      "file": "auditor/screenshots/07-auditor-credit-receipt-reversal-reconciliation.png",
+      "byteLength": 197571,
+      "sha256": "01d5822ee3fb09ca6f28e41fa3f5ecc6550497ff507239c8e516fd4ac2863610"
+    },
+    {
+      "file": "auditor/screenshots/09-auditor-clean-final-pack.png",
+      "byteLength": 12828,
+      "sha256": "142aeb245ad36db02a0d4f1d8e30e46e5909bca90f6cd903ec8c3cef38eb0cb1"
+    },
+    {
+      "file": "auditor/screenshots/10-auditor-invoice-audit-chain.png",
+      "byteLength": 23625,
+      "sha256": "d1ed868696a0f703657faa515856db823cff8ca55b970ffa4779fd815cdf4e74"
+    },
+    {
+      "file": "auditor/screenshots/11-auditor-source-finance-review-event.png",
+      "byteLength": 15905,
+      "sha256": "e138d475f7adbc74e7681847e199c9199f90ddb9afe89cd5b4eef8200f272a06"
+    },
+    {
+      "file": "auditor/screenshots/12-auditor-project-commercial-read.png",
+      "byteLength": 112891,
+      "sha256": "b85084d402b716abd7d9bb480c2bafb611564a25e09115a8a5b1758d39725fcf"
+    },
+    {
+      "file": "auditor/screenshots/13-auditor-repaired-customer-period-desktop.png",
+      "byteLength": 26978,
+      "sha256": "45b293a26ffef4d09b597f801b9723c8709e7aa88f8c829bad3fd527b7d50afe"
+    },
+    {
+      "file": "auditor/screenshots/14-auditor-repaired-customer-period-phone.png",
+      "byteLength": 37731,
+      "sha256": "28e12a88a6659bad229e280ddd0c5ad06d53dc23f9bfc485dfa768cfd5f506ef"
+    },
+    {
+      "file": "auditor/screenshots/15-auditor-register-money-status-ready.png",
+      "byteLength": 73984,
+      "sha256": "93228672ddb81fb056371257eff25028f7175ab307b349193f73caaa35d85f64"
+    },
+    {
+      "file": "auditor/screenshots/16-auditor-register-dates-and-amounts.png",
+      "byteLength": 61875,
+      "sha256": "f2fdeee7cd8aa407a0d25b05415649d06d41eb17e95525a67c9162b1730f6106"
+    },
+    {
+      "file": "finance/screenshots/02-finance-fresh-review-before.png",
+      "byteLength": 43097,
+      "sha256": "4eb29a7d4eae57bb5765bb340be7a77da955a5d56e01bf020924b5634f3121d8"
+    },
+    {
+      "file": "finance/screenshots/04-finance-time-billable-after.png",
+      "byteLength": 255133,
+      "sha256": "a9bf6994d2b2c1790245a9f31a7e2e479da5d61ba806395cccf9fc3ee6ba65b6"
+    },
+    {
+      "file": "finance/screenshots/05-finance-report-input.png",
+      "byteLength": 33648,
+      "sha256": "0e7e562ae6183ee9ed829925645f98a3faaad56863c137b380cf7af337adde12"
+    },
+    {
+      "file": "finance/screenshots/06-finance-customer-period-ready.png",
+      "byteLength": 256407,
+      "sha256": "803ea512d0f0d34ed196ad9e7d63d1c33a1c5fd9d2167f83ab7b770112aa40fc"
+    },
+    {
+      "file": "finance/screenshots/08-finance-new-stream-filled.png",
+      "byteLength": 83569,
+      "sha256": "a00c2ee05cd982070449407a20ea3e5809e635dad1cb1fd0a69f1a1e3d9d3965"
+    },
+    {
+      "file": "finance/screenshots/09-finance-wizard-included-source.png",
+      "byteLength": 50085,
+      "sha256": "ba272347ddb06f11f7af2cce432ba26c5339173096e94c55183867caf7f1832b"
+    },
+    {
+      "file": "finance/screenshots/10-finance-wizard-preview.png",
+      "byteLength": 48664,
+      "sha256": "32b3086a895f28d9d76ec3752b004361c81f433b2e08e174da0682f18e092a2d"
+    },
+    {
+      "file": "finance/screenshots/12-finance-normal-draft-source-table.png",
+      "byteLength": 15872,
+      "sha256": "aed1b0cc2bed1bd3d1a93486c19294c7f9bf7e4521ac9ea0719d7e16f2cf7630"
+    },
+    {
+      "file": "finance/screenshots/15-finance-normal-issued-ready.png",
+      "byteLength": 68547,
+      "sha256": "d971fec79e9e3c8c5850a0010e35770e6984bfaced8f7cc276913057dd6a5f41"
+    },
+    {
+      "file": "finance/screenshots/16-finance-accounting-input.png",
+      "byteLength": 39509,
+      "sha256": "921909b997b5f89e8db6926df359a60cee660dea04d8c73b4cbfb50ca60bf005"
+    },
+    {
+      "file": "finance/screenshots/17-finance-accounting-populated.png",
+      "byteLength": 40979,
+      "sha256": "df5c7f84ad9e2d2741357660984029c94b26952e4bb05696ba45e77eb9f01758"
+    },
+    {
+      "file": "finance/screenshots/18-finance-credit-input.png",
+      "byteLength": 12647,
+      "sha256": "3144ee117c84341f54475a96545f3d5c427b375be0551672aece5cce2f808c29"
+    },
+    {
+      "file": "finance/screenshots/19-finance-export-control.png",
+      "byteLength": 5298,
+      "sha256": "2914ac59740802bd3555c01729e70fbd2f554884b8684276302d24c4002aafa3"
+    },
+    {
+      "file": "finance/screenshots/20-finance-accounting-review.png",
+      "byteLength": 71816,
+      "sha256": "1d82b239f22b878867ba32d8588b8e9e74bcebbf75500faec0c8ce839b1b31fc"
+    },
+    {
+      "file": "finance/screenshots/21-finance-normal-receipt-input.png",
+      "byteLength": 14505,
+      "sha256": "741f8cb8f7db0fc978313f8f7b509bb1cb35a3f8bff70673c89b9b5b3e95c4bc"
+    },
+    {
+      "file": "finance/screenshots/22-finance-normal-receipt-saved.png",
+      "byteLength": 78145,
+      "sha256": "3ba36a55ca014720811eced604d8745f38645ef443c56d4e740e041aa0e8898a"
+    },
+    {
+      "file": "finance/screenshots/23-finance-normal-reversal-input.png",
+      "byteLength": 12935,
+      "sha256": "3ed16fa5bc4fded0446f7f70e6e5d890f29cf837946e1e92a26c45bdb508f9e3"
+    },
+    {
+      "file": "finance/screenshots/24-finance-normal-reversed-history.png",
+      "byteLength": 83382,
+      "sha256": "e005f2396c956ee0ea0907c0115c4dc931ee4d65f461481c722e922d4ebaab69"
+    },
+    {
+      "file": "finance/screenshots/25-finance-saved-manual-stream.png",
+      "byteLength": 65338,
+      "sha256": "8f68e2f040a6a9ceb3f242e211741e69d3a9f340d77c4a78deea9a425fd97d7a"
+    },
+    {
+      "file": "finance/screenshots/26-finance-close-source-input.png",
+      "byteLength": 18866,
+      "sha256": "a42715300879ab36af528a165aa2fbe12a1ef663659005bd97741de60e8d831a"
+    },
+    {
+      "file": "finance/screenshots/27-finance-current-person-terms.png",
+      "byteLength": 96647,
+      "sha256": "64ca5639a1729d32ad2198537b3adb6f8b16c87b453f927390544e63371f752c"
+    },
+    {
+      "file": "finance/screenshots/28-finance-future-person-terms-input.png",
+      "byteLength": 102148,
+      "sha256": "5bbc6786f48808bc1a181a55fd30226c106b69afa3d0796c23b9c3810ea635c5"
+    },
+    {
+      "file": "finance/screenshots/29-finance-clean-accounting-input.png",
+      "byteLength": 40058,
+      "sha256": "56245e6323bd8759c9cf9f71ccafdca616976cf94b4d03bfd011f9e85f0987fa"
+    },
+    {
+      "file": "finance/screenshots/30-finance-pm-approved-customer-report.png",
+      "byteLength": 75913,
+      "sha256": "87c543026247dbb04b5d0ea2bdf65396966bd48b2feb956f8c6f5b116b5b222e"
+    },
+    {
+      "file": "finance/screenshots/31-finance-clean-ready-review.png",
+      "byteLength": 112314,
+      "sha256": "c4cc4b374757352a0b3f9727b3d42dd521f4269b1d414937d7712c8bfdafa371"
+    },
+    {
+      "file": "finance/screenshots/33-finance-future-november-terms-input.png",
+      "byteLength": 103028,
+      "sha256": "0e54371315c7df76272f6b73c0ecd7e5b5e2bc55bed98c896f6b35607936badd"
+    },
+    {
+      "file": "finance/screenshots/34-finance-clean-final-accounting.png",
+      "byteLength": 71867,
+      "sha256": "492fb1f2c16b8f5163e3e6409c0f8e506fa4ed931e20c8cc7c775003ba59ecdc"
+    },
+    {
+      "file": "finance/screenshots/35-finance-future-terms-saved.png",
+      "byteLength": 104498,
+      "sha256": "b0f65c7f5570ab66b6f1beaaaa0b9679717597da2b6db27b2821a13008406a10"
+    },
+    {
+      "file": "finance/screenshots/36-finance-selected-technical-period-input.png",
+      "byteLength": 53235,
+      "sha256": "1335d0bd1c48052a1ed9b7a3974abdff9281e4125245e0a5d06e792deee1f539"
+    },
+    {
+      "file": "finance/screenshots/37-finance-technical-customer-ready.png",
+      "byteLength": 18055,
+      "sha256": "860702d1be1d9e777bad6bec2525ff6943ab009e08367878af4319300a2e702a"
+    },
+    {
+      "file": "finance/screenshots/38-finance-native-technical-detail-preview.png",
+      "byteLength": 119490,
+      "sha256": "52f55f39afa687ca8302b8329c656254f9ecb4998bcd8a0058c93c9949129fbf"
+    },
+    {
+      "file": "finance/screenshots/39-native-customer-period-pdf-page1.png",
+      "byteLength": 100968,
+      "sha256": "6221ab62585ff733a006a4479f1799a4e4107aae1518b60abfc1c64950dca270"
+    }
+  ],
+  "additionalCustomerSafeOutput": {
+    "reportId": "01a111a4-577e-7293-a86c-6b749091a51b",
+    "periodStart": "2026-10-13",
+    "periodEnd": "2026-10-18",
+    "snapshotVersion": 2,
+    "snapshotSha256": "2ea5f6feee4556c71252ddd17af892ad04389b633584e2a2d397b9091624ae27",
+    "state": "approved",
+    "contentMode": "hours_activity_selected_technical",
+    "technicalReportId": "01a1117d-a645-738f-adae-f60c4e5a3f4a",
+    "approvedHours": 6.0,
+    "dailyReports": 2,
+    "timeEntries": 8,
+    "technicalReports": 1,
+    "nativeBrowserOpenPdfGET": 200,
+    "publishedUnchanged": "native-customer-period-20261013-18-v2.pdf",
+    "byteLength": 330032,
+    "sha256": "4ed23e4f911973a30585cc39b67d1e91a04b9c6d1d01c9fc1940c684742f9608",
+    "signedEvidence": "none",
+    "pdfPageScreenshot": "finance/screenshots/39-native-customer-period-pdf-page1.png",
+    "pdfPageScreenshotMethod": "pdftoppm render of exact native downloaded bytes; no document alteration"
+  },
+  "auditorPeriodRetest": {
+    "widths": [
+      1440,
+      390
+    ],
+    "nativeResponse": "approved customer exactv2 renders",
+    "writeForms": [],
+    "pageErrors": 0,
+    "httpErrors": []
+  }
+}

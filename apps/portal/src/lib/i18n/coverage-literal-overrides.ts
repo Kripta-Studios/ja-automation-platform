@@ -957,6 +957,10 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'El trabajador registrado debe crear un borrador corregido desde su registro de horas.',
     'O trabalhador registado deve criar um rascunho corrigido no seu registo de horas.',
   ],
+  'This record was rejected. Contact the reviewer or Owner before recording replacement work.': [
+    'Este registro fue rechazado. Contacta con el revisor o el Owner antes de registrar trabajo de reemplazo.',
+    'Este registro foi rejeitado. Contate o revisor ou o Owner antes de registrar trabalho de substituição.',
+  ],
   'Only worker-paid expenses can reimburse a worker': [
     'Solo los gastos pagados por el trabajador pueden reembolsarse a ese trabajador.',
     'Apenas despesas pagas pelo trabalhador podem ser reembolsadas a esse trabalhador.',

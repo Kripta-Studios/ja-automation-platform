@@ -3,6 +3,7 @@ import { resolve, relative, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { chromium } from 'playwright';
+import { commonChapters } from './common.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const output = resolve(root, 'docs/manuals');
@@ -33,6 +34,7 @@ header{position:absolute;left:17mm;right:17mm;top:12mm;border-bottom:1px solid #
 h1{font-size:22pt;line-height:1.18;margin:0;color:#113f54}main{position:absolute;left:17mm;right:17mm;top:46mm;bottom:22mm}
 p{margin:0 0 3.5mm}h2{font-size:13pt;margin:5mm 0 2mm;color:#226b75}.route,.context{font-size:9pt;color:#425764;border-left:3px solid #40a8a3;padding:2mm 3mm;margin-bottom:4mm;background:#f0f7f7}
 ol,ul{margin:0 0 3mm;padding-left:7mm}li{padding-left:1mm;margin-bottom:2mm}
+table{width:100%;border-collapse:collapse;font-size:9pt;line-height:1.35;margin:0 0 4mm}th,td{border:1px solid #d2dfe5;padding:2mm;text-align:left;vertical-align:top}th{background:#eef6f7}aside{font-size:9pt;padding:3mm;background:#eef6f7;border-left:3px solid #226b75;margin-bottom:3mm}a{color:#113f54}
 footer{position:absolute;left:17mm;right:17mm;bottom:9mm;font-size:8pt;border-top:1px solid #d2dfe5;padding-top:3mm;display:flex;justify-content:space-between;color:#647580}
 figure{margin:0;display:flex;flex-direction:column;height:100%;gap:3mm}figure img{object-fit:contain;object-position:center top;width:100%;min-height:0;flex:1}figcaption{font-size:10pt;line-height:1.4;color:#425764;flex:none;max-height:35mm}
 .toc p{display:flex;justify-content:space-between;gap:4mm;font-size:10pt;margin:0 0 2.5mm}.toc a{color:#113f54;text-decoration:none}.lead{font-size:16pt;color:#226b75}.callout{padding:4mm;background:#eef6f7;border-left:4px solid #226b75}
@@ -44,6 +46,10 @@ function components(chapter) {
   if (chapter.route)
     parts.push(`<div class="route"><strong>Go here:</strong> ${escape(chapter.route)}</div>`);
   for (const p of chapter.paragraphs ?? []) parts.push(`<p>${escape(p)}</p>`);
+  if (chapter.table)
+    parts.push(
+      `<table><thead><tr>${chapter.table.headers.map((h) => `<th>${escape(h)}</th>`).join('')}</tr></thead><tbody>${chapter.table.rows.map((row) => `<tr>${row.map((cell) => `<td>${escape(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table>`,
+    );
   for (const [key, heading, ordered] of [
     ['steps', 'Do the task', true],
     ['checks', 'Verify the result', false],
@@ -59,27 +65,6 @@ function components(chapter) {
   }
   return parts;
 }
-const shared = {
-  id: 'practice',
-  title: 'Before you practise · access and scope',
-  paragraphs: [
-    'This English guide uses BBS · Ejemplo de manual, project C-0050-P-20261005. The screenshots were taken using the stated role in an isolated database running the application. Training entries, payments, approvals and documents are fictional. They do not prove a real bank transfer, accountant approval or customer acceptance.',
-    'The company portal at https://j-aautomation.com/j-aautomation/app is LIVE. Training uses a separate URL and database. Before practising, obtain the isolated URL, your own role account and permitted exercises from the company administrator; verify the BBS project number. Without isolated access, treat these screenshots as read-only demonstrations and perform only authorized real work.',
-    'Use your own credentials. Do not borrow an Owner, Finance or colleague account. A platform role, project assignment, review permission, supplier authorization and dated crew delegation are separate requirements. Changing one does not automatically grant the others.',
-    'Select English in the workspace language control to follow the labels used here. Some saved BBS record names remain in their original language. On a phone open the navigation drawer to see full workspace names. Recheck the selected project and date range after every navigation.',
-    'The eight Worker test accounts in the private credentials document use the same Worker workflow. Crew chief is a dated delegation attached to a Worker account. Supplier Coordinator and External Technician are restricted profiles attached to Worker accounts. This guide never includes account passwords.',
-    'Each screenshot is an exercise checkpoint. Later fictional role entries and financial events are additional to the original October 1–5 workbook totals. Reopening the project or selecting the same dates does not restore that checkpoint. Read captions before comparing amounts or states.',
-    'The assignment and expected-hours supplement uses a separate isolated October 20–23 synthetic exercise. Project access, a published work plan and a dated working-hours target are separate records. Workers record actual work and report progress independently; a plan never creates actual hours or a payment.',
-  ],
-  checks: [
-    'Confirm your displayed account, role or supplier profile, the project number and the dates before saving.',
-    'For training access, scope or reset help, contact the company administrator at admin@j-aautomation.com. Include the role, route, project number, time and visible error; omit passwords, cookies and private customer or worker documents.',
-  ],
-  recovery: [
-    'An empty project selector often means missing or expired assignment or authorization. Ask the Owner to check coverage for the date you are entering; do not create a duplicate project.',
-    'A form shown in a screenshot can depend on role, source state or effective date. Use the documented role handoff when a control is absent.',
-  ],
-};
 const browser = await chromium.launch({
   headless: true,
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
@@ -91,9 +76,12 @@ try {
     const data = JSON.parse(await readFile(resolve(input, file), 'utf8'));
     if (!labels[data.role]) throw new Error(`Unsupported persona: ${data.role}`);
     const stem = `BBS_${labels[data.role]}_Manual_EN`;
-    const chapters = [shared, ...data.chapters];
+    const common = commonChapters(data.role);
+    const chapters = [...common.before, ...data.chapters, ...common.after];
     const figures = [];
     const units = [];
+    const courseRequiredText = [];
+    let courseMarkdown = '';
     for (const chapter of chapters) {
       units.push({ key: chapter.id, title: chapter.title, parts: components(chapter), toc: true });
       for (const [i, figure] of (chapter.figures ?? []).entries()) {
@@ -115,6 +103,58 @@ try {
       }
     }
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    if (data.role === 'owner') {
+      await page.goto(
+        pathToFileURL(resolve(output, 'BBS_Project_to_Client_Invoices_Guide_EN.html')).href,
+      );
+      const course = await page.evaluate(() =>
+        [...document.querySelectorAll('.page')]
+          .filter((s) => s.id !== 'cover' && !s.id.startsWith('contents-'))
+          .map((s) => ({
+            key: `course-${s.id}`,
+            title: s.querySelector('h1').textContent,
+            toc: !s.classList.contains('figure-page'),
+            wide: s.classList.contains('wide'),
+            figure: s.classList.contains('figure-page'),
+            context: s.querySelector('.tag').textContent,
+            text: [...s.querySelector('.content').children]
+              .map((node) => node.textContent.trim())
+              .filter(Boolean),
+            parts: [...s.querySelector('.content').children].map((node) => {
+              const copy = node.cloneNode(true);
+              for (const img of copy.querySelectorAll('img'))
+                img.src = new URL(img.getAttribute('src'), document.baseURI).href;
+              for (const a of copy.querySelectorAll('a[href^="#"]')) {
+                const href = a.getAttribute('href');
+                if (!href.startsWith('#native-'))
+                  a.setAttribute('href', `#course-${href.slice(1)}`);
+              }
+              return copy.outerHTML;
+            }),
+          })),
+      );
+      for (const unit of course) {
+        courseRequiredText.push(...unit.text);
+        for (const part of unit.parts)
+          for (const match of part.matchAll(/<img[^>]+src="([^"]+)"/gu)) {
+            const full = fileURLToPath(match[1]);
+            if (!full.startsWith(root + '/')) throw new Error('Course figure outside repository');
+            figures.push({
+              path: relative(root, full),
+              sha256: createHash('sha256')
+                .update(await readFile(full))
+                .digest('hex'),
+            });
+          }
+      }
+      courseMarkdown = course
+        .map(
+          (unit) =>
+            `\n<a id="${unit.key}"></a>\n\n## ${unit.title}\n\nContext: ${unit.context}\n\n${unit.parts.join('\n')}\n`,
+        )
+        .join('\n');
+      units.push(...course);
+    }
     // Establish a file origin before loading the authenticated screenshot assets.
     await page.goto(pathToFileURL(resolve(input, file)).href);
     await page.setContent(
@@ -158,6 +198,7 @@ try {
         const entries = [];
         for (const unit of units) {
           let current = make(unit.key, unit.title, unit.wide);
+          if (unit.context) current.header.querySelector('.eyebrow').textContent = unit.context;
           if (unit.toc) entries.push({ key: unit.key, title: unit.title });
           let continuation = 0;
           for (const html of unit.parts) {
@@ -177,6 +218,7 @@ try {
                 `${unit.title} · continued`,
                 unit.wide,
               );
+              if (unit.context) current.header.querySelector('.eyebrow').textContent = unit.context;
               current.main.append(node);
               if (
                 node.getBoundingClientRect().bottom >
@@ -225,6 +267,17 @@ try {
         return {
           pages: all.length,
           landscape: all.filter((s) => s.classList.contains('wide')).length,
+          sections: entries.map((e) => ({ ...e, page: all.findIndex((p) => p.id === e.key) + 1 })),
+          annexLinks: [...document.querySelectorAll('a[href^="#native-"]')].map((a) => {
+            const r = a.getBoundingClientRect(),
+              s = a.closest('.page'),
+              b = s.getBoundingClientRect();
+            return {
+              target: a.getAttribute('href').slice(1),
+              page: all.indexOf(s),
+              rect: [r.x - b.x, r.y - b.y, r.width, r.height],
+            };
+          }),
         };
       },
       { units, title: data.title, subtitle: data.subtitle },
@@ -253,13 +306,16 @@ try {
         return bad ? [s.id] : [];
       }),
     }));
-    const requiredText = chapters.flatMap((ch) => [
-      ...(ch.paragraphs ?? []),
-      ...(ch.steps ?? []),
-      ...(ch.checks ?? []),
-      ...(ch.recovery ?? []),
-      ...(ch.figures ?? []).map((f) => f.caption),
-    ]);
+    const requiredText = [
+      ...courseRequiredText,
+      ...chapters.flatMap((ch) => [
+        ...(ch.paragraphs ?? []),
+        ...(ch.steps ?? []),
+        ...(ch.checks ?? []),
+        ...(ch.recovery ?? []),
+        ...(ch.figures ?? []).map((f) => f.caption),
+      ]),
+    ];
     const omitted = await page.evaluate((required) => {
       const normalize = (s) => s.replace(/\s+/gu, ' ').trim();
       const body = normalize(document.body.textContent);
@@ -282,11 +338,23 @@ try {
       data.subtitle ?? '',
       '',
       ...chapters.flatMap((ch) => [
+        `<a id="${ch.id}"></a>`,
         `## ${ch.title}`,
         '',
         ...(ch.route ? [`Go here: ${ch.route}`, ''] : []),
         ...(ch.context ? [`Context: ${ch.context}`, ''] : []),
         ...(ch.paragraphs ?? []).flatMap((p) => [p, '']),
+        ...(ch.table
+          ? [
+              `| ${ch.table.headers.join(' | ')} |`,
+              `| ${ch.table.headers.map(() => '---').join(' | ')} |`,
+              ...ch.table.rows.map(
+                (row) =>
+                  `| ${row.map((cell) => String(cell).replaceAll('|', '\\|')).join(' | ')} |`,
+              ),
+              '',
+            ]
+          : []),
         ...['steps', 'checks', 'recovery'].flatMap((k) =>
           ch[k]?.length
             ? [
@@ -302,13 +370,15 @@ try {
           '',
         ]),
       ]),
+      courseMarkdown,
     ].join('\n');
-    await writeFile(resolve(output, `${stem}.md`), markdown);
+    await writeFile(resolve(output, `${stem}.md`), markdown.trimEnd() + '\n');
     await page.pdf({
       path: resolve(output, `${stem}.pdf`),
       printBackground: true,
       preferCSSPageSize: true,
       outline: true,
+      tagged: true,
     });
     const pdf = await readFile(resolve(output, `${stem}.pdf`));
     reports.push({

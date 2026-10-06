@@ -1,0 +1,86 @@
+{
+  "origin": "http://127.0.0.1:5180",
+  "privateSourceFilesRetainedOutsideRepository": true,
+  "artifacts": [
+    {
+      "file": "chief-daily-own.pdf",
+      "bytes": 307987,
+      "sha256": "cbf6a3f6de50c5d8a74c136aaef9990a5f14d47140a74e816f7cf9b2c0e1bebb",
+      "readableTextCharacters": 852,
+      "header": "J & A A UTOM ATION Template 2026.10.01.1 Daily report C-0050-P-20261005 · BBS · Ejemplo de manual · Oct 6, 2026 OPERATIONAL RECORD Project Client C-0050-P-20261005 · BBS · Ejemplo",
+      "nativeBrowserDownload": true
+    },
+    {
+      "file": "chief-daily-presubmit.pdf",
+      "bytes": 304190,
+      "sha256": "3b25f71898dc7a52df3a2c1329e1ce38313ddc3c29d08958c7c1f989bc42515d",
+      "readableTextCharacters": 700,
+      "header": "J & A A UTOM ATION Template 2026.10.01.1 Daily report C-0050-P-2026100601 · BBS READINESS · normal work cycle · Oct 12, 2026 OPERATIONAL RECORD Project Client C-0050-P-2026100601 · BBS READINESS",
+      "nativeBrowserDownload": true
+    },
+    {
+      "file": "chief-own-statement.pdf",
+      "bytes": 312020,
+      "sha256": "47f4cd176d52a79383f19b42f08fdeb98a32b77b1bbf4cebd4708ebffd04b8b1",
+      "readableTextCharacters": 1656,
+      "header": "J & A A UTOM ATION Template 2026.10.01.1 Worker compensation statement BBS DEMO - Jefe de crew · Oct 1, 2026 → Oct 6, 2026 Approved compensation Pending compensation Approved",
+      "nativeBrowserDownload": true
+    },
+    {
+      "file": "chief-technical-presubmit.pdf",
+      "bytes": 320042,
+      "sha256": "b578613c69d12b8f9c8b78918f944051933c4a88107b64004cb00acbec5220b2",
+      "readableTextCharacters": 1111,
+      "header": "J & A A UTOM ATION Technical report Template 2026.10.01.1 C-0050-P-2026100601 · BBS READINESS · normal work cycle · Oct 12, 2026 OPERATIONAL RECORD Project Work performed by C-0050-P-2026100601 ·",
+      "nativeBrowserDownload": true
+    },
+    {
+      "file": "worker-daily-current-es.pdf",
+      "bytes": 308080,
+      "sha256": "3147e32a510f92b36ec809fb30767a41f7c8843adb039a3d343cd374d4df3c50",
+      "readableTextCharacters": 870,
+      "header": "J & A A UTOM ATION Plantilla 2026.10.01.1 Informe diario C-0050-P-2026100601 · BBS READINESS · normal work cycle · 12 oct 2026 REGISTRO OPERATIVO Proyecto Cliente C-0050-P-2026100601 · BBS READINESS",
+      "nativeBrowserDownload": true
+    },
+    {
+      "file": "worker-daily-presubmit.pdf",
+      "bytes": 305695,
+      "sha256": "f50a4b7721bbe84acfffb1fac7c0de1d4c58f05d47f0c8ec62bd6c78ff68f6b6",
+      "readableTextCharacters": 748,
+      "header": "J & A A UTOM ATION Template 2026.10.01.1 Daily report C-0050-P-2026100601 · BBS READINESS · normal work cycle · Oct 12, 2026 OPERATIONAL RECORD Project Client C-0050-P-2026100601 · BBS READINESS",
+      "nativeBrowserDownload": true
+    },
+    {
+      "file": "worker-technical-presubmit.pdf",
+      "bytes": 319953,
+      "sha256": "a92661ed444682299f8be57e6f922617c05b2806c71f14ec36e2e4bc2281668a",
+      "readableTextCharacters": 1119,
+      "header": "J & A A UTOM ATION Technical report Template 2026.10.01.1 C-0050-P-2026100601 · BBS READINESS · normal work cycle · Oct 12, 2026 OPERATIONAL RECORD Project Work performed by C-0050-P-2026100601 ·",
+      "nativeBrowserDownload": true
+    },
+    {
+      "file": "worker2-historical-195min.pdf",
+      "bytes": 306324,
+      "sha256": "cfa09e7d17cf51daef22d788d6e705947eb5a18b9706160abad964b0c20db74b",
+      "readableTextCharacters": 832,
+      "header": "J & A A UTOM ATION Template 2026.10.01.1 Worker compensation statement BBS DEMO - Tecnico 2 · Oct 15, 2026 → Oct 16, 2026 Approved compensation Pending compensation Approved reimbursements",
+      "nativeBrowserDownload": true
+    },
+    {
+      "file": "chief-own-statement.csv",
+      "bytes": 3269,
+      "sha256": "5a3aed46383e02ca18e1091266917874f4d8cfacde3bf9f7c8acce307d172ae0",
+      "readableTextCharacters": 3263,
+      "header": "recordType,recordId,workerId,workerName,periodStart,periodEnd,projectNumber,projectName,date,vendor,category,activitySummary,currency,amountMeaning,amount,amountMinor,actualHours,actualMinutes,approvedHours,approvedMinutes,pendingHours,pendingMinutes,approvalState,paymentStatus,expectedPaymentOn,settledAt,actualPaymentOn,paidAmountMinor,remainingAmountMinor,expectedReimbursementOn,reimbursedAt",
+      "nativeBrowserDownload": true
+    },
+    {
+      "file": "worker2-historical-195min.csv",
+      "bytes": 1652,
+      "sha256": "40315f6e78bd23214affb65ae6074335f694737863706d4b50f96d1939fe3356",
+      "readableTextCharacters": 1650,
+      "header": "recordType,recordId,workerId,workerName,periodStart,periodEnd,projectNumber,projectName,date,vendor,category,activitySummary,currency,amountMeaning,amount,amountMinor,actualHours,actualMinutes,approvedHours,approvedMinutes,pendingHours,pendingMinutes,approvalState,paymentStatus,expectedPaymentOn,settledAt,actualPaymentOn,paidAmountMinor,remainingAmountMinor,expectedReimbursementOn,reimbursedAt",
+      "nativeBrowserDownload": true
+    }
+  ]
+}

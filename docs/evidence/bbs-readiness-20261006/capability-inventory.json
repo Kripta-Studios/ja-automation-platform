@@ -1,0 +1,1152 @@
+{
+  "edition": "2026-10-06 readiness",
+  "baselineCommit": "abc12c0961b2c80996cbf49d8e992e0076d0f478",
+  "publicationCommit": "See deployment-receipt.json",
+  "scope": "Role-allowed task map; no claim every external service/contract is browser-certified.",
+  "roles": {
+    "auditor": [
+      {
+        "section": "auditor-start",
+        "task": "Start with an individual Auditor account",
+        "scope": "Worked example \u00b7 actual newly activated Auditor account in the isolated BBS role lab. Desktop, tablet and phone navigation were inspected; this role has read-only financial access.",
+        "recovery": [
+          "Missing access or a wrong role requires the Owner. Do not request a shared elevated login or assume a hidden menu makes direct write actions permissible."
+        ]
+      },
+      {
+        "section": "auditor-planning-actual",
+        "task": "Reconcile a work plan with actual source hours",
+        "scope": "Worked example \u00b7 separate isolated BBS assignment lab \u00b7 synthetic October 20, 2026 \u00b7 authenticated Auditor browser session after operational approval",
+        "recovery": [
+          "For incorrect actual work, request the state-appropriate operational correction. For an incorrect plan or expected schedule, ask the Owner or authorized Project Manager. These are different records.",
+          "Supplier time follows the J&A Owner operational-review handoff, whereas an authorized Project Manager may review the supplier Daily report. A missing supplier time item in the ordinary PM queue does not justify duplicate entry."
+        ]
+      },
+      {
+        "section": "auditor-financial-scope",
+        "task": "Read the economic position without confusing cash",
+        "scope": "Reference procedure \u00b7 checked against current source; not yet executed in this role lab",
+        "recovery": [
+          "For a discrepancy retain the exact filters, source IDs and visible values. Ask Finance to explain the basis; an Auditor does not correct commercial terms or post balancing records."
+        ]
+      },
+      {
+        "section": "auditor-invoices",
+        "task": "Inspect a numbered native invoice and its sources",
+        "scope": "Worked examples \u00b7 AU01\u2013AU02 \u00b7 actual Auditor read the full BBS register and complete normal-invoice source table; originals and native issued artifacts preserved.",
+        "recovery": [
+          "Report a mismatch with exact invoice/source/version/rule IDs, scope and expected formula. Auditor does not edit sources, approve, issue, void or alter stored financial artifacts."
+        ]
+      },
+      {
+        "section": "auditor-cash",
+        "task": "Reconcile collections and their reversals",
+        "scope": "Worked example \u00b7 AU03 \u00b7 actual read-only comparison after Finance posted a credit, receipt and cash reversal; all are isolated synthetic evidence.",
+        "recovery": [
+          "Ask Finance for an authorized allocation/refund procedure if needed. Auditor has no cash posting or reversal controls."
+        ]
+      },
+      {
+        "section": "auditor-worker-obligations",
+        "task": "Inspect compensation and reimbursement privately",
+        "scope": "Worked example \u00b7 actual Auditor inspected BBS compensation settlements and reimbursement history in Economic Review. Payment, finalization and reimbursement forms were absent.",
+        "recovery": [
+          "Give Finance the exact settlement/expense/payment ID and mismatch. Protect unrelated personnel information and use the smallest necessary restricted extract."
+        ]
+      },
+      {
+        "section": "auditor-accounting",
+        "task": "Review a preserved Accounting cut and its artifacts",
+        "scope": "Worked examples \u00b7 AU04 \u00b7 actual Auditor read a populated BBS October 1\u20136 pack and downloaded all five Ready formats; separately read/downloaded Finance\u2019s finalized synthetic portfolio cut.",
+        "recovery": [
+          "Retain pack ID, period/version, artifact type/state and the exact error for Finance/Owner/support. No private-storage bypass or shared elevated session is required."
+        ]
+      },
+      {
+        "section": "auditor-audit",
+        "task": "Trace who changed what and when",
+        "scope": "Worked example \u00b7 AU05 \u00b7 actual Auditor opened native time Finance-review, invoice issue and receipt audit details; exact chain and reversal ledger were corroborated read-only.",
+        "recovery": [
+          "For missing/inconsistent evidence preserve the exact IDs and native ledger/capture; request authorized support reconciliation. Auditor reports findings and does not repair business records."
+        ]
+      },
+      {
+        "section": "auditor-outputs",
+        "task": "Read the appropriate report and private output",
+        "scope": "Worked example \u00b7 actual Auditor read approved fictional BBS Daily reports in both missing-PDF and Ready states. Generate/Retry were absent; Refresh remained. The Ready English report offered Download, and its authorized native GET returned 200 with a verified hash. Auditor did not generate the artifact. Customer period detail was retested at 1440 and 390 pixels after the bounded read fix: no approval, follow-up or signed-copy capture forms.",
+        "recovery": [
+          "A missing/denied report route is a scope handoff to Owner/support. Do not substitute an internal finance file for a missing customer document or claim an unobserved signature.",
+          "If a report says Not generated yet, request its artifact from the Owner/authorized report creator. Refresh only after it is genuinely Ready; this guide does not claim an Auditor-generated Daily PDF."
+        ]
+      },
+      {
+        "section": "auditor-boundary",
+        "task": "Verify read-only boundaries and hand off a finding",
+        "scope": "Worked example \u00b7 actual Auditor opening Approvals received Access restricted. A valid controlled invoice-adjustment write returned Svelte action failure 403 / BILLING_READ_ONLY_ROLE, inside HTTP 200; invoice and adjustment counts were unchanged.",
+        "recovery": [
+          "If a business write control appears unexpectedly, stop that action and report the exact page/control. Do not use elevated credentials to test a suspected boundary in production."
+        ]
+      },
+      {
+        "section": "auditor-finish",
+        "task": "Complete the review and protect its evidence",
+        "scope": "Reference procedure \u00b7 checked against current source; not yet executed in this role lab",
+        "recovery": [
+          "Ask the workspace administrator about account problems or access scope; ask Finance/Owner about financial corrections. Preserve original evidence rather than editing it to match a conclusion."
+        ]
+      }
+    ],
+    "chief": [
+      {
+        "section": "chief-start",
+        "task": "Understand Chief authority before recording crew work",
+        "scope": "Isolated BBS role lab \u00b7 genuine Chief Worker account \u00b7 dated October 1\u201331 delegation",
+        "recovery": [
+          "Ask the Owner to correct expired/missing delegation or assignment. Do not select another account to gain access."
+        ]
+      },
+      {
+        "section": "chief-shared",
+        "task": "Save the same actual hours for multiple crew members",
+        "scope": "Isolated readiness lab \u00b7 genuine entry-only Chief \u00b7 two delegated workers \u00b7 October 7, 2026",
+        "recovery": [
+          "If one person/time is wrong, correct that draft through its permitted row controls before submitting. Do not save another batch while trying to locate the first one."
+        ]
+      },
+      {
+        "section": "chief-individual",
+        "task": "Use different actual hours and submit deliberately",
+        "scope": "Isolated BBS role lab \u00b7 genuine Chief Worker account \u00b7 dated October 1\u201331 delegation",
+        "recovery": [
+          "An absent member or blocked date requires Owner delegation/assignment review. An unsent row can be corrected through its current controls; reviewed history requires the proper linked process."
+        ]
+      },
+      {
+        "section": "chief-expense",
+        "task": "Record one crew expense with its actual payer",
+        "scope": "Isolated readiness lab \u00b7 actual Chief-entered single USD 20 receipt \u00b7 October 7, 2026",
+        "recovery": [
+          "Before allocation, an incorrect Chief-entered expense Draft can offer Withdraw crew expense draft with a reason. The native test retained the incorrect receipt as Withdrawn. Uploading its identical file again was blocked as existing private content; no new expense was saved. Ask the Owner to resolve the original receipt rather than evading duplicate protection. A separate, distinct synthetic Meals purchase was used for the allocation exercise. Once allocated, protected changes need the Owner/reviewer handoff."
+        ]
+      },
+      {
+        "section": "chief-allocation",
+        "task": "Split one receipt across worked sources",
+        "scope": "Isolated readiness lab \u00b7 actual single-receipt allocation and state limits",
+        "recovery": [
+          "Allocated receipts can lock draft edit actions. Investigate the existing allocation/expense with the reviewer rather than making duplicate expenses or altering hours to force a split."
+        ]
+      },
+      {
+        "section": "chief-review",
+        "task": "Hand operational work to the permitted reviewer",
+        "scope": "Isolated BBS role lab \u00b7 genuine Chief Worker account \u00b7 dated October 1\u201331 delegation",
+        "recovery": [
+          "If Approvals is denied, ask the Owner who has review permission. Never borrow the reviewer\u2019s account."
+        ]
+      },
+      {
+        "section": "chief-own-time",
+        "task": "Record and submit your own Chief hours separately",
+        "scope": "Isolated readiness lab \u00b7 actual Chief own ordinary and linked correction weekly submission",
+        "recovery": [
+          "Check the own draft count before submitting a week. For linked or financially guarded sources use exact record controls and Finance handoff."
+        ]
+      },
+      {
+        "section": "chief-correction",
+        "task": "Correct a delegated returned entry",
+        "scope": "Isolated BBS role lab \u00b7 genuine Chief Worker account \u00b7 dated October 1\u201331 delegation",
+        "recovery": [
+          "A settled/paid compensation guard requires Finance\u2019s explicit adjustment; do not duplicate a crew entry or change its date/person to evade it. The Chief does not gain self-approval by creating a correction."
+        ]
+      },
+      {
+        "section": "chief-daily",
+        "task": "Write a Chief daily handover report",
+        "scope": "Isolated readiness lab \u00b7 own Chief authored report \u00b7 synthetic October 12, 2026",
+        "recovery": [
+          "Ordinary Draft and Needs changes reports can be edited with the offered Save changes control and resubmitted as the same versioned source. Approved unlocked reports may offer a linked correction; the created correction is not freely editable. A finalized period snapshot requires the authorized Owner/PM handoff."
+        ]
+      },
+      {
+        "section": "chief-technical",
+        "task": "Document your technical findings and validation",
+        "scope": "Isolated readiness lab \u00b7 own Chief authored report \u00b7 synthetic October 12, 2026",
+        "recovery": [
+          "Ordinary Draft and Needs changes reports can be edited with the offered Save changes control and resubmitted as the same versioned source. Approved unlocked reports may offer a linked correction; the created correction is not freely editable. A finalized period snapshot requires the authorized Owner/PM handoff."
+        ]
+      },
+      {
+        "section": "chief-pay",
+        "task": "Read only your own pay and reimbursements",
+        "scope": "Isolated BBS role lab \u00b7 genuine Chief Worker account \u00b7 dated October 1\u201331 delegation",
+        "recovery": [
+          "Send missing-rule/settlement/reimbursement questions to Finance with your own source/period. Do not infer another person\u2019s pay from recorded hours."
+        ]
+      },
+      {
+        "section": "chief-planning-targets",
+        "task": "Read your own plan and distinguish crew authority",
+        "scope": "Isolated BBS planning lab \u00b7 synthetic October 20, 2026 work \u00b7 genuine role sessions \u00b7 no production hours",
+        "recovery": [
+          "No published assignment for today can coexist with valid project membership. Use accurate authorized actual records and ask for the missing plan to be published if needed.",
+          "If Crew hours says no active delegated workers, ask the Owner to check the selected work date, both project assignments and the dated delegation. A future plan is not a replacement for those permissions."
+        ]
+      },
+      {
+        "section": "chief-connected-work",
+        "task": "Complete one shared plan with different individual actual hours",
+        "scope": "Isolated BBS planning lab \u00b7 synthetic October 20, 2026 work \u00b7 genuine role sessions \u00b7 no production hours",
+        "recovery": [
+          "If the wrong person or duration is selected, fix the draft before submission. After submission use the returned/correction workflow described in the correction chapter.",
+          "If a duplicate warning appears, inspect existing personal and crew sources rather than treating the published plan as permission to save another identical entry."
+        ]
+      },
+      {
+        "section": "chief-expected-comparison",
+        "task": "Reconcile your own weekly target without changing actual work",
+        "scope": "Isolated BBS planning lab \u00b7 synthetic October 20, 2026 work \u00b7 genuine role sessions \u00b7 no production hours",
+        "recovery": [
+          "Ask the Owner to review assignment dates, effective schedule and any ambiguous multiple-project allocation when Expected is missing or incorrect.",
+          "Keep reports operational. Do not include client billing rates, internal costs, margins or colleagues\u2019 compensation in crew handover documents."
+        ]
+      },
+      {
+        "section": "chief-mobile",
+        "task": "Operate crew controls on a phone or tablet",
+        "scope": "Isolated BBS role lab \u00b7 genuine Chief Worker account \u00b7 dated October 1\u201331 delegation",
+        "recovery": [
+          "If a control is clipped, report the width and precise action with a safe screenshot. Do not re-save the same batch to compensate for a hidden result."
+        ]
+      },
+      {
+        "section": "chief-profile-help",
+        "task": "Manage your own profile and ask for support",
+        "scope": "Reference procedure \u00b7 current controls/source checked; mutations not exercised in this role lab",
+        "recovery": [
+          "If a crew member disappears, check selected date and Owner-grant coverage. If a source is settlement locked, hand it to Finance; do not substitute credentials or duplicate history."
+        ]
+      },
+      {
+        "section": "chief-checklist",
+        "task": "Verify the crew handover",
+        "scope": "Isolated BBS role lab \u00b7 genuine Chief Worker account \u00b7 dated October 1\u201331 delegation",
+        "recovery": [
+          "Reference-only: review-capable Chief approval actions, customer acceptance, own profile/security changes and real bank/email/payroll delivery. Worker-role review permission alone does not enable Approvals. Wrong unallocated crew receipts were withdrawn natively; saved allocation changes require the documented support handoff."
+        ]
+      },
+      {
+        "section": "chief-evidence",
+        "task": "What was verified and what remains a reference",
+        "scope": "Isolated BBS role lab \u00b7 actual browser outcomes and explicit limits",
+        "recovery": [
+          "The historical labs above retain their own scope. This readiness audit additionally tested native dated assignment/delegation setup, wrong unallocated receipt withdrawal, own weekly ordinary/linked correction submission, own Daily/Technical Ready PDF downloads and returned Daily editing, and own statement PDF/CSV downloads. Chief review-capable approval, customer acceptance, profile/security changes and live bank/email remain unperformed."
+        ]
+      }
+    ],
+    "external-technician": [
+      {
+        "section": "external-start",
+        "task": "Start with authorized supplier access",
+        "scope": "Isolated BBS supplier role lab \u00b7 genuine External Technician account \u00b7 fictional October 2026 records",
+        "recovery": [
+          "Ask the Owner/coordinator to investigate account, supplier authorization or assignment dates when the intended project is absent. Do not borrow an account or create duplicate work."
+        ]
+      },
+      {
+        "section": "external-time",
+        "task": "First shift: save actual time, then submit",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "If save fails, correct the visible validation error and verify whether a source was created before retrying. Never create a duplicate to replace a submitted source."
+        ]
+      },
+      {
+        "section": "external-correction",
+        "task": "Correct returned time and verify Owner approval",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "If a reason remains unclear, ask the Owner/coordinator before submitting. An explanation does not itself change review state."
+        ]
+      },
+      {
+        "section": "external-week",
+        "task": "Review a week and submit eligible drafts",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "Do not manufacture eight hours to match Expected. Resolve actual source errors with a linked correction; explain a genuine short day truthfully."
+        ]
+      },
+      {
+        "section": "external-expense",
+        "task": "Record an own purchase with its private receipt",
+        "scope": "Isolated BBS supplier role lab \u00b7 genuine External Technician account \u00b7 fictional October 2026 records",
+        "recovery": [
+          "If receipt access or scan processing fails, report the document/expense ID and exact status. Do not create another expense while checking the first. Reviewed expense corrections follow the current permitted correction/handoff process."
+        ]
+      },
+      {
+        "section": "external-daily",
+        "task": "Write and submit your own daily field report",
+        "scope": "Isolated BBS supplier role lab \u00b7 genuine External Technician account \u00b7 fictional October 2026 records",
+        "recovery": [
+          "Edit only through offered unsent-draft controls. For returned/approved content, preserve history and use a supported correction or reviewer handoff."
+        ]
+      },
+      {
+        "section": "external-technical",
+        "task": "Save technical facts and private evidence before submission",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "If an upload fails, verify whether metadata exists before retrying. Keep backups and customer evidence private; never infer scan success from an upload success."
+        ]
+      },
+      {
+        "section": "external-report-output",
+        "task": "Generate, check and download the saved report version",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "If a PDF is stale after a source change, generate the new saved version and compare its identity. Preserve prior version history."
+        ]
+      },
+      {
+        "section": "external-operational",
+        "task": "Reconcile an exact period with its native CSV",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "If screen and CSV differ, check filters and source states before escalating. Keep both the historical checkpoint and later export identity."
+        ]
+      },
+      {
+        "section": "external-mobile",
+        "task": "Use narrow screens and check saved results",
+        "scope": "Isolated BBS supplier role lab \u00b7 genuine External Technician account \u00b7 fictional October 2026 records",
+        "recovery": [
+          "Report clipped controls with a safe screenshot, width, environment and exact action. Never save duplicate records to compensate for a hidden result."
+        ]
+      },
+      {
+        "section": "external-profile",
+        "task": "Maintain your workforce profile and individual security",
+        "scope": "Reference procedure \u00b7 current own-role controls/source checked; mutations not exercised",
+        "recovery": [
+          "Ask the Owner/coordinator for authorization/assignment changes and Owner/support for access recovery. Do not share credentials."
+        ]
+      },
+      {
+        "section": "external-help",
+        "task": "Use Help and hand problems to the correct role",
+        "scope": "Isolated BBS supplier role lab \u00b7 genuine External Technician account \u00b7 fictional October 2026 records",
+        "recovery": [
+          "Do not use another account to work around denial or publish private receipt links. Marking/reading a notification, where offered, is not approval or acceptance."
+        ]
+      },
+      {
+        "section": "external-assignment-planning-targets",
+        "task": "Planning appendix \u00b7 assignment dates and expected targets",
+        "scope": "Isolated BBS planning lab \u00b7 real role browser sessions \u00b7 fictional October 22\u201323, 2026 work \u00b7 no production records or financial changes",
+        "recovery": [
+          "If BBS is missing, send the Owner/coordinator your intended project and work date. They must check active account, supplier association, supplier authorization and dated project assignment. Do not borrow a login or duplicate sources.",
+          "If Planning or Today is unavailable, return to Time. Creating another assignment or repeatedly requesting the denied page does not add the restricted agenda feature.",
+          "An unavailable Expected value is displayed as \u2014 when a usable effective schedule/unique assignment cannot be determined. Ask the Owner to investigate scope and dates; do not treat it as zero actual work."
+        ]
+      },
+      {
+        "section": "external-operational-goals-handoff",
+        "task": "Describe completed work, open goals and the next shift",
+        "scope": "Isolated BBS planning lab \u00b7 real role browser sessions \u00b7 fictional October 22\u201323, 2026 work \u00b7 no production records or financial changes",
+        "recovery": [
+          "If a time reviewer cannot find supplier hours in the PM queue, hand the exact project, work date and source ID to an authorized J&A Owner; do not submit duplicate time.",
+          "Approval is operational review. Continue the separate customer sign-off or financial process only through an authorized role."
+        ]
+      },
+      {
+        "section": "external-checklist",
+        "task": "Complete the technician handoff",
+        "scope": "Isolated BBS supplier role lab \u00b7 genuine External Technician account \u00b7 fictional October 2026 records",
+        "recovery": [
+          "Layout copying, browser print completion and new customer acceptance remain reference-only. Use the shared access/security chapters for their verified procedures."
+        ]
+      }
+    ],
+    "finance": [
+      {
+        "section": "finance-start",
+        "task": "Start with your Finance account",
+        "scope": "Worked example \u00b7 actual Finance account in the isolated BBS role lab; navigation and phone drawer verified. Later role practice is separate from the original October 1\u20135 checkpoint.",
+        "recovery": [
+          "An absent project, inactive account or permission error requires an Owner/support handoff. Do not borrow another person\u2019s account."
+        ]
+      },
+      {
+        "section": "finance-planning-actual",
+        "task": "Reconcile a work plan with actual source hours",
+        "scope": "Worked example \u00b7 separate isolated BBS assignment lab \u00b7 synthetic October 20, 2026 \u00b7 authenticated Finance browser session after operational approval",
+        "recovery": [
+          "For incorrect actual work, request the state-appropriate operational correction. For an incorrect plan or expected schedule, ask the Owner or authorized Project Manager. These are different records.",
+          "Supplier time follows the J&A Owner operational-review handoff, whereas an authorized Project Manager may review the supplier Daily report. A missing supplier time item in the ordinary PM queue does not justify duplicate entry."
+        ]
+      },
+      {
+        "section": "finance-boundaries",
+        "task": "Know your authority and the Owner handoffs",
+        "scope": "Reference procedure \u00b7 checked against current source; not yet executed in this role lab",
+        "recovery": [
+          "If no approved numbering policy exists, stop issuance and ask the Owner/accountant for prefix, digits, effective date and genuine approval timestamp. A proposed convention is not approval."
+        ]
+      },
+      {
+        "section": "finance-review",
+        "task": "Review actual work after operational approval",
+        "scope": "Worked example \u00b7 FN01 \u00b7 actual Finance Record Finance review on a separate synthetic October 26 source; before and saved after states verified.",
+        "recovery": [
+          "If the source is absent, inspect operational state, person/project scope, search filters, dated rules, correction state and existing invoice links. Ask the operational reviewer to correct the real source; never duplicate it to make billing work."
+        ]
+      },
+      {
+        "section": "finance-expenses",
+        "task": "Classify an expense before Finance review",
+        "scope": "Worked example \u00b7 actual Finance account classified the new fictional October 6 USD 12 worker expense using saved at-cost policy, then recorded Finance review. No purchase or reimbursement transfer occurred.",
+        "recovery": [
+          "An unclassified expense cannot bypass Finance review. If foreign-currency projection is missing, use the exact expense/currency message to request a supported verified remedy; do not invent an exchange rate or change the purchase currency."
+        ]
+      },
+      {
+        "section": "finance-commercial",
+        "task": "Check dated agreements and independent pay rules",
+        "scope": "Worked example \u00b7 FN02 \u00b7 actual Finance future dated person agreement saved for November 1; October 31 overlap rejection retained. Field alternatives checked in current source.",
+        "recovery": [
+          "Retain the person, intended effective date and overlap message. Use a later legitimate date or the supported obligation-correction handoff; do not reverse cash to bypass historical terms."
+        ]
+      },
+      {
+        "section": "finance-streams",
+        "task": "Create and review a billing stream",
+        "scope": "Worked example \u00b7 FN02 \u00b7 Finance saved a new Manual Labor stream effective October 26 under the existing approved synthetic issuer/numbering fixture.",
+        "recovery": [
+          "For issuer/numbering gaps ask Owner with the intended stream and issue date. Preserve archived historical issuers and old invoice masters."
+        ]
+      },
+      {
+        "section": "finance-draft",
+        "task": "Create and review the customer invoice draft",
+        "scope": "Worked example \u00b7 FN03 \u00b7 actual normal source-based invoice draft for October 26; the earlier USD 1 debit is a separate amount-only exercise.",
+        "recovery": [
+          "Correct the supported operational/commercial prerequisite and recheck the draft. Do not duplicate a source or modify historical invoices to force inclusion."
+        ]
+      },
+      {
+        "section": "finance-issue",
+        "task": "Approve, issue and download a final invoice",
+        "scope": "Worked example \u00b7 FN03 \u00b7 Finance approved and issued normal source-based JA-DEMO--2026-000005, USD 600; native final PDF downloaded privately.",
+        "recovery": [
+          "Queued means wait for normal processing; investigate an actual Failed message and permitted retry. For missing issuer coverage/numbering ask Owner with invoice ID and intended date. Optional language variants can be Not generated yet while the upper native issued master is Ready."
+        ]
+      },
+      {
+        "section": "finance-dispatch",
+        "task": "Deliver an invoice and inspect the real result",
+        "scope": "Reference procedure \u00b7 checked against current source; not yet executed in this role lab",
+        "recovery": [
+          "The Owner panel has no manual Retry button here. A configured worker retries transient failures. Ask the administrator to investigate mail configuration or uncertain/terminal delivery before initiating another send. Training fixtures never prove real delivery."
+        ]
+      },
+      {
+        "section": "finance-collections",
+        "task": "Record a collection and correct it with a reversal",
+        "scope": "Worked example \u00b7 FN05 \u00b7 actual USD 1 receipt and full reversal on the new USD 600 normal invoice. Both events are synthetic; no bank transfer or refund occurred.",
+        "recovery": [
+          "For duplicate/overpayment or a changed balance inspect the latest events and remaining amount; never delete posted history or use another invoice to hide an error."
+        ]
+      },
+      {
+        "section": "finance-adjustment",
+        "task": "Correct an issued amount without rewriting its master",
+        "scope": "Worked examples \u00b7 FN05 \u00b7 earlier USD 1 debit preserved; new USD 1 credit linked to the normal USD 600 invoice, approved and issued by Finance.",
+        "recovery": [
+          "Escalate a required negative correction/replacement or credit allocation/refund that the displayed controls cannot express. Do not rewrite an issued document or record fictitious cash."
+        ]
+      },
+      {
+        "section": "finance-settlements",
+        "task": "Finalize a worker\u2019s compensation period",
+        "scope": "Worked example \u00b7 actual Finance account inspected the three existing finalized BBS settlements and independently tested payment/reversal on Technician 1. Finalize compensation and Save expected date here are source-checked reference procedures; no overlapping new settlement was created.",
+        "recovery": [
+          "Missing assignment/rule, active correction, currency conflict or already-finalized coverage needs investigation. Retain exact worker/project/period and hand a genuine rule/correction problem to the Owner/reviewer."
+        ]
+      },
+      {
+        "section": "finance-worker-payments",
+        "task": "Record and reverse an actual worker-side payment",
+        "scope": "Worked example \u00b7 actual Finance account registered a synthetic USD 1 partial payment on the existing Technician 1 settlement, then fully reversed that exact payment. Native bank-transfer warnings were retained; no bank transfer occurred. The finalized compensation snapshot was not changed.",
+        "recovery": [
+          "Do not delete a payment or weaken replay protection to retry it. Inspect payment/reversal history and use the supported remaining-payment action. A payment cannot exceed the remaining obligation."
+        ]
+      },
+      {
+        "section": "finance-reimbursement",
+        "task": "Record a verified expense reimbursement",
+        "scope": "Worked example \u00b7 actual Finance account verified visible USD 12 against hidden reviewed 1200 minor units at 1440/768/390 widths, then recorded the authorized synthetic reimbursement once. Saved Reimbursed state and actual timestamp were verified. No bank transfer occurred.",
+        "recovery": [
+          "If no reimbursement is owed or a source is not ready, inspect payer, classification, receipt and Finance review. Do not pay the same purchase twice or treat invoice collection as reimbursement.",
+          "For a mistaken full reimbursement or backdated/partial requirement retain expense ID, reviewed amount/currency, reference and actual recorded timestamp and ask authorized Finance/Owner support. Do not record a compensation-payment reversal as an expense reimbursement reversal."
+        ]
+      },
+      {
+        "section": "finance-economics",
+        "task": "Explain economics, cash and workbook exports",
+        "scope": "Worked example \u00b7 actual Finance account inspected current BBS economics and downloaded the October 1\u20135 native project XLSX with status 200 and its semantic filename. It includes later practice events issued on the same UTC date; original workbook checkpoint totals are historical, not forced current totals.",
+        "recovery": [
+          "For a mismatch check scope, currency, approvals, cost model, source links, issue date and missing rules. Ask support with the exact record/code; do not edit an issued source to force a total."
+        ]
+      },
+      {
+        "section": "finance-accounting",
+        "task": "Generate, review and finalize an Accounting Pack",
+        "scope": "Worked examples \u00b7 FN09 \u00b7 Finance generated a populated BBS-portfolio October 1\u20136 pack and reviewed its advisories. A separate all-synthetic portfolio completed Finance generation, zero-advisory review and finalization; Auditor downloaded all five outputs.",
+        "recovery": [
+          "Preserve intended dates, pack ID and error/advisories for Owner/support. Never fabricate issuer coverage, accountant approval, documents or remove sources to force finalization. Retry only the offered failed artifact after resolving its cause."
+        ]
+      },
+      {
+        "section": "finance-close",
+        "task": "Close a billing period and handle late work",
+        "scope": "Worked example \u00b7 FN10 \u00b7 actual Finance Close sources for the new Manual Labor stream October 26\u201326 after normal invoice issuance. Weekly/late-work behavior checked in source; project closure is separate.",
+        "recovery": [
+          "For a closed-period conflict give Owner/Finance/support the source ID/work date, stream ID/cadence, closed cut, invoice/settlement references and exact message. Project closeout is an Owner process with its own blockers."
+        ]
+      },
+      {
+        "section": "finance-customer-report",
+        "task": "Generate a customer-safe report and receive the PM handoff",
+        "scope": "Worked example \u00b7 FN04 / S05\u2013S06 \u00b7 Finance generated the October 13\u201319 customer-safe snapshot; authorized PM approved exact version 2. Signed-copy capture and invalidation are source-checked procedures, not performed events.",
+        "recovery": [
+          "For returned/disputed or stale evidence receive the exact report ID/version/hash, PM review note and customer reason. Do not invent a signature or rebind old signed bytes to new content."
+        ]
+      },
+      {
+        "section": "finance-obligation-correction",
+        "task": "Handle a finalized obligation correction without unlocking history",
+        "scope": "Source-checked boundary \u00b7 FN06 / S07\u2013S08 \u00b7 native finalized-payment reversal history and dated-agreement overlap rejection verified; no obligation amendment or invented approval was posted.",
+        "recovery": [
+          "Use the precise native overlap/finalized-source message. Support must assess an explicit authorized correction path; do not keep retrying finalization with altered dates or arbitrary rules."
+        ]
+      },
+      {
+        "section": "finance-recovery",
+        "task": "Finish the cycle and hand off an exception",
+        "scope": "Reference procedure \u00b7 checked against current source; not yet executed in this role lab",
+        "recovery": [
+          "An application/support boundary is not a universal self-service unlock. Preserve final history and stop the specific unsupported transaction while other independent tasks continue."
+        ]
+      }
+    ],
+    "manager": [
+      {
+        "section": "start",
+        "task": "Start with your account and assigned scope",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "If BBS is missing, stop recording and give the Owner the project reference, your account and intended work dates. Do not create a replacement project.",
+          "If a review control is missing, check membership dates and Can review separately from the role label."
+        ]
+      },
+      {
+        "section": "navigation",
+        "task": "Find the right workspace on desktop and phone",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "If a drawer covers your content, close it or select a destination. Recheck the project and dates after navigation.",
+          "Access restricted means the role cannot use that destination; return through Open my workspace and ask the Owner about the business handoff."
+        ]
+      },
+      {
+        "section": "dashboard",
+        "task": "Use Dashboard to decide where to act",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "If the number differs from a register, compare date range, workers, state filters and whether the dashboard figure means recorded or reviewed activity.",
+          "Escalate economic or billing questions to Finance or the Owner rather than interpreting operational hours as money."
+        ]
+      },
+      {
+        "section": "projects",
+        "task": "Inspect the project before changing its team",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "Include archived projects only when looking for historical work. Do not reopen or duplicate archived work to circumvent a blocked source.",
+          "Project closing, commercial contracts and company billing belong to the authorized Owner/Finance process. Seek that handoff when those controls are unavailable."
+        ]
+      },
+      {
+        "section": "team",
+        "task": "Assign workers and verify saved membership dates",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "If a date change is blocked, read the validation and check saved membership before retrying. Do not bypass the guard or assume a directory record is membership."
+        ]
+      },
+      {
+        "section": "review",
+        "task": "Review a submitted source using the correct decision",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "A worker should read a rejection reason and avoid re-entering the rejected duplicate. If rejection was mistaken, escalate to the reviewer/Owner; do not promise a correction action absent from the source."
+        ]
+      },
+      {
+        "section": "corrections",
+        "task": "Verify author recovery and approve the linked replacement",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "When a replacement does not address the reason, return it with specific remaining facts. Preserve all original/replacement links."
+        ]
+      },
+      {
+        "section": "reports",
+        "task": "Review authored Daily and Technical facts with attribution",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "Check a private attachment\u2019s exact Storage and Scan status; Saved/Not scanned is not proof of clean scanning."
+        ]
+      },
+      {
+        "section": "customer-followup",
+        "task": "Review the ready customer version and acceptance queue",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "If later source corrections affect the period, ask Finance/Owner to create and review the new current version before requesting acceptance."
+        ]
+      },
+      {
+        "section": "planning",
+        "task": "Publish a future plan without creating actual time",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "If the worker is absent, verify dated project assignment and availability with Owner/Team. Publishing is not a substitute for project membership.",
+          "If dates are wrong, use the published record\u2019s update workflow rather than creating an overlapping duplicate plan."
+        ]
+      },
+      {
+        "section": "plan-update",
+        "task": "Change a published assignment and verify persistence",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "Check that you opened a planning record, not a time-entry source. Actual submitted work requires the reviewed correction path.",
+          "Coordinate a genuine cancellation with the worker; do not assume a changed plan deletes recorded history."
+        ]
+      },
+      {
+        "section": "plan-connected-crew",
+        "task": "Follow a shared plan through crew work and review",
+        "scope": "Isolated BBS planning and crew lab \u00b7 October 20\u201325, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
+        "recovery": [
+          "A chief\u2019s ability to record crew time does not automatically grant review authority. Ask the Owner to verify the separate review permission.",
+          "If a worker reports a missing plan, compare today in UTC, project membership and the published plan date. If the actual source is wrong, use the correction chapter rather than editing planning."
+        ]
+      },
+      {
+        "section": "plan-targets-recovery",
+        "task": "Distinguish planned hours, expected hours and work goals",
+        "scope": "Isolated BBS planning and crew lab \u00b7 October 20\u201325, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
+        "recovery": [
+          "The External Technician profile has restricted Time / Expenses / Reports access and currently no internal Today agenda or Planning calendar, even when the Owner publishes a plan. Confirm its schedule through the authorized operational handoff.",
+          "Operational screenshots and hours comparisons do not authorize access to client rates, loaded costs, margins or another person\u2019s pay. Route financial interpretation to Finance or the Owner.",
+          "After a publish-field validation message, correct the highlighted field and recheck the retained person, UTC interval, planned quantity, Site and Required expertise before retrying."
+        ]
+      },
+      {
+        "section": "availability",
+        "task": "Maintain expertise and availability in the correct scope",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "Before changing a workforce record verify the selected person; changing Inspect worker does not switch your authenticated account.",
+          "If the required expertise is absent, ask the Owner to maintain the expertise catalog. Avoid using an unrelated skill as a placeholder."
+        ]
+      },
+      {
+        "section": "own-time",
+        "task": "Record your own operational time and hand it off",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "Correct an ordinary draft before submission. Once submitted, follow a returned linked correction and explicit resubmission.",
+          "If finalized settlement or billing coverage blocks a correction, hand off to Finance/Owner with the exact error."
+        ]
+      },
+      {
+        "section": "expenses",
+        "task": "Inspect receipts and distinguish operational review from repayment",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "Never change currency merely to make an amount resemble another view. Check receipt evidence and the actual original spending currency.",
+          "An Approved receipt is not proof of reimbursement; the authorized Finance process and the worker\u2019s own payment status provide that check."
+        ]
+      },
+      {
+        "section": "pay",
+        "task": "Read only your own compensation and payment status",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "Check period first: the default view ended on the current day, excluding future October 8 training activity.",
+          "Do not assume an estimate is money owed today or money received. Ask Finance about settlement and payment evidence separately."
+        ]
+      },
+      {
+        "section": "documents",
+        "task": "Register and retrieve a private project document",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "If retrieval is denied, verify project scope and document audience with the Owner. Never widen sensitivity or audience to bypass access."
+        ]
+      },
+      {
+        "section": "notifications",
+        "task": "Follow a notification to the current permitted source",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "If a link is unavailable, verify current project/source scope. Do not borrow an account to follow an old notification."
+        ]
+      },
+      {
+        "section": "security-help",
+        "task": "Complete own reports and use the shared access/security procedures",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "For current access or recovery problems follow the shared security recovery instructions and contact the Owner using the approved company channel."
+        ]
+      },
+      {
+        "section": "day-checklist",
+        "task": "Complete the PM operational cycle and hand off",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "Do not solve a locked history problem by duplicating a project, time source or invoice. Use the supported correction or audited financial adjustment.",
+          "When a task belongs to another role, send a clear handoff: source, project, period, state, required result and reason."
+        ]
+      }
+    ],
+    "owner": [
+      {
+        "section": "owner-course",
+        "task": "Use this Owner manual",
+        "scope": "See chapter procedure and per-ID evidence manifest",
+        "recovery": []
+      },
+      {
+        "section": "owner-access",
+        "task": "Owner account, assignments and delegation",
+        "scope": "See chapter procedure and per-ID evidence manifest",
+        "recovery": [
+          "If a worker cannot select the project, inspect active account status, membership dates and effective authorization. If review is unavailable, inspect the permitted reviewer role, project scope and separate Can review value; crew delegation alone does not authorize review.",
+          "End access or assignment using the supported lifecycle control and required reason; preserve historical records."
+        ]
+      },
+      {
+        "section": "owner-review-grants",
+        "task": "Grant or revoke the exact project review permission",
+        "scope": "Source-checked current controls; existing genuine role review exercises are recorded in the companion guides. This paragraph does not claim a new grant/revoke mutation.",
+        "recovery": [
+          "If a review control remains unavailable, inspect current source state, scope and supported role before altering membership. Do not use a chief grant or an unrestricted replacement account to bypass the receiving-role boundary."
+        ]
+      },
+      {
+        "section": "owner-handoffs",
+        "task": "Give each person the right guide",
+        "scope": "See chapter procedure and per-ID evidence manifest",
+        "recovery": []
+      },
+      {
+        "section": "owner-clean-setup",
+        "task": "Prepare a clean project and its legal billing prerequisites",
+        "scope": "Ordered source-checked receiving procedure. No new legal issuer, tax profile, numbering policy or live invoice was created by this Owner introduction update.",
+        "recovery": [
+          "A missing eligible issuer or date-coverage gap requires reviewing the actual canonical authority/history and intended interval. Preserve legal history; use only the authorized replacement/correction path for an unused authority when applicable. Do not invent effective-date fields in the Billing issuer directory form."
+        ]
+      },
+      {
+        "section": "owner-plan-membership",
+        "task": "Assign access, publish a crew plan and verify each worker",
+        "scope": "Isolated BBS planning and crew lab \u00b7 October 20\u201325, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
+        "recovery": [
+          "If a checkbox is missing, compare the selected planning dates with the person\u2019s active project-assignment interval and current authorization. Publishing does not grant access.",
+          "If Today says No published assignment for today while an upcoming card exists, compare the card\u2019s date with today in UTC. The person can still record authorized actual work for their assigned projects.",
+          "If an interval error appears, correct End so it is after Start, then verify the retained workers, planned quantity, Site and Required expertise before choosing Publish assignment again."
+        ]
+      },
+      {
+        "section": "owner-expected-hours",
+        "task": "Set expected hours and interpret the weekly difference",
+        "scope": "Isolated BBS planning and crew lab \u00b7 October 20\u201325, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
+        "recovery": [
+          "A dash (\u2014) means the application cannot determine an effective target for that day; it does not mean zero hours or a failed time submission. Check assignment dates and the dated schedule.",
+          "If several project assignments cover the same day, the application does not add their targets together without an allocation rule. Resolve the dated membership/schedule yourself, involving the authorized project lead as needed; continue recording truthful actual time. The later October 23 checkpoint demonstrates this rule through a saved one-day second assignment.",
+          "Zero is a valid target, such as the configured BBS weekend. A negative difference without actual records is planning context, not a missing bank payment or invoice."
+        ]
+      },
+      {
+        "section": "owner-planning-time-goals",
+        "task": "Keep planned hours, local time and work goals distinct",
+        "scope": "Isolated BBS planning and crew lab \u00b7 October 20\u201325, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
+        "recovery": [
+          "If the plan and weekly expectation differ, inspect both controls before changing anything. A short assignment within a full working day can legitimately have different planned and expected hours.",
+          "Cancelling planning does not void approved actual work. Correct an actual source through its supported correction workflow if the recorded facts are wrong."
+        ]
+      },
+      {
+        "section": "owner-planning-recovery",
+        "task": "Troubleshoot missing plans, expired coverage and unknown targets",
+        "scope": "Isolated BBS planning and crew lab \u00b7 October 20\u201325, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Historical financial-course totals retain their original date scope.",
+        "recovery": []
+      },
+      {
+        "section": "owner-money",
+        "task": "Supervise the financial cycle",
+        "scope": "See chapter procedure and per-ID evidence manifest",
+        "recovery": [
+          "Correct issued documents through the permitted void, credit, debit or replacement relationship. Preserve issued masters and payment history.",
+          "A disabled training email transport can queue or fail a delivery attempt. It does not establish a delivered customer email."
+        ]
+      },
+      {
+        "section": "owner-commercial-references",
+        "task": "Check optional commercial models, milestones and forecasts",
+        "scope": "Source-checked optional controls. These contract variants were not newly executed in this Owner update; the original BBS worked totals keep their historical scope.",
+        "recovery": [
+          "When an estimate or draft is incomplete, resolve its named missing source/rate/date input rather than entering invented work or collection. Review the new saved configuration and source identity before regeneration."
+        ]
+      },
+      {
+        "section": "owner-accounting",
+        "task": "Accounting coverage and period close",
+        "scope": "See chapter procedure and per-ID evidence manifest",
+        "recovery": [
+          "As Owner, inspect the named missing issuer/date interval and effective project authority yourself. Obtain Finance/accountant input for legal or tax questions; escalate the exact error, dates and affected authority through the approved support channel if the authorized controls cannot resolve it. Never send session tokens or unnecessary private files."
+        ]
+      },
+      {
+        "section": "owner-readiness-closeout",
+        "task": "Verify populated closeout and the current Accounting recovery",
+        "scope": "Isolated BBS copy \u00b7 6 October 2026. Final packages are preserved; Owner reopening returned the project to Active with a new draft revision.",
+        "recovery": []
+      },
+      {
+        "section": "owner-current-technical-output",
+        "task": "Inspect current customer technical details before delivery",
+        "scope": "Isolated BBS copy \u00b7 separate October 13\u201318 customer report v2. The historical blank-Detail master and October 13\u201319 PM handoff remain unchanged.",
+        "recovery": []
+      }
+    ],
+    "supplier-coordinator": [
+      {
+        "section": "start",
+        "task": "Start with a supplier access profile, not an Owner account",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "If no installation is offered, stop and request dated authorization from the Owner. Do not create an unrelated supplier or project.",
+          "Never share the Owner\u2019s login with the supplier team. An operational directory record is not a login account."
+        ]
+      },
+      {
+        "section": "navigation",
+        "task": "Use the coordinator\u2019s restricted navigation",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "Contact an owner is the handoff from a restricted screen. Returning to Supplier team does not grant the denied action.",
+          "Recheck filters after a successful save: the resulting route may retain project/dates but change the active workspace tab."
+        ]
+      },
+      {
+        "section": "personnel",
+        "task": "Verify the saved supplier roster and dates",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "A missing technician can reflect scope or dates. Do not add a duplicate directory entry to bypass an expired assignment."
+        ]
+      },
+      {
+        "section": "add-technician",
+        "task": "Add a directory technician with the exact fields",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "An email in this directory form is contact information, not proof that a sign-in account exists."
+        ]
+      },
+      {
+        "section": "batch",
+        "task": "Record actual duration for selected technicians",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "If only some technicians are eligible, correct assignment/date scope before saving. Never assume the selected count proves every intended person was saved."
+        ]
+      },
+      {
+        "section": "drafts",
+        "task": "Inspect each saved team draft and submit to J&A",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "Keep unsent drafts separate from sources already submitted. An unavailable submit action requires checking source state and coverage."
+        ]
+      },
+      {
+        "section": "correction",
+        "task": "Create a linked correction for returned team work",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "Do not change the old source or count original and replacement together. Ask the Owner if the reason does not identify the actual correction needed."
+        ]
+      },
+      {
+        "section": "export",
+        "task": "Keep the before checkpoint and export the final filtered totals",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "Compare the same dates, technician scope and review states before reporting a discrepancy."
+        ]
+      },
+      {
+        "section": "own-time",
+        "task": "Keep your own work separate and submit eligible weekly drafts",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "Copy previous week layout is a source-checked draft convenience, not proof of worked hours. Check dates and actual work before using it."
+        ]
+      },
+      {
+        "section": "own-expenses",
+        "task": "Save your own expense receipt and submit the facts",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "If a receipt hash is already registered, inspect the existing private content. Do not repeatedly upload a duplicate or invent a new purchase to bypass the duplicate guard."
+        ]
+      },
+      {
+        "section": "daily",
+        "task": "Create, submit and download your own Daily report",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "Correct the authorized source and generate the new saved version when facts change; preserve prior source/PDF history."
+        ]
+      },
+      {
+        "section": "technical",
+        "task": "Create, submit and download your own Technical / PLC report",
+        "scope": "Native isolated BBS role exercise \u00b7 C-0050-P-20261005 \u00b7 synthetic October 2026 work only",
+        "recovery": [
+          "Correct the authorized source and generate the new saved version when facts change; preserve prior source/PDF history."
+        ]
+      },
+      {
+        "section": "profile-help",
+        "task": "Maintain your own availability and secure access",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "An account labelled Worker in Profile may still carry a supplier restriction; request the correct profile/linkage from Owner rather than trying Finance routes.",
+          "Report UI problems with role, BBS reference, date, source state and exact action/error; omit private credentials."
+        ]
+      },
+      {
+        "section": "handoff",
+        "task": "Finish the supplier operational cycle",
+        "scope": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
+        "recovery": [
+          "Do not duplicate work to fix a locked source or substitute an operational CSV for an issued invoice.",
+          "If access ends or assignment dates expire, ask Owner to review the genuine authorization. A directory record alone cannot restore login."
+        ]
+      },
+      {
+        "section": "supplier-planning-team-handoff",
+        "task": "Planning appendix \u00b7 turn work instructions into actual team facts",
+        "scope": "Isolated BBS planning lab \u00b7 real role browser sessions \u00b7 fictional October 22\u201323, 2026 work \u00b7 no production records or financial changes",
+        "recovery": [
+          "If drafts are absent immediately after saving, inspect the selected report period: a successful October 23 save is outside an October 1\u20136 filter. Update From/To before considering another save.",
+          "Supplier hours are excluded from the ordinary PM Time approval queue. Hand their project/date/source IDs to an authorized J&A Owner; PM report review is a different workflow.",
+          "Preserve the source and request a linked correction for reviewed facts. Do not enter another hour to attract review."
+        ]
+      },
+      {
+        "section": "supplier-coverage-goals-troubleshooting",
+        "task": "Coverage appendix \u00b7 missing people, dates and work goals",
+        "scope": "Isolated BBS planning lab \u00b7 real role browser sessions \u00b7 fictional October 22\u201323, 2026 work \u00b7 no production records or financial changes",
+        "recovery": [
+          "Include role, supplier, project, intended work date and exact missing/disabled control in an access request. Never include passwords or session material.",
+          "A directory technician may have no login. Ask the Owner to distinguish personnel creation, individual account activation, supplier authorization and dated project assignment.",
+          "For expected-hour discrepancies in your own Time screen, use the effective schedule target and Actual minus Expected; do not interpret a plan duration as the schedule target. Ask the Owner to investigate an unavailable \u2014 expectation."
+        ]
+      }
+    ],
+    "worker": [
+      {
+        "section": "worker-start",
+        "task": "Start with your own account",
+        "scope": "Isolated BBS role lab \u00b7 genuine Worker account \u00b7 fictional October 2026 records",
+        "recovery": [
+          "Ask the Owner to activate the account or correct project assignment if your project is missing. Do not create duplicate people or share accounts."
+        ]
+      },
+      {
+        "section": "worker-time",
+        "task": "Save and inspect actual time",
+        "scope": "Isolated readiness lab \u00b7 own Worker 2 account \u00b7 unlocked new project \u00b7 synthetic October 7, 2026",
+        "recovery": [
+          "Edit an unsent draft through its permitted draft controls. If uncertain whether Save succeeded, reload the date-filtered register and open the existing row before trying again."
+        ]
+      },
+      {
+        "section": "worker-expense",
+        "task": "Record one expense with private receipt evidence",
+        "scope": "Isolated readiness lab \u00b7 same Worker 2 persona \u00b7 synthetic October 12, 2026 purchase",
+        "recovery": [
+          "If receipt processing or permission prevents access, use the precise document status/message and ask support. Uploading/registered does not universally mean antivirus-clean. Do not duplicate a purchase while checking a failed submission."
+        ]
+      },
+      {
+        "section": "worker-daily",
+        "task": "Save and submit a daily field report",
+        "scope": "Isolated readiness lab \u00b7 own Worker 2 report \u00b7 synthetic October 12, 2026",
+        "recovery": [
+          "Correct an unsent draft using its available edit controls. For submitted/returned/approved reports, use the offered correction flow or hand the specific record to the reviewer; do not overwrite approved history."
+        ]
+      },
+      {
+        "section": "worker-technical",
+        "task": "Describe a technical change without treating it as permission",
+        "scope": "Isolated readiness lab \u00b7 own Worker 2 report \u00b7 synthetic October 12, 2026",
+        "recovery": [
+          "A missing validation or safety decision needs a real responsible-person handoff. Do not invent a successful validation to make the report look complete."
+        ]
+      },
+      {
+        "section": "worker-week",
+        "task": "Submit your own displayed week and verify every source",
+        "scope": "Isolated readiness lab \u00b7 actual own Worker 2 weekly submission \u00b7 October 5\u201311, 2026",
+        "recovery": [
+          "A blocked or changed draft must be reviewed through its exact record. Do not repeatedly resubmit the whole week to force a guarded source."
+        ]
+      },
+      {
+        "section": "worker-expense-exceptions",
+        "task": "Use expense batch tools and corrections carefully",
+        "scope": "Isolated readiness lab \u00b7 actual own weekly expenses, receipt attachment and returned expense correction",
+        "recovery": [
+          "A linked correction does not offer unrestricted editing after creation. Use Withdraw correction draft only while offered and unsubmitted; reviewed, allocated, billed or reimbursed sources can require the reviewer/Finance handoff. No purchase amount is multiplied by creating its linked correction."
+        ]
+      },
+      {
+        "section": "worker-correction",
+        "task": "Correct returned time and retain history",
+        "scope": "Isolated readiness lab \u00b7 own Worker 2 normal correction \u00b7 unlocked October 7, 2026",
+        "recovery": [
+          "If a correction is already submitted, use its current state and the reviewer\u2019s next offered control. Finalized compensation, shared receipt or billing guards require the responsible Finance/Owner handoff; do not create an unlinked duplicate."
+        ]
+      },
+      {
+        "section": "worker-report-evidence",
+        "task": "Understand report PDFs, attachments and customer acceptance",
+        "scope": "Isolated readiness lab \u00b7 native own PDF, attachment and returned Daily edit",
+        "recovery": [
+          "Do not promise Edit on a linked report correction or a finalized source. Do not fabricate signer evidence or claim a downloaded report was delivered to a customer."
+        ]
+      },
+      {
+        "section": "worker-pay",
+        "task": "Read your own compensation and reimbursement",
+        "scope": "Isolated BBS role lab \u00b7 genuine Worker account \u00b7 fictional October 2026 records",
+        "recovery": [
+          "Ask Finance about missing rules, period coverage, reimbursement classification, payment references or discrepancies. Do not infer worker pay from a customer invoice or a planned date."
+        ]
+      },
+      {
+        "section": "worker-statement",
+        "task": "Generate your own statement and check readiness",
+        "scope": "Isolated BBS role lab \u00b7 genuine Worker account \u00b7 fictional October 2026 records",
+        "recovery": [
+          "For a failed or indefinitely queued statement, ask the Owner/support to inspect the artifact job using the period and exact status. Do not repeatedly submit the same request or claim that Queued means a delivered file."
+        ]
+      },
+      {
+        "section": "worker-settlement-guard",
+        "task": "Hand settled compensation changes to Finance",
+        "scope": "Isolated BBS role lab \u00b7 genuine Worker account \u00b7 fictional October 2026 records",
+        "recovery": [
+          "Do not add an unlinked replacement, shift the work date, change the worker or ask someone to erase settlement history to bypass the guard."
+        ]
+      },
+      {
+        "section": "worker-planning",
+        "task": "Read a plan without creating actual hours",
+        "scope": "Isolated BBS role lab \u00b7 genuine Worker account \u00b7 fictional October 2026 records",
+        "recovery": [
+          "Ask the PM/Owner to correct an incorrect or missing published plan. Record genuine authorized actual work rather than copying a plan into fictitious hours."
+        ]
+      },
+      {
+        "section": "worker-connected-plan",
+        "task": "Follow a published assignment through actual work and review",
+        "scope": "Isolated BBS planning lab \u00b7 synthetic October 20, 2026 work \u00b7 genuine role sessions \u00b7 no production hours",
+        "recovery": [
+          "Ask the Owner/PM to correct an inaccurate published plan. You do not edit it from the assignment card.",
+          "Explain real progress and a shorter or longer shift in your Activity summary and Daily/Technical report. Record actual work rather than padding hours to match a target."
+        ]
+      },
+      {
+        "section": "worker-expected-hours",
+        "task": "Read Expected, Difference and Needs note correctly",
+        "scope": "Isolated BBS planning lab \u00b7 synthetic October 20, 2026 work \u00b7 genuine role sessions \u00b7 no production hours",
+        "recovery": [
+          "If Expected is a dash, ask the Owner to check dated project membership and effective schedule coverage. Before the October 1 membership in this example, September 28\u201330 have no Expected figure.",
+          "If multiple project assignments make the target ambiguous, ask the Owner to investigate the allocation. Do not pick a target by adding plans or duplicating time."
+        ]
+      },
+      {
+        "section": "worker-plan-goals-troubleshooting",
+        "task": "Handle a missing plan and understand what a work goal means",
+        "scope": "Isolated BBS planning lab \u00b7 synthetic October 20, 2026 work \u00b7 genuine role sessions \u00b7 no production hours",
+        "recovery": [
+          "An expired project assignment or crew delegation is different from a missing plan. Ask the Owner to review the appropriate dated access record; a plan alone does not grant permission.",
+          "Escalate with the project, work date and record state. Keep credentials, client prices, costs and other workers\u2019 pay out of reports and screenshots."
+        ]
+      },
+      {
+        "section": "worker-mobile",
+        "task": "Use phone and tablet views",
+        "scope": "Isolated BBS role lab \u00b7 genuine Worker account \u00b7 fictional October 2026 records",
+        "recovery": [
+          "If a control or row is clipped, report the page, screen width, exact action and screenshot without credentials. Do not compensate by saving the same record twice."
+        ]
+      },
+      {
+        "section": "worker-profile",
+        "task": "Maintain expertise, availability and account security",
+        "scope": "Reference procedure \u00b7 current controls/source checked; mutations not exercised in this role lab",
+        "recovery": [
+          "Ask the Owner/support about unavailable expertise, incorrect timezone, access recovery or a lost device. Do not use another person\u2019s account as a recovery shortcut."
+        ]
+      },
+      {
+        "section": "worker-help",
+        "task": "Use notifications and escalate the right record",
+        "scope": "Reference procedure \u00b7 current controls/source checked; mutations not exercised in this role lab",
+        "recovery": [
+          "Never include session cookies, passwords, recovery codes or another worker\u2019s private pay. Permission denial is a handoff signal, not a reason to switch credentials."
+        ]
+      },
+      {
+        "section": "worker-checklist",
+        "task": "Finish a workday and verify the handoff",
+        "scope": "Isolated BBS role lab \u00b7 genuine Worker account \u00b7 fictional October 2026 records",
+        "recovery": [
+          "Reference-only: account onboarding/security recovery, layout copying, customer acceptance, own expertise/availability/security changes, and real bank/email delivery. A required missing receipt weekly guard was source checked; the native weekly form creates receipt-optional drafts, so this lab does not claim a missing-required-receipt runtime test."
+        ]
+      },
+      {
+        "section": "worker-evidence",
+        "task": "What was verified and what remains a reference",
+        "scope": "Isolated BBS role lab \u00b7 actual browser outcomes and explicit limits",
+        "recovery": [
+          "The historical labs above retain their own scope. This readiness audit additionally tested weekly ordinary/linked correction submission, weekly receipt attachment/submission and returned expense recovery, own report PDF generation/download and returned ordinary report editing, and own Ready statement downloads. Customer acceptance, live email/bank delivery and profile/security changes remain unperformed. Required missing receipt weekly rejection remains source checked."
+        ]
+      }
+    ]
+  }
+}

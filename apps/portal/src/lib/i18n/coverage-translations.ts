@@ -1112,6 +1112,10 @@ const exact: Record<string, readonly [string, string]> = {
     'Un emisor no tiene una revisión legal vigente al final del periodo de este paquete contable. Contacta con soporte para revisar el historial fechado del emisor. Se conserva el periodo elegido; cambiar los datos actuales del emisor no repara la cobertura histórica.',
     'Um emissor não possui uma revisão legal vigente no fim do período deste pacote contábil. Contate o suporte para revisar o histórico datado do emissor. O período escolhido é mantido; alterar os dados atuais do emissor não corrige a cobertura histórica.',
   ],
+  'problem.billing.packSourceReconciliationRequired': [
+    'Este paquete contable no concilia con sus fuentes financieras conservadas. Contacta con soporte para revisar las obligaciones y su historial. Se conservan las fechas elegidas; revertir un pago o cambiar registros históricos no resuelve el problema.',
+    'Este pacote contábil não concilia com suas fontes financeiras preservadas. Contate o suporte para revisar as obrigações e o histórico. As datas escolhidas são mantidas; reverter um pagamento ou alterar registros históricos não resolve o problema.',
+  ],
   'problem.billing.packExpenseCurrencyReviewRequired': [
     'Un gasto aprobado necesita importes verificados en la moneda del proyecto para crear este paquete contable. Actualmente no se puede introducir una conversión de moneda aquí. Revisa la clasificación del gasto y la del reembolso, si corresponde, en Revisión financiera. Se conserva el periodo seleccionado.',
     'Uma despesa aprovada precisa de valores verificados na moeda do projeto para criar este pacote contábil. Atualmente não é possível informar uma conversão de moeda aqui. Revise a classificação da despesa e do reembolso, se houver, em Revisão financeira. O período selecionado é mantido.',
@@ -10572,6 +10576,8 @@ const problemEnglish: Record<string, string> = {
     'The Accounting Pack cannot be created because this deployment is missing its identity configuration. Contact support to restore the configuration before creating the pack.',
   'problem.billing.packIssuerEffectiveDateGap':
     'An invoice issuer has no legal revision covering this Accounting Pack’s period end. Contact support to review the dated issuer history. Your selected period is retained; changing current issuer details does not repair historical coverage.',
+  'problem.billing.packSourceReconciliationRequired':
+    'This Accounting Pack does not reconcile with its preserved financial sources. Contact support to review the affected obligations and source history. Your selected dates are retained; reversing a payment or changing historical records is not a repair.',
   'problem.billing.packExpenseCurrencyReviewRequired':
     "An approved expense needs verified amounts in the project's currency before this Accounting Pack can be created. Currency conversion cannot currently be entered here. Review its expense classification and any reimbursement classification in Finance review. Your selected period is retained.",
   'problem.remedy.contactSupport': 'Contact support',

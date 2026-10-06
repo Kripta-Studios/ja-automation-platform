@@ -16,5 +16,10 @@
     360
   ],
   "downloadTargetsPerRole": 20,
-  "productionBusinessMutations": 0
+  "productionBusinessMutations": 0,
+  "productionDeployment": "PASS",
+  "productionRoles": 8,
+  "productionPdfHashes": "PASS",
+  "productionNonOwnerArchiveDenials": "PASS",
+  "unchangedProductionBusinessTables": 45
 }

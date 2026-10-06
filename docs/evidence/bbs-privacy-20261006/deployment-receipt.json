@@ -1,0 +1,65 @@
+{
+  "status": "PASS",
+  "recordedAt": "2026-10-06T18:01:32.169323+00:00",
+  "deployedSourceCommit": "8ec00aa0391e9f229f42ce44e67e045dafe02067",
+  "archiveSha256": "618d881ff64f411d52c125e748da1c28685025ceec76387ec9028ea0bb710e36",
+  "archiveName": "jaautomation-bbs-privacy-8ec00aa0.zip",
+  "archiveBytes": 431238343,
+  "canonicalEntrypoint": "/usr/local/sbin/jaautomation-zip-deploy",
+  "deploymentCompletedAt": "2026-10-06T17:59:41.744092+00:00",
+  "activeRelease": "/opt/jaautomation/releases/ja-automation-618d881ff64f411d52c125e748da1c28685025ceec76387ec9028ea0bb710e36",
+  "previousRelease": "/opt/jaautomation/releases/ja-automation-f51957ea79bba6d33ccdc58557a19feb8307d0f1b724e03815dffa0c7679be1e",
+  "deployedFilesMatch": {
+    "apps/portal/src/lib/server/manual-catalog.ts": "80506a0b6518d7042abd5861b2427d4239c11d59d3113d18dd4bdbfdb1828a1e",
+    "docs/manuals/BBS_Auditor_Manual_EN.pdf": "b32e3bbfa8d8f7cd1d466a4773abeba10c26393f824fc861f87f9683cc29f25e",
+    "docs/manuals/BBS_Crew_Chief_Manual_EN.pdf": "eeebbe743e15d6bbca0e90b5b8fec59abba69d499e18757b76078410f7de7f8d",
+    "docs/manuals/BBS_External_Technician_Manual_EN.pdf": "467e076751d10d32f74848b780bb2d613acea920400facdd32eb978d306b5e95",
+    "docs/manuals/BBS_Finance_Manual_EN.pdf": "c66eb83816a7bea1adcb1e73066f6a5091c8f142a9a5e52704ca65d48c50b7b3",
+    "docs/manuals/BBS_Owner_Manual_EN.pdf": "415c0ed5847d9d9571da8f31773dc61a93d1b8e5775e9f649530499b914af7f2",
+    "docs/manuals/BBS_Project_Manager_Manual_EN.pdf": "07c11dc4a671b1c9d14a3421682e4f3aca4e7b84c4587b2a50fe5868f5e52c5a",
+    "docs/manuals/BBS_Supplier_Coordinator_Manual_EN.pdf": "3583830360976c00f1b0619cc29bc14b757c51dd6afc6f617c008ee4f4ac301b",
+    "docs/manuals/BBS_Worker_Manual_EN.pdf": "7a3bbaf7845c1cf469dbbf5202bfe2972012c3cf58eac8b138c97eb422d79894"
+  },
+  "canonicalBackupBeforeReplacement": true,
+  "http": {
+    "https://j-aautomation.com/j-aautomation/en": 200,
+    "https://j-aautomation.com/j-aautomation/app/login": 200,
+    "https://j-aautomation.com/j-aautomation/app/api/health": 200,
+    "http://127.0.0.1:5100/j-aautomation/health/ready": 200
+  },
+  "timers": {
+    "jaautomation-jobs.timer": "active",
+    "jaautomation-backup.timer": "active",
+    "jaautomation-zip-deploy.timer": "active"
+  },
+  "protectedBusinessTables": {
+    "count": 45,
+    "allCountsAndHashesMatch": true,
+    "quickCheck": "ok",
+    "foreignKeyErrors": 0
+  },
+  "liveHelp": {
+    "context": "Genuine existing production Owner; read-only native download controls",
+    "nativeDownloads": 8,
+    "exactCanonicalPdfHashes": "PASS",
+    "widths": [
+      1440,
+      768,
+      390,
+      360
+    ],
+    "anonymousStatus": 401,
+    "nonOwnerProductionRoleChecks": {
+      "count": 7,
+      "roleLibraries": "PASS",
+      "ownPdfHashes": "PASS",
+      "ownerAndLegacyDenialsPerRole": 13,
+      "businessFormPosts": 0,
+      "authentication": "Four existing role sessions plus native sign-in of three active dedicated test accounts"
+    },
+    "allEightProductionRoles": "PASS"
+  },
+  "scope": "All eight role PDFs rebuilt; costing, margin and pricing-comparison explanations retained only in Owner course; historical mixed reference downloads and aliases Owner-only. No production business record mutation.",
+  "buildCacheCleanup": "7.083 GB unused Docker builder cache removed after image build; active images/containers/volumes and rollback images retained.",
+  "backupDirectory": "/var/backups/jaautomation/2026-10-06T175923264Z-91ce75f8-49d3-4e38-b2a9-fdbfefe76a39"
+}

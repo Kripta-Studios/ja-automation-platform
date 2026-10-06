@@ -1,0 +1,86 @@
+{
+  "checkedAt": "2026-10-06T18:02:27.442Z",
+  "status": "PASS",
+  "operation": "Existing production sessions or native active test-account sign-in; read-only Help and PDF downloads, no business form POST",
+  "results": [
+    {
+      "role": "finance",
+      "status": "PASS",
+      "authentication": "existing-session",
+      "servedManualIds": [
+        "bbs-finance-manual"
+      ],
+      "canonicalPdfHash": "PASS",
+      "ownerAndArchiveDownloadDenials": 13,
+      "businessPosts": 0
+    },
+    {
+      "role": "manager",
+      "status": "PASS",
+      "authentication": "native-sign-in",
+      "servedManualIds": [
+        "bbs-manager-manual"
+      ],
+      "canonicalPdfHash": "PASS",
+      "ownerAndArchiveDownloadDenials": 13,
+      "businessPosts": 0
+    },
+    {
+      "role": "auditor",
+      "status": "PASS",
+      "authentication": "existing-session",
+      "servedManualIds": [
+        "bbs-auditor-manual"
+      ],
+      "canonicalPdfHash": "PASS",
+      "ownerAndArchiveDownloadDenials": 13,
+      "businessPosts": 0
+    },
+    {
+      "role": "worker",
+      "status": "PASS",
+      "authentication": "existing-session",
+      "servedManualIds": [
+        "bbs-worker-manual",
+        "bbs-chief-manual"
+      ],
+      "canonicalPdfHash": "PASS",
+      "ownerAndArchiveDownloadDenials": 13,
+      "businessPosts": 0
+    },
+    {
+      "role": "chief",
+      "status": "PASS",
+      "authentication": "existing-session",
+      "servedManualIds": [
+        "bbs-worker-manual",
+        "bbs-chief-manual"
+      ],
+      "canonicalPdfHash": "PASS",
+      "ownerAndArchiveDownloadDenials": 13,
+      "businessPosts": 0
+    },
+    {
+      "role": "supplier-coordinator",
+      "status": "PASS",
+      "authentication": "native-sign-in",
+      "servedManualIds": [
+        "bbs-supplier-coordinator-manual"
+      ],
+      "canonicalPdfHash": "PASS",
+      "ownerAndArchiveDownloadDenials": 13,
+      "businessPosts": 0
+    },
+    {
+      "role": "external-technician",
+      "status": "PASS",
+      "authentication": "native-sign-in",
+      "servedManualIds": [
+        "bbs-external-technician-manual"
+      ],
+      "canonicalPdfHash": "PASS",
+      "ownerAndArchiveDownloadDenials": 13,
+      "businessPosts": 0
+    }
+  ]
+}

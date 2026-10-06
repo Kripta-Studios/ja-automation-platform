@@ -46,3 +46,11 @@ During an intermediate local retest, an E2E rebuild replaced compiled server chu
 - [PDF verification](../bbs-role-manuals-20261006/pdf-verification.json) and [build manifest](../../manuals/bbs-role-manuals-build.json): final pages, screenshot hashes, instructions and layout checks.
 
 Screenshots are actual browser captures, with operational crops where needed for privacy. They are not fabricated application mockups. The Owner's existing 203-page course, six attachments and final invoice annex are preserved. English editions remain explicitly labelled; no new Spanish/Portuguese translation is claimed.
+
+## Publication and production verification
+
+Independent final review: [SHIP](independent-review.json). The final eight PDFs contain 608 pages and 213 figure placements. Source `969aae1454a0fbb3f67f7d3493cdfcffd89079b7` was pushed to GitHub `main` and deployed through the canonical ZIP entrypoint, with a verified pre-replacement backup and retained rollback images.
+
+The [deployment receipt](production-deployment.json) records the archive, active release and matching deployed source/PDF bytes. Local readiness, public health, jobs/service-actor preflight and backup/deploy/job timers passed. All [45 protected production business tables](production-postdeploy-business-hashes.json) retain their exact pre-deployment counts/hashes; SQLite quick check is `ok` and foreign-key errors are zero.
+
+The genuine existing Owner's [eight native live Help downloads](production-help-verification.json) match the final canonical PDF hashes at desktop/tablet/phone layouts; anonymous downloads remain denied. Eight separate role contexts and the full role download matrix were verified in the isolated final build. Production verification was read-only; synthetic workflow records remain confined to the training clone.

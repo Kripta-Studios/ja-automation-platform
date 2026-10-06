@@ -1,0 +1,59 @@
+{
+  "status": "PASS",
+  "recordedAt": "2026-10-06T11:17:41.940897+00:00",
+  "startedAt": "2026-10-06T11:13:12.337697+00:00",
+  "sourceCommit": "969aae1454a0fbb3f67f7d3493cdfcffd89079b7",
+  "archiveSha256": "923f46a5102da2411125fcd76f79f9ad68474fe262c1427ec58f5d82009c272f",
+  "archiveName": "jaautomation-bbs-planning-969aae14.zip",
+  "archiveBytes": 394468913,
+  "watcherTimerInitiallyActive": true,
+  "canonicalEntrypoint": "/usr/local/sbin/jaautomation-zip-deploy",
+  "previousRelease": "/opt/jaautomation/releases/ja-automation-b3e8030c8d3a4549d624179fa948f9cab107fef312f4187c4dec6ca691522504",
+  "exitCode": 0,
+  "finishedAt": "2026-10-06T11:17:07.874712+00:00",
+  "watcherTimerActiveAfter": true,
+  "activeReleaseAfter": "/opt/jaautomation/releases/ja-automation-923f46a5102da2411125fcd76f79f9ad68474fe262c1427ec58f5d82009c272f",
+  "deployedSourceCommit": "969aae1454a0fbb3f67f7d3493cdfcffd89079b7",
+  "deployedFilesMatch": {
+    "apps/portal/src/lib/PortalShell.svelte": "2e1b738ffc8444d2e7f55c424f0b03852138c67b4740b83c8e2ebe9d0db02d0f",
+    "apps/portal/src/routes/app/[section]/section-load.ts": "edf5b08128a9e4e3ee9b66ede93530a9660e67857f04e943f36ea4eae08c3934",
+    "docs/manuals/BBS_Worker_Manual_EN.pdf": "96c98ad744d16fea1bcf9ecd243be653dd457eacf43dd89339afce1ec11ef8c4",
+    "docs/manuals/BBS_Owner_Manual_EN.pdf": "feb18cb2604b8116261d81696c9385e4d2c79d741867b778729548553fb2fe6b",
+    "docs/manuals/BBS_Supplier_Coordinator_Manual_EN.pdf": "23f249df9e9cd9bdae07e89318b7c22b7b126d6b7a7f087cdad263a49104317d",
+    "docs/manuals/BBS_Auditor_Manual_EN.pdf": "d910c57e365e8b18257fbe45c8f3509f2e549750056c0689947e54b9c8df3ac3",
+    "docs/manuals/BBS_Crew_Chief_Manual_EN.pdf": "029dbe2c113ad169169685c5f045dcc4085ec22cfd8cbc34b2b390f440e7ce00",
+    "docs/manuals/BBS_External_Technician_Manual_EN.pdf": "cb1aafd723653befdf5e829c7b7d1d6bac6c4e52d0929b26b313811421c94ddc",
+    "docs/manuals/BBS_Project_Manager_Manual_EN.pdf": "680c5971446198c9adf83e5b328ff6b1eb009fa164e6151148bed431b4c8d085",
+    "docs/manuals/BBS_Finance_Manual_EN.pdf": "623e3742f51df2ba9122d6453e2639c49f8b8f98a33f3db8c1751c0356d6fe64"
+  },
+  "backupDirectory": "/var/backups/jaautomation/2026-10-06T111653491Z-2d8e2178-caca-4534-9153-7fa5a948ac61",
+  "canonicalBackupBeforeReplacement": true,
+  "healthAndJobs": "Canonical local readiness, systemd job/service-actor preflight and both public URLs passed",
+  "http": {
+    "https://j-aautomation.com/j-aautomation/en": 200,
+    "https://j-aautomation.com/j-aautomation/app/login": 200,
+    "https://j-aautomation.com/j-aautomation/app/api/health": 200,
+    "http://127.0.0.1:5100/j-aautomation/health/ready": 200
+  },
+  "publicInternalReadinessStatus": 404,
+  "timers": {
+    "jaautomation-jobs.timer": "active",
+    "jaautomation-backup.timer": "active",
+    "jaautomation-zip-deploy.timer": "active"
+  },
+  "protectedBusinessTables": {
+    "count": 45,
+    "allCountsAndHashesMatch": true,
+    "quickCheck": "ok",
+    "foreignKeyErrors": 0
+  },
+  "scope": "Eight English role PDFs and two bounded planning fixes; synthetic test fixtures stay isolated; no production business mutations",
+  "liveHelp": {
+    "context": "Genuine existing production Owner; read-only native download controls",
+    "nativeDownloads": 8,
+    "exactCanonicalPdfHashes": "PASS",
+    "widths": [1440, 768, 390, 360],
+    "anonymousStatus": 401,
+    "otherRoleContexts": "All eight genuine role sessions and full allowed/denied matrix verified in isolated final build before deployment"
+  }
+}

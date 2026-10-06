@@ -9,11 +9,7 @@
     "manuals": 8,
     "totalPages": 608,
     "hashesAndInstructions": "PASS",
-    "actualRenderedPages": [
-      "Owner18",
-      "ProjectManager52",
-      "Worker21"
-    ],
+    "actualRenderedPages": ["Owner18", "ProjectManager52", "Worker21"],
     "chronology": "Earlier single-project and later overlapping-membership checkpoints clearly distinguished",
     "ownerPreservation": "203 course page texts, six attachments and six final invoice streams identical"
   },
@@ -29,5 +25,5 @@
     "No generic goal acceptance/completion module",
     "Needs note does not reverse source approval"
   ],
-  "publicationStatus": "Production deployment receipt is recorded separately after deployment"
+  "publicationStatus": "PASS: source969aae14 deployed canonically; eight live native PDF downloads match;45 protected business tables retain counts/hashes. See production-deployment.json."
 }

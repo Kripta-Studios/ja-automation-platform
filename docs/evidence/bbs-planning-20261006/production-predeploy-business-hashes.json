@@ -1,0 +1,189 @@
+{
+  "capturedAt": "2026-10-06T11:12:59.515485+00:00",
+  "environment": "production",
+  "operation": "read-only hashes and counts; no business mutation or raw row export",
+  "tables": {
+    "compensation_rule": {
+      "count": 45,
+      "sha256": "ffd29471c301c915405d8b32f30e9332e1456020304e7a4a7a4d3ed06180b6b5"
+    },
+    "compensation_settlement": {
+      "count": 3,
+      "sha256": "01a6d05bc3974828b35c4756af1105f4fafe28dd41b90f40ba4e7c9de1939cc9"
+    },
+    "compensation_settlement_authority_event_v2": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "compensation_settlement_collection_batch": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "compensation_settlement_revision_v2": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "compensation_settlement_series_v2": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "daily_report": {
+      "count": 5,
+      "sha256": "b9ed4a05739791f3303246d5ca84c96b8e61a52c47792e9c91f0f52bde1d13bb"
+    },
+    "expense": {
+      "count": 66,
+      "sha256": "fb1979bec27156e9ce491f05f7370cf0466f1452788d12098b6fc3b24585ca19"
+    },
+    "expense_reimbursement_event_v2": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "internal_cost_rule": {
+      "count": 42,
+      "sha256": "23ee61367fb000f50cee4d3b07368aed33ddfcd6b5c53c1e20c5a4b0f36f9e42"
+    },
+    "invoice": {
+      "count": 4,
+      "sha256": "50048e63dcae7852e7c0b376667b8663ee5cd47d6dae84faae54f7d48ee69a2c"
+    },
+    "invoice_adjustment": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "invoice_approved_supersession": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "invoice_chain_anchor": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "invoice_collection_allocation": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "invoice_collection_batch": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "invoice_collection_component": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "invoice_commercial_source_manifest": {
+      "count": 23,
+      "sha256": "fd8a384df4aa055f8ea4dc30c7b1283600d897d1bd4a517842f9c8f2f79e6878"
+    },
+    "invoice_event": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "invoice_line": {
+      "count": 26,
+      "sha256": "798b11e423ac5d70c0b81a2d7a03cfa88d8897bf760d5ab83ea8087f59298fb5"
+    },
+    "invoice_number_policy": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "invoice_overcredit_authorization": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "invoice_overcredit_consumption": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "invoice_payment_reversal_event": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "invoice_source": {
+      "count": 23,
+      "sha256": "96afaf89855f743a1c9cfee2680fc3e99a3d8fb443ad64ca60b97229272c4305"
+    },
+    "legal_entity": {
+      "count": 3,
+      "sha256": "36036e3ae75daa13d14ce0548f390875ea93c1a12ae1ede8a81d1ce74a828165"
+    },
+    "legal_entity_revision": {
+      "count": 2,
+      "sha256": "08a71fa231c4da7fd7a923f5fbc1944801b83d7a4488ec44dc0ca1190697795b"
+    },
+    "legal_entity_revision_bridge": {
+      "count": 2,
+      "sha256": "e8b79218fcdee6a143aa3e6d0565fe596dcf8d90ee7bcafffd9e0d15f54643f6"
+    },
+    "payment": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "planning_assignment": {
+      "count": 7,
+      "sha256": "beb584e0f3393c4c6e0dcc599709c1f90b65e19a33de6f9700a4978cb62e0bd8"
+    },
+    "project": {
+      "count": 17,
+      "sha256": "1339ef140aedabbd684981c390a664cd473676d87c7da29ba097d33f39f1052d"
+    },
+    "project_commercial_policy": {
+      "count": 1,
+      "sha256": "4bd86f414bbcfe1b46e76cac05581cefb349787d0163ccc36eb4843ec6c58e24"
+    },
+    "project_legal_entity_assignment": {
+      "count": 8,
+      "sha256": "32b3e7f72cf737dae1c4efc941196404d74f1e7dcb1055cedd0a18e7a13b8ce4"
+    },
+    "project_legal_entity_assignment_replacement": {
+      "count": 1,
+      "sha256": "0cccc159511e427489b387c164fee91f7b1eadc8615754d2a4690520e877448c"
+    },
+    "project_member": {
+      "count": 46,
+      "sha256": "002f08ee177549b2c6829a162e44c94444aeb69a13ee8f7bfb4b4ffffde60522"
+    },
+    "reimbursement_preference_revision": {
+      "count": 60,
+      "sha256": "a693b234aa31c90373f381620068da144b296d33635afa218e4da535dce09b50"
+    },
+    "reimbursement_principal_authority_event": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "reimbursement_principal_revision": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "reimbursement_principal_series": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "reimbursement_reversal_event": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "schedule": {
+      "count": 19,
+      "sha256": "4f650398f8d020cb3d155198156c3a3a86a1972633994dc794e27fc4c23c13d0"
+    },
+    "supplier_project_grant": {
+      "count": 2,
+      "sha256": "01ddc0959309f06fc1f2cfb1115e46527bd3d93c317765e292907be3fb81e042"
+    },
+    "technical_report": {
+      "count": 2,
+      "sha256": "38d4563e5e7b5acb18d6773e55c3d00968026e5d72f704db073c94bcb65ef2d9"
+    },
+    "time_entry": {
+      "count": 78,
+      "sha256": "1f3ebe695c3d8c90398b7484ed4a8f06a956798c470bfe3e96e0ee1da1107c8f"
+    },
+    "worker_compensation_payment_event": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  "quickCheck": "ok",
+  "foreignKeyErrors": 0
+}

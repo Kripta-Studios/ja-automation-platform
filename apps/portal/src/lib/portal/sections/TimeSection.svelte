@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
+  import { dirtyFormGuard } from '../dirty-form-guard';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { SectionCard } from '../ui';
@@ -851,6 +853,18 @@
       window.scrollTo({ top: scrollTop, behavior: 'instant' });
     };
   };
+
+  useAssistantSurfaceRequest({
+    url: () => $page.url,
+    surfaces: ['time-create'],
+    activate: () => {
+      if (isAuditor || nativeRecoveryActive || surface === 'create') return;
+      openCreate();
+    },
+    deactivate: () => {
+      if (surface === 'create' && !nativeRecoveryActive) closeSurface();
+    },
+  });
 
   function openCreate(dateOverride?: string, workerOverride?: string): void {
     nativeRecoveryActive = false;
@@ -1726,9 +1740,11 @@
     <form
       method="POST"
       action="?/createTime"
+      data-assistant-target="time-create"
       class="expense-entry-form time-entry-form"
       aria-busy={saving}
       data-time-entry-surface
+      use:dirtyFormGuard
       use:operationalFieldValidation
       use:enhance={submitTime}
       onsubmit={(event) => {
@@ -2000,6 +2016,7 @@
       data-entity-id={String(editRow.id)}
       data-version={String(editRow.version)}
       data-time-entry-surface
+      use:dirtyFormGuard
       use:operationalFieldValidation
       use:enhance={submitTime}
       onsubmit={(event) => {

@@ -1,0 +1,7 @@
+{
+  "fullSvelteCheckPassed": false,
+  "summary": "1791401607535 COMPLETED 1511 FILES 88 ERRORS 8 WARNINGS 20 FILES_WITH_PROBLEMS",
+  "errorsInNewAssistantFiles": [],
+  "errorsIntersectingChangedSourceLines": [],
+  "limit": "Existing Svelte diagnostics remain; source-line intersection is a scoped comparison, not a clean whole-application check."
+}

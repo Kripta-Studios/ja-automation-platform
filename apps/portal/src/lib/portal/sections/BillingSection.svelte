@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { disclosure } from '../ui/disclosure.js';
@@ -1565,10 +1566,15 @@
     invoiceSetupTargetProjectId = null;
   }
 
-  function selectBillingWorkspace(next: BillingWorkspace, action = setupAction): boolean {
+  function selectBillingWorkspace(
+    next: BillingWorkspace,
+    action = setupAction,
+    departureConfirmed = false,
+  ): boolean {
     if (
       workspace === 'setup' &&
       (next !== 'setup' || action !== setupAction) &&
+      !departureConfirmed &&
       !confirmBillingDirectoryChanges()
     )
       return false;
@@ -1591,8 +1597,9 @@
   async function showSetupAction(
     action: BillingSetupAction,
     preserveInvoicePrerequisite = false,
+    departureConfirmed = false,
   ): Promise<void> {
-    if (!selectBillingWorkspace('setup', action)) return;
+    if (!selectBillingWorkspace('setup', action, departureConfirmed)) return;
     if (!preserveInvoicePrerequisite) clearInvoiceSetupWarning();
     await tick();
     const form = document.querySelector<HTMLElement>('.billing-section__config-form');
@@ -2299,7 +2306,24 @@
     }
   }
 
+  useAssistantSurfaceRequest({
+    url: () => $page.url,
+    surfaces: ['invoice-create'],
+    activate: () => {
+      if (!canManageBilling || invoiceWizardOpen || selectedInvoiceIntent || billingProblem) return;
+      // beforeNavigate already confirmed departure from any dirty directory form.
+      startInvoiceWizard(true);
+    },
+    deactivate: () => {
+      if (!billingProblem) invoiceWizardOpen = false;
+    },
+  });
+
   function openInvoiceWizard(): void {
+    startInvoiceWizard();
+  }
+
+  function startInvoiceWizard(departureConfirmed = false): void {
     const eligibleRules = projectFilter
       ? activeWizardRules.filter(
           (rule) => rowValue(rule, 'project_id', 'projectId') === projectFilter,
@@ -2313,7 +2337,7 @@
         applySetupProjectDefaults(projectFilter);
       invoiceSetupTargetProjectId = invoiceSetupSelectedProject ? projectFilter : null;
       invoiceSetupRequired = true;
-      void showSetupAction('stream', true);
+      void showSetupAction('stream', true, departureConfirmed);
       return;
     }
     clearInvoiceSetupWarning();
@@ -2625,9 +2649,15 @@
       title={translate('Create invoice')}
       description={translate('Guided invoice workflow')}
       closeLabel={translate('Close')}
+      protectChanges
       onclose={() => (invoiceWizardOpen = false)}
     >
-      <form method="POST" action="?/createDraft" class="billing-section__invoice-wizard">
+      <form
+        method="POST"
+        action="?/createDraft"
+        class="billing-section__invoice-wizard"
+        data-assistant-target="invoice-create"
+      >
         {#if billingProblem}
           <ProblemNotice
             problem={billingProblem}
@@ -3340,7 +3370,7 @@
   {/if}
 
   {#if workspace === 'setup' && canManageBilling}
-    <details class="billing-section__config" open>
+    <details class="billing-section__config" id="billing-setup-workspace" open>
       <summary class="primary-button">{translate('Configure billing')}</summary>
       <div class="billing-section__config-body">
         <div class="billing-section__config-heading">
@@ -4155,6 +4185,7 @@
           <form
             method="POST"
             action="?/createBillingRule"
+            data-assistant-target={invoiceSetupRequired ? 'invoice-create' : undefined}
             class="billing-section__config-form"
             use:recoverBillingForm={recoveryOptions('createBillingRule')}
             use:enhance={({ formElement }) =>

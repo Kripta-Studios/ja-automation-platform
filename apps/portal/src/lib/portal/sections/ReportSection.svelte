@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
+  import { dirtyFormGuard } from '../dirty-form-guard';
   import { normalizeVisibleProjectSelection, projectVisibility } from '../project-visibility';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
@@ -921,6 +923,32 @@
     document.getElementById(`report-tab-${nextTab}`)?.focus();
   }
 
+  useAssistantSurfaceRequest({
+    url: () => $page.url,
+    surfaces: ['report-daily', 'report-technical', 'report-generate'],
+    activate: (request) => {
+      if (isAuditor || nativeRecoveryActive) return;
+      const next =
+        request === 'report-daily'
+          ? 'daily'
+          : request === 'report-technical'
+            ? 'technical'
+            : 'generate';
+      if (surface === next || (next === 'generate' && !canGeneratePeriodReports)) return;
+      if (next === 'generate') openGenerator();
+      else openCreate(next);
+    },
+    deactivate: (request) => {
+      const previous =
+        request === 'report-daily'
+          ? 'daily'
+          : request === 'report-technical'
+            ? 'technical'
+            : 'generate';
+      if (surface === previous && !nativeRecoveryActive) closeSurface();
+    },
+  });
+
   function openCreate(type: 'daily' | 'technical'): void {
     nativeRecoveryActive = false;
     surfaceError = '';
@@ -1769,7 +1797,7 @@
   closeLabel={translate('Close report form')}
   class="report-entry-sheet"
   onclose={closeSurface}
-  protectChanges={surface !== 'generate'}
+  protectChanges
 >
   {#if surfaceProblem}
     <div class="operational-form-error" tabindex="-1" data-operational-form-error>
@@ -1810,6 +1838,8 @@
       action={registerActionHref('createDailyReport', 'daily')}
       class="report-entry-form report-form"
       data-report-entry-surface="daily"
+      data-assistant-target="report-daily"
+      use:dirtyFormGuard
       aria-busy={saving}
       use:operationalFieldValidation
       use:enhance={submitReport}
@@ -1998,6 +2028,8 @@
       action={registerActionHref('createTechnicalReport', 'technical')}
       class="report-entry-form report-form"
       data-report-entry-surface="technical"
+      data-assistant-target="report-technical"
+      use:dirtyFormGuard
       aria-busy={saving}
       use:operationalFieldValidation
       use:enhance={submitReport}
@@ -2255,6 +2287,8 @@
       action={registerActionHref('generatePeriodReports')}
       class="report-entry-form report-generator-form"
       data-report-entry-surface="generate"
+      data-assistant-target="report-generate"
+      use:dirtyFormGuard
     >
       <div class="report-entry-intro">
         <strong>{translate('Refresh reviewed period records')}</strong>

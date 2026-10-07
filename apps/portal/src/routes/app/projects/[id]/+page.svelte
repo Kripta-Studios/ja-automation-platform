@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useAssistantPaneRequest } from '$lib/portal/assistant/surface-request.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import PlanningCalendar from '$lib/portal/ui/PlanningCalendar.svelte';
@@ -206,6 +207,16 @@
   const project = $derived(overview.project);
   const role = $derived(String(data.user?.role ?? ''));
   const isOwner = $derived(role === 'owner_admin');
+  useAssistantPaneRequest({
+    url: () => page.url,
+    panes: ['project-edit'],
+    activate: () => {
+      if (isOwner) editOpen = true;
+    },
+    deactivate: () => {
+      if (!initiallyFailed('updateProject')) editOpen = false;
+    },
+  });
   const isFinance = $derived(role === 'finance_admin');
   const isAuditor = $derived(role === 'auditor_read_only');
   const canViewCommercial = $derived(isOwner || isFinance || isAuditor);
@@ -2111,6 +2122,8 @@
     <form
       method="POST"
       action="?/updateProject&tab=overview"
+      id="assistant-project-edit"
+      data-assistant-target="project-edit"
       class="project-edit-form"
       onsubmit={submitForm}
       use:formValidation

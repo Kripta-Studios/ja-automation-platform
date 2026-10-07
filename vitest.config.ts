@@ -7,6 +7,7 @@ export default defineConfig({
       'tests/**/*.test.ts',
       'apps/portal/src/lib/i18n/**/*.test.ts',
       'apps/portal/src/lib/portal/ui/form-validation.test.ts',
+      'apps/portal/src/lib/portal/assistant/**/*.test.ts',
     ],
     testTimeout: 30_000,
     coverage: { reporter: ['text', 'json'] },

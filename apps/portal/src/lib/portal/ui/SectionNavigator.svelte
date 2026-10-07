@@ -63,6 +63,8 @@
       if (
         (event.ctrlKey || event.metaKey) &&
         event.key.toLowerCase() === 'k' &&
+        event.shiftKey &&
+        !event.defaultPrevented &&
         !event.altKey &&
         !event.isComposing
       ) {
@@ -81,8 +83,8 @@
   onclick={open}
   aria-label={translate('Go to section')}
   aria-haspopup="dialog"
-  aria-keyshortcuts="Control+k Meta+k"
-  title={`${translate('Go to section')} (Ctrl/⌘ K)`}
+  aria-keyshortcuts="Control+Shift+k Meta+Shift+k"
+  title={`${translate('Go to section')} (Ctrl/⌘ Shift K)`}
 >
   <svg
     aria-hidden="true"
@@ -106,7 +108,7 @@
       rx="1"
     /></svg
   >
-  <span>{translate('Go to section')}</span><kbd>⌘/Ctrl K</kbd>
+  <span>{translate('Go to section')}</span><kbd>⌘/Ctrl Shift K</kbd>
 </button>
 <dialog
   bind:this={dialog}

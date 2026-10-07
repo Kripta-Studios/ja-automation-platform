@@ -1,4 +1,5 @@
 import type { LayoutServerLoad } from './$types';
+import { assistantCanonicalOwner } from '$lib/server/assistant-canonical-owner';
 
 // Identity only. Every child loader retains its own object authorization and safe DTO.
 export const load: LayoutServerLoad = ({ locals }) => ({
@@ -12,6 +13,7 @@ export const load: LayoutServerLoad = ({ locals }) => ({
           name: locals.user.name,
           role: locals.user.role,
           workforceProfile: locals.user.workforceProfile,
+          canonicalOwner: assistantCanonicalOwner(locals.user),
         }
       : null,
 });

@@ -20,6 +20,7 @@
     "@ja/schemas": "workspace:*",
     "@ja/ui-tokens": "workspace:*",
     "better-auth": "catalog:",
+    "fuse.js": "7.1.0",
     "idb": "catalog:",
     "playwright": "catalog:",
     "zod": "catalog:"

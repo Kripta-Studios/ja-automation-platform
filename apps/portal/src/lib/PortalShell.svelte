@@ -37,6 +37,7 @@
   import { createAuthClient } from 'better-auth/client';
   import { passkeyClient } from '@better-auth/passkey/client';
   import { disclosure } from './portal/ui/disclosure.js';
+  import { confirmDirtyForms, dirtyFormGuard } from './portal/dirty-form-guard';
   import RecordBrowser from './portal/ui/RecordBrowser.svelte';
   import PlanningCalendar from './portal/ui/PlanningCalendar.svelte';
   import AvailabilityCalendar from './portal/sections/AvailabilityCalendar.svelte';
@@ -335,6 +336,14 @@
     target?.focus({ preventScroll: true });
   }
   let projectRegisterPage = $state<Row[]>([]);
+  let projectManagementRoot: HTMLElement | undefined = $state();
+  beforeNavigate((navigation) => {
+    if (
+      !navigation.willUnload &&
+      !confirmDirtyForms(projectManagementRoot, translate('Discard unsaved changes?'))
+    )
+      navigation.cancel();
+  });
   let documentPage = $state<Row[]>([]);
   let documentTransferBusy = $state(false);
   let documentTransferFailure = $state<{
@@ -4833,7 +4842,7 @@
         {controlledValue}
       />
     {:else if data.section === 'projects'}
-      <div class="management-stack">
+      <div class="management-stack" bind:this={projectManagementRoot}>
         <details id="project-calendar" class="admin-details" data-project-calendar>
           <summary class="secondary-button">{translate('Project calendar')}</summary>
           <PlanningCalendar
@@ -4933,11 +4942,13 @@
           </nav>
           {#if projectWorkflow === 'new-client'}
             <section
+              id="new-client"
               class="admin-details project-workflow-panel"
               data-project-workflow="new-client"
               tabindex="-1"
             >
               <form
+                use:dirtyFormGuard
                 bind:this={ownerClientForm}
                 method="POST"
                 action="?/createClient"
@@ -5065,6 +5076,7 @@
               </p>
               {#each (data.clients ?? []).filter((client) => !$page.url.searchParams.get('client') || String(client.id) === $page.url.searchParams.get('client')) as client}
                 <form
+                  use:dirtyFormGuard
                   method="POST"
                   action="?/updateClient"
                   class="admin-form-grid client-edit-form"
@@ -5178,6 +5190,7 @@
                 />
               {/if}
               <form
+                use:dirtyFormGuard
                 method="POST"
                 action="?/createProject"
                 class="admin-form-grid project-setup-form"
@@ -5419,11 +5432,13 @@
           {#if canManageAssignmentControls}
             {#if projectWorkflow === 'assign-worker'}
               <section
+                id="project-assignment"
                 class="admin-details project-workflow-panel"
                 data-project-workflow="assign-worker"
                 tabindex="-1"
               >
                 <form
+                  use:dirtyFormGuard
                   bind:this={ownerAssignmentForm}
                   use:formValidation
                   method="POST"
@@ -5662,6 +5677,7 @@
                 {/if}
                 {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active' && (!projectWorkflowPage.url.searchParams.get('worker') || String(assignment.worker_id ?? assignment.user_id) === projectWorkflowPage.url.searchParams.get('worker')) && (!projectWorkflowPage.url.searchParams.get('project') || String(assignment.project_id) === projectWorkflowPage.url.searchParams.get('project'))) as assignment}
                   <form
+                    use:dirtyFormGuard
                     method="POST"
                     action={assignmentFormAction(projectWorkflowPage.url, 'updateAssignment')}
                     class="admin-form-grid assignment-edit-form"
@@ -5753,6 +5769,7 @@
                 </p>
                 {#each (data.assignments ?? []).filter((assignment) => assignment.status === 'active' && (!projectWorkflowPage.url.searchParams.get('worker') || String(assignment.worker_id ?? assignment.user_id) === projectWorkflowPage.url.searchParams.get('worker')) && (!projectWorkflowPage.url.searchParams.get('project') || String(assignment.project_id) === projectWorkflowPage.url.searchParams.get('project'))) as assignment}
                   <form
+                    use:dirtyFormGuard
                     method="POST"
                     action={assignmentFormAction(projectWorkflowPage.url, 'removeAssignment')}
                     class="admin-form-grid assignment-remove-form"
@@ -5826,6 +5843,9 @@
             <RecordBrowser
               rows={availableProjects}
               bind:visible={projectRegisterPage}
+              focusId={$page.url.hash.startsWith('#project-register-')
+                ? $page.url.hash.slice('#project-register-'.length)
+                : ''}
               {translate}
               statusLabel={(value) => controlledValue('status', value)}
               label="Project"
@@ -5845,11 +5865,16 @@
                   <span>{translate('Open project').toUpperCase()} <DirectionIcon /></span>
                 </a>
                 {#if canManageProjects}
-                  <details class="project-row-actions" use:disclosure>
+                  <details
+                    id={`project-register-${row.id}`}
+                    class="project-row-actions"
+                    use:disclosure
+                  >
                     <summary>{translate('Actions')}</summary>
                     <div class="record-actions lifecycle-actions">
                       {#if row.status === 'active' || row.status === 'paused'}
                         <form
+                          use:dirtyFormGuard
                           method="POST"
                           action="?/transitionProject"
                           data-action="transitionProject"
@@ -5898,6 +5923,7 @@
                         </form>
                       {:else if row.status === 'closing'}
                         <form
+                          use:dirtyFormGuard
                           method="POST"
                           action="?/transitionProject"
                           data-action="transitionProject"
@@ -5942,6 +5968,7 @@
                         </form>
                       {:else if row.status === 'closed'}
                         <form
+                          use:dirtyFormGuard
                           method="POST"
                           action="?/transitionProject"
                           data-action="transitionProject"
@@ -5964,6 +5991,7 @@
                         </form>
                       {:else if row.status === 'archived'}
                         <form
+                          use:dirtyFormGuard
                           method="POST"
                           action="?/transitionProject"
                           data-action="transitionProject"
@@ -5986,6 +6014,7 @@
                         </form>
                       {/if}
                       <form
+                        use:dirtyFormGuard
                         method="POST"
                         action="?/deleteProject"
                         data-action="deleteProject"
@@ -6048,7 +6077,12 @@
                 </div>
                 <div class="record-actions lifecycle-actions">
                   {#if client.status === 'active' || client.status === 'closed'}
-                    <form method="POST" action="?/transitionClient" data-action="transitionClient">
+                    <form
+                      use:dirtyFormGuard
+                      method="POST"
+                      action="?/transitionClient"
+                      data-action="transitionClient"
+                    >
                       <input type="hidden" name="clientId" value={client.id} />
                       <input type="hidden" name="version" value={client.version ?? 1} />
                       <input
@@ -6071,7 +6105,12 @@
                     </form>
                   {/if}
                   {#if client.status === 'archived'}
-                    <form method="POST" action="?/transitionClient" data-action="transitionClient">
+                    <form
+                      use:dirtyFormGuard
+                      method="POST"
+                      action="?/transitionClient"
+                      data-action="transitionClient"
+                    >
                       <input type="hidden" name="clientId" value={client.id} />
                       <input type="hidden" name="version" value={client.version ?? 1} />
                       <input type="hidden" name="status" value="restore" />
@@ -6089,7 +6128,12 @@
                       >
                     </form>
                   {:else}
-                    <form method="POST" action="?/transitionClient" data-action="transitionClient">
+                    <form
+                      use:dirtyFormGuard
+                      method="POST"
+                      action="?/transitionClient"
+                      data-action="transitionClient"
+                    >
                       <input type="hidden" name="clientId" value={client.id} />
                       <input type="hidden" name="version" value={client.version ?? 1} />
                       <input type="hidden" name="status" value="archived" />
@@ -6106,6 +6150,7 @@
                     </form>
                   {/if}
                   <form
+                    use:dirtyFormGuard
                     method="POST"
                     action="?/deleteClient"
                     data-action="deleteClient"
@@ -6128,9 +6173,14 @@
               </article>
             {:else}<div class="empty">{translate('No clients recorded.')}</div>{/each}
           </SectionCard>
-          <details class="admin-details">
+          <details id="client-contact-create" class="admin-details" use:disclosure>
             <summary class="primary-button">{translate('Add Client Contact')}</summary>
-            <form method="POST" action="?/createClientContact" class="admin-form-grid">
+            <form
+              use:dirtyFormGuard
+              method="POST"
+              action="?/createClientContact"
+              class="admin-form-grid"
+            >
               <h2>{translate('Add client contact')}</h2>
               <label
                 >{translate('Client')}<select name="clientId" required
@@ -6155,152 +6205,168 @@
             </form>
           </details>
           {#if canManageAssignmentControls}
-            <details class="admin-details" bind:this={ownerMilestoneDetails}>
+            <details
+              id="project-milestone-create"
+              class="admin-details"
+              bind:this={ownerMilestoneDetails}
+              use:disclosure
+            >
               <summary class="primary-button">{translate('Create Milestone')}</summary>
-              <form
-                method="POST"
-                action="?/createMilestone"
-                class="admin-form-grid"
-                bind:this={ownerMilestoneForm}
-              >
-                <h2>{translate('Create milestone')}</h2>
-                <label
-                  >{translate('Project')}<select
-                    name="projectId"
-                    value={milestoneProjectId}
-                    required
-                    ><option value="" disabled>{translate('Select project')}</option
-                    >{#each activeProjects as project}<option value={project.id}
-                        >{project.project_number} — {project.name}</option
-                      >{/each}</select
-                  ></label
-                ><label
-                  >{translate('Name')}<input
-                    name="name"
-                    value={projectContextFormValue(milestoneFormResult, 'name')}
-                    required
-                  /></label
-                ><label
-                  >{translate('Description')}<textarea name="description" rows="2"
-                    >{projectContextFormValue(milestoneFormResult, 'description')}</textarea
-                  ></label
-                ><label
-                  >{translate('Amount (minor)')}<input
-                    name="amountMinor"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    value={projectContextFormValue(milestoneFormResult, 'amountMinor')}
-                    required
-                  /></label
-                ><label
-                  >{translate('Due on')}<input
-                    name="dueOn"
-                    type="date"
-                    value={projectContextFormValue(milestoneFormResult, 'dueOn')}
-                  /></label
-                ><button>{translate('Save milestone')}</button>
-              </form>
-            </details>
-            <details class="admin-details" bind:this={ownerScheduleDetails}>
-              <summary class="primary-button">{translate('Expected Working Schedule')}</summary>
-              <form
-                method="POST"
-                action="?/updateSchedule"
-                class="admin-form-grid"
-                bind:this={ownerScheduleForm}
-              >
-                <h2>{translate('Expected working schedule')}</h2>
-                <label
-                  >{translate('Project')}<select
-                    name="projectId"
-                    value={scheduleProjectId}
-                    onchange={(event) => (scheduleProjectOverride = event.currentTarget.value)}
-                    required
-                    ><option value="" disabled>{translate('Select project')}</option
-                    >{#each operationalProjects as project}<option value={project.id}
-                        >{project.project_number} — {project.name}</option
-                      >{/each}</select
-                  ></label
-                ><label
-                  >{translate('Timezone')}<input
-                    name="timezone"
-                    value={scheduleTimezone}
-                    oninput={(event) => (scheduleTimezoneOverride = event.currentTarget.value)}
-                    required
-                  /></label
-                ><label
-                  >{translate('Effective from')}<input
-                    name="effectiveFrom"
-                    type="date"
-                    value={projectContextFormValue(scheduleFormResult, 'effectiveFrom')}
-                    required
-                  /></label
+              {#key $page.url.searchParams.get('project') ?? ''}
+                <form
+                  use:dirtyFormGuard
+                  method="POST"
+                  action="?/createMilestone"
+                  class="admin-form-grid"
+                  bind:this={ownerMilestoneForm}
                 >
-                <label
-                  >{translate('Mon minutes')}<input
-                    name="mondayMinutes"
-                    type="number"
-                    min="0"
-                    max="1440"
-                    value={projectContextFormValue(scheduleFormResult, 'mondayMinutes')}
-                    required
-                  /></label
-                ><label
-                  >{translate('Tue minutes')}<input
-                    name="tuesdayMinutes"
-                    type="number"
-                    min="0"
-                    max="1440"
-                    value={projectContextFormValue(scheduleFormResult, 'tuesdayMinutes')}
-                    required
-                  /></label
-                ><label
-                  >{translate('Wed minutes')}<input
-                    name="wednesdayMinutes"
-                    type="number"
-                    min="0"
-                    max="1440"
-                    value={projectContextFormValue(scheduleFormResult, 'wednesdayMinutes')}
-                    required
-                  /></label
-                ><label
-                  >{translate('Thu minutes')}<input
-                    name="thursdayMinutes"
-                    type="number"
-                    min="0"
-                    max="1440"
-                    value={projectContextFormValue(scheduleFormResult, 'thursdayMinutes')}
-                    required
-                  /></label
-                ><label
-                  >{translate('Fri minutes')}<input
-                    name="fridayMinutes"
-                    type="number"
-                    min="0"
-                    max="1440"
-                    value={projectContextFormValue(scheduleFormResult, 'fridayMinutes')}
-                    required
-                  /></label
-                ><label
-                  >{translate('Sat minutes')}<input
-                    name="saturdayMinutes"
-                    type="number"
-                    min="0"
-                    max="1440"
-                    value={projectContextFormValue(scheduleFormResult, 'saturdayMinutes')}
-                    required
-                  /></label
-                ><label
-                  >{translate('Sun minutes')}<input
-                    name="sundayMinutes"
-                    type="number"
-                    min="0"
-                    max="1440"
-                    value={projectContextFormValue(scheduleFormResult, 'sundayMinutes', '0')}
-                    required
-                  /></label
-                ><button>{translate('Save schedule')}</button>
-              </form>
+                  <h2>{translate('Create milestone')}</h2>
+                  <label
+                    >{translate('Project')}<select
+                      name="projectId"
+                      value={milestoneProjectId}
+                      required
+                      ><option value="" disabled>{translate('Select project')}</option
+                      >{#each activeProjects as project}<option value={project.id}
+                          >{project.project_number} — {project.name}</option
+                        >{/each}</select
+                    ></label
+                  ><label
+                    >{translate('Name')}<input
+                      name="name"
+                      value={projectContextFormValue(milestoneFormResult, 'name')}
+                      required
+                    /></label
+                  ><label
+                    >{translate('Description')}<textarea name="description" rows="2"
+                      >{projectContextFormValue(milestoneFormResult, 'description')}</textarea
+                    ></label
+                  ><label
+                    >{translate('Amount (minor)')}<input
+                      name="amountMinor"
+                      inputmode="numeric"
+                      pattern="[0-9]*"
+                      value={projectContextFormValue(milestoneFormResult, 'amountMinor')}
+                      required
+                    /></label
+                  ><label
+                    >{translate('Due on')}<input
+                      name="dueOn"
+                      type="date"
+                      value={projectContextFormValue(milestoneFormResult, 'dueOn')}
+                    /></label
+                  ><button>{translate('Save milestone')}</button>
+                </form>
+              {/key}
+            </details>
+            <details
+              id="project-schedule-update"
+              class="admin-details"
+              bind:this={ownerScheduleDetails}
+              use:disclosure
+            >
+              <summary class="primary-button">{translate('Expected Working Schedule')}</summary>
+              {#key $page.url.searchParams.get('project') ?? ''}
+                <form
+                  use:dirtyFormGuard
+                  method="POST"
+                  action="?/updateSchedule"
+                  class="admin-form-grid"
+                  bind:this={ownerScheduleForm}
+                >
+                  <h2>{translate('Expected working schedule')}</h2>
+                  <label
+                    >{translate('Project')}<select
+                      name="projectId"
+                      value={scheduleProjectId}
+                      onchange={(event) => (scheduleProjectOverride = event.currentTarget.value)}
+                      required
+                      ><option value="" disabled>{translate('Select project')}</option
+                      >{#each operationalProjects as project}<option value={project.id}
+                          >{project.project_number} — {project.name}</option
+                        >{/each}</select
+                    ></label
+                  ><label
+                    >{translate('Timezone')}<input
+                      name="timezone"
+                      value={scheduleTimezone}
+                      oninput={(event) => (scheduleTimezoneOverride = event.currentTarget.value)}
+                      required
+                    /></label
+                  ><label
+                    >{translate('Effective from')}<input
+                      name="effectiveFrom"
+                      type="date"
+                      value={projectContextFormValue(scheduleFormResult, 'effectiveFrom')}
+                      required
+                    /></label
+                  >
+                  <label
+                    >{translate('Mon minutes')}<input
+                      name="mondayMinutes"
+                      type="number"
+                      min="0"
+                      max="1440"
+                      value={projectContextFormValue(scheduleFormResult, 'mondayMinutes')}
+                      required
+                    /></label
+                  ><label
+                    >{translate('Tue minutes')}<input
+                      name="tuesdayMinutes"
+                      type="number"
+                      min="0"
+                      max="1440"
+                      value={projectContextFormValue(scheduleFormResult, 'tuesdayMinutes')}
+                      required
+                    /></label
+                  ><label
+                    >{translate('Wed minutes')}<input
+                      name="wednesdayMinutes"
+                      type="number"
+                      min="0"
+                      max="1440"
+                      value={projectContextFormValue(scheduleFormResult, 'wednesdayMinutes')}
+                      required
+                    /></label
+                  ><label
+                    >{translate('Thu minutes')}<input
+                      name="thursdayMinutes"
+                      type="number"
+                      min="0"
+                      max="1440"
+                      value={projectContextFormValue(scheduleFormResult, 'thursdayMinutes')}
+                      required
+                    /></label
+                  ><label
+                    >{translate('Fri minutes')}<input
+                      name="fridayMinutes"
+                      type="number"
+                      min="0"
+                      max="1440"
+                      value={projectContextFormValue(scheduleFormResult, 'fridayMinutes')}
+                      required
+                    /></label
+                  ><label
+                    >{translate('Sat minutes')}<input
+                      name="saturdayMinutes"
+                      type="number"
+                      min="0"
+                      max="1440"
+                      value={projectContextFormValue(scheduleFormResult, 'saturdayMinutes')}
+                      required
+                    /></label
+                  ><label
+                    >{translate('Sun minutes')}<input
+                      name="sundayMinutes"
+                      type="number"
+                      min="0"
+                      max="1440"
+                      value={projectContextFormValue(scheduleFormResult, 'sundayMinutes', '0')}
+                      required
+                    /></label
+                  ><button>{translate('Save schedule')}</button>
+                </form>
+              {/key}
             </details>
           {/if}
           <SectionCard

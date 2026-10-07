@@ -1,6 +1,7 @@
 <script lang="ts">
   import { rememberUrlView } from '$lib/portal/ui/url-view-preferences.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
+  import NavigationAssistant from '$lib/portal/assistant/NavigationAssistant.svelte';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
   import { beforeNavigate, afterNavigate, goto } from '$app/navigation';
@@ -205,4 +206,16 @@
   </div>
 {:else}
   {@render children()}
+{/if}
+
+{#if data.chromeUser && !/\/app\/(login|invite|accept-invitation|enrollment)(\/|$)/.test($page.url.pathname)}
+  <NavigationAssistant
+    context={{
+      role: data.chromeUser.role,
+      workforceProfile: data.chromeUser.workforceProfile,
+      canonicalOwner: data.chromeUser.canonicalOwner === true,
+    }}
+    {locale}
+    data={$page.data}
+  />
 {/if}

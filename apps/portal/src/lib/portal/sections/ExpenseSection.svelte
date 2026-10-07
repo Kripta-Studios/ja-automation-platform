@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
+  import { dirtyFormGuard } from '../dirty-form-guard';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import ExpenseWeekPanel from './ExpenseWeekPanel.svelte';
   import { normalizeVisibleProjectSelection, projectVisibility } from '../project-visibility';
@@ -1256,6 +1258,18 @@
     return null;
   }
 
+  useAssistantSurfaceRequest({
+    url: () => $page.url,
+    surfaces: ['expense-create'],
+    activate: () => {
+      if (isAuditor || nativeRecoveryActive || surface === 'create') return;
+      openCreate();
+    },
+    deactivate: () => {
+      if (surface === 'create' && !nativeRecoveryActive) closeSurface();
+    },
+  });
+
   function openCreate(): void {
     surfaceError = '';
     surfaceProblem = null;
@@ -2319,9 +2333,11 @@
       <form
         method="POST"
         action="?/createExpense"
+        data-assistant-target="expense-create"
         enctype="multipart/form-data"
         class="expense-entry-form"
         data-expense-entry-surface
+        use:dirtyFormGuard
         aria-busy={saving}
         use:operationalFieldValidation
         use:enhance={submitExpense}
@@ -2723,6 +2739,7 @@
         enctype="multipart/form-data"
         class="expense-entry-form"
         data-expense-entry-surface
+        use:dirtyFormGuard
         aria-busy={saving}
         use:operationalFieldValidation
         use:enhance={submitExpense}

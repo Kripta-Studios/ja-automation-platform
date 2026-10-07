@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { useAssistantPaneRequest } from '../assistant/surface-request.svelte';
+  import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
+  import { beforeNavigate } from '$app/navigation';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import { formatDecimalHours } from './time-entry-actions';
   import { disclosure } from '../ui/disclosure.js';
@@ -431,6 +434,46 @@
   const canManageMailboxDirectory = $derived(
     Boolean(canManageMail || (canManageTeam && canonicalOwner)),
   );
+  beforeNavigate((navigation) => {
+    if (navigation.willUnload) return;
+    const forms = document.querySelectorAll<HTMLFormElement>('[data-team-assistant-form]');
+    if (
+      Array.from(forms).some(
+        (form) => !confirmDirtyForms(form, translate('Discard unsaved changes?')),
+      )
+    )
+      navigation.cancel();
+  });
+  useAssistantPaneRequest({
+    url: () => $page.url,
+    panes: ['team-create', 'team-invite', 'mailbox-create'],
+    activate: (pane) => {
+      // Failed native submissions already own their recovery surface and retained values.
+      if (
+        problemPayload &&
+        ['createLocalPortalUser', 'createInvitation', 'createMailboxAccount'].includes(
+          problemPayload.actionName ?? '',
+        )
+      )
+        return;
+      if (pane === 'mailbox-create') {
+        if (!canManageMailboxDirectory) return;
+        activeTab = 'mailboxes';
+        creatingMailbox = true;
+      } else {
+        if (!canManageTeam) return;
+        activeTab = 'specialists';
+        creatingMailbox = false;
+        createLocal = pane === 'team-create';
+        creatingUser = true;
+      }
+    },
+    deactivate: (pane) => {
+      if (problemPayload) return;
+      if (pane === 'mailbox-create') creatingMailbox = false;
+      else if (creatingUser && createLocal === (pane === 'team-create')) creatingUser = false;
+    },
+  });
 
   function value(row: PortalRow, ...keys: string[]): string {
     for (const key of keys) {
@@ -937,7 +980,7 @@
               type="button"
               class="team-directory__action"
               aria-expanded={creatingUser}
-              aria-controls="team-create-user-form"
+              aria-controls={createLocal ? 'assistant-team-create' : 'team-create-user-form'}
               onclick={() => (creatingUser = !creatingUser)}
               >{creatingUser ? translate('Close') : translate('Create user')}</button
             >
@@ -954,6 +997,9 @@
               <form
                 method="POST"
                 action="?view=team&/createLocalPortalUser"
+                id="assistant-team-create"
+                data-team-assistant-form
+                use:dirtyFormGuard
                 class="team-directory__create-form"
                 autocomplete="off"
                 use:formValidation
@@ -1070,6 +1116,8 @@
             {:else}
               <form
                 id="team-create-user-form"
+                data-team-assistant-form
+                use:dirtyFormGuard
                 method="POST"
                 action="?view=team&/createInvitation"
                 class="team-directory__create-form"
@@ -2126,6 +2174,7 @@
       )}
       closeLabel={translate('Close mailbox form')}
       class="team-directory__create-sheet"
+      protectChanges
       onclose={() => (creatingMailbox = false)}
     >
       <form

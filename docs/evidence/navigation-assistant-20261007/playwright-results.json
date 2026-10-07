@@ -1,0 +1,2955 @@
+{
+  "config": {
+    "argv": [
+      "/opt/jaautomation/runtime/node-v24.19.0/bin/node",
+      "/home/kripta/ja-navigation-assistant-20261007/node_modules/.pnpm/playwright@1.62.1/node_modules/playwright/cli.js",
+      "test",
+      "--config",
+      "playwright.assistant.config.ts",
+      "--max-failures=2"
+    ],
+    "configFile": "/home/kripta/ja-navigation-assistant-20261007/playwright.assistant.config.ts",
+    "rootDir": "/home/kripta/ja-navigation-assistant-20261007/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "/home/kripta/ja-navigation-assistant-20261007/tests/e2e/global-setup.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 2,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/kripta/ja-navigation-assistant-20261007/docs/evidence/navigation-assistant-20261007/browser-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "phone-360",
+        "name": "phone-360",
+        "testDir": "/home/kripta/ja-navigation-assistant-20261007/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "navigation-assistant.spec.ts",
+          "navigation-assistant-profiles.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/kripta/ja-navigation-assistant-20261007/docs/evidence/navigation-assistant-20261007/browser-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "phone-390",
+        "name": "phone-390",
+        "testDir": "/home/kripta/ja-navigation-assistant-20261007/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "navigation-assistant.spec.ts",
+          "navigation-assistant-profiles.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/kripta/ja-navigation-assistant-20261007/docs/evidence/navigation-assistant-20261007/browser-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "tablet-768",
+        "name": "tablet-768",
+        "testDir": "/home/kripta/ja-navigation-assistant-20261007/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "navigation-assistant.spec.ts",
+          "navigation-assistant-profiles.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/kripta/ja-navigation-assistant-20261007/docs/evidence/navigation-assistant-20261007/browser-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "/home/kripta/ja-navigation-assistant-20261007/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "navigation-assistant.spec.ts",
+          "navigation-assistant-profiles.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "docs/evidence/navigation-assistant-20261007/playwright-results.json"
+        }
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "docs/evidence/navigation-assistant-20261007/report",
+          "open": "never"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "navigation-assistant-profiles.spec.ts",
+      "file": "navigation-assistant-profiles.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "supplier_coordinator has localized operational assistant tasks and no internal privileges",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fixture-only permissions",
+                  "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4754,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:38:08.981Z",
+                  "annotations": [
+                    {
+                      "type": "fixture-only permissions",
+                      "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a3bbb10370dd91805d57-35134db996b04fdf08f8",
+          "file": "navigation-assistant-profiles.spec.ts",
+          "line": 133,
+          "column": 3
+        },
+        {
+          "title": "external_technician has localized operational assistant tasks and no internal privileges",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fixture-only permissions",
+                  "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4297,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:38:14.194Z",
+                  "annotations": [
+                    {
+                      "type": "fixture-only permissions",
+                      "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a3bbb10370dd91805d57-bf67c27a7abb6865f1f2",
+          "file": "navigation-assistant-profiles.spec.ts",
+          "line": 133,
+          "column": 3
+        },
+        {
+          "title": "supplier_coordinator has localized operational assistant tasks and no internal privileges",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fixture-only permissions",
+                  "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3973,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:39:48.926Z",
+                  "annotations": [
+                    {
+                      "type": "fixture-only permissions",
+                      "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a3bbb10370dd91805d57-855c2021a4b3a0c53fe3",
+          "file": "navigation-assistant-profiles.spec.ts",
+          "line": 133,
+          "column": 3
+        },
+        {
+          "title": "external_technician has localized operational assistant tasks and no internal privileges",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fixture-only permissions",
+                  "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4887,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:39:53.208Z",
+                  "annotations": [
+                    {
+                      "type": "fixture-only permissions",
+                      "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a3bbb10370dd91805d57-992b7f88d38a2d6873fd",
+          "file": "navigation-assistant-profiles.spec.ts",
+          "line": 133,
+          "column": 3
+        },
+        {
+          "title": "supplier_coordinator has localized operational assistant tasks and no internal privileges",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fixture-only permissions",
+                  "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4384,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:41:15.705Z",
+                  "annotations": [
+                    {
+                      "type": "fixture-only permissions",
+                      "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a3bbb10370dd91805d57-ceeed54b9d188429561b",
+          "file": "navigation-assistant-profiles.spec.ts",
+          "line": 133,
+          "column": 3
+        },
+        {
+          "title": "external_technician has localized operational assistant tasks and no internal privileges",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fixture-only permissions",
+                  "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4909,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:41:20.213Z",
+                  "annotations": [
+                    {
+                      "type": "fixture-only permissions",
+                      "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a3bbb10370dd91805d57-4406c2389f7f1e755831",
+          "file": "navigation-assistant-profiles.spec.ts",
+          "line": 133,
+          "column": 3
+        },
+        {
+          "title": "supplier_coordinator has localized operational assistant tasks and no internal privileges",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fixture-only permissions",
+                  "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5048,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:42:51.339Z",
+                  "annotations": [
+                    {
+                      "type": "fixture-only permissions",
+                      "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a3bbb10370dd91805d57-be4fef89a735ac119c64",
+          "file": "navigation-assistant-profiles.spec.ts",
+          "line": 133,
+          "column": 3
+        },
+        {
+          "title": "external_technician has localized operational assistant tasks and no internal privileges",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fixture-only permissions",
+                  "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5247,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:42:56.555Z",
+                  "annotations": [
+                    {
+                      "type": "fixture-only permissions",
+                      "description": "Temporary worker2 supplier profile in validated disposable SQLite fixture; restored in finally. No browser business saves or project grants."
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a3bbb10370dd91805d57-ced360bf4eb31f754389",
+          "file": "navigation-assistant-profiles.spec.ts",
+          "line": 133,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "navigation-assistant.spec.ts",
+      "file": "navigation-assistant.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "owner typo command opens project form and explicit authorized project selection",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7673,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:38:18.575Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-0f18554fe50927faf327",
+          "file": "navigation-assistant.spec.ts",
+          "line": 56,
+          "column": 1
+        },
+        {
+          "title": "owner can reopen time and expense forms repeatedly on the same route",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6623,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:38:26.270Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-e7eab58140e7acdcf4b3",
+          "file": "navigation-assistant.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "daily and technical report tasks reveal forms and a cold assistant link opens directly",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5184,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:38:32.907Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-e5c6ab7e4c7e555b45ff",
+          "file": "navigation-assistant.spec.ts",
+          "line": 131,
+          "column": 1
+        },
+        {
+          "title": "finance task selects the existing commercial configuration controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4228,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:38:38.109Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-612f860bcf1913cddb05",
+          "file": "navigation-assistant.spec.ts",
+          "line": 152,
+          "column": 1
+        },
+        {
+          "title": "manager receives operational tasks without finance or owner controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3819,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:38:42.364Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-93069efb9516fc4ef779",
+          "file": "navigation-assistant.spec.ts",
+          "line": 167,
+          "column": 3
+        },
+        {
+          "title": "worker receives operational tasks without finance or owner controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3473,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:38:46.208Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-fa07fa88c70b744cc9e8",
+          "file": "navigation-assistant.spec.ts",
+          "line": 167,
+          "column": 3
+        },
+        {
+          "title": "auditor task list contains read-only navigation and omits mutations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3444,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:38:49.699Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-a5a989152fddec476f43",
+          "file": "navigation-assistant.spec.ts",
+          "line": 186,
+          "column": 1
+        },
+        {
+          "title": "es commands and labels stay localized after navigation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4572,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:38:53.157Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-d537f8c8bda1a78cf396",
+          "file": "navigation-assistant.spec.ts",
+          "line": 226,
+          "column": 3
+        },
+        {
+          "title": "pt commands and labels stay localized after navigation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3600,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:38:57.749Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-a6ea6da9bff54e37f93f",
+          "file": "navigation-assistant.spec.ts",
+          "line": 226,
+          "column": 3
+        },
+        {
+          "title": "unknown commands explain the limit and ambiguous invoice requests offer explicit choices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3808,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:39:01.358Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-8e3e6a0fb9cd2d4cd3e8",
+          "file": "navigation-assistant.spec.ts",
+          "line": 246,
+          "column": 1
+        },
+        {
+          "title": "keyboard shortcut, result navigation, focus trap and Escape work with visible controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3830,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:39:05.175Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-f0d4f120def0d1341427",
+          "file": "navigation-assistant.spec.ts",
+          "line": 269,
+          "column": 1
+        },
+        {
+          "title": "canceling assistant navigation retains a dirty time form and Escape only closes the palette",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3887,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:39:09.015Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-964632a250337b26d4d0",
+          "file": "navigation-assistant.spec.ts",
+          "line": 305,
+          "column": 1
+        },
+        {
+          "title": "owner contact, milestone and schedule tasks reveal forms with explicit project context",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5837,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:39:12.913Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-20a5104da439c3070721",
+          "file": "navigation-assistant.spec.ts",
+          "line": 340,
+          "column": 1
+        },
+        {
+          "title": "canonical owner team and mailbox tasks open the selected creation mode",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4605,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:39:18.759Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-5ef4c21a5243aa8a0ee5",
+          "file": "navigation-assistant.spec.ts",
+          "line": 371,
+          "column": 1
+        },
+        {
+          "title": "invoice navigation opens a wizard or the required stream setup without creating a draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5541,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:39:23.378Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-63019541c014f123a6e2",
+          "file": "navigation-assistant.spec.ts",
+          "line": 399,
+          "column": 1
+        },
+        {
+          "title": "manager assignment tasks focus the update field and nested removal reason",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4150,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:39:28.934Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-37518740230839c39283",
+          "file": "navigation-assistant.spec.ts",
+          "line": 440,
+          "column": 1
+        },
+        {
+          "title": "dirty project cancellation preserves inputs and a report mode change asks once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6790,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:39:33.097Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-6eaae5a8c188b4375f40",
+          "file": "navigation-assistant.spec.ts",
+          "line": 460,
+          "column": 1
+        },
+        {
+          "title": "accepting a project context change clears the previous milestone and schedule draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7258,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:39:39.905Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-3172fb144458b7bea030",
+          "file": "navigation-assistant.spec.ts",
+          "line": 502,
+          "column": 1
+        },
+        {
+          "title": "owner typo command opens project form and explicit authorized project selection",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7703,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:39:58.171Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-76a56736c8a9624cbfb0",
+          "file": "navigation-assistant.spec.ts",
+          "line": 56,
+          "column": 1
+        },
+        {
+          "title": "owner can reopen time and expense forms repeatedly on the same route",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6194,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:05.883Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-a4de23930d77543eb7cf",
+          "file": "navigation-assistant.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "daily and technical report tasks reveal forms and a cold assistant link opens directly",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4487,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:12.090Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-76eb843312a6ad759314",
+          "file": "navigation-assistant.spec.ts",
+          "line": 131,
+          "column": 1
+        },
+        {
+          "title": "finance task selects the existing commercial configuration controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3489,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:16.594Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-f056eab5d46fe566d291",
+          "file": "navigation-assistant.spec.ts",
+          "line": 152,
+          "column": 1
+        },
+        {
+          "title": "manager receives operational tasks without finance or owner controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3335,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:20.100Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-34d0ff31729c4e5c82fc",
+          "file": "navigation-assistant.spec.ts",
+          "line": 167,
+          "column": 3
+        },
+        {
+          "title": "worker receives operational tasks without finance or owner controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3324,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:23.449Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-4410e818b53d90df4258",
+          "file": "navigation-assistant.spec.ts",
+          "line": 167,
+          "column": 3
+        },
+        {
+          "title": "auditor task list contains read-only navigation and omits mutations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3245,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:26.785Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-59136ed196dedbb8af87",
+          "file": "navigation-assistant.spec.ts",
+          "line": 186,
+          "column": 1
+        },
+        {
+          "title": "es commands and labels stay localized after navigation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3441,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:30.043Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-666035271d76043ecebf",
+          "file": "navigation-assistant.spec.ts",
+          "line": 226,
+          "column": 3
+        },
+        {
+          "title": "pt commands and labels stay localized after navigation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3339,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:33.499Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-9f987982b8c3eb96dce8",
+          "file": "navigation-assistant.spec.ts",
+          "line": 226,
+          "column": 3
+        },
+        {
+          "title": "unknown commands explain the limit and ambiguous invoice requests offer explicit choices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3710,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:36.848Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-c6e17761c254bf8379b8",
+          "file": "navigation-assistant.spec.ts",
+          "line": 246,
+          "column": 1
+        },
+        {
+          "title": "keyboard shortcut, result navigation, focus trap and Escape work with visible controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3746,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:40.570Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-93fe2a669cae0e4c3530",
+          "file": "navigation-assistant.spec.ts",
+          "line": 269,
+          "column": 1
+        },
+        {
+          "title": "canceling assistant navigation retains a dirty time form and Escape only closes the palette",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3911,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:44.331Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-4e66c118da66cd5c91e8",
+          "file": "navigation-assistant.spec.ts",
+          "line": 305,
+          "column": 1
+        },
+        {
+          "title": "owner contact, milestone and schedule tasks reveal forms with explicit project context",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4564,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:48.253Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-52b68ef4b073a9f70763",
+          "file": "navigation-assistant.spec.ts",
+          "line": 340,
+          "column": 1
+        },
+        {
+          "title": "canonical owner team and mailbox tasks open the selected creation mode",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3706,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:52.826Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-cf16b40ec36f47facab7",
+          "file": "navigation-assistant.spec.ts",
+          "line": 371,
+          "column": 1
+        },
+        {
+          "title": "invoice navigation opens a wizard or the required stream setup without creating a draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3853,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:40:56.545Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-b29853a5a606901794ba",
+          "file": "navigation-assistant.spec.ts",
+          "line": 399,
+          "column": 1
+        },
+        {
+          "title": "manager assignment tasks focus the update field and nested removal reason",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3469,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:41:00.406Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-a89d41dc9bff0adbf2bd",
+          "file": "navigation-assistant.spec.ts",
+          "line": 440,
+          "column": 1
+        },
+        {
+          "title": "dirty project cancellation preserves inputs and a report mode change asks once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4871,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:41:03.888Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-b8af632ba1e2125a011f",
+          "file": "navigation-assistant.spec.ts",
+          "line": 460,
+          "column": 1
+        },
+        {
+          "title": "accepting a project context change clears the previous milestone and schedule draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6029,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:41:08.767Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-9b081a9ecaa7719dcce8",
+          "file": "navigation-assistant.spec.ts",
+          "line": 502,
+          "column": 1
+        },
+        {
+          "title": "owner typo command opens project form and explicit authorized project selection",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7419,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:41:25.195Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-56ae94a21b64e8a47913",
+          "file": "navigation-assistant.spec.ts",
+          "line": 56,
+          "column": 1
+        },
+        {
+          "title": "owner can reopen time and expense forms repeatedly on the same route",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5595,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:41:32.625Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-138a929836de0e60d07d",
+          "file": "navigation-assistant.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "daily and technical report tasks reveal forms and a cold assistant link opens directly",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4896,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:41:38.237Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-6f2013906c94d339a528",
+          "file": "navigation-assistant.spec.ts",
+          "line": 131,
+          "column": 1
+        },
+        {
+          "title": "finance task selects the existing commercial configuration controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3888,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:41:43.155Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-21f44322b5f7ee4a903e",
+          "file": "navigation-assistant.spec.ts",
+          "line": 152,
+          "column": 1
+        },
+        {
+          "title": "manager receives operational tasks without finance or owner controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3882,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:41:47.062Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-b143b310c6cd7e71602e",
+          "file": "navigation-assistant.spec.ts",
+          "line": 167,
+          "column": 3
+        },
+        {
+          "title": "worker receives operational tasks without finance or owner controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3313,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:41:50.955Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-b177e63c164de699c9e1",
+          "file": "navigation-assistant.spec.ts",
+          "line": 167,
+          "column": 3
+        },
+        {
+          "title": "auditor task list contains read-only navigation and omits mutations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3205,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:41:54.276Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-d6b0dd937d393892f5c1",
+          "file": "navigation-assistant.spec.ts",
+          "line": 186,
+          "column": 1
+        },
+        {
+          "title": "es commands and labels stay localized after navigation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3563,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:41:57.492Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-a7903584de752b22595d",
+          "file": "navigation-assistant.spec.ts",
+          "line": 226,
+          "column": 3
+        },
+        {
+          "title": "pt commands and labels stay localized after navigation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3635,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:42:01.069Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-f11a807938ef1a18cac1",
+          "file": "navigation-assistant.spec.ts",
+          "line": 226,
+          "column": 3
+        },
+        {
+          "title": "unknown commands explain the limit and ambiguous invoice requests offer explicit choices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3562,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:42:04.715Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-5ac7de424a59b86d3bb5",
+          "file": "navigation-assistant.spec.ts",
+          "line": 246,
+          "column": 1
+        },
+        {
+          "title": "keyboard shortcut, result navigation, focus trap and Escape work with visible controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4776,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:42:08.291Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-c96b1c1e948885f5fbcf",
+          "file": "navigation-assistant.spec.ts",
+          "line": 269,
+          "column": 1
+        },
+        {
+          "title": "canceling assistant navigation retains a dirty time form and Escape only closes the palette",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4150,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:42:13.080Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-5d2807de5766725c1dcc",
+          "file": "navigation-assistant.spec.ts",
+          "line": 305,
+          "column": 1
+        },
+        {
+          "title": "owner contact, milestone and schedule tasks reveal forms with explicit project context",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6103,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:42:17.245Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-f66a19135fca4189e83e",
+          "file": "navigation-assistant.spec.ts",
+          "line": 340,
+          "column": 1
+        },
+        {
+          "title": "canonical owner team and mailbox tasks open the selected creation mode",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4869,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:42:23.358Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-d96b87e7f6bec9f77db8",
+          "file": "navigation-assistant.spec.ts",
+          "line": 371,
+          "column": 1
+        },
+        {
+          "title": "invoice navigation opens a wizard or the required stream setup without creating a draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5331,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:42:28.236Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-2c69e18aca844ff9fdff",
+          "file": "navigation-assistant.spec.ts",
+          "line": 399,
+          "column": 1
+        },
+        {
+          "title": "manager assignment tasks focus the update field and nested removal reason",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4664,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:42:33.581Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-f57297c59608eed63ef8",
+          "file": "navigation-assistant.spec.ts",
+          "line": 440,
+          "column": 1
+        },
+        {
+          "title": "dirty project cancellation preserves inputs and a report mode change asks once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5589,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:42:38.261Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-7630cf2dd770a468195c",
+          "file": "navigation-assistant.spec.ts",
+          "line": 460,
+          "column": 1
+        },
+        {
+          "title": "accepting a project context change clears the previous milestone and schedule draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6283,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:42:43.878Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-c6d3489748ff460ed02a",
+          "file": "navigation-assistant.spec.ts",
+          "line": 502,
+          "column": 1
+        },
+        {
+          "title": "owner typo command opens project form and explicit authorized project selection",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7723,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:43:01.896Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-195f91a2e490a4c93208",
+          "file": "navigation-assistant.spec.ts",
+          "line": 56,
+          "column": 1
+        },
+        {
+          "title": "owner can reopen time and expense forms repeatedly on the same route",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6237,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:43:09.630Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-9c207531427e3a556fa3",
+          "file": "navigation-assistant.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "daily and technical report tasks reveal forms and a cold assistant link opens directly",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5230,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:43:15.882Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-11386fa458bc2f7f4117",
+          "file": "navigation-assistant.spec.ts",
+          "line": 131,
+          "column": 1
+        },
+        {
+          "title": "finance task selects the existing commercial configuration controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4031,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:43:21.128Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-17b1b529c1d924d735c1",
+          "file": "navigation-assistant.spec.ts",
+          "line": 152,
+          "column": 1
+        },
+        {
+          "title": "manager receives operational tasks without finance or owner controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3642,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:43:25.178Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-5ca7b8df8f2c97448d49",
+          "file": "navigation-assistant.spec.ts",
+          "line": 167,
+          "column": 3
+        },
+        {
+          "title": "worker receives operational tasks without finance or owner controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3415,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:43:28.834Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-cbf59f177d36f46656e2",
+          "file": "navigation-assistant.spec.ts",
+          "line": 167,
+          "column": 3
+        },
+        {
+          "title": "auditor task list contains read-only navigation and omits mutations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3471,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:43:32.262Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-5ca9219b6f1b06b9f92e",
+          "file": "navigation-assistant.spec.ts",
+          "line": 186,
+          "column": 1
+        },
+        {
+          "title": "es commands and labels stay localized after navigation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4230,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:43:35.744Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-3cb7b4197d73c63e72cc",
+          "file": "navigation-assistant.spec.ts",
+          "line": 226,
+          "column": 3
+        },
+        {
+          "title": "pt commands and labels stay localized after navigation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3886,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:43:39.994Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-b7ddfaccd5530959a42c",
+          "file": "navigation-assistant.spec.ts",
+          "line": 226,
+          "column": 3
+        },
+        {
+          "title": "unknown commands explain the limit and ambiguous invoice requests offer explicit choices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3818,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:43:43.890Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-726866a8f0ad52eba61d",
+          "file": "navigation-assistant.spec.ts",
+          "line": 246,
+          "column": 1
+        },
+        {
+          "title": "keyboard shortcut, result navigation, focus trap and Escape work with visible controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3833,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:43:47.718Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-88decac1163265988faf",
+          "file": "navigation-assistant.spec.ts",
+          "line": 269,
+          "column": 1
+        },
+        {
+          "title": "canceling assistant navigation retains a dirty time form and Escape only closes the palette",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3965,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:43:51.562Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-63cfa70f063262ca782a",
+          "file": "navigation-assistant.spec.ts",
+          "line": 305,
+          "column": 1
+        },
+        {
+          "title": "owner contact, milestone and schedule tasks reveal forms with explicit project context",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4798,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:43:55.540Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-4e1d148ae993e1c14148",
+          "file": "navigation-assistant.spec.ts",
+          "line": 340,
+          "column": 1
+        },
+        {
+          "title": "canonical owner team and mailbox tasks open the selected creation mode",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3997,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:44:00.347Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-5c9467c376b679e0f351",
+          "file": "navigation-assistant.spec.ts",
+          "line": 371,
+          "column": 1
+        },
+        {
+          "title": "invoice navigation opens a wizard or the required stream setup without creating a draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4420,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:44:04.356Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-786e115638733075b629",
+          "file": "navigation-assistant.spec.ts",
+          "line": 399,
+          "column": 1
+        },
+        {
+          "title": "manager assignment tasks focus the update field and nested removal reason",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3777,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:44:08.789Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-ddec0cf0ed9ca0326105",
+          "file": "navigation-assistant.spec.ts",
+          "line": 440,
+          "column": 1
+        },
+        {
+          "title": "dirty project cancellation preserves inputs and a report mode change asks once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5561,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:44:12.580Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-e95093f7eac15176a3b4",
+          "file": "navigation-assistant.spec.ts",
+          "line": 460,
+          "column": 1
+        },
+        {
+          "title": "accepting a project context change clears the previous milestone and schedule draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6235,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T19:44:18.159Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-04edf76ae0403c8a1ec0",
+          "file": "navigation-assistant.spec.ts",
+          "line": 502,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-07T19:37:19.539Z",
+    "duration": 425154.20800000004,
+    "expected": 80,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

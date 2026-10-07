@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { beforeNavigate } from '$app/navigation';
+  import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
+  import { disclosure } from '../ui/disclosure.js';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import { tick } from 'svelte';
   import {
@@ -134,6 +137,16 @@
   );
   let assignmentForm: HTMLFormElement | undefined = $state();
   const normalizedLocale = $derived(normalizePortalLocale(locale));
+  beforeNavigate((navigation) => {
+    if (navigation.willUnload) return;
+    if (
+      !confirmDirtyForms(
+        document.querySelector<HTMLElement>('[data-assistant-project-section]'),
+        translate('Discard unsaved changes?'),
+      )
+    )
+      navigation.cancel();
+  });
 
   const isOwnerOrFinance = $derived(role === 'owner_admin' || role === 'finance_admin');
   const canCreateProject = $derived(isOwnerOrFinance && capabilities.canCreateProject === true);
@@ -463,7 +476,7 @@
   let projectPage = $state<typeof visibleProjects>([]);
 </script>
 
-<div class="project-section" data-ui="project-section">
+<div class="project-section" data-ui="project-section" data-assistant-project-section>
   <header class="project-section__context">
     <div>
       <p class="project-section__eyebrow">{translate('Project workspace')}</p>
@@ -537,7 +550,7 @@
     >
   </form>
 
-  <details class="admin-details" data-project-calendar>
+  <details use:disclosure class="admin-details" data-project-calendar>
     <summary class="secondary-button">{translate('Project calendar')}</summary>
     <PlanningCalendar
       {translate}
@@ -622,7 +635,7 @@
                 {#if canTransitionProject}
                   <td>
                     {#if actions.length > 0}
-                      <details class="project-section__actions">
+                      <details use:disclosure class="project-section__actions">
                         <summary>{translate('Actions')}</summary>
                         <div>
                           {#each actions as action}
@@ -709,6 +722,7 @@
   {#if canManageAssignments && (assignableProjects.length > 0 || unavailableSelectedProject)}
     <section class="project-section__assignments" aria-label={translate('Project assignments')}>
       <details
+        use:disclosure
         id="project-assignment"
         class="admin-details"
         data-project-workflow="assign-worker"
@@ -722,6 +736,7 @@
           method="POST"
           action="?/assignWorker"
           class="project-section__assignment-form"
+          use:dirtyFormGuard={{ initialDirty: Boolean(assignmentProblem) }}
         >
           <h3>{translate('Assign worker')}</h3>
           {#if displayedAssignmentProblem}
@@ -824,6 +839,7 @@
 
       {#if activeAssignments.length > 0}
         <details
+          use:disclosure
           id="project-assignment-list"
           class="admin-details"
           data-project-workflow="manage-assignment"
@@ -858,6 +874,15 @@
                   method="POST"
                   action={assignmentFormAction(assignmentPage.url, 'updateAssignment')}
                   class="project-section__assignment-form"
+                  data-project-workflow="update-assignment"
+                  use:dirtyFormGuard={{
+                    initialDirty: Boolean(
+                      assignmentRecordProblem &&
+                      assignmentFormData?.actionName === 'updateAssignment' &&
+                      String(assignmentFormData.values?.assignmentId ?? '') ===
+                        value(assignment, 'id'),
+                    ),
+                  }}
                 >
                   <input type="hidden" name="assignmentId" value={value(assignment, 'id')} />
                   <input
@@ -903,6 +928,8 @@
                   <button type="submit">{translate('Update assignment')}</button>
                 </form>
                 <details
+                  use:disclosure
+                  data-project-workflow="remove-assignment"
                   open={assignmentPage.url.searchParams.get('action') === 'remove-assignment'}
                 >
                   <summary class="secondary-button">{translate('Remove assignment')}</summary>
@@ -910,6 +937,14 @@
                     method="POST"
                     action={assignmentFormAction(assignmentPage.url, 'removeAssignment')}
                     class="project-section__assignment-form"
+                    use:dirtyFormGuard={{
+                      initialDirty: Boolean(
+                        assignmentRecordProblem &&
+                        assignmentFormData?.actionName === 'removeAssignment' &&
+                        String(assignmentFormData.values?.assignmentId ?? '') ===
+                          value(assignment, 'id'),
+                      ),
+                    }}
                   >
                     <input type="hidden" name="assignmentId" value={value(assignment, 'id')} />
                     <input

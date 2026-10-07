@@ -4,6 +4,7 @@
   import UnusedIssuingAuthorityReplacementForm from './UnusedIssuingAuthorityReplacementForm.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
+  import { beforeNavigate } from '$app/navigation';
   import { FormCard, FormSection, FieldGroup, Field, ProblemNotice, formValidation } from '../ui';
   import type { ProblemData } from '../../problem/contract';
   import type { PortalData, PortalRow as Row } from '../portal-data';
@@ -620,6 +621,25 @@
     createInternalCostRule: 'Internal loaded cost',
   };
   let selectedAction = $state(configurationActions[0]);
+  function confirmConfigurationChanges(): boolean {
+    return confirmDirtyForms(
+      document.querySelector<HTMLElement>('[data-finance-configuration]'),
+      translate('Discard unsaved changes?'),
+    );
+  }
+  beforeNavigate((navigation) => {
+    if (!navigation.willUnload && !confirmConfigurationChanges()) navigation.cancel();
+  });
+  function selectConfigurationAction(event: Event): void {
+    const control = event.currentTarget as HTMLSelectElement;
+    if (control.value === selectedAction) return;
+    if (!confirmConfigurationChanges()) {
+      control.value = selectedAction ?? '';
+      return;
+    }
+    selectedAction = control.value;
+  }
+
   const linkedProjectionSource = $derived.by(() => {
     const task = $page.url.searchParams.get('task');
     const sourceId = $page.url.searchParams.get('sourceRecord');
@@ -683,10 +703,19 @@
   });
 </script>
 
-<FormCard title={translate('Finance configuration')} class="finance-config-panel">
+<FormCard
+  title={translate('Finance configuration')}
+  class="finance-config-panel"
+  data-finance-configuration
+>
   <div class="workspace-task-switcher">
     <label for="finance-configuration-task">{translate('Commercial policies')}</label>
-    <select id="finance-configuration-task" bind:value={selectedAction} data-searchable="false">
+    <select
+      id="finance-configuration-task"
+      value={selectedAction}
+      onchange={selectConfigurationAction}
+      data-searchable="false"
+    >
       {#each configurationActions as action}<option value={action}>{translate(action)}</option
         >{/each}
     </select>
@@ -816,6 +845,7 @@
                     action={configurationActionUrl('setAssignmentCommercialRuleReferences')}
                     class="admin-form-grid"
                     use:formValidation
+                    use:dirtyFormGuard
                   >
                     {#if commercialAssignmentProblem && failedConfigurationAction?.actionName === 'setAssignmentCommercialRuleReferences' && failedValue('setAssignmentCommercialRuleReferences', 'projectMemberId') === rowValue(terms, 'assignmentId')}
                       <div data-finance-problem tabindex="-1">
@@ -997,6 +1027,7 @@
                     action={configurationActionUrl('setAssignmentCommercialFallback')}
                     class="admin-form-grid"
                     use:formValidation
+                    use:dirtyFormGuard
                   >
                     {#if commercialAssignmentProblem && failedConfigurationAction?.actionName === 'setAssignmentCommercialFallback' && failedValue('setAssignmentCommercialFallback', 'projectMemberId') === rowValue(terms, 'assignmentId')}
                       <div data-finance-problem tabindex="-1">
@@ -1799,6 +1830,7 @@
             data-canonical-revision-form
             data-finance-action="createCanonicalLegalEntityRevision"
             use:formValidation
+            use:dirtyFormGuard
           >
             <input
               type="hidden"
@@ -2029,6 +2061,7 @@
           class="admin-form-grid"
           data-project-legal-entity-form
           use:formValidation
+          use:dirtyFormGuard
         >
           <input
             type="hidden"
@@ -2202,6 +2235,7 @@
           class="admin-form-grid"
           data-project-commercial-policy-form
           use:formValidation
+          use:dirtyFormGuard
         >
           <Field
             id="finance-policy-project"
@@ -2421,6 +2455,7 @@
                         action={configurationActionUrl('supersedeCompensationRule')}
                         class="admin-form-grid"
                         use:formValidation
+                        use:dirtyFormGuard
                       >
                         <input type="hidden" name="supersedesId" value={rowValue(rule, 'id')} />
                         <input
@@ -2547,6 +2582,7 @@
                     <form
                       method="POST"
                       action={configurationActionUrl('deactivateCompensationRule')}
+                      use:dirtyFormGuard
                     >
                       <input type="hidden" name="ruleId" value={rowValue(rule, 'id')} />
                       <button type="submit" class="danger">{translate('Deactivate')}</button>
@@ -2607,6 +2643,7 @@
                         action={configurationActionUrl('supersedeClientLaborRate')}
                         class="admin-form-grid"
                         use:formValidation
+                        use:dirtyFormGuard
                       >
                         <input
                           type="hidden"
@@ -2746,6 +2783,7 @@
                     <form
                       method="POST"
                       action={configurationActionUrl('deactivateClientLaborRate')}
+                      use:dirtyFormGuard
                     >
                       <input type="hidden" name="ruleId" value={rowValue(rule, 'id')} />
                       <button type="submit" class="danger">{translate('Deactivate')}</button>
@@ -2790,6 +2828,7 @@
                         action={configurationActionUrl('supersedeInternalCostRule')}
                         class="admin-form-grid"
                         use:formValidation
+                        use:dirtyFormGuard
                       >
                         <input type="hidden" name="supersedesId" value={rowValue(rule, 'id')} />
                         <input
@@ -2877,6 +2916,7 @@
                     <form
                       method="POST"
                       action={configurationActionUrl('deactivateInternalCostRule')}
+                      use:dirtyFormGuard
                     >
                       <input type="hidden" name="ruleId" value={rowValue(rule, 'id')} />
                       <button type="submit" class="danger">{translate('Deactivate')}</button>
@@ -2942,6 +2982,7 @@
           action={configurationActionUrl('settleCompensation')}
           class="admin-form-grid"
           use:formValidation
+          use:dirtyFormGuard
         >
           <FieldGroup columns="2">
             <Field
@@ -3030,6 +3071,7 @@
             action={configurationActionUrl('createCompensationRule')}
             class="admin-form-grid"
             use:formValidation
+            use:dirtyFormGuard
           >
             <FieldGroup columns="2">
               <Field
@@ -3394,6 +3436,7 @@
             action={configurationActionUrl('createClientLaborRate')}
             class="admin-form-grid"
             use:formValidation
+            use:dirtyFormGuard
           >
             <input
               type="hidden"
@@ -3596,6 +3639,7 @@
             action={configurationActionUrl('createInternalCostRule')}
             class="admin-form-grid"
             use:formValidation
+            use:dirtyFormGuard
           >
             <FieldGroup columns="2">
               <Field

@@ -54,6 +54,21 @@ function seedUser(
     );
 }
 
+function livePrincipal(
+  repository: PortalRepository,
+  sqlite: ReturnType<typeof createDatabase>['sqlite'],
+  userId: string,
+): Principal {
+  const now = new Date().toISOString();
+  const id = `privacy-session-${userId}`;
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
+    )
+    .run(id, id, userId, new Date(Date.now() + 3_600_000).toISOString(), now, now);
+  return repository.principalFor(userId, id);
+}
+
 function seedConfiguredAlertActor(
   sqlite: ReturnType<typeof createDatabase>['sqlite'],
   boundByUserId: string,
@@ -154,7 +169,7 @@ describe('repository authorization and privacy', () => {
       workerId: 'worker',
       startsOn: '2026-08-01',
     });
-    const workerPrincipal = repository.principalFor('worker');
+    const workerPrincipal = livePrincipal(repository, sqlite, 'worker');
     // Reminders require an effective working calendar; the expected-minutes
     // field alone does not establish which days this worker should report.
     sqlite
@@ -273,8 +288,8 @@ describe('repository authorization and privacy', () => {
       startsOn: '2026-01-01',
       canReview: true,
     });
-    const worker = repository.principalFor('worker');
-    const pm = repository.principalFor('pm');
+    const worker = livePrincipal(repository, sqlite, 'worker');
+    const pm = livePrincipal(repository, sqlite, 'pm');
     const time = repository.createTimeEntry(worker, {
       projectId: project.id,
       workDate: '2026-08-18',
@@ -284,7 +299,7 @@ describe('repository authorization and privacy', () => {
     });
     sqlite
       .prepare(
-        "UPDATE time_entry SET billable_minutes=450,client_rate_minor=12500,compensation_amount_minor=8000,internal_cost_minor=5000,billing_status='locked',locked_at=? WHERE id=?",
+        "UPDATE time_entry SET billable_minutes=450,client_rate_minor=12500,compensation_amount_minor=8000,internal_cost_minor=5000,billing_status='locked',billability_state='billable',locked_at=? WHERE id=?",
       )
       .run(new Date().toISOString(), time.id);
     const expense = repository.createExpense(worker, {
@@ -348,6 +363,7 @@ describe('repository authorization and privacy', () => {
       expect(row).not.toHaveProperty('compensation_amount_minor');
       expect(row).not.toHaveProperty('internal_cost_minor');
       expect(row).not.toHaveProperty('billing_status');
+      expect(row).not.toHaveProperty('billability_state');
       expect(row).not.toHaveProperty('locked_at');
     }
     expect(financeTime).toEqual(
@@ -356,6 +372,7 @@ describe('repository authorization and privacy', () => {
         compensation_amount_minor: 8000,
         internal_cost_minor: 5000,
         billing_status: 'locked',
+        billability_state: 'billable',
       }),
     );
 
@@ -399,10 +416,20 @@ describe('repository authorization and privacy', () => {
         description: 'Travel to site',
         amount_minor: 1000,
         reimbursement_state: 'pending',
-        correction_financially_finalized: 1,
+        correction_locked: 1,
       }),
     );
-    expect(pmScopeExpense).toBeDefined();
+    expect(pmScopeExpense).toMatchObject({ correction_locked: 1 });
+    for (const row of [workerScopeExpense, pmScopeExpense])
+      expect(row).not.toHaveProperty('correction_financially_finalized');
+    for (const principal of [worker, pm]) {
+      for (const row of repository.listTimeForScope(principal))
+        expect(row).not.toHaveProperty('billability_state');
+      for (const row of repository.listOwnTime(principal))
+        expect(row).not.toHaveProperty('billability_state');
+      for (const row of repository.listOwnTimeWeek(principal, '2026-08-17').rows)
+        expect(row).not.toHaveProperty('billability_state');
+    }
     for (const key of expenseFinanceOnlyKeys) expect(workerScopeExpense).not.toHaveProperty(key);
     for (const key of pmExpensePrivateKeys) expect(pmScopeExpense).not.toHaveProperty(key);
     expect(financeScopeExpense).toEqual(

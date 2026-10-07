@@ -20,7 +20,7 @@
         },
         {
           "key": "trainer-setup",
-          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "title": "Practice setup \u00b7 your account and starting records",
           "page": 7
         },
         {
@@ -85,7 +85,7 @@
         },
         {
           "key": "recovery-matrix",
-          "title": "Recovery \u00b7 sources, obligations and immutable history",
+          "title": "Recovery \u00b7 inspect, request and verify",
           "page": 41
         },
         {
@@ -95,17 +95,17 @@
         },
         {
           "key": "verification",
-          "title": "Verification \u00b7 current coverage and historical evidence",
+          "title": "Completion check \u00b7 your permitted role cycle",
           "page": 44
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 151,
+      "instructionBlocks": 147,
       "instructionText": "PASS",
-      "bytes": 843891,
-      "sha256": "b32e3bbfa8d8f7cd1d466a4773abeba10c26393f824fc861f87f9683cc29f25e",
+      "bytes": 840016,
+      "sha256": "bf38d7853aa611119e3d78e08add50d1aeecebe47bcda0bf0cee476d01c10e7a",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -194,7 +194,7 @@
     {
       "role": "chief",
       "filename": "BBS_Crew_Chief_Manual_EN.pdf",
-      "pages": 68,
+      "pages": 65,
       "landscape": 24,
       "sections": [
         {
@@ -209,7 +209,7 @@
         },
         {
           "key": "trainer-setup",
-          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "title": "Practice setup \u00b7 your account and starting records",
           "page": 7
         },
         {
@@ -255,81 +255,76 @@
         {
           "key": "chief-correction",
           "title": "Correct a delegated returned entry",
-          "page": 30
+          "page": 29
         },
         {
           "key": "chief-daily",
           "title": "Write a Chief daily handover report",
-          "page": 34
+          "page": 33
         },
         {
           "key": "chief-technical",
           "title": "Document your technical findings and validation",
-          "page": 38
+          "page": 37
         },
         {
           "key": "chief-pay",
           "title": "Read only your own pay and reimbursements",
-          "page": 42
+          "page": 41
         },
         {
           "key": "chief-planning-targets",
           "title": "Read your own plan and distinguish crew authority",
-          "page": 44
+          "page": 43
         },
         {
           "key": "chief-connected-work",
           "title": "Complete one shared plan with different individual actual hours",
-          "page": 47
+          "page": 46
         },
         {
           "key": "chief-expected-comparison",
           "title": "Reconcile your own weekly target without changing actual work",
-          "page": 53
+          "page": 52
         },
         {
           "key": "chief-mobile",
           "title": "Operate crew controls on a phone or tablet",
-          "page": 57
+          "page": 56
         },
         {
           "key": "chief-profile-help",
           "title": "Manage your own profile and ask for support",
-          "page": 60
+          "page": 59
         },
         {
           "key": "chief-checklist",
           "title": "Verify the crew handover",
-          "page": 61
-        },
-        {
-          "key": "chief-evidence",
-          "title": "What was verified and what remains a reference",
-          "page": 63
+          "page": 60
         },
         {
           "key": "recovery-matrix",
-          "title": "Recovery \u00b7 sources, obligations and immutable history",
-          "page": 65
+          "title": "Recovery \u00b7 correct a source or request help",
+          "page": 62
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 66
+          "page": 63
         },
         {
           "key": "verification",
-          "title": "Verification \u00b7 current coverage and historical evidence",
-          "page": 68
+          "title": "Completion check \u00b7 your permitted role cycle",
+          "page": 65
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 231,
+      "instructionBlocks": 209,
       "instructionText": "PASS",
-      "bytes": 2306523,
-      "sha256": "eeebbe743e15d6bbca0e90b5b8fec59abba69d499e18757b76078410f7de7f8d",
+      "bytes": 2108887,
+      "sha256": "3085208af63ea1db294a71668e489955c86f670b7527d3ba57fde5f931e29c42",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -356,8 +351,8 @@
           "sha256": "4eeb950ba9640dff6ad2548c2f3cdb27c34a8372a52203ee8e03f69ebb853971"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-expense-context-full-save.png",
-          "sha256": "4fb9c1ba41aa3ad6e41f48da2fdee114f83e7a1ec7e851805d76ce67e07dba74"
+          "path": "docs/evidence/bbs-confidentiality-20261007/chief/screenshots/chief-expense-form.png",
+          "sha256": "c8eeb05b8a7643b6949b183c0c705df306c07eca44a9019b29bd2cdf9c3c0bc4"
         },
         {
           "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-wrong-receipt-withdrawn.png",
@@ -368,8 +363,8 @@
           "sha256": "ce2b028478982c82be118b8e7ccf4726e901165ec7d36719ca9fd8129f436402"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-receipt-allocation-saved2.png",
-          "sha256": "b9dd6560e2b03c7506e74aeeef7277ff2de13a1ce93fb93e9d60034eea83d55e"
+          "path": "docs/evidence/bbs-confidentiality-20261007/chief/screenshots/chief-allocation-current.png",
+          "sha256": "0379aa9eb5fef45ea30341947f5ec675b7b49b17248f86730dd99d73abb6d15c"
         },
         {
           "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-allocated-receipt-limit.png",
@@ -380,12 +375,8 @@
           "sha256": "440fb5b623cc240f5326ddce6d950386ebcf38e6af572660324deff2269a8292"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-normal-correction-draft.png",
-          "sha256": "12937e1949c926a0f8a505054ecde0bd33df8fd06f93958ec7606f9a0f3747e2"
-        },
-        {
-          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-wrong-correction-withdrawn.png",
-          "sha256": "1be43a17d4c20edaf0e3a5037551daa5afc15839beb9a3288f588da7e08a3e15"
+          "path": "docs/evidence/bbs-confidentiality-20261007/chief/screenshots/chief-correction-current.png",
+          "sha256": "bd5a3cb6a588e4b3029b82b3e6e7f46cd99320e89021378c42a9261d35e13318"
         },
         {
           "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/chief-week-before-submit.png",
@@ -448,8 +439,8 @@
           "sha256": "33c079f2fbd5b2adec9cddff441505ae9025401d54adb4d95f0af28feeba66bd"
         },
         {
-          "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/04-chief-own-eight-hours-form.png",
-          "sha256": "b8b3ecfc35b93eed8e7c282a7de328299228d7467148f9243f2f6baddaf5cd7d"
+          "path": "docs/evidence/bbs-confidentiality-20261007/chief/screenshots/chief-eight-hours-form.png",
+          "sha256": "f23b6c34e8f95c7bacf062601d0bc0ed5d9bad5e108e773f60b99b68ec28243b"
         },
         {
           "path": "docs/evidence/bbs-planning-20261006/chief/screenshots/09-chief-delegated-approved-record.png",
@@ -468,8 +459,8 @@
           "sha256": "88648a9620ef4c6c8e69f9e5051e6fd1ad384a6d73f86d3d5a4a5c3ea8941b9b"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/chief/screenshots/11-chief-tablet.png",
-          "sha256": "3aeaa4e31aa69eed7cf51267f2b782aa7bcd818e708337d3d1d063584b90105e"
+          "path": "docs/evidence/bbs-confidentiality-20261007/chief/screenshots/chief-tablet-current.png",
+          "sha256": "ef9d70fdbda4f8c0b50a7959c72c473ff32d28a119a764f10051629693eabe84"
         },
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/security-mfa-enabled.png",
@@ -477,13 +468,13 @@
         }
       ],
       "assembled": true,
-      "outlineEntries": 26
+      "outlineEntries": 25
     },
     {
       "role": "external-technician",
       "filename": "BBS_External_Technician_Manual_EN.pdf",
-      "pages": 57,
-      "landscape": 21,
+      "pages": 55,
+      "landscape": 22,
       "sections": [
         {
           "key": "practice",
@@ -497,7 +488,7 @@
         },
         {
           "key": "trainer-setup",
-          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "title": "Practice setup \u00b7 your account and starting records",
           "page": 7
         },
         {
@@ -528,81 +519,81 @@
         {
           "key": "external-expense",
           "title": "Record an own purchase with its private receipt",
-          "page": 21
+          "page": 19
         },
         {
           "key": "external-daily",
           "title": "Write and submit your own daily field report",
-          "page": 24
+          "page": 22
         },
         {
           "key": "external-technical",
           "title": "Save technical facts and private evidence before submission",
-          "page": 27
+          "page": 25
         },
         {
           "key": "external-report-output",
           "title": "Generate, check and download the saved report version",
-          "page": 32
+          "page": 30
         },
         {
           "key": "external-operational",
           "title": "Reconcile an exact period with its native CSV",
-          "page": 35
+          "page": 33
         },
         {
           "key": "external-mobile",
           "title": "Use narrow screens and check saved results",
-          "page": 37
+          "page": 35
         },
         {
           "key": "external-profile",
           "title": "Maintain your workforce profile and individual security",
-          "page": 40
+          "page": 38
         },
         {
           "key": "external-help",
           "title": "Use Help and hand problems to the correct role",
-          "page": 42
+          "page": 40
         },
         {
           "key": "external-assignment-planning-targets",
           "title": "Planning appendix \u00b7 assignment dates and expected targets",
-          "page": 44
+          "page": 42
         },
         {
           "key": "external-operational-goals-handoff",
           "title": "Describe completed work, open goals and the next shift",
-          "page": 49
+          "page": 47
         },
         {
           "key": "external-checklist",
           "title": "Complete the technician handoff",
-          "page": 53
+          "page": 51
         },
         {
           "key": "recovery-matrix",
-          "title": "Recovery \u00b7 sources, obligations and immutable history",
-          "page": 54
+          "title": "Recovery \u00b7 correct a source or request help",
+          "page": 52
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 55
+          "page": 53
         },
         {
           "key": "verification",
-          "title": "Verification \u00b7 current coverage and historical evidence",
-          "page": 57
+          "title": "Completion check \u00b7 your permitted role cycle",
+          "page": 55
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 183,
+      "instructionBlocks": 177,
       "instructionText": "PASS",
-      "bytes": 3852820,
-      "sha256": "467e076751d10d32f74848b780bb2d613acea920400facdd32eb978d306b5e95",
+      "bytes": 3211223,
+      "sha256": "2cb353953c13d26ba9d64c54403c5680a3e30d90d946adda1b341a4f14abb0f2",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -613,16 +604,16 @@
           "sha256": "4fabac4ceb7b5c24e0b5f3fbbf2291166c7d7b5b0bf323d85e33eadd8a8e7e7f"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/01-external-own-time.png",
-          "sha256": "da3306217fe0f76a8a0faebbbcd878d3c72126033bdc5a55248c642a0e6d03b9"
+          "path": "docs/evidence/bbs-confidentiality-20261007/external-technician/screenshots/external-week-current.png",
+          "sha256": "5fe167d22c5c1f4c4dca75405c4275a2061553ca607b15d1f84d7f17672d63a3"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et03-full-save-draft.png",
-          "sha256": "771942bc93d4d97a2c3aa2f885de635623e1a0d25cc6d77996594d9af8732bc1"
+          "path": "docs/evidence/bbs-confidentiality-20261007/external-technician/screenshots/external-first-shift-form.png",
+          "sha256": "5de47f78ece47977e7bdb724f97799e6fcec23388f58157f190b8aad04cc60ca"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et03-draft-saved-result.png",
-          "sha256": "ef4db70dab419f4860cd5ef5f9d89d4efbea909dc7097a4c369c9a5529925e92"
+          "path": "docs/evidence/bbs-confidentiality-20261007/external-technician/screenshots/external-first-shift-current.png",
+          "sha256": "0d7735cdf319337c0c0705551669c40a79d5f2071d7cd5fba9b6b3bd820d559d"
         },
         {
           "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et04-linked-correction-full-form.png",
@@ -633,16 +624,8 @@
           "sha256": "f375be77bdf933e7c2c2d9e749b2af19558d7c7ad594eefd98ef7f0cc6cb8231"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et02-approved-time-needs-note.png",
-          "sha256": "c10bebaba4a852f16297d5eb132d422ebbb92e0406ca43d8ffd6d72e02fa32a4"
-        },
-        {
-          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/s06-external-weekly-ordinary-correction-before.png",
-          "sha256": "30c240a901a4fd034c57a3abbc71b5be6e2877967aac2b8dce2383593d45ad7d"
-        },
-        {
-          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/s06-external-weekly-success-actual-states.png",
-          "sha256": "16ced73997105597e1b0843839e72af284747e66d9236a65dd7cfbf16b4e1c3c"
+          "path": "docs/evidence/bbs-confidentiality-20261007/external-technician/screenshots/external-week-current.png",
+          "sha256": "5fe167d22c5c1f4c4dca75405c4275a2061553ca607b15d1f84d7f17672d63a3"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/14-external-expense-draft.png",
@@ -735,7 +718,7 @@
     {
       "role": "finance",
       "filename": "BBS_Finance_Manual_EN.pdf",
-      "pages": 65,
+      "pages": 66,
       "landscape": 27,
       "sections": [
         {
@@ -750,7 +733,7 @@
         },
         {
           "key": "trainer-setup",
-          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "title": "Practice setup \u00b7 your account and starting records",
           "page": 7
         },
         {
@@ -785,98 +768,98 @@
         },
         {
           "key": "finance-commercial",
-          "title": "Request the approved dated project setup",
+          "title": "Maintain approved dated project and person terms",
           "page": 20
         },
         {
           "key": "finance-streams",
           "title": "Create and review a billing stream",
-          "page": 21
+          "page": 22
         },
         {
           "key": "finance-draft",
           "title": "Create and review the customer invoice draft",
-          "page": 23
+          "page": 24
         },
         {
           "key": "finance-issue",
           "title": "Approve, issue and download a final invoice",
-          "page": 27
+          "page": 28
         },
         {
           "key": "finance-dispatch",
           "title": "Deliver an invoice and inspect the real result",
-          "page": 29
+          "page": 30
         },
         {
           "key": "finance-collections",
           "title": "Record a collection and correct it with a reversal",
-          "page": 30
+          "page": 31
         },
         {
           "key": "finance-adjustment",
           "title": "Correct an issued amount without rewriting its master",
-          "page": 34
+          "page": 35
         },
         {
           "key": "finance-settlements",
           "title": "Finalize a worker\u2019s compensation period",
-          "page": 36
+          "page": 37
         },
         {
           "key": "finance-worker-payments",
           "title": "Record and reverse an actual worker-side payment",
-          "page": 37
+          "page": 38
         },
         {
           "key": "finance-reimbursement",
           "title": "Record a verified expense reimbursement",
-          "page": 42
+          "page": 43
         },
         {
           "key": "finance-economics",
           "title": "Review invoice and collection totals",
-          "page": 47
+          "page": 48
         },
         {
           "key": "finance-accounting",
           "title": "Generate, review and finalize an Accounting Pack",
-          "page": 48
+          "page": 49
         },
         {
           "key": "finance-close",
           "title": "Close a billing period and handle late work",
-          "page": 51
+          "page": 52
         },
         {
           "key": "finance-customer-report",
           "title": "Generate a customer-safe report and receive the PM handoff",
-          "page": 53
+          "page": 54
         },
         {
           "key": "finance-obligation-correction",
           "title": "Handle a finalized obligation correction without unlocking history",
-          "page": 60
+          "page": 61
         },
         {
           "key": "finance-recovery",
           "title": "Finish the cycle and hand off an exception",
-          "page": 61
+          "page": 62
         },
         {
           "key": "recovery-matrix",
           "title": "Recovery \u00b7 sources, obligations and immutable history",
-          "page": 62
+          "page": 63
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 63
+          "page": 64
         },
         {
           "key": "verification",
-          "title": "Verification \u00b7 current coverage and historical evidence",
-          "page": 65
+          "title": "Completion check \u00b7 your permitted role cycle",
+          "page": 66
         }
       ],
       "annexLinks": [],
@@ -884,8 +867,8 @@
       "overflows": [],
       "instructionBlocks": 236,
       "instructionText": "PASS",
-      "bytes": 1662314,
-      "sha256": "c66eb83816a7bea1adcb1e73066f6a5091c8f142a9a5e52704ca65d48c50b7b3",
+      "bytes": 1663589,
+      "sha256": "88063f8412a2398eca1cc953de95f1105d0f29341c5a0bb04990b96989789a1a",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -1018,8 +1001,8 @@
     {
       "role": "manager",
       "filename": "BBS_Project_Manager_Manual_EN.pdf",
-      "pages": 78,
-      "landscape": 33,
+      "pages": 79,
+      "landscape": 32,
       "sections": [
         {
           "key": "practice",
@@ -1033,7 +1016,7 @@
         },
         {
           "key": "trainer-setup",
-          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "title": "Practice setup \u00b7 your account and starting records",
           "page": 7
         },
         {
@@ -1129,46 +1112,46 @@
         {
           "key": "documents",
           "title": "Register and retrieve a private project document",
-          "page": 64
+          "page": 65
         },
         {
           "key": "notifications",
           "title": "Follow a notification to the current permitted source",
-          "page": 67
+          "page": 68
         },
         {
           "key": "security-help",
           "title": "Complete own reports and use the shared access/security procedures",
-          "page": 70
+          "page": 71
         },
         {
           "key": "day-checklist",
           "title": "Complete the PM operational cycle and hand off",
-          "page": 73
+          "page": 74
         },
         {
           "key": "recovery-matrix",
-          "title": "Recovery \u00b7 sources, obligations and immutable history",
-          "page": 75
+          "title": "Recovery \u00b7 correct a source or request help",
+          "page": 76
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 76
+          "page": 77
         },
         {
           "key": "verification",
-          "title": "Verification \u00b7 current coverage and historical evidence",
-          "page": 78
+          "title": "Completion check \u00b7 your permitted role cycle",
+          "page": 79
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 273,
+      "instructionBlocks": 269,
       "instructionText": "PASS",
-      "bytes": 4414982,
-      "sha256": "07c11dc4a671b1c9d14a3421682e4f3aca4e7b84c4587b2a50fe5868f5e52c5a",
+      "bytes": 4343008,
+      "sha256": "04b29607d252d3a7683c84b9f51ee355b42de9796bd913875fea808a01b484be",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -1195,8 +1178,8 @@
           "sha256": "b30aaa254ec86d186e59d9fd1ebf34c7a1d2b2084c355963cb0ba7a97ab3c399"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/34-pm-project-overview-landscape.png",
-          "sha256": "bc2f6348368ec7d63da6e17a83cdd083777fbc87a058956259f309b09cd418d7"
+          "path": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-project-current.png",
+          "sha256": "71298a744de9dae8cf479db04c206d1c5c2aefdf6400b3b888776b8633f07cb8"
         },
         {
           "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm01-worker2-update-dates-before.png",
@@ -1211,16 +1194,16 @@
           "sha256": "dee2e3ebc08623e7bbd56a16e521ece41400cc570bd8b3728bd4f92df8c54d7d"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm02-reject-reason-action.png",
-          "sha256": "0212dbb2f7b74705ae2432092ea7d157957e3863735457748b69035a2ef1f9d9"
+          "path": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-rejected-source.png",
+          "sha256": "28a7e73c87b6e1b7e881a09db5297ac243de4ebd823bb2fde0c9f4e626bae56a"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm02-needs-changes-action.png",
-          "sha256": "dafcf3edf20a61388aa05074c7d59944383f1bbb8b188a95ff024d60b56cacc2"
+          "path": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-returned-source.png",
+          "sha256": "183b54f861aa4d290d74f92737d4247507389359ba9f76f680cc187ced793780"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm02-correction-approved-source.png",
-          "sha256": "c96a7e8e6af115922b4d45b72b69140ca4e18775364b3ee70fef6269bb5475ac"
+          "path": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-approved-replacement.png",
+          "sha256": "de47dc84f53b4591fd83929894e98a829aa6452458267ef5ae8be84adabe0d9c"
         },
         {
           "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm03-approved-technical-reviewer-summary.png",
@@ -1307,16 +1290,16 @@
           "sha256": "710f7affbc0f5aed37d838368c77176920bb7493fc8aa1a5251c5400555cc2d5"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/14-pm-own-time-form.png",
-          "sha256": "c1365e1e6b504f1bfa447f0db4948172ba715eb6056fa54af93ba286a1f8e921"
+          "path": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-own-time-form.png",
+          "sha256": "58ae4007cdc00f28ee66202055fe21dc9e0fc1124ad40703e2f3a5d4142bf0fb"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/15-pm-own-time-submitted.png",
           "sha256": "248d01cf76dd10904bcf05456cea4e9f35f2608b9282840c95e71452f909456f"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/16-pm-expenses-register.png",
-          "sha256": "ca173400bb8a50480a51e7478555aade02427b4454d905c8918f7ee20c37bba7"
+          "path": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-expenses-current.png",
+          "sha256": "87a54cfd096907e4aedeb2a6c71c972e01342fed6ba614fa828e9f977f3d7e69"
         },
         {
           "path": "docs/evidence/bbs-privacy-20261006/manager/screenshots/pm-upload-neutral-description.png",
@@ -1353,7 +1336,7 @@
     {
       "role": "owner",
       "filename": "BBS_Owner_Manual_EN.pdf",
-      "pages": 265,
+      "pages": 266,
       "landscape": 90,
       "sections": [
         {
@@ -1429,546 +1412,546 @@
         {
           "key": "owner-commercial-references",
           "title": "Check optional commercial models, milestones and forecasts",
-          "page": 42
+          "page": 43
         },
         {
           "key": "owner-accounting",
           "title": "Accounting coverage and period close",
-          "page": 44
+          "page": 45
         },
         {
           "key": "owner-readiness-closeout",
           "title": "Verify populated closeout and the current Accounting recovery",
-          "page": 46
+          "page": 47
         },
         {
           "key": "owner-current-technical-output",
           "title": "Inspect current customer technical details before delivery",
-          "page": 50
+          "page": 51
         },
         {
           "key": "owner-private-dated-terms",
           "title": "Owner reference \u00b7 dated terms and calculation inputs",
-          "page": 52
+          "page": 53
         },
         {
           "key": "owner-private-project-economics",
           "title": "Owner reference \u00b7 project economics and workbook interpretation",
-          "page": 56
+          "page": 57
         },
         {
           "key": "recovery-matrix",
           "title": "Recovery \u00b7 sources, obligations and immutable history",
-          "page": 62
+          "page": 63
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 63
+          "page": 64
         },
         {
           "key": "verification",
           "title": "Verification \u00b7 current coverage and historical evidence",
-          "page": 65
+          "page": 66
         },
         {
           "key": "course-owner-first-access",
           "title": "Start here \u00b7 Owner access and this guide",
-          "page": 66
+          "page": 67
         },
         {
           "key": "course-before-practising",
           "title": "Before practising \u00b7 obtain a separate training environment",
-          "page": 67
+          "page": 68
         },
         {
           "key": "course-owner-navigation",
           "title": "Owner navigation \u00b7 choose the workspace",
-          "page": 68
+          "page": 69
         },
         {
           "key": "course-owner-access-model",
           "title": "Person, role, assignment and review permission",
-          "page": 69
+          "page": 70
         },
         {
           "key": "course-owner-team-onboarding",
           "title": "Create workforce access \u00b7 exact controls",
-          "page": 70
+          "page": 71
         },
         {
           "key": "course-bbs-inspect-or-create",
           "title": "Two learning paths \u00b7 inspect or build",
-          "page": 73
+          "page": 74
         },
         {
           "key": "course-chapter-1",
           "title": "Understand the operating cycle",
-          "page": 74
+          "page": 75
         },
         {
           "key": "course-project-prerequisites",
           "title": "Before creating the project",
-          "page": 75
+          "page": 76
         },
         {
           "key": "course-chapter-2",
           "title": "Create a client and project",
-          "page": 76
+          "page": 77
         },
         {
           "key": "course-client-fields",
           "title": "Client fields \u00b7 what to enter",
-          "page": 77
+          "page": 78
         },
         {
           "key": "course-project-fields",
           "title": "Project fields \u00b7 basics and dates",
-          "page": 79
+          "page": 80
         },
         {
           "key": "course-commercial-project",
           "title": "Commercial defaults \u00b7 models and hours",
-          "page": 80
+          "page": 81
         },
         {
           "key": "course-budget-fields",
           "title": "Budgets and reporting \u00b7 optional controls",
-          "page": 82
+          "page": 83
         },
         {
           "key": "course-creation-people",
           "title": "Optional worker table during creation",
-          "page": 84
+          "page": 85
         },
         {
           "key": "course-bbs-initial-sheet",
           "title": "Initial data sheet \u00b7 before the first work record",
-          "page": 89
+          "page": 90
         },
         {
           "key": "course-chapter-3",
           "title": "Project defaults and person overrides",
-          "page": 90
+          "page": 91
         },
         {
           "key": "course-dated-terms",
           "title": "Effective dates, overrides and bulk controls",
-          "page": 92
+          "page": 93
         },
         {
           "key": "course-contract-decisions",
           "title": "Translate the contract into independent settings",
-          "page": 93
+          "page": 94
         },
         {
           "key": "course-chapter-4",
           "title": "J&A issuer and invoice details",
-          "page": 94
+          "page": 95
         },
         {
           "key": "course-issuer-directories",
           "title": "Issuer settings and tax profiles",
-          "page": 96
+          "page": 97
         },
         {
           "key": "course-chapter-5",
           "title": "Crew chief: hourly billing and hourly pay",
-          "page": 97
+          "page": 98
         },
         {
           "key": "course-chapter-6",
           "title": "Technician 1: full daily customer charge",
-          "page": 100
+          "page": 101
         },
         {
           "key": "course-chapter-7",
           "title": "Technician 2: weekly charge, fixed-period pay",
-          "page": 103
+          "page": 104
         },
         {
           "key": "course-chapter-8",
           "title": "More compensation and expense options",
-          "page": 106
+          "page": 107
         },
         {
           "key": "course-billing-unit-meaning",
           "title": "Customer unit and worker compensation \u00b7 two decisions",
-          "page": 107
+          "page": 108
         },
         {
           "key": "course-overtime-reference",
           "title": "Configure overtime \u00b7 separate customer, worker and cost rules",
-          "page": 108
+          "page": 109
         },
         {
           "key": "course-worker-trigger-limits",
           "title": "Percentage compensation \u00b7 precise basis and trigger",
-          "page": 109
+          "page": 110
         },
         {
           "key": "course-alternative-contracts",
           "title": "Daily minimum, caps and forecast \u00b7 reference exercises",
-          "page": 110
+          "page": 111
         },
         {
           "key": "course-chapter-9",
           "title": "Assign the crew and chief",
-          "page": 111
+          "page": 112
         },
         {
           "key": "course-suppliers-owner",
           "title": "Supplier setup and personnel \u00b7 exact tested controls",
-          "page": 113
+          "page": 114
         },
         {
           "key": "course-supplier-access-lifecycle",
           "title": "Team role, external profile and access removal",
-          "page": 115
+          "page": 116
         },
         {
           "key": "course-chapter-15",
           "title": "Separate labor and expense billing streams",
-          "page": 116
+          "page": 117
         },
         {
           "key": "course-stream-prerequisites",
           "title": "Prerequisites \u00b7 creating a billing stream",
-          "page": 117
+          "page": 118
         },
         {
           "key": "course-stream-core-fields",
           "title": "New billing stream \u00b7 project, sources and timing",
-          "page": 118
+          "page": 119
         },
         {
           "key": "course-stream-delivery-fields",
           "title": "New billing stream \u00b7 delivery and defaults",
-          "page": 120
+          "page": 121
         },
         {
           "key": "course-cadence-options",
           "title": "Cadence options \u00b7 which period do they mean?",
-          "page": 122
+          "page": 123
         },
         {
           "key": "course-chapter-19",
           "title": "Issuer coverage and legal revisions",
-          "page": 123
+          "page": 124
         },
         {
           "key": "course-planning-skills-availability",
           "title": "Planning, skills and availability \u00b7 tested lab cycle",
-          "page": 124
+          "page": 125
         },
         {
           "key": "course-planning-owner-time",
           "title": "Owner weekly entry \u00b7 actual hours and layout copy",
-          "page": 125
+          "page": 126
         },
         {
           "key": "course-chapter-10",
           "title": "Record and submit time",
-          "page": 128
+          "page": 129
         },
         {
           "key": "course-chapter-12",
           "title": "Record expenses and a shared receipt",
-          "page": 131
+          "page": 132
         },
         {
           "key": "course-expense-entry-fields",
           "title": "Expense-entry fields \u00b7 amount and evidence",
-          "page": 132
+          "page": 133
         },
         {
           "key": "course-foreign-currency-remedy",
           "title": "Foreign-currency expense \u00b7 supported escalation",
-          "page": 136
+          "page": 137
         },
         {
           "key": "course-operational-review",
           "title": "Review an active queue \u00b7 Owner and Finance handoff",
-          "page": 137
+          "page": 138
         },
         {
           "key": "course-correction-states",
           "title": "Correct time by its current state",
-          "page": 140
+          "page": 141
         },
         {
           "key": "course-correction-worked",
           "title": "Worked correction \u00b7 eight hours should be six",
-          "page": 141
+          "page": 142
         },
         {
           "key": "course-chapter-11",
           "title": "Stage 1: 35 approved actual hours",
-          "page": 149
+          "page": 150
         },
         {
           "key": "course-chapter-13",
           "title": "Four approved, Finance-reviewed expenses",
-          "page": 151
+          "page": 152
         },
         {
           "key": "course-report-model",
           "title": "Reports and customer acceptance \u00b7 distinct evidence",
-          "page": 154
+          "page": 155
         },
         {
           "key": "course-daily-report-procedure",
           "title": "Create and review a Daily report",
-          "page": 155
+          "page": 156
         },
         {
           "key": "course-technical-report-procedure",
           "title": "Technical / PLC report \u00b7 tested review procedure",
-          "page": 158
+          "page": 159
         },
         {
           "key": "course-period-report-procedure",
           "title": "Generate the customer-safe period file",
-          "page": 160
+          "page": 161
         },
         {
           "key": "course-signoff-evidence",
           "title": "Record genuine sign-off against the exact version",
-          "page": 163
+          "page": 164
         },
         {
           "key": "course-signoff-simulated-completion",
           "title": "Training acceptance, invalidation and a replacement version",
-          "page": 165
+          "page": 166
         },
         {
           "key": "course-chapter-16",
           "title": "Create the 35-hour client invoice",
-          "page": 168
+          "page": 169
         },
         {
           "key": "course-invoice-prerequisites",
           "title": "Prerequisites \u00b7 creating an invoice draft",
-          "page": 169
+          "page": 170
         },
         {
           "key": "course-invoice-wizard",
           "title": "Create invoice \u00b7 every review step",
-          "page": 170
+          "page": 171
         },
         {
           "key": "course-chapter-17",
           "title": "Create the client expense invoice",
-          "page": 174
+          "page": 175
         },
         {
           "key": "course-chapter-18",
           "title": "One invoice with hourly, daily and weekly units",
-          "page": 176
+          "page": 177
         },
         {
           "key": "course-chapter-20",
           "title": "Edit a draft and download its PDF",
-          "page": 178
+          "page": 179
         },
         {
           "key": "course-invoice-edit-fields",
           "title": "Invoice detail edits \u00b7 where each value is saved",
-          "page": 179
+          "page": 180
         },
         {
           "key": "course-chapter-22",
           "title": "Pre-issue checkpoint and troubleshooting",
-          "page": 182
+          "page": 183
         },
         {
           "key": "course-final-numbering",
           "title": "Numbering policy \u00b7 approved inputs and neutral example",
-          "page": 183
+          "page": 184
         },
         {
           "key": "course-final-issue-procedure",
           "title": "Final invoice issuance \u00b7 exact tested progression",
-          "page": 185
+          "page": 186
         },
         {
           "key": "course-invoice-dispatch",
           "title": "Dispatch \u00b7 explicit email consent and failure recovery",
-          "page": 187
+          "page": 188
         },
         {
           "key": "course-issued-correction",
           "title": "Issued correction \u00b7 linked credit and void safeguards",
-          "page": 189
+          "page": 190
         },
         {
           "key": "course-credit-receiving",
           "title": "Credit balance \u00b7 allocation and refund boundary",
-          "page": 190
+          "page": 191
         },
         {
           "key": "course-collections-procedure",
           "title": "Record collections \u00b7 partial, later and correction",
-          "page": 192
+          "page": 193
         },
         {
           "key": "course-worker-schedules",
           "title": "Different worker payment periods and dates",
-          "page": 194
+          "page": 195
         },
         {
           "key": "course-worker-payment-prerequisites",
           "title": "Worker payment prerequisites and period selection",
-          "page": 195
+          "page": 196
         },
         {
           "key": "course-worker-settlement-steps",
           "title": "Finalize one worker\u2019s compensation \u00b7 exact steps",
-          "page": 196
+          "page": 197
         },
         {
           "key": "course-worker-period-examples",
           "title": "Three saved BBS compensation periods",
-          "page": 198
+          "page": 199
         },
         {
           "key": "course-worker-planning-steps",
           "title": "Set different expected payment dates \u00b7 exact steps",
-          "page": 199
+          "page": 200
         },
         {
           "key": "course-worker-actual-payment",
           "title": "Record actual payment only after a real transfer",
-          "page": 201
+          "page": 202
         },
         {
           "key": "course-expense-reimbursement",
           "title": "Reimburse a worker expense \u00b7 exact tested register",
-          "page": 208
+          "page": 209
         },
         {
           "key": "course-chapter-14",
           "title": "Worker and chief views",
-          "page": 210
+          "page": 211
         },
         {
           "key": "course-economic-meaning",
           "title": "Finance figures \u00b7 economic position versus cash",
-          "page": 213
+          "page": 214
         },
         {
           "key": "course-spreadsheet-exports",
           "title": "Spreadsheet exports: hours, costs and revenue",
-          "page": 214
+          "page": 215
         },
         {
           "key": "course-spreadsheet-sheets",
           "title": "Pre-issue finance workbook \u00b7 what each tab means",
-          "page": 216
+          "page": 217
         },
         {
           "key": "course-spreadsheet-reconciliation",
           "title": "Pre-issue snapshot \u00b7 economic meanings",
-          "page": 217
+          "page": 218
         },
         {
           "key": "course-cost-reconciliation",
           "title": "Reconcile internal costing with compensation owed",
-          "page": 218
+          "page": 219
         },
         {
           "key": "course-expense-workbook-steps",
           "title": "Download the separate expense register workbook",
-          "page": 231
+          "page": 232
         },
         {
           "key": "course-spreadsheet-verified-scope",
           "title": "Spreadsheet verification and original workbook attachments",
-          "page": 236
+          "page": 237
         },
         {
           "key": "course-after-lifecycle-workbook",
           "title": "After lifecycle XLSX \u00b7 compare a second snapshot",
-          "page": 237
+          "page": 238
         },
         {
           "key": "course-weekly-close-procedure",
           "title": "Weekly close \u00b7 reviewed sources and a later arrival",
-          "page": 241
+          "page": 242
         },
         {
           "key": "course-owner-close-and-history",
           "title": "Project closure and archive \u00b7 exact tested empty-project cycle",
-          "page": 243
+          "page": 244
         },
         {
           "key": "course-populated-closeout",
           "title": "Populated closeout \u00b7 final packages and supported reopening",
-          "page": 244
+          "page": 245
         },
         {
           "key": "course-accounting-pack",
           "title": "Accounting Pack \u00b7 generate, review and finalize",
-          "page": 245
+          "page": 246
         },
         {
           "key": "course-accounting-success",
           "title": "Accounting demo \u00b7 reviewed October pack finalized",
-          "page": 246
+          "page": 247
         },
         {
           "key": "course-accounting-period-reconciliation",
           "title": "Accounting period \u00b7 invoices, cash and older work dates",
-          "page": 247
+          "page": 248
         },
         {
           "key": "course-accounting-gap-remedy",
           "title": "Accounting error \u00b7 understand the retained dates",
-          "page": 250
+          "page": 251
         },
         {
           "key": "course-private-documents",
           "title": "Documents \u00b7 register, classify and recover a private file",
-          "page": 252
+          "page": 253
         },
         {
           "key": "course-owner-profile-and-help",
           "title": "Audit, notifications, security and Help \u00b7 exact scope",
-          "page": 254
+          "page": 255
         },
         {
           "key": "course-ux-improvements",
           "title": "UX corrections and remaining operating limits",
-          "page": 255
+          "page": 256
         },
         {
           "key": "course-owner-task-checklist",
           "title": "Owner completion checklist \u00b7 verify the business result",
-          "page": 256
+          "page": 257
         },
         {
           "key": "course-verification-scope",
           "title": "Validation matrix \u00b7 completed, reference and blocked",
-          "page": 257
+          "page": 258
         },
         {
           "key": "course-testing-history",
           "title": "Evidence history \u00b7 keep snapshots and outcomes separate",
-          "page": 258
+          "page": 259
         },
         {
           "key": "course-appendices",
           "title": "Final issued invoice PDFs \u00b7 original downloads",
-          "page": 259
+          "page": 260
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 592,
+      "instructionBlocks": 593,
       "instructionText": "PASS",
-      "bytes": 9457355,
-      "sha256": "415c0ed5847d9d9571da8f31773dc61a93d1b8e5775e9f649530499b914af7f2",
+      "bytes": 9460848,
+      "sha256": "d902f0468f7914841408c6239674c31dc48fa171de1872d7eb7d939ececed2ae",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -2479,15 +2462,15 @@
       "nativeInvoiceAnnexPages": 6,
       "nativeInvoiceStreamsUnchanged": true,
       "courseIntegrated": true,
-      "bodyPages": 259,
+      "bodyPages": 260,
       "assembled": true,
       "outlineEntries": 125
     },
     {
       "role": "supplier-coordinator",
       "filename": "BBS_Supplier_Coordinator_Manual_EN.pdf",
-      "pages": 62,
-      "landscape": 21,
+      "pages": 61,
+      "landscape": 22,
       "sections": [
         {
           "key": "practice",
@@ -2501,7 +2484,7 @@
         },
         {
           "key": "trainer-setup",
-          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "title": "Practice setup \u00b7 your account and starting records",
           "page": 7
         },
         {
@@ -2557,61 +2540,61 @@
         {
           "key": "own-expenses",
           "title": "Save your own expense receipt and submit the facts",
-          "page": 33
+          "page": 32
         },
         {
           "key": "daily",
           "title": "Create, submit and download your own Daily report",
-          "page": 36
+          "page": 35
         },
         {
           "key": "technical",
           "title": "Create, submit and download your own Technical / PLC report",
-          "page": 39
+          "page": 38
         },
         {
           "key": "profile-help",
           "title": "Maintain your own availability and secure access",
-          "page": 43
+          "page": 42
         },
         {
           "key": "handoff",
           "title": "Finish the supplier operational cycle",
-          "page": 47
+          "page": 46
         },
         {
           "key": "supplier-planning-team-handoff",
           "title": "Planning appendix \u00b7 turn work instructions into actual team facts",
-          "page": 49
+          "page": 48
         },
         {
           "key": "supplier-coverage-goals-troubleshooting",
           "title": "Coverage appendix \u00b7 missing people, dates and work goals",
-          "page": 54
+          "page": 53
         },
         {
           "key": "recovery-matrix",
-          "title": "Recovery \u00b7 sources, obligations and immutable history",
-          "page": 59
+          "title": "Recovery \u00b7 correct a source or request help",
+          "page": 58
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 60
+          "page": 59
         },
         {
           "key": "verification",
-          "title": "Verification \u00b7 current coverage and historical evidence",
-          "page": 62
+          "title": "Completion check \u00b7 your permitted role cycle",
+          "page": 61
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 200,
+      "instructionBlocks": 195,
       "instructionText": "PASS",
-      "bytes": 4055490,
-      "sha256": "3583830360976c00f1b0619cc29bc14b757c51dd6afc6f617c008ee4f4ac301b",
+      "bytes": 3633817,
+      "sha256": "01c41effc9c41bc7b6ca4f5a58e988a3bb4acb8a070bf27548823c59ee0ea77f",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -2634,8 +2617,8 @@
           "sha256": "c641c9e38edb6b907328d23741399586519bac989763d72f1163f2cf89b53f28"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc01-saved-roster-dates.png",
-          "sha256": "f7e293d6d151466edbe4ca2ec4769606aa32e31a1489c1b1cf98c705c43da040"
+          "path": "docs/evidence/bbs-confidentiality-20261007/supplier-coordinator/screenshots/coordinator-saved-roster.png",
+          "sha256": "bf31de5beca88b9b85e51fd6e6a9ed5fb334902ec62b6309f904e483adfb485a"
         },
         {
           "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc02-add-technician-labels.png",
@@ -2674,16 +2657,12 @@
           "sha256": "aec07bdddc216219bd7f6b4abf427a4218c4b3f7b8fffb5a28e5cb87e229b15c"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/s06-coordinator-two-eligible-drafts.png",
-          "sha256": "223eb7152b5f169d5efe214f20d9b64d86d53dbe98afed4e4a1fd9c2c37352a3"
+          "path": "docs/evidence/bbs-confidentiality-20261007/supplier-coordinator/screenshots/coordinator-week-current.png",
+          "sha256": "18883b12330de61c629727239ae5620fef8b622bfadd02b9c74f7e27047a03a2"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/s06-coordinator-source-states-after.png",
-          "sha256": "8e1d83dd3a42dbb3c37de38af56ae8f9c676efa5a2eb1a94fe06e8e720570a30"
-        },
-        {
-          "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-expense-complete-receipt-form.png",
-          "sha256": "d4264f78f2ba6332ac343cf1b42518c6bdf40d6a0749e2cf4173283cb3ed3c46"
+          "path": "docs/evidence/bbs-confidentiality-20261007/supplier-coordinator/screenshots/coordinator-expense-form.png",
+          "sha256": "691cfc13714429559fbc0c69cb86735cbbb31c5b01988c6083eeb9bd6717dc49"
         },
         {
           "path": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-submitted-receipt-source.png",
@@ -2752,8 +2731,8 @@
     {
       "role": "worker",
       "filename": "BBS_Worker_Manual_EN.pdf",
-      "pages": 83,
-      "landscape": 30,
+      "pages": 80,
+      "landscape": 29,
       "sections": [
         {
           "key": "practice",
@@ -2767,7 +2746,7 @@
         },
         {
           "key": "trainer-setup",
-          "title": "Trainer setup \u00b7 prepare a normal cycle before exceptions",
+          "title": "Practice setup \u00b7 your account and starting records",
           "page": 7
         },
         {
@@ -2818,91 +2797,86 @@
         {
           "key": "worker-report-evidence",
           "title": "Understand report PDFs, attachments and customer acceptance",
-          "page": 41
+          "page": 40
         },
         {
           "key": "worker-pay",
           "title": "Read your own compensation and reimbursement",
-          "page": 46
+          "page": 45
         },
         {
           "key": "worker-statement",
           "title": "Generate your own statement and check readiness",
-          "page": 47
+          "page": 46
         },
         {
           "key": "worker-settlement-guard",
-          "title": "Hand settled compensation changes to Finance",
-          "page": 49
+          "title": "Hand a locked time correction to the Owner",
+          "page": 48
         },
         {
           "key": "worker-planning",
           "title": "Read a plan without creating actual hours",
-          "page": 51
+          "page": 50
         },
         {
           "key": "worker-connected-plan",
           "title": "Follow a published assignment through actual work and review",
-          "page": 53
+          "page": 52
         },
         {
           "key": "worker-expected-hours",
           "title": "Read Expected, Difference and Needs note correctly",
-          "page": 57
+          "page": 56
         },
         {
           "key": "worker-plan-goals-troubleshooting",
           "title": "Handle a missing plan and understand what a work goal means",
-          "page": 66
+          "page": 65
         },
         {
           "key": "worker-mobile",
           "title": "Use phone and tablet views",
-          "page": 70
+          "page": 69
         },
         {
           "key": "worker-profile",
           "title": "Maintain expertise, availability and account security",
-          "page": 73
+          "page": 72
         },
         {
           "key": "worker-help",
           "title": "Use notifications and escalate the right record",
-          "page": 75
+          "page": 74
         },
         {
           "key": "worker-checklist",
           "title": "Finish a workday and verify the handoff",
-          "page": 76
-        },
-        {
-          "key": "worker-evidence",
-          "title": "What was verified and what remains a reference",
-          "page": 78
+          "page": 75
         },
         {
           "key": "recovery-matrix",
-          "title": "Recovery \u00b7 sources, obligations and immutable history",
-          "page": 80
+          "title": "Recovery \u00b7 correct a source or request help",
+          "page": 77
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 81
+          "page": 78
         },
         {
           "key": "verification",
-          "title": "Verification \u00b7 current coverage and historical evidence",
-          "page": 83
+          "title": "Completion check \u00b7 your permitted role cycle",
+          "page": 80
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 265,
+      "instructionBlocks": 241,
       "instructionText": "PASS",
-      "bytes": 3435890,
-      "sha256": "7a3bbaf7845c1cf469dbbf5202bfe2972012c3cf58eac8b138c97eb422d79894",
+      "bytes": 3324269,
+      "sha256": "7e771b08502f70d7228ed49d60d08e17409859ac46a59df0867ad7ea4aa9da0d",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -2917,16 +2891,16 @@
           "sha256": "b834ac91a03cf8a3f6b0033871c0270db93e656a640fc5a2a44af0a4f14f2f53"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-first-shift-full-save-draft.png",
-          "sha256": "0f2c221dc24665bea897599a89670e6e34ecba60e1641c15a2beb71fedc7ed2c"
+          "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-first-shift-form.png",
+          "sha256": "e944c3fecfce80a19e6f7ad37710f3a6a030901092d6faab327072e95c58d230"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-first-shift-submitted.png",
-          "sha256": "64b9de4528d327cac1d5694c8257ef046c578dfa2e850710ac9c03201c58762c"
+          "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-first-shift-current.png",
+          "sha256": "e64552e4a09d984fad30d0856851886496ae5098252a443b2644e032009b9f11"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-single-expense-full-save.png",
-          "sha256": "24fa4866d566a78ac3916e0390594d5fc17138683a2044bd67a7bd4d3dfda6e5"
+          "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-expense-form.png",
+          "sha256": "7f1173f8837b2b3836269d6a2a3b9b044c27458baa7b384a7364b463ffa9b7a3"
         },
         {
           "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-single-expense-saved.png",
@@ -2989,16 +2963,12 @@
           "sha256": "518456b40ad3d25f6b37fd1ea853fe6daa281b305d145f9b14e96efd89ee5a81"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-normal-returned.png",
-          "sha256": "3b101848819ce6bf1cc1bc8f440f6f94d18a06fa950255a1032487833efb3e88"
+          "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-first-shift-current.png",
+          "sha256": "e64552e4a09d984fad30d0856851886496ae5098252a443b2644e032009b9f11"
         },
         {
-          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-normal-correction-draft.png",
-          "sha256": "fef4ccae0f7628a814b2eacb1aa6fb7f7862b6c47a0c80517b4de781f3077ce5"
-        },
-        {
-          "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-wrong-correction-withdrawn.png",
-          "sha256": "3b101848819ce6bf1cc1bc8f440f6f94d18a06fa950255a1032487833efb3e88"
+          "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-correction-current.png",
+          "sha256": "70920d5487ce7fd9e12f8e44c190a5da988f4760c5d046375ea1779694480ee7"
         },
         {
           "path": "docs/evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-returned-edited.png",
@@ -3017,8 +2987,8 @@
           "sha256": "6479503e37f928cbed0846fe969e680d1fe55dfb31207531f024f6beb23aecdf"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/20-worker-settlement-correction-blocked.png",
-          "sha256": "e09864794732cebd48b9fc37302fd4fb4cb82c58694574d6d2227b988a2f879e"
+          "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-locked-source.png",
+          "sha256": "3da109f21928fee62ca4ac1c318696dcb6b659f21e2b15b1764fb53117dbaf7a"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/33-worker-upcoming-plan.png",
@@ -3029,16 +2999,16 @@
           "sha256": "5ad49464ba693a24d639a84f7db99c9aa9e4dfd3c27f6312144a50b3c5d4cb6f"
         },
         {
-          "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/05-worker1-actual-six-hours-form.png",
-          "sha256": "cd65637a2468db3c0b242b66012b5af7a4cb507002d00df70c2bcdcf2a7b5159"
+          "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-six-hours-form.png",
+          "sha256": "d1aef0254dfdadcb86b995be420f69708ea1378bd8ca36cb2a163b00aacf0d14"
         },
         {
           "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/07-worker1-approved-needs-note.png",
           "sha256": "0a415ee921a90b52bad671390135a078a44f3edd00beb77c6d61dba41fedd718"
         },
         {
-          "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/12-worker1-source-approved.png",
-          "sha256": "36e4e360747459ccc9673dcc5ef832cf814d7845526f99fd7f1b1cf648388e30"
+          "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-six-hours-approved.png",
+          "sha256": "8b7eadcb1c09573d5991a468ea318fca7c5e59146d53e9aa2c87f411a6ff31ee"
         },
         {
           "path": "docs/evidence/bbs-planning-20261006/worker/screenshots/08-worker2-chief-recorded-needs-note.png",
@@ -3069,12 +3039,12 @@
           "sha256": "2b8791367210b216806e293c89fa8a226d7440792e113377c27dbb27b7a071ff"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/16-worker-phone-time.png",
-          "sha256": "8ce92872a4338f04bcf3ab68010810d4677b7be5c430581b7464715a9913a477"
+          "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-time-390.png",
+          "sha256": "c5f60421e1b8d4120689dcd44ed830fd6e8f8b7107f8558229b58cfcb09fd249"
         },
         {
-          "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/17-worker-tablet-time.png",
-          "sha256": "3ee5f3de660f60107e04ac80e07f22573a418e3fa9cee39a1f32b560e183facc"
+          "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-time-768.png",
+          "sha256": "8f1aee44cdd56885de6d0ed510d91181ebc542500db51228d24383daa641af93"
         },
         {
           "path": "docs/evidence/bbs-role-manuals-20261006/worker/screenshots/30-worker-profile-reference.png",
@@ -3086,7 +3056,7 @@
         }
       ],
       "assembled": true,
-      "outlineEntries": 29
+      "outlineEntries": 28
     }
   ]
 }

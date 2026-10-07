@@ -1453,7 +1453,7 @@
     <SectionCard title={translate('Project approvals')} class="approval-milestone-surface">
       <p class="approval-purpose">
         {translate(
-          'A project appears here when a commercial milestone has been submitted for authorization. Approve confirms that milestone for its next commercial step; Reject returns it with a reason. It does not approve time, expenses or reports.',
+          'A project appears here when a milestone has been submitted for review. Check its evidence, then Approve or Reject with a reason. Time, expenses and reports are reviewed separately.',
         )}
       </p>
       <label class="approval-register-search"

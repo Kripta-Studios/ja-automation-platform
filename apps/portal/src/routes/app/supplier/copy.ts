@@ -9,7 +9,7 @@ export const supplierCopy = {
     intro:
       'Register technicians and actual work for authorized installations. J&A reviews submitted hours.',
     restricted:
-      'Operational access only. Payments, rates and financial reports are not available to these accounts.',
+      'Use your authorized projects to register technicians, record actual work and follow its review state.',
     owner: 'Owner administration',
     revoked: 'Revoked',
     provider: 'Supplier',
@@ -115,8 +115,7 @@ export const supplierCopy = {
     team: 'Equipo de mi proveedor',
     intro:
       'Registra técnicos y trabajo real en las instalaciones autorizadas. J&A revisa las horas enviadas.',
-    restricted:
-      'Acceso solo operativo. Estas cuentas no pueden consultar pagos, tarifas ni informes financieros.',
+    restricted: 'Registra técnicos y trabajo real en tus proyectos autorizados.',
     owner: 'Administración del propietario',
     revoked: 'Revocado',
     provider: 'Proveedor',
@@ -222,8 +221,7 @@ export const supplierCopy = {
     team: 'Equipe do meu fornecedor',
     intro:
       'Cadastre técnicos e trabalho real nas instalações autorizadas. A J&A revisa as horas enviadas.',
-    restricted:
-      'Acesso apenas operacional. Estas contas não podem consultar pagamentos, tarifas ou relatórios financeiros.',
+    restricted: 'Registre técnicos e trabalho real nos seus projetos autorizados.',
     owner: 'Administração do proprietário',
     revoked: 'Revogado',
     provider: 'Fornecedor',

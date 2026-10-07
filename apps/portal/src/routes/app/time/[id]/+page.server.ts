@@ -15,6 +15,9 @@ export const load: PageServerLoad = ({ locals, params }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
   const context = openPortalRepository(locals);
   try {
+    const financialView = ['owner_admin', 'finance_admin', 'auditor_read_only'].includes(
+      context.principal.role,
+    );
     const record = context.repository.timeDetail(context.principal, params.id) as Record<
       string,
       unknown
@@ -80,8 +83,37 @@ export const load: PageServerLoad = ({ locals, params }) => {
     }
     // timeDetail includes a linked ID for returned records. Keep that projection aligned with
     // the live access check above so an unreadable ID is not serialized to the browser.
+    const operationalFields = new Set([
+      'id',
+      'project_id',
+      'worker_id',
+      'work_date',
+      'category',
+      'activity_code',
+      'minutes',
+      'project_timezone',
+      'activity_summary',
+      'approval_state',
+      'submitted_at',
+      'approved_at',
+      'start_time',
+      'end_time',
+      'break_minutes',
+      'site',
+      'site_name',
+      'project_number',
+      'project_name',
+      'worker_name',
+      'worker_email',
+      'review_reason',
+      'version',
+    ]);
     const safeRecord = {
-      ...record,
+      ...(financialView
+        ? record
+        : Object.fromEntries(
+            Object.entries(record).filter(([field]) => operationalFields.has(field)),
+          )),
       active_correction_id: activeCorrection?.id ?? null,
       active_correction_state: activeCorrection?.status ?? null,
     };
@@ -120,7 +152,9 @@ export const load: PageServerLoad = ({ locals, params }) => {
                   withdrawDependency.kind === 'other' && context.principal.role === 'owner_admin'
                     ? 'contact_finance'
                     : problem.remedy,
-                ...(withdrawDependency.recordId ? { recordId: withdrawDependency.recordId } : {}),
+                ...(withdrawDependency.recordId && withdrawDependency.kind !== 'other'
+                  ? { recordId: withdrawDependency.recordId }
+                  : {}),
               },
             ],
             correlationId: '',

@@ -126,8 +126,8 @@ describe('time and operations known repository problems', () => {
     [
       new ConflictError('Financially linked records cannot be deleted'),
       409,
-      'RECORD_FINANCIALLY_LINKED',
-      'contact_finance',
+      'RECORD_LOCKED',
+      'contact_project_owner',
     ],
     [
       new ConflictError('Correction drafts are immutable and cannot be deleted'),

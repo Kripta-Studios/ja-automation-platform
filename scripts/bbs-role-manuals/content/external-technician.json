@@ -26,8 +26,8 @@
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/external-technician/screenshots/01-external-own-time.png",
-          "caption": "Native own External Technician Time workspace and narrow role navigation.",
+          "src": "docs/evidence/bbs-confidentiality-20261007/external-technician/screenshots/external-week-current.png",
+          "caption": "Current selected-week workspace after the historical ordinary-plus-linked submission. Inspect current individual source states; the two-draft starting checkpoint is historical.",
           "orientation": "landscape"
         }
       ]
@@ -39,7 +39,7 @@
       "context": "Native isolated BBS role exercise · C-0050-P-20261005 · synthetic October 2026 work only",
       "paragraphs": [
         "Begin with your own assigned project and actual work. Published plans and expected hours are planning information; neither creates time. The October 13 example records fictional documentation work, not a real dispatch.",
-        "A draft remains editable. Submit only after checking project, work date, duration and activity. Submission sends supplier time to Owner review and locks ordinary editing. See Review authority · who receives each source (review-authority) and Recovery · sources, obligations and immutable history (recovery-matrix)."
+        "A draft remains editable. Submit only after checking project, work date, duration and activity. Submission sends supplier time to Owner review and locks ordinary editing. See Review authority · who receives each source (review-authority) and Recovery · correct a source or request help (recovery-matrix)."
       ],
       "steps": [
         "Open Time and choose Log time. Select BBS, Work date 2026-10-13, Category Regular time, Duration in hours 1.25 and a precise synthetic activity summary.",
@@ -54,13 +54,13 @@
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et03-full-save-draft.png",
-          "caption": "Complete native first-shift form immediately before Save draft.",
+          "src": "docs/evidence/bbs-confidentiality-20261007/external-technician/screenshots/external-first-shift-form.png",
+          "caption": "Recaptured native form with factual work inputs and the complete Save draft control. Fields are filled for illustration; this capture did not save another source.",
           "orientation": "portrait"
         },
         {
-          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et03-draft-saved-result.png",
-          "caption": "Saved draft result; this checkpoint precedes submission and later review.",
+          "src": "docs/evidence/bbs-confidentiality-20261007/external-technician/screenshots/external-first-shift-current.png",
+          "caption": "Current October 13 source after later review: Needs changes, with its approved linked replacement retained. The earlier saved Draft checkpoint precedes this state.",
           "orientation": "landscape"
         }
       ]
@@ -121,19 +121,9 @@
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et02-approved-time-needs-note.png",
-          "caption": "Approved actual time still shows Needs note where the expected target differs.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/s06-external-weekly-ordinary-correction-before.png",
-          "caption": "Before: eligible ordinary and linked correction drafts in the displayed week.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/s06-external-weekly-success-actual-states.png",
-          "caption": "After weekly submission: both exact sources became Submitted; later Owner approval is shown separately.",
-          "orientation": "portrait"
+          "src": "docs/evidence/bbs-confidentiality-20261007/external-technician/screenshots/external-week-current.png",
+          "caption": "Current selected-week workspace after the historical ordinary-plus-linked submission. Inspect current individual source states; the two-draft starting checkpoint is historical.",
+          "orientation": "landscape"
         }
       ]
     },
@@ -213,7 +203,7 @@
         "Private evidence is a separate saved attachment. Scan status describes processing; Storage Saved and Scan Not scanned do not mean a clean security scan."
       ],
       "steps": [
-        "Choose Technical / PLC, your BBS project and Report date 2026-10-19. Complete the technical fields and Save draft.",
+        "Choose Technical / PLC, your BBS project and Report date 2026-10-19. Complete the technical fields and choose Save PLC report.",
         "In private evidence select Evidence type Technical attachment, choose File and enter Notes explaining the evidence and scope. Choose Upload private evidence.",
         "Before Submit verify the listed filename, attachment version, size, hash, Storage Saved and scan status. In this exercise upload preceded submission.",
         "Submit the saved report. Reopen the exact source after PM review and check Approved, work author, report creator, reviewer and source version."
@@ -227,7 +217,7 @@
       "figures": [
         {
           "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/external-technician/screenshots/et06-own-technical-full-save-form.png",
-          "caption": "Complete native Technical form before Save draft.",
+          "caption": "Complete native Technical form before Save PLC report.",
           "orientation": "portrait"
         },
         {
@@ -372,7 +362,7 @@
       "route": "Help",
       "context": "Isolated BBS supplier role lab · genuine External Technician account · fictional October 2026 records",
       "paragraphs": [
-        "Help’s invitation lesson distinguishes mailbox-linked access and a single-use external invitation; there is no public signup. Supplier operations guidance has different paths for technician/coordinator.",
+        "Help’s invitation lesson distinguishes mailbox-linked access and a single-use external invitation; there is no public signup. Use the External Technician role course and its included access, security and recovery sections.",
         "The verified support contact is admin@j-aautomation.com. Live company portal/webmail links are live services. No email was sent in this exercise. For questions outside your operational workspace, contact your supplier coordinator or the designated J&A contact."
       ],
       "steps": [
@@ -495,7 +485,7 @@
         "Give reviewer/coordinator source IDs and unresolved issues; never claim customer acceptance/pay from operational approval."
       ],
       "checks": [
-        "Native coverage includes saved first-shift time, linked correction and Owner approval, ordinary plus correction weekly submission with exact IDs, private Technical upload before Submit, PM Technical approval, Ready English PDF download and exact filtered historical CSV. See Verification · current coverage and historical evidence (verification)."
+        "Native coverage includes saved first-shift time, linked correction and Owner approval, ordinary plus correction weekly submission with exact IDs, private Technical upload before Submit, PM Technical approval, Ready English PDF download and exact filtered historical CSV. See Completion check · your permitted role cycle (verification)."
       ],
       "recovery": [
         "Layout copying, browser print completion and new customer acceptance remain reference-only. Use the shared access/security chapters for their verified procedures."

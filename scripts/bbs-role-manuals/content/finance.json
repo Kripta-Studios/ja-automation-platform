@@ -74,7 +74,7 @@
         "The original three issued BBS documents total USD 4,672: opening labor 2,230, expenses 182 and mixed hourly/daily/weekly labor 2,260. Preserve their numbered native PDFs. Practice adjustments are new linked documents; they never replace the original face amount."
       ],
       "steps": [
-        "Before invoice work, ask the Owner to confirm issuer/date coverage, the approved numbering policy, project assignments, dated person terms and required reporting/acceptance.",
+        "Before invoice work, confirm the Owner’s legal issuer/date coverage and approved numbering policy. Finance may maintain its permitted dated project/person terms and streams from approved company inputs; verify assignments and any required reporting/acceptance before using the sources.",
         "Review the real approved contract before choosing hourly, daily, weekly, all-in or capped treatment.",
         "Hand the Owner the exact blocked invoice/stream/person ID, intended dates and visible message when Owner authority is required."
       ],
@@ -151,22 +151,26 @@
     },
     {
       "id": "finance-commercial",
-      "title": "Request the approved dated project setup",
-      "route": "Owner handoff → project/person/effective date",
-      "context": "Reference procedure · project setup is documented in the Owner guide.",
+      "title": "Maintain approved dated project and person terms",
+      "route": "Commercial Configuration; Projects → project → Billing → Review each person",
+      "context": "Reference procedure · current controls and previously saved isolated person terms checked; use only approved company inputs.",
       "paragraphs": [
-        "Before reviewing or invoicing a project, obtain the Owner’s approved setup and its applicable dates. Copying a form does not save it, and a future change does not update historical documents."
+        "Finance may maintain the permitted dated commercial rules using the company’s approved agreement and calculation inputs. Record the project, person, effective date and approval reference before changing a rule. An existing approved invoice or reviewed obligation is not rewritten by saving later terms.",
+        "Project defaults and saved person overrides have different scope. Copying draft values does not save them. A separate future effective date must legitimately cover the intended new work, rather than move an old source out of a blocked period."
       ],
       "steps": [
-        "Send the Owner the project number, intended person, effective date and required agreement reference.",
-        "Check the Owner’s confirmation covers the intended source dates before continuing to Finance review or creating an invoice.",
-        "If a source reports missing or overlapping configuration, send the exact source, date and error to the Owner. Preserve the blocked source."
+        "Open Commercial Configuration or Projects → project → Billing → Review each person. Select the intended project/person and check the existing effective rule.",
+        "Set Terms effective from using the approved company instructions. Review Customer billing unit and the corresponding Customer hourly/daily/weekly rate (USD), Internal hourly cost (USD), Worker compensation method and Worker compensation rate/percentage. Enter only the supplied approved values; obtain a missing company input before saving.",
+        "Review the approved Worker compensation method and its corresponding rate/percentage or fixed amount, Currency and effective interval. For a percentage method, verify the supplied eligible basis and settlement trigger.",
+        "Review the approved Expense payer, Worker reimbursement source, Reimburse worker and Charge customer for expense settings. Save only the intended payer policy.",
+        "Use Save these rates as explicit person overrides only when the approved agreement requires it. Choose the selected person’s Save person terms, wait for Assignment commercial rules saved, then reopen and verify the saved effective rule/date. For a separate commercial-rule form use its displayed Save action and verify its saved scope."
       ],
       "checks": [
-        "The approved setup covers the intended period, and the source passes its normal readiness checks."
+        "The saved person/project/effective date match the approved instructions. No draft copy or success notification substitutes for reopening the persisted rule.",
+        "Finance’s existing native future-term save is documented as an isolated example; it does not authorize applying its synthetic amounts or approval fixture to live work."
       ],
       "recovery": [
-        "Wait for a documented authorized resolution. Do not move work dates, duplicate records or reverse payments to bypass a configuration guard."
+        "For missing, conflicting or overlapping instructions retain the project/person, effective date and exact message. Obtain corrected approved company inputs from the Owner or designated company authority; preserve the blocked source. Do not reverse cash, duplicate work or move a work date to bypass a rule."
       ],
       "figures": []
     },
@@ -634,7 +638,7 @@
       "steps": [
         "Check the selected project and financial audience before export or sharing.",
         "For support give the exact role, project, record/number, intended dates, last successful state and visible message.",
-        "Use Profile for your own account/security preferences and Help for the relevant role/Owner reference; contact the workspace administrator for access."
+        "Use Profile for your own account/security preferences and Help for the Finance course and included access/recovery procedures; contact the workspace administrator for access. Owner reference manuals require Owner access."
       ],
       "checks": [
         "The handoff explains what was blocked and what remained preserved. No claimed payment, email or customer acceptance exceeds observed evidence."

@@ -348,7 +348,7 @@ const timeProblems: Record<string, TimeProblem> = {
     code: 'TIME_SUBMISSION_LOCKED',
     key: 'problem.time.submissionLocked',
     message:
-      'This time entry is locked for billing. Contact Finance before changing or submitting it.',
+      'This time entry is locked. Contact the project owner or designated administrator before changing or submitting it.',
     remedy: 'contact_finance',
   },
   'Time entry changed or cannot be edited': {
@@ -478,7 +478,8 @@ const timeProblems: Record<string, TimeProblem> = {
     status: 409,
     code: 'TIME_LOCKED_OR_INVOICED',
     key: 'problem.time.lockedOrInvoiced',
-    message: 'Locked or invoiced time cannot be voided. Contact Finance for an audited adjustment.',
+    message:
+      'This time entry cannot be withdrawn here. Contact the project owner or designated administrator.',
     remedy: 'contact_finance',
   },
   'This crew time is linked to an allocated receipt and cannot be deleted': {

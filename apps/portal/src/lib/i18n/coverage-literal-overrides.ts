@@ -1,5 +1,64 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'A project appears here when a milestone has been submitted for review. Check its evidence, then Approve or Reject with a reason. Time, expenses and reports are reviewed separately.':
+    [
+      'Aquí aparecen los hitos enviados para revisión. Comprueba los justificantes y aprueba o rechaza con un motivo. Las horas, los gastos y los informes se revisan por separado.',
+      'Aqui aparecem os marcos enviados para revisão. Confira os comprovantes e aprove ou rejeite com um motivo. Horas, despesas e relatórios são revisados separadamente.',
+    ],
+  'Use your authorized projects to register technicians, record actual work and follow its review state.':
+    [
+      'Usa tus proyectos autorizados para registrar técnicos, anotar el trabajo real y seguir su revisión.',
+      'Use seus projetos autorizados para registrar técnicos, informar o trabalho real e acompanhar a revisão.',
+    ],
+  'Search projects and people…': ['Buscar proyectos y personas…', 'Buscar projetos e pessoas…'],
+  'Reported expense amounts, receipt evidence and operational review state.': [
+    'Importes declarados, justificantes y estado de revisión operativa.',
+    'Valores informados, comprovantes e status da revisão operacional.',
+  ],
+  'Assignment progress': ['Progreso de la asignación', 'Progresso da alocação'],
+  'No assignment progress is available.': [
+    'No hay información de progreso de la asignación.',
+    'Não há informações de progresso da alocação.',
+  ],
+
+  'Record the date, duration and activity you actually worked.': [
+    'Registra la fecha, la duración y la actividad que realizaste.',
+    'Registre a data, a duração e a atividade que você realizou.',
+  ],
+  'Enter the date, actual duration and activity for this work.': [
+    'Introduce la fecha, la duración real y la actividad de este trabajo.',
+    'Informe a data, a duração real e a atividade deste trabalho.',
+  ],
+  'Describe what happened on site and record the actual duration.': [
+    'Describe lo que ocurrió en el lugar de trabajo y registra la duración real.',
+    'Descreva o que aconteceu no local de trabalho e registre a duração real.',
+  ],
+  'Contact the project owner or designated administrator.': [
+    'Contacta con el propietario del proyecto o con el administrador designado.',
+    'Entre em contato com o responsável pelo projeto ou com o administrador designado.',
+  ],
+  'This record cannot be changed here. Contact the project owner or designated administrator.': [
+    'Este registro no puede modificarse aquí. Contacta con el propietario del proyecto o con el administrador designado.',
+    'Este registro não pode ser alterado aqui. Entre em contato com o responsável pelo projeto ou com o administrador designado.',
+  ],
+  'Record the amount, currency, payer and receipt for this expense.': [
+    'Registra el importe, la moneda, quién pagó y el justificante de este gasto.',
+    'Registre o valor, a moeda, quem pagou e o comprovante desta despesa.',
+  ],
+  'Enter the amount, currency, payer and receipt details.': [
+    'Introduce el importe, la moneda, quién pagó y los datos del justificante.',
+    'Informe o valor, a moeda, quem pagou e os dados do comprovante.',
+  ],
+  'This expense has a reimbursement. Ask the project owner or designated administrator to review changes.':
+    [
+      'Este gasto tiene un reembolso. Pide al propietario del proyecto o al administrador designado que revise los cambios.',
+      'Esta despesa tem um reembolso. Peça ao responsável pelo projeto ou ao administrador designado para revisar as alterações.',
+    ],
+  'with one amount, currency, payer and receipt. The allocation records which workers and shifts the receipt covered; it does not create another expense.':
+    [
+      'con un importe, una moneda, un pagador y un justificante. La distribución registra qué trabajadores y jornadas cubrió el justificante; no crea otro gasto.',
+      'com um valor, uma moeda, um pagador e um comprovante. A distribuição registra quais trabalhadores e turnos foram cobertos pelo comprovante; ela não cria outra despesa.',
+    ],
   'Unsaved weekly entry': ['Entrada semanal sin guardar', 'Lançamento semanal não salvo'],
   'Entered days': ['Días con datos', 'Dias preenchidos'],
   'Rows needing review': ['Filas por revisar', 'Linhas para revisar'],

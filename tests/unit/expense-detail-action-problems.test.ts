@@ -5,7 +5,7 @@ vi.mock('$lib/server/portal-repository', async (importOriginal) => ({
   openPortalRepository: vi.fn(),
 }));
 
-import { AccessDeniedError, ConflictError } from '@ja/database';
+import { AccessDeniedError, ConflictError, ValidationError } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actions } from '../../apps/portal/src/routes/app/expenses/[id]/+page.server';
 
@@ -108,11 +108,8 @@ describe('expense detail action problems', () => {
   });
 
   it.each([
-    ['Reimbursed expense requires an explicit adjustment', 'EXPENSE_CORRECTION_REIMBURSED'],
-    [
-      'Financially finalized records require a finance correction',
-      'EXPENSE_CORRECTION_FINANCIALLY_FINALIZED',
-    ],
+    ['Reimbursed expense requires an explicit adjustment', 'SOURCE_CORRECTION_LOCKED'],
+    ['Financially finalized records require a finance correction', 'SOURCE_CORRECTION_LOCKED'],
     [
       'Only approved or reviewer-returned expenses can create a correction draft',
       'EXPENSE_CORRECTION_STATE_BLOCKED',
@@ -139,7 +136,10 @@ describe('expense detail action problems', () => {
     expect(repository.createCorrectionDraft).not.toHaveBeenCalled();
   });
 
-  it('locates a missing correction vendor without exposing a raw validator message', async () => {
+  it('locates an invalid correction vendor without exposing a raw validator message', async () => {
+    repository.createCorrectionDraft.mockImplementation(() => {
+      throw new ValidationError('vendor is invalid');
+    });
     const result = await submit('createCorrectionDraft', correction({ vendor: '' }));
     expect(result).toMatchObject({
       status: 400,

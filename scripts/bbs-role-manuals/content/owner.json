@@ -290,7 +290,8 @@
       "route": "Finance → Commercial Configuration; Approvals; Billing; Collections / Ledger; compensation and reimbursement registers",
       "paragraphs": [
         "Invoice cadence and worker payment cadence are separate contracts. Select the project and worker settlement period explicitly; an issued invoice is neither a worker payment nor a bank receipt. The BBS lab verifies independent invoice and compensation periods in the detailed course.",
-        "The original BBS before/after workbook figures retain their historical scope: USD 4,672 issued, USD 682 collected and USD 3,990 receivable. Configured labor cost USD 1,520 plus direct expenses USD 230 produces USD 1,750 configured company cost. Contractual compensation USD 2,100 is USD 580 above the configured labor estimate. Contribution USD 2,922 uses the configured cost basis; it is not proof of final cash profit. Do not add both labor cost and compensation as if they were independent expenses."
+        "The original BBS before/after workbook figures retain their historical scope: USD 4,672 issued, USD 682 collected and USD 3,990 receivable. Configured labor cost USD 1,520 plus direct expenses USD 230 produces USD 1,750 configured company cost. Contractual compensation USD 2,100 is USD 580 above the configured labor estimate. Contribution USD 2,922 uses the configured cost basis; it is not proof of final cash profit. Do not add both labor cost and compensation as if they were independent expenses.",
+        "Authorized Finance users retain their permitted commercial configuration, invoice, collection, compensation and Accounting duties, using approved company inputs. Authorized Auditor users inspect permitted financial and Accounting evidence read-only. Operational roles receive operational records and their own permitted personal statements, not the company’s commercial calculation model."
       ],
       "steps": [
         "Complete operational review before Finance classification. Reconcile approved source quantities and commercial treatments before draft approval.",
@@ -300,7 +301,7 @@
         "Reconcile native source, billing, ledger, compensation and project exports using the course landscape workbook examples. Investigate date/costing differences before interpreting contribution."
       ],
       "recovery": [
-        "Correct issued documents through the permitted void, credit, debit or replacement relationship. Preserve issued masters and payment history.",
+        "Correct issued documents only through the actual permitted void, credit, debit or replacement controls. Preserve issued masters and payment history. Inspect linked credit documents and reconcile their separate ledger balances; there is no general credit-allocation or refund-recording UI. Send unsupported allocation/refund requirements with document IDs, amount, currency and genuine transaction evidence to Finance/support; do not invent a receipt or negative payment.",
         "A disabled training email transport can queue or fail a delivery attempt. It does not establish a delivered customer email."
       ]
     },
@@ -322,7 +323,7 @@
         "Forecast: open Finance → Overview → Planned / Expected, then Estimate to complete. Check Planning basis available or No detailed plan, planned reference hours/minutes and the underlying rates/budgets. Missing planned-person rates or daily/weekly units without dated unit planning can leave the estimate unavailable. Use the displayed explanation before treating a forecast as complete; it creates no actual hours, collected revenue or paid cash."
       ],
       "checks": [
-        "These optional controls and labels were checked in current source. No fixed/percentage/minimum/cap/milestone contract mutation or new forecast completion is claimed here. Use Finance: Check dated agreements and independent pay rules (finance-commercial) and Explain economics, cash and workbook exports (finance-economics) for receiving review."
+        "These optional controls and labels were checked in current source. No fixed/percentage/minimum/cap/milestone contract mutation or new forecast completion is claimed here. Use Owner reference · dated terms and calculation inputs (owner-private-dated-terms) and Owner reference · project economics and workbook interpretation (owner-private-project-economics) for the detailed Owner configuration and reconciliation lessons."
       ],
       "recovery": [
         "When an estimate or draft is incomplete, resolve its named missing source/rate/date input rather than entering invented work or collection. Review the new saved configuration and source identity before regeneration."

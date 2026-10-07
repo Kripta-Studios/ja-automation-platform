@@ -121,13 +121,11 @@ test('worker sees time and expense consequences before submission', async ({ pag
   await page.goto(portal(`/expenses?lang=pt&project=${fixture.projectId}`));
   await page.getByRole('button', { name: 'Registrar despesa', exact: true }).first().click();
   const expenseForm = page.locator('form[action="?/createExpense"]');
-  const payerWarning = expenseForm.locator(
-    '[data-problem-code="WARNING_EXPENSE_PAYER_SEPARATE_TREATMENT"]',
-  );
+  const payerWarning = expenseForm.locator('[data-problem-code="WARNING_EXPENSE_PAYER_FACTS"]');
   await expect(payerWarning).toBeVisible();
   await expect(payerWarning).toHaveAttribute('data-kind', 'warning');
-  await expect(payerWarning).toContainText('O reembolso ao trabalhador');
-  await expect(payerWarning).toContainText('cobrança ao cliente');
+  await expect(payerWarning).toContainText('valor, a moeda, quem pagou');
+  await expect(payerWarning).not.toContainText('cobrança ao cliente');
   await expect(payerWarning.locator('a')).toHaveCount(0);
   await expenseForm.locator('[name="whoPaid"]').selectOption('company_card');
   await expect(payerWarning).toBeVisible();
@@ -158,7 +156,7 @@ test('reviewer sees factual approval warning and record-scoped remedy', async ({
   await expect(approveWarning).toBeVisible();
   await expect(approveWarning).toHaveAttribute('data-kind', 'warning');
   await expect(approveWarning).toContainText(
-    'does not decide customer billing or worker reimbursement',
+    'Check the source and evidence before completing its operational review',
   );
   await expect(approveWarning.getByRole('link', { name: 'Review this record' })).toHaveAttribute(
     'href',

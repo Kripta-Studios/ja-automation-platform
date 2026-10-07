@@ -212,6 +212,7 @@ export const PORTAL_LITERAL_KEYS = [
   'We could not confirm activation. Check your connection and try again. If you already activated the account, return to sign in.',
   'Check your full name and password, then try again.',
   'This invitation could not be activated. It may have expired or already been used. Return to sign in if you activated it, or ask an owner for a new invitation.',
+  'problem.correction.recordLocked',
   'problem.time.correctionValuesRetained',
   'problem.invoice.pdfNetworkUnavailable',
   'problem.invoice.pdfInvalidResponse',

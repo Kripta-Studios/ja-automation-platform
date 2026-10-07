@@ -1,0 +1,944 @@
+{
+  "status": "PASS",
+  "checkedAt": "2026-10-07T12:03:35.365Z",
+  "environment": "isolated synthetic runtime",
+  "cycle": [
+    {
+      "role": "worker",
+      "id": "01a11638-2381-737e-8c45-dbe985705bb2",
+      "projectId": "01a11177-f600-702b-8ae3-da9101ab9bfd",
+      "save": "PASS",
+      "submit": "PASS",
+      "resumed": true,
+      "review": "PASS",
+      "correction": {
+        "id": "01a1163b-6dd1-7605-a67e-4d0bec9bf20f",
+        "status": "approved",
+        "minutes": 30
+      }
+    },
+    {
+      "role": "chief",
+      "id": "01a11638-30ab-728b-8732-892522a49466",
+      "projectId": "01a11177-f600-702b-8ae3-da9101ab9bfd",
+      "save": "PASS",
+      "submit": "PASS",
+      "resumed": true,
+      "review": "PASS"
+    },
+    {
+      "role": "external-technician",
+      "id": "01a11638-3b9c-7349-b570-991fea4ac0ff",
+      "projectId": "01a10c51-a391-7288-aad1-cb38be43f496",
+      "save": "PASS",
+      "submit": "PASS",
+      "resumed": true,
+      "review": "PASS"
+    },
+    {
+      "role": "supplier-coordinator",
+      "id": "01a11638-46c5-768e-9ccd-ef1549139fa9",
+      "projectId": "01a10c51-a391-7288-aad1-cb38be43f496",
+      "save": "PASS",
+      "submit": "PASS",
+      "resumed": true,
+      "review": "PASS"
+    },
+    {
+      "role": "manager",
+      "id": "01a11638-51da-750c-842a-6e6db8ea18b3",
+      "projectId": "01a10c51-a391-7288-aad1-cb38be43f496",
+      "save": "PASS",
+      "submit": "PASS",
+      "resumed": true,
+      "review": "PASS"
+    }
+  ],
+  "ownStatementExports": [
+    {
+      "format": "PDF",
+      "bytes": 315859,
+      "sha256": "36e586acefef486a15c388d78b480fd919a8853d0266648503d5ad46fef9b720"
+    },
+    {
+      "format": "CSV",
+      "bytes": 5824,
+      "sha256": "1f2c0085aa846d835c8366b276df0b7a088f3bfdbda90ffeac2817d29ca3d4d2"
+    }
+  ],
+  "widths": [
+    {
+      "role": "worker",
+      "width": 360,
+      "documentWidth": 360,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "worker",
+      "width": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "worker",
+      "width": 768,
+      "documentWidth": 768,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 413,
+          "right": 564.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "worker",
+      "width": 1440,
+      "documentWidth": 1440,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 353,
+          "right": 504.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 873,
+          "right": 1024.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "chief",
+      "width": 360,
+      "documentWidth": 360,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "chief",
+      "width": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "chief",
+      "width": 768,
+      "documentWidth": 768,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 413,
+          "right": 564.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "chief",
+      "width": 1440,
+      "documentWidth": 1440,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 353,
+          "right": 504.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 873,
+          "right": 1024.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "manager",
+      "width": 360,
+      "documentWidth": 360,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "manager",
+      "width": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "manager",
+      "width": 768,
+      "documentWidth": 768,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "manager",
+      "width": 1440,
+      "documentWidth": 1440,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 353,
+          "right": 504.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "external-technician",
+      "width": 360,
+      "documentWidth": 360,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "external-technician",
+      "width": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "external-technician",
+      "width": 768,
+      "documentWidth": 768,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "external-technician",
+      "width": 1440,
+      "documentWidth": 1440,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 353,
+          "right": 504.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "supplier-coordinator",
+      "width": 360,
+      "documentWidth": 360,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "supplier-coordinator",
+      "width": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "supplier-coordinator",
+      "width": 768,
+      "documentWidth": 768,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "supplier-coordinator",
+      "width": 1440,
+      "documentWidth": 1440,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 353,
+          "right": 504.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "finance",
+      "width": 360,
+      "documentWidth": 360,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "finance",
+      "width": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "finance",
+      "width": 768,
+      "documentWidth": 768,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "finance",
+      "width": 1440,
+      "documentWidth": 1440,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 353,
+          "right": 504.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "auditor",
+      "width": 360,
+      "documentWidth": 360,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "auditor",
+      "width": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "auditor",
+      "width": 768,
+      "documentWidth": 768,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "auditor",
+      "width": 1440,
+      "documentWidth": 1440,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 353,
+          "right": 504.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "owner",
+      "width": 360,
+      "documentWidth": 360,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "owner",
+      "width": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 53,
+          "right": 204.609375
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "owner",
+      "width": 768,
+      "documentWidth": 768,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 413,
+          "right": 564.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 413,
+          "right": 564.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 413,
+          "right": 564.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 413,
+          "right": 564.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 413,
+          "right": 564.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 413,
+          "right": 564.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 67.71875,
+          "right": 219.328125
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "role": "owner",
+      "width": 1440,
+      "documentWidth": 1440,
+      "controls": [
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 353,
+          "right": 504.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 699.65625,
+          "right": 851.265625
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 1046.328125,
+          "right": 1197.9375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 353,
+          "right": 504.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 699.65625,
+          "right": 851.265625
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 1046.328125,
+          "right": 1197.9375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 353,
+          "right": 504.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 699.65625,
+          "right": 851.265625
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 1046.328125,
+          "right": 1197.9375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 353,
+          "right": 504.609375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 699.65625,
+          "right": 851.265625
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 1046.328125,
+          "right": 1197.9375
+        },
+        {
+          "label": "Download PDF · EN",
+          "width": 151.609375,
+          "height": 44,
+          "left": 353,
+          "right": 504.609375
+        }
+      ],
+      "status": "PASS"
+    }
+  ],
+  "pageErrors": []
+}

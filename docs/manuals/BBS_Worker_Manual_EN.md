@@ -33,7 +33,7 @@ Go here: Your trusted invitation → Activate your account → Return to sign in
 
 ### Verify the result
 
-- The activation success message precedes the separate sign-in. The illustrated new Worker signed in and reached their own Profile; no assignment or financial permission was implied.
+- The activation success message precedes the separate sign-in. Verify your own Profile and assigned projects after signing in.
 
 ### If you get stuck
 
@@ -46,27 +46,25 @@ Go here: Your trusted invitation → Activate your account → Return to sign in
 ![Reusing the same single-use training invitation shows the genuine recovery message. Return to sign in if already activated; otherwise request a new invitation.](../evidence/bbs-readiness-20261006/owner-common/screenshots/access-used-invitation.png)
 
 <a id="trainer-setup"></a>
-## Trainer setup · prepare a normal cycle before exceptions
+## Practice setup · your account and starting records
 
-Ask the trainer to provide the following checkpoint sheet before reproducing a lesson. Reusing a shared historical BBS period does not reset it. A production URL is never a training switch.
+Obtain your own training account, isolated environment, authorized project and lesson dates from the trainer. Confirm the named starting records and expected result before saving. Ask the trainer to restore the checkpoint when needed.
 
 | Checkpoint | Required starting condition |
 | --- | --- |
 | Identity and environment | Own correctly provisioned role/profile; isolated URL and visible environment identity. |
 | Project and dates | Exact project number, timezone and unused eligible lesson dates; membership and relevant grants cover both current access and the work date. |
 | Source state | Named source IDs and durations/amounts; ordinary starting drafts/submissions; no unrelated correction already open. |
-| Financial/evidence locks | List issued/closed periods, finalized settlements and signed report versions. Teach ordinary correction on an unlocked scope first. |
-| Expected outcome | Saved state, source count, actual total and appropriate own/customer/internal output. Include the receiving role and result. |
-| Reset | Operator restores the prepared database AND private documents together to the named checkpoint while training is stopped. Trainees do not delete financial history to reset a lesson. |
+| Expected outcome | Expected saved state, source count, actual total and permitted output; named receiving reviewer where needed. |
 
 ### Verify the result
 
-- The new normal Worker/Chief lesson uses BBS READINESS · normal work cycle (C-0050-P-2026100601) with initially unfinalized October work. Original BBS locked-period examples are exceptions. External/Supplier/PM October 13–19 and Finance October 26 demonstrations are separately labelled; Accounting can use a separate clean synthetic portfolio.
+- Confirm that the visible starting records match this lesson. If they differ or an action is unavailable, stop and ask the trainer for the correct checkpoint.
 
 <a id="review-authority"></a>
 ## Review authority · who receives each source
 
-Review is determined by the actual source, base role and current dated grants. Chief delegation alone grants recording, not approval. A Worker with Can review checked does not become a Project Manager or Finance user. Send a factual correction reason with every return.
+Review is determined by the source, base role and current dated grants. Chief delegation grants recording, not approval. A Worker with Can review checked does not become a Project Manager. Send a factual reason with every requested correction.
 
 | Source / recorder | Operational reviewer and prerequisite | Next handoff |
 | --- | --- | --- |
@@ -93,7 +91,7 @@ Before practising, obtain an operator-provided training URL, your own training a
 
 Today is your landing page. Time records actual work; Expenses records purchases and evidence; Reports records daily and technical facts; My Pay shows your own compensation and reimbursements; Profile manages your workforce profile and security. Notifications and Help are in the navigation. Crew hours is useful only when the Owner has granted applicable delegation.
 
-For account access and recovery, use the common Access (access), Security (security), Review authority (review-authority) and Trainer setup (trainer-setup) sections. Those controls are shared across roles; a job title does not grant access.
+For account access and recovery, use the common Access (access), Security (security), Review authority (review-authority) and Practice setup (trainer-setup) sections. Those controls are shared across roles; a job title does not grant access.
 
 ### Do the task
 
@@ -136,9 +134,9 @@ Category describes operational activity. Selecting Overtime does not by itself p
 
 - Edit an unsent draft through its permitted draft controls. If uncertain whether Save succeeded, reload the date-filtered register and open the existing row before trying again.
 
-![Own Worker 2 first-shift form, including the full Save draft button; two synthetic hours in the unlocked readiness project.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-first-shift-full-save-draft.png)
+![Recaptured native form with factual work inputs and the complete Save draft control. Fields are filled for illustration; this capture did not save another source.](../evidence/bbs-confidentiality-20261007/worker/screenshots/worker-first-shift-form.png)
 
-![The same source after Submit: Submitted, awaiting independent operational review.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-first-shift-submitted.png)
+![The same October 7 first-shift source after later review: Needs changes. The initial Submitted checkpoint precedes this current state.](../evidence/bbs-confidentiality-20261007/worker/screenshots/worker-first-shift-current.png)
 
 <a id="worker-expense"></a>
 ## Record one expense with private receipt evidence
@@ -155,7 +153,7 @@ The native form accepts JPG, PNG, HEIC or PDF receipts up to 10 MB. Preserve the
 
 1. Choose Record expense. Attach Receipt image or PDF, select Project, Date and Category, and fill Amount, Currency, Who paid and Description. Vendor/payment method and local time/related hours are offered contextual fields.
 2. Check the full Save draft control, then use it. Reopen the exact saved expense and inspect worker, date, payer, USD 3 amount and attached private receipt.
-3. Use Submit on the expense detail. Verify Submitted and hand the record ID to the permitted operational reviewer. Finance later decides applicable treatment; no reimbursement or bank payment is claimed.
+3. Use Submit on the expense detail. Verify Submitted and hand the record ID to the permitted operational reviewer. No reimbursement or bank payment is claimed by submission.
 
 ### Verify the result
 
@@ -165,7 +163,7 @@ The native form accepts JPG, PNG, HEIC or PDF receipts up to 10 MB. Preserve the
 
 - If receipt processing or permission prevents access, use the precise document status/message and ask support. Uploading/registered does not universally mean antivirus-clean. Do not duplicate a purchase while checking a failed submission.
 
-![Native own Worker 2 receipt form with the full Save draft button.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-single-expense-full-save.png)
+![Native receipt-backed expense form with actual payer, amount, receipt control and the full Save draft action. Recaptured filled illustration; no duplicate was saved.](../evidence/bbs-confidentiality-20261007/worker/screenshots/worker-expense-form.png)
 
 ![Saved own receipt-backed draft ready for inspection.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-single-expense-saved.png)
 
@@ -188,7 +186,7 @@ The readiness exercise saved an own Draft, generated its English source PDF, che
 
 1. Choose New daily report. Complete Project, Work date and the factual summary/tasks; fill applicable problems/actions/downtime/next-step fields.
 2. Use Save daily report. Open the Draft report and inspect its header and content. Saving/autosaving content does not submit it.
-3. Use Submit for review. Confirm Submitted. The genuine PM approved this source in the role lab.
+3. Use Submit for review and confirm Submitted. This October 12 readiness checkpoint ends at submission; inspect the exact report’s later review state separately.
 
 ### Verify the result
 
@@ -314,7 +312,7 @@ Go here: Time → returned source → Create corrected draft
 
 Context: Isolated readiness lab · own Worker 2 normal correction · unlocked October 7, 2026
 
-The Owner returned Worker 2’s two-hour readiness-project source with a reason requesting 1.5 actual hours. The source is outside any finalized obligation in this new project. Create corrected draft creates an audited linked replacement and preserves the original.
+The Owner returned Worker 2’s two-hour readiness-project source with a reason requesting 1.5 actual hours. Create corrected draft was available for this eligible source. It creates an audited linked replacement and preserves the original.
 
 Review every value before creating the correction: a linked time correction has no Edit draft control after creation. If an unsubmitted correction is wrong, use Withdraw correction draft with a reason, return to the original and create the correct replacement. This exercise actually withdrew a wrong 1.75-hour draft and recreated a 1.5-hour draft.
 
@@ -332,13 +330,11 @@ Review every value before creating the correction: a linked time correction has 
 
 ### If you get stuck
 
-- If a correction is already submitted, use its current state and the reviewer’s next offered control. For a locked source, send the exact message and record ID to the responsible Owner or Finance contact; do not create an unlinked duplicate.
+- If a correction is already submitted, use its current state and the reviewer’s next offered control. For a locked source, send the Owner its ID, project, work date, requested correction and reason; do not create an unlinked duplicate.
 
-![Own normal returned source in the unlocked readiness project.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-normal-returned.png)
+![The same October 7 first-shift source after later review: Needs changes. The initial Submitted checkpoint precedes this current state.](../evidence/bbs-confidentiality-20261007/worker/screenshots/worker-first-shift-current.png)
 
-![The accurate linked 1.5-hour Draft after withdrawal of the incorrect draft.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-normal-correction-draft.png)
-
-![Native withdrawal returned to the original source; the audit preserves the attempted correction.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-wrong-correction-withdrawn.png)
+![The accurate linked 1.5-hour replacement now shows Submitted after weekly submission. Its earlier Draft checkpoint and withdrawn 1.75-hour attempt remain historical.](../evidence/bbs-confidentiality-20261007/worker/screenshots/worker-correction-current.png)
 
 <a id="worker-report-evidence"></a>
 ## Understand report PDFs, attachments and customer acceptance
@@ -351,7 +347,7 @@ Use the own report PDF panel: choose Language, Generate report, then Refresh to 
 
 An own Worker 2 Daily text attachment was actually uploaded as private supporting evidence while Draft. Allowed types include PDF, ZIP, common images and UTF-8 text, with the displayed 50 MB limit. Registered evidence and an available native download are separate from antivirus status; read the current status before relying on a file.
 
-Report recovery differs from time and expenses. An ordinary Draft or Needs changes report can be edited through Modify report / Save changes and resubmitted as the same versioned source. This was actually tested for the returned Daily report. An Approved report offers Create corrected draft when unlocked; the resulting linked correction is not an unrestricted editable draft. A report included in a finalized period can require the authorized review/Owner handoff.
+Report recovery differs from time and expenses. An ordinary Draft or Needs changes report can be edited through Modify report / Save changes and resubmitted as the same versioned source. This was actually tested for the returned Daily report. An eligible Approved report offers Create corrected draft; the resulting linked correction is not an unrestricted editable draft. For a locked report, send its ID, project, work date, requested correction and reason to the Owner or reviewer.
 
 Customer period PDFs and customer acceptance are separate authorized workflows. Own source approval does not record a signature. The lab created no customer signature or acceptance.
 
@@ -359,7 +355,7 @@ Customer period PDFs and customer acceptance are separate authorized workflows. 
 
 1. Before Submit for review, inspect saved report facts and authorized attachments. Generate and open the current own PDF when needed.
 2. If returned, read the reviewer reason, edit only the offered fields, use Save changes and Submit for review; verify the same ID’s new version and state.
-3. For an Approved source, use the offered linked correction flow and review every value before creation. For a finalized-period guard, send source ID, period/version, exact message and intended change to the Owner/PM.
+3. For an eligible Approved source, use the offered linked correction flow and review every value before creation. If the action is unavailable, send the source ID, project, work date, requested correction and reason to the Owner or reviewer.
 
 ### Verify the result
 
@@ -367,7 +363,7 @@ Customer period PDFs and customer acceptance are separate authorized workflows. 
 
 ### If you get stuck
 
-- Do not promise Edit on a linked report correction or a finalized source. Do not fabricate signer evidence or claim a downloaded report was delivered to a customer.
+- Do not promise Edit on a linked correction or a locked source. Do not fabricate signer evidence or claim a downloaded report was delivered to a customer.
 
 ![Native versioned edit of an ordinary Needs changes Daily report.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-returned-edited.png)
 
@@ -430,34 +426,30 @@ The historical October 15–16 own Worker 2 request became Ready in both PDF and
 ![Native own Worker statement panel: PDF and CSV are Ready for the selected October 15–16 period. Download each format from its Ready link.](../evidence/bbs-privacy-20261006/worker/screenshots/worker-statement-ready.png)
 
 <a id="worker-settlement-guard"></a>
-## Hand settled compensation changes to Finance
+## Hand a locked time correction to the Owner
 
 Go here: Time → returned source → Create corrected draft
 
 Context: Isolated BBS role lab · genuine Worker account · fictional October 2026 records
 
-The Worker 1 October 6 source was fresh, yet its own compensation period was already covered by a finalized October 1–31 settlement. Attempting the returned 4 h → 3.5 h correction was refused.
+The historical October 6 returned source was locked when the worker attempted a four-hour to 3.5-hour correction. No replacement draft was created. A recently entered source can still be unavailable for correction.
 
-The exact message was: “This time has settled or paid worker compensation. Contact Finance for an explicit adjustment before any new correction.” A fresh work date does not override a finalized own settlement.
-
-A recorded payment reversal changes payment history; it does not automatically unlock the finalized compensation obligation or make operational replacement available. Finance owns the explicit adjustment/revision lifecycle; the Owner coordinates missing authority or support. Provide the source ID, project, work date, obligation period and exact guard. See common Recovery matrix (recovery-matrix).
-
-For a correction to an already-finalized entitlement, hand the original source, settlement ID, period, reason and intended facts to Finance/Owner. The supported response is a support-controlled historical adjustment. A prospective rule change or Custom approved adjustment for a later period does not rewrite that finalized obligation, and cash payment reversal does not unlock it. See common Recovery matrix (recovery-matrix).
+Preserve the existing source and use the displayed next action or contact the Owner. Send the source ID, project, work date, requested correction and reason. The Owner coordinates the supported resolution and confirms whether a new correction is permitted. See Recovery · correct a source or request help (recovery-matrix).
 
 ### Do the task
 
-1. Read the guard and keep the existing returned source intact.
-2. Send Finance/Owner the source ID, worker, project, date, current/desired hours and correction reason. Wait for their supported explicit adjustment process.
+1. Read the current message and keep the existing returned source intact.
+2. Send the Owner the source ID, project, work date, current/desired hours and correction reason. Wait for confirmation of the supported next action.
 
 ### Verify the result
 
-- No replacement draft was created by the refused operation. The finalized own settlement was not changed.
+- The blocked operation created no replacement draft and left the original source unchanged.
 
 ### If you get stuck
 
-- Do not add an unlinked replacement, shift the work date, change the worker or ask someone to erase settlement history to bypass the guard.
+- Do not add an unlinked replacement or change the work date/person to work around the restriction.
 
-![Actual expected guard for Worker 1; this is a tested blocked state, not a successful correction.](../evidence/bbs-role-manuals-20261006/worker/screenshots/20-worker-settlement-correction-blocked.png)
+![Actual refused correction result: the source cannot be changed here. Send its reference, work date, requested factual correction and reason to the designated administrator. No replacement was created.](../evidence/bbs-confidentiality-20261007/worker/screenshots/worker-locked-source.png)
 
 <a id="worker-planning"></a>
 ## Read a plan without creating actual hours
@@ -518,7 +510,7 @@ Technician 1 then recorded six actual hours personally. The Chief recorded seven
 
 ![Technician 1 sees the October 20 eight-hour plan under Upcoming assignments. Today is October 6 in this isolated snapshot; project membership exists although no plan is published for today.](../evidence/bbs-planning-20261006/worker/screenshots/02-worker1-upcoming-plan.png)
 
-![Native Technician 1 Log time form: six actual hours are entered independently of the eight-hour plan. This is synthetic isolated training work.](../evidence/bbs-planning-20261006/worker/screenshots/05-worker1-actual-six-hours-form.png)
+![Recaptured native form with factual work inputs and the complete Save draft control. Fields are filled for illustration; this capture did not save another source.](../evidence/bbs-confidentiality-20261007/worker/screenshots/worker-six-hours-form.png)
 
 <a id="worker-expected-hours"></a>
 ## Read Expected, Difference and Needs note correctly
@@ -557,7 +549,7 @@ The final additional training checkpoint is later than the earlier weekly screen
 
 ![Technician 1’s own weekly comparison after PM approval: October 20 Actual 6.00h, Expected 8.00h, Difference −2.00h and Needs note. The source itself remains Approved.](../evidence/bbs-planning-20261006/worker/screenshots/07-worker1-approved-needs-note.png)
 
-![The same Technician 1 October 20 six-hour source is Approved. Needs note belongs to the weekly target comparison; it is not a returned source.](../evidence/bbs-planning-20261006/worker/screenshots/12-worker1-source-approved.png)
+![Current own October 20 source: Approved, six actual hours and the recorded work summary.](../evidence/bbs-confidentiality-20261007/worker/screenshots/worker-six-hours-approved.png)
 
 ![Technician 2’s own view after the Chief’s seven-hour source was submitted and PM approved: Expected remains eight hours and Difference is −1.00h.](../evidence/bbs-planning-20261006/worker/screenshots/08-worker2-chief-recorded-needs-note.png)
 
@@ -625,9 +617,9 @@ Use a narrow screen’s navigation rather than searching for the full desktop si
 
 - If a control or row is clipped, report the page, screen width, exact action and screenshot without credentials. Do not compensate by saving the same record twice.
 
-![Actual 390 pixel Worker Time viewport.](../evidence/bbs-role-manuals-20261006/worker/screenshots/16-worker-phone-time.png)
+![Current own Time workspace at 390 pixels; record factual duration and activity, then follow its review state.](../evidence/bbs-confidentiality-20261007/worker/screenshots/worker-time-390.png)
 
-![Actual 768 pixel Worker Time viewport.](../evidence/bbs-role-manuals-20261006/worker/screenshots/17-worker-tablet-time.png)
+![Current own Time workspace at 768 pixels; record factual duration and activity, then follow its review state.](../evidence/bbs-confidentiality-20261007/worker/screenshots/worker-time-768.png)
 
 <a id="worker-profile"></a>
 ## Maintain expertise, availability and account security
@@ -636,7 +628,7 @@ Go here: Profile → Expertise and availability; Account security
 
 Context: Reference procedure · current controls/source checked; mutations not exercised in this role lab
 
-Your workforce profile is separate from account role, project assignment and compensation. The Worker 2 profile was inspected natively; security and availability mutations were not performed in this role exercise.
+Your workforce profile is separate from account role and project assignment. The Worker 2 profile was inspected natively; security and availability mutations were not performed in this role exercise.
 
 Add expertise offers the expertise choice and proficiency. Add availability opens a dated UTC availability window; availability is a planning signal, not published assignment or actual work. Passkeys use Device name and Register passkey. Authenticator setup can return a setup URI and one-time recovery codes; keep them private.
 
@@ -663,7 +655,7 @@ Go here: Notifications; Help
 
 Context: Reference procedure · current controls/source checked; mutations not exercised in this role lab
 
-Opening a notification or marking it read is not operational approval, Finance review, payment or customer acceptance. Follow the underlying record and verify its current state.
+Opening a notification or marking it read does not approve the underlying source or complete its next action. Follow the record and verify its current state.
 
 Help provides role guides and Contact support. The verified support address is admin@j-aautomation.com. A live portal/webmail link is a live company service, not a training switch. No support email was sent in this exercise.
 
@@ -671,7 +663,7 @@ Help provides role guides and Contact support. The verified support address is a
 
 1. Open the notification and follow its record link. Check current state; old notifications can refer to a state that has since changed.
 2. For help include role, environment identity, project/record ID, date, intended action and exact error; include a safe screenshot if useful.
-3. Send operational corrections to the PM/reviewer, settlement/reimbursement questions to Finance and access/assignment issues to the Owner.
+3. Send operational corrections to the PM/reviewer, your own reimbursement or My Pay questions to the designated contact, and access/assignment or locked-source issues to the Owner.
 
 ### Verify the result
 
@@ -698,59 +690,22 @@ The October 6 readiness audit adds explicit native-browser outcomes and state-sp
 2. Record actual hours once; inspect and submit the intended drafts.
 3. Record each purchase once, preserve payer/currency and attach its real authorized receipt.
 4. Save and submit the required Daily and Technical reports with genuine factual evidence.
-5. Read returned reasons; create linked corrections where permitted, or hand settlement locks to Finance.
+5. Read returned reasons and create linked corrections where offered. For a locked source, send the Owner its ID, project, work date, requested correction and reason.
 6. Check approved/pending sources and your own My Pay; send reimbursement and settlement questions to the designated contact.
 
 ### Verify the result
 
-- Lab passes: native time/expense/report saving and submission, successful linked correction and PM approval, expected finalized-settlement guard, own receipt access, denied unrelated access and responsive views.
+- Lab passes: native time/expense/report saving and submission, successful linked correction and independent review, a locked-source correction refused without a replacement, own receipt access, denied unrelated access and responsive views.
 - Readiness native results: own ordinary and current linked time correction Submitted together, count 2→0; receipt-backed weekly expenses and returned expense recovery, own Daily/Technical Ready PDF downloads before submission, and own statement PDF/CSV downloads. See the readiness per-ID audit for exact current states.
 
 ### If you get stuck
 
 - Reference-only: account onboarding/security recovery, layout copying, customer acceptance, own expertise/availability/security changes, and real bank/email delivery. A required missing receipt weekly guard was source checked; the native weekly form creates receipt-optional drafts, so this lab does not claim a missing-required-receipt runtime test.
 
-<a id="worker-evidence"></a>
-## What was verified and what remains a reference
-
-Go here: Verification appendix
-
-Context: Isolated BBS role lab · actual browser outcomes and explicit limits
-
-Native authenticated browser records, synthetic receipt fixtures and SHA-256 capture manifests are maintained with the guide. Account secrets are excluded. Original October 2–5 history and finalized worker settlements were preserved.
-
-Actual saved/submitted/returned/approved states are distinguished from controls merely inspected. The Owner/PM/Finance handoffs used their own genuine role sessions. This evidence does not claim real bank transfers, live equipment changes or production transactions.
-
-Historical runner exception: the first October 15 statement attempt failed because the isolated operator handler was unavailable. That failed job remains in history. A fresh October 15–16 request subsequently produced the verified Ready PDF and CSV; this setup failure is not the ordinary statement procedure.
-
-The October 6 readiness audit adds explicit native-browser outcomes and state-specific limits. Per-ID status and source IDs are recorded under docs/evidence/bbs-readiness-20261006/worker-chief. Earlier planning/role-lab screenshots retain their original historical scope; they are not the state of the new readiness sources.
-
-### Do the task
-
-1. Own time saved and submitted; the PM returned it, and the finalized-settlement correction was refused without creating a replacement.
-2. Worker 2 own three-hour source corrected through a linked 2.5-hour replacement, submitted and PM approved; original history retained.
-3. Own synthetic USD 12 expense saved with receipt, submitted, PM approved and Finance classified/reviewed.
-4. Own Daily and Technical reports saved, submitted and PM approved.
-5. October 15 current approved activity 195 minutes=3.25 hours; old 3-hour and 1-hour sources excluded from current totals.
-6. A published October 16 two-hour plan appeared under Upcoming assignments without creating actual time.
-7. Own October 15–16 PDF and CSV statements Ready, native downloads 200, exact stored hash and length match.
-8. Requests for unrelated records were denied; the own private receipt was accessible.
-9. Desktop 1440, tablet 768 and phone 390 Time pages fit their viewports.
-10. Additional connected planning lab: Owner published October 20 eight-hour plans to all three original workers; each saw their own card with zero actual time before native entry. Technician 1 saved/submitted six hours, the Chief saved/submitted seven for Technician 2 plus eight of its own; PM approved all three.
-11. Additional weekly comparison: 6/8/−2 and 7/8/−1 displayed Needs note after approval; Chief 8/8/0 displayed Approved. Before membership coverage Expected was a dash. Native desktop/tablet/phone agenda and crew views fit 1440/768/390 viewports.
-
-### Verify the result
-
-- See the adjacent task checklist and role capture manifest for source IDs, screen widths, artifact integrity and expected permission denials.
-
-### If you get stuck
-
-- The historical labs above retain their own scope. This readiness audit additionally tested weekly ordinary/linked correction submission, weekly receipt attachment/submission and returned expense recovery, own report PDF generation/download and returned ordinary report editing, and own Ready statement downloads. Customer acceptance, live email/bank delivery and profile/security changes remain unperformed. Required missing receipt weekly rejection remains source checked.
-
 <a id="recovery-matrix"></a>
-## Recovery · sources, obligations and immutable history
+## Recovery · correct a source or request help
 
-Use the role’s worked correction lesson and the current record controls. A new purchase is different from a correction to an existing purchase. A payment reversal records a cash-entry correction; it does not amend a finalized compensation entitlement or unlock its time sources.
+Use your role’s worked correction lesson and the controls offered on the current record. Preserve the original. A new purchase is different from correcting an existing purchase.
 
 | State | Supported next action |
 | --- | --- |
@@ -758,12 +713,12 @@ Use the role’s worked correction lesson and the current record controls. A new
 | Submitted | Read current state and reviewer handoff. Do not create another source merely because review is pending. |
 | Needs changes | Read the reason. Time uses Create corrected draft where available, then submit/review the linked replacement. A returned Daily/Technical report instead offers Edit and Save changes on the same report, then Submit for review; follow the exact role lesson. |
 | Rejected | Inspect the reason and contact reviewer/Owner. The time detail does not offer the same linked-correction route as Needs changes; do not assume that route exists. |
-| Approved, unlocked | Use the offered linked correction, preserving the original. Re-review the replacement and refresh affected unissued drafts/report versions through their supported controls. |
-| Issued, financially locked or finalized compensation | Stop source editing. Send source ID/project/date, original/correct values, reason, affected invoice/settlement and payment references to Owner/Finance. If no authorized amendment control exists, escalate to platform support. |
+| Approved, correction available | Use the offered linked correction and review every value before creating it. Submit the replacement for the authorized reviewer and verify its resulting state. |
+| Locked or correction unavailable | Send the source ID, project, work date, visible state, requested correction and reason to the designated administrator. Do not create a duplicate. Wait for instructions before changing the record. |
 
 ### If you get stuck
 
-- For a finalized-compensation guard, send the exact source/date/reason and requested factual correction to Finance/Owner. Wait for a documented authorized resolution and explicit instruction about the source lock. Do not reverse a payment, change work dates or duplicate hours to evade the guard.
+- If an action is unavailable to your account, return to your workspace and contact the designated administrator with the record reference and requested action. Do not change dates or people to work around a restriction.
 
 <a id="security"></a>
 ## Security · verify your own device and recovery options
@@ -783,18 +738,10 @@ Go here: Profile → Account security; Profile → Add availability
 ![Isolated recipient’s authenticator setup was verified; the native Enabled state is shown after secret URI/recovery codes disappeared. No usable security material is published.](../evidence/bbs-readiness-20261006/owner-common/screenshots/security-mfa-enabled.png)
 
 <a id="verification"></a>
-## Verification · current coverage and historical evidence
+## Completion check · your permitted role cycle
 
-English readiness edition: 6 October 2026, based on repository abc12c0961b2 with the recorded readiness fixes. The publication receipt identifies the final commit and deployment. This edition teaches the permitted ordinary cycle and supported handoffs; it does not certify every contract, device or external service.
-
-The current evidence lives in docs/evidence/bbs-readiness-20261006. Its correction register maps all 72 suite findings to tasks, browser evidence or precise reference/support boundaries. Role manifests identify source IDs, state transitions and downloaded artifacts. Historical 5 October outputs remain historical; new screenshots do not rewrite their totals or private bytes.
-
-Recipient activation, actual authenticator verification and own passkey registration/revocation were exercised on a separate isolated recipient. The same account controls are shared, but enrollment was not repeated for every role or physical device. Offline/expired-link and lost-device paths remain precise references where not separately executed.
-
-Weekly submission was exercised with one ordinary draft and one eligible linked correction for Worker, Chief, External Technician and Supplier Coordinator: two selected drafts became two Submitted sources and zero remaining drafts. This does not guarantee that locked, withdrawn, out-of-scope or ineligible corrections will submit.
-
-A final Accounting cut succeeded in a separate clean Finance portfolio; an Auditor read and downloaded its outputs. Original BBS issuer-history and source-reconciliation blockers remain documented. Email transport, real bank movement, accountant approval and genuine customer acceptance are outside the synthetic tests.
+Use the worked lessons for your own role. Historical examples retain their stated dates and states. A procedure labelled reference was checked against the controls; its outcome was not necessarily executed in the illustrated session.
 
 ### Verify the result
 
-- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding.
+- Confirm your identity, project and dates. Verify the saved and submitted source, its review state, supported correction or administrator handoff and each permitted Ready output. Submission, review and download are separate checkpoints.

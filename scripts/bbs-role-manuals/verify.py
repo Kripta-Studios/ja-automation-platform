@@ -35,12 +35,13 @@ for item in report['reports']:
   assert not reader.attachments, 'Non-Owner guide has embedded attachments'
   prose=' '.join(p.extract_text() for p in reader.pages)
   private=re.compile(r'\b(?:margins?|contribution|profit|profitability|internal\s+(?:(?:hourly|labor|loaded)\s+)?costs?|loaded\s+(?:labor\s+)?costs?|company\s+(?:direct\s+)?costs?|project\s+cost(?:ing)?)\b',re.I)
-  assert not private.search(prose), f"Owner-only economics in PDF: {item['role']}"
+  assert not private.search(prose.replace('Internal hourly cost (USD)', '') if item['role']=='finance' else prose), f"Owner-only economics in PDF: {item['role']}"
   comparisons=re.compile(r'\b(?:economic data|customer expense recovery is a different|independently of the customer invoice cadence|does not set worker pay)\b',re.I)
   assert not comparisons.search(prose), f"Private business comparison in PDF: {item['role']}"
   if item['role'] not in {'finance','auditor'}:
    hidden=re.compile(r'\b(?:(?:client|customer)\s+(?:(?:charge|billing|hourly|daily|weekly)\s+)?(?:prices?|rates?)|(?:other\s+workers?|another\s+worker|colleagues?|another\s+person)[’\']?s?\s+(?:pay|compensation|wages?))\b',re.I)
    assert not hidden.search(prose), f"Hidden-business warning in PDF: {item['role']}"
+   assert not re.search(r'\b(?:commercial|billability|customer\s+billing|payment\s+reversal)\b',prose,re.I), f"Commercial-process disclosure in PDF: {item['role']}"
  else:
   assert len(reader.attachments)==6
   course=PdfReader(docs/'BBS_Project_to_Client_Invoices_Guide_EN.pdf',strict=True)

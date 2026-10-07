@@ -3595,7 +3595,9 @@
               aria-autocomplete="list"
               aria-controls="portal-search-popover"
               aria-expanded={searchOpen}
-              placeholder={translate('Search projects, people, invoices…')}
+              placeholder={['worker', 'project_manager'].includes(data.user.role)
+                ? translate('Search projects and people…')
+                : translate('Search projects, people, invoices…')}
               autocomplete="off"
               onfocus={() => (searchOpen = true)}
               oninput={() => (searchOpen = true)}
@@ -4478,11 +4480,6 @@
                 {data.periodEnd}
               </p>
             </div>
-            <span
-              >{data.pay.percentageBased
-                ? translate('Percentage rule active')
-                : translate('Rate rule active')}</span
-            >
           </div>
           <div class="detail-grid">
             <a href="{base}/app/time" class="detail-grid-link">
@@ -4522,7 +4519,7 @@
         <section class="record-list full pay-detail">
           <div class="panel-title">
             <div>
-              <h2>{translate('Assignment budget context')}</h2>
+              <h2>{translate('Assignment progress')}</h2>
               <p>
                 {translate(
                   'Optional planning context only; actual and approved time remain the source of compensation.',
@@ -4534,7 +4531,7 @@
           <TableRegion
             class="table-wrap worker-pay-table"
             mobileMode="scroll"
-            label={translate('Assignment budget context')}
+            label={translate('Assignment progress')}
           >
             <table>
               <thead
@@ -4573,9 +4570,7 @@
                       )}</td
                     ></tr
                   >{:else}<tr
-                    ><td colspan="8"
-                      >{translate('No project assignment budget context is configured.')}</td
-                    ></tr
+                    ><td colspan="8">{translate('No assignment progress is available.')}</td></tr
                   >{/each}</tbody
               >
             </table>

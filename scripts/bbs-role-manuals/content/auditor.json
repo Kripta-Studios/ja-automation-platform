@@ -53,7 +53,7 @@
         "Auditor access is read-only. Report discrepancies to the Owner/Finance rather than editing plans, approving time or changing financial rules."
       ],
       "recovery": [
-        "For incorrect actual work, request the state-appropriate operational correction. For an incorrect plan or expected schedule, ask the Owner or authorized Project Manager. These are different records.",
+        "Record a finding for incorrect actual work and request the state-appropriate correction from its operational reviewer. For an incorrect plan or expected schedule, send the finding to the Owner or authorized Project Manager. Auditor inspects these separate records and does not change them.",
         "Supplier time follows the J&A Owner operational-review handoff, whereas an authorized Project Manager may review the supplier Daily report. A missing supplier time item in the ordinary PM queue does not justify duplicate entry."
       ],
       "figures": []
@@ -150,7 +150,7 @@
         "An application receipt is not independent bank evidence; a reversal entry does not perform a bank refund. Original documents, cash events and linked credit history remain preserved."
       ],
       "recovery": [
-        "Ask Finance for an authorized allocation/refund procedure if needed. Auditor has no cash posting or reversal controls."
+        "Inspect the linked documents and preserve a finding with invoice, credit, receipt and reversal references. Send allocation or refund questions to Finance/Owner through the approved support process: this interface has no general credit-allocation or refund-recording action. Auditor does not post cash, allocate credit or reverse payments."
       ],
       "figures": []
     },

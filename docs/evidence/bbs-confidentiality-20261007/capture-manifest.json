@@ -1,0 +1,274 @@
+{
+  "capturedAt": "2026-10-07T11:44:44.305Z",
+  "environment": "isolated loopback runtime; synthetic BBS records",
+  "operation": "Native navigation, unsaved form illustrations, and a refused locked-correction attempt with unchanged source count",
+  "screenshots": [
+    {
+      "role": "worker",
+      "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-first-shift-form.png",
+      "caption": "Recaptured native form with factual work inputs and the complete Save draft control. Fields are filled for illustration; this capture did not save another source.",
+      "viewport": {
+        "width": 1440,
+        "height": 1500
+      },
+      "sha256": "e944c3fecfce80a19e6f7ad37710f3a6a030901092d6faab327072e95c58d230"
+    },
+    {
+      "role": "worker",
+      "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-first-shift-current.png",
+      "caption": "The same October 7 first-shift source after later review: Needs changes. The initial Submitted checkpoint precedes this current state.",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "sha256": "e64552e4a09d984fad30d0856851886496ae5098252a443b2644e032009b9f11"
+    },
+    {
+      "role": "worker",
+      "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-correction-current.png",
+      "caption": "The accurate linked 1.5-hour replacement now shows Submitted after weekly submission. Its earlier Draft checkpoint and withdrawn 1.75-hour attempt remain historical.",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "sha256": "70920d5487ce7fd9e12f8e44c190a5da988f4760c5d046375ea1779694480ee7"
+    },
+    {
+      "role": "worker",
+      "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-six-hours-form.png",
+      "caption": "Recaptured native form with factual work inputs and the complete Save draft control. Fields are filled for illustration; this capture did not save another source.",
+      "viewport": {
+        "width": 1440,
+        "height": 1500
+      },
+      "sha256": "d1aef0254dfdadcb86b995be420f69708ea1378bd8ca36cb2a163b00aacf0d14"
+    },
+    {
+      "role": "worker",
+      "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-six-hours-approved.png",
+      "caption": "Current own October 20 source: Approved, six actual hours and the recorded work summary.",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "sha256": "8b7eadcb1c09573d5991a468ea318fca7c5e59146d53e9aa2c87f411a6ff31ee"
+    },
+    {
+      "role": "worker",
+      "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-expense-form.png",
+      "caption": "Native receipt-backed expense form with actual payer, amount, receipt control and the full Save draft action. Recaptured filled illustration; no duplicate was saved.",
+      "viewport": {
+        "width": 1440,
+        "height": 2100
+      },
+      "sha256": "7f1173f8837b2b3836269d6a2a3b9b044c27458baa7b384a7364b463ffa9b7a3"
+    },
+    {
+      "role": "worker",
+      "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-time-390.png",
+      "caption": "Current own Time workspace at 390 pixels; record factual duration and activity, then follow its review state.",
+      "viewport": {
+        "width": 390,
+        "height": 1000
+      },
+      "sha256": "c5f60421e1b8d4120689dcd44ed830fd6e8f8b7107f8558229b58cfcb09fd249"
+    },
+    {
+      "role": "worker",
+      "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-time-768.png",
+      "caption": "Current own Time workspace at 768 pixels; record factual duration and activity, then follow its review state.",
+      "viewport": {
+        "width": 768,
+        "height": 1000
+      },
+      "sha256": "8f1aee44cdd56885de6d0ed510d91181ebc542500db51228d24383daa641af93"
+    },
+    {
+      "role": "worker",
+      "path": "docs/evidence/bbs-confidentiality-20261007/worker/screenshots/worker-locked-source.png",
+      "caption": "Actual refused correction result: the source cannot be changed here. Send its reference, work date, requested factual correction and reason to the designated administrator. No replacement was created.",
+      "viewport": {
+        "width": 1440,
+        "height": 1250
+      },
+      "sha256": "3da109f21928fee62ca4ac1c318696dcb6b659f21e2b15b1764fb53117dbaf7a"
+    },
+    {
+      "role": "chief",
+      "path": "docs/evidence/bbs-confidentiality-20261007/chief/screenshots/chief-eight-hours-form.png",
+      "caption": "Recaptured native form with factual work inputs and the complete Save draft control. Fields are filled for illustration; this capture did not save another source.",
+      "viewport": {
+        "width": 1440,
+        "height": 1500
+      },
+      "sha256": "f23b6c34e8f95c7bacf062601d0bc0ed5d9bad5e108e773f60b99b68ec28243b"
+    },
+    {
+      "role": "chief",
+      "path": "docs/evidence/bbs-confidentiality-20261007/chief/screenshots/chief-correction-current.png",
+      "caption": "Own accurate linked 0.75-hour replacement now shows Submitted. Its earlier Draft checkpoint preceded the weekly submission.",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "sha256": "bd5a3cb6a588e4b3029b82b3e6e7f46cd99320e89021378c42a9261d35e13318"
+    },
+    {
+      "role": "chief",
+      "path": "docs/evidence/bbs-confidentiality-20261007/chief/screenshots/chief-expense-form.png",
+      "caption": "Native receipt-backed expense form with actual payer, amount, receipt control and the full Save draft action. Recaptured filled illustration; no duplicate was saved.",
+      "viewport": {
+        "width": 1440,
+        "height": 2100
+      },
+      "sha256": "c8eeb05b8a7643b6949b183c0c705df306c07eca44a9019b29bd2cdf9c3c0bc4"
+    },
+    {
+      "role": "chief",
+      "path": "docs/evidence/bbs-confidentiality-20261007/chief/screenshots/chief-allocation-current.png",
+      "caption": "Current native crew records and one shared receipt allocation, after later operational review. Preserve the purchase and inspect its individual covered shifts.",
+      "viewport": {
+        "width": 1440,
+        "height": 1800
+      },
+      "sha256": "0379aa9eb5fef45ea30341947f5ec675b7b49b17248f86730dd99d73abb6d15c"
+    },
+    {
+      "role": "chief",
+      "path": "docs/evidence/bbs-confidentiality-20261007/chief/screenshots/chief-tablet-current.png",
+      "caption": "Native Chief crew workspace at 768 pixels with factual shared-receipt instructions.",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "sha256": "ef9d70fdbda4f8c0b50a7959c72c473ff32d28a119a764f10051629693eabe84"
+    },
+    {
+      "role": "manager",
+      "path": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-own-time-form.png",
+      "caption": "Recaptured native form with factual work inputs and the complete Save draft control. Fields are filled for illustration; this capture did not save another source.",
+      "viewport": {
+        "width": 1440,
+        "height": 1500
+      },
+      "sha256": "58ae4007cdc00f28ee66202055fe21dc9e0fc1124ad40703e2f3a5d4142bf0fb"
+    },
+    {
+      "role": "manager",
+      "path": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-approved-replacement.png",
+      "caption": "Current Approved linked replacement: 15 actual minutes with the original retained; the operational review state is shown.",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "sha256": "de47dc84f53b4591fd83929894e98a829aa6452458267ef5ae8be84adabe0d9c"
+    },
+    {
+      "role": "manager",
+      "path": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-rejected-source.png",
+      "caption": "Actual historical PM Reject result on the October 17 source. The preserved rejection and its factual reason are distinct from Needs changes.",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "sha256": "28a7e73c87b6e1b7e881a09db5297ac243de4ebd823bb2fde0c9f4e626bae56a"
+    },
+    {
+      "role": "manager",
+      "path": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-returned-source.png",
+      "caption": "Actual historical Needs changes source and its factual correction reason, with the current linked replacement preserved.",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "sha256": "183b54f861aa4d290d74f92737d4247507389359ba9f76f680cc187ced793780"
+    },
+    {
+      "role": "manager",
+      "path": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-expenses-current.png",
+      "caption": "Current PM expense workspace: factual purchase entry and operational review.",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "sha256": "87a54cfd096907e4aedeb2a6c71c972e01342fed6ba614fa828e9f977f3d7e69"
+    },
+    {
+      "role": "manager",
+      "path": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-project-current.png",
+      "caption": "Current scoped PM project overview, including operational source facts.",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "sha256": "71298a744de9dae8cf479db04c206d1c5c2aefdf6400b3b888776b8633f07cb8"
+    },
+    {
+      "role": "external-technician",
+      "path": "docs/evidence/bbs-confidentiality-20261007/external-technician/screenshots/external-first-shift-form.png",
+      "caption": "Recaptured native form with factual work inputs and the complete Save draft control. Fields are filled for illustration; this capture did not save another source.",
+      "viewport": {
+        "width": 1440,
+        "height": 1500
+      },
+      "sha256": "5de47f78ece47977e7bdb724f97799e6fcec23388f58157f190b8aad04cc60ca"
+    },
+    {
+      "role": "external-technician",
+      "path": "docs/evidence/bbs-confidentiality-20261007/external-technician/screenshots/external-first-shift-current.png",
+      "caption": "Current October 13 source after later review: Needs changes, with its approved linked replacement retained. The earlier saved Draft checkpoint precedes this state.",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "sha256": "0d7735cdf319337c0c0705551669c40a79d5f2071d7cd5fba9b6b3bd820d559d"
+    },
+    {
+      "role": "external-technician",
+      "path": "docs/evidence/bbs-confidentiality-20261007/external-technician/screenshots/external-week-current.png",
+      "caption": "Current selected-week workspace after the historical ordinary-plus-linked submission. Inspect current individual source states; the two-draft starting checkpoint is historical.",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "sha256": "5fe167d22c5c1f4c4dca75405c4275a2061553ca607b15d1f84d7f17672d63a3"
+    },
+    {
+      "role": "supplier-coordinator",
+      "path": "docs/evidence/bbs-confidentiality-20261007/supplier-coordinator/screenshots/coordinator-week-current.png",
+      "caption": "Current own selected-week workspace following the historical two-source submission. Inspect each source’s present state; the before-submission drafts are historical.",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "sha256": "18883b12330de61c629727239ae5620fef8b622bfadd02b9c74f7e27047a03a2"
+    },
+    {
+      "role": "supplier-coordinator",
+      "path": "docs/evidence/bbs-confidentiality-20261007/supplier-coordinator/screenshots/coordinator-expense-form.png",
+      "caption": "Native receipt-backed expense form with actual payer, amount, receipt control and the full Save draft action. Recaptured filled illustration; no duplicate was saved.",
+      "viewport": {
+        "width": 1440,
+        "height": 2100
+      },
+      "sha256": "691cfc13714429559fbc0c69cb86735cbbb31c5b01988c6083eeb9bd6717dc49"
+    },
+    {
+      "role": "supplier-coordinator",
+      "path": "docs/evidence/bbs-confidentiality-20261007/supplier-coordinator/screenshots/coordinator-saved-roster.png",
+      "caption": "Native Personnel roster with saved technicians and assignment dates for the authorized project.",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "sha256": "bf31de5beca88b9b85e51fd6e6a9ed5fb334902ec62b6309f904e483adfb485a"
+    }
+  ],
+  "pageErrors": [],
+  "finishedAt": "2026-10-07T11:52:09.744Z",
+  "blockedCorrection": {
+    "status": "PASS",
+    "sourceCountBefore": 130,
+    "sourceCountAfter": 130
+  }
+}

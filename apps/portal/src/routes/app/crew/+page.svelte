@@ -1002,9 +1002,13 @@
                 'Record crew hours above first. After an eligible time row is saved, add a receipt expense for one delegated worker. Then select that expense here and split its amount across at least two crew time rows. The receipt stays',
               )}
           <strong>{t('one expense')}</strong>
-          {t(
-            'for billing and reimbursement; the split only records which workers and shifts it covered. Worker reimbursement and customer billing follow the selected expense’s payer and worker policy.',
-          )}
+          {data.owner
+            ? t(
+                'for billing and reimbursement; the split only records which workers and shifts it covered. Worker reimbursement and customer billing follow the selected expense’s payer and worker policy.',
+              )
+            : t(
+                'with one amount, currency, payer and receipt. The allocation records which workers and shifts the receipt covered; it does not create another expense.',
+              )}
         </p>
       {/if}
       {#if allocationProblem}

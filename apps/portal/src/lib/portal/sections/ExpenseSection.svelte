@@ -111,8 +111,8 @@
   let createProject = $state(nativeExpenseValue('projectId'));
   let createWhoPaid = $state(nativeExpenseValue('whoPaid') || 'worker');
   const payerTreatmentWarning: ProblemData = {
-    code: 'WARNING_EXPENSE_PAYER_SEPARATE_TREATMENT',
-    messageKey: 'problem.warning.expensePayerSeparateTreatment',
+    code: 'WARNING_EXPENSE_PAYER_FACTS',
+    messageKey: 'Enter the amount, currency, payer and receipt details.',
     params: {},
     fieldErrors: {},
     remedies: [{ id: 'review_expense_payer' }],
@@ -697,6 +697,7 @@
 
   const records = $derived(data.records ?? []);
   const restrictedOperational = $derived(Boolean(data.user.workforceProfile));
+  const operationalOnly = $derived(['worker', 'project_manager'].includes(String(data.user.role)));
   const canViewReimbursement = $derived(
     !restrictedOperational && data.user.role !== 'project_manager',
   );
@@ -1244,6 +1245,7 @@
     if (row.shared_receipt_allocated) return 'shared_receipt';
     if (['paid', 'reimbursed'].includes(String(row.reimbursement_state ?? '')) || row.reimbursed_at)
       return 'reimbursed';
+    if (operationalOnly) return row.correction_locked ? 'finalized' : null;
     if (
       row.correction_financially_finalized ||
       row.invoice_id ||
@@ -1445,11 +1447,15 @@
   <header class="expense-page-context">
     <div>
       <p class="expense-eyebrow">{translate('Worker operations')}</p>
-      <h2>{translate('Expenses and reimbursements')}</h2>
+      <h2>
+        {canViewReimbursement ? translate('Expenses and reimbursements') : translate('Expenses')}
+      </h2>
       <p>
-        {translate(
-          'Record the receipt and operational facts. Finance handles later classification.',
-        )}
+        {operationalOnly
+          ? translate('Record the amount, currency, payer and receipt for this expense.')
+          : translate(
+              'Record the receipt and operational facts. Finance handles later classification.',
+            )}
       </p>
     </div>
     <span class="expense-record-count" aria-label={translate('Expense count')}
@@ -2161,9 +2167,13 @@
                   </p>
                 {:else if (row.approval_state === 'approved' || row.approval_state === 'needs_changes') && correctionBlocker(row) === 'reimbursed'}
                   <p class="expense-record-actions__note">
-                    {translate(
-                      'This expense has a reimbursement. Reverse or adjust the payment first.',
-                    )}
+                    {operationalOnly
+                      ? translate(
+                          'This expense has a reimbursement. Ask the project owner or designated administrator to review changes.',
+                        )
+                      : translate(
+                          'This expense has a reimbursement. Reverse or adjust the payment first.',
+                        )}
                   </p>
                   {#if data.user.role === 'owner_admin'}
                     <a class="secondary-button" href={reimbursementStatusHref(row)}
@@ -2172,7 +2182,11 @@
                   {/if}
                 {:else if (row.approval_state === 'approved' || row.approval_state === 'needs_changes') && correctionBlocker(row) === 'finalized'}
                   <p class="expense-record-actions__note">
-                    {translate('This record has financial history. Use a financial correction.')}
+                    {operationalOnly
+                      ? translate(
+                          'This record cannot be changed here. Contact the project owner or designated administrator.',
+                        )
+                      : translate('This record has financial history. Use a financial correction.')}
                   </p>
                 {:else if (row.approval_state === 'needs_changes' || row.approval_state === 'approved') && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
                   <a
@@ -2229,7 +2243,9 @@
   <ResponsiveSheet
     open={surface !== null}
     title={surface === 'edit' ? translate('Edit expense') : translate('Record expense')}
-    description={translate('Operational entry only. Commercial treatment is handled separately.')}
+    description={operationalOnly
+      ? translate('Enter the amount, currency, payer and receipt details.')
+      : translate('Operational entry only. Commercial treatment is handled separately.')}
     closeLabel={translate('Close expense form')}
     class="expense-entry-sheet"
     onclose={closeSurface}
@@ -2284,7 +2300,9 @@
               href: `${base}/app/login?lang=${warningLocale}`,
             },
             contact_finance: {
-              label: translate('Contact Finance or an owner'),
+              label: operationalOnly
+                ? translate('Contact the project owner or designated administrator.')
+                : translate('Contact Finance or an owner'),
             },
           }}
         />

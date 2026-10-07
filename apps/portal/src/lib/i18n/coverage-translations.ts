@@ -8,6 +8,10 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  'problem.correction.recordLocked': [
+    'Este registro no se puede cambiar aquí. Contacta con el propietario del proyecto o el administrador designado.',
+    'Este registro não pode ser alterado aqui. Entre em contato com o responsável pelo projeto ou o administrador designado.',
+  ],
   'problem.time.saveRequestInvalid': [
     'La solicitud para guardar horas falta o no es válida. Abre de nuevo el formulario y revisa los datos antes de guardar.',
     'A solicitação para salvar horas está ausente ou inválida. Reabra o formulário e revise os dados antes de salvar.',
@@ -864,8 +868,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Somente quem criou o rascunho ou uma pessoa proprietária pode excluir este registro. Entre em contato com a pessoa responsável pelo projeto.',
   ],
   'problem.report.financiallyLinked': [
-    'Este registro está vinculado a facturación u otro bloqueo financiero. Contacta con Finanzas para solicitar un ajuste auditado.',
-    'Este registro está vinculado ao faturamento ou a outro bloqueio financeiro. Entre em contato com Finanças para solicitar um ajuste auditado.',
+    'Este registro está bloqueado. Envía su referencia y la corrección solicitada a tu administrador designado. No crees un duplicado.',
+    'Este registro está bloqueado. Envie sua referência e a correção solicitada ao administrador designado. Não crie uma duplicata.',
   ],
   'problem.report.correctionDraftImmutable': [
     'Este borrador de corrección forma parte del historial de auditoría y no se puede eliminar. Revisa su registro actual.',
@@ -1613,12 +1617,12 @@ const exact: Record<string, readonly [string, string]> = {
     'Registrar este pagamento confirma que o dinheiro foi transferido. Confira o valor, a data e a referência com o registro bancário antes de continuar.',
   ],
   'problem.warning.operationalApprovalFinanceSeparate': [
-    'Aprobar confirma los datos del tiempo o gasto y pasa este registro a la revisión de Finanzas. No decide la facturación al cliente ni el reembolso al trabajador.',
-    'A aprovação confirma os fatos das horas ou despesas e encaminha este registro para a revisão de Finanças. Ela não decide a cobrança ao cliente nem o reembolso ao trabalhador.',
+    'Aprobar confirma los datos del tiempo o gasto. Comprueba el registro y los justificantes antes de completar su revisión operativa.',
+    'A aprovação confirma os fatos das horas ou despesas. Confira o registro e os comprovantes antes de concluir a revisão operacional.',
   ],
   'problem.warning.operationalReturnFactualCorrection': [
-    'Devolver el registro pide al trabajador que corrija sus datos. Indica el cambio concreto necesario; esto no decide la facturación al cliente ni el reembolso.',
-    'Devolver o registro pede ao trabalhador que corrija os dados. Indique a alteração específica necessária; isso não decide a cobrança ao cliente nem o reembolso.',
+    'Devolver el registro pide al autor que corrija sus datos. Indica el cambio concreto necesario y comprueba el estado resultante.',
+    'Devolver o registro pede ao autor que corrija os dados. Indique a alteração específica necessária e confira o status resultante.',
   ],
   'problem.warning.timeSubmitReview': [
     'Enviar este borrador remite el registro de horas a revisión. Ya no se puede editar directamente; los cambios posteriores usan el proceso de corrección.',
@@ -2043,8 +2047,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Escolha uma moeda válida para a despesa.',
   ],
   'problem.expense.payerInvalid': [
-    'Indica quién pagó este gasto. El tratamiento de facturación al cliente se revisa por separado.',
-    'Informe quem pagou esta despesa. O tratamento de faturamento ao cliente é revisado separadamente.',
+    'Indica quién pagó realmente este gasto.',
+    'Informe quem realmente pagou esta despesa.',
   ],
   'problem.expense.paymentMethodInvalid': [
     'Indica un método de pago de 80 caracteres como máximo.',
@@ -4793,8 +4797,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Este registro de horas agora está {status}; somente rascunhos podem ser enviados. Revise o registro atualizado.',
   ],
   'problem.time.submissionLocked': [
-    'Este registro de horas está bloqueado para la facturación. Contacta con Finanzas antes de cambiarlo o enviarlo.',
-    'Este registro de horas está bloqueado para faturamento. Entre em contato com Finanças antes de alterá-lo ou enviá-lo.',
+    'Este registro está bloqueado. Revisa su estado y contacta con el administrador designado antes de cambiarlo.',
+    'Este registro está bloqueado. Confira o status e entre em contato com o administrador designado antes de alterá-lo.',
   ],
   'problem.time.draftChanged': [
     'Este registro de horas cambió mientras lo editabas. Revisa el borrador actual antes de guardar.',
@@ -4969,8 +4973,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Este rascunho de correção mudou ou já foi retirado. Revise o registro atual antes de tentar novamente.',
   ],
   'problem.time.correctionWithdrawReviewed': [
-    'Este borrador de corrección tiene historial de revisión o financiero y ya no se puede retirar. Revisa el registro y solicita una corrección auditada.',
-    'Este rascunho de correção tem histórico de revisão ou financeiro e já não pode ser retirado. Revise o registro e solicite uma correção auditada.',
+    'Este registro está bloqueado. Revisa su estado y contacta con el administrador designado antes de cambiarlo.',
+    'Este registro está bloqueado. Confira o status e entre em contato com o administrador designado antes de alterá-lo.',
   ],
   'problem.time.correctionWithdrawAccessRequired': [
     'Ya no puedes retirar este borrador de corrección con tu acceso actual. Contacta al propietario del proyecto para revisar el acceso.',
@@ -5061,8 +5065,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Este rascunho exige um recibo, mas não tem nenhum. Em Despesas, substitua este rascunho incompleto por outro com o recibo ou peça ajuda à pessoa responsável pelo projeto.',
   ],
   'problem.expense.submissionLocked': [
-    'Este gasto está bloqueado para la facturación. Contacta con Finanzas antes de cambiarlo o enviarlo.',
-    'Esta despesa está bloqueada para faturamento. Entre em contato com Finanças antes de alterá-la ou enviá-la.',
+    'Este registro está bloqueado. Revisa su estado y contacta con el administrador designado antes de cambiarlo.',
+    'Este registro está bloqueado. Confira o status e entre em contato com o administrador designado antes de alterá-lo.',
   ],
   'problem.expenseDetail.correctionFieldsInvalid': [
     'Revisa los campos de la corrección y el motivo antes de crear un borrador.',
@@ -5126,8 +5130,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Altere pelo menos um campo operacional da despesa antes de criar um rascunho corrigido.',
   ],
   'problem.expenseDetail.withdrawReviewed': [
-    'Este borrador de corrección tiene historial de revisión o financiero y ya no se puede retirar. Revisa el registro.',
-    'Este rascunho de correção tem histórico de revisão ou financeiro e não pode mais ser retirado. Revise o registro.',
+    'Este registro está bloqueado. Revisa su estado y contacta con el administrador designado antes de cambiarlo.',
+    'Este registro está bloqueado. Confira o status e entre em contato com o administrador designado antes de alterá-lo.',
   ],
   'problem.expenseDetail.correctionRecordUnavailable': [
     'El gasto ya no está disponible. Revisa la lista de gastos.',
@@ -9469,6 +9473,8 @@ function englishActionMessage(key: string): string {
 }
 
 const problemEnglish: Record<string, string> = {
+  'problem.correction.recordLocked':
+    'This record cannot be changed here. Contact the project owner or designated administrator.',
   'problem.time.saveRequestInvalid':
     'The time save request ID is missing or invalid. Reopen the form and review the details before saving.',
   'problem.time.saveRetryChanged':
@@ -9768,7 +9774,7 @@ const problemEnglish: Record<string, string> = {
   'problem.report.creatorAccessRequired':
     'Only the draft creator or an owner can delete this record. Contact the project owner.',
   'problem.report.financiallyLinked':
-    'This record is linked to billing or another financial lock. Contact Finance for an audited adjustment.',
+    'This record is locked. Send its reference and requested correction to your designated administrator. Do not create a duplicate.',
   'problem.report.correctionDraftImmutable':
     'This correction draft is part of the audit history and cannot be deleted. Review its current record.',
   'problem.report.technicalChangesLinked':
@@ -10814,9 +10820,9 @@ const problemEnglish: Record<string, string> = {
   'problem.warning.workerPaymentActualEvent':
     'Recording this payment confirms money was transferred. Check the amount, date, and reference against the bank record before continuing.',
   'problem.warning.operationalApprovalFinanceSeparate':
-    'Approving confirms the time or expense facts and moves this record to Finance review. It does not decide customer billing or worker reimbursement.',
+    'Approving confirms the recorded time or expense facts. Check the source and evidence before completing its operational review.',
   'problem.warning.operationalReturnFactualCorrection':
-    'Returning asks the worker to correct the record’s factual details. State the specific change needed; this does not decide customer billing or reimbursement.',
+    'Returning asks the author to correct the record’s factual details. State the specific change needed and verify the resulting review state.',
   'problem.warning.timeSubmitReview':
     'Submitting this draft sends the time entry for review. Direct editing ends; later changes use the correction workflow.',
   'problem.warning.timeWeekSubmitAllDrafts':
@@ -10996,8 +11002,7 @@ const problemEnglish: Record<string, string> = {
   'problem.expense.vendorInvalid': 'Enter a vendor of no more than 200 characters.',
   'problem.expense.descriptionInvalid': 'Describe the expense in 3 to 5,000 characters.',
   'problem.expense.currencyInvalid': 'Choose a valid expense currency.',
-  'problem.expense.payerInvalid':
-    'Select who paid this expense. Customer billing treatment is reviewed separately.',
+  'problem.expense.payerInvalid': 'Select who actually paid this expense.',
   'problem.expense.paymentMethodInvalid': 'Enter a payment method of no more than 80 characters.',
   'problem.expense.receiptSelectionInvalid':
     'Choose a valid committed receipt for this project, or reattach the receipt.',
@@ -11327,7 +11332,7 @@ const problemEnglish: Record<string, string> = {
   'problem.time.submissionNotDraft':
     'This time entry is now {status}; only drafts can be submitted. Review the updated record.',
   'problem.time.submissionLocked':
-    'This time entry is locked for billing. Contact Finance before changing or submitting it.',
+    'This time entry is locked. Contact the project owner or designated administrator before changing or submitting it.',
   'problem.time.draftChanged':
     'This time entry changed while you were editing. Review the current draft before saving.',
   'problem.time.notEditableDraft':
@@ -11412,7 +11417,7 @@ const problemEnglish: Record<string, string> = {
   'problem.time.correctionWithdrawChanged':
     'This correction draft changed or was already withdrawn. Review the current record before trying again.',
   'problem.time.correctionWithdrawReviewed':
-    'This correction draft has review or financial history and can no longer be withdrawn. Review the record and request an audited correction.',
+    'This correction can no longer be withdrawn here. Review its current state and contact the designated administrator.',
   'problem.time.correctionWithdrawAccessRequired':
     'You can no longer withdraw this correction draft under your current access. Contact the project owner to review access.',
   'problem.time.correctionWithdrawCrewAccessRequired':
@@ -11428,7 +11433,7 @@ const problemEnglish: Record<string, string> = {
   'problem.time.correctionRequired':
     'Reviewed time cannot be deleted. Open the record and request an audited correction.',
   'problem.time.lockedOrInvoiced':
-    'Locked or invoiced time cannot be voided. Contact Finance for an audited adjustment.',
+    'This time entry cannot be withdrawn here. Contact the project owner or designated administrator.',
   'problem.time.allocatedReceipt':
     'This crew time is linked to an allocated receipt. Review the allocation and request a documented correction.',
   'problem.time.allocatedReceiptDateLocked':
@@ -11454,7 +11459,7 @@ const problemEnglish: Record<string, string> = {
   'problem.expense.submissionReceiptRequired':
     'This draft requires a receipt, but none is attached. In Expenses, replace this incomplete draft with one that includes the receipt, or contact the project owner for help.',
   'problem.expense.submissionLocked':
-    'This expense is locked for billing. Contact Finance before changing or submitting it.',
+    'This expense is locked. Contact the project owner or designated administrator before changing or submitting it.',
   'problem.expenseDetail.correctionFieldsInvalid':
     'Review the correction fields and reason before creating a draft.',
   'problem.expenseDetail.correctionBlocked':
@@ -11486,7 +11491,7 @@ const problemEnglish: Record<string, string> = {
   'problem.expenseDetail.correctionNoChanges':
     'Change at least one operational expense field before creating a corrected draft.',
   'problem.expenseDetail.withdrawReviewed':
-    'This correction draft has review or financial history and can no longer be withdrawn. Review the record.',
+    'This correction can no longer be withdrawn here. Review its current state and contact the designated administrator.',
   'problem.expenseDetail.correctionRecordUnavailable':
     'The expense is no longer available. Review the expenses list.',
   'problem.expenseDetail.correctionExpenseCategoryInvalid': 'Choose a valid expense category.',

@@ -15,7 +15,7 @@
       "steps": [
         "Use your own single-use invitation or assigned sign-in credentials. Enter email and password and choose Continue to workspace.",
         "Open Profile and confirm your own account. A Worker base-role label does not change your supplier access profile.",
-        "Open Profile and confirm your own account. A Worker base-role label does not mean you have internal employee finance privileges.",
+        "Open Supplier team and select the authorized BBS Installation / project. Confirm that the intended project is available before recording personnel or team work.",
         "Ask the Owner to verify supplier linkage, active account status, authorization dates and the correct coordinator when a project is absent."
       ],
       "checks": [
@@ -91,8 +91,8 @@
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc01-saved-roster-dates.png",
-          "caption": "Saved roster with actual supplier technician assignment dates.",
+          "src": "docs/evidence/bbs-confidentiality-20261007/supplier-coordinator/screenshots/coordinator-saved-roster.png",
+          "caption": "Native Personnel roster with saved technicians and assignment dates for the authorized project.",
           "orientation": "landscape"
         }
       ]
@@ -162,7 +162,7 @@
       "route": "Supplier team → Review drafts",
       "context": "Native isolated BBS role exercise · C-0050-P-20261005 · synthetic October 2026 work only",
       "paragraphs": [
-        "Team submission is operational handoff. Supplier time is reviewed by the Owner. PM review of Daily or Technical reports is a separate workflow. See Review authority · who receives each source (review-authority) and Recovery · sources, obligations and immutable history (recovery-matrix)."
+        "Team submission is operational handoff. Supplier time is reviewed by the Owner. PM review of Daily or Technical reports is a separate workflow. See Review authority · who receives each source (review-authority) and Recovery · correct a source or request help (recovery-matrix)."
       ],
       "steps": [
         "Open the saved drafts and compare name, work date, category, duration and activity for each person.",
@@ -275,14 +275,9 @@
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/s06-coordinator-two-eligible-drafts.png",
-          "caption": "Actual two eligible own drafts before weekly submission.",
-          "orientation": "portrait"
-        },
-        {
-          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/s06-coordinator-source-states-after.png",
-          "caption": "Both exact own source IDs reached Submitted after the native weekly action.",
-          "orientation": "portrait"
+          "src": "docs/evidence/bbs-confidentiality-20261007/supplier-coordinator/screenshots/coordinator-week-current.png",
+          "caption": "Current own selected-week workspace following the historical two-source submission. Inspect each source’s present state; the before-submission drafts are historical.",
+          "orientation": "landscape"
         }
       ]
     },
@@ -292,7 +287,7 @@
       "route": "Expenses → New expense",
       "context": "Native isolated BBS role exercise · C-0050-P-20261005 · synthetic October 2026 work only",
       "paragraphs": [
-        "An own expense belongs to the person who actually incurred it. Submission records operational facts; it does not classify company accounting or prove reimbursement."
+        "An own expense belongs to the person who actually incurred it. Submission records operational facts; it does not prove reimbursement."
       ],
       "steps": [
         "Choose BBS, Category, Date, Amount, Currency, Who paid, Description and Payment method. Vendor, occurrence time and related logged hours are optional where shown.",
@@ -307,8 +302,8 @@
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/supplier-coordinator/screenshots/sc05-own-expense-complete-receipt-form.png",
-          "caption": "Complete own synthetic expense and receipt form.",
+          "src": "docs/evidence/bbs-confidentiality-20261007/supplier-coordinator/screenshots/coordinator-expense-form.png",
+          "caption": "Native receipt-backed expense form with actual payer, amount, receipt control and the full Save draft action. Recaptured filled illustration; no duplicate was saved.",
           "orientation": "portrait"
         },
         {
@@ -362,7 +357,7 @@
         "The saved preview and generated PDF reflect source facts. Queued is pending; Ready enables the native download."
       ],
       "steps": [
-        "Create your own Technical / PLC report with BBS and Report date 2026-10-16. Enter actual facts and Save draft.",
+        "Create your own Technical / PLC report with BBS and Report date 2026-10-16. Enter actual facts and choose Save PLC report.",
         "Complete system/context, observed issue, diagnosis, change, validation/result, production impact, risk and rollback. For evidence choose Evidence type Technical attachment, File and Notes, then Upload private evidence. Verify saved metadata before Submit.",
         "Submit the saved source for authorized operational review. Reopen it after PM review and verify Approved and source v3.",
         "Select a PDF language and Generate report. Use Refresh until Ready. Download and check the source identity, version, language and content."
@@ -413,7 +408,7 @@
         "No passwords, cookies, tokens or MFA recovery material were included in screenshots or manuals."
       ],
       "recovery": [
-        "An account labelled Worker in Profile may still carry a supplier restriction; request the correct profile/linkage from Owner rather than trying Finance routes.",
+        "An account labelled Worker in Profile may still carry a supplier restriction; ask the Owner to verify its profile/linkage and the authorized project.",
         "Report UI problems with role, BBS reference, date, source state and exact action/error; omit private credentials."
       ],
       "figures": [
@@ -435,8 +430,8 @@
       "route": "Personnel → Drafts → J&A review → Operational report",
       "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
       "paragraphs": [
-        "The coordinator’s cycle is authorized personnel, accurate actual team drafts, explicit submission, returned correction when needed and an operational status export. J&A operational approval, Finance payment and customer acceptance are separate handoffs.",
-        "Native coverage includes saved roster inspection, selected team draft save/submission, Owner review and linked correction, exact final 3.5 h Approved CSV, own ordinary/correction weekly submission, own receipt expense submission, own Daily/Technical approval by PM, private Technical evidence upload, Ready PDF generation and downloads. Historical screenshots retain their checkpoint dates. See Verification · current coverage and historical evidence (verification)."
+        "The coordinator’s cycle is authorized personnel, accurate actual team drafts, explicit submission, returned correction when needed and an operational status export. Source review and customer acceptance are separate handoffs.",
+        "Native coverage includes saved roster inspection, selected team draft save/submission, Owner review and linked correction, exact final 3.5 h Approved CSV, own ordinary/correction weekly submission, own receipt expense submission, own Daily/Technical approval by PM, private Technical evidence upload, Ready PDF generation and downloads. Historical screenshots retain their checkpoint dates. See Completion check · your permitted role cycle (verification)."
       ],
       "steps": [
         "Confirm BBS authorization and each technician’s work-date coverage before entering actual hours.",
@@ -447,7 +442,7 @@
       ],
       "checks": [
         "No production data, real equipment, live dispatch, customer consent, outward mail or bank payment was changed or asserted by this training packet.",
-        "Existing BBS records and finalized history were preserved."
+        "Earlier BBS operational records were preserved."
       ],
       "recovery": [
         "Do not duplicate work to fix a locked source. Explain the source ID, period and exact message to the designated contact.",
@@ -463,7 +458,7 @@
       "paragraphs": [
         "Supplier project authorization and personnel assignment establish who may work and on which dates. Internal published planning is separate. Supplier Coordinator navigation opens Supplier team and does not expose Today or Planning; the direct Planning route returns Access restricted. Arrange operational instructions through the Owner’s approved coordination process.",
         "The native October 23 exercise selected two existing fictional supplier technicians, used Same hours for everyone and entered one actual hour. Save selected drafts created two individual sources totaling two team hours, attributed to their respective technicians and Recorded by the coordinator. Shared entry is not one combined person record.",
-        "The actual work form remains a factual record. It does not accept a goal or finalize a payment. A technician can inspect their own coordinator-recorded hour; other technicians’ sources remain outside their authorized scope."
+        "The actual work form records completed work; it has no goal-acceptance action. A technician can inspect their own coordinator-recorded hour; other technicians’ sources remain outside their authorized scope."
       ],
       "steps": [
         "Open Supplier team. Choose BBS under Installation / project and Record team hours. Confirm each technician’s displayed assignment dates cover 2026-10-23.",

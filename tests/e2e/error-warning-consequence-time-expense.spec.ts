@@ -86,11 +86,10 @@ test('worker sees time submission and expense payer consequences before submitti
   await page.locator('[data-expense-primary-cta]').click();
   const form = page.locator('form[data-expense-entry-surface]');
   const payer = form.locator('select[name="whoPaid"]');
-  const payerWarning = form.locator(
-    '[data-problem-code="WARNING_EXPENSE_PAYER_SEPARATE_TREATMENT"]',
-  );
+  const payerWarning = form.locator('[data-problem-code="WARNING_EXPENSE_PAYER_FACTS"]');
   await expect(payerWarning).toBeVisible();
-  await expect(payerWarning).toContainText('reimbursement and customer billing');
+  await expect(payerWarning).toContainText('amount, currency, payer and receipt');
+  await expect(payerWarning).not.toContainText('customer billing');
   await expect(payerWarning).toContainText('Review who paid');
   await payer.selectOption('client');
   await expect(payer).toHaveValue('client');

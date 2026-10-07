@@ -138,7 +138,7 @@ const expenseFieldProblems: Record<string, ExpenseFieldProblem> = {
   whoPaid: {
     code: 'EXPENSE_PAYER_INVALID',
     key: 'problem.expense.payerInvalid',
-    message: 'Select who paid this expense. Customer billing treatment is reviewed separately.',
+    message: 'Select who actually paid this expense.',
   },
   paymentMethod: {
     code: 'EXPENSE_PAYMENT_METHOD_INVALID',
@@ -452,7 +452,7 @@ const expenseProblems: Record<string, ExpenseProblem> = {
     code: 'EXPENSE_SUBMISSION_LOCKED',
     key: 'problem.expense.submissionLocked',
     message:
-      'This expense is locked for billing. Contact Finance before changing or submitting it.',
+      'This expense is locked. Contact the project owner or designated administrator before changing or submitting it.',
     remedy: 'contact_finance',
   },
   'Only an unlocked editable expense draft can change': {

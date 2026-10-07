@@ -3578,7 +3578,18 @@ export class V3Repository {
     this.assertActive(principal);
     assertNoSupplierFinancialAccess(this.sqlite, principal.userId, V3AccessDeniedError);
     requireOrderedDateRange(periodStart, periodEnd);
-    return this.workerPayForWorker(principal.userId, periodStart, periodEnd);
+    const {
+      percentageBased: _percentage,
+      settlementTriggers: _triggers,
+      projectProgress,
+      ...ownPay
+    } = this.workerPayForWorker(principal.userId, periodStart, periodEnd);
+    // Own entitlement estimates remain available without company budgets or
+    // customer-collection/billing trigger metadata.
+    return {
+      ...ownPay,
+      projectProgress: projectProgress.map(({ budgetMinor: _budget, ...progress }) => progress),
+    };
   }
 
   /** Owner review of one worker's current estimate, using the self-service calculation. */

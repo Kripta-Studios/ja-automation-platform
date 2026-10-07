@@ -172,7 +172,7 @@ try {
           const header = document.createElement('header');
           const eyebrow = document.createElement('div');
           eyebrow.className = 'eyebrow';
-          eyebrow.textContent = 'J&A Automation · BBS role manual · 6 October 2026';
+          eyebrow.textContent = 'J&A Automation · BBS role manual · 7 October 2026';
           const h1 = document.createElement('h1');
           h1.textContent = heading;
           header.append(eyebrow, h1);

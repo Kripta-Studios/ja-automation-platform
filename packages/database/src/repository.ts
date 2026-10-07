@@ -2185,12 +2185,15 @@ export class PortalRepository {
     principal: Principal,
     rows: T[],
   ): T[] {
+    if (this.canSeeFinanceFields(principal)) return rows;
+    // Commercial review status is never part of an operational response.
+    const safeRows = rows.map(({ billability_state: _billability, ...row }) => row as T);
     if (
       !this.sqlite
         .prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=?')
         .get(principal.userId)
     )
-      return rows;
+      return safeRows;
     const operationalKeys = new Set([
       'id',
       'project_id',
@@ -2219,7 +2222,7 @@ export class PortalRepository {
       'active_correction_id',
       'active_correction_state',
     ]);
-    return rows.map(
+    return safeRows.map(
       (row) =>
         Object.fromEntries(Object.entries(row).filter(([key]) => operationalKeys.has(key))) as T,
     );
@@ -10586,7 +10589,7 @@ export class PortalRepository {
         `${withClause} SELECT ${expenseColumns},
                 CASE WHEN e.invoice_id IS NOT NULL OR e.billing_lock_id IS NOT NULL
                        OR e.billing_state IN ('locked','invoiced') THEN 1 ELSE 0 END
-                  correction_financially_finalized,
+                  ${this.canSeeFinanceFields(principal) ? 'correction_financially_finalized' : 'correction_locked'},
                 EXISTS(SELECT 1 FROM record_correction_link rcl
                         WHERE rcl.record_type='expense' AND rcl.correction_id=e.id) correction_linked,
                 (SELECT rcl.correction_id FROM record_correction_link rcl
@@ -10623,6 +10626,8 @@ export class PortalRepository {
         `SELECT e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,
               e.vendor,e.category,e.description,e.amount_minor,e.currency,e.payment_method,
               e.approval_state,e.who_paid,e.receipt_document_id,e.receipt_required,e.version,
+              CASE WHEN e.invoice_id IS NOT NULL OR e.billing_lock_id IS NOT NULL
+                     OR e.billing_state IN ('locked','invoiced') THEN 1 ELSE 0 END correction_locked,
               EXISTS(SELECT 1 FROM record_correction_link rcl
                      WHERE rcl.record_type='expense' AND rcl.correction_id=e.id) correction_linked,
               EXISTS(SELECT 1 FROM crew_shared_expense_allocation_group g

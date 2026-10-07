@@ -115,7 +115,7 @@ const bbsRoleGuide = (
   },
   audience,
   locales: ['en'],
-  revision: '2026-10-06',
+  revision: '2026-10-07',
   allowedPersonas: [persona],
   assets: { en: { sourceName: `BBS_${stem}_Manual_EN.pdf` } },
 });
@@ -201,7 +201,7 @@ export const manualCatalog: readonly ManualDefinition[] = [
     },
     audience: 'administration-finance',
     locales: ['en'],
-    revision: '2026-10-06',
+    revision: '2026-10-07',
     allowedPersonas: ['owner'],
     assets: { en: { sourceName: 'BBS_Project_to_Client_Invoices_Guide_EN.pdf' } },
   },

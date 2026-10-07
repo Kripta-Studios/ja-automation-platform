@@ -36,7 +36,7 @@ for entry in report['reports']:
             writer.add_annotation(link['page'], Link(rect=(x*.75,height-(y+h)*.75,(x+w)*.75,height-y*.75),
                 target_page_index=len(body.pages)+'abc'.index(link['target'][-1])*2, fit=Fit.fit()))
     writer.add_metadata({'/Title': entry['filename'].removesuffix('_EN.pdf').replace('_',' '),
-                         '/Author': 'J&A Automation', '/Subject': 'Role operating course · 6 October 2026 readiness revision'})
+                         '/Author': 'J&A Automation', '/Subject': 'Role operating course · 7 October 2026 confidentiality revision'})
     stream = BytesIO();writer.write(stream);blob=stream.getvalue()
     check=PdfReader(BytesIO(blob),strict=True)
     assert len(check.outline)>=len(entry['sections'])

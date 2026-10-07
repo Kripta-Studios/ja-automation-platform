@@ -367,7 +367,9 @@ describe('V3 finance and privacy paths', () => {
     const workerPay = v3.workerPay(workerB, '2026-08-01', '2026-08-16');
     expect(workerPay.approvedMinutes).toBe(600);
     expect(workerPay.estimatedApprovedMinor).toBe('48400');
-    expect(workerPay.settlementTriggers).toContain('ON_APPROVED_BILLABLE_LABOR');
+    expect(workerPay).not.toHaveProperty('settlementTriggers');
+    expect(workerPay).not.toHaveProperty('percentageBased');
+    expect(workerPay.projectProgress.every((row) => !('budgetMinor' in row))).toBe(true);
     expect(JSON.stringify(workerPay)).not.toMatch(/clientRate|internalCost|contribution|margin/i);
     expect(() =>
       v3.workerPay(repository.principalFor('outsider'), '2026-08-01', '2026-08-16'),

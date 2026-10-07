@@ -19,28 +19,12 @@ const references = [
   'administration-finance-reference',
 ] as const;
 const roleMatrix = [
-  [
-    'worker',
-    undefined,
-    ['bbs-worker-manual', 'bbs-chief-manual'],
-  ],
+  ['worker', undefined, ['bbs-worker-manual', 'bbs-chief-manual']],
   ['project_manager', undefined, ['bbs-manager-manual']],
-  [
-    'finance_admin',
-    undefined,
-    ['bbs-finance-manual'],
-  ],
+  ['finance_admin', undefined, ['bbs-finance-manual']],
   ['auditor_read_only', undefined, ['bbs-auditor-manual']],
-  [
-    'worker',
-    'supplier_coordinator',
-    ['bbs-supplier-coordinator-manual'],
-  ],
-  [
-    'worker',
-    'external_technician',
-    ['bbs-external-technician-manual'],
-  ],
+  ['worker', 'supplier_coordinator', ['bbs-supplier-coordinator-manual']],
+  ['worker', 'external_technician', ['bbs-external-technician-manual']],
 ] as const;
 
 describe('Help manual catalog', () => {
@@ -134,7 +118,7 @@ describe('Help manual catalog', () => {
     const guide = manualForRole('bbs-project-invoices-guide', 'owner_admin');
     expect(guide?.locales).toEqual(['en']);
     expect(guide?.audience).toBe('administration-finance');
-    expect(guide?.revision).toBe('2026-10-06');
+    expect(guide?.revision).toBe('2026-10-07');
     expect(guide?.description.en).toContain('final training invoices');
     expect(guide?.description.en).not.toContain('23-page');
     expect(manualForRole('bbs-project-invoices-guide', 'finance_admin')).toBeNull();

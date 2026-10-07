@@ -46,22 +46,20 @@ Go here: Your trusted invitation → Activate your account → Return to sign in
 ![Reusing the same single-use training invitation shows the genuine recovery message. Return to sign in if already activated; otherwise request a new invitation.](../evidence/bbs-readiness-20261006/owner-common/screenshots/access-used-invitation.png)
 
 <a id="trainer-setup"></a>
-## Trainer setup · prepare a normal cycle before exceptions
+## Practice setup · your account and starting records
 
-Ask the trainer to provide the following checkpoint sheet before reproducing a lesson. Reusing a shared historical BBS period does not reset it. A production URL is never a training switch.
+Obtain your own training account, isolated environment, authorized project and lesson dates from the trainer. Confirm the named starting records and expected result before saving. Ask the trainer to restore the checkpoint when needed.
 
 | Checkpoint | Required starting condition |
 | --- | --- |
 | Identity and environment | Own correctly provisioned role/profile; isolated URL and visible environment identity. |
 | Project and dates | Exact project number, timezone and unused eligible lesson dates; membership and relevant grants cover both current access and the work date. |
 | Source state | Named source IDs and durations/amounts; ordinary starting drafts/submissions; no unrelated correction already open. |
-| Financial/evidence locks | List issued/closed periods, finalized settlements and signed report versions. Teach ordinary correction on an unlocked scope first. |
-| Expected outcome | Saved state, source count, actual total and appropriate own/customer/internal output. Include the receiving role and result. |
-| Reset | Operator restores the prepared database AND private documents together to the named checkpoint while training is stopped. Trainees do not delete financial history to reset a lesson. |
+| Expected outcome | Expected saved state, source count, actual total and permitted output; named receiving reviewer where needed. |
 
 ### Verify the result
 
-- The new normal Worker/Chief lesson uses BBS READINESS · normal work cycle (C-0050-P-2026100601) with initially unfinalized October work. Original BBS locked-period examples are exceptions. External/Supplier/PM October 13–19 and Finance October 26 demonstrations are separately labelled; Accounting can use a separate clean synthetic portfolio.
+- Confirm that the visible starting records match this lesson. If they differ or an action is unavailable, stop and ask the trainer for the correct checkpoint.
 
 <a id="review-authority"></a>
 ## Review authority · who receives each source
@@ -157,7 +155,7 @@ The original three issued BBS documents total USD 4,672: opening labor 2,230, ex
 
 ### Do the task
 
-1. Before invoice work, ask the Owner to confirm issuer/date coverage, the approved numbering policy, project assignments, dated person terms and required reporting/acceptance.
+1. Before invoice work, confirm the Owner’s legal issuer/date coverage and approved numbering policy. Finance may maintain its permitted dated project/person terms and streams from approved company inputs; verify assignments and any required reporting/acceptance before using the sources.
 2. Review the real approved contract before choosing hourly, daily, weekly, all-in or capped treatment.
 3. Hand the Owner the exact blocked invoice/stream/person ID, intended dates and visible message when Owner authority is required.
 
@@ -229,27 +227,32 @@ The role exercise uses the fictional USD 12 bench-supplies expense dated October
 ![After classification, record Finance review on this exact expense row. This review is separate from reimbursement.](../evidence/bbs-role-manuals-20261006/finance/screenshots/07-finance-reviewed-expense-ready-action.png)
 
 <a id="finance-commercial"></a>
-## Request the approved dated project setup
+## Maintain approved dated project and person terms
 
-Go here: Owner handoff → project/person/effective date
+Go here: Commercial Configuration; Projects → project → Billing → Review each person
 
-Context: Reference procedure · project setup is documented in the Owner guide.
+Context: Reference procedure · current controls and previously saved isolated person terms checked; use only approved company inputs.
 
-Before reviewing or invoicing a project, obtain the Owner’s approved setup and its applicable dates. Copying a form does not save it, and a future change does not update historical documents.
+Finance may maintain the permitted dated commercial rules using the company’s approved agreement and calculation inputs. Record the project, person, effective date and approval reference before changing a rule. An existing approved invoice or reviewed obligation is not rewritten by saving later terms.
+
+Project defaults and saved person overrides have different scope. Copying draft values does not save them. A separate future effective date must legitimately cover the intended new work, rather than move an old source out of a blocked period.
 
 ### Do the task
 
-1. Send the Owner the project number, intended person, effective date and required agreement reference.
-2. Check the Owner’s confirmation covers the intended source dates before continuing to Finance review or creating an invoice.
-3. If a source reports missing or overlapping configuration, send the exact source, date and error to the Owner. Preserve the blocked source.
+1. Open Commercial Configuration or Projects → project → Billing → Review each person. Select the intended project/person and check the existing effective rule.
+2. Set Terms effective from using the approved company instructions. Review Customer billing unit and the corresponding Customer hourly/daily/weekly rate (USD), Internal hourly cost (USD), Worker compensation method and Worker compensation rate/percentage. Enter only the supplied approved values; obtain a missing company input before saving.
+3. Review the approved Worker compensation method and its corresponding rate/percentage or fixed amount, Currency and effective interval. For a percentage method, verify the supplied eligible basis and settlement trigger.
+4. Review the approved Expense payer, Worker reimbursement source, Reimburse worker and Charge customer for expense settings. Save only the intended payer policy.
+5. Use Save these rates as explicit person overrides only when the approved agreement requires it. Choose the selected person’s Save person terms, wait for Assignment commercial rules saved, then reopen and verify the saved effective rule/date. For a separate commercial-rule form use its displayed Save action and verify its saved scope.
 
 ### Verify the result
 
-- The approved setup covers the intended period, and the source passes its normal readiness checks.
+- The saved person/project/effective date match the approved instructions. No draft copy or success notification substitutes for reopening the persisted rule.
+- Finance’s existing native future-term save is documented as an isolated example; it does not authorize applying its synthetic amounts or approval fixture to live work.
 
 ### If you get stuck
 
-- Wait for a documented authorized resolution. Do not move work dates, duplicate records or reverse payments to bypass a configuration guard.
+- For missing, conflicting or overlapping instructions retain the project/person, effective date and exact message. Obtain corrected approved company inputs from the Owner or designated company authority; preserve the blocked source. Do not reverse cash, duplicate work or move a work date to bypass a rule.
 
 <a id="finance-streams"></a>
 ## Create and review a billing stream
@@ -685,7 +688,7 @@ Keep dates, references, source IDs and visible error codes in a restricted suppo
 
 1. Check the selected project and financial audience before export or sharing.
 2. For support give the exact role, project, record/number, intended dates, last successful state and visible message.
-3. Use Profile for your own account/security preferences and Help for the relevant role/Owner reference; contact the workspace administrator for access.
+3. Use Profile for your own account/security preferences and Help for the Finance course and included access/recovery procedures; contact the workspace administrator for access. Owner reference manuals require Owner access.
 
 ### Verify the result
 
@@ -731,18 +734,10 @@ Go here: Profile → Account security; Profile → Add availability
 ![Isolated recipient’s authenticator setup was verified; the native Enabled state is shown after secret URI/recovery codes disappeared. No usable security material is published.](../evidence/bbs-readiness-20261006/owner-common/screenshots/security-mfa-enabled.png)
 
 <a id="verification"></a>
-## Verification · current coverage and historical evidence
+## Completion check · your permitted role cycle
 
-English readiness edition: 6 October 2026, based on repository abc12c0961b2 with the recorded readiness fixes. The publication receipt identifies the final commit and deployment. This edition teaches the permitted ordinary cycle and supported handoffs; it does not certify every contract, device or external service.
-
-The current evidence lives in docs/evidence/bbs-readiness-20261006. Its correction register maps all 72 suite findings to tasks, browser evidence or precise reference/support boundaries. Role manifests identify source IDs, state transitions and downloaded artifacts. Historical 5 October outputs remain historical; new screenshots do not rewrite their totals or private bytes.
-
-Recipient activation, actual authenticator verification and own passkey registration/revocation were exercised on a separate isolated recipient. The same account controls are shared, but enrollment was not repeated for every role or physical device. Offline/expired-link and lost-device paths remain precise references where not separately executed.
-
-Weekly submission was exercised with one ordinary draft and one eligible linked correction for Worker, Chief, External Technician and Supplier Coordinator: two selected drafts became two Submitted sources and zero remaining drafts. This does not guarantee that locked, withdrawn, out-of-scope or ineligible corrections will submit.
-
-A final Accounting cut succeeded in a separate clean Finance portfolio; an Auditor read and downloaded its outputs. Original BBS issuer-history and source-reconciliation blockers remain documented. Email transport, real bank movement, accountant approval and genuine customer acceptance are outside the synthetic tests.
+Use the worked lessons for your own role. Historical examples retain their stated dates and states. A procedure labelled reference was checked against the controls; its outcome was not necessarily executed in the illustrated session.
 
 ### Verify the result
 
-- For a task described as reference, follow the exact named controls and prerequisites; do not infer that an illustrated outcome was executed. For support-only recovery, preserve the blocked source and obtain the documented receiving result before proceeding.
+- Confirm your identity, project and dates. Verify the saved and submitted source, its review state, supported correction or administrator handoff and each permitted Ready output. Submission, review and download are separate checkpoints.

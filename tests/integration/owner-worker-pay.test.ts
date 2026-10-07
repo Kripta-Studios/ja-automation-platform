@@ -163,8 +163,12 @@ describe('Owner worker pay review', () => {
       owner,
       `?worker=${second.userId}${range}`,
     )) as typeof first;
-    expect(first.pay).toEqual(value.v3.workerPay(value.worker, '2026-08-01', '2026-08-31'));
-    expect(secondView.pay).toEqual(value.v3.workerPay(second, '2026-08-01', '2026-08-31'));
+    expect(first.pay).toMatchObject(value.v3.workerPay(value.worker, '2026-08-01', '2026-08-31'));
+    expect(first.pay).toHaveProperty('settlementTriggers');
+    expect(value.v3.workerPay(value.worker, '2026-08-01', '2026-08-31')).not.toHaveProperty(
+      'settlementTriggers',
+    );
+    expect(secondView.pay).toMatchObject(value.v3.workerPay(second, '2026-08-01', '2026-08-31'));
     expect(first.pay.estimatedApprovedMinor).toBe('6000');
     expect(first.pay.estimatedPendingMinor).toBe('0');
     expect(secondView.pay.estimatedApprovedMinor).toBe('0');

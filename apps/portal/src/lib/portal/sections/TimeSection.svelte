@@ -63,6 +63,7 @@
   const warningLocale = $derived(
     normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
   );
+  const operationalOnly = $derived(['worker', 'project_manager'].includes(String(data.user.role)));
 
   function timeRegisterAction(actionName: string): string {
     const query = new URLSearchParams($page.url.searchParams);
@@ -946,13 +947,15 @@
       <p class="time-eyebrow">{translate('Worker operations')}</p>
       <h2>{translate('Time')}</h2>
       <p>
-        {isAuditor
-          ? translate(
-              'Review actual operational time. Commercial interpretation follows the configured project rules.',
-            )
-          : translate(
-              'Record actual operational time. Commercial interpretation is applied from configured project rules.',
-            )}
+        {operationalOnly
+          ? translate('Record the date, duration and activity you actually worked.')
+          : isAuditor
+            ? translate(
+                'Review actual operational time. Commercial interpretation follows the configured project rules.',
+              )
+            : translate(
+                'Record actual operational time. Commercial interpretation is applied from configured project rules.',
+              )}
       </p>
     </div>
   </header>
@@ -1092,7 +1095,11 @@
                 label: translate('Review updated time entry'),
                 href: `${base}/app/time#time-records`,
               },
-              contact_finance: { label: translate('Contact Finance for an audited adjustment.') },
+              contact_finance: {
+                label: operationalOnly
+                  ? translate('Contact the project owner or designated administrator.')
+                  : translate('Contact Finance for an audited adjustment.'),
+              },
             }}
           />
         </div>
@@ -1666,7 +1673,9 @@
   protectChanges
   open={surface !== null}
   title={surface === 'edit' ? translate('Edit time entry') : translate('Log time')}
-  description={translate('Operational entry only. Commercial rules are applied separately.')}
+  description={operationalOnly
+    ? translate('Enter the date, actual duration and activity for this work.')
+    : translate('Operational entry only. Commercial rules are applied separately.')}
   closeLabel={translate('Close time form')}
   class="time-entry-sheet"
   onclose={closeSurface}
@@ -1696,7 +1705,11 @@
             label: portalText(warningLocale, 'problem.remedy.signInAgain'),
             href: `${base}/login`,
           },
-          contact_finance: { label: translate('Contact Finance for an audited adjustment.') },
+          contact_finance: {
+            label: operationalOnly
+              ? translate('Contact the project owner or designated administrator.')
+              : translate('Contact Finance for an audited adjustment.'),
+          },
           review_worker_assignment: {
             label: translate('Review worker assignment'),
             href: `${base}/app/time#time-records`,
@@ -1775,7 +1788,7 @@
 
       <div class="expense-entry-intro time-entry-intro">
         <strong>{translate('Capture actual work')}</strong>
-        <span>{translate('Enter what happened on site, not its commercial interpretation.')}</span>
+        <span>{translate('Describe what happened on site and record the actual duration.')}</span>
       </div>
       {#if missingAssignmentProblem}
         <ProblemNotice

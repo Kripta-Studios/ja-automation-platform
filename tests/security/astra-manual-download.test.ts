@@ -30,7 +30,7 @@ afterEach(() => {
 
 function event(
   principal: Principal | undefined,
-  manual = 'worker-reference',
+  manual = 'bbs-worker-manual',
   query = '',
   displayedRole = principal?.role,
   displayedProfile?: string,
@@ -124,38 +124,41 @@ describe('Help PDF authorization boundary', () => {
     expect((await GET(event(worker, 'administration-finance-reference') as never)).status).toBe(
       404,
     );
-    expect((await GET(event(worker, 'external-technician-reference') as never)).status).toBe(200);
+    expect((await GET(event(worker, 'external-technician-reference') as never)).status).toBe(404);
+    expect((await GET(event(worker, 'bbs-supplier-coordinator-manual') as never)).status).toBe(200);
     const coordinator = await GET(
       event(
         worker,
-        'supplier-operations-reference',
+        'bbs-supplier-coordinator-manual',
         '?lang=pt',
         'worker',
         'external_technician',
       ) as never,
     );
     expect(coordinator.status).toBe(200);
-    expect(coordinator.headers.get('x-help-manual-language')).toBe('pt');
+    expect(coordinator.headers.get('x-help-manual-language')).toBe('en');
 
     supplierProfile(worker.userId, 'external_technician');
-    expect((await GET(event(worker, 'supplier-coordinator-reference') as never)).status).toBe(200);
+    expect((await GET(event(worker, 'supplier-coordinator-reference') as never)).status).toBe(404);
+    expect((await GET(event(worker, 'bbs-external-technician-manual') as never)).status).toBe(200);
+    expect((await GET(event(worker, 'bbs-supplier-coordinator-manual') as never)).status).toBe(404);
     expect((await GET(event(worker, 'work-projects-reference') as never)).status).toBe(404);
   });
 
-  it('serves one shared PDF for both members of each group and the full Owner library', async () => {
+  it('serves the current permitted role courses and reserves the historical library for Owner', async () => {
     const worker = stepUpB5Principal(fixture.sqlite, fixture.worker, 'worker');
     const manager = stepUpB5Principal(fixture.sqlite, fixture.manager, 'manager');
     const finance = stepUpB5Principal(fixture.sqlite, fixture.finance, 'finance');
     const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'owner');
     for (const [principal, canonical, alias] of [
-      [worker, 'work-projects-reference', 'project-manager-reference'],
-      [manager, 'work-projects-reference', 'worker-reference'],
-      [finance, 'administration-finance-reference', 'owner-reference'],
+      [worker, 'bbs-worker-manual', 'bbs-chief-manual'],
+      [manager, 'bbs-manager-manual', 'bbs-manager-manual'],
+      [finance, 'bbs-finance-manual', 'bbs-finance-manual'],
     ] as const) {
       for (const manual of [canonical, alias]) {
         const response = await GET(event(principal, manual, '?lang=en') as never);
         expect(response.status, `${principal.role}:${manual}`).toBe(200);
-        expect(response.headers.get('x-help-manual-path')).toContain(canonical);
+        expect(response.headers.get('x-help-manual-path')).toContain(manual);
         expect(
           Buffer.from(await response.arrayBuffer())
             .subarray(0, 5)
@@ -171,15 +174,13 @@ describe('Help PDF authorization boundary', () => {
     ]) {
       expect((await GET(event(owner, manual, '?lang=en') as never)).status, manual).toBe(200);
     }
-    const spanishReference = await GET(
-      event(worker, 'work-projects-reference', '?lang=es') as never,
-    );
+    const spanishReference = await GET(event(worker, 'bbs-worker-manual', '?lang=es') as never);
     expect(spanishReference.status).toBe(200);
     expect(spanishReference.headers.get('x-help-manual-language')).toBe('en');
     const spanishQuickStart = await GET(event(worker, 'employee-field-guide', '?lang=es') as never);
-    expect(spanishQuickStart.status).toBe(200);
-    expect(spanishQuickStart.headers.get('x-help-manual-language')).toBe('es');
-    expect((await GET(event(owner, 'employee-field-guide') as never)).status).toBe(404);
+    expect(spanishQuickStart.status).toBe(404);
+    expect(spanishQuickStart.headers.get('x-help-manual-language')).toBeNull();
+    expect((await GET(event(owner, 'employee-field-guide') as never)).status).toBe(200);
     expect((await GET(event(finance, 'work-projects-reference') as never)).status).toBe(404);
     expect((await GET(event(manager, 'administration-finance-reference') as never)).status).toBe(
       404,
@@ -188,7 +189,7 @@ describe('Help PDF authorization boundary', () => {
 
   it('reports invalid locale and persistent PDF storage failure in the requested language', async () => {
     const worker = stepUpB5Principal(fixture.sqlite, fixture.worker, 'errors');
-    const invalid = await GET(event(worker, 'work-projects-reference', '?lang=fr') as never);
+    const invalid = await GET(event(worker, 'bbs-worker-manual', '?lang=fr') as never);
     expect(invalid.status).toBe(400);
     expect(await invalid.json()).toEqual({
       error: 'Unsupported manual language.',
@@ -200,7 +201,7 @@ describe('Help PDF authorization boundary', () => {
       correlationId: 'manual-download-test',
     });
     process.env.JA_MANUAL_ROOT = join(fixture.directory, 'no-manuals');
-    const unavailable = await GET(event(worker, 'work-projects-reference', '?lang=pt') as never);
+    const unavailable = await GET(event(worker, 'bbs-worker-manual', '?lang=pt') as never);
     expect(unavailable.status).toBe(503);
     expect(await unavailable.json()).toEqual({
       error: 'O documento de ajuda está temporariamente indisponível.',

@@ -123,8 +123,8 @@
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/34-pm-project-overview-landscape.png",
-          "caption": "Actual PM project Overview: authorized BBS operational scope.",
+          "src": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-project-current.png",
+          "caption": "Current scoped PM project overview, including operational source facts.",
           "orientation": "landscape"
         }
       ]
@@ -173,7 +173,7 @@
       "route": "Approvals → submitted source",
       "context": "Native isolated BBS role exercise · C-0050-P-20261005 · synthetic October 2026 work only",
       "paragraphs": [
-        "Open the source and inspect author, project/date, duration or receipt, work facts and existing history. Review authority is source-specific. Supplier technician time is Owner-only; authorized PM operational report review is separate. See Review authority · who receives each source (review-authority) and Recovery · sources, obligations and immutable history (recovery-matrix).",
+        "Open the source and inspect author, project/date, duration or receipt, work facts and existing history. Review authority is source-specific. Supplier technician time is Owner-only; authorized PM operational report review is separate. See Review authority · who receives each source (review-authority) and Recovery · correct a source or request help (recovery-matrix).",
         "Approve accepts the submitted operational facts. Needs changes requests a linked corrected draft while preserving the source. Reject records that the source is rejected; it is not the normal correction route."
       ],
       "steps": [
@@ -189,13 +189,13 @@
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm02-reject-reason-action.png",
-          "caption": "Native Reject decision with a specific duplicate-activity reason.",
+          "src": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-rejected-source.png",
+          "caption": "Actual historical PM Reject result on the October 17 source. The preserved rejection and its factual reason are distinct from Needs changes.",
           "orientation": "landscape"
         },
         {
-          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm02-needs-changes-action.png",
-          "caption": "Native Needs changes decision requests correction of actual duration.",
+          "src": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-returned-source.png",
+          "caption": "Actual historical Needs changes source and its factual correction reason, with the current linked replacement preserved.",
           "orientation": "landscape"
         }
       ]
@@ -207,7 +207,7 @@
       "context": "Native isolated BBS role exercise · C-0050-P-20261005 · synthetic October 2026 work only",
       "paragraphs": [
         "Needs changes is an author-recovery workflow. The recorded worker creates the linked corrected draft and submits it; PM verifies the replacement against the reviewer reason.",
-        "Rejected history is preserved separately and does not offer the same author correction action. See Review authority · who receives each source (review-authority) and Recovery · sources, obligations and immutable history (recovery-matrix)."
+        "Rejected history is preserved separately and does not offer the same author correction action. See Review authority · who receives each source (review-authority) and Recovery · correct a source or request help (recovery-matrix)."
       ],
       "steps": [
         "Open the returned October 17 Worker 2 source and verify the reason requests 15 actual minutes.",
@@ -222,8 +222,8 @@
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-readiness-20261006/external-supplier-pm/manager/screenshots/pm02-correction-approved-source.png",
-          "caption": "Actual Approved linked replacement, 15 minutes, with original source preserved.",
+          "src": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-approved-replacement.png",
+          "caption": "Current Approved linked replacement: 15 actual minutes with the original retained; the operational review state is shown.",
           "orientation": "landscape"
         }
       ]
@@ -541,13 +541,13 @@
       ],
       "recovery": [
         "Correct an ordinary draft before submission. Once submitted, follow a returned linked correction and explicit resubmission.",
-        "If a guard blocks a correction, hand off to Finance/Owner with the exact error and source ID."
+        "If a source is locked or its correction action is unavailable, send the Owner its ID, project, work date, requested correction and reason."
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/14-pm-own-time-form.png",
-          "caption": "Actual PM Log time form for personal operational work.",
-          "orientation": "landscape"
+          "src": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-own-time-form.png",
+          "caption": "Recaptured native form with factual work inputs and the complete Save draft control. Fields are filled for illustration; this capture did not save another source.",
+          "orientation": "portrait"
         },
         {
           "src": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/15-pm-own-time-submitted.png",
@@ -581,8 +581,8 @@
       ],
       "figures": [
         {
-          "src": "docs/evidence/bbs-role-manuals-20261006/manager/screenshots/16-pm-expenses-register.png",
-          "caption": "Actual PM Expenses register: scoped operational source filters and receipt review.",
+          "src": "docs/evidence/bbs-confidentiality-20261007/manager/screenshots/pm-expenses-current.png",
+          "caption": "Current PM expense workspace: factual purchase entry and operational review.",
           "orientation": "landscape"
         }
       ]
@@ -600,7 +600,7 @@
         "Open My Pay and select From and Through; choose Apply period.",
         "Review approved and pending estimates, Own activity detail, Settlement status and Reimbursement status for that period.",
         "Compare the source state with your own estimate. For the PM October 8 half-hour Submitted source, the October 1–31 view showed a pending estimate; it did not prove that payment occurred.",
-        "Use Generate report for your own worker statement if needed. Statement generation was not executed in this PM packet.",
+        "For your own statement, confirm From and Through, choose Apply period, then Generate report in Worker statement. If preparing, use Check statement status where offered or refresh after processing. Download PDF and CSV separately only when each is Ready; open each and verify your own identity, selected period and included activity. This sequence is source checked; PM statement generation was not executed in this packet.",
         "If an amount or expected payment is wrong, give Finance the source/project/period and the observed difference."
       ],
       "checks": [
@@ -692,7 +692,7 @@
       "steps": [
         "For an own report choose yourself in Worker where the form requests it, complete the facts and Save draft. Submit and verify the receiving reviewer and source state.",
         "On the approved own Daily select language, Generate report, Refresh until Ready, then Download and compare v3/source identity.",
-        "Use the shared access/security chapters for actual invitation, MFA, device and recovery procedures. Use Verification · current coverage and historical evidence (verification) to distinguish native execution from source-checked references."
+        "Use the shared access/security chapters for actual invitation, MFA, device and recovery procedures. Use Completion check · your permitted role cycle (verification) to distinguish native execution from source-checked references."
       ],
       "checks": [
         "PM own Daily was approved by Owner, generated Ready in English and downloaded natively. This exercised a separate reviewer; it does not assert that every source has a universal self-review denial."
@@ -720,7 +720,7 @@
       "context": "Browser-verified isolated BBS project C-0050-P-20261005. All ROLE LAB records are synthetic training; they are not real dispatch, customer acceptance, purchase or payment.",
       "paragraphs": [
         "A practical PM day starts with authorized scope and future plans, moves through actual-source review and correction, and ends with report and reimbursement handoffs. Finance handles the reimbursement/payment lifecycle; Owner maintains company access and policy.",
-        "Native coverage includes saved/restored membership dates, Reject and Needs changes decisions, author linked recovery and PM approval, actual Approved Technical attribution, Finance-created customer v2 followed by PM approval and Ready signature queue, private document registration and matching retrieval, populated notification to current source, own Daily approval by Owner and Ready PDF download. New Assign worker, own expense and statement generation remain source-checked references. See Verification · current coverage and historical evidence (verification)."
+        "Native coverage includes saved/restored membership dates, Reject and Needs changes decisions, author linked recovery and PM approval, actual Approved Technical attribution, Finance-created customer v2 followed by PM approval and Ready signature queue, private document registration and matching retrieval, populated notification to current source, own Daily approval by Owner and Ready PDF download. New Assign worker, own expense and statement generation remain source-checked references. See Completion check · your permitted role cycle (verification)."
       ],
       "steps": [
         "Confirm BBS project identity, timezone and your active membership. Check future Planning against availability.",
@@ -731,7 +731,7 @@
       ],
       "checks": [
         "No live email, customer signature, dispatch, purchase, bank payment or production business mutation occurred in this training packet.",
-        "Existing BBS records and finalized history remained unchanged."
+        "Earlier BBS records remained unchanged."
       ],
       "recovery": [
         "Do not solve a locked history problem by duplicating a project or time source. Use the supported correction or Owner handoff.",

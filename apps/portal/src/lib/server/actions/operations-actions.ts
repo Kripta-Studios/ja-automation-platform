@@ -339,7 +339,7 @@ const expenseCorrectionProblems: Readonly<Record<string, ExpenseCorrectionProble
     code: 'EXPENSE_CORRECTION_WITHDRAW_REVIEWED',
     key: 'problem.expenseDetail.withdrawReviewed',
     message:
-      'This correction draft has review or financial history and can no longer be withdrawn. Review the record.',
+      'This correction can no longer be withdrawn here. Review its current state and contact the designated administrator.',
     remedy: 'review_expense',
   },
 };
@@ -348,6 +348,7 @@ function expenseCorrectionFailure(
   error: unknown,
   values: Record<string, unknown>,
   actionName: 'createCorrectionDraft' | 'withdrawCorrectionDraft',
+  operationalOnly = false,
 ) {
   if (values.recordType !== 'expense') return reportActionFailure(error, values);
   const savedValues = safeExpenseCorrectionValues(values);
@@ -389,6 +390,8 @@ function expenseCorrectionFailure(
     : error instanceof ValidationError || error instanceof ConflictError
       ? expenseCorrectionProblems[error.message]
       : undefined;
+  if (operationalOnly && known?.remedy === 'contact_finance')
+    return lockedOperationalCorrection(actionName, savedValues);
   const fieldMatch =
     error instanceof ValidationError
       ? /^(vendor|spentOn|description|category|amount|occurredTimeLocal|paymentMethod|timeEntryId) is (?:required|invalid)$/.exec(
@@ -492,11 +495,11 @@ const reportProblems: Record<string, ReportProblem> = {
   },
   'Financially linked records cannot be deleted': {
     status: 409,
-    code: 'RECORD_FINANCIALLY_LINKED',
+    code: 'RECORD_LOCKED',
     key: 'problem.report.financiallyLinked',
     message:
-      'This record is linked to billing or another financial lock. Contact Finance for an audited adjustment.',
-    remedy: 'contact_finance',
+      'This record is locked. Send its reference and requested correction to your designated administrator. Do not create a duplicate.',
+    remedy: 'contact_project_owner',
   },
   'Correction drafts are immutable and cannot be deleted': {
     status: 409,
@@ -1011,7 +1014,22 @@ const timeCorrectionCorrectedDateAccessProblem: ReportProblem = {
   remedy: 'contact_project_owner',
 };
 
-function timeCorrectionCreateFailure(error: unknown, values: Record<string, unknown>) {
+function lockedOperationalCorrection(actionName: string, values: Record<string, unknown>) {
+  const message =
+    'This record cannot be changed here. Contact the project owner or designated administrator.';
+  return actionFail(409, 'problem.correction.recordLocked', {}, message, {
+    code: 'SOURCE_CORRECTION_LOCKED',
+    actionName,
+    values,
+    remedies: [{ id: 'contact_project_owner' }],
+  });
+}
+
+function timeCorrectionCreateFailure(
+  error: unknown,
+  values: Record<string, unknown>,
+  operationalOnly = false,
+) {
   let known: ReportProblem | undefined;
   if (error instanceof ConflictError) known = timeCorrectionCreateProblems[error.message];
   else if (error instanceof ValidationError)
@@ -1026,6 +1044,8 @@ function timeCorrectionCreateFailure(error: unknown, values: Record<string, unkn
       known = timeCorrectionDateAssignmentProblem;
   }
   if (!known) return null;
+  if (operationalOnly && known.remedy === 'contact_finance')
+    return lockedOperationalCorrection('createCorrectionDraft', safeTimeCorrectionValues(values));
   return actionFail(known.status, known.key, {}, known.message, {
     code: known.code,
     actionName: 'createCorrectionDraft',
@@ -1049,7 +1069,7 @@ const timeWithdrawalProblems: Record<string, ReportProblem> = {
     code: 'TIME_CORRECTION_WITHDRAW_REVIEWED',
     key: 'problem.time.correctionWithdrawReviewed',
     message:
-      'This correction draft has review or financial history and can no longer be withdrawn. Review the record and request an audited correction.',
+      'This correction can no longer be withdrawn here. Review its current state and contact the designated administrator.',
     remedy: 'review_time',
   },
   'Correction withdrawal access required': {
@@ -2113,7 +2133,12 @@ export const reportActions = {
         );
       }
       if (recordType === 'expense')
-        return expenseCorrectionFailure(error, object, 'createCorrectionDraft');
+        return expenseCorrectionFailure(
+          error,
+          object,
+          'createCorrectionDraft',
+          ['worker', 'project_manager'].includes(context.principal.role),
+        );
       if (
         ['daily_report', 'technical_report'].includes(recordType) &&
         error instanceof ValidationError &&
@@ -2129,7 +2154,11 @@ export const reportActions = {
           ['correctionFields'],
         );
       if (recordType === 'time_entry') {
-        const known = timeCorrectionCreateFailure(error, object);
+        const known = timeCorrectionCreateFailure(
+          error,
+          object,
+          ['worker', 'project_manager'].includes(context.principal.role),
+        );
         if (known) return known;
       }
       return reportActionFailure(error, object);
@@ -2260,7 +2289,12 @@ export const reportActions = {
       }
       return recordType === 'time_entry'
         ? timeCorrectionWithdrawalFailure(error, object)
-        : expenseCorrectionFailure(error, object, 'withdrawCorrectionDraft');
+        : expenseCorrectionFailure(
+            error,
+            object,
+            'withdrawCorrectionDraft',
+            ['worker', 'project_manager'].includes(context.principal.role),
+          );
     } finally {
       context.sqlite.close();
     }

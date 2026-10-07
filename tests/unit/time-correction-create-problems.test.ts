@@ -93,15 +93,15 @@ describe('time correction creation conflict recovery', () => {
     ],
     [
       'Financially finalized records require a finance correction',
-      'TIME_CORRECTION_FINANCIALLY_FINALIZED',
-      'problem.time.correctionFinanciallyFinalized',
-      'contact_finance',
+      'SOURCE_CORRECTION_LOCKED',
+      'problem.correction.recordLocked',
+      'contact_project_owner',
     ],
     [
       'Settled compensation time requires an explicit adjustment',
-      'TIME_CORRECTION_SETTLED_COMPENSATION',
-      'problem.time.correctionSettledCompensation',
-      'contact_finance',
+      'SOURCE_CORRECTION_LOCKED',
+      'problem.correction.recordLocked',
+      'contact_project_owner',
     ],
     [
       'Returned correction changed before retry creation',
@@ -169,39 +169,39 @@ describe('time correction creation conflict recovery', () => {
     ['too short', 'ab'],
     ['too long', 'x'.repeat(2001)],
   ])('keeps the correction form and marks a %s reason', async (_label, reason) => {
-      const response = await submit(correction({ reason, site: 'Retain entered site' }));
-      expect(response).toMatchObject({
-        status: 400,
-        data: {
-          code: 'TIME_CORRECTION_REASON_INVALID',
-          messageKey: 'problem.time.correctionReasonInvalid',
-          actionName: 'createCorrectionDraft',
-          values: { reason, site: 'Retain entered site', originalId, requestId },
-          fieldErrors: { reason: ['problem.time.correctionReasonInvalid'] },
-          remedies: [{ id: 'enter_reason' }],
-        },
-      });
-      expect(openPortalRepository).not.toHaveBeenCalled();
+    const response = await submit(correction({ reason, site: 'Retain entered site' }));
+    expect(response).toMatchObject({
+      status: 400,
+      data: {
+        code: 'TIME_CORRECTION_REASON_INVALID',
+        messageKey: 'problem.time.correctionReasonInvalid',
+        actionName: 'createCorrectionDraft',
+        values: { reason, site: 'Retain entered site', originalId, requestId },
+        fieldErrors: { reason: ['problem.time.correctionReasonInvalid'] },
+        remedies: [{ id: 'enter_reason' }],
+      },
+    });
+    expect(openPortalRepository).not.toHaveBeenCalled();
   });
 
-  it.each(['Correction reason is required', 'Correction reason must contain at least 3 characters'])(
-    'maps repository reason validation: %s',
-    async (cause) => {
-      repository.createCorrectionDraft.mockImplementation(() => {
-        throw new ValidationError(cause);
-      });
-      const response = await submit(correction());
-      expect(response).toMatchObject({
-        status: 400,
-        data: {
-          code: 'TIME_CORRECTION_REASON_INVALID',
-          fieldErrors: { reason: ['problem.time.correctionReasonInvalid'] },
-          remedies: [{ id: 'enter_reason' }],
-          values: { activitySummary: 'Checked the updated control sequence' },
-        },
-      });
-    },
-  );
+  it.each([
+    'Correction reason is required',
+    'Correction reason must contain at least 3 characters',
+  ])('maps repository reason validation: %s', async (cause) => {
+    repository.createCorrectionDraft.mockImplementation(() => {
+      throw new ValidationError(cause);
+    });
+    const response = await submit(correction());
+    expect(response).toMatchObject({
+      status: 400,
+      data: {
+        code: 'TIME_CORRECTION_REASON_INVALID',
+        fieldErrors: { reason: ['problem.time.correctionReasonInvalid'] },
+        remedies: [{ id: 'enter_reason' }],
+        values: { activitySummary: 'Checked the updated control sequence' },
+      },
+    });
+  });
 
   it('returns a safe time-register remedy when the entry vanished before field validation', async () => {
     repository.timeDetail.mockImplementation(() => {

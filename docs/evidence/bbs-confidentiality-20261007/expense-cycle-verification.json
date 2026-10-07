@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "checkedAt": "2026-10-07T12:06:49.267Z",
+  "environment": "isolated synthetic runtime",
+  "sourceId": "01a11640-f19f-74b8-9cfd-2719ef922ecc",
+  "sourceState": "approved",
+  "correctionId": "01a11642-5516-728f-873e-35a7fc4b7284",
+  "correctionState": "submitted",
+  "originalPreserved": true,
+  "receiptRetained": true,
+  "amountMinor": 300,
+  "currency": "USD",
+  "payer": "worker",
+  "pageErrors": []
+}

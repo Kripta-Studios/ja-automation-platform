@@ -54,6 +54,9 @@
       value === null || value === undefined ? null : String(value),
     );
   const record = $derived(data.record as Row);
+  const financialView = $derived(
+    ['owner_admin', 'finance_admin', 'auditor_read_only'].includes(String(data.user?.role)),
+  );
   const retainedCorrectionValues = $derived.by(() => {
     if (
       data.canCreateCorrection ||
@@ -114,7 +117,11 @@
   const remedyLinks = $derived({
     review_time: { label: t('Review updated time entry'), href: recordHref, reload: true },
     review_week: { label: t('problem.remedy.reviewTimeDrafts'), href: `${base}/app/time` },
-    contact_finance: { label: t('Contact Finance for an audited adjustment.') },
+    contact_finance: {
+      label: financialView
+        ? t('Contact Finance for an audited adjustment.')
+        : t('Contact the project owner or designated administrator.'),
+    },
     contact_project_owner: { label: t('problem.remedy.contactProjectOwner') },
     contact_owner: { label: t('problem.remedy.contactProjectOwner') },
     sign_in_again: { label: t('problem.remedy.signInAgain'), href: `${base}/app/login` },
@@ -377,7 +384,7 @@
       <article>
         <span>{t('CATEGORY')}</span><strong>{controlled('timeCategory', record.category)}</strong>
       </article>
-      {#if record.approval_state !== 'void' && 'billability_state' in record}
+      {#if financialView && record.approval_state !== 'void' && 'billability_state' in record}
         <article>
           <span>{t('BILLABILITY')}</span><strong
             >{controlled('status', record.billability_state ?? 'pending')}</strong
@@ -585,7 +592,9 @@
               ? t(
                   'This record was rejected. Contact the reviewer or Owner before recording replacement work.',
                 )
-              : t('The recorded worker must create a corrected draft from their Time register.')}
+              : t(
+                  'This record cannot be changed here. Contact the project owner or designated administrator.',
+                )}
           </p>
         {/if}
       </section>
@@ -601,6 +610,15 @@
           values={formValues}
           requestId={data.correctionRequestId}
         />
+      </section>
+    {/if}
+    {#if !financialView && record.approval_state === 'approved' && !data.canCreateCorrection && !data.activeCorrection}
+      <section class="detail-panel record-detail-copy">
+        <p>
+          {t(
+            'This record cannot be changed here. Contact the project owner or designated administrator.',
+          )}
+        </p>
       </section>
     {/if}
     {#if retainedCorrectionValues.length}

@@ -1269,9 +1269,7 @@
             <p class="surface-intro">
               {isFinance || isOwner || isAuditor
                 ? t('Commercial classification is shown only in the Finance view.')
-                : t(
-                    'Reported operational amounts and approval state. No commercial treatment is inferred.',
-                  )}
+                : t('Reported expense amounts, receipt evidence and operational review state.')}
             </p>
             <label class="expense-filter">
               <span>{t('Filter by category')}</span>

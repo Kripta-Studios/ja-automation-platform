@@ -79,15 +79,15 @@ const topics: Record<
     route: 'approvals',
     en: [
       'What the Project Manager reviews',
-      'The Project Manager coordinates assigned projects, plans the team, checks submitted hours, receipts and reports, and approves or requests changes. The queue shows pending records before completed ones, oldest first. Project approvals reviews project milestones; Finance review decides the commercial treatment after operational approval.',
+      'The Project Manager coordinates assigned projects, plans the team, checks submitted hours, receipts and reports, and approves or requests changes. The queue shows pending records before completed ones, oldest first. Project approvals reviews project milestones. Verify the resulting source state after review.',
     ],
     es: [
       'Qué revisa el {{Project manager}}',
-      'El {{Project manager}} coordina proyectos asignados, planifica el equipo, revisa horas, recibos e informes enviados y aprueba o solicita cambios. La cola prioriza pendientes antiguos. {{Project approvals}} revisa hitos del proyecto; {{Finance review}} decide el tratamiento comercial tras la aprobación operativa.',
+      'El {{Project manager}} coordina proyectos asignados, planifica el equipo, revisa horas, recibos e informes enviados y aprueba o solicita cambios. La cola prioriza pendientes antiguos. {{Project approvals}} revisa hitos del proyecto. Verifica el estado resultante del registro tras la revisión.',
     ],
     pt: [
       'O que o {{Project manager}} revisa',
-      'O {{Project manager}} coordena projetos atribuídos, planeja a equipe, revisa horas, comprovantes e relatórios enviados e aprova ou solicita correções. A fila prioriza pendências antigas. {{Project approvals}} revisa marcos; {{Finance review}} define o tratamento comercial após aprovação operacional.',
+      'O {{Project manager}} coordena projetos atribuídos, planeja a equipe, revisa horas, comprovantes e relatórios enviados e aprova ou solicita correções. A fila prioriza pendências antigas. {{Project approvals}} revisa marcos. Verifique o status resultante do registro após a revisão.',
     ],
   },
   projects: {
@@ -107,7 +107,7 @@ const topics: Record<
     ],
   },
   economics: {
-    roles: ['owner_admin', 'finance_admin'],
+    roles: ['owner_admin'],
     route: 'finance?view=economic',
     en: [
       'Economics and expected worker payment',
@@ -120,6 +120,22 @@ const topics: Record<
     pt: [
       'Economia e pagamento previsto',
       '{{Economic Review}} compara receita faturada com custos diretos de pessoal e despesas. {{Source records}} mostra os registros de origem. {{Compensation settlements}} agrupa remuneração aprovada por período. {{Expected worker payment}} é uma previsão, não um pagamento realizado. Finalize após revisar horas e regras; registre o pagamento real separadamente.',
+    ],
+  },
+  financialSettlement: {
+    roles: ['finance_admin'],
+    route: 'finance?view=economic',
+    en: [
+      'Review obligations and payment evidence',
+      'Inspect the permitted source records and selected compensation period. Verify the approved inputs, review state, expected payment date and recorded payment evidence separately. Follow the Owner-approved process for corrections and restricted setup inputs.',
+    ],
+    es: [
+      'Revisar obligaciones y justificantes de pago',
+      'Inspecciona los registros permitidos y el periodo seleccionado. Verifica por separado los datos aprobados, el estado, la fecha prevista y los justificantes de pago. Sigue el procedimiento aprobado por el Owner para correcciones y configuración restringida.',
+    ],
+    pt: [
+      'Revisar obrigações e comprovantes de pagamento',
+      'Inspecione os registros permitidos e o período selecionado. Verifique separadamente os dados aprovados, o status, a data prevista e os comprovantes de pagamento. Siga o procedimento aprovado pelo Owner para correções e configuração restrita.',
     ],
   },
   billing: {

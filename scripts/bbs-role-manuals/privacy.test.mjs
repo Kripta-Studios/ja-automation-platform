@@ -33,3 +33,14 @@ test('a previously reviewed leaking screenshot cannot be reintroduced', () => {
 test('Owner retains business economics and their original evidence', () => {
   assert.doesNotThrow(() => assertManualPrivacy('owner',[{paragraphs:['Client prices, internal cost and margin.'],figures:[{src:'evidence/29-finance-current-project-economics.png'}]}]));
 });
+
+test('operational preparation and recovery do not introduce commercial processing', () => {
+  for (const role of ['worker','chief','manager','supplier-coordinator','external-technician']) {
+    for (const sentence of ['Billability — Pending','Commercial treatment is handled separately.','Worker reimbursement and customer billing are separate.','Request a payment reversal.'])
+      assert.throws(() => assertManualPrivacy(role,[{paragraphs:[sentence]}]), /Owner-only disclosure/);
+  }
+});
+test('Finance retains its authorized input label without receiving costing guidance', () => {
+  assert.doesNotThrow(() => assertManualPrivacy('finance',[{steps:['Enter the Owner-approved value in Internal hourly cost (USD).']}]))
+  assert.throws(() => assertManualPrivacy('finance',[{paragraphs:['Internal hourly cost determines contribution margin.']}]), /Owner-only disclosure/);
+});

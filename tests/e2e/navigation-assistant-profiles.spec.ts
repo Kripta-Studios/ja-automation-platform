@@ -211,6 +211,18 @@ for (const scenario of [
       await page.keyboard.press('Enter');
       await expect(page).toHaveURL(current);
       await expect(palette(page)).toBeVisible();
+      for (const phrase of [
+        { query: 'quero registrar horas no projeto', taskId: 'time-create' },
+        { query: 'quero lançar uma despesa no projeto', taskId: 'expense-create' },
+        { query: 'quiero registrar horas en el proyecto', taskId: 'time-create' },
+        { query: 'log timee', taskId: 'time-create' },
+      ]) {
+        await query.fill(phrase.query);
+        await expect(palette(page).getByRole('status')).toContainText(
+          scenario.locale === 'es' ? 'Tareas coincidentes' : 'Tarefas correspondentes',
+        );
+        await expect(task(page, phrase.taskId)).toBeVisible();
+      }
       await query.fill(scenario.query);
       await expect(task(page, 'time-create')).toBeVisible();
       await task(page, 'time-create').click();

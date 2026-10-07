@@ -53,6 +53,34 @@ async function closeSheet(page: Page, surface: string, closeLabel: string): Prom
   await expect(target(page, surface)).toHaveCount(0);
 }
 
+for (const scenario of [
+  { locale: 'pt', query: 'quero registrar horas no projeto', task: 'time-create' },
+  { locale: 'pt', query: 'quero lançar uma despesa no projeto', task: 'expense-create' },
+  { locale: 'en', query: 'I wannt record hours on the project', task: 'time-create' },
+  { locale: 'es', query: 'quiero registrar horas en el proyecto', task: 'time-create' },
+]) {
+  test(`worker matches contextual phrase: ${scenario.query}`, async ({ page }) => {
+    await signIn(page, 'worker');
+    await page.goto(portal(`/time?lang=${scenario.locale}`));
+    await openPalette(page, scenario.query);
+    await expect(palette(page).getByRole('status')).toContainText(
+      scenario.locale === 'pt'
+        ? 'Tarefas correspondentes'
+        : scenario.locale === 'es'
+          ? 'Tareas coincidentes'
+          : 'Matching tasks',
+    );
+    await task(page, scenario.task).click();
+    await expect(palette(page)).not.toBeVisible();
+    await expect(target(page, scenario.task)).toBeVisible();
+    expect(new URL(page.url()).searchParams.get('lang')).toBe(scenario.locale);
+    const focus = await target(page, scenario.task).evaluate((form) =>
+      form.contains(document.activeElement),
+    );
+    expect(focus).toBe(true);
+  });
+}
+
 test('owner typo command opens project form and explicit authorized project selection', async ({
   page,
 }, info) => {
@@ -312,13 +340,14 @@ test('canceling assistant navigation retains a dirty time form and Escape only c
   await expect(summary).toBeVisible();
   await summary.fill('Keep this unsaved operational activity');
   const current = page.url();
-  await page.keyboard.press('Control+k');
+  const launcher = assistant(page).locator('[data-assistant-launcher]');
+  await launcher.click();
   await expect(palette(page)).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(palette(page)).not.toBeVisible();
   await expect(target(page, 'time-create')).toBeVisible();
   await expect(summary).toHaveValue('Keep this unsaved operational activity');
-  await expect(summary).toBeFocused();
+  await expect(launcher).toBeFocused();
 
   await page.keyboard.press('Control+k');
   await palette(page).locator('[data-assistant-query]').fill('record an expense');

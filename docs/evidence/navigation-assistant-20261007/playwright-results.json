@@ -5,8 +5,7 @@
       "/home/kripta/ja-navigation-assistant-20261007/node_modules/.pnpm/playwright@1.62.1/node_modules/playwright/cli.js",
       "test",
       "--config",
-      "playwright.assistant.config.ts",
-      "--max-failures=2"
+      "playwright.assistant.config.ts"
     ],
     "configFile": "/home/kripta/ja-navigation-assistant-20261007/playwright.assistant.config.ts",
     "rootDir": "/home/kripta/ja-navigation-assistant-20261007/tests/e2e",
@@ -18,7 +17,7 @@
     "globalTimeout": 0,
     "grep": {},
     "grepInvert": null,
-    "maxFailures": 2,
+    "maxFailures": 0,
     "metadata": {
       "actualWorkers": 1
     },
@@ -39,7 +38,7 @@
           "navigation-assistant.spec.ts",
           "navigation-assistant-profiles.spec.ts"
         ],
-        "timeout": 30000
+        "timeout": 60000
       },
       {
         "outputDir": "/home/kripta/ja-navigation-assistant-20261007/docs/evidence/navigation-assistant-20261007/browser-artifacts",
@@ -56,7 +55,7 @@
           "navigation-assistant.spec.ts",
           "navigation-assistant-profiles.spec.ts"
         ],
-        "timeout": 30000
+        "timeout": 60000
       },
       {
         "outputDir": "/home/kripta/ja-navigation-assistant-20261007/docs/evidence/navigation-assistant-20261007/browser-artifacts",
@@ -73,7 +72,7 @@
           "navigation-assistant.spec.ts",
           "navigation-assistant-profiles.spec.ts"
         ],
-        "timeout": 30000
+        "timeout": 60000
       },
       {
         "outputDir": "/home/kripta/ja-navigation-assistant-20261007/docs/evidence/navigation-assistant-20261007/browser-artifacts",
@@ -90,7 +89,7 @@
           "navigation-assistant.spec.ts",
           "navigation-assistant-profiles.spec.ts"
         ],
-        "timeout": 30000
+        "timeout": 60000
       }
     ],
     "quiet": false,
@@ -138,7 +137,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [
                 {
                   "type": "fixture-only permissions",
@@ -153,12 +152,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4754,
+                  "duration": 4777,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:38:08.981Z",
+                  "startTime": "2026-10-07T20:49:25.119Z",
                   "annotations": [
                     {
                       "type": "fixture-only permissions",
@@ -182,7 +181,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [
                 {
                   "type": "fixture-only permissions",
@@ -197,12 +196,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4297,
+                  "duration": 4330,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:38:14.194Z",
+                  "startTime": "2026-10-07T20:49:30.299Z",
                   "annotations": [
                     {
                       "type": "fixture-only permissions",
@@ -226,7 +225,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [
                 {
                   "type": "fixture-only permissions",
@@ -241,12 +240,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3973,
+                  "duration": 4246,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:39:48.926Z",
+                  "startTime": "2026-10-07T20:51:07.968Z",
                   "annotations": [
                     {
                       "type": "fixture-only permissions",
@@ -270,7 +269,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [
                 {
                   "type": "fixture-only permissions",
@@ -285,12 +284,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4887,
+                  "duration": 4378,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:39:53.208Z",
+                  "startTime": "2026-10-07T20:51:12.370Z",
                   "annotations": [
                     {
                       "type": "fixture-only permissions",
@@ -314,7 +313,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [
                 {
                   "type": "fixture-only permissions",
@@ -329,12 +328,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4384,
+                  "duration": 4248,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:41:15.705Z",
+                  "startTime": "2026-10-07T20:52:58.190Z",
                   "annotations": [
                     {
                       "type": "fixture-only permissions",
@@ -358,7 +357,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [
                 {
                   "type": "fixture-only permissions",
@@ -373,12 +372,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4909,
+                  "duration": 4484,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:41:20.213Z",
+                  "startTime": "2026-10-07T20:53:02.677Z",
                   "annotations": [
                     {
                       "type": "fixture-only permissions",
@@ -402,7 +401,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [
                 {
                   "type": "fixture-only permissions",
@@ -417,12 +416,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5048,
+                  "duration": 4427,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:42:51.339Z",
+                  "startTime": "2026-10-07T20:54:43.986Z",
                   "annotations": [
                     {
                       "type": "fixture-only permissions",
@@ -446,7 +445,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [
                 {
                   "type": "fixture-only permissions",
@@ -461,12 +460,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5247,
+                  "duration": 5518,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:42:56.555Z",
+                  "startTime": "2026-10-07T20:54:48.596Z",
                   "annotations": [
                     {
                       "type": "fixture-only permissions",
@@ -493,12 +492,12 @@
       "line": 0,
       "specs": [
         {
-          "title": "owner typo command opens project form and explicit authorized project selection",
+          "title": "worker matches contextual phrase: quero registrar horas no projeto",
           "ok": true,
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -508,12 +507,148 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 7673,
+                  "duration": 3048,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:38:18.575Z",
+                  "startTime": "2026-10-07T20:49:34.714Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-69241f515054a3c03d25",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "worker matches contextual phrase: quero lançar uma despesa no projeto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3202,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:49:37.775Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-f54ab8912a22b9eb6898",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "worker matches contextual phrase: I wannt record hours on the project",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3150,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:49:40.988Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-84596617941cad387ea3",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "worker matches contextual phrase: quiero registrar horas en el proyecto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3070,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:49:44.148Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-97a49df9d9b97b15b8ce",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "owner typo command opens project form and explicit authorized project selection",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-360",
+              "projectName": "phone-360",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6562,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:49:47.227Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -523,7 +658,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-0f18554fe50927faf327",
           "file": "navigation-assistant.spec.ts",
-          "line": 56,
+          "line": 84,
           "column": 1
         },
         {
@@ -532,7 +667,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -542,12 +677,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 6623,
+                  "duration": 4985,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:38:26.270Z",
+                  "startTime": "2026-10-07T20:49:53.799Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -557,7 +692,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-e7eab58140e7acdcf4b3",
           "file": "navigation-assistant.spec.ts",
-          "line": 103,
+          "line": 131,
           "column": 1
         },
         {
@@ -566,7 +701,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -576,12 +711,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5184,
+                  "duration": 4551,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:38:32.907Z",
+                  "startTime": "2026-10-07T20:49:58.796Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -591,7 +726,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-e5c6ab7e4c7e555b45ff",
           "file": "navigation-assistant.spec.ts",
-          "line": 131,
+          "line": 159,
           "column": 1
         },
         {
@@ -600,7 +735,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -610,12 +745,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4228,
+                  "duration": 3279,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:38:38.109Z",
+                  "startTime": "2026-10-07T20:50:03.360Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -625,7 +760,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-612f860bcf1913cddb05",
           "file": "navigation-assistant.spec.ts",
-          "line": 152,
+          "line": 180,
           "column": 1
         },
         {
@@ -634,7 +769,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -644,12 +779,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3819,
+                  "duration": 3314,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:38:42.364Z",
+                  "startTime": "2026-10-07T20:50:06.650Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -659,7 +794,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-93069efb9516fc4ef779",
           "file": "navigation-assistant.spec.ts",
-          "line": 167,
+          "line": 195,
           "column": 3
         },
         {
@@ -668,7 +803,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -678,12 +813,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3473,
+                  "duration": 3533,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:38:46.208Z",
+                  "startTime": "2026-10-07T20:50:09.971Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -693,7 +828,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-fa07fa88c70b744cc9e8",
           "file": "navigation-assistant.spec.ts",
-          "line": 167,
+          "line": 195,
           "column": 3
         },
         {
@@ -702,7 +837,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -712,12 +847,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3444,
+                  "duration": 3466,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:38:49.699Z",
+                  "startTime": "2026-10-07T20:50:13.521Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -727,7 +862,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-a5a989152fddec476f43",
           "file": "navigation-assistant.spec.ts",
-          "line": 186,
+          "line": 214,
           "column": 1
         },
         {
@@ -736,7 +871,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -746,12 +881,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4572,
+                  "duration": 3610,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:38:53.157Z",
+                  "startTime": "2026-10-07T20:50:17.001Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -761,7 +896,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-d537f8c8bda1a78cf396",
           "file": "navigation-assistant.spec.ts",
-          "line": 226,
+          "line": 254,
           "column": 3
         },
         {
@@ -770,7 +905,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -780,12 +915,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3600,
+                  "duration": 4052,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:38:57.749Z",
+                  "startTime": "2026-10-07T20:50:20.621Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -795,7 +930,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-a6ea6da9bff54e37f93f",
           "file": "navigation-assistant.spec.ts",
-          "line": 226,
+          "line": 254,
           "column": 3
         },
         {
@@ -804,7 +939,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -814,12 +949,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3808,
+                  "duration": 4763,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:39:01.358Z",
+                  "startTime": "2026-10-07T20:50:24.686Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -829,7 +964,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-8e3e6a0fb9cd2d4cd3e8",
           "file": "navigation-assistant.spec.ts",
-          "line": 246,
+          "line": 274,
           "column": 1
         },
         {
@@ -838,7 +973,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -848,12 +983,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3830,
+                  "duration": 4160,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:39:05.175Z",
+                  "startTime": "2026-10-07T20:50:29.467Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -863,7 +998,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-f0d4f120def0d1341427",
           "file": "navigation-assistant.spec.ts",
-          "line": 269,
+          "line": 297,
           "column": 1
         },
         {
@@ -872,7 +1007,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -882,12 +1017,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3887,
+                  "duration": 5186,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:39:09.015Z",
+                  "startTime": "2026-10-07T20:50:33.643Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -897,7 +1032,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-964632a250337b26d4d0",
           "file": "navigation-assistant.spec.ts",
-          "line": 305,
+          "line": 333,
           "column": 1
         },
         {
@@ -906,7 +1041,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -916,12 +1051,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5837,
+                  "duration": 5105,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:39:12.913Z",
+                  "startTime": "2026-10-07T20:50:38.850Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -931,7 +1066,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-20a5104da439c3070721",
           "file": "navigation-assistant.spec.ts",
-          "line": 340,
+          "line": 369,
           "column": 1
         },
         {
@@ -940,7 +1075,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -950,12 +1085,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4605,
+                  "duration": 4056,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:39:18.759Z",
+                  "startTime": "2026-10-07T20:50:43.964Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -965,7 +1100,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-5ef4c21a5243aa8a0ee5",
           "file": "navigation-assistant.spec.ts",
-          "line": 371,
+          "line": 400,
           "column": 1
         },
         {
@@ -974,7 +1109,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -984,12 +1119,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5541,
+                  "duration": 3850,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:39:23.378Z",
+                  "startTime": "2026-10-07T20:50:48.038Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -999,7 +1134,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-63019541c014f123a6e2",
           "file": "navigation-assistant.spec.ts",
-          "line": 399,
+          "line": 428,
           "column": 1
         },
         {
@@ -1008,7 +1143,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -1018,12 +1153,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4150,
+                  "duration": 3558,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:39:28.934Z",
+                  "startTime": "2026-10-07T20:50:51.901Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1033,7 +1168,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-37518740230839c39283",
           "file": "navigation-assistant.spec.ts",
-          "line": 440,
+          "line": 469,
           "column": 1
         },
         {
@@ -1042,7 +1177,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -1052,12 +1187,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 6790,
+                  "duration": 5073,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:39:33.097Z",
+                  "startTime": "2026-10-07T20:50:55.467Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1067,7 +1202,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-6eaae5a8c188b4375f40",
           "file": "navigation-assistant.spec.ts",
-          "line": 460,
+          "line": 489,
           "column": 1
         },
         {
@@ -1076,7 +1211,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-360",
@@ -1086,12 +1221,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 7258,
+                  "duration": 6454,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:39:39.905Z",
+                  "startTime": "2026-10-07T20:51:00.557Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1101,16 +1236,16 @@
           ],
           "id": "4e29c9eef3d4417e7507-3172fb144458b7bea030",
           "file": "navigation-assistant.spec.ts",
-          "line": 502,
+          "line": 531,
           "column": 1
         },
         {
-          "title": "owner typo command opens project form and explicit authorized project selection",
+          "title": "worker matches contextual phrase: quero registrar horas no projeto",
           "ok": true,
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1120,12 +1255,148 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 7703,
+                  "duration": 3330,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:39:58.171Z",
+                  "startTime": "2026-10-07T20:51:16.815Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-cb7e97997bae163ab25a",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "worker matches contextual phrase: quero lançar uma despesa no projeto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3437,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:51:20.155Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-5b5f6dee6efb065b7c72",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "worker matches contextual phrase: I wannt record hours on the project",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3959,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:51:23.616Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-61366904c01e7b7c678e",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "worker matches contextual phrase: quiero registrar horas en el proyecto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3684,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:51:27.589Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-4c1c42e45936cced12d5",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "owner typo command opens project form and explicit authorized project selection",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "phone-390",
+              "projectName": "phone-390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7951,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:51:31.296Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1135,7 +1406,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-76a56736c8a9624cbfb0",
           "file": "navigation-assistant.spec.ts",
-          "line": 56,
+          "line": 84,
           "column": 1
         },
         {
@@ -1144,7 +1415,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1154,12 +1425,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 6194,
+                  "duration": 6302,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:05.883Z",
+                  "startTime": "2026-10-07T20:51:39.263Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1169,7 +1440,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-a4de23930d77543eb7cf",
           "file": "navigation-assistant.spec.ts",
-          "line": 103,
+          "line": 131,
           "column": 1
         },
         {
@@ -1178,7 +1449,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1188,12 +1459,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4487,
+                  "duration": 5336,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:12.090Z",
+                  "startTime": "2026-10-07T20:51:45.584Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1203,7 +1474,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-76eb843312a6ad759314",
           "file": "navigation-assistant.spec.ts",
-          "line": 131,
+          "line": 159,
           "column": 1
         },
         {
@@ -1212,7 +1483,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1222,12 +1493,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3489,
+                  "duration": 4649,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:16.594Z",
+                  "startTime": "2026-10-07T20:51:50.937Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1237,7 +1508,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-f056eab5d46fe566d291",
           "file": "navigation-assistant.spec.ts",
-          "line": 152,
+          "line": 180,
           "column": 1
         },
         {
@@ -1246,7 +1517,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1256,12 +1527,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3335,
+                  "duration": 4711,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:20.100Z",
+                  "startTime": "2026-10-07T20:51:55.603Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1271,7 +1542,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-34d0ff31729c4e5c82fc",
           "file": "navigation-assistant.spec.ts",
-          "line": 167,
+          "line": 195,
           "column": 3
         },
         {
@@ -1280,7 +1551,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1290,12 +1561,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3324,
+                  "duration": 4403,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:23.449Z",
+                  "startTime": "2026-10-07T20:52:00.332Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1305,7 +1576,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-4410e818b53d90df4258",
           "file": "navigation-assistant.spec.ts",
-          "line": 167,
+          "line": 195,
           "column": 3
         },
         {
@@ -1314,7 +1585,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1324,12 +1595,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3245,
+                  "duration": 3620,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:26.785Z",
+                  "startTime": "2026-10-07T20:52:04.757Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1339,7 +1610,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-59136ed196dedbb8af87",
           "file": "navigation-assistant.spec.ts",
-          "line": 186,
+          "line": 214,
           "column": 1
         },
         {
@@ -1348,7 +1619,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1358,12 +1629,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3441,
+                  "duration": 3964,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:30.043Z",
+                  "startTime": "2026-10-07T20:52:08.396Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1373,7 +1644,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-666035271d76043ecebf",
           "file": "navigation-assistant.spec.ts",
-          "line": 226,
+          "line": 254,
           "column": 3
         },
         {
@@ -1382,7 +1653,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1392,12 +1663,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3339,
+                  "duration": 4029,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:33.499Z",
+                  "startTime": "2026-10-07T20:52:12.389Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1407,7 +1678,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-9f987982b8c3eb96dce8",
           "file": "navigation-assistant.spec.ts",
-          "line": 226,
+          "line": 254,
           "column": 3
         },
         {
@@ -1416,7 +1687,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1426,12 +1697,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3710,
+                  "duration": 4214,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:36.848Z",
+                  "startTime": "2026-10-07T20:52:16.446Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1441,7 +1712,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-c6e17761c254bf8379b8",
           "file": "navigation-assistant.spec.ts",
-          "line": 246,
+          "line": 274,
           "column": 1
         },
         {
@@ -1450,7 +1721,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1460,12 +1731,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3746,
+                  "duration": 4094,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:40.570Z",
+                  "startTime": "2026-10-07T20:52:20.679Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1475,7 +1746,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-93fe2a669cae0e4c3530",
           "file": "navigation-assistant.spec.ts",
-          "line": 269,
+          "line": 297,
           "column": 1
         },
         {
@@ -1484,7 +1755,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1494,12 +1765,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3911,
+                  "duration": 4143,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:44.331Z",
+                  "startTime": "2026-10-07T20:52:24.782Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1509,7 +1780,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-4e66c118da66cd5c91e8",
           "file": "navigation-assistant.spec.ts",
-          "line": 305,
+          "line": 333,
           "column": 1
         },
         {
@@ -1518,7 +1789,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1528,12 +1799,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4564,
+                  "duration": 4718,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:48.253Z",
+                  "startTime": "2026-10-07T20:52:28.940Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1543,7 +1814,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-52b68ef4b073a9f70763",
           "file": "navigation-assistant.spec.ts",
-          "line": 340,
+          "line": 369,
           "column": 1
         },
         {
@@ -1552,7 +1823,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1562,12 +1833,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3706,
+                  "duration": 4194,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:52.826Z",
+                  "startTime": "2026-10-07T20:52:33.672Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1577,7 +1848,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-cf16b40ec36f47facab7",
           "file": "navigation-assistant.spec.ts",
-          "line": 371,
+          "line": 400,
           "column": 1
         },
         {
@@ -1586,7 +1857,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1596,12 +1867,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3853,
+                  "duration": 4012,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:40:56.545Z",
+                  "startTime": "2026-10-07T20:52:37.880Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1611,7 +1882,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-b29853a5a606901794ba",
           "file": "navigation-assistant.spec.ts",
-          "line": 399,
+          "line": 428,
           "column": 1
         },
         {
@@ -1620,7 +1891,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1630,12 +1901,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3469,
+                  "duration": 3434,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:41:00.406Z",
+                  "startTime": "2026-10-07T20:52:41.904Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1645,7 +1916,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-a89d41dc9bff0adbf2bd",
           "file": "navigation-assistant.spec.ts",
-          "line": 440,
+          "line": 469,
           "column": 1
         },
         {
@@ -1654,7 +1925,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1664,12 +1935,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4871,
+                  "duration": 5237,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:41:03.888Z",
+                  "startTime": "2026-10-07T20:52:45.346Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1679,7 +1950,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-b8af632ba1e2125a011f",
           "file": "navigation-assistant.spec.ts",
-          "line": 460,
+          "line": 489,
           "column": 1
         },
         {
@@ -1688,7 +1959,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "phone-390",
@@ -1698,12 +1969,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 6029,
+                  "duration": 6123,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:41:08.767Z",
+                  "startTime": "2026-10-07T20:52:50.591Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1713,16 +1984,16 @@
           ],
           "id": "4e29c9eef3d4417e7507-9b081a9ecaa7719dcce8",
           "file": "navigation-assistant.spec.ts",
-          "line": 502,
+          "line": 531,
           "column": 1
         },
         {
-          "title": "owner typo command opens project form and explicit authorized project selection",
+          "title": "worker matches contextual phrase: quero registrar horas no projeto",
           "ok": true,
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -1732,12 +2003,148 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 7419,
+                  "duration": 3409,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:41:25.195Z",
+                  "startTime": "2026-10-07T20:53:07.263Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-8fbf8ca3cc4651f11c20",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "worker matches contextual phrase: quero lançar uma despesa no projeto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3425,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:53:10.687Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-3f896611409c6db35b4e",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "worker matches contextual phrase: I wannt record hours on the project",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3030,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:53:14.120Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-7641314741e72082bda3",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "worker matches contextual phrase: quiero registrar horas en el proyecto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3070,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:53:17.160Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-757938235c23f27fb868",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "owner typo command opens project form and explicit authorized project selection",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet-768",
+              "projectName": "tablet-768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6632,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:53:20.241Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1747,7 +2154,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-56ae94a21b64e8a47913",
           "file": "navigation-assistant.spec.ts",
-          "line": 56,
+          "line": 84,
           "column": 1
         },
         {
@@ -1756,7 +2163,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -1766,12 +2173,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5595,
+                  "duration": 5837,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:41:32.625Z",
+                  "startTime": "2026-10-07T20:53:26.885Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1781,7 +2188,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-138a929836de0e60d07d",
           "file": "navigation-assistant.spec.ts",
-          "line": 103,
+          "line": 131,
           "column": 1
         },
         {
@@ -1790,7 +2197,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -1800,12 +2207,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4896,
+                  "duration": 4901,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:41:38.237Z",
+                  "startTime": "2026-10-07T20:53:32.731Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1815,7 +2222,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-6f2013906c94d339a528",
           "file": "navigation-assistant.spec.ts",
-          "line": 131,
+          "line": 159,
           "column": 1
         },
         {
@@ -1824,7 +2231,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -1834,12 +2241,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3888,
+                  "duration": 4025,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:41:43.155Z",
+                  "startTime": "2026-10-07T20:53:37.642Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1849,7 +2256,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-21f44322b5f7ee4a903e",
           "file": "navigation-assistant.spec.ts",
-          "line": 152,
+          "line": 180,
           "column": 1
         },
         {
@@ -1858,7 +2265,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -1868,12 +2275,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3882,
+                  "duration": 4061,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:41:47.062Z",
+                  "startTime": "2026-10-07T20:53:41.692Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1883,7 +2290,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-b143b310c6cd7e71602e",
           "file": "navigation-assistant.spec.ts",
-          "line": 167,
+          "line": 195,
           "column": 3
         },
         {
@@ -1892,7 +2299,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -1902,12 +2309,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3313,
+                  "duration": 3774,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:41:50.955Z",
+                  "startTime": "2026-10-07T20:53:45.765Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1917,7 +2324,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-b177e63c164de699c9e1",
           "file": "navigation-assistant.spec.ts",
-          "line": 167,
+          "line": 195,
           "column": 3
         },
         {
@@ -1926,7 +2333,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -1936,12 +2343,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3205,
+                  "duration": 3535,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:41:54.276Z",
+                  "startTime": "2026-10-07T20:53:49.554Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1951,7 +2358,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-d6b0dd937d393892f5c1",
           "file": "navigation-assistant.spec.ts",
-          "line": 186,
+          "line": 214,
           "column": 1
         },
         {
@@ -1960,7 +2367,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -1970,12 +2377,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3563,
+                  "duration": 3542,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:41:57.492Z",
+                  "startTime": "2026-10-07T20:53:53.106Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1985,7 +2392,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-a7903584de752b22595d",
           "file": "navigation-assistant.spec.ts",
-          "line": 226,
+          "line": 254,
           "column": 3
         },
         {
@@ -1994,7 +2401,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -2004,12 +2411,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3635,
+                  "duration": 3790,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:42:01.069Z",
+                  "startTime": "2026-10-07T20:53:56.663Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2019,7 +2426,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-f11a807938ef1a18cac1",
           "file": "navigation-assistant.spec.ts",
-          "line": 226,
+          "line": 254,
           "column": 3
         },
         {
@@ -2028,7 +2435,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -2038,12 +2445,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3562,
+                  "duration": 4001,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:42:04.715Z",
+                  "startTime": "2026-10-07T20:54:00.465Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2053,7 +2460,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-5ac7de424a59b86d3bb5",
           "file": "navigation-assistant.spec.ts",
-          "line": 246,
+          "line": 274,
           "column": 1
         },
         {
@@ -2062,7 +2469,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -2072,12 +2479,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4776,
+                  "duration": 4353,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:42:08.291Z",
+                  "startTime": "2026-10-07T20:54:04.481Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2087,7 +2494,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-c96b1c1e948885f5fbcf",
           "file": "navigation-assistant.spec.ts",
-          "line": 269,
+          "line": 297,
           "column": 1
         },
         {
@@ -2096,7 +2503,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -2106,12 +2513,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4150,
+                  "duration": 4168,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:42:13.080Z",
+                  "startTime": "2026-10-07T20:54:08.846Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2121,7 +2528,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-5d2807de5766725c1dcc",
           "file": "navigation-assistant.spec.ts",
-          "line": 305,
+          "line": 333,
           "column": 1
         },
         {
@@ -2130,7 +2537,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -2140,12 +2547,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 6103,
+                  "duration": 4838,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:42:17.245Z",
+                  "startTime": "2026-10-07T20:54:13.027Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2155,7 +2562,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-f66a19135fca4189e83e",
           "file": "navigation-assistant.spec.ts",
-          "line": 340,
+          "line": 369,
           "column": 1
         },
         {
@@ -2164,7 +2571,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -2174,12 +2581,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4869,
+                  "duration": 4620,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:42:23.358Z",
+                  "startTime": "2026-10-07T20:54:17.875Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2189,7 +2596,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-d96b87e7f6bec9f77db8",
           "file": "navigation-assistant.spec.ts",
-          "line": 371,
+          "line": 400,
           "column": 1
         },
         {
@@ -2198,7 +2605,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -2208,12 +2615,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5331,
+                  "duration": 4468,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:42:28.236Z",
+                  "startTime": "2026-10-07T20:54:22.509Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2223,7 +2630,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-2c69e18aca844ff9fdff",
           "file": "navigation-assistant.spec.ts",
-          "line": 399,
+          "line": 428,
           "column": 1
         },
         {
@@ -2232,7 +2639,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -2242,12 +2649,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4664,
+                  "duration": 3580,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:42:33.581Z",
+                  "startTime": "2026-10-07T20:54:26.989Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2257,7 +2664,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-f57297c59608eed63ef8",
           "file": "navigation-assistant.spec.ts",
-          "line": 440,
+          "line": 469,
           "column": 1
         },
         {
@@ -2266,7 +2673,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -2276,12 +2683,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5589,
+                  "duration": 6091,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:42:38.261Z",
+                  "startTime": "2026-10-07T20:54:30.580Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2291,7 +2698,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-7630cf2dd770a468195c",
           "file": "navigation-assistant.spec.ts",
-          "line": 460,
+          "line": 489,
           "column": 1
         },
         {
@@ -2300,7 +2707,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "tablet-768",
@@ -2310,12 +2717,12 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 6283,
+                  "duration": 6057,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:42:43.878Z",
+                  "startTime": "2026-10-07T20:54:36.684Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2325,16 +2732,16 @@
           ],
           "id": "4e29c9eef3d4417e7507-c6d3489748ff460ed02a",
           "file": "navigation-assistant.spec.ts",
-          "line": 502,
+          "line": 531,
           "column": 1
         },
         {
-          "title": "owner typo command opens project form and explicit authorized project selection",
+          "title": "worker matches contextual phrase: quero registrar horas no projeto",
           "ok": true,
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2344,12 +2751,148 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 7723,
+                  "duration": 3890,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:43:01.896Z",
+                  "startTime": "2026-10-07T20:54:54.232Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-a0cc21e57039070d8d8a",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "worker matches contextual phrase: quero lançar uma despesa no projeto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4111,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:54:58.138Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-8d324dccdc411426c64b",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "worker matches contextual phrase: I wannt record hours on the project",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3765,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:55:02.283Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-e0a13c54c1cbfcecbf49",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "worker matches contextual phrase: quiero registrar horas en el proyecto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4194,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:55:06.063Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4e29c9eef3d4417e7507-19a58533d0c79d486251",
+          "file": "navigation-assistant.spec.ts",
+          "line": 62,
+          "column": 3
+        },
+        {
+          "title": "owner typo command opens project form and explicit authorized project selection",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7629,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T20:55:10.268Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2359,7 +2902,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-195f91a2e490a4c93208",
           "file": "navigation-assistant.spec.ts",
-          "line": 56,
+          "line": 84,
           "column": 1
         },
         {
@@ -2368,7 +2911,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2378,12 +2921,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 6237,
+                  "duration": 6040,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:43:09.630Z",
+                  "startTime": "2026-10-07T20:55:17.917Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2393,7 +2936,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-9c207531427e3a556fa3",
           "file": "navigation-assistant.spec.ts",
-          "line": 103,
+          "line": 131,
           "column": 1
         },
         {
@@ -2402,7 +2945,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2412,12 +2955,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5230,
+                  "duration": 4264,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:43:15.882Z",
+                  "startTime": "2026-10-07T20:55:23.973Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2427,7 +2970,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-11386fa458bc2f7f4117",
           "file": "navigation-assistant.spec.ts",
-          "line": 131,
+          "line": 159,
           "column": 1
         },
         {
@@ -2436,7 +2979,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2446,12 +2989,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4031,
+                  "duration": 3538,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:43:21.128Z",
+                  "startTime": "2026-10-07T20:55:28.253Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2461,7 +3004,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-17b1b529c1d924d735c1",
           "file": "navigation-assistant.spec.ts",
-          "line": 152,
+          "line": 180,
           "column": 1
         },
         {
@@ -2470,7 +3013,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2480,12 +3023,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3642,
+                  "duration": 3394,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:43:25.178Z",
+                  "startTime": "2026-10-07T20:55:31.807Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2495,7 +3038,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-5ca7b8df8f2c97448d49",
           "file": "navigation-assistant.spec.ts",
-          "line": 167,
+          "line": 195,
           "column": 3
         },
         {
@@ -2504,7 +3047,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2514,12 +3057,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3415,
+                  "duration": 3369,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:43:28.834Z",
+                  "startTime": "2026-10-07T20:55:35.213Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2529,7 +3072,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-cbf59f177d36f46656e2",
           "file": "navigation-assistant.spec.ts",
-          "line": 167,
+          "line": 195,
           "column": 3
         },
         {
@@ -2538,7 +3081,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2548,12 +3091,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3471,
+                  "duration": 3210,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:43:32.262Z",
+                  "startTime": "2026-10-07T20:55:38.591Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2563,7 +3106,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-5ca9219b6f1b06b9f92e",
           "file": "navigation-assistant.spec.ts",
-          "line": 186,
+          "line": 214,
           "column": 1
         },
         {
@@ -2572,7 +3115,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2582,12 +3125,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4230,
+                  "duration": 3681,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:43:35.744Z",
+                  "startTime": "2026-10-07T20:55:41.814Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2597,7 +3140,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-3cb7b4197d73c63e72cc",
           "file": "navigation-assistant.spec.ts",
-          "line": 226,
+          "line": 254,
           "column": 3
         },
         {
@@ -2606,7 +3149,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2616,12 +3159,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3886,
+                  "duration": 3418,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:43:39.994Z",
+                  "startTime": "2026-10-07T20:55:45.506Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2631,7 +3174,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-b7ddfaccd5530959a42c",
           "file": "navigation-assistant.spec.ts",
-          "line": 226,
+          "line": 254,
           "column": 3
         },
         {
@@ -2640,7 +3183,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2650,12 +3193,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3818,
+                  "duration": 3628,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:43:43.890Z",
+                  "startTime": "2026-10-07T20:55:48.932Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2665,7 +3208,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-726866a8f0ad52eba61d",
           "file": "navigation-assistant.spec.ts",
-          "line": 246,
+          "line": 274,
           "column": 1
         },
         {
@@ -2674,7 +3217,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2684,12 +3227,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3833,
+                  "duration": 3622,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:43:47.718Z",
+                  "startTime": "2026-10-07T20:55:52.572Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2699,7 +3242,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-88decac1163265988faf",
           "file": "navigation-assistant.spec.ts",
-          "line": 269,
+          "line": 297,
           "column": 1
         },
         {
@@ -2708,7 +3251,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2718,12 +3261,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3965,
+                  "duration": 3932,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:43:51.562Z",
+                  "startTime": "2026-10-07T20:55:56.206Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2733,7 +3276,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-63cfa70f063262ca782a",
           "file": "navigation-assistant.spec.ts",
-          "line": 305,
+          "line": 333,
           "column": 1
         },
         {
@@ -2742,7 +3285,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2752,12 +3295,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4798,
+                  "duration": 4661,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:43:55.540Z",
+                  "startTime": "2026-10-07T20:56:00.151Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2767,7 +3310,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-4e1d148ae993e1c14148",
           "file": "navigation-assistant.spec.ts",
-          "line": 340,
+          "line": 369,
           "column": 1
         },
         {
@@ -2776,7 +3319,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2786,12 +3329,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3997,
+                  "duration": 3952,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:44:00.347Z",
+                  "startTime": "2026-10-07T20:56:04.833Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2801,7 +3344,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-5c9467c376b679e0f351",
           "file": "navigation-assistant.spec.ts",
-          "line": 371,
+          "line": 400,
           "column": 1
         },
         {
@@ -2810,7 +3353,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2820,12 +3363,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4420,
+                  "duration": 3923,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:44:04.356Z",
+                  "startTime": "2026-10-07T20:56:08.795Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2835,7 +3378,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-786e115638733075b629",
           "file": "navigation-assistant.spec.ts",
-          "line": 399,
+          "line": 428,
           "column": 1
         },
         {
@@ -2844,7 +3387,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2854,12 +3397,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3777,
+                  "duration": 3737,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:44:08.789Z",
+                  "startTime": "2026-10-07T20:56:12.730Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2869,7 +3412,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-ddec0cf0ed9ca0326105",
           "file": "navigation-assistant.spec.ts",
-          "line": 440,
+          "line": 469,
           "column": 1
         },
         {
@@ -2878,7 +3421,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2888,12 +3431,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5561,
+                  "duration": 5137,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:44:12.580Z",
+                  "startTime": "2026-10-07T20:56:16.481Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2903,7 +3446,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-e95093f7eac15176a3b4",
           "file": "navigation-assistant.spec.ts",
-          "line": 460,
+          "line": 489,
           "column": 1
         },
         {
@@ -2912,7 +3455,7 @@
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 60000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "desktop",
@@ -2922,12 +3465,12 @@
                   "workerIndex": 3,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 6235,
+                  "duration": 6284,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-07T19:44:18.159Z",
+                  "startTime": "2026-10-07T20:56:21.627Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2937,7 +3480,7 @@
           ],
           "id": "4e29c9eef3d4417e7507-04edf76ae0403c8a1ec0",
           "file": "navigation-assistant.spec.ts",
-          "line": 502,
+          "line": 531,
           "column": 1
         }
       ]
@@ -2945,9 +3488,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-07T19:37:19.539Z",
-    "duration": 425154.20800000004,
-    "expected": 80,
+    "startTime": "2026-10-07T20:48:34.676Z",
+    "duration": 473516.504,
+    "expected": 96,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

@@ -1,0 +1,349 @@
+[
+  {
+    "kind": "role-task-catalog",
+    "profile": "external_technician",
+    "locale": "pt",
+    "restrictedIds": [
+      "supplier-own-report",
+      "time-create",
+      "time-list",
+      "time-edit",
+      "time-submit",
+      "time-discard",
+      "expense-create",
+      "expense-list",
+      "expense-week",
+      "expense-edit",
+      "expense-submit",
+      "expense-discard",
+      "report-daily",
+      "report-technical",
+      "report-list",
+      "report-edit",
+      "report-submit",
+      "profile-security",
+      "help"
+    ]
+  },
+  {
+    "kind": "navigation",
+    "locale": "pt",
+    "query": "quero registrar horas no projeto",
+    "expectedTaskId": "time-create",
+    "visibleMatches": ["time-create"],
+    "title": "Registar horas",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/time?action=log-time&lang=pt&assistantRequest=534a16df-a50e-4042-93f9-f5ba9084fdc4&assistantSurface=time-create",
+    "destinationVisible": true,
+    "focusedTarget": "projectId"
+  },
+  {
+    "kind": "navigation",
+    "locale": "pt",
+    "query": "quero lançar uma despesa no projeto",
+    "expectedTaskId": "expense-create",
+    "visibleMatches": ["expense-create"],
+    "title": "Registar uma despesa",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/expenses?action=record-expense&lang=pt&assistantRequest=465ba39c-46b0-4ec2-8758-e7536084139e&assistantSurface=expense-create",
+    "destinationVisible": true,
+    "focusedTarget": "receipt"
+  },
+  {
+    "kind": "navigation",
+    "locale": "pt",
+    "query": "criar um relatório diário para o projeto",
+    "expectedTaskId": "report-daily",
+    "visibleMatches": ["report-daily"],
+    "title": "Criar relatório diário",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/reports?view=daily&lang=pt&assistantRequest=e85ee129-b66a-431f-ab94-add0be101b8e&assistantSurface=report-daily#report-panel-daily",
+    "destinationVisible": true,
+    "focusedTarget": "projectId"
+  },
+  {
+    "kind": "navigation",
+    "locale": "pt",
+    "query": "alterar palavra passe",
+    "expectedTaskId": "profile-security",
+    "visibleMatches": ["profile-security"],
+    "title": "Abrir perfil e segurança da conta",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/profile?lang=pt&assistantRequest=aae2a312-1d3c-451e-a34f-40b60ae4822e#account-mfa",
+    "destinationVisible": true,
+    "focusedTarget": "account-mfa"
+  },
+  {
+    "kind": "navigation",
+    "locale": "pt",
+    "query": "abrir ajuda e manuais",
+    "expectedTaskId": "help",
+    "visibleMatches": ["help"],
+    "title": "Abrir ajuda e manuais",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/help?lang=pt&assistantRequest=a45f8b74-7724-460e-9e50-1e4a02ecfb8e",
+    "destinationVisible": true,
+    "focusedTarget": "visible heading: Ajuda e guias de campo"
+  },
+  {
+    "kind": "unsupported",
+    "locale": "pt",
+    "query": "elefante roxo",
+    "urlUnchanged": true,
+    "paletteRemainedOpen": true,
+    "status": "Posso ajudar você a encontrar páginas e formulários neste aplicativo. Experimente uma tarefa da lista abaixo."
+  },
+  {
+    "kind": "permission-denied",
+    "locale": "pt",
+    "query": "configurar finanças",
+    "urlUnchanged": true,
+    "paletteRemainedOpen": true,
+    "status": "Posso ajudar você a encontrar páginas e formulários neste aplicativo. Experimente uma tarefa da lista abaixo."
+  },
+  {
+    "kind": "negated",
+    "locale": "pt",
+    "query": "não quero registrar horas",
+    "urlUnchanged": true,
+    "paletteRemainedOpen": true,
+    "status": "Posso ajudar você a encontrar páginas e formulários neste aplicativo. Experimente uma tarefa da lista abaixo."
+  },
+  {
+    "kind": "ambiguous",
+    "locale": "pt",
+    "query": "relatório",
+    "resultCount": 5,
+    "urlUnchanged": true,
+    "paletteRemainedOpen": true
+  },
+  {
+    "kind": "role-task-catalog",
+    "profile": "external_technician",
+    "locale": "es",
+    "restrictedIds": [
+      "supplier-own-report",
+      "time-create",
+      "time-list",
+      "time-edit",
+      "time-submit",
+      "time-discard",
+      "expense-create",
+      "expense-list",
+      "expense-week",
+      "expense-edit",
+      "expense-submit",
+      "expense-discard",
+      "report-daily",
+      "report-technical",
+      "report-list",
+      "report-edit",
+      "report-submit",
+      "profile-security",
+      "help"
+    ]
+  },
+  {
+    "kind": "navigation",
+    "locale": "es",
+    "query": "quiero registrar horas en el proyecto",
+    "expectedTaskId": "time-create",
+    "visibleMatches": ["time-create"],
+    "title": "Registrar horas",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/time?action=log-time&lang=es&assistantRequest=0c20f733-6c81-4e58-948d-6744243a9faf&assistantSurface=time-create",
+    "destinationVisible": true,
+    "focusedTarget": "projectId"
+  },
+  {
+    "kind": "navigation",
+    "locale": "es",
+    "query": "quiero anotar un gasto del proyecto",
+    "expectedTaskId": "expense-create",
+    "visibleMatches": ["expense-create"],
+    "title": "Registrar un gasto",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/expenses?action=record-expense&lang=es&assistantRequest=bf5272d0-2216-41da-a95d-964cf3899c9a&assistantSurface=expense-create",
+    "destinationVisible": true,
+    "focusedTarget": "receipt"
+  },
+  {
+    "kind": "navigation",
+    "locale": "es",
+    "query": "crear un informe diario para el proyecto",
+    "expectedTaskId": "report-daily",
+    "visibleMatches": ["report-daily"],
+    "title": "Crear informe diario",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/reports?view=daily&lang=es&assistantRequest=4a3b39de-121e-4328-9e39-f08b0217b5b0&assistantSurface=report-daily#report-panel-daily",
+    "destinationVisible": true,
+    "focusedTarget": "projectId"
+  },
+  {
+    "kind": "navigation",
+    "locale": "es",
+    "query": "cambiar mi contraseña",
+    "expectedTaskId": "profile-security",
+    "visibleMatches": ["profile-security"],
+    "title": "Abrir perfil y seguridad de cuenta",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/profile?lang=es&assistantRequest=33894b2c-e2da-4730-a2bb-e8ef3c4a0fb3#account-mfa",
+    "destinationVisible": true,
+    "focusedTarget": "account-mfa"
+  },
+  {
+    "kind": "navigation",
+    "locale": "es",
+    "query": "abrir ayuda y manuales",
+    "expectedTaskId": "help",
+    "visibleMatches": ["help"],
+    "title": "Abrir ayuda y manuales",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/help?lang=es&assistantRequest=d10eba5c-7d8a-4181-9841-2f91fd804e2e",
+    "destinationVisible": true,
+    "focusedTarget": "visible heading: Ayuda y guías de campo"
+  },
+  {
+    "kind": "unsupported",
+    "locale": "es",
+    "query": "elefante morado",
+    "urlUnchanged": true,
+    "paletteRemainedOpen": true,
+    "status": "Puedo ayudarte a encontrar páginas y formularios de esta aplicación. Prueba una tarea de la lista de abajo."
+  },
+  {
+    "kind": "permission-denied",
+    "locale": "es",
+    "query": "configurar finanzas",
+    "urlUnchanged": true,
+    "paletteRemainedOpen": true,
+    "status": "Puedo ayudarte a encontrar páginas y formularios de esta aplicación. Prueba una tarea de la lista de abajo."
+  },
+  {
+    "kind": "negated",
+    "locale": "es",
+    "query": "no quiero registrar horas",
+    "urlUnchanged": true,
+    "paletteRemainedOpen": true,
+    "status": "Puedo ayudarte a encontrar páginas y formularios de esta aplicación. Prueba una tarea de la lista de abajo."
+  },
+  {
+    "kind": "ambiguous",
+    "locale": "es",
+    "query": "informe",
+    "resultCount": 5,
+    "urlUnchanged": true,
+    "paletteRemainedOpen": true
+  },
+  {
+    "kind": "role-task-catalog",
+    "profile": "external_technician",
+    "locale": "en",
+    "restrictedIds": [
+      "supplier-own-report",
+      "time-create",
+      "time-list",
+      "time-edit",
+      "time-submit",
+      "time-discard",
+      "expense-create",
+      "expense-list",
+      "expense-week",
+      "expense-edit",
+      "expense-submit",
+      "expense-discard",
+      "report-daily",
+      "report-technical",
+      "report-list",
+      "report-edit",
+      "report-submit",
+      "profile-security",
+      "help"
+    ]
+  },
+  {
+    "kind": "navigation",
+    "locale": "en",
+    "query": "I wannt record hours on the project",
+    "expectedTaskId": "time-create",
+    "visibleMatches": ["time-create"],
+    "title": "Log time",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/time?action=log-time&lang=en&assistantRequest=37011fa6-a4bd-4095-b81a-e923109ab23a&assistantSurface=time-create",
+    "destinationVisible": true,
+    "focusedTarget": "projectId"
+  },
+  {
+    "kind": "navigation",
+    "locale": "en",
+    "query": "record an expense for the project",
+    "expectedTaskId": "expense-create",
+    "visibleMatches": ["expense-create"],
+    "title": "Record an expense",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/expenses?action=record-expense&lang=en&assistantRequest=a1b07500-d289-4f2e-8582-5cab9403b3fa&assistantSurface=expense-create",
+    "destinationVisible": true,
+    "focusedTarget": "receipt"
+  },
+  {
+    "kind": "navigation",
+    "locale": "en",
+    "query": "create a daily report for the project",
+    "expectedTaskId": "report-daily",
+    "visibleMatches": ["report-daily"],
+    "title": "Create a daily report",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/reports?view=daily&lang=en&assistantRequest=7ad9d70a-ce65-4208-a6e9-01950e4d8616&assistantSurface=report-daily#report-panel-daily",
+    "destinationVisible": true,
+    "focusedTarget": "projectId"
+  },
+  {
+    "kind": "navigation",
+    "locale": "en",
+    "query": "change my password",
+    "expectedTaskId": "profile-security",
+    "visibleMatches": ["profile-security"],
+    "title": "Open profile and account security",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/profile?lang=en&assistantRequest=c1773c47-70eb-4145-852a-d0570ea526d9#account-mfa",
+    "destinationVisible": true,
+    "focusedTarget": "account-mfa"
+  },
+  {
+    "kind": "navigation",
+    "locale": "en",
+    "query": "open user help and manuals",
+    "expectedTaskId": "help",
+    "visibleMatches": ["help"],
+    "title": "Open user help and manuals",
+    "url": "http://127.0.0.1:4180/j-aautomation/app/help?lang=en&assistantRequest=e65c0af9-30b9-45c5-8912-e96195cd8a70",
+    "destinationVisible": true,
+    "focusedTarget": "visible heading: Help and field guides"
+  },
+  {
+    "kind": "unsupported",
+    "locale": "en",
+    "query": "purple elephant",
+    "urlUnchanged": true,
+    "paletteRemainedOpen": true,
+    "status": "I can help you find pages and forms in this app. Try a task from the list below."
+  },
+  {
+    "kind": "permission-denied",
+    "locale": "en",
+    "query": "configure finance",
+    "urlUnchanged": true,
+    "paletteRemainedOpen": true,
+    "status": "I can help you find pages and forms in this app. Try a task from the list below."
+  },
+  {
+    "kind": "negated",
+    "locale": "en",
+    "query": "don't record my hours",
+    "urlUnchanged": true,
+    "paletteRemainedOpen": true,
+    "status": "I can help you find pages and forms in this app. Try a task from the list below."
+  },
+  {
+    "kind": "ambiguous",
+    "locale": "en",
+    "query": "report",
+    "resultCount": 5,
+    "urlUnchanged": true,
+    "paletteRemainedOpen": true
+  },
+  {
+    "kind": "browser-health",
+    "viewport": "supplier-phone-360",
+    "pageErrors": [],
+    "consoleErrors": [],
+    "serverErrors": [],
+    "businessPosts": []
+  }
+]

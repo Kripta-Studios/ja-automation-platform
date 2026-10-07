@@ -6,6 +6,9 @@ const servers = Array.isArray(base.webServer) ? base.webServer : [base.webServer
 
 export default defineConfig({
   ...base,
+  // These real-login, multi-step journeys also run during browser swarm QA on
+  // the production VPS. Keep a bounded budget without relaxing assertions.
+  timeout: 60_000,
   testMatch: ['navigation-assistant.spec.ts', 'navigation-assistant-profiles.spec.ts'],
   projects: base.projects?.filter((project) => widths.has(project.name ?? '')),
   webServer: servers.filter((server) => server?.url?.includes(':4174/')),

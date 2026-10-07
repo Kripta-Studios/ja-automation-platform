@@ -1,0 +1,23 @@
+{
+  "role": "manager",
+  "viewportWidth": 390,
+  "steps": [
+    {
+      "action": "select PM project-reports record from current page projection",
+      "locale": "pt",
+      "query": "ver relatórios e ficheiros do projeto",
+      "route": "/j-aautomation/app/projects/01a1181c-0b3e-741c-a6cf-0349d47f398a?tab=reports&lang=pt&assistantRequest=d6012972-34f1-4737-9e5a-10714061a96b#project-panel-reports",
+      "visible": "authorized project reports panel for 01a1181c-0b3e-741c-a6cf-0349d47f398a"
+    },
+    {
+      "action": "open PM worker assignment controls from Spanish phrase",
+      "locale": "es",
+      "query": "editar asignación de trabajador",
+      "route": "/j-aautomation/app/projects?action=update-assignment&lang=es&assistantRequest=3423508a-9a38-4853-b37c-d11cbc0a2cc7",
+      "visible": "scoped worker assignment form with the start date field focused"
+    }
+  ],
+  "businessPosts": [],
+  "consoleErrors": [],
+  "pageErrors": []
+}

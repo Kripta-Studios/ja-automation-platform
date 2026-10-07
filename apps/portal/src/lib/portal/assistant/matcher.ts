@@ -56,7 +56,7 @@ const wordGroups: Record<string, string> = {
   audit: 'audit auditoria trail historial historico',
   management: 'management gestion gerir gestao data datos dados',
   create:
-    'create new add start log record enter crear nuevo nueva nuevos nuevas crear anadir registrar anotar crear criar novo nova novos novas adicionar registar publicar publish generate generar gerar',
+    'create new add start log record enter crear nuevo nueva nuevos nuevas crear anadir registrar anotar crear criar novo nova novos novas adicionar registar lancar publicar publish generate generar gerar',
   edit: 'edit update change correct revise configure set editar actualizar modificar cambiar corregir revisar configurar definir alterar atualizar corrigir rever',
   view: 'view show list search find open see ver mostrar buscar pesquisar procurar abrir consultar',
   remove:
@@ -81,7 +81,7 @@ for (const [canonical, words] of Object.entries({
 const qualifiers = new Set(['daily', 'technical', 'signoff', 'credit', 'draft']);
 const intents = new Set(['create', 'edit', 'view', 'remove', 'submit', 'issue', 'void']);
 const filler = new Set(
-  'i want wanna wannt would like to please can you could me a an the my own do for of it this that with de del la las los el un una unos unas quiero quisiera por favor puedo puedes que o os as um uma eu quero gostaria voce para meu minha em no na da dos se necesito need'.split(
+  'i want wanna wannt would like to please can you could me a an the my own do for of on in it this that with de del en la las los el un una unos unas quiero quisiera por favor puedo puedes que o os as um uma eu quero gostaria voce para meu minha em no na da dos se necesito need'.split(
     ' ',
   ),
 );
@@ -111,7 +111,11 @@ function domainsFor(text: string, fuzzyMatching = true): Set<string> {
     if (exact && !intents.has(exact) && !qualifiers.has(exact)) domains.add(exact);
     else if (fuzzyMatching && !exact && word.length >= 4 && !filler.has(word)) {
       const fuzzy = domainFuse.search(word, { limit: 1 })[0];
-      if (fuzzy && (fuzzy.score ?? 1) < 0.2 && Math.abs(fuzzy.item.alias.length - word.length) <= 2)
+      if (
+        fuzzy &&
+        (fuzzy.score ?? 1) <= 0.2 &&
+        Math.abs(fuzzy.item.alias.length - word.length) <= 2
+      )
         domains.add(fuzzy.item.domain);
     }
   }
@@ -167,10 +171,24 @@ export function searchAssistantTasks(
 ): AssistantSearchResult {
   const normalized = normalizeAssistantText(query);
   if (!normalized) return { kind: 'empty', matches: [] };
+  // Portuguese "no projeto" means "in the project". Remove only authored noun
+  // constructions from the negation check; Spanish "no crear" still stays blocked.
+  const portuguese =
+    locale === 'pt' ||
+    /\b(?:quero|criar|projeto|projetos|despesa|despesas|relatorio|relatorios|registar|lancar)\b/.test(
+      normalized,
+    );
+  const negationText = portuguese
+    ? normalized.replace(
+        /\bno (?=(?:projeto|projetos|cliente|clientes|relatorio|relatorios|perfil|calendario|fornecedor|fornecedores|aplicativo)\b)/g,
+        '',
+      )
+    : normalized;
   // Negation cannot be interpreted as an instruction to launch the opposite action.
   if (
     query.length > 500 ||
-    /\b(?:don['’]?t|do not|never|not|no|nunca|nao|não|sin|sem)\b/i.test(query)
+    /\bdon['’]?t\b/i.test(query) ||
+    /\b(?:do not|never|not|no|nunca|nao|sin|sem)\b/.test(negationText)
   )
     return { kind: 'unsupported', matches: [] };
   const queryTokens = tokens(query);
@@ -180,8 +198,8 @@ export function searchAssistantTasks(
   const candidates = available.filter((task) => {
     const domains = taskDomains.get(task.id) ?? new Set<string>();
     // A client invoice is still an invoice request; never fall back to unrelated client controls.
-    const primary = ['invoice', 'report', 'mailbox', 'supplier', 'crew'].find((domain) =>
-      queryDomains.has(domain),
+    const primary = ['invoice', 'report', 'mailbox', 'supplier', 'crew', 'time', 'expense'].find(
+      (domain) => queryDomains.has(domain),
     );
     return primary ? domains.has(primary) : [...queryDomains].some((domain) => domains.has(domain));
   });

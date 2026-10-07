@@ -1,0 +1,23 @@
+{
+  "role": "manager",
+  "viewportWidth": 390,
+  "steps": [
+    {
+      "action": "select time-create",
+      "locale": "es",
+      "query": "registrar horas",
+      "route": "/j-aautomation/app/time?action=log-time&lang=es&assistantRequest=3c784daa-8187-44a0-ae66-ff9064ab7966&assistantSurface=time-create",
+      "visible": "manager time entry form"
+    },
+    {
+      "action": "dismiss Spanish dirty-draft confirmation and keep the original time form",
+      "locale": "es",
+      "query": "añadir gasto",
+      "route": "/j-aautomation/app/time?action=log-time&lang=es&assistantRequest=3c784daa-8187-44a0-ae66-ff9064ab7966&assistantSurface=time-create",
+      "visible": "manager-390-unsaved draft remains in the time form"
+    }
+  ],
+  "businessPosts": [],
+  "consoleErrors": [],
+  "pageErrors": []
+}

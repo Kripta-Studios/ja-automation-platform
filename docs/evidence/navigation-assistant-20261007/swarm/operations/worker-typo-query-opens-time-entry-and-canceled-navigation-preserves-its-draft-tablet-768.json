@@ -1,0 +1,23 @@
+{
+  "role": "worker",
+  "viewportWidth": 768,
+  "steps": [
+    {
+      "action": "select time-create",
+      "locale": "en",
+      "query": "log timee",
+      "route": "/j-aautomation/app/time?action=log-time&lang=en&assistantRequest=c401e995-3b1d-4071-8232-ebc9dd5245d0&assistantSurface=time-create",
+      "visible": "time entry form opened from typo-tolerant English query"
+    },
+    {
+      "action": "dismiss dirty-draft confirmation and keep the original time form",
+      "locale": "en",
+      "query": "record expense",
+      "route": "/j-aautomation/app/time?action=log-time&lang=en&assistantRequest=c401e995-3b1d-4071-8232-ebc9dd5245d0&assistantSurface=time-create",
+      "visible": "worker-768-unsaved draft remains in the time form"
+    }
+  ],
+  "businessPosts": [],
+  "consoleErrors": [],
+  "pageErrors": []
+}

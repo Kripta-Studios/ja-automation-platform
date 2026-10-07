@@ -1,0 +1,33 @@
+{
+  "suite": "Owner and Finance navigation QA-A",
+  "sourceCommit": "830b32a8",
+  "focusedCasesDefined": 24,
+  "initialRun": {
+    "status": "terminated-by-SIGTERM",
+    "ran": 15,
+    "passed": 10,
+    "failed": 5,
+    "notStarted": 9
+  },
+  "diagnosticRun": {
+    "project": "tablet-768",
+    "journey": "owner invoice-create then page.goto(/time?lang=pt)",
+    "nativeDialogObserved": false,
+    "result": "Harness expected English heading Time under Portuguese locale; corrected to Horas, then root halted further runs"
+  },
+  "verifiedViewportProjects": ["phone-360", "phone-390", "tablet-768"],
+  "notRunViewportProjects": ["desktop-1440"],
+  "productionDbOrMigrationChanges": false,
+  "businessPostsObserved": 0,
+  "rootFix": "Assistant launcher z-index raised above ResponsiveSheet; integrated click-based dirty-draft regression added",
+  "financeHarnessCorrections": [
+    "hidden projectId and visible worker/rate controls",
+    "canonical view=overview baseline"
+  ],
+  "artifacts": {
+    "source": "qa-source/",
+    "initialScreenshotsAndTrace": "initial-attempt-browser-artifacts/",
+    "htmlReport": "report/index.html",
+    "diagnosticJson": "tablet-768-goto-dialog-diagnostic.json"
+  }
+}

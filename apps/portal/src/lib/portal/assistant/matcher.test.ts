@@ -18,6 +18,11 @@ describe('deterministic multilingual task matching', () => {
     ['crear informe técnico PLC', 'report-technical'],
     ['criar relatório diário', 'report-daily'],
     ['create an invoice', 'invoice-create'],
+    ['quero registrar horas no projeto', 'time-create'],
+    ['quero lançar uma despesa no projeto', 'expense-create'],
+    ['I wannt record hours on the project', 'time-create'],
+    ['log timee', 'time-create'],
+    ['quiero registrar horas en el proyecto', 'time-create'],
   ])('matches %s to %s across portal locales', (query, task) => {
     for (const locale of ['en', 'es', 'pt'] as const)
       expect(searchAssistantTasks(query, owner, locale).matches[0]?.task.id).toBe(task);
@@ -48,6 +53,26 @@ describe('deterministic multilingual task matching', () => {
       expect(ids('create mailbox', context)).toEqual([]);
     },
   );
+  it.each(['en', 'es', 'pt'] as const)('preserves negation across the %s locale', (locale) => {
+    for (const query of [
+      'no crear proyecto',
+      'no quiero registrar horas',
+      'não quero registrar horas no projeto',
+      'nao lancar despesa no projeto',
+      'do not log time on the project',
+      'no create project',
+    ])
+      expect(searchAssistantTasks(query, owner, locale).kind).toBe('unsupported');
+  });
+  it('recognizes Portuguese prepositions without widening supplier permissions', () => {
+    const supplier = { role: 'worker', workforceProfile: 'external_technician' };
+    expect(
+      searchAssistantTasks('quero registrar horas no projeto', supplier, 'pt').matches[0]?.task.id,
+    ).toBe('time-create');
+    expect(
+      searchAssistantTasks('quero criar uma fatura no projeto', supplier, 'pt').matches,
+    ).toEqual([]);
+  });
   it('gates suppliers and canonical owners before searching', () => {
     expect(ids('invoice', { role: 'worker', canonicalOwner: false })).toEqual([]);
     expect(

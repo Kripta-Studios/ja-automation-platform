@@ -353,7 +353,8 @@
     position: fixed;
     right: max(1rem, env(safe-area-inset-right));
     bottom: max(1rem, env(safe-area-inset-bottom));
-    z-index: 38;
+    /* ResponsiveSheet uses 49/50; task navigation remains tappable over a draft. */
+    z-index: 51;
     display: flex;
     gap: 0.55rem;
     align-items: center;
@@ -525,7 +526,7 @@
     bottom: 4.8rem;
     right: 1rem;
     max-width: min(400px, calc(100vw - 2rem));
-    z-index: 39;
+    z-index: 52;
     display: flex;
     align-items: center;
     gap: 0.75rem;

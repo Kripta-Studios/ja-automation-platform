@@ -1,0 +1,566 @@
+{
+ "brand": "evocon",
+ "duration": 133.0,
+ "flashes": [
+  9.0,
+  28.0,
+  121.0
+ ],
+ "segments": [
+  {
+   "type": "title",
+   "start": 0,
+   "end": 4.2,
+   "enter": "fade",
+   "tin": 0.7,
+   "kicker": "EVOCON SOLUTIONS",
+   "lines": [
+    "Field work.",
+    "Evidence.",
+    "*Invoices.*"
+   ],
+   "size": 116,
+   "stagger": 0.2
+  },
+  {
+   "type": "title",
+   "start": 4.2,
+   "end": 9,
+   "logo": true,
+   "lines": [
+    "Built for industrial",
+    "service *teams*."
+   ],
+   "size": 92,
+   "sub": "One workflow, from the hours worked to the invoice sent."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 9,
+   "end": 15.5,
+   "rec": "login",
+   "enter": "fade",
+   "tin": 0.4,
+   "remap": [
+    [
+     0,
+     1.6
+    ],
+    [
+     5.2,
+     8.2
+    ],
+    [
+     5.3,
+     16.7
+    ],
+    [
+     6.5,
+     18.6
+    ]
+   ],
+   "blur": [
+    {
+     "x": 1259.6250813802083,
+     "y": 521.7031656901041,
+     "w": 475.9219563802083,
+     "h": 69.328125,
+     "from": 2.2,
+     "to": 8.4
+    }
+   ],
+   "zoom": [
+    [
+     1.6,
+     1,
+     960,
+     540
+    ],
+    [
+     3.2,
+     1.25,
+     1350,
+     560
+    ],
+    [
+     8.2,
+     1.25,
+     1350,
+     560
+    ],
+    [
+     16.7,
+     1,
+     960,
+     540
+    ]
+   ],
+   "chip": "Secure access",
+   "title": "Every role signs in",
+   "sub": "Work email, passkeys and optional MFA. Invitation-only."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 15.5,
+   "end": 22,
+   "rec": "dashboard",
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 10.6,
+   "zoom": [
+    [
+     11.2,
+     1,
+     960,
+     540
+    ],
+    [
+     13,
+     1.35,
+     460,
+     360
+    ],
+    [
+     18.4,
+     1.35,
+     460,
+     360
+    ]
+   ],
+   "chip": "Task finder",
+   "title": "Describe the task",
+   "sub": "It opens the right form, in your language. You still review and save."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 22,
+   "end": 28,
+   "rec": "project",
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 0.6,
+   "zoom": [
+    [
+     0.8,
+     1,
+     960,
+     540
+    ],
+    [
+     2.2,
+     1.2,
+     980,
+     400
+    ],
+    [
+     5,
+     1.2,
+     980,
+     400
+    ],
+    [
+     6.2,
+     1,
+     960,
+     540
+    ]
+   ],
+   "chip": "One project",
+   "title": "Hours, crew, reports, money",
+   "sub": "The same project holds the fieldwork and the commercial result."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 28,
+   "end": 40,
+   "rec": "units",
+   "enter": "fade",
+   "tin": 0.4,
+   "from": 4.2,
+   "zoom": [
+    [
+     4.2,
+     1,
+     1000,
+     520
+    ],
+    [
+     6.5,
+     1.22,
+     1180,
+     500
+    ],
+    [
+     12.5,
+     1.22,
+     1180,
+     560
+    ]
+   ],
+   "chip": "Per-person terms",
+   "title": "Hourly, daily and weekly",
+   "sub": "7.5 hours worked. One day and one week, each billed once. Three agreements, one invoice."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 40,
+   "end": 47,
+   "rec": "finance",
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 4.2,
+   "zoom": [
+    [
+     4.6,
+     1,
+     960,
+     540
+    ],
+    [
+     6.4,
+     1.28,
+     1080,
+     430
+    ],
+    [
+     11,
+     1.28,
+     1080,
+     430
+    ]
+   ],
+   "chip": "Economics",
+   "title": "Margin is not cash",
+   "sub": "Invoiced, unbilled, cost and contribution stay separate, each traced to its source."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 47,
+   "end": 54,
+   "rec": "approvals",
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 0.4,
+   "speed": 0.8,
+   "zoom": [
+    [
+     1.2,
+     1,
+     960,
+     540
+    ],
+    [
+     2.8,
+     1.2,
+     760,
+     700
+    ],
+    [
+     4.2,
+     1.2,
+     900,
+     740
+    ]
+   ],
+   "chip": "Two reviews",
+   "title": "Confirm the work first",
+   "sub": "Operations approves the facts. Finance decides the treatment. The customer accepts a specific version."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 54,
+   "end": 62,
+   "rec": "report",
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 0.8,
+   "speed": 1.6,
+   "chip": "Technical record",
+   "title": "What changed, and why",
+   "sub": "Problem, diagnosis, change, validation and rollback. Kept with the project, not lost in a comment."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 62,
+   "end": 68.5,
+   "rec": "planning",
+   "enter": "fade",
+   "tin": 0.35,
+   "remap": [
+    [
+     0,
+     0.8
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     6.5,
+     12
+    ]
+   ],
+   "chip": "Crews",
+   "title": "One lead, every person visible",
+   "sub": "A chief can record the crew. Each worker keeps their own hours, pay and customer terms."
+  },
+  {
+   "type": "phone",
+   "start": 68.5,
+   "end": 78,
+   "rec": "mobile",
+   "remap": [
+    [
+     0,
+     1.2
+    ],
+    [
+     4,
+     7.4
+    ],
+    [
+     9.5,
+     18
+    ]
+   ],
+   "chip": "In the field",
+   "title": "The same workspace<br>on a phone",
+   "sub": "A plan never becomes actual hours.",
+   "bullets": [
+    "Log the hours you really worked",
+    "See the assignments published for you",
+    "Capture offline, sync when you reconnect"
+   ]
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 78,
+   "end": 84,
+   "rec": "audit",
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 0.6,
+   "zoom": [
+    [
+     0.6,
+     1,
+     960,
+     540
+    ],
+    [
+     2.2,
+     1.15,
+     800,
+     520
+    ],
+    [
+     6.5,
+     1.15,
+     800,
+     600
+    ]
+   ],
+   "chip": "Traceable",
+   "title": "The history stays",
+   "sub": "Corrections explain the original entry. Issued invoices are adjusted, not rewritten."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 84,
+   "end": 90,
+   "rec": "language",
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 0.8,
+   "speed": 0.85,
+   "zoom": [
+    [
+     0.8,
+     1,
+     960,
+     540
+    ],
+    [
+     2,
+     1.25,
+     800,
+     380
+    ],
+    [
+     5.4,
+     1.25,
+     800,
+     380
+    ]
+   ],
+   "chip": "Three languages",
+   "title": "English, Espa\u00f1ol, Portugu\u00eas",
+   "sub": "The workspace follows the person. Reports can follow too."
+  },
+  {
+   "type": "roles",
+   "start": 90,
+   "end": 97,
+   "heading": "A workspace for <span class=\"red\">every role</span>",
+   "items": [
+    [
+     "shots/role-owner.jpg",
+     "Owner"
+    ],
+    [
+     "shots/role-finance.jpg",
+     "Finance"
+    ],
+    [
+     "shots/role-project-manager.jpg",
+     "Project manager"
+    ],
+    [
+     "shots/role-auditor.jpg",
+     "Auditor"
+    ],
+    [
+     "shots/role-crew-chief.jpg",
+     "Crew chief"
+    ],
+    [
+     "shots/role-supplier-coordinator.jpg",
+     "Supplier coordinator"
+    ],
+    [
+     "shots/role-external-technician.jpg",
+     "External technician"
+    ],
+    [
+     "shots/role-worker-2.jpg",
+     "Field worker"
+    ]
+   ]
+  },
+  {
+   "type": "title",
+   "start": 97,
+   "end": 109,
+   "enter": "fade",
+   "tin": 0.4,
+   "kicker": "WHY TEAMS PAY FOR THIS",
+   "size": 64,
+   "stagger": 0.16,
+   "lines": [
+    "*Per-person* commercial terms",
+    "Expenses with separate meanings",
+    "Crews that stay individual",
+    "Evidence tied to the invoice"
+   ],
+   "sub": "Built around how industrial service work is actually billed."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 109.0,
+   "end": 110.5,
+   "rec": "units",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 8.5
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 110.5,
+   "end": 112.0,
+   "rec": "finance",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 8
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 112.0,
+   "end": 113.5,
+   "rec": "report",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 8
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 113.5,
+   "end": 115.0,
+   "rec": "approvals",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 3.8
+  },
+  {
+   "type": "phone",
+   "start": 115.0,
+   "end": 116.5,
+   "rec": "mobile",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 10,
+   "phoneX": 740,
+   "title": "",
+   "chip": ""
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 116.5,
+   "end": 118.0,
+   "rec": "planning",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 10
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 118.0,
+   "end": 119.5,
+   "rec": "dashboard",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 15
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 119.5,
+   "end": 121.0,
+   "rec": "project",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 16
+  },
+  {
+   "type": "title",
+   "start": 121,
+   "end": 133,
+   "logo": true,
+   "enter": "fade",
+   "tin": 0.5,
+   "noFadeOut": true,
+   "lines": [
+    "Run every project",
+    "with *confidence*."
+   ],
+   "size": 92,
+   "sub": "Built for J&amp;A Automation. Offered by Evocon Solutions.",
+   "url": "alvaro.schwiedop@evocon-solutions.com"
+  }
+ ]
+}

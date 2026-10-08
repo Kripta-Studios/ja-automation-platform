@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: Geist; src: url(assets/geist.woff2) format('woff2'); font-weight: 100 900; }
+@font-face { font-family: 'Geist Mono'; src: url(assets/geist-mono.woff2) format('woff2'); font-weight: 100 900; }
+:root { --red: #d62a2a; --ink: #f4f1ea; --bg: #141311; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); font-family: Geist, sans-serif; color: var(--ink); }
+#stage { position: absolute; inset: 0; overflow: hidden; }
+.bg { position: absolute; inset: -200px; }
+.bg .glow { position: absolute; width: 1400px; height: 1400px; border-radius: 50%; filter: blur(60px); }
+.bg .grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px); background-size: 80px 80px; }
+.layer { position: absolute; inset: 0; will-change: transform, opacity; }
+.win { position: absolute; border-radius: 18px; overflow: hidden; background: #fff; box-shadow: 0 40px 120px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.08); }
+.win .bar { height: 46px; background: #ecebe7; display: flex; align-items: center; padding: 0 18px; gap: 9px; border-bottom: 1px solid #d9d7d0; }
+.win .dot { width: 13px; height: 13px; border-radius: 50%; }
+.win .url { margin-left: 22px; flex: 1; height: 30px; border-radius: 9px; background: #fff; color: #555; font: 500 16px 'Geist Mono', monospace; display: flex; align-items: center; padding: 0 14px; gap: 10px; }
+.win .url b { color: #1c7c3a; font-weight: 600; }
+.win .view { position: absolute; left: 0; right: 0; bottom: 0; overflow: hidden; background: #f6f5f1; }
+.win .view img { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+.caption { position: absolute; left: 70px; bottom: 64px; max-width: 760px; padding: 26px 34px 28px; border-radius: 20px; background: rgba(20,19,17,.86); backdrop-filter: blur(14px); box-shadow: 0 20px 60px rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.1); }
+.chip { display: inline-flex; align-items: center; gap: 10px; font: 600 17px 'Geist Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: #fff; background: var(--red); padding: 7px 14px; border-radius: 999px; }
+.caption h2 { font-size: 50px; line-height: 1.05; font-weight: 650; letter-spacing: -.02em; margin-top: 16px; }
+.caption p { font-size: 24px; line-height: 1.35; color: #cfcac0; margin-top: 12px; }
+.title { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.title .kicker { font: 600 22px 'Geist Mono', monospace; letter-spacing: .3em; text-transform: uppercase; color: #e05a4f; margin-bottom: 26px; }
+.title .line { font-size: 118px; font-weight: 700; letter-spacing: -.035em; line-height: 1.02; }
+.title .line span { display: inline-block; margin: 0 .12em; }
+.title .sub { font-size: 34px; color: #cfcac0; margin-top: 30px; }
+.red { color: var(--red); }
+.logo-card { width: 260px; height: 260px; border-radius: 36px; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 30px 90px rgba(0,0,0,.5); }
+.logo-card img { width: 230px; }
+.phone { position: absolute; width: 440px; height: 920px; border-radius: 64px; background: #0c0c0c; padding: 16px; box-shadow: 0 40px 120px rgba(0,0,0,.6), 0 0 0 2px #333 inset; }
+.phone .screen { position: relative; width: 100%; height: 100%; border-radius: 50px; overflow: hidden; background: #f6f5f1; }
+.phone .screen img { position: absolute; left: 0; top: 0; width: 408px; transform-origin: 0 0; }
+.phone .notch { position: absolute; left: 50%; top: 26px; width: 120px; height: 34px; margin-left: -60px; background: #0c0c0c; border-radius: 20px; z-index: 3; }
+.side-text { position: absolute; }
+.side-text h2 { font-size: 82px; line-height: 1.02; font-weight: 700; letter-spacing: -.03em; }
+.side-text p { font-size: 30px; line-height: 1.4; color: #cfcac0; margin-top: 26px; max-width: 760px; }
+.side-text ul { list-style: none; margin-top: 34px; }
+.side-text li { font-size: 30px; margin: 16px 0; display: flex; gap: 18px; align-items: center; }
+.side-text li i { width: 14px; height: 14px; background: var(--red); border-radius: 4px; display: inline-block; }
+.stats { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 48px; }
+.stat { width: 360px; height: 360px; border-radius: 30px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); display: flex; flex-direction: column; justify-content: center; padding: 40px; }
+.stat .n { font-size: 132px; font-weight: 700; letter-spacing: -.04em; line-height: 1; }
+.stat .l { font-size: 27px; color: #cfcac0; margin-top: 18px; line-height: 1.3; }
+.roles { position: absolute; left: 110px; right: 110px; top: 250px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+.role { height: 330px; border-radius: 22px; overflow: hidden; background: #fff; position: relative; box-shadow: 0 24px 70px rgba(0,0,0,.5); }
+.role img { width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+.role .tag { position: absolute; left: 14px; bottom: 14px; font: 600 18px 'Geist Mono', monospace; letter-spacing: .08em; text-transform: uppercase; background: rgba(20,19,17,.9); color: #fff; padding: 9px 14px; border-radius: 12px; }
+.heading { position: absolute; left: 0; right: 0; text-align: center; font-size: 72px; font-weight: 700; letter-spacing: -.03em; }
+.flash { position: absolute; inset: 0; background: #fff; pointer-events: none; }
+.blurbox { position: absolute; backdrop-filter: blur(9px); background: rgba(255,255,255,.35); border-radius: 8px; }
+.cta { display: inline-block; margin-top: 46px; font-size: 30px; font-weight: 600; padding: 20px 40px; border-radius: 999px; background: var(--red); color: #fff; }
+.url-big { font: 500 30px 'Geist Mono', monospace; color: #cfcac0; margin-top: 26px; letter-spacing: .02em; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script src="timeline.js"></script>
+<script src="compose.js"></script>
+</body>
+</html>

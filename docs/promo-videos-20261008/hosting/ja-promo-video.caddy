@@ -1,0 +1,19 @@
+# Static product trailer, served ahead of the portal import (which owns /j-aautomation/app*).
+# Kept outside jaautomation.caddy because portal deploys replace that file.
+@ja_promo_video path /j-aautomation/app/video /j-aautomation/app/video/ /j-aautomation/app/video/*
+handle @ja_promo_video {
+	uri strip_prefix /j-aautomation/app/video
+	root * /var/www/ja-promo-video
+	header X-Robots-Tag "noindex"
+	header Cache-Control "public, max-age=300"
+	file_server
+}
+
+@ja_promo_video2 path /j-aautomation/app/video2 /j-aautomation/app/video2/ /j-aautomation/app/video2/*
+handle @ja_promo_video2 {
+	uri strip_prefix /j-aautomation/app/video2
+	root * /var/www/ja-promo-video2
+	header X-Robots-Tag "noindex"
+	header Cache-Control "public, max-age=300"
+	file_server
+}

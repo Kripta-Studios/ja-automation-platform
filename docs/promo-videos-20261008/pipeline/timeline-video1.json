@@ -1,61 +1,62 @@
 {
  "duration": 133.0,
  "flashes": [
-  8.0,
-  112.0,
-  124.0
+  9.0,
+  28.0,
+  121.0
  ],
  "segments": [
   {
    "type": "title",
    "start": 0,
-   "end": 4.45,
+   "end": 4.2,
    "enter": "fade",
-   "tin": 0.8,
-   "kicker": "J&amp;A Automation",
+   "tin": 0.7,
+   "kicker": "J&amp;A AUTOMATION",
    "lines": [
-    "Field crews.",
-    "Projects.",
-    "*Finance.*"
+    "Field work.",
+    "Evidence.",
+    "*Invoices.*"
    ],
-   "size": 124,
-   "stagger": 0.22
+   "size": 116,
+   "stagger": 0.2
   },
   {
    "type": "title",
-   "start": 4,
-   "end": 8.45,
+   "start": 4.2,
+   "end": 9,
    "logo": true,
    "lines": [
-    "One platform to run",
-    "every *project*."
+    "Built for industrial",
+    "service *teams*."
    ],
-   "size": 104,
-   "sub": "From the plant floor to the final invoice."
+   "size": 92,
+   "sub": "One workflow, from the hours worked to the invoice sent."
   },
   {
    "type": "scene",
-   "start": 8,
-   "end": 16.45,
+   "sharp": true,
+   "start": 9,
+   "end": 15.5,
    "rec": "login",
-   "url": "j-aautomation.com/j-aautomation/app/login",
-   "enter": "zoom",
+   "enter": "fade",
+   "tin": 0.4,
    "remap": [
     [
      0,
      1.6
     ],
     [
-     6.6,
+     5.2,
      8.2
     ],
     [
-     6.62,
+     5.3,
      16.7
     ],
     [
-     8.6,
-     18.8
+     6.5,
+     18.6
     ]
    ],
    "blur": [
@@ -64,8 +65,8 @@
      "y": 521.7031656901041,
      "w": 475.9219563802083,
      "h": 69.328125,
-     "from": 2.5,
-     "to": 8.6
+     "from": 2.2,
+     "to": 8.4
     }
    ],
    "zoom": [
@@ -76,14 +77,14 @@
      540
     ],
     [
-     3.0,
-     1.3,
+     3.2,
+     1.25,
      1350,
      560
     ],
     [
      8.2,
-     1.3,
+     1.25,
      1350,
      560
     ],
@@ -95,17 +96,18 @@
     ]
    ],
    "chip": "Secure access",
-   "title": "Sign in. Get to work.",
-   "sub": "Work email, passkeys and optional MFA. Invitation-only workspaces.",
-   "captionRight": false
+   "title": "Every role signs in",
+   "sub": "Work email, passkeys and optional MFA. Invitation-only."
   },
   {
    "type": "scene",
-   "start": 16,
-   "end": 25.45,
+   "sharp": true,
+   "start": 15.5,
+   "end": 22,
    "rec": "dashboard",
-   "url": "j-aautomation.com/j-aautomation/app",
-   "from": 9.4,
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 10.6,
    "zoom": [
     [
      11.2,
@@ -114,30 +116,31 @@
      540
     ],
     [
-     12.6,
-     1.45,
-     420,
-     330
+     13,
+     1.35,
+     460,
+     360
     ],
     [
-     18.5,
-     1.45,
-     420,
-     330
+     18.4,
+     1.35,
+     460,
+     360
     ]
    ],
-   "chip": "Navigation assistant",
-   "title": "Find any task in seconds",
-   "sub": "Type what you need. 120 guided workflows, one shortcut away.",
-   "captionRight": true
+   "chip": "Task finder",
+   "title": "Describe the task",
+   "sub": "It opens the right form, in your language. You still review and save."
   },
   {
    "type": "scene",
-   "start": 25,
-   "end": 33.45,
+   "sharp": true,
+   "start": 22,
+   "end": 28,
    "rec": "project",
-   "url": "j-aautomation.com/j-aautomation/app/projects/01a10c51-a391-7288-aad1-cb38be43f496",
-   "from": 0.4,
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 0.6,
    "zoom": [
     [
      0.8,
@@ -146,135 +149,70 @@
      540
     ],
     [
-     2.0,
-     1.28,
-     900,
-     420
+     2.2,
+     1.2,
+     980,
+     400
     ],
     [
-     4.3,
-     1.28,
-     900,
-     420
+     5,
+     1.2,
+     980,
+     400
     ],
     [
-     5.4,
+     6.2,
      1,
      960,
      540
     ]
    ],
-   "chip": "Projects",
-   "title": "Every project, in context",
-   "sub": "Hours, team, reports, contribution and billing on one page.",
-   "captionRight": true
+   "chip": "One project",
+   "title": "Hours, crew, reports, money",
+   "sub": "The same project holds the fieldwork and the commercial result."
   },
   {
    "type": "scene",
-   "start": 33,
-   "end": 41.45,
-   "rec": "planning",
-   "url": "j-aautomation.com/j-aautomation/app/planning",
-   "remap": [
-    [
-     0,
-     0.5
-    ],
-    [
-     3.5,
-     4.6
-    ],
-    [
-     8,
-     11.5
-    ]
-   ],
-   "chip": "Planning",
-   "title": "Plan your crews ahead",
-   "sub": "Publish assignments by site and skill. Crews see them instantly.",
-   "captionRight": true
-  },
-  {
-   "type": "phone",
-   "start": 41,
-   "end": 53.45,
-   "rec": "mobile",
-   "remap": [
-    [
-     0,
-     1.0
-    ],
-    [
-     4.5,
-     7.2
-    ],
-    [
-     12,
-     19.6
-    ]
-   ],
-   "chip": "Field crews",
-   "title": "Built for<br>the field",
-   "sub": "The same workspace on any phone.",
-   "bullets": [
-    "Log hours, expenses &amp; receipts",
-    "See upcoming assignments",
-    "Capture offline, sync later"
-   ]
-  },
-  {
-   "type": "scene",
-   "start": 53,
-   "end": 61.45,
-   "rec": "report",
-   "url": "j-aautomation.com/j-aautomation/app/reports/01a11c09-aca5-76b9-adc3-ffdcd24bc168",
-   "from": 0.6,
-   "speed": 1.75,
-   "chip": "Daily &amp; PLC reports",
-   "title": "Evidence your customers trust",
-   "sub": "Diagnosis, change, validation and rollback, with print-ready PDFs.",
-   "captionRight": true
-  },
-  {
-   "type": "scene",
-   "start": 61,
-   "end": 67.45,
-   "rec": "approvals",
-   "url": "j-aautomation.com/j-aautomation/app/approvals",
-   "from": 0.2,
-   "speed": 0.75,
+   "sharp": true,
+   "start": 28,
+   "end": 40,
+   "rec": "units",
+   "enter": "fade",
+   "tin": 0.4,
+   "from": 4.2,
    "zoom": [
     [
-     1.6,
+     4.2,
      1,
-     960,
-     540
+     1000,
+     520
     ],
     [
-     2.8,
-     1.25,
-     700,
-     760
+     6.5,
+     1.22,
+     1180,
+     500
     ],
     [
-     4.3,
-     1.25,
-     900,
-     760
+     12.5,
+     1.22,
+     1180,
+     560
     ]
    ],
-   "chip": "Approvals",
-   "title": "Review. Approve. Done.",
-   "sub": "Two-stage control: operations first, then finance.",
-   "captionRight": true
+   "chip": "Per-person terms",
+   "title": "Hourly, daily and weekly",
+   "sub": "7.5 hours worked. One day and one week, each billed once. Three agreements, one invoice."
   },
   {
    "type": "scene",
-   "start": 67,
-   "end": 75.45,
+   "sharp": true,
+   "start": 40,
+   "end": 47,
    "rec": "finance",
-   "url": "j-aautomation.com/j-aautomation/app/finance?view=economic",
-   "from": 3.4,
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 4.2,
    "zoom": [
     [
      4.6,
@@ -283,88 +221,133 @@
      540
     ],
     [
-     6.2,
-     1.32,
-     1060,
+     6.4,
+     1.28,
+     1080,
      430
     ],
     [
-     11.4,
-     1.32,
-     1060,
+     11,
+     1.28,
+     1080,
      430
     ]
    ],
-   "chip": "Finance",
-   "title": "Live project economics",
-   "sub": "Margin, direct cost, labour and hours, updated as work is approved.",
-   "captionRight": true
+   "chip": "Economics",
+   "title": "Margin is not cash",
+   "sub": "Invoiced, unbilled, cost and contribution stay separate, each traced to its source."
   },
   {
    "type": "scene",
-   "start": 75,
-   "end": 85.45,
-   "rec": "billing",
-   "url": "j-aautomation.com/j-aautomation/app/billing",
+   "sharp": true,
+   "start": 47,
+   "end": 54,
+   "rec": "approvals",
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 0.4,
+   "speed": 0.8,
+   "zoom": [
+    [
+     1.2,
+     1,
+     960,
+     540
+    ],
+    [
+     2.8,
+     1.2,
+     760,
+     700
+    ],
+    [
+     4.2,
+     1.2,
+     900,
+     740
+    ]
+   ],
+   "chip": "Two reviews",
+   "title": "Confirm the work first",
+   "sub": "Operations approves the facts. Finance decides the treatment. The customer accepts a specific version."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 54,
+   "end": 62,
+   "rec": "report",
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 0.8,
+   "speed": 1.6,
+   "chip": "Technical record",
+   "title": "What changed, and why",
+   "sub": "Problem, diagnosis, change, validation and rollback. Kept with the project, not lost in a comment."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 62,
+   "end": 68.5,
+   "rec": "planning",
+   "enter": "fade",
+   "tin": 0.35,
    "remap": [
     [
      0,
      0.8
     ],
     [
-     3.2,
-     5.6
+     3,
+     5
     ],
     [
-     10,
-     17.6
+     6.5,
+     12
     ]
    ],
-   "chip": "Billing",
-   "title": "From timesheet to invoice",
-   "sub": "Draft, approve, issue and collect. Issued invoices stay immutable.",
-   "captionRight": true
+   "chip": "Crews",
+   "title": "One lead, every person visible",
+   "sub": "A chief can record the crew. Each worker keeps their own hours, pay and customer terms."
+  },
+  {
+   "type": "phone",
+   "start": 68.5,
+   "end": 78,
+   "rec": "mobile",
+   "remap": [
+    [
+     0,
+     1.2
+    ],
+    [
+     4,
+     7.4
+    ],
+    [
+     9.5,
+     18
+    ]
+   ],
+   "chip": "In the field",
+   "title": "The same workspace<br>on a phone",
+   "sub": "A plan never becomes actual hours.",
+   "bullets": [
+    "Log the hours you really worked",
+    "See the assignments published for you",
+    "Capture offline, sync when you reconnect"
+   ]
   },
   {
    "type": "scene",
-   "start": 85,
-   "end": 91.45,
+   "sharp": true,
+   "start": 78,
+   "end": 84,
    "rec": "audit",
-   "url": "j-aautomation.com/j-aautomation/app/audit",
-   "from": 0.5,
-   "zoom": [
-    [
-     0.5,
-     1,
-     960,
-     540
-    ],
-    [
-     2.0,
-     1.2,
-     760,
-     520
-    ],
-    [
-     6.8,
-     1.2,
-     760,
-     600
-    ]
-   ],
-   "chip": "Compliance",
-   "title": "Every change on the record",
-   "sub": "Append-only security and finance audit, plus a read-only auditor role.",
-   "captionRight": true
-  },
-  {
-   "type": "scene",
-   "start": 91,
-   "end": 98.45,
-   "rec": "language",
-   "url": "j-aautomation.com/j-aautomation/app",
+   "enter": "fade",
+   "tin": 0.35,
    "from": 0.6,
-   "speed": 0.8,
    "zoom": [
     [
      0.6,
@@ -373,28 +356,61 @@
      540
     ],
     [
-     1.8,
-     1.3,
-     760,
-     400
+     2.2,
+     1.15,
+     800,
+     520
     ],
     [
-     5.6,
-     1.3,
-     760,
-     400
+     6.5,
+     1.15,
+     800,
+     600
     ]
    ],
-   "chip": "Multilingual",
-   "title": "English \u00b7 Espa\u00f1ol \u00b7 Portugu\u00eas",
-   "sub": "Switch languages instantly. Reports and PDFs follow.",
-   "captionRight": true
+   "chip": "Traceable",
+   "title": "The history stays",
+   "sub": "Corrections explain the original entry. Issued invoices are adjusted, not rewritten."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 84,
+   "end": 90,
+   "rec": "language",
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 0.8,
+   "speed": 0.85,
+   "zoom": [
+    [
+     0.8,
+     1,
+     960,
+     540
+    ],
+    [
+     2,
+     1.25,
+     800,
+     380
+    ],
+    [
+     5.4,
+     1.25,
+     800,
+     380
+    ]
+   ],
+   "chip": "Three languages",
+   "title": "English, Espa\u00f1ol, Portugu\u00eas",
+   "sub": "The workspace follows the person. Reports can follow too."
   },
   {
    "type": "roles",
-   "start": 98,
-   "end": 104.45,
-   "heading": "One platform. <span class=\"red\">Every role.</span>",
+   "start": 90,
+   "end": 97,
+   "heading": "A workspace for <span class=\"red\">every role</span>",
    "items": [
     [
      "shots/role-owner.jpg",
@@ -431,135 +447,119 @@
    ]
   },
   {
-   "type": "stats",
-   "start": 104,
-   "end": 112,
-   "heading": "Serious depth, <span class=\"red\">ready today</span>",
-   "items": [
-    [
-     237,
-     "production capabilities"
-    ],
-    [
-     120,
-     "guided tasks"
-    ],
-    [
-     8,
-     "role workspaces"
-    ],
-    [
-     3,
-     "languages"
-    ]
+   "type": "title",
+   "start": 97,
+   "end": 109,
+   "enter": "fade",
+   "tin": 0.4,
+   "kicker": "WHY TEAMS PAY FOR THIS",
+   "size": 64,
+   "stagger": 0.16,
+   "lines": [
+    "*Per-person* commercial terms",
+    "Expenses with separate meanings",
+    "Crews that stay individual",
+    "Evidence tied to the invoice"
    ],
-   "sub": "190 audited actions \u00b7 52 API endpoints \u00b7 fully mapped"
+   "sub": "Built around how industrial service work is actually billed."
   },
   {
    "type": "scene",
-   "start": 112.0,
-   "end": 113.5,
-   "rec": "billing",
-   "url": "j-aautomation.com/j-aautomation/app",
+   "sharp": true,
+   "start": 109.0,
+   "end": 110.5,
+   "rec": "units",
    "enter": "cut",
    "tin": 0.01,
-   "winW": 1720,
-   "from": 9.5,
-   "blur": []
+   "from": 8.5
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 110.5,
+   "end": 112.0,
+   "rec": "finance",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 8
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 112.0,
+   "end": 113.5,
+   "rec": "report",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 8
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 113.5,
+   "end": 115.0,
+   "rec": "approvals",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 3.8
   },
   {
    "type": "phone",
-   "start": 113.5,
-   "end": 115.0,
+   "start": 115.0,
+   "end": 116.5,
    "rec": "mobile",
    "enter": "cut",
    "tin": 0.01,
-   "from": 9.0,
+   "from": 10,
    "phoneX": 740,
    "title": "",
    "chip": ""
   },
   {
    "type": "scene",
-   "start": 115.0,
-   "end": 116.5,
-   "rec": "finance",
-   "url": "j-aautomation.com/j-aautomation/app",
-   "enter": "cut",
-   "tin": 0.01,
-   "winW": 1720,
-   "from": 7.5
-  },
-  {
-   "type": "scene",
+   "sharp": true,
    "start": 116.5,
    "end": 118.0,
    "rec": "planning",
-   "url": "j-aautomation.com/j-aautomation/app",
    "enter": "cut",
    "tin": 0.01,
-   "winW": 1720,
-   "from": 9.5
+   "from": 10
   },
   {
    "type": "scene",
+   "sharp": true,
    "start": 118.0,
    "end": 119.5,
-   "rec": "report",
-   "url": "j-aautomation.com/j-aautomation/app",
+   "rec": "dashboard",
    "enter": "cut",
    "tin": 0.01,
-   "winW": 1720,
-   "from": 9.0
+   "from": 15
   },
   {
    "type": "scene",
+   "sharp": true,
    "start": 119.5,
    "end": 121.0,
-   "rec": "approvals",
-   "url": "j-aautomation.com/j-aautomation/app",
-   "enter": "cut",
-   "tin": 0.01,
-   "winW": 1720,
-   "from": 3.6
-  },
-  {
-   "type": "scene",
-   "start": 121.0,
-   "end": 122.5,
-   "rec": "dashboard",
-   "url": "j-aautomation.com/j-aautomation/app",
-   "enter": "cut",
-   "tin": 0.01,
-   "winW": 1720,
-   "from": 15.0
-  },
-  {
-   "type": "scene",
-   "start": 122.5,
-   "end": 124.6,
    "rec": "project",
-   "url": "j-aautomation.com/j-aautomation/app",
    "enter": "cut",
    "tin": 0.01,
-   "winW": 1720,
-   "from": 15.5
+   "from": 16
   },
   {
    "type": "title",
-   "start": 124,
+   "start": 121,
    "end": 133,
    "logo": true,
-   "enter": "zoom",
-   "tin": 0.6,
+   "enter": "fade",
+   "tin": 0.5,
    "noFadeOut": true,
    "lines": [
     "Run every project",
     "with *confidence*."
    ],
-   "size": 100,
-   "url": "j-aautomation.com",
-   "cta": "Book a live demo"
+   "size": 92,
+   "sub": "Field operations, technical evidence and finance, in one workflow.",
+   "url": "j-aautomation.com"
   }
  ]
 }

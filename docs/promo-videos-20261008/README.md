@@ -7,17 +7,15 @@ Two 1080p30 trailers of the portal that is serving `https://j-aautomation.com/j-
 | Video 1, J&A | https://j-aautomation.com/j-aautomation/app/video | `/var/www/ja-promo-video/ja-automation-trailer-1080p30.mp4` |
 | Video 2, Evocon | https://j-aautomation.com/j-aautomation/app/video2 | `/var/www/ja-promo-video2/evocon-industrial-operations-1080p30.mp4` |
 
-Video 1 is the J&A cut: J&A name, J&A logo, red lighting, `j-aautomation.com` on the end card. Video 2 is the same demonstration re-cut for Evocon Solutions, with a sharper picture and a sales story aimed at other industrial service companies. Video 2 is the one intended for Antonny, so he can see the product Evocon built for J&A and show it elsewhere. Its end card gives `alvaro.schwiedop@evocon-solutions.com`.
+Both cuts tell the same sales story and use the same sharp, full-frame picture. Video 1 keeps the J&A name, the J&A logo, the red lighting and `j-aautomation.com` on the end card. Video 2 is the Evocon Solutions cut of that same film: Evocon wordmark, orange and purple, and `alvaro.schwiedop@evocon-solutions.com` on the end card. Video 2 is the one intended for Antonny, so he can show other companies what Evocon built for J&A.
 
 This folder is the reproducible source. It does not contain the rendered videos, the captured frames, the soundtrack wav, login sessions, or any password. Those stayed on the VPS. See [What is not in git](#what-is-not-in-git).
 
 ## What the films actually argue
 
-Video 1 opens on "Field crews. Projects. Finance." and then walks the live Owner session through sign-in, the task finder, a project, planning, a phone, a PLC report, an approval, project economics, an invoice preview, the audit log, and the language switch. It closes on a count of production capabilities, guided tasks, roles and languages.
+An earlier cut of Video 1 closed on a count of capabilities, tasks, roles and languages. Those inventories overlap, so adding 237 + 120 does not produce 357 separate features. That cut was replaced. The file now at `/j-aautomation/app/video` is the differentiator cut.
 
-That count is a poor sales claim. The capability inventory, the navigation inventory and the manuals overlap, so adding 237 + 120 does not produce 357 separate features. Video 2 drops the count.
-
-Video 2 keeps the live demonstration and changes the argument to the thing that is hard to assemble in Harvest, Jobber, Odoo or Dynamics 365 Project Operations: one traceable path from a person, through the hours they actually worked, through a commercial agreement that can be hourly, daily or weekly, to an invoice that does not bill the same day or week twice.
+Both films argue the thing that is hard to assemble in Harvest, Jobber, Odoo or Dynamics 365 Project Operations: one traceable path from a person, through the hours they actually worked, through a commercial agreement that can be hourly, daily or weekly, to an invoice that does not bill the same day or week twice.
 
 The shot that carries this is a real draft already in the demo project `C-0050-P-20261005` (invoice `01a10cb5-ec04-7109-af1a-c49ae34b0116`):
 

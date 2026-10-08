@@ -377,7 +377,28 @@
       | undefined;
     return result?.success === false ? result : null;
   });
+  const savedClientRateAction = $derived.by(() => {
+    const result = $page.form as
+      | {
+          success?: boolean;
+          actionName?: string;
+          values?: Record<string, unknown>;
+          savedRateId?: string;
+        }
+      | null
+      | undefined;
+    return result?.success === true &&
+      result.actionName === 'createClientLaborRate' &&
+      result.values?.projectId === data.selectedProjectId &&
+      data.clientLaborRates?.some((rate) => rowValue(rate, 'id') === result.savedRateId)
+      ? result
+      : null;
+  });
   function failedValue(actionName: string, field: string): string | undefined {
+    if (actionName === 'createClientLaborRate' && savedClientRateAction) {
+      const value = savedClientRateAction.values?.[field];
+      return typeof value === 'string' ? value : undefined;
+    }
     if (failedConfigurationAction?.actionName !== actionName) return undefined;
     const value = failedConfigurationAction.values?.[field];
     return typeof value === 'string' ? value : undefined;
@@ -700,8 +721,8 @@
         : '';
   });
   $effect(() => {
-    const failed = failedConfigurationAction;
-    if (failed?.success === false && failed.actionName && actionTask[failed.actionName]) {
+    const failed = failedConfigurationAction ?? savedClientRateAction;
+    if (failed && failed.actionName && actionTask[failed.actionName]) {
       selectedAction = actionTask[failed.actionName];
       return;
     }
@@ -717,7 +738,7 @@
     if ($page.url.hash === '#person-expense-policies') selectedAction = 'Person expense policies';
   });
   $effect(() => {
-    const action = failedConfigurationAction?.actionName;
+    const action = (failedConfigurationAction ?? savedClientRateAction)?.actionName;
     if (!action) return;
     const value = (field: string) => failedValue(action, field);
     if (action === 'createProjectCommercialPolicy')
@@ -3512,6 +3533,30 @@
 
       {#if selectedAction === 'Client labor rate'}
         <FormSection title={translate('Client labor rate')}>
+          {#if savedClientRateAction}
+            <p role="status" data-saved-client-rate>
+              {financeRecoveryText(
+                'Saved customer rate:',
+                'Tarifa del cliente guardada:',
+                'Tarifa do cliente salva:',
+              )}
+              <strong
+                >{paymentMoney(
+                  (savedClientRateAction.values?.rateBasis === 'hourly'
+                    ? savedClientRateAction.values?.hourlyRateMinor
+                    : savedClientRateAction.values?.unitRateMinor) ?? '0',
+                  String(savedClientRateAction.values?.currency ?? selectedProjectCurrency),
+                  documentLanguage(locale),
+                )}</strong
+              >
+              · {financeRecoveryText('Effective from', 'Vigente desde', 'Vigente desde')}
+              {savedClientRateAction.values?.effectiveFrom}
+              <a
+                href={`${$page.url.pathname}?project=${encodeURIComponent(String(data.selectedProjectId))}&task=${encodeURIComponent('Client labor rates')}&lang=${locale}`}
+                >{translate('Client labor rates')}</a
+              >
+            </p>
+          {/if}
           <form
             method="POST"
             action={configurationActionUrl('createClientLaborRate')}

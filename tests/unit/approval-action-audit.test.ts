@@ -65,12 +65,43 @@ beforeEach(() => {
     principal: { userId: 'reviewer-1', role: 'owner_admin' },
     sqlite: {
       close,
+      exec: vi.fn(),
       prepare: () => ({ get: () => ({ commercial_classification_state: 'classified' }) }),
     },
   } as unknown as ReturnType<typeof openPortalRepository>);
 });
 
 describe('approval action exception audit', () => {
+  it.each(['time', 'expense'] as const)(
+    'reports combined Owner review only after %s approval succeeds',
+    async (type) => {
+      const result = await submit('approveRecord', {
+        id: type === 'time' ? timeId : expenseId,
+        type,
+        decision: 'approved',
+      });
+      expect(result).toMatchObject({
+        success: true,
+        messageKey: 'action.approval.ownerDecisionRecorded',
+      });
+      expect(repository.financeApproveTime).not.toHaveBeenCalled();
+      expect(repository.financeApproveExpense).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps PM success within operational review scope', async () => {
+    vi.mocked(openPortalRepository).mockReturnValueOnce({
+      repository,
+      principal: { userId: 'reviewer-1', role: 'pm' },
+      sqlite: { close },
+    } as unknown as ReturnType<typeof openPortalRepository>);
+    const result = await submit('approveRecord', {
+      id: timeId,
+      type: 'time',
+      decision: 'approved',
+    });
+    expect(result).toMatchObject({ success: true, messageKey: 'action.approval.decisionRecorded' });
+  });
   it.each([
     ['approveRecord', 'APPROVAL_SIGN_IN_REQUIRED'],
     ['financeApprove', 'FINANCE_REVIEW_SIGN_IN_REQUIRED'],
@@ -268,7 +299,7 @@ describe('approval action exception audit', () => {
       vi.mocked(openPortalRepository).mockReturnValueOnce({
         repository,
         principal: { userId: 'reviewer-1', role: 'owner_admin' },
-        sqlite: { close, prepare },
+        sqlite: { close, prepare, exec: vi.fn() },
       } as unknown as ReturnType<typeof openPortalRepository>);
       const conflict = new ConflictError(
         type === 'time'

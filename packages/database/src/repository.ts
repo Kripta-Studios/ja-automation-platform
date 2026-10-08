@@ -92,6 +92,11 @@ import {
 import { pendingTimeFinanceReviewSourceIds } from './domains/billing/time-finance-review.ts';
 import { summarizeTimeReadiness } from './domains/billing/time-readiness-diagnostics.ts';
 import {
+  acceptOwnerFinanceApproval,
+  ownerFinanceCatchupCandidates,
+  ownerTimeFinanceConfigurationReasons,
+} from './domains/approval/owner-finance-approval.ts';
+import {
   billingTimeReadinessRecords,
   nearbyBillingTimeDates,
 } from './domains/billing/time-readiness-records.ts';
@@ -2059,7 +2064,67 @@ export class PortalRepository {
     decision: 'approved' | 'needs_changes' | 'rejected',
     reason?: string,
   ) {
-    return this.time.operationalApproveTime(principal, id, decision, reason);
+    return this.transaction(() => {
+      if (principal.role === 'owner_admin' && decision === 'approved')
+        this.assertCombinedApprovalOwner(principal);
+      this.time.operationalApproveTime(principal, id, decision, reason);
+      if (
+        principal.role === 'owner_admin' &&
+        decision === 'approved' &&
+        !acceptOwnerFinanceApproval(
+          this.sqlite,
+          principal,
+          'time_entry',
+          id,
+          'operational_approval',
+        )
+      )
+        throw new ConflictError('Approved unlocked time required');
+    });
+  }
+
+  private assertCombinedApprovalOwner(principal: Principal): void {
+    this.assertActive(principal);
+    if (
+      principal.role !== 'owner_admin' ||
+      !this.sqlite
+        .prepare("SELECT 1 FROM user WHERE id=? AND role='owner_admin' AND status='active'")
+        .get(principal.userId)
+    )
+      throw new AccessDeniedError('Owner role required');
+    this.assertLiveSession(principal);
+  }
+
+  /** Deliberate, auditable repair of old Owner approvals. Reads never call it.
+   * Dry run is the default; an authorized caller must explicitly apply it. */
+  catchUpOwnerFinanceApprovals(
+    principal: Principal,
+    options: Readonly<{ projectId?: string; dryRun?: boolean }> = {},
+  ) {
+    return this.transaction(() => {
+      this.assertCombinedApprovalOwner(principal);
+      const rows = ownerFinanceCatchupCandidates(this.sqlite, options.projectId);
+      const dryRun = options.dryRun !== false;
+      if (!dryRun)
+        for (const row of rows) {
+          const originalOwner = {
+            userId: row.approvedBy,
+            correlationId: principal.correlationId,
+          };
+          if (
+            !acceptOwnerFinanceApproval(
+              this.sqlite,
+              originalOwner,
+              row.type,
+              row.id,
+              'catchup',
+              principal.userId,
+            )
+          )
+            throw new ConflictError('Owner Finance catchup source changed');
+        }
+      return { dryRun, rows, count: rows.length };
+    });
   }
 
   financeApproveTime(principal: Principal, id: string, billable: boolean) {
@@ -5072,6 +5137,8 @@ export class PortalRepository {
     const reviewReason = reason?.trim() || undefined;
     if (decision !== 'approved' && !reviewReason) throw new ValidationError('A reason is required');
     this.transaction(() => {
+      if (principal.role === 'owner_admin' && decision === 'approved')
+        this.assertCombinedApprovalOwner(principal);
       const row = this.sqlite
         .prepare('SELECT project_id,approval_state,version FROM expense WHERE id=?')
         .get(id) as { project_id: string; approval_state: string; version: number } | undefined;
@@ -5109,6 +5176,12 @@ export class PortalRepository {
       this.audit(principal, `expense.${decision}`, 'expense', id, {
         reason: reviewReason ?? null,
       });
+      if (
+        principal.role === 'owner_admin' &&
+        decision === 'approved' &&
+        !acceptOwnerFinanceApproval(this.sqlite, principal, 'expense', id, 'operational_approval')
+      )
+        throw new ConflictError('Approved, classified, unlocked expense required');
     });
   }
 
@@ -5927,7 +6000,7 @@ export class PortalRepository {
                   billing_amount_minor,billing_treatment,commercial_classification_state,
                   approval_state,finance_approved_at,billing_state
              FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ?
-               AND approval_state='approved' AND finance_approved_at IS NOT NULL
+               AND approval_state='approved' AND finance_approved_at IS NOT NULL AND commercial_classification_state IN ('classified','legacy_classified')
                AND invoice_id IS NULL AND billing_state IN ('unlocked','locked')
                AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment='allowance_per_diem')
                AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction
@@ -6205,8 +6278,25 @@ export class PortalRepository {
       );
       const missingRateSources = new Set<string>();
       const reservedTimeSources = new Set<string>();
+      const checkedOwnerFinanceSources = new Set<string>();
       for (const slice of slices) {
         const row = slice.row;
+        // Missing rates are actionable even while PM-approved time awaits
+        // Finance; diagnosing them does not make the source invoice eligible.
+        if (
+          ['approved', 'locked'].includes(row.approval_state) &&
+          row.billability_state === 'pending' &&
+          row.invoice_id === null &&
+          slice.clientBillable &&
+          this.billingSliceClientRate(
+            principal,
+            rule.project_id,
+            slice,
+            execution,
+            billingRuleId,
+          ) === null
+        )
+          missingRateSources.add(row.id);
         if (
           !['approved', 'locked'].includes(row.approval_state) ||
           row.billability_state !== 'billable' ||
@@ -6214,6 +6304,10 @@ export class PortalRepository {
           !slice.clientBillable
         )
           continue;
+        if (!checkedOwnerFinanceSources.has(row.id)) {
+          reasons.push(...ownerTimeFinanceConfigurationReasons(this.sqlite, row.id));
+          checkedOwnerFinanceSources.add(row.id);
+        }
         if (otherDraftReservations.has(`time:${row.id}`)) {
           reservedTimeSources.add(row.id);
           continue;
@@ -6334,6 +6428,11 @@ export class PortalRepository {
         billing_amount_minor: string | null;
         commercial_classification_state: string;
       }>;
+      reasons.push(
+        ...candidates
+          .filter((candidate) => candidate.commercial_classification_state === 'unclassified')
+          .map((candidate) => ({ code: 'missing_expense_classification', sourceId: candidate.id })),
+      );
       const pending = this.sqlite
         .prepare(
           "SELECT id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=expense.id AND correction.approval_state='approved') OR (rcl.correction_id=expense.id AND correction.approval_state<>'approved'))) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND (approval_state!='approved' OR finance_approved_at IS NULL)",
@@ -6346,7 +6445,7 @@ export class PortalRepository {
         .prepare(
           `SELECT id,currency FROM expense
             WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL
-              AND approval_state='approved' AND finance_approved_at IS NOT NULL
+              AND approval_state='approved' AND finance_approved_at IS NOT NULL AND commercial_classification_state IN ('classified','legacy_classified')
               AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment='allowance_per_diem')
               AND (
                 (currency<>? AND (project_currency_amount_minor IS NULL OR billing_amount_minor IS NULL))
@@ -6379,6 +6478,7 @@ export class PortalRepository {
         (candidate) =>
           candidate.approval_state === 'approved' &&
           candidate.finance_approved_at !== null &&
+          candidate.commercial_classification_state !== 'unclassified' &&
           candidate.invoice_id === null &&
           !missingProjectionIds.has(candidate.id) &&
           !otherDraftReservations.has(`expense:${candidate.id}`),
@@ -6568,7 +6668,7 @@ export class PortalRepository {
     ) {
       const expenses = this.sqlite
         .prepare(
-          "SELECT id,CAST(amount_minor AS TEXT) amount_minor,CAST(project_currency_amount_minor AS TEXT) project_currency_amount_minor,CAST(billing_amount_minor AS TEXT) billing_amount_minor FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state='approved' AND finance_approved_at IS NOT NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=expense.id AND correction.approval_state='approved') OR (rcl.correction_id=expense.id AND correction.approval_state<>'approved'))) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment='allowance_per_diem') AND billing_state IN ('unlocked','locked') AND invoice_id IS NULL ORDER BY spent_on,id",
+          "SELECT id,CAST(amount_minor AS TEXT) amount_minor,CAST(project_currency_amount_minor AS TEXT) project_currency_amount_minor,CAST(billing_amount_minor AS TEXT) billing_amount_minor FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state='approved' AND finance_approved_at IS NOT NULL AND commercial_classification_state IN ('classified','legacy_classified') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=expense.id AND correction.approval_state='approved') OR (rcl.correction_id=expense.id AND correction.approval_state<>'approved'))) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment='allowance_per_diem') AND billing_state IN ('unlocked','locked') AND invoice_id IS NULL ORDER BY spent_on,id",
         )
         .all(rule.project_id, periodStart, periodEnd) as Array<{
         id: string;
@@ -7027,7 +7127,7 @@ export class PortalRepository {
       ) {
         const rows = this.sqlite
           .prepare(
-            "SELECT id,spent_on,vendor,category,description,currency,amount_minor,project_currency_amount_minor,billing_amount_minor,billing_treatment,commercial_classification_state,version FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state='approved' AND finance_approved_at IS NOT NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=expense.id AND correction.approval_state='approved') OR (rcl.correction_id=expense.id AND correction.approval_state<>'approved'))) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND billing_state IN ('unlocked','locked') AND invoice_id IS NULL ORDER BY spent_on,id",
+            "SELECT id,spent_on,vendor,category,description,currency,amount_minor,project_currency_amount_minor,billing_amount_minor,billing_treatment,commercial_classification_state,version FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state='approved' AND finance_approved_at IS NOT NULL AND commercial_classification_state IN ('classified','legacy_classified') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=expense.id AND correction.approval_state='approved') OR (rcl.correction_id=expense.id AND correction.approval_state<>'approved'))) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND billing_state IN ('unlocked','locked') AND invoice_id IS NULL ORDER BY spent_on,id",
           )
           .all(rule.project_id, periodStart, periodEnd) as Array<{
           id: string;
@@ -8939,13 +9039,14 @@ export class PortalRepository {
       } else if (source.source_type === 'expense') {
         const row = this.sqlite
           .prepare(
-            'SELECT version,approval_state,finance_approved_at,client_treatment,billing_treatment,currency,project_currency_amount_minor,billing_amount_minor,invoice_id FROM expense WHERE id=?',
+            'SELECT version,approval_state,finance_approved_at,commercial_classification_state,client_treatment,billing_treatment,currency,project_currency_amount_minor,billing_amount_minor,invoice_id FROM expense WHERE id=?',
           )
           .get(source.source_id) as
           | {
               version: number;
               approval_state: string;
               finance_approved_at: string | null;
+              commercial_classification_state: string;
               client_treatment: string;
               billing_treatment: string;
               currency: Currency;
@@ -8959,6 +9060,7 @@ export class PortalRepository {
           row.version !== source.source_version ||
           row.approval_state !== 'approved' ||
           !row.finance_approved_at ||
+          row.commercial_classification_state === 'unclassified' ||
           !(
             [
               'reimbursable',

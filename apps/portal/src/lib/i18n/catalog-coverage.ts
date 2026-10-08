@@ -164,6 +164,10 @@ const projectCrewCalculationKeys = [
 ] as const;
 
 export const PORTAL_LITERAL_KEYS = [
+  'billing.readiness.recordCounts',
+  'problem.warning.ownerApprovalIncludesFinance',
+  'billing.readiness.configureSaleRate',
+  'billing.readiness.reviewFinancial',
   'View details',
   'issuerSettings.help',
   'issuerSettings.title',
@@ -2257,6 +2261,7 @@ export const PORTAL_LITERAL_KEYS = [
 ] as const;
 
 export const PORTAL_ACTION_KEYS = [
+  'action.approval.ownerDecisionRecorded',
   'action.billing.invoiceSourcesUpdated',
   'action.billing.issuerSettingsSaved',
   'action.finance.unusedIssuerReplaced',

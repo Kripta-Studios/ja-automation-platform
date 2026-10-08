@@ -6,7 +6,9 @@ import {
   ValidationError,
   V3AccessDeniedError,
   V3ValidationError,
+  V3ConflictError,
 } from '@ja/database';
+import { portalCatalog, type PortalTranslationKey } from '$lib/i18n/catalog';
 import { englishCoverageKey } from '$lib/i18n/coverage-translations';
 import { openPortalRepository } from '$lib/server/portal-repository';
 
@@ -25,7 +27,8 @@ type ReadinessProblemKey =
   | 'problem.billing.readinessOutsideEffectiveDates'
   | 'problem.billing.readinessCadenceMismatch'
   | 'problem.billing.readinessPeriodInvalid'
-  | 'problem.billing.readinessUnavailable';
+  | 'problem.billing.readinessUnavailable'
+  | 'problem.billing.readinessAmbiguousClientRate';
 
 function readinessProblem(
   status: number,
@@ -37,7 +40,8 @@ function readinessProblem(
   const correlationId = randomUUID();
   if (status === 500)
     console.error('Unexpected billing readiness failure', { correlationId, error });
-  const message = englishCoverageKey(messageKey);
+  const message =
+    portalCatalog.en[messageKey as PortalTranslationKey] ?? englishCoverageKey(messageKey);
   return json(
     {
       success: false,
@@ -90,6 +94,13 @@ export const GET: RequestHandler = ({ locals, url }) => {
       },
     });
   } catch (caught) {
+    if (caught instanceof V3ConflictError && /ambiguous_client_rate/.test(caught.message))
+      return readinessProblem(
+        409,
+        'BILLING_READINESS_AMBIGUOUS_CLIENT_RATE',
+        'problem.billing.readinessAmbiguousClientRate',
+        'review_client_rates',
+      );
     if (caught instanceof AccessDeniedError || caught instanceof V3AccessDeniedError)
       return /active account required/i.test(caught.message)
         ? readinessProblem(

@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AccessDeniedError, V3AccessDeniedError, V3ValidationError } from '@ja/database';
+import {
+  AccessDeniedError,
+  V3AccessDeniedError,
+  V3ValidationError,
+  V3ConflictError,
+} from '@ja/database';
 
 const state = vi.hoisted(() => ({
   bootstrapError: null as Error | null,
@@ -91,6 +96,22 @@ describe('billing readiness API problems', () => {
     });
     expect(body.correlationId).toEqual(expect.any(String));
     expect(state.closeCount).toBe(0);
+  });
+
+  it('returns an actionable conflict and readable canonical message for different customer rates', async () => {
+    state.readinessError = new V3ConflictError(
+      'Commercial terms require configuration: ambiguous_client_rate',
+    );
+    const { response, body } = await check();
+    expect(response.status).toBe(409);
+    expect(body).toMatchObject({
+      code: 'BILLING_READINESS_AMBIGUOUS_CLIENT_RATE',
+      messageKey: 'problem.billing.readinessAmbiguousClientRate',
+      remedies: [{ id: 'review_client_rates' }],
+    });
+    expect(body.error).toContain('client sale rates');
+    expect(body.error).not.toContain('problem.billing.');
+    expect(state.closeCount).toBe(1);
   });
 
   it.each([

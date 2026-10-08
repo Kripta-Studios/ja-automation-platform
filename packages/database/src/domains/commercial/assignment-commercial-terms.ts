@@ -1,3 +1,4 @@
+import { clientLaborRatesEquivalent } from './client-rate-equivalence.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import type { OvertimeMethod } from '@ja/billing-engine';
 import type { Currency } from '@ja/money';
@@ -418,7 +419,10 @@ function resolveRule<T extends RuleWithScope>(
       scopeRank(row, kind) === scopeRank(first, kind) &&
       row.effective_from === first.effective_from,
   );
-  if (tied.length > 1)
+  if (
+    tied.length > 1 &&
+    !(kind === 'client' && tied.every((row) => clientLaborRatesEquivalent(row, first)))
+  )
     return {
       selected: null,
       issues: [

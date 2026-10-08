@@ -1,0 +1,63 @@
+{
+  "scope": "Owner combined approval, customer rate save/idempotency and actionable invoice readiness",
+  "verified_at": "2026-10-08T22:08:37.232756+00:00",
+  "models_requested": "GPT 6.1 Sol",
+  "domain": {
+    "owner_lifecycle": {
+      "passed": 6
+    },
+    "concurrency_security": {
+      "passed": 8
+    },
+    "rate_idempotency_equivalence": {
+      "passed": 7
+    },
+    "billing_readiness_api": {
+      "passed": 11
+    },
+    "i18n_coverage": {
+      "passed": 16
+    },
+    "role_privacy": {
+      "passed": 2
+    },
+    "billing_period_alignment": {
+      "passed": 4
+    }
+  },
+  "checks": {
+    "portal_typecheck": "passed",
+    "database_typecheck": "passed",
+    "changed_source_eslint": "passed",
+    "changed_source_prettier": "passed",
+    "portal_build": "passed",
+    "jobs_build": "passed",
+    "independent_finance_security_review": "no unresolved P0/P1/P2 findings"
+  },
+  "browser": {
+    "new_form_and_readiness_cases": 12,
+    "passed": 12,
+    "viewports": [360, 390, 768, 1440],
+    "final_release_broader_run": {
+      "passed": 18,
+      "skipped": 6,
+      "failed": 0,
+      "note": "Six skips are the unchanged old consequence suite viewport restriction; all 12 new cases ran at all four widths."
+    }
+  },
+  "MAG_snapshot": {
+    "period_start": "2026-10-15",
+    "period_end": "2026-10-18",
+    "state": "ready",
+    "included_sources": 2,
+    "excluded_sources": 0,
+    "minutes": 720,
+    "hourly_rate_minor": "7000",
+    "currency": "USD",
+    "identical_retained_rate_rows": 3
+  },
+  "known_baseline_limits": [
+    "Whole-workspace typecheck retains pre-existing website static-image errors; no full-workspace green claim.",
+    "Unrelated existing PDF warning assertion/issuance browser paths are outside this scoped verification."
+  ]
+}

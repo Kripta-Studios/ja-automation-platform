@@ -271,7 +271,13 @@ export const approvalActions = {
           parsed.data.decision,
           parsed.data.reason,
         );
-      return actionSuccess('action.approval.decisionRecorded', {}, 'Decision recorded');
+      return context.principal.role === 'owner_admin' && parsed.data.decision === 'approved'
+        ? actionSuccess(
+            'action.approval.ownerDecisionRecorded',
+            {},
+            'Owner approval recorded, including financial review. Sale rates and expense classification still follow Finance configuration.',
+          )
+        : actionSuccess('action.approval.decisionRecorded', {}, 'Decision recorded');
     } catch (error) {
       return approvalFailure(
         error,

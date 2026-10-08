@@ -66,6 +66,17 @@
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
 
+  const ownerApprovalIncludesFinance = $derived(String(data.user.role) === 'owner_admin');
+  const recordApprovalWarning = $derived(
+    ownerApprovalIncludesFinance
+      ? {
+          ...operationalApprovalWarning,
+          code: 'WARNING_OWNER_APPROVAL_INCLUDES_FINANCE',
+          messageKey: 'problem.warning.ownerApprovalIncludesFinance' as const,
+        }
+      : operationalApprovalWarning,
+  );
+
   const initialFailureType = String(
     (($page.form as { values?: Record<string, unknown> } | null)?.values ?? {}).type ?? '',
   );
@@ -732,7 +743,16 @@
   }
 
   /** Keep the current tab and scroll position while the server refreshes the queue. */
-  const submitApproval: SubmitFunction = () => {
+  const submitApproval: SubmitFunction = ({ formData, cancel }) => {
+    if (
+      ownerApprovalIncludesFinance &&
+      formData.get('decision') === 'approved' &&
+      ['time', 'expense'].includes(String(formData.get('type'))) &&
+      !window.confirm(translate('problem.warning.ownerApprovalIncludesFinance'))
+    ) {
+      cancel();
+      return;
+    }
     const scrollTop = window.scrollY;
     return async ({ result, update }) => {
       await update({ reset: false });
@@ -1261,7 +1281,7 @@
                       <div class="approval-action-warning">
                         <ProblemNotice
                           kind="warning"
-                          problem={operationalApprovalWarning}
+                          problem={recordApprovalWarning}
                           remedyLinks={{
                             review_operational_record: {
                               label: translate('problem.remedy.reviewOperationalRecord'),
@@ -1270,7 +1290,11 @@
                           }}
                         />
                       </div>
-                      <button type="submit">{translate('Approve')}</button>
+                      <button type="submit"
+                        >{translate(
+                          ownerApprovalIncludesFinance ? 'approval.ownerApproveLabel' : 'Approve',
+                        )}</button
+                      >
                     </form>
                     <details
                       class="approval-action-menu"
@@ -1566,7 +1590,9 @@
     >
       <p class="approval-finance-note">
         {translate(
-          'Finance review starts only after operational approval. Finance must confirm billability or expense treatment before a record can move into billing, reimbursement or settlement; it does not rewrite the operational facts.',
+          ownerApprovalIncludesFinance
+            ? 'approval.ownerFinanceQueueHelp'
+            : 'Finance review starts only after operational approval. Finance must confirm billability or expense treatment before a record can move into billing, reimbursement or settlement; it does not rewrite the operational facts.',
         )}
       </p>
       <label class="approval-register-search"

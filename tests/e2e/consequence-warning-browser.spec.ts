@@ -4,6 +4,7 @@ import { createDatabase, PortalRepository } from '@ja/database';
 import { e2eCredentials, e2eLifecycleFixturesFor, portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
 import { e2eCostCenter } from './project-cost-center.js';
+import { stepUpB5Principal } from '../fixtures/b5-lifecycle-security-fixture.js';
 
 function seedWarningRecords(viewport: string, instance: number) {
   const database = createDatabase(readE2EFixturePointer().databasePath);
@@ -13,7 +14,11 @@ function seedWarningRecords(viewport: string, instance: number) {
       (database.sqlite.prepare('SELECT id FROM user WHERE email=?').get(email) as { id: string })
         .id;
     const repository = new PortalRepository(database.sqlite);
-    const owner = repository.principalFor(idFor(e2eCredentials.owner.email));
+    const owner = stepUpB5Principal(
+      database.sqlite,
+      repository.principalFor(idFor(e2eCredentials.owner.email)),
+      `warning-owner-${viewport}-${instance}-${randomUUID()}`,
+    );
     const managerId = idFor(e2eCredentials.manager.email);
     const workerId = idFor(e2eCredentials.worker.email);
     const projectId = repository.createProject(owner, {
@@ -38,7 +43,11 @@ function seedWarningRecords(viewport: string, instance: number) {
         reason: 'Activate disposable warning browser project',
       });
     repository.assignWorker(owner, { projectId, workerId, startsOn: date });
-    const worker = repository.principalFor(workerId);
+    const worker = stepUpB5Principal(
+      database.sqlite,
+      repository.principalFor(workerId),
+      `warning-worker-${viewport}-${instance}-${randomUUID()}`,
+    );
     const draft = repository.createTimeEntry(worker, {
       projectId,
       workDate: date,
@@ -124,7 +133,7 @@ test('worker sees time and expense consequences before submission', async ({ pag
   const payerWarning = expenseForm.locator('[data-problem-code="WARNING_EXPENSE_PAYER_FACTS"]');
   await expect(payerWarning).toBeVisible();
   await expect(payerWarning).toHaveAttribute('data-kind', 'warning');
-  await expect(payerWarning).toContainText('valor, a moeda, quem pagou');
+  await expect(payerWarning).toContainText('valor, a moeda, o pagador');
   await expect(payerWarning).not.toContainText('cobrança ao cliente');
   await expect(payerWarning.locator('a')).toHaveCount(0);
   await expenseForm.locator('[name="whoPaid"]').selectOption('company_card');
@@ -151,12 +160,16 @@ test('reviewer sees factual approval warning and record-scoped remedy', async ({
     .filter({ has: page.locator(`input[name="id"][value="${fixture.submittedId}"]`) })
     .filter({ has: page.locator('input[name="decision"][value="approved"]') });
   const approveWarning = approveForm.locator(
-    '[data-problem-code="WARNING_OPERATIONAL_APPROVAL_FINANCE_SEPARATE"]',
+    role === 'owner'
+      ? '[data-problem-code="WARNING_OWNER_APPROVAL_INCLUDES_FINANCE"]'
+      : '[data-problem-code="WARNING_OPERATIONAL_APPROVAL_FINANCE_SEPARATE"]',
   );
   await expect(approveWarning).toBeVisible();
   await expect(approveWarning).toHaveAttribute('data-kind', 'warning');
   await expect(approveWarning).toContainText(
-    'Check the source and evidence before completing its operational review',
+    role === 'owner'
+      ? 'Owner approval records operational and financial acceptance together'
+      : 'Check the source and evidence before completing its operational review',
   );
   await expect(approveWarning.getByRole('link', { name: 'Review this record' })).toHaveAttribute(
     'href',

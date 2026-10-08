@@ -28,6 +28,33 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'action.billing.readiness.missingInternalCost':
+    'Accepted time still needs an internal cost rule covering its worker and worked date. Configure and review this separate cost in Finance before billing. A client sale rate does not establish internal cost.',
+  'action.billing.readiness.missingCompensationRule':
+    'Accepted time still needs worker compensation terms covering the worked date. Configure and review the worker compensation rule in Finance before billing.',
+  'billing.readiness.configureInternalCost': 'Configure internal cost',
+  'billing.readiness.configureCompensation': 'Configure worker compensation',
+  'action.billing.readiness.ambiguousClientRate':
+    'Different client sale rates cover the same scope and worked date. Review and correct the conflicting rates in Finance → Client labor rates before saving this invoice draft.',
+  'action.billing.readiness.missingExpenseClassification':
+    'This expense has been accepted but still needs commercial classification. Configure its client billing and reimbursement treatment in Finance before billing it.',
+  'problem.billing.readinessAmbiguousClientRate':
+    'Different client sale rates cover the same scope and dates, so the invoice amount cannot be determined. Review and correct the conflicting rates in Finance → Client labor rates, then check this period again.',
+  'action.approval.ownerDecisionRecorded':
+    'Owner approval recorded, including financial review. Sale rates and expense classification still follow Finance configuration.',
+  'problem.warning.ownerApprovalIncludesFinance':
+    'Owner approval records operational and financial acceptance together. Review the source facts before approving. Client sale rates and expense classification remain required Finance configuration.',
+  'approval.ownerApproveLabel': 'Approve including financial review',
+  'approval.ownerFinanceQueueHelp':
+    'Owner approval already includes financial review. This queue contains records still requiring Finance acceptance; sale rates and expense classification are configured in Finance.',
+  'problem.billing.readinessGuidance':
+    'Resolve these blockers before saving the invoice draft for {periodStart} – {periodEnd}. {counts} {blockers} Close this notice to keep reviewing the selected period.',
+  'billing.readiness.recordCounts':
+    'Time records: {sourceCount}. Operationally approved outside correction review: {approvedCount}. Awaiting correction review: {pendingCorrectionCount}. Awaiting submission or operational approval: {pendingApprovalCount}. Awaiting financial review: {pendingFinanceCount}. Included source records: {includedCount}.',
+  'billing.readiness.reviewFinancial': 'Review pending financial approvals',
+  'billing.readiness.reviewOperational': 'Review pending operational approvals',
+  'billing.readiness.configureSaleRate': 'Configure CLIENT SALE RATE',
+  'billing.readiness.submitTime': 'Review time awaiting submission',
   'action.billing.readiness.noNewClientUnitCharges':
     'There are no new daily or weekly charges in these parts. The full unit is charged once on its first eligible time entry. Review the invoice or period containing that entry before retrying.',
 
@@ -615,6 +642,33 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'action.billing.readiness.missingInternalCost':
+    'Las horas aceptadas aún necesitan una regla de coste interno que cubra al trabajador y la fecha de trabajo. Configura y revisa este coste separado en Finanzas antes de facturar. Una tarifa de venta al cliente no determina el coste interno.',
+  'action.billing.readiness.missingCompensationRule':
+    'Las horas aceptadas aún necesitan condiciones de compensación del trabajador que cubran la fecha de trabajo. Configura y revisa la regla de compensación en Finanzas antes de facturar.',
+  'billing.readiness.configureInternalCost': 'Configurar coste interno',
+  'billing.readiness.configureCompensation': 'Configurar compensación del trabajador',
+  'action.billing.readiness.ambiguousClientRate':
+    'Distintas tarifas de venta al cliente cubren el mismo ámbito y fecha de trabajo. Revisa y corrige las tarifas en conflicto en Finanzas → Tarifas del cliente antes de guardar este borrador de factura.',
+  'action.billing.readiness.missingExpenseClassification':
+    'Este gasto se ha aceptado, pero aún necesita clasificación comercial. Configura su tratamiento de facturación al cliente y reembolso en Finanzas antes de facturarlo.',
+  'problem.billing.readinessAmbiguousClientRate':
+    'Distintas tarifas de venta al cliente cubren el mismo ámbito y fechas, por lo que no se puede determinar el importe de la factura. Revisa y corrige las tarifas en conflicto en Finanzas → Tarifas del cliente y vuelve a comprobar este período.',
+  'action.approval.ownerDecisionRecorded':
+    'Aprobación del propietario registrada, incluida la revisión financiera. Las tarifas de venta y la clasificación de gastos siguen la configuración de Finanzas.',
+  'problem.warning.ownerApprovalIncludesFinance':
+    'La aprobación del propietario registra conjuntamente la aceptación operativa y financiera. Revisa los datos de origen antes de aprobar. Las tarifas de venta al cliente y la clasificación de gastos siguen siendo configuración obligatoria de Finanzas.',
+  'approval.ownerApproveLabel': 'Aprobar incluyendo revisión financiera',
+  'approval.ownerFinanceQueueHelp':
+    'La aprobación del propietario ya incluye la revisión financiera. Esta cola contiene registros que aún requieren aceptación de Finanzas; las tarifas de venta y la clasificación de gastos se configuran en Finanzas.',
+  'problem.billing.readinessGuidance':
+    'Resuelve estos bloqueos antes de guardar el borrador de factura del {periodStart} al {periodEnd}. {counts} {blockers} Cierra este aviso para seguir revisando el período seleccionado.',
+  'billing.readiness.recordCounts':
+    'Registros de horas: {sourceCount}. Aprobados operativamente fuera de revisión de correcciones: {approvedCount}. Pendientes de revisión de correcciones: {pendingCorrectionCount}. Pendientes de envío o aprobación operativa: {pendingApprovalCount}. Pendientes de revisión financiera: {pendingFinanceCount}. Registros de origen incluidos: {includedCount}.',
+  'billing.readiness.reviewFinancial': 'Revisar aprobaciones financieras pendientes',
+  'billing.readiness.reviewOperational': 'Revisar aprobaciones operativas pendientes',
+  'billing.readiness.configureSaleRate': 'Configurar TARIFA DE VENTA AL CLIENTE',
+  'billing.readiness.submitTime': 'Revisar horas pendientes de envío',
   'action.billing.readiness.noNewClientUnitCharges':
     'Estos partes no generan nuevos cobros diarios o semanales. La unidad completa se cobra una sola vez en su primer parte elegible. Revisa la factura o el período que incluye ese parte antes de volver a intentarlo.',
 
@@ -1203,6 +1257,33 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'action.billing.readiness.missingInternalCost':
+    'As horas aceitas ainda precisam de uma regra de custo interno que cubra o trabalhador e a data de trabalho. Configure e revise esse custo separado em Finanças antes de faturar. Uma tarifa de venda ao cliente não determina o custo interno.',
+  'action.billing.readiness.missingCompensationRule':
+    'As horas aceitas ainda precisam de condições de remuneração do trabalhador que cubram a data de trabalho. Configure e revise a regra de remuneração em Finanças antes de faturar.',
+  'billing.readiness.configureInternalCost': 'Configurar custo interno',
+  'billing.readiness.configureCompensation': 'Configurar remuneração do trabalhador',
+  'action.billing.readiness.ambiguousClientRate':
+    'Tarifas de venda ao cliente diferentes cobrem o mesmo âmbito e data de trabalho. Revise e corrija as tarifas em conflito em Finanças → Tarifas do cliente antes de salvar este rascunho de fatura.',
+  'action.billing.readiness.missingExpenseClassification':
+    'Esta despesa foi aceita, mas ainda precisa de classificação comercial. Configure seu tratamento de faturamento ao cliente e reembolso em Finanças antes de faturá-la.',
+  'problem.billing.readinessAmbiguousClientRate':
+    'Tarifas de venda ao cliente diferentes cobrem o mesmo âmbito e datas, por isso não é possível determinar o valor da fatura. Revise e corrija as tarifas em conflito em Finanças → Tarifas do cliente e verifique este período novamente.',
+  'action.approval.ownerDecisionRecorded':
+    'Aprovação do proprietário registrada, incluindo a revisão financeira. As tarifas de venda e a classificação de despesas seguem a configuração de Finanças.',
+  'problem.warning.ownerApprovalIncludesFinance':
+    'A aprovação do proprietário registra a aceitação operacional e financeira em conjunto. Revise os dados de origem antes de aprovar. As tarifas de venda ao cliente e a classificação de despesas continuam sendo configurações obrigatórias de Finanças.',
+  'approval.ownerApproveLabel': 'Aprovar incluindo revisão financeira',
+  'approval.ownerFinanceQueueHelp':
+    'A aprovação do proprietário já inclui a revisão financeira. Esta fila contém registros que ainda exigem aceitação de Finanças; as tarifas de venda e a classificação de despesas são configuradas em Finanças.',
+  'problem.billing.readinessGuidance':
+    'Resolva estes bloqueios antes de salvar o rascunho da fatura de {periodStart} a {periodEnd}. {counts} {blockers} Feche este aviso para continuar revisando o período selecionado.',
+  'billing.readiness.recordCounts':
+    'Registros de horas: {sourceCount}. Aprovados operacionalmente fora da revisão de correções: {approvedCount}. Aguardando revisão de correções: {pendingCorrectionCount}. Aguardando envio ou aprovação operacional: {pendingApprovalCount}. Aguardando revisão financeira: {pendingFinanceCount}. Registros de origem incluídos: {includedCount}.',
+  'billing.readiness.reviewFinancial': 'Revisar aprovações financeiras pendentes',
+  'billing.readiness.reviewOperational': 'Revisar aprovações operacionais pendentes',
+  'billing.readiness.configureSaleRate': 'Configurar TARIFA DE VENDA AO CLIENTE',
+  'billing.readiness.submitTime': 'Revisar horas aguardando envio',
   'action.billing.readiness.noNewClientUnitCharges':
     'Estes registros não geram novas cobranças diárias ou semanais. A unidade completa é cobrada uma única vez no primeiro registro elegível. Revise a fatura ou o período que inclui esse registro antes de tentar novamente.',
 

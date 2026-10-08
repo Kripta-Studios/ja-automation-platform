@@ -32,6 +32,7 @@ import {
   ClientLaborChargeAllocator,
   clientBillingUnit,
 } from './domains/commercial/client-labor-charge.ts';
+import { findIdenticalClientLaborRate } from './domains/commercial/client-rate-equivalence.ts';
 import { recordAuditEvent } from './core/audit.ts';
 import { assertActiveAccount, assertLiveSession } from './core/authorization.ts';
 import { canonicalJson, sha256 as canonicalSha256 } from './core/canonical-json.ts';
@@ -1319,43 +1320,73 @@ export class V3Repository {
     if (!project) throw new V3ValidationError('Project not found');
     if (project.currency !== input.currency)
       throw new V3ValidationError('Client rate currency must match the project currency');
-    const id = newId();
-    const now = timestamp();
-    this.sqlite
-      .prepare(
-        `INSERT INTO client_labor_rate(
-          id,project_id,worker_id,category,currency,hourly_rate_minor,effective_from,effective_to,
-          created_at,updated_at,rate_basis,overtime_method,overtime_multiplier_bps,
-          overtime_rate_minor,eligible_for_percentage,notes,unit_rate_minor
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      )
-      .run(
-        id,
+    return this.transaction(() => {
+      const hourlyRate =
+        rateBasis === 'hourly' ? sqliteInteger(input.hourlyRateMinor, 'Client rate') : 0;
+      const unitRate =
+        rateBasis === 'hourly' ? null : sqliteInteger(input.unitRateMinor!, 'Client unit price');
+      const overtimeMethod =
+        rateBasis === 'hourly' ? (input.overtimeMethod ?? 'BASE_RATE_MULTIPLIER') : 'NONE';
+      const overtimeMultiplier = input.overtimeMultiplierBps ?? 10_000;
+      const overtimeRate =
+        input.overtimeRateMinor === undefined
+          ? null
+          : sqliteInteger(input.overtimeRateMinor, 'Client overtime rate');
+      const eligible = input.eligibleForPercentage === false ? 0 : 1;
+      const notes = input.notes ?? null;
+      const existing = findIdenticalClientLaborRate(this.sqlite, [
         input.projectId,
         workerId,
         category,
         input.currency,
-        rateBasis === 'hourly' ? sqliteInteger(input.hourlyRateMinor, 'Client rate') : 0,
+        hourlyRate,
+        rateBasis,
+        unitRate,
+        overtimeMethod,
+        overtimeMultiplier,
+        overtimeRate,
+        eligible,
         input.effectiveFrom,
         effectiveTo,
-        now,
-        now,
-        rateBasis,
-        rateBasis === 'hourly' ? (input.overtimeMethod ?? 'BASE_RATE_MULTIPLIER') : 'NONE',
-        input.overtimeMultiplierBps ?? 10_000,
-        input.overtimeRateMinor === undefined
-          ? null
-          : sqliteInteger(input.overtimeRateMinor, 'Client overtime rate'),
-        input.eligibleForPercentage === false ? 0 : 1,
-        input.notes ?? null,
-        rateBasis === 'hourly' ? null : sqliteInteger(input.unitRateMinor!, 'Client unit price'),
-      );
-    this.audit(principal, 'client_rate.create', 'client_labor_rate', id, {
-      projectId: input.projectId,
-      workerId,
-      category,
+        notes,
+      ]);
+      if (existing) return existing;
+      const id = newId();
+      const now = timestamp();
+      this.sqlite
+        .prepare(
+          `INSERT INTO client_labor_rate(
+          id,project_id,worker_id,category,currency,hourly_rate_minor,effective_from,effective_to,
+          created_at,updated_at,rate_basis,overtime_method,overtime_multiplier_bps,
+          overtime_rate_minor,eligible_for_percentage,notes,unit_rate_minor
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          id,
+          input.projectId,
+          workerId,
+          category,
+          input.currency,
+          hourlyRate,
+          input.effectiveFrom,
+          effectiveTo,
+          now,
+          now,
+          rateBasis,
+          overtimeMethod,
+          overtimeMultiplier,
+          overtimeRate,
+          eligible,
+          notes,
+          unitRate,
+        );
+      this.audit(principal, 'client_rate.create', 'client_labor_rate', id, {
+        projectId: input.projectId,
+        workerId,
+        category,
+      });
+      return { id };
     });
-    return { id };
   }
 
   createInternalCostRule(principal: Principal, input: InternalCostInput): { id: string } {
@@ -4546,8 +4577,14 @@ export class V3Repository {
       const billingProjectionMissing =
         foreignBillingProjectionMissing ||
         (!isDirect && isClassified && isBillable && expense.billing_amount_minor === null);
-      const projectionMissing = costProjectionMissing || billingProjectionMissing;
-      if (projectionMissing)
+      const isUnclassified = expense.commercial_classification_state === 'unclassified';
+      const projectionMissing = isUnclassified || costProjectionMissing || billingProjectionMissing;
+      if (isUnclassified)
+        expenseFinanceReasons.push({
+          code: 'missing_expense_classification',
+          sourceId: expense.id,
+        });
+      if (costProjectionMissing || billingProjectionMissing)
         expenseFinanceReasons.push({
           code:
             expense.currency === project.currency
@@ -4570,7 +4607,7 @@ export class V3Repository {
       const actualCost = costProjectionMissing || isDirect ? 0n : BigInt(incurredCost ?? 0);
       const directCost = !isDirect && !costProjectionMissing ? actualCost : 0n;
       const revenue =
-        isBillable && !billingProjectionMissing
+        !isUnclassified && isBillable && !billingProjectionMissing
           ? BigInt(
               isClassified
                 ? (expense.billing_amount_minor ?? 0)
@@ -6931,12 +6968,13 @@ export class V3Repository {
       );
       const rows = this.sqlite
         .prepare(
-          "SELECT id,currency,CAST(project_currency_amount_minor AS TEXT) project_currency_amount_minor,CAST(billing_amount_minor AS TEXT) billing_amount_minor,approval_state,finance_approved_at,receipt_required,receipt_document_id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state IN ('draft','submitted','needs_changes')) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=expense.id AND correction.approval_state='approved') OR (rcl.correction_id=expense.id AND correction.approval_state<>'approved'))) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem'))",
+          "SELECT id,currency,CAST(project_currency_amount_minor AS TEXT) project_currency_amount_minor,CAST(billing_amount_minor AS TEXT) billing_amount_minor,approval_state,finance_approved_at,commercial_classification_state,receipt_required,receipt_document_id FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ? AND invoice_id IS NULL AND approval_state NOT IN ('rejected','void') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state IN ('draft','submitted','needs_changes')) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=expense.id AND correction.approval_state='approved') OR (rcl.correction_id=expense.id AND correction.approval_state<>'approved'))) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem'))",
         )
         .all(rule.project_id, periodStart, periodEnd) as Array<{
         id: string;
         approval_state: string;
         finance_approved_at: string | null;
+        commercial_classification_state: string;
         receipt_required: number;
         receipt_document_id: string | null;
         currency: V3Currency;
@@ -6944,6 +6982,8 @@ export class V3Repository {
         billing_amount_minor: string | null;
       }>;
       for (const row of rows) {
+        if (row.commercial_classification_state === 'unclassified')
+          reasons.push({ code: 'missing_expense_classification', sourceId: row.id });
         if (row.approval_state !== 'approved' || !row.finance_approved_at)
           reasons.push({ code: 'pending_expense_approval', sourceId: row.id });
         if (row.receipt_required === 1 && !row.receipt_document_id)
@@ -7053,7 +7093,7 @@ export class V3Repository {
       if (rule.stream_type === 'expense')
         this.sqlite
           .prepare(
-            "UPDATE expense SET billing_state='locked',billing_lock_id=?,updated_at=?,version=version+1 WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state='approved' AND finance_approved_at IS NOT NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state IN ('draft','submitted','needs_changes','approved')) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND invoice_id IS NULL",
+            "UPDATE expense SET billing_state='locked',billing_lock_id=?,updated_at=?,version=version+1 WHERE project_id=? AND spent_on BETWEEN ? AND ? AND approval_state='approved' AND finance_approved_at IS NOT NULL AND commercial_classification_state IN ('classified','legacy_classified') AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state IN ('draft','submitted','needs_changes','approved')) AND (billing_treatment LIKE 'reimbursable%' OR billing_treatment IN ('allowance_per_diem')) AND invoice_id IS NULL",
           )
           .run(lockId, now, rule.project_id, periodStart, periodEnd);
       // A finance user may prepare a draft before the explicit period close.

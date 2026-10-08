@@ -3,6 +3,9 @@ import base from './playwright.config';
 export default defineConfig({
   ...base,
   testMatch: [
+    'owner-approval-billing-guidance.spec.ts',
+    'customer-rate-save-feedback.spec.ts',
+    'consequence-warning-browser.spec.ts',
     'guided-recovery.spec.ts',
     'guided-management-contact.spec.ts',
     'finance-guided-recovery.browser.spec.ts',

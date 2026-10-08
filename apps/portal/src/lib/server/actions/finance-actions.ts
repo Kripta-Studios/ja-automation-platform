@@ -2351,16 +2351,43 @@ const rawFinanceActions = {
     if (!parsed.success)
       return actionFail(400, 'action.validation.clientLaborRate', {}, 'Invalid client rate', {
         fields: parsed.error.flatten().fieldErrors,
+        values,
+        actionName: 'createClientLaborRate',
       });
     const context = openPortalRepository(locals);
     try {
-      context.v3.createClientLaborRate(context.principal, {
+      const saved = context.v3.createClientLaborRate(context.principal, {
         ...parsed.data,
         workerId: parsed.data.workerId || undefined,
         category: parsed.data.category || undefined,
         effectiveTo: parsed.data.effectiveTo || undefined,
       });
-      return actionSuccess('action.finance.clientLaborRateSaved', {}, 'Client labor rate saved');
+      const stored = context.v3
+        .listClientLaborRates(context.principal, parsed.data.projectId)
+        .find((rate) => rate.id === saved.id);
+      if (!stored) throw new Error('Saved client rate unavailable');
+      const savedValues = {
+        ...values,
+        projectId: String(stored.project_id),
+        workerId: String(stored.worker_id ?? ''),
+        category: String(stored.category ?? ''),
+        currency: String(stored.currency),
+        hourlyRateMinor: String(stored.hourly_rate_minor),
+        effectiveFrom: String(stored.effective_from),
+        effectiveTo: String(stored.effective_to ?? ''),
+        rateBasis: String(stored.rate_basis),
+        unitRateMinor: String(stored.unit_rate_minor ?? ''),
+        overtimeMethod: String(stored.overtime_method),
+        overtimeMultiplierBps: String(stored.overtime_multiplier_bps ?? ''),
+        overtimeRateMinor: String(stored.overtime_rate_minor ?? ''),
+        eligibleForPercentage: stored.eligible_for_percentage === 1 ? 'on' : 'off',
+      };
+      return {
+        ...actionSuccess('action.finance.clientLaborRateSaved', {}, 'Client labor rate saved'),
+        actionName: 'createClientLaborRate',
+        values: savedValues,
+        savedRateId: saved.id,
+      };
     } catch (error) {
       return financeFailure(error, {
         projectId: parsed.data.projectId,

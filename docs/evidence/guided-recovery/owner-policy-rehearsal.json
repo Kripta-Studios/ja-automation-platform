@@ -1,0 +1,10 @@
+{
+  "historical_policy_applied": 26,
+  "time_sources": 17,
+  "expense_sources": 9,
+  "new_correlated_audits": 26,
+  "unchanged_other_tables": 179,
+  "only_authorized_columns_changed": true,
+  "integrity": "ok",
+  "foreign_key_violations": 0
+}

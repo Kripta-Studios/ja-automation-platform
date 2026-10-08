@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -23,6 +24,7 @@ afterEach(() => {
 
 function fixture(): B5LifecycleSecurityFixture {
   const value = createB5LifecycleSecurityFixture();
+  value.worker = stepUpB5Principal(value.sqlite, value.worker, 'review-concurrency');
   fixtures.push(value);
   return value;
 }

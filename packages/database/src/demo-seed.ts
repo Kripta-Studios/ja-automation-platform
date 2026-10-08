@@ -702,8 +702,10 @@ const addApprovedTime = (
     summary,
   });
   repository.submitTime(actor, record.id, record.version);
-  repository.operationalApproveTime(owner, record.id, 'approved');
-  repository.financeApproveTime(finance, record.id, category !== 'training');
+  const reviewer = manager.projectIds.has(projectId) ? manager : ownerLive;
+  repository.operationalApproveTime(reviewer, record.id, 'approved');
+  if (reviewer.role !== 'owner_admin')
+    repository.financeApproveTime(finance, record.id, category !== 'training');
 };
 addApprovedTime(
   worker,
@@ -1350,8 +1352,7 @@ const addExpense = (
     idempotencyKey: `demo-expense-classification:${record.id}`,
   });
   repository.submitExpense(actor, record.id, classified.version);
-  repository.operationalApproveExpense(owner, record.id, 'approved');
-  repository.financeApproveExpense(finance, record.id);
+  repository.operationalApproveExpense(ownerLive, record.id, 'approved');
 };
 addExpense(worker, line.id, {
   spentOn: '2026-08-11',

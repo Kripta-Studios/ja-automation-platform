@@ -26,7 +26,12 @@
   } from '../ui/private-document-download';
   import type { ProblemData } from '../../problem/contract';
   import type { TableCardRow } from '../ui';
-  import { billingReadinessMessageKey, billingReadinessReviewPath } from '../billing-readiness';
+  import {
+    billingReadinessMessageKey,
+    billingReadinessReviewPath,
+    billingReadinessRecoveryRequest,
+  } from '../billing-readiness';
+  import { requestGuidedRecovery } from '../guided-recovery/events';
   import { localizedServerFieldMessage } from '../ui/form-validation';
   import { reversalRecoveryState } from '../billing-reversal-recovery';
   import { formatTaxBasisPoints, taxProfileComponents } from '../tax-profile-presentation';
@@ -1401,7 +1406,9 @@
         ? translate('Client labor rate')
         : translate('Review billing setup'),
       href: readinessReasons().some((reason) => reason.code === 'missing_client_rate')
-        ? readinessActionHref()
+        ? readinessActionHref(
+            readinessReasons().filter((reason) => reason.code === 'missing_client_rate'),
+          )
         : `${base}/app/billing?view=setup`,
     },
     review_pending_records: {
@@ -1549,8 +1556,30 @@
       reasons.map((reason) => String(reason.code ?? '')),
       rowValue(wizardRule, 'project_id', 'projectId'),
       { start: wizardPeriodStart, end: wizardPeriodEnd },
-      reasons.find((reason) => reason.code === 'missing_client_rate')?.sourceId,
+      reasons.find((reason) =>
+        [
+          'missing_client_rate',
+          'ambiguous_client_rate',
+          'missing_expense_classification',
+          'missing_internal_cost',
+          'missing_compensation_rule',
+        ].includes(String(reason.code)),
+      )?.sourceId,
     )}`;
+  }
+
+  function wizardReadinessRecovery() {
+    return wizardReadiness
+      ? billingReadinessRecoveryRequest(
+          wizardReadiness,
+          {
+            projectId: rowValue(wizardRule, 'project_id', 'projectId'),
+            period: { start: wizardPeriodStart, end: wizardPeriodEnd },
+            portalPath: `${base}/app`,
+          },
+          (key, params) => portalText(locale, key, params),
+        )
+      : null;
   }
 
   function timeReadinessLabel(status: string): string {
@@ -2381,9 +2410,31 @@
         );
         wizardReadinessRemedy = problem?.remedies?.[0]?.id ?? 'retry_readiness';
         wizardReadinessReference = problem?.correlationId ?? '';
+        if (problem?.code === 'BILLING_READINESS_AMBIGUOUS_CLIENT_RATE') {
+          requestGuidedRecovery({
+            problem: {
+              code: problem.code,
+              messageKey: problem.messageKey ?? 'problem.billing.readinessAmbiguousClientRate',
+              params: problem.params ?? {},
+              fieldErrors: {},
+              remedies: [],
+              correlationId: problem.correlationId ?? '',
+            },
+            links: [
+              {
+                label: translate('billing.readiness.configureSaleRate'),
+                href: readinessActionHref([{ code: 'ambiguous_client_rate' }]),
+              },
+            ],
+          });
+        }
         return;
       }
       wizardReadiness = (await response.json()) as BillingReadinessPreview;
+      if (wizardReadiness.state === 'incomplete' && wizardReadiness.reasons.length) {
+        const recovery = wizardReadinessRecovery();
+        if (recovery) requestGuidedRecovery(recovery);
+      }
     } catch {
       wizardReadinessError = translate('problem.billing.readinessUnavailable');
       wizardReadinessRemedy = 'retry_readiness';
@@ -2956,6 +3007,10 @@
                 {/if}
                 {#if wizardReadinessRemedy === 'review_billing_setup'}
                   <a href={`${base}/app/billing?view=setup`}>{translate('Review billing setup')}</a>
+                {:else if wizardReadinessRemedy === 'review_client_rates'}
+                  <a href={readinessActionHref([{ code: 'ambiguous_client_rate' }])}
+                    >{translate('billing.readiness.configureSaleRate')}</a
+                  >
                 {:else if wizardReadinessRemedy === 'sign_in_again'}
                   <a href={`${base}/app/login`}>{translate('Sign in again')}</a>
                 {:else if wizardReadinessRemedy === 'contact_finance'}
@@ -2991,8 +3046,12 @@
                     {/each}
                   {/if}
                 </p>
-                <a href={readinessActionHref(wizardReadiness.reasons)}
-                  >{translate('Review pending records')}</a
+                <a
+                  href={readinessActionHref(
+                    wizardReadiness.reasons.filter(
+                      (reason) => reason.code === 'pending_time_finance_review',
+                    ),
+                  )}>{translate('billing.readiness.reviewFinancial')}</a
                 >
               </div>
             {/if}
@@ -3005,6 +3064,9 @@
                     'Horas reais no período selecionado',
                   )}
                 </h4>
+                <p data-billing-readiness-counts>
+                  {wizardReadinessRecovery()?.problem.params.counts}
+                </p>
                 <p>
                   {wizardPeriodStart} – {wizardPeriodEnd} ({timeReadinessText(
                     'inclusive',
@@ -3069,13 +3131,17 @@
                   )}
                 </p>
                 <ul>
-                  {#each wizardReadiness.timeReadiness?.records.filter((record) => record.status === 'missing_client_rate') ?? [] as record}<li
+                  {#each wizardReadiness.timeReadiness?.records.filter( (record) => wizardReadiness?.reasons.some((reason) => reason.code === 'missing_client_rate' && reason.sourceId === record.sourceId), ) ?? [] as record}<li
                     >
                       {record.workDate} · {timeReadinessHours(record.minutes)}
                     </li>{/each}
                 </ul>
-                <a href={readinessActionHref(wizardReadiness.reasons)}
-                  >{translate('Client labor rate')}</a
+                <a
+                  href={readinessActionHref(
+                    wizardReadiness.reasons.filter(
+                      (reason) => reason.code === 'missing_client_rate',
+                    ),
+                  )}>{translate('billing.readiness.configureSaleRate')}</a
                 >
               </div>
             {/if}
@@ -3360,11 +3426,11 @@
         {:else}
           <section>
             <h3>{translate('Save / issue')}</h3>
-            <p>
-              {translate(
-                'Save the draft now. Finance can then review lines and adjustments, approve it, issue the immutable numbered version, send it and register collections.',
-              )}
-            </p>
+            {#if wizardReadiness?.state === 'ready' && !wizardHasNoBillableSources}<p>
+                {translate(
+                  'Save the draft now. Finance can then review lines and adjustments, approve it, issue the immutable numbered version, send it and register collections.',
+                )}
+              </p>{/if}
             <ProblemNotice
               problem={draftPeriodWarning}
               kind="warning"
@@ -3388,6 +3454,12 @@
               <p role="status">
                 {translate('Resolve the period readiness issues before saving an invoice draft.')}
               </p>
+              {#each wizardReadinessRecovery()?.links ?? [] as link}
+                <a class="secondary-button" href={link.href}>{link.label}</a>
+              {/each}
+              <button type="button" class="secondary-button" onclick={checkWizardPeriod}
+                >{translate('Check selected period')}</button
+              >
             {/if}
             {#if wizardReadiness?.existingInvoiceId && wizardReadiness.existingInvoiceState !== 'draft'}
               <a

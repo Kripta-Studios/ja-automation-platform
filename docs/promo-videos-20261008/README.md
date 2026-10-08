@@ -1,6 +1,6 @@
 # Product trailers, 8 October 2026
 
-Two 1080p30 trailers of the portal that is serving `https://j-aautomation.com/j-aautomation/app`. Both are 2 minutes 13 seconds. They were recorded against that live portal, composited on this VPS, and published as static files in front of the app. The app process, the database, and every other Caddy site were left on their existing routes.
+Two 1080p30 trailers of the portal that is serving `https://j-aautomation.com/j-aautomation/app`. Both are 3 minutes. The last 47 seconds, from 1:30, show four roles on the demo project: a worker filing an expense and opening My Pay, a crew chief with eight hours recorded for each of two technicians and a receipt ready to split, Finance reading invoiced against unbilled work, and an external technician logging hours on the same project. They were recorded against that live portal, composited on this VPS, and published as static files in front of the app. The app process, the database, and every other Caddy site were left on their existing routes.
 
 | Cut | Page | File on disk |
 |---|---|---|
@@ -57,7 +57,7 @@ Bank account, SWIFT and beneficiary lines on every invoice frame are blurred in 
 | Cursor | An init script injects a fixed-position SVG pointer that follows `mousemove`, plus a red ring on `mousedown`. On the phone profile the pointer is a translucent circle. |
 | Compositor | `compose.html` + `compose.js`. Headless Chromium opens the file at 1920×1080 and calls `renderFrame(t)` once per frame. Titles, captions, the phone, the role grid and the window around the recording are DOM, not ffmpeg filters. |
 | Encoder | Static ffmpeg 7.0.2 extracted from the `imageio-ffmpeg` 0.6.0 wheel (`libx264`, `aac`). The system had no ffmpeg. The Playwright ffmpeg build only had VP8, so it could not make an H.264 file. |
-| Music | `music.py`. Original, synthesized with NumPy 2.4.6 and SciPy 1.17.1. No sample library and no third-party track. 120 BPM, A minor / F / C / G with a lifted B section, 136 seconds, stereo 44.1 kHz. Sidechain ducking is applied to the music bus only, so the kick is not ducked by itself. |
+| Music | `music.py`. Original, synthesized with NumPy 2.4.6 and SciPy 1.17.1. No sample library and no third-party track. 120 BPM, A minor / F / C / G with a lifted B section, extended to 188 seconds so the 3-minute cut still has music under the end card, stereo 44.1 kHz. Sidechain ducking is applied to the music bus only, so the kick is not ducked by itself. |
 | Receipt images | Pillow 11.3.0. Three fictitious receipts, each labelled "DEMO RECEIPT - NOT A TAX DOCUMENT". |
 | Fonts | Geist and Geist Mono, the woff2 files the portal already serves at `/j-aautomation/app/fonts/`. |
 | Evocon mark | `https://evocon-solutions.com/assets/logo-evocon.png`. This VPS could not resolve that host through its own resolver. The address `217.160.0.188` came from DNS-over-HTTPS against `1.1.1.1`, and curl used `--resolve`. Sampled brand colours are orange `rgb(255, 147, 71)` and purple `rgb(82, 70, 104)`. |
@@ -73,7 +73,7 @@ Work happened in `/srv/mail/ja-promo-video-20261008` because the root filesystem
   state/*.json           Playwright storageState for each role. session cookies. not in git.
   assets/                logo.png, logo-evocon.png, geist woff2, three demo receipts
   tools/ffmpeg           the static 7.0.2 binary
-  audio/soundtrack.wav   136 s, 44.1 kHz stereo
+  audio/soundtrack.wav   188 s, 44.1 kHz stereo
   rec/<scene>/frames/    JPEG screencast, about 530 MB for the final takes
   rec/<scene>/index.json frame timestamps and named markers
   shots/                 contact sheets and stills used while judging takes
@@ -119,7 +119,7 @@ Video 2 segments set `sharp: true`. The compositor then draws the recording at 1
 
 `build_timeline.py` also extends each segment by the next segment's fade length, so a crossfade has both pictures alive. `brand: "evocon"` is what makes `compose.js` swap the logo, the orange `#ff9347`, the purple glow and the wider wordmark card.
 
-Both films are 133.0 seconds. Flashes are white frames of half a second at the downbeats 9s, 28s and 121s in Video 2 (8s, 112s and 124s in Video 1), lined up with the impacts in the soundtrack.
+Both films are 180.0 seconds. Flashes are white frames of half a second at 9s, 28s and 168s, lined up with the impacts in the soundtrack. The role scenes occupy 90s to 137s.
 
 ### 3. Render frames
 
@@ -131,7 +131,7 @@ Video 1 frames were JPEG quality 95, then `libx264 -preset slow -crf 17 -profile
 
 Video 2 frames were JPEG quality 98 and `-crf 16`. The file is smaller, about 46 MB and 2.6 Mbps, because a full-frame UI with little camera movement compresses better than the scaled, tilted window. The picture is sharper because the recording is no longer resampled down and back up.
 
-Audio is `audio/soundtrack.wav`, trimmed to 133 seconds, faded over the last 2 seconds, at `-1 dB`. Measured loudness of the finished file is about −12.8 dB mean and −1.9 dB peak.
+Audio is `audio/soundtrack.wav`, trimmed to 180 seconds, faded over the last 2 seconds, at `-1 dB`.
 
 ### 4. Music
 

@@ -1,9 +1,9 @@
 {
- "duration": 133.0,
+ "duration": 180.0,
  "flashes": [
   9.0,
   28.0,
-  121.0
+  168.0
  ],
  "segments": [
   {
@@ -209,28 +209,22 @@
    "sharp": true,
    "start": 40,
    "end": 47,
-   "rec": "finance",
+   "rec": "finance2",
    "enter": "fade",
    "tin": 0.35,
-   "from": 4.2,
+   "from": 1.2,
    "zoom": [
     [
-     4.6,
+     1.2,
      1,
-     960,
-     540
+     1000,
+     460
     ],
     [
-     6.4,
-     1.28,
+     5,
+     1.12,
      1080,
-     430
-    ],
-    [
-     11,
-     1.28,
-     1080,
-     430
+     420
     ]
    ],
    "chip": "Economics",
@@ -407,9 +401,117 @@
    "sub": "The workspace follows the person. Reports can follow too."
   },
   {
-   "type": "roles",
+   "type": "scene",
+   "sharp": true,
    "start": 90,
-   "end": 97,
+   "end": 103,
+   "rec": "worker",
+   "enter": "fade",
+   "tin": 0.35,
+   "remap": [
+    [
+     0,
+     0.6
+    ],
+    [
+     2.2,
+     2.8
+    ],
+    [
+     2.4,
+     8.2
+    ],
+    [
+     7,
+     13.5
+    ],
+    [
+     7.2,
+     19.2
+    ],
+    [
+     13,
+     24
+    ]
+   ],
+   "chip": "Worker",
+   "title": "Your week, your receipt, your pay",
+   "sub": "File the expense. Then read the pay estimate. Nobody has to explain it."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 103,
+   "end": 113,
+   "rec": "crew",
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 0.4,
+   "chip": "Crew chief",
+   "title": "Hours for both technicians",
+   "sub": "The chief records eight hours each. Every row stays with the person who did the work, and one receipt can be split across them."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 113,
+   "end": 125,
+   "rec": "finance2",
+   "enter": "fade",
+   "tin": 0.35,
+   "from": 1.5,
+   "zoom": [
+    [
+     1.5,
+     1,
+     1000,
+     460
+    ],
+    [
+     6,
+     1.14,
+     1100,
+     430
+    ]
+   ],
+   "chip": "Finance",
+   "title": "Earned, invoiced, and still unbilled",
+   "sub": "Finance reads the project from its source records. Contribution is not cash in the bank."
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 125,
+   "end": 137,
+   "rec": "tech2",
+   "enter": "fade",
+   "tin": 0.35,
+   "remap": [
+    [
+     0,
+     0.8
+    ],
+    [
+     2.5,
+     3.5
+    ],
+    [
+     2.7,
+     6.2
+    ],
+    [
+     10,
+     10.1
+    ]
+   ],
+   "chip": "External technician",
+   "title": "A contractor, on the same project",
+   "sub": "They log their own hours for review. The rest of the crew\u2019s pay is not in this workspace."
+  },
+  {
+   "type": "roles",
+   "start": 137,
+   "end": 144,
    "heading": "A workspace for <span class=\"red\">every role</span>",
    "items": [
     [
@@ -448,8 +550,8 @@
   },
   {
    "type": "title",
-   "start": 97,
-   "end": 109,
+   "start": 144,
+   "end": 156,
    "enter": "fade",
    "tin": 0.4,
    "kicker": "WHY TEAMS PAY FOR THIS",
@@ -466,8 +568,8 @@
   {
    "type": "scene",
    "sharp": true,
-   "start": 109.0,
-   "end": 110.5,
+   "start": 156.0,
+   "end": 157.5,
    "rec": "units",
    "enter": "cut",
    "tin": 0.01,
@@ -476,9 +578,39 @@
   {
    "type": "scene",
    "sharp": true,
-   "start": 110.5,
-   "end": 112.0,
-   "rec": "finance",
+   "start": 157.5,
+   "end": 159.0,
+   "rec": "finance2",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 6
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 159.0,
+   "end": 160.5,
+   "rec": "worker",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 21
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 160.5,
+   "end": 162.0,
+   "rec": "crew",
+   "enter": "cut",
+   "tin": 0.01,
+   "from": 5.8
+  },
+  {
+   "type": "scene",
+   "sharp": true,
+   "start": 162.0,
+   "end": 163.5,
+   "rec": "tech2",
    "enter": "cut",
    "tin": 0.01,
    "from": 8
@@ -486,8 +618,8 @@
   {
    "type": "scene",
    "sharp": true,
-   "start": 112.0,
-   "end": 113.5,
+   "start": 163.5,
+   "end": 165.0,
    "rec": "report",
    "enter": "cut",
    "tin": 0.01,
@@ -496,8 +628,8 @@
   {
    "type": "scene",
    "sharp": true,
-   "start": 113.5,
-   "end": 115.0,
+   "start": 165.0,
+   "end": 166.5,
    "rec": "approvals",
    "enter": "cut",
    "tin": 0.01,
@@ -505,8 +637,8 @@
   },
   {
    "type": "phone",
-   "start": 115.0,
-   "end": 116.5,
+   "start": 166.5,
+   "end": 168.0,
    "rec": "mobile",
    "enter": "cut",
    "tin": 0.01,
@@ -516,39 +648,9 @@
    "chip": ""
   },
   {
-   "type": "scene",
-   "sharp": true,
-   "start": 116.5,
-   "end": 118.0,
-   "rec": "planning",
-   "enter": "cut",
-   "tin": 0.01,
-   "from": 10
-  },
-  {
-   "type": "scene",
-   "sharp": true,
-   "start": 118.0,
-   "end": 119.5,
-   "rec": "dashboard",
-   "enter": "cut",
-   "tin": 0.01,
-   "from": 15
-  },
-  {
-   "type": "scene",
-   "sharp": true,
-   "start": 119.5,
-   "end": 121.0,
-   "rec": "project",
-   "enter": "cut",
-   "tin": 0.01,
-   "from": 16
-  },
-  {
    "type": "title",
-   "start": 121,
-   "end": 133,
+   "start": 168,
+   "end": 180,
    "logo": true,
    "enter": "fade",
    "tin": 0.5,

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { requestRecoveryMessage } from '$lib/portal/guided-recovery/events';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { replaceState } from '$app/navigation';
@@ -80,6 +81,7 @@
     await tick();
     statusElement?.focus({ preventScroll: true });
     statusElement?.scrollIntoView({ block: 'center' });
+    requestRecoveryMessage(message || rateLimitMessage, statusElement);
   }
   async function login(event: SubmitEvent) {
     event.preventDefault();

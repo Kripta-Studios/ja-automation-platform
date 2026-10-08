@@ -1,5 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { tick } from 'svelte';
+  import { requestFinanceGuidedRecovery } from '../finance-guided-recovery';
   import { Field, FieldGroup, formValidation } from '../ui';
   import { portalText, type PortalLocale } from '../../portal-i18n';
   import type { PortalRow as Row } from '../portal-data';
@@ -39,6 +41,20 @@
   });
   const retained = (field: string, fallback = ''): string =>
     typeof failed?.values?.[field] === 'string' ? String(failed.values[field]) : fallback;
+  let replacementForm = $state<HTMLFormElement>();
+  $effect(() => {
+    const current = failed;
+    if (!current) return;
+    void tick().then(() =>
+      requestFinanceGuidedRecovery(
+        current,
+        replacementForm,
+        'replaceUnusedProjectIssuingAuthority',
+        'problem.finance.input.unusedIssuerReplacement',
+        t('Project issuing authority'),
+      ),
+    );
+  });
   const fieldError = (field: string): string | undefined =>
     failed?.fieldErrors?.[field]?.length
       ? failed.fieldErrors[field].map((key) => t(key)).join(' ')
@@ -71,7 +87,13 @@
 <details open={Boolean(failed)} data-unused-issuer-replacement>
   <summary>{t('finance.issuerReplacement.title')}</summary>
   <p class="muted">{t('finance.issuerReplacement.help')}</p>
-  <form method="POST" action={actionUrl} class="admin-form-grid" use:formValidation>
+  <form
+    method="POST"
+    action={actionUrl}
+    class="admin-form-grid"
+    use:formValidation
+    bind:this={replacementForm}
+  >
     <input type="hidden" name="originalAssignmentId" value={assignmentId} />
     <input
       type="hidden"

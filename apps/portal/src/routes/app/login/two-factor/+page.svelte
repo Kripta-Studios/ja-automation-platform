@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { requestRecoveryMessage } from '$lib/portal/guided-recovery/events';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
@@ -74,6 +75,7 @@
       if (error) {
         await tick();
         statusElement?.focus();
+        requestRecoveryMessage(error, statusElement);
       }
     }
   }
@@ -149,6 +151,7 @@
       <label class="login-field"
         ><span>{backupCode ? t('Recovery code') : t('Six-digit code')}</span><input
           name="code"
+          data-recovery-secret
           inputmode={backupCode ? 'text' : 'numeric'}
           autocomplete={backupCode ? 'off' : 'one-time-code'}
           placeholder={backupCode ? t('Enter a recovery code') : '000000'}

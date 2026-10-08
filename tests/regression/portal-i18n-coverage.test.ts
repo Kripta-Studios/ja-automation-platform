@@ -152,8 +152,8 @@ describe('portal i18n coverage contract', () => {
     expect(
       [...usedComponentKeys].filter((key) => !PORTAL_LITERAL_KEYS.includes(key as never)),
     ).toEqual([]);
-    expect([...usedActionKeys].every((key) => PORTAL_ACTION_KEYS.includes(key as never))).toBe(
-      true,
+    expect([...usedActionKeys].filter((key) => !PORTAL_ACTION_KEYS.includes(key as never))).toEqual(
+      [],
     );
   });
 
@@ -191,7 +191,10 @@ describe('portal i18n coverage contract', () => {
       'recordType',
       'availability',
       'billingStream',
+      'billingModel',
+      'budgetType',
       'artifactState',
+      'attachmentKind',
     ]);
 
     const values: ReadonlyArray<readonly [ControlledValueDomain, string]> = [

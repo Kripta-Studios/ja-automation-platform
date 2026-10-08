@@ -1,3 +1,4 @@
+import { withOperationalActionNames } from './operational-action-context';
 import { createHash } from 'node:crypto';
 import { relative, resolve } from 'node:path';
 import { expenseInputSchema, minorUnitsSchema, versionedRecordSchema } from '@ja/schemas';
@@ -13,6 +14,7 @@ import {
 import { z, type ZodError } from 'zod';
 import { mondayOf } from '$lib/server/portal-week';
 import { weekDates } from '$lib/portal/sections/time-entry-actions';
+import { weeklyRecoveryFields } from '$lib/portal/sections/operational-recovery-fields';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import {
   removePrivateFileIfPresent,
@@ -818,7 +820,7 @@ export async function saveExpenseReceipt(
   }
 }
 
-export const expenseActions = {
+export const expenseActions = withOperationalActionNames({
   submitExpenseWeek: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'expenses')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
@@ -980,6 +982,7 @@ export const expenseActions = {
     } catch {
       raw = null;
     }
+    const dates = weekDates(weekStart);
     const rows = z
       .array(
         z
@@ -995,14 +998,44 @@ export const expenseActions = {
       .min(1)
       .max(7)
       .safeParse(raw);
-    if (!rows.success)
-      return expenseWeekFailure(
-        400,
-        'rowsInvalid',
-        'Enter 1 to 7 daily expenses with a date, category, amount and description. No drafts were saved.',
-        object,
+    if (!rows.success) {
+      const fieldErrors = Object.assign(
+        {},
+        ...rows.error.issues.flatMap((issue) => {
+          if (
+            !Array.isArray(raw) ||
+            typeof issue.path[0] !== 'number' ||
+            typeof issue.path[1] !== 'string'
+          )
+            return [];
+          const row = raw[issue.path[0]];
+          if (!row || typeof row !== 'object') return [];
+          const field = issue.path[1];
+          return [
+            weeklyRecoveryFields(
+              { [field]: [expenseFieldProblems[field]?.key ?? 'problem.expense.fieldsInvalid'] },
+              String(row.spentOn ?? ''),
+              dates,
+              'expense',
+            ),
+          ];
+        }),
       );
-    const dates = weekDates(weekStart);
+      return actionFail(
+        400,
+        'problem.expenseWeek.rowsInvalid',
+        {},
+        'Enter 1 to 7 daily expenses with a date, category, amount and description. No drafts were saved.',
+        {
+          code: 'EXPENSE_WEEK_ROWS_INVALID',
+          values: safeExpenseValues(object),
+          fieldErrors: Object.keys(fieldErrors).length
+            ? fieldErrors
+            : { entries: ['problem.expense.fieldsInvalid'] },
+          remedies: [{ id: 'review_expenses' }],
+        },
+      );
+    }
     if (
       new Set(rows.data.map((row) => row.spentOn)).size !== rows.data.length ||
       rows.data.some((row) => !dates.includes(row.spentOn))
@@ -1026,18 +1059,36 @@ export const expenseActions = {
         receiptRequired: false,
       }),
     );
-    for (let index = 0; index < inputs.length; index++) {
-      const input = inputs[index];
-      if (input && !input.success) {
-        const failure = expenseSchemaFailure(input.error, object);
-        // Give the daily row a concrete date while preserving every table value.
-        return expenseWeekFailure(
-          400,
-          'rowInvalid',
-          `${rows.data[index]?.spentOn}: ${failure.data.message} No drafts were saved.`,
-          object,
-        );
-      }
+    const invalidRows = inputs.flatMap((input, index) => {
+      if (input.success) return [];
+      const failure = expenseSchemaFailure(input.error, object);
+      return [
+        {
+          date: String(rows.data[index]?.spentOn ?? ''),
+          failure,
+          fields: weeklyRecoveryFields(
+            failure.data.fieldErrors,
+            String(rows.data[index]?.spentOn ?? ''),
+            dates,
+            'expense',
+          ),
+        },
+      ];
+    });
+    if (invalidRows.length) {
+      const first = invalidRows[0]!;
+      return actionFail(
+        400,
+        'problem.expenseWeek.rowInvalid',
+        {},
+        `${first.date}: ${first.failure.data.message} No drafts were saved.`,
+        {
+          code: 'EXPENSE_WEEK_ROW_INVALID',
+          values: safeExpenseValues(object),
+          fieldErrors: Object.assign({}, ...invalidRows.map((row) => row.fields)),
+          remedies: [{ id: 'review_expenses' }],
+        },
+      );
     }
     const context = openPortalRepository(locals);
     try {
@@ -1445,4 +1496,4 @@ export const expenseActions = {
       context.sqlite.close();
     }
   },
-};
+});

@@ -171,6 +171,10 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
         locals.user.role === 'owner_admin'
           ? context.repository.listAllWorkers(context.principal)
           : [],
+      siteContacts:
+        projectRow.client_id && context.principal.role !== 'worker'
+          ? context.repository.listClientContacts(context.principal, projectRow.client_id)
+          : [],
       billingRules,
       personDefaults: financeVisible
         ? new ProjectPersonDefaultsRepository(context.sqlite, context.repository).latest(
@@ -1144,6 +1148,9 @@ function detailFailure(
       'Cost center code': 'costCenterCode',
       'Project alias': 'projectAlias',
       'Site name': 'siteName',
+      'On-site manager': 'onsiteManager',
+      'Site location': 'siteLocation',
+      'On-site contact': 'onsiteContactId',
       Country: 'country',
       Description: 'description',
       'Contract number': 'contractNumber',
@@ -1792,6 +1799,9 @@ export const actions: Actions = {
       timezone: text('timezone') ?? undefined,
       billingModel: text('billingModel') ?? undefined,
       siteName: text('siteName'),
+      onsiteManager: text('onsiteManager'),
+      siteLocation: text('siteLocation'),
+      onsiteContactId: text('onsiteContactId'),
       country: text('country'),
       projectManagerId: text('projectManagerId') || null,
       expectedMinutesPerDay:

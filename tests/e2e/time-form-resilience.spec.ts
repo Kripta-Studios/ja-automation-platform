@@ -23,6 +23,12 @@ async function openTimeForm(page: Page, role: 'worker' | 'owner' = 'worker'): Pr
   await page.goto(portal('/time?lang=en&q='), { waitUntil: 'networkidle' });
   await page.locator('[data-time-primary-cta]').click();
   const form = page.locator('form[data-time-entry-surface]');
+  const project = form.locator('[name="projectId"]');
+  const projectId = await project.evaluate(
+    (select: HTMLSelectElement) => Array.from(select.options).find((option) => option.value)?.value,
+  );
+  if (!projectId) throw new Error('The time fixture needs an authorized project.');
+  await project.selectOption(projectId);
   if (role === 'owner') {
     const worker = form.locator('[name="workerId"]');
     const workerId = await worker.evaluate(
@@ -32,12 +38,6 @@ async function openTimeForm(page: Page, role: 'worker' | 'owner' = 'worker'): Pr
     if (!workerId) throw new Error('The owner fixture needs an available worker.');
     await worker.selectOption(workerId);
   }
-  const project = form.locator('[name="projectId"]');
-  const projectId = await project.evaluate(
-    (select: HTMLSelectElement) => Array.from(select.options).find((option) => option.value)?.value,
-  );
-  if (!projectId) throw new Error('The time fixture needs an authorized project.');
-  await project.selectOption(projectId);
   await form.getByRole('checkbox', { name: 'Add start and end times' }).check();
   await form.locator('[name="startTime"]').fill('09:00');
   await form.locator('[name="endTime"]').fill('13:00');

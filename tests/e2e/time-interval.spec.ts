@@ -70,14 +70,19 @@ for (const role of ['worker', 'owner'] as const) {
       const worker = db
         .prepare('SELECT id FROM user WHERE email=?')
         .get('worker@demo.jaautomation.test') as { id: string };
-      if (role === 'owner') await form.locator('[name="workerId"]').selectOption(worker.id);
+      await form.locator('[name="workDate"]').fill(workDate);
       const project = db
         .prepare(
-          'SELECT project_id FROM project_member WHERE user_id=? ORDER BY project_id LIMIT 1',
+          `SELECT pm.project_id FROM project_member pm JOIN project p ON p.id=pm.project_id
+            WHERE pm.user_id=? AND pm.status='active' AND pm.starts_on<=?
+              AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+              AND p.status IN ('active','planned','paused')
+            ORDER BY pm.project_id LIMIT 1`,
         )
-        .get(worker.id) as { project_id: string };
+        .get(worker.id, workDate, workDate) as { project_id: string };
+      if (!project) throw new Error(`Worker fixture needs a project assignment on ${workDate}.`);
       await form.locator('[name="projectId"]').selectOption(project.project_id);
-      await form.locator('[name="workDate"]').fill(workDate);
+      if (role === 'owner') await form.locator('[name="workerId"]').selectOption(worker.id);
       await form.getByRole('checkbox', { name: 'Add start and end times' }).check();
       await form.locator('[name="startTime"]').fill('09:00');
       await form.locator('[name="endTime"]').fill('08:00');
@@ -127,9 +132,9 @@ for (const role of ['worker', 'owner'] as const) {
       // A server-side overlap rejection must keep the sheet and all entered values.
       await page.locator('[data-time-primary-cta]').click();
       form = page.locator('form[data-time-entry-surface]');
-      if (role === 'owner') await form.locator('[name="workerId"]').selectOption(worker.id);
-      await form.locator('[name="projectId"]').selectOption(project.project_id);
       await form.locator('[name="workDate"]').fill(workDate);
+      await form.locator('[name="projectId"]').selectOption(project.project_id);
+      if (role === 'owner') await form.locator('[name="workerId"]').selectOption(worker.id);
       await form.getByRole('checkbox', { name: 'Add start and end times' }).check();
       await form.locator('[name="startTime"]').fill('09:00');
       await form.locator('[name="endTime"]').fill('13:00');

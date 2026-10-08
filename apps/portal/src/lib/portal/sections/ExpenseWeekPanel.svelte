@@ -8,6 +8,10 @@
   import { beforeNavigate, goto } from '$app/navigation';
   import { onMount, tick } from 'svelte';
   import { SectionCard, StatusBadge } from '../ui';
+  import type { ProblemData } from '../../problem/contract';
+  import { requestGuidedRecovery } from '../guided-recovery/events';
+  import { operationalFieldValidation } from '../ui/operational-submit';
+  import { reportFormFieldErrors } from '../ui/form-validation';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import { decimalToMinor, money, shiftWeek } from '../portal-format';
@@ -41,7 +45,13 @@
     description: string;
     vendor: string;
   };
-  const nativeForm = $page.form as { values?: Record<string, unknown>; message?: string } | null;
+  const nativeForm = $page.form as
+    | (Partial<ProblemData> & {
+        values?: Record<string, unknown>;
+        message?: string;
+        actionName?: string;
+      })
+    | null;
   const restored = nativeForm?.values?.batchForm === 'expense_week_table' ? nativeForm.values : {};
   function restoredRows(): DailyDraft[] {
     try {
@@ -210,6 +220,20 @@
     calendarMonth = today.slice(0, 7);
     calendarDay = today;
     requestId ||= crypto.randomUUID();
+    if (
+      nativeForm?.code &&
+      nativeForm.messageKey &&
+      ['createExpenseWeek', 'submitExpenseWeek'].includes(nativeForm.actionName ?? '')
+    )
+      void tick().then(() => {
+        const form = document.querySelector<HTMLFormElement>(
+          `form[action="?/${nativeForm.actionName}"]`,
+        );
+        if (!form) return;
+        const problem = nativeForm as ProblemData;
+        reportFormFieldErrors(form, problem.fieldErrors);
+        requestGuidedRecovery({ problem, form, source: form });
+      });
   });
   beforeNavigate(({ cancel }) => {
     if (busy) {
@@ -384,7 +408,7 @@
       !row.billing_lock_id
     );
   }
-  const submitWeek: SubmitFunction = ({ cancel }) => {
+  const submitWeek: SubmitFunction = ({ cancel, formElement }) => {
     if (busy) {
       cancel();
       return;
@@ -393,6 +417,7 @@
     weekError = '';
     weekMessage = '';
     return async ({ result, update }) => {
+      let recoveryProblem: ProblemData | null = null;
       try {
         if (result.type === 'success') {
           weekMessage = standaloneActionMessage(
@@ -401,6 +426,8 @@
           );
           await update({ reset: false });
         } else {
+          if (result.type === 'failure' && result.data?.code)
+            recoveryProblem = result.data as ProblemData;
           weekError = translate(
             String(
               (result.type === 'failure' ? result.data?.message : '') ||
@@ -415,11 +442,19 @@
       } finally {
         busy = null;
         await tick();
+        if (recoveryProblem) {
+          reportFormFieldErrors(formElement, recoveryProblem.fieldErrors);
+          requestGuidedRecovery({
+            problem: recoveryProblem,
+            form: formElement,
+            source: formElement,
+          });
+        }
         weekNotice?.focus({ preventScroll: true });
       }
     };
   };
-  const saveTable: SubmitFunction = ({ cancel }) => {
+  const saveTable: SubmitFunction = ({ cancel, formElement }) => {
     if (busy) {
       cancel();
       return;
@@ -428,6 +463,7 @@
     tableError = '';
     tableMessage = '';
     return async ({ result, update }) => {
+      let recoveryProblem: ProblemData | null = null;
       try {
         if (result.type === 'success') {
           tableMessage = standaloneActionMessage(
@@ -444,6 +480,9 @@
                 'Weekly expenses could not be saved. Your entered details are retained.',
             ),
           );
+          if (result.type === 'failure' && result.data?.code) {
+            recoveryProblem = result.data as ProblemData;
+          }
         }
       } catch {
         tableError = translate(
@@ -452,6 +491,14 @@
       } finally {
         busy = null;
         await tick();
+        if (recoveryProblem) {
+          reportFormFieldErrors(formElement, recoveryProblem.fieldErrors);
+          requestGuidedRecovery({
+            problem: recoveryProblem,
+            form: formElement,
+            source: formElement,
+          });
+        }
         tableNotice?.focus({ preventScroll: true });
       }
     };
@@ -713,7 +760,12 @@
             disabled={Boolean(busy)}>{translate('Close weekly entry')}</button
           >
         </div>
-        <form method="POST" action="?/createExpenseWeek" use:enhance={saveTable}>
+        <form
+          method="POST"
+          action="?/createExpenseWeek"
+          use:operationalFieldValidation
+          use:enhance={saveTable}
+        >
           <input type="hidden" name="batchForm" value="expense_week_table" /><input
             type="hidden"
             name="weekStart"
@@ -781,11 +833,12 @@
                     ><th>{translate('Vendor')}</th><th>{translate('Description')}</th></tr
                   ></thead
                 ><tbody>
-                  {#each tableDates as date}{#if rows[date]}<tr
+                  {#each tableDates as date, index}{#if rows[date]}<tr
                         ><th scope="row">{date}</th><td
                           ><label
                             ><span class="mobile-label">{translate('Category')}</span><select
                               aria-label={`${date} ${translate('Category')}`}
+                              name={`category_${index}`}
                               bind:value={rows[date].category}
                               >{#each expenseCategories as [value, label]}<option {value}
                                   >{translate(label)}</option
@@ -796,6 +849,12 @@
                           ><label
                             ><span class="mobile-label">{translate('Amount')}</span><input
                               aria-label={`${date} ${translate('Amount')}`}
+                              name={`amount_${index}`}
+                              required={Boolean(
+                                rows[date].amount.trim() ||
+                                rows[date].description.trim() ||
+                                rows[date].vendor.trim(),
+                              )}
                               inputmode="decimal"
                               pattern="[0-9]+([.][0-9][0-9]?)?"
                               bind:value={rows[date].amount}
@@ -805,6 +864,7 @@
                           ><label
                             ><span class="mobile-label">{translate('Vendor')}</span><input
                               aria-label={`${date} ${translate('Vendor')}`}
+                              name={`vendor_${index}`}
                               maxlength="200"
                               bind:value={rows[date].vendor}
                             /></label
@@ -813,6 +873,13 @@
                           ><label
                             ><span class="mobile-label">{translate('Description')}</span><input
                               aria-label={`${date} ${translate('Description')}`}
+                              name={`description_${index}`}
+                              required={Boolean(
+                                rows[date].amount.trim() ||
+                                rows[date].description.trim() ||
+                                rows[date].vendor.trim(),
+                              )}
+                              minlength="3"
                               maxlength="5000"
                               bind:value={rows[date].description}
                             /></label

@@ -1,8 +1,27 @@
 <script lang="ts">
+  import { tick } from 'svelte';
+  import { requestGuidedRecovery } from '../guided-recovery/events';
   import { page } from '$app/stores';
   import { normalizePortalLocale, portalText, type PortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
   import type { ProblemData, ProblemRemedy } from '$lib/problem/contract';
+
+  let source: HTMLElement;
+  let lastProblem: ProblemData | undefined;
+  const recover = () =>
+    requestGuidedRecovery({ problem, source, links: visibleRemedies.map((item) => item.link) });
+  $effect(() => {
+    if ((kind === 'error' || kind === 'service') && problem !== lastProblem) {
+      lastProblem = problem;
+      let active = true;
+      void tick().then(() => {
+        if (active && source?.isConnected) recover();
+      });
+      return () => {
+        active = false;
+      };
+    }
+  });
 
   type NoticeKind = 'error' | 'warning' | 'service' | 'success';
   type RemedyLink = { label: string; href?: string; reload?: boolean };
@@ -27,7 +46,9 @@
   } = $props();
 
   const locale = $derived(
-    normalizePortalLocale(requestedLocale ?? $page.url.searchParams.get('lang') ?? $page.data.locale),
+    normalizePortalLocale(
+      requestedLocale ?? $page.url.searchParams.get('lang') ?? $page.data.locale,
+    ),
   );
   const params = $derived(
     Object.fromEntries(
@@ -64,6 +85,7 @@
 </script>
 
 <aside
+  bind:this={source}
   data-ui="problem-notice"
   data-kind={kind}
   data-problem-code={problem.code}
@@ -92,6 +114,11 @@
         </li>
       {/each}
     </ul>
+  {/if}
+  {#if kind === 'error' || kind === 'service'}
+    <button type="button" onclick={recover}
+      >{portalText(locale, 'Complete the action step by step')}</button
+    >
   {/if}
   {#if problem.correlationId && kind === 'service'}
     <small

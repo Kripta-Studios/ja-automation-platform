@@ -49,6 +49,39 @@
   } = $props();
 
   let compensationRuleType = $state('Hourly');
+  let internalCostCopy = $state<Record<string, string> | null>(null);
+  let consentedSaleRateId = $state('');
+  let internalCostCopyFailure = $state.raw<unknown>(undefined);
+
+  function financeRecoveryText(en: string, es: string, pt: string): string {
+    return locale === 'es' ? es : locale === 'pt' ? pt : en;
+  }
+
+  function prepareInternalCostCopy(rule: Row): void {
+    if (consentedSaleRateId !== rowValue(rule, 'id') || !confirmConfigurationChanges()) return;
+    const amount = rowValue(rule, 'hourlyRateMinor', 'hourly_rate_minor');
+    if (!/^\d+$/.test(amount)) return;
+    internalCostCopyFailure = $page.form;
+    internalCostCopy = {
+      projectId: rowValue(rule, 'projectId', 'project_id') || String(data.selectedProjectId ?? ''),
+      workerId: rowValue(rule, 'workerId', 'worker_id'),
+      currency: rowValue(rule, 'currency'),
+      hourlyRateMinor: amount,
+      effectiveFrom: rowValue(rule, 'effectiveFrom', 'effective_from'),
+      effectiveTo: rowValue(rule, 'effectiveTo', 'effective_to'),
+      notes: `Copied customer hourly sale rate ${rowValue(rule, 'id')} with explicit Finance consent; reviewed separately as internal cost.`,
+    };
+    internalOvertimeMethod = 'NONE';
+    selectedAction = 'Internal loaded cost';
+    consentedSaleRateId = '';
+  }
+
+  function internalCostValue(field: string, fallback = ''): string {
+    const failed = failedValue('createInternalCostRule', field);
+    return $page.form === internalCostCopyFailure
+      ? (internalCostCopy?.[field] ?? failed ?? fallback)
+      : (failed ?? internalCostCopy?.[field] ?? fallback);
+  }
 
   function compensationRuleLabel(ruleType: string): string {
     const labels: Record<string, string> = {
@@ -659,7 +692,12 @@
   });
   const linkedProjectionDate = $derived.by(() => {
     const workDate = String(linkedProjectionSource?.workDate ?? '').trim();
-    return /^\d{4}-\d{2}-\d{2}$/u.test(workDate) ? workDate : '';
+    const from = $page.url.searchParams.get('from') ?? '';
+    return /^\d{4}-\d{2}-\d{2}$/u.test(workDate)
+      ? workDate
+      : /^\d{4}-\d{2}-\d{2}$/u.test(from)
+        ? from
+        : '';
   });
   $effect(() => {
     const failed = failedConfigurationAction;
@@ -2633,6 +2671,49 @@
                     </small>
                   </div>
                   <div class="form-actions">
+                    {#if canWritePolicy && (rowValue(rule, 'rateBasis', 'rate_basis') || 'hourly') === 'hourly'}
+                      <details data-client-rate-cost-copy>
+                        <summary
+                          >{financeRecoveryText(
+                            'Copy amount to internal cost',
+                            'Copiar importe al coste interno',
+                            'Copiar valor para custo interno',
+                          )}</summary
+                        >
+                        <p>
+                          {financeRecoveryText(
+                            'The customer sale rate and internal cost are independent. Copying prepares a separate cost form; review its worker, dates and amount and save it explicitly.',
+                            'La tarifa de venta al cliente y el coste interno son independientes. Copiar prepara un formulario de coste separado; revisa su trabajador, fechas e importe y guárdalo expresamente.',
+                            'A tarifa de venda ao cliente e o custo interno são independentes. Copiar prepara um formulário de custo separado; revise o trabalhador, as datas e o valor e salve-o explicitamente.',
+                          )}
+                        </p>
+                        <label class="check"
+                          ><input
+                            type="checkbox"
+                            checked={consentedSaleRateId === rowValue(rule, 'id')}
+                            onchange={(event) =>
+                              (consentedSaleRateId = event.currentTarget.checked
+                                ? rowValue(rule, 'id')
+                                : '')}
+                          />{financeRecoveryText(
+                            'I agree to use this sale amount as the proposed internal cost.',
+                            'Acepto utilizar este importe de venta como coste interno propuesto.',
+                            'Concordo em usar este valor de venda como custo interno proposto.',
+                          )}</label
+                        >
+                        <button
+                          type="button"
+                          class="secondary-button"
+                          disabled={consentedSaleRateId !== rowValue(rule, 'id')}
+                          onclick={() => prepareInternalCostCopy(rule)}
+                          >{financeRecoveryText(
+                            'Prepare internal cost',
+                            'Preparar coste interno',
+                            'Preparar custo interno',
+                          )}</button
+                        >
+                      </details>
+                    {/if}
                     <details
                       open={failedValue('supersedeClientLaborRate', 'supersedesId') ===
                         rowValue(rule, 'id')}
@@ -3434,10 +3515,20 @@
           <form
             method="POST"
             action={configurationActionUrl('createClientLaborRate')}
+            data-finance-action="createClientLaborRate"
             class="admin-form-grid"
             use:formValidation
             use:dirtyFormGuard
           >
+            {#if linkedProjectionDate}
+              <p data-client-rate-recovery-context>
+                {financeRecoveryText(
+                  'Configure the customer sale rate effective on this worked date. Internal cost is configured separately.',
+                  'Configura la tarifa de venta al cliente vigente en esta fecha de trabajo. El coste interno se configura por separado.',
+                  'Configure a tarifa de venda ao cliente vigente nesta data de trabalho. O custo interno é configurado separadamente.',
+                )} <strong>{linkedProjectionDate}</strong>
+              </p>
+            {/if}
             <input
               type="hidden"
               name="projectId"
@@ -3637,10 +3728,20 @@
           <form
             method="POST"
             action={configurationActionUrl('createInternalCostRule')}
+            data-finance-action="createInternalCostRule"
             class="admin-form-grid"
             use:formValidation
             use:dirtyFormGuard
           >
+            {#if internalCostCopy}
+              <p role="status" data-internal-cost-copy-review>
+                {financeRecoveryText(
+                  'The sale amount is a proposed internal cost. Review and save this separate cost rule to confirm it.',
+                  'El importe de venta es un coste interno propuesto. Revisa y guarda esta regla de coste separada para confirmarlo.',
+                  'O valor de venda é um custo interno proposto. Revise e salve esta regra de custo separada para confirmá-lo.',
+                )}
+              </p>
+            {/if}
             <FieldGroup columns="2">
               <Field
                 id="finance-internal-project"
@@ -3650,16 +3751,17 @@
                 <select id="finance-internal-project" name="projectId">
                   <option
                     value=""
-                    selected={failedValue('createInternalCostRule', 'projectId') === ''}
-                    >{translate('Global')}</option
+                    selected={internalCostValue(
+                      'projectId',
+                      String(data.selectedProjectId ?? ''),
+                    ) === ''}>{translate('Global')}</option
                   >
                   {#each availableProjects as project}
                     <option
                       value={project.id}
                       selected={String(project.id) ===
                         String(
-                          failedValue('createInternalCostRule', 'projectId') ??
-                            data.selectedProjectId,
+                          internalCostValue('projectId', String(data.selectedProjectId ?? '')),
                         )}>{projectLabel(project)}</option
                     >
                   {/each}
@@ -3684,8 +3786,8 @@
                     <option
                       value={worker.id}
                       selected={String(worker.id) ===
-                        (failedValue('createInternalCostRule', 'workerId') ??
-                          linkedProjectionWorkerId)}>{worker.name}</option
+                        internalCostValue('workerId', linkedProjectionWorkerId)}
+                      >{worker.name}</option
                     >
                   {/each}
                 </select>
@@ -3699,9 +3801,8 @@
                   {#each ['USD', 'BRL', 'EUR'] as currency}
                     <option
                       value={currency}
-                      selected={currency ===
-                        (failedValue('createInternalCostRule', 'currency') ??
-                          selectedProjectCurrency)}>{currency}</option
+                      selected={currency === internalCostValue('currency', selectedProjectCurrency)}
+                      >{currency}</option
                     >
                   {/each}
                 </select>
@@ -3715,13 +3816,13 @@
                 <input
                   type="hidden"
                   name="hourlyRateMinor"
-                  value={failedValue('createInternalCostRule', 'hourlyRateMinor') ?? '0'}
+                  value={internalCostValue('hourlyRateMinor', '0')}
                 />
                 <input
                   id="finance-internal-cost"
                   type="text"
                   inputmode="decimal"
-                  value={failedMinor('createInternalCostRule', 'hourlyRateMinor', '0.00')}
+                  value={minorToDecimal(internalCostValue('hourlyRateMinor', '0'))}
                   data-minor-target="hourlyRateMinor"
                   oninput={syncDecimalToMinor}
                   required
@@ -3822,8 +3923,7 @@
                   id="finance-internal-effective"
                   name="effectiveFrom"
                   type="date"
-                  value={failedValue('createInternalCostRule', 'effectiveFrom') ??
-                    linkedProjectionDate}
+                  value={internalCostValue('effectiveFrom', linkedProjectionDate)}
                   required
                 />
               </Field>
@@ -3836,12 +3936,12 @@
                   id="finance-internal-effective-to"
                   name="effectiveTo"
                   type="date"
-                  value={failedValue('createInternalCostRule', 'effectiveTo') ?? ''}
+                  value={internalCostValue('effectiveTo')}
                 />
               </Field>
               <Field id="finance-internal-notes" label={translate('Notes')} data-field="notes">
                 <textarea id="finance-internal-notes" name="notes" maxlength="2000" rows="3"
-                  >{failedValue('createInternalCostRule', 'notes') ?? ''}</textarea
+                  >{internalCostValue('notes')}</textarea
                 >
               </Field>
             </FieldGroup>

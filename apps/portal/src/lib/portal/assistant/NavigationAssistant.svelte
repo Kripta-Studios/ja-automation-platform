@@ -27,6 +27,7 @@
   let dialog: HTMLDialogElement | undefined = $state();
   let queryInput: HTMLInputElement | undefined = $state();
   let open = $state(false);
+  let blockingSurfaceOpen = $state(false);
   let query = $state('');
   let selectedTask: AssistantTask | undefined = $state();
   let busy = $state(false);
@@ -56,7 +57,7 @@
   );
 
   function show(): void {
-    if (busy) return;
+    if (busy || (blockingSurfaceOpen && !open)) return;
     notice = '';
     if (!open) {
       previouslyFocused =
@@ -87,6 +88,21 @@
   });
 
   onMount(() => {
+    const syncBlockingSurface = () => {
+      blockingSurfaceOpen = Boolean(
+        document.querySelector(
+          'dialog[open], [aria-modal="true"]:not([aria-hidden="true"]):not([inert])',
+        ),
+      );
+    };
+    const surfaceObserver = new MutationObserver(syncBlockingSurface);
+    surfaceObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['open', 'aria-modal', 'aria-hidden', 'inert'],
+      childList: true,
+      subtree: true,
+    });
+    syncBlockingSurface();
     const escape = (event: KeyboardEvent) => {
       if (!open || event.key !== 'Escape') return;
       // An underlying ResponsiveSheet also listens on document. Escape must only
@@ -102,6 +118,7 @@
         !event.shiftKey &&
         event.key.toLowerCase() === 'k'
       ) {
+        if (blockingSurfaceOpen && !open) return;
         if (event.defaultPrevented) return;
         event.preventDefault();
         show();
@@ -112,6 +129,7 @@
     window.addEventListener('keydown', shortcut);
     document.addEventListener('keydown', escape, true);
     return () => {
+      surfaceObserver.disconnect();
       window.removeEventListener('keydown', shortcut);
       document.removeEventListener('keydown', escape, true);
       dialog?.close();
@@ -209,7 +227,10 @@
   }
 </script>
 
-<div data-navigation-assistant>
+<div
+  data-navigation-assistant
+  data-blocking-surface-open={blockingSurfaceOpen ? 'true' : undefined}
+>
   <button
     type="button"
     class="assistant-launcher"
@@ -219,6 +240,7 @@
     aria-keyshortcuts="Control+k Meta+k"
     aria-expanded={open}
     disabled={busy}
+    hidden={blockingSurfaceOpen}
     onclick={show}
   >
     <svg aria-hidden="true" viewBox="0 0 24 24"
@@ -228,7 +250,7 @@
     <kbd>Ctrl / ⌘ K</kbd>
   </button>
   {#if !open && (notice || busy)}
-    <div class="assistant-notice" role="status" aria-live="polite">
+    <div class="assistant-notice" role="status" aria-live="polite" hidden={blockingSurfaceOpen}>
       <span>{busy ? t.opening : notice}</span>
       {#if !busy}<button type="button" aria-label={t.dismiss} onclick={() => (notice = '')}
           >×</button
@@ -353,8 +375,8 @@
     position: fixed;
     right: max(1rem, env(safe-area-inset-right));
     bottom: max(1rem, env(safe-area-inset-bottom));
-    /* ResponsiveSheet uses 49/50; task navigation remains tappable over a draft. */
-    z-index: 51;
+    /* The launcher sits below shared sheets and their backdrops. */
+    z-index: 40;
     display: flex;
     gap: 0.55rem;
     align-items: center;
@@ -526,7 +548,7 @@
     bottom: 4.8rem;
     right: 1rem;
     max-width: min(400px, calc(100vw - 2rem));
-    z-index: 52;
+    z-index: 40;
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -548,6 +570,10 @@
   }
   button {
     cursor: pointer;
+  }
+  .assistant-launcher[hidden],
+  .assistant-notice[hidden] {
+    display: none !important;
   }
   button:focus-visible,
   input:focus-visible {

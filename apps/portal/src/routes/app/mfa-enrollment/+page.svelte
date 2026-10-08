@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { requestRecoveryMessage } from '$lib/portal/guided-recovery/events';
   import { base } from '$app/paths';
   import { tick } from 'svelte';
   import { createAuthClient } from 'better-auth/client';
@@ -97,12 +98,14 @@
       const result = await authClient.signOut();
       if (result.error) {
         message = copy.signOutFailed;
+        requestRecoveryMessage(message);
         busy = false;
         return;
       }
       location.assign(`${base}/app/login`);
     } catch {
       message = copy.signOutFailed;
+      requestRecoveryMessage(message);
       busy = false;
     }
   }
@@ -170,6 +173,7 @@
           <label for="mfa-code">{copy.codeLabel}</label>
           <input
             id="mfa-code"
+            data-recovery-secret
             bind:value={code}
             aria-invalid={Boolean(problem?.fieldErrors.code?.length)}
             aria-describedby={problem?.fieldErrors.code?.length ? 'mfa-code-error' : undefined}

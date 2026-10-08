@@ -53,7 +53,7 @@ test('finance reimbursement card opens the pending queue with payment actions', 
   }
 });
 
-test('Log time offers only projects assigned to the selected worker on the work date', async ({
+test('Log time offers only workers assigned to the selected project on the work date', async ({
   page,
 }) => {
   await signIn(page, 'owner');
@@ -67,12 +67,16 @@ test('Log time offers only projects assigned to the selected worker on the work 
 
   const db = createDatabase(readE2EFixturePointer().databasePath);
   try {
-    for (const email of ['worker@demo.jaautomation.test', 'maya@demo.jaautomation.test']) {
-      const worker = db.sqlite.prepare('SELECT id FROM user WHERE email=?').get(email) as {
-        id: string;
-      };
-      await workerSelect.selectOption(worker.id);
-      const actual = await projectSelect
+    const projects = await projectSelect
+      .locator('option:not([value=""])')
+      .evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
+    expect(projects.length).toBeGreaterThan(0);
+
+    let selectedProject = '';
+    let selectedWorker = '';
+    for (const projectId of projects) {
+      await projectSelect.selectOption(projectId);
+      const actual = await workerSelect
         .locator('option:not([value=""])')
         .evaluateAll((options) =>
           options.map((option) => (option as HTMLOptionElement).value).sort(),
@@ -80,18 +84,32 @@ test('Log time offers only projects assigned to the selected worker on the work 
       const expected = (
         db.sqlite
           .prepare(
-            `SELECT DISTINCT pm.project_id AS id FROM project_member pm
+            `SELECT DISTINCT pm.user_id AS id FROM project_member pm
                JOIN project p ON p.id=pm.project_id
-              WHERE pm.user_id=? AND pm.status='active'
+               JOIN user u ON u.id=pm.user_id
+              WHERE pm.project_id=? AND pm.status='active' AND u.status='active'
+                AND u.role IN ('worker','project_manager')
                 AND pm.starts_on<='2026-08-25'
                 AND (pm.ends_on IS NULL OR pm.ends_on>='2026-08-25')
                 AND p.status IN ('active','planned','paused')`,
           )
-          .all(worker.id) as Array<{ id: string }>
-      ).map((row) => row.id);
-      expect(actual.length).toBeGreaterThan(0);
-      expect(actual.every((id) => expected.includes(id))).toBe(true);
+          .all(projectId) as Array<{ id: string }>
+      )
+        .map((row) => row.id)
+        .sort();
+      expect(actual).toEqual(expected);
+      if (!selectedProject && actual.length) {
+        selectedProject = projectId;
+        selectedWorker = actual[0]!;
+      }
     }
+    expect(selectedProject).toBeTruthy();
+    await projectSelect.selectOption(selectedProject);
+    await workerSelect.selectOption(selectedWorker);
+    await expect(workerSelect).toHaveValue(selectedWorker);
+    await projectSelect.selectOption('');
+    await expect(workerSelect).toHaveValue('');
+    await expect(workerSelect).toBeDisabled();
   } finally {
     db.sqlite.close();
   }

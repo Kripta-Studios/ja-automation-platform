@@ -67,7 +67,7 @@ export default async function globalSetup() {
     };
     execFileSync(
       process.execPath,
-      ['--experimental-strip-types', 'packages/database/src/demo-seed.ts'],
+      ['--experimental-transform-types', 'packages/database/src/demo-seed.ts'],
       {
         cwd: root,
         env,

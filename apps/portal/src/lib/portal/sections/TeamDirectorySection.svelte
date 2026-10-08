@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useAssistantPaneRequest } from '../assistant/surface-request.svelte';
   import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
-  import { beforeNavigate } from '$app/navigation';
+  import { beforeNavigate, replaceState } from '$app/navigation';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import { formatDecimalHours } from './time-entry-actions';
   import { disclosure } from '../ui/disclosure.js';
@@ -12,10 +12,11 @@
   import { page } from '$app/stores';
   import { page as assignmentPage } from '$app/state';
   import { assignmentWorkflowHref } from '../assignment-form-action';
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import type { ProblemData } from '$lib/problem/contract';
+  import { filterProjectTeamWorkers } from '../supplier-technician-filters';
   import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
-  import { SvelteSet } from 'svelte/reactivity';
+  import { SvelteMap, SvelteSet } from 'svelte/reactivity';
   import {
     ProblemNotice,
     ResponsiveSheet,
@@ -139,6 +140,17 @@
     });
   });
   let search = $state('');
+  let directoryProjectId = $state(untrack(() => $page.url.searchParams.get('project') ?? ''));
+  let directorySupplierId = $state('');
+  let directoryTechnicianId = $state('');
+  let lastDirectoryProjectQuery = untrack(() => $page.url.searchParams.get('project') ?? '');
+  $effect(() => {
+    const requested = $page.url.searchParams.get('project') ?? '';
+    if (requested !== lastDirectoryProjectQuery) {
+      lastDirectoryProjectQuery = requested;
+      directoryProjectId = requested;
+    }
+  });
   let createLocal = $state(true);
   let localRole = $state('worker');
   let existingUserId = $state('');
@@ -226,12 +238,16 @@
     editingWorkerId = failedEditorId;
     activeTab = 'specialists';
     search = '';
+    directorySupplierId = '';
+    directoryTechnicianId = '';
     showAll = true;
   });
   $effect(() => {
     if (!failedStatusUserId) return;
     activeTab = 'specialists';
     search = '';
+    directorySupplierId = '';
+    directoryTechnicianId = '';
     showAll = true;
   });
   $effect(() => {
@@ -506,10 +522,45 @@
       (assignment) =>
         value(assignment, 'worker_id', 'user_id') === id &&
         Boolean(id) &&
-        (!$page.url.searchParams.get('project') ||
-          value(assignment, 'project_id') === $page.url.searchParams.get('project')),
+        (!directoryProjectId || value(assignment, 'project_id') === directoryProjectId),
     );
   }
+
+  function setDirectoryProject(projectId: string): void {
+    directoryProjectId = projectId;
+    const url = new URL($page.url);
+    if (projectId) url.searchParams.set('project', projectId);
+    else url.searchParams.delete('project');
+    replaceState(url, {});
+  }
+
+  function clearDirectoryFilters(): void {
+    search = '';
+    directorySupplierId = '';
+    directoryTechnicianId = '';
+    showAll = false;
+    setDirectoryProject('');
+  }
+
+  const projectFilterOptions = $derived.by(() => {
+    const projectsById = new SvelteMap<string, string>();
+    for (const assignment of assignments) {
+      const id = value(assignment, 'project_id');
+      if (!id) continue;
+      const label = [value(assignment, 'project_number'), value(assignment, 'project_name')]
+        .filter(Boolean)
+        .join(' · ');
+      if (label) projectsById.set(id, label);
+    }
+    return [...projectsById].map(([id, name]) => ({ id, name }));
+  });
+
+  const supplierFilterOptions = $derived.by(() => {
+    const representedSupplierIds = new Set(
+      workers.map((worker) => value(worker, 'supplier_id', 'supplierId')).filter(Boolean),
+    );
+    return suppliers.filter((supplier) => representedSupplierIds.has(value(supplier, 'id')));
+  });
 
   function availability(row: PortalRow): string {
     const explicit = value(row, 'availability', 'availability_status');
@@ -564,16 +615,22 @@
       .includes(normalizedSearch);
   }
 
+  const relationFilteredWorkers = $derived(
+    filterProjectTeamWorkers(workers ?? [], assignments ?? [], {
+      projectId: directoryProjectId,
+      supplierId: directorySupplierId,
+      technicianId: directoryTechnicianId,
+    }),
+  );
   const activeWorkers = $derived(
-    (workers ?? []).filter((worker) => showAll || value(worker, 'status') === 'active'),
+    relationFilteredWorkers.filter((worker) => showAll || value(worker, 'status') === 'active'),
   );
   const visibleWorkers = $derived(
     activeWorkers.filter(
       (worker) =>
         matchesWorker(worker) &&
         (!$page.url.searchParams.get('worker') ||
-          workerId(worker) === $page.url.searchParams.get('worker')) &&
-        (!$page.url.searchParams.get('project') || workerAssignments(worker).length > 0),
+          workerId(worker) === $page.url.searchParams.get('worker')),
     ),
   );
   const existingUserCandidates = $derived(
@@ -1208,6 +1265,54 @@
             placeholder={translate('Name, role or project')}
           />
         </div>
+        <div class="team-directory__field">
+          <label for="team-project-filter">{translate('Project')}</label>
+          <select
+            id="team-project-filter"
+            value={directoryProjectId}
+            onchange={(event) => setDirectoryProject(event.currentTarget.value)}
+          >
+            <option value="">{translate('All projects')}</option>
+            {#each projectFilterOptions as project}
+              <option value={project.id}>{project.name}</option>
+            {/each}
+          </select>
+        </div>
+        {#if supplierFilterOptions.length}
+          <div class="team-directory__field">
+            <label for="team-supplier-filter">{translate('Suppliers')}</label>
+            <select id="team-supplier-filter" bind:value={directorySupplierId}>
+              <option value="">{translate('All suppliers')}</option>
+              {#each supplierFilterOptions as supplier}
+                <option value={value(supplier, 'id')}>{value(supplier, 'name')}</option>
+              {/each}
+            </select>
+          </div>
+        {/if}
+        <div class="team-directory__field">
+          <label for="team-worker-filter">{translate('Worker')}</label>
+          <select id="team-worker-filter" bind:value={directoryTechnicianId}>
+            <option value="">{translate('All workers')}</option>
+            {#each workers as worker}
+              {@const supplierName = value(
+                suppliers.find(
+                  (supplier) =>
+                    value(supplier, 'id') === value(worker, 'supplier_id', 'supplierId'),
+                ) ?? {},
+                'name',
+              )}
+              <option value={workerId(worker)}
+                >{workerName(worker)}{supplierName ? ` · ${supplierName}` : ''}</option
+              >
+            {/each}
+          </select>
+        </div>
+        <button
+          type="button"
+          class="team-directory__action"
+          onclick={clearDirectoryFilters}
+          aria-label={translate('Clear filters')}>{translate('Clear filters')}</button
+        >
         <label class="team-directory__toggle" for="team-show-inactive"
           ><input id="team-show-inactive" bind:checked={showAll} type="checkbox" /><span
             >{translate('Include inactive specialists')}</span
@@ -1222,7 +1327,7 @@
           {translate}
           label="TeamDirectory"
           focusId={failedWorkerProfileId ?? $page.url.searchParams.get('worker') ?? ''}
-          showEmpty={activeWorkers.length > 0}
+          showEmpty={(workers ?? []).length > 0}
         />
         {#each teamPage as worker}
           {@const assignmentsForWorker = workerAssignments(worker)}
@@ -2485,13 +2590,17 @@
   }
   .team-directory__controls {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: end;
     gap: 0.75rem;
     padding: 0.9rem 1rem;
     border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.75rem;
     background: var(--portal-surface, #fff);
+  }
+  .team-directory__controls > button,
+  .team-directory__toggle {
+    align-self: end;
   }
   .team-directory__field {
     min-width: 0;
@@ -2946,6 +3055,11 @@
   .team-directory__mailbox-create-form .team-directory__form-actions {
     justify-content: flex-end;
   }
+  @media (max-width: 58rem) {
+    .team-directory__controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
   @media (max-width: 720px) {
     .team-directory__header,
     .team-directory__identity,
@@ -2977,6 +3091,9 @@
     .team-directory__mailbox-create-form,
     .team-directory__mailbox-toolbar {
       grid-template-columns: 1fr;
+    }
+    .team-directory__controls > button {
+      width: 100%;
     }
     .team-directory__protected-toolbar {
       align-items: stretch;

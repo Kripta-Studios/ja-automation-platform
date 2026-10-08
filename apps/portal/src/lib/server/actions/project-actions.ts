@@ -114,6 +114,14 @@ const knownProjectRules: Record<string, KnownProjectRule> = {
     remedy: 'correct_fields',
     field: 'timezone',
   },
+  'Read-only role': {
+    status: 403,
+    code: 'PROJECT_READ_ONLY_ROLE',
+    messageKey: 'problem.project.adminRequired',
+    message:
+      'This account has read-only access. Ask an authorized administrator to change this record.',
+    remedy: 'contact_owner',
+  },
   'Client administration required': {
     status: 403,
     code: 'CLIENT_ADMIN_REQUIRED',
@@ -278,6 +286,14 @@ const knownProjectRules: Record<string, KnownProjectRule> = {
     message:
       'This contact is used by billing history and cannot be deleted. Update the active billing contact instead.',
     remedy: 'review_billing_contact',
+  },
+  'Client contact is linked to a project and cannot be deleted': {
+    status: 409,
+    code: 'CLIENT_CONTACT_LINKED_PROJECT',
+    messageKey: 'problem.client.contactLinkedProject',
+    message:
+      'This contact is linked to a project. Review the project contact before deleting it, or update the contact details instead.',
+    remedy: 'review_client_projects',
   },
   'A billing email or billing contact is required': {
     status: 400,
@@ -1020,6 +1036,9 @@ export const projectActions = {
         timezone: text('timezone'),
         billingModel: text('billingModel'),
         siteName: text('siteName'),
+        onsiteManager: text('onsiteManager'),
+        siteLocation: text('siteLocation'),
+        onsiteContactId: text('onsiteContactId'),
         country: text('country'),
         projectManagerId: text('projectManagerId') || null,
         expectedMinutesPerDay:
@@ -1252,24 +1271,6 @@ export const projectActions = {
         `Created ${result.projectNumber}`,
       );
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === 'Project currency must match the client currency'
-      )
-        return actionFail(
-          400,
-          'problem.project.clientCurrencyMismatch',
-          {},
-          'Project currency must match the selected client’s currency.',
-          {
-            code: 'PROJECT_CLIENT_CURRENCY_MISMATCH',
-            fieldErrors: { currency: [error.message] },
-            values: retainedValues,
-            actionName: 'createProject',
-            remedies: [{ id: 'review_client_currency', recordId: parsed.data.clientId }],
-            correlationId: locals.correlationId,
-          },
-        );
       if (error instanceof Error && /^Selected worker \d+ is duplicated$/u.test(error.message))
         return actionFail(
           400,
@@ -2053,10 +2054,24 @@ export const projectActions = {
     if (formData.has('email')) input.email = formData.get('email')?.toString();
     if (formData.has('phone')) input.phone = formData.get('phone')?.toString();
     if (formData.has('role')) input.role = formData.get('role')?.toString();
+    if (formData.has('company')) input.company = formData.get('company')?.toString();
+    if (formData.has('location')) input.location = formData.get('location')?.toString();
+    if (formData.has('notes')) input.notes = formData.get('notes')?.toString();
+    if (formData.has('contactType')) input.contactType = formData.get('contactType')?.toString();
     if (formData.has('isBillingContactPresent') || formData.has('isBillingContact'))
       input.isBillingContact = formData.get('isBillingContact')?.toString() === 'on';
     if (formData.has('isPrimaryPresent') || formData.has('isPrimary'))
       input.isPrimary = formData.get('isPrimary')?.toString() === 'on';
+
+    const parsed = clientContactInputSchema.omit({ clientId: true }).partial().safeParse(input);
+    if (!parsed.success)
+      return inputFailure(
+        'CLIENT_CONTACT_FIELDS_INVALID',
+        'problem.client.contactFieldsInvalid',
+        'Some contact details are missing or invalid. Correct the highlighted fields before saving.',
+        schemaFieldErrors(parsed.error),
+        { values, actionName: 'updateClientContact', correlationId: locals.correlationId },
+      );
 
     const context = openPortalRepository(locals);
     try {

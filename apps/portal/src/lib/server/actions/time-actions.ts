@@ -1,3 +1,4 @@
+import { withOperationalActionNames } from './operational-action-context';
 import { createHash } from 'node:crypto';
 import { expenseInputSchema, timeInputSchema, versionedRecordSchema } from '@ja/schemas';
 import { AccessDeniedError, ConflictError, ValidationError, recordAuditEvent } from '@ja/database';
@@ -12,6 +13,7 @@ import {
 import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
 import { mondayOf } from '$lib/server/portal-week';
 import { decimalHoursToMinutes, weekDates } from '$lib/portal/sections/time-entry-actions';
+import { weeklyRecoveryFields } from '$lib/portal/sections/operational-recovery-fields';
 import type { ZodError } from 'zod';
 
 export const parseTimeUpdateForm = (input: Record<string, unknown>) =>
@@ -629,7 +631,7 @@ export function timeActionFailure(
   return actionFailure(error, { values: savedValues });
 }
 
-export const timeActions = {
+export const timeActions = withOperationalActionNames({
   createTimeBatch: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'time')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
@@ -737,15 +739,36 @@ export const timeActions = {
         'review_week',
       );
     const parsed = rawEntries.map((entry) => timeInputSchema.safeParse(entry));
-    if (parsed.some((entry) => !entry.success))
-      return timePrecheckFailure(
-        'TIME_BATCH_ENTRY_INVALID',
-        'problem.time.batchEntryInvalid',
-        'A daily entry has invalid project, date, category, duration, or work details. Review the batch before saving.',
-        object,
-        'entries',
-        'review_week',
+    if (parsed.some((entry) => !entry.success)) {
+      const dates = object.batchForm === 'week_table' ? weekDates(String(object.weekStart)) : [];
+      const fields = Object.assign(
+        {},
+        ...parsed.flatMap((entry, index) =>
+          entry.success
+            ? []
+            : [
+                weeklyRecoveryFields(
+                  timeSchemaFailure(entry.error, object).data.fieldErrors,
+                  String((rawEntries[index] as Record<string, unknown>)?.workDate ?? ''),
+                  dates,
+                  'time',
+                ),
+              ],
+        ),
       );
+      return actionFail(
+        400,
+        'problem.time.batchEntryInvalid',
+        {},
+        'A daily entry has invalid project, date, category, duration, or work details. Review the batch before saving.',
+        {
+          code: 'TIME_BATCH_ENTRY_INVALID',
+          values: safeTimeValues(object),
+          fieldErrors: fields,
+          remedies: [{ id: 'review_week' }],
+        },
+      );
+    }
     const context = openPortalRepository(locals);
     try {
       if (context.principal.role !== 'owner_admin')
@@ -1145,4 +1168,4 @@ export const timeActions = {
       context.sqlite.close();
     }
   },
-};
+});

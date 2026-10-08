@@ -3,7 +3,12 @@
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { disclosure } from '../ui/disclosure.js';
-  import { lastCompletePeriodForCadence, type BillingCadence } from '@ja/billing-engine';
+  import { type BillingCadence } from '@ja/billing-engine';
+  import {
+    compatibleBillingPeriod,
+    suggestedBillingPeriod,
+    type BillingPeriodStream,
+  } from '../billing-period-recovery';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { base } from '$app/paths';
   import { enhance } from '$app/forms';
@@ -188,6 +193,13 @@
     }>;
     includedExpenseSubtotalMinor: string;
     reasons: Array<{ code?: string; sourceId?: string }>;
+    timeReadiness?: {
+      recordCount: number;
+      minutes: number;
+      groups: Array<{ status: string; recordCount: number; minutes: number }>;
+      records: Array<{ sourceId: string; workDate: string; minutes: number; status: string }>;
+    } | null;
+    nearbyApprovedTimeDates?: Array<{ workDate: string; minutes: number }>;
     existingInvoiceId?: string | null;
     existingInvoiceState?: string | null;
   };
@@ -905,6 +917,7 @@
   let wizardRuleId = $state('');
   let wizardPeriodStart = $state('');
   let wizardPeriodEnd = $state('');
+  let wizardPeriodAlignment = $state<{ start: string; end: string } | null>(null);
   let wizardReadiness = $state<BillingReadinessPreview | null>(null);
   let wizardReadinessLoading = $state(false);
   let wizardReadinessError = $state('');
@@ -1384,8 +1397,12 @@
         billingProblem?.code === 'BILLING_REVERSAL_EXCEEDS_REMAINING',
     },
     review_billing_setup: {
-      label: translate('Review billing setup'),
-      href: `${base}/app/billing?view=setup`,
+      label: readinessReasons().some((reason) => reason.code === 'missing_client_rate')
+        ? translate('Client labor rate')
+        : translate('Review billing setup'),
+      href: readinessReasons().some((reason) => reason.code === 'missing_client_rate')
+        ? readinessActionHref()
+        : `${base}/app/billing?view=setup`,
     },
     review_pending_records: {
       label: translate('Review pending records'),
@@ -1504,32 +1521,27 @@
 
   const todayIso = $derived(new Date().toISOString().slice(0, 10));
 
-  function streamDraftPeriod(rule: Row): { start: string; end: string } {
+  function streamPeriodConfiguration(rule: Row): BillingPeriodStream {
     const cadence = rowValue(rule, 'cadence_type', 'cadenceType').toLowerCase() as BillingCadence;
     const monthlyCutoffRaw = rowValue(rule, 'monthly_cutoff_day', 'monthlyCutoffDay');
-    try {
-      const period = lastCompletePeriodForCadence(cadence, todayIso, {
-        anchorDate: rowValue(rule, 'anchor_date', 'anchorDate') || undefined,
-        monthlyCutoffDay: monthlyCutoffRaw ? parseInt(monthlyCutoffRaw, 10) : undefined,
-      }) ?? { start: '', end: '' };
-      const effectiveFrom = rowValue(rule, 'effective_from', 'effectiveFrom');
-      const effectiveTo = rowValue(rule, 'effective_to', 'effectiveTo');
-      if (
-        (effectiveFrom && period.start < effectiveFrom) ||
-        (effectiveTo && period.end > effectiveTo)
-      )
-        return { start: '', end: '' };
-      return period;
-    } catch {
-      // A missing anchor or manual cadence must be resolved by an explicit user
-      // choice. Never make a weekly suggestion for a non-weekly stream.
-      return { start: '', end: '' };
-    }
+    return {
+      cadence,
+      effectiveFrom: rowValue(rule, 'effective_from', 'effectiveFrom'),
+      effectiveTo: rowValue(rule, 'effective_to', 'effectiveTo') || undefined,
+      anchorDate: rowValue(rule, 'anchor_date', 'anchorDate') || undefined,
+      monthlyCutoffDay: monthlyCutoffRaw ? parseInt(monthlyCutoffRaw, 10) : undefined,
+    };
   }
 
-  function readinessReasons(): Array<{ code?: string }> {
+  function streamDraftPeriod(rule: Row): { start: string; end: string } {
+    return (
+      suggestedBillingPeriod(streamPeriodConfiguration(rule), todayIso) ?? { start: '', end: '' }
+    );
+  }
+
+  function readinessReasons(): Array<{ code?: string; sourceId?: string }> {
     if (!form || !Array.isArray(form.reasons)) return [];
-    return form.reasons as Array<{ code?: string }>;
+    return form.reasons as Array<{ code?: string; sourceId?: string }>;
   }
 
   function readinessActionHref(reasons = readinessReasons()): string {
@@ -1537,7 +1549,70 @@
       reasons.map((reason) => String(reason.code ?? '')),
       rowValue(wizardRule, 'project_id', 'projectId'),
       { start: wizardPeriodStart, end: wizardPeriodEnd },
+      reasons.find((reason) => reason.code === 'missing_client_rate')?.sourceId,
     )}`;
+  }
+
+  function timeReadinessLabel(status: string): string {
+    const labels: Record<string, [string, string, string]> = {
+      pending_submission: ['Awaiting submission', 'Pendiente de enviar', 'Aguardando envio'],
+      pending_operational_approval: [
+        'Awaiting operational approval',
+        'Pendiente de aprobación operativa',
+        'Aguardando aprovação operacional',
+      ],
+      pending_finance_review: [
+        'Approved operationally; awaiting Finance billability decision',
+        'Aprobado operativamente; pendiente de decisión de facturabilidad de Finanzas',
+        'Aprovado operacionalmente; aguardando decisão de faturabilidade de Finanças',
+      ],
+      finance_nonbillable: [
+        'Finance marked non-billable',
+        'Finanzas marcó como no facturable',
+        'Finanças marcou como não faturável',
+      ],
+      already_billed: ['Already billed', 'Ya facturado', 'Já faturado'],
+      reserved_in_draft: [
+        'Reserved in an invoice draft',
+        'Reservado en un borrador de factura',
+        'Reservado em um rascunho de fatura',
+      ],
+      reserved_in_approved_invoice: [
+        'Reserved in an approved invoice',
+        'Reservado en una factura aprobada',
+        'Reservado em uma fatura aprovada',
+      ],
+      pending_correction: [
+        'Original time awaiting correction approval',
+        'Horas originales pendientes de aprobar la corrección',
+        'Horas originais aguardando aprovação da correção',
+      ],
+      excluded_by_policy: [
+        'Excluded by client billing policy',
+        'Excluido por la política de facturación del cliente',
+        'Excluído pela política de faturamento do cliente',
+      ],
+      missing_client_rate: [
+        'Missing client rate',
+        'Falta la tarifa del cliente',
+        'Falta a tarifa do cliente',
+      ],
+      eligible: [
+        'Eligible for this invoice',
+        'Elegible para esta factura',
+        'Elegível para esta fatura',
+      ],
+    };
+    const value = labels[status];
+    return value ? value[locale === 'es' ? 1 : locale === 'pt' ? 2 : 0] : status;
+  }
+
+  function timeReadinessText(english: string, spanish: string, portuguese: string): string {
+    return locale === 'es' ? spanish : locale === 'pt' ? portuguese : english;
+  }
+
+  function timeReadinessHours(minutes: number): string {
+    return `${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ''}`;
   }
 
   function reopenBlockedSelection(): void {
@@ -1724,7 +1799,7 @@
       ['effectiveFrom', ''],
       ['anchorDate', ''],
       ['semiMonthlyRule', '1_15_16_end'],
-    ]) {
+    ] as const) {
       const control = formElement?.elements.namedItem(name);
       if (control instanceof HTMLInputElement || control instanceof HTMLSelectElement)
         control.value = value;
@@ -2258,6 +2333,7 @@
     const period = rule ? streamDraftPeriod(rule) : { start: '', end: '' };
     wizardPeriodStart = period.start;
     wizardPeriodEnd = period.end;
+    wizardPeriodAlignment = null;
     wizardReadiness = null;
     wizardReadinessError = '';
     wizardReadinessRemedy = '';
@@ -2265,6 +2341,7 @@
   }
 
   function resetWizardReadiness(): void {
+    wizardPeriodAlignment = null;
     wizardReadiness = null;
     wizardReadinessError = '';
     wizardReadinessRemedy = '';
@@ -2277,6 +2354,15 @@
       wizardReadinessError = translate('Select a billing stream and valid period first.');
       wizardReadinessRemedy = 'review_selected_period';
       return;
+    }
+    const selected = { start: wizardPeriodStart, end: wizardPeriodEnd };
+    const compatible = wizardRule
+      ? compatibleBillingPeriod(streamPeriodConfiguration(wizardRule), selected)
+      : null;
+    if (compatible && (compatible.start !== selected.start || compatible.end !== selected.end)) {
+      wizardPeriodAlignment = selected;
+      wizardPeriodStart = compatible.start;
+      wizardPeriodEnd = compatible.end;
     }
     wizardReadinessLoading = true;
     try {
@@ -2807,8 +2893,10 @@
           <section>
             <h3>{translate('Period')}</h3>
             <p>
-              {translate(
-                'The suggested dates come from this stream’s configured cadence. Manual dates are an explicit change and are never replaced silently.',
+              {timeReadinessText(
+                'The suggested dates come from this stream’s configured cadence. Checking incompatible dates aligns them with the stream and shows the change before creating the draft.',
+                'Las fechas sugeridas siguen la frecuencia del flujo. Comprobar fechas incompatibles las ajusta al flujo y muestra el cambio antes de crear el borrador.',
+                'As datas sugeridas seguem a frequência do fluxo. Verificar datas incompatíveis ajusta-as ao fluxo e mostra a alteração antes de criar o rascunho.',
               )}
             </p>
             <div class="billing-section__wizard-fields">
@@ -2830,6 +2918,19 @@
                 /></label
               >
             </div>
+            {#if wizardPeriodAlignment}
+              <p role="alert" data-billing-period-aligned>
+                {timeReadinessText(
+                  'The entered period did not match the billing cadence or effective dates. The compatible period is selected for review before creating the draft.',
+                  'El período introducido no coincidía con la frecuencia o las fechas de vigencia. Se ha seleccionado el período compatible para revisarlo antes de crear el borrador.',
+                  'O período informado não correspondia à frequência ou às datas de vigência. O período compatível foi selecionado para revisão antes de criar o rascunho.',
+                )}
+                <strong
+                  >{wizardPeriodAlignment.start} – {wizardPeriodAlignment.end} → {wizardPeriodStart} –
+                  {wizardPeriodEnd}</strong
+                >
+              </p>
+            {/if}
             <button
               type="button"
               class="secondary-button"
@@ -2879,9 +2980,102 @@
             {/if}
             {#if wizardReadiness?.reasons.some((reason) => reason.code === 'pending_time_finance_review')}
               <div role="status" data-pending-time-finance-review>
-                <p>{translate('action.billing.readiness.pendingTimeFinanceReview')}</p>
+                <p>
+                  {translate('action.billing.readiness.pendingTimeFinanceReview')}
+                  {#if wizardReadiness.timeReadiness}
+                    {#each wizardReadiness.timeReadiness.groups.filter((group) => group.status === 'pending_finance_review') as group}
+                      <strong
+                        >{timeReadinessHours(group.minutes)} · {group.recordCount}
+                        {timeReadinessText('records', 'registros', 'registros')}</strong
+                      >
+                    {/each}
+                  {/if}
+                </p>
                 <a href={readinessActionHref(wizardReadiness.reasons)}
                   >{translate('Review pending records')}</a
+                >
+              </div>
+            {/if}
+            {#if wizardReadiness?.timeReadiness}
+              <div data-billing-time-readiness>
+                <h4>
+                  {timeReadinessText(
+                    'Actual time in selected period',
+                    'Horas reales en el período seleccionado',
+                    'Horas reais no período selecionado',
+                  )}
+                </h4>
+                <p>
+                  {wizardPeriodStart} – {wizardPeriodEnd} ({timeReadinessText(
+                    'inclusive',
+                    'inclusive',
+                    'inclusive',
+                  )}):
+                  {timeReadinessHours(wizardReadiness.timeReadiness.minutes)}
+                  · {wizardReadiness.timeReadiness.recordCount}
+                  {timeReadinessText('records', 'registros', 'registros')}
+                </p>
+                {#if wizardReadiness.timeReadiness.records.length}
+                  <ul>
+                    {#each wizardReadiness.timeReadiness.records.slice(0, 20) as record}
+                      <li>
+                        {record.workDate} · {timeReadinessHours(record.minutes)} · {timeReadinessLabel(
+                          record.status,
+                        )}
+                      </li>
+                    {/each}
+                  </ul>
+                  {#if wizardReadiness.timeReadiness.records.length > 20}
+                    <p>
+                      {timeReadinessText(
+                        'Showing the first 20 records. Use the records view for the full period.',
+                        'Se muestran los primeros 20 registros. Consulta la vista de registros para ver el período completo.',
+                        'São mostrados os primeiros 20 registros. Consulte a visualização de registros para ver o período completo.',
+                      )}
+                    </p>
+                  {/if}
+                {:else}
+                  <p>
+                    {timeReadinessText(
+                      'No active time records have a worked date inside the selected period.',
+                      'No hay registros de horas activos con fecha de trabajo dentro del período seleccionado.',
+                      'Não há registros de horas ativos com data de trabalho dentro do período selecionado.',
+                    )}
+                  </p>
+                  {#if wizardReadiness.nearbyApprovedTimeDates?.length}
+                    <p>
+                      {timeReadinessText(
+                        'Approved time on other worked dates',
+                        'Horas aprobadas en otras fechas de trabajo',
+                        'Horas aprovadas em outras datas de trabalho',
+                      )}:
+                    </p>
+                    <ul>
+                      {#each wizardReadiness.nearbyApprovedTimeDates as date}
+                        <li>{date.workDate} · {timeReadinessHours(date.minutes)}</li>
+                      {/each}
+                    </ul>
+                  {/if}
+                {/if}
+              </div>
+            {/if}
+            {#if wizardReadiness?.reasons.some((reason) => reason.code === 'missing_client_rate')}
+              <div role="alert" data-billing-missing-client-rate>
+                <p>
+                  {timeReadinessText(
+                    'Configure the customer sale rate for this project and the worked dates below. Internal cost is a separate Finance value.',
+                    'Configura la tarifa de venta al cliente para este proyecto y las fechas de trabajo siguientes. El coste interno es un valor de Finanzas independiente.',
+                    'Configure a tarifa de venda ao cliente para este projeto e as datas de trabalho abaixo. O custo interno é um valor de Finanças separado.',
+                  )}
+                </p>
+                <ul>
+                  {#each wizardReadiness.timeReadiness?.records.filter((record) => record.status === 'missing_client_rate') ?? [] as record}<li
+                    >
+                      {record.workDate} · {timeReadinessHours(record.minutes)}
+                    </li>{/each}
+                </ul>
+                <a href={readinessActionHref(wizardReadiness.reasons)}
+                  >{translate('Client labor rate')}</a
                 >
               </div>
             {/if}

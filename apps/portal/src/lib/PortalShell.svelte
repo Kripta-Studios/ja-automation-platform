@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ProjectSiteFields from './portal/sections/ProjectSiteFields.svelte';
+  import { publishedAssignmentMatches } from './portal/sections/published-assignment-filter';
   import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
   import ProjectCreationAssignments from '$lib/portal/sections/ProjectCreationAssignments.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
@@ -13,6 +15,7 @@
   import ActualPdfPreview from '$lib/portal/ui/ActualPdfPreview.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
+  import { requestRecoveryMessage } from '$lib/portal/guided-recovery/events';
   import {
     documentDownloadFallback,
     documentDownloadProblem,
@@ -1420,10 +1423,10 @@
     };
     const assignmentField = /^assignments\.(\d+)\.(?:config\.)?(.+)$/.exec(field);
     if (assignmentField)
-      return `${translate('Assignment')} ${Number(assignmentField[1]) + 1} · ${translate(labels[assignmentField[2]] ?? 'Worker assignments (optional)')}`;
+      return `${translate('Assignment')} ${Number(assignmentField[1]) + 1} · ${translate(labels[assignmentField[2] ?? ''] ?? 'Worker assignments (optional)')}`;
     const defaultField = /^personDefaults\.(?:config\.)?(.+)$/.exec(field);
     if (defaultField)
-      return `${translate('Project defaults for people')} · ${translate(labels[defaultField[1]] ?? 'Project defaults for people')}`;
+      return `${translate('Project defaults for people')} · ${translate(labels[defaultField[1] ?? ''] ?? 'Project defaults for people')}`;
     return translate(labels[field] ?? field);
   }
   const invitationPath = $derived.by(() => {
@@ -1457,6 +1460,49 @@
   const profileRemovalExpertiseOptions = $derived(
     profileExpertiseOptions.length > 0 ? profileExpertiseOptions : profileAssignedExpertise,
   );
+  let publishedPlanningSearch = $state('');
+  let publishedPlanningProjectId = $state('');
+  let publishedPlanningWorkerId = $state('');
+  const publishedPlanningProjects = $derived([
+    ...new Map(
+      (data.records ?? []).map((row) => [
+        String(row.project_id),
+        {
+          id: String(row.project_id),
+          label: [row.project_number, row.project_name].filter(Boolean).join(' · '),
+        },
+      ]),
+    ).values(),
+  ]);
+  const publishedPlanningWorkers = $derived([
+    ...new Map(
+      (data.records ?? []).map((row) => [
+        String(row.worker_id),
+        {
+          id: String(row.worker_id),
+          label: String(row.worker_name ?? row.worker_id),
+        },
+      ]),
+    ).values(),
+  ]);
+  const filteredPublishedPlanning = $derived(
+    (data.records ?? []).filter((row) =>
+      publishedAssignmentMatches(
+        row,
+        (data.projects ?? []).find((project) => String(project.id) === String(row.project_id)),
+        {
+          search: publishedPlanningSearch,
+          projectId: publishedPlanningProjectId,
+          workerId: publishedPlanningWorkerId,
+        },
+      ),
+    ),
+  );
+  function clearPublishedPlanningFilters() {
+    publishedPlanningSearch = '';
+    publishedPlanningProjectId = '';
+    publishedPlanningWorkerId = '';
+  }
   let planningStarts = $state('');
   let planningEnds = $state('');
   let planningProjectId = $state('');
@@ -3199,29 +3245,36 @@
     event.preventDefault();
     securityMessage = '';
     securitySucceeded = false;
-    const result = await authClient.passkey.addPasskey({
-      name: passkeyName.trim() || 'J&A Portal device',
-    });
-    if (result.error) {
+    try {
+      const result = await authClient.passkey.addPasskey({
+        name: passkeyName.trim() || 'J&A Portal device',
+      });
+      if (result.error) throw new Error('Passkey registration incomplete');
+      passkeyName = '';
+      securitySucceeded = true;
+      securityMessage = 'Passkey registered for this account.';
+      await refreshPasskeys();
+    } catch {
       securityMessage = 'Passkey registration was not completed.';
-      return;
+      requestRecoveryMessage(
+        translate(securityMessage),
+        event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined,
+      );
     }
-    passkeyName = '';
-    securitySucceeded = true;
-    securityMessage = 'Passkey registered for this account.';
-    await refreshPasskeys();
   }
 
   async function revokePasskey(id: string): Promise<void> {
     securitySucceeded = false;
-    const result = await authClient.passkey.deletePasskey({ id });
-    if (result.error) {
+    try {
+      const result = await authClient.passkey.deletePasskey({ id });
+      if (result.error) throw new Error('Passkey revocation incomplete');
+      securitySucceeded = true;
+      securityMessage = 'Passkey revoked.';
+      await refreshPasskeys();
+    } catch {
       securityMessage = 'Passkey could not be revoked.';
-      return;
+      requestRecoveryMessage(translate(securityMessage));
     }
-    securitySucceeded = true;
-    securityMessage = 'Passkey revoked.';
-    await refreshPasskeys();
   }
 
   async function showMfaProblem(problem: ProblemData): Promise<void> {
@@ -4796,10 +4849,15 @@
       {/if}
     {:else if data.section === 'projects' && projectDirectoryView === 'clients'}
       <ClientDirectorySection
+        {form}
         clients={data.clients ?? []}
         contacts={data.contacts ?? []}
         projects={data.projects ?? []}
         canManageContacts={canManageClientContacts}
+        calendarEntries={data.calendarEntries ?? []}
+        calendarMonth={data.calendarMonth ?? ''}
+        canViewWorkCalendar={data.canViewWorkCalendar ?? false}
+        calendarLocale={locale}
         {translate}
         {controlledValue}
       />
@@ -5282,6 +5340,13 @@
                         >{/if}{/each}</select
                   ></label
                 >
+                <ProjectSiteFields
+                  clientId={selectedNewProjectClientId}
+                  contacts={data.contacts ?? []}
+                  values={projectFormValues}
+                  allowNew
+                  {translate}
+                />
                 <h3 class="wide-field">{translate('2 · People')}</h3>
                 <ProjectCreationAssignments
                   workers={data.workers ?? []}
@@ -6506,12 +6571,61 @@
           </div>
         {/if}
         {#if canManageAssignmentControls && (data.records?.length ?? 0) > 0}
-          <SectionCard title={translate('Published assignments')} class="full">
-            {#each data.records ?? [] as row}
+          <SectionCard
+            title={translate('Published assignments')}
+            class="full"
+            id="published-assignments"
+          >
+            <div class="admin-form-grid" data-assignment-filters>
+              <label>
+                <span>{translate('Search assignments')}</span>
+                <input
+                  type="search"
+                  bind:value={publishedPlanningSearch}
+                  placeholder={translate('Project, worker or reference')}
+                  autocomplete="off"
+                  data-assignment-search
+                />
+              </label>
+              <label>
+                <span>{translate('Project')}</span>
+                <select bind:value={publishedPlanningProjectId} data-assignment-project-filter>
+                  <option value="">{translate('All projects')}</option>
+                  {#each publishedPlanningProjects as project (project.id)}
+                    <option value={project.id}>{project.label}</option>
+                  {/each}
+                </select>
+              </label>
+              <label>
+                <span>{translate('Worker')}</span>
+                <select bind:value={publishedPlanningWorkerId} data-assignment-worker-filter>
+                  <option value="">{translate('All workers')}</option>
+                  {#each publishedPlanningWorkers as worker (worker.id)}
+                    <option value={worker.id}>{worker.label}</option>
+                  {/each}
+                </select>
+              </label>
+              <button
+                type="button"
+                class="secondary-button"
+                data-assignment-clear-filters
+                disabled={!publishedPlanningSearch &&
+                  !publishedPlanningProjectId &&
+                  !publishedPlanningWorkerId}
+                onclick={clearPublishedPlanningFilters}>{translate('Clear filters')}</button
+              >
+            </div>
+            <p class="form-help" aria-live="polite">
+              {filteredPublishedPlanning.length} / {data.records?.length ?? 0}
+            </p>
+            {#each filteredPublishedPlanning as row (row.id)}
               {@const updateWorkers = planningWorkersForUpdate(row)}
               {@const selectedWorkerId = planningEditValue(row, 'workerId', row.worker_id)}
               <details
                 id={`planning-assignment-${row.id}`}
+                data-planning-assignment-row
+                data-project-id={String(row.project_id)}
+                data-worker-id={String(row.worker_id)}
                 open={$page.url.searchParams.get('focus') === String(row.id) ||
                   $page.url.hash === `#planning-assignment-${row.id}` ||
                   planningEditorsExpanded[planningEditKey(row)] === true ||
@@ -6642,6 +6756,10 @@
                   >
                 </form>
               </details>
+            {:else}
+              <p class="empty" data-assignment-filter-empty>
+                {translate('No assignments match these filters.')}
+              </p>
             {/each}
           </SectionCard>
         {/if}

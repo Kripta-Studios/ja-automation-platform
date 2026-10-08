@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { requestRecoveryMessage } from '$lib/portal/guided-recovery/events';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
@@ -84,6 +85,7 @@
       if (messageKey && !activated) {
         await tick();
         feedbackElement?.focus();
+        requestRecoveryMessage(t(messageKey), feedbackElement);
       }
     }
   }
@@ -116,10 +118,13 @@
       void accept();
     }}
   >
-    <label>{t('Full name')}<input bind:value={name} autocomplete="name" required /></label>
+    <label
+      >{t('Full name')}<input name="name" bind:value={name} autocomplete="name" required /></label
+    >
     <label
       >{t('Password')}<input
         bind:value={password}
+        name="password"
         type="password"
         minlength="12"
         autocomplete="new-password"

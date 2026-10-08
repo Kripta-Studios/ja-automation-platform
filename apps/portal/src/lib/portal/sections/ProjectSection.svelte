@@ -21,6 +21,10 @@
   import type { TableCardRow } from '../ui';
   import type { PortalActionResult, PortalRow } from '../portal-data';
   import { operationalSearchText } from './operational-register';
+  import {
+    emptyPublishedAssignmentFilters,
+    publishedAssignmentMatches,
+  } from './published-assignment-filter';
 
   /**
    * Project-section actions are deliberately supplied by the route seam. The
@@ -135,8 +139,15 @@
       ? assignmentValues.projectId
       : ($page.url.searchParams.get('project') ?? ''),
   );
+  let assignmentSearch = $state('');
+  let assignmentProjectFilter = $state($page.url.searchParams.get('project')?.trim() ?? '');
+  let assignmentWorkerFilter = $state($page.url.searchParams.get('worker')?.trim() ?? '');
   let assignmentForm: HTMLFormElement | undefined = $state();
   const normalizedLocale = $derived(normalizePortalLocale(locale));
+  $effect(() => {
+    assignmentProjectFilter = assignmentPage.url.searchParams.get('project')?.trim() ?? '';
+    assignmentWorkerFilter = assignmentPage.url.searchParams.get('worker')?.trim() ?? '';
+  });
   beforeNavigate((navigation) => {
     if (navigation.willUnload) return;
     if (
@@ -211,7 +222,15 @@
   }
 
   function projectReference(row: PortalRow): string {
-    return value(row, 'cost_center', 'project_cost_center', 'po_reference');
+    return value(
+      row,
+      'cost_center_code',
+      'cost_center',
+      'project_cost_center',
+      'po_number',
+      'project_po_number',
+      'po_reference',
+    );
   }
 
   function projectSchedule(row: PortalRow): string {
@@ -382,6 +401,32 @@
         assignableProjectIds.has(value(assignment, 'project_id')),
     ),
   );
+  const assignmentProjectById = $derived(
+    new Map((projects ?? []).map((project) => [projectId(project), project])),
+  );
+  const assignmentProjectOptions = $derived.by(() =>
+    [...new Set(activeAssignments.map((assignment) => value(assignment, 'project_id')))]
+      .map((id) => assignmentProjectById.get(id))
+      .filter((project): project is PortalRow => Boolean(project)),
+  );
+  const assignmentWorkerOptions = $derived.by(() =>
+    [...new Set(activeAssignments.map((assignment) => value(assignment, 'user_id', 'worker_id')))]
+      .map((id) => (workers ?? []).find((worker) => value(worker, 'id') === id))
+      .filter((worker): worker is PortalRow => Boolean(worker)),
+  );
+  const filteredActiveAssignments = $derived.by(() =>
+    activeAssignments.filter((assignment) =>
+      publishedAssignmentMatches(
+        assignment,
+        assignmentProjectById.get(value(assignment, 'project_id')),
+        {
+          search: assignmentSearch,
+          projectId: assignmentProjectFilter,
+          workerId: assignmentWorkerFilter,
+        },
+      ),
+    ),
+  );
   const assignmentRecordContext = $derived.by(() => {
     const assignmentId = String(assignmentRecordValues?.assignmentId ?? '');
     const assignment = (assignments ?? []).find((row) => value(row, 'id') === assignmentId);
@@ -472,6 +517,11 @@
 
   function activatePrimaryAction(): void {
     primaryAction?.onactivate?.();
+  }
+  function clearAssignmentFilters(): void {
+    assignmentSearch = emptyPublishedAssignmentFilters.search;
+    assignmentProjectFilter = emptyPublishedAssignmentFilters.projectId;
+    assignmentWorkerFilter = emptyPublishedAssignmentFilters.workerId;
   }
   let projectPage = $state<typeof visibleProjects>([]);
 </script>
@@ -867,80 +917,71 @@
                 }}
               />
             {/if}
-            {#each activeAssignments as assignment (value(assignment, 'id'))}
-              <div class="project-section__assignment-item">
-                <h3>{value(assignment, 'project_number')} · {value(assignment, 'worker_name')}</h3>
-                <form
-                  method="POST"
-                  action={assignmentFormAction(assignmentPage.url, 'updateAssignment')}
-                  class="project-section__assignment-form"
-                  data-project-workflow="update-assignment"
-                  use:dirtyFormGuard={{
-                    initialDirty: Boolean(
-                      assignmentRecordProblem &&
-                      assignmentFormData?.actionName === 'updateAssignment' &&
-                      String(assignmentFormData.values?.assignmentId ?? '') ===
-                        value(assignment, 'id'),
-                    ),
-                  }}
+            <div class="project-section__assignment-filters" data-assignment-filters>
+              <label>
+                <span>{translate('Search assignments')}</span>
+                <input
+                  type="search"
+                  bind:value={assignmentSearch}
+                  placeholder={translate('Project, worker or reference')}
+                  autocomplete="off"
+                  data-assignment-search
+                />
+              </label>
+              <label>
+                <span>{translate('Project')}</span>
+                <select bind:value={assignmentProjectFilter} data-assignment-project-filter>
+                  <option value="">{translate('All projects')}</option>
+                  {#each assignmentProjectOptions as project (projectId(project))}
+                    <option value={projectId(project)}
+                      >{projectNumber(project)} · {projectName(project)}</option
+                    >
+                  {/each}
+                </select>
+              </label>
+              <label>
+                <span>{translate('Worker')}</span>
+                <select bind:value={assignmentWorkerFilter} data-assignment-worker-filter>
+                  <option value="">{translate('All workers')}</option>
+                  {#each assignmentWorkerOptions as worker (value(worker, 'id'))}
+                    <option value={value(worker, 'id')}>{value(worker, 'name')}</option>
+                  {/each}
+                </select>
+              </label>
+              <button
+                type="button"
+                class="secondary-button"
+                data-assignment-clear-filters
+                disabled={!assignmentSearch && !assignmentProjectFilter && !assignmentWorkerFilter}
+                onclick={clearAssignmentFilters}>{translate('Clear filters')}</button
+              >
+            </div>
+            {#if filteredActiveAssignments.length > 0}
+              {#each filteredActiveAssignments as assignment (value(assignment, 'id'))}
+                {@const project = assignmentProjectById.get(value(assignment, 'project_id'))}
+                <div
+                  class="project-section__assignment-item"
+                  data-assignment-id={value(assignment, 'id')}
+                  data-project-id={value(assignment, 'project_id')}
+                  data-worker-id={value(assignment, 'user_id', 'worker_id')}
                 >
-                  <input type="hidden" name="assignmentId" value={value(assignment, 'id')} />
-                  <input
-                    type="hidden"
-                    name="version"
-                    value={assignmentRetainedValue(
-                      assignmentFormData,
-                      'updateAssignment',
-                      value(assignment, 'id'),
-                      'version',
-                      value(assignment, 'version') || '1',
-                    )}
-                  />
-                  <label>
-                    <span>{translate('Starts on')}</span>
-                    <input
-                      name="startsOn"
-                      type="date"
-                      value={assignmentRetainedValue(
-                        assignmentFormData,
-                        'updateAssignment',
-                        value(assignment, 'id'),
-                        'startsOn',
-                        value(assignment, 'starts_on'),
-                      )}
-                      required
-                    />
-                  </label>
-                  <label>
-                    <span>{translate('Ends on')}</span>
-                    <input
-                      name="endsOn"
-                      type="date"
-                      value={assignmentRetainedValue(
-                        assignmentFormData,
-                        'updateAssignment',
-                        value(assignment, 'id'),
-                        'endsOn',
-                        value(assignment, 'ends_on'),
-                      )}
-                    />
-                  </label>
-                  <button type="submit">{translate('Update assignment')}</button>
-                </form>
-                <details
-                  use:disclosure
-                  data-project-workflow="remove-assignment"
-                  open={assignmentPage.url.searchParams.get('action') === 'remove-assignment'}
-                >
-                  <summary class="secondary-button">{translate('Remove assignment')}</summary>
+                  <h3>
+                    {value(assignment, 'project_number')} · {value(assignment, 'worker_name')}
+                  </h3>
+                  {#if project && projectReference(project)}
+                    <p class="project-section__assignment-reference">
+                      {translate('Project reference')}: {projectReference(project)}
+                    </p>
+                  {/if}
                   <form
                     method="POST"
-                    action={assignmentFormAction(assignmentPage.url, 'removeAssignment')}
+                    action={assignmentFormAction(assignmentPage.url, 'updateAssignment')}
                     class="project-section__assignment-form"
+                    data-project-workflow="update-assignment"
                     use:dirtyFormGuard={{
                       initialDirty: Boolean(
                         assignmentRecordProblem &&
-                        assignmentFormData?.actionName === 'removeAssignment' &&
+                        assignmentFormData?.actionName === 'updateAssignment' &&
                         String(assignmentFormData.values?.assignmentId ?? '') ===
                           value(assignment, 'id'),
                       ),
@@ -952,31 +993,102 @@
                       name="version"
                       value={assignmentRetainedValue(
                         assignmentFormData,
-                        'removeAssignment',
+                        'updateAssignment',
                         value(assignment, 'id'),
                         'version',
                         value(assignment, 'version') || '1',
                       )}
                     />
                     <label>
-                      <span>{translate('Removal reason')}</span>
+                      <span>{translate('Starts on')}</span>
                       <input
-                        name="reason"
+                        name="startsOn"
+                        type="date"
+                        value={assignmentRetainedValue(
+                          assignmentFormData,
+                          'updateAssignment',
+                          value(assignment, 'id'),
+                          'startsOn',
+                          value(assignment, 'starts_on'),
+                        )}
+                        required
+                      />
+                    </label>
+                    <label>
+                      <span>{translate('Ends on')}</span>
+                      <input
+                        name="endsOn"
+                        type="date"
+                        value={assignmentRetainedValue(
+                          assignmentFormData,
+                          'updateAssignment',
+                          value(assignment, 'id'),
+                          'endsOn',
+                          value(assignment, 'ends_on'),
+                        )}
+                      />
+                    </label>
+                    <button type="submit">{translate('Update assignment')}</button>
+                  </form>
+                  <details
+                    use:disclosure
+                    data-project-workflow="remove-assignment"
+                    open={assignmentPage.url.searchParams.get('action') === 'remove-assignment'}
+                  >
+                    <summary class="secondary-button">{translate('Remove assignment')}</summary>
+                    <form
+                      method="POST"
+                      action={assignmentFormAction(assignmentPage.url, 'removeAssignment')}
+                      class="project-section__assignment-form"
+                      use:dirtyFormGuard={{
+                        initialDirty: Boolean(
+                          assignmentRecordProblem &&
+                          assignmentFormData?.actionName === 'removeAssignment' &&
+                          String(assignmentFormData.values?.assignmentId ?? '') ===
+                            value(assignment, 'id'),
+                        ),
+                      }}
+                    >
+                      <input type="hidden" name="assignmentId" value={value(assignment, 'id')} />
+                      <input
+                        type="hidden"
+                        name="version"
                         value={assignmentRetainedValue(
                           assignmentFormData,
                           'removeAssignment',
                           value(assignment, 'id'),
-                          'reason',
+                          'version',
+                          value(assignment, 'version') || '1',
                         )}
-                        required
-                        maxlength="2000"
                       />
-                    </label>
-                    <button type="submit" class="danger">{translate('Remove assignment')}</button>
-                  </form>
-                </details>
-              </div>
-            {/each}
+                      <label>
+                        <span>{translate('Removal reason')}</span>
+                        <input
+                          name="reason"
+                          value={assignmentRetainedValue(
+                            assignmentFormData,
+                            'removeAssignment',
+                            value(assignment, 'id'),
+                            'reason',
+                          )}
+                          required
+                          maxlength="2000"
+                        />
+                      </label>
+                      <button type="submit" class="danger">{translate('Remove assignment')}</button>
+                    </form>
+                  </details>
+                </div>
+              {/each}
+            {:else}
+              <p
+                class="project-section__assignment-empty"
+                role="status"
+                data-assignment-filter-empty
+              >
+                {translate('No assignments match these filters.')}
+              </p>
+            {/if}
           </div>
         </details>
       {/if}
@@ -1076,6 +1188,37 @@
   .project-section__assignment-list {
     display: grid;
     gap: 0.8rem;
+  }
+
+  .project-section__assignment-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    align-items: end;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid var(--portal-border, #d9ddd8);
+    border-radius: 0.65rem;
+    background: var(--portal-surface, #fff);
+  }
+
+  .project-section__assignment-filters label {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .project-section__assignment-filters input,
+  .project-section__assignment-filters select,
+  .project-section__assignment-filters button {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 2.75rem;
+  }
+
+  .project-section__assignment-reference,
+  .project-section__assignment-empty {
+    margin: 0.3rem 0 0;
+    color: var(--portal-muted, #67675f);
   }
 
   .project-section__assignment-form {

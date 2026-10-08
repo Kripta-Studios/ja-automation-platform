@@ -6,6 +6,7 @@
   import { portalText, type PortalLocale } from '$lib/portal-i18n';
   import type { ControlledValueDomain } from '$lib/i18n/controlled-values';
   import type { ProblemData } from '$lib/problem/contract';
+  import { requestGuidedRecovery } from '$lib/portal/guided-recovery/events';
   import {
     downloadAccountingPackArtifact,
     classifyAccountingPackDownloadFailure,
@@ -260,6 +261,39 @@
     await tick();
     const notice = downloadNoticeElement;
     if (!notice?.isConnected) return;
+    if (!['retry_queued', 'processing'].includes(kind)) {
+      const messageKey: ProblemData['messageKey'] =
+        kind === 'unauthenticated'
+          ? 'problem.accountingPack.signInRequired'
+          : kind === 'failed'
+            ? 'problem.accountingPack.exportFailedRetryable'
+            : kind === 'retry_service_unavailable'
+              ? 'problem.accountingPack.retryServiceUnavailable'
+              : kind === 'retry_unavailable'
+                ? 'problem.accountingPack.retryLimit'
+                : 'problem.accountingPack.exportUnavailable';
+      requestGuidedRecovery({
+        source: notice,
+        problem: {
+          code: `ACCOUNTING_PACK_${kind.toUpperCase()}`,
+          messageKey,
+          params: { format: key.toUpperCase(), correlationId: correlationId ?? '' },
+          fieldErrors: {},
+          remedies: [],
+          correlationId: correlationId ?? '',
+        },
+        links: [
+          {
+            label: translate(kind === 'unauthenticated' ? 'Sign in again' : 'Check pack status'),
+            href:
+              kind === 'unauthenticated'
+                ? `${base}/app/login`
+                : `${base}/app/accounting#accounting-register`,
+            reload: kind !== 'unauthenticated',
+          },
+        ],
+      });
+    }
     notice.focus({ preventScroll: true });
     const bounds = notice.getBoundingClientRect();
     const header = document.querySelector<HTMLElement>('.portal-layout > header');
@@ -524,9 +558,25 @@
       {/if}
     {/each}
     {#if exportStatuses.pdf === 'ready'}
-      <button type="button" class="preview-link" aria-expanded={previewOpen} onclick={() => { previewOpen = !previewOpen; }}>{previewOpen
-        ? (locale === 'es' ? 'Cerrar vista previa' : locale === 'pt' ? 'Fechar prévia' : 'Close PDF preview')
-        : (locale === 'es' ? 'Vista previa del PDF guardado' : locale === 'pt' ? 'Prévia do PDF salvo' : 'Preview saved PDF')}</button>
+      <button
+        type="button"
+        class="preview-link"
+        aria-expanded={previewOpen}
+        onclick={() => {
+          previewOpen = !previewOpen;
+        }}
+        >{previewOpen
+          ? locale === 'es'
+            ? 'Cerrar vista previa'
+            : locale === 'pt'
+              ? 'Fechar prévia'
+              : 'Close PDF preview'
+          : locale === 'es'
+            ? 'Vista previa del PDF guardado'
+            : locale === 'pt'
+              ? 'Prévia do PDF salvo'
+              : 'Preview saved PDF'}</button
+      >
     {/if}
     {#each accountingPackExportTypes as artifact}
       {#if exportStatuses[artifact.key] === 'failed'}
@@ -711,12 +761,27 @@
     src={artifactHref('pdf')}
     {locale}
     onFailure={(payload, status, reference) => {
-      const value = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
-      return showDownloadNotice('pdf', classifyAccountingPackDownloadFailure(status, typeof value.error === 'string' ? value.error : '', typeof value.code === 'string' ? value.code : undefined), reference ?? undefined);
+      const value =
+        payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {};
+      return showDownloadNotice(
+        'pdf',
+        classifyAccountingPackDownloadFailure(
+          status,
+          typeof value.error === 'string' ? value.error : '',
+          typeof value.code === 'string' ? value.code : undefined,
+        ),
+        reference ?? undefined,
+      );
     }}
   />
-  <p class="form-help no-print">{locale === 'es' ? 'Revise los registros de origen antes de generar una nueva versión. Los paquetes finalizados conservan sus cifras históricas.' : locale === 'pt' ? 'Revise os registros de origem antes de gerar uma nova versão. Pacotes finalizados preservam seus valores históricos.' : 'Review source records before generating a new version. Finalized packs preserve their historical figures.'}
-    <a href={`${base}/app/billing?view=invoices`}>{translate('Invoices')}</a> · <a href={`${base}/app/finance?view=economic`}>{translate('Finance')}</a>
+  <p class="form-help no-print">
+    {locale === 'es'
+      ? 'Revise los registros de origen antes de generar una nueva versión. Los paquetes finalizados conservan sus cifras históricas.'
+      : locale === 'pt'
+        ? 'Revise os registros de origem antes de gerar uma nova versão. Pacotes finalizados preservam seus valores históricos.'
+        : 'Review source records before generating a new version. Finalized packs preserve their historical figures.'}
+    <a href={`${base}/app/billing?view=invoices`}>{translate('Invoices')}</a> ·
+    <a href={`${base}/app/finance?view=economic`}>{translate('Finance')}</a>
   </p>
 {/if}
 

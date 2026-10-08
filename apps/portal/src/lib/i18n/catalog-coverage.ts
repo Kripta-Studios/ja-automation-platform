@@ -1,3 +1,4 @@
+import { projectClientWorkflowLiterals } from './project-client-workflow-literals';
 import {
   extractedSectionCoverageKeys,
   explicitCoverageLiteralOverrides,
@@ -163,6 +164,48 @@ const projectCrewCalculationKeys = [
 ] as const;
 
 export const PORTAL_LITERAL_KEYS = [
+  'View details',
+  'issuerSettings.help',
+  'issuerSettings.title',
+  'problem.expense.crewWithdrawalInvalid',
+  'finance.commercialTerms.assignmentDates',
+  'finance.commercialTerms.historicalReadOnly',
+  'finance.commercialTerms.historicalReadOnlyHelp',
+  'problem.finance.settlementPeriodOrderInvalid',
+  'Charge the full rate once per person for each worked day or Monday–Sunday week with approved work. Actual hours and worker pay remain independent.',
+  'Customer billing unit',
+  'Suppliers',
+  'finance.issuerReplacement.compatible',
+  'finance.issuerReplacement.help',
+  'finance.issuerReplacement.noCompatibleRevision',
+  'finance.issuerReplacement.revision',
+  'finance.issuerReplacement.submit',
+  'finance.issuerReplacement.title',
+  'Finance',
+  'pdf.currentLayoutHelp',
+  'pdf.downloadPreviousLayout',
+  'pdf.earlierLayout',
+  'pdf.generateCurrentLayout',
+  'pdf.previousLayouts',
+  'Audit log',
+  'Choose an available project',
+  'Invalid audit history link',
+  'Open latest audit events',
+  'Project unavailable',
+  'The selected project is unavailable in your access scope. Choose an available project to continue; your other filters are retained.',
+  'This audit history link is incomplete or invalid. Open the latest events to continue.',
+  'invoice.sourceSaveIssuer',
+  'invoice.sourceSaveTerms',
+  'invoice.sourceSaveTitle',
+  'invoice.sourceSettingsChanged',
+  'invoice.sourceStreamLink',
+  'Approval actions remain in the Approvals queue.',
+  'Back to approvals',
+  'Read-only operational review',
+  'Documents',
+  'problem.projectDetail.timezoneInvalid',
+
+  ...Object.keys(projectClientWorkflowLiterals),
   // Existing component literals already translated in the main catalog.
   'project.costCenter.numberChangeHelp',
   'Saved grouping setting',
@@ -2214,6 +2257,18 @@ export const PORTAL_LITERAL_KEYS = [
 ] as const;
 
 export const PORTAL_ACTION_KEYS = [
+  'action.billing.invoiceSourcesUpdated',
+  'action.billing.issuerSettingsSaved',
+  'action.finance.unusedIssuerReplaced',
+
+  'action.expense.draftAlreadySaved',
+  'action.expense.weekDraftsAlreadySaved',
+  'action.expense.weekDraftsSaved',
+  'action.expense.weekSubmitted',
+  'action.planning.assignmentAlreadyPublished',
+  'action.time.draftAlreadySaved',
+  'action.validation.unusedIssuerReplacement',
+
   'problem.crew.dayProjectUnavailableOwner',
   'problem.crew.dayProjectUnavailableChief',
   'problem.crew.dayProjectRequiredOwner',
@@ -2872,6 +2927,8 @@ export const PORTAL_ACTION_KEYS = [
   'problem.client.paymentTermsInvalid',
   'problem.client.unavailable',
   'problem.client.contactUnavailable',
+  'problem.client.contactLinkedProject',
+  'problem.warning.expensePayerFacts',
   'problem.client.contactStale',
   'problem.project.unavailable',
   'problem.project.expectedHoursInvalid',

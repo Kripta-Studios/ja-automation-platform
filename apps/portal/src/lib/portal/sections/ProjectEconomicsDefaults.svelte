@@ -1,7 +1,8 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { refreshAll } from '$app/navigation';
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
+  import { requestFinanceGuidedRecovery } from '../finance-guided-recovery';
   import type { ProjectPersonDefaults } from '@ja/database';
   let {
     projectId,
@@ -31,6 +32,20 @@
   const failure = $derived(
     feedback?.action === 'saveProjectPersonDefaults' && !feedback.success ? feedback : undefined,
   );
+  let defaultsForm = $state<HTMLFormElement>();
+  $effect(() => {
+    const current = failure;
+    if (!current) return;
+    void tick().then(() =>
+      requestFinanceGuidedRecovery(
+        current,
+        defaultsForm,
+        'saveProjectPersonDefaults',
+        'problem.projectDetail.personTermsInvalid',
+        t('Review billing setup'),
+      ),
+    );
+  });
   const initial = untrack(() => {
     const values =
       (form as Feedback | undefined)?.action === 'saveProjectPersonDefaults'
@@ -99,6 +114,7 @@
       <form
         method="POST"
         action="?/saveProjectPersonDefaults&tab=billing"
+        bind:this={defaultsForm}
         use:enhance={() =>
           async ({ result, update }) => {
             // Apply feedback before the revised defaults remount with their saved values.

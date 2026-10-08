@@ -23,6 +23,10 @@ export type ClientContactInput = Readonly<{
   email?: string;
   phone?: string;
   role?: string;
+  company?: string;
+  location?: string;
+  notes?: string;
+  contactType?: 'general' | 'onsite';
   isBillingContact?: boolean;
   isPrimary?: boolean;
 }>;
@@ -46,11 +50,16 @@ type ClientRow = Readonly<{
 }>;
 
 type ClientContactRow = Readonly<{
+  id?: string;
   client_id: string;
   name: string;
   email: string | null;
   phone: string | null;
   role: string | null;
+  company: string | null;
+  location: string | null;
+  notes: string | null;
+  contact_type: 'general' | 'onsite' | string;
   is_billing_contact: number;
   is_primary: number;
 }>;
@@ -80,6 +89,12 @@ const isValidEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.te
 const isDuplicateClientCode = (error: unknown): boolean =>
   error instanceof Error &&
   error.message.includes("UNIQUE constraint failed: index 'client_client_code_unique'");
+
+const isIsoCalendarDate = (value: string): boolean => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const timestamp = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(timestamp.getTime()) && timestamp.toISOString().slice(0, 10) === value;
+};
 
 export class ClientRepository {
   private readonly deps: ClientRepositoryDependencies;
@@ -188,6 +203,17 @@ export class ClientRepository {
     if (!canManageClients(principal)) return deps.accessDenied('Client administration required');
     if (!deps.sqlite.prepare('SELECT 1 FROM client WHERE id=?').get(input.clientId))
       return deps.validation('Client not found');
+    const role = input.role?.trim() ? deps.assertText(input.role, 'Contact role', 120) : null;
+    const company = input.company?.trim()
+      ? deps.assertText(input.company, 'Contact company', 200)
+      : null;
+    const location = input.location?.trim()
+      ? deps.assertText(input.location, 'Contact location', 500)
+      : null;
+    const notes = input.notes?.trim() ? deps.assertText(input.notes, 'Contact notes', 5000) : null;
+    const contactType = input.contactType ?? 'general';
+    if (contactType !== 'general' && contactType !== 'onsite')
+      return deps.validation('Contact type is invalid');
     const id = newId();
     const timestamp = deps.now();
     return deps.transaction(() => {
@@ -197,7 +223,7 @@ export class ClientRepository {
           .run(input.clientId);
       deps.sqlite
         .prepare(
-          'INSERT INTO client_contact(id,client_id,name,email,phone,role,is_billing_contact,is_primary,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
+          'INSERT INTO client_contact(id,client_id,name,email,phone,role,company,location,notes,contact_type,is_billing_contact,is_primary,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
         )
         .run(
           id,
@@ -205,7 +231,11 @@ export class ClientRepository {
           deps.assertText(input.name, 'Contact name', 160),
           input.email?.trim().toLowerCase() || null,
           input.phone?.trim() || null,
-          input.role?.trim() || null,
+          role,
+          company,
+          location,
+          notes,
+          contactType,
           input.isBillingContact ? 1 : 0,
           input.isPrimary ? 1 : 0,
           timestamp,
@@ -244,7 +274,7 @@ export class ClientRepository {
     }
     return deps.sqlite
       .prepare(
-        'SELECT id,client_id,name,email,phone,role,is_billing_contact,is_primary,created_at,updated_at FROM client_contact WHERE client_id=? ORDER BY is_primary DESC,name',
+        'SELECT id,client_id,name,email,phone,role,company,location,notes,contact_type,is_billing_contact,is_primary,created_at,updated_at FROM client_contact WHERE client_id=? ORDER BY is_primary DESC,name',
       )
       .all(clientId);
   }
@@ -266,12 +296,85 @@ export class ClientRepository {
       : '';
     return deps.sqlite
       .prepare(
-        `SELECT cc.id,cc.client_id,cc.name,cc.email,cc.phone,cc.role,cc.is_billing_contact,cc.is_primary,
+        `SELECT cc.id,cc.client_id,cc.name,cc.email,cc.phone,cc.role,cc.company,cc.location,cc.notes,cc.contact_type,cc.is_billing_contact,cc.is_primary,
                 c.client_number,c.display_name
          FROM client_contact cc JOIN client c ON c.id=cc.client_id
          WHERE 1=1${restriction} ORDER BY c.client_number,cc.is_primary DESC,cc.name`,
       )
       .all(...projectIds);
+  }
+
+  /**
+   * Calendar projection of actual time records only. Planned worker assignments
+   * are intentionally absent; role-specific access is enforced before rows
+   * leave the repository, and the DTO never includes financial fields.
+   */
+  listClientCalendarEntries(principal: Principal, from: string, to: string) {
+    const { deps } = this;
+    deps.assertReadable(principal);
+    if (!['owner_admin', 'finance_admin', 'project_manager'].includes(principal.role))
+      return deps.accessDenied('Client work calendar is restricted to management roles');
+    if (!isIsoCalendarDate(from) || !isIsoCalendarDate(to) || from > to)
+      return deps.validation('Calendar dates must be valid ordered ISO dates');
+    const spanDays =
+      (new Date(`${to}T00:00:00.000Z`).getTime() - new Date(`${from}T00:00:00.000Z`).getTime()) /
+      86_400_000;
+    if (spanDays > 61) return deps.validation('Calendar range cannot exceed 62 days');
+
+    const clauses = [
+      't.work_date BETWEEN ? AND ?',
+      "t.approval_state NOT IN ('rejected','void')",
+      `NOT EXISTS (
+        SELECT 1
+          FROM record_correction_link rcl
+          JOIN time_entry correction ON correction.id=rcl.correction_id
+         WHERE rcl.record_type='time_entry'
+           AND ((rcl.original_id=t.id AND correction.approval_state IN ('approved','locked'))
+             OR (rcl.correction_id=t.id AND correction.approval_state NOT IN ('approved','locked')))
+      )`,
+    ];
+    const values: Array<string> = [from, to];
+    if (principal.role === 'project_manager') {
+      const projectIds = [...principal.projectIds];
+      if (projectIds.length === 0) return [];
+      clauses.push(`t.project_id IN (${projectIds.map(() => '?').join(',')})`);
+      values.push(...projectIds);
+      clauses.push("p.status IN ('active','planned','paused')");
+      clauses.push(
+        `EXISTS (
+          SELECT 1 FROM project_member pm_scope
+           WHERE pm_scope.project_id=t.project_id
+             AND pm_scope.user_id=?
+             AND pm_scope.status='active'
+             AND pm_scope.starts_on<=t.work_date
+             AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=t.work_date)
+        )`,
+      );
+      values.push(principal.userId);
+    }
+    return deps.sqlite
+      .prepare(
+        `SELECT t.work_date,t.project_id,p.client_id,p.project_number,p.name project_name,
+                p.site_name,u.id worker_id,u.name worker_name,t.minutes,t.approval_state
+           FROM time_entry t
+           JOIN project p ON p.id=t.project_id
+           JOIN client c ON c.id=p.client_id
+           JOIN user u ON u.id=t.worker_id
+          WHERE ${clauses.join(' AND ')}
+          ORDER BY t.work_date,p.project_number,u.name,t.id`,
+      )
+      .all(...values) as Array<{
+      work_date: string;
+      project_id: string;
+      client_id: string;
+      project_number: string;
+      project_name: string;
+      site_name: string | null;
+      worker_id: string;
+      worker_name: string;
+      minutes: number;
+      approval_state: string;
+    }>;
   }
 
   listClients(principal: Principal) {
@@ -456,7 +559,33 @@ export class ClientRepository {
       const email =
         input.email !== undefined ? input.email?.trim().toLowerCase() || null : existing.email;
       const phone = input.phone !== undefined ? input.phone?.trim() || null : existing.phone;
-      const role = input.role !== undefined ? input.role?.trim() || null : existing.role;
+      const role =
+        input.role !== undefined
+          ? input.role?.trim()
+            ? deps.assertText(input.role, 'Contact role', 120)
+            : null
+          : existing.role;
+      const company =
+        input.company !== undefined
+          ? input.company?.trim()
+            ? deps.assertText(input.company, 'Contact company', 200)
+            : null
+          : existing.company;
+      const location =
+        input.location !== undefined
+          ? input.location?.trim()
+            ? deps.assertText(input.location, 'Contact location', 500)
+            : null
+          : existing.location;
+      const notes =
+        input.notes !== undefined
+          ? input.notes?.trim()
+            ? deps.assertText(input.notes, 'Contact notes', 5000)
+            : null
+          : existing.notes;
+      const contactType = input.contactType ?? existing.contact_type;
+      if (contactType !== 'general' && contactType !== 'onsite')
+        return deps.validation('Contact type is invalid');
       const isBillingContact =
         input.isBillingContact !== undefined
           ? input.isBillingContact
@@ -487,9 +616,22 @@ export class ClientRepository {
 
       deps.sqlite
         .prepare(
-          'UPDATE client_contact SET name=?, email=?, phone=?, role=?, is_billing_contact=?, is_primary=?, updated_at=? WHERE id=?',
+          'UPDATE client_contact SET name=?, email=?, phone=?, role=?, company=?, location=?, notes=?, contact_type=?, is_billing_contact=?, is_primary=?, updated_at=? WHERE id=?',
         )
-        .run(name, email, phone, role, isBillingContact, isPrimary, deps.now(), contactId);
+        .run(
+          name,
+          email,
+          phone,
+          role,
+          company,
+          location,
+          notes,
+          contactType,
+          isBillingContact,
+          isPrimary,
+          deps.now(),
+          contactId,
+        );
 
       deps.audit(principal, 'client_contact.update', 'client_contact', contactId, {});
     });
@@ -504,6 +646,12 @@ export class ClientRepository {
         .prepare('SELECT * FROM client_contact WHERE id=?')
         .get(contactId) as ClientContactRow | undefined;
       if (!existing) return deps.validation('Contact not found');
+
+      const projectReference = deps.sqlite
+        .prepare('SELECT 1 FROM project WHERE onsite_contact_id=? LIMIT 1')
+        .get(contactId);
+      if (projectReference)
+        throw deps.conflict('Client contact is linked to a project and cannot be deleted');
 
       // Contacts referenced by billing configuration are part of an
       // auditable historical chain.  There is no archive/deactivate column

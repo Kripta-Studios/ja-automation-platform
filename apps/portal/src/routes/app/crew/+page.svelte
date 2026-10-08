@@ -9,6 +9,7 @@
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
   import type { ProblemData } from '$lib/problem/contract';
+  import { requestGuidedRecovery } from '$lib/portal/guided-recovery/events';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
   import { decimalToMinor } from '$lib/portal/portal-format';
@@ -427,6 +428,8 @@
     const fields = result.fieldErrors;
     if (target && fields && typeof fields === 'object' && !Array.isArray(fields))
       reportFormFieldErrors(target, fields as Record<string, readonly string[]>);
+    if (target && result.code && result.messageKey)
+      requestGuidedRecovery({ problem: result as ProblemData, form: target, source: target });
     (
       target?.querySelector<HTMLElement>('[data-validation-summary]') ??
       document.querySelector<HTMLElement>('[data-crew-problem]')

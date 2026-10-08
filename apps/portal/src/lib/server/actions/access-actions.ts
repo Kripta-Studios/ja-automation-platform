@@ -1136,7 +1136,11 @@ export const accessActions = {
           'createLocalPortalUser',
           values,
         ) ??
-        actionFailure(error)
+        actionFailure(error, {
+          actionName: 'createLocalPortalUser',
+          values,
+          correlationId: locals.correlationId,
+        })
       );
     } finally {
       context.sqlite.close();

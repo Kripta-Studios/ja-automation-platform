@@ -1,3 +1,4 @@
+import { withOperationalActionNames } from './operational-action-context';
 import {
   accountingPackPeriodSchema,
   availabilityInputSchema,
@@ -1607,7 +1608,7 @@ function openWorkforceContext(
   }
 }
 
-export const reportActions = {
+export const reportActions = withOperationalActionNames({
   autosaveReport: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'reports')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
@@ -3032,7 +3033,7 @@ export const reportActions = {
       context?.sqlite.close();
     }
   },
-};
+});
 
 type ApprovalReviewAction = 'reviewReport' | 'reviewTechnicalChange' | 'reviewMilestone';
 type ApprovalReviewKind = 'report' | 'technical_change' | 'milestone';

@@ -311,6 +311,7 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   72: 'dated_reimbursement_preferences',
   73: 'unused_issuing_authority_replacement',
   74: 'client_labor_billing_units',
+  75: 'project_site_client_crm',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -319,7 +320,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  'df7f2547e2fe19a18684b0fcaa53bffcd9bb96580c35650012eac9094abe227a';
+  '4af5196e9f6a5087087b041889d7e615888ad33c51c677a373bad96f66b7f949';
 
 type MigrationContractEntry = Readonly<{
   version: number;

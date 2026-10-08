@@ -1,0 +1,29 @@
+{
+  "browser_stats": {
+    "startTime": "2026-10-08T21:04:20.521Z",
+    "duration": 195632.58500000002,
+    "expected": 32,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "log_sha256": {
+    "/tmp/ja-final-browser-v3.log": "ace073db641757655f0cc07bef1e346778a46d509a17fc921d513eb10f851c7d",
+    "/tmp/ja-final-security-i18n.log": "1523cfdfbfb2f701b35ec2d03d408da005b25e7360005b4fba7124ae0fb2706d",
+    "/tmp/ja-final-workflow-unit.log": "f69905a6d7cc1594b9b9a2c12c6e5ab948517179317dbbde12c7ee02a06302f1",
+    "/tmp/ja-final-production-build-v3.log": "6df4c668ff3a65c839610863e43ceedbc305a8daa60a615d779927e92073d555",
+    "/tmp/ja-final-jobs-build-v2.log": "adfdfe9f164223cfdf73017b76c66bf1966cfbf2bd932ca17120c8c1fdf67814",
+    "/tmp/ja-final-portal-typecheck-v2.log": "03ec29f4e134a29dc87944f6142712d6d64e85d1fd20bd5a949a74e2d86d75d1",
+    "/tmp/ja-final-eslint-clean-v2.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/ja-final-prettier-clean.log": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+  },
+  "portal_typecheck_exit": 0,
+  "database_typecheck_exit": 0,
+  "changed_files_eslint_exit": 0,
+  "changed_files_prettier_exit": 0,
+  "security_i18n_tests_passed": 39,
+  "targeted_unit_tests_passed": 36,
+  "portal_build_exit": 0,
+  "jobs_build_exit": 0,
+  "whole_workspace_typecheck": "42 unchanged website image import errors; scoped portal/database green"
+}

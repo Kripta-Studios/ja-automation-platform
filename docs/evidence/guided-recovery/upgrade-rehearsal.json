@@ -1,0 +1,11 @@
+{
+  "sourceVersion": 74,
+  "targetVersion": 75,
+  "preservedTables": 180,
+  "changedTables": [],
+  "integrity": {
+    "integrity_check": "ok"
+  },
+  "foreignKeyViolations": 0,
+  "onsiteNullForLegacy": 0
+}

@@ -23,6 +23,7 @@
   import { standaloneActionMessage } from '../../../routes/app/standalone-locale';
   import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
   import { reportFormFieldErrors } from '../ui/form-validation';
+  import { requestGuidedRecovery } from '../guided-recovery/events';
   import { canDeleteTimeDraft } from './time-entry-actions';
   import {
     decimalHoursToMinutes,
@@ -41,6 +42,10 @@
     type OperationalOrder,
     writeOperationalRegisterState,
   } from './operational-register';
+  import {
+    assignedTimeProjectsForDate,
+    assignedTimeWorkersForProjectDate,
+  } from './time-worker-options';
 
   let {
     locale = 'en',
@@ -199,6 +204,12 @@
   let dateDeepLinkConsumed = false;
   let editCategory = $state(nativeTimeValue('category') || 'regular');
   let search = $state($page.url.searchParams.get('q')?.trim() ?? '');
+  let projectFilter = $state(
+    $page.url.searchParams.get('project')?.trim() ?? String(data.timeFilter?.projectId ?? ''),
+  );
+  let workerFilter = $state(
+    $page.url.searchParams.get('worker')?.trim() ?? String(data.timeFilter?.workerId ?? ''),
+  );
   let clientFilter = $state($page.url.searchParams.get('client')?.trim() ?? '');
   let statusFilter = $state($page.url.searchParams.get('status')?.trim() ?? '');
   let registerFrom = $state(String(data.timeFilter?.from ?? ''));
@@ -209,6 +220,8 @@
   $effect(() => {
     registerFrom = String(data.timeFilter?.from ?? '');
     registerTo = String(data.timeFilter?.to ?? '');
+    projectFilter = String(data.timeFilter?.projectId ?? '');
+    workerFilter = String(data.timeFilter?.workerId ?? '');
   });
   function validateRegisterDateRange(event: SubmitEvent): void {
     if (!registerDateRangeInvalid) return;
@@ -225,6 +238,24 @@
   );
   let registerPage = $state(1);
   let registerStateHydrated = $state(false);
+  let registerFilterContext = $state('');
+  const registerFilterSignature = $derived(
+    JSON.stringify({
+      search: search.trim(),
+      project: projectFilter,
+      worker: workerFilter,
+      status: statusFilter,
+      client: clientFilter,
+      from: registerFrom,
+      to: registerTo,
+      category: String(data.timeFilter?.category ?? ''),
+    }),
+  );
+  $effect(() => {
+    const next = registerFilterSignature;
+    if (registerFilterContext && registerFilterContext !== next) registerPage = 1;
+    registerFilterContext = next;
+  });
   const registerStateKey = (): string => `ja-operational-register:time:${data.user.id}`;
 
   onMount(() => {
@@ -235,6 +266,7 @@
       search?: string;
       order?: OperationalOrder;
       page?: number;
+      filterSignature?: string;
     }>(registerStateKey());
     if (!$page.url.searchParams.has('q') && typeof saved?.search === 'string')
       search = saved.search;
@@ -245,10 +277,18 @@
     ) {
       order = saved.order;
     }
-    if (typeof saved?.page === 'number') registerPage = saved.page;
+    if (typeof saved?.page === 'number' && saved.filterSignature === registerFilterSignature)
+      registerPage = saved.page;
     registerStateHydrated = true;
     if (!nativeRecoveryActive && !isAuditor && $page.url.searchParams.get('action') === 'log-time')
       openCreate();
+    if (nativeBatchFailure && nativeTimeForm)
+      void tick().then(() => {
+        const form = document.querySelector<HTMLFormElement>('form[action="?/createTimeBatch"]');
+        if (!form) return;
+        reportFormFieldErrors(form, nativeTimeForm.fieldErrors);
+        requestGuidedRecovery({ problem: nativeTimeForm, form, source: form });
+      });
     if (nativeTimeSurface && nativeTimeForm?.fieldErrors)
       void tick().then(() => {
         const form = document.querySelector<HTMLFormElement>('[data-time-entry-surface]');
@@ -277,6 +317,7 @@
         search,
         order,
         page: registerPage,
+        filterSignature: registerFilterSignature,
       });
   });
   $effect(() => {
@@ -417,23 +458,30 @@
       : String(data.user.id),
   );
   const assignedCreateProjects = $derived(
-    availableProjects.filter((project) =>
-      (data.timeAssignments ?? []).some(
-        (assignment) =>
-          String(assignment.project_id) === String(project.id) &&
-          String(assignment.worker_id) === selectedCreateWorker &&
-          Boolean(createDate) &&
-          String(assignment.starts_on ?? '') <= createDate &&
-          (!assignment.ends_on || String(assignment.ends_on) >= createDate),
-      ),
+    assignedTimeProjectsForDate(availableProjects, data.timeAssignments ?? [], createDate),
+  );
+  const assignedCreateWorkers = $derived(
+    assignedTimeWorkersForProjectDate(
+      data.workers ?? [],
+      data.timeAssignments ?? [],
+      createProject,
+      createDate,
     ),
   );
   const selectedCreateProject = $derived(
     availableProjects.find((project) => String(project.id) === createProject),
   );
   const assignmentReviewHref = $derived.by(() => {
-    if (!selectedCreateProject || !selectedCreateWorker)
+    if (!selectedCreateProject)
       return `${base}/app/projects?action=update-assignment&lang=${encodeURIComponent(warningLocale)}#project-assignment-list`;
+    if (!selectedCreateWorker) {
+      const params = new URLSearchParams({
+        action: 'update-assignment',
+        project: createProject,
+        lang: warningLocale,
+      });
+      return `${base}/app/projects?${params}#project-assignment-list`;
+    }
     const hasExistingAssignment = (data.timeAssignments ?? []).some(
       (assignment) =>
         String(assignment.project_id) === createProject &&
@@ -481,7 +529,8 @@
   );
   const missingAssignmentProblem = $derived<ProblemData | null>(
     availableProjects.length > 0 &&
-      Boolean(selectedCreateWorker) &&
+      !createProject &&
+      (data.workers ?? []).length > 0 &&
       Boolean(createDate) &&
       assignedCreateProjects.length === 0
       ? {
@@ -499,10 +548,8 @@
   );
   const selectedProjectUnavailableProblem = $derived<ProblemData | null>(
     availableProjects.length > 0 &&
-      Boolean(selectedCreateWorker) &&
       Boolean(createDate) &&
       Boolean(createProject) &&
-      assignedCreateProjects.length > 0 &&
       !assignedCreateProjects.some((project) => String(project.id) === createProject)
       ? {
           code: 'OPERATIONAL_SELECTED_PROJECT_UNAVAILABLE',
@@ -517,6 +564,16 @@
         }
       : null,
   );
+  $effect(() => {
+    if (
+      !createWorker ||
+      !createProject ||
+      !createDate ||
+      assignedCreateWorkers.some((worker) => String(worker.id) === createWorker)
+    )
+      return;
+    createWorker = '';
+  });
   const clientOptions = $derived(
     [...new Set(records.map((row) => String(row.client_name ?? '')).filter(Boolean))].sort(),
   );
@@ -524,11 +581,36 @@
     scope: 'time',
     user: () => `${data.user.id}:${data.user.role}`,
     url: () => $page.url,
-    defaults: { search: '', clientFilter: '', statusFilter: '', order: 'newest', registerPage: 1 },
-    query: { search: 'q', clientFilter: 'client', statusFilter: 'status', order: 'order' },
-    get: () => ({ search, clientFilter, statusFilter, order, registerPage }),
+    defaults: {
+      search: '',
+      projectFilter: '',
+      workerFilter: '',
+      clientFilter: '',
+      statusFilter: '',
+      order: 'newest',
+      registerPage: 1,
+    },
+    query: {
+      search: 'q',
+      projectFilter: 'project',
+      workerFilter: 'worker',
+      clientFilter: 'client',
+      statusFilter: 'status',
+      order: 'order',
+    },
+    get: () => ({
+      search,
+      projectFilter,
+      workerFilter,
+      clientFilter,
+      statusFilter,
+      order,
+      registerPage,
+    }),
     set: (saved) => {
       search = saved.search;
+      projectFilter = saved.projectFilter;
+      workerFilter = saved.workerFilter;
       clientFilter = saved.clientFilter;
       statusFilter = saved.statusFilter;
       order = saved.order as OperationalOrder;
@@ -537,6 +619,12 @@
     validate: (saved) => ({
       ...saved,
       order: ['newest', 'oldest', 'name', 'status'].includes(saved.order) ? saved.order : 'newest',
+      projectFilter: availableProjects.some((project) => String(project.id) === saved.projectFilter)
+        ? saved.projectFilter
+        : '',
+      workerFilter: (data.workers ?? []).some((worker) => String(worker.id) === saved.workerFilter)
+        ? saved.workerFilter
+        : '',
     }),
   });
   $effect(() => {
@@ -621,6 +709,8 @@
             'needs_changes',
           ]) &&
           (!clientFilter || String(row.client_name ?? '') === clientFilter) &&
+          (!projectFilter || String(row.project_id ?? '') === projectFilter) &&
+          (!workerFilter || String(row.worker_id ?? '') === workerFilter) &&
           operationalMatches(row, search, [
             'project_number',
             'project_name',
@@ -639,14 +729,8 @@
   );
   const pagedRecords = $derived(operationalPage(filteredRecords, registerPage));
   const advancedFilters = $derived.by(() => {
-    const workerId = String(data.timeFilter?.workerId ?? '');
     const category = String(data.timeFilter?.category ?? '');
     return [
-      {
-        removeHref: filterHref({ worker: '' }),
-        label: translate('Worker'),
-        value: workerId ? visibleWorkerName(workerId) || translate('Unavailable') : '',
-      },
       { removeHref: filterHref({ client: '' }), label: translate('Client'), value: clientFilter },
       {
         removeHref: filterHref({ from: '' }),
@@ -668,7 +752,8 @@
     ].filter((item) => item.value);
   });
   const activeFilters = $derived.by(() => {
-    const projectId = String(data.timeFilter?.projectId ?? '');
+    const projectId = projectFilter;
+    const workerId = workerFilter;
     const project = availableProjects.find((row) => String(row.id) === projectId);
     return [
       { removeHref: filterHref({ q: '' }), label: translate('Search'), value: search.trim() },
@@ -680,6 +765,11 @@
             ? `${project.project_number} — ${project.name}`
             : visibleProjectName(projectId) || translate('Unavailable')
           : '',
+      },
+      {
+        removeHref: filterHref({ worker: '' }),
+        label: translate('Worker'),
+        value: workerId ? visibleWorkerName(workerId) || translate('Unavailable') : '',
       },
       {
         removeHref: filterHref({ status: '' }),
@@ -700,6 +790,8 @@
 
   function clearFilters(): void {
     search = '';
+    projectFilter = '';
+    workerFilter = '';
     clientFilter = '';
     statusFilter = '';
     order = 'newest';
@@ -710,10 +802,10 @@
   function filterHref(overrides: Record<string, string>): string {
     const params = new URLSearchParams();
     if ($page.url.searchParams.get('includeArchived') === '1') params.set('includeArchived', '1');
-    const project = overrides.project ?? String(data.timeFilter?.projectId ?? '');
+    const project = overrides.project ?? projectFilter;
     const category = overrides.category ?? String(data.timeFilter?.category ?? '');
     const status = overrides.status ?? statusFilter;
-    const worker = overrides.worker ?? String(data.timeFilter?.workerId ?? '');
+    const worker = overrides.worker ?? workerFilter;
     const client = overrides.client ?? clientFilter;
     const from = overrides.from ?? String(data.timeFilter?.from ?? '');
     const to = overrides.to ?? String(data.timeFilter?.to ?? '');
@@ -733,13 +825,26 @@
     return `${base}/app/time${query ? `?${query}` : ''}#time-records`;
   }
 
-  const submitBatch: SubmitFunction = ({ formData, cancel }) => {
+  const submitBatch: SubmitFunction = ({ formData, formElement, cancel }) => {
     batchProblem = null;
+    const recoverBatch = (fieldErrors: Record<string, string[]>): void => {
+      batchProblem = {
+        code: 'TIME_BATCH_ENTRY_INVALID',
+        messageKey: 'problem.time.batchEntryInvalid',
+        params: {},
+        fieldErrors,
+        remedies: [{ id: 'review_week' }],
+        correlationId: '',
+      };
+      reportFormFieldErrors(formElement, fieldErrors);
+      requestGuidedRecovery({ problem: batchProblem, source: formElement, form: formElement });
+    };
     if (batchProjectUnavailable) {
       batchError = translate(
         'The selected project is unavailable for this form. Its access, status, or assignment dates may have changed.',
       );
       cancel();
+      recoverBatch({ projectId: ['problem.time.projectInvalid'] });
       return;
     }
     const workerId = String(formData.get('workerId') ?? '');
@@ -750,11 +855,19 @@
       const summary = String(formData.get(`summary_${index}`) ?? '').trim();
       if (!enteredHours && !summary) continue;
       const minutes = decimalHoursToMinutes(enteredHours);
-      if (minutes === null || !summary || !workerId || !projectId) {
+      if (minutes === null || summary.length < 3 || !workerId || !projectId) {
         batchError = translate(
           'Enter a worker, assigned project, valid decimal hours and activity for every filled day.',
         );
         cancel();
+        recoverBatch({
+          ...(!workerId ? { workerId: ['problem.time.batchEntryInvalid'] } : {}),
+          ...(!projectId ? { projectId: ['problem.time.projectInvalid'] } : {}),
+          ...(minutes === null
+            ? { [`hours_${index}`]: ['Enter a valid number of hours from 0 to 24.'] }
+            : {}),
+          ...(summary.length < 3 ? { [`summary_${index}`]: ['problem.time.summaryInvalid'] } : {}),
+        });
         return;
       }
       entries.push({
@@ -768,6 +881,10 @@
     if (entries.length === 0) {
       batchError = translate('Enter hours and activity for at least one day.');
       cancel();
+      recoverBatch({
+        hours_0: ['problem.time.batchEntryInvalid'],
+        summary_0: ['problem.time.summaryInvalid'],
+      });
       return;
     }
     formData.set('entries', JSON.stringify(entries));
@@ -795,6 +912,7 @@
             result.data,
           );
           await tick();
+          if (batchProblem) reportFormFieldErrors(formElement, batchProblem.fieldErrors);
           document
             .querySelector<HTMLElement>('[data-time-batch-problem]')
             ?.focus({ preventScroll: true });
@@ -902,6 +1020,31 @@
     createCategory = 'regular';
     createExpenseEnabled = false;
     createRequestId = crypto.randomUUID();
+  }
+
+  function selectCreateProject(event: Event): void {
+    const nextProject = (event.currentTarget as HTMLSelectElement).value;
+    if (nextProject !== createProject) createWorker = '';
+    createProject = nextProject;
+  }
+
+  function selectCreateDate(event: Event): void {
+    const nextDate = (event.currentTarget as HTMLInputElement).value;
+    createDate = nextDate;
+    if (
+      createWorker &&
+      !assignedTimeWorkersForProjectDate(
+        data.workers ?? [],
+        data.timeAssignments ?? [],
+        createProject,
+        nextDate,
+      ).some((worker) => String(worker.id) === createWorker)
+    )
+      createWorker = '';
+  }
+
+  function selectCreateWorker(event: Event): void {
+    createWorker = (event.currentTarget as HTMLSelectElement).value;
   }
 
   function openEdit(row: Row): void {
@@ -1268,7 +1411,12 @@
             <button type="submit">{translate('Open week')}</button>
           </div>
         </form>
-        <form method="POST" action="?/createTimeBatch" use:enhance={submitBatch}>
+        <form
+          method="POST"
+          action="?/createTimeBatch"
+          use:operationalFieldValidation
+          use:enhance={submitBatch}
+        >
           <input type="hidden" name="batchForm" value="week_table" />
           <input type="hidden" name="weekStart" value={batchWeekStart} />
           <div class="time-batch-top-controls">
@@ -1315,6 +1463,9 @@
                 <label
                   ><span>{translate('Hours')}</span><input
                     name={`hours_${index}`}
+                    required={Boolean(
+                      batchInputs[date]?.summary ?? restoredBatchDayValue(date, index, 'summary'),
+                    )}
                     type="number"
                     min="0.01"
                     max="24"
@@ -1343,6 +1494,10 @@
                 <label
                   ><span>{translate('Activity summary')}</span><input
                     name={`summary_${index}`}
+                    required={Boolean(
+                      batchInputs[date]?.hours ?? restoredBatchDayValue(date, index, 'hours'),
+                    )}
+                    minlength="3"
                     maxlength="5000"
                     placeholder={translate('Work completed')}
                     value={batchInputs[date]?.summary ??
@@ -1425,17 +1580,24 @@
     </label>
     <label>
       <span>{translate('Project')}</span>
-      <select name="project">
+      <select name="project" bind:value={projectFilter} onchange={() => (registerPage = 1)}>
         <option value="">{translate('All projects')}</option>
         {#each availableProjects as project}
-          <option
-            value={String(project.id)}
-            selected={String(data.timeFilter?.projectId ?? '') === String(project.id)}
-            >{project.project_number} — {project.name}</option
-          >
+          <option value={String(project.id)}>{project.project_number} — {project.name}</option>
         {/each}
       </select>
     </label>
+    {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
+      <label>
+        <span>{translate('Worker')}</span>
+        <select name="worker" bind:value={workerFilter} onchange={() => (registerPage = 1)}>
+          <option value="">{translate('All workers')}</option>
+          {#each data.workers ?? [] as worker}
+            <option value={String(worker.id)}>{worker.name}</option>
+          {/each}
+        </select>
+      </label>
+    {/if}
     <label>
       <span>{translate('Status')}</span>
       <select name="status" bind:value={statusFilter} onchange={() => (registerPage = 1)}>
@@ -1464,21 +1626,6 @@
       class="register-filter-disclosure"
     >
       <div class="secondary-filter-fields time-filters-secondary">
-        {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
-          <label>
-            <span>{translate('Worker')}</span>
-            <select name="worker">
-              <option value="">{translate('All workers')}</option>
-              {#each data.workers ?? [] as worker}
-                <option
-                  value={String(worker.id)}
-                  selected={String(data.timeFilter?.workerId ?? '') === String(worker.id)}
-                  >{worker.name}</option
-                >
-              {/each}
-            </select>
-          </label>
-        {/if}
         <label>
           <span>{translate('Client')}</span>
           <select name="client" bind:value={clientFilter} onchange={() => (registerPage = 1)}>
@@ -1788,20 +1935,6 @@
           }}
         />
       {/if}
-      {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
-        <label
-          ><span>{translate('Worker')}</span><select
-            name="workerId"
-            required
-            bind:value={createWorker}
-            ><option value="">{translate('Select worker')}</option
-            >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
-                >{worker.name} — {worker.email}</option
-              >{/each}</select
-          ></label
-        >
-      {/if}
-
       <div class="expense-entry-intro time-entry-intro">
         <strong>{translate('Capture actual work')}</strong>
         <span>{translate('Describe what happened on site and record the actual duration.')}</span>
@@ -1844,7 +1977,7 @@
       {/if}
       <label>
         <span>{translate('Assigned project')}</span>
-        <select name="projectId" required bind:value={createProject}>
+        <select name="projectId" required value={createProject} onchange={selectCreateProject}>
           <option value="">{translate('Select assignment')}</option>
           {#if createProject && !assignedCreateProjects.some((project) => String(project.id) === createProject)}
             <option value={createProject} disabled
@@ -1858,12 +1991,36 @@
           {/each}
         </select>
         {#if ['owner_admin', 'project_manager'].includes(String(data.user.role)) && !createWorker}
-          <small>{translate('Select worker')}</small>
+          <small>{translate(createProject ? 'Select worker' : 'Select project first')}</small>
         {/if}
       </label>
+      {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
+        <label>
+          <span>{translate('Worker')}</span>
+          <select
+            name="workerId"
+            required
+            value={createWorker}
+            onchange={selectCreateWorker}
+            disabled={!createProject || assignedCreateWorkers.length === 0}
+            data-time-worker-options
+          >
+            <option value="">{translate('Select worker')}</option>
+            {#each assignedCreateWorkers as worker (String(worker.id))}
+              <option value={String(worker.id)}>{worker.name} — {worker.email}</option>
+            {/each}
+          </select>
+        </label>
+      {/if}
       <label>
         <span>{translate('Date')}</span>
-        <input name="workDate" type="date" required bind:value={createDate} />
+        <input
+          name="workDate"
+          type="date"
+          required
+          value={createDate}
+          onchange={selectCreateDate}
+        />
       </label>
       <label>
         <span>{translate('Operational category')}</span>

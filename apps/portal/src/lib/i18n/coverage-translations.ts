@@ -1,3 +1,4 @@
+import { projectClientWorkflowLiterals } from './project-client-workflow-literals';
 import { explicitCoverageLiterals } from './coverage-literals';
 
 /**
@@ -8,6 +9,44 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  ...projectClientWorkflowLiterals,
+  'action.expense.draftAlreadySaved': [
+    'El borrador de gasto ya estaba guardado. No se creó un duplicado.',
+    'O rascunho de despesa já estava salvo. Nenhum duplicado foi criado.',
+  ],
+  'action.expense.weekDraftsAlreadySaved': [
+    'Ya estaban guardados {created} borradores de gastos semanales. No se crearon duplicados.',
+    '{created} rascunhos de despesas semanais já estavam salvos. Nenhum duplicado foi criado.',
+  ],
+  'action.expense.weekDraftsSaved': [
+    'Se guardaron {created} borradores de gastos semanales.',
+    '{created} rascunhos de despesas semanais salvos.',
+  ],
+  'action.expense.weekSubmitted': [
+    'Se enviaron {submitted} borradores de gastos para revisión.',
+    '{submitted} rascunhos de despesas enviados para revisão.',
+  ],
+  'action.planning.assignmentAlreadyPublished': [
+    'La asignación ya estaba publicada. No se crearon duplicados.',
+    'A atribuição já estava publicada. Nenhum duplicado foi criado.',
+  ],
+  'action.time.draftAlreadySaved': [
+    'El borrador de horas ya estaba guardado. No se creó un duplicado.',
+    'O rascunho de horas já estava salvo. Nenhum duplicado foi criado.',
+  ],
+  'action.validation.unusedIssuerReplacement': [
+    'Revisa los campos de la entidad emisora de reemplazo.',
+    'Revise os campos da entidade emissora substituta.',
+  ],
+
+  'problem.warning.expensePayerFacts': [
+    'Introduce el importe, la moneda, el pagador y los datos del recibo.',
+    'Informe o valor, a moeda, o pagador e os dados do recibo.',
+  ],
+  'problem.client.contactLinkedProject': [
+    'Este contacto está vinculado a un proyecto. Revisa el contacto del proyecto antes de eliminarlo, o actualiza sus datos.',
+    'Este contato está vinculado a um projeto. Revise o contato do projeto antes de excluí-lo ou atualize seus dados.',
+  ],
   'problem.correction.recordLocked': [
     'Este registro no se puede cambiar aquí. Contacta con el propietario del proyecto o el administrador designado.',
     'Este registro não pode ser alterado aqui. Entre em contato com o responsável pelo projeto ou o administrador designado.',
@@ -9175,6 +9214,7 @@ function englishActionMessage(key: string): string {
     'action.expense.weekSubmitted': '{submitted} expense drafts submitted for review.',
     'action.expense.weekDraftsSaved':
       '{created} weekly expense drafts saved; retries create no duplicates.',
+    'action.validation.unusedIssuerReplacement': 'Review the replacement issuing authority fields.',
     'action.expense.draftSaved': 'Expense draft saved.',
     'action.expense.draftAlreadySaved': 'Expense draft already saved. No duplicate was created.',
     'action.expense.weekDraftsAlreadySaved':
@@ -9942,6 +9982,9 @@ const problemEnglish: Record<string, string> = {
     'This client is no longer available. Review the client list before continuing.',
   'problem.client.contactUnavailable':
     'This contact is no longer available. Review the client contacts before continuing.',
+  'problem.warning.expensePayerFacts': 'Enter the amount, currency, payer and receipt details.',
+  'problem.client.contactLinkedProject':
+    'This contact is linked to a project. Review the project contact before deleting it, or update the contact details instead.',
   'problem.client.contactStale':
     'This contact changed before deletion. Review the current contact before trying again.',
   'problem.project.unavailable':

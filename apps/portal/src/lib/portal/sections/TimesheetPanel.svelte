@@ -3,7 +3,9 @@
   import type { PortalLocale } from '../../portal-i18n';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { page } from '$app/stores';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
+  import type { ProblemData } from '../../problem/contract';
+  import { requestGuidedRecovery } from '../guided-recovery/events';
   import { datePresetRange } from '../ui/date-presets';
   import { base } from '$app/paths';
   import { TableRegion } from '../ui';
@@ -30,6 +32,18 @@
   let currentWeek = $state('');
   onMount(() => {
     currentWeek = datePresetRange('week').from;
+    const result = $page.form as (ProblemData & { success?: boolean; actionName?: string }) | null;
+    if (result?.success === false && result.actionName === 'copyTimeLayout')
+      void tick().then(() => {
+        const form = document.querySelector<HTMLFormElement>('[data-copy-time-layout]');
+        requestGuidedRecovery({
+          problem: result,
+          ...(form ? { form, source: form } : {}),
+          links: [
+            { label: translate('Review time entries'), href: `${base}/app/time#time-records` },
+          ],
+        });
+      });
   });
   const weekPickerFilters = $derived(
     ['project', 'worker', 'status', 'lang', 'q', 'client', 'category', 'order']
@@ -301,7 +315,7 @@
             )} · {translate('This week')}: {data.weekStart}–{shiftWeek(data.weekStart, 6)}
           </p>
         {/if}
-        <form method="POST" action={copyActionHref}>
+        <form method="POST" action={copyActionHref} data-copy-time-layout>
           <input type="hidden" name="sourceWeekStart" value={shiftWeek(data.weekStart ?? '', -7)} />
           <input type="hidden" name="targetWeekStart" value={data.weekStart} />
           <button type="submit">{translate('Add this week’s layout')}</button>

@@ -30,6 +30,7 @@ import {
   projectVisibility,
   visibleProjectRecords,
 } from '$lib/portal/project-visibility';
+import { clientCalendarWindow, normalizeCalendarMonth } from '$lib/portal/client-work-calendar';
 
 const sections = [
   'time',
@@ -550,6 +551,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           ? context.sqlite
               .prepare(
                 `SELECT p.id,p.client_id,p.project_number,p.name,p.status,p.currency,p.timezone,
+                          p.cost_center_code,p.po_number,
                           p.start_date,p.planned_end_date,p.actual_end_date,p.version,
                           p.site_name,p.country,c.client_number,c.display_name client_name
                      FROM project p
@@ -559,6 +561,34 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               )
               .all(...projectIds)
           : [];
+        const calendarMonth = normalizeCalendarMonth(url.searchParams.get('calendarMonth'));
+        const calendarWindow = clientCalendarWindow(calendarMonth);
+        const canViewClientWorkCalendar = [
+          'owner_admin',
+          'finance_admin',
+          'project_manager',
+        ].includes(context.principal.role);
+        const calendarEntries = canViewClientWorkCalendar
+          ? context.repository.listClientCalendarEntries(
+              context.principal,
+              calendarWindow.from,
+              calendarWindow.to,
+            )
+          : [];
+        const projectManagerClients =
+          context.principal.role === 'project_manager' && projectIds.length
+            ? context.sqlite
+                .prepare(
+                  `SELECT c.id,c.client_number,c.client_code,c.display_name,c.legal_name,c.status
+                     FROM client c
+                    WHERE EXISTS (
+                      SELECT 1 FROM project p
+                       WHERE p.client_id=c.id AND p.id IN (${projectIds.map(() => '?').join(',')})
+                    )
+                    ORDER BY c.client_number`,
+                )
+                .all(...projectIds)
+            : [];
         let mailboxes: Awaited<ReturnType<typeof listMailboxAccounts>> = [];
         let mailboxesUnavailable = false;
         if (canonicalOwner) {
@@ -630,12 +660,17 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               ? context.repository
                   .listClients(context.principal)
                   .filter((client) => includeArchived || client.status !== 'archived')
-              : [],
+              : projectManagerClients.filter(
+                  (client) => includeArchived || client.status !== 'archived',
+                ),
           contacts:
             context.principal.role === 'worker'
               ? []
               : context.repository.listAllClientContacts(context.principal),
           workers: projectWorkers,
+          calendarEntries,
+          calendarMonth,
+          canViewWorkCalendar: canViewClientWorkCalendar,
           allSkills:
             context.principal.role !== 'worker'
               ? context.repository.listSkills(context.principal)

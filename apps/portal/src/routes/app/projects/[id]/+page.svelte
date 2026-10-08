@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ProjectSiteFields from '$lib/portal/sections/ProjectSiteFields.svelte';
   import { useAssistantPaneRequest } from '$lib/portal/assistant/surface-request.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
@@ -1252,6 +1253,25 @@
                 <dd>{display(project.site_name, t('Not configured'))}</dd>
               </div>
               <div>
+                <dt>{t('Location (optional)')}</dt>
+                <dd>{display(project.site_location, t('Not configured'))}</dd>
+              </div>
+              <div>
+                <dt>{t('On-site manager (optional)')}</dt>
+                <dd>{display(project.onsite_manager, t('Not configured'))}</dd>
+              </div>
+              <div>
+                <dt>{t('On-site contact (optional)')}</dt>
+                <dd>
+                  {display(
+                    (data.siteContacts ?? []).find(
+                      (contact) => contact.id === project.onsite_contact_id,
+                    )?.name,
+                    t('Not configured'),
+                  )}
+                </dd>
+              </div>
+              <div>
                 <dt>{t('Timezone')}</dt>
                 <dd>{display(project.timezone)}</dd>
               </div>
@@ -2203,13 +2223,20 @@
               maxlength="80"
             /></label
           >
-          <label
-            >{t('Site / plant')}<input
-              name="siteName"
-              value={projectValue('siteName', display(project.site_name, ''))}
-              maxlength="200"
-            /></label
-          >
+          <ProjectSiteFields
+            clientId={String(project.client_id)}
+            contacts={data.siteContacts ?? []}
+            values={{
+              siteName: projectValue('siteName', display(project.site_name, '')),
+              onsiteManager: projectValue('onsiteManager', display(project.onsite_manager, '')),
+              siteLocation: projectValue('siteLocation', display(project.site_location, '')),
+              onsiteContactId: projectValue(
+                'onsiteContactId',
+                display(project.onsite_contact_id, ''),
+              ),
+            }}
+            translate={t}
+          />
           <label
             >{t('Country')}<input
               name="country"

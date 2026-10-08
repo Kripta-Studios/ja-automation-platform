@@ -3,6 +3,10 @@
   import TimeIntervalFields from '$lib/portal/ui/TimeIntervalFields.svelte';
   import { durationMinutes, localToday } from '$lib/portal/ui/time-entry-clock';
   import { supplierRosterForDate } from '$lib/portal/supplier-roster';
+  import {
+    filterSuppliersByProjectRelations,
+    filterTechniciansByProjectRelations,
+  } from '$lib/portal/supplier-technician-filters';
   import { portalText } from '$lib/portal-i18n';
   import {
     SectionCard,
@@ -153,6 +157,9 @@
   let directoryStatus = $state<DirectoryStatus>(
     untrack(() => (data.owner ? requestedDirectoryStatus() : 'active')),
   );
+  let directoryProjectId = $state('');
+  let directorySupplierId = $state('');
+  let directoryTechnicianId = $state('');
   let lastRequestedDirectoryStatus = untrack(() => $page.url.searchParams.get('directoryStatus'));
   $effect(() => {
     const requested = $page.url.searchParams.get('directoryStatus');
@@ -267,8 +274,28 @@
     (directoryStatus === 'all' ||
       (directoryStatus === 'active' ? status === 'active' : status !== 'active')) &&
     text.toLocaleLowerCase().includes(search.toLocaleLowerCase());
+  const directoryRelationFilters = $derived({
+    projectId: directoryProjectId,
+    supplierId: directorySupplierId,
+    technicianId: directoryTechnicianId,
+  });
+  const relationFilteredSuppliers = $derived(
+    filterSuppliersByProjectRelations(
+      data.suppliers,
+      data.directory,
+      data.directoryAssignments ?? [],
+      directoryRelationFilters,
+    ),
+  );
+  const relationFilteredTechnicians = $derived(
+    filterTechniciansByProjectRelations(
+      data.directory,
+      data.directoryAssignments ?? [],
+      directoryRelationFilters,
+    ),
+  );
   const filteredSuppliers = $derived(
-    data.suppliers.filter((supplier) =>
+    relationFilteredSuppliers.filter((supplier) =>
       matches(
         `${supplier.name} ${supplier.contactEmail ?? ''} ${supplier.phone ?? ''} ${supplier.address ?? ''} ${supplier.notes ?? ''}`,
         supplier.status,
@@ -276,7 +303,7 @@
     ),
   );
   const filteredTechnicians = $derived(
-    data.directory.filter((technician) =>
+    relationFilteredTechnicians.filter((technician) =>
       matches(
         `${technician.name} ${technician.email} ${technician.supplierName} ${technician.company ?? ''} ${technician.contactName ?? ''} ${technician.phone ?? ''} ${technician.notes ?? ''}`,
         technician.status,
@@ -285,6 +312,13 @@
   );
   let supplierPage = $state<typeof filteredSuppliers>([]);
   let technicianPage = $state<typeof filteredTechnicians>([]);
+  function clearDirectoryFilters(): void {
+    search = '';
+    directoryStatus = 'active';
+    directoryProjectId = '';
+    directorySupplierId = '';
+    directoryTechnicianId = '';
+  }
   let teamSearch = $state('');
   let selectedWorkerIds = $state<string[]>(
     untrack(() =>
@@ -361,7 +395,7 @@
       .sort();
     if (dates.length === 0) return '';
     return dates[0] === dates[dates.length - 1]
-      ? dates[0]
+      ? (dates[0] ?? '')
       : `${dates[0]} – ${dates[dates.length - 1]}`;
   });
   function addVisibleTechnicians() {
@@ -551,7 +585,8 @@
       }
       clearSubmissionPosition();
       if (
-        previous?.operation === operation &&
+        previous &&
+        previous.operation === operation &&
         previous.path === location.pathname &&
         Number.isFinite(previous.scrollY)
       ) {
@@ -687,10 +722,39 @@
           >{m.search}<input type="search" bind:value={search} placeholder={m.searchHint} /></label
         >
         <label data-ui="field"
+          >{c.project}<select bind:value={directoryProjectId}
+            ><option value="">{m.all}</option>{#each data.projects as project}<option
+                value={project.id}>{project.name}</option
+              >{/each}</select
+          ></label
+        >
+        <label data-ui="field"
+          >{c.provider}<select bind:value={directorySupplierId}
+            ><option value="">{m.all}</option>{#each data.suppliers as supplier}<option
+                value={supplier.id}>{supplier.name}</option
+              >{/each}</select
+          ></label
+        >
+        <label data-ui="field"
+          >{c.worker}<select bind:value={directoryTechnicianId}
+            ><option value="">{m.all}</option>{#each data.directory as technician}<option
+                value={technician.id}
+                >{technician.name}{technician.supplierName
+                  ? ` · ${technician.supplierName}`
+                  : ''}</option
+              >{/each}</select
+          ></label
+        >
+        <label data-ui="field"
           >{c.state}<select bind:value={directoryStatus}
             ><option value="active">{m.active}</option><option value="inactive">{m.inactive}</option
             ><option value="all">{m.all}</option></select
           ></label
+        >
+        <button
+          type="button"
+          class="secondary-button directory-reset"
+          onclick={clearDirectoryFilters}>{c.clearSelection}</button
         >
       </div>
       <h3>{m.suppliers}</h3>
@@ -1934,9 +1998,16 @@
   }
   .directory-filters {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(10rem, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1rem;
     margin-bottom: 1.5rem;
+  }
+  .directory-filters > label:first-child {
+    grid-column: span 2;
+  }
+  .directory-reset {
+    min-height: var(--ja-target-min, 2.75rem);
+    align-self: end;
   }
   .directory-record {
     display: flex;
@@ -2008,6 +2079,14 @@
   h3 {
     margin: 1rem 0;
   }
+  @media (max-width: 58rem) {
+    .directory-filters {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .directory-filters > label:first-child {
+      grid-column: 1 / -1;
+    }
+  }
   :global(.supplier-editor) {
     display: grid;
     gap: 1.25rem;
@@ -2026,6 +2105,9 @@
   @media (max-width: 40rem) {
     .directory-filters {
       grid-template-columns: 1fr;
+    }
+    .directory-filters > label:first-child {
+      grid-column: auto;
     }
     .directory-record {
       align-items: stretch;

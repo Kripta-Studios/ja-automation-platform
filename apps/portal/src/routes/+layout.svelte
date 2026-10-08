@@ -1,5 +1,6 @@
 <script lang="ts">
   import '../portal.css';
+  import GuidedRecovery from '$lib/portal/guided-recovery/GuidedRecovery.svelte';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { resolvePortalLocalePreference } from '$lib/i18n/context';
@@ -17,6 +18,7 @@
 </script>
 
 {@render children()}
+<GuidedRecovery />
 <footer class="portal-development-credit">
   {developmentCredit[locale]}
 </footer>

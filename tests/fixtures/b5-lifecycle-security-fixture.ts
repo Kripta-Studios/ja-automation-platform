@@ -99,12 +99,12 @@ export function createB5LifecycleSecurityFixture() {
       billingAddress: 'B5 Fixture Client, Calle de Prueba 1, Madrid',
       paymentTermsDays: 30,
     });
-    // Upgrade tests deliberately open a database before migration 0060. The
-    // current repository writes expense_budget_minor, which those historical
-    // schemas cannot have yet. Seed only the pre-0060 project with columns
+    // Upgrade tests deliberately open a database before the current migration. The
+    // current repository writes on-site settings, which those historical
+    // schemas cannot have yet. Seed only the historical project with columns
     // available at that version; keep the normal path exercising the API.
     const isHistoricalProjectSchema = !sqlite
-      .prepare("SELECT 1 FROM pragma_table_info('project') WHERE name='expense_budget_minor'")
+      .prepare("SELECT 1 FROM pragma_table_info('project') WHERE name='onsite_contact_id'")
       .get();
     const project = isHistoricalProjectSchema
       ? (() => {

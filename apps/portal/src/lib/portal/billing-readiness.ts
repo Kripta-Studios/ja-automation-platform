@@ -49,22 +49,23 @@ export function billingReadinessReviewPath(
   reasonCodes: readonly string[],
   projectId = '',
   period?: { start: string; end: string },
+  sourceRecord?: string,
 ): string {
   const project = projectId ? `&project=${encodeURIComponent(projectId)}` : '';
+  const dates =
+    period && /^\d{4}-\d{2}-\d{2}$/.test(period.start) && /^\d{4}-\d{2}-\d{2}$/.test(period.end)
+      ? `&from=${encodeURIComponent(period.start)}&to=${encodeURIComponent(period.end)}`
+      : '';
   if (reasonCodes.includes('pending_time_submission')) {
-    const dates =
-      period && /^\d{4}-\d{2}-\d{2}$/.test(period.start) && /^\d{4}-\d{2}-\d{2}$/.test(period.end)
-        ? `&from=${encodeURIComponent(period.start)}&to=${encodeURIComponent(period.end)}`
-        : '';
     return `/time?status=attention${project}${dates}`;
   }
   if (reasonCodes.includes('pending_time_finance_review'))
-    return `/approvals?stage=finance${project}#finance-review`;
+    return `/approvals?stage=finance${project}${dates}#finance-review`;
   if (reasonCodes.some((code) => code.includes('time_approval')))
-    return `/approvals?queue=time${project}`;
+    return `/approvals?queue=time${project}${dates}`;
   if (reasonCodes.some((code) => code.includes('expense')))
-    return `/approvals?queue=expenses${project}`;
+    return `/approvals?queue=expenses${project}${dates}`;
   if (reasonCodes.some((code) => code.includes('client_rate')))
-    return `/finance?view=commercial${project}`;
+    return `/finance?view=commercial${project}${dates}&task=Client%20labor%20rate${sourceRecord ? `&sourceRecord=${encodeURIComponent(sourceRecord)}` : ''}#finance-client-rate`;
   return '/billing';
 }

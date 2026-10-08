@@ -859,11 +859,46 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
       redirect(303, '/j-aautomation/app/supplier/report');
     const projects = ctx.supplier.listProjects(ctx.principal);
     const projectId = url.searchParams.get('projectId') || projects[0]?.id || '';
+    // The owner directory filters against the authorized operational roster.
+    // Keep this projection to the IDs needed to relate project, supplier, and
+    // technician; time and finance records are not part of directory filters.
+    const rosterByProject = new Map<
+      string,
+      ReturnType<typeof ctx.supplier.listScheduledTechnicians>
+    >();
+    if (owner) {
+      for (const project of projects)
+        rosterByProject.set(
+          String(project.id),
+          ctx.supplier.listScheduledTechnicians(ctx.principal, String(project.id)),
+        );
+    }
+    type DirectoryAssignment = { projectId: string; workerId: string; supplierId: string };
+    const directoryAssignments: DirectoryAssignment[] = owner
+      ? [
+          ...new Map<string, DirectoryAssignment>(
+            [...rosterByProject].flatMap(([authorizedProjectId, roster]) =>
+              roster.map((technician) => {
+                const key = `${authorizedProjectId}\u0000${technician.id}\u0000${technician.supplierId}`;
+                return [
+                  key,
+                  {
+                    projectId: authorizedProjectId,
+                    workerId: String(technician.id),
+                    supplierId: String(technician.supplierId),
+                  },
+                ] as const;
+              }),
+            ),
+          ).values(),
+        ]
+      : [];
     const period = supplierPeriod(url, locals.correlationId);
     return {
       owner,
       currentUserId: ctx.principal.userId,
       directory: owner ? ctx.supplier.technicianDirectory(ctx.principal) : [],
+      directoryAssignments,
       batchRequestId: randomUUID(),
       correctionRequestId: randomUUID(),
       locale: resolvePortalLocalePreference(
@@ -880,7 +915,11 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
         name: string;
         supplierId: string;
       }[],
-      assigned: projectId ? ctx.supplier.listScheduledTechnicians(ctx.principal, projectId) : [],
+      assigned: projectId
+        ? ((owner
+            ? rosterByProject.get(projectId)
+            : ctx.supplier.listScheduledTechnicians(ctx.principal, projectId)) ?? [])
+        : [],
       entries:
         projectId && !period.periodProblem
           ? ctx.supplier.listTime(ctx.principal, { projectId, from: period.from, to: period.to })
@@ -955,6 +994,7 @@ function action(operation: string): Actions[string] {
             return actionFail(400, 'problem.supplier.confirmStatusChange', {}, undefined, {
               code: 'SUPPLIER_STATUS_CONFIRMATION_REQUIRED',
               operation,
+              actionName: operation,
               values,
               fieldErrors: { confirmed: ['problem.supplier.confirmStatusChange'] },
               remedies: [{ id: 'confirm_status_change' }],
@@ -978,6 +1018,7 @@ function action(operation: string): Actions[string] {
             return actionFail(400, 'problem.supplier.confirmStatusChange', {}, undefined, {
               code: 'SUPPLIER_STATUS_CONFIRMATION_REQUIRED',
               operation,
+              actionName: operation,
               values,
               fieldErrors: { confirmed: ['problem.supplier.confirmStatusChange'] },
               remedies: [{ id: 'confirm_status_change' }],
@@ -994,6 +1035,7 @@ function action(operation: string): Actions[string] {
             return actionFail(400, 'problem.supplier.profileInvalid', {}, undefined, {
               code: 'SUPPLIER_PROFILE_INVALID',
               operation,
+              actionName: operation,
               values,
               fieldErrors: { profile: ['problem.supplier.profileInvalid'] },
               remedies: [{ id: 'review_supplier_profile' }],
@@ -1196,7 +1238,12 @@ function action(operation: string): Actions[string] {
         caught instanceof ConflictError ? visibleSubmissionEntries(ctx, operation, values) : [],
       );
       if (known) return known;
-      return actionFailure(caught, { operation, values, correlationId: locals.correlationId });
+      return actionFailure(caught, {
+        operation,
+        actionName: operation,
+        values,
+        correlationId: locals.correlationId,
+      });
     } finally {
       ctx.sqlite.close();
     }

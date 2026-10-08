@@ -36,6 +36,7 @@
     type OperationalOrder,
     writeOperationalRegisterState,
   } from './operational-register';
+  import { availableWorkerSelection, recordWorkerOptions } from './operational-record-filters';
 
   let {
     data,
@@ -114,7 +115,7 @@
   let createWhoPaid = $state(nativeExpenseValue('whoPaid') || 'worker');
   const payerTreatmentWarning: ProblemData = {
     code: 'WARNING_EXPENSE_PAYER_FACTS',
-    messageKey: 'Enter the amount, currency, payer and receipt details.',
+    messageKey: 'problem.warning.expensePayerFacts',
     params: {},
     fieldErrors: {},
     remedies: [{ id: 'review_expense_payer' }],
@@ -698,6 +699,9 @@
   });
 
   const records = $derived(data.records ?? []);
+  const registerWorkerOptions = $derived(
+    recordWorkerOptions(records, projectFilter, ['worker_name']),
+  );
   const restrictedOperational = $derived(Boolean(data.user.workforceProfile));
   const operationalOnly = $derived(['worker', 'project_manager'].includes(String(data.user.role)));
   const canViewReimbursement = $derived(
@@ -772,15 +776,24 @@
       order = saved.order as OperationalOrder;
       registerPage = saved.registerPage;
     },
-    validate: (saved) => ({
-      ...saved,
-      projectFilter: normalizeVisibleProjectSelection(
+    validate: (saved) => {
+      const selectedProject = normalizeVisibleProjectSelection(
         saved.projectFilter,
         projectVisibility(availableProjects, true).projectIds,
-      ),
-      order: ['newest', 'oldest', 'name', 'status'].includes(saved.order) ? saved.order : 'newest',
-      reimbursementFilter: canViewReimbursement ? saved.reimbursementFilter : '',
-    }),
+      );
+      return {
+        ...saved,
+        projectFilter: selectedProject,
+        workerFilter: availableWorkerSelection(
+          saved.workerFilter,
+          recordWorkerOptions(records, selectedProject, ['worker_name']),
+        ),
+        order: ['newest', 'oldest', 'name', 'status'].includes(saved.order)
+          ? saved.order
+          : 'newest',
+        reimbursementFilter: canViewReimbursement ? saved.reimbursementFilter : '',
+      };
+    },
   });
   const expenseProblemContext = $derived.by(() => {
     const row = surface === 'edit' ? editRow : undefined;
@@ -1557,7 +1570,13 @@
         id="expense-register-field-project"
         name="project"
         bind:value={projectFilter}
-        onchange={() => (registerPage = 1)}
+        onchange={() => {
+          workerFilter = availableWorkerSelection(
+            workerFilter,
+            recordWorkerOptions(records, projectFilter, ['worker_name']),
+          );
+          registerPage = 1;
+        }}
       >
         <option value="">{translate('All projects')}</option>
         {#each availableProjects as project}
@@ -1565,6 +1584,22 @@
         {/each}
       </select>
     </label>
+    {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
+      <label>
+        <span>{translate('Worker')}</span>
+        <select
+          id="expense-register-field-worker"
+          name="worker"
+          bind:value={workerFilter}
+          onchange={() => (registerPage = 1)}
+        >
+          <option value="">{translate('All workers')}</option>
+          {#each registerWorkerOptions as [id, name]}
+            <option value={id}>{name}</option>
+          {/each}
+        </select>
+      </label>
+    {/if}
     <label>
       <span>{translate('Status')}</span>
       <select
@@ -1588,7 +1623,6 @@
         : undefined}
       collapsible
       expanded={Boolean(
-        workerFilter ||
         clientFilter ||
         fromFilter ||
         toFilter ||
@@ -1601,22 +1635,6 @@
       class="register-filter-disclosure"
     >
       <div class="expense-filter-fields">
-        {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
-          <label>
-            <span>{translate('Worker')}</span>
-            <select
-              id="expense-register-field-worker"
-              name="worker"
-              bind:value={workerFilter}
-              onchange={() => (registerPage = 1)}
-            >
-              <option value="">{translate('All workers')}</option>
-              {#each data.workers ?? [] as worker}
-                <option value={String(worker.id)}>{worker.name}</option>
-              {/each}
-            </select>
-          </label>
-        {/if}
         <label>
           <span>{translate('Client')}</span>
           <select

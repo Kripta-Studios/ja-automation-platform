@@ -33,6 +33,7 @@
     type OperationalOrder,
     writeOperationalRegisterState,
   } from './operational-register';
+  import { availableWorkerSelection, recordWorkerOptions } from './operational-record-filters';
 
   let {
     data,
@@ -314,7 +315,10 @@
   const reportProblemContext = $derived.by(() => {
     const projectId = surface === 'generate' ? periodProjectId : createProject;
     const project = availableProjects.find((row) => String(row.id) === projectId);
-    const workerId = String(surfaceProblem?.values?.workerId ?? nativeReportValue('workerId'));
+    const workerId = String(
+      (surfaceProblem as (ProblemData & { values?: Record<string, unknown> }) | null)?.values
+        ?.workerId ?? nativeReportValue('workerId'),
+    );
     const worker = data.workers?.find((row) => String(row.id) === workerId);
     return [
       project
@@ -404,12 +408,10 @@
     reportGuidanceFor(reportLocale, String(data.user.role ?? ''), data.user.workforceProfile),
   );
   const workerOptions = $derived(
-    Array.from(
-      new Map(
-        records
-          .filter((row) => rowText(row, 'worker_id'))
-          .map((row) => [rowText(row, 'worker_id'), rowText(row, 'author_name')]),
-      ).entries(),
+    recordWorkerOptions(
+      activeTab === 'technical' ? technicalReports : dailyReports,
+      projectFilter,
+      ['author_name', 'created_by_name'],
     ),
   );
   const clientOptions = $derived(
@@ -602,17 +604,34 @@
       dailyPage = saved.dailyPage;
       technicalPage = saved.technicalPage;
     },
-    validate: (saved) => ({
-      ...saved,
-      projectFilter: normalizeVisibleProjectSelection(
+    validate: (saved) => {
+      const selectedProject = normalizeVisibleProjectSelection(
         saved.projectFilter,
         projectVisibility(availableProjects, true).projectIds,
-      ),
-      order: ['newest', 'oldest', 'name', 'status'].includes(saved.order) ? saved.order : 'newest',
-      statusFilter: reportStatusOptions(resolveReportTab(saved.view)).includes(saved.statusFilter)
-        ? saved.statusFilter
-        : '',
-    }),
+      );
+      const tab = resolveReportTab(saved.view);
+      return {
+        ...saved,
+        projectFilter: selectedProject,
+        workerFilter:
+          tab === 'signoff'
+            ? ''
+            : availableWorkerSelection(
+                saved.workerFilter,
+                recordWorkerOptions(
+                  tab === 'technical' ? technicalReports : dailyReports,
+                  selectedProject,
+                  ['author_name', 'created_by_name'],
+                ),
+              ),
+        order: ['newest', 'oldest', 'name', 'status'].includes(saved.order)
+          ? saved.order
+          : 'newest',
+        statusFilter: reportStatusOptions(tab).includes(saved.statusFilter)
+          ? saved.statusFilter
+          : '',
+      };
+    },
   });
   $effect(() => {
     if (activeTab === 'signoff' && workerFilter) workerFilter = '';
@@ -876,7 +895,19 @@
 
   function setTab(tab: ReportTab): void {
     if (!reportStatusOptions(tab).includes(statusFilter)) statusFilter = '';
-    if (tab === 'signoff') workerFilter = '';
+    workerFilter =
+      tab === 'signoff'
+        ? ''
+        : availableWorkerSelection(
+            workerFilter,
+            recordWorkerOptions(
+              tab === 'technical' ? technicalReports : dailyReports,
+              projectFilter,
+              ['author_name', 'created_by_name'],
+            ),
+          );
+    dailyPage = 1;
+    technicalPage = 1;
     tabOverride = { url: $page.url.href, tab };
     surface = null;
   }
@@ -1148,6 +1179,14 @@
         name="project"
         bind:value={projectFilter}
         onchange={() => {
+          workerFilter = availableWorkerSelection(
+            workerFilter,
+            recordWorkerOptions(
+              activeTab === 'technical' ? technicalReports : dailyReports,
+              projectFilter,
+              ['author_name', 'created_by_name'],
+            ),
+          );
           dailyPage = 1;
           technicalPage = 1;
         }}
@@ -1157,6 +1196,20 @@
           >{/each}</select
       ></label
     >
+    {#if activeTab !== 'signoff' && ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
+      <label
+        ><span>{translate('Worker')}</span><select
+          name="worker"
+          bind:value={workerFilter}
+          onchange={() => {
+            dailyPage = 1;
+            technicalPage = 1;
+          }}
+          ><option value="">{translate('All workers')}</option
+          >{#each workerOptions as [id, label]}<option value={id}>{label}</option>{/each}</select
+        ></label
+      >
+    {/if}
     <label
       ><span>{translate('Status')}</span><select
         name="status"
@@ -1173,27 +1226,10 @@
     <SectionCard
       title={translate('Filter reports')}
       collapsible
-      expanded={Boolean(
-        workerFilter || clientFilter || fromFilter || toFilter || order !== 'newest',
-      )}
+      expanded={Boolean(clientFilter || fromFilter || toFilter || order !== 'newest')}
       class="register-filter-disclosure"
     >
       <div class="secondary-filter-fields report-register-filters-secondary">
-        {#if activeTab !== 'signoff' && ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
-          <label
-            ><span>{translate('Worker')}</span><select
-              name="worker"
-              bind:value={workerFilter}
-              onchange={() => {
-                dailyPage = 1;
-                technicalPage = 1;
-              }}
-              ><option value="">{translate('All workers')}</option
-              >{#each workerOptions as [id, label]}<option value={id}>{label}</option
-                >{/each}</select
-            ></label
-          >
-        {/if}
         <label
           ><span>{translate('Client')}</span><select
             name="client"

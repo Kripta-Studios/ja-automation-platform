@@ -107,7 +107,7 @@ test('Owner sees worker-empty guidance in all operational forms and reaches Team
   }
 });
 
-test('Time explains date-specific assignment loss and keeps project in the review destination', async ({
+test('Time explains a project unavailable on the selected date and keeps it in the review destination', async ({
   page,
 }, testInfo) => {
   test.skip(!['phone-390', 'desktop'].includes(testInfo.project.name));
@@ -125,13 +125,18 @@ test('Time explains date-specific assignment loss and keeps project in the revie
     locale,
     `&project=${assignment.projectId}&date=${beforeAssignment}`,
   );
-  await form.locator('select[name="workerId"]').selectOption(assignment.workerId);
-  const notice = form.locator('[data-problem-code="OPERATIONAL_ASSIGNMENT_UNAVAILABLE_FOR_DATE"]');
+  const workerSelect = form.locator('select[name="workerId"]');
+  await expect(workerSelect).toHaveValue('');
+  await expect(workerSelect).toBeDisabled();
+  const notice = form.locator('[data-problem-code="OPERATIONAL_SELECTED_PROJECT_UNAVAILABLE"]');
   await expect(notice).toBeVisible();
+  await expect(
+    form.locator('[data-problem-code="OPERATIONAL_ASSIGNMENT_UNAVAILABLE_FOR_DATE"]'),
+  ).toHaveCount(0);
   await expect(notice).toContainText(
     locale === 'es'
-      ? 'No hay ninguna asignación que cubra a este trabajador en esta fecha.'
-      : 'Nenhuma atribuição cobre este trabalhador nesta data.',
+      ? 'El proyecto seleccionado no está disponible en este formulario.'
+      : 'O projeto selecionado está indisponível neste formulário.',
   );
   await expect(form.locator('input[name="workDate"]')).toHaveValue(beforeAssignment);
   await expect(form.locator('select[name="projectId"]')).toHaveValue(assignment.projectId);
@@ -144,12 +149,11 @@ test('Time explains date-specific assignment loss and keeps project in the revie
   expect(destination.pathname).toBe(new URL(portal('/projects')).pathname);
   expect(destination.searchParams.get('action')).toBe('update-assignment');
   expect(destination.searchParams.get('project')).toBe(assignment.projectId);
-  expect(destination.searchParams.get('worker')).toBe(assignment.workerId);
+  expect(destination.searchParams.has('worker')).toBe(false);
   expect(destination.searchParams.get('lang')).toBe(locale);
   expect(destination.hash).toBe('#project-assignment-list');
-  // The entered worker/date make this form dirty; accept its leave confirmation
-  // to exercise the remedy destination a person intentionally chose.
-  page.once('dialog', (dialog) => void dialog.accept());
+  // The project came from the review link; the date is unassigned and no worker
+  // can be chosen until an effective assignment exists for it.
   await review.click();
   await expect(page.locator('#project-assignment-list')).toBeVisible();
   await expect(
@@ -181,7 +185,7 @@ test('Unselectable project shows one localized cause and does not trigger Expens
       locale,
       `&project=${unavailableProjectId}${route.path === 'time' ? `&date=${assignment.startsOn}` : ''}`,
     );
-    if (route.path === 'time' || route.path === 'expenses')
+    if (route.path === 'expenses')
       await form.locator('select[name="workerId"]').selectOption(assignment.workerId);
     const selected = form.locator('select[name="projectId"]');
     await expect(selected).toHaveValue(unavailableProjectId);

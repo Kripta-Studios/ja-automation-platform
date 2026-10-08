@@ -5,6 +5,7 @@ import { standaloneActionMessage } from '../../../routes/app/standalone-locale';
 import type { ProblemData } from '../../problem/contract';
 import formValidation from './form-validation';
 import { reportFormFieldErrors } from './form-validation';
+import { requestGuidedRecovery, requestRecoveryMessage } from '../guided-recovery/events';
 
 type Control = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
@@ -97,6 +98,7 @@ export function createOperationalSubmit(options: OperationalSubmitOptions): Subm
     if (savedForm === formElement) {
       cancel();
       options.setError(refreshError());
+      requestRecoveryMessage(refreshError(), formElement);
       void focusError(formElement);
       return;
     }
@@ -107,9 +109,11 @@ export function createOperationalSubmit(options: OperationalSubmitOptions): Subm
     if (!navigator.onLine) {
       cancel();
       if (!options.offlineHandled()) {
-        options.setError(
-          options.translate('Reconnect to save changes. Your entries are still here.'),
+        const message = options.translate(
+          'Reconnect to save changes. Your entries are still here.',
         );
+        options.setError(message);
+        requestRecoveryMessage(message, formElement);
         void focusError(formElement);
       }
       return;
@@ -136,6 +140,7 @@ export function createOperationalSubmit(options: OperationalSubmitOptions): Subm
           restoreControls();
           options.setProblem?.(null);
           options.setError(genericError());
+          requestRecoveryMessage(genericError(), formElement);
           await focusError(formElement);
           return;
         }
@@ -154,6 +159,9 @@ export function createOperationalSubmit(options: OperationalSubmitOptions): Subm
               : message,
           );
           applyFieldErrors(formElement, result.data);
+          const problem = problemFromResult(result.data);
+          if (problem) requestGuidedRecovery({ problem, form: formElement, source: formElement });
+          else requestRecoveryMessage(message, formElement);
           await focusError(formElement);
           return;
         }
@@ -166,7 +174,9 @@ export function createOperationalSubmit(options: OperationalSubmitOptions): Subm
       } catch {
         restoreControls();
         options.setProblem?.(null);
-        options.setError(savedForm === formElement ? refreshError() : genericError());
+        const message = savedForm === formElement ? refreshError() : genericError();
+        options.setError(message);
+        requestRecoveryMessage(message, formElement);
         await focusError(formElement);
       } finally {
         restoreControls();

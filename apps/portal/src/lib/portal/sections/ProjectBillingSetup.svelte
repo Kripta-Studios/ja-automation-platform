@@ -7,6 +7,7 @@
   import type { ProjectPersonDefaults } from '@ja/database';
   import { StatusBadge } from '$lib/portal/ui';
   import { localizedServerFieldMessage } from '$lib/portal/ui/form-validation';
+  import { requestFinanceGuidedRecovery } from '../finance-guided-recovery';
   type Row = Record<string, unknown>;
   type SetupTemplate = {
     id: string;
@@ -146,6 +147,43 @@
   const personAction = $derived(
     feedback?.action === 'savePersonTerms' || feedback?.action === 'savePeopleTerms',
   );
+  let billingSetupForm = $state<HTMLFormElement>();
+  $effect(() => {
+    const current = setupFailure;
+    if (!current) return;
+    void tick().then(() =>
+      requestFinanceGuidedRecovery(
+        current,
+        billingSetupForm,
+        'saveBillingSetup',
+        'problem.projectDetail.billingSetupInvalid',
+        t('Review billing setup'),
+      ),
+    );
+  });
+  $effect(() => {
+    const current = personFailure;
+    if (!current) return;
+    step = 3;
+    void tick().then(() => {
+      const id =
+        current.action === 'savePeopleTerms'
+          ? 'selected-person-terms'
+          : `person-terms-${current.values?.workerId ?? ''}`;
+      const form = document.getElementById(id);
+      requestFinanceGuidedRecovery(
+        current,
+        form instanceof HTMLFormElement ? form : undefined,
+        current.action ?? 'savePersonTerms',
+        'problem.projectDetail.personTermsInvalid',
+        t('Check person terms fields'),
+      );
+    });
+  });
+  function personRecoveryFields(workerId: string, name: string): string {
+    const index = failedBatchRows.findIndex((row) => row.workerId === workerId);
+    return index < 0 ? name : `${name} ${index}.${name}`;
+  }
   const failedValues = $derived(setupFailure?.values ?? {});
   const personFailedValues = $derived(personFailure?.values ?? {});
   const failedPerson = $derived(people.find((person) => person.id === personFailedValues.workerId));
@@ -842,6 +880,7 @@
     <form
       method="POST"
       action="?/saveBillingSetup&tab=billing"
+      bind:this={billingSetupForm}
       onsubmit={(event) => {
         if (
           personSaveBusy ||
@@ -879,13 +918,14 @@
       <input type="hidden" name="saveAsTemplate" value={saveAsTemplate ? 'true' : 'false'} />
       <input type="hidden" name="templateName" value={templateName} />
 
-      {#if step === 1}
+      {#if step === 1 || setupFailure}
         <fieldset>
           <legend>{t('1. Invoice arrangement')}</legend>
           <label
             >{t('Start from a saved template')}
             <select
               value={selectedTemplateId}
+              data-recovery-field="selectedTemplateId"
               onchange={(event) => applyTemplate(event.currentTarget.value)}
               aria-invalid={Boolean(fieldError('selectedTemplateId'))}
               aria-describedby={fieldError('selectedTemplateId')
@@ -916,7 +956,7 @@
           </p>
           <div class="choice-grid">
             <label class:selected={mode === 'combined'}>
-              <input type="radio" value="combined" bind:group={mode} />
+              <input type="radio" value="combined" data-recovery-field="mode" bind:group={mode} />
               <strong>{t('One invoice with two sections')}</strong>
               <small
                 >{t(
@@ -925,7 +965,7 @@
               >
             </label>
             <label class:selected={mode === 'separate'}>
-              <input type="radio" value="separate" bind:group={mode} />
+              <input type="radio" value="separate" data-recovery-field="mode" bind:group={mode} />
               <strong>{t('Two separate invoices')}</strong>
               <small
                 >{t(
@@ -938,6 +978,7 @@
             >{t('Configuration effective from')}
             <input
               type="date"
+              data-recovery-field="effectiveFrom"
               bind:value={effectiveFrom}
               required
               aria-invalid={Boolean(fieldError('effectiveFrom'))}
@@ -948,13 +989,15 @@
               >{fieldError('effectiveFrom')}</small
             >{/if}
         </fieldset>
-      {:else if step === 2}
+      {/if}
+      {#if step === 2 || setupFailure}
         <fieldset>
           <legend>{t('2. Billing details')}</legend>
           <div class="field-grid">
             <label
               >{t('Invoice issuer (J&A Automation)')}
               <select
+                data-recovery-field="legalEntityId"
                 bind:value={legalEntityId}
                 required
                 aria-invalid={Boolean(fieldError('legalEntityId'))}
@@ -990,6 +1033,7 @@
               >{t('Labor tax profile')}
               <select
                 aria-label={t('Labor tax profile')}
+                data-recovery-field="laborTaxProfileId"
                 bind:value={laborTaxProfileId}
                 aria-invalid={Boolean(fieldError('laborTaxProfileId'))}
                 aria-describedby={fieldError('laborTaxProfileId')
@@ -1007,6 +1051,7 @@
             <label
               >{t('Labor billing cadence')}
               <select
+                data-recovery-field="cadenceType"
                 bind:value={cadenceType}
                 aria-invalid={Boolean(fieldError('cadenceType'))}
                 aria-describedby={fieldError('cadenceType') ? errorId('cadenceType') : undefined}
@@ -1026,6 +1071,7 @@
             {#if cadenceType === 'every_14_days'}<label
                 >{t('Labor cadence anchor date')}<input
                   type="date"
+                  data-recovery-field="anchorDate"
                   bind:value={anchorDate}
                   required
                   aria-invalid={Boolean(fieldError('anchorDate'))}
@@ -1040,6 +1086,7 @@
                 >{t('Expense tax profile')}
                 <select
                   aria-label={t('Expense tax profile')}
+                  data-recovery-field="expenseTaxProfileId"
                   bind:value={expenseTaxProfileId}
                   aria-invalid={Boolean(fieldError('expenseTaxProfileId'))}
                   aria-describedby={fieldError('expenseTaxProfileId')
@@ -1057,6 +1104,7 @@
               <label
                 >{t('Expense billing cadence')}
                 <select
+                  data-recovery-field="expenseCadenceType"
                   bind:value={expenseCadenceType}
                   aria-invalid={Boolean(fieldError('expenseCadenceType'))}
                   aria-describedby={fieldError('expenseCadenceType')
@@ -1079,6 +1127,7 @@
               {#if expenseCadenceType === 'every_14_days'}<label
                   >{t('Expense cadence anchor date')}<input
                     type="date"
+                    data-recovery-field="expenseAnchorDate"
                     bind:value={expenseAnchorDate}
                     required
                     aria-invalid={Boolean(fieldError('expenseAnchorDate'))}
@@ -1095,6 +1144,7 @@
             <label
               >{t('Invoice layout')}
               <select
+                data-recovery-field="invoiceLayout"
                 bind:value={invoiceLayout}
                 aria-invalid={Boolean(fieldError('invoiceLayout'))}
                 aria-describedby={fieldError('invoiceLayout')
@@ -1113,6 +1163,7 @@
             <label
               >{t('Line grouping')}
               <select
+                data-recovery-field="groupingMode"
                 bind:value={groupingMode}
                 aria-invalid={Boolean(fieldError('groupingMode'))}
                 aria-describedby={fieldError('groupingMode') ? errorId('groupingMode') : undefined}
@@ -1132,6 +1183,7 @@
             <label
               >{t('Billing contact')}
               <select
+                data-recovery-field="billingContactId"
                 bind:value={billingContactId}
                 aria-invalid={Boolean(fieldError('billingContactId'))}
                 aria-describedby={fieldError('billingContactId')
@@ -1150,6 +1202,7 @@
               >{t('Recipient email')}
               <input
                 type="email"
+                data-recovery-field="recipientEmail"
                 bind:value={recipientEmail}
                 autocomplete="email"
                 aria-invalid={Boolean(fieldError('recipientEmail'))}
@@ -1168,6 +1221,7 @@
                 min="0"
                 max="365"
                 step="1"
+                data-recovery-field="paymentTermsDays"
                 bind:value={paymentTermsDays}
                 required
                 aria-invalid={Boolean(fieldError('paymentTermsDays'))}
@@ -1182,9 +1236,11 @@
               >{/if}
           </div>
           <label class="check"
-            ><input type="checkbox" bind:checked={autoGenerateDraft} />{t(
-              'Automatically prepare drafts for review',
-            )}</label
+            ><input
+              type="checkbox"
+              data-recovery-field="autoGenerateDraft"
+              bind:checked={autoGenerateDraft}
+            />{t('Automatically prepare drafts for review')}</label
           >
           <p class="hint">{t('Invoices are never issued or sent automatically.')}</p>
           {#if entityChoices.length === 0}
@@ -1199,7 +1255,8 @@
             </p>
           {/if}
         </fieldset>
-      {:else if step === 3}
+      {/if}
+      {#if step === 3}
         <fieldset>
           <legend>{t('3. Review each person')}</legend>
           <p>
@@ -1388,6 +1445,8 @@
                         >{t('Terms effective from')}<input
                           type="date"
                           id={personControlId(person.id, 'effectiveFrom')}
+                          data-recovery-form={`person-terms-${person.id} selected-person-terms`}
+                          data-recovery-field={personRecoveryFields(person.id, 'effectiveFrom')}
                           aria-describedby={personFieldError(person.id, 'effectiveFrom')
                             ? personErrorId(person.id, 'effectiveFrom')
                             : undefined}
@@ -1403,7 +1462,12 @@
                       >
                       <label
                         >{t('Customer billing unit')}
-                        <select bind:value={draft.customerRateBasis} disabled={personSaveBusy}>
+                        <select
+                          data-recovery-form={`person-terms-${person.id} selected-person-terms`}
+                          data-recovery-field={personRecoveryFields(person.id, 'customerRateBasis')}
+                          bind:value={draft.customerRateBasis}
+                          disabled={personSaveBusy}
+                        >
                           <option value="hourly">{t('Hourly')}</option>
                           <option value="daily">{t('Daily')}</option>
                           <option value="weekly">{t('Weekly')}</option>
@@ -1425,6 +1489,11 @@
                           type="text"
                           inputmode="decimal"
                           id={personControlId(person.id, 'customerHourlyRate')}
+                          data-recovery-form={`person-terms-${person.id} selected-person-terms`}
+                          data-recovery-field={personRecoveryFields(
+                            person.id,
+                            'customerHourlyRate',
+                          )}
                           aria-describedby={personFieldError(person.id, 'customerHourlyRate')
                             ? personErrorId(person.id, 'customerHourlyRate')
                             : undefined}
@@ -1443,6 +1512,11 @@
                           type="text"
                           inputmode="decimal"
                           id={personControlId(person.id, 'internalCostHourlyRate')}
+                          data-recovery-form={`person-terms-${person.id} selected-person-terms`}
+                          data-recovery-field={personRecoveryFields(
+                            person.id,
+                            'internalCostHourlyRate',
+                          )}
                           aria-describedby={personFieldError(person.id, 'internalCostHourlyRate')
                             ? personErrorId(person.id, 'internalCostHourlyRate')
                             : undefined}
@@ -1461,6 +1535,8 @@
                       <label
                         >{t('Worker compensation method')}<select
                           id={personControlId(person.id, 'workerPayType')}
+                          data-recovery-form={`person-terms-${person.id} selected-person-terms`}
+                          data-recovery-field={personRecoveryFields(person.id, 'workerPayType')}
                           aria-describedby={personFieldError(person.id, 'workerPayType')
                             ? personErrorId(person.id, 'workerPayType')
                             : undefined}
@@ -1494,6 +1570,8 @@
                           type="text"
                           inputmode="decimal"
                           id={personControlId(person.id, 'workerPayAmount')}
+                          data-recovery-form={`person-terms-${person.id} selected-person-terms`}
+                          data-recovery-field={personRecoveryFields(person.id, 'workerPayAmount')}
                           aria-describedby={personFieldError(person.id, 'workerPayAmount')
                             ? personErrorId(person.id, 'workerPayAmount')
                             : undefined}
@@ -1510,6 +1588,8 @@
                       {#if draft.workerPayType === 'PercentageOfEligibleClientLabor'}<label
                           >{t('Percentage basis')}<select
                             id={personControlId(person.id, 'percentageBasis')}
+                            data-recovery-form={`person-terms-${person.id} selected-person-terms`}
+                            data-recovery-field={personRecoveryFields(person.id, 'percentageBasis')}
                             aria-describedby={personFieldError(person.id, 'percentageBasis')
                               ? personErrorId(person.id, 'percentageBasis')
                               : undefined}
@@ -1534,6 +1614,8 @@
                       <label
                         >{t('Expense payer')}<select
                           id={personControlId(person.id, 'expensePayer')}
+                          data-recovery-form={`person-terms-${person.id} selected-person-terms`}
+                          data-recovery-field={personRecoveryFields(person.id, 'expensePayer')}
                           aria-describedby={personFieldError(person.id, 'expensePayer')
                             ? personErrorId(person.id, 'expensePayer')
                             : undefined}
@@ -1556,6 +1638,11 @@
                       <label
                         >{t('Worker reimbursement source')}<select
                           id={personControlId(person.id, 'reimbursementSource')}
+                          data-recovery-form={`person-terms-${person.id} selected-person-terms`}
+                          data-recovery-field={personRecoveryFields(
+                            person.id,
+                            'reimbursementSource',
+                          )}
                           aria-describedby={personFieldError(person.id, 'reimbursementSource')
                             ? personErrorId(person.id, 'reimbursementSource')
                             : undefined}
@@ -1585,6 +1672,11 @@
                           data-inherited-reimbursement
                           tabindex="-1"
                           id={personControlId(person.id, 'workerReimbursement')}
+                          data-recovery-form={`person-terms-${person.id} selected-person-terms`}
+                          data-recovery-field={personRecoveryFields(
+                            person.id,
+                            'workerReimbursement',
+                          )}
                           aria-invalid={Boolean(personFieldError(person.id, 'workerReimbursement'))}
                           aria-describedby={personFieldError(person.id, 'workerReimbursement')
                             ? personErrorId(person.id, 'workerReimbursement')
@@ -1612,6 +1704,11 @@
                         <label
                           >{t('Reimburse worker')}<select
                             id={personControlId(person.id, 'workerReimbursement')}
+                            data-recovery-form={`person-terms-${person.id} selected-person-terms`}
+                            data-recovery-field={personRecoveryFields(
+                              person.id,
+                              'workerReimbursement',
+                            )}
                             aria-describedby={personFieldError(person.id, 'workerReimbursement')
                               ? personErrorId(person.id, 'workerReimbursement')
                               : undefined}
@@ -1635,6 +1732,8 @@
                       <label
                         >{t('Charge customer for expense')}<select
                           id={personControlId(person.id, 'clientRecovery')}
+                          data-recovery-form={`person-terms-${person.id} selected-person-terms`}
+                          data-recovery-field={personRecoveryFields(person.id, 'clientRecovery')}
                           aria-describedby={personFieldError(person.id, 'clientRecovery')
                             ? personErrorId(person.id, 'clientRecovery')
                             : undefined}
@@ -1658,6 +1757,8 @@
                             type="text"
                             inputmode="decimal"
                             id={personControlId(person.id, 'markupPercent')}
+                            data-recovery-form={`person-terms-${person.id} selected-person-terms`}
+                            data-recovery-field={personRecoveryFields(person.id, 'markupPercent')}
                             aria-describedby={personFieldError(person.id, 'markupPercent')
                               ? personErrorId(person.id, 'markupPercent')
                               : undefined}
@@ -1737,7 +1838,8 @@
             >{t('Advanced commercial rules')}</a
           >
         </fieldset>
-      {:else}
+      {/if}
+      {#if step === 4 || setupFailure}
         <fieldset>
           <legend>{t('4. Review and save')}</legend>
           <dl class="review">
@@ -1800,12 +1902,15 @@
             </p>
           {/if}
           <label class="check"
-            ><input type="checkbox" bind:checked={saveAsTemplate} />{t(
-              'Save these defaults as a reusable template',
-            )}</label
+            ><input
+              type="checkbox"
+              data-recovery-field="saveAsTemplate"
+              bind:checked={saveAsTemplate}
+            />{t('Save these defaults as a reusable template')}</label
           >
           {#if saveAsTemplate}<label
               >{t('Template name')}<input
+                data-recovery-field="templateName"
                 bind:value={templateName}
                 maxlength="100"
                 required

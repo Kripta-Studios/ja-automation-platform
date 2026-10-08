@@ -364,7 +364,7 @@ const crewProblems: Record<string, CrewProblem> = {
   },
 };
 
-function crewPageActionFailure(
+export function _crewPageActionFailure(
   error: unknown,
   operation: CrewOperation,
   values: Record<string, string>,
@@ -411,13 +411,43 @@ function crewPageActionFailure(
             : message.startsWith('Shared hours:')
               ? crewProblems['Enter valid shared minutes']
               : null);
-    if (known)
+    if (known) {
+      let fieldErrors = 'field' in known && known.field ? { [known.field]: [known.key] } : {};
+      if (known.code === 'CREW_INDIVIDUAL_HOURS_INVALID') {
+        fieldErrors = Object.fromEntries(
+          workerIds.flatMap((id) => {
+            try {
+              minutesFromHours(values[`hours_${id}`] ?? '', 'Crew member hours');
+              return [];
+            } catch {
+              return [[`hours_${id}`, [known.key]]];
+            }
+          }),
+        );
+      }
+      if (
+        ['CREW_RECEIPT_AMOUNT_FORMAT_INVALID', 'CREW_RECEIPT_AMOUNTS_INVALID'].includes(known.code)
+      ) {
+        fieldErrors = Object.fromEntries(
+          timeEntryIds.flatMap((id) => {
+            try {
+              if (minorFromMoney(values[`amount_${id}`] ?? '') > 0n) return [];
+            } catch {
+              /* The invalid amount is corrected in its own visible input. */
+            }
+            return [[`amount_${id}`, [known.key]]];
+          }),
+        );
+      }
+      if (known.code === 'CREW_RECEIPT_TOTAL_MISMATCH')
+        fieldErrors = Object.fromEntries(timeEntryIds.map((id) => [`amount_${id}`, [known.key]]));
       return actionFail(known.status, known.key, {}, known.message, {
         ...extras,
         code: known.code,
         remedies: [{ id: known.remedy }],
-        ...('field' in known && known.field ? { fieldErrors: { [known.field]: [known.key] } } : {}),
+        fieldErrors,
       });
+    }
   }
   return actionFailure(error, {
     ...extras,
@@ -824,7 +854,7 @@ function action(
           );
         } catch (lookupError) {
           if (!(lookupError instanceof AccessDeniedError))
-            return crewPageActionFailure(lookupError, operation, values, [], submittedRows);
+            return _crewPageActionFailure(lookupError, operation, values, [], submittedRows);
         }
         if (currentAllocation)
           return actionFail(
@@ -844,7 +874,7 @@ function action(
             },
           );
       }
-      return crewPageActionFailure(
+      return _crewPageActionFailure(
         caught,
         operation,
         values,

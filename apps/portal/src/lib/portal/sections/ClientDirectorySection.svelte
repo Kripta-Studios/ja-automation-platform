@@ -3,11 +3,27 @@
   import { page } from '$app/stores';
   import { base } from '$app/paths';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
-  import { SectionCard, StatusBadge } from '../ui';
+  import {
+    ProblemNotice,
+    SectionCard,
+    StatusBadge,
+    formValidation,
+    reportFormFieldErrors,
+  } from '../ui';
+  import { tick } from 'svelte';
+  import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
+  import {
+    managementProblem,
+    contactProblemMatches,
+    retainedContactValue,
+    retainedContactCheck,
+  } from '../management-recovery';
   import type { PortalRow } from '../portal-data';
+  import ClientWorkCalendar from './ClientWorkCalendar.svelte';
+  import type { ClientCalendarEntry } from '../client-work-calendar';
 
   /**
-   * A read-only directory projection.  The route owns authorization and only
+   * An authorized directory projection. The route owns authorization and only
    * passes rows that the current principal may inspect; this component never
    * fetches a broader CRM projection or invents contact/site data.
    */
@@ -15,7 +31,12 @@
     clients: PortalRow[];
     contacts?: PortalRow[];
     projects?: PortalRow[];
+    calendarEntries?: ClientCalendarEntry[];
+    calendarMonth?: string;
+    calendarLocale?: string;
+    canViewWorkCalendar?: boolean;
     canManageContacts?: boolean;
+    form?: unknown;
     translate: (value: string) => string;
     controlledValue?: (domain: 'status', value: unknown) => string;
   };
@@ -24,7 +45,12 @@
     clients,
     contacts = [],
     projects = [],
+    calendarEntries = [],
+    calendarMonth = new Date().toISOString().slice(0, 7),
+    calendarLocale = 'en-US',
+    canViewWorkCalendar = false,
     canManageContacts = false,
+    form,
     translate,
     controlledValue,
   }: ClientDirectoryProps = $props();
@@ -33,6 +59,67 @@
   let addingForClientId = $state<string | null>(null);
   let editingContactId = $state<string | null>(null);
   const normalizedSearch = $derived(search.trim().toLowerCase());
+  const contactProblem = $derived(managementProblem(form));
+  const problemLocale = $derived(normalizePortalLocale(calendarLocale));
+  const failedClientId = $derived.by(() => {
+    if (!canManageContacts || !contactProblem) return '';
+    if (contactProblem.actionName === 'createClientContact')
+      return String(contactProblem.values?.clientId ?? '');
+    const contactId = contactProblem.values?.contactId;
+    const contact = contacts.find((row) => value(row, 'id') === contactId);
+    return contact ? value(contact, 'client_id', 'clientId') : '';
+  });
+  const contactRemedies = $derived({
+    correct_fields: { label: portalText(problemLocale, 'problem.remedy.correctField') },
+    add_billing_contact: {
+      label: translate('Add contact'),
+      ...(failedClientId ? { href: `#client-contacts-${failedClientId}` } : {}),
+    },
+    review_billing_contact: {
+      label: translate('Billing contact'),
+      ...(failedClientId ? { href: `#client-contacts-${failedClientId}` } : {}),
+    },
+    review_client_projects: {
+      label: translate('Projects and sites'),
+      ...(failedClientId ? { href: `#client-projects-${failedClientId}` } : {}),
+    },
+    review_updated_record: {
+      label: portalText(problemLocale, 'problem.remedy.reviewUpdatedRecord'),
+      href: `${base}/app/projects?view=clients`,
+      reload: true,
+    },
+    contact_owner: { label: portalText(problemLocale, 'problem.remedy.contactOwner') },
+  });
+  $effect(() => {
+    if (!canManageContacts || !contactProblem) return;
+    const submitted = contactProblem.values;
+    if (
+      contactProblem.actionName === 'createClientContact' &&
+      typeof submitted?.clientId === 'string'
+    )
+      addingForClientId = clients.some((client) => id(client) === submitted.clientId)
+        ? submitted.clientId
+        : null;
+    if (
+      contactProblem.actionName === 'updateClientContact' &&
+      typeof submitted?.contactId === 'string'
+    )
+      editingContactId = contacts.some((contact) => value(contact, 'id') === submitted.contactId)
+        ? submitted.contactId
+        : null;
+    void tick().then(() => {
+      const action = contactProblem.actionName;
+      const record = action === 'createClientContact' ? submitted?.clientId : submitted?.contactId;
+      if (typeof record !== 'string') return;
+      const formId =
+        action === 'createClientContact'
+          ? `client-contact-new-${record}`
+          : `client-contact-edit-${record}`;
+      const target = document.getElementById(formId);
+      if (target instanceof HTMLFormElement)
+        reportFormFieldErrors(target, contactProblem.fieldErrors);
+    });
+  });
 
   function value(row: PortalRow, ...keys: string[]): string {
     for (const key of keys) {
@@ -90,6 +177,14 @@
     return projects.filter((project) => belongsTo(project, client));
   }
 
+  function clientWorkEntries(client: PortalRow): ClientCalendarEntry[] {
+    const projectIds = new Set(clientProjects(client).map((project) => value(project, 'id')));
+    const clientId = id(client);
+    return calendarEntries.filter(
+      (entry) => entry.client_id === clientId && projectIds.has(entry.project_id),
+    );
+  }
+
   function projectLabel(project: PortalRow): string {
     const number = value(project, 'project_number', 'projectNumber');
     const name = value(project, 'name', 'project_name');
@@ -116,7 +211,9 @@
     return haystack.includes(normalizedSearch);
   }
 
-  const visibleClients = $derived((clients ?? []).filter(matches));
+  const visibleClients = $derived(
+    (clients ?? []).filter((client) => id(client) === failedClientId || matches(client)),
+  );
   let clientPage = $state<typeof visibleClients>([]);
 
   useViewPreferences({
@@ -171,6 +268,7 @@
     <RecordBrowser
       rows={visibleClients}
       bind:visible={clientPage}
+      focusId={failedClientId}
       {translate}
       label="ClientDirectory"
     />
@@ -257,21 +355,139 @@
                 method="POST"
                 action="?view=clients&/createClientContact"
                 class="client-directory__contact-form"
+                use:formValidation
               >
+                {#if contactProblemMatches(contactProblem, 'createClientContact', clientId) && contactProblem}
+                  <ProblemNotice
+                    problem={contactProblem}
+                    locale={problemLocale}
+                    remedyLinks={contactRemedies}
+                  />
+                {/if}
                 <input type="hidden" name="clientId" value={clientId} />
-                <label><span>{translate('Name')}</span><input name="name" required /></label>
-                <label><span>{translate('Email')}</span><input name="email" type="email" /></label>
-                <label><span>{translate('Phone')}</span><input name="phone" /></label>
-                <label><span>{translate('Role')}</span><input name="role" /></label>
-                <label class="client-directory__check"
-                  ><input name="isPrimary" type="checkbox" /><span
-                    >{translate('Primary contact')}</span
+                <label
+                  ><span>{translate('Name')}</span><input
+                    value={retainedContactValue(
+                      contactProblem,
+                      'createClientContact',
+                      clientId,
+                      'name',
+                    )}
+                    name="name"
+                    minlength="2"
+                    maxlength="160"
+                    required
+                  /></label
+                >
+                <label
+                  ><span>{translate('Email')}</span><input
+                    value={retainedContactValue(
+                      contactProblem,
+                      'createClientContact',
+                      clientId,
+                      'email',
+                    )}
+                    name="email"
+                    maxlength="254"
+                    type="email"
+                  /></label
+                >
+                <label
+                  ><span>{translate('Phone')}</span><input
+                    value={retainedContactValue(
+                      contactProblem,
+                      'createClientContact',
+                      clientId,
+                      'phone',
+                    )}
+                    name="phone"
+                    maxlength="60"
+                  /></label
+                >
+                <label
+                  ><span>{translate('Role')}</span><input
+                    value={retainedContactValue(
+                      contactProblem,
+                      'createClientContact',
+                      clientId,
+                      'role',
+                    )}
+                    name="role"
+                    maxlength="120"
+                  /></label
+                >
+                <label
+                  ><span>{translate('Company')}</span><input
+                    value={retainedContactValue(
+                      contactProblem,
+                      'createClientContact',
+                      clientId,
+                      'company',
+                    )}
+                    name="company"
+                    maxlength="200"
+                  /></label
+                >
+                <label
+                  ><span>{translate('Location')}</span><input
+                    value={retainedContactValue(
+                      contactProblem,
+                      'createClientContact',
+                      clientId,
+                      'location',
+                    )}
+                    name="location"
+                    maxlength="500"
+                  /></label
+                >
+                <label
+                  ><span>{translate('Contact type')}</span><select
+                    name="contactType"
+                    value={retainedContactValue(
+                      contactProblem,
+                      'createClientContact',
+                      clientId,
+                      'contactType',
+                      'general',
+                    )}
+                  >
+                    <option value="general">{translate('General')}</option>
+                    <option value="onsite">{translate('Onsite')}</option>
+                  </select></label
+                >
+                <label class="client-directory__notes-field"
+                  ><span>{translate('Personal notes')}</span><textarea name="notes" maxlength="5000"
+                    >{retainedContactValue(
+                      contactProblem,
+                      'createClientContact',
+                      clientId,
+                      'notes',
+                    )}</textarea
                   ></label
                 >
                 <label class="client-directory__check"
-                  ><input name="isBillingContact" type="checkbox" /><span
-                    >{translate('Billing contact')}</span
-                  ></label
+                  ><input
+                    name="isPrimary"
+                    type="checkbox"
+                    checked={retainedContactCheck(
+                      contactProblem,
+                      'createClientContact',
+                      clientId,
+                      'isPrimary',
+                    )}
+                  /><span>{translate('Primary contact')}</span></label
+                >
+                <label class="client-directory__check"
+                  ><input
+                    name="isBillingContact"
+                    type="checkbox"
+                    checked={retainedContactCheck(
+                      contactProblem,
+                      'createClientContact',
+                      clientId,
+                      'isBillingContact',
+                    )}
+                  /><span>{translate('Billing contact')}</span></label
                 >
                 <div class="client-directory__form-actions">
                   <button type="submit" class="client-directory__action primary-button"
@@ -289,12 +505,28 @@
               {#each relatedContacts as contact}
                 <article class="client-directory__contact">
                   <strong>{value(contact, 'name') || translate('Unnamed contact')}</strong>
-                  <span>{value(contact, 'role') || translate('Contact')}</span>
+                  <span
+                    >{value(contact, 'role') ||
+                      translate('Contact')}{#if value(contact, 'contact_type') === 'onsite'}
+                      · {translate('Onsite contact')}{/if}</span
+                  >
+                  {#if value(contact, 'company')}<span>{value(contact, 'company')}</span>{/if}
                   {#if value(contact, 'email')}
                     <a href={`mailto:${value(contact, 'email')}`}>{value(contact, 'email')}</a>
                   {:else}<span>{translate('No email')}</span>{/if}
                   {#if value(contact, 'phone')}<span>{value(contact, 'phone')}</span>{/if}
+                  {#if value(contact, 'location')}<span>{value(contact, 'location')}</span>{/if}
+                  {#if value(contact, 'notes')}
+                    <p class="client-directory__contact-notes">{value(contact, 'notes')}</p>
+                  {/if}
                   {#if canManageContacts}
+                    {#if contactProblemMatches(contactProblem, 'deleteClientContact', value(contact, 'id')) && contactProblem}
+                      <ProblemNotice
+                        problem={contactProblem}
+                        locale={problemLocale}
+                        remedyLinks={contactRemedies}
+                      />
+                    {/if}
                     <div class="client-directory__contact-actions" data-contact-actions>
                       <button
                         type="button"
@@ -328,46 +560,151 @@
                         method="POST"
                         action="?view=clients&/updateClientContact"
                         class="client-directory__contact-form"
+                        use:formValidation
                       >
+                        {#if contactProblemMatches(contactProblem, 'updateClientContact', value(contact, 'id')) && contactProblem}
+                          <ProblemNotice
+                            problem={contactProblem}
+                            locale={problemLocale}
+                            remedyLinks={contactRemedies}
+                          />
+                        {/if}
                         <input type="hidden" name="contactId" value={value(contact, 'id')} />
+                        <input type="hidden" name="isPrimaryPresent" value="yes" />
+                        <input type="hidden" name="isBillingContactPresent" value="yes" />
                         <label
                           ><span>{translate('Name')}</span><input
                             name="name"
-                            value={value(contact, 'name')}
+                            minlength="2"
+                            maxlength="160"
+                            value={retainedContactValue(
+                              contactProblem,
+                              'updateClientContact',
+                              value(contact, 'id'),
+                              'name',
+                              value(contact, 'name'),
+                            )}
                             required
                           /></label
                         >
                         <label
                           ><span>{translate('Email')}</span><input
                             name="email"
+                            maxlength="254"
                             type="email"
-                            value={value(contact, 'email')}
+                            value={retainedContactValue(
+                              contactProblem,
+                              'updateClientContact',
+                              value(contact, 'id'),
+                              'email',
+                              value(contact, 'email'),
+                            )}
                           /></label
                         >
                         <label
                           ><span>{translate('Phone')}</span><input
                             name="phone"
-                            value={value(contact, 'phone')}
+                            maxlength="60"
+                            value={retainedContactValue(
+                              contactProblem,
+                              'updateClientContact',
+                              value(contact, 'id'),
+                              'phone',
+                              value(contact, 'phone'),
+                            )}
                           /></label
                         >
                         <label
                           ><span>{translate('Role')}</span><input
                             name="role"
-                            value={value(contact, 'role')}
+                            maxlength="120"
+                            value={retainedContactValue(
+                              contactProblem,
+                              'updateClientContact',
+                              value(contact, 'id'),
+                              'role',
+                              value(contact, 'role'),
+                            )}
                           /></label
+                        >
+                        <label
+                          ><span>{translate('Company')}</span><input
+                            name="company"
+                            maxlength="200"
+                            value={retainedContactValue(
+                              contactProblem,
+                              'updateClientContact',
+                              value(contact, 'id'),
+                              'company',
+                              value(contact, 'company'),
+                            )}
+                          /></label
+                        >
+                        <label
+                          ><span>{translate('Location')}</span><input
+                            name="location"
+                            maxlength="500"
+                            value={retainedContactValue(
+                              contactProblem,
+                              'updateClientContact',
+                              value(contact, 'id'),
+                              'location',
+                              value(contact, 'location'),
+                            )}
+                          /></label
+                        >
+                        <label
+                          ><span>{translate('Contact type')}</span><select
+                            name="contactType"
+                            value={retainedContactValue(
+                              contactProblem,
+                              'updateClientContact',
+                              value(contact, 'id'),
+                              'contactType',
+                              value(contact, 'contact_type') || 'general',
+                            )}
+                          >
+                            <option value="general">{translate('General')}</option>
+                            <option value="onsite">{translate('Onsite')}</option>
+                          </select></label
+                        >
+                        <label class="client-directory__notes-field"
+                          ><span>{translate('Personal notes')}</span><textarea
+                            name="notes"
+                            maxlength="5000"
+                            >{retainedContactValue(
+                              contactProblem,
+                              'updateClientContact',
+                              value(contact, 'id'),
+                              'notes',
+                              value(contact, 'notes'),
+                            )}</textarea
+                          ></label
                         >
                         <label class="client-directory__check"
                           ><input
                             name="isPrimary"
                             type="checkbox"
-                            checked={Boolean(contact.is_primary)}
+                            checked={retainedContactCheck(
+                              contactProblem,
+                              'updateClientContact',
+                              value(contact, 'id'),
+                              'isPrimary',
+                              Boolean(contact.is_primary),
+                            )}
                           /><span>{translate('Primary contact')}</span></label
                         >
                         <label class="client-directory__check"
                           ><input
                             name="isBillingContact"
                             type="checkbox"
-                            checked={Boolean(contact.is_billing_contact)}
+                            checked={retainedContactCheck(
+                              contactProblem,
+                              'updateClientContact',
+                              value(contact, 'id'),
+                              'isBillingContact',
+                              Boolean(contact.is_billing_contact),
+                            )}
                           /><span>{translate('Billing contact')}</span></label
                         >
                         <div class="client-directory__form-actions">
@@ -395,7 +732,9 @@
             <div class="client-directory__project-list">
               {#each relatedProjects as project}
                 <article class="client-directory__project">
-                  <strong>{projectLabel(project)}</strong>
+                  <a href={`${base}/app/projects/${encodeURIComponent(value(project, 'id'))}`}
+                    ><strong>{projectLabel(project)}</strong></a
+                  >
                   <span>{projectStatusLabel(project)}</span>
                   {#if projectSite(project)}<small>{projectSite(project)}</small>{/if}
                 </article>
@@ -413,6 +752,16 @@
             {/if}
           </section>
         </div>
+        {#if canViewWorkCalendar && relatedProjects.length > 0}
+          <ClientWorkCalendar
+            {clientId}
+            entries={clientWorkEntries(client)}
+            month={calendarMonth}
+            locale={calendarLocale}
+            {translate}
+            {controlledValue}
+          />
+        {/if}
       </SectionCard>
     {:else}
       <p class="client-directory__empty client-directory__empty--large">
@@ -522,7 +871,28 @@
     font: inherit;
   }
 
+  .client-directory select,
+  .client-directory textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: var(--ja-target-min, 2.75rem);
+    border: 1px solid var(--ja-control-border, #67675f);
+    border-radius: 0.5rem;
+    padding: 0.55rem 0.7rem;
+    background: var(--portal-surface, #fff);
+    color: var(--portal-ink, #20201d);
+    font: inherit;
+  }
+
+  .client-directory textarea {
+    min-height: 5rem;
+    resize: vertical;
+  }
+
   .client-directory input:focus-visible,
+  .client-directory select:focus-visible,
+  .client-directory textarea:focus-visible,
   .client-directory button:focus-visible,
   .client-directory a:focus-visible {
     outline: 3px solid color-mix(in srgb, var(--portal-accent, #53524c) 32%, transparent);
@@ -682,6 +1052,21 @@
     color: var(--portal-muted, #63625b);
     font-size: 0.8125rem;
     font-weight: 800;
+  }
+
+  .client-directory__contact-form :global([data-ui='problem-notice']),
+  .client-directory__contact-form :global([data-validation-summary]) {
+    grid-column: 1 / -1;
+  }
+
+  .client-directory__notes-field {
+    grid-column: 1 / -1;
+  }
+
+  .client-directory__contact-notes {
+    margin: 0.25rem 0 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
   }
 
   .client-directory__check {

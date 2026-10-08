@@ -54,7 +54,7 @@ function isInvalid(control: ValidationControl): boolean {
   return control.matches(':invalid');
 }
 
-function errorMessage(control: ValidationControl): string {
+export function validationErrorMessage(control: ValidationControl): string {
   const locale = normalizePortalLocale(control.ownerDocument.documentElement.getAttribute('lang'));
   const t = (key: string, params?: Record<string, string | number>) =>
     translate(locale, key, params);
@@ -111,7 +111,7 @@ function fieldTitle(control: ValidationControl): string {
 
 function fieldMessage(control: ValidationControl): string {
   const title = fieldTitle(control);
-  return title ? `${title}: ${errorMessage(control)}` : errorMessage(control);
+  return title ? `${title}: ${validationErrorMessage(control)}` : validationErrorMessage(control);
 }
 
 export function localizedServerFieldMessage(
@@ -371,7 +371,7 @@ function renderInvalidState(form: HTMLFormElement, invalidControls: ValidationCo
     const index = indexes.get(control) ?? 0;
     const id = control.id;
     const errorId = `${formIdentity(form)}-${slug(id)}-${index + 1}-error`;
-    const message = errorMessage(control);
+    const message = validationErrorMessage(control);
     items.push({ control, message: fieldMessage(control) });
     const error = ownerDocument.createElement('p');
     error.id = errorId;
@@ -422,7 +422,7 @@ function updateReportedErrors(form: HTMLFormElement): void {
     else {
       const errorId = control.getAttribute('data-validation-error-id');
       const error = errorId ? form.ownerDocument.getElementById(errorId) : null;
-      if (error) error.textContent = errorMessage(control);
+      if (error) error.textContent = validationErrorMessage(control);
     }
   }
   const summary = form.querySelector('[data-validation-summary]');

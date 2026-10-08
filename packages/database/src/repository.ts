@@ -1,3 +1,7 @@
+import {
+  projectSiteSettings,
+  type ProjectSiteInput,
+} from './domains/projects/project-site-settings.ts';
 import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import {
@@ -86,6 +90,11 @@ import {
   effectivePurchaseReference,
 } from './domains/billing/issuer-document-settings.ts';
 import { pendingTimeFinanceReviewSourceIds } from './domains/billing/time-finance-review.ts';
+import { summarizeTimeReadiness } from './domains/billing/time-readiness-diagnostics.ts';
+import {
+  billingTimeReadinessRecords,
+  nearbyBillingTimeDates,
+} from './domains/billing/time-readiness-records.ts';
 import { V3Repository } from './v3-repository.ts';
 
 export class AccessDeniedError extends Error {}
@@ -212,49 +221,54 @@ function resolveArtifactClassification(
   return classification;
 }
 
-type ProjectInput = Readonly<{
-  clientId: string;
-  costCenterCode?: string;
-  name: string;
-  description?: string;
-  projectAlias?: string;
-  timezone: string;
-  currency: Currency;
-  billingModel:
-    | 'tm'
-    | 'tm_daily_minimum'
-    | 'all_in'
-    | 'capped_tm'
-    | 'milestone'
-    | 'hybrid'
-    | 'internal';
-  siteName?: string;
-  country?: string;
-  expectedHoursPerDay?: number | string;
-  expectedMinutesPerDay?: number;
-  clientDailyMinimumHours?: number | string | null;
-  clientDailyMinimumMinutes?: number;
-  poNumber?: string;
-  contractNumber?: string;
-  projectManagerId?: string;
-  /** Optional people selected during creation. Commercial rules are configured separately. */
-  initialWorkerIds?: readonly string[];
-  initialWorkersStartOn?: string;
-  startDate?: string;
-  plannedEndDate?: string;
-  budgetType?: string;
-  revenueBudgetMinor?: bigint;
-  poCapMinor?: bigint;
-  fixedPriceMinor?: bigint;
-  laborBudgetMinutes?: number;
-  travelBudgetMinor?: bigint;
-  expenseBudgetMinor?: bigint;
-  otherCostBudgetMinor?: bigint;
-  weeklyCloseEnabled?: boolean;
-  dailyReportRequired?: boolean;
-  technicalReportingRequired?: boolean;
-  notes?: string;
-}>;
+type ProjectInput = ProjectSiteInput &
+  Readonly<{
+    clientId: string;
+    costCenterCode?: string;
+    name: string;
+    description?: string;
+    projectAlias?: string;
+    timezone: string;
+    currency: Currency;
+    billingModel:
+      | 'tm'
+      | 'tm_daily_minimum'
+      | 'all_in'
+      | 'capped_tm'
+      | 'milestone'
+      | 'hybrid'
+      | 'internal';
+    onsiteContactName?: string;
+    onsiteContactEmail?: string;
+    onsiteContactPhone?: string;
+    onsiteContactRole?: string;
+    siteName?: string;
+    country?: string;
+    expectedHoursPerDay?: number | string;
+    expectedMinutesPerDay?: number;
+    clientDailyMinimumHours?: number | string | null;
+    clientDailyMinimumMinutes?: number;
+    poNumber?: string;
+    contractNumber?: string;
+    projectManagerId?: string;
+    /** Optional people selected during creation. Commercial rules are configured separately. */
+    initialWorkerIds?: readonly string[];
+    initialWorkersStartOn?: string;
+    startDate?: string;
+    plannedEndDate?: string;
+    budgetType?: string;
+    revenueBudgetMinor?: bigint;
+    poCapMinor?: bigint;
+    fixedPriceMinor?: bigint;
+    laborBudgetMinutes?: number;
+    travelBudgetMinor?: bigint;
+    expenseBudgetMinor?: bigint;
+    otherCostBudgetMinor?: bigint;
+    weeklyCloseEnabled?: boolean;
+    dailyReportRequired?: boolean;
+    technicalReportingRequired?: boolean;
+    notes?: string;
+  }>;
 
 type TimeInput = Readonly<{
   projectId: string;
@@ -994,23 +1008,16 @@ export class PortalRepository {
     return this.clients.createClient(principal, input);
   }
 
-  createClientContact(
-    principal: Principal,
-    input: Readonly<{
-      clientId: string;
-      name: string;
-      email?: string;
-      phone?: string;
-      role?: string;
-      isBillingContact?: boolean;
-      isPrimary?: boolean;
-    }>,
-  ) {
+  createClientContact(principal: Principal, input: ClientContactInput) {
     return this.clients.createClientContact(principal, input);
   }
 
   listClientContacts(principal: Principal, clientId: string) {
     return this.clients.listClientContacts(principal, clientId);
+  }
+
+  listClientCalendarEntries(principal: Principal, from: string, to: string) {
+    return this.clients.listClientCalendarEntries(principal, from, to);
   }
 
   listAllClientContacts(principal: Principal) {
@@ -1152,8 +1159,31 @@ export class PortalRepository {
         .prepare('SELECT client_number,currency FROM client WHERE id=? AND status=?')
         .get(input.clientId, 'active') as { client_number: string; currency: Currency } | undefined;
       if (!client) throw new ValidationError('Active client not found');
-      if (client.currency !== input.currency)
-        throw new ValidationError('Project currency must match the client currency');
+      if (!['USD', 'EUR', 'BRL'].includes(input.currency))
+        throw new ValidationError('Invalid project currency');
+      if (input.onsiteContactName?.trim() && input.onsiteContactId)
+        throw new ValidationError('Choose an existing on-site contact or create a new one');
+      const onsiteContactId = input.onsiteContactName?.trim()
+        ? this.clients.createClientContact(principal, {
+            clientId: input.clientId,
+            name: input.onsiteContactName,
+            email: input.onsiteContactEmail,
+            phone: input.onsiteContactPhone,
+            role: input.onsiteContactRole,
+            company: input.siteName,
+            location: input.siteLocation ?? undefined,
+            contactType: 'onsite',
+          }).id
+        : input.onsiteContactId;
+      const siteSettings = projectSiteSettings(
+        this.sqlite,
+        input.clientId,
+        { ...input, onsiteContactId },
+        {},
+        (message) => {
+          throw new ValidationError(message);
+        },
+      );
       const expectedMinutes =
         input.expectedHoursPerDay !== undefined && input.expectedHoursPerDay !== ''
           ? Math.round(Number(input.expectedHoursPerDay) * 60)
@@ -1400,7 +1430,15 @@ export class PortalRepository {
           source: 'project_creation',
         });
       }
-      this.audit(principal, 'project.create', 'project', id, { projectNumber });
+      this.sqlite
+        .prepare(
+          'UPDATE project SET onsite_manager=?,site_location=?,onsite_contact_id=? WHERE id=?',
+        )
+        .run(...siteSettings.map(([, value]) => value), id);
+      this.audit(principal, 'project.create', 'project', id, {
+        projectNumber,
+        ...Object.fromEntries(siteSettings),
+      });
       return { id, projectNumber };
     });
   }
@@ -3731,6 +3769,7 @@ export class PortalRepository {
         )
           return null;
         if (column === 'billing_status' || column === 'billing_state') return 'unlocked';
+        if (input.recordType === 'time_entry' && column === 'billability_state') return 'pending';
         if (input.recordType === 'expense') {
           if (
             column === 'receipt_required' &&
@@ -4019,6 +4058,7 @@ export class PortalRepository {
         storedRequestId,
         reason,
         ownerOverride,
+        ...(input.recordType === 'time_entry' ? { financeReviewRequired: true } : {}),
         ...(input.receiptUpload
           ? {
               receiptDocumentId: input.receiptUpload.documentId,
@@ -5674,8 +5714,8 @@ export class PortalRepository {
                FROM record_correction_link rcl
                JOIN time_entry correction ON correction.id=rcl.correction_id
               WHERE rcl.record_type='time_entry'
-                AND ((rcl.original_id=time_entry.id AND correction.approval_state='approved')
-                  OR (rcl.correction_id=time_entry.id AND correction.approval_state<>'approved'))
+                AND ((rcl.original_id=time_entry.id AND correction.approval_state IN ('approved','locked'))
+                  OR (rcl.correction_id=time_entry.id AND correction.approval_state NOT IN ('approved','locked')))
            )
          ORDER BY work_date,worker_id,COALESCE(start_time,created_at),id`,
       )
@@ -6045,8 +6085,15 @@ export class PortalRepository {
             monthlyCutoffDay: rule.monthly_cutoff_day ?? undefined,
           },
         );
+        // The first/last cycle may be clipped to inclusive stream effective dates.
+        const expectedStart =
+          expected && expected.start < rule.effective_from ? rule.effective_from : expected?.start;
+        const expectedEnd =
+          expected && rule.effective_to && expected.end > rule.effective_to
+            ? rule.effective_to
+            : expected?.end;
         if (
-          (!expected || expected.start !== periodStart || expected.end !== periodEnd) &&
+          (!expected || expectedStart !== periodStart || expectedEnd !== periodEnd) &&
           !explicitlyClosed
         )
           reasons.push({ code: 'period_cutoff_mismatch' });
@@ -6075,6 +6122,8 @@ export class PortalRepository {
     }
     let includedSourceCount = 0;
     let excludedSourceCount = 0;
+    let timeReadiness: ReturnType<typeof summarizeTimeReadiness> | null = null;
+    let nearbyApprovedTimeDates: Array<{ workDate: string; minutes: number }> = [];
     const includedExpenseRows: Array<{
       id: string;
       spentOn: string;
@@ -6200,6 +6249,52 @@ export class PortalRepository {
           sourceId,
         })),
       );
+      const sourceSlices = new Map<string, BillingTimeSlice[]>();
+      for (const slice of slices) {
+        const current = sourceSlices.get(slice.row.id) ?? [];
+        current.push(slice);
+        sourceSlices.set(slice.row.id, current);
+      }
+      const sourceInvoiceStates = new Map(
+        (
+          this.sqlite
+            .prepare(
+              `SELECT source.source_id sourceId,invoice.state state
+               FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
+              WHERE invoice.project_id=? AND source.source_type='time'
+                AND invoice.state NOT IN ('void','cancelled','superseded')`,
+            )
+            .all(rule.project_id) as Array<{ sourceId: string; state: string }>
+        ).map((row) => [row.sourceId, row.state]),
+      );
+      timeReadiness = summarizeTimeReadiness(
+        billingTimeReadinessRecords(this.sqlite, rule.project_id, periodStart, periodEnd).map(
+          (row) => {
+            const parts = sourceSlices.get(row.id) ?? [];
+            return {
+              id: row.id,
+              workDate: row.workDate,
+              minutes: row.minutes,
+              approvalState: row.approvalState,
+              billabilityState: row.billabilityState,
+              invoiceId: row.invoiceId,
+              pendingCorrection: row.pendingCorrection === 1,
+              billingState: sourceInvoiceStates.get(row.id) ?? null,
+              clientBillable: parts.some((part) => part.clientBillable),
+            };
+          },
+        ),
+        reservedTimeSources,
+        missingRateSources,
+      );
+      if (timeReadiness.recordCount === 0) {
+        nearbyApprovedTimeDates = nearbyBillingTimeDates(
+          this.sqlite,
+          rule.project_id,
+          periodStart,
+          periodEnd,
+        );
+      }
     }
     if (
       rule.stream_type === 'expense' ||
@@ -6346,6 +6441,8 @@ export class PortalRepository {
       streamType: rule.stream_type,
       includedSourceCount,
       excludedSourceCount,
+      timeReadiness,
+      nearbyApprovedTimeDates,
       includedExpenseRows,
       includedExpenseSubtotalMinor: includedExpenseRows
         .reduce((sum, row) => sum + BigInt(row.amountMinor), 0n)
@@ -6656,6 +6753,8 @@ export class PortalRepository {
         anchor_date: string | null;
         monthly_cutoff_day: number | null;
         semi_monthly_rule: string | null;
+        effective_from: string;
+        effective_to: string | null;
         billing_model: string;
         po_cap_minor: string | null;
         fixed_price_minor: string | null;
@@ -6693,7 +6792,13 @@ export class PortalRepository {
             monthlyCutoffDay: rule.monthly_cutoff_day ?? undefined,
           },
         );
-        if (!expected || expected.start !== periodStart || expected.end !== periodEnd) {
+        const expectedStart =
+          expected && expected.start < rule.effective_from ? rule.effective_from : expected?.start;
+        const expectedEnd =
+          expected && rule.effective_to && expected.end > rule.effective_to
+            ? rule.effective_to
+            : expected?.end;
+        if (!expected || expectedStart !== periodStart || expectedEnd !== periodEnd) {
           const explicitlyClosed = this.sqlite
             .prepare(
               "SELECT 1 FROM billing_period WHERE billing_rule_id=? AND period_start=? AND period_end=? AND state='closed'",
@@ -9277,7 +9382,7 @@ export class PortalRepository {
     const projectColumns = this.canSeeFinanceFields(principal)
       ? 'p.*'
       : `p.id,p.project_number,p.cost_center_code,p.client_id,p.name,p.description,p.project_alias,p.timezone,
-         p.currency,p.status,p.site_name,p.country,p.project_manager_id,
+         p.currency,p.status,p.site_name,p.site_location,p.onsite_manager,p.onsite_contact_id,p.country,p.project_manager_id,
          p.expected_minutes_per_day,p.start_date,
          p.planned_end_date,p.actual_end_date,p.weekly_close_enabled,
          p.daily_report_required,p.technical_reporting_required,p.notes,p.version,
@@ -12097,6 +12202,9 @@ export class PortalRepository {
       projectAlias?: string | null;
       timezone?: string;
       billingModel?: string;
+      onsiteManager?: string | null;
+      siteLocation?: string | null;
+      onsiteContactId?: string | null;
       siteName?: string | null;
       country?: string | null;
       projectManagerId?: string | null;
@@ -12258,7 +12366,17 @@ export class PortalRepository {
           .get(input.projectManagerId);
         if (!manager) throw new ValidationError('Active project manager not found');
       }
+      const siteSettings = projectSiteSettings(
+        this.sqlite,
+        String(existing.client_id),
+        input,
+        existing,
+        (message) => {
+          throw new ValidationError(message);
+        },
+      );
       const updates: Array<[string, string | number | null]> = [
+        ...siteSettings,
         [
           'cost_center_code',
           input.costCenterCode === undefined

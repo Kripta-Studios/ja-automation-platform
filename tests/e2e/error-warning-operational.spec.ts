@@ -153,9 +153,9 @@ for (const area of ['time', 'expense', 'report'] as const) {
       await page.goto(portal(`/time?lang=en&project=${fixture.projectId}`));
       await page.locator('[data-time-primary-cta]').click();
       let form = page.locator('form[data-time-entry-surface]');
-      if (role === 'owner') await form.locator('[name="workerId"]').selectOption(fixture.workerId);
-      await form.locator('[name="projectId"]').selectOption(fixture.projectId);
       await form.locator('[name="workDate"]').fill(fixture.workDate);
+      await form.locator('[name="projectId"]').selectOption(fixture.projectId);
+      if (role === 'owner') await form.locator('[name="workerId"]').selectOption(fixture.workerId);
       await form.getByRole('checkbox', { name: 'Add start and end times' }).check();
       await form.locator('[name="startTime"]').fill('09:45');
       await form.locator('[name="endTime"]').fill('10:45');

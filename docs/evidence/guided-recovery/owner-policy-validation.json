@@ -32,7 +32,8 @@
     "changed_source_prettier": "passed",
     "portal_build": "passed",
     "jobs_build": "passed",
-    "independent_finance_security_review": "no unresolved P0/P1/P2 findings"
+    "independent_finance_security_review": "no unresolved P0/P1/P2 findings",
+    "host_maintenance_bundle": "passed isolated /tmp runtime with only Node built-ins: 26 policy sources applied, all other tables preserved"
   },
   "browser": {
     "new_form_and_readiness_cases": 12,
@@ -59,5 +60,6 @@
   "known_baseline_limits": [
     "Whole-workspace typecheck retains pre-existing website static-image errors; no full-workspace green claim.",
     "Unrelated existing PDF warning assertion/issuance browser paths are outside this scoped verification."
-  ]
+  ],
+  "deployment_rehearsal_note": "First live attempt restored the previous release before policy writes when the source CLI required unavailable host workspace dependencies. The final jobs build emits a self-contained reviewed CLI; the isolated apply/verification passes."
 }

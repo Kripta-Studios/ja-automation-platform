@@ -42,3 +42,10 @@ a time. Screenshots are retained privately under
 `/tmp/ja-invoice-number-browser-final`. No production business records were edited
 by these tests. Deployment results are recorded in
 `invoice-number-navigation-deployment.json` after rollout.
+
+Production activated `06bdf74560f71ee0c488e1c4f8574a8bf1325b2b` on 9 October 2026.
+Portal Docker health/readiness pass and jobs run the same new image. The public
+invoice JavaScript/CSS assets return HTTP 200 and match the final build hashes;
+login returns 200. SQLite integrity is `ok`, foreign-key violations are zero,
+migration 76 remains unchanged, and all five maintenance timers are active.
+The previous source/image pair remains available for code rollback.

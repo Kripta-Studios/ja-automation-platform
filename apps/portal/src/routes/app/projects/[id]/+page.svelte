@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ProjectInvoiceComposer from '$lib/portal/sections/ProjectInvoiceComposer.svelte';
+  import { journeyText } from '$lib/portal/project-invoice-journey';
   import ProjectSiteFields from '$lib/portal/sections/ProjectSiteFields.svelte';
   import { useAssistantPaneRequest } from '$lib/portal/assistant/surface-request.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
@@ -36,7 +38,7 @@
 
   type Primitive = string | number | boolean | null | undefined;
   type Row = Record<string, Primitive>;
-  type TabId = 'overview' | 'team' | 'reports' | 'commercial' | 'billing';
+  type TabId = 'work' | 'overview' | 'team' | 'reports' | 'commercial' | 'billing';
   type FinancialProjection = {
     currency?: string;
     approvedCostMinor?: string | null;
@@ -70,17 +72,29 @@
     status?: Primitive;
   };
 
-  const allowedTabIds: readonly TabId[] = ['overview', 'team', 'reports', 'commercial', 'billing'];
+  const allowedTabIds: readonly TabId[] = [
+    'work',
+    'overview',
+    'team',
+    'reports',
+    'commercial',
+    'billing',
+  ];
 
   function resolveTabFromUrl(value: string | null, roleValue: unknown): TabId {
     const candidate = value?.trim() ?? '';
-    if (!allowedTabIds.includes(candidate as TabId)) return 'overview';
+    if (!allowedTabIds.includes(candidate as TabId))
+      return roleValue === 'owner_admin' || roleValue === 'finance_admin' ? 'work' : 'overview';
     const tab = candidate as TabId;
     const commercialRole =
       roleValue === 'owner_admin' ||
       roleValue === 'finance_admin' ||
       roleValue === 'auditor_read_only';
-    if (!commercialRole && (tab === 'commercial' || tab === 'billing')) return 'overview';
+    if (
+      (!commercialRole && (tab === 'commercial' || tab === 'billing')) ||
+      (tab === 'work' && roleValue !== 'owner_admin' && roleValue !== 'finance_admin')
+    )
+      return 'overview';
     return tab;
   }
 
@@ -386,11 +400,14 @@
   );
 
   const tabs = $derived([
+    ...(canWriteFinance ? [{ id: 'work' as const, label: journeyText(locale, 'work') }] : []),
     { id: 'overview' as const, label: t('Overview') },
     { id: 'team' as const, label: t('Team') },
     { id: 'reports' as const, label: t('Reports & Files') },
     ...(canViewCommercial ? [{ id: 'commercial' as const, label: t('Commercial') }] : []),
-    ...(canViewCommercial ? [{ id: 'billing' as const, label: t('Billing') }] : []),
+    ...(canViewCommercial
+      ? [{ id: 'billing' as const, label: journeyText(locale, 'conditions') }]
+      : []),
   ] satisfies Array<{ id: TabId; label: string }>);
   const financeExportUrl = $derived(
     base +
@@ -1210,7 +1227,57 @@
   </div>
 
   <div class="project-tab-panels">
-    {#if activeTab === 'overview'}
+    {#if activeTab === 'work' && canWriteFinance}
+      <div
+        id="project-panel-work"
+        class="project-tab-panel"
+        role="tabpanel"
+        aria-labelledby="project-tab-work"
+        tabindex="0"
+      >
+        <div class="billing-action-row">
+          {#if isOwner}<a
+              class="secondary-button"
+              href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+              >{journeyText(locale, 'addPeople')}</a
+            >{/if}
+          <a
+            class="secondary-button"
+            href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=billing&billingStep=people&lang=${locale}`}
+            >{journeyText(locale, 'conditions')}</a
+          >
+          <a
+            class="secondary-button"
+            href={`${base}/app/time?project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+            >{journeyText(locale, 'addHours')}</a
+          >
+          <a
+            class="secondary-button"
+            href={`${base}/app/expenses?project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+            >{journeyText(locale, 'addExpenses')}</a
+          >
+          <a
+            class="secondary-button"
+            href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=reports&lang=${locale}`}
+            >{journeyText(locale, 'reports')}</a
+          >
+        </div>
+        <ProjectInvoiceComposer
+          projectId={String(project.id)}
+          rules={billingRules}
+          {locale}
+          {role}
+          userId={String(data.user.id)}
+          initialDate={[
+            ...overview.time.map((row) => String(row.work_date ?? '')),
+            ...overview.expenses.map((row) => String(row.spent_on ?? '')),
+          ]
+            .filter(Boolean)
+            .sort()
+            .at(-1) ?? String(project.start_date ?? '')}
+        />
+      </div>
+    {:else if activeTab === 'overview'}
       <div
         id="project-panel-overview"
         class="project-tab-panel"
@@ -2529,80 +2596,98 @@
         />
       </div>
     {/if}
-    {#if activeBillingRules.length > 0}
-      <form
-        method="POST"
-        action="?/createInvoiceDraft&tab=billing"
-        class="invoice-draft-form"
-        onsubmit={submitForm}
-        use:formValidation
-        use:enhance={submitDetail}
-      >
-        <label
-          >{t('Billing stream')}<select name="billingRuleId" value={selectedDraftRuleId} required
-            >{#if selectedDraftRuleId && !activeBillingRules.some((rule) => String(rule.id) === selectedDraftRuleId)}<option
-                value={selectedDraftRuleId}
-                selected
-                disabled>{t('problem.projectDetail.optionUnavailable')}</option
-              >{/if}
-            >{#each activeBillingRules as rule}<option value={rule.id}
-                >{controlled('billingStream', rule.stream_type)} · {controlled(
-                  'billingStream',
-                  rule.cadence_type,
-                )} · {display(rule.currency)}</option
-              >{/each}</select
-          ></label
+    <ProjectInvoiceComposer
+      projectId={String(project.id)}
+      rules={billingRules}
+      {locale}
+      {role}
+      userId={String(data.user.id)}
+      initialRuleId={selectedDraftRuleId}
+      initialDate={[
+        ...overview.time.map((row) => String(row.work_date ?? '')),
+        ...overview.expenses.map((row) => String(row.spent_on ?? '')),
+      ]
+        .filter(Boolean)
+        .sort()
+        .at(-1) ?? ''}
+    />
+    <details class="project-surface">
+      <summary>{journeyText(locale, 'wholePeriod')}</summary>
+      {#if activeBillingRules.length > 0}
+        <form
+          method="POST"
+          action="?/createInvoiceDraft&tab=billing"
+          class="invoice-draft-form"
+          onsubmit={submitForm}
+          use:formValidation
+          use:enhance={submitDetail}
         >
-        <label
-          >{t('Period start')}<input
-            name="periodStart"
-            type="date"
-            value={selectedDraftStart}
-            required
-          /></label
-        >
-        <label
-          >{t('Period end')}<input
-            name="periodEnd"
-            type="date"
-            value={selectedDraftEnd}
-            required
-          /></label
-        >
-        {#if form && !form.success && Array.isArray((form as { reasons?: unknown }).reasons)}
-          <aside class="form-notice" role="alert">
-            {#if actionFeedback}<span>{actionFeedback}</span>{/if}
-            <ul>
-              {#each (form as { reasons?: Array<{ code?: string }> }).reasons ?? [] as reason}
-                <li>{t(billingReadinessMessageKey(reason?.code))}</li>
-              {/each}
-            </ul>
-            <a
-              href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=billing#project-panel-billing`}
-              >{t('Project billing setup')}</a
-            >
-          </aside>
-        {/if}
-        <p class="form-help">
-          {t(
-            'Customer sign-off and other canonical billing readiness checks remain enforced by the server.',
-          )}
-        </p>
-        <div class="sheet-form-actions">
-          <button type="button" class="secondary-button" onclick={() => (invoiceOpen = false)}
-            >{t('Cancel')}</button
-          ><button
-            type="submit"
-            class="primary-button"
-            disabled={saving ||
-              !activeBillingRules.some((rule) => String(rule.id) === selectedDraftRuleId)}
-            >{saving ? t('Creating…') : t('Create draft')}</button
+          <label
+            >{t('Billing stream')}<select name="billingRuleId" value={selectedDraftRuleId} required
+              >{#if selectedDraftRuleId && !activeBillingRules.some((rule) => String(rule.id) === selectedDraftRuleId)}<option
+                  value={selectedDraftRuleId}
+                  selected
+                  disabled>{t('problem.projectDetail.optionUnavailable')}</option
+                >{/if}
+              >{#each activeBillingRules as rule}<option value={rule.id}
+                  >{controlled('billingStream', rule.stream_type)} · {controlled(
+                    'billingStream',
+                    rule.cadence_type,
+                  )} · {display(rule.currency)}</option
+                >{/each}</select
+            ></label
           >
-        </div>
-      </form>
-    {:else}<p class="empty-state">
-        {t('No active billing streams. Configure a new stream to create invoice drafts.')}
-      </p>{/if}
+          <label
+            >{t('Period start')}<input
+              name="periodStart"
+              type="date"
+              value={selectedDraftStart}
+              required
+            /></label
+          >
+          <label
+            >{t('Period end')}<input
+              name="periodEnd"
+              type="date"
+              value={selectedDraftEnd}
+              required
+            /></label
+          >
+          {#if form && !form.success && Array.isArray((form as { reasons?: unknown }).reasons)}
+            <aside class="form-notice" role="alert">
+              {#if actionFeedback}<span>{actionFeedback}</span>{/if}
+              <ul>
+                {#each (form as { reasons?: Array<{ code?: string }> }).reasons ?? [] as reason}
+                  <li>{t(billingReadinessMessageKey(reason?.code))}</li>
+                {/each}
+              </ul>
+              <a
+                href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=billing#project-panel-billing`}
+                >{t('Project billing setup')}</a
+              >
+            </aside>
+          {/if}
+          <p class="form-help">
+            {t(
+              'Customer sign-off and other canonical billing readiness checks remain enforced by the server.',
+            )}
+          </p>
+          <div class="sheet-form-actions">
+            <button type="button" class="secondary-button" onclick={() => (invoiceOpen = false)}
+              >{t('Cancel')}</button
+            ><button
+              type="submit"
+              class="primary-button"
+              disabled={saving ||
+                !activeBillingRules.some((rule) => String(rule.id) === selectedDraftRuleId)}
+              >{saving ? t('Creating…') : t('Create draft')}</button
+            >
+          </div>
+        </form>
+      {:else}<p class="empty-state">
+          {t('No active billing streams. Configure a new stream to create invoice drafts.')}
+        </p>{/if}
+    </details>
   </ResponsiveSheet>
 {/if}
 

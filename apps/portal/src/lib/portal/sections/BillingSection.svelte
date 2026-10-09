@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ProjectInvoiceComposer from './ProjectInvoiceComposer.svelte';
+  import { journeyText } from '../project-invoice-journey';
   import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
@@ -918,6 +920,7 @@
       (reversalInvoiceId || invoiceFailureId || $page.url.searchParams.get('invoice') || ''),
   );
   let invoiceWizardOpen = $state(false);
+  let wholePeriodOpen = $state(false);
   let invoiceWizardStep = $state(1);
   let wizardRuleId = $state('');
   let wizardPeriodStart = $state('');
@@ -925,6 +928,21 @@
   let wizardPeriodAlignment = $state<{ start: string; end: string } | null>(null);
   let wizardReadiness = $state<BillingReadinessPreview | null>(null);
   let wizardReadinessLoading = $state(false);
+  let wizardReadinessController: AbortController | null = null;
+  let wizardReadinessDisposed = false;
+  function cancelWizardReadiness(): void {
+    wizardReadinessController?.abort();
+    wizardReadinessController = null;
+    wizardReadinessLoading = false;
+  }
+  beforeNavigate(cancelWizardReadiness);
+  onMount(() => () => {
+    wizardReadinessDisposed = true;
+    cancelWizardReadiness();
+  });
+  $effect(() => {
+    if (!invoiceWizardOpen && wizardReadinessController) cancelWizardReadiness();
+  });
   let wizardReadinessError = $state('');
   let wizardReadinessRemedy = $state('');
   let wizardReadinessReference = $state('');
@@ -1652,6 +1670,7 @@
       wizardPeriodEnd = String(form?.periodEnd ?? '');
     }
     invoiceWizardStep = 4;
+    wholePeriodOpen = true;
     invoiceWizardOpen = true;
   }
 
@@ -1661,6 +1680,7 @@
     wizardPeriodStart = String(form.periodStart ?? '');
     wizardPeriodEnd = String(form.periodEnd ?? '');
     invoiceWizardStep = 12;
+    wholePeriodOpen = true;
     invoiceWizardOpen = true;
   });
 
@@ -2370,6 +2390,7 @@
   }
 
   function resetWizardReadiness(): void {
+    cancelWizardReadiness();
     wizardPeriodAlignment = null;
     wizardReadiness = null;
     wizardReadinessError = '';
@@ -2394,17 +2415,30 @@
       wizardPeriodEnd = compatible.end;
     }
     wizardReadinessLoading = true;
+    const controller = new AbortController();
+    wizardReadinessController = controller;
+    const scope = {
+      billingRuleId: wizardRuleId,
+      periodStart: wizardPeriodStart,
+      periodEnd: wizardPeriodEnd,
+    };
+    const currentRequest = () =>
+      !wizardReadinessDisposed &&
+      !controller.signal.aborted &&
+      wizardReadinessController === controller &&
+      wizardRuleId === scope.billingRuleId &&
+      wizardPeriodStart === scope.periodStart &&
+      wizardPeriodEnd === scope.periodEnd;
     try {
-      const query = new URLSearchParams({
-        billingRuleId: wizardRuleId,
-        periodStart: wizardPeriodStart,
-        periodEnd: wizardPeriodEnd,
-      });
+      const query = new URLSearchParams(scope);
       const response = await fetch(`${base}/app/api/billing/readiness?${query.toString()}`, {
         headers: { accept: 'application/json' },
+        signal: controller.signal,
       });
+      if (!currentRequest()) return;
       if (!response.ok) {
         const problem = (await response.json().catch(() => null)) as Partial<ProblemData> | null;
+        if (!currentRequest()) return;
         wizardReadinessError = translate(
           problem?.messageKey ?? 'problem.billing.readinessUnavailable',
         );
@@ -2430,16 +2464,22 @@
         }
         return;
       }
-      wizardReadiness = (await response.json()) as BillingReadinessPreview;
+      const preview = (await response.json()) as BillingReadinessPreview;
+      if (!currentRequest()) return;
+      wizardReadiness = preview;
       if (wizardReadiness.state === 'incomplete' && wizardReadiness.reasons.length) {
         const recovery = wizardReadinessRecovery();
         if (recovery) requestGuidedRecovery(recovery);
       }
     } catch {
+      if (!currentRequest()) return;
       wizardReadinessError = translate('problem.billing.readinessUnavailable');
       wizardReadinessRemedy = 'retry_readiness';
     } finally {
-      wizardReadinessLoading = false;
+      if (wizardReadinessController === controller) {
+        wizardReadinessController = null;
+        wizardReadinessLoading = false;
+      }
     }
   }
 
@@ -2478,8 +2518,26 @@
       return;
     }
     clearInvoiceSetupWarning();
+    wholePeriodOpen = $page.url.searchParams.get('mode') === 'whole-period';
     invoiceWizardStep = 1;
-    chooseWizardRule(rowValue(eligibleRules[0], 'id'));
+    const requestedRule = $page.url.searchParams.get('billingRuleId');
+    chooseWizardRule(
+      eligibleRules.some((rule) => rowValue(rule, 'id') === requestedRule)
+        ? requestedRule!
+        : rowValue(eligibleRules[0], 'id'),
+    );
+    const requestedStart = $page.url.searchParams.get('periodStart');
+    const requestedEnd = $page.url.searchParams.get('periodEnd');
+    if (
+      requestedStart &&
+      requestedEnd &&
+      /^\d{4}-\d{2}-\d{2}$/.test(requestedStart) &&
+      /^\d{4}-\d{2}-\d{2}$/.test(requestedEnd) &&
+      requestedStart <= requestedEnd
+    ) {
+      wizardPeriodStart = requestedStart;
+      wizardPeriodEnd = requestedEnd;
+    }
     invoiceWizardOpen = true;
   }
 
@@ -2789,432 +2847,636 @@
       protectChanges
       onclose={() => (invoiceWizardOpen = false)}
     >
-      <form
-        method="POST"
-        action="?/createDraft"
-        class="billing-section__invoice-wizard"
-        data-assistant-target="invoice-create"
-      >
-        {#if billingProblem}
-          <ProblemNotice
-            problem={billingProblem}
-            kind={billingProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
-            remedyLinks={problemRemedyLinks}
-          />
-        {/if}
-        <input type="hidden" name="billingRuleId" value={wizardRuleId} />
-        <input type="hidden" name="periodStart" value={wizardPeriodStart} />
-        <input type="hidden" name="periodEnd" value={wizardPeriodEnd} />
-        <ol class="billing-section__wizard-progress" aria-label={translate('Invoice steps')}>
-          {#each wizardStepLabels as label, index}
-            <li aria-current={invoiceWizardStep === index + 1 ? 'step' : undefined}>
-              <button type="button" onclick={() => (invoiceWizardStep = index + 1)}>
-                <span>{index + 1}</span>{translate(label)}
-              </button>
-            </li>
-          {/each}
-        </ol>
-        <details class="billing-section__wizard-mobile-progress">
-          <summary
-            >{translate('Invoice steps')} · {invoiceWizardStep}/12 · {translate(
-              wizardStepLabels[invoiceWizardStep - 1] ?? 'Invoice steps',
-            )}</summary
-          >
-          <ol aria-label={translate('Invoice steps')}>
+      <ProjectInvoiceComposer
+        rules={activeWizardRules}
+        {locale}
+        role={String(data.user.role)}
+        initialRuleId={wizardRuleId}
+        userId={String(data.user.id)}
+      />
+      <details bind:open={wholePeriodOpen}>
+        <summary class="secondary-button">{journeyText(locale, 'wholePeriod')}</summary>
+        <form
+          method="POST"
+          action="?/createDraft"
+          class="billing-section__invoice-wizard"
+          data-assistant-target="invoice-create"
+        >
+          {#if billingProblem}
+            <ProblemNotice
+              problem={billingProblem}
+              kind={billingProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+              remedyLinks={problemRemedyLinks}
+            />
+          {/if}
+          <input type="hidden" name="billingRuleId" value={wizardRuleId} />
+          <input type="hidden" name="periodStart" value={wizardPeriodStart} />
+          <input type="hidden" name="periodEnd" value={wizardPeriodEnd} />
+          <ol class="billing-section__wizard-progress" aria-label={translate('Invoice steps')}>
             {#each wizardStepLabels as label, index}
               <li aria-current={invoiceWizardStep === index + 1 ? 'step' : undefined}>
-                <button
-                  type="button"
-                  onclick={(event) => {
-                    invoiceWizardStep = index + 1;
-                    event.currentTarget.closest('details')?.removeAttribute('open');
-                  }}><span>{index + 1}</span>{translate(label)}</button
-                >
+                <button type="button" onclick={() => (invoiceWizardStep = index + 1)}>
+                  <span>{index + 1}</span>{translate(label)}
+                </button>
               </li>
             {/each}
           </ol>
-        </details>
-
-        {#if invoiceWizardStep === 1}
-          <section>
-            <h3>{translate('Client / project')}</h3>
-            <p>{translate('Choose the project whose approved source records will be billed.')}</p>
-            <label>
-              <span>{translate('Project and billing stream')}</span>
-              <select
-                value={wizardRuleId}
-                onchange={(event) => chooseWizardRule(event.currentTarget.value)}
-                required
-              >
-                {#each activeWizardRules as rule}
-                  <option value={rowValue(rule, 'id')}>
-                    {rowValue(rule, 'client_number', 'clientNumber')} · {rowValue(
-                      rule,
-                      'client_name',
-                      'clientName',
-                    )} — {rowValue(rule, 'project_number', 'projectNumber')} · {controlledValue(
-                      'billingStream',
-                      rowValue(rule, 'stream_type', 'streamType'),
-                    )} · {controlledValue(
-                      'billingStream',
-                      rowValue(rule, 'cadence_type', 'cadenceType'),
-                    )} ·
-                    {rowValue(rule, 'currency')}
-                  </option>
-                {/each}
-              </select>
-            </label>
-          </section>
-        {:else if invoiceWizardStep === 2}
-          <section>
-            <h3>{translate('Billing stream')}</h3>
-            <p>
-              {translate(
-                'Labor and expenses approved for customer billing use independent streams, cadence and tax configuration. Non-billable expenses are excluded even if J&A reimburses the worker.',
-              )}
-            </p>
-            <dl>
-              <div>
-                <dt>{translate('Stream')}</dt>
-                <dd>
-                  {controlledValue(
-                    'billingStream',
-                    rowValue(wizardRule, 'stream_type', 'streamType'),
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt>{translate('Cadence')}</dt>
-                <dd>
-                  {controlledValue(
-                    'billingStream',
-                    rowValue(wizardRule, 'cadence_type', 'cadenceType'),
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt>{translate('Tax profile')}</dt>
-                <dd>
-                  {rowValue(wizardRule, 'tax_profile_name', 'taxProfileName') ||
-                    translate('No tax profile configured')}
-                </dd>
-              </div>
-            </dl>
-            <button
-              type="button"
-              class="secondary-button"
-              onclick={() => {
-                selectBillingWorkspace('streams');
-                invoiceWizardOpen = false;
-              }}>{translate('Manage stream')}</button
+          <details class="billing-section__wizard-mobile-progress">
+            <summary
+              >{translate('Invoice steps')} · {invoiceWizardStep}/12 · {translate(
+                wizardStepLabels[invoiceWizardStep - 1] ?? 'Invoice steps',
+              )}</summary
             >
-          </section>
-        {:else if invoiceWizardStep === 3}
-          <section>
-            <h3>{translate('Labor / expenses')}</h3>
-            <p>
-              {translate(
-                'This stream includes one source family only, preventing the same labor or expense from being invoiced twice.',
-              )}
-            </p>
-            <dl>
-              <div>
-                <dt>{translate('Source')}</dt>
-                <dd>
-                  {controlledValue(
-                    'billingStream',
-                    rowValue(wizardRule, 'stream_type', 'streamType'),
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt>{translate('Saved grouping setting')}</dt>
-                <dd>
-                  {groupingLabel(rowValue(wizardRule, 'grouping_mode', 'groupingMode'))}
-                </dd>
-              </div>
-            </dl>
-            <p data-billing-grouping-help>
-              {translate(
-                'Grouping cannot be customized here. Invoice layout follows the selected template.',
-              )}
-            </p>
-          </section>
-        {:else if invoiceWizardStep === 4}
-          <section>
-            <h3>{translate('Period')}</h3>
-            <p>
-              {timeReadinessText(
-                'The suggested dates come from this stream’s configured cadence. Checking incompatible dates aligns them with the stream and shows the change before creating the draft.',
-                'Las fechas sugeridas siguen la frecuencia del flujo. Comprobar fechas incompatibles las ajusta al flujo y muestra el cambio antes de crear el borrador.',
-                'As datas sugeridas seguem a frequência do fluxo. Verificar datas incompatíveis ajusta-as ao fluxo e mostra a alteração antes de criar o rascunho.',
-              )}
-            </p>
-            <div class="billing-section__wizard-fields">
-              <label
-                ><span>{translate('Period start')}</span><input
-                  data-billing-wizard-period-start
-                  bind:value={wizardPeriodStart}
-                  oninput={resetWizardReadiness}
-                  type="date"
-                  required
-                /></label
-              >
-              <label
-                ><span>{translate('Period end')}</span><input
-                  bind:value={wizardPeriodEnd}
-                  oninput={resetWizardReadiness}
-                  type="date"
-                  required
-                /></label
-              >
-            </div>
-            {#if wizardPeriodAlignment}
-              <p role="alert" data-billing-period-aligned>
-                {timeReadinessText(
-                  'The entered period did not match the billing cadence or effective dates. The compatible period is selected for review before creating the draft.',
-                  'El período introducido no coincidía con la frecuencia o las fechas de vigencia. Se ha seleccionado el período compatible para revisarlo antes de crear el borrador.',
-                  'O período informado não correspondia à frequência ou às datas de vigência. O período compatível foi selecionado para revisão antes de criar o rascunho.',
-                )}
-                <strong
-                  >{wizardPeriodAlignment.start} – {wizardPeriodAlignment.end} → {wizardPeriodStart} –
-                  {wizardPeriodEnd}</strong
-                >
-              </p>
-            {/if}
-            <button
-              type="button"
-              class="secondary-button"
-              disabled={wizardReadinessLoading ||
-                !wizardRuleId ||
-                !wizardPeriodStart ||
-                !wizardPeriodEnd}
-              onclick={checkWizardPeriod}
-              >{wizardReadinessLoading
-                ? translate('Checking period…')
-                : translate('Check selected period')}</button
-            >
-            {#if wizardReadinessError}
-              <div
-                role="alert"
-                tabindex="-1"
-                bind:this={wizardReadinessAlert}
-                data-billing-readiness-problem
-              >
-                <p>{wizardReadinessError}</p>
-                {#if wizardReadinessReference}
-                  <small>{translate('Reference')}: {wizardReadinessReference}</small>
-                {/if}
-                {#if wizardReadinessRemedy === 'review_billing_setup'}
-                  <a href={`${base}/app/billing?view=setup`}>{translate('Review billing setup')}</a>
-                {:else if wizardReadinessRemedy === 'review_client_rates'}
-                  <a href={readinessActionHref([{ code: 'ambiguous_client_rate' }])}
-                    >{translate('billing.readiness.configureSaleRate')}</a
-                  >
-                {:else if wizardReadinessRemedy === 'sign_in_again'}
-                  <a href={`${base}/app/login`}>{translate('Sign in again')}</a>
-                {:else if wizardReadinessRemedy === 'contact_finance'}
-                  <span>{translate('Contact a finance administrator')}</span>
-                {:else if wizardReadinessRemedy === 'contact_owner'}
-                  <span>{translate('Contact an owner')}</span>
-                {:else if wizardReadinessRemedy === 'review_selected_period'}
+            <ol aria-label={translate('Invoice steps')}>
+              {#each wizardStepLabels as label, index}
+                <li aria-current={invoiceWizardStep === index + 1 ? 'step' : undefined}>
                   <button
                     type="button"
-                    class="secondary-button"
-                    onclick={() =>
-                      document
-                        .querySelector<HTMLInputElement>('[data-billing-wizard-period-start]')
-                        ?.focus()}>{translate('Review selected period')}</button
+                    onclick={(event) => {
+                      invoiceWizardStep = index + 1;
+                      event.currentTarget.closest('details')?.removeAttribute('open');
+                    }}><span>{index + 1}</span>{translate(label)}</button
                   >
-                {:else if wizardReadinessRemedy === 'retry_readiness'}
-                  <button type="button" class="secondary-button" onclick={checkWizardPeriod}
-                    >{translate('Retry')}</button
-                  >
-                {/if}
-              </div>
-            {/if}
-            {#if wizardReadiness?.reasons.some((reason) => reason.code === 'pending_time_finance_review')}
-              <div role="status" data-pending-time-finance-review>
-                <p>
-                  {translate('action.billing.readiness.pendingTimeFinanceReview')}
-                  {#if wizardReadiness.timeReadiness}
-                    {#each wizardReadiness.timeReadiness.groups.filter((group) => group.status === 'pending_finance_review') as group}
-                      <strong
-                        >{timeReadinessHours(group.minutes)} · {group.recordCount}
-                        {timeReadinessText('records', 'registros', 'registros')}</strong
-                      >
-                    {/each}
-                  {/if}
-                </p>
-                <a
-                  href={readinessActionHref(
-                    wizardReadiness.reasons.filter(
-                      (reason) => reason.code === 'pending_time_finance_review',
-                    ),
-                  )}>{translate('billing.readiness.reviewFinancial')}</a
+                </li>
+              {/each}
+            </ol>
+          </details>
+
+          {#if invoiceWizardStep === 1}
+            <section>
+              <h3>{translate('Client / project')}</h3>
+              <p>{translate('Choose the project whose approved source records will be billed.')}</p>
+              <label>
+                <span>{translate('Project and billing stream')}</span>
+                <select
+                  value={wizardRuleId}
+                  onchange={(event) => chooseWizardRule(event.currentTarget.value)}
+                  required
                 >
-              </div>
-            {/if}
-            {#if wizardReadiness?.timeReadiness}
-              <div data-billing-time-readiness>
-                <h4>
-                  {timeReadinessText(
-                    'Actual time in selected period',
-                    'Horas reales en el período seleccionado',
-                    'Horas reais no período selecionado',
-                  )}
-                </h4>
-                <p data-billing-readiness-counts>
-                  {wizardReadinessRecovery()?.problem.params.counts}
-                </p>
-                <p>
-                  {wizardPeriodStart} – {wizardPeriodEnd} ({timeReadinessText(
-                    'inclusive',
-                    'inclusive',
-                    'inclusive',
-                  )}):
-                  {timeReadinessHours(wizardReadiness.timeReadiness.minutes)}
-                  · {wizardReadiness.timeReadiness.recordCount}
-                  {timeReadinessText('records', 'registros', 'registros')}
-                </p>
-                {#if wizardReadiness.timeReadiness.records.length}
-                  <ul>
-                    {#each wizardReadiness.timeReadiness.records.slice(0, 20) as record}
-                      <li>
-                        {record.workDate} · {timeReadinessHours(record.minutes)} · {timeReadinessLabel(
-                          record.status,
-                        )}
-                      </li>
-                    {/each}
-                  </ul>
-                  {#if wizardReadiness.timeReadiness.records.length > 20}
-                    <p>
-                      {timeReadinessText(
-                        'Showing the first 20 records. Use the records view for the full period.',
-                        'Se muestran los primeros 20 registros. Consulta la vista de registros para ver el período completo.',
-                        'São mostrados os primeiros 20 registros. Consulte a visualização de registros para ver o período completo.',
-                      )}
-                    </p>
-                  {/if}
-                {:else}
-                  <p>
-                    {timeReadinessText(
-                      'No active time records have a worked date inside the selected period.',
-                      'No hay registros de horas activos con fecha de trabajo dentro del período seleccionado.',
-                      'Não há registros de horas ativos com data de trabalho dentro do período selecionado.',
-                    )}
-                  </p>
-                  {#if wizardReadiness.nearbyApprovedTimeDates?.length}
-                    <p>
-                      {timeReadinessText(
-                        'Approved time on other worked dates',
-                        'Horas aprobadas en otras fechas de trabajo',
-                        'Horas aprovadas em outras datas de trabalho',
-                      )}:
-                    </p>
-                    <ul>
-                      {#each wizardReadiness.nearbyApprovedTimeDates as date}
-                        <li>{date.workDate} · {timeReadinessHours(date.minutes)}</li>
-                      {/each}
-                    </ul>
-                  {/if}
-                {/if}
-              </div>
-            {/if}
-            {#if wizardReadiness?.reasons.some((reason) => reason.code === 'missing_client_rate')}
-              <div role="alert" data-billing-missing-client-rate>
-                <p>
-                  {timeReadinessText(
-                    'Configure the customer sale rate for this project and the worked dates below. Internal cost is a separate Finance value.',
-                    'Configura la tarifa de venta al cliente para este proyecto y las fechas de trabajo siguientes. El coste interno es un valor de Finanzas independiente.',
-                    'Configure a tarifa de venda ao cliente para este projeto e as datas de trabalho abaixo. O custo interno é um valor de Finanças separado.',
-                  )}
-                </p>
-                <ul>
-                  {#each wizardReadiness.timeReadiness?.records.filter( (record) => wizardReadiness?.reasons.some((reason) => reason.code === 'missing_client_rate' && reason.sourceId === record.sourceId), ) ?? [] as record}<li
-                    >
-                      {record.workDate} · {timeReadinessHours(record.minutes)}
-                    </li>{/each}
-                </ul>
-                <a
-                  href={readinessActionHref(
-                    wizardReadiness.reasons.filter(
-                      (reason) => reason.code === 'missing_client_rate',
-                    ),
-                  )}>{translate('billing.readiness.configureSaleRate')}</a
-                >
-              </div>
-            {/if}
-            {#if wizardReadiness?.existingInvoiceId}
-              <p role="status">
-                {translate('An invoice already exists for this stream and period.')}
-                {controlledValue('status', wizardReadiness.existingInvoiceState)}
+                  {#each activeWizardRules as rule}
+                    <option value={rowValue(rule, 'id')}>
+                      {rowValue(rule, 'client_number', 'clientNumber')} · {rowValue(
+                        rule,
+                        'client_name',
+                        'clientName',
+                      )} — {rowValue(rule, 'project_number', 'projectNumber')} · {controlledValue(
+                        'billingStream',
+                        rowValue(rule, 'stream_type', 'streamType'),
+                      )} · {controlledValue(
+                        'billingStream',
+                        rowValue(rule, 'cadence_type', 'cadenceType'),
+                      )} ·
+                      {rowValue(rule, 'currency')}
+                    </option>
+                  {/each}
+                </select>
+              </label>
+            </section>
+          {:else if invoiceWizardStep === 2}
+            <section>
+              <h3>{translate('Billing stream')}</h3>
+              <p>
+                {translate(
+                  'Labor and expenses approved for customer billing use independent streams, cadence and tax configuration. Non-billable expenses are excluded even if J&A reimburses the worker.',
+                )}
               </p>
-              <a
-                class="secondary-button"
-                href={`${base}/app/billing/invoices/${encodeURIComponent(wizardReadiness.existingInvoiceId)}`}
-                >{translate('Open existing invoice')} <DirectionIcon /></a
-              >
-            {/if}
-          </section>
-        {:else if invoiceWizardStep === 5}
-          <section>
-            <h3>{translate('Included records')}</h3>
-            <p>
-              {translate(
-                'The draft includes approved, eligible and unbilled records from this exact period. The generated draft preserves a source-by-source snapshot for review.',
-              )}
-            </p>
-            <p>
-              {translate(
-                'Eligibility and totals are calculated by the billing engine when the draft is saved; the browser does not duplicate those calculations.',
-              )}
-            </p>
-            {#if wizardReadiness}
               <dl>
                 <div>
-                  <dt>{translate('Included source records')}</dt>
-                  <dd>{wizardReadiness.includedSourceCount}</dd>
+                  <dt>{translate('Stream')}</dt>
+                  <dd>
+                    {controlledValue(
+                      'billingStream',
+                      rowValue(wizardRule, 'stream_type', 'streamType'),
+                    )}
+                  </dd>
                 </div>
                 <div>
-                  <dt>{translate('Period readiness')}</dt>
+                  <dt>{translate('Cadence')}</dt>
                   <dd>
-                    {wizardHasNoBillableSources
-                      ? translate(
-                          wizardReadiness.includedSourceCount > 0
-                            ? 'No positive billable amount'
-                            : 'No billable records',
-                        )
-                      : controlledValue('status', wizardReadiness.state)}
+                    {controlledValue(
+                      'billingStream',
+                      rowValue(wizardRule, 'cadence_type', 'cadenceType'),
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{translate('Tax profile')}</dt>
+                  <dd>
+                    {rowValue(wizardRule, 'tax_profile_name', 'taxProfileName') ||
+                      translate('No tax profile configured')}
                   </dd>
                 </div>
               </dl>
-              {#if wizardHasNoBillableSources}<p role="alert">
-                  {translate(wizardEmptySourcesMessage)}
-                </p>{/if}
-              {#if wizardReadiness.includedExpenseRows?.length}
+              <button
+                type="button"
+                class="secondary-button"
+                onclick={() => {
+                  selectBillingWorkspace('streams');
+                  invoiceWizardOpen = false;
+                }}>{translate('Manage stream')}</button
+              >
+            </section>
+          {:else if invoiceWizardStep === 3}
+            <section>
+              <h3>{translate('Labor / expenses')}</h3>
+              <p>
+                {translate(
+                  'This stream includes one source family only, preventing the same labor or expense from being invoiced twice.',
+                )}
+              </p>
+              <dl>
+                <div>
+                  <dt>{translate('Source')}</dt>
+                  <dd>
+                    {controlledValue(
+                      'billingStream',
+                      rowValue(wizardRule, 'stream_type', 'streamType'),
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{translate('Saved grouping setting')}</dt>
+                  <dd>
+                    {groupingLabel(rowValue(wizardRule, 'grouping_mode', 'groupingMode'))}
+                  </dd>
+                </div>
+              </dl>
+              <p data-billing-grouping-help>
+                {translate(
+                  'Grouping cannot be customized here. Invoice layout follows the selected template.',
+                )}
+              </p>
+            </section>
+          {:else if invoiceWizardStep === 4}
+            <section>
+              <h3>{translate('Period')}</h3>
+              <p>
+                {timeReadinessText(
+                  'The suggested dates come from this stream’s configured cadence. Checking incompatible dates aligns them with the stream and shows the change before creating the draft.',
+                  'Las fechas sugeridas siguen la frecuencia del flujo. Comprobar fechas incompatibles las ajusta al flujo y muestra el cambio antes de crear el borrador.',
+                  'As datas sugeridas seguem a frequência do fluxo. Verificar datas incompatíveis ajusta-as ao fluxo e mostra a alteração antes de criar o rascunho.',
+                )}
+              </p>
+              <div class="billing-section__wizard-fields">
+                <label
+                  ><span>{translate('Period start')}</span><input
+                    data-billing-wizard-period-start
+                    bind:value={wizardPeriodStart}
+                    oninput={resetWizardReadiness}
+                    type="date"
+                    required
+                  /></label
+                >
+                <label
+                  ><span>{translate('Period end')}</span><input
+                    bind:value={wizardPeriodEnd}
+                    oninput={resetWizardReadiness}
+                    type="date"
+                    required
+                  /></label
+                >
+              </div>
+              {#if wizardPeriodAlignment}
+                <p role="alert" data-billing-period-aligned>
+                  {timeReadinessText(
+                    'The entered period did not match the billing cadence or effective dates. The compatible period is selected for review before creating the draft.',
+                    'El período introducido no coincidía con la frecuencia o las fechas de vigencia. Se ha seleccionado el período compatible para revisarlo antes de crear el borrador.',
+                    'O período informado não correspondia à frequência ou às datas de vigência. O período compatível foi selecionado para revisão antes de criar o rascunho.',
+                  )}
+                  <strong
+                    >{wizardPeriodAlignment.start} – {wizardPeriodAlignment.end} → {wizardPeriodStart}
+                    –
+                    {wizardPeriodEnd}</strong
+                  >
+                </p>
+              {/if}
+              <button
+                type="button"
+                class="secondary-button"
+                disabled={wizardReadinessLoading ||
+                  !wizardRuleId ||
+                  !wizardPeriodStart ||
+                  !wizardPeriodEnd}
+                onclick={checkWizardPeriod}
+                >{wizardReadinessLoading
+                  ? translate('Checking period…')
+                  : translate('Check selected period')}</button
+              >
+              {#if wizardReadinessError}
+                <div
+                  role="alert"
+                  tabindex="-1"
+                  bind:this={wizardReadinessAlert}
+                  data-billing-readiness-problem
+                >
+                  <p>{wizardReadinessError}</p>
+                  {#if wizardReadinessReference}
+                    <small>{translate('Reference')}: {wizardReadinessReference}</small>
+                  {/if}
+                  {#if wizardReadinessRemedy === 'review_billing_setup'}
+                    <a href={`${base}/app/billing?view=setup`}
+                      >{translate('Review billing setup')}</a
+                    >
+                  {:else if wizardReadinessRemedy === 'review_client_rates'}
+                    <a href={readinessActionHref([{ code: 'ambiguous_client_rate' }])}
+                      >{translate('billing.readiness.configureSaleRate')}</a
+                    >
+                  {:else if wizardReadinessRemedy === 'sign_in_again'}
+                    <a href={`${base}/app/login`}>{translate('Sign in again')}</a>
+                  {:else if wizardReadinessRemedy === 'contact_finance'}
+                    <span>{translate('Contact a finance administrator')}</span>
+                  {:else if wizardReadinessRemedy === 'contact_owner'}
+                    <span>{translate('Contact an owner')}</span>
+                  {:else if wizardReadinessRemedy === 'review_selected_period'}
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      onclick={() =>
+                        document
+                          .querySelector<HTMLInputElement>('[data-billing-wizard-period-start]')
+                          ?.focus()}>{translate('Review selected period')}</button
+                    >
+                  {:else if wizardReadinessRemedy === 'retry_readiness'}
+                    <button type="button" class="secondary-button" onclick={checkWizardPeriod}
+                      >{translate('Retry')}</button
+                    >
+                  {/if}
+                </div>
+              {/if}
+              {#if wizardReadiness?.reasons.some((reason) => reason.code === 'pending_time_finance_review')}
+                <div role="status" data-pending-time-finance-review>
+                  <p>
+                    {translate('action.billing.readiness.pendingTimeFinanceReview')}
+                    {#if wizardReadiness.timeReadiness}
+                      {#each wizardReadiness.timeReadiness.groups.filter((group) => group.status === 'pending_finance_review') as group}
+                        <strong
+                          >{timeReadinessHours(group.minutes)} · {group.recordCount}
+                          {timeReadinessText('records', 'registros', 'registros')}</strong
+                        >
+                      {/each}
+                    {/if}
+                  </p>
+                  <a
+                    href={readinessActionHref(
+                      wizardReadiness.reasons.filter(
+                        (reason) => reason.code === 'pending_time_finance_review',
+                      ),
+                    )}>{translate('billing.readiness.reviewFinancial')}</a
+                  >
+                </div>
+              {/if}
+              {#if wizardReadiness?.timeReadiness}
+                <div data-billing-time-readiness>
+                  <h4>
+                    {timeReadinessText(
+                      'Actual time in selected period',
+                      'Horas reales en el período seleccionado',
+                      'Horas reais no período selecionado',
+                    )}
+                  </h4>
+                  <p data-billing-readiness-counts>
+                    {wizardReadinessRecovery()?.problem.params.counts}
+                  </p>
+                  <p>
+                    {wizardPeriodStart} – {wizardPeriodEnd} ({timeReadinessText(
+                      'inclusive',
+                      'inclusive',
+                      'inclusive',
+                    )}):
+                    {timeReadinessHours(wizardReadiness.timeReadiness.minutes)}
+                    · {wizardReadiness.timeReadiness.recordCount}
+                    {timeReadinessText('records', 'registros', 'registros')}
+                  </p>
+                  {#if wizardReadiness.timeReadiness.records.length}
+                    <ul>
+                      {#each wizardReadiness.timeReadiness.records.slice(0, 20) as record}
+                        <li>
+                          {record.workDate} · {timeReadinessHours(record.minutes)} · {timeReadinessLabel(
+                            record.status,
+                          )}
+                        </li>
+                      {/each}
+                    </ul>
+                    {#if wizardReadiness.timeReadiness.records.length > 20}
+                      <p>
+                        {timeReadinessText(
+                          'Showing the first 20 records. Use the records view for the full period.',
+                          'Se muestran los primeros 20 registros. Consulta la vista de registros para ver el período completo.',
+                          'São mostrados os primeiros 20 registros. Consulte a visualização de registros para ver o período completo.',
+                        )}
+                      </p>
+                    {/if}
+                  {:else}
+                    <p>
+                      {timeReadinessText(
+                        'No active time records have a worked date inside the selected period.',
+                        'No hay registros de horas activos con fecha de trabajo dentro del período seleccionado.',
+                        'Não há registros de horas ativos com data de trabalho dentro do período selecionado.',
+                      )}
+                    </p>
+                    {#if wizardReadiness.nearbyApprovedTimeDates?.length}
+                      <p>
+                        {timeReadinessText(
+                          'Approved time on other worked dates',
+                          'Horas aprobadas en otras fechas de trabajo',
+                          'Horas aprovadas em outras datas de trabalho',
+                        )}:
+                      </p>
+                      <ul>
+                        {#each wizardReadiness.nearbyApprovedTimeDates as date}
+                          <li>{date.workDate} · {timeReadinessHours(date.minutes)}</li>
+                        {/each}
+                      </ul>
+                    {/if}
+                  {/if}
+                </div>
+              {/if}
+              {#if wizardReadiness?.reasons.some((reason) => reason.code === 'missing_client_rate')}
+                <div role="alert" data-billing-missing-client-rate>
+                  <p>
+                    {timeReadinessText(
+                      'Configure the customer sale rate for this project and the worked dates below. Internal cost is a separate Finance value.',
+                      'Configura la tarifa de venta al cliente para este proyecto y las fechas de trabajo siguientes. El coste interno es un valor de Finanzas independiente.',
+                      'Configure a tarifa de venda ao cliente para este projeto e as datas de trabalho abaixo. O custo interno é um valor de Finanças separado.',
+                    )}
+                  </p>
+                  <ul>
+                    {#each wizardReadiness.timeReadiness?.records.filter( (record) => wizardReadiness?.reasons.some((reason) => reason.code === 'missing_client_rate' && reason.sourceId === record.sourceId), ) ?? [] as record}<li
+                      >
+                        {record.workDate} · {timeReadinessHours(record.minutes)}
+                      </li>{/each}
+                  </ul>
+                  <a
+                    href={readinessActionHref(
+                      wizardReadiness.reasons.filter(
+                        (reason) => reason.code === 'missing_client_rate',
+                      ),
+                    )}>{translate('billing.readiness.configureSaleRate')}</a
+                  >
+                </div>
+              {/if}
+              {#if wizardReadiness?.existingInvoiceId}
+                <p role="status">
+                  {translate('An invoice already exists for this stream and period.')}
+                  {controlledValue('status', wizardReadiness.existingInvoiceState)}
+                </p>
+                <a
+                  class="secondary-button"
+                  href={`${base}/app/billing/invoices/${encodeURIComponent(wizardReadiness.existingInvoiceId)}`}
+                  >{translate('Open existing invoice')} <DirectionIcon /></a
+                >
+              {/if}
+            </section>
+          {:else if invoiceWizardStep === 5}
+            <section>
+              <h3>{translate('Included records')}</h3>
+              <p>
+                {translate(
+                  'The draft includes approved, eligible and unbilled records from this exact period. The generated draft preserves a source-by-source snapshot for review.',
+                )}
+              </p>
+              <p>
+                {translate(
+                  'Eligibility and totals are calculated by the billing engine when the draft is saved; the browser does not duplicate those calculations.',
+                )}
+              </p>
+              {#if wizardReadiness}
+                <dl>
+                  <div>
+                    <dt>{translate('Included source records')}</dt>
+                    <dd>{wizardReadiness.includedSourceCount}</dd>
+                  </div>
+                  <div>
+                    <dt>{translate('Period readiness')}</dt>
+                    <dd>
+                      {wizardHasNoBillableSources
+                        ? translate(
+                            wizardReadiness.includedSourceCount > 0
+                              ? 'No positive billable amount'
+                              : 'No billable records',
+                          )
+                        : controlledValue('status', wizardReadiness.state)}
+                    </dd>
+                  </div>
+                </dl>
+                {#if wizardHasNoBillableSources}<p role="alert">
+                    {translate(wizardEmptySourcesMessage)}
+                  </p>{/if}
+                {#if wizardReadiness.includedExpenseRows?.length}
+                  <h4>{translate('Eligible expenses')}</h4>
+                  <table class="billing-section__table">
+                    <thead
+                      ><tr
+                        ><th>{translate('Date')}</th><th>{translate('Category')}</th><th
+                          >{translate('Description')}</th
+                        ><th>{translate('Customer amount')}</th></tr
+                      ></thead
+                    >
+                    <tbody
+                      >{#each wizardReadiness.includedExpenseRows as expense}<tr>
+                          <td>{expense.spentOn}</td><td
+                            >{controlledValue('expenseCategory', expense.category)}</td
+                          >
+                          <td>{expense.description}</td><td
+                            >{formatMoney(
+                              expense.amountMinor,
+                              rowValue(wizardRule, 'currency'),
+                            )}</td
+                          >
+                        </tr>{/each}</tbody
+                    >
+                    <tfoot
+                      ><tr
+                        ><th colspan="3"
+                          >{translate('Eligible expense subtotal before caps and adjustments')}</th
+                        ><td
+                          >{formatMoney(
+                            wizardReadiness.includedExpenseSubtotalMinor,
+                            rowValue(wizardRule, 'currency'),
+                          )}</td
+                        ></tr
+                      ></tfoot
+                    >
+                  </table>
+                {/if}
+              {:else}
+                <button type="button" class="secondary-button" onclick={checkWizardPeriod}
+                  >{translate('Check selected period')}</button
+                >
+              {/if}
+            </section>
+          {:else if invoiceWizardStep === 6}
+            <section>
+              <h3>{translate('Excluded / pending')}</h3>
+              <p>
+                {translate(
+                  'Pending approvals, active corrections, missing rates or required reports block this exact period. The result explains each exclusion and keeps your selected dates.',
+                )}
+              </p>
+              {#if wizardReadiness}
+                <dl>
+                  <div>
+                    <dt>{translate('Excluded or pending source records')}</dt>
+                    <dd>{wizardReadiness.excludedSourceCount}</dd>
+                  </div>
+                </dl>
+                {#if wizardReadiness.reasons.length}
+                  <ul>
+                    {#each wizardReadiness.reasons as reason}
+                      <li>{translate(billingReadinessMessageKey(reason.code))}</li>
+                    {/each}
+                  </ul>
+                {:else}
+                  <p>{translate('No blocking conditions were found for this exact period.')}</p>
+                {/if}
+              {:else}
+                <button type="button" class="secondary-button" onclick={checkWizardPeriod}
+                  >{translate('Check selected period')}</button
+                >
+              {/if}
+              <a class="secondary-button" href={readinessActionHref(wizardReadiness?.reasons ?? [])}
+                >{translate('Review pending records')}</a
+              >
+            </section>
+          {:else if invoiceWizardStep === 7}
+            <section>
+              <h3>{translate('Taxes')}</h3>
+              <p>
+                {translate(
+                  'A selected tax profile calculates tax. Without one, the draft adds no tax.',
+                )}
+              </p>
+              <dl>
+                <div>
+                  <dt>{translate('Tax profile')}</dt>
+                  <dd>
+                    {rowValue(wizardRule, 'tax_profile_name', 'taxProfileName') ||
+                      translate('No tax profile configured')}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{translate('Currency')}</dt>
+                  <dd>{rowValue(wizardRule, 'currency')}</dd>
+                </div>
+              </dl>
+            </section>
+          {:else if invoiceWizardStep === 8}
+            <section>
+              <h3>{translate('Invoice data')}</h3>
+              <p>
+                {translate(
+                  'The invoice issuer is your company. The customer legal name comes from the client used to create this project.',
+                )}
+              </p>
+              <dl>
+                <div>
+                  <dt>{translate('Invoice issuer')}</dt>
+                  <dd>
+                    {rowValue(wizardRule, 'legal_entity_code', 'legalEntityCode') ||
+                      translate('Missing')}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{translate('Customer legal entity')}</dt>
+                  <dd>{rowValue(wizardRule, 'client_legal_name', 'clientLegalName')}</dd>
+                </div>
+                <div>
+                  <dt>{translate('Customer billing address')}</dt>
+                  <dd>
+                    {rowValue(wizardRule, 'client_billing_address', 'clientBillingAddress') ||
+                      translate('Missing')}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{translate('Recipient email')}</dt>
+                  <dd>
+                    {rowValue(wizardRule, 'recipient_email', 'recipientEmail') ||
+                      translate('Missing')}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{translate('PO reference')}</dt>
+                  <dd>{rowValue(wizardRule, 'po_number_override', 'poNumberOverride') || '—'}</dd>
+                </div>
+              </dl>
+            </section>
+          {:else if invoiceWizardStep === 9}
+            <section>
+              <h3>{translate('Banking / payment')}</h3>
+              <p>
+                {translate(
+                  'Payment terms come from the billing stream. Review payment instructions on the draft before issuing.',
+                )}
+              </p>
+              <dl>
+                <div>
+                  <dt>{translate('Issuing entity')}</dt>
+                  <dd>
+                    {rowValue(wizardRule, 'legal_entity_code', 'legalEntityCode') ||
+                      translate('Missing')}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{translate('Payment terms (days)')}</dt>
+                  <dd>{rowValue(wizardRule, 'payment_terms_days', 'paymentTermsDays') || '30'}</dd>
+                </div>
+              </dl>
+            </section>
+          {:else if invoiceWizardStep === 10}
+            <section>
+              <h3>{translate('Commercial adjustments')}</h3>
+              <p>
+                {translate(
+                  'Correct a wrong source record in Time or Expenses. A commercial adjustment changes only what is billed and never overwrites the actual work record.',
+                )}
+              </p>
+              <p>
+                {translate(
+                  'Manual commercial adjustments are added to the reviewable draft with a reason and audit trail before issue.',
+                )}
+              </p>
+            </section>
+          {:else if invoiceWizardStep === 11}
+            <section>
+              <h3>{translate('Preview')}</h3>
+              <dl>
+                <div>
+                  <dt>{translate('Customer legal entity')}</dt>
+                  <dd>{rowValue(wizardRule, 'client_legal_name', 'clientLegalName')}</dd>
+                </div>
+                <div>
+                  <dt>{translate('Project')}</dt>
+                  <dd>{rowValue(wizardRule, 'project_number', 'projectNumber')}</dd>
+                </div>
+                <div>
+                  <dt>{translate('Period')}</dt>
+                  <dd>
+                    {wizardPeriodStart && wizardPeriodEnd
+                      ? `${wizardPeriodStart} → ${wizardPeriodEnd}`
+                      : translate('Choose dates in the Period step to preview this invoice.')}
+                  </dd>
+                </div>
+              </dl>
+              {#if wizardReadiness?.includedExpenseRows?.length}
                 <h4>{translate('Eligible expenses')}</h4>
                 <table class="billing-section__table">
                   <thead
                     ><tr
-                      ><th>{translate('Date')}</th><th>{translate('Category')}</th><th
-                        >{translate('Description')}</th
-                      ><th>{translate('Customer amount')}</th></tr
+                      ><th>{translate('Date')}</th><th>{translate('Description')}</th><th
+                        >{translate('Customer amount')}</th
+                      ></tr
                     ></thead
                   >
                   <tbody
                     >{#each wizardReadiness.includedExpenseRows as expense}<tr>
-                        <td>{expense.spentOn}</td><td
-                          >{controlledValue('expenseCategory', expense.category)}</td
-                        >
-                        <td>{expense.description}</td><td
-                          >{formatMoney(expense.amountMinor, rowValue(wizardRule, 'currency'))}</td
+                        <td>{expense.spentOn}</td><td>{expense.description}</td>
+                        <td>{formatMoney(expense.amountMinor, rowValue(wizardRule, 'currency'))}</td
                         >
                       </tr>{/each}</tbody
                   >
                   <tfoot
                     ><tr
-                      ><th colspan="3"
+                      ><th colspan="2"
                         >{translate('Eligible expense subtotal before caps and adjustments')}</th
                       ><td
                         >{formatMoney(
@@ -3226,278 +3488,94 @@
                   >
                 </table>
               {/if}
-            {:else}
-              <button type="button" class="secondary-button" onclick={checkWizardPeriod}
-                >{translate('Check selected period')}</button
-              >
-            {/if}
-          </section>
-        {:else if invoiceWizardStep === 6}
-          <section>
-            <h3>{translate('Excluded / pending')}</h3>
-            <p>
-              {translate(
-                'Pending approvals, active corrections, missing rates or required reports block this exact period. The result explains each exclusion and keeps your selected dates.',
-              )}
-            </p>
-            {#if wizardReadiness}
-              <dl>
-                <div>
-                  <dt>{translate('Excluded or pending source records')}</dt>
-                  <dd>{wizardReadiness.excludedSourceCount}</dd>
-                </div>
-              </dl>
-              {#if wizardReadiness.reasons.length}
-                <ul>
-                  {#each wizardReadiness.reasons as reason}
-                    <li>{translate(billingReadinessMessageKey(reason.code))}</li>
-                  {/each}
-                </ul>
-              {:else}
-                <p>{translate('No blocking conditions were found for this exact period.')}</p>
-              {/if}
-            {:else}
-              <button type="button" class="secondary-button" onclick={checkWizardPeriod}
-                >{translate('Check selected period')}</button
-              >
-            {/if}
-            <a class="secondary-button" href={readinessActionHref(wizardReadiness?.reasons ?? [])}
-              >{translate('Review pending records')}</a
-            >
-          </section>
-        {:else if invoiceWizardStep === 7}
-          <section>
-            <h3>{translate('Taxes')}</h3>
-            <p>
-              {translate(
-                'A selected tax profile calculates tax. Without one, the draft adds no tax.',
-              )}
-            </p>
-            <dl>
-              <div>
-                <dt>{translate('Tax profile')}</dt>
-                <dd>
-                  {rowValue(wizardRule, 'tax_profile_name', 'taxProfileName') ||
-                    translate('No tax profile configured')}
-                </dd>
-              </div>
-              <div>
-                <dt>{translate('Currency')}</dt>
-                <dd>{rowValue(wizardRule, 'currency')}</dd>
-              </div>
-            </dl>
-          </section>
-        {:else if invoiceWizardStep === 8}
-          <section>
-            <h3>{translate('Invoice data')}</h3>
-            <p>
-              {translate(
-                'The invoice issuer is your company. The customer legal name comes from the client used to create this project.',
-              )}
-            </p>
-            <dl>
-              <div>
-                <dt>{translate('Invoice issuer')}</dt>
-                <dd>
-                  {rowValue(wizardRule, 'legal_entity_code', 'legalEntityCode') ||
-                    translate('Missing')}
-                </dd>
-              </div>
-              <div>
-                <dt>{translate('Customer legal entity')}</dt>
-                <dd>{rowValue(wizardRule, 'client_legal_name', 'clientLegalName')}</dd>
-              </div>
-              <div>
-                <dt>{translate('Customer billing address')}</dt>
-                <dd>
-                  {rowValue(wizardRule, 'client_billing_address', 'clientBillingAddress') ||
-                    translate('Missing')}
-                </dd>
-              </div>
-              <div>
-                <dt>{translate('Recipient email')}</dt>
-                <dd>
-                  {rowValue(wizardRule, 'recipient_email', 'recipientEmail') ||
-                    translate('Missing')}
-                </dd>
-              </div>
-              <div>
-                <dt>{translate('PO reference')}</dt>
-                <dd>{rowValue(wizardRule, 'po_number_override', 'poNumberOverride') || '—'}</dd>
-              </div>
-            </dl>
-          </section>
-        {:else if invoiceWizardStep === 9}
-          <section>
-            <h3>{translate('Banking / payment')}</h3>
-            <p>
-              {translate(
-                'Payment terms come from the billing stream. Review payment instructions on the draft before issuing.',
-              )}
-            </p>
-            <dl>
-              <div>
-                <dt>{translate('Issuing entity')}</dt>
-                <dd>
-                  {rowValue(wizardRule, 'legal_entity_code', 'legalEntityCode') ||
-                    translate('Missing')}
-                </dd>
-              </div>
-              <div>
-                <dt>{translate('Payment terms (days)')}</dt>
-                <dd>{rowValue(wizardRule, 'payment_terms_days', 'paymentTermsDays') || '30'}</dd>
-              </div>
-            </dl>
-          </section>
-        {:else if invoiceWizardStep === 10}
-          <section>
-            <h3>{translate('Commercial adjustments')}</h3>
-            <p>
-              {translate(
-                'Correct a wrong source record in Time or Expenses. A commercial adjustment changes only what is billed and never overwrites the actual work record.',
-              )}
-            </p>
-            <p>
-              {translate(
-                'Manual commercial adjustments are added to the reviewable draft with a reason and audit trail before issue.',
-              )}
-            </p>
-          </section>
-        {:else if invoiceWizardStep === 11}
-          <section>
-            <h3>{translate('Preview')}</h3>
-            <dl>
-              <div>
-                <dt>{translate('Customer legal entity')}</dt>
-                <dd>{rowValue(wizardRule, 'client_legal_name', 'clientLegalName')}</dd>
-              </div>
-              <div>
-                <dt>{translate('Project')}</dt>
-                <dd>{rowValue(wizardRule, 'project_number', 'projectNumber')}</dd>
-              </div>
-              <div>
-                <dt>{translate('Period')}</dt>
-                <dd>
-                  {wizardPeriodStart && wizardPeriodEnd
-                    ? `${wizardPeriodStart} → ${wizardPeriodEnd}`
-                    : translate('Choose dates in the Period step to preview this invoice.')}
-                </dd>
-              </div>
-            </dl>
-            {#if wizardReadiness?.includedExpenseRows?.length}
-              <h4>{translate('Eligible expenses')}</h4>
-              <table class="billing-section__table">
-                <thead
-                  ><tr
-                    ><th>{translate('Date')}</th><th>{translate('Description')}</th><th
-                      >{translate('Customer amount')}</th
-                    ></tr
-                  ></thead
-                >
-                <tbody
-                  >{#each wizardReadiness.includedExpenseRows as expense}<tr>
-                      <td>{expense.spentOn}</td><td>{expense.description}</td>
-                      <td>{formatMoney(expense.amountMinor, rowValue(wizardRule, 'currency'))}</td>
-                    </tr>{/each}</tbody
-                >
-                <tfoot
-                  ><tr
-                    ><th colspan="2"
-                      >{translate('Eligible expense subtotal before caps and adjustments')}</th
-                    ><td
-                      >{formatMoney(
-                        wizardReadiness.includedExpenseSubtotalMinor,
-                        rowValue(wizardRule, 'currency'),
-                      )}</td
-                    ></tr
-                  ></tfoot
-                >
-              </table>
-            {/if}
-            <p>
-              {translate(
-                'Save draft builds a reviewable snapshot. It does not issue, number, send or collect the invoice.',
-              )}
-            </p>
-            {#if !wizardReadiness}<p role="status">
-                {translate('Check the selected billing period before saving a draft.')}
-              </p>{/if}
-          </section>
-        {:else}
-          <section>
-            <h3>{translate('Save / issue')}</h3>
-            {#if wizardReadiness?.state === 'ready' && !wizardHasNoBillableSources}<p>
+              <p>
                 {translate(
-                  'Save the draft now. Finance can then review lines and adjustments, approve it, issue the immutable numbered version, send it and register collections.',
+                  'Save draft builds a reviewable snapshot. It does not issue, number, send or collect the invoice.',
                 )}
-              </p>{/if}
-            <ProblemNotice
-              problem={draftPeriodWarning}
-              kind="warning"
-              remedyLinks={problemRemedyLinks}
-            />
-            {#if wizardHasNoBillableSources}
-              <p role="status">
-                {translate(wizardEmptySourcesMessage)}
               </p>
-              {#if wizardReadiness?.existingInvoiceId}
-                <a
+              {#if !wizardReadiness}<p role="status">
+                  {translate('Check the selected billing period before saving a draft.')}
+                </p>{/if}
+            </section>
+          {:else}
+            <section>
+              <h3>{translate('Save / issue')}</h3>
+              {#if wizardReadiness?.state === 'ready' && !wizardHasNoBillableSources}<p>
+                  {translate(
+                    'Save the draft now. Finance can then review lines and adjustments, approve it, issue the immutable numbered version, send it and register collections.',
+                  )}
+                </p>{/if}
+              <ProblemNotice
+                problem={draftPeriodWarning}
+                kind="warning"
+                remedyLinks={problemRemedyLinks}
+              />
+              {#if wizardHasNoBillableSources}
+                <p role="status">
+                  {translate(wizardEmptySourcesMessage)}
+                </p>
+                {#if wizardReadiness?.existingInvoiceId}
+                  <a
+                    class="secondary-button"
+                    href={`${base}/app/billing/invoices/${encodeURIComponent(wizardReadiness.existingInvoiceId)}`}
+                    >{translate('Open existing invoice')} <DirectionIcon /></a
+                  >
+                {/if}
+                <button
+                  type="button"
                   class="secondary-button"
+                  onclick={() => (invoiceWizardStep = 4)}
+                  >{translate('Period')} <DirectionIcon /></button
+                >
+              {:else if !wizardReadiness || wizardReadiness.state === 'incomplete'}
+                <p role="status">
+                  {translate('Resolve the period readiness issues before saving an invoice draft.')}
+                </p>
+                {#each wizardReadinessRecovery()?.links ?? [] as link}
+                  <a class="secondary-button" href={link.href}>{link.label}</a>
+                {/each}
+                <button type="button" class="secondary-button" onclick={checkWizardPeriod}
+                  >{translate('Check selected period')}</button
+                >
+              {/if}
+              {#if wizardReadiness?.existingInvoiceId && wizardReadiness.existingInvoiceState !== 'draft'}
+                <a
+                  class="primary-button"
                   href={`${base}/app/billing/invoices/${encodeURIComponent(wizardReadiness.existingInvoiceId)}`}
                   >{translate('Open existing invoice')} <DirectionIcon /></a
                 >
+              {:else}
+                <button
+                  type="submit"
+                  disabled={!wizardRuleId ||
+                    !wizardPeriodStart ||
+                    !wizardPeriodEnd ||
+                    !wizardReadiness ||
+                    wizardReadiness.state === 'incomplete' ||
+                    wizardHasNoBillableSources}>{translate('Save invoice draft')}</button
+                >
               {/if}
-              <button type="button" class="secondary-button" onclick={() => (invoiceWizardStep = 4)}
-                >{translate('Period')} <DirectionIcon /></button
-              >
-            {:else if !wizardReadiness || wizardReadiness.state === 'incomplete'}
-              <p role="status">
-                {translate('Resolve the period readiness issues before saving an invoice draft.')}
-              </p>
-              {#each wizardReadinessRecovery()?.links ?? [] as link}
-                <a class="secondary-button" href={link.href}>{link.label}</a>
-              {/each}
-              <button type="button" class="secondary-button" onclick={checkWizardPeriod}
-                >{translate('Check selected period')}</button
-              >
-            {/if}
-            {#if wizardReadiness?.existingInvoiceId && wizardReadiness.existingInvoiceState !== 'draft'}
-              <a
-                class="primary-button"
-                href={`${base}/app/billing/invoices/${encodeURIComponent(wizardReadiness.existingInvoiceId)}`}
-                >{translate('Open existing invoice')} <DirectionIcon /></a
-              >
-            {:else}
-              <button
-                type="submit"
-                disabled={!wizardRuleId ||
-                  !wizardPeriodStart ||
-                  !wizardPeriodEnd ||
-                  !wizardReadiness ||
-                  wizardReadiness.state === 'incomplete' ||
-                  wizardHasNoBillableSources}>{translate('Save invoice draft')}</button
-              >
-            {/if}
-          </section>
-        {/if}
+            </section>
+          {/if}
 
-        <div class="billing-section__wizard-actions">
-          <button
-            type="button"
-            class="secondary-button"
-            disabled={invoiceWizardStep === 1}
-            onclick={() => (invoiceWizardStep = Math.max(1, invoiceWizardStep - 1))}
-            >{translate('Previous')}</button
-          >
-          {#if invoiceWizardStep < 12}
+          <div class="billing-section__wizard-actions">
             <button
               type="button"
-              onclick={() => (invoiceWizardStep = Math.min(12, invoiceWizardStep + 1))}
-              >{translate('Next')}</button
+              class="secondary-button"
+              disabled={invoiceWizardStep === 1}
+              onclick={() => (invoiceWizardStep = Math.max(1, invoiceWizardStep - 1))}
+              >{translate('Previous')}</button
             >
-          {/if}
-        </div>
-      </form>
+            {#if invoiceWizardStep < 12}
+              <button
+                type="button"
+                onclick={() => (invoiceWizardStep = Math.min(12, invoiceWizardStep + 1))}
+                >{translate('Next')}</button
+              >
+            {/if}
+          </div>
+        </form>
+      </details>
     </ResponsiveSheet>
   {/if}
 

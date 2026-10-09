@@ -111,6 +111,8 @@ test('owner configures one or two customer invoices from the project at phone, t
     ).toEqual([{ stream_type: 'labor', include_expenses: 1 }]);
     await page.reload();
     await expect(page.getByRole('region', { name: 'Project billing setup' })).toBeVisible();
+    await expect(setup.getByRole('button', { name: 'Review billing setup' })).toBeVisible();
+    await setup.getByRole('button', { name: 'Review billing setup' }).click();
     const templateOption = page
       .getByRole('region', { name: 'Project billing setup' })
       .getByLabel('Start from a saved template')
@@ -152,6 +154,7 @@ test('owner configures one or two customer invoices from the project at phone, t
     ).toBe(true);
     if (testInfo.project.name === 'desktop') {
       await page.reload();
+      await setup.getByRole('button', { name: 'Review billing setup' }).click();
       await expect(setup.locator('[name="mode"]')).toHaveValue('separate');
       await expect(setup.getByText('Billing setup saved')).toBeVisible();
       await expect(
@@ -174,6 +177,7 @@ test('owner configures one or two customer invoices from the project at phone, t
           .get(project.id),
       ).toEqual({ count: 2 });
       await page.reload();
+      await setup.getByRole('button', { name: 'Review billing setup' }).click();
       await setup.getByRole('button', { name: 'Continue' }).click();
       await setup.getByLabel('Recipient email').fill('qa-billing@example.test');
       await setup.getByRole('button', { name: 'Continue' }).click();
@@ -191,9 +195,14 @@ test('owner configures one or two customer invoices from the project at phone, t
       await expect(setup.locator('#billing-setup-recipientEmail-error')).toHaveText(
         'Enter a valid invoice recipient email address.',
       );
-      await expect(setup.getByLabel('Recipient email')).toBeFocused();
+      await expect(
+        page
+          .getByRole('dialog', { name: 'Complete the action step by step' })
+          .getByLabel('Recipient email'),
+      ).toBeFocused();
       await expect(setup.getByLabel('Recipient email')).toHaveValue('invalid-address');
       await page.reload();
+      await setup.getByRole('button', { name: 'Review billing setup' }).click();
       await setup.getByRole('button', { name: 'Continue' }).click();
       await setup.getByLabel('Labor billing cadence').selectOption('every_14_days');
       await setup.getByRole('button', { name: 'Continue' }).click();
@@ -204,8 +213,13 @@ test('owner configures one or two customer invoices from the project at phone, t
         'aria-invalid',
         'true',
       );
-      await expect(setup.getByLabel('Labor cadence anchor date')).toBeFocused();
+      await expect(
+        page
+          .getByRole('dialog', { name: 'Complete the action step by step' })
+          .getByLabel('Labor cadence anchor date'),
+      ).toBeFocused();
       await page.reload();
+      await setup.getByRole('button', { name: 'Review billing setup' }).click();
       await setup.getByRole('button', { name: 'Continue' }).click();
       await setup.getByLabel('Expense billing cadence').selectOption('every_14_days');
       await setup.getByRole('button', { name: 'Continue' }).click();
@@ -216,8 +230,13 @@ test('owner configures one or two customer invoices from the project at phone, t
         'aria-invalid',
         'true',
       );
-      await expect(setup.getByLabel('Expense cadence anchor date')).toBeFocused();
+      await expect(
+        page
+          .getByRole('dialog', { name: 'Complete the action step by step' })
+          .getByLabel('Expense cadence anchor date'),
+      ).toBeFocused();
       await page.reload();
+      await setup.getByRole('button', { name: 'Review billing setup' }).click();
       await setup.getByRole('button', { name: 'Continue' }).click();
       await setup.getByRole('button', { name: 'Continue' }).click();
       await setup.getByRole('button', { name: 'Continue' }).click();
@@ -226,7 +245,11 @@ test('owner configures one or two customer invoices from the project at phone, t
       await setup.getByRole('button', { name: 'Save billing setup' }).click();
       await expect(setup.getByText('4. Review and save')).toBeVisible();
       await expect(setup.getByLabel('Template name')).toHaveAttribute('aria-invalid', 'true');
-      await expect(setup.getByLabel('Template name')).toBeFocused();
+      await expect(
+        page
+          .getByRole('dialog', { name: 'Complete the action step by step' })
+          .getByLabel('Template name'),
+      ).toBeFocused();
     }
   } finally {
     db.close();
@@ -242,15 +265,26 @@ test('billing setup labels translate in Spanish and Portuguese', async ({ page }
       .get() as { id: string } | undefined;
     if (!row) throw new Error('A project is required for locale verification');
     await signIn(page, 'owner');
-    await page.goto(portal(`/projects/${row.id}?tab=billing&lang=es`));
+    async function openSetup(locale: string) {
+      await page.goto(portal(`/projects/${row!.id}?tab=billing&lang=${locale}`));
+      const review = page.getByRole('button', {
+        name:
+          locale === 'es'
+            ? 'Revisar la configuración de facturación'
+            : 'Revisar a configuração de faturamento',
+        exact: true,
+      });
+      if (await review.isVisible()) await review.click();
+    }
+    await openSetup('es');
     await expect(page.getByText('Una factura con dos secciones')).toBeVisible();
-    await page.goto(portal(`/projects/${row.id}?tab=billing&lang=pt`));
+    await openSetup('pt');
     await expect(page.getByText('Uma fatura com duas seções')).toBeVisible();
     for (const [locale, monthly, standard, detailed, summary, noTax] of [
       ['es', 'Mensual', 'Estándar', 'Detallado', 'Resumen', 'Sin perfil fiscal configurado'],
       ['pt', 'Mensal', 'Padrão', 'Detalhado', 'Resumo', 'Nenhum perfil tributário configurado'],
     ]) {
-      await page.goto(portal(`/projects/${row.id}?tab=billing&lang=${locale}`));
+      await openSetup(locale!);
       const setup = page.locator('.billing-setup');
       await setup.locator('.actions button[type="button"]').last().click();
       await setup
@@ -335,19 +369,22 @@ test('owner saves different project-person rates, pay and expense treatment inli
     });
     await expect(secondPerson.getByLabel('Terms effective from')).toHaveValue(futureDate);
     await firstPerson.getByLabel('Customer hourly rate (USD)').fill('55.00');
+    await firstPerson.getByLabel('Internal hourly cost (USD)').fill('20.00');
     await firstPerson.getByLabel('Worker compensation rate (USD)').fill('30.00');
     await setup.getByLabel('Copy draft terms from').selectOption(workers[0]!.id);
-    await secondPerson.getByLabel('Apply draft defaults to this person').check();
+    await secondPerson.getByLabel('Select this person for bulk actions').check();
     await setup.getByRole('button', { name: 'Apply to selected people' }).click();
     await expect(secondPerson.getByLabel('Customer hourly rate (USD)')).toHaveValue('55.00');
+    await expect(secondPerson.getByLabel('Internal hourly cost (USD)')).toHaveValue('20.00');
     await expect(secondPerson.getByLabel('Worker compensation rate (USD)')).toHaveValue('30.00');
     await secondPerson.getByLabel('Customer hourly rate (USD)').fill('70.00');
+    await secondPerson.getByLabel('Internal hourly cost (USD)').fill('35.00');
     await secondPerson.getByLabel('Worker compensation rate (USD)').fill('45.00');
     await secondPerson.getByLabel('Charge customer for expense').selectOption('markup');
     await secondPerson.getByLabel('Expense markup percentage').fill('10');
     await secondPerson.getByLabel('Expense payer').selectOption('company_card');
     await secondPerson.getByLabel('Charge customer for expense').selectOption('included');
-    await firstPerson.getByLabel('Apply draft defaults to this person').check();
+    await firstPerson.getByLabel('Select this person for bulk actions').check();
     await setup.getByRole('button', { name: 'Save selected people' }).click();
     await expect(setup.getByText('3. Review each person')).toBeVisible();
     await expect
@@ -362,14 +399,15 @@ test('owner saves different project-person rates, pay and expense treatment inli
     await page.reload();
     await setup.getByRole('button', { name: 'Continue' }).click();
     await setup.getByRole('button', { name: 'Continue' }).click();
-    for (const [index, customer, pay] of [
-      [0, '55.00', '30.00'],
-      [1, '70.00', '45.00'],
+    for (const [index, customer, internal, pay] of [
+      [0, '55.00', '20.00', '30.00'],
+      [1, '70.00', '35.00', '45.00'],
     ] as const) {
       const person = setup
         .locator('.person-terms')
         .filter({ has: page.getByRole('heading', { name: workers[index]!.name }) });
       await expect(person.getByLabel('Customer hourly rate (USD)')).toHaveValue(customer);
+      await expect(person.getByLabel('Internal hourly cost (USD)')).toHaveValue(internal);
       await expect(person.getByLabel('Worker compensation rate (USD)')).toHaveValue(pay);
     }
     expect(
@@ -379,6 +417,13 @@ test('owner saves different project-person rates, pay and expense treatment inli
         )
         .all(project.id),
     ).toEqual([{ hourly_rate_minor: 5500 }, { hourly_rate_minor: 7000 }]);
+    expect(
+      db
+        .prepare(
+          'SELECT hourly_rate_minor FROM internal_cost_rule WHERE project_id=? ORDER BY hourly_rate_minor',
+        )
+        .all(project.id),
+    ).toEqual([{ hourly_rate_minor: 2000 }, { hourly_rate_minor: 3500 }]);
     expect(
       db
         .prepare(

@@ -1,0 +1,42 @@
+{
+  "scope": "project/invoice selected-source changes, not whole-workspace certification",
+  "api_and_route_unique_tests_passed": 57,
+  "selection_domain_scoped_cases_reported_by_worker": 37,
+  "final_diagnostic_regression": "pass",
+  "portal_types": "pass",
+  "database_types": "pass",
+  "targeted_composer_svelte_errors": 0,
+  "targeted_composer_svelte_warnings": 0,
+  "changed_typescript_svelte_files_linted_and_formatted": 28,
+  "final_production_portal_build": "pass including navigation recovery and aborted readiness safeguards",
+  "jobs_build": "pass",
+  "real_private_production_upgrade_rehearsal": "75 -> 76, 182 original tables preserved, integrity ok, zero FK violations",
+  "independent_finance_security_review": "clear",
+  "gpt_6_astra_source_ux_review": "clear; optional issuer end-date follow-up implemented",
+  "portal_build_handler_sha256": "be03a7a4f4ae1549dc54d13fdf6ae782bc191a7097e5bac74f2a8692c37922ea",
+  "jobs_bundle_sha256": "a0fb7a48c354ef751d569cbce3fb3bb5f6646cc67672a39553c5ea7556d11b20",
+  "limitations": [
+    "Full workspace typecheck has previously recorded website image-import errors",
+    "Whole legacy portal Svelte check exceeds its 1GB runner limit; targeted new-composer check and production build pass"
+  ],
+  "targeted_composer_and_global_recovery_svelte_errors": 0,
+  "targeted_composer_and_global_recovery_svelte_warnings": 0,
+  "existing_five_file_browser_latest_outcomes": {
+    "passed": 50,
+    "viewport_conditional_skipped": 22,
+    "distinct_cases": 72
+  },
+  "focused_current_build_navigation_recovery": {
+    "passed": 27,
+    "viewport_conditional_skipped": 9
+  },
+  "last_build_real_spa_readiness_race": {
+    "passed": 1,
+    "seconds": 6.3,
+    "window_marker_preserved_both_directions": true,
+    "legacy_disclosure_retained": true,
+    "unexpected_posts": 0,
+    "invoice_writes": 0,
+    "stale_dialog": false
+  }
+}

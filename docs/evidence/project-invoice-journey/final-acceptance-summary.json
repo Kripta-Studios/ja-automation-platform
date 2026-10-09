@@ -1,0 +1,570 @@
+{
+  "method": "latest result per unique project/title; failed focused cases replaced only by explicit passing reruns",
+  "acceptance": {
+    "discovered": 72,
+    "counts": {
+      "passed": 50,
+      "skipped": 22
+    },
+    "byProject": {
+      "desktop": {
+        "passed": 18
+      },
+      "phone-360": {
+        "passed": 11,
+        "skipped": 7
+      },
+      "phone-390": {
+        "passed": 10,
+        "skipped": 8
+      },
+      "tablet-768": {
+        "passed": 11,
+        "skipped": 7
+      }
+    }
+  },
+  "newBrowserBackRegression": {
+    "discovered": 4,
+    "passed": 4
+  },
+  "focusedNavigationAndRecovery": {
+    "passed": 27,
+    "skipped": 9,
+    "unexpected": 0
+  },
+  "tests": [
+    {
+      "project": "desktop",
+      "title": "cancel discards staged answers and leaves the original form intact",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 3962
+    },
+    {
+      "project": "desktop",
+      "title": "finance fixes project fields one at a time and saves only after confirmation",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 5237
+    },
+    {
+      "project": "desktop",
+      "title": "owner fixes project fields one at a time and saves only after confirmation",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 5000
+    },
+    {
+      "project": "desktop",
+      "title": "secret validation names the field without copying its value into the assistant",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 908
+    },
+    {
+      "project": "desktop",
+      "title": "worker corrects a real server rejection without losing the time draft",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 3861
+    },
+    {
+      "project": "desktop",
+      "title": "billing setup labels translate in Spanish and Portuguese",
+      "file": "project-billing-setup.spec.ts",
+      "status": "passed",
+      "durationMs": 6524
+    },
+    {
+      "project": "desktop",
+      "title": "missing issuer shows a recovery path before billing setup can continue",
+      "file": "project-billing-setup.spec.ts",
+      "status": "passed",
+      "durationMs": 3502
+    },
+    {
+      "project": "desktop",
+      "title": "owner configures one or two customer invoices from the project at phone, tablet and desktop widths",
+      "file": "project-billing-setup.spec.ts",
+      "status": "passed",
+      "durationMs": 13042
+    },
+    {
+      "project": "desktop",
+      "title": "owner saves different project-person rates, pay and expense treatment inline",
+      "file": "project-billing-setup.spec.ts",
+      "status": "passed",
+      "durationMs": 5503
+    },
+    {
+      "project": "desktop",
+      "title": "project and worker filters remain reachable in expenses and reports",
+      "file": "project-client-workflow.spec.ts",
+      "status": "passed",
+      "durationMs": 4037
+    },
+    {
+      "project": "desktop",
+      "title": "project stores optional site contact, its own currency and client actual-work calendar",
+      "file": "project-client-workflow.spec.ts",
+      "status": "passed",
+      "durationMs": 8211
+    },
+    {
+      "project": "desktop",
+      "title": "changing client after a failed save uses the newly selected client defaults",
+      "file": "project-create-people.spec.ts",
+      "status": "passed",
+      "durationMs": 5801
+    },
+    {
+      "project": "desktop",
+      "title": "legacy initial-worker POST receives typed finance setup rejection without creating a project",
+      "file": "project-create-people.spec.ts",
+      "status": "passed",
+      "durationMs": 3545
+    },
+    {
+      "project": "desktop",
+      "title": "owner creates a project, then assigns two people by expertise with finance terms",
+      "file": "project-create-people.spec.ts",
+      "status": "passed",
+      "durationMs": 8051
+    },
+    {
+      "project": "desktop",
+      "title": "worker assignment outside project dates shows an error and saves no assignment",
+      "file": "project-create-people.spec.ts",
+      "status": "passed",
+      "durationMs": 5801
+    },
+    {
+      "project": "desktop",
+      "title": "browser Back closes an unassigned project time recovery before opening Reports",
+      "file": "project-minimal-create.spec.ts",
+      "status": "passed",
+      "durationMs": 5738
+    },
+    {
+      "project": "desktop",
+      "title": "invalid project names show the field error and retain entered values",
+      "file": "project-minimal-create.spec.ts",
+      "status": "passed",
+      "durationMs": 5241
+    },
+    {
+      "project": "desktop",
+      "title": "owner creates a project without budgets or planned end",
+      "file": "project-minimal-create.spec.ts",
+      "status": "passed",
+      "durationMs": 7194
+    },
+    {
+      "project": "desktop",
+      "title": "project budgets use currency amounts and hours in the browser but persist exact units",
+      "file": "project-minimal-create.spec.ts",
+      "status": "passed",
+      "durationMs": 4670
+    },
+    {
+      "project": "phone-360",
+      "title": "cancel discards staged answers and leaves the original form intact",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 3679
+    },
+    {
+      "project": "phone-360",
+      "title": "finance fixes project fields one at a time and saves only after confirmation",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 4976
+    },
+    {
+      "project": "phone-360",
+      "title": "owner fixes project fields one at a time and saves only after confirmation",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 5113
+    },
+    {
+      "project": "phone-360",
+      "title": "secret validation names the field without copying its value into the assistant",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 815
+    },
+    {
+      "project": "phone-360",
+      "title": "worker corrects a real server rejection without losing the time draft",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 3661
+    },
+    {
+      "project": "phone-360",
+      "title": "billing setup labels translate in Spanish and Portuguese",
+      "file": "project-billing-setup.spec.ts",
+      "status": "skipped",
+      "durationMs": 118
+    },
+    {
+      "project": "phone-360",
+      "title": "missing issuer shows a recovery path before billing setup can continue",
+      "file": "project-billing-setup.spec.ts",
+      "status": "skipped",
+      "durationMs": 147
+    },
+    {
+      "project": "phone-360",
+      "title": "owner configures one or two customer invoices from the project at phone, tablet and desktop widths",
+      "file": "project-billing-setup.spec.ts",
+      "status": "passed",
+      "durationMs": 6255
+    },
+    {
+      "project": "phone-360",
+      "title": "owner saves different project-person rates, pay and expense treatment inline",
+      "file": "project-billing-setup.spec.ts",
+      "status": "passed",
+      "durationMs": 4856
+    },
+    {
+      "project": "phone-360",
+      "title": "project and worker filters remain reachable in expenses and reports",
+      "file": "project-client-workflow.spec.ts",
+      "status": "passed",
+      "durationMs": 3822
+    },
+    {
+      "project": "phone-360",
+      "title": "project stores optional site contact, its own currency and client actual-work calendar",
+      "file": "project-client-workflow.spec.ts",
+      "status": "passed",
+      "durationMs": 6602
+    },
+    {
+      "project": "phone-360",
+      "title": "changing client after a failed save uses the newly selected client defaults",
+      "file": "project-create-people.spec.ts",
+      "status": "skipped",
+      "durationMs": 173
+    },
+    {
+      "project": "phone-360",
+      "title": "legacy initial-worker POST receives typed finance setup rejection without creating a project",
+      "file": "project-create-people.spec.ts",
+      "status": "skipped",
+      "durationMs": 244
+    },
+    {
+      "project": "phone-360",
+      "title": "owner creates a project, then assigns two people by expertise with finance terms",
+      "file": "project-create-people.spec.ts",
+      "status": "passed",
+      "durationMs": 9662
+    },
+    {
+      "project": "phone-360",
+      "title": "worker assignment outside project dates shows an error and saves no assignment",
+      "file": "project-create-people.spec.ts",
+      "status": "skipped",
+      "durationMs": 153
+    },
+    {
+      "project": "phone-360",
+      "title": "browser Back closes an unassigned project time recovery before opening Reports",
+      "file": "project-minimal-create.spec.ts",
+      "status": "passed",
+      "durationMs": 5490
+    },
+    {
+      "project": "phone-360",
+      "title": "invalid project names show the field error and retain entered values",
+      "file": "project-minimal-create.spec.ts",
+      "status": "skipped",
+      "durationMs": 130
+    },
+    {
+      "project": "phone-360",
+      "title": "owner creates a project without budgets or planned end",
+      "file": "project-minimal-create.spec.ts",
+      "status": "passed",
+      "durationMs": 6521
+    },
+    {
+      "project": "phone-360",
+      "title": "project budgets use currency amounts and hours in the browser but persist exact units",
+      "file": "project-minimal-create.spec.ts",
+      "status": "skipped",
+      "durationMs": 139
+    },
+    {
+      "project": "phone-390",
+      "title": "cancel discards staged answers and leaves the original form intact",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 4080
+    },
+    {
+      "project": "phone-390",
+      "title": "finance fixes project fields one at a time and saves only after confirmation",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 5071
+    },
+    {
+      "project": "phone-390",
+      "title": "owner fixes project fields one at a time and saves only after confirmation",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 5370
+    },
+    {
+      "project": "phone-390",
+      "title": "secret validation names the field without copying its value into the assistant",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 795
+    },
+    {
+      "project": "phone-390",
+      "title": "worker corrects a real server rejection without losing the time draft",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 3892
+    },
+    {
+      "project": "phone-390",
+      "title": "billing setup labels translate in Spanish and Portuguese",
+      "file": "project-billing-setup.spec.ts",
+      "status": "skipped",
+      "durationMs": 109
+    },
+    {
+      "project": "phone-390",
+      "title": "missing issuer shows a recovery path before billing setup can continue",
+      "file": "project-billing-setup.spec.ts",
+      "status": "skipped",
+      "durationMs": 108
+    },
+    {
+      "project": "phone-390",
+      "title": "owner configures one or two customer invoices from the project at phone, tablet and desktop widths",
+      "file": "project-billing-setup.spec.ts",
+      "status": "passed",
+      "durationMs": 6666
+    },
+    {
+      "project": "phone-390",
+      "title": "owner saves different project-person rates, pay and expense treatment inline",
+      "file": "project-billing-setup.spec.ts",
+      "status": "skipped",
+      "durationMs": 128
+    },
+    {
+      "project": "phone-390",
+      "title": "project and worker filters remain reachable in expenses and reports",
+      "file": "project-client-workflow.spec.ts",
+      "status": "passed",
+      "durationMs": 3824
+    },
+    {
+      "project": "phone-390",
+      "title": "project stores optional site contact, its own currency and client actual-work calendar",
+      "file": "project-client-workflow.spec.ts",
+      "status": "passed",
+      "durationMs": 6576
+    },
+    {
+      "project": "phone-390",
+      "title": "changing client after a failed save uses the newly selected client defaults",
+      "file": "project-create-people.spec.ts",
+      "status": "skipped",
+      "durationMs": 120
+    },
+    {
+      "project": "phone-390",
+      "title": "legacy initial-worker POST receives typed finance setup rejection without creating a project",
+      "file": "project-create-people.spec.ts",
+      "status": "skipped",
+      "durationMs": 140
+    },
+    {
+      "project": "phone-390",
+      "title": "owner creates a project, then assigns two people by expertise with finance terms",
+      "file": "project-create-people.spec.ts",
+      "status": "passed",
+      "durationMs": 7331
+    },
+    {
+      "project": "phone-390",
+      "title": "worker assignment outside project dates shows an error and saves no assignment",
+      "file": "project-create-people.spec.ts",
+      "status": "skipped",
+      "durationMs": 110
+    },
+    {
+      "project": "phone-390",
+      "title": "browser Back closes an unassigned project time recovery before opening Reports",
+      "file": "project-minimal-create.spec.ts",
+      "status": "passed",
+      "durationMs": 4973
+    },
+    {
+      "project": "phone-390",
+      "title": "invalid project names show the field error and retain entered values",
+      "file": "project-minimal-create.spec.ts",
+      "status": "skipped",
+      "durationMs": 134
+    },
+    {
+      "project": "phone-390",
+      "title": "owner creates a project without budgets or planned end",
+      "file": "project-minimal-create.spec.ts",
+      "status": "passed",
+      "durationMs": 5859
+    },
+    {
+      "project": "phone-390",
+      "title": "project budgets use currency amounts and hours in the browser but persist exact units",
+      "file": "project-minimal-create.spec.ts",
+      "status": "skipped",
+      "durationMs": 123
+    },
+    {
+      "project": "tablet-768",
+      "title": "cancel discards staged answers and leaves the original form intact",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 3794
+    },
+    {
+      "project": "tablet-768",
+      "title": "finance fixes project fields one at a time and saves only after confirmation",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 4921
+    },
+    {
+      "project": "tablet-768",
+      "title": "owner fixes project fields one at a time and saves only after confirmation",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 5229
+    },
+    {
+      "project": "tablet-768",
+      "title": "secret validation names the field without copying its value into the assistant",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 755
+    },
+    {
+      "project": "tablet-768",
+      "title": "worker corrects a real server rejection without losing the time draft",
+      "file": "guided-recovery.spec.ts",
+      "status": "passed",
+      "durationMs": 3670
+    },
+    {
+      "project": "tablet-768",
+      "title": "billing setup labels translate in Spanish and Portuguese",
+      "file": "project-billing-setup.spec.ts",
+      "status": "skipped",
+      "durationMs": 145
+    },
+    {
+      "project": "tablet-768",
+      "title": "missing issuer shows a recovery path before billing setup can continue",
+      "file": "project-billing-setup.spec.ts",
+      "status": "skipped",
+      "durationMs": 155
+    },
+    {
+      "project": "tablet-768",
+      "title": "owner configures one or two customer invoices from the project at phone, tablet and desktop widths",
+      "file": "project-billing-setup.spec.ts",
+      "status": "passed",
+      "durationMs": 6431
+    },
+    {
+      "project": "tablet-768",
+      "title": "owner saves different project-person rates, pay and expense treatment inline",
+      "file": "project-billing-setup.spec.ts",
+      "status": "passed",
+      "durationMs": 4594
+    },
+    {
+      "project": "tablet-768",
+      "title": "project and worker filters remain reachable in expenses and reports",
+      "file": "project-client-workflow.spec.ts",
+      "status": "passed",
+      "durationMs": 3873
+    },
+    {
+      "project": "tablet-768",
+      "title": "project stores optional site contact, its own currency and client actual-work calendar",
+      "file": "project-client-workflow.spec.ts",
+      "status": "passed",
+      "durationMs": 6203
+    },
+    {
+      "project": "tablet-768",
+      "title": "changing client after a failed save uses the newly selected client defaults",
+      "file": "project-create-people.spec.ts",
+      "status": "skipped",
+      "durationMs": 126
+    },
+    {
+      "project": "tablet-768",
+      "title": "legacy initial-worker POST receives typed finance setup rejection without creating a project",
+      "file": "project-create-people.spec.ts",
+      "status": "skipped",
+      "durationMs": 135
+    },
+    {
+      "project": "tablet-768",
+      "title": "owner creates a project, then assigns two people by expertise with finance terms",
+      "file": "project-create-people.spec.ts",
+      "status": "passed",
+      "durationMs": 8026
+    },
+    {
+      "project": "tablet-768",
+      "title": "worker assignment outside project dates shows an error and saves no assignment",
+      "file": "project-create-people.spec.ts",
+      "status": "skipped",
+      "durationMs": 128
+    },
+    {
+      "project": "tablet-768",
+      "title": "browser Back closes an unassigned project time recovery before opening Reports",
+      "file": "project-minimal-create.spec.ts",
+      "status": "passed",
+      "durationMs": 4855
+    },
+    {
+      "project": "tablet-768",
+      "title": "invalid project names show the field error and retain entered values",
+      "file": "project-minimal-create.spec.ts",
+      "status": "skipped",
+      "durationMs": 160
+    },
+    {
+      "project": "tablet-768",
+      "title": "owner creates a project without budgets or planned end",
+      "file": "project-minimal-create.spec.ts",
+      "status": "passed",
+      "durationMs": 5839
+    },
+    {
+      "project": "tablet-768",
+      "title": "project budgets use currency amounts and hours in the browser but persist exact units",
+      "file": "project-minimal-create.spec.ts",
+      "status": "skipped",
+      "durationMs": 163
+    }
+  ]
+}

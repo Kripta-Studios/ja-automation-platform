@@ -46,7 +46,8 @@ for (const role of ['owner', 'finance'] as const) {
     expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
     await apply.click();
     await expect(dialog).not.toBeVisible();
-    await expect(page.locator('[data-project-setup-next]')).toBeVisible();
+    await expect(page).toHaveURL(/\/projects\/[^/?]+\?tab=work(?:&|$)/);
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
     const db = new DatabaseSync(readE2EFixturePointer().databasePath);
     try {
       expect(db.prepare('SELECT name FROM project WHERE name=?').get(name)).toEqual({ name });

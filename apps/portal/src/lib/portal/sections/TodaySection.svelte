@@ -123,7 +123,7 @@
 {#if data.dashboard}
   <nav class="quick-actions dashboard-quick-actions" aria-label={translate('Dashboard actions')}>
     {#if canCreateProject}
-      <a href={`${base}/app/projects#new-project`}>{translate('New project')}</a>
+      <a href={`${base}/app/projects?action=new-project#new-project`}>{translate('New project')}</a>
     {/if}
     <a href={`${base}/app/time`}>{translate('Log actual time')}</a>
     <a href={`${base}/app/reports`}>{translate('Write field report')}</a>

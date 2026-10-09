@@ -46,7 +46,8 @@ test('project stores optional site contact, its own currency and client actual-w
       }),
     ).toBe(true);
     await submit.click();
-    await expect(page.locator('[data-project-setup-next]')).toBeVisible();
+    await expect(page).toHaveURL(/\/projects\/[^/?]+\?tab=work(?:&|$)/);
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
     const project = db
       .prepare('SELECT id,currency,site_name,onsite_contact_id FROM project WHERE name=?')
       .get(name) as { id: string; currency: string; site_name: string; onsite_contact_id: string };
@@ -58,6 +59,7 @@ test('project stores optional site contact, its own currency and client actual-w
     ).toMatchObject({ client_id: clientId, name: 'Mayer', role: 'Plant supervisor' });
     expect(db.prepare('SELECT currency FROM client WHERE id=?').get(clientId)).toEqual(client);
     await page.goto(portal(`/projects/${project.id}?lang=en`));
+    await page.getByRole('tab', { name: 'Overview', exact: true }).click();
     await expect(page.getByText('Ohio, Gate 3', { exact: true })).toBeVisible();
     await expect(page.getByText('Mayer', { exact: true })).toBeVisible();
     const worker = db

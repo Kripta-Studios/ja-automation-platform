@@ -121,7 +121,7 @@ describe('commercial billing controls', () => {
       startsOn: '2026-08-01',
     });
     const manager = repository.principalFor('manager');
-    const worker = repository.principalFor('worker');
+    const worker = withRecentStepUp(sqlite, repository.principalFor('worker'));
     v3.createClientLaborRate(finance, {
       projectId: capped.id,
       workerId: 'worker',
@@ -382,18 +382,15 @@ describe('commercial billing controls', () => {
       travelClientBillable: false,
       customerSignoffRequired: false,
     });
-    const excludedAllInTravel = repository.createTimeEntry(repository.principalFor('worker'), {
+    const fixedWorker = { ...repository.principalFor('worker'), sessionId: worker.sessionId };
+    const excludedAllInTravel = repository.createTimeEntry(fixedWorker, {
       projectId: fixed.id,
       workDate: '2026-08-10',
       category: 'travel',
       minutes: 60,
       summary: 'Travel compensated to worker but excluded from client billing',
     });
-    repository.submitTime(
-      repository.principalFor('worker'),
-      excludedAllInTravel.id,
-      excludedAllInTravel.version,
-    );
+    repository.submitTime(fixedWorker, excludedAllInTravel.id, excludedAllInTravel.version);
     repository.operationalApproveTime(
       repository.principalFor('manager'),
       excludedAllInTravel.id,
@@ -454,7 +451,7 @@ describe('commercial billing controls', () => {
       startsOn: '2026-08-01',
     });
     const hybridManager = repository.principalFor('manager');
-    const hybridWorker = repository.principalFor('worker');
+    const hybridWorker = { ...repository.principalFor('worker'), sessionId: worker.sessionId };
     v3.createClientLaborRate(finance, {
       projectId: hybrid.id,
       workerId: 'worker',

@@ -219,13 +219,9 @@ async function selectFirstValue(select: import('@playwright/test').Locator): Pro
 }
 
 async function projectDetailPath(page: Page, projectName: string): Promise<string> {
-  const setup = page.locator('[data-project-setup-next]');
-  await expect(setup, `Created project ${projectName} must show its setup steps`).toBeVisible();
-  const href = await setup
-    .getByRole('link', { name: 'Review project configuration' })
-    .getAttribute('href');
-  if (!href) throw new Error(`Created project ${projectName} has no review link`);
-  const url = new URL(href, page.url());
+  await expect(page).toHaveURL(/\/projects\/[^/?]+\?tab=work(?:&|$)/);
+  await expect(page.getByRole('heading', { name: projectName, exact: true })).toBeVisible();
+  const url = new URL(page.url());
   const prefix = '/j-aautomation/app';
   if (!url.pathname.startsWith(prefix)) throw new Error(`Unexpected project href ${url.pathname}`);
   return url.pathname.slice(prefix.length);
@@ -461,6 +457,7 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         // boundary converts them to the canonical persisted minute values.
         await form.locator('input[name="expectedHoursPerDay"]').fill('10');
         await form.locator('input[name="clientDailyMinimumHours"]').fill('9');
+        await form.locator('.project-optional-settings summary').click();
         await form.locator('select[name="budgetType"]').selectOption('combined');
         await form.getByRole('textbox', { name: 'Revenue budget' }).fill('15000.00');
         await form.getByRole('textbox', { name: 'PO cap' }).fill('18000.00');
@@ -474,7 +471,6 @@ test.describe('Client Essential · executable 32-step acceptance journey', () =>
         await form.locator('input[name="dailyReportRequired"]').check();
         await form.locator('input[name="technicalReportingRequired"]').check();
         await form.getByRole('button', { name: 'Create project', exact: true }).click();
-        await expect(page.locator('[data-project-setup-next]')).toContainText('Project created');
         uatProjectPath = await projectDetailPath(page, fixture.mutation.projectName);
         uatProjectId = uatProjectPath.split('/').filter(Boolean).pop() ?? '';
         expect(uatProjectId).toMatch(/^[0-9a-f-]{36}$/i);

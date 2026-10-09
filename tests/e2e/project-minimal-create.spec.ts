@@ -53,14 +53,8 @@ test('owner creates a project without budgets or planned end', async ({ page }, 
     });
     if (testInfo.project.name === 'desktop')
       expect(String(created.project_number)).toMatch(/-P-9876$/);
-    const continuation = page.locator('[data-project-setup-next]');
-    await expect(continuation).toBeVisible();
-    await expect(
-      continuation.getByRole('link', { name: 'Assign workers by expertise' }),
-    ).toHaveAttribute('href', new RegExp(`action=assign-worker&project=${created.id}`));
-    await expect(
-      continuation.getByRole('link', { name: 'Configure per-person rates and expenses' }),
-    ).toHaveAttribute('href', new RegExp(`view=commercial&project=${created.id}`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${created.id}\\?tab=work(?:&|$)`));
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
     const pageWidth = await page.evaluate(() => ({
       viewport: window.innerWidth,
       scrollWidth: document.documentElement.scrollWidth,
@@ -79,6 +73,7 @@ test('owner creates a project without budgets or planned end', async ({ page }, 
     }));
     expect(pageWidth.scrollWidth <= pageWidth.viewport + 1, JSON.stringify(pageWidth)).toBe(true);
     await page.goto(portal(`/projects/${created.id}`));
+    await page.getByRole('tab', { name: 'Overview', exact: true }).click();
     await expect(page.locator('main')).toContainText(name);
     await expect(page.locator('main')).toContainText(costCenter);
     await page
@@ -87,8 +82,15 @@ test('owner creates a project without budgets or planned end', async ({ page }, 
       .click();
     await expect(page).toHaveURL(new RegExp(`/time\\?project=${created.id}`));
     await page.getByRole('button', { name: 'Log time', exact: true }).click();
-    await expect(page.locator('form[action="?/createTime"] [name="projectId"]')).toHaveValue('');
+    await expect(page.locator('form[action="?/createTime"] [name="projectId"]')).toHaveValue(
+      String(created.id),
+    );
     await expect(page.locator('form[action="?/createTime"]')).toContainText('Select worker');
+    const recovery = page.getByRole('dialog', { name: 'Complete the action step by step' });
+    if (await recovery.isVisible()) {
+      await recovery.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await expect(recovery).not.toBeVisible();
+    }
     await page.goBack();
     await page
       .locator('.attention-grid')
@@ -109,12 +111,69 @@ test('invalid project names show the field error and retain entered values', asy
   await page.getByRole('button', { name: 'New Project', exact: true }).click();
   const form = page.locator('form[action="?/createProject"]');
   const costCenter = e2eCostCenter('QA-RETAIN', 17, testInfo.project.name, 2);
+  await form.locator('[name="clientId"]').selectOption('00000000-0000-4000-8000-000000000107');
   await form.locator('[name="name"]').fill('X');
   await form.locator('[name="costCenterCode"]').fill(costCenter);
+  await form.locator('.project-optional-settings summary').click();
+  for (const flag of ['weeklyCloseEnabled', 'dailyReportRequired', 'technicalReportingRequired'])
+    await form.locator(`[name="${flag}"]`).check();
   await form.getByRole('button', { name: 'Create project', exact: true }).click();
   await expect(page.locator('[data-project-field-errors]')).toContainText('Name');
   await expect(form.locator('[name="name"]')).toHaveValue('X');
   await expect(form.locator('[name="costCenterCode"]')).toHaveValue(costCenter);
+  await page
+    .getByRole('dialog', { name: 'Complete the action step by step' })
+    .getByRole('button', { name: 'Cancel', exact: true })
+    .click();
+  if (!(await form.locator('[name="weeklyCloseEnabled"]').isVisible()))
+    await form.locator('.project-optional-settings summary').click();
+  for (const flag of ['weeklyCloseEnabled', 'dailyReportRequired', 'technicalReportingRequired'])
+    await expect(form.locator(`[name="${flag}"]`)).toBeChecked();
+});
+
+test('browser Back closes an unassigned project time recovery before opening Reports', async ({
+  page,
+}, info) => {
+  test.skip(!['phone-360', 'phone-390', 'tablet-768', 'desktop'].includes(info.project.name));
+  const db = new DatabaseSync(readE2EFixturePointer().databasePath);
+  try {
+    const name = `Navigation recovery ${info.project.name} ${Date.now()}`;
+    await signIn(page, 'owner');
+    await page.goto(portal('/?lang=en'));
+    await page.getByRole('link', { name: 'New project', exact: true }).click();
+    const creation = page.locator('form[action="?/createProject"]');
+    await creation
+      .locator('[name="clientId"]')
+      .selectOption('00000000-0000-4000-8000-000000000107');
+    await creation.locator('[name="name"]').fill(name);
+    await creation
+      .locator('[name="costCenterCode"]')
+      .fill(e2eCostCenter('QA-NAV', 17, info.project.name, 4));
+    await creation.getByRole('button', { name: 'Create project', exact: true }).click();
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+    const project = db.prepare('SELECT id FROM project WHERE name=?').get(name) as { id: string };
+    await page
+      .locator('.attention-grid')
+      .getByRole('link', { name: /Actual time/ })
+      .click();
+    await page.getByRole('button', { name: 'Log time', exact: true }).click();
+    const recovery = page.getByRole('dialog', { name: 'Complete the action step by step' });
+    await expect(recovery).toBeVisible();
+    await expect(page.locator('form[action="?/createTime"]')).toContainText('Select worker');
+    await page.goBack();
+    await expect(page).toHaveURL(new RegExp(`/projects/${project.id}`));
+    await expect(recovery).not.toBeVisible();
+    await page
+      .locator('.attention-grid')
+      .getByRole('link', { name: /Reports/ })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/reports\\?project=${project.id}`));
+    expect(
+      db.prepare('SELECT COUNT(*) count FROM time_entry WHERE project_id=?').get(project.id),
+    ).toEqual({ count: 0 });
+  } finally {
+    db.close();
+  }
 });
 
 test('project budgets use currency amounts and hours in the browser but persist exact units', async ({
@@ -128,10 +187,12 @@ test('project budgets use currency amounts and hours in the browser but persist 
     await page.goto(portal('/projects'));
     await page.getByRole('button', { name: 'New Project', exact: true }).click();
     const form = page.locator('form[action="?/createProject"]');
+    await form.locator('[name="clientId"]').selectOption('00000000-0000-4000-8000-000000000107');
     await form.locator('[name="name"]').fill(name);
     await form
       .locator('[name="costCenterCode"]')
       .fill(e2eCostCenter('QA-BUDGET-UNITS', 17, testInfo.project.name, 3));
+    await form.locator('.project-optional-settings summary').click();
     await form.locator('[name="budgetType"]').selectOption('combined');
     await form.getByRole('textbox', { name: 'Revenue budget' }).fill('15000,25');
     await form.getByRole('textbox', { name: 'PO cap' }).fill('18000.00');

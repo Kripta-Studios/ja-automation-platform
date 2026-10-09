@@ -1,0 +1,9 @@
+{
+  "preserved_original_tables": 182,
+  "changed_original_values": [],
+  "integrity": [["ok"]],
+  "foreign_key_violations": 0,
+  "migration_version": 76,
+  "historical_selected_invoices": 0,
+  "new_composition_requests": 0
+}

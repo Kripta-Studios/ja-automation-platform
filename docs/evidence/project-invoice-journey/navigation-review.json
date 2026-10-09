@@ -1,0 +1,18 @@
+{
+  "scope": "Independent source review of stale recovery navigation and delayed readiness response",
+  "outcome": "clear",
+  "browser_observation": "A no-worker repair modal survived browser Back and obstructed Project Reports",
+  "fixes": [
+    "Close obsolete recovery on departure without applying unconfirmed patches",
+    "Invalidate already-pending open and Apply operations",
+    "Bind explicit Apply to original form/action/submitter",
+    "Abort readiness on departure/disposal/sheet close/changed inputs",
+    "Reject responses for departed components or changed rule/date scopes",
+    "Permit destination-route recovery notices",
+    "Keep manually opened complete-period/milestone disclosure open across wizard steps; open legacy failures explicitly"
+  ],
+  "sha256": {
+    "apps/portal/src/lib/portal/guided-recovery/GuidedRecovery.svelte": "2f97315ff0f3633364cd2440360e57855d03b0bab4228d216f284e08f619fce5",
+    "apps/portal/src/lib/portal/sections/BillingSection.svelte": "6cdca1c231dadb215bc649763ffd7dc5cd3d8a336f4cfdfecd2a88c914784ec7"
+  }
+}

@@ -100,6 +100,14 @@ import {
   billingTimeReadinessRecords,
   nearbyBillingTimeDates,
 } from './domains/billing/time-readiness-records.ts';
+import {
+  InvoiceCompositionService,
+  invoiceSourceSelected,
+  readInvoiceCompositionSelection,
+  type InvoiceCompositionInput,
+  type InvoiceCompositionScope,
+  type InvoiceCompositionSourceRef,
+} from './domains/billing/invoice-composition.ts';
 import { V3Repository } from './v3-repository.ts';
 
 export class AccessDeniedError extends Error {}
@@ -5767,6 +5775,7 @@ export class PortalRepository {
     projectId: string,
     periodStart: string,
     periodEnd: string,
+    selection?: readonly InvoiceCompositionSourceRef[],
   ): readonly BillingTimeSlice[] {
     const rows = this.sqlite
       .prepare(
@@ -5829,21 +5838,24 @@ export class PortalRepository {
         slicesBySource.set(row.id, existing);
       }
     }
-    return rows.flatMap((row) => {
-      const derived = slicesBySource.get(row.id);
-      if (derived && derived.length > 0) return derived;
-      const policy = policyByDate.get(row.work_date) ?? null;
-      return [
-        {
-          row,
-          category: row.category === 'overtime' ? 'overtime' : 'regular',
-          minutes: row.minutes,
-          clientBillable: row.category === 'travel' ? (policy?.travelClientBillable ?? true) : true,
-          policyId: policy?.id ?? null,
-          sliceIndex: 0,
-        },
-      ];
-    });
+    return rows
+      .filter((row) => invoiceSourceSelected(selection, 'time', row.id))
+      .flatMap((row) => {
+        const derived = slicesBySource.get(row.id);
+        if (derived && derived.length > 0) return derived;
+        const policy = policyByDate.get(row.work_date) ?? null;
+        return [
+          {
+            row,
+            category: row.category === 'overtime' ? 'overtime' : 'regular',
+            minutes: row.minutes,
+            clientBillable:
+              row.category === 'travel' ? (policy?.travelClientBillable ?? true) : true,
+            policyId: policy?.id ?? null,
+            sliceIndex: 0,
+          },
+        ];
+      });
   }
 
   private billingSliceClientUnit(projectId: string, slice: BillingTimeSlice) {
@@ -5906,6 +5918,7 @@ export class PortalRepository {
     periodEnd: string,
     principal: Principal | null,
     execution?: FencedJobExecution,
+    selection?: readonly InvoiceCompositionSourceRef[],
   ): { fingerprint: string; selectedRules: readonly Record<string, unknown>[] } {
     const rule = this.sqlite.prepare('SELECT * FROM billing_rule WHERE id=?').get(billingRuleId) as
       | Record<string, unknown>
@@ -5930,7 +5943,7 @@ export class PortalRepository {
       .all(String(rule.tax_profile_id));
     const selectedRules: Record<string, unknown>[] = [];
     if (rule.stream_type === 'labor') {
-      const slices = this.billingTimeSlices(projectId, periodStart, periodEnd).filter(
+      const slices = this.billingTimeSlices(projectId, periodStart, periodEnd, selection).filter(
         (slice) =>
           ['approved', 'locked'].includes(slice.row.approval_state) &&
           slice.row.billability_state === 'billable' &&
@@ -6011,9 +6024,21 @@ export class PortalRepository {
         )
         .all(projectId, periodStart, periodEnd);
       selectedRules.push(
-        ...expenses.map((expense) => ({ kind: 'classified_expense', source: expense })),
+        ...expenses
+          .filter((expense) => invoiceSourceSelected(selection, 'expense', String(expense.id)))
+          .map((expense) => ({ kind: 'classified_expense', source: expense })),
       );
     }
+    if (selection)
+      selectedRules.push(
+        ...this.invoiceCompositionService().dependencies({
+          projectId,
+          billingRuleId,
+          periodStart,
+          periodEnd,
+          sources: selection,
+        }),
+      );
     const capInvoices =
       project?.billing_model === 'capped_tm'
         ? this.sqlite
@@ -6075,6 +6100,8 @@ export class PortalRepository {
     periodEnd: string,
     principal: Principal | null,
     execution?: FencedJobExecution,
+    selection?: readonly InvoiceCompositionSourceRef[],
+    currentInvoiceId?: string,
   ) {
     assertDate(periodStart, 'Period start');
     assertDate(periodEnd, 'Period end');
@@ -6142,11 +6169,15 @@ export class PortalRepository {
       )
       .get(billingRuleId, periodStart, periodEnd) as { state: string } | undefined;
     const explicitlyClosed = existing?.state === 'closed';
-    const existingInvoice = this.sqlite
-      .prepare(
-        "SELECT id,state FROM invoice WHERE billing_rule_id=? AND period_start=? AND period_end=? AND state<>'superseded' ORDER BY created_at DESC,id DESC LIMIT 1",
-      )
-      .get(billingRuleId, periodStart, periodEnd) as { id: string; state: string } | undefined;
+    const existingInvoice = currentInvoiceId
+      ? (this.sqlite.prepare('SELECT id,state FROM invoice WHERE id=?').get(currentInvoiceId) as
+          | { id: string; state: string }
+          | undefined)
+      : (this.sqlite
+          .prepare(
+            "SELECT id,state FROM invoice WHERE billing_rule_id=? AND period_start=? AND period_end=? AND source_selection_json IS NULL AND state<>'superseded' ORDER BY created_at DESC,id DESC LIMIT 1",
+          )
+          .get(billingRuleId, periodStart, periodEnd) as { id: string; state: string } | undefined);
     const reasons: ReadinessReason[] = [];
     if (['weekly', 'every_14_days', 'semi_monthly', 'monthly'].includes(rule.cadence_type)) {
       try {
@@ -6213,7 +6244,7 @@ export class PortalRepository {
             WHERE invoice.project_id=? AND invoice.state IN ('draft','approved')
               AND (invoice.billing_rule_id IS NULL OR invoice.billing_rule_id<>?
                    OR invoice.period_start IS NULL OR invoice.period_start<>?
-                   OR invoice.period_end IS NULL OR invoice.period_end<>?)`,
+                   OR invoice.period_end IS NULL OR invoice.period_end<>? OR invoice.source_selection_json IS NOT NULL)`,
           )
           .all(rule.project_id, billingRuleId, periodStart, periodEnd) as Array<{
           source_type: string;
@@ -6251,7 +6282,7 @@ export class PortalRepository {
       if (consumed >= BigInt(rule.po_cap_minor)) reasons.push({ code: 'cap_exhausted' });
     }
     if (rule.stream_type === 'labor') {
-      const slices = this.billingTimeSlices(rule.project_id, periodStart, periodEnd);
+      const slices = this.billingTimeSlices(rule.project_id, periodStart, periodEnd, selection);
       reasons.push(
         ...pendingTimeFinanceReviewSourceIds(slices.map((slice) => slice.row)).map((sourceId) => ({
           code: 'pending_time_finance_review',
@@ -6269,12 +6300,14 @@ export class PortalRepository {
         approval_state: string;
       }>;
       reasons.push(
-        ...pending.map((row) => ({
-          code: ['draft', 'needs_changes'].includes(row.approval_state)
-            ? 'pending_time_submission'
-            : 'pending_time_approval',
-          sourceId: row.id,
-        })),
+        ...pending
+          .filter((row) => invoiceSourceSelected(selection, 'time', row.id))
+          .map((row) => ({
+            code: ['draft', 'needs_changes'].includes(row.approval_state)
+              ? 'pending_time_submission'
+              : 'pending_time_approval',
+            sourceId: row.id,
+          })),
       );
       const missingRateSources = new Set<string>();
       const reservedTimeSources = new Set<string>();
@@ -6362,8 +6395,9 @@ export class PortalRepository {
         ).map((row) => [row.sourceId, row.state]),
       );
       timeReadiness = summarizeTimeReadiness(
-        billingTimeReadinessRecords(this.sqlite, rule.project_id, periodStart, periodEnd).map(
-          (row) => {
+        billingTimeReadinessRecords(this.sqlite, rule.project_id, periodStart, periodEnd)
+          .filter((row) => invoiceSourceSelected(selection, 'time', row.id))
+          .map((row) => {
             const parts = sourceSlices.get(row.id) ?? [];
             return {
               id: row.id,
@@ -6376,8 +6410,7 @@ export class PortalRepository {
               billingState: sourceInvoiceStates.get(row.id) ?? null,
               clientBillable: parts.some((part) => part.clientBillable),
             };
-          },
-        ),
+          }),
         reservedTimeSources,
         missingRateSources,
       );
@@ -6430,7 +6463,11 @@ export class PortalRepository {
       }>;
       reasons.push(
         ...candidates
-          .filter((candidate) => candidate.commercial_classification_state === 'unclassified')
+          .filter(
+            (candidate) =>
+              invoiceSourceSelected(selection, 'expense', candidate.id) &&
+              candidate.commercial_classification_state === 'unclassified',
+          )
           .map((candidate) => ({ code: 'missing_expense_classification', sourceId: candidate.id })),
       );
       const pending = this.sqlite
@@ -6439,7 +6476,9 @@ export class PortalRepository {
         )
         .all(rule.project_id, periodStart, periodEnd) as Array<{ id: string }>;
       reasons.push(
-        ...pending.map((row) => ({ code: 'pending_expense_approval', sourceId: row.id })),
+        ...pending
+          .filter((row) => invoiceSourceSelected(selection, 'expense', row.id))
+          .map((row) => ({ code: 'pending_expense_approval', sourceId: row.id })),
       );
       const missingProjections = this.sqlite
         .prepare(
@@ -6465,17 +6504,20 @@ export class PortalRepository {
         currency: string;
       }>;
       reasons.push(
-        ...missingProjections.map((row) => ({
-          code:
-            row.currency === rule.rule_currency
-              ? 'missing_expense_finance_projection'
-              : 'missing_expense_currency_conversion',
-          sourceId: row.id,
-        })),
+        ...missingProjections
+          .filter((row) => invoiceSourceSelected(selection, 'expense', row.id))
+          .map((row) => ({
+            code:
+              row.currency === rule.rule_currency
+                ? 'missing_expense_finance_projection'
+                : 'missing_expense_currency_conversion',
+            sourceId: row.id,
+          })),
       );
       const missingProjectionIds = new Set(missingProjections.map((row) => row.id));
       const eligibleExpenses = candidates.filter(
         (candidate) =>
+          invoiceSourceSelected(selection, 'expense', candidate.id) &&
           candidate.approval_state === 'approved' &&
           candidate.finance_approved_at !== null &&
           candidate.commercial_classification_state !== 'unclassified' &&
@@ -6498,6 +6540,7 @@ export class PortalRepository {
         ...candidates
           .filter(
             (candidate) =>
+              invoiceSourceSelected(selection, 'expense', candidate.id) &&
               candidate.invoice_id === null &&
               otherDraftReservations.has(`expense:${candidate.id}`),
           )
@@ -6522,6 +6565,7 @@ export class PortalRepository {
       );
       excludedSourceCount = milestones.length - includedSourceCount;
     }
+    // Source reasons are filtered at the typed time/expense seams above.
     const state = reasons.length ? 'incomplete' : explicitlyClosed ? 'already_closed' : 'ready';
     const hasPositiveDraftAmount =
       state === 'ready' &&
@@ -6533,6 +6577,7 @@ export class PortalRepository {
         principal,
         execution,
         existingInvoice?.state === 'draft' ? existingInvoice.id : null,
+        selection,
       );
     return {
       state,
@@ -6573,6 +6618,7 @@ export class PortalRepository {
     principal: Principal | null,
     execution: FencedJobExecution | undefined,
     existingInvoiceId: string | null,
+    selection?: readonly InvoiceCompositionSourceRef[],
   ): boolean {
     const lines: Array<{ sourceType: string; sourceId: string; amount: bigint }> = [];
     const fixedAmount =
@@ -6598,7 +6644,12 @@ export class PortalRepository {
         { minutes: number; rate: bigint; workerId: string; workDate: string }
       >();
       const charges = new ClientLaborChargeAllocator(this.sqlite, existingInvoiceId ?? '');
-      for (const slice of this.billingTimeSlices(rule.project_id, periodStart, periodEnd)) {
+      for (const slice of this.billingTimeSlices(
+        rule.project_id,
+        periodStart,
+        periodEnd,
+        selection,
+      )) {
         const row = slice.row;
         if (
           !['approved', 'locked'].includes(row.approval_state) ||
@@ -6676,7 +6727,9 @@ export class PortalRepository {
         project_currency_amount_minor: string | null;
         billing_amount_minor: string | null;
       }>;
-      for (const expense of expenses)
+      for (const expense of expenses.filter((expense) =>
+        invoiceSourceSelected(selection, 'expense', expense.id),
+      ))
         lines.push({
           sourceType: 'expense',
           sourceId: expense.id,
@@ -6737,6 +6790,97 @@ export class PortalRepository {
     return subtotal > 0n;
   }
 
+  private invoiceCompositionService() {
+    return new InvoiceCompositionService(this.sqlite, {
+      authorize: (principal) => {
+        this.assertActive(principal);
+        if (
+          !canManageBilling(principal) ||
+          !this.sqlite
+            .prepare("SELECT 1 FROM user WHERE id=? AND role=? AND status='active'")
+            .get(principal.userId, principal.role)
+        )
+          throw new AccessDeniedError('Finance role required');
+        this.assertLiveSession(principal);
+      },
+      readiness: (principal, input) =>
+        this.billingReadinessCore(
+          input.billingRuleId,
+          input.periodStart,
+          input.periodEnd,
+          principal,
+          undefined,
+          input.sources,
+        ),
+      draft: (principal, input, refreshInvoiceId) =>
+        this.createInvoiceDraftCore(
+          input.billingRuleId,
+          input.periodStart,
+          input.periodEnd,
+          principal,
+          undefined,
+          undefined,
+          input.sources,
+          refreshInvoiceId,
+        ),
+      approve: (principal, source) => {
+        const table = source.type === 'time' ? 'time_entry' : 'expense';
+        const row = this.sqlite
+          .prepare(`SELECT approval_state,finance_approved_at FROM ${table} WHERE id=?`)
+          .get(source.id)!;
+        if (row.approval_state === 'submitted') {
+          if (principal.role !== 'owner_admin')
+            throw new AccessDeniedError('Owner operational approval required');
+          if (source.type === 'time') this.operationalApproveTime(principal, source.id, 'approved');
+          else this.operationalApproveExpense(principal, source.id, 'approved');
+        } else if (row.approval_state !== 'approved')
+          throw new ConflictError('Submitted or operationally approved source required');
+        else if (!row.finance_approved_at) {
+          if (principal.role === 'owner_admin') {
+            this.assertCombinedApprovalOwner(principal);
+            if (
+              !acceptOwnerFinanceApproval(
+                this.sqlite,
+                principal,
+                table,
+                source.id,
+                'invoice_composition',
+              )
+            )
+              throw new ConflictError('Approved unlocked source required');
+          } else if (source.type === 'time') this.financeApproveTime(principal, source.id, true);
+          else this.financeApproveExpense(principal, source.id);
+        }
+      },
+    });
+  }
+
+  invoiceCompositionSources(principal: Principal, input: InvoiceCompositionScope) {
+    return this.invoiceCompositionService().sources(principal, input);
+  }
+
+  invoiceCompositionPreview(principal: Principal, input: InvoiceCompositionInput) {
+    return this.invoiceCompositionService().preview(principal, input);
+  }
+
+  approveInvoiceCompositionSources(
+    principal: Principal,
+    input: { projectId: string; sources: readonly InvoiceCompositionSourceRef[] },
+  ) {
+    return this.invoiceCompositionService().approve(principal, input);
+  }
+
+  createSelectedInvoiceDraft(
+    principal: Principal,
+    input: InvoiceCompositionInput & { requestKey: string },
+  ) {
+    return this.invoiceCompositionService().create(principal, input);
+  }
+
+  refreshSelectedInvoiceDraft(principal: Principal, invoiceId: string, expectedVersion: number) {
+    return this.invoiceCompositionService().refresh(principal, invoiceId, expectedVersion);
+  }
+
   createInvoiceDraft(
     principal: Principal,
     billingRuleId: string,
@@ -6771,6 +6915,8 @@ export class PortalRepository {
     principal: Principal | null,
     execution?: FencedJobExecution,
     recovery?: Readonly<{ invoiceId: string; version: number; reason: string }>,
+    selection?: readonly InvoiceCompositionSourceRef[],
+    refreshInvoiceId?: string,
   ) {
     return this.transaction(() => {
       if (execution) {
@@ -6780,19 +6926,40 @@ export class PortalRepository {
           payloadTarget: { billingRuleId, periodStart, periodEnd },
         });
       }
-      const existing = this.sqlite
-        .prepare(
-          `SELECT id,state FROM invoice
-           WHERE billing_rule_id=? AND period_start=? AND period_end=? AND state<>'superseded'
+      if (selection && principal)
+        this.invoiceCompositionService().assertSelection(principal, {
+          projectId: String(
+            this.sqlite.prepare('SELECT project_id FROM billing_rule WHERE id=?').get(billingRuleId)
+              ?.project_id ?? '',
+          ),
+          billingRuleId,
+          periodStart,
+          periodEnd,
+          sources: selection,
+        });
+      const existing = refreshInvoiceId
+        ? (this.sqlite
+            .prepare("SELECT id,state FROM invoice WHERE id=? AND state='draft'")
+            .get(refreshInvoiceId) as { id: string; state: string } | undefined)
+        : selection
+          ? undefined
+          : (this.sqlite
+              .prepare(
+                `SELECT id,state FROM invoice
+           WHERE billing_rule_id=? AND period_start=? AND period_end=? AND source_selection_json IS NULL AND state<>'superseded'
            ORDER BY created_at DESC,id DESC LIMIT 1`,
-        )
-        .get(billingRuleId, periodStart, periodEnd) as { id: string; state: string } | undefined;
+              )
+              .get(billingRuleId, periodStart, periodEnd) as
+              | { id: string; state: string }
+              | undefined);
       const readiness = this.billingReadinessCore(
         billingRuleId,
         periodStart,
         periodEnd,
         principal,
         execution,
+        selection,
+        refreshInvoiceId,
       );
       if (readiness.state !== 'ready' && readiness.state !== 'already_closed')
         throw new ReadinessError(readiness.reasons);
@@ -6807,8 +6974,9 @@ export class PortalRepository {
           return { id: existing.id, created: false, refreshed: false, existingState: 'draft' };
       }
       let refreshed = false;
-      const linkedReplacement =
-        existing?.state === 'draft'
+      const linkedReplacement = refreshInvoiceId
+        ? true
+        : existing?.state === 'draft'
           ? Boolean(
               this.sqlite
                 .prepare(
@@ -6938,6 +7106,10 @@ export class PortalRepository {
             timestamp,
           );
       }
+      if (selection)
+        this.sqlite
+          .prepare('UPDATE invoice SET source_selection_json=? WHERE id=?')
+          .run(JSON.stringify(selection), id);
       let subtotal = money(rule.currency, 0n);
       const consumedForCap =
         rule.billing_model === 'capped_tm' && rule.po_cap_minor !== null
@@ -6988,7 +7160,12 @@ export class PortalRepository {
         rule.stream_type === 'labor' &&
         !(rule.billing_model === 'all_in' && fixedAmount !== null)
       ) {
-        const slices = this.billingTimeSlices(rule.project_id, periodStart, periodEnd).filter(
+        const slices = this.billingTimeSlices(
+          rule.project_id,
+          periodStart,
+          periodEnd,
+          selection,
+        ).filter(
           (slice) =>
             ['approved', 'locked'].includes(slice.row.approval_state) &&
             slice.row.billability_state === 'billable' &&
@@ -7143,7 +7320,9 @@ export class PortalRepository {
           commercial_classification_state: string;
           version: number;
         }>;
-        for (const row of rows) {
+        for (const row of rows.filter((row) =>
+          invoiceSourceSelected(selection, 'expense', row.id),
+        )) {
           if (
             row.currency !== rule.currency &&
             (row.project_currency_amount_minor === null || row.billing_amount_minor === null)
@@ -7251,7 +7430,12 @@ export class PortalRepository {
       }
       if (rule.billing_model === 'all_in' && rule.stream_type === 'labor' && fixedAmount !== null) {
         const coveredSources = new Map<string, { id: string; version: number }>();
-        for (const slice of this.billingTimeSlices(rule.project_id, periodStart, periodEnd)) {
+        for (const slice of this.billingTimeSlices(
+          rule.project_id,
+          periodStart,
+          periodEnd,
+          selection,
+        )) {
           if (
             ['approved', 'locked'].includes(slice.row.approval_state) &&
             slice.row.billability_state === 'billable' &&
@@ -7298,6 +7482,7 @@ export class PortalRepository {
         periodEnd,
         principal,
         execution,
+        selection,
       );
       const issuerSettings = readIssuerDocumentSettings(
         this.sqlite,
@@ -7346,6 +7531,7 @@ export class PortalRepository {
           billingRuleId,
           periodStart,
           periodEnd,
+          ...(refreshInvoiceId ? { selectedSourceRefresh: true } : {}),
           ...(recovery
             ? {
                 recalculatedFromInvoiceId: recovery.invoiceId,
@@ -7451,6 +7637,16 @@ export class PortalRepository {
         principal,
         undefined,
         { invoiceId, version: expectedVersion, reason: auditReason },
+        readInvoiceCompositionSelection(this.sqlite, invoiceId)?.map((source) => ({
+          ...source,
+          version: Number(
+            this.sqlite
+              .prepare(
+                `SELECT version FROM ${source.type === 'time' ? 'time_entry' : 'expense'} WHERE id=?`,
+              )
+              .get(source.id)?.version ?? source.version,
+          ),
+        })),
       );
       if (!rebuilt.created || rebuilt.id === invoiceId)
         throw new ConflictError('Invoice could not be recalculated; prior approval is preserved');
@@ -8216,6 +8412,8 @@ export class PortalRepository {
         invoice.period_start,
         invoice.period_end,
         principal,
+        undefined,
+        readInvoiceCompositionSelection(this.sqlite, invoice.id),
       );
       if (selection.fingerprint !== configuration.billingCalculationFingerprint) throw stale();
     } catch {
@@ -10014,6 +10212,8 @@ export class PortalRepository {
             String(invoice.period_start),
             String(invoice.period_end),
             principal,
+            undefined,
+            readInvoiceCompositionSelection(this.sqlite, String(invoice.id)),
           ).fingerprint,
       },
     );

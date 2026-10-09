@@ -846,6 +846,12 @@
               {/if}
             </select>
           </label>
+          {#if selectedAssignmentProject}
+            <p class="form-help">
+              {projectSchedule(selectedAssignmentProject)}
+              <a href={projectHref(selectedAssignmentProject)}>{translate('Open project')}</a>
+            </p>
+          {/if}
           <ExpertiseWorkerSelect
             {workers}
             {expertise}

@@ -135,6 +135,7 @@
     if (!form || typeof form !== 'object' || !('action' in form)) return null;
     return form as ActionFeedback;
   });
+  let editingSetup = $state(false);
   const setupFailure = $derived(
     feedback?.action === 'saveBillingSetup' && !feedback.success ? feedback : null,
   );
@@ -146,6 +147,13 @@
   );
   const personAction = $derived(
     feedback?.action === 'savePersonTerms' || feedback?.action === 'savePeopleTerms',
+  );
+  const showSetup = $derived(
+    version === 0 ||
+      editingSetup ||
+      Boolean(setupFailure) ||
+      Boolean(personFailure) ||
+      page.url.searchParams.get('billingStep') === 'people',
   );
   let billingSetupForm = $state<HTMLFormElement>();
   $effect(() => {
@@ -829,7 +837,7 @@
         )}
       </p>
     </div>
-    {#if canEdit}<span>{t('Step')} {step} / 4</span>{/if}
+    {#if canEdit && showSetup}<span>{t('Step')} {step} / 4</span>{/if}
   </div>
 
   {#if version > 0}
@@ -847,12 +855,33 @@
                   : issue === 'tax_profile_not_effective'
                     ? t('Choose a tax profile effective for this billing date.')
                     : t('Complete the project billing setup.')}
+              {#if issue === 'canonical_legal_entity_revision_required'}
+                <a
+                  href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(projectId)}&task=Project%20issuing%20authority&lang=${encodeURIComponent(locale)}`}
+                  >{t('Project issuing authority')}</a
+                >
+              {:else if issue === 'missing_accountant_approved_number_policy'}
+                <a
+                  href={`${base}/app/billing?view=setup&setup=numbering&project=${encodeURIComponent(projectId)}&lang=${encodeURIComponent(locale)}`}
+                  >{t('Invoice numbering policy')}</a
+                >
+              {:else if issue === 'tax_profile_not_effective'}
+                <button
+                  type="button"
+                  class="secondary-button"
+                  onclick={() => {
+                    editingSetup = true;
+                    void showStep(2);
+                  }}>{t('Labor tax profile')}</button
+                >
+              {:else}
+                <button type="button" class="secondary-button" onclick={() => (editingSetup = true)}
+                  >{t('Review billing setup')}</button
+                >
+              {/if}
             </li>
           {/each}
         </ul>
-        <a href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(projectId)}`}
-          >{t('Open finance configuration')}</a
-        >
       {:else}
         <p>
           {t(
@@ -863,7 +892,13 @@
     </div>
   {/if}
 
-  {#if canEdit}
+  {#if canEdit && !showSetup}
+    <button type="button" class="secondary-button" onclick={() => (editingSetup = true)}
+      >{t('Review billing setup')}</button
+    >
+  {/if}
+
+  {#if canEdit && showSetup}
     {#if setupFailure}
       <div class="warning" role="alert">
         <strong>{t('Check billing setup fields')}</strong>
@@ -2012,6 +2047,14 @@
     border: 1px solid var(--ja-line, #e4e4e2);
     padding: clamp(1rem, 2vw, 1.5rem);
     background: white;
+  }
+  .readiness-note li {
+    margin-block: 0.5rem;
+  }
+  .readiness-note li a {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
   }
   .billing-setup__intro {
     display: flex;

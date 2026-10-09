@@ -3,6 +3,7 @@ import { recordAuditEvent, type AuditPrincipal } from '../../core/audit.ts';
 
 export type OwnerFinanceRecordType = 'time_entry' | 'expense';
 export type OwnerFinanceApprovalOrigin =
+  | 'invoice_composition'
   | 'operational_approval'
   | 'catchup'
   | 'policy_reconciliation';

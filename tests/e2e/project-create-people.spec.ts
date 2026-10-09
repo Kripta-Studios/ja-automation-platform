@@ -76,16 +76,10 @@ test('owner creates a project, then assigns two people by expertise with finance
     expect(
       db.prepare('SELECT COUNT(*) count FROM compensation_rule WHERE project_id=?').get(created.id),
     ).toEqual({ count: 0 });
-    await expect(page.locator('[data-project-setup-next]')).toBeVisible();
-    await expect(
-      page
-        .locator('[data-project-setup-next]')
-        .getByRole('link', { name: 'Configure per-person rates and expenses' }),
-    ).toHaveAttribute('href', new RegExp(`project=${created.id}`));
-    await page
-      .locator('[data-project-setup-next]')
-      .getByRole('link', { name: 'Assign workers by expertise' })
-      .click();
+    await expect(page).toHaveURL(new RegExp(`/projects/${created.id}\\?tab=work(?:&|$)`));
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+    await page.locator('#project-tab-team').click();
+    await page.getByRole('link', { name: 'Assign worker', exact: true }).click();
     let assignment = page.locator(
       '[data-project-workflow="assign-worker"] form[action="?/assignWorker"]',
     );
@@ -184,6 +178,12 @@ test('legacy initial-worker POST receives typed finance setup rejection without 
     await page.getByRole('button', { name: 'New Project', exact: true }).click();
     const form = page.locator('form[action="?/createProject"]');
     await expect(form.locator('[name="initialWorkerId"]')).toHaveCount(0);
+    const selectedClient = await form
+      .locator('[name="clientId"] option[value]:not([value=""])')
+      .first()
+      .getAttribute('value');
+    if (!selectedClient) throw new Error('Client fixture required');
+    await form.locator('[name="clientId"]').selectOption(selectedClient);
     const clientId = await form.locator('select[name="clientId"]').inputValue();
     const currency = await form.locator('select[name="currency"]').inputValue();
     const timezone = await form.locator('input[name="timezone"]').inputValue();
@@ -256,6 +256,10 @@ test('changing client after a failed save uses the newly selected client default
       .fill(e2eCostCenter('QA-CLIENT-RETRY', 10, testInfo.project.name, 3));
     await form.getByRole('button', { name: 'Create project', exact: true }).click();
     await expect(page.locator('[data-project-field-errors]')).toContainText('Name');
+    await page
+      .getByRole('dialog', { name: 'Complete the action step by step' })
+      .getByRole('button', { name: 'Cancel', exact: true })
+      .click();
     await form.locator('[name="clientId"]').selectOption(nextClient.id);
     await expect(form.locator('[name="currency"]')).toHaveValue(nextClient.currency);
     await expect(form.locator('[name="timezone"]')).toHaveValue(nextClient.timezone);
@@ -287,6 +291,7 @@ test('worker assignment outside project dates shows an error and saves no assign
     await page.goto(portal('/projects'));
     await page.getByRole('button', { name: 'New Project', exact: true }).click();
     const form = page.locator('form[action="?/createProject"]');
+    await form.locator('[name="clientId"]').selectOption('00000000-0000-4000-8000-000000000107');
     await form.locator('[name="name"]').fill(name);
     await form
       .locator('[name="costCenterCode"]')

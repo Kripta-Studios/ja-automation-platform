@@ -1801,3 +1801,36 @@ The requested project onsite/contact/CRM/currency/calendar workflows, operationa
 ## Explicit Owner approval policy — 2026-10-08
 
 The user's current instruction makes Owner operational approval also accept financial review for time and expense sources. Earlier separate-review guidance remains applicable to PM approvals. Configuration, classification, financial locks, correction and immutable-history requirements continue to apply. Implementation, audited historical reconciliation and invoice/rate recovery evidence: `docs/evidence/guided-recovery/owner-finance-policy-2026-10-08.md`.
+
+### Selected project-to-invoice journey — 9 October 2026
+
+User-authorized CORE-03/08/10/11 improvement: project creation continues into its
+workspace; Owner/Finance can select actual workers, hours and expenses, approve
+selected eligible sources, resolve missing conditions, inspect server-priced
+lines and create separate idempotent drafts before explicit issuance/PDF.
+Existing advanced/full-period configuration and immutable financial history are
+preserved. GPT 6.1 Sol implementation/browser/security workers and GPT 6 Astra UX
+advice received bounded ownership and one browser lease including PDF renderers.
+
+Scoped API/route checks: 57 passing cases; worker domain/commercial/migration/cap
+coverage: 37 scoped cases plus the last unclassified-expense diagnostic regression.
+Database/portal TypeScript checks and targeted new-composer Svelte diagnostics
+pass; production portal/jobs builds pass with final source rebuild/browser and
+live cutover evidence recorded on completion. The real private 75→76 production
+schema rehearsal preserves original columns/values in all 182 old tables,
+SQLite integrity `ok`, zero FK violations and unchanged historical selection
+meaning. Finance/security and UX reviews cleared their bounded scopes.
+
+This does not replace the global release verdict or hide previously recorded
+workspace/legacy Svelte gates. See [current evidence](docs/evidence/project-invoice-journey/README.md)
+and the final browser/deployment receipts for exact scope and limitations.
+
+Final scoped browser evidence: 50 passing latest existing-workflow outcomes
+across 72 distinct cases, with 22 unchanged viewport-conditional skips; 27
+passing navigation/recovery cases (nine existing viewport skips), including
+Back without Cancel at all four representative widths. Main creation + real
+299.00 USD invoice/PDF cases pass at 360/390/768/1440 with separate 50.00/75.00
+USD partial-selection drafts. The final disclosure build passes a real SPA
+late-readiness race with both document markers preserved, no stale popup and no
+financial writes. Independent navigation/late-response/disclosure reviews clear;
+28 changed TypeScript/Svelte files pass ESLint/format checks.

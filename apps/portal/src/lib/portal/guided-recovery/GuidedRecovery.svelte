@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { page } from '$app/stores';
+  import { beforeNavigate } from '$app/navigation';
   import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
   import { localizedServerFieldMessage, validationErrorMessage } from '../ui/form-validation';
   import { requestGuidedRecovery, subscribeGuidedRecovery, type RecoveryRequest } from './events';
@@ -29,6 +30,7 @@
   let submitter: HTMLButtonElement | HTMLInputElement | undefined;
   let returnFocus: HTMLElement | undefined;
   let editor: RecoveryControl | undefined;
+  let recoveryGeneration = 0;
   const locale = $derived(
     normalizePortalLocale($page.url.searchParams.get('lang') ?? $page.data.locale),
   );
@@ -54,6 +56,7 @@
   async function open(next: RecoveryRequest) {
     // Never replace unfinished answers with another notice from the same response.
     if (dialog?.open) return;
+    const generation = ++recoveryGeneration;
     request = next;
     form = recoveryForm(next, lastForm);
     formAction = form?.action ?? '';
@@ -80,16 +83,31 @@
           ? document.activeElement
           : undefined;
     await tick();
-    if (!dialog.isConnected) return;
+    if (!dialog.isConnected || generation !== recoveryGeneration) return;
     dialog.showModal();
     await tick();
+    if (generation !== recoveryGeneration || !dialog.open) return;
     (editor ?? dialog.querySelector<HTMLElement>('button'))?.focus();
   }
   function close() {
+    recoveryGeneration++;
     dialog.close();
     request = undefined;
     returnFocus?.isConnected && returnFocus.focus({ preventScroll: true });
   }
+  beforeNavigate(() => {
+    recoveryGeneration++;
+    if (dialog?.open) dialog.close();
+    request = undefined;
+    fields = [];
+    manualFields = [];
+    form = undefined;
+    lastForm = undefined;
+    lastSubmitter = undefined;
+    submitter = undefined;
+    returnFocus = undefined;
+    editor = undefined;
+  });
   function mountEditor(host: HTMLElement, field: RecoveryField) {
     const clone = field.group
       ? document.createElement('select')
@@ -155,7 +173,11 @@
       validation = t('The form has changed. Close this assistant and try the action again.');
       return;
     }
-    const patches = fields.map((field) => ({ field, control: findControl(form!, field.name) }));
+    const generation = recoveryGeneration;
+    const target = form;
+    const action = formAction;
+    const originalSubmitter = submitter;
+    const patches = fields.map((field) => ({ field, control: findControl(target, field.name) }));
     if (
       patches.some(
         ({ field, control }) =>
@@ -192,11 +214,14 @@
       control.dispatchEvent(new Event('change', { bubbles: true }));
     }
     await tick();
-    const target = form;
-    const button = submitter?.isConnected && submitter.form === target ? submitter : undefined;
+    if (generation !== recoveryGeneration) return;
+    const button =
+      originalSubmitter?.isConnected && originalSubmitter.form === target
+        ? originalSubmitter
+        : undefined;
     close();
     // Reuse ordinary form validation, server permissions, audit and action handlers.
-    if (target.isConnected && target.action === formAction) target.requestSubmit(button);
+    if (target.isConnected && target.action === action) target.requestSubmit(button);
   }
   onMount(() => {
     const unsubscribe = subscribeGuidedRecovery(open);

@@ -1,0 +1,52 @@
+{
+  "fixture": "isolated disposable E2E database; business journey uses visible actual UI commands",
+  "method": "latest result per test; two actual journey cases passed together on navigation build, meaningful delayed SPA case passed focused on final advanced-disclosure build",
+  "counts": {
+    "passed": 3,
+    "skipped": 0,
+    "unexpectedLatest": 0
+  },
+  "tests": [
+    {
+      "title": "new project opens from the dashboard and lands in its project workspace",
+      "project": "audit",
+      "status": "passed",
+      "durationMs": 12645
+    },
+    {
+      "title": "two people submit actual work, Owner selects and approves it, then issues a real PDF",
+      "project": "audit",
+      "status": "passed",
+      "durationMs": 194382
+    },
+    {
+      "title": "late whole-period readiness cannot open a repair dialog after browser Back",
+      "project": "audit",
+      "status": "passed",
+      "durationMs": 6337
+    }
+  ],
+  "viewports": [360, 390, 768, 1440],
+  "oneBrowserAtATime": true,
+  "pdfRenderSequencing": "UI browser closed; actual PDF jobs render sequentially; one UI browser reopened",
+  "invoiceTotalsMinor": {
+    "issuedEachWidth": 29900,
+    "additional360Drafts": [5000, 7500]
+  },
+  "actualJourneyErrorAssertions": {
+    "unexpectedConsoleOrPageErrors": 0,
+    "unexpectedUi401Or500": 0,
+    "failedArtifactJobs": 0
+  },
+  "delayedReadiness": {
+    "viewport": 360,
+    "response": "controlled incomplete response to held actual UI readiness GET",
+    "navigation": "actual Team and conditions tab \u2192 Open Billing SPA link \u2192 advanced whole-period disclosure \u2192 browser Back to project billing tab",
+    "documentMarkerPreserved": "same random window marker after navigation in both directions",
+    "beforeunloadPrompts": 0,
+    "legacyDisclosure": "three actionable Next steps retained open state, then visible Check selected period captured actual GET",
+    "assertions": "late response caused no stale repair dialog; Reports link usable; no POST, invoice-count change or pageerror",
+    "durationMs": 6337,
+    "testBuild": "final advanced-disclosure build"
+  }
+}

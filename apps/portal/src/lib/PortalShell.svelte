@@ -1390,6 +1390,18 @@
       initialAssignmentCount: Number(result.messageParams?.initialAssignmentCount ?? 0),
     };
   });
+  let openedCreatedProject = $state('');
+  $effect(() => {
+    const project = createdProject;
+    if (!project || openedCreatedProject === project.id || data.section !== 'projects') return;
+    openedCreatedProject = project.id;
+    void goto(
+      `${base}/app/projects/${encodeURIComponent(project.id)}?tab=work&lang=${encodeURIComponent(locale)}`,
+      {
+        replaceState: true,
+      },
+    );
+  });
   function projectFieldLabel(field: string): string {
     const labels: Record<string, string> = {
       clientId: 'Client',
@@ -5247,251 +5259,296 @@
                   {translate}
                 />
               {/if}
-              <form
-                use:dirtyFormGuard
-                method="POST"
-                action="?/createProject"
-                class="admin-form-grid project-setup-form"
-              >
-                <h2>{translate('Create project')}</h2>
-                <p class="form-help wide-field">
-                  {translate(
-                    data.user.role === 'owner_admin'
-                      ? 'Create the project with optional worker assignments and individual terms, or add people after saving.'
-                      : 'Create the project with optional default rates, pay and expense terms. Ask the owner to add worker assignments.',
-                  )}
-                </p>
-                {#if Object.keys(projectFieldErrors).length > 0}
-                  <div class="form-help wide-field" role="alert" data-project-field-errors>
-                    <strong>{translate('Check project fields')}</strong>
-                    <ul>
-                      {#each Object.entries(projectFieldErrors) as [field, messages]}
-                        <li>
-                          {#if projectAssignmentDateTarget(field)}<a
-                              href={`#${projectAssignmentDateTarget(field)}`}
-                              >{projectFieldLabel(field)}</a
-                            >{:else}{projectFieldLabel(field)}{/if}: {(messages ?? [])
-                            .map(translate)
-                            .join(' · ')}
-                        </li>
-                      {/each}
-                    </ul>
-                  </div>
-                {/if}
-                <h3 class="wide-field">{translate('1 · Basics')}</h3>
-                <label
-                  >{translate('Client')}<select
-                    name="clientId"
-                    required
-                    value={selectedNewProjectClientId}
-                    onchange={(event) => {
-                      newProjectClientId = event.currentTarget.value;
-                      newProjectCurrencyOverride = null;
-                      newProjectTimezoneOverride = null;
-                    }}
-                    ><option value="" disabled
-                      >{portalText(locale, 'problem.client.idRequired')}</option
-                    >{#each activeClients as client}<option value={client.id}
-                        >{client.client_number} — {client.display_name}</option
-                      >{/each}</select
-                  ></label
-                ><label
-                  >{translate('Name')}<input
-                    name="name"
-                    value={projectFormValue('name')}
-                    required
-                  /></label
-                ><label
-                  >{translate('Cost center code')}<input
-                    name="costCenterCode"
-                    maxlength="120"
-                    value={projectFormValue('costCenterCode')}
-                    required
-                  /><small
-                    >{translate(
-                      'End the cost center with digits. Those digits become the project number suffix (for example, CP020 becomes P-020).',
-                    )}</small
-                  ></label
-                ><label
-                  >{translate('Description')}<textarea name="description" rows="2"
-                    >{projectFormValue('description')}</textarea
-                  ></label
-                ><label
-                  >{translate('Project alias')}<input
-                    name="projectAlias"
-                    value={projectFormValue('projectAlias')}
-                  /></label
-                ><label
-                  >{translate('Currency')}<select
-                    name="currency"
-                    value={newProjectCurrency}
-                    onchange={(event) => (newProjectCurrencyOverride = event.currentTarget.value)}
-                    ><option value="USD">USD</option><option value="BRL">BRL</option><option
-                      value="EUR">EUR</option
-                    ></select
-                  ></label
-                ><label
-                  >{translate('Project manager')}<select name="projectManagerId"
-                    ><option value="">{translate('Unassigned')}</option
-                    >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager' && worker.status === 'active'}<option
-                          value={worker.id}
-                          selected={projectFormValue('projectManagerId') === worker.id}
-                          >{worker.name} — {worker.email}</option
-                        >{/if}{/each}</select
-                  ></label
+              {#if !createdProject}
+                <form
+                  use:dirtyFormGuard
+                  method="POST"
+                  action="?/createProject"
+                  class="admin-form-grid project-setup-form"
                 >
-                <ProjectSiteFields
-                  clientId={selectedNewProjectClientId}
-                  contacts={data.contacts ?? []}
-                  values={projectFormValues}
-                  allowNew
-                  {translate}
-                />
-                <h3 class="wide-field">{translate('2 · People')}</h3>
-                <ProjectCreationAssignments
-                  workers={data.workers ?? []}
-                  currency={newProjectCurrency}
-                  canAssignWorkers={data.user.role === 'owner_admin'}
-                  values={projectFormValues}
-                  errors={projectFieldErrors}
-                  t={translate}
-                />
-                <h3 class="wide-field">{translate('3 · Commercial defaults')}</h3>
-                <label
-                  >{translate('Billing model')}<select name="billingModel"
-                    ><option value="tm" selected={projectFormValue('billingModel', 'tm') === 'tm'}
-                      >{translate('Time & materials')}</option
-                    ><option
-                      value="tm_daily_minimum"
-                      selected={projectFormValue('billingModel') === 'tm_daily_minimum'}
-                      >{translate('T&M · daily minimum')}</option
-                    ><option value="all_in" selected={projectFormValue('billingModel') === 'all_in'}
-                      >{translate('Hourly labor with included expenses (all-in)')}</option
-                    ><option
-                      value="capped_tm"
-                      selected={projectFormValue('billingModel') === 'capped_tm'}
-                      >{translate('Capped T&M')}</option
-                    ></select
-                  ></label
-                ><label
-                  >{translate('Site timezone')}<input
-                    name="timezone"
-                    value={newProjectTimezone}
-                    oninput={(event) => (newProjectTimezoneOverride = event.currentTarget.value)}
-                    required
-                  /></label
-                ><label
-                  >{translate('Start date')}<input
-                    name="startDate"
-                    type="date"
-                    value={projectFormValue('startDate')}
-                  /></label
-                ><label
-                  >{translate('Planned end date (optional)')}<input
-                    name="plannedEndDate"
-                    type="date"
-                    value={projectFormValue('plannedEndDate')}
-                  /></label
-                ><label
-                  >{translate('Expected hours / day')}<input
-                    name="expectedHoursPerDay"
-                    type="number"
-                    step="0.25"
-                    min="0"
-                    max="24"
-                    value={projectFormValue('expectedHoursPerDay', '10')}
-                    placeholder="10.0"
-                    required
-                  /></label
-                ><label
-                  >{translate('Client daily minimum hours')}<input
-                    name="clientDailyMinimumHours"
-                    type="number"
-                    step="0.25"
-                    min="0"
-                    max="24"
-                    value={projectFormValue('clientDailyMinimumHours')}
-                    placeholder="8.0"
-                  /></label
-                >
-                <p class="form-help">
-                  {translate(
-                    'Expected hours are planning context. The client daily minimum is a separate commercial top-up applied once per worker, project and day; it never changes actual recorded hours or worker compensation.',
-                  )}
-                </p>
-                <p class="form-help">
-                  {translate(
-                    'All-in keeps labor hourly unless an explicit fixed labor price is configured. It only means selected expenses are included instead of billed separately.',
-                  )}
-                </p>
-                <h3 class="wide-field">
-                  {translate('4 · Optional planning and budget')}
-                </h3>
-                <p class="form-help wide-field">
-                  {translate(
-                    'Leave budgets blank when they are not agreed. A planning target does not limit billing; choose capped T&M and configure a cap only when the contract requires one.',
-                  )}
-                </p>
-                <label
-                  >{translate('Budget type')}<select name="budgetType"
-                    ><option
-                      value="none"
-                      selected={projectFormValue('budgetType', 'none') === 'none'}
-                      >{translate('No budget')}</option
-                    ><option value="revenue" selected={projectFormValue('budgetType') === 'revenue'}
-                      >{translate('Revenue')}</option
-                    ><option
-                      value="purchase_order"
-                      selected={projectFormValue('budgetType') === 'purchase_order'}
-                      >{translate('Purchase order')}</option
-                    ><option value="labor" selected={projectFormValue('budgetType') === 'labor'}
-                      >{translate('Labor')}</option
-                    ><option value="travel" selected={projectFormValue('budgetType') === 'travel'}
-                      >{translate('Travel')}</option
-                    ><option value="expense" selected={projectFormValue('budgetType') === 'expense'}
-                      >{translate('Expenses')}</option
-                    ><option
-                      value="combined"
-                      selected={projectFormValue('budgetType') === 'combined'}
-                      >{translate('Combined')}</option
-                    ></select
-                  ></label
-                ><ProjectBudgetInput
-                  name="revenueBudgetMinor"
-                  label={translate('Revenue budget')}
-                  value={projectFormValue('revenueBudgetMinor')}
-                  currency={newProjectCurrency}
-                /><ProjectBudgetInput
-                  name="poCapMinor"
-                  label={translate('PO cap')}
-                  value={projectFormValue('poCapMinor')}
-                  currency={newProjectCurrency}
-                /><ProjectBudgetInput
-                  name="laborBudgetMinutes"
-                  label={translate('Planned labor hours')}
-                  value={projectFormValue('laborBudgetMinutes')}
-                  kind="hours"
-                /><ProjectBudgetInput
-                  name="expenseBudgetMinor"
-                  label={translate('Expense budget')}
-                  value={projectFormValue('expenseBudgetMinor')}
-                  currency={newProjectCurrency}
-                /><ProjectBudgetInput
-                  name="travelBudgetMinor"
-                  label={translate('Travel budget')}
-                  value={projectFormValue('travelBudgetMinor')}
-                  currency={newProjectCurrency}
-                /><label class="check"
-                  ><input name="weeklyCloseEnabled" type="checkbox" />
-                  {translate('Weekly close required')}</label
-                ><label class="check"
-                  ><input name="dailyReportRequired" type="checkbox" />
-                  {translate('Daily report required')}</label
-                ><label class="check"
-                  ><input name="technicalReportingRequired" type="checkbox" />
-                  {translate('Technical reporting required')}</label
-                ><button>{translate('Create project')}</button>
-              </form>
+                  <h2>{translate('Create project')}</h2>
+                  <p class="form-help wide-field">
+                    {translate(
+                      data.user.role === 'owner_admin'
+                        ? 'Create the project with optional worker assignments and individual terms, or add people after saving.'
+                        : 'Create the project with optional default rates, pay and expense terms. Ask the owner to add worker assignments.',
+                    )}
+                  </p>
+                  {#if Object.keys(projectFieldErrors).length > 0}
+                    <div class="form-help wide-field" role="alert" data-project-field-errors>
+                      <strong>{translate('Check project fields')}</strong>
+                      <ul>
+                        {#each Object.entries(projectFieldErrors) as [field, messages]}
+                          <li>
+                            {#if projectAssignmentDateTarget(field)}<a
+                                href={`#${projectAssignmentDateTarget(field)}`}
+                                >{projectFieldLabel(field)}</a
+                              >{:else}{projectFieldLabel(field)}{/if}: {(messages ?? [])
+                              .map(translate)
+                              .join(' · ')}
+                          </li>
+                        {/each}
+                      </ul>
+                    </div>
+                  {/if}
+                  <h3 class="wide-field">{translate('1 · Basics')}</h3>
+                  <label
+                    >{translate('Client')}<select
+                      name="clientId"
+                      required
+                      value={selectedNewProjectClientId}
+                      onchange={(event) => {
+                        newProjectClientId = event.currentTarget.value;
+                        newProjectCurrencyOverride = null;
+                        newProjectTimezoneOverride = null;
+                      }}
+                      ><option value="" disabled
+                        >{portalText(locale, 'problem.client.idRequired')}</option
+                      >{#each activeClients as client}<option value={client.id}
+                          >{client.client_number} — {client.display_name}</option
+                        >{/each}</select
+                    ></label
+                  ><label
+                    >{translate('Name')}<input
+                      name="name"
+                      value={projectFormValue('name')}
+                      required
+                    /></label
+                  ><label
+                    >{translate('Cost center code')}<input
+                      name="costCenterCode"
+                      maxlength="120"
+                      value={projectFormValue('costCenterCode')}
+                      required
+                    /><small
+                      >{translate(
+                        'End the cost center with digits. Those digits become the project number suffix (for example, CP020 becomes P-020).',
+                      )}</small
+                    ></label
+                  ><label
+                    >{translate('Description')}<textarea name="description" rows="2"
+                      >{projectFormValue('description')}</textarea
+                    ></label
+                  ><label
+                    >{translate('Project alias')}<input
+                      name="projectAlias"
+                      value={projectFormValue('projectAlias')}
+                    /></label
+                  ><label
+                    >{translate('Currency')}<select
+                      name="currency"
+                      value={newProjectCurrency}
+                      onchange={(event) => (newProjectCurrencyOverride = event.currentTarget.value)}
+                      ><option value="USD">USD</option><option value="BRL">BRL</option><option
+                        value="EUR">EUR</option
+                      ></select
+                    ></label
+                  ><label
+                    >{translate('Project manager')}<select name="projectManagerId"
+                      ><option value="">{translate('Unassigned')}</option
+                      >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager' && worker.status === 'active'}<option
+                            value={worker.id}
+                            selected={projectFormValue('projectManagerId') === worker.id}
+                            >{worker.name} — {worker.email}</option
+                          >{/if}{/each}</select
+                    ></label
+                  >
+                  <ProjectSiteFields
+                    clientId={selectedNewProjectClientId}
+                    contacts={data.contacts ?? []}
+                    values={projectFormValues}
+                    allowNew
+                    {translate}
+                  />
+                  <h3 class="wide-field">{translate('2 · People')}</h3>
+                  <ProjectCreationAssignments
+                    workers={data.workers ?? []}
+                    currency={newProjectCurrency}
+                    canAssignWorkers={data.user.role === 'owner_admin'}
+                    values={projectFormValues}
+                    errors={projectFieldErrors}
+                    t={translate}
+                  />
+                  <h3 class="wide-field">{translate('3 · Commercial defaults')}</h3>
+                  <label
+                    >{translate('Billing model')}<select name="billingModel"
+                      ><option value="tm" selected={projectFormValue('billingModel', 'tm') === 'tm'}
+                        >{translate('Time & materials')}</option
+                      ><option
+                        value="tm_daily_minimum"
+                        selected={projectFormValue('billingModel') === 'tm_daily_minimum'}
+                        >{translate('T&M · daily minimum')}</option
+                      ><option
+                        value="all_in"
+                        selected={projectFormValue('billingModel') === 'all_in'}
+                        >{translate('Hourly labor with included expenses (all-in)')}</option
+                      ><option
+                        value="capped_tm"
+                        selected={projectFormValue('billingModel') === 'capped_tm'}
+                        >{translate('Capped T&M')}</option
+                      ></select
+                    ></label
+                  ><label
+                    >{translate('Site timezone')}<input
+                      name="timezone"
+                      value={newProjectTimezone}
+                      oninput={(event) => (newProjectTimezoneOverride = event.currentTarget.value)}
+                      required
+                    /></label
+                  ><label
+                    >{translate('Start date')}<input
+                      name="startDate"
+                      type="date"
+                      value={projectFormValue('startDate')}
+                    /></label
+                  ><label
+                    >{translate('Planned end date (optional)')}<input
+                      name="plannedEndDate"
+                      type="date"
+                      value={projectFormValue('plannedEndDate')}
+                    /></label
+                  ><label
+                    >{translate('Expected hours / day')}<input
+                      name="expectedHoursPerDay"
+                      type="number"
+                      step="0.25"
+                      min="0"
+                      max="24"
+                      value={projectFormValue('expectedHoursPerDay', '10')}
+                      placeholder="10.0"
+                      required
+                    /></label
+                  ><label
+                    >{translate('Client daily minimum hours')}<input
+                      name="clientDailyMinimumHours"
+                      type="number"
+                      step="0.25"
+                      min="0"
+                      max="24"
+                      value={projectFormValue('clientDailyMinimumHours')}
+                      placeholder="8.0"
+                    /></label
+                  >
+                  <p class="form-help">
+                    {translate(
+                      'Expected hours are planning context. The client daily minimum is a separate commercial top-up applied once per worker, project and day; it never changes actual recorded hours or worker compensation.',
+                    )}
+                  </p>
+                  <p class="form-help">
+                    {translate(
+                      'All-in keeps labor hourly unless an explicit fixed labor price is configured. It only means selected expenses are included instead of billed separately.',
+                    )}
+                  </p>
+                  <details
+                    use:disclosure
+                    class="admin-details wide-field project-optional-settings"
+                    open={Object.keys(projectFieldErrors).some((field) =>
+                      [
+                        'budgetType',
+                        'revenueBudgetMinor',
+                        'poCapMinor',
+                        'laborBudgetMinutes',
+                        'expenseBudgetMinor',
+                        'travelBudgetMinor',
+                        'weeklyCloseEnabled',
+                        'dailyReportRequired',
+                        'technicalReportingRequired',
+                      ].includes(field),
+                    )}
+                  >
+                    <summary class="secondary-button"
+                      >{translate('4 · Optional planning and budget')}</summary
+                    >
+                    <div class="admin-form-grid">
+                      <p class="form-help wide-field">
+                        {translate(
+                          'Leave budgets blank when they are not agreed. A planning target does not limit billing; choose capped T&M and configure a cap only when the contract requires one.',
+                        )}
+                      </p>
+                      <label
+                        >{translate('Budget type')}<select name="budgetType"
+                          ><option
+                            value="none"
+                            selected={projectFormValue('budgetType', 'none') === 'none'}
+                            >{translate('No budget')}</option
+                          ><option
+                            value="revenue"
+                            selected={projectFormValue('budgetType') === 'revenue'}
+                            >{translate('Revenue')}</option
+                          ><option
+                            value="purchase_order"
+                            selected={projectFormValue('budgetType') === 'purchase_order'}
+                            >{translate('Purchase order')}</option
+                          ><option
+                            value="labor"
+                            selected={projectFormValue('budgetType') === 'labor'}
+                            >{translate('Labor')}</option
+                          ><option
+                            value="travel"
+                            selected={projectFormValue('budgetType') === 'travel'}
+                            >{translate('Travel')}</option
+                          ><option
+                            value="expense"
+                            selected={projectFormValue('budgetType') === 'expense'}
+                            >{translate('Expenses')}</option
+                          ><option
+                            value="combined"
+                            selected={projectFormValue('budgetType') === 'combined'}
+                            >{translate('Combined')}</option
+                          ></select
+                        ></label
+                      ><ProjectBudgetInput
+                        name="revenueBudgetMinor"
+                        label={translate('Revenue budget')}
+                        value={projectFormValue('revenueBudgetMinor')}
+                        currency={newProjectCurrency}
+                      /><ProjectBudgetInput
+                        name="poCapMinor"
+                        label={translate('PO cap')}
+                        value={projectFormValue('poCapMinor')}
+                        currency={newProjectCurrency}
+                      /><ProjectBudgetInput
+                        name="laborBudgetMinutes"
+                        label={translate('Planned labor hours')}
+                        value={projectFormValue('laborBudgetMinutes')}
+                        kind="hours"
+                      /><ProjectBudgetInput
+                        name="expenseBudgetMinor"
+                        label={translate('Expense budget')}
+                        value={projectFormValue('expenseBudgetMinor')}
+                        currency={newProjectCurrency}
+                      /><ProjectBudgetInput
+                        name="travelBudgetMinor"
+                        label={translate('Travel budget')}
+                        value={projectFormValue('travelBudgetMinor')}
+                        currency={newProjectCurrency}
+                      /><label class="check"
+                        ><input
+                          name="weeklyCloseEnabled"
+                          type="checkbox"
+                          checked={projectFormValue('weeklyCloseEnabled') === 'on'}
+                        />
+                        {translate('Weekly close required')}</label
+                      ><label class="check"
+                        ><input
+                          name="dailyReportRequired"
+                          type="checkbox"
+                          checked={projectFormValue('dailyReportRequired') === 'on'}
+                        />
+                        {translate('Daily report required')}</label
+                      ><label class="check"
+                        ><input
+                          name="technicalReportingRequired"
+                          type="checkbox"
+                          checked={projectFormValue('technicalReportingRequired') === 'on'}
+                        />
+                        {translate('Technical reporting required')}</label
+                      >
+                    </div>
+                  </details>
+                  <button>{translate('Create project')}</button>
+                </form>
+              {/if}
             </section>
           {/if}
           {#if canManageAssignmentControls}
@@ -5552,7 +5609,22 @@
                             : `${project.project_number} · ${project.name}`}</option
                         >{/each}</select
                     ></label
-                  ><ExpertiseWorkerSelect
+                  >
+                  {#if assignmentSelectedProject}
+                    <p class="form-help wide-field">
+                      {translate('Start date')}: {String(
+                        assignmentSelectedProject.start_date ?? '—',
+                      )} ·
+                      {translate('Planned end date (optional)')}: {String(
+                        assignmentSelectedProject.planned_end_date ?? '—',
+                      )}
+                      <a
+                        href={`${base}/app/projects/${encodeURIComponent(assignmentSelectedProjectId)}?tab=work`}
+                        >{translate('Open project')}</a
+                      >
+                    </p>
+                  {/if}
+                  <ExpertiseWorkerSelect
                     workers={data.workers ?? []}
                     expertise={data.allSkills ?? []}
                     workerExpertise={data.workerSkills ?? []}

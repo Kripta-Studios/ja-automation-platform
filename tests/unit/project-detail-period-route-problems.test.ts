@@ -17,6 +17,7 @@ vi.mock('$lib/server/portal-repository', () => ({
       listAllWorkers: () => [],
       listLegalEntities: () => [],
       listTaxProfiles: () => [],
+      listDocuments: () => [],
     },
     v3: { projectFinance: state.finance },
     sqlite: { close: state.close },
@@ -25,6 +26,14 @@ vi.mock('$lib/server/portal-repository', () => ({
 
 vi.mock('@ja/database', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@ja/database')>()),
+  ProjectPersonDefaultsRepository: class {
+    latest() {
+      return null;
+    }
+    revision() {
+      return 0;
+    }
+  },
   ProjectBillingSetupRepository: class {
     currentVersion() {
       return 1;

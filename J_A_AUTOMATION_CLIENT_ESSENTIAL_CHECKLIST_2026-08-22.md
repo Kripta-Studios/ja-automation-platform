@@ -1799,3 +1799,13 @@ with telephone/email links and navigation to its exact Clients record. Owner and
 Finance can open its authorized editor directly. Existing server projections and
 permissions are preserved. Scoped implementation, validation and production
 evidence: [site contact details](docs/evidence/project-invoice-journey/site-contact-details.md).
+
+### Draft invoice numbering and configuration links — 9 October 2026
+
+CORE-10: Draft and approved previews display the expected, explicitly provisional
+number in HTML/PDF without reserving a sequence. Owner can open the exact issuer
+numbering form; Finance/Auditor can inspect the role-safe summary. Draft client
+and issuer links navigate to their configuration and preserve unsaved edits when
+navigation is canceled. Existing issuance and historical financial invariants
+remain. Scoped implementation, validation and rollout evidence:
+[invoice number navigation](docs/evidence/project-invoice-journey/invoice-number-navigation.md).

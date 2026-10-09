@@ -134,6 +134,12 @@ const en = {
   'problem.billing.previewIssuerMismatch':
     'The project issuing authority does not match this billing stream. Review the issuing setup before changing company settings.',
   'invoice.sourceStreamLink': 'Billing stream settings',
+  'invoice.provisionalNumberHelp':
+    'This is the expected number if issued today. It is not reserved and may change when another invoice is issued. The final number is assigned on issuance.',
+  'invoice.numberingNotConfigured':
+    'No approved invoice numbering is effective today for this issuer. The Owner can configure it.',
+  'invoice.numberingOwnerOnly':
+    'Only the Owner can change invoice numbering. You can review its current settings here.',
   'issuerSettings.title': 'Issuer payment and contact settings',
   'issuerSettings.help':
     'These are the actual settings for this invoice issuer and currency, shared by its billing streams. Issued invoices retain their saved details. Legal name and address use the reviewed issuing authority workflow.',
@@ -750,6 +756,12 @@ const esBase: Record<keyof typeof en, string> = {
   'problem.billing.previewIssuerMismatch':
     'La autoridad emisora del proyecto no coincide con este flujo de facturación. Revise la configuración de emisión antes de cambiar los datos de la empresa.',
   'invoice.sourceStreamLink': 'Configuración del flujo de facturación',
+  'invoice.provisionalNumberHelp':
+    'Este es el número previsto si se emite hoy. No está reservado y puede cambiar al emitir otra factura. El número definitivo se asigna al emitir.',
+  'invoice.numberingNotConfigured':
+    'Este emisor no tiene una numeración aprobada vigente hoy. El Owner puede configurarla.',
+  'invoice.numberingOwnerOnly':
+    'Solo el Owner puede cambiar la numeración. Aquí puedes consultar su configuración actual.',
   'issuerSettings.title': 'Configuración de pago y contacto del emisor',
   'issuerSettings.help':
     'Esta es la configuración real del emisor y la moneda, compartida por sus flujos de facturación. Las facturas emitidas conservan sus datos. El nombre y la dirección legal se modifican mediante la autoridad emisora revisada.',
@@ -1365,6 +1377,12 @@ const ptBase: Record<keyof typeof en, string> = {
   'problem.billing.previewIssuerMismatch':
     'A autoridade emissora do projeto não corresponde a este fluxo de faturamento. Revise a configuração de emissão antes de alterar os dados da empresa.',
   'invoice.sourceStreamLink': 'Configurações do fluxo de faturamento',
+  'invoice.provisionalNumberHelp':
+    'Este é o número previsto para emissão hoje. Não está reservado e pode mudar quando outra fatura for emitida. O número definitivo é atribuído na emissão.',
+  'invoice.numberingNotConfigured':
+    'Este emissor não tem numeração aprovada vigente hoje. O Owner pode configurá-la.',
+  'invoice.numberingOwnerOnly':
+    'Somente o Owner pode alterar a numeração. Aqui você pode consultar a configuração atual.',
   'issuerSettings.title': 'Configurações de pagamento e contato do emissor',
   'issuerSettings.help':
     'Estas são as configurações reais do emissor e da moeda, compartilhadas pelos seus fluxos de faturamento. Faturas emitidas mantêm seus dados. Nome e endereço legais seguem o fluxo de autoridade emissora revisada.',

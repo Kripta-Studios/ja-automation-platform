@@ -29,6 +29,7 @@
   } from '$lib/portal/ui/private-document-download';
   import type { ProblemData } from '$lib/problem/contract';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
+  import { centerNavigationTarget } from '$lib/portal/ui/navigation-target';
 
   type Row = Record<string, unknown>;
   type InvoiceRow = Row & {
@@ -191,6 +192,17 @@
     }
   });
   const invoiceId = $derived(String(invoice.id ?? ''));
+  const numberPreview = $derived(
+    invoice.draft_number_preview as {
+      number: string | null;
+      asOf: string;
+      policy: { prefix: string; digits: number; effectiveFrom: string } | null;
+    } | null,
+  );
+  const numberingHref = $derived(
+    `${base}/app/billing?view=setup&setup=numbering&numberingEntity=${encodeURIComponent(String(invoice.issuer_legal_entity_id ?? ''))}&lang=${locale}#billing-numbering-policy`,
+  );
+  let numberingSummary = $state<HTMLDetailsElement>();
   const draftPreviewUrl = $derived(
     `${base}/app/api/invoices/${encodeURIComponent(invoiceId)}/draft-preview?lang=${locale}`,
   );
@@ -257,12 +269,12 @@
   const documentPreview = $derived(
     renderInvoiceDocument(documentSnapshot, {
       editable: canEditDraft,
+      numberingInteractive: hasDraftPreview,
       logoUrl: `${base}/app/logo.png`,
     }),
   );
   let draftEditor = $state<HTMLDetailsElement>();
   let draftEditorForm = $state<HTMLFormElement>();
-  let editExplanation = $state('');
   let detailsSaving = $state(false);
   const companyFields: Array<[string, string, string]> = [
     ['companyDivision', 'Division', 'division'],
@@ -276,24 +288,38 @@
   const financeHref = $derived(
     `${base}/app/finance?view=commercial&project=${encodeURIComponent(String(invoice.project_id ?? ''))}&lang=${locale}`,
   );
+  async function navigateConfiguration(href: string): Promise<void> {
+    try {
+      await goto(href);
+    } catch (caught) {
+      // Staying with an unsaved draft is an expected navigation cancellation.
+      if (caught instanceof Error && caught.message === 'navigation cancelled') return;
+      throw caught;
+    }
+  }
   async function openPreviewField(name: string): Promise<void> {
-    if (!canEditDraft) return;
-    if (name === 'invoiceNumber') {
-      editExplanation = t(
-        'Invoice numbers are assigned when the invoice is issued, using the approved numbering policy.',
-      );
+    if (name === 'invoiceNumber' && hasDraftPreview) {
+      if (String(data.user?.role) === 'owner_admin') await navigateConfiguration(numberingHref);
+      else if (numberingSummary) {
+        numberingSummary.open = true;
+        await tick();
+        centerNavigationTarget(numberingSummary);
+      }
       return;
     }
-    if (name === 'issuingAuthority') {
-      editExplanation = t(
-        'The legal issuer name and address come from the reviewed project issuing authority. Edit that authority to change future drafts.',
+    if (!canEditDraft) return;
+    if (['issuingAuthority', 'companyName', 'companyAddress'].includes(name)) {
+      await navigateConfiguration(
+        `${financeHref}&task=${encodeURIComponent('Project issuing authority')}#project-issuing-authority`,
       );
       return;
     }
     if (name === 'client') {
-      editExplanation = t(
-        'Client billing identity and address come from the project client record.',
-      );
+      const clientId = String(invoice.client_id ?? '');
+      if (clientId)
+        await navigateConfiguration(
+          `${base}/app/projects?view=clients&client=${encodeURIComponent(clientId)}&lang=${locale}#client-directory-client-${encodeURIComponent(clientId)}`,
+        );
       return;
     }
     if (draftEditor) draftEditor.open = true;
@@ -323,7 +349,7 @@
       const source = event.target.closest<HTMLElement>('[data-invoice-source-id][role="link"]');
       if (source && canEditDraft) {
         event.preventDefault();
-        void goto(
+        void navigateConfiguration(
           `${base}/app/${source.dataset.invoiceSourceType === 'expense' ? 'expenses' : 'time'}/${encodeURIComponent(source.dataset.invoiceSourceId ?? '')}?lang=${locale}`,
         );
       }
@@ -1105,6 +1131,39 @@
       </dl>
     </section>
   {/if}
+  {#if hasDraftPreview}
+    <details
+      id="invoice-numbering-summary"
+      class="detail-panel no-print invoice-source-guidance"
+      bind:this={numberingSummary}
+    >
+      <summary>{t('Invoice numbering policy')}</summary>
+      <p>{t('invoice.provisionalNumberHelp')}</p>
+      {#if numberPreview?.policy}
+        <dl>
+          <div>
+            <dt>{t('Invoice number')}</dt>
+            <dd>{numberPreview.number || '—'}</dd>
+          </div>
+          <div>
+            <dt>{t('Prefix')}</dt>
+            <dd>{numberPreview.policy.prefix}</dd>
+          </div>
+          <div>
+            <dt>{t('Digits')}</dt>
+            <dd>{numberPreview.policy.digits}</dd>
+          </div>
+          <div>
+            <dt>{t('Effective from')}</dt>
+            <dd>{numberPreview.policy.effectiveFrom}</dd>
+          </div>
+        </dl>
+      {:else}<p>{t('invoice.numberingNotConfigured')}</p>{/if}
+      {#if String(data.user?.role) === 'owner_admin'}
+        <a href={numberingHref}>{t('Invoice numbering policy')}</a>
+      {:else}<p>{t('invoice.numberingOwnerOnly')}</p>{/if}
+    </details>
+  {/if}
   {#if invoiceState === 'draft' && canEditDraft}
     {#key `${invoiceId}:${invoice.version}:${draftDetailsForm?.correlationId ?? ''}`}
       <details
@@ -1358,7 +1417,6 @@
           'Select underlined preview fields to edit. Calculated values follow their approved source records.',
         )}
       </p>
-      {#if editExplanation}<p role="status">{editExplanation}</p>{/if}
       <div class="invoice-source-links">
         <a
           href={`${base}/app/billing?view=streams&project=${encodeURIComponent(String(invoice.project_id ?? ''))}&focus=${encodeURIComponent(String(invoice.billing_rule_id ?? ''))}&lang=${locale}#billing-stream-${encodeURIComponent(String(invoice.billing_rule_id ?? ''))}`}
@@ -1368,10 +1426,13 @@
           href={`${base}/app/billing?view=setup&issuerSettings=${encodeURIComponent(String(invoice.issuer_legal_entity_id ?? ''))}&lang=${locale}#issuer-document-settings`}
           >{t('issuerSettings.title')}</a
         >
-        <a href={`${base}/app/billing?view=setup&lang=${locale}`}
+        <a
+          href={String(data.user?.role) === 'owner_admin'
+            ? numberingHref
+            : '#invoice-numbering-summary'}
           >{String(data.user?.role) === 'owner_admin'
             ? t('Billing configuration and numbering')
-            : t('Billing configuration')}</a
+            : t('Invoice numbering policy')}</a
         >
         <a href={projectHref}>{t('Project and client')}</a>
         <a href={`${financeHref}#project-issuing-authority`}>{t('Issuing authority')}</a>

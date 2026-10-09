@@ -47,12 +47,15 @@ export function draftInvoiceTemplateSnapshot(
   const identifiers = [invoice.canonical_tax_identifier, invoice.canonical_registration_identifier]
     .filter(Boolean)
     .join(' · ');
+  const numberPreview = invoice.draft_number_preview as { number?: string | null } | null;
+  const provisionalNumber = numberPreview?.number;
 
   return {
     state: invoice.state,
     sourceVersion: invoice.source_version ?? invoice.version,
-    number: 'DRAFT PREVIEW',
-    invoiceNumber: 'DRAFT PREVIEW',
+    number: provisionalNumber || 'DRAFT PREVIEW',
+    invoiceNumber: provisionalNumber || 'DRAFT PREVIEW',
+    numberProvisional: Boolean(provisionalNumber),
     locale,
     template: String(invoice.invoice_template_id ?? 'default'),
     legalEntity: {

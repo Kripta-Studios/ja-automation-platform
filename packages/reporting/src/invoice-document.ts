@@ -26,6 +26,7 @@ const labels = {
     'Payment terms',
     'days',
     'Edit',
+    'Expected number · not reserved; assigned when issued',
   ],
   es: [
     'FACTURA BORRADOR',
@@ -40,6 +41,7 @@ const labels = {
     'Condiciones de pago',
     'días',
     'Editar',
+    'Número previsto · no reservado; se asigna al emitir',
   ],
   pt: [
     'FATURA RASCUNHO',
@@ -54,13 +56,14 @@ const labels = {
     'Condições de pagamento',
     'dias',
     'Editar',
+    'Número previsto · não reservado; atribuído na emissão',
   ],
 } as const;
 
 /** One browser-safe, escaped presentation contract for the screen and downloaded invoice. */
 export function renderInvoiceDocument(
   snapshot: InvoiceTemplateSnapshot,
-  options: { editable?: boolean; logoUrl?: string } = {},
+  options: { editable?: boolean; numberingInteractive?: boolean; logoUrl?: string } = {},
 ) {
   const rendered = renderInvoiceTemplate(snapshot);
   const l = labels[rendered.locale];
@@ -72,6 +75,10 @@ export function renderInvoiceDocument(
     ['draft', 'approved', 'superseded'].includes(text(snapshot.state).toLowerCase()) ||
     /^(DRAFT|PREVIEW)/iu.test(text(snapshot.number));
   const number = text(snapshot.number ?? snapshot.invoiceNumber) || l[2];
+  const numberNotice =
+    draft && snapshot.numberProvisional === true
+      ? `<small class="invoice-number-notice">${escape(l[12])}</small>`
+      : '';
   const fieldLabels: Record<string, string> = {
     purchaseNo: l[4],
     invoiceNumber: l[5],
@@ -80,7 +87,7 @@ export function renderInvoiceDocument(
     paymentTermsDays: l[9],
   };
   const field = (name: string, value: unknown) =>
-    options.editable
+    options.editable || (name === 'invoiceNumber' && options.numberingInteractive)
       ? `<button type="button" class="invoice-edit-value" data-invoice-edit="${escape(name)}" aria-label="${escape(l[11])}: ${escape(fieldLabels[name] ?? name)}">${escape(text(value) || '—')}</button>`
       : escape(text(value) || '—');
   const issuerName = text(issuer.legalName ?? issuer.legal_name ?? issuer.name) || l[8];
@@ -107,7 +114,7 @@ export function renderInvoiceDocument(
     .join('');
   const metadata = [
     [l[4], field('purchaseNo', snapshot.purchaseNo ?? snapshot.purchase_no ?? project.poNumber)],
-    [l[5], field('invoiceNumber', number)],
+    [l[5], field('invoiceNumber', number) + numberNotice],
     [
       l[6],
       field(
@@ -135,7 +142,7 @@ export function renderInvoiceDocument(
         'data-invoice-source-type="$1" data-invoice-source-id="$2" role="link" tabindex="0"',
       )
     : rendered.lineBody;
-  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(draft ? l[0] : l[1])}</span><strong>${escape(number)}</strong><small>${escape(text(snapshot.state))}</small></div></header><section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${partyLines}</div></section><section class="invoice-meta">${metadata}</section>${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
+  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(draft ? l[0] : l[1])}</span><strong>${field('invoiceNumber', number)}</strong>${numberNotice}<small>${escape(text(snapshot.state))}</small></div></header><section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${partyLines}</div></section><section class="invoice-meta">${metadata}</section>${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
   return {
     bodyHtml,
     css: invoiceDocumentCss,
@@ -165,6 +172,7 @@ export const invoiceDocumentCss = `${documentFontCss}
 .invoice-canonical#ja-invoice-document .company-details strong{font-size:14px;color:#2a2926}
 .invoice-canonical#ja-invoice-document .invoice-identity{display:flex;flex-direction:column;gap:8px;text-align:right;min-width:0}
 .invoice-canonical#ja-invoice-document .invoice-identity>strong{font-size:24px;line-height:1.2}
+.invoice-canonical#ja-invoice-document .invoice-number-notice{display:block;font:400 11px 'Geist',Arial,sans-serif;max-width:24em;color:#575650}
 .invoice-canonical#ja-invoice-document .invoice-identity>small{display:block;margin:0;font:400 12px 'Geist',Arial,sans-serif}
 .invoice-canonical#ja-invoice-document .invoice-identity>span,.invoice-canonical#ja-invoice-document .invoice-meta span,.invoice-canonical#ja-invoice-document .invoice-parties span{color:#67675f;font:700 10px 'Geist Mono',Consolas,monospace;letter-spacing:.06em}
 .invoice-canonical#ja-invoice-document .invoice-parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:28px 0}
@@ -196,6 +204,7 @@ export const invoiceDocumentCss = `${documentFontCss}
 .invoice-canonical#ja-invoice-document .grand-total{margin-top:8px;padding-top:12px;border-top:2px solid #373632;font-size:17px}
 .invoice-canonical#ja-invoice-document footer{position:static;inset:auto;background:none;width:auto;height:auto;box-shadow:none;display:flex;justify-content:space-between;gap:20px;margin-top:40px;padding-top:12px;border-top:1px solid #e8e8e6;font:700 9px 'Geist Mono',Consolas,monospace}
 .invoice-canonical#ja-invoice-document .invoice-edit-value{border:0;border-radius:3px;background:transparent;padding:0;color:inherit;font:inherit;box-shadow:none;min-height:0;min-width:0;height:auto;display:inline;appearance:none;text-align:inherit;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:4px;cursor:pointer;max-width:100%;overflow-wrap:anywhere}
+.invoice-canonical#ja-invoice-document .invoice-edit-value[data-invoice-edit="invoiceNumber"]{display:inline-flex;align-items:center;min-height:44px;min-width:44px}
 .invoice-canonical#ja-invoice-document [data-invoice-source-id][role="link"]{cursor:pointer}
 .invoice-canonical#ja-invoice-document [data-invoice-source-id][role="link"]:hover{background:#f4f1e8}
 .invoice-canonical#ja-invoice-document [data-invoice-source-id][role="link"]:focus-visible{outline:2px solid #8a5a18;outline-offset:2px}

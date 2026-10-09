@@ -1930,6 +1930,13 @@
       });
   });
   const canManageIssuerAndNumbering = $derived(data.user.role === 'owner_admin');
+  const numberingEntityId = $derived(
+    (data.legalEntities ?? []).some(
+      (entity) => rowValue(entity, 'id') === $page.url.searchParams.get('numberingEntity'),
+    )
+      ? ($page.url.searchParams.get('numberingEntity') ?? '')
+      : '',
+  );
   const canVoidInvoice = $derived(data.user.role === 'owner_admin');
 
   useViewPreferences({
@@ -4873,6 +4880,8 @@
               />
             {/if}
             <form
+              id="billing-numbering-policy"
+              tabindex="-1"
               method="POST"
               action="?/createInvoiceNumberPolicy"
               class="billing-section__config-form"
@@ -4882,7 +4891,7 @@
               <h4>{translate('Invoice numbering policy')}</h4>
               <label>
                 <span>{translate('Legal entity')}</span>
-                <select name="legalEntityId" required>
+                <select name="legalEntityId" required value={numberingEntityId}>
                   <option value="">{translate('Select entity')}</option>
                   {#each data.legalEntities ?? [] as entity}
                     <option value={rowValue(entity, 'id')}

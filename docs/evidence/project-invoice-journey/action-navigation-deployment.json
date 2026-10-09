@@ -1,0 +1,55 @@
+{
+  "runtime_commit": "be0258c00d7116fc60f0018d21524c1510a02e83",
+  "runtime_tag": "workflow-be0258c00d7116fc60f0",
+  "previous_release": "/opt/jaautomation/releases/ja-automation-workflow-f9b05a0d553d2dae0872",
+  "started_at": "2026-10-09T08:34:40.456378+00:00",
+  "backup": {
+    "backupPath": "/var/backups/jaautomation/2026-10-09T003001020Z-a6af4b91-b73f-48b3-a37b-afa346e3163f",
+    "verifiedAt": "2026-10-09T08:22:56.372Z",
+    "createdAt": "2026-10-09T00:30:05.253Z",
+    "databaseSha256": "05cb58ec35f6d114dff7faed91fef0652690e7578b76c9043b9274af0387e2f3",
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "documentCount": 34,
+    "history": {
+      "snapshotCount": 3,
+      "observedDays": 3,
+      "requiredDays": 3,
+      "coverageComplete": true,
+      "missingDays": [],
+      "scope": "Manifest dates only; integrity verified for latest snapshot"
+    }
+  },
+  "migrations_unchanged": true,
+  "business_mutations_performed": false,
+  "browser_cases_passed": 5,
+  "domain_cases_passed": 27,
+  "database_integrity": [["ok"]],
+  "foreign_key_violations": 0,
+  "migration_version": 76,
+  "portal_health": "healthy",
+  "jobs_running": true,
+  "completed_at": "2026-10-09T08:35:19.826141+00:00",
+  "active_timers": [
+    "jaautomation-zip-deploy.timer",
+    "jaautomation-jobs.timer",
+    "jaautomation-backup.timer",
+    "jaautomation-backup-prune.timer",
+    "jaautomation-runtime-cleanup.timer"
+  ],
+  "public_smoke": {
+    "navigation_asset": {
+      "http": 200,
+      "marker_present": true
+    },
+    "composer_asset": {
+      "http": 200,
+      "marker_present": true
+    },
+    "public_login_http": 200,
+    "anonymous_composer_http": 401
+  },
+  "portal_build_handler_sha256": "fb867ae3c2f98178b46fcffb123fd4963437c6354390f2d9c32d59fea112770f",
+  "schema_change": "none; existing migration 76 retained",
+  "rollback_strategy": "Previous source/image retained; code rollback only, production database/files volume preserved"
+}

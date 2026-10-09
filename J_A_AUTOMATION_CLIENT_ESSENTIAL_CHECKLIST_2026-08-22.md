@@ -1784,3 +1784,10 @@ issued protection, with one browser worker and disposable fixture mutations.
 Portal/database TypeScript, scoped ESLint/format and independent final review pass.
 Evidence: `docs/evidence/project-invoice-journey/action-navigation-and-linked-drafts.md`;
 live deployment is recorded separately after rollout.
+
+Follow-up deployed: runtime `be0258c00d7116fc60f0018d21524c1510a02e83`, portal healthy,
+jobs running, migration 76 retained without SQL changes, integrity `ok`, zero
+foreign-key violations and original five timers active. Retained daily backup
+and private-document coverage verified; public login/assets return 200 and
+anonymous composer returns 401. Final artifact browser rerun: 5/5 pass.
+Receipt: `docs/evidence/project-invoice-journey/action-navigation-deployment.json`.

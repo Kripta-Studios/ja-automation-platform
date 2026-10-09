@@ -3,6 +3,7 @@
   import TimeIntervalFields from '$lib/portal/ui/TimeIntervalFields.svelte';
   import { durationMinutes, localToday } from '$lib/portal/ui/time-entry-clock';
   import { supplierRosterForDate } from '$lib/portal/supplier-roster';
+  import { centerNavigationTarget } from '$lib/portal/ui/navigation-target';
   import {
     filterSuppliersByProjectRelations,
     filterTechniciansByProjectRelations,
@@ -23,7 +24,7 @@
   import { enhance } from '$app/forms';
   import { afterNavigate, replaceState } from '$app/navigation';
   import { page } from '$app/stores';
-  import { tick, untrack } from 'svelte';
+  import { onDestroy, tick, untrack } from 'svelte';
   let { data, form } = $props();
   const c = $derived(supplierCopy[data.locale as keyof typeof supplierCopy]);
   const periodFromError = $derived(data.periodProblem?.fieldErrors.from?.[0] ?? '');
@@ -208,14 +209,47 @@
     clearSubmissionPosition();
     if (form.operation === 'createTimeBatch') workspaceAction = 'report';
   });
+  const workspaceTargetIds: Record<WorkspaceAction, string> = {
+    directory: 'supplier-directory',
+    setup: 'supplier-setup',
+    authorize: 'supplier-authorize',
+    personnel: 'supplier-personnel',
+    time: 'supplier-time-batch',
+    report: 'supplier-report',
+  };
+  let workspaceNavigationGeneration = 0;
+  onDestroy(() => {
+    workspaceNavigationGeneration += 1;
+  });
   async function selectWorkspaceAction(action: WorkspaceAction): Promise<void> {
+    if (!data.owner && ['directory', 'setup', 'authorize'].includes(action)) return;
+    const generation = ++workspaceNavigationGeneration;
     workspaceAction = action;
     const url = new URL(location.href);
     url.searchParams.set('workspaceAction', action);
-    url.hash = 'supplier-workspace';
+    url.hash = workspaceTargetIds[action];
     replaceState(url, {});
     await tick();
-    document.getElementById('supplier-workspace')?.scrollIntoView({ block: 'start' });
+    if (
+      generation !== workspaceNavigationGeneration ||
+      workspaceAction !== action ||
+      location.href !== url.href ||
+      (!data.owner && ['directory', 'setup', 'authorize'].includes(action)) ||
+      document.querySelector(
+        'dialog[open], [aria-modal="true"]:not([aria-hidden="true"]):not([inert])',
+      )
+    )
+      return;
+    const target = document.getElementById(workspaceTargetIds[action]);
+    if (!target?.isConnected || target.getClientRects().length === 0) return;
+    const active = document.activeElement;
+    if (
+      active instanceof HTMLElement &&
+      target.contains(active) &&
+      active.matches('[aria-invalid="true"], [data-validation-summary], [role="alert"]')
+    )
+      return;
+    centerNavigationTarget(target);
   }
   type UpdateOperation = 'updateSupplier' | 'updateTechnician';
   type StatusOperation = 'setSupplierStatus' | 'setTechnicianStatus';
@@ -479,7 +513,7 @@
   const actionUrl = (operation: string) =>
     `?/${operation}&${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale, workspaceAction }).toString()}#supplier-workspace`;
   const workspaceHref = (action: WorkspaceAction) =>
-    `?${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale, workspaceAction: action }).toString()}#supplier-workspace`;
+    `?${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale, workspaceAction: action }).toString()}#${workspaceTargetIds[action]}`;
   const reportEntryHref = (entry: { projectId: string; workDate: string }) =>
     `?${new URLSearchParams({ projectId: entry.projectId, from: entry.workDate, to: entry.workDate, lang: data.locale, workspaceAction: 'report' }).toString()}#supplier-report`;
   const movedSubmission = $derived(
@@ -1230,6 +1264,7 @@
   {#if data.owner && workspaceAction === 'authorize'}
     <SectionCard title={c.grant}>
       <form
+        id="supplier-authorize"
         method="POST"
         action={actionUrl('grant')}
         data-supplier-operation="grant"
@@ -1383,6 +1418,7 @@
       {/if}
       <p>{c.batchHelp}</p>
       <form
+        id="supplier-time-batch"
         method="POST"
         action={actionUrl('createTimeBatch')}
         data-supplier-operation="createTimeBatch"

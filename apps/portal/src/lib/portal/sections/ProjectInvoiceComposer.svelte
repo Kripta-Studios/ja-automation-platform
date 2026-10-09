@@ -969,7 +969,7 @@
             >{/if}
           {#if !['draft', 'approved', 'loading'].includes(invoice.state)}<a
               class="secondary-button"
-              href={`${base}/app/billing?project=${encodeURIComponent(currentProjectId)}&invoice=${encodeURIComponent(invoice.id)}&lang=${locale}`}
+              href={`${base}/app/billing?project=${encodeURIComponent(currentProjectId)}&invoice=${encodeURIComponent(invoice.id)}&lang=${locale}#invoice-collections`}
               >{text('payments')}</a
             >{/if}
           <p>{text('issueHelp')}</p>

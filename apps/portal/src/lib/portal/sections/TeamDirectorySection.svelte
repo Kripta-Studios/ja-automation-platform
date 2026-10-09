@@ -628,7 +628,7 @@
   const visibleWorkers = $derived(
     activeWorkers.filter(
       (worker) =>
-        matchesWorker(worker) &&
+        (matchesWorker(worker) || workerId(worker) === $page.url.searchParams.get('worker')) &&
         (!$page.url.searchParams.get('worker') ||
           workerId(worker) === $page.url.searchParams.get('worker')),
     ),

@@ -10,7 +10,8 @@
     formValidation,
     reportFormFieldErrors,
   } from '../ui';
-  import { tick } from 'svelte';
+  import { onMount, tick } from 'svelte';
+  import { pendingWorkspaceTargetIds } from '../ui/workspace-navigation';
   import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
   import {
     managementProblem,
@@ -58,6 +59,7 @@
   let search = $state('');
   let addingForClientId = $state<string | null>(null);
   let editingContactId = $state<string | null>(null);
+  let restoredClientId = $state('');
   const normalizedSearch = $derived(search.trim().toLowerCase());
   const contactProblem = $derived(managementProblem(form));
   const problemLocale = $derived(normalizePortalLocale(calendarLocale));
@@ -68,6 +70,22 @@
     const contactId = contactProblem.values?.contactId;
     const contact = contacts.find((row) => value(row, 'id') === contactId);
     return contact ? value(contact, 'client_id', 'clientId') : '';
+  });
+  const focusedClientId = $derived.by(() => {
+    const requestedClient = clientForTarget($page.url.searchParams.get('client') ?? '');
+    const requestedFocus = clientForTarget($page.url.searchParams.get('focus') ?? '');
+    let requestedHash = '';
+    try {
+      requestedHash = clientForTarget(decodeURIComponent($page.url.hash.slice(1)));
+    } catch {
+      // A malformed fragment cannot broaden the authorized client projection.
+    }
+    return failedClientId || requestedHash || requestedClient || requestedFocus || restoredClientId;
+  });
+  onMount(() => {
+    // Shared restoration keeps identifiers only. Resolve them against the
+    // authorized projection before asking the pager to reveal the record.
+    restoredClientId = pendingWorkspaceTargetIds().map(clientForTarget).find(Boolean) ?? '';
   });
   const contactRemedies = $derived({
     correct_fields: { label: portalText(problemLocale, 'problem.remedy.correctField') },
@@ -132,6 +150,37 @@
 
   function id(row: PortalRow): string {
     return value(row, 'id', 'client_id');
+  }
+
+  function clientForTarget(target: string): string {
+    const client = clients.find((row) => {
+      const clientId = id(row);
+      return (
+        target === clientId ||
+        [
+          `client-directory-client-${clientId}`,
+          `client-contacts-${clientId}`,
+          `client-contacts-section-${clientId}`,
+          `client-projects-${clientId}`,
+          `client-projects-section-${clientId}`,
+          `client-contact-new-${clientId}`,
+        ].includes(target)
+      );
+    });
+    if (client) return id(client);
+    const contact = contacts.find((row) => {
+      const contactId = value(row, 'id');
+      return (
+        target === contactId ||
+        [
+          `client-contact-${contactId}`,
+          `client-contact-edit-${contactId}`,
+          `client-contact-delete-${contactId}`,
+        ].includes(target)
+      );
+    });
+    const clientId = contact ? value(contact, 'client_id', 'clientId') : '';
+    return clients.some((row) => id(row) === clientId) ? clientId : '';
   }
 
   function clientName(row: PortalRow): string {
@@ -212,7 +261,7 @@
   }
 
   const visibleClients = $derived(
-    (clients ?? []).filter((client) => id(client) === failedClientId || matches(client)),
+    (clients ?? []).filter((client) => id(client) === focusedClientId || matches(client)),
   );
   let clientPage = $state<typeof visibleClients>([]);
 
@@ -228,7 +277,13 @@
   });
 </script>
 
-<div class="client-directory" data-client-directory>
+<div
+  id="client-directory"
+  class="client-directory"
+  data-client-directory
+  data-workspace-target="client-directory"
+  tabindex="-1"
+>
   <header class="client-directory__header">
     <div>
       <p class="client-directory__eyebrow">{translate('AUTHORIZED DIRECTORY')}</p>
@@ -268,7 +323,7 @@
     <RecordBrowser
       rows={visibleClients}
       bind:visible={clientPage}
-      focusId={failedClientId}
+      focusId={focusedClientId}
       {translate}
       label="ClientDirectory"
     />
@@ -280,7 +335,10 @@
       <SectionCard
         title={clientName(client)}
         class="client-directory__card"
+        id={`client-directory-client-${clientId}`}
         data-client-id={clientId || undefined}
+        data-workspace-target={`client-directory-client-${clientId}`}
+        tabindex="-1"
       >
         <div class="client-directory__identity">
           <div>
@@ -334,7 +392,12 @@
         </dl>
 
         <div class="client-directory__groups">
-          <section aria-labelledby={`client-contacts-${clientId}`}>
+          <section
+            id={`client-contacts-section-${clientId}`}
+            aria-labelledby={`client-contacts-${clientId}`}
+            data-workspace-target={`client-contacts-section-${clientId}`}
+            tabindex="-1"
+          >
             <div class="client-directory__group-heading">
               <h3 id={`client-contacts-${clientId}`}>{translate('Contacts')}</h3>
               {#if canManageContacts}
@@ -343,6 +406,7 @@
                   class="client-directory__action primary-button"
                   aria-expanded={addingForClientId === clientId}
                   aria-controls={`client-contact-new-${clientId}`}
+                  data-workspace-open={`client-contact-new-${clientId}`}
                   onclick={() =>
                     (addingForClientId = addingForClientId === clientId ? null : clientId)}
                   >{translate('Add contact')}</button
@@ -352,6 +416,8 @@
             {#if canManageContacts && addingForClientId === clientId}
               <form
                 id={`client-contact-new-${clientId}`}
+                data-workspace-target={`client-contact-new-${clientId}`}
+                tabindex="-1"
                 method="POST"
                 action="?view=clients&/createClientContact"
                 class="client-directory__contact-form"
@@ -503,7 +569,12 @@
             {/if}
             <div class="client-directory__contact-list">
               {#each relatedContacts as contact}
-                <article class="client-directory__contact">
+                <article
+                  id={`client-contact-${value(contact, 'id')}`}
+                  class="client-directory__contact"
+                  data-workspace-target={`client-contact-${value(contact, 'id')}`}
+                  tabindex="-1"
+                >
                   <strong>{value(contact, 'name') || translate('Unnamed contact')}</strong>
                   <span
                     >{value(contact, 'role') ||
@@ -533,6 +604,7 @@
                         class="client-directory__action primary-button"
                         aria-expanded={editingContactId === value(contact, 'id')}
                         aria-controls={`client-contact-edit-${value(contact, 'id')}`}
+                        data-workspace-open={`client-contact-edit-${value(contact, 'id')}`}
                         onclick={() =>
                           (editingContactId =
                             editingContactId === value(contact, 'id')
@@ -540,6 +612,9 @@
                               : value(contact, 'id'))}>{translate('Edit contact')}</button
                       >
                       <form
+                        id={`client-contact-delete-${value(contact, 'id')}`}
+                        data-workspace-target={`client-contact-delete-${value(contact, 'id')}`}
+                        tabindex="-1"
                         method="POST"
                         action="?view=clients&/deleteClientContact"
                         onsubmit={(event) => {
@@ -557,6 +632,8 @@
                     {#if editingContactId === value(contact, 'id')}
                       <form
                         id={`client-contact-edit-${value(contact, 'id')}`}
+                        data-workspace-target={`client-contact-edit-${value(contact, 'id')}`}
+                        tabindex="-1"
                         method="POST"
                         action="?view=clients&/updateClientContact"
                         class="client-directory__contact-form"
@@ -727,7 +804,12 @@
             </div>
           </section>
 
-          <section aria-labelledby={`client-projects-${clientId}`}>
+          <section
+            id={`client-projects-section-${clientId}`}
+            aria-labelledby={`client-projects-${clientId}`}
+            data-workspace-target={`client-projects-section-${clientId}`}
+            tabindex="-1"
+          >
             <h3 id={`client-projects-${clientId}`}>{translate('Projects and sites')}</h3>
             <div class="client-directory__project-list">
               {#each relatedProjects as project}

@@ -220,6 +220,16 @@
   const overview = $derived(data.overview as ProjectOverview);
   const projectDocuments = $derived(data.documents as Row[]);
   const project = $derived(overview.project);
+  const siteContact = $derived(
+    (data.siteContacts ?? []).find(
+      (contact) => String(contact.id) === String(project.onsite_contact_id),
+    ) as Row | undefined,
+  );
+  const siteContactDirectoryHref = $derived(
+    siteContact
+      ? `${base}/app/projects?view=clients&client=${encodeURIComponent(String(siteContact.client_id))}&lang=${locale}`
+      : '',
+  );
   const role = $derived(String(data.user?.role ?? ''));
   const isOwner = $derived(role === 'owner_admin');
   useAssistantPaneRequest({
@@ -1329,13 +1339,52 @@
               </div>
               <div>
                 <dt>{t('On-site contact (optional)')}</dt>
-                <dd>
-                  {display(
-                    (data.siteContacts ?? []).find(
-                      (contact) => contact.id === project.onsite_contact_id,
-                    )?.name,
-                    t('Not configured'),
-                  )}
+                <dd data-project-site-contact>
+                  {#if siteContact}
+                    <div class="project-contact-details">
+                      <a
+                        href={`${siteContactDirectoryHref}#client-contact-${encodeURIComponent(String(siteContact.id))}`}
+                        >{display(siteContact.name)}</a
+                      >
+                      {#each [['role', 'Role'], ['company', 'Company'], ['location', 'Location']] as [field, label]}
+                        {#if display(siteContact[field], '')}
+                          <p><span>{t(label)}:</span> {display(siteContact[field])}</p>
+                        {/if}
+                      {/each}
+                      {#if display(siteContact.phone, '')}
+                        <p>
+                          <span>{t('Phone')}:</span>
+                          <a href={`tel:${display(siteContact.phone, '')}`}
+                            >{display(siteContact.phone)}</a
+                          >
+                        </p>
+                      {/if}
+                      {#if display(siteContact.email, '')}
+                        <p>
+                          <span>{t('Email')}:</span>
+                          <a href={`mailto:${display(siteContact.email, '')}`}
+                            >{display(siteContact.email)}</a
+                          >
+                        </p>
+                      {/if}
+                      {#if Number(siteContact.is_primary) === 1}<p>{t('Primary contact')}</p>{/if}
+                      {#if Number(siteContact.is_billing_contact) === 1}<p>
+                          {t('Billing contact')}
+                        </p>{/if}
+                      {#if display(siteContact.notes, '')}
+                        <p class="project-contact-notes">
+                          <span>{t('Notes')}:</span>
+                          {display(siteContact.notes)}
+                        </p>
+                      {/if}
+                      {#if isOwner || isFinance}
+                        <a
+                          href={`${siteContactDirectoryHref}#client-contact-edit-${encodeURIComponent(String(siteContact.id))}`}
+                          >{t('Edit contact')}</a
+                        >
+                      {/if}
+                    </div>
+                  {:else}{t('Not configured')}{/if}
                 </dd>
               </div>
               <div>
@@ -3053,10 +3102,33 @@
     overflow-wrap: anywhere;
     font-weight: 700;
   }
+  .project-facts dd a,
   .finance-facts dd a {
     color: inherit;
     text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
     text-underline-offset: 0.18em;
+  }
+  .project-contact-details {
+    display: grid;
+    gap: 0.4rem;
+  }
+  .project-contact-details p {
+    margin: 0;
+    font-weight: 500;
+  }
+  .project-contact-details > a {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+  .project-contact-details a {
+    text-decoration-line: underline;
+  }
+  .project-contact-details p span {
+    color: var(--portal-muted, #526174);
+  }
+  .project-contact-notes {
+    white-space: pre-wrap;
   }
   .project-description {
     margin: 1rem 0 0;

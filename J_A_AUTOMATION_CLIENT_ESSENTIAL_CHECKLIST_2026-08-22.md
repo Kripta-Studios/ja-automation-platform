@@ -1791,3 +1791,11 @@ foreign-key violations and original five timers active. Retained daily backup
 and private-document coverage verified; public login/assets return 200 and
 anonymous composer returns 401. Final artifact browser rerun: 5/5 pass.
 Receipt: `docs/evidence/project-invoice-journey/action-navigation-deployment.json`.
+
+### Project on-site contact details — 9 October 2026
+
+CORE-03: Project Overview displays the selected contact's existing optional details,
+with telephone/email links and navigation to its exact Clients record. Owner and
+Finance can open its authorized editor directly. Existing server projections and
+permissions are preserved. Scoped implementation, validation and production
+evidence: [site contact details](docs/evidence/project-invoice-journey/site-contact-details.md).

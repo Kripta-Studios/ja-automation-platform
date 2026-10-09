@@ -1,0 +1,51 @@
+{
+  "runtime_commit": "f9b05a0d553d2dae08726a4e4fa8a46f4faa9534",
+  "runtime_tag": "workflow-f9b05a0d553d2dae0872",
+  "completed_at": "2026-10-09T00:32:40Z",
+  "database_integrity": {
+    "preserved_original_tables": 182,
+    "changed_original_values": [],
+    "integrity": [["ok"]],
+    "foreign_key_violations": 0,
+    "migration_version": 76,
+    "historical_selected_invoices": 0,
+    "new_composition_requests": 0
+  },
+  "private_files": {
+    "count": 34,
+    "manifest_sha256": "1d0e112ee61c9835245d010a58c01aac0deb55ab0d9023c67aa0e28f4e984153"
+  },
+  "retained_daily_backup": {
+    "backupPath": "/var/backups/jaautomation/2026-10-09T003001020Z-a6af4b91-b73f-48b3-a37b-afa346e3163f",
+    "verifiedAt": "2026-10-09T00:32:06.878Z",
+    "createdAt": "2026-10-09T00:30:05.253Z",
+    "databaseSha256": "05cb58ec35f6d114dff7faed91fef0652690e7578b76c9043b9274af0387e2f3",
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "documentCount": 34,
+    "history": {
+      "snapshotCount": 3,
+      "observedDays": 3,
+      "requiredDays": 3,
+      "coverageComplete": true,
+      "missingDays": [],
+      "scope": "Manifest dates only; integrity verified for latest snapshot"
+    }
+  },
+  "rollback_strategy": "Verified exact quiesced snapshot outside daily retention; removed after successful cutover; no post-worker DB rollback",
+  "exact_rollback_snapshot_removed": true,
+  "portal_health": "healthy",
+  "jobs_running": true,
+  "all_original_timers_active": true,
+  "public_login_smoke": {
+    "viewports": [360, 1440],
+    "http": 200,
+    "unexpected_posts": 0,
+    "javascript_errors": 0,
+    "localized_missing_password_recovery": "pass"
+  },
+  "anonymous_composer": {
+    "http": 401,
+    "financial_sources_exposed": false
+  }
+}

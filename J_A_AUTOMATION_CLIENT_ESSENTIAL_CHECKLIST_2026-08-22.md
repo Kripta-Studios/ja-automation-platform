@@ -1834,3 +1834,10 @@ USD partial-selection drafts. The final disclosure build passes a real SPA
 late-readiness race with both document markers preserved, no stale popup and no
 financial writes. Independent navigation/late-response/disclosure reviews clear;
 28 changed TypeScript/Svelte files pass ESLint/format checks.
+
+Scoped live deployment: runtime `f9b05a0d553d2dae08726a4e4fa8a46f4faa9534`, migration 76, all 182
+original table values and 34 private files preserved during quiescent validation;
+portal healthy, jobs running, original five timers active, retained daily backup
+integrity/three-day coverage verified. Public login/recovery at 360/1440 passes
+without writes/JavaScript errors; anonymous composer returns 401 with no financial sources.
+Production receipt: `docs/evidence/project-invoice-journey/production-deployment.json`.

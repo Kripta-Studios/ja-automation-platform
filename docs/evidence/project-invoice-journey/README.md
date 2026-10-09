@@ -74,3 +74,14 @@ through three steps, no stale popup or financial writes after browser Back;
 live deployment evidence is recorded on completion. Rollout requires an exact quiesced temporary
 rollback snapshot in addition to the verified retained daily backup. It must
 preserve every original database value and private file before reopening writers.
+
+## Live deployment
+
+Runtime commit `f9b05a0d553d2dae08726a4e4fa8a46f4faa9534`, tag `workflow-f9b05a0d553d2dae0872`, deployed
+at 2026-10-09T00:32:40Z. Live migration 76 preserves values in all 182 original tables
+and all 34 private files before reopening writers. SQLite integrity/FKs pass;
+portal healthy, jobs running and all five original timers active. Existingdaily
+three-day backups remain unchanged; the exact temporary cutover snapshot was
+verified separately and removed after success. Public 360/1440 login/recovery
+smoke passes without POSTs or JavaScript errors; anonymous composer access
+returns401 and exposes no financial sources. See `production-deployment.json`.

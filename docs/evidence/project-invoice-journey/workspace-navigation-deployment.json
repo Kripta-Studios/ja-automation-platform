@@ -1,0 +1,62 @@
+{
+  "runtime_commit": "7048c449ac708e6b5c52ce4a3051b52a7f0d6920",
+  "runtime_tag": "workflow-7048c449ac708e6b5c52",
+  "previous_release": "/opt/jaautomation/releases/ja-automation-workflow-be0258c00d7116fc60f0",
+  "started_at": "2026-10-09T10:36:43.630194+00:00",
+  "backup": {
+    "backupPath": "/var/backups/jaautomation/2026-10-09T003001020Z-a6af4b91-b73f-48b3-a37b-afa346e3163f",
+    "verifiedAt": "2026-10-09T09:36:31.285Z",
+    "createdAt": "2026-10-09T00:30:05.253Z",
+    "databaseSha256": "05cb58ec35f6d114dff7faed91fef0652690e7578b76c9043b9274af0387e2f3",
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "documentCount": 34,
+    "history": {
+      "snapshotCount": 3,
+      "observedDays": 3,
+      "requiredDays": 3,
+      "coverageComplete": true,
+      "missingDays": [],
+      "scope": "Manifest dates only; integrity verified for latest snapshot"
+    }
+  },
+  "migrations_unchanged": true,
+  "business_mutations_performed": false,
+  "browser_cases_passed": 41,
+  "domain_cases_passed": 42,
+  "database_integrity": [["ok"]],
+  "foreign_key_violations": 0,
+  "migration_version": 76,
+  "portal_health": "healthy",
+  "jobs_running": true,
+  "completed_at": "2026-10-09T10:37:19.895152+00:00",
+  "public_smoke": {
+    "navigation_asset": {
+      "path": "/j-aautomation/_app/immutable/chunks/Hyq0WHr1.js",
+      "http": 200,
+      "sha256": "6400453fea712b357f491f02df1544a24458da16b2beead86b0d0b080f13e09d",
+      "matches_final_build": true,
+      "marker_present": true
+    },
+    "public_login_http": 200,
+    "anonymous_composer_http": 401
+  },
+  "active_timers": [
+    "jaautomation-zip-deploy.timer",
+    "jaautomation-jobs.timer",
+    "jaautomation-backup.timer",
+    "jaautomation-backup-prune.timer",
+    "jaautomation-runtime-cleanup.timer"
+  ],
+  "disk_space_recovery": {
+    "removed_obsolete_source": "/opt/jaautomation/releases/ja-automation-618d881ff64f411d52c125e748da1c28685025ceec76387ec9028ea0bb710e36",
+    "before_free_bytes": 830033920,
+    "after_free_bytes": 1334534144,
+    "business_data_or_backups_removed": false,
+    "container_images_removed": false
+  },
+  "docker_build_cache_cleanup": "Reproducible build cache pruned; container images and volumes retained",
+  "portal_build_handler_sha256": "0a74da59a352051ec2aa269167bec9cb5b0f6a3f93c2de8b7141f19abcafb070",
+  "schema_change": "none; existing migration 76 retained",
+  "rollback_strategy": "Previous source/image retained; code rollback only, production database/files volume preserved"
+}

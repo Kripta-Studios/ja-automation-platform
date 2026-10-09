@@ -51,3 +51,15 @@ isolated disposable fixtures. Private screenshot/run artifacts are retained unde
 `/tmp/workspace-navigation-final-{32,finance-4,prior-5}`.
 
 Production release results are recorded in `workspace-navigation-deployment.json`.
+
+Production activated `7048c449ac708e6b5c52ce4a3051b52a7f0d6920` on 9 October 2026. Portal readiness and Docker health pass; jobs run the same image. The public
+navigation asset returns HTTP 200 and matches the final build hash. Login returns
+200; the anonymous invoice composer retains HTTP 401. Database integrity is `ok`,
+foreign-key violations are zero, migration 76 is unchanged, and all five deployment,
+job, backup and cleanup timers are active.
+
+The first activation automatically reverted because free disk space fell below
+the existing 1 GiB readiness threshold. Reproducible Docker build cache and one
+obsolete processed source release were removed, restoring sufficient space before
+the successful retry. Live business data, documents, all retained daily backups
+and rollback container images were preserved. The production checks are read-only.

@@ -34,6 +34,7 @@
     mfaUncertainProblem,
   } from '../routes/app/mfa-enrollment/mfa-enrollment-copy';
   import { beforeNavigate, goto, replaceState } from '$app/navigation';
+  import { centerNavigationTarget } from '$lib/portal/ui/navigation-target';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { page as projectWorkflowPage } from '$app/state';
@@ -304,7 +305,7 @@
     await tick();
     const target = document.querySelector<HTMLElement>(selector);
     if (!target) return;
-    target.scrollIntoView({ block: 'start' });
+    centerNavigationTarget(target);
     target.focus({ preventScroll: true });
   }
   async function openProjectWorkflow(workflow: ProjectWorkflow): Promise<void> {
@@ -3124,7 +3125,6 @@
           'new-client',
           'update-client',
           'new-project',
-          'assign-worker',
           'update-assignment',
           'remove-assignment',
         ].includes(requested)

@@ -1292,7 +1292,7 @@
         </fieldset>
       {/if}
       {#if step === 3}
-        <fieldset>
+        <fieldset id="project-person-conditions" tabindex="-1">
           <legend>{t('3. Review each person')}</legend>
           <p>
             {t(

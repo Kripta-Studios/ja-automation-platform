@@ -43,6 +43,12 @@ export type InvoiceCompositionSource = InvoiceCompositionSourceRef &
     billabilityState?: string;
     classificationState?: string;
     billingState: string;
+    containingInvoice: Readonly<{
+      id: string;
+      state: string;
+      number: string | null;
+      version: number;
+    }> | null;
     groupKey: string;
     selectedDependencies: readonly string[];
     blockers: readonly ReadinessReason[];
@@ -186,19 +192,43 @@ export class InvoiceCompositionService {
       .all(...(start ? [projectId, start, end!] : [projectId])) as SourceRow[];
   }
 
-  private status(type: 'time' | 'expense', row: SourceRow): string {
+  private reservation(
+    type: 'time' | 'expense',
+    row: SourceRow,
+  ): { billingState: string; containingInvoice: InvoiceCompositionSource['containingInvoice'] } {
     const reservation = this.sqlite
       .prepare(
-        `SELECT invoice.state FROM invoice WHERE invoice.project_id=? AND invoice.state NOT IN ('void','cancelled','superseded')
+        `SELECT invoice.id,invoice.state,invoice.invoice_number,invoice.version FROM invoice WHERE invoice.project_id=? AND invoice.state NOT IN ('void','cancelled','superseded')
       AND (EXISTS(SELECT 1 FROM invoice_source source WHERE source.invoice_id=invoice.id AND source.source_type=? AND source.source_id=?)
         OR EXISTS(SELECT 1 FROM invoice_commercial_source_manifest manifest WHERE manifest.invoice_id=invoice.id AND manifest.source_type=? AND manifest.source_id=?))
       ORDER BY CASE WHEN invoice.state IN ('draft','approved') THEN 0 ELSE 1 END,invoice.created_at DESC,invoice.rowid DESC LIMIT 1`,
       )
       .get(row.project_id, type, row.id, type, row.id);
-    return String(
-      reservation?.state ??
-        (row.invoice_id ? 'invoiced' : type === 'time' ? row.billing_status : row.billing_state),
-    );
+    // Legacy source pointers may lack a reservation row. Expose only a live
+    // invoice in this project while preserving their historical billing state.
+    const invoice =
+      reservation ??
+      (row.invoice_id
+        ? this.sqlite
+            .prepare(
+              "SELECT id,state,invoice_number,version FROM invoice WHERE id=? AND project_id=? AND state NOT IN ('void','cancelled','superseded')",
+            )
+            .get(row.invoice_id, row.project_id)
+        : undefined);
+    return {
+      billingState: String(
+        reservation?.state ??
+          (row.invoice_id ? 'invoiced' : type === 'time' ? row.billing_status : row.billing_state),
+      ),
+      containingInvoice: invoice
+        ? {
+            id: String(invoice.id),
+            state: String(invoice.state),
+            number: invoice.invoice_number === null ? null : String(invoice.invoice_number),
+            version: Number(invoice.version),
+          }
+        : null,
+    };
   }
 
   private remainingAmount(type: 'time' | 'expense', row: SourceRow): string | null {
@@ -277,8 +307,9 @@ export class InvoiceCompositionService {
     // Readiness is projected per type: IDs are local to their source table.
     const blockers = reasons.filter((reason) => reason.sourceId === row.id);
     const remainingAmountMinor = this.remainingAmount(type, row);
+    const reservation = this.reservation(type, row);
     const billingState =
-      remainingAmountMinor === null ? this.status(type, row) : 'partially_billed';
+      remainingAmountMinor === null ? reservation.billingState : 'partially_billed';
     if (['draft', 'needs_changes'].includes(row.approval_state))
       blockers.push({
         code: type === 'time' ? 'pending_time_submission' : 'pending_expense_submission',
@@ -341,6 +372,7 @@ export class InvoiceCompositionService {
       approvalState: row.approval_state,
       financeAccepted: row.finance_approved_at !== null,
       billingState,
+      containingInvoice: reservation.containingInvoice,
       ...(remainingAmountMinor === null
         ? {}
         : { remainingAmountMinor, remainingCurrency: String(rule.currency) }),

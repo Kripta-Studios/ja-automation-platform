@@ -1151,14 +1151,12 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Dos defectos de presentación registrados FIXED por compilado: Finance246 filas19PASS1N/A1FIXED225UNTESTED; cicloFinance69 filas59PASS6N/A1FIXED2UNTESTED1BLOCKED; Operations59 filas48PASS1FIXED10N/A, sin sumar como cobertura universal.
 - [ ] Próximo lote browserUI-only draft diario/documentos QA en ejecución, no PASS anticipado. Auditoría universal/FX/firma genuina siguen pendientes; no CLIENT READY.
 
-
 ## 2026-09-30 — Inventario real de roles y recuperación de informes
 
 - [x] Chromium producción, identidad visible de siete roles:97 estados de página,79 entradas nav,349 apariciones de formularios y1.340 botones inventariados; diez enlaces de menú de cuenta llegan a URL/heading esperado. Cero escrituras de negocio/HTTP>=400/errores console o página/overflow.26 eventos GET fallidos de datos de ruta conservados sin estado HTTP; páginas correctas. Presencia no equivale a PASS de acciones/autorización.
 - [x] R6 por UI: Finance upload/download/archive documento propio105bytes; Owner93bytes download Owner/Finance y archive; hashes exactos, documentos históricos conservados, proyecto QA sin fuentes.29 filas/ocho hashes financieros y33 archivos originales intactos;35 archivos incluyen dos uploads, SQLiteOK/FK0. Worker/Auditor sin nav Documents no implica prueba de backend.
 - [x] Defecto real informe: autosave200 seguido Save409 por envelope SvelteKit no decodificado. Candidato acotado conserva typing/versión propia/optimistic guard y copia diferente; Source autosave→Save, Save antes debounce y respuesta real retenida→latest typing/Save aprobados. Copia redundante exacta se elimina sin warning; contexto único y reload200 comprobados. Fallos de harness/evidencia inicial conservados. Root33/33 pruebas focales con hashes iguales.
 - [ ] Conflicto remoto genuino, compilado independiente, revisión final y publicación del candidato pendientes. Cobertura completa de todas las acciones, FX verificado/pack no vacío/firma genuina permanecen abiertos; no CLIENT READY.
-
 
 ## 2026-09-30 — Protección de Submit/upload y compilado corregido
 
@@ -1171,7 +1169,6 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 
 - [x] Keeper propio Draft17/0archivos borrado por UI: autosave17→18 real200 retenido, una confirmación/noDelete durante hold, Delete18→200 trasack, freshregister200 fila/marker ausentes, sin errores. Submitted QA retenido. Ocho tablas/29filas y33 hashes originales intactos;36 archivos, SQLiteOK/FK0. Defecto Save registrado FIXED por evidencia compilada; Operations50PASS2FIXED10N/A62filas, sin cobertura universal. Publicación siguiente; Withdraw/noJS/FX/firma genuina pendientes.
 
-
 ## 2026-09-30 — Publicación recuperación de informes
 
 - [x] Aplicación0493689edcc2 publicada; deploy completo12:17:02UTC/14:17:02Madrid, ZIP4f965cf0d885 y4.265 hashes/commit activo verificados. Rollbackd1ccd266 conservado. Readiness503 real por espacio<1GiB trasbuild; cachebuilder sin uso6,202GB retirado sin bajar threshold ni tocar datos/volúmenes/imágenes actuales/rollback, recuperación antes de completar deploy.
@@ -1179,7 +1176,6 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Prerequisito live Worker: Reports→Newdailyform→Cancel sin writes/errors, única asignación QA ERROR AUDIT visible. Ciclo Draftlive autosave/Save/Delete preparado, pendiente sin PASS anticipado. Auditoría universal/Withdraw/noJS/FX/firma genuina siguen abiertos; no CLIENT READY.
 
 - [x] Regresión producción real Worker aprobada: único Draft QA Oct1 create200/autosave1→2 200 decodificado antes navegación/Save2→200/fresh200 Draft2 texto exacto sin recovery/Delete2→200 una confirmación/freshregister200 ausencia. Solo cuatro acciones esperadas, cero errores/bloqueos/POST imprevistos; sin attachment/Submit/approve/sign/finanzas. Root comprobó receipt y ocho hashes financieros/tres privados postciclo iguales al predeploy, SQLiteOK/FK0. Límite55 pares command-role capturados verificados, no total universal; diez próximos lotes UI registrados.
-
 
 ## 2026-09-30 — Scope Worker/crew y traducciones: candidatos Source
 
@@ -1196,7 +1192,6 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - Caché Source corregida: mismo contexto Worker con una asignación QA, fin por UI Owner, GET online200 con cero opciones/caché, luego offline también cero; ninguna mutación creada. Restauración de asignación por UI. Advertencia EN/ES/PT independiente si falla el almacenamiento, preservando borradores y adjuntos. Compilado/producción aún pendientes.
 - Drafts UI válidos:0,25 horas decimales y Meals USD0,01 con vendor vacío, create200/fresh filas exactas; sin submit/approve/pay/invoice/email. Ocho hashes financieros/29filas y36 archivos intactos, SQLiteOK/FK0. Zona QA Pacific/Kiritimati y fin temporalSep30 revelan **FAIL de privacidad**: pantallas/opciones vacías y detalle403, pero HTML/loader aún serializa proyecto y expenseDraft; Time muestra expected-hours históricos. Fin restauradoOct3/v11 por UI. Corrección bloquea publicación;191 tests del padre anteriores y revisión13fuentes no sustituyen esta prueba de navegador. Producción sigue049, auditoría universal/FX/firma genuina pendientes.
 
-
 ## 2026-09-30 — Candidato final privacidad, navegación y archivos
 
 - [x] Root revisión independiente readonly de28 hashes finales; Worker helper live/current+recordday/projecttimezone conectado a SQL/DTO/loaders/search, weeklyschedules y own aggregates; historial ownMyPay preservado. Caché assignments authoritative[] reemplaza lista, conserva drafts/adjuntos/conflictos; warning ENESPT de almacenamiento separado.
@@ -1204,20 +1199,18 @@ Explicit Owner follow-up implemented: currency-separated exact cash/receivable/p
 - [x] Portalbuild Node24/globaltypecheck/globallint PASS; Root242/242 focales, sin sumar pruebas author superpuestas. Compilado19/19 siete roles; History12/12 ENESPT; Profileempty30/30 cinco roles/locale/phone-desktop y Ownerlink3/3. Fallo inicial configloopback del harness conservado, no bypass producción.
 - [x] Browser invoices/billing28 casos readonly: Owner/Finance/Auditor nueve PDF descargados por link visible; Worker/PM/Supplier/Tech invoice403 genérico sin datos. Owner/Finance dos XLSX reales; demás sin control export. PDF cliente/numero/lineas/totales2.25h225USD/expense3.61/credit-.01, hashes iguales por rol; XLSX nueve hojas Invoiceexpenses111+250=361minor, laborhistóricoVoided22500/credit-1 exactos. No nuevas fuentes/approve/issue/pay/email. Traducciones de archivos/directdownloadRBAC/otros periodos pendientes.
 - [x] Compilado ciclo UI date-onlyv13→14→15 restauradoOct3; cache1→online0→offline0/queue0, HTML/search/options vacíos/direct403. Ocho tablas29filas/36archivos intactos, SQLiteOK/FK0.
-- [ ] Compiled loaderbody capture faltó aunque __data200 observados: ejecución parcial, sin PASS universal. Verificación corregida antes publicación; producción049. Auditoría todas acciones/FX verificado/firma genuina siguen abiertas.
-
+- [ ] Compiled loaderbody capture faltó aunque \_\_data200 observados: ejecución parcial, sin PASS universal. Verificación corregida antes publicación; producción049. Auditoría todas acciones/FX verificado/firma genuina siguen abiertas.
 
 ### Gate adicional: respuestas correctas y detalle offline revocado
 
 - [x] Compiled sharedloader capturado por browserGET de datos en pestañas separadas: Time200/2.002bytes y Expenses200/493bytes sin IDs/nombre/número/resúmenes QA revocados. Ciclo UIv17→18→19 restauradoOct3. Capturas previas incompletas/timing conservadas; no sumarlas como PASS independientes.
 - [ ] **FAIL nuevo**: Time detalle visible calentado/caché20023060bytes antes de revocar; mismoURL online403 genérico, offline200 muestra proyecto/registro anterior. Worker ceroPOST; Owner restauración200. Serviceworker cache invalidation/concurrency fix en curso, sin publicar; Expenseoffline no probado tras stop-first-leak.
-- [x] Triage Source overviewPlanning/PMPlanning pa.*: tres-path fix allowlist operacional, Worker propio published/current+span, Finance3roles campos intactos. Author87/87 SQL real/diez nuevos y checks focales; Root revisión readonly tres hashes SHIPsource pendingbrowser. Coste runtime disponibleNULL, sin afirmar leak de valor financiero real. Build/gates anteriores no califican cambios posteriores.
+- [x] Triage Source overviewPlanning/PMPlanning pa.\*: tres-path fix allowlist operacional, Worker propio published/current+span, Finance3roles campos intactos. Author87/87 SQL real/diez nuevos y checks focales; Root revisión readonly tres hashes SHIPsource pendingbrowser. Coste runtime disponibleNULL, sin afirmar leak de valor financiero real. Build/gates anteriores no califican cambios posteriores.
 - [ ] UIfixture planning y compilado actualizado, cache-revocation postfix y gates globales pendientes. Export controlperiodo/scope notas/precisión overview/captionsstatus traducción son followups de presentación; no cambiar matemática/política snapshot. Producción049; todasacciones/FX/firma genuina abiertos.
 
 - [x] OwnerplanningUIfixture únicoQA2Worker8Oct2/1h/60min/siteQA/expertiseblank native200/freshPublishedrow; guardfield erróneo abortado sinservidor y locatorpostsavefallido preservados, norecreate. BrowserWorker200overviewDTO2782bytes incluyeid/site +planned_cost_minorNULL/created_by populated, baseline leakmetadatacomprobado. TrespathSourcefix pendingcompiled.
 - [x] DirectbrowserGET17 denegaciones files/cinco roles: WorkerPM PDFs404genérico; SupplierTech403; XLSX403todosinclAuditor; sin invoice/project/client/money/download bytes, sinPOST/errors. No permiso Auditor export concedido.
 - [ ] **FAIL nuevo billingdate**: PDFimmutable DueOct30 vsUIDueSept30; canónico due_at/snapshotdueAtOct30 correctos. UI usa due_date inexistente y guessissued; listInvoices omite due_at y XLSXquedaDueblank aunquemappingcorrecto. Fixlectura/display acotado pendiente; no mutar historia/PDF ni matemática. Verificaciónfiles previa11 cubriólineas/totales, no igualdadduedate.
-
 
 ### Revised compiled browser round18 — invoice dates, files and privacy (2026-09-30)
 
@@ -1228,7 +1221,6 @@ Actual rebuilt browser checks passed **19 seven-role/responsive smoke cases**, *
 Luna's rebuilt planning overview browser proof is positive for both roles: Owner sees the existing published planning row and authorized creator/cost metadata; Worker sees its own published operational row and site while the actual200 loader payload omits creator/cost keys. This is paired with isolated SQL tests using a non-null private cost; browser fixture cost is null and is not represented as non-null browser evidence.
 
 Six actual browser Excel downloads (Owner/Finance × EN/ES/PT) completed with valid ZIP/XLSX files and correct requested locale. Inspection found an additional **FAIL**: Spanish/Portuguese sheet names are localized but Summary/Invoices/Invoice-expense column headings remain English. A bounded reporting-copy correction is pending; financial values, source scope and historical PDF content must remain unchanged. Complete every-role/every-action/all-text acceptance and genuine customer-signature/FX-pack evidence are still pending; these scoped successes do not imply universal acceptance.
-
 
 ### Final compiled round19 and upgrade audit — 2026-09-30
 
@@ -1244,7 +1236,6 @@ A GET-only loopback proxy served the actual public049 service-worker bytes, then
 
 That same real offline navigation found a separate loading FAIL: Svelte immutable JavaScript lives outside the service worker's app-route path and was not cached, so fresh offline Expense HTML displayed its authorized summary but hydration raised a dynamic-import error. Publication is held for a bounded public-asset caching correction and renewed compiled/browser gates. This partial privacy PASS does not claim complete offline form functionality. The broader every-action audit, healthy finance-period controls/scope explanations, genuine customer signing and verified FX/pack evidence remain open. Production remains0493689edcc2 until a new verified release receipt is recorded below.
 
-
 ### Final public-asset correction and publication gate — 2026-09-30
 
 The separate offline JavaScript failure is fixed with a strict public-asset allowlist: same-origin immutable JS/CSS/fonts and six known app public assets. Cache writes are tracked until completion. API resources, unrelated and cross-origin paths, non-GET requests, and authenticated image/document paths cannot enter the global static cache; private responses retain their identity partition. The existing activation/generation/denial safeguards remain unchanged. Root independently reviewed both final overrides and matched all44 frozen source/test paths.
@@ -1252,7 +1243,6 @@ The separate offline JavaScript failure is fixed with a strict public-asset allo
 Root's final suite passed **332/332**, portal production build, required global typecheck and lint. The final compiled seven-role responsive smoke passed **19/19**. Luna then ran actual Chromium through the GET-only proxy with the real current-public049 predecessor script followed by the compiled candidate. Both existing UI-created Drafts warmed200; completed activation removed the legacy private cache before fresh reads. The old Time URL offline returned data-free503 with online-access guidance. Fresh online Time/Expense remained200; the authorized Expense reopened offline200 from v3. The actual account menu opened and closed with Escape offline,38 immutable asset requests were cached, and the receipt records zero page errors, blocked writes or non-GET requests. This confirms the hydration defect is corrected for the exercised previously visited route; it does not promise never-visited routes work offline. Earlier stopped/partial and diagnostic receipts remain preserved.
 
 After all UI and read-only browser checks, quick_check remainsOK, foreign-key errors0, all protected eight financial-table hashes (29 rows) and36 private-file hashes equal the original baseline. Source publication is now qualified for this scoped correction batch; production deployment and verification are recorded separately below. Wider action/period-control/signing/FX acceptance remains open.
-
 
 ### Production release verification — 2026-09-30
 
@@ -1266,7 +1256,6 @@ Only unused Docker builder cache was pruned after both image builds completed, f
 
 The first scope harness selected an existing non-UUID imported project and received a validation400 before the expected crew denial; that original receipt remains preserved. The corrected UUID scope test qualifies403 privacy. A separate Owner browser inspection then confirmed a real usability defect: the active imported project C-0020-P-001 is an enabled Record expense option, but selecting it in the unsent form triggers time-options400. Existing project identity must be preserved. A narrowly scoped follow-up is implementing the already-authoritative stored project-ID schema for Time/Expense references and related lookups, keeping record UUID generation and object-access guards unchanged. This follow-up is not yet deployed and is not folded into the eight passing production checks. Complete every-action/signing/FX and finance-period-control acceptance remains open.
 
-
 ### Follow-up browser findings — legacy projects, stale saves and PDF layout (2026-09-30)
 
 The native stale-form check confirms a write-access defect in the isolated compiled app. Worker8 opened Record expense while assigned, Owner ended the QA2 assignment on September30 through the visible Team form (version27→28; project-local today October1), and Worker clicked Save draft once. The SvelteKit action decoded as success200 and a fresh visible register search independently found the new Meals USD0.01 Draft. Owner restored October3/version29 through the UI; the unexpected Draft and the original Time/Expense Drafts remain as evidence. No submission, approval, invoice/payment or production business write occurred. Earlier selector stops and the post-save harness ReferenceError are preserved; creation was not repeated. Current-access write checks and localized retained-input recovery are being corrected separately from the frozen eight-path legacy-ID validation packet. Neither follow-up is represented as deployed yet.
@@ -1275,9 +1264,7 @@ Root also visually inspected the actual downloaded one-page labor, expense and c
 
 After the verified3dee release, only two unused older D1 Docker images were retired after checking all18 container image references and the retained original archive/extracted-source integrity. Current3dee and immediate049 rollback images/archives remain protected. Unused npm/pnpm download/store and apt download caches were cleaned; no installed runtime dependency, volume, database, document, session or draft was removed. The bounded maintenance receipt records unchanged container image references and about9.9GiB free for the next canonical release.
 
-
 A further read-only Luna browser pass checked the compiled Billing register across seven roles, using the existing UI-created synthetic records. Owner/Finance list loads200; Auditor loads200 with an explicit read-only review label. Worker/Manager list access403 and known invoice detail404 remain generic; Supplier/Technician list/detail403 disclose no invoice numbers or project hints. Actual Owner status chips yield Drafts1, Outstanding1, Credit balances1, Paid0 and All4; native invoice search returns its one matching row. Open PDF opens a separate tab and closes cleanly. The three existing invoice issue/due dates agree with their canonical values. No pagination control exists for the four-row fixture, so pagination is not qualified. The private receipt records zero blocked non-GET requests, page errors or console errors; all contexts closed before the next rebuild.
-
 
 ### Follow-up source publication gate — 2026-09-30
 
@@ -1290,7 +1277,6 @@ The same browser screenshot exposed an untranslated weekly-submit caption. A fin
 Owner's actual enabled BBS Mexico Expense option now triggers the native time-options GET200 with the stored legacy ID and date, with no invalid-project warning; the form was cancelled without saving. The response-body reread failed in the browser harness, so HTTP/visible-form recovery is qualified without a new raw-body claim. Owner's initial Log time form, before selecting a worker, offers only Select assignment; no positive legacy Time save or fabricated assignment is claimed. All contexts closed. SQLite quick_check remainsOK, foreign-key errors0, all29 protected financial rows and36 private files exactly match the original baseline. A custom scoped compiler retains its pre-existing outside-scope action-utils generic diagnostic; the authoritative repository typecheck/build/lint pass without modifying that file.
 
 This scoped source batch is qualified for publication; canonical production verification is recorded separately below. Broad every-action/all-text acceptance, finance-period controls/scope explanations, genuine signing and verified FX/pack evidence remain open.
-
 
 ### Production follow-up release verification — 2026-10-01
 
@@ -1320,13 +1306,11 @@ Browser-only QA across owner, crew chief/worker, supplier coordinator and techni
 
 - 2026-10-01 Round3 activation and live UI evidence: `zip-2d6a8bb49564fc5eb49e66430527e68f` (13:45:01 Europe/Madrid); production portal/site builds, online5-document backup, health/public URLs/jobs actor/timers PASS. Actual live owner/Worker1 no-write regressions PASS for planning expansion/filter scroll, current hydrated project edit, timefacts360/768, crew unsaved context/nav guards andzero-hour0POST360/390/1440. Live empty worker fieldset512px defect fixed via scopedlayout; independentSHIP plus actual candidate/live empty/populated390/1440 verification. Detailed scope/limits and backup/image/cache receipts: `docs/evidence/proactive-role-workflows-round3-20261001.md`.
 
-
 ## Browser workflow follow-up — 2026-10-01, round 4
 
 [Round 4 browser evidence](docs/evidence/browser-role-workflows-round4-20261001.md) covers owner project/assignments, two-worker delegated hours, one shared receipt/exact allocation, revoked-delegation atomic rejection, operational correction/approval, actual labor totals and role denials. Reproduced unsaved receipt-allocation loss is corrected with EN/ES/PT confirmation and hydrated candidate browser regression at representative widths. This scoped evidence does not promote other checklist items or establish complete Client Essential acceptance.
 
 Round 4 activated at 14:57:09 Europe/Madrid as `zip-9d175ee14b8a2825769d0a4d8d8eab52`. Live crew allocation cancellation at 360/390/768/1440, double-click save and two-tab duplicate-allocation rejection passed. Portal/site healthy and jobs/backup timers active after activation.
-
 
 ## Browser workflow follow-up — 2026-10-01, round 5
 
@@ -1334,11 +1318,9 @@ Round 4 activated at 14:57:09 Europe/Madrid as `zip-9d175ee14b8a2825769d0a4d8d8e
 
 Round5 activated at15:52:26 Europe/Madrid as `zip-4f34490d89e84fe4e3dfaee559fb817f`. Independent read-only review SHIP, static checks, production portal/site builds,8-document backup, installed hashes, health/jobs/timers pass. Live Owner/Worker360/390/768/1440 discard/error recovery and PDF download pass; live Owner save/restore of a synthetic alias passes with unchanged commercial/time/cost/report facts. Extra fresh role sign-ins were rate-limited; other role evidence is candidate/pre-activation as qualified in the report.
 
-
 ## Browser workflow round 6 and production cleanup — 2026-10-01
 
 [Round 6 evidence](docs/evidence/browser-role-workflows-round6-20261001.md) records source-backed browser findings, Astra classification and independent code review. Initial release `5cb15a0` activated 18:01:58 Europe/Madrid with successful builds, ten-document online backup and deployment health/jobs checks. Six QA projects and their billing stream archived via Owner UI, preserving history. Two additional billing bugs (imported ID selection rejected; draft sources directed to empty Approvals) and contextual cadence UX are implemented and preview-verified; follow-up activation/live configuration pending. This is scoped evidence, not a full Essential acceptance verdict or completed10+10 quota.
-
 
 ## Editable previews and remembered views — 2026-10-01
 
@@ -1350,17 +1332,13 @@ Final preview/persistence release `5068a61` / `zip-12f67b777800364b7e02220a2630e
 
 Owner clarification supersedes separate reusable invoice-default behavior. [Scoped evidence](docs/evidence/document-source-writeback-20261001.md) records actual project PO, stream PO/terms/notice and issuer bank/contact writeback, date-only preservation, source conflict retention/atomic rejection, current-source rebuilds, one current draft/exact totals, Owner/Finance/Auditor/Worker boundaries and four editor widths. Additive migration70 fresh engineering integrity and representative normal startup upgrade pass. Independent review SHIP; GPT‑6 Astra High accepts the refinement and candidate fixes without changing the completed 10+10 count. Three older production report PDFs were regenerated/downloaded, with previous artifacts preserved; the fourth was already current. Private worker statement checks cover only the displayed periods and do not establish global historical absence. Runtime `8952fb0` / archive `b7d35460f2f6300d1b4cb127720c49c3d27e38d6c0ae166fdb35bee3fb9e5f78` activated23:00:54 Europe/Madrid. Workspace typecheck/lint, portal/site/jobs builds,14-document preactivation backup and public/jobs health pass. Live Owner/Finance no-op settings/Cancel, Auditor read-only, Worker404 and current invoice download pass without QA source changes. Build-cache cleanup reclaimed6.133GB. This does not promote untested Essential journeys.
 
-
 ### Per-person project terms browser continuation — 2026-10-02
 
 Owner production browser creation with optional individual assignment rows, retained validation, future-dated rates, revised project defaults, general settings and explicit per-person expense preferences has scoped evidence in `docs/evidence/project-worker-terms-browser-20261002.md`. Existing individual agreements survived default/general-setting changes. PM current and historical expense views retained operational-only privacy, and live review revocation blocked stale correction writes. Worker own cross-project pay and ended-assignment historical compensation were observed independently. Owner source/project calculations reconcile approved Daily10c, fixed-period11c and fixed-project12c without multiplying by the two sources per person; Worker approved-pay verification remains pending. W48 source871b0ef is pushed/deployed with backup/health/jobs checks; Time context and compact MyPay card repairs await live Worker verification. Expense classification exposed an unused wrong-currency issuing-authority setup dead end, under repair; no reimbursement PASS or complete56UX/46bug re-verification is claimed. Functional checks use the browser UI only, with source/static/build checks as supporting evidence. All current agents use GPT6.1Sol.
 
-
 October2 W48/W49 continuation: independent Worker Daily/fixed readers and scoped Chief delegation/withdrawal cleanup are recorded in the linked per-person terms evidence. W49 `856f4d83` activated14:11:50 with canonical backup/upgrade/health/jobs checks after a VPS restart interrupted the first build. Finance repaired an unused wrong-currency authority through the new append-only UI, observed prospective currency409 recovery, classified/reviewed four exact QA expenses and reconciled the three project treatments plus ended-worker historical markup. Worker reimbursement/statement, used-authority rejection, replay, per-currency-minute captions and fresh empty-delegate labels remain pending. Context/required-field corrections `7b84a210` are pushed and building; no full102-item/all-role acceptance is claimed. Browser execution is restricted to one session/page at a time, and current agents remain GPT6.1Sol.
 
-
 W50 `7b84a210` activated14:45:40 with20-document backup and health/jobs gates. Live Finance400/409/200 submissions retained dates/locales/filters; visible other-project cost scope saved successfully. New Worker7 hourly guarantee selected through normal assignment,30-minute actual source approval and own pay reconciled2c; Owner future basic rate edit retained60-minute guarantee. Worker4 per-currency minutes passed EN/ES/PT390/1440; Worker2 English390/1440. Worker5 own reimbursement2EUR and ended-worker6 historical1EUR matched dated project/person policies and their actual browser PDF previews/downloads. Closed empty-delegate caption and hours/statement locale display regressions are being corrected; no all102-item or full Essential PASS. Detailed source IDs, runtime, cleanup and pending branches remain in the per-person terms evidence.
-
 
 W51 `4a8e57a2` activated15:27:07 with24-document backup and deployment gates. Root live closed-empty Chief caption and Worker hours/statement locale repairs pass within EN/ES/PT390/1440; date/nondelegated/ordinary-worker negative controls and create/cancel/filter-removal regression are scoped in the evidence. Build cache0B after6.977GBcleanup, three daily snapshots and immediate rollback retained. Root closes the page before Finance/Auditor handoff; queued Owner/PM coverage and complete102 compound verification remain pending.
 
@@ -1374,32 +1352,23 @@ W52 additional Owner/PM shared browser checks cover project tabs, empty expertis
 
 W54 source81bdbed5/archive d37416711707342561f498c512b2d9f853b33bf952145c49c801e131865ebc3c activated18:14:11;24-document backup/build/upgrade/health/jobs passed. Cache6.964GB reclaimed/final0B; obsoleteW52 images removed with currentW54/rollbackW53 retained, three daily backups and active watchers/timers. Fresh PM all6 locale/width deliveries retain six expense identities without amounts and three time durations; Owner money controls intact. W53 dated read-summary Owner/Finance/Auditor five dates all6 retains endedWorker6 exact10c/4c/6c with read-only controls, inclusive bounds and active override/default separation. Owner extra360/768 fit. Person policy choices active-only; Auditor0POST, Worker/PM403all6. No writes; solebrowserclosed. Untested variants and independent count qualification explicit in evidence; no full Essential/all-role PASS. W55 compensation-method display localization source/static ready, review/deployment/live pending.
 
-
 W55 `a29dab2b`/archive50fd1b849cebbd81c637a720d378623a05439329e5f2cdac8d4d2c660f9a5e6c activated18:38:01 with24-document backup and eventual health/jobs gates. Final build-cache cleanup6.964GB/0B and obsolete W53 images removed; W55 current/W54 rollback/three daily backups retained. Owner/Finance/Auditor72 browser cases across EN/ES/PT360/390/768/1440 verify localized compensation captions with unchanged amounts/history/controls. Independent GPT6 Astra Ultra accepted W55-B01 exactly one bug, zero UX; with W53/W54 acceptance totals56UX/52bugs108definitions, historical102 remains42scoped60NOTRUN0whole-compoundPASS. Latest user instruction uses GPT6 Astra Ultra for all new subagents with one serial browser. W56 reviewed single-component navigation/portfolio-source/mobile-parity repairs pass static gates and independent Astra Ultra source review SHIP; deployment/live acceptance pending, no credit yet. Detailed receipts and untested variants remain in linked per-person evidence.
-
 
 October3 W56 sourceffc8e6b5/archivecd2756936977b8a50c269fbdd2edf8df31d1b106e486cb6fd72f4e942d598769 activated00:58:00 after confirming the interrupted October2 export had stopped before activation. Canonical cached serialized retry,24-document backup, upgrade/local/public/jobs health passed; portal/site healthy. Cache6.966GB reclaimed/final0B, obsolete W54 images removed with W56 current/W55 rollback retained, three backup snapshots retained, watchers/timers active and15GB free. Latest user instruction permits onlyGPT6.1Sol; fresh Sol source review SHIP. Exclusive single-session browser verification underway; W56 acceptance/credit pending, totals56UX52bugs unchanged. Exact runtime/backup/cleanup evidence in linked per-person report.
 
-
 W56 Sol browser acceptance:167 scoped cases across Owner/Finance/Auditor, Worker5/PM and historical Chief-fixture denial; project context/date terms, portfolio-worker actual source links, eight/ten-fact phone parity and role controls pass within observed scope. Default-Portfolio URL omission is canonical behavior; paired-source first-page false and signout/sandbox helper errors are explicitly recorded as harness limits. Independent GPT6.1Sol accepts exactly2bugs+1UX; root accepted57UX54bugs111definitions. Historical102 remains42scoped60NOTRUN0whole-compoundPASS. No appwrites; solepageclosed beforeW57Ownerdraft/error/inheritance checks. Full100/100 and wider Essential/all-role certification remain incomplete.
 
-
 W57 Owner browser confirmed unsaved-person draft loss across project tabs/rejected sibling save, inaccessible raw-field error recovery, and misleading inheritance under a dated default. Revised five-file repair passes portal/databaseTypeScript, scopedlint/format, Sveltecompile0warnings and independentGPT6.1Sol sourceSHIP after two review corrections. Captured draft concurrency tokens, visible associated localized errors, truthful dated inheritance and independent stored policy fallback are included. Deployment/live successful+rejected saves/date-fallback tests pending; no credit yet. W58 OwnerEN390 weeklyduplicate warning/separate-work save worked; one naturaldoubleclick created onlyone intendedextra draft, so replaynotreproduced andnewcredit0. BothnewQA sources were auditedDeleted/404, existingapprovedOct2hour unchanged, browserclosed. Details in linked per-person evidence.
-
 
 W57fc5ecd22/archive6b20668cd5efed9f1bab4c97f524ac13562d00116a585e17869a950e4938e5a5 activatedOctober3 01:45:43 with24-documentbackup/build/upgrade/local/public/jobs gates. Cache7.022GBreclaimed/0B, obsoleteW55imagesremoved withcurrentW57/rollbackW56 retained, threebackup snapshots, activewatchers/timers, healthycontainers and14GBfree. GPT6.1Sol owns the sole browser for full scoped retest; no W57 credit or full Essential PASS at activation. Accepted57UX54bugs unchanged.
 
 W57 follow-up: Owner EN1440 rejected single/batch saves retained both drafts and concurrency tokens, with visible linked error focus. Actual header EN→ES switching exposed a step reset and stale editor language; the bounded page correction requires independent Sol review and deployed retest before acceptance. Isolated QA financial checks continue in the sole browser session. All new agents/reviews use GPT-6.1 Sol only under the latest user instruction. Accepted totals remain 57 UX / 54 bugs; no credit for correcting the introduced regression.
 
-
 W57 language correction fce95d99 / archive 5cc5b546a4c9a5a65594e8d869904fe936f66923303267a8653eb79513a13fc7 activated October 3 at 02:13:53 after build/backup/upgrade/readiness/jobs gates. Cache cleanup reclaimed 7.022GB, with 0B remaining; obsolete W56 images removed, current/immediate rollback and three backup snapshots retained, timers active, containers healthy, 13GB free. Single-browser GPT-6.1 Sol retest resumed after cleanup. Acceptance remains pending; 57 UX / 54 bugs unchanged.
-
 
 W57 corrected browser run found a remaining English Unchanged in the Portuguese future-terms notice. The one-entry shared translation repair (ES Sin cambios / PT Sem alterações) passed scoped lint/format, portal TypeScript and independent Sol source review; deployment and actual locale proof pending. No additional quota credit. Main W57 candidates and role/privacy gates remain pending.
 
-
 W57 remains pending: actual accepted Discard then Billing re-entry resurrected rejected pay/date values and errors, despite clearing customer/pin values. The parent-only exact-response consumption repair passed scoped static gates and independent Sol review at 42f3eebd69401795cbe8ff9298348ab8937edcc97878c9a419e732858987fe8d. Cancel, initial failed-form recovery and fresh responses are preserved. Combined deployment with the scheduled-status translation and affected browser retest are pending; zero new definitions for these corrections.
-
 
 Combined discard/translation corrections 1312170d / archive 0740d53585908a96d4d82bb13a8a8fcaf926b17d21b3afb784ca8e181cd8034e activated October 3 at 02:44:57 after canonical build/backup/upgrade/readiness/jobs gates. Cache cleanup reclaimed 7.022GB/final0B; current/immediate rollback images and three backups retained. Thirteen byte-verified old inbox ZIP duplicates removed, all audit copies preserved, recovering about4.03GB; disk16GB free, timers active and containers healthy. Single Sol browser resumed only after cleanup for focused discard recovery, remaining Finance5 and scheduled-status locale proof. W57 acceptance pending; 57UX/54bugs unchanged.
 
@@ -1431,47 +1400,33 @@ W66 Owner delegation date/state clarification is source-ready: Crew59a25c7f/cata
 
 W65 pre-repair browser closed after exact preview/quiet feedback/oneinvalid200 retention/Cancel/reset proof. Independent Sol verdict FIX FIRST: actual rejected390 layout expands301.625px form children to350.453px/document395; normalSPA header language updates shell/URL but leaves Crew/document stale. Full-load translations/PTcomma proof is separate. Same17c unallocated Draft/two3min Draft times/twoActiveOct3grants deliberately retained for onepostfixrejection and ordinarycleanup; no newfixture, no approval/payment. Combined W70/W71 Crew5cf6507f static/root gates pass; fresh source review/deployment/afterproof pending. W65/W66/newbugs remain uncredited; **60 UX / 57 bugs / 117** unchanged.
 
-
 W71 separate predeploy Chief browser confirms Cancel leaves native ES with unchanged EN URL/body/document/action and complete draft/token/time origin. Zero Save/stored writes, ordinary local cleanup and explicit close. Final combined Crew5cf6507f/layout08c50a6f/catalog837c7aba candidate restores committed native selection before existing navigation and fixes Crew locale precedence/rejected allocation layout. Complete static gates and root diff/hash/scoped checks pass; fresh independent GPT-6.1 Sol combined review SHIP accepted by root. Prior Crew-only review does not qualify the layout addition. Production/normal-header/Cancel/error-fit/fixture-cleanup afterproof pending, no quota; **60 UX / 57 bugs / 117** unchanged. Latest user restriction remains GPT-6.1 Sol only and one serial browser.
-
 
 Combined697009ac/archive0944ca6e62caba9b0b3e53046a86f8d633545209ad541284cf11f92d92ce921a activatedOctober3 06:17:09Madrid; reviewed hashes,26-document backup/build/upgrade/local/public/jobs gates passed. Docker portal initialstarting settled healthy before solebrowserlease. Cache7.017GB/final0B, obsoleteW62images safely removed; current/W65rollback and three daily backups retained, timers active,15GBfree. Sol browser resumed retained-fixture W65/W70/W71 afterproof/cleanup only; W66 separate later plan. No runtime/count acceptance yet: **60 UX / 57 bugs / 117**, historical **47 scoped / 55 NOT RUN / 0 whole-compound PASS** unchanged.
 
-
 W65/W70/W71 closed Sol review and root acceptance add **1 UX +2 bugs**: live receipt-share arithmetic, rejected allocation layout, and one successful/canceled Crew language family. Actual697009ac proof includes same-document locale/Cancel, complete8-control retention, one invalid200, four rejected widths/native keyboard and exact ordinary cleanup. New receiptWithdrawn/timesVoid/newgrantsrevoked; protectedW60Drafts/oldgrants retained, browserclosed. Revised accepted progress **61 UX /59 bugs /120**, historical47scoped/55NOTRUN/0whole-compoundPASS unchanged. W66 Owner guidance remains separate pending proof; wider role/race/translated-error/accessibility/history limits remain explicit in linked evidence.
-
 
 W66 closed Sol review/root acceptance adds1UX for Owner administrative delegation status versus loaded-date coverage. ActualOct3outside→typedunappliedOct2stillOct3→normal303Oct2within→303restoreOct3outside preserves exactActiveIDs/dates, Revokedmultiset and blankgrantpeople; localizedspecific hints visible, browserclosed. No Grant/Revoke actions; metadatareset and scrolledparagraph/Dateinputfocus limits preserved. Current **62 UX /59 bugs /121 definitions**, historical47scoped/55NOTRUN/0whole-compoundPASS unchanged. Broaderrole/eligibility/money and100/100 remain incomplete.
 
-
 W68 closed Finance697009ac zero-save proof/rootacceptance adds scopedN03 controls/reset coverage, +0: configurablelocaldefaults/noOwnerWorkertable, legitimateManagerBasics, ordinaryreset/noaddedPOST/explicitclose. ActualmisleadingFinanceintro and oversized672.5×44defaultscheckbox confirmed. CombinedW69/W72 three-file source852573bd/f4a049a2/35df9ccf passes static/rootchecks and freshwholeSolSHIP; roletext/14scopedCSSlines only, nativefinancialcontracts preserved. ExistingN13/W62familycompletions, noextraquota; OwnerFinancebrowserafterproof/deploymentpending afterN02closure. Current62UX/59bugs121 unchanged.
-
 
 N02 closed Sol review/root acceptance adds existing N01/N02 copied-default independence proof on697009ac, +0: finite W4 copies A(.11/.04/.06/None), later B leaves its complete form/fingerprint and original W5/W7 unchanged, distinct W3 copies B(.13/.05/.08/AtCost). Four intended configuration actions retained; first statusLOST/no replay and transient wrong-date capture remain explicit. Settled dated review, clean final Billing and browserclosure observed; no operational/finalized money writes. Rendered lineage/full monetary/other-role coverage remains incomplete. Current62UX/59bugs121 and historical47scoped/55NOTRUN/0whole-compoundPASS unchanged; linked evidence contains exact scope.
 
-
 W69/W72 source3fce9958/archive34fdca2b activatedOctober3 07:15:37Madrid, N02browserclosedfirst. Reviewed deployedhashes/build/26documentbackup/upgrade/public/jobs and normalDockerhealth passed. Cache7.017GB/final0B, obsoleteW65images safelyremoved; current/W70rollback and three daily backupsretained, timersactive,14GBfree. SoleSol Owner/FinancezeroSavebrowser startedaftercleanup; runtime+0completionspending,62UX/59bugs121 unchanged.
-
 
 W69/W72 closed Owner/Finance Sol review/root acceptance completes existingN13 wording/W62-B01 sizing +0 on3fce9958. ExactFinanceENESPTphone intro/Ownercontrols, fourcompactcheckboxsamples, normalreopen-basedJSONretention and complete30controlreset eachrole proved; noSave/rows, mainnetworkunchanged, explicitclose. Immediate2Space fails because existingenablement closes disclosure/hidesfocus; separateW73candidate, notCSSregression/acceptedfix. Cleanuptransport/finalFinanceURL and widerfinancial/server/creation limits preserved. Counts62UX/59bugs121 unchanged.
 
-
 W73 preexisting defaultsOFF hidesfocus/blocks immediateSpaceON reproduced within W69/W72; workaroundretainsvalues, no dataloss/CSSregression. Minimal onefile64edfe7d/diff4928e932 separates native disclosurestate from businessenablement, unchangedfinancialcontracts. Static/zero-warningcompile/rootactualdiff and freshSolwholeSHIP accepted. Deployment waitsW74browserclosure; Owner/FinancezeroSaveimmediatekeyboard/manualsummary/reset afterproof pending. Atmostonebug provisional, noacceptedquota;62UX/59bugs121 unchanged.
-
 
 W74 actualFinance3fce9958 boundedconfigurationPASS/rootaccepted,+0: W7Oct4recoveryAtCost preservesNonefallback/Inherit/rates; projectinheritOct5version3→4 preservesallfouragreements/explicitcontrols/history. Two200configsuccessorsretained, nooperations, cleanBilling/scoped0registers/explicitclose. ExpectedfutureAtCost→None isconfigurationinference only; no renderedresolved/payoutoracle. Current62UX/59bugs121 unchanged; fullreceipt/reviewlimitsinlinkedevidence.
 
-
 W73 source2c9f4079/archivee1c838a7 activatedOct3 07:42:44Madrid afterW74closed. Exacthashes/26documentbackup/build/upgrade/readiness/jobs/normalDockerhealth passed. Cache7.034GB/final0B, obsoleteW70safelyremoved,current/W72rollback/3dailyretained,timersactive,13GBfree. SoleSol OwnerFinancezeroSave immediatekeyboardafterproofactive; maxonebugpending,62UX/59bugs121unchanged.
 
-
 W73 closed Solreview/rootacceptance adds exactly1bug0UX: native defaultsOFF keepscontainingsection andsamevisiblefocusedcheckbox, immediateONrestoresfullJSON inOwnerFinance390/1440. Manualsummary/reset/0Save/rows/explicitclose verified. PreexistinginteractiondistinctfromW62sizing; no data loss orrole-widthdoublecredit. Current **62UX/60bugs/122**, remaining38UX/40bugs; historical47scoped/55NOTRUN/0whole-compoundPASS. FullSSR/rows/server/race/privacy/money limits remainexplicit.
-
 
 ### 2026-10-03 — W78 reimbursement and expense review candidate
 
 CORE-02/03/06/14/15: the exact eight-file candidate passed hash-attributed static gates and fresh independent GPT-6.1 Sol financial/privacy review (full diff SHA256 `d8c77c83b5aeddf68c4985583f95e1785f13f3280b0e54e7f60ba0e153a86683`). Dated selected-person reimbursement lookup, local unsaved-policy confirmation/date recovery, authorized correction-origin navigation and unsaved weekly expense recap are source-ready. Production build and browser outcomes remain pending. No financial algorithm, action or permission expansion; no source-only quota credit. Accepted totals remain 62 UX / 60 bugs. Detailed evidence: `docs/evidence/project-worker-terms-browser-20261002.md` and external W78 source/review packets.
-
 
 ### 2026-10-03 — W78 production activation and retention
 
@@ -1483,31 +1438,25 @@ Aceptadas tres mejoras UX: revisión del reembolso configurado por persona/fecha
 
 W79 corrige únicamente el idioma reactivo del detalle de gasto, observado con cabecera portuguesa/cuerpo español. FamiliaW71, crédito adicional0. Fuente revisada SHIP, lint/formato/TypeScript correctos y compilación Svelte0/0advertencias; despliegue y navegador posterior pendientes. Detalles y límites: `docs/evidence/project-worker-terms-browser-20261002.md`.
 
-
 ## W79 desplegado y limpiado; revisión del navegador pendiente — 2026-10-03
 
 CORE-17: aplicación8a630faa/archive023ba114 activada12:14:29Madrid; fuente revisada del detalle de gasto verificada, backup26documentos, upgrade, disponibilidad pública/local, portal/site saludables y jobs correctos. Cache7.034GB/final0B; comprobación de18referencias antes de eliminar sólo imágenesW73 obsoletas. W79actual/W78rollback, tres backups diarios y timers activos conservados;11GBlibres. Sesión única cerrada con No open tabs tras40eventos del plan nativo de idiomas/Cancel. Revisión independiente de ejecución pendiente; familiaW71+0, totales65UX/60bugs sin cambio. Evidencia y límites en `docs/evidence/project-worker-terms-browser-20261002.md` y ROOT_W79_DEPLOY.md externo.
-
 
 ## W79 ejecución aceptada por alcance — 2026-10-03
 
 CORE-02/06/15: revisión Sol SCOPEDPASS/SHIP y recomputación de root aceptan el idioma reactivo del detalle y Cancel nativo con token/campos intactos. GET aceptado rota token y conserva motivo local; limpieza visible restaura campos y registros protegidos, cierre explícito. FamiliaW71+0;65UX/60bugs. El aviso genérico de pérdida y opciones/etiqueta de recibo sin traducir siguen como candidatos separados. Sin certificación completa de roles, traducción, anchuras ni finanzas. Informe SHAe4df2782 y packetSHA918ce12a en evidencia vinculada.
 
-
 ## W80 flujos reales aceptados por alcance — 2026-10-03
 
 CORE-02/03/06/14: Worker3 creó una única corrección21c mediante doble activación nativa y la retiró a Rejected; original19cNeedschanges y corrección20cRejected conservados. Worker5 creó una pareja3min/1c y una retirada conjunta dejó ambosWithdrawn, enlaces/hechos/historia conservados, totales activos restaurados y60minApproved protegidos. Cuatro comandos,97eventos cerrados, revisión Sol SCOPEDPASS/SHIP SHAa4d5fdd6 y recomputación de root. BUG009/033 ganan ramas limitadas; no Submit/privacidadPM/concurrencia/auditoría completa. +0;65UX/60bugs e histórico47alcances/55sinprueba sin cambio. Detalles e IDs en evidencia vinculada.
-
 
 ## W83 fuente revisada; despliegue/prueba nativa pendientes — 2026-10-03
 
 CORE-02/03/06/15: cuatro fuentes congeladas, avisos específicos veraces EN/ES/PT,15categorías canónicas sin cambios con etiquetas registradas y recibo opcional traducido. Formato/lint/TypeScript/diff correctos; dos componentes compilados baseline/final0warnings. Root acepta SHIP independiente SHA0ffab604 y diff completoSHAff370d87. Sin cambio de guards, campos/tokens, permisos ni reglas financieras. Despliegue/navegador/dedup pendientes; avisos+0, traducción candidata máximo1bug todavía sin crédito.65UX/60bugs sin cambio.
 
-
 ## W83 desplegado; prueba nativa pendiente — 2026-10-03
 
 CORE-02/03/06/15: e9af38c2 desplegado13:30:50Madrid mediante retry canónico después de fallo por espacio y rollback verificado. Cuatro hashes congelados correctos, portal/site saludables, jobs/preflight/URLs públicas correctos. Caché Docker0B, cuatro tagsW78 obsoletos sin referencias retirados sinforce, W79rollback conservado y18referencias completas sin cambios. Backup canónico26documentos conservado con snapshots diarios1/2/3Oct; timersactivos y12GiB libres. Evidencia vinculada y ROOT_W83_DEPLOY.md externo. Navegador/dedup todavía pendientes; +0,65UX/60bugs e histórico47alcances/55sinprueba sin cambio.
-
 
 ## W83 prueba nativa aceptada por alcance — 2026-10-03
 
@@ -1522,7 +1471,6 @@ W85-R1 SOURCE SHIP aceptado por root (revisión SHAac8773ff, diff cumulativo SHA
 ## W85 desplegado; prueba nativa en curso — 2026-10-03
 
 CORE-02/03/06/15: commit465786bf/ZIPe44193f81b32 desplegado14:56:31Madrid una vez por proceso canónico serializado, con backup previo, salud local, jobs actor y readiness públicos. Tres fuentes exactas; rollbackW83 y W79 preservados. Cache0B tras liberar7.032GB; prune canónico correcto, snapshots1/2/3octubre y nuevo26docs intactos,18referencias/cuatro volúmenes iguales tras mantenimiento. Timers activos y8.6GiB libres. Sesión de navegador única concedida después; sin operaciones release durante prueba. Sin crédito por despliegue:65UX/61bugs. Evidencia ampliada y ROOT_W85_DEPLOY.md externoSHA57efe580; verificación nativa/dedup pendientes.
-
 
 ## W85 prueba nativa aceptada por alcance — 2026-10-03
 
@@ -1544,16 +1492,13 @@ CORE-02/03/04/06/15: root acepta2UX/1bug tras Owner154eventos/revisiónaec26acd 
 
 W88: dos fuentes cambian solo caption de selección bulk y traduccionesES/PT, no handlers/valores/payload/roles/money/version. Gates scoped y compilación Svelte0warnings; SOURCE SHIP45828827 aceptado por root, deploy/browser pendiente,+0. Tras cierre real: imágenesW79sinreferencias y cuatroZIPfuenteprocesados obsoletos retirados para espacio; actualW87/rollbackW85W83/audits/source/ZIPoriginalW79/Git/datosprivados/18referencias/4volúmenes/3backups intactos. Datos empaquetados antiguos idénticos alZIPW87; noDB, no copiaZIPcompleta afirmada.11.585GB libres, watchers pausados para release; mantenimiento+0.
 
-
 ## W88 desplegado y mantenimiento aceptado — 2026-10-03
 
 CORE-02/03/04/06/15: commit1f8fba27/ZIPfc25afe489a4 desplegado19:51:25Madrid una vez;4713archivos, dos fuentes de caption y20protegidas exactas, salud/site/portal/jobs/readiness correctos. Verificador inicial rechazó formatoZIPnormalGit; fallo conservado y archivo existente validado sin rehacerlo. W87rollbacknuevo+original/W85/W83 exactos. Cache0B tras liberar7.017GB; prune0adicionales, backupsOct1/2/3 con14/24/26documentos.18referencias previas y4volúmenes intactos; servicio ajeno añadido simultáneamente:19referencias finales. Cinco unidades activas, scanner procesando inbox naturalmente y7.917GB libres. Helper de metadata corregido contra conteos históricos reales; stops conservados, sin créditoapp. Recibo root680d5b40/after9331d3cb y ROOT_W88_DEPLOY.md externos. Browsercaption todavía sin prueba; **68UX/64bugs**, histórico47/55/0 sin cambio, +0.
 
-
 ## W88 caption nativo aceptado por alcance — 2026-10-03
 
 CORE-02/03/04/06/15: OwnerEN/ES/PT y FinanceEN, packet61b6a934dd/revisiónSol53091724/recomputaciónroot: checkbox y dos bulkbuttons son únicas diferencias,4cards/7forms restaurados, dirty0 y POSTnegocio0 por pares. Financecrop274×45 solamente; ES/PTFinance/historia/otrosroles sin prueba. Errors1/33/34/43 y close59→blank60→cleanup61 conservados; NoTabs real, no claim de contexto ininterrumpido ni tokens ocultos. Watchers restaurados tras cierre. +0, **68UX/64bugs**, histórico47/55/0 sin cambio.
-
 
 ### Continuación W89/W90 — 2026-10-03
 
@@ -1575,13 +1520,11 @@ CORE-02/03/04/06/15: packet cerrado102eventos `5fea0de7`, revisión independient
 
 30proyecciones completas/32snapshots/6imágenes, hashes y eventos verificados por raíz; identidades frescas y retornos auth suprimidos. Metadata final6POSTauth/0POSTnegocio; errores12/32 y estados13/36 excluidos. NoTabs real102 sin herramientas posteriores, watchers restaurados inmediatamente. **69UX/65bugs**, faltan31UX/35bugs; histórico47/55/0sin cambio. Otras familias fijas/Daily, roles/locales, reglas/versiones inmutables, pagos e historia completa NOT RUN. Restauración de intervalo, no igualdad exactaURL/DOM. Daily y mantenimiento+0; evidencia ampliada vinculada y ROOT_W90_NATIVE_AFTER_ACCEPTANCE.safe.json externo.
 
-
 ### W91 Daily antes / W92 fuente aceptada — 2026-10-03
 
 CORE-02/03/04/06/15: W91 cerrado77eventos, raw4c601990, revisión GPT-6.1 Solf4ba4ea7 y aceptación raíz42a7ce6c: Worker8 octubre2 Daily EUR0.10aprobado/0pendiente; nuevo draft propio3min mueve indebidamente la tarifa a0/0.10 con60min aprobados. Delete normal protegido retira solo el nuevo draft; cuatro registros originales y ambos períodos restaurados. Finance confirma método Daily visible. Inventario registra Create200+4auth, sin par Delete: no cobertura completa de tráfico. NoTabs77 real, watchers restaurados antes de ensamblar.
 
 W92 una fuente/+3−3: prioridad Approved/Locked del grupo Daily conserva una única tarifa;26fuentes protegidas, agrupación/fechas/elegibilidad/divisas/comandos/historia exactos. Formato/lint/TSC database+portal PASS; freeze2c02b754/diff e42a9324/gates c2b6c040 y SOURCE SHIP independiente46391b08 leídos y aceptados por raíz. Interrupción inicial previa a escritura/gates conservada. Push/despliegue/prueba nativa posterior pendientes. Finalización de familia W90+0: **69UX/65bugs**, faltan31/35; histórico47/55/0 sin cambio. Variantes legacy/locked/pending-only, otros grupos/roles/locales/pagos NOT RUN.
-
 
 ### W92 producción y mantenimiento aceptados — 2026-10-03
 
@@ -1611,21 +1554,17 @@ The first post-deployment snapshot caught Docker health starting; the first main
 
 Accepted counts stay **69 UX /65 bugs**, remaining 31/35. W93 earns no credit before its closed deployed native check and fresh dedup review; maximum one conditional UX and zero bugs. Original 47 scoped /55 NOT RUN /0 whole-compound PASS coverage is unchanged.
 
-
 ### W93 Owner date recovery: deployed native acceptance — October 4
 
 CORE-02/03/04/06/15: closed packet `2040c252`, fresh GPT-6.1 Sol review `6d06f812` with 57 checks and root `ROOT_W93_NATIVE_AFTER_ACCEPTANCE.safe.json`. First return after Create 400 focuses the indexed inherited Starts-on date with readable, associated EN/ES/PT remedy; 46 public values and valid sibling override remain. Phone offered-anchor recovery and canonical defaults OFF/zero-row restoration verified. Root verified 65 events / 20 DOM captures / 20 snapshots / eight images and viewed all images. NoTabs 65 and immediate watcher restoration precede assembly. Seven hidden suppressed controls excluded; raw action URLs differ only by literal `lang=en`. Owner desktop rejection and phone anchor only; corrected successful creation, phone Create, cancellation race, other roles and financial history remain NOT RUN. One distinct directed recovery UX; supporting captions/focus/retention/locales/widths not split. **70 UX / 65 bugs**, remaining 30/35; original 47/55/0 unchanged. Application `555c87c0` unchanged by this documentation acceptance.
-
 
 ### W94 historical cross-project pay: scoped native acceptance — October 4
 
 CORE-02/03/04/06/15: 73 native calls with Owner/Finance/Worker 5; packet `4ad39027`, independent Sol review `393728fe` (145 checks), root acceptance `73b1c502`. Finance actual Dedicated pay/cost 2/3c and Timezone 1/1c agree with Worker 5's displayed 2c + 1c = 3c, plus directly displayed 120 approved aggregate minutes in both intervals. EUR 2.00 reimbursements are separate. Root matched 97 manifest files/73 event objects and viewed actual screenshot. All role contexts restored; ordinary NoTabs 73 and immediate watcher restoration precede assembly. Zero business POSTs only in captured passive brackets. Stale returns, first failed Finance identity and timeout preserved. Exact per-source minutes/rate multiplication, computed October 3 pricing, Owner Timezone October 2, assignment IDs and all-role coverage NOT RUN. Existing N01/N02/N16 **+0: 70 UX / 65 bugs**, remaining 30/35; original 47/55/0 unchanged.
 
-
 ### W97 first individualization / W99 pending repair — October 4
 
 CORE-02/03/04/06/15: closed Owner49-call BEFORE, fresh Sol `462d3a24`199checks/root`5bfd13a9` qualify an unexplained first override pay change 0.12→0.05 while explicit sibling0.07 remains. Root decision`d6642ba8` requires copying currently displayed defaults on first customization and remembering previous individual terms. One-component repair`f17c9de2`/staticgates`3605b487`: formatting/lint/TypeScript/diff/zero-warning Svelte compilation passed;26protected sources unchanged, submission payload/CSS unchanged. Supporting PATHfailure preserved/corrected, noappfinding. Fresh Sol source review `21480c00` / 61 checks accepted; push/deploy/native AFTER pending. **+0:70 UX /65bugs**, remaining30/35; maximum conditional1UX0bugs, no saved-money conclusion/all-role promise; original47/55/0 unchanged.
-
 
 ### W99 first individual override: deployed and accepted — October 4
 
@@ -1633,13 +1572,11 @@ CORE-02/03/04/06/15: pushed application `a3f66cdc` / ZIP `f65682c4` deployed onc
 
 Closed Owner AFTER: 71 calls/18 DOM/16 snapshots/seven images all verified and viewed by root. Never-explicit A's first override now uses current 0.12 rather than stale 0.05; complete offered seven terms retained, B's explicit 0.07 preserved. Remembered B and current-defaults-OFF conversion pass as supporting regressions only. Expected ARIA/default-option availability differences and phone overlay/truncation limits remain explicit. Canonical blank/OFF/zero rows and register restored; actual NoTabs 71, immediate ZIP/runtime-cleanup timer restoration and zero browser/profile locks precede assembly. Fresh Sol `7fd8d844` /23 grouped checks and root `ef52bce2` accept exactly +1UX/0bugs: **71 UX /65 bugs**, remaining29/35, original47/55/0 unchanged. No new saved-money, other-role or complete-traffic claim. Evidence and precise NOT RUN limits are in the linked production browser document.
 
-
 ### W100/W102 closed native reverification — 2026-10-04
 
 Deployed W99 `a3f66cdc` remains current. W100 source `01a104d5-d3cb-777c-8133-48758c3fb283` completed Worker Draft→Submit→Owner approval once each; public exact60-minute facts, dated Owner3c/4c pay/cost, exact Finance source and Worker own-pay periods reconcile independently of older2c/3c terms and reimbursements. Closed85 calls, independent Sol19 grouped checks/root`27ed749e`, +0.
 
 W102 retained QA project `01a104e9-4cea-718e-9757-4f0291009b53` saved optional Worker1/2 individual terms, then a later October5 defaults revision. Fresh dated labor/reimbursement/policy readers preserve explicit pay0.12/0.07 and expense rules. Closed72 calls, independent Sol19 grouped records/root`f57b8251`, scoped persistence pass/+0. Non-overridden resolution/calculation remains NOT RUN. Successful defaults save resets Billing Step3→Step1; existing context-retention regression requires repair and is not passed or counted anew. Both sessions restored triggers before assembly and stopped browser tools after actual NoTabs. Passive transport lists are incomplete; image/harness limits are explicit. **71 UX/65 bugs**, remaining29/35; original102 coverage47 scoped/55 NOT RUN/0 whole-compound PASS unchanged. No Client Essential READY claim.
-
 
 ### 2026-10-04 W103 native role checks and W104 context repair
 
@@ -1650,21 +1587,17 @@ W102 retained QA project `01a104e9-4cea-718e-9757-4f0291009b53` saved optional W
 
 CORE-02/03/04/06/15: application4151b0ff/archive451a6f1a completed one canonical deployment at06:28:01Madrid. Scoped maintenance preserves28 source hashes/19 containers/four volumes/retained releases and43 archives/three backups; cache6.96GB reclaimed/0B, later retention removed0. Closed W105 Owner53 calls: same-date defaults rejection and correctedOctober5revision2 both preserve shallow Billing Step3 and unsaved A0.13/B0.07; genuine discard/reload restores saved A0.12/B0.07 and complete original expense terms. Root67pins/53actualobjects/30selected/seven originalimages and independent Sol11groupedchecks8d9db0cb accepted. NoTabs53 and first trigger restoration/Chrome-profile0 precede assembly. Existing context family+0: **71UX/65bugs**, remaining29/35; original102 coverage47scoped/55NOT_RUN/0wholecompoundPASS. Other roles/locales, broad phone/accessibility, advanced/history/arithmetic/final artifacts NOT_RUN. No Client Essential READY claim. Details and actual source/runtime boundaries in linked evidence.
 
-
 ### W106 Chief linked expense and subject duplicate checks — 2026-10-04
 
 CORE-02/03/04/06/15: one closed native91-call session on W1044151b0ff verified genuine Owner delegation, Chief six-minute time and linked EUR0.01 Parking Draft→Submit, Chief expense duplicate rejection, Worker2 exact own readers/crossactor time duplicate rejection, and sole new-grant revoke. Six successes/eight attempts; sources remain Submitted, no approval/payment/privacy claim. Root108 pins/91 objects/79 selected/nine images; fresh Sol12 grouped checks24c57f78/root2ff26b41. NoTabs91 and first trigger restoration/Chrome-profile0 precede assembly. Existing workflow +0; one canceled optional-source resurrection BEFORE bug and one known-project fresh currency preset UX candidate await repair/deployed-after proof, maximum1bug/1UX. Historical date reset/other roles/financial consequences NOT_RUN. Counts **71UX/65bugs**, original47/55/0 unchanged. No Client Essential READY claim. Details in linked production browser evidence.
-
 
 ### W107 fresh expense intake repair pending deployment/afterproof
 
 CORE-02/03/04/06/15: one-component source1982941b reads fresh visible URL prefills and presets known project currency only on fresh opening; explicit foreign currency/failed-form recovery remain. Static gates8ad98c8d pass, zero-warning Svelte/CSS identical,28 protected sources exact. GitHub/deployment/closed native acceptance pending; no credit yet, **71UX/65bugs**, conditional at most1UX/1bug. Original47/55/0 unchanged; no Client Essential READY claim.
 
-
 ### W107 deployed / W108R2 scoped native acceptance — October 4
 
 CORE-02/03/04/06/15: W107d07bdc85/archive4f4dba8d deployed08:15:50Madrid, portal/sitehealthy/jobsrunning;29sourcepins/19containerrefs/fourvolumes preserved. Cache6.913GB reclaimed/0B; additionalbackupprune0, daily3snapshots retained. Fresh sole W108R2 closed64calls, four successes/fourattempts: genuine delegation, marked12min Draft→Submit, onlynew grantRevoked. Offered linked intakeEUR; explicitUSDretained; acceptedCancelcleansURL and generic same-page reopen clearsoptionalTime/presetsEUR; deliberatelink/discard controlalso passes. NoExpenseSave/financialconsequence. Rootall64objects+originalimage; independentSol11groupreview6ac3ac70/root835e42ca accept **+1UX/+1bug →72UX/66bugs**, remaining28/34. NoTabs64 and firsttimerrestoration/Chrome-profile0 precedeassembly. Imagecurrencybelowcrop/033emptytarget/fourselectorerrors preserved; nonToday390otherroles/locales/failure-recoveryNOT_RUN. Original47/55/0 unchanged; no Client EssentialREADY. W109date-local error association repair source/staticgates ready, deployment/nativeafterpending/+0. See linked production browser evidence.
-
 
 ### W109 deployed; W109/W110 closed native checks; W112/W113 candidates — October 4
 
@@ -1733,7 +1666,6 @@ The closed AFTER used **93 calls = 61 investigation + 32 restoration**, within s
 - Worker 1 Time, worker 2 My Pay and chief Crew were checked in one private browser session; no customer-rate leakage in worker screens. Original BBS/Junkers project/member/source/stream/invoice hashes match the pre-exercise baselines.
 - English manual: 23 A4 pages, 16 real production screenshots, explicit separate client expense invoice and approval/issuance/sending path. Fictional drafts remain unissued/unsent/unpaid. PDF layout checked; bank footers and all credentials/cookies excluded. Help catalog unit tests: four passed; portal typecheck passed. Catalog restricts this financial training guide to owner and Finance.
 
-
 ## Scoped BBS Owner documentation and workflow verification — 2026-10-05
 
 - User authorized parallel browser agents, publication to `main` and production deployment. This scope extends the BBS lab into an Owner operating reference; it does not certify universal Owner coverage or a new global `CLIENT_READY` verdict.
@@ -1744,7 +1676,6 @@ The closed AFTER used **93 calls = 61 investigation + 32 restoration**, within s
 - Accounting Pack October 1–5 is blocked by an issuer revision effective-date gap at the period cut; the UI retains dates and offers support. Genuine accountant approval, customer signatures, external dispatch/bank transfers and broader unexecuted Owner lifecycles remain explicit boundaries. Production business records are not populated with synthetic approvals/payments.
 - Evidence and post-deployment status: [BBS Owner completion evidence](docs/evidence/bbs-owner-completion-20261005/README.md). Manual artifact integrity/layout: [verification](docs/manuals/bbs-manual-verification.json).
 
-
 ### Supplemental BBS course and Accounting completion — 2026-10-05 UTC
 
 - Final 203-page course distinguishes live navigation, required isolated access and separate snapshots; preserves six canonical annex pages and all six original attachments. Landscape native-cell XLSX views and the costing/compensation reconciliation are retained.
@@ -1753,7 +1684,6 @@ The closed AFTER used **93 calls = 61 investigation + 32 restoration**, within s
 - Synthetic acceptance → invalidation → replacement report Ready/download preserves original evidence. Future Technical PDF details and current human UI are corrected; historical stored PDFs remain unchanged. Actual rebuilt 390px sign-off/report page has no overflow, errors or business POSTs with normal CSP.
 - Supplier/access offboarding, zero-work project closing/archive, planning/availability/expertise, private financial document access denial and archive, collection reversal/issued credit/void, email consent/queue/failure/retry and weekly late-source boundaries have scoped browser receipts. Real SMTP inbox delivery, genuine acceptance/accountant approval/bank transfers and unexecuted general Owner contracts are not claimed.
 - Final workspace typecheck, eleven-file ESLint/formatting and Portal/jobs builds passed. Canonical production deployment/backup/smoke and protected financial table hashes are recorded in the [evidence ledger](docs/evidence/bbs-owner-completion-20261005/README.md). No global Client Essential verdict is promoted by this scoped delivery.
-
 
 ## Scoped BBS role manuals delivery — 2026-10-06
 
@@ -1792,7 +1722,6 @@ The closed AFTER used **93 calls = 61 investigation + 32 restoration**, within s
 - All eight strict role PDFs pass required text/bookmark/metadata, geometry and source-image hash checks; seven have no embedded attachments. Owner retains six unchanged native financial attachments and six unchanged invoice annex content streams. Independent final review found no remaining material confidentiality/policy failures; scoped tests and native runtime evidence are recorded in the restricted review evidence below.
 - This is a bounded documentation/presentation revision, not a new global Client Essential acceptance verdict or certification of every deployed permission/output. Historical QA reports and legacy guides remain restricted. Production deployment/download and business-preservation evidence is added after canonical release.
 - [Revision evidence](docs/evidence/bbs-confidentiality-20261007/README.md), [manuals](docs/manuals/README.md).
-
 
 ### Scoped project/client and guided-recovery release — 2026-10-08
 
@@ -1841,3 +1770,17 @@ portal healthy, jobs running, original five timers active, retained daily backup
 integrity/three-day coverage verified. Public login/recovery at 360/1440 passes
 without writes/JavaScript errors; anonymous composer returns 401 with no financial sources.
 Production receipt: `docs/evidence/project-invoice-journey/production-deployment.json`.
+
+### Project action destinations and containing drafts — 9 October 2026
+
+User-requested scoped CORE-03/10 UX follow-up: Work shortcuts center the selected
+form/section after router focus reset, preserve project scope and native Back;
+reserved sources expose their actual containing draft/invoice, canonical editor
+and explicit Owner discard with reason/version. Existing authorization, cap,
+audit and immutable-history protections remain. No schema migration.
+Unfiltered composition integration/invariants: 27/27 pass. Five browser cases
+cover shortcuts/SPA/Back at 360/390/768/1440 and linked draft view/edit/discard plus
+issued protection, with one browser worker and disposable fixture mutations.
+Portal/database TypeScript, scoped ESLint/format and independent final review pass.
+Evidence: `docs/evidence/project-invoice-journey/action-navigation-and-linked-drafts.md`;
+live deployment is recorded separately after rollout.

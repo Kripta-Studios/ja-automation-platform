@@ -5,7 +5,8 @@
   import { page } from '$app/stores';
   import { base } from '$app/paths';
   import { beforeNavigate, afterNavigate, goto } from '$app/navigation';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
+  import { centerNavigationTarget } from '$lib/portal/ui/navigation-target';
   import { installWorkspaceNavigation } from '$lib/portal/ui/workspace-navigation';
   import { createAuthClient } from 'better-auth/client';
   import PortalChrome from '$lib/PortalChrome.svelte';
@@ -56,6 +57,7 @@
   let origin = $state<string | null>(null);
   let originHasNativeHistory = $state(false);
   let fallbackBackInProgress = false;
+  let destinationNavigation = 0;
   const returnKey = (url: URL) => `ja:return-to:${url.pathname}${url.search}`;
   function rememberOrigin(destination: URL, source: URL): void {
     try {
@@ -87,6 +89,7 @@
     }
   }
   beforeNavigate(({ from, to, type }) => {
+    destinationNavigation += 1;
     if (
       !fallbackBackInProgress &&
       type !== 'popstate' &&
@@ -100,12 +103,42 @@
       rememberOrigin(to.url, from.url);
     }
   });
-  afterNavigate(({ to }) => {
+  afterNavigate(({ to, type }) => {
     menuOpen = false;
     if (!origin && to?.url) {
       origin = rememberedOrigin(to.url);
       originHasNativeHistory = false;
     }
+    // Run after Kit's scroll reset, including navigation that reuses PortalShell.
+    // Browser Back retains its own scroll restoration.
+    if (type === 'popstate' || !to?.url) return;
+    const destinationUrl = to.url.href;
+    const navigation = destinationNavigation;
+    const action = to.url.searchParams.get('action');
+    let targetId: string | undefined;
+    if (
+      [
+        '#project-assignment',
+        '#project-person-conditions',
+        '#project-reports',
+        '#invoice-draft-details',
+      ].includes(to.url.hash)
+    )
+      targetId = to.url.hash.slice(1);
+    else if (to.url.pathname === `${base}/app/projects` && action === 'assign-worker')
+      targetId = 'project-assignment';
+    if (!targetId) return;
+    void tick().then(() => {
+      // Kit resets fragment focus in a queued task using location.replace(),
+      // which can scroll again. Center after that task and the next layout.
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          if (navigation !== destinationNavigation || location.href !== destinationUrl) return;
+          const target = document.getElementById(targetId);
+          if (target) centerNavigationTarget(target);
+        });
+      }, 0);
+    });
   });
   onMount(() => {
     if (!origin) {

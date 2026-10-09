@@ -102,6 +102,81 @@ function setup(unit: 'hourly' | 'daily' | 'weekly' = 'hourly', combined = false)
 }
 
 describe('explicit canonical invoice composition', () => {
+  it('links reserved sources to their draft without writes and releases the link when Owner discards it', () => {
+    const f = setup();
+    const chosen = f.time();
+    const other = f.time('2026-08-21');
+    const draft = f.repository.createSelectedInvoiceDraft(f.finance, {
+      ...f.scope,
+      sources: [chosen],
+      requestKey: 'linked-draft',
+    });
+    const stored = f.sqlite.prepare('SELECT * FROM invoice WHERE id=?').get(draft.id)!;
+    const auditCount = f.sqlite.prepare('SELECT count(*) count FROM audit_event').get();
+    const inventory = f.repository.invoiceCompositionSources(f.finance, f.scope);
+    expect(inventory.sources.find((source) => source.id === chosen.id)).toMatchObject({
+      billingState: 'draft',
+      containingInvoice: {
+        id: draft.id,
+        state: 'draft',
+        number: null,
+        version: Number(stored.version),
+      },
+    });
+    expect(
+      inventory.sources.find((source) => source.id === other.id)?.containingInvoice,
+    ).toBeNull();
+    expect(f.sqlite.prepare('SELECT * FROM invoice WHERE id=?').get(draft.id)).toEqual(stored);
+    expect(f.sqlite.prepare('SELECT count(*) count FROM audit_event').get()).toEqual(auditCount);
+    f.repository.deleteInvoice(f.owner, draft.id, 'Discard selected draft', Number(stored.version));
+    expect(
+      f.repository
+        .invoiceCompositionSources(f.finance, f.scope)
+        .sources.find((source) => source.id === chosen.id),
+    ).toMatchObject({ containingInvoice: null, billingState: 'unlocked' });
+  });
+
+  it.each(['cancelled', 'superseded'])('does not link a source to a %s invoice', (state) => {
+    const f = setup();
+    const chosen = f.time();
+    const draft = f.repository.createSelectedInvoiceDraft(f.finance, {
+      ...f.scope,
+      sources: [chosen],
+      requestKey: `excluded-link-${state}`,
+    });
+    f.sqlite.prepare('UPDATE invoice SET state=? WHERE id=?').run(state, draft.id);
+    expect(
+      f.repository
+        .invoiceCompositionSources(f.finance, f.scope)
+        .sources.find((source) => source.id === chosen.id),
+    ).toMatchObject({ containingInvoice: null, billingState: 'unlocked' });
+  });
+
+  it('does not expose another project invoice through a mismatched source reservation', () => {
+    const f = setup();
+    const chosen = f.time();
+    const draft = f.repository.createSelectedInvoiceDraft(f.finance, {
+      ...f.scope,
+      sources: [chosen],
+      requestKey: 'cross-project-link',
+    });
+    const otherProject = f.repository.createProject(f.owner, {
+      costCenterCode: 'OTHER-INVOICE-LINK-2',
+      clientId: f.client.id,
+      name: 'Other project',
+      timezone: 'Europe/Madrid',
+      currency: 'EUR',
+      billingModel: 'tm',
+      startDate: '2026-01-01',
+    });
+    f.sqlite.prepare('UPDATE invoice SET project_id=? WHERE id=?').run(otherProject.id, draft.id);
+    expect(
+      f.repository
+        .invoiceCompositionSources(f.finance, f.scope)
+        .sources.find((source) => source.id === chosen.id),
+    ).toMatchObject({ containingInvoice: null, billingState: 'unlocked' });
+  });
+
   it('quotes exactly the chosen sources and performs no persistent preview writes', () => {
     const f = setup();
     const first = f.time('2026-08-20', 30);
@@ -438,6 +513,14 @@ describe('explicit canonical invoice composition', () => {
       'Refresh the selected approved sources',
     );
     expect(replacement.id).not.toBe(draft.id);
+    expect(
+      f.repository
+        .invoiceCompositionSources(f.finance, f.scope)
+        .sources.find((source) => source.id === chosen.id),
+    ).toMatchObject({
+      billingState: 'draft',
+      containingInvoice: { id: replacement.id, state: 'draft', number: null },
+    });
     expect(
       f.sqlite.prepare('SELECT subtotal_minor FROM invoice WHERE id=?').get(replacement.id),
     ).toEqual({ subtotal_minor: 7001 });

@@ -1238,27 +1238,27 @@
         <div class="billing-action-row">
           {#if isOwner}<a
               class="secondary-button"
-              href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+              href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(String(project.id))}&lang=${locale}#project-assignment`}
               >{journeyText(locale, 'addPeople')}</a
             >{/if}
           <a
             class="secondary-button"
-            href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=billing&billingStep=people&lang=${locale}`}
+            href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=billing&billingStep=people&lang=${locale}#project-person-conditions`}
             >{journeyText(locale, 'conditions')}</a
           >
           <a
             class="secondary-button"
-            href={`${base}/app/time?project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+            href={`${base}/app/time?action=log-time&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
             >{journeyText(locale, 'addHours')}</a
           >
           <a
             class="secondary-button"
-            href={`${base}/app/expenses?project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+            href={`${base}/app/expenses?action=record-expense&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
             >{journeyText(locale, 'addExpenses')}</a
           >
           <a
             class="secondary-button"
-            href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=reports&lang=${locale}`}
+            href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=reports&lang=${locale}#project-reports`}
             >{journeyText(locale, 'reports')}</a
           >
         </div>
@@ -1657,7 +1657,12 @@
         aria-labelledby="project-tab-reports"
         tabindex="0"
       >
-        <section class="project-surface report-surface" aria-labelledby="reports-title">
+        <section
+          id="project-reports"
+          class="project-surface report-surface"
+          aria-labelledby="reports-title"
+          tabindex="-1"
+        >
           <div class="surface-heading">
             <div>
               <p class="portal-kicker">{t('REPORTS & FILES')}</p>

@@ -89,6 +89,40 @@ function fixture() {
 }
 
 describe('selected invoice historical and allocation invariants', () => {
+  it('excludes a voided invoice link while retaining the historical billed source state', () => {
+    const { f, finance, owner, source, rule } = fixture();
+    const chosen = source('2026-08-20');
+    const scope = {
+      projectId: f.project.id,
+      billingRuleId: rule.id,
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+    };
+    const draft = f.repository.createSelectedInvoiceDraft(finance, {
+      ...scope,
+      sources: [chosen],
+      requestKey: 'voided-link-invariant',
+    });
+    f.repository.approveInvoiceDraft(finance, draft.id);
+    f.repository.issueInvoice(finance, draft.id);
+    f.repository.voidInvoice(
+      owner,
+      draft.id,
+      'Void invoice for linkage test',
+      'voided-link-request',
+    );
+    expect(
+      f.repository
+        .invoiceCompositionSources(finance, scope)
+        .sources.find((row) => row.id === chosen.id),
+    ).toMatchObject({ containingInvoice: null, billingState: 'invoiced' });
+    expect(f.sqlite.prepare('SELECT invoice_id FROM time_entry WHERE id=?').get(chosen.id)).toEqual(
+      {
+        invoice_id: draft.id,
+      },
+    );
+  });
+
   it('issues only selected sources, keeps retry identity and issued selection immutable, and allows the next same-period invoice', () => {
     const { f, finance, source, rule } = fixture();
     const chosen = source('2026-08-20');
@@ -105,6 +139,17 @@ describe('selected invoice historical and allocation invariants', () => {
     f.repository.approveInvoiceDraft(finance, draft.id);
     expect(f.repository.issueInvoice(finance, draft.id)).toMatchObject({ issued: true });
     const before = f.sqlite.prepare('SELECT * FROM invoice WHERE id=?').get(draft.id)!;
+    const inventory = f.repository.invoiceCompositionSources(finance, input);
+    expect(inventory.sources.find((row) => row.id === chosen.id)).toMatchObject({
+      billingState: 'issued',
+      containingInvoice: {
+        id: draft.id,
+        state: 'issued',
+        number: String(before.invoice_number),
+        version: Number(before.version),
+      },
+    });
+    expect(inventory.sources.find((row) => row.id === other.id)?.containingInvoice).toBeNull();
     expect(f.sqlite.prepare('SELECT invoice_id FROM time_entry WHERE id=?').get(chosen.id)).toEqual(
       { invoice_id: draft.id },
     );
@@ -162,6 +207,7 @@ describe('selected invoice historical and allocation invariants', () => {
     const inventory = f.repository.invoiceCompositionSources(finance, scope);
     expect(inventory.sources.find((row) => row.id === chosen.id)).toMatchObject({
       billingState: 'partially_billed',
+      containingInvoice: { id: invoice.id, state: 'issued' },
       remainingAmountMinor: '7345',
       blockers: expect.arrayContaining([
         { code: 'source_requires_remaining_period_billing', sourceId: chosen.id },

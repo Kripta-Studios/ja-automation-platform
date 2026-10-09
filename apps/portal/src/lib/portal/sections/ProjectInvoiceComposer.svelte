@@ -130,6 +130,17 @@
       (inventory?.sources ?? []).map((source) => [source.workerId, source.workerName]),
     ).entries(),
   ]);
+  const containingInvoices = $derived([
+    ...new Map(
+      (inventory?.sources ?? []).flatMap((source) =>
+        source.containingInvoice
+          ? [[source.containingInvoice.id, source.containingInvoice] as const]
+          : [],
+      ),
+    ).values(),
+  ]);
+  const containingInvoiceHref = (id: string, edit = false) =>
+    `${base}/app/billing/invoices/${encodeURIComponent(id)}?lang=${locale}${edit ? '&edit=1#invoice-draft-details' : ''}`;
   const reserved = (source: InvoiceCompositionSource) =>
     !['unlocked', 'locked'].includes(source.billingState);
   const needsApproval = (source: InvoiceCompositionSource) =>
@@ -427,7 +438,11 @@
         schedulePoll();
       }, 2500);
   }
-  async function saveRequirement(event: SubmitEvent, action: string) {
+  async function saveRequirement(
+    event: SubmitEvent,
+    action: string,
+    successMessage = text('done'),
+  ) {
     event.preventDefault();
     if (busy || formBusy || loadedScope !== currentScope) return;
     const element = event.currentTarget as HTMLFormElement;
@@ -443,7 +458,7 @@
       const result = deserialize(await response.text());
       if (result.type === 'success') {
         await loadRecords(true, false);
-        notice = text('done');
+        notice = successMessage;
       } else if (result.type === 'failure') feedback = result.data as Feedback;
       else feedback = { code: 'INVOICE_COMPOSER_UNAVAILABLE' };
     } catch {
@@ -622,6 +637,74 @@
           >
         </div>{/if}
       {#if inventory && !invoice}
+        {#if containingInvoices.length}
+          <section class="composer-linked-invoices" aria-label={text('linkedInvoices')}>
+            <h3>{text('linkedInvoices')}</h3>
+            {#each containingInvoices as linked (linked.id)}
+              <article class="composer-record" data-containing-invoice={linked.id}>
+                <strong
+                  >{linked.number ??
+                    `${text(['draft', 'approved'].includes(linked.state) ? 'draftLabel' : 'invoiceLabel')} · ${linked.id.slice(0, 8)}`}</strong
+                >
+                <p>
+                  {text(
+                    linked.state === 'draft'
+                      ? 'linkedDraft'
+                      : linked.state === 'approved'
+                        ? 'linkedApproved'
+                        : 'linkedIssued',
+                  )}
+                </p>
+                <div class="composer-actions">
+                  <a class="secondary-button" href={containingInvoiceHref(linked.id)}
+                    >{text(
+                      ['draft', 'approved'].includes(linked.state) ? 'viewDraft' : 'viewInvoice',
+                    )}</a
+                  >
+                  {#if linked.state === 'draft'}
+                    <a class="secondary-button" href={containingInvoiceHref(linked.id, true)}
+                      >{text('editDraft')}</a
+                    >
+                  {/if}
+                </div>
+                {#if role === 'owner_admin' && ['draft', 'approved'].includes(linked.state)}
+                  <details>
+                    <summary>{text('discardDraft')}</summary>
+                    <p>{text('discardExplanation')}</p>
+                    <form
+                      method="POST"
+                      action={`${base}/app/billing?/deleteInvoice`}
+                      onsubmit={(event) =>
+                        saveRequirement(
+                          event,
+                          `${base}/app/billing?/deleteInvoice`,
+                          text('draftDiscarded'),
+                        )}
+                    >
+                      <input type="hidden" name="invoiceId" value={linked.id} />
+                      <input type="hidden" name="version" value={linked.version} />
+                      <label
+                        >{text('discardReason')}<input
+                          name="reason"
+                          minlength="3"
+                          maxlength="2000"
+                          required
+                          disabled={busy || formBusy || uncertainCreate}
+                        /></label
+                      >
+                      <button
+                        type="submit"
+                        class="secondary-button"
+                        disabled={busy || formBusy || uncertainCreate || !selectionCurrent}
+                        >{text('discardConfirm')}</button
+                      >
+                    </form>
+                  </details>
+                {/if}
+              </article>
+            {/each}
+          </section>
+        {/if}
         <div class="composer-fields composer-filters">
           <label
             >{text('worker')}<select bind:value={worker} disabled={busy || formBusy}
@@ -695,7 +778,15 @@
               {#each source.blockers as reason}<p class="composer-blocker">
                   {reasonText(
                     reason.code,
-                  )}{#if !['pending_time_approval', 'pending_time_finance_review', 'pending_expense_approval', 'pending_expense_finance_review'].includes(reason.code)}
+                  )}{#if reason.code === 'source_already_reserved' && source.containingInvoice}
+                    <a href={containingInvoiceHref(source.containingInvoice.id)}
+                      >{text(
+                        ['draft', 'approved'].includes(source.containingInvoice.state)
+                          ? 'viewDraft'
+                          : 'viewInvoice',
+                      )}</a
+                    >
+                  {:else if !['pending_time_approval', 'pending_time_finance_review', 'pending_expense_approval', 'pending_expense_finance_review'].includes(reason.code)}
                     <a href={blockerHref(reason)}>{text('solve')}</a>{/if}
                 </p>{/each}
               {#if source.type === 'expense' && source.classificationState === 'unclassified' && inventory.expensePolicies?.some((policy) => policy.sourceId === source.id && policy.available)}
@@ -728,7 +819,16 @@
                     source.remainingCurrency ?? source.currency,
                     locale,
                   )}</small
-                >{:else if reserved(source)}<small>{text('billed')}</small
+                >{:else if reserved(source)}<small
+                  >{source.containingInvoice
+                    ? text(
+                        source.containingInvoice.state === 'draft'
+                          ? 'linkedDraft'
+                          : source.containingInvoice.state === 'approved'
+                            ? 'linkedApproved'
+                            : 'linkedIssued',
+                      )
+                    : text('billed')}</small
                 >{:else if needsApproval(source)}<small>{text('pending')}</small
                 >{:else if source.blockers.length === 0}<small>{text('ready')}</small>{/if}
             </article>

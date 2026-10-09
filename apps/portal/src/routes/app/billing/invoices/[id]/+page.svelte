@@ -1108,9 +1108,11 @@
   {#if invoiceState === 'draft' && canEditDraft}
     {#key `${invoiceId}:${invoice.version}:${draftDetailsForm?.correlationId ?? ''}`}
       <details
+        id="invoice-draft-details"
+        tabindex="-1"
         bind:this={draftEditor}
         class="no-print draft-edit-details"
-        open={Boolean(draftDetailsProblem)}
+        open={Boolean(draftDetailsProblem) || $page.url.searchParams.get('edit') === '1'}
       >
         <summary class="draft-edit-summary"
           >⚙ {t('Edit invoice dates, payment terms and details')}</summary

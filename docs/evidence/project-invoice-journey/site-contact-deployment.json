@@ -1,0 +1,66 @@
+{
+  "runtime_commit": "4a10ea023dcbf1953125dc5a6369981999764eb1",
+  "runtime_tag": "workflow-4a10ea023dcbf1953125",
+  "previous_release": "/opt/jaautomation/releases/ja-automation-workflow-7048c449ac708e6b5c52",
+  "started_at": "2026-10-09T13:13:41.473010+00:00",
+  "backup": {
+    "backupPath": "/var/backups/jaautomation/2026-10-09T003001020Z-a6af4b91-b73f-48b3-a37b-afa346e3163f",
+    "verifiedAt": "2026-10-09T09:36:31.285Z",
+    "createdAt": "2026-10-09T00:30:05.253Z",
+    "databaseSha256": "05cb58ec35f6d114dff7faed91fef0652690e7578b76c9043b9274af0387e2f3",
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "documentCount": 34,
+    "history": {
+      "snapshotCount": 3,
+      "observedDays": 3,
+      "requiredDays": 3,
+      "coverageComplete": true,
+      "missingDays": [],
+      "scope": "Manifest dates only; integrity verified for latest snapshot"
+    }
+  },
+  "migrations_unchanged": true,
+  "business_mutations_performed": false,
+  "browser_cases_passed": 4,
+  "domain_cases_passed": 10,
+  "database_integrity": [["ok"]],
+  "foreign_key_violations": 0,
+  "migration_version": 76,
+  "portal_health": "healthy",
+  "jobs_running": true,
+  "completed_at": "2026-10-09T13:14:23.268622+00:00",
+  "public_smoke": {
+    "project_contact_js": {
+      "path": "/j-aautomation/_app/immutable/nodes/23.Bq0r2L6U.js",
+      "http": 200,
+      "matches_final_build": true,
+      "sha256": "b76f7d520e0c56b50c152e2f15b16967b6787caa9b6da6b80a9dd3d87381a073"
+    },
+    "project_contact_css": {
+      "path": "/j-aautomation/_app/immutable/assets/23.C6gqurZx.css",
+      "http": 200,
+      "matches_final_build": true,
+      "sha256": "65140e43edc0781c8d0cbac80062f8f348aa29f77ba2773d5201162bc910a4ff"
+    },
+    "public_login_http": 200
+  },
+  "portal_build_handler_sha256": "1d465106933b3855182b407e12df295b35609cefcb701d4c44f808703b5a66a8",
+  "active_timers": [
+    "jaautomation-zip-deploy.timer",
+    "jaautomation-jobs.timer",
+    "jaautomation-backup.timer",
+    "jaautomation-backup-prune.timer",
+    "jaautomation-runtime-cleanup.timer"
+  ],
+  "roles_tested": [
+    "owner_admin",
+    "finance_admin",
+    "project_manager",
+    "auditor_read_only",
+    "worker (existing restricted CRM projection)"
+  ],
+  "viewports_tested": ["360x800", "390x844", "768x1024", "1440x900"],
+  "schema_change": "none; existing migration 76 retained",
+  "rollback_strategy": "Previous source/image retained; code rollback only, database and files volumes preserved"
+}

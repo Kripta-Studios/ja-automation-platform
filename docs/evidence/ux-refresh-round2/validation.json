@@ -1,0 +1,44 @@
+{
+  "scope": "Additional100 distinct improvements; 200 total with first ledger",
+  "baselineSource": "27e57872",
+  "productionBaseline": "workflow-06bdf74560f71ee0c488",
+  "status": "Verified candidate; deployment pending",
+  "count": 100,
+  "distribution": {
+    "projectsClients": 30,
+    "timeExpensesReports": 30,
+    "financeNavigation": 40
+  },
+  "browser": {
+    "additionalScenariosPassed": 104,
+    "originalScenariosPassed": 92,
+    "freshLifecyclePassed": 3,
+    "artifactExportPassed": 8,
+    "widths": [360, 390, 768, 1440],
+    "totalDistinctScenarios": 207,
+    "finalAccountingLayoutLog": "round2-projects/release-accounting-ui-final.log",
+    "accountingTransportRetry": "One desktop API request reset its connection; unchanged targeted scenario passed (release-accounting-retry.log). No preview application error or outage."
+  },
+  "automated": {
+    "regressionInvariantUnitPassed": 101,
+    "eslint": "passed",
+    "portalTypecheck": "passed",
+    "previewBuild": "passed",
+    "fieldActionOptionRemovals": 0,
+    "preExistingDiagnosticLimits": "Extra Svelte diagnostics retain 84 baseline errors (candidate error count unchanged); two unrelated literal-source assertions reproduce on clean baseline (8 passed/2 failed). Normal portal TypeScript and scoped gates pass."
+  },
+  "preservation": [
+    "Custom billing cadence and period configuration",
+    "Per-worker billing rates, internal costs, compensation and expense conditions",
+    "Exact money, duplicate-billing protection, explicit approval/issuance and issued snapshots",
+    "RBAC and existing server DTO boundaries; no migration"
+  ],
+  "evidenceRoot": "/home/kripta/ja-ux-evidence-20261011",
+  "screenshots": "screenshots/ (18 selected disposable-fixture captures)",
+  "independentReview": {
+    "verdict": "ship",
+    "reviewMode": "Independent read-only source and browser evidence review",
+    "findings": "No blocking source or UX regressions remain. 200 substantive changes; no removed fields/actions/options. Final accounting visibility correction reverified20/20. Expense success/failure/idempotency and discard checks passed. Financial and historical protections retained."
+  },
+  "deployment": "production-deployment.json (created after verified rollout)"
+}

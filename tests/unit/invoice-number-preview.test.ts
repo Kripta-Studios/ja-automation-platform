@@ -80,6 +80,20 @@ describe('read-only draft invoice numbering', () => {
     expect(doc.bodyHtml.match(/Número previsto · no reservado/g)).toHaveLength(2);
     expect(doc.bodyHtml).toContain('JA-2026-000017');
     expect(doc.bodyHtml.match(/data-invoice-edit="invoiceNumber"/g)).toHaveLength(2);
+    const numberingLabels = Array.from(
+      doc.bodyHtml.matchAll(/data-invoice-edit="invoiceNumber" aria-label="([^"]+)"/g),
+      (match) => match[1],
+    );
+    expect(new Set(numberingLabels).size).toBe(2);
+    expect(numberingLabels.every((label) => label.includes('N.º DE FACTURA'))).toBe(true);
+    const editableDoc = renderInvoiceDocument(
+      { ...snapshot, legalEntity: { legalName: 'Issuer <name>', address: 'Site address' } },
+      { editable: true },
+    );
+    expect(editableDoc.bodyHtml).not.toContain('aria-label="Editar: issuingAuthority');
+    expect(editableDoc.bodyHtml).toContain('Editar: Entidad emisora · nombre del emisor');
+    expect(editableDoc.bodyHtml).toContain('Editar: Entidad emisora · dirección del emisor');
+    expect(editableDoc.bodyHtml).toContain('Issuer &lt;name&gt;');
     const issued = invoiceDocumentSnapshot(
       {
         invoice: {

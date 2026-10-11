@@ -1,7 +1,7 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { deserialize } from '$app/forms';
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { SvelteMap, SvelteSet } from 'svelte/reactivity';
   import { SectionCard } from '../ui';
   import ProblemNotice from '../ui/ProblemNotice.svelte';
@@ -13,6 +13,16 @@
   import type { InvoiceCompositionSource, InvoiceCompositionSourceRef } from '@ja/database';
 
   type Rule = Record<string, unknown>;
+  type InvoiceComposerScope = {
+    billingRuleId: string;
+    periodStart: string;
+    periodEnd: string;
+  };
+  type InvoiceComposerState = {
+    canSwitchMode: boolean;
+    hasUnresolvedOperation: boolean;
+    scope: InvoiceComposerScope;
+  };
   type Reason = { code: string; sourceId?: string };
   type Issuing = {
     issues: string[];
@@ -65,19 +75,31 @@
   let {
     projectId,
     rules,
+    projects = [],
+    projectTimezone = '',
     locale = 'en',
     role,
     userId,
     initialRuleId = '',
     initialDate = '',
+    initialPeriodStart = '',
+    initialPeriodEnd = '',
+    onScopeChange = (_scope: InvoiceComposerScope) => {},
+    onStateChange = (_state: InvoiceComposerState) => {},
   }: {
     projectId?: string;
     rules: readonly Rule[];
+    projects?: readonly Rule[];
+    projectTimezone?: string;
     locale?: PortalLocale;
     role: string;
     userId: string;
     initialRuleId?: string;
     initialDate?: string;
+    initialPeriodStart?: string;
+    initialPeriodEnd?: string;
+    onScopeChange?: (scope: InvoiceComposerScope) => void;
+    onStateChange?: (state: InvoiceComposerState) => void;
   } = $props();
   const text = (key: Parameters<typeof journeyText>[1]) => journeyText(locale, key);
   const supportedRules = $derived(
@@ -93,6 +115,25 @@
   let end = $state('');
   const rule = $derived(supportedRules.find((candidate) => String(candidate.id) === ruleId));
   const currentProjectId = $derived(projectId ?? String(rule?.project_id ?? ''));
+  const selectedProjectTimezone = $derived.by(() => {
+    const explicit = String(projectTimezone ?? '').trim();
+    if (explicit) return explicit;
+    const project = projects.find((candidate) => String(candidate.id) === currentProjectId);
+    return String(
+      project?.timezone ??
+        project?.project_timezone ??
+        project?.projectTimezone ??
+        rule?.timezone ??
+        rule?.project_timezone ??
+        rule?.projectTimezone ??
+        '',
+    ).trim();
+  });
+  const currentProjectName = $derived(
+    String(
+      rule?.project_name ?? rule?.projectName ?? rule?.project_number ?? rule?.projectNumber ?? '',
+    ),
+  );
   let inventory = $state<Inventory | null>(null);
   let selected = $state<string[]>([]);
   let preview = $state<Preview | null>(null);
@@ -104,6 +145,7 @@
   let busy = $state(false);
   let worker = $state('');
   let stateFilter = $state('all');
+  let filtersOpen = $state(true);
   let feedback = $state<Feedback | null>(null);
   let notice = $state('');
   let requestKey = $state('');
@@ -119,6 +161,7 @@
   let numberingFrom = $state('');
   let accountantDate = $state('');
   let formBusy = $state(false);
+  let scopeSyncing = $state(false);
   let polling: ReturnType<typeof setTimeout> | undefined;
   const endpoint = `${base}/app/api/billing/composer`;
   const key = (source: InvoiceCompositionSourceRef) => `${source.type}:${source.id}`;
@@ -180,6 +223,12 @@
     journeyReason(locale, code) ?? portalText(locale, billingReadinessMessageKey(code));
   const setupHref = $derived(
     `${base}/app/projects/${encodeURIComponent(currentProjectId)}?tab=billing&billingStep=people&lang=${locale}`,
+  );
+  const timeHref = $derived(
+    `${base}/app/time?action=log-time&project=${encodeURIComponent(currentProjectId)}&lang=${locale}`,
+  );
+  const expenseHref = $derived(
+    `${base}/app/expenses?action=record-expense&project=${encodeURIComponent(currentProjectId)}&lang=${locale}`,
   );
   const blockerHref = (reason: Reason) =>
     reason.code === 'source_requires_remaining_period_billing'
@@ -246,6 +295,85 @@
           : Number(selectedRule.monthly_cutoff_day),
     };
   }
+  function cadenceText(cadence: string): string {
+    const labels = {
+      every_14_days: 'cadenceEvery14Days',
+      biweekly: 'cadenceEvery14Days',
+      semi_monthly: 'cadenceSemiMonthly',
+      'semi-monthly': 'cadenceSemiMonthly',
+      weekly: 'cadenceWeekly',
+      monthly: 'cadenceMonthly',
+      custom: 'cadenceCustom',
+      milestone: 'cadenceMilestone',
+      manual: 'cadenceManual',
+    } as const;
+    const key = labels[cadence as keyof typeof labels];
+    return key ? text(key) : cadence.trim() || text('cadenceManual');
+  }
+  function ruleStreamText(candidate: Rule): string {
+    const streamType = String(candidate.stream_type ?? candidate.streamType ?? '').trim();
+    return text(
+      streamType === 'expense'
+        ? 'expense'
+        : streamType === 'milestone'
+          ? 'milestoneStream'
+          : streamType === 'other'
+            ? 'otherStream'
+            : Number(candidate.include_expenses ?? candidate.includeExpenses) === 1
+              ? 'combined'
+              : 'labor',
+    );
+  }
+  function ruleProjectLabel(candidate: Rule): string {
+    const number = String(candidate.project_number ?? candidate.projectNumber ?? '').trim();
+    const name = String(candidate.project_name ?? candidate.projectName ?? '').trim();
+    return [number, name].filter(Boolean).join(' · ') || currentProjectId;
+  }
+  function ruleEffectiveLabel(candidate: Rule): string {
+    const from = String(candidate.effective_from ?? candidate.effectiveFrom ?? '').trim();
+    const to = String(candidate.effective_to ?? candidate.effectiveTo ?? '').trim();
+    return `${from || '—'} → ${to || '…'}`;
+  }
+  function shiftIsoDate(value: string, days: number): string {
+    // Local calendar calculation returns an ISO string, not mutable component state.
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
+    const date = new Date(`${value}T12:00:00Z`);
+    if (Number.isNaN(date.getTime())) return value;
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+  function todayForTimezone(timezone: string): string {
+    const utcToday = new Date().toISOString().slice(0, 10);
+    if (!timezone) return utcToday;
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(new Date());
+      const value = (kind: 'year' | 'month' | 'day') =>
+        parts.find((part) => part.type === kind)?.value ?? '';
+      const year = value('year');
+      const month = value('month');
+      const day = value('day');
+      return year && month && day ? `${year}-${month}-${day}` : utcToday;
+    } catch {
+      return utcToday;
+    }
+  }
+  function applyPeriodPreset(kind: 'current' | 'previous'): void {
+    if (!rule) return;
+    const today = todayForTimezone(selectedProjectTimezone);
+    const anchor = kind === 'current' ? today : shiftIsoDate(start || today, -1);
+    const period = compatibleBillingPeriod(periodStream(rule), { start: anchor, end: anchor });
+    if (!period) return;
+    start = period.start;
+    end = period.end;
+    preview = null;
+    feedback = null;
+    notice = '';
+  }
   async function readResponse(response: Response) {
     responseUncertain = false;
     const result = await response.json().catch(() => {
@@ -281,6 +409,7 @@
       );
       if (result) {
         inventory = result as Inventory;
+        if (inventory.sources.length === 0) filtersOpen = false;
         loadedScope = currentScope;
         selected = preserve
           ? selected.filter((value) =>
@@ -511,35 +640,127 @@
     frozenCreate: Record<string, unknown> | null;
     uncertainCreate: boolean;
   } | null = null;
+
+  export function getScope(): InvoiceComposerScope {
+    return { billingRuleId: ruleId, periodStart: start, periodEnd: end };
+  }
+
+  export function canSwitchMode(): boolean {
+    return (
+      mounted &&
+      (Boolean(initialized) || supportedRules.length === 0) &&
+      !busy &&
+      !formBusy &&
+      !uncertainCreate &&
+      !invoice &&
+      !scopeSyncing
+    );
+  }
+
+  export async function setScope(next: InvoiceComposerScope): Promise<boolean> {
+    if (!canSwitchMode()) return false;
+    const selectedRule = supportedRules.find(
+      (candidate) => String(candidate.id) === next.billingRuleId,
+    );
+    if (!selectedRule) return false;
+    const current = getScope();
+    if (
+      current.billingRuleId === next.billingRuleId &&
+      current.periodStart === next.periodStart &&
+      current.periodEnd === next.periodEnd &&
+      loadedScope === currentScope
+    )
+      return true;
+
+    scopeSyncing = true;
+    ruleId = next.billingRuleId;
+    start = next.periodStart;
+    end = next.periodEnd;
+    selected = [];
+    inventory = null;
+    loadedScope = '';
+    filtersOpen = true;
+    invalidateSelection();
+    try {
+      await tick();
+      await loadRecords(false, false);
+      return true;
+    } finally {
+      scopeSyncing = false;
+    }
+  }
+
   $effect(() => {
     if (!mounted || supportedRules.length === 0) return;
     const identity = projectId ?? 'standalone';
     if (initialized === identity) return;
     initialized = identity;
-    ruleId = supportedRules.some((item) => String(item.id) === restored?.ruleId)
+    const explicitRuleId = supportedRules.some((item) => String(item.id) === initialRuleId)
+      ? initialRuleId
+      : '';
+    const restoredRuleId = supportedRules.some((item) => String(item.id) === restored?.ruleId)
       ? restored!.ruleId
-      : supportedRules.some((item) => String(item.id) === initialRuleId)
-        ? initialRuleId
-        : String(supportedRules[0]!.id);
-    const defaultDate = initialDate || new Date().toISOString().slice(0, 10);
+      : '';
+    const explicitPeriodProvided = Boolean(initialPeriodStart && initialPeriodEnd);
+    const explicitRuleDiff = Boolean(
+      explicitRuleId && restoredRuleId && explicitRuleId !== restoredRuleId,
+    );
+    const explicitPeriodDiff = Boolean(
+      explicitPeriodProvided &&
+      restored &&
+      (restored.start !== initialPeriodStart || restored.end !== initialPeriodEnd),
+    );
+    const unresolvedRestore = Boolean(
+      restored?.uncertainCreate || restored?.frozenCreate || restored?.invoice?.id,
+    );
+    const preserveUnresolvedScope =
+      Boolean(restoredRuleId) && unresolvedRestore && (explicitRuleDiff || explicitPeriodDiff);
+    const restoreState =
+      restored &&
+      restoredRuleId &&
+      ((!explicitRuleDiff && !explicitPeriodDiff) || preserveUnresolvedScope)
+        ? restored
+        : null;
+    ruleId = preserveUnresolvedScope
+      ? restoredRuleId
+      : explicitRuleId || restoredRuleId || String(supportedRules[0]!.id);
+    const defaultDate = initialDate || todayForTimezone(selectedProjectTimezone);
     const selectedRule = supportedRules.find((item) => String(item.id) === ruleId)!;
     const period = compatibleBillingPeriod(periodStream(selectedRule), {
       start: defaultDate,
       end: defaultDate,
     });
-    start = restored?.start || period?.start || defaultDate;
-    end = restored?.end || period?.end || defaultDate;
-    frozenCreate = restored?.frozenCreate ?? null;
-    uncertainCreate = restored?.uncertainCreate ?? false;
-    selected = Array.isArray(restored?.selected)
-      ? restored!.selected.filter((value) => typeof value === 'string')
+    start = preserveUnresolvedScope
+      ? restored!.start
+      : explicitPeriodProvided
+        ? initialPeriodStart
+        : restoreState?.start || initialPeriodStart || period?.start || defaultDate;
+    end = preserveUnresolvedScope
+      ? restored!.end
+      : explicitPeriodProvided
+        ? initialPeriodEnd
+        : restoreState?.end || initialPeriodEnd || period?.end || defaultDate;
+    if (!restoreState) requestKey = crypto.randomUUID();
+    frozenCreate = restoreState?.frozenCreate ?? null;
+    uncertainCreate = restoreState?.uncertainCreate ?? false;
+    selected = Array.isArray(restoreState?.selected)
+      ? restoreState.selected.filter((value) => typeof value === 'string')
       : [];
-    if (restored?.invoice?.id) {
-      invoice = { ...restored.invoice, state: 'loading' };
+    if (restoreState?.invoice?.id) {
+      invoice = { ...restoreState.invoice, state: 'loading' };
       void refreshInvoice().then(schedulePoll);
     }
-    void loadRecords(!!restored);
+    void loadRecords(Boolean(restoreState));
     restored = null;
+  });
+  $effect(() => {
+    if (!mounted) return;
+    if (initialized) onScopeChange({ billingRuleId: ruleId, periodStart: start, periodEnd: end });
+    onStateChange({
+      canSwitchMode: canSwitchMode(),
+      hasUnresolvedOperation: Boolean(uncertainCreate || frozenCreate),
+      scope: getScope(),
+    });
   });
 </script>
 
@@ -547,8 +768,29 @@
   <SectionCard title={text('records')} description={text('intro')}>
     {#if supportedRules.length === 0}
       <p>{text('noStream')}</p>
-      <a class="secondary-button" href={setupHref}>{text('setup')}</a>
+      <p class="composer-context-help">{text('noRecordsActions')}</p>
+      <div class="composer-actions composer-empty-actions">
+        <a class="secondary-button" href={setupHref}>{text('setup')}</a>
+        {#if currentProjectId}
+          <a class="secondary-button" href={timeHref}>{text('addHours')}</a>
+          <a class="secondary-button" href={expenseHref}>{text('addExpenses')}</a>
+          <a
+            class="secondary-button"
+            href={`${base}/app/approvals?project=${encodeURIComponent(currentProjectId)}&lang=${locale}`}
+            >{text('reviewRecords')}</a
+          >
+        {/if}
+      </div>
     {:else}
+      {#if currentProjectId}
+        <aside class="composer-context" aria-label={text('projectContext')}>
+          <div>
+            <span>{text('projectContext')}</span>
+            <strong>{currentProjectName || currentProjectId}</strong>
+          </div>
+          <a href={setupHref}>{text('reviewProjectBilling')}</a>
+        </aside>
+      {/if}
       <form
         class="composer-fields"
         onsubmit={(event) => {
@@ -566,18 +808,17 @@
             required
           >
             {#each supportedRules as item}<option value={String(item.id)}
-                >{projectId
-                  ? ''
-                  : `${String(item.project_number ?? item.project_name ?? '')} · `}{text(
-                  item.stream_type === 'expense'
-                    ? 'expense'
-                    : Number(item.include_expenses) === 1
-                      ? 'combined'
-                      : 'labor',
-                )} · {String(item.currency)} · {String(item.cadence_type)}</option
+                >{ruleProjectLabel(item)} · {ruleStreamText(item)} · {String(item.currency)} · {cadenceText(
+                  String(item.cadence_type),
+                )} · {ruleEffectiveLabel(item)}</option
               >{/each}
           </select></label
         >
+        {#if rule}
+          <p class="composer-field-help" data-stream-effective-interval>
+            {text('effectiveInterval')}: {ruleEffectiveLabel(rule)}
+          </p>
+        {/if}
         <label
           >{text('start')}<input
             type="date"
@@ -600,6 +841,29 @@
             disabled={busy || formBusy || !!invoice || uncertainCreate}
           /></label
         >
+        <p class="composer-field-help composer-period-help">{text('inclusivePeriodHelp')}</p>
+        {#if rule && ['weekly', 'every_14_days', 'semi_monthly', 'monthly'].includes(String(rule.cadence_type))}
+          <div class="composer-period-presets" aria-label={text('currentBillingPeriod')}>
+            <button
+              type="button"
+              class="secondary-button"
+              onclick={() => applyPeriodPreset('current')}
+              disabled={busy || formBusy || !!invoice || uncertainCreate}
+              >{text('currentBillingPeriod')}</button
+            >
+            <button
+              type="button"
+              class="secondary-button"
+              onclick={() => applyPeriodPreset('previous')}
+              disabled={busy ||
+                formBusy ||
+                !!invoice ||
+                uncertainCreate ||
+                !start ||
+                start <= String(rule.effective_from ?? '')}>{text('previousBillingPeriod')}</button
+            >
+          </div>
+        {/if}
         <button
           type="submit"
           class="secondary-button"
@@ -705,46 +969,53 @@
             {/each}
           </section>
         {/if}
-        <div class="composer-fields composer-filters">
-          <label
-            >{text('worker')}<select bind:value={worker} disabled={busy || formBusy}
-              ><option value="">{text('allWorkers')}</option>{#each workers as [id, name]}<option
-                  value={id}>{name}</option
-                >{/each}</select
-            ></label
-          >
-          <label
-            >{text('state')}<select bind:value={stateFilter} disabled={busy || formBusy}
-              >{#each ['all', 'pending', 'ready', 'billed'] as value}<option {value}
-                  >{text(value as 'all' | 'pending' | 'ready' | 'billed')}</option
-                >{/each}</select
-            ></label
-          >
-        </div>
-        <label
-          >{text('type')}<select bind:value={typeFilter} disabled={busy || formBusy}
-            ><option value="">{text('allTypes')}</option><option value="time"
-              >{text('labor')}</option
-            ><option value="expense">{text('expense')}</option></select
-          ></label
+        <details
+          class="composer-filters-panel"
+          bind:open={filtersOpen}
+          data-filters-empty={inventory.sources.length === 0 ? 'true' : undefined}
         >
-        <div class="composer-actions">
-          <button
-            type="button"
-            class="secondary-button"
-            onclick={selectVisible}
-            disabled={busy || formBusy || !selectionCurrent || uncertainCreate}
-            >{text('select')}</button
-          ><button
-            type="button"
-            class="secondary-button"
-            onclick={() => {
-              selected = [];
-              invalidateSelection();
-            }}
-            disabled={busy || formBusy || uncertainCreate}>{text('clear')}</button
-          >
-        </div>
+          <summary>{text('filters')}</summary>
+          <div class="composer-fields composer-filters">
+            <label
+              >{text('worker')}<select bind:value={worker} disabled={busy || formBusy}
+                ><option value="">{text('allWorkers')}</option>{#each workers as [id, name]}<option
+                    value={id}>{name}</option
+                  >{/each}</select
+              ></label
+            >
+            <label
+              >{text('state')}<select bind:value={stateFilter} disabled={busy || formBusy}
+                >{#each ['all', 'pending', 'ready', 'billed'] as value}<option {value}
+                    >{text(value as 'all' | 'pending' | 'ready' | 'billed')}</option
+                  >{/each}</select
+              ></label
+            >
+            <label
+              >{text('type')}<select bind:value={typeFilter} disabled={busy || formBusy}
+                ><option value="">{text('allTypes')}</option><option value="time"
+                  >{text('labor')}</option
+                ><option value="expense">{text('expense')}</option></select
+              ></label
+            >
+          </div>
+          <div class="composer-actions">
+            <button
+              type="button"
+              class="secondary-button"
+              onclick={selectVisible}
+              disabled={busy || formBusy || !selectionCurrent || uncertainCreate}
+              >{text('select')}</button
+            ><button
+              type="button"
+              class="secondary-button"
+              onclick={() => {
+                selected = [];
+                invalidateSelection();
+              }}
+              disabled={busy || formBusy || uncertainCreate}>{text('clear')}</button
+            >
+          </div>
+        </details>
         {#if loadedScope !== currentScope}<p role="status">{text('load')}</p>{/if}
         <div class="composer-records" aria-label={text('records')}>
           {#each visible as source (key(source))}
@@ -833,6 +1104,17 @@
                 >{:else if source.blockers.length === 0}<small>{text('ready')}</small>{/if}
             </article>
           {:else}<p>{inventory.sources.length ? text('filteredEmpty') : text('empty')}</p>
+            {#if !inventory.sources.length && currentProjectId}
+              <div class="composer-actions composer-empty-actions">
+                <a class="secondary-button" href={timeHref}>{text('addHours')}</a>
+                <a class="secondary-button" href={expenseHref}>{text('addExpenses')}</a>
+                <a
+                  class="secondary-button"
+                  href={`${base}/app/approvals?project=${encodeURIComponent(currentProjectId)}&lang=${locale}`}
+                  >{text('reviewRecords')}</a
+                >
+              </div>
+            {/if}
             {#if inventory.sources.length}<button
                 type="button"
                 class="secondary-button"
@@ -1126,6 +1408,66 @@
     align-items: end;
     margin: 1rem 0;
   }
+  .composer-context {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1rem 0;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--ja-line, #d8d8d2);
+    border-radius: 0.65rem;
+    background: var(--ja-soft, #f6f6f0);
+  }
+  .composer-context > div {
+    display: grid;
+    gap: 0.2rem;
+  }
+  .composer-context span,
+  .composer-context-help,
+  .composer-field-help {
+    color: var(--ja-muted, #67675f);
+    font-size: 0.9rem;
+  }
+  .composer-context a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    color: var(--ja-accent, #53524c);
+    font-weight: 700;
+  }
+  .composer-field-help {
+    grid-column: 1 / -1;
+    margin: -0.55rem 0 0;
+  }
+  .composer-period-help {
+    margin-top: -0.4rem;
+  }
+  .composer-period-presets {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .composer-filters-panel {
+    margin: 1rem 0;
+    border: 1px solid var(--ja-line, #d8d8d2);
+    border-radius: 0.65rem;
+    padding: 0.7rem 0.9rem;
+  }
+  .composer-filters-panel > summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .composer-filters-panel .composer-fields {
+    margin: 0.5rem 0;
+  }
+  .composer-empty-actions {
+    align-items: stretch;
+  }
   fieldset.composer-fields {
     grid-column: 1 / -1;
     border: 0;
@@ -1235,8 +1577,15 @@
     white-space: nowrap;
   }
   @media (max-width: 600px) {
+    .composer-context {
+      flex-direction: column;
+    }
     .composer-fields {
       grid-template-columns: 1fr;
+    }
+    .composer-period-presets > button,
+    .composer-empty-actions > a {
+      width: 100%;
     }
     .composer-actions > a,
     .composer-actions > button,

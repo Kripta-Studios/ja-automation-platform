@@ -14,6 +14,7 @@
     resolveStandaloneLocale,
     standaloneText,
   } from '../standalone-locale';
+  import { navigationUxText } from '$lib/portal/navigation-ux-copy';
   import type { PortalLocale } from '$lib/portal-i18n';
   let { data } = $props<{ data: { reason?: string | null; locale?: PortalLocale } }>();
   let localeOverride = $state<PortalLocale | null>(null);
@@ -25,7 +26,10 @@
   let loginState = $state<'idle' | 'sending' | 'error'>('idle');
   let hydrated = $state(false);
   let message = $state('');
+  let email = $state('');
+  let credentialError = $state(false);
   let passwordVisible = $state(false);
+  let emailInput: HTMLInputElement | undefined = $state();
   let passwordInput: HTMLInputElement | undefined = $state();
   async function togglePassword(): Promise<void> {
     const start = passwordInput?.selectionStart ?? null;
@@ -77,8 +81,22 @@
     retrySeconds = Math.max(0, Math.ceil((retryDeadline - Date.now()) / 1000));
     if (retrySeconds === 0) retryDeadline = null;
   }
-  async function revealStatus(): Promise<void> {
+  const emailError = $derived(credentialError && !email.trim());
+  const passwordError = $derived(credentialError);
+
+  async function focusCredentialCorrection(): Promise<void> {
     await tick();
+    const target = emailInput?.validity.valid ? passwordInput : emailInput;
+    target?.focus({ preventScroll: true });
+    target?.scrollIntoView({ block: 'center' });
+  }
+
+  async function revealStatus(openRecovery = true): Promise<void> {
+    await tick();
+    if (!openRecovery) {
+      await focusCredentialCorrection();
+      return;
+    }
     statusElement?.focus({ preventScroll: true });
     statusElement?.scrollIntoView({ block: 'center' });
     requestRecoveryMessage(message || rateLimitMessage, statusElement);
@@ -88,7 +106,10 @@
     if (rateLimited || loginState === 'sending') return;
     loginState = 'sending';
     message = '';
+    credentialError = false;
     const form = new FormData(event.currentTarget as HTMLFormElement);
+    email = String(form.get('email') ?? '');
+    let recoverCredentialsInline = false;
     try {
       const response = await fetch(`${base}/app/api/auth/sign-in/email`, {
         method: 'POST',
@@ -110,19 +131,24 @@
         message = retryDeadline
           ? ''
           : t('Too many sign-in attempts. Wait a few minutes before trying again.');
+      } else if ([400, 401, 403].includes(response.status)) {
+        credentialError = true;
+        recoverCredentialsInline = true;
+        message = navigationUxText(locale, 'login', 'credentialError');
       } else {
-        message = t('Sign-in failed. Check your credentials or contact your administrator.');
+        message = t('The secure sign-in service is unavailable. Try again shortly.');
       }
     } catch {
       message = t('The secure sign-in service is unavailable. Try again shortly.');
     }
     loginState = 'error';
-    await revealStatus();
+    await revealStatus(!recoverCredentialsInline);
   }
 
   async function passkeyLogin(): Promise<void> {
     loginState = 'sending';
     message = '';
+    credentialError = false;
     try {
       const result = await authClient.signIn.passkey();
       if (result.data) {
@@ -135,6 +161,19 @@
     }
     loginState = 'error';
     await revealStatus();
+  }
+
+  function clearCredentialError(): void {
+    if (credentialError) credentialError = false;
+    if (message) message = '';
+    if (loginState === 'error') loginState = 'idle';
+  }
+
+  async function retrySignIn(): Promise<void> {
+    message = '';
+    credentialError = false;
+    loginState = 'idle';
+    await focusCredentialCorrection();
   }
 
   function changeLocale(event: Event): void {
@@ -240,18 +279,32 @@
         class:notice={Boolean(accessMessage) && !message && !rateLimitMessage}
         class="login-status"
         aria-live={rateLimited ? 'off' : 'polite'}
+        aria-atomic="true"
+        role={credentialError ? 'alert' : undefined}
       >
         {rateLimitMessage || message || accessMessage}
       </p>
+      {#if credentialError}
+        <button type="button" class="login-credential-review" onclick={focusCredentialCorrection}>
+          {navigationUxText(locale, 'login', 'reviewCredentials')}
+        </button>
+      {/if}
       <label class="login-field"
         ><span>{t('Work email')}</span><input
+          bind:this={emailInput}
+          bind:value={email}
           name="email"
           type="email"
           autocomplete="username"
           placeholder={t('you@company.com')}
           aria-label={t('Work email')}
+          aria-invalid={emailError ? 'true' : undefined}
+          aria-describedby={emailError ? 'login-email-error' : undefined}
+          oninput={clearCredentialError}
           required
-        /></label
+        />{#if emailError}<small id="login-email-error" class="login-field-error"
+            >{navigationUxText(locale, 'login', 'emailCorrection')}</small
+          >{/if}</label
       ><label class="login-field"
         ><span>{t('Password')}</span><input
           bind:this={passwordInput}
@@ -261,8 +314,13 @@
           autocomplete="current-password"
           placeholder={t('Enter your password')}
           aria-label={t('Password')}
+          aria-invalid={passwordError ? 'true' : undefined}
+          aria-describedby={passwordError ? 'login-password-error' : undefined}
+          oninput={clearCredentialError}
           required
-        /></label
+        />{#if passwordError}<small id="login-password-error" class="login-field-error"
+            >{navigationUxText(locale, 'login', 'passwordCorrection')}</small
+          >{/if}</label
       ><button
         type="button"
         class="login-password-toggle"
@@ -282,6 +340,11 @@
       >
         {t('Sign in with a passkey')}
       </button>
+      {#if loginState === 'error' && !credentialError}
+        <button type="button" class="login-retry" disabled={rateLimited} onclick={retrySignIn}
+          >{navigationUxText(locale, 'login', 'retrySignIn')}</button
+        >
+      {/if}
       <a
         href="https://webmail.j-aautomation.com/"
         target="_blank"
@@ -347,6 +410,36 @@
     outline: 2px solid var(--ja-red);
     outline-offset: 4px;
     border-radius: 0.2rem;
+  }
+  .login-credential-review,
+  .login-retry {
+    min-height: 44px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--ja-red);
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--ja-red);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .login-credential-review:hover,
+  .login-credential-review:focus-visible,
+  .login-retry:hover,
+  .login-retry:focus-visible {
+    background: color-mix(in srgb, var(--ja-red) 8%, transparent);
+  }
+  .login-credential-review:disabled,
+  .login-retry:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+  }
+  .login-field-error {
+    color: var(--ja-red);
+    font-size: 0.8125rem;
+    font-weight: 650;
   }
   .login-panel-tools {
     display: flex;

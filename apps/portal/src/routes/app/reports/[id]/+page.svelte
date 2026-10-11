@@ -43,7 +43,10 @@
     translateControlledValue,
     type ControlledValueDomain,
   } from '$lib/i18n/controlled-values';
-  import ReportDocumentPreview, { type PreviewField } from '$lib/portal/ui/ReportDocumentPreview.svelte';
+  import ReportDocumentPreview, {
+    type PreviewField,
+  } from '$lib/portal/ui/ReportDocumentPreview.svelte';
+  import { workRound2Text } from '$lib/portal/work-ux-round2-copy';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
   import CorrectionDraftForm from '$lib/portal/ui/CorrectionDraftForm.svelte';
   import { dailyCorrectionFields, technicalCorrectionFields } from '$lib/portal/correction-fields';
@@ -82,6 +85,51 @@
   const reportHref = $derived(
     `${base}/app/reports/${encodeURIComponent(String(data.detail.report.id))}`,
   );
+  const reportIndexPath = `${base}/app/reports`;
+  const hasControlCharacters = (value: string): boolean =>
+    Array.from(value).some((character) => {
+      const codePoint = character.codePointAt(0) ?? 0;
+      return codePoint <= 0x1f || (codePoint >= 0x7f && codePoint <= 0x9f);
+    });
+  function safeReportReturnHref(candidate: string | null): string {
+    if (!candidate) return reportIndexPath;
+    try {
+      const parsed = new URL(candidate, $page.url.origin);
+      if (parsed.origin !== $page.url.origin || parsed.pathname !== reportIndexPath)
+        return reportIndexPath;
+
+      const allowed = new URLSearchParams();
+      const rules: Record<string, (value: string) => boolean> = {
+        view: (value) => ['daily', 'technical', 'signoff'].includes(value),
+        project: (value) => value.length <= 200 && !hasControlCharacters(value),
+        worker: (value) => value.length <= 200 && !hasControlCharacters(value),
+        client: (value) => value.length <= 200 && !hasControlCharacters(value),
+        status: (value) => /^[a-z_]{1,40}$/u.test(value),
+        from: (value) => /^\d{4}-\d{2}-\d{2}$/u.test(value),
+        to: (value) => /^\d{4}-\d{2}-\d{2}$/u.test(value),
+        q: (value) => value.length <= 200 && !hasControlCharacters(value),
+        order: (value) => ['newest', 'oldest', 'name', 'status'].includes(value),
+        includeArchived: (value) => value === '1',
+        lang: (value) => ['en', 'es', 'pt'].includes(value),
+      };
+      for (const [key, validate] of Object.entries(rules)) {
+        const value = parsed.searchParams.get(key);
+        if (value !== null && validate(value)) allowed.set(key, value);
+      }
+      const hash = [
+        '#report-panel-daily',
+        '#report-panel-technical',
+        '#report-panel-signoff',
+      ].includes(parsed.hash)
+        ? parsed.hash
+        : '';
+      const query = allowed.toString();
+      return `${reportIndexPath}${query ? `?${query}` : ''}${hash}`;
+    } catch {
+      return reportIndexPath;
+    }
+  }
+  const reportReturnHref = $derived(safeReportReturnHref($page.url.searchParams.get('returnTo')));
   const submissionBlocked = $derived(
     ['REPORT_SUBMISSION_CHANGED', 'REPORT_SUBMISSION_STATE_BLOCKED'].includes(problem?.code ?? ''),
   );
@@ -192,24 +240,32 @@
   );
   function previewField(name: string): PreviewField | null {
     if (!canAutosave || !previewEditableFields.includes(name)) return null;
-    const field = (isDaily ? dailyCorrectionFields : technicalCorrectionFields).find((item) => item.name === name);
+    const field = (isDaily ? dailyCorrectionFields : technicalCorrectionFields).find(
+      (item) => item.name === name,
+    );
     const control = editFormElement()?.elements.namedItem(name);
-    if (!field || !(control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement)) return null;
+    if (!field || !(control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement))
+      return null;
     return {
       ...field,
       label: t(field.label),
-      value: control instanceof HTMLInputElement && control.type === 'checkbox'
-        ? (control.checked ? 'on' : 'off') : control.value,
+      value:
+        control instanceof HTMLInputElement && control.type === 'checkbox'
+          ? control.checked
+            ? 'on'
+            : 'off'
+          : control.value,
     };
   }
   function updatePreviewField(name: string, value: string): void {
     if (!previewField(name)) return;
     const control = editFormElement()?.elements.namedItem(name);
     if (!(control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement)) return;
-    if (control instanceof HTMLInputElement && control.type === 'checkbox') control.checked = value === 'on';
+    if (control instanceof HTMLInputElement && control.type === 'checkbox')
+      control.checked = value === 'on';
     else control.value = value;
     // Bubble through the existing autosave/recovery/optimistic-version mechanism.
-    control.dispatchEvent(new Event('input', { bubbles:true }));
+    control.dispatchEvent(new Event('input', { bubbles: true }));
   }
   const autosaveKey = $derived(
     reportAutosaveStorageKey(String(data.user.id), data.detail.type, String(report.id)),
@@ -1130,11 +1186,22 @@
 >
 
 <main class="record-detail-page report-detail-page">
-  <nav class="detail-nav" aria-label={t('Report navigation')}>
-    <a href={base + '/app/reports'} data-origin-back
-      ><DirectionIcon direction="left" /> {t('Reports')}</a
+  <nav class="detail-nav report-detail-nav" aria-label={t('Report navigation')}>
+    <a href={reportReturnHref}
+      ><DirectionIcon direction="left" /> {workRound2Text(locale, 'reportReturnToList')}</a
     >
     <a href={base + '/app/projects/' + display(report.project_id)}>{t('Open project')}</a>
+    {#if data.detail.canEdit}
+      <a class="report-detail-shortcut" href="#modify-report-title"
+        >{workRound2Text(locale, 'reportEditShortcut')}</a
+      >
+    {/if}
+    <a class="report-detail-shortcut" href="#report-attachments-title"
+      >{workRound2Text(locale, 'reportAttachmentShortcut')} · {attachments.length}</a
+    >
+    <a class="report-detail-shortcut" href="#change-history-title"
+      >{workRound2Text(locale, 'reportHistoryShortcut')}</a
+    >
     {#if report.approval_state === 'submitted' && ['owner_admin', 'project_manager'].includes(data.user?.role ?? '')}
       <a
         class="no-print"
@@ -1158,13 +1225,24 @@
       <h1>
         {isDaily ? display(report.summary) : display(report.system_name) || t('System / machine')}
       </h1>
-      <p>
-        {display(report.project_number)} · {display(report.project_name)} ·
-        {isDaily
-          ? display(report.work_date)
-          : display(report.report_date ?? report.created_at).slice(0, 10)} ·
-        {display(report.author_name)}
-      </p>
+      <dl class="report-detail-context" aria-label={workRound2Text(locale, 'reportActionContext')}>
+        <div>
+          <dt>{t('Project')}</dt>
+          <dd>{display(report.project_number)} · {display(report.project_name)}</dd>
+        </div>
+        <div>
+          <dt>{isDaily ? t('Work date') : t('Report date')}</dt>
+          <dd>
+            {isDaily
+              ? display(report.work_date)
+              : display(report.report_date ?? report.created_at).slice(0, 10)}
+          </dd>
+        </div>
+        <div>
+          <dt>{t('Work performed by')}</dt>
+          <dd>{display(report.author_name)}</dd>
+        </div>
+      </dl>
     </div>
     <div class="detail-status-stack">
       <span class="state-tag">{controlled('status', statusForDisplay)}</span>
@@ -1190,9 +1268,17 @@
     {locale}
     fields={previewEditableFields}
     sourceFields={[
-      { name:'projectSettings', label:t('Open project'), href:`${base}/app/projects/${encodeURIComponent(String(report.project_id))}` },
+      {
+        name: 'projectSettings',
+        label: t('Open project'),
+        href: `${base}/app/projects/${encodeURIComponent(String(report.project_id))}`,
+      },
       ...(data.detail.canCreateCorrection
-        ? (isDaily ? dailyCorrectionFields : technicalCorrectionFields).map((field) => ({ name:field.name, label:t('Request a correction'), href:`${reportHref}#report-correction-title` }))
+        ? (isDaily ? dailyCorrectionFields : technicalCorrectionFields).map((field) => ({
+            name: field.name,
+            label: t('Request a correction'),
+            href: `${reportHref}#report-correction-title`,
+          }))
         : []),
     ]}
     getField={previewField}
@@ -1811,8 +1897,7 @@
         {/if}
 
         <ActionBar class="report-form-actions">
-          <a class="secondary-action" href={base + '/app/reports'} data-origin-back>{t('Cancel')}</a
-          >
+          <a class="secondary-action" href={reportReturnHref}>{t('Cancel')}</a>
           <button type="submit">{t('Save changes')}</button>
         </ActionBar>
       </form>
@@ -2228,6 +2313,79 @@
 </main>
 
 <style>
+  .report-detail-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+  }
+  :global(.standalone-workspace__content) .report-detail-page .report-detail-nav > a:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .report-detail-nav a,
+  .report-detail-nav button {
+    min-height: 2.75rem;
+  }
+  .report-detail-context {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: 0.5rem 1rem;
+    max-width: 74ch;
+    margin: 0.75rem 0 0;
+    overflow-wrap: anywhere;
+    line-height: 1.55;
+  }
+  .report-detail-context > div {
+    min-width: 0;
+  }
+  .report-detail-context dt {
+    color: var(--portal-muted, #67675f);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+  }
+  .report-detail-context dd {
+    margin: 0.15rem 0 0;
+  }
+  .report-detail-page .record-detail-header h1 {
+    max-width: 30ch;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+  :global(.report-edit-panel),
+  :global(#report-attachments-title),
+  :global(#change-history-title) {
+    scroll-margin-block-start: 1rem;
+  }
+  :global(.report-form-actions) {
+    position: sticky;
+    inset-block-end: 1rem;
+    z-index: 4;
+    padding: 0.75rem;
+    border: 1px solid var(--portal-border, #dcdbd9);
+    border-radius: 0.8rem;
+    background: color-mix(in srgb, var(--portal-surface, #fff) 94%, transparent);
+    box-shadow: 0 0.4rem 1.5rem rgb(22 30 36 / 12%);
+    backdrop-filter: blur(10px);
+  }
+  @media (max-width: 620px) {
+    .report-detail-nav {
+      align-items: stretch;
+    }
+    .report-detail-nav a,
+    .report-detail-nav button {
+      flex: 1 1 9rem;
+    }
+    :global(.report-form-actions) {
+      inset-block-end: calc(4.75rem + env(safe-area-inset-bottom));
+      margin-inline: -0.75rem;
+      border-radius: 0.75rem;
+    }
+  }
+
   .history-event {
     display: grid;
     grid-template-columns: minmax(0, 1fr);

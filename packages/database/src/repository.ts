@@ -11851,7 +11851,7 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     return this.sqlite
       .prepare(
-        `SELECT br.*,p.project_number,p.name project_name,p.client_id,
+        `SELECT br.*,p.project_number,p.name project_name,p.timezone project_timezone,p.client_id,
                 c.client_number,c.client_code,c.display_name client_name,
                 c.legal_name client_legal_name,c.billing_address client_billing_address,
                 tp.name tax_profile_name,le.code legal_entity_code,cc.name billing_contact_name,

@@ -3,6 +3,7 @@
 
   export type TableMobileMode = 'cards' | 'scroll';
   export type TableCardCell = { label: string; value: string };
+  export type TableCardAction = { href: string; label: string; ariaLabel?: string };
   export type TableCardRow = {
     id?: string;
     cells: TableCardCell[];
@@ -14,6 +15,7 @@
     href?: string;
     linkLabel?: string;
     linkAriaLabel?: string;
+    secondaryActions?: TableCardAction[];
   };
 
   type RegionNameProps =
@@ -123,6 +125,25 @@
           typeof row.linkAriaLabel === 'string' && row.linkAriaLabel.trim()
             ? row.linkAriaLabel.trim()
             : undefined,
+        secondaryActions: Array.isArray(row.secondaryActions)
+          ? row.secondaryActions
+              .filter(
+                (action): action is TableCardAction =>
+                  Boolean(action) &&
+                  typeof action.href === 'string' &&
+                  action.href.trim().length > 0 &&
+                  typeof action.label === 'string' &&
+                  action.label.trim().length > 0,
+              )
+              .map((action) => ({
+                href: action.href.trim(),
+                label: action.label.trim(),
+                ariaLabel:
+                  typeof action.ariaLabel === 'string' && action.ariaLabel.trim()
+                    ? action.ariaLabel.trim()
+                    : undefined,
+              }))
+          : [],
       };
     });
   });
@@ -232,6 +253,15 @@
               {row.linkLabel || detailsLabel}
             </a>
           {/if}
+          {#if row.secondaryActions?.length}
+            <div class="ui-table-region-card-secondary-actions" data-card-secondary-actions>
+              {#each row.secondaryActions as action}
+                <a href={action.href} aria-label={action.ariaLabel || action.label}
+                  >{action.label}</a
+                >
+              {/each}
+            </div>
+          {/if}
         </article>
       {/each}
     </div>
@@ -265,6 +295,24 @@
 
   .ui-table-region-card-action:hover {
     text-decoration: underline;
+  }
+
+  .ui-table-region-card-secondary-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    margin-top: 0.55rem;
+  }
+
+  .ui-table-region-card-secondary-actions a {
+    display: inline-flex;
+    min-height: var(--ja-target-min, 2.75rem);
+    align-items: center;
+    color: var(--portal-accent, var(--ja-accent, #53524c));
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 0.16em;
   }
 
   .ui-table-region-card-action:focus-visible,

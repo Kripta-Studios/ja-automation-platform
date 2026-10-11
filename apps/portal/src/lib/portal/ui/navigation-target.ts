@@ -4,6 +4,15 @@ export function centerNavigationTarget(target: HTMLElement): void {
   for (let ancestor = target.parentElement; ancestor; ancestor = ancestor.parentElement) {
     if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
   }
+  if (target.dataset.navigationAlign === 'start') {
+    window.scrollTo({
+      top: Math.max(0, window.scrollY + target.getBoundingClientRect().top - 88),
+      behavior: 'instant',
+    });
+    if (!target.hasAttribute('tabindex')) target.tabIndex = -1;
+    target.focus({ preventScroll: true });
+    return;
+  }
   const heading = target.querySelector<HTMLElement>('h2, h3, h4, legend, summary');
   const destination =
     target.getBoundingClientRect().height > window.innerHeight * 0.7

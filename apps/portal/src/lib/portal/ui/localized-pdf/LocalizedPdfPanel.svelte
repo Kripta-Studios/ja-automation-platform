@@ -741,7 +741,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    min-height: 2.25rem;
+    min-height: 44px;
     padding: 0.4rem 0.7rem;
     border: 1px solid color-mix(in srgb, var(--portal-ink, #21201e) 16%, transparent);
     border-radius: 0.65rem;
@@ -787,7 +787,7 @@
   }
 
   .localized-pdf-request select {
-    min-height: 2.55rem;
+    min-height: 44px;
     min-width: 10rem;
     padding: 0.45rem 0.7rem;
     border: 1px solid color-mix(in srgb, var(--portal-ink, #21201e) 22%, transparent);
@@ -810,7 +810,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 2.55rem;
+    min-height: 44px;
     padding: 0.5rem 0.85rem;
     border-radius: 0.65rem;
     color: #1e1e1c;
@@ -825,6 +825,9 @@
   }
 
   .localized-pdf-text-action {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     padding: 0.15rem 0.25rem;
     color: var(--portal-ink, #21201e);
     background: transparent;

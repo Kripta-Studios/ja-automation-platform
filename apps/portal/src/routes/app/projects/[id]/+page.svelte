@@ -1,6 +1,8 @@
 <script lang="ts">
   import ProjectInvoiceComposer from '$lib/portal/sections/ProjectInvoiceComposer.svelte';
   import { journeyText } from '$lib/portal/project-invoice-journey';
+  import { projectUxText } from '$lib/portal/project-ux-copy';
+  import { projectUxRound2Text } from '$lib/portal/project-ux-round2-copy';
   import ProjectSiteFields from '$lib/portal/sections/ProjectSiteFields.svelte';
   import { useAssistantPaneRequest } from '$lib/portal/assistant/surface-request.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
@@ -211,6 +213,14 @@
       : (localeOverride ?? data.locale ?? resolveStandaloneLocale()),
   );
   const t = (key: string): string => standaloneText(locale, key);
+  const projectUx = (
+    key: Parameters<typeof projectUxText>[1],
+    params?: Record<string, string | number>,
+  ): string => projectUxText(locale, key, params);
+  const projectUx2 = (
+    key: Parameters<typeof projectUxRound2Text>[1],
+    params?: Record<string, string | number>,
+  ): string => projectUxRound2Text(locale, key, params);
   const controlled = (domain: ControlledValueDomain, value: unknown): string =>
     translateControlledValue(
       locale,
@@ -218,6 +228,13 @@
       value === null || value === undefined ? null : String(value),
     );
   const overview = $derived(data.overview as ProjectOverview);
+  const scheduleWeekdays = $derived([
+    { label: projectUx2('monday'), minutes: overview.schedule?.monday_minutes },
+    { label: projectUx2('tuesday'), minutes: overview.schedule?.tuesday_minutes },
+    { label: projectUx2('wednesday'), minutes: overview.schedule?.wednesday_minutes },
+    { label: projectUx2('thursday'), minutes: overview.schedule?.thursday_minutes },
+    { label: projectUx2('friday'), minutes: overview.schedule?.friday_minutes },
+  ]);
   const projectDocuments = $derived(data.documents as Row[]);
   const project = $derived(overview.project);
   const siteContact = $derived(
@@ -344,6 +361,14 @@
   }
   const billingRules = $derived((data.billingRules ?? []) as BillingRule[]);
   const activeBillingRules = $derived(billingRules.filter((rule) => String(rule.enabled) === '1'));
+  const recordInvoiceRules = $derived(
+    activeBillingRules.filter((rule) => ['labor', 'expense'].includes(String(rule.stream_type))),
+  );
+  const prepareInvoiceHref = $derived(
+    recordInvoiceRules.length > 0
+      ? `${projectHref}?tab=work&lang=${locale}#project-panel-work`
+      : `${base}/app/billing?project=${encodeURIComponent(String(project.id))}&assistantSurface=invoice-create&mode=whole-period&lang=${locale}`,
+  );
   const billingSetup = $derived(data.billingSetup ?? null);
   const finance = $derived(overview.financial);
   const periodProblem = $derived((data.periodProblem ?? null) as ProblemData | null);
@@ -419,6 +444,7 @@
       ? [{ id: 'billing' as const, label: journeyText(locale, 'conditions') }]
       : []),
   ] satisfies Array<{ id: TabId; label: string }>);
+  const activeTabLabel = $derived(tabs.find((tab) => tab.id === activeTab)?.label ?? t('Overview'));
   const financeExportUrl = $derived(
     base +
       '/app/api/projects/' +
@@ -652,6 +678,30 @@
 
   function hours(minutes: unknown): string {
     return formatDecimalHours(minutes);
+  }
+
+  function formatProjectDate(value: unknown, fallback = '—'): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) return fallback;
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(raw)) return raw;
+    const date = new Date(`${raw}T00:00:00.000Z`);
+    return Number.isNaN(date.getTime())
+      ? raw
+      : new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(date);
+  }
+
+  function formatProjectTimestamp(value: unknown): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '—';
+    const timestamp = /(?:z|[+-]\d{2}:\d{2})$/iu.test(raw) ? raw : `${raw.replace(' ', 'T')}Z`;
+    const date = new Date(timestamp);
+    return Number.isNaN(date.getTime())
+      ? raw
+      : new Intl.DateTimeFormat(locale, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+          timeZone: 'UTC',
+        }).format(date);
   }
 
   function expenseAmount(row: Row): string {
@@ -1063,7 +1113,16 @@
       </p>
       <h1>{display(project.name, t('Project'))}</h1>
       <p class="project-context-meta">
-        {display(project.client_name)} · {display(project.site_name)} · {display(project.country)}
+        {#if canViewCommercial && project.client_id}
+          <a
+            class="project-context-client-link"
+            href={`${base}/app/projects?view=clients&focus=${encodeURIComponent(String(project.client_id))}&lang=${encodeURIComponent(locale)}#client-directory-client-${encodeURIComponent(String(project.client_id))}`}
+            >{display(project.client_name, t('Client'))}</a
+          >
+        {:else}
+          {display(project.client_name)}
+        {/if}
+        · {display(project.site_name)} · {display(project.country)}
       </p>
     </div>
     <div class="project-context-actions">
@@ -1083,6 +1142,38 @@
       {/if}
     </div>
   </header>
+
+  <nav class="project-quick-links" aria-label={projectUx('detailShortcuts')}>
+    <span class="project-quick-links__label">{projectUx('detailShortcuts')}</span>
+    {#if !isAuditor}
+      <a
+        href={`${base}/app/time?action=log-time&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+        >{projectUx('logTime')}</a
+      >
+      <a
+        href={`${base}/app/expenses?action=record-expense&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+        >{projectUx('recordExpense')}</a
+      >
+      <a
+        href={`${base}/app/reports?assistantSurface=report-daily&project=${encodeURIComponent(String(project.id))}&lang=${locale}#report-panel-daily`}
+        >{projectUx('createWorkReport')}</a
+      >
+    {/if}
+    <a
+      href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=team&lang=${locale}`}
+      >{projectUx('team')}</a
+    >
+    {#if canViewCommercial}
+      {#if canWriteFinance}
+        <a href={prepareInvoiceHref}>{projectUx('prepareInvoice')}</a>
+      {:else}
+        <a
+          href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=billing&lang=${locale}#project-panel-billing`}
+          >{projectUx('viewInvoices')}</a
+        >
+      {/if}
+    {/if}
+  </nav>
 
   {#if data.invalidProjectTimezone}
     <section class="project-surface" data-project-timezone-problem role="alert">
@@ -1219,6 +1310,9 @@
     {/if}
   </section>
 
+  <p class="project-tab-current no-print" aria-live="polite">
+    <span>{t('Current section')}</span><strong>{activeTabLabel}</strong>
+  </p>
   <div class="project-tabs no-print" role="tablist" aria-label={t('Project detail sections')}>
     {#each tabs as tab}
       <button
@@ -1274,6 +1368,7 @@
         </div>
         <ProjectInvoiceComposer
           projectId={String(project.id)}
+          projectTimezone={String(project.timezone ?? '')}
           rules={billingRules}
           {locale}
           {role}
@@ -1307,7 +1402,14 @@
             <dl class="project-facts">
               <div>
                 <dt>{t('Client')}</dt>
-                <dd>{display(project.client_name)}</dd>
+                <dd>
+                  {#if canViewCommercial && project.client_id}
+                    <a
+                      href={`${base}/app/projects?view=clients&focus=${encodeURIComponent(String(project.client_id))}&lang=${encodeURIComponent(locale)}#client-directory-client-${encodeURIComponent(String(project.client_id))}`}
+                      >{display(project.client_name, t('Client'))}</a
+                    >
+                  {:else}{display(project.client_name)}{/if}
+                </dd>
               </div>
               <div>
                 <dt>{t('Client number')}</dt>
@@ -1383,6 +1485,13 @@
                           >{t('Edit contact')}</a
                         >
                       {/if}
+                      {#if canViewCommercial}
+                        <a
+                          class="project-contact-directory-link"
+                          href={`${siteContactDirectoryHref}#client-contacts-${encodeURIComponent(String(siteContact.client_id))}`}
+                          >{t('Open client contacts')} <DirectionIcon /></a
+                        >
+                      {/if}
                     </div>
                   {:else}{t('Not configured')}{/if}
                 </dd>
@@ -1453,11 +1562,22 @@
                   >
                   <span class="record-value">{expenseAmount(expense)}</span>
                 </a>
-              {:else}<p class="empty-state">
-                  {expenseCategoryFilter
-                    ? t('No expenses match this category.')
-                    : t('No expenses recorded for this project.')}
-                </p>{/each}
+              {:else}
+                <div class="empty-state project-empty-action">
+                  <span>
+                    {expenseCategoryFilter
+                      ? t('No expenses match this category.')
+                      : t('No expenses recorded for this project.')}
+                  </span>
+                  {#if !expenseCategoryFilter}
+                    <a
+                      class="secondary-button"
+                      href={`${base}/app/expenses?action=record-expense&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+                      >{t('Add expense')} <DirectionIcon /></a
+                    >
+                  {/if}
+                </div>
+              {/each}
             </div>
             <a
               class="inline-link"
@@ -1520,13 +1640,18 @@
               <div>
                 <p class="portal-kicker">{t('OPERATIONAL ASSIGNMENTS')}</p>
                 <h2 id="team-title">
-                  <a href={`${base}/app/projects?view=team&project=${project.id}`}>{t('Team')}</a>
+                  <a
+                    href={`${base}/app/projects?view=team&project=${encodeURIComponent(String(project.id))}&lang=${encodeURIComponent(locale)}`}
+                    >{t('Team')}</a
+                  >
                 </h2>
                 {#if data.user.role === 'owner_admin' || data.user.role === 'project_manager'}<a
                     class="secondary-button"
-                    href={`${base}/app/projects?action=assign-worker&project=${project.id}`}
+                    href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(String(project.id))}&lang=${encodeURIComponent(locale)}`}
                     >{t('Assign worker')} <DirectionIcon /></a
-                  ><a class="secondary-button" href={`${base}/app/crew?project=${project.id}`}
+                  ><a
+                    class="secondary-button"
+                    href={`${base}/app/crew?project=${encodeURIComponent(String(project.id))}&lang=${encodeURIComponent(locale)}`}
                     >{t('Crew hours')} <DirectionIcon /></a
                   >{/if}
                 {#if canViewCommercial}<a
@@ -1558,19 +1683,19 @@
                   </div>
                   <div class="record-copy">
                     <a
-                      href={`${base}/app/projects?view=team&project=${project.id}&worker=${worker.worker_id ?? worker.id}`}
+                      href={`${base}/app/projects?view=team&project=${encodeURIComponent(String(project.id))}&worker=${encodeURIComponent(String(worker.worker_id ?? worker.id))}&lang=${encodeURIComponent(locale)}`}
                       ><strong>{display(worker.name, t('Assigned worker'))}</strong></a
-                    ><small
-                      >{controlled('role', worker.assignment_role ?? worker.role)} · {display(
-                        worker.starts_on,
-                      )} → {display(worker.ends_on, '—')}</small
-                    >
-                    {#if isOwner}
+                    ><small>{controlled('role', worker.assignment_role ?? worker.role)}</small>
+                    <small>
+                      {t('Starts on')}: {formatProjectDate(worker.starts_on)} · {t('Ends on')}:
+                      {formatProjectDate(worker.ends_on, t('Open target'))}
+                    </small>
+                    {#if data.user.role === 'owner_admin' || data.user.role === 'project_manager'}
                       <small
                         ><a
-                          href={`${base}/app/projects?action=update-assignment&project=${encodeURIComponent(String(project.id))}&worker=${encodeURIComponent(String(worker.worker_id ?? worker.id))}#project-assignment-list`}
-                          aria-label={`${t('Update assignment')}: ${display(worker.name, t('Assigned worker'))}`}
-                          >{t('Update assignment')} →</a
+                          href={`${base}/app/projects?action=update-assignment&project=${encodeURIComponent(String(project.id))}&worker=${encodeURIComponent(String(worker.worker_id ?? worker.id))}&lang=${encodeURIComponent(locale)}#project-assignment-list`}
+                          aria-label={`${projectUx2('manageAssignment')}: ${display(worker.name, t('Assigned worker'))}`}
+                          >{projectUx2('manageAssignment')} →</a
                         ></small
                       >
                     {/if}
@@ -1589,9 +1714,18 @@
                       : hours(worker.planned_minutes) + ' ' + t('planned')}</span
                   >
                 </article>
-              {:else}<p class="empty-state">
-                  {t('No active assignments for this project.')}
-                </p>{/each}
+              {:else}
+                <div class="empty-state project-empty-action">
+                  <span>{t('No active assignments for this project.')}</span>
+                  {#if data.user.role === 'owner_admin' || data.user.role === 'project_manager'}
+                    <a
+                      class="secondary-button"
+                      href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(String(project.id))}&lang=${locale}#project-assignment`}
+                      >{t('Assign worker')} <DirectionIcon /></a
+                    >
+                  {/if}
+                </div>
+              {/each}
             </div>
           </section>
 
@@ -1600,7 +1734,8 @@
               <div>
                 <p class="portal-kicker">{t('PLANNING CONTEXT')}</p>
                 <h2 id="planning-title">
-                  <a href={`${base}/app/planning?project=${project.id}`}
+                  <a
+                    href={`${base}/app/planning?project=${encodeURIComponent(String(project.id))}&lang=${encodeURIComponent(locale)}`}
                     >{t('Published schedule')}</a
                   >
                 </h2>
@@ -1619,23 +1754,32 @@
                 </div>
                 <div>
                   <dt>{t('Effective from')}</dt>
-                  <dd>{display(overview.schedule.effective_from)}</dd>
+                  <dd>{formatProjectDate(overview.schedule.effective_from)}</dd>
                 </div>
                 <div>
                   <dt>{t('Weekday minutes')}</dt>
-                  <dd>
-                    {display(overview.schedule.monday_minutes)} · {display(
-                      overview.schedule.tuesday_minutes,
-                    )} · {display(overview.schedule.wednesday_minutes)} · {display(
-                      overview.schedule.thursday_minutes,
-                    )} · {display(overview.schedule.friday_minutes)}
+                  <dd class="schedule-weekday-list">
+                    {#each scheduleWeekdays as day}
+                      <span><strong>{day.label}</strong> {display(day.minutes, '0')}</span>
+                    {/each}
                   </dd>
                 </div>
               </dl>
               <p class="surface-intro">
                 {t('Planning context only; actual time remains independently recorded.')}
               </p>
-            {:else}<p class="empty-state">{t('No published schedule is configured.')}</p>{/if}
+            {:else}
+              <div class="empty-state project-empty-action">
+                <span>{t('No published schedule is configured.')}</span>
+                <a
+                  class="secondary-button"
+                  href={`${base}/app/planning?project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+                >
+                  {t('Open planning')}
+                  <DirectionIcon />
+                </a>
+              </div>
+            {/if}
             <PlanningCalendar
               translate={t}
               {locale}
@@ -1647,8 +1791,8 @@
                 endsAt: plan.ends_at == null ? undefined : String(plan.ends_at),
                 href:
                   data.user.role === 'owner_admin'
-                    ? `${base}/app/manage?area=planning_assignment&project=${project.id}&focus=${plan.id}`
-                    : `${base}/app/planning?project=${project.id}`,
+                    ? `${base}/app/manage?area=planning_assignment&project=${encodeURIComponent(String(project.id))}&focus=${encodeURIComponent(String(plan.id))}&lang=${encodeURIComponent(locale)}`
+                    : `${base}/app/planning?project=${encodeURIComponent(String(project.id))}&lang=${encodeURIComponent(locale)}`,
               }))}
             />
             {#if selectedPlanningDate}
@@ -1658,21 +1802,21 @@
                 aria-label={t('Actions for selected day')}
                 tabindex="-1"
               >
-                <strong>{selectedPlanningDate}</strong>
+                <strong>{formatProjectDate(selectedPlanningDate)}</strong>
                 <a
                   class="secondary-button"
-                  href={`${base}/app/planning?project=${encodeURIComponent(String(project.id))}&date=${selectedPlanningDate}#${role === 'owner_admin' || role === 'project_manager' ? 'planning-create-form' : 'planning-day-agenda'}`}
+                  href={`${base}/app/planning?project=${encodeURIComponent(String(project.id))}&date=${encodeURIComponent(selectedPlanningDate)}&lang=${encodeURIComponent(locale)}#${role === 'owner_admin' || role === 'project_manager' ? 'planning-create-form' : 'planning-day-agenda'}`}
                   >{t('Open planning for this day')} <DirectionIcon /></a
                 >
                 {#if role === 'worker' || role === 'project_manager'}
                   <a
                     class="secondary-button"
-                    href={`${base}/app/time?project=${encodeURIComponent(String(project.id))}&date=${selectedPlanningDate}&action=log-time`}
+                    href={`${base}/app/time?project=${encodeURIComponent(String(project.id))}&date=${encodeURIComponent(selectedPlanningDate)}&action=log-time&lang=${encodeURIComponent(locale)}`}
                     >{t('Record time for this day')} <DirectionIcon /></a
                   >
                   <a
                     class="secondary-button"
-                    href={`${base}/app/expenses?project=${encodeURIComponent(String(project.id))}&date=${selectedPlanningDate}&action=record-expense`}
+                    href={`${base}/app/expenses?project=${encodeURIComponent(String(project.id))}&date=${encodeURIComponent(selectedPlanningDate)}&action=record-expense&lang=${encodeURIComponent(locale)}`}
                     >{t('Add expense for this day')} <DirectionIcon /></a
                   >
                 {/if}
@@ -1683,17 +1827,28 @@
                 <article class="planning-record">
                   <a
                     href={data.user.role === 'owner_admin'
-                      ? `${base}/app/manage?area=planning_assignment&project=${project.id}&focus=${plan.id}`
-                      : `${base}/app/planning?project=${project.id}`}
+                      ? `${base}/app/manage?area=planning_assignment&project=${encodeURIComponent(String(project.id))}&focus=${encodeURIComponent(String(plan.id))}&lang=${encodeURIComponent(locale)}`
+                      : `${base}/app/planning?project=${encodeURIComponent(String(project.id))}&lang=${encodeURIComponent(locale)}`}
                   >
                     <strong>{display(plan.worker_name, t('Assigned worker'))}</strong></a
                   ><small>{display(plan.site)} · {display(plan.required_skill)}</small><span
-                    >{display(plan.starts_at).replace('T', ' ').slice(0, 16)}{plan.ends_at
-                      ? ` → ${display(plan.ends_at).replace('T', ' ').slice(0, 16)}`
-                      : ''}</span
+                    >{formatProjectTimestamp(plan.starts_at)}{plan.ends_at
+                      ? ` → ${formatProjectTimestamp(plan.ends_at)}`
+                      : ''} · {projectUx2('utc')}</span
                   >
                 </article>
-              {:else}<p class="empty-state">{t('No planning assignments recorded.')}</p>{/each}
+              {:else}
+                <div class="empty-state project-empty-action">
+                  <span>{t('No planning assignments recorded.')}</span>
+                  <a
+                    class="secondary-button"
+                    href={`${base}/app/planning?project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+                  >
+                    {t('Open planning')}
+                    <DirectionIcon />
+                  </a>
+                </div>
+              {/each}
             </div>
           </section>
         </div>
@@ -1773,7 +1928,18 @@
                   ></span
                 >{#if report.safety_related}<span class="safety-label">{t('Safety')}</span>{/if}</a
               >
-            {:else}<p class="empty-state">{t('No reports recorded for this project.')}</p>{/each}
+            {:else}
+              <div class="empty-state project-empty-action">
+                <span>{t('No reports recorded for this project.')}</span>
+                <a
+                  class="secondary-button"
+                  href={`${base}/app/reports?project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+                >
+                  {t('Open Reports')}
+                  <DirectionIcon />
+                </a>
+              </div>
+            {/each}
           </div>
         </section>
         <section class="project-surface" aria-labelledby="project-files-title">
@@ -2135,14 +2301,36 @@
                   )}</span
                 >
               </a>
-            {:else}<p class="empty-state">
-                {t('No billing stream is configured for this project.')}
-              </p>{/each}
+            {:else}
+              <div class="empty-state project-empty-action">
+                <span>{t('No billing stream is configured for this project.')}</span>
+                <a
+                  class="secondary-button"
+                  href={`${base}/app/billing?project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+                >
+                  {t('Open Billing')}
+                  <DirectionIcon />
+                </a>
+              </div>
+            {/each}
           </div>
           {#if canWriteFinance}
-            {#if !activeBillingRules.length}<p class="surface-intro">
-                {t('No active billing streams. Configure a new stream to create invoice drafts.')}
-              </p>{/if}
+            {#if !activeBillingRules.length}
+              <div class="empty-state project-empty-action">
+                <span
+                  >{t(
+                    'No active billing streams. Configure a new stream to create invoice drafts.',
+                  )}</span
+                >
+                <a
+                  class="secondary-button"
+                  href={`${base}/app/billing?project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+                >
+                  {t('Open Billing')}
+                  <DirectionIcon />
+                </a>
+              </div>
+            {/if}
             <div class="billing-action-row">
               {#if activeBillingRules.length}<button
                   type="button"
@@ -2874,6 +3062,13 @@
   .project-context-meta {
     margin: 0.45rem 0 0;
   }
+  .project-context-client-link {
+    color: inherit;
+    font-weight: 750;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+    text-underline-offset: 0.16em;
+  }
   .project-context-actions {
     flex-wrap: wrap;
     justify-content: flex-end;
@@ -3014,6 +3209,48 @@
     line-height: 1.4;
   }
 
+  .project-quick-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.85rem;
+    margin-block: 0.7rem 1rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--project-line);
+    background: var(--project-soft);
+  }
+  .project-quick-links__label {
+    margin-inline-end: 0.25rem;
+    color: var(--project-muted);
+    font-size: 0.76rem;
+    font-weight: 800;
+  }
+  .project-quick-links a,
+  .project-contact-directory-link {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    color: var(--project-ink);
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 0.16em;
+  }
+
+  .project-tab-current {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 0.85rem 0 0.15rem;
+    color: var(--project-muted);
+    font-size: 0.78rem;
+  }
+  .project-tab-current strong {
+    color: var(--project-ink);
+    font-size: 0.9rem;
+  }
+
   .project-tabs {
     display: flex;
     gap: 0.2rem;
@@ -3111,6 +3348,30 @@
   .project-contact-details {
     display: grid;
     gap: 0.4rem;
+  }
+
+  .schedule-weekday-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .schedule-weekday-list span {
+    display: grid;
+    min-width: 5.5rem;
+    gap: 0.2rem;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid var(--project-line);
+    border-radius: 0.45rem;
+    background: var(--project-soft);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .schedule-weekday-list strong {
+    color: var(--project-muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
   .project-contact-details p {
     margin: 0;
@@ -3234,6 +3495,11 @@
     padding: 1rem;
     border: 1px dashed var(--project-line);
     color: var(--project-muted);
+  }
+  .project-empty-action {
+    display: grid;
+    justify-items: start;
+    gap: 0.65rem;
   }
   .inline-link {
     display: inline-block;
@@ -3472,7 +3738,10 @@
       box-sizing: border-box;
       text-align: center;
     }
-    .attention-grid,
+    .attention-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.55rem;
+    }
     .project-facts,
     .finance-facts,
     .schedule-facts,
@@ -3483,15 +3752,23 @@
     .project-context {
       margin-top: 1rem;
     }
+    .attention-card {
+      min-height: 6.25rem;
+      padding: 0.75rem;
+    }
+    .attention-card strong {
+      font-size: 1.15rem;
+    }
     .project-tabs {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      overflow-x: visible;
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x proximity;
+      scrollbar-width: thin;
     }
     .project-tabs button {
-      min-width: 0;
-      overflow-wrap: anywhere;
-      padding-inline: 0.8rem;
+      min-width: max-content;
+      scroll-snap-align: start;
+      padding-inline: 0.75rem;
     }
     .compact-record,
     .team-record,

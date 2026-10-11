@@ -2,22 +2,38 @@
   import DirectionIcon from './DirectionIcon.svelte';
   import { onMount, tick } from 'svelte';
   import type { NavItem } from '../../portal-navigation';
+  import type { PortalLocale } from '../../portal-i18n';
+  import { navigationUxText } from '../navigation-ux-copy';
+  import { assistantCopy } from '../assistant/copy';
   let {
     items,
     itemHref,
     translate,
+    currentSection = '',
+    locale = 'en',
   }: {
     items: readonly NavItem[];
     itemHref: (item: NavItem) => string;
     translate: (key: string) => string;
+    currentSection?: string;
+    locale?: PortalLocale;
   } = $props();
   const id = $props.id();
   let dialog: HTMLDialogElement;
   let input: HTMLInputElement;
+  let trigger: HTMLButtonElement;
   let query = $state('');
   const normalize = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
   const matches = $derived(
     items.filter((item) => normalize(translate(item.label)).includes(normalize(query.trim()))),
+  );
+  const resultCount = $derived(
+    navigationUxText(locale, 'sectionNavigator', 'resultCount', { count: matches.length }),
+  );
+  const triggerLabel = $derived(
+    currentSection
+      ? `${translate('Go to section')} · ${navigationUxText(locale, 'sectionNavigator', 'currentSection', { section: currentSection })}`
+      : translate('Go to section'),
   );
   async function open() {
     if (
@@ -30,6 +46,11 @@
     dialog.showModal();
     await tick();
     input.focus();
+  }
+  async function openTaskAssistant() {
+    dialog.close();
+    await tick();
+    requestAnimationFrame(() => window.dispatchEvent(new Event('ja:open-task-assistant')));
   }
   function navigateResults(event: KeyboardEvent) {
     if (event.key === 'Escape') {
@@ -78,13 +99,14 @@
 </script>
 
 <button
+  bind:this={trigger}
   class="section-trigger"
   type="button"
   onclick={open}
-  aria-label={translate('Go to section')}
+  aria-label={triggerLabel}
   aria-haspopup="dialog"
   aria-keyshortcuts="Control+Shift+k Meta+Shift+k"
-  title={`${translate('Go to section')} (Ctrl/⌘ Shift K)`}
+  title={`${triggerLabel} (Ctrl/⌘ Shift K)`}
 >
   <svg
     aria-hidden="true"
@@ -108,13 +130,16 @@
       rx="1"
     /></svg
   >
-  <span>{translate('Go to section')}</span><kbd>⌘/Ctrl Shift K</kbd>
+  <span class="section-trigger-label">{translate('Go to section')}</span>
+  {#if currentSection}<small class="section-trigger-context">{currentSection}</small>{/if}
+  <kbd>⌘/Ctrl Shift K</kbd>
 </button>
 <dialog
   bind:this={dialog}
   aria-labelledby={`${id}-title`}
   aria-describedby={`${id}-description`}
   onkeydown={navigateResults}
+  onclose={() => trigger?.focus({ preventScroll: true })}
 >
   <div class="section-dialog-heading">
     <h2 id={`${id}-title`}>{translate('Go to section')}</h2>
@@ -125,7 +150,15 @@
       aria-label={translate('Close')}>×</button
     >
   </div>
-  <p id={`${id}-description`}>{translate('Search the sections available to your profile.')}</p>
+  <p id={`${id}-description`}>
+    {translate('Search the sections available to your profile.')}
+    {#if currentSection}
+      {navigationUxText(locale, 'sectionNavigator', 'currentSection', { section: currentSection })}
+    {/if}
+  </p>
+  <button type="button" class="section-task-action" onclick={openTaskAssistant}>
+    {assistantCopy[locale].launcher}<DirectionIcon />
+  </button>
   <label for={`${id}-search`}>{translate('Find a section')}</label>
   <input
     id={`${id}-search`}
@@ -134,10 +167,16 @@
     bind:value={query}
     autocomplete="off"
   />
+  <p class="section-result-count" role="status" aria-live="polite">{resultCount}</p>
   <nav aria-label={translate('Go to section')}>
     {#each matches as item}
-      <a class="section-result" href={itemHref(item)} onclick={() => dialog.close()}
-        ><span>{translate(item.label)}</span><DirectionIcon /></a
+      <a
+        class="section-result"
+        class:section-result-current={translate(item.label) === currentSection}
+        aria-current={translate(item.label) === currentSection ? 'page' : undefined}
+        href={itemHref(item)}
+        aria-label={`${translate('Open section')}: ${translate(item.label)}`}
+        onclick={() => dialog.close()}><span>{translate(item.label)}</span><DirectionIcon /></a
       >
     {/each}
     {#if !matches.length}<p role="status">{translate('No matching sections')}</p>{/if}
@@ -145,6 +184,27 @@
 </dialog>
 
 <style>
+  .section-task-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 44px;
+    margin: 0 0 1rem;
+    padding: 0.7rem;
+    border: 1px solid var(--ja-line, #d6d5d2);
+    border-radius: 0.65rem;
+    background: #edf5fc;
+    color: #145b91;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .section-result.section-result-current {
+    background: var(--ja-canvas, #f3f3ef);
+    border-color: var(--ja-ink, #24251f);
+    font-weight: 700;
+  }
   .section-trigger {
     display: inline-flex;
     align-items: center;
@@ -161,6 +221,18 @@
     font-size: 0.8125rem;
     cursor: pointer;
     box-shadow: none;
+  }
+  .section-trigger-label {
+    white-space: nowrap;
+  }
+  .section-trigger-context {
+    max-width: 10rem;
+    overflow: hidden;
+    color: #626359;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   kbd {
     font-size: 0.6875rem;
@@ -195,6 +267,11 @@
     font-size: 0.875rem;
     line-height: 1.5;
     color: #56574f;
+  }
+  .section-result-count {
+    margin: 0.65rem 0 0;
+    color: #626359;
+    font-size: 0.8125rem;
   }
   .section-close {
     min-width: 44px;
@@ -251,12 +328,15 @@
     outline-offset: -2px;
   }
   @media (max-width: 900px) {
-    .section-trigger span,
+    .section-trigger-context,
     kbd {
       display: none;
     }
     .section-trigger {
-      padding: 0.5rem;
+      gap: 0.3rem;
+      min-width: 7rem;
+      padding: 0.45rem 0.55rem;
+      font-size: 0.75rem;
     }
   }
   @media print {

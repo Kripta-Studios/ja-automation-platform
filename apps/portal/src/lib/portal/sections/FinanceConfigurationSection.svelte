@@ -790,7 +790,7 @@
     </div>
     <a
       class="secondary-button finance-config-preview"
-      href={`${base}/app/finance/preview?project=${encodeURIComponent(data.selectedProjectId ?? '')}`}
+      href={`${base}/app/finance/preview?project=${encodeURIComponent(data.selectedProjectId ?? '')}&lang=${encodeURIComponent(locale)}`}
       >{translate('Commercial agreement and example')} <DirectionIcon direction="up-right" /></a
     >
   </div>
@@ -804,6 +804,7 @@
   >
     <form method="GET" action={`${base}/app/finance`} class="admin-form-grid">
       <input type="hidden" name="view" value="commercial" />
+      <input type="hidden" name="lang" value={locale} />
       <input type="hidden" name="project" value={data.selectedProjectId ?? ''} />
       <FieldGroup columns="2">
         <Field id="commercial-summary-date" label={translate('Work date')}>
@@ -898,7 +899,10 @@
                     ),
                   )}
                 >
-                  <summary>{translate('Configure this person')}</summary>
+                  <summary
+                    aria-label={`${translate('Configure this person')} · ${rowValue(terms, 'workerName')}`}
+                    >{translate('Configure this person')}</summary
+                  >
                   <form
                     method="POST"
                     action={configurationActionUrl('setAssignmentCommercialRuleReferences')}
@@ -1071,6 +1075,7 @@
                     <div class="form-actions">
                       <button
                         type="submit"
+                        aria-label={`${translate('Save person rules')} · ${rowValue(terms, 'workerName')}`}
                         disabled={commercialAssignmentProblem?.code ===
                           'FINANCE_ASSIGNMENT_COMMERCIAL_VERSION_CHANGED' &&
                           failedValue(
@@ -1187,6 +1192,7 @@
                     <div class="form-actions">
                       <button
                         type="submit"
+                        aria-label={`${translate('Save fallback options')} · ${rowValue(terms, 'workerName')}`}
                         disabled={commercialAssignmentProblem?.code ===
                           'FINANCE_ASSIGNMENT_COMMERCIAL_VERSION_CHANGED' &&
                           failedValue('setAssignmentCommercialFallback', 'projectMemberId') ===
@@ -1239,9 +1245,9 @@
             onsubmit={confirmReimbursementReview}
           >
             <input type="hidden" name="view" value="commercial" />
+            <input type="hidden" name="lang" value={locale} />
             <input type="hidden" name="project" value={data.selectedProjectId} />
             <input type="hidden" name="task" value="Person expense policies" />
-            <input type="hidden" name="lang" value={locale} />
             <input type="hidden" name="category" value={data.commercialCategory ?? 'regular'} />
             <FieldGroup columns="2">
               <Field

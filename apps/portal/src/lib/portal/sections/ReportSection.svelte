@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ProjectContextNav from '../ui/ProjectContextNav.svelte';
   import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
   import { dirtyFormGuard } from '../dirty-form-guard';
   import { normalizeVisibleProjectSelection, projectVisibility } from '../project-visibility';
@@ -13,6 +14,7 @@
   import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
   import { onMount, tick } from 'svelte';
   import { reportFormFieldErrors } from '../ui/form-validation';
+  import { workRound2Text } from '../work-ux-round2-copy';
   import { ResponsiveSheet, StatusBadge } from '../ui';
   import ProblemNotice from '../ui/ProblemNotice.svelte';
   import { beginReportPdfDownload, type ReportPdfAttempt } from '../ui/report-pdf-download';
@@ -707,6 +709,11 @@
         ? filteredTechnicalReports.length
         : filteredDailyReports.length,
   );
+  const reportTabCounts = $derived({
+    daily: filteredDailyReports.length,
+    technical: filteredTechnicalReports.length,
+    signoff: signoffRows.length,
+  });
   const visibleResultCount = $derived(
     activeTabResultCount + (canGeneratePeriodReports ? generatedRows.length : 0),
   );
@@ -1054,6 +1061,11 @@
     return `${base}/app/reports?${params.toString()}`;
   }
 
+  function reportDetailHref(id: string | number): string {
+    const returnTo = `${registerHref({ view: activeTab })}#report-panel-${activeTab}`;
+    return `${base}/app/reports/${encodeURIComponent(String(id))}?returnTo=${encodeURIComponent(returnTo)}`;
+  }
+
   function periodReviewHref(): string {
     const params = new URLSearchParams({ lang: locale });
     if (projectFilter) params.set('project', projectFilter);
@@ -1094,6 +1106,11 @@
     </div>
     <span class="report-page-count" aria-label={translate('Report count')}>{records.length}</span>
   </header>
+  <ProjectContextNav
+    project={availableProjects.find((project) => String(project.id) === projectFilter)}
+    current="reports"
+    {locale}
+  />
 
   {#if savedReportNotice}<p class="action-message success" role="status">
       {savedReportNotice}
@@ -1149,6 +1166,43 @@
       <strong>{signoffScopeRows.length}</strong>
       <small>{translate('Period confirmations in scope')}</small>
     </a>
+  </div>
+
+  <div
+    id="report-quick-links"
+    class="report-tab-list"
+    aria-label={workRound2Text(reportLocale, 'reportLinks')}
+    role="tablist"
+  >
+    {#each tabs as tab}
+      <button
+        id={`report-tab-${tab.id}`}
+        type="button"
+        role="tab"
+        class:active={activeTab === tab.id}
+        aria-selected={activeTab === tab.id}
+        aria-controls={`report-panel-${tab.id}`}
+        aria-label={`${
+          tab.id === 'daily'
+            ? workRound2Text(reportLocale, 'reportDailyTab')
+            : tab.id === 'technical'
+              ? workRound2Text(reportLocale, 'reportTechnicalTab')
+              : workRound2Text(reportLocale, 'reportSignoffTab')
+        }, ${reportTabCounts[tab.id]}`}
+        tabindex={activeTab === tab.id ? 0 : -1}
+        onclick={() => setTab(tab.id)}
+        onkeydown={(event) => handleTabKey(event, tab.id)}
+      >
+        <span
+          >{tab.id === 'daily'
+            ? workRound2Text(reportLocale, 'reportDailyTab')
+            : tab.id === 'technical'
+              ? workRound2Text(reportLocale, 'reportTechnicalTab')
+              : workRound2Text(reportLocale, 'reportSignoffTab')}</span
+        >
+        <small aria-hidden="true">{reportTabCounts[tab.id]}</small>
+      </button>
+    {/each}
   </div>
 
   <form
@@ -1308,24 +1362,6 @@
     />
   </form>
 
-  <div class="report-tab-list" aria-label={translate('Report types')} role="tablist">
-    {#each tabs as tab}
-      <button
-        id={`report-tab-${tab.id}`}
-        type="button"
-        role="tab"
-        class:active={activeTab === tab.id}
-        aria-selected={activeTab === tab.id}
-        aria-controls={`report-panel-${tab.id}`}
-        tabindex={activeTab === tab.id ? 0 : -1}
-        onclick={() => setTab(tab.id)}
-        onkeydown={(event) => handleTabKey(event, tab.id)}
-      >
-        {translate(tab.label)}
-      </button>
-    {/each}
-  </div>
-
   {#if activeTab === 'daily'}
     <div
       id="report-panel-daily"
@@ -1351,7 +1387,7 @@
       <div class="report-register" aria-label={translate('Daily report register')}>
         {#each pagedDailyReports.rows as row}
           <article class="report-register-card">
-            <a class="report-register-link" href={`${base}/app/reports/${String(row.id)}`}>
+            <a class="report-register-link" href={reportDetailHref(String(row.id))}>
               <span class="report-register-type">{reportTypeLabel(row)}</span>
               <strong>{rowText(row, 'title') || translate('Daily field report')}</strong>
               <small
@@ -1397,6 +1433,9 @@
             {#if activeFilterItems.length}
               <strong>{translate('No matching records.')}</strong>
               <span>{translate('Clear filters to see more records.')}</span>
+              <button type="button" class="secondary-button" onclick={clearReportFilters}
+                >{workRound2Text(reportLocale, 'reportClearFilters')}</button
+              >
             {:else}
               <strong>{translate('No daily reports recorded.')}</strong>
               <span>{translate('Your field summaries will appear here after you save them.')}</span>
@@ -1455,7 +1494,7 @@
       <div class="report-register" aria-label={translate('Technical report register')}>
         {#each pagedTechnicalReports.rows as row}
           <article class="report-register-card">
-            <a class="report-register-link" href={`${base}/app/reports/${String(row.id)}`}>
+            <a class="report-register-link" href={reportDetailHref(String(row.id))}>
               <span class="report-register-type report-register-type-technical"
                 >{reportTypeLabel(row)}</span
               >
@@ -1503,6 +1542,9 @@
             {#if activeFilterItems.length}
               <strong>{translate('No matching records.')}</strong>
               <span>{translate('Clear filters to see more records.')}</span>
+              <button type="button" class="secondary-button" onclick={clearReportFilters}
+                >{workRound2Text(reportLocale, 'reportClearFilters')}</button
+              >
             {:else}
               <strong>{translate('No technical reports recorded.')}</strong>
               <span
@@ -1650,6 +1692,10 @@
       </div>
     </div>
   {/if}
+
+  <a class="report-register-back" href="#report-quick-links">
+    {workRound2Text(reportLocale, 'reportBackToShortcuts')}
+  </a>
 
   {#if canGeneratePeriodReports}
     <details class="report-generator">
@@ -1921,7 +1967,12 @@
           )}</span
         >
       </div>
-      <label>
+      <nav class="report-form-steps" aria-label={workRound2Text(reportLocale, 'reportDailySteps')}>
+        <a href="#daily-report-project">{workRound2Text(reportLocale, 'reportDailyBasics')}</a>
+        <a href="#daily-report-work">{workRound2Text(reportLocale, 'reportDailyWork')}</a>
+        <a href="#daily-report-handover">{workRound2Text(reportLocale, 'reportDailyHandover')}</a>
+      </nav>
+      <label id="daily-report-project" tabindex="-1">
         <span>{translate('Project')}</span>
         <select
           name="projectId"
@@ -1955,7 +2006,7 @@
           }}
         />
       {/if}
-      <div class="report-entry-grid">
+      <div class="report-entry-grid" id="daily-report-shift" tabindex="-1">
         <label
           ><span>{translate('Work date')}</span><input
             name="workDate"
@@ -1992,7 +2043,7 @@
           </p>
         {/if}
       {/if}
-      <label
+      <label id="daily-report-work" tabindex="-1"
         ><span>{translate('Shift summary')}</span><textarea name="summary" required
           >{restoredReportValue('summary')}</textarea
         ></label
@@ -2031,7 +2082,7 @@
           /></label
         >
       </div>
-      <label
+      <label id="daily-report-handover" tabindex="-1"
         ><span>{translate('Open items')}</span><textarea name="openItems"
           >{restoredReportValue('openItems')}</textarea
         ></label
@@ -2111,203 +2162,233 @@
           )}</span
         >
       </div>
-      <label>
-        <span>{translate('Project')}</span>
-        <select
-          name="projectId"
-          required
-          bind:value={createProject}
-          onchange={() => (createWorker = '')}
+      <nav
+        class="report-form-steps"
+        aria-label={workRound2Text(reportLocale, 'reportTechnicalSteps')}
+      >
+        <a href="#technical-report-equipment"
+          >{workRound2Text(reportLocale, 'reportTechnicalBasics')}</a
         >
-          <option value="">{translate('Select assignment')}</option>
-          {#if createProject && !availableProjects.some((project) => String(project.id) === createProject)}
-            <option value={createProject} disabled
-              >{translate('Previously selected project is no longer available')}</option
-            >
-          {/if}
-          {#each availableProjects as project}
-            <option value={String(project.id)}>{project.project_number} — {project.name}</option>
-          {/each}
-        </select>
-      </label>
-      {#if selectedProjectUnavailableProblem}
-        <ProblemNotice
-          problem={selectedProjectUnavailableProblem}
-          kind="error"
-          remedyLinks={{
-            review_projects: {
-              label: translate('Review available projects'),
-              href: `${base}/app/projects`,
-            },
-            contact_project_owner: {
-              label: translate('Contact the project owner to review access.'),
-            },
-          }}
-        />
-      {/if}
-      <div class="report-entry-grid">
-        <label
-          ><span>{translate('Work date')}</span><input
-            name="reportDate"
-            type="date"
-            bind:value={createDate}
+        <a href="#technical-report-diagnosis"
+          >{workRound2Text(reportLocale, 'reportTechnicalDiagnosis')}</a
+        >
+        <a href="#technical-report-change"
+          >{workRound2Text(reportLocale, 'reportTechnicalChange')}</a
+        >
+        <a href="#technical-report-handover"
+          >{workRound2Text(reportLocale, 'reportTechnicalHandover')}</a
+        >
+      </nav>
+      <fieldset class="report-entry-group" id="technical-report-equipment">
+        <legend>{workRound2Text(reportLocale, 'reportTechnicalGroupProject')}</legend>
+        <label id="technical-report-project" tabindex="-1">
+          <span>{translate('Project')}</span>
+          <select
+            name="projectId"
+            required
+            bind:value={createProject}
             onchange={() => (createWorker = '')}
-            required
-          /></label
-        >
-        <label
-          ><span>{translate('System / machine')}</span><input
-            name="systemName"
-            value={restoredReportValue('systemName')}
-            placeholder={translate('Line 4 main conveyor')}
-            required
-          /></label
-        >
-        <label
-          ><span>{translate('Plant / site')}</span><input
-            name="plantSite"
-            value={restoredReportValue('plantSite')}
-          /></label
-        >
-      </div>
-      {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
-        <label
-          ><span>{translate('Worker')}</span><select
-            name="workerId"
-            required
-            bind:value={createWorker}
-            disabled={!createProject || !createDate || eligibleReportWorkers.length === 0}
-            ><option value="">{translate('Select worker')}</option
-            >{#each eligibleReportWorkers as worker}<option value={String(worker.id)}
-                >{worker.name} — {worker.email}</option
-              >{/each}</select
-          ></label
-        >
-        {#if createProject && createDate && eligibleReportWorkers.length === 0}
-          <p class="report-entry-help">
-            {translate('No assigned worker is available for this project and date.')}
-          </p>
+          >
+            <option value="">{translate('Select assignment')}</option>
+            {#if createProject && !availableProjects.some((project) => String(project.id) === createProject)}
+              <option value={createProject} disabled
+                >{translate('Previously selected project is no longer available')}</option
+              >
+            {/if}
+            {#each availableProjects as project}
+              <option value={String(project.id)}>{project.project_number} — {project.name}</option>
+            {/each}
+          </select>
+        </label>
+        {#if selectedProjectUnavailableProblem}
+          <ProblemNotice
+            problem={selectedProjectUnavailableProblem}
+            kind="error"
+            remedyLinks={{
+              review_projects: {
+                label: translate('Review available projects'),
+                href: `${base}/app/projects`,
+              },
+              contact_project_owner: {
+                label: translate('Contact the project owner to review access.'),
+              },
+            }}
+          />
         {/if}
-      {/if}
-      <div class="report-entry-grid report-entry-grid-three">
+        <div class="report-entry-grid" id="technical-report-project-dates" tabindex="-1">
+          <label
+            ><span>{translate('Work date')}</span><input
+              name="reportDate"
+              type="date"
+              bind:value={createDate}
+              onchange={() => (createWorker = '')}
+              required
+            /></label
+          >
+          <label
+            ><span>{translate('System / machine')}</span><input
+              name="systemName"
+              value={restoredReportValue('systemName')}
+              placeholder={translate('Line 4 main conveyor')}
+              required
+            /></label
+          >
+          <label
+            ><span>{translate('Plant / site')}</span><input
+              name="plantSite"
+              value={restoredReportValue('plantSite')}
+            /></label
+          >
+        </div>
+        {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
+          <label
+            ><span>{translate('Worker')}</span><select
+              name="workerId"
+              required
+              bind:value={createWorker}
+              disabled={!createProject || !createDate || eligibleReportWorkers.length === 0}
+              ><option value="">{translate('Select worker')}</option
+              >{#each eligibleReportWorkers as worker}<option value={String(worker.id)}
+                  >{worker.name} — {worker.email}</option
+                >{/each}</select
+            ></label
+          >
+          {#if createProject && createDate && eligibleReportWorkers.length === 0}
+            <p class="report-entry-help">
+              {translate('No assigned worker is available for this project and date.')}
+            </p>
+          {/if}
+        {/if}
+        <div
+          class="report-entry-grid report-entry-grid-three"
+          id="technical-report-controls"
+          tabindex="-1"
+        >
+          <label
+            ><span>{translate('Area / line')}</span><input
+              name="areaLine"
+              value={restoredReportValue('areaLine')}
+            /></label
+          >
+          <label
+            ><span>{translate('Station / machine')}</span><input
+              name="stationMachine"
+              value={restoredReportValue('stationMachine')}
+            /></label
+          >
+          <label
+            ><span>{translate('System type')}</span><input
+              name="systemType"
+              value={restoredReportValue('systemType')}
+            /></label
+          >
+        </div>
+        <div class="report-entry-grid report-entry-grid-three">
+          <label
+            ><span>{translate('PLC platform')}</span><input
+              name="plcPlatform"
+              value={restoredReportValue('plcPlatform')}
+              placeholder={translate('Rockwell Automation')}
+            /></label
+          >
+          <label
+            ><span>{translate('Controller')}</span><input
+              name="controller"
+              value={restoredReportValue('controller')}
+              placeholder={translate('ControlLogix 5580')}
+            /></label
+          >
+          <label
+            ><span>{translate('HMI / SCADA')}</span><input
+              name="hmiScada"
+              value={restoredReportValue('hmiScada')}
+            /></label
+          >
+        </div>
+        <div class="report-entry-grid">
+          <label
+            ><span>{translate('Network / protocol')}</span><input
+              name="networkProtocol"
+              value={restoredReportValue('networkProtocol')}
+            /></label
+          >
+          <label
+            ><span>{translate('Software version')}</span><input
+              name="softwareVersion"
+              value={restoredReportValue('softwareVersion')}
+            /></label
+          >
+        </div>
         <label
-          ><span>{translate('Area / line')}</span><input
-            name="areaLine"
-            value={restoredReportValue('areaLine')}
+          ><span>{translate('Program / project reference')}</span><input
+            name="programReference"
+            value={restoredReportValue('programReference')}
           /></label
         >
-        <label
-          ><span>{translate('Station / machine')}</span><input
-            name="stationMachine"
-            value={restoredReportValue('stationMachine')}
-          /></label
-        >
-        <label
-          ><span>{translate('System type')}</span><input
-            name="systemType"
-            value={restoredReportValue('systemType')}
-          /></label
-        >
-      </div>
-      <div class="report-entry-grid report-entry-grid-three">
-        <label
-          ><span>{translate('PLC platform')}</span><input
-            name="plcPlatform"
-            value={restoredReportValue('plcPlatform')}
-            placeholder={translate('Rockwell Automation')}
-          /></label
-        >
-        <label
-          ><span>{translate('Controller')}</span><input
-            name="controller"
-            value={restoredReportValue('controller')}
-            placeholder={translate('ControlLogix 5580')}
-          /></label
-        >
-        <label
-          ><span>{translate('HMI / SCADA')}</span><input
-            name="hmiScada"
-            value={restoredReportValue('hmiScada')}
-          /></label
-        >
-      </div>
-      <div class="report-entry-grid">
-        <label
-          ><span>{translate('Network / protocol')}</span><input
-            name="networkProtocol"
-            value={restoredReportValue('networkProtocol')}
-          /></label
-        >
-        <label
-          ><span>{translate('Software version')}</span><input
-            name="softwareVersion"
-            value={restoredReportValue('softwareVersion')}
-          /></label
-        >
-      </div>
-      <label
-        ><span>{translate('Program / project reference')}</span><input
-          name="programReference"
-          value={restoredReportValue('programReference')}
-        /></label
-      >
-      <label
-        ><span>{translate('Problem / symptom')}</span><textarea name="problemSymptom" required
-          >{restoredReportValue('problemSymptom')}</textarea
-        ></label
-      >
-      <label
-        ><span>{translate('Diagnosis / root cause')}</span><textarea
-          name="diagnosisRootCause"
-          required>{restoredReportValue('diagnosisRootCause')}</textarea
-        ></label
-      >
-      <label
-        ><span>{translate('Change performed')}</span><textarea name="changePerformed" required
-          >{restoredReportValue('changePerformed')}</textarea
-        ></label
-      >
-      <label
-        ><span>{translate('Production impact')}</span><textarea name="productionImpact"
-          >{restoredReportValue('productionImpact')}</textarea
-        ></label
-      >
-      <div class="report-entry-grid">
-        <label
-          ><span>{translate('Validation performed')}</span><textarea name="validation"
-            >{restoredReportValue('validation')}</textarea
+      </fieldset>
+      <fieldset class="report-entry-group" id="technical-report-diagnosis-group">
+        <legend>{workRound2Text(reportLocale, 'reportTechnicalGroupDiagnosis')}</legend>
+        <label id="technical-report-diagnosis" tabindex="-1"
+          ><span>{translate('Problem / symptom')}</span><textarea name="problemSymptom" required
+            >{restoredReportValue('problemSymptom')}</textarea
           ></label
         >
         <label
-          ><span>{translate('Validation result')}</span><textarea name="validationResult"
-            >{restoredReportValue('validationResult')}</textarea
+          ><span>{translate('Diagnosis / root cause')}</span><textarea
+            name="diagnosisRootCause"
+            required>{restoredReportValue('diagnosisRootCause')}</textarea
           ></label
         >
-      </div>
-      <div class="report-entry-grid">
+        <label id="technical-report-change" tabindex="-1"
+          ><span>{translate('Change performed')}</span><textarea name="changePerformed" required
+            >{restoredReportValue('changePerformed')}</textarea
+          ></label
+        >
         <label
-          ><span>{translate('Open risk / issue')}</span><textarea name="openRisk"
-            >{restoredReportValue('openRisk')}</textarea
+          ><span>{translate('Production impact')}</span><textarea name="productionImpact"
+            >{restoredReportValue('productionImpact')}</textarea
           ></label
         >
-        <label
-          ><span>{translate('Rollback plan')}</span><textarea name="rollbackPlan"
-            >{restoredReportValue('rollbackPlan')}</textarea
-          ></label
-        >
-      </div>
-      <label class="report-check report-check-warning">
-        <input
-          name="safetyRelated"
-          type="checkbox"
-          checked={restoredReportValue('safetyRelated') === 'on'}
-        />
-        <span
-          >{translate(
-            'Safety impact: technical lead review, validation and rollback detail required',
-          )}</span
-        >
-      </label>
+      </fieldset>
+      <fieldset class="report-entry-group" id="technical-report-validation-group">
+        <legend>{workRound2Text(reportLocale, 'reportTechnicalGroupValidation')}</legend>
+        <div class="report-entry-grid" id="technical-report-validation" tabindex="-1">
+          <label
+            ><span>{translate('Validation performed')}</span><textarea name="validation"
+              >{restoredReportValue('validation')}</textarea
+            ></label
+          >
+          <label
+            ><span>{translate('Validation result')}</span><textarea name="validationResult"
+              >{restoredReportValue('validationResult')}</textarea
+            ></label
+          >
+        </div>
+        <div class="report-entry-grid" id="technical-report-handover" tabindex="-1">
+          <label
+            ><span>{translate('Open risk / issue')}</span><textarea name="openRisk"
+              >{restoredReportValue('openRisk')}</textarea
+            ></label
+          >
+          <label
+            ><span>{translate('Rollback plan')}</span><textarea name="rollbackPlan"
+              >{restoredReportValue('rollbackPlan')}</textarea
+            ></label
+          >
+        </div>
+        <label class="report-check report-check-warning">
+          <input
+            name="safetyRelated"
+            type="checkbox"
+            checked={restoredReportValue('safetyRelated') === 'on'}
+          />
+          <span
+            >{translate(
+              'Safety impact: technical lead review, validation and rollback detail required',
+            )}</span
+          >
+        </label>
+      </fieldset>
       <div class="report-entry-actions">
         <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
           >{translate('Cancel')}</button
@@ -2498,6 +2579,101 @@
     outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 25%, transparent);
     outline-offset: 2px;
   }
+  .report-form-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin: 0.25rem 0 0.85rem;
+    padding: 0.6rem;
+    border: 1px solid var(--ja-border, #e1e1de);
+    border-radius: 0.65rem;
+    background: var(--ja-surface-subtle, #f8f8f7);
+  }
+  .report-form .report-entry-group {
+    display: grid;
+    min-width: 0;
+    gap: 0.8rem;
+    margin: 0;
+    padding: 0.9rem;
+    border: 1px solid var(--ja-border, #e1e1de);
+    border-radius: 0.65rem;
+  }
+  .report-form .report-entry-group legend {
+    padding-inline: 0.3rem;
+    color: var(--ja-ink, #1f1f1c);
+    font-size: 0.92rem;
+    font-weight: 750;
+  }
+  .report-form .report-entry-group > label:not(.report-check) {
+    display: grid;
+    min-width: 0;
+    gap: 0.4rem;
+    color: var(--ja-ink, #1f1f1c);
+    font-size: 0.86rem;
+    font-weight: 750;
+  }
+  .report-register-back {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    margin-block: 0.65rem 1rem;
+    color: var(--ja-teal, #706e66);
+    font-weight: 650;
+    text-underline-offset: 0.15em;
+  }
+  .report-form-steps a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--ja-control-border, #d7d8d2);
+    border-radius: 999px;
+    background: var(--ja-white, #fff);
+    color: inherit;
+    font-size: 0.82rem;
+    font-weight: 650;
+    text-decoration: none;
+  }
+  .report-form-steps a:hover,
+  .report-form-steps a:focus-visible {
+    border-color: var(--ja-teal, #706e66);
+    outline: 2px solid color-mix(in srgb, var(--ja-teal, #706e66) 22%, transparent);
+    outline-offset: 2px;
+  }
+  .report-empty button {
+    justify-self: start;
+    margin-top: 0.5rem;
+  }
+  :global(.report-tab-list > button) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+  }
+  :global(.report-tab-list > button > small) {
+    display: inline-grid;
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+    place-items: center;
+    border-radius: 999px;
+    background: color-mix(in srgb, currentColor 10%, transparent);
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+  .report-form-steps a,
+  #daily-report-project,
+  #daily-report-shift,
+  #daily-report-work,
+  #daily-report-handover,
+  #technical-report-project,
+  #technical-report-equipment,
+  #technical-report-controls,
+  #technical-report-diagnosis,
+  #technical-report-change,
+  #technical-report-validation,
+  #technical-report-handover {
+    scroll-margin-block-start: 0.75rem;
+  }
   .report-register-filters {
     align-items: end;
     display: flex;
@@ -2536,6 +2712,14 @@
   @media (max-width: 480px) {
     .report-panel-header {
       display: grid;
+    }
+    .report-form-steps {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .report-form-steps a {
+      justify-content: center;
+      text-align: center;
     }
     .report-register-filters label,
     .report-register-filters button {

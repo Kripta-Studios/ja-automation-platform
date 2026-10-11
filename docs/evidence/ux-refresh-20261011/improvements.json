@@ -1,0 +1,842 @@
+{
+  "date": "2026-10-11",
+  "baselineSource": "27e57872",
+  "baselineProduction": "workflow-06bdf74560f71ee0c488",
+  "count": 100,
+  "status": "Implemented and verified; production rollout recorded separately",
+  "featurePreservation": "All existing create-project and billing fields, cadence options, per-worker conditions, roles, financial lifecycles and explicit issue/send actions retained. No migrations or business-rule changes.",
+  "improvements": [
+    {
+      "number": 1,
+      "sourceId": "P01",
+      "area": "Projects",
+      "improvement": "The New Project workflow button now exposes its active step and a ready-to-create state while retaining the existing single CTA.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 2,
+      "sourceId": "P02",
+      "area": "Projects",
+      "improvement": "The owner/finance project register shows a live result count plus the active status and search context beside its controls.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts",
+        "apps/portal/src/styles/portal/forms-management.css"
+      ]
+    },
+    {
+      "number": 3,
+      "sourceId": "P03",
+      "area": "Projects",
+      "improvement": "No-match states explain that filters caused the empty result and offer a one-click reset.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 4,
+      "sourceId": "P04",
+      "area": "Projects",
+      "improvement": "Project managers can filter their authorized project list by client, with the selected client shown in the live filter context and reset path.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectSection.svelte"]
+    },
+    {
+      "number": 5,
+      "sourceId": "P05",
+      "area": "Projects",
+      "improvement": "Project-manager mobile project cards keep Work and Team actions directly reachable inside each project summary card instead of hiding them behind the desktop table.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+        "apps/portal/src/lib/portal/ui/TableRegion.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 6,
+      "sourceId": "P06",
+      "area": "Projects",
+      "improvement": "Owner/finance register rows expose direct Work and Team shortcuts, with the Invoices shortcut gated to finance-capable users.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts",
+        "apps/portal/src/styles/portal/forms-management.css"
+      ]
+    },
+    {
+      "number": 7,
+      "sourceId": "P07",
+      "area": "Projects",
+      "improvement": "Owner project metadata is visually separated into status, currency, timezone and date groups for faster scanning.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/styles/portal/forms-management.css"
+      ]
+    },
+    {
+      "number": 8,
+      "sourceId": "P08",
+      "area": "Projects",
+      "improvement": "The create form provides five anchored steps, and clicking an optional step opens its disclosure before scrolling to it.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts",
+        "apps/portal/src/styles/portal/forms-management.css"
+      ]
+    },
+    {
+      "number": 9,
+      "sourceId": "P09",
+      "area": "Projects",
+      "improvement": "The first run shows only client, name, cost center, currency, timezone and dates; optional context, people, commercial and planning fields are behind clear disclosures.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 10,
+      "sourceId": "P10",
+      "area": "Projects",
+      "improvement": "A persistent Required/Optional legend explains when each field group is expected.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 11,
+      "sourceId": "P11",
+      "area": "Projects",
+      "improvement": "Timezone and project dates sit with the essential identity fields, so users do not need optional settings to schedule a project.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"]
+    },
+    {
+      "number": 12,
+      "sourceId": "P12",
+      "area": "Projects",
+      "improvement": "Selecting a client explains which defaults are inherited and how project currency affects budgets, rates and expense limits.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts",
+        "apps/portal/src/styles/portal/forms-management.css"
+      ]
+    },
+    {
+      "number": 13,
+      "sourceId": "P13",
+      "area": "Projects",
+      "improvement": "Description, project alias, project manager and every on-site/contact field are grouped behind a Project context disclosure with a concise preview.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts",
+        "apps/portal/src/styles/portal/forms-management.css"
+      ]
+    },
+    {
+      "number": 14,
+      "sourceId": "P14",
+      "area": "Projects",
+      "improvement": "Validation failures automatically open optional settings or people disclosures and focus the first invalid control.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"]
+    },
+    {
+      "number": 15,
+      "sourceId": "P15",
+      "area": "Projects",
+      "improvement": "A responsive save bar keeps the action clear: sticky on desktop, naturally positioned above the page end on phones, with truthful Saving feedback.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/styles/portal/forms-management.css"
+      ]
+    },
+    {
+      "number": 16,
+      "sourceId": "P16",
+      "area": "Projects",
+      "improvement": "Create validation summaries show a localized review message, error count and links to assignment date targets.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts",
+        "apps/portal/src/styles/portal/forms-management.css"
+      ]
+    },
+    {
+      "number": 17,
+      "sourceId": "P17",
+      "area": "Projects",
+      "improvement": "People, project defaults, billing frequency and individual worker rates/pay/expense terms are grouped behind an optional People disclosure with a concise preview.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 18,
+      "sourceId": "P18",
+      "area": "Projects",
+      "improvement": "Billing model, expected hours and client minimum hours are grouped behind an optional Commercial defaults disclosure, with the selected currency previewed in its summary.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 19,
+      "sourceId": "P19",
+      "area": "Projects",
+      "improvement": "The form explicitly reassures users that entered values stay in place when validation needs correction, and the submit state resets after a failed response.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 20,
+      "sourceId": "P20",
+      "area": "Projects",
+      "improvement": "Project detail KPI cards use a two-column mobile grid to reduce the vertical climb before the operational tabs.",
+      "files": ["apps/portal/src/routes/app/projects/[id]/+page.svelte"]
+    },
+    {
+      "number": 21,
+      "sourceId": "P21",
+      "area": "Projects",
+      "improvement": "Detail tabs become horizontally scrollable on narrow screens and announce the current section above the tab strip.",
+      "files": ["apps/portal/src/routes/app/projects/[id]/+page.svelte"]
+    },
+    {
+      "number": 22,
+      "sourceId": "P22",
+      "area": "Projects",
+      "improvement": "Commercially authorized users can open the client from the detail header and Overview facts, while project managers see the client name without an unauthorized link.",
+      "files": ["apps/portal/src/routes/app/projects/[id]/+page.svelte"]
+    },
+    {
+      "number": 23,
+      "sourceId": "P23",
+      "area": "Projects",
+      "improvement": "Configured site contacts expose a direct Open client contacts affordance for authorized roles.",
+      "files": ["apps/portal/src/routes/app/projects/[id]/+page.svelte"]
+    },
+    {
+      "number": 24,
+      "sourceId": "P24",
+      "area": "Projects",
+      "improvement": "The project detail header provides task verbs for Log time, Record expense, Create work report and invoice preparation/viewing, with Team still one click away.",
+      "files": [
+        "apps/portal/src/routes/app/projects/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 25,
+      "sourceId": "P25",
+      "area": "Projects",
+      "improvement": "Project detail empty states now point to the next useful operation: add expense, assign a worker, open planning/reports or open billing.",
+      "files": [
+        "apps/portal/src/routes/app/projects/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/project-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 26,
+      "sourceId": "UX-B01",
+      "area": "Billing and invoices",
+      "improvement": "The record composer keeps its selected project in the stream options and filters rules to that project.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectInvoiceComposer.svelte"]
+    },
+    {
+      "number": 27,
+      "sourceId": "UX-B02",
+      "area": "Billing and invoices",
+      "improvement": "The whole-period wizard limits the billing-stream choice to the selected project.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"]
+    },
+    {
+      "number": 28,
+      "sourceId": "UX-B03",
+      "area": "Billing and invoices",
+      "improvement": "Stream options show project number/name context instead of an opaque rule identifier.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectInvoiceComposer.svelte"]
+    },
+    {
+      "number": 29,
+      "sourceId": "UX-B04",
+      "area": "Billing and invoices",
+      "improvement": "Cadence values use readable localized labels for manual, weekly, biweekly, semimonthly, monthly, custom, and milestone streams.",
+      "files": [
+        "apps/portal/src/lib/portal/project-invoice-journey.ts",
+        "apps/portal/src/lib/portal/sections/ProjectInvoiceComposer.svelte"
+      ]
+    },
+    {
+      "number": 30,
+      "sourceId": "UX-B05",
+      "area": "Billing and invoices",
+      "improvement": "The record stream selector includes a visible effective-date interval for each stream.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectInvoiceComposer.svelte"]
+    },
+    {
+      "number": 31,
+      "sourceId": "UX-B06",
+      "area": "Billing and invoices",
+      "improvement": "Effective-date guidance sits directly under the selected stream control.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectInvoiceComposer.svelte"]
+    },
+    {
+      "number": 32,
+      "sourceId": "UX-B07",
+      "area": "Billing and invoices",
+      "improvement": "Record-based and whole-period creation are mutually exclusive choices that preserve the selected stream and dates and honor pending-operation locks.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"]
+    },
+    {
+      "number": 33,
+      "sourceId": "UX-B08",
+      "area": "Billing and invoices",
+      "improvement": "Each creation mode explains when to select records versus use a configured period or milestone.",
+      "files": [
+        "apps/portal/src/lib/portal/project-invoice-journey.ts",
+        "apps/portal/src/lib/portal/sections/BillingSection.svelte"
+      ]
+    },
+    {
+      "number": 34,
+      "sourceId": "UX-B09",
+      "area": "Billing and invoices",
+      "improvement": "Direct mode=whole-period links open the whole-period surface while retaining the selected rule and dates.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"]
+    },
+    {
+      "number": 35,
+      "sourceId": "UX-B10",
+      "area": "Billing and invoices",
+      "improvement": "The record composer identifies the current project and offers a direct project-billing review link.",
+      "files": [
+        "apps/portal/src/lib/portal/project-invoice-journey.ts",
+        "apps/portal/src/lib/portal/sections/ProjectInvoiceComposer.svelte"
+      ]
+    },
+    {
+      "number": 36,
+      "sourceId": "UX-B11",
+      "area": "Billing and invoices",
+      "improvement": "Projects without supported streams show scoped setup, work, expense, and record-review actions.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectInvoiceComposer.svelte"]
+    },
+    {
+      "number": 37,
+      "sourceId": "UX-B12",
+      "area": "Billing and invoices",
+      "improvement": "Empty inventories collapse secondary record filters after loading while preserving a reopenable Filters disclosure.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectInvoiceComposer.svelte"]
+    },
+    {
+      "number": 38,
+      "sourceId": "UX-B13",
+      "area": "Billing and invoices",
+      "improvement": "The composer explicitly says that the end date is inclusive and cadence alignment occurs before loading.",
+      "files": [
+        "apps/portal/src/lib/portal/project-invoice-journey.ts",
+        "apps/portal/src/lib/portal/sections/ProjectInvoiceComposer.svelte"
+      ]
+    },
+    {
+      "number": 39,
+      "sourceId": "UX-B14",
+      "area": "Billing and invoices",
+      "improvement": "Current and previous billing-period shortcuts align dates with the selected stream cadence and project timezone.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectInvoiceComposer.svelte"]
+    },
+    {
+      "number": 40,
+      "sourceId": "UX-B15",
+      "area": "Billing and invoices",
+      "improvement": "Each active stream has a contextual Create invoice action that opens its matching rule.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"]
+    },
+    {
+      "number": 41,
+      "sourceId": "UX-B16",
+      "area": "Billing and invoices",
+      "improvement": "Each active stream exposes a secondary whole-period or milestone action without removing record billing.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/BillingSection.svelte",
+        "apps/portal/src/lib/portal/project-invoice-journey.ts"
+      ]
+    },
+    {
+      "number": 42,
+      "sourceId": "UX-B17",
+      "area": "Billing and invoices",
+      "improvement": "The stream register explains where eligibility blockers appear before a draft is created.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"]
+    },
+    {
+      "number": 43,
+      "sourceId": "UX-B18",
+      "area": "Billing and invoices",
+      "improvement": "Stream rows show project name beneath the project number when available.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"]
+    },
+    {
+      "number": 44,
+      "sourceId": "UX-B19",
+      "area": "Billing and invoices",
+      "improvement": "Stream project context links to the authorized project billing detail route.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"]
+    },
+    {
+      "number": 45,
+      "sourceId": "UX-B20",
+      "area": "Billing and invoices",
+      "improvement": "The stream register header and empty state both provide a prominent New billing stream action.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"]
+    },
+    {
+      "number": 46,
+      "sourceId": "UX-B21",
+      "area": "Billing and invoices",
+      "improvement": "New billing stream setup appears before reference directories so the primary task is reachable first.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"]
+    },
+    {
+      "number": 47,
+      "sourceId": "UX-B22",
+      "area": "Billing and invoices",
+      "improvement": "Setup action buttons focus the form for the chosen action, including stream, issuer, tax, and numbering forms.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"]
+    },
+    {
+      "number": 48,
+      "sourceId": "UX-B23",
+      "area": "Billing and invoices",
+      "improvement": "New stream fields are grouped into Project/service, Schedule, Issuer/tax, and Delivery fieldsets without changing names or options.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"]
+    },
+    {
+      "number": 49,
+      "sourceId": "UX-B24",
+      "area": "Billing and invoices",
+      "improvement": "The no-tax-profile warning spans the setup form width and keeps its tax-profile remedy link.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"]
+    },
+    {
+      "number": 50,
+      "sourceId": "UX-B25",
+      "area": "Billing and invoices",
+      "improvement": "Mobile invoice cards keep invoice, project, and ready-PDF actions together beside clearly labeled service and payment dates.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/BillingSection.svelte",
+        "apps/portal/src/lib/portal/project-invoice-journey.ts"
+      ]
+    },
+    {
+      "number": 51,
+      "sourceId": "N01",
+      "area": "Navigation and financial registers",
+      "improvement": "Adds a one-tap Review invoice register jump beside the ledger heading.",
+      "files": ["apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte"]
+    },
+    {
+      "number": 52,
+      "sourceId": "N02",
+      "area": "Navigation and financial registers",
+      "improvement": "Reports the visible and scoped authorized ledger row counts in a live status line.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte",
+        "apps/portal/src/lib/portal/navigation-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 53,
+      "sourceId": "N03",
+      "area": "Navigation and financial registers",
+      "improvement": "Shows active filters as removable, URL-preserving chips with a clear-all action.",
+      "files": ["apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte"]
+    },
+    {
+      "number": 54,
+      "sourceId": "N04",
+      "area": "Navigation and financial registers",
+      "improvement": "Progressively discloses client, project, currency and aging filters while keeping search/status primary.",
+      "files": ["apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte"]
+    },
+    {
+      "number": 55,
+      "sourceId": "N05",
+      "area": "Navigation and financial registers",
+      "improvement": "Makes filter reset return to the full register and preserve an explicit language query.",
+      "files": ["apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte"]
+    },
+    {
+      "number": 56,
+      "sourceId": "N06",
+      "area": "Navigation and financial registers",
+      "improvement": "Separates invoice identity from client identity in mobile cards and gives the card action a specific invoice label.",
+      "files": ["apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte"]
+    },
+    {
+      "number": 57,
+      "sourceId": "N07",
+      "area": "Navigation and financial registers",
+      "improvement": "Turns authorized client names into focused client-directory links from ledger rows.",
+      "files": ["apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte"]
+    },
+    {
+      "number": 58,
+      "sourceId": "N08",
+      "area": "Navigation and financial registers",
+      "improvement": "Turns authorized project names into focused project detail links from ledger rows.",
+      "files": ["apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte"]
+    },
+    {
+      "number": 59,
+      "sourceId": "N09",
+      "area": "Navigation and financial registers",
+      "improvement": "Adds semantic invoice, client and project link labels that include the human-readable identity.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte",
+        "apps/portal/src/lib/portal/navigation-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 60,
+      "sourceId": "N10",
+      "area": "Navigation and financial registers",
+      "improvement": "Gives every aging bucket link a spoken bucket and exact formatted amount label.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte",
+        "apps/portal/src/lib/portal/navigation-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 61,
+      "sourceId": "N11",
+      "area": "Navigation and financial registers",
+      "improvement": "Provides a useful no-match recovery state with full-register and billing-record paths.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte",
+        "apps/portal/src/lib/portal/navigation-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 62,
+      "sourceId": "N12",
+      "area": "Navigation and financial registers",
+      "improvement": "Keeps aging quick links scoped to the current client/project/search filters and explicit locale.",
+      "files": ["apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte"]
+    },
+    {
+      "number": 63,
+      "sourceId": "N13",
+      "area": "Navigation and financial registers",
+      "improvement": "Keeps four accounting status summaries in a compact two-column phone/tablet grid so the register empty state is visible sooner.",
+      "files": ["apps/portal/src/lib/portal/sections/AccountingSection.svelte"]
+    },
+    {
+      "number": 64,
+      "sourceId": "N14",
+      "area": "Navigation and financial registers",
+      "improvement": "Adds explicit status button labels and selected-state focus treatment for pack summaries.",
+      "files": ["apps/portal/src/lib/portal/sections/AccountingSection.svelte"]
+    },
+    {
+      "number": 65,
+      "sourceId": "N15",
+      "area": "Navigation and financial registers",
+      "improvement": "Adds a compact register count and active-state summary beneath the status controls.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/AccountingSection.svelte",
+        "apps/portal/src/lib/portal/navigation-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 66,
+      "sourceId": "N16",
+      "area": "Navigation and financial registers",
+      "improvement": "Adds a direct View pack register jump beside the accounting context heading.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/AccountingSection.svelte",
+        "apps/portal/src/lib/portal/navigation-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 67,
+      "sourceId": "N17",
+      "area": "Navigation and financial registers",
+      "improvement": "Adds source-readiness guidance to the empty accounting register.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/AccountingSection.svelte",
+        "apps/portal/src/lib/portal/navigation-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 68,
+      "sourceId": "N18",
+      "area": "Navigation and financial registers",
+      "improvement": "Gives auditors a read-only source ledger path and keeps pack generation out of their empty state.",
+      "files": ["apps/portal/src/lib/portal/sections/AccountingSection.svelte"]
+    },
+    {
+      "number": 69,
+      "sourceId": "N19",
+      "area": "Navigation and financial registers",
+      "improvement": "Gives authorized finance/owner users a Generate a period pack path while retaining the ledger review path.",
+      "files": ["apps/portal/src/lib/portal/sections/AccountingSection.svelte"]
+    },
+    {
+      "number": 70,
+      "sourceId": "N20",
+      "area": "Navigation and financial registers",
+      "improvement": "Keeps credential failures inline, field-local and out of the generic recovery dialog.",
+      "files": [
+        "apps/portal/src/routes/app/login/+page.svelte",
+        "apps/portal/src/lib/portal/navigation-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 71,
+      "sourceId": "N21",
+      "area": "Navigation and financial registers",
+      "improvement": "Preserves the entered email and focuses the password correction after a recoverable credential failure.",
+      "files": ["apps/portal/src/routes/app/login/+page.svelte"]
+    },
+    {
+      "number": 72,
+      "sourceId": "N22",
+      "area": "Navigation and financial registers",
+      "improvement": "Adds an explicit retry sign-in action for non-credential errors without bypassing rate limits.",
+      "files": [
+        "apps/portal/src/routes/app/login/+page.svelte",
+        "apps/portal/src/lib/portal/navigation-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 73,
+      "sourceId": "N23",
+      "area": "Navigation and financial registers",
+      "improvement": "Keeps a readable Sections label on the section navigator trigger at phone widths.",
+      "files": ["apps/portal/src/lib/portal/ui/SectionNavigator.svelte"]
+    },
+    {
+      "number": 74,
+      "sourceId": "N24",
+      "area": "Navigation and financial registers",
+      "improvement": "Exposes the current section in the trigger name/title while keeping the visual context compact.",
+      "files": [
+        "apps/portal/src/lib/portal/ui/SectionNavigator.svelte",
+        "apps/portal/src/lib/PortalChrome.svelte",
+        "apps/portal/src/lib/portal/navigation-ux-copy.ts"
+      ]
+    },
+    {
+      "number": 75,
+      "sourceId": "N25",
+      "area": "Navigation and financial registers",
+      "improvement": "Adds a live result count to section search and restores trigger focus when the dialog closes.",
+      "files": ["apps/portal/src/lib/portal/ui/SectionNavigator.svelte"]
+    },
+    {
+      "number": 76,
+      "sourceId": "R01",
+      "area": "Daily work and finance",
+      "improvement": "Finance project selector appears before attention cards and financial totals.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"]
+    },
+    {
+      "number": 77,
+      "sourceId": "R02",
+      "area": "Daily work and finance",
+      "improvement": "Selected project name opens its project workspace.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"]
+    },
+    {
+      "number": 78,
+      "sourceId": "R03",
+      "area": "Daily work and finance",
+      "improvement": "Prepare an invoice opens invoice creation directly for the selected project, including milestone billing.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"]
+    },
+    {
+      "number": 79,
+      "sourceId": "R04",
+      "area": "Daily work and finance",
+      "improvement": "Team and billing conditions are reachable beside the selected project.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"]
+    },
+    {
+      "number": 80,
+      "sourceId": "R05",
+      "area": "Daily work and finance",
+      "improvement": "Invoices shortcut opens the register already scoped to the selected project.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"]
+    },
+    {
+      "number": 81,
+      "sourceId": "R06",
+      "area": "Daily work and finance",
+      "improvement": "Collections shortcut opens selected-project receivables.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"]
+    },
+    {
+      "number": 82,
+      "sourceId": "R07",
+      "area": "Daily work and finance",
+      "improvement": "Cash calendar and recent-period explanation form a compact utility row instead of separate large panels.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"]
+    },
+    {
+      "number": 83,
+      "sourceId": "R08",
+      "area": "Daily work and finance",
+      "improvement": "Approved unbilled WIP is clickable and opens invoice preparation for writers, invoice review for auditors.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"]
+    },
+    {
+      "number": 84,
+      "sourceId": "R09",
+      "area": "Daily work and finance",
+      "improvement": "Revenue candidate is clickable and opens its source records.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"]
+    },
+    {
+      "number": 85,
+      "sourceId": "R10",
+      "area": "Daily work and finance",
+      "improvement": "Zero settlement and reimbursement counts no longer receive warning emphasis.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"]
+    },
+    {
+      "number": 86,
+      "sourceId": "R11",
+      "area": "Daily work and finance",
+      "improvement": "Finance source and project workflow links preserve the selected interface language.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"]
+    },
+    {
+      "number": 87,
+      "sourceId": "R12",
+      "area": "Daily work and finance",
+      "improvement": "Phone workspace search occupies its own full-width row rather than being compressed by Print.",
+      "files": [
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/styles/portal/polish.css"
+      ]
+    },
+    {
+      "number": 88,
+      "sourceId": "R13",
+      "area": "Daily work and finance",
+      "improvement": "Workspace search includes a one-click clear control that returns focus to the input.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"]
+    },
+    {
+      "number": 89,
+      "sourceId": "R14",
+      "area": "Daily work and finance",
+      "improvement": "Search supports Arrow Up to the final suggestion plus Home/End navigation through suggestions.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"]
+    },
+    {
+      "number": 90,
+      "sourceId": "R15",
+      "area": "Daily work and finance",
+      "improvement": "Escape closes search suggestions without throwing keyboard focus out of the search field.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"]
+    },
+    {
+      "number": 91,
+      "sourceId": "R16",
+      "area": "Daily work and finance",
+      "improvement": "Search suggestions remain mounted while keyboard focus moves from the input into results.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"]
+    },
+    {
+      "number": 92,
+      "sourceId": "R17",
+      "area": "Daily work and finance",
+      "improvement": "The J&A breadcrumb links directly to workspace home.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"]
+    },
+    {
+      "number": 93,
+      "sourceId": "R18",
+      "area": "Daily work and finance",
+      "improvement": "Filtered time entries display a clickable project identity instead of requiring sidebar navigation.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+        "apps/portal/src/lib/portal/ui/ProjectContextNav.svelte"
+      ]
+    },
+    {
+      "number": 94,
+      "sourceId": "R19",
+      "area": "Daily work and finance",
+      "improvement": "Time entries link directly to the same project’s expenses.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+        "apps/portal/src/lib/portal/ui/ProjectContextNav.svelte"
+      ]
+    },
+    {
+      "number": 95,
+      "sourceId": "R20",
+      "area": "Daily work and finance",
+      "improvement": "Time entries link directly to the same project’s work reports.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+        "apps/portal/src/lib/portal/ui/ProjectContextNav.svelte"
+      ]
+    },
+    {
+      "number": 96,
+      "sourceId": "R21",
+      "area": "Daily work and finance",
+      "improvement": "Expenses link directly to time entries for the selected project.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/ui/ProjectContextNav.svelte"
+      ]
+    },
+    {
+      "number": 97,
+      "sourceId": "R22",
+      "area": "Daily work and finance",
+      "improvement": "Expenses link directly to work reports for the selected project.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/ui/ProjectContextNav.svelte"
+      ]
+    },
+    {
+      "number": 98,
+      "sourceId": "R23",
+      "area": "Daily work and finance",
+      "improvement": "Work reports provide contextual return links to the selected project’s time and expenses.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ReportSection.svelte",
+        "apps/portal/src/lib/portal/ui/ProjectContextNav.svelte"
+      ]
+    },
+    {
+      "number": 99,
+      "sourceId": "R24",
+      "area": "Daily work and finance",
+      "improvement": "Empty time results offer an immediate filter reset or Log time action.",
+      "files": ["apps/portal/src/lib/portal/sections/TimeSection.svelte"]
+    },
+    {
+      "number": 100,
+      "sourceId": "R25",
+      "area": "Daily work and finance",
+      "improvement": "Empty expense results offer an immediate filter reset or Record expense action.",
+      "files": ["apps/portal/src/lib/portal/sections/ExpenseSection.svelte"]
+    }
+  ]
+}

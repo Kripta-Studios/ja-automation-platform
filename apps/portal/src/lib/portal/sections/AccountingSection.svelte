@@ -13,6 +13,8 @@
   import ProblemNotice from '../ui/ProblemNotice.svelte';
   import { localizedServerFieldMessage } from '../ui/form-validation';
   import type { ProblemData } from '../../problem/contract';
+  import { navigationUxText } from '../navigation-ux-copy';
+  import { accountingUxRound2Text } from '../accounting-ux-round2-copy';
 
   const accountingVersionWarning: ProblemData = {
     code: 'WARNING_ACCOUNTING_PACK_NEW_VERSION',
@@ -98,12 +100,13 @@
     },
     review_billing_setup: {
       label: translate('Review billing setup'),
-      href: `${base}/app/billing?view=setup`,
+      href: `${base}/app/billing?view=setup&lang=${encodeURIComponent(locale)}`,
     },
     review_expense_finance: {
       label: translate('Review pending records'),
       href: `${base}/app/approvals?${new URLSearchParams({
         stage: 'finance',
+        lang: locale,
         ...(typeof createPackProblem?.params.projectId === 'string'
           ? { project: createPackProblem.params.projectId }
           : {}),
@@ -363,6 +366,7 @@
   }
 
   const packPeriod = previousCompleteMonth();
+  const defaultReportLocale = $derived(locale === 'es' || locale === 'pt' ? locale : 'en');
 
   function packState(pack: Record<string, unknown>): string {
     return String(pack.state ?? 'pending').toLowerCase();
@@ -373,6 +377,22 @@
   }
   let packPage = $state<typeof packs>([]);
   let packFilter = $state('');
+  const filteredPacks = $derived(
+    packFilter ? packs.filter((pack) => packState(pack) === packFilter) : packs,
+  );
+  const registerCountLabel = $derived(
+    navigationUxText(locale, 'accounting', 'registerCount', { count: filteredPacks.length }),
+  );
+  function accountingPackStatusLabel(status: string): string {
+    if (status === 'final') return accountingUxRound2Text(locale, 'finalPack');
+    if (status === 'stale') return accountingUxRound2Text(locale, 'stalePack');
+    return controlledValue('artifactState', status) || translate(status);
+  }
+  const registerFilterLabel = $derived(
+    packFilter
+      ? `${navigationUxText(locale, 'accounting', 'showing')} ${accountingPackStatusLabel(packFilter)}`
+      : navigationUxText(locale, 'accounting', 'allPackStates'),
+  );
   function filterPacks(status: string) {
     packFilter = status;
     document.getElementById('accounting-register')?.scrollIntoView({ block: 'start' });
@@ -391,6 +411,17 @@
             : 'Create a reviewable Accounting Pack and follow each artifact until it is ready, failed or queued for automatic processing.',
         )}
       </p>
+      {#if isAuditor}
+        <aside class="accounting-section__auditor-note" data-accounting-auditor-note role="note">
+          <span class="accounting-section__auditor-badge"
+            >{accountingUxRound2Text(locale, 'auditorReadOnly')}</span
+          >
+          <p>{accountingUxRound2Text(locale, 'auditorReadOnlyHelp')}</p>
+        </aside>
+      {/if}
+      <a class="secondary-button accounting-section__register-jump" href="#accounting-register">
+        {navigationUxText(locale, 'accounting', 'viewRegister')}
+      </a>
     </div>
   </header>
 
@@ -416,13 +447,21 @@
     class="accounting-section__attention"
     aria-label={translate('Accounting Pack attention summary')}
   >
-    <button type="button" aria-pressed={packFilter === ''} onclick={() => filterPacks('')}>
+    <button
+      type="button"
+      data-accounting-state="all"
+      aria-label={`${translate('Packs')}: ${packs.length}`}
+      aria-pressed={packFilter === ''}
+      onclick={() => filterPacks('')}
+    >
       <span>{translate('Packs')}</span>
       <strong>{packs.length}</strong>
       <small>{translate('Immutable period registers')}</small>
     </button>
     <button
       type="button"
+      data-accounting-state="queued"
+      aria-label={`${translate('Queued')}: ${stateCount('queued')}`}
       aria-pressed={packFilter === 'queued'}
       onclick={() => filterPacks('queued')}
     >
@@ -432,6 +471,8 @@
     </button>
     <button
       type="button"
+      data-accounting-state="failed"
+      aria-label={`${translate('Failed')}: ${stateCount('failed')}`}
       aria-pressed={packFilter === 'failed'}
       onclick={() => filterPacks('failed')}
     >
@@ -441,6 +482,8 @@
     </button>
     <button
       type="button"
+      data-accounting-state="ready"
+      aria-label={`${translate('Ready')}: ${stateCount('ready')}`}
       aria-pressed={packFilter === 'ready'}
       onclick={() => filterPacks('ready')}
     >
@@ -449,6 +492,13 @@
       <small>{translate('Available for review, finalization or download')}</small>
     </button>
   </div>
+  <p class="accounting-section__register-summary" data-accounting-register-summary role="status">
+    <strong>{registerCountLabel}</strong>
+    <span>{registerFilterLabel}</span>
+    {#if packFilter}<a href="#accounting-register" onclick={() => filterPacks('')}
+        >{navigationUxText(locale, 'accounting', 'clearRegisterFilter')}</a
+      >{/if}
+  </p>
 
   {#if !isAuditor}
     <SectionCard
@@ -544,7 +594,9 @@
             <select
               id="accounting-pack-reportLocale"
               name="reportLocale"
-              value={createPackProblem ? (packValues.reportLocale ?? 'en') : 'en'}
+              value={createPackProblem
+                ? (packValues.reportLocale ?? defaultReportLocale)
+                : defaultReportLocale}
               aria-label={translate('Accounting Pack report language')}
               aria-invalid={Boolean(createPackError('reportLocale'))}
               aria-describedby={createPackError('reportLocale')
@@ -586,6 +638,7 @@
         focusId={packRecoveryFocusId}
         {translate}
         label="Accounting"
+        statusLabel={accountingPackStatusLabel}
       />
       <div class="accounting-section__packs" aria-live="polite">
         {#each packPage as pack}
@@ -602,16 +655,52 @@
           />
         {/each}
       </div>
-    {:else}
+    {/if}
+    {#if packs.length === 0 || (packFilter && filteredPacks.length === 0)}
       <div class="accounting-section__empty" role="status">
-        <strong>{translate('No Accounting Packs have been generated.')}</strong>
-        <span>
-          {translate(
-            isAuditor
-              ? 'A finance administrator or owner can generate a period pack when the source records are ready for review.'
-              : 'Generate a period pack when the source records are ready for review.',
-          )}
-        </span>
+        <strong
+          >{packs.length === 0
+            ? translate('No Accounting Packs have been generated.')
+            : navigationUxText(locale, 'accounting', 'noMatchingPacks')}</strong
+        >
+        {#if packs.length === 0}
+          <span>
+            {translate(
+              isAuditor
+                ? 'A finance administrator or owner can generate a period pack when the source records are ready for review.'
+                : 'Generate a period pack when the source records are ready for review.',
+            )}
+          </span>
+        {/if}
+        <p class="accounting-section__empty-guidance">
+          {navigationUxText(locale, 'accounting', 'emptySourceGuide')}
+          {#if isAuditor}{navigationUxText(locale, 'accounting', 'auditorGuidance')}{/if}
+        </p>
+        <div class="accounting-section__empty-actions">
+          {#if packFilter}
+            <button class="secondary-button" type="button" onclick={() => filterPacks('')}
+              >{navigationUxText(locale, 'accounting', 'clearRegisterFilter')}</button
+            >
+          {/if}
+          {#if isAuditor}
+            <a
+              class="secondary-button"
+              href={`${base}/app/ledger?lang=${encodeURIComponent(locale)}#collections-ledger-register`}
+            >
+              {navigationUxText(locale, 'accounting', 'openLedger')}
+            </a>
+          {:else}
+            <a class="primary-button" href="#accounting-generate">
+              {navigationUxText(locale, 'accounting', 'generatePack')}
+            </a>
+            <a
+              class="secondary-button"
+              href={`${base}/app/ledger?lang=${encodeURIComponent(locale)}#collections-ledger-register`}
+            >
+              {navigationUxText(locale, 'accounting', 'openLedger')}
+            </a>
+          {/if}
+        </div>
       </div>
     {/if}
   </SectionCard>
@@ -655,6 +744,40 @@
     color: var(--portal-muted, #67675f);
   }
 
+  .accounting-section__register-jump {
+    display: inline-flex;
+    min-height: 2.75rem;
+    margin-top: 0.75rem;
+    align-items: center;
+  }
+
+  .accounting-section__auditor-note {
+    display: grid;
+    gap: 0.25rem;
+    max-width: 48rem;
+    margin-top: 0.65rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.55rem;
+    background: var(--portal-wash, #f9f9f8);
+  }
+
+  .accounting-section__auditor-badge {
+    width: fit-content;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 999px;
+    background: var(--portal-surface, #fff);
+    color: var(--portal-ink, #20201d);
+    font-size: 0.75rem;
+    font-weight: 750;
+  }
+
+  .accounting-section__auditor-note p {
+    margin: 0;
+    color: var(--portal-muted, #67675f);
+  }
+
   .accounting-section__problem-context {
     margin: 0 0 0.5rem;
     color: var(--portal-ink, #20201d);
@@ -678,6 +801,14 @@
     background: var(--portal-surface, #fff);
   }
 
+  .accounting-section__attention button:hover,
+  .accounting-section__attention button:focus-visible,
+  .accounting-section__attention button[aria-pressed='true'] {
+    border-color: var(--portal-accent, #53524c);
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #53524c) 22%, transparent);
+    outline-offset: 2px;
+  }
+
   .accounting-section__attention span,
   .accounting-section__attention small {
     color: var(--portal-muted, #67675f);
@@ -688,6 +819,27 @@
     color: var(--portal-ink, #20201d);
     font-size: 1.45rem;
     font-variant-numeric: tabular-nums;
+  }
+
+  .accounting-section__register-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: -0.5rem 0 0;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+  }
+
+  .accounting-section__register-summary strong {
+    color: var(--portal-ink, #20201d);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .accounting-section__register-summary a {
+    min-height: 2.75rem;
+    color: var(--portal-accent, #53524c);
+    font-weight: 700;
   }
 
   .accounting-section__form {
@@ -751,9 +903,30 @@
     color: var(--portal-muted, #67675f);
   }
 
+  .accounting-section__empty-guidance {
+    max-width: 40rem;
+    margin: 0.35rem auto 0;
+    color: var(--portal-muted, #67675f);
+  }
+
+  .accounting-section__empty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+  }
+
+  .accounting-section__empty-actions a {
+    min-height: 2.75rem;
+  }
+
   .accounting-section__fields input:focus-visible,
   .accounting-section__fields select:focus-visible,
-  .accounting-section__actions button:focus-visible {
+  .accounting-section__actions button:focus-visible,
+  .accounting-section__register-jump:focus-visible,
+  .accounting-section__register-summary a:focus-visible,
+  .accounting-section__empty-actions a:focus-visible {
     outline: 3px solid color-mix(in srgb, var(--portal-accent, #53524c) 32%, transparent);
     outline-offset: 2px;
   }
@@ -763,6 +936,15 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .accounting-section__attention button {
+      min-height: 4.5rem;
+      padding: 0.65rem 0.75rem;
+    }
+
+    .accounting-section__attention strong {
+      font-size: 1.2rem;
+    }
+
     .accounting-section__fields {
       grid-template-columns: 1fr;
     }
@@ -770,12 +952,6 @@
     .accounting-section__actions,
     .accounting-section__actions button {
       width: 100%;
-    }
-  }
-
-  @media (max-width: 36rem) {
-    .accounting-section__attention {
-      grid-template-columns: 1fr;
     }
   }
 

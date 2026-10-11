@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { round2Text } from '../ux-round2-copy';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import CollectionsWorkbench from './CollectionsWorkbench.svelte';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
@@ -19,6 +20,7 @@
     collectionMatches,
     collectionSummaries,
   } from '../collections-analysis';
+  import { navigationUxText } from '../navigation-ux-copy';
   import { SectionCard, StatusBadge, TableRegion, type TableCardRow } from '../ui';
 
   type Row = Record<string, unknown>;
@@ -478,6 +480,50 @@
       collectionMatches(row, { status: statusFilter, aging: agingFilter }, asOf),
     ),
   );
+  const hasAdvancedFilters = $derived(
+    Boolean(
+      clientFilter ||
+      projectFilter ||
+      currencyFilter ||
+      agingFilter ||
+      exportProblem?.fieldErrors.client?.length ||
+      exportProblem?.fieldErrors.project?.length ||
+      exportProblem?.fieldErrors.currency?.length ||
+      exportProblem?.fieldErrors.aging?.length,
+    ),
+  );
+  const activeFilterEntries = $derived.by(() => {
+    const entries: Array<{ key: string; label: string; value: string }> = [];
+    if (search.trim()) entries.push({ key: 'q', label: translate('Search'), value: search.trim() });
+    if (statusFilter)
+      entries.push({
+        key: 'status',
+        label: translate('Collection status'),
+        value: statusLabel(statusFilter),
+      });
+    if (clientFilter)
+      entries.push({
+        key: 'client',
+        label: translate('Client'),
+        value: clientOptions.find(([id]) => id === clientFilter)?.[1] ?? clientFilter,
+      });
+    if (projectFilter)
+      entries.push({
+        key: 'project',
+        label: translate('Project'),
+        value: projectOptions.find(([id]) => id === projectFilter)?.[1] ?? projectFilter,
+      });
+    if (currencyFilter)
+      entries.push({ key: 'currency', label: translate('Currency'), value: currencyFilter });
+    if (agingFilter)
+      entries.push({
+        key: 'aging',
+        label: translate('Receivable aging'),
+        value: translate(agingLabels[agingFilter as keyof typeof agingLabels] ?? agingFilter),
+      });
+    return entries;
+  });
+  const activeFilterCount = $derived(activeFilterEntries.length);
   const summaries = $derived(collectionSummaries(visibleRows, asOf));
   const overdueCount = $derived(
     scopeRows.filter((row) => (collectionAging(row, asOf).daysOverdue ?? 0) > 0).length,
@@ -499,10 +545,12 @@
       return {
         id: value(row, 'invoiceId', 'id') || invoice,
         href: invoiceHref(row),
+        linkLabel: translate('Open invoice'),
+        linkAriaLabel: navigationUxText(locale, 'ledger', 'openInvoice', { invoice }),
         cells: [
           {
             label: translate('Invoice'),
-            value: `${invoice} · ${value(row, 'clientNumber', 'client_number') || '—'}`,
+            value: invoice,
           },
           {
             label: translate('Client'),
@@ -662,17 +710,19 @@
   const exportUnavailableRemedies = $derived({
     clear_ledger_filters: {
       label: portalText(locale, 'problem.remedy.clearLedgerFilters'),
-      href: `${base}/app/ledger?q=`,
+      href: `${base}/app/ledger?lang=${encodeURIComponent(locale)}#collections-ledger-filters`,
     },
     review_billing: {
       label: portalText(locale, 'problem.remedy.reviewBilling'),
-      href: `${base}/app/billing`,
+      href: `${base}/app/billing?lang=${encodeURIComponent(locale)}`,
     },
   });
 
   function exportHref(format: 'csv' | 'xlsx'): string {
     // Emission dates describe the visible invoices; they must not truncate later collections.
     const query = new URLSearchParams();
+    const language = $page.url.searchParams.get('lang') || locale;
+    if (language) query.set('lang', language);
     if (projectFilter) query.set('project', projectFilter);
     if (clientFilter) query.set('client', clientFilter);
     if (statusFilter) query.set('status', statusFilter);
@@ -684,11 +734,43 @@
 
   function invoiceHref(row: Row): string {
     const id = value(row, 'invoiceId', 'id');
-    return id ? `${base}/app/billing/invoices/${encodeURIComponent(id)}` : `${base}/app/billing`;
+    const language = encodeURIComponent(locale);
+    return id
+      ? `${base}/app/billing/invoices/${encodeURIComponent(id)}?lang=${language}`
+      : `${base}/app/billing?lang=${language}`;
+  }
+
+  function clientHref(row: Row): string | null {
+    const id = value(row, 'clientId', 'client_id');
+    return id
+      ? `${base}/app/projects?view=clients&focus=${encodeURIComponent(id)}&lang=${encodeURIComponent(locale)}#client-directory-client-${encodeURIComponent(id)}`
+      : null;
+  }
+
+  function projectHref(row: Row): string | null {
+    const id = value(row, 'projectId', 'project_id');
+    return id
+      ? `${base}/app/projects/${encodeURIComponent(id)}?lang=${encodeURIComponent(locale)}`
+      : null;
+  }
+
+  function removeFilterHref(key: string): string {
+    const query = new URLSearchParams($page.url.searchParams);
+    query.delete(key);
+    if (!query.has('lang')) query.set('lang', locale);
+    const serialized = query.toString();
+    return `${base}/app/ledger${serialized ? `?${serialized}` : ''}#collections-ledger-register`;
+  }
+
+  function clearFiltersHref(): string {
+    const language = $page.url.searchParams.get('lang') || locale;
+    return `${base}/app/ledger${language ? `?lang=${encodeURIComponent(language)}` : ''}#collections-ledger-filters`;
   }
 
   function ledgerFilterHref(status: string): string {
     const query = new URLSearchParams();
+    const language = $page.url.searchParams.get('lang') || locale;
+    if (language) query.set('lang', language);
     if (projectFilter) query.set('project', projectFilter);
     if (clientFilter) query.set('client', clientFilter);
     if (search.trim()) query.set('q', search.trim());
@@ -700,6 +782,8 @@
   }
   function agingHref(bucket: string, currency: string): string {
     const query = new URLSearchParams({ aging: bucket, currency });
+    const language = $page.url.searchParams.get('lang') || locale;
+    if (language) query.set('lang', language);
     if (projectFilter) query.set('project', projectFilter);
     if (clientFilter) query.set('client', clientFilter);
     if (search.trim()) query.set('q', search.trim());
@@ -720,6 +804,12 @@
     <div>
       <p class="collections-ledger__eyebrow">{translate('Finance control')}</p>
       <h2>{translate('Invoice / cost ledger')}</h2>
+      {#if data.user.role === 'auditor_read_only'}
+        <p data-ledger-read-only>
+          <StatusBadge variant="neutral" text={round2Text(locale, 'readOnly')} />
+          {round2Text(locale, 'readOnlyHelp')}
+        </p>
+      {/if}
       <p>
         {translate(
           'Reconcile issued invoices, direct costs, collections, outstanding balances and contribution from canonical source rows.',
@@ -732,6 +822,12 @@
       aria-label={translate('Ledger exports')}
       aria-busy={exportBusy}
     >
+      <a
+        class="secondary-button collections-ledger__register-jump"
+        href="#collections-ledger-register"
+      >
+        {navigationUxText(locale, 'ledger', 'reviewRegister')}
+      </a>
       {#if canExport}
         <a class="secondary-button" href={exportHref('csv')}>{translate('Export CSV')}</a>
         <a class="secondary-button" href={exportHref('xlsx')}>{translate('Export XLSX')}</a>
@@ -822,7 +918,13 @@
     method="GET"
     action={`${base}/app/ledger`}
     aria-label={translate('Filter collections ledger')}
+    aria-describedby="collections-ledger-result-count"
   >
+    {#if $page.url.searchParams.get('lang')}<input
+        type="hidden"
+        name="lang"
+        value={$page.url.searchParams.get('lang') ?? ''}
+      />{/if}
     <label>
       <span>{translate('Search ledger')}</span>
       <input
@@ -864,85 +966,142 @@
           class="collections-ledger__field-error">{exportFieldError('status')}</small
         >{/if}
     </label>
-    <label>
-      <span>{translate('Client')}</span>
-      <select
-        id="collections-ledger-field-client"
-        name="client"
-        bind:value={clientFilter}
-        aria-invalid={exportFieldError('client') ? 'true' : undefined}
-        aria-describedby={exportFieldError('client')
-          ? 'collections-ledger-error-client'
-          : undefined}
-      >
-        <option value="">{translate('All clients')}</option>
-        {#each clientOptions as [id, label]}<option value={id}>{label}</option>{/each}
-      </select>
-      {#if exportFieldError('client')}<small
-          id="collections-ledger-error-client"
-          class="collections-ledger__field-error">{exportFieldError('client')}</small
-        >{/if}
-    </label>
-    <label>
-      <span>{translate('Project')}</span>
-      <select
-        id="collections-ledger-field-project"
-        name="project"
-        bind:value={projectFilter}
-        aria-invalid={exportFieldError('project') ? 'true' : undefined}
-        aria-describedby={exportFieldError('project')
-          ? 'collections-ledger-error-project'
-          : undefined}
-      >
-        <option value="">{translate('All projects')}</option>
-        {#each projectOptions as [id, label]}<option value={id}>{label}</option>{/each}
-      </select>
-      {#if exportFieldError('project')}<small
-          id="collections-ledger-error-project"
-          class="collections-ledger__field-error">{exportFieldError('project')}</small
-        >{/if}
-    </label>
-    <label>
-      <span>{translate('Currency')}</span>
-      <select
-        id="collections-ledger-field-currency"
-        name="currency"
-        bind:value={currencyFilter}
-        aria-invalid={exportFieldError('currency') ? 'true' : undefined}
-        aria-describedby={exportFieldError('currency')
-          ? 'collections-ledger-error-currency'
-          : undefined}
-      >
-        <option value="">{translate('All currencies')}</option>
-        {#each currencyOptions as currency}<option value={currency}>{currency}</option>{/each}
-      </select>
-      {#if exportFieldError('currency')}<small
-          id="collections-ledger-error-currency"
-          class="collections-ledger__field-error">{exportFieldError('currency')}</small
-        >{/if}
-    </label>
-    <label>
-      <span>{translate('Receivable aging')}</span>
-      <select
-        id="collections-ledger-field-aging"
-        name="aging"
-        bind:value={agingFilter}
-        aria-invalid={exportFieldError('aging') ? 'true' : undefined}
-        aria-describedby={exportFieldError('aging') ? 'collections-ledger-error-aging' : undefined}
-      >
-        <option value="">{translate('All maturities')}</option>
-        {#each agingBuckets as bucket}<option value={bucket}
-            >{translate(agingLabels[bucket])}</option
-          >{/each}
-      </select>
-      {#if exportFieldError('aging')}<small
-          id="collections-ledger-error-aging"
-          class="collections-ledger__field-error">{exportFieldError('aging')}</small
-        >{/if}
-    </label>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
-    <a class="secondary-button" href={`${base}/app/ledger?q=`}>{translate('Clear filters')}</a>
+    <a class="secondary-button" href={clearFiltersHref()}>{translate('Clear filters')}</a>
   </form>
+
+  <details class="collections-ledger__advanced" open={hasAdvancedFilters}>
+    <summary>
+      <span>{navigationUxText(locale, 'ledger', 'advancedFilters')}</span>
+      {#if activeFilterCount > 0}<small
+          >{navigationUxText(locale, 'ledger', 'activeFilterCount', {
+            count: activeFilterCount,
+          })}</small
+        >{/if}
+    </summary>
+    <div class="collections-ledger__advanced-grid">
+      <label>
+        <span>{translate('Client')}</span>
+        <select
+          id="collections-ledger-field-client"
+          name="client"
+          form="collections-ledger-filters"
+          bind:value={clientFilter}
+          aria-invalid={exportFieldError('client') ? 'true' : undefined}
+          aria-describedby={exportFieldError('client')
+            ? 'collections-ledger-error-client'
+            : undefined}
+        >
+          <option value="">{translate('All clients')}</option>
+          {#each clientOptions as [id, label]}<option value={id}>{label}</option>{/each}
+        </select>
+        {#if exportFieldError('client')}<small
+            id="collections-ledger-error-client"
+            class="collections-ledger__field-error">{exportFieldError('client')}</small
+          >{/if}
+      </label>
+      <label>
+        <span>{translate('Project')}</span>
+        <select
+          id="collections-ledger-field-project"
+          name="project"
+          form="collections-ledger-filters"
+          bind:value={projectFilter}
+          aria-invalid={exportFieldError('project') ? 'true' : undefined}
+          aria-describedby={exportFieldError('project')
+            ? 'collections-ledger-error-project'
+            : undefined}
+        >
+          <option value="">{translate('All projects')}</option>
+          {#each projectOptions as [id, label]}<option value={id}>{label}</option>{/each}
+        </select>
+        {#if exportFieldError('project')}<small
+            id="collections-ledger-error-project"
+            class="collections-ledger__field-error">{exportFieldError('project')}</small
+          >{/if}
+      </label>
+      <label>
+        <span>{translate('Currency')}</span>
+        <select
+          id="collections-ledger-field-currency"
+          name="currency"
+          form="collections-ledger-filters"
+          bind:value={currencyFilter}
+          aria-invalid={exportFieldError('currency') ? 'true' : undefined}
+          aria-describedby={exportFieldError('currency')
+            ? 'collections-ledger-error-currency'
+            : undefined}
+        >
+          <option value="">{translate('All currencies')}</option>
+          {#each currencyOptions as currency}<option value={currency}>{currency}</option>{/each}
+        </select>
+        {#if exportFieldError('currency')}<small
+            id="collections-ledger-error-currency"
+            class="collections-ledger__field-error">{exportFieldError('currency')}</small
+          >{/if}
+      </label>
+      <label>
+        <span>{translate('Receivable aging')}</span>
+        <select
+          id="collections-ledger-field-aging"
+          name="aging"
+          form="collections-ledger-filters"
+          bind:value={agingFilter}
+          aria-invalid={exportFieldError('aging') ? 'true' : undefined}
+          aria-describedby={exportFieldError('aging')
+            ? 'collections-ledger-error-aging'
+            : undefined}
+        >
+          <option value="">{translate('All maturities')}</option>
+          {#each agingBuckets as bucket}<option value={bucket}
+              >{translate(agingLabels[bucket])}</option
+            >{/each}
+        </select>
+        {#if exportFieldError('aging')}<small
+            id="collections-ledger-error-aging"
+            class="collections-ledger__field-error">{exportFieldError('aging')}</small
+          >{/if}
+      </label>
+    </div>
+  </details>
+
+  <div class="collections-ledger__filter-summary" aria-live="polite">
+    <span class="collections-ledger__filter-summary-label"
+      >{navigationUxText(locale, 'ledger', 'activeFilters')}</span
+    >
+    {#if activeFilterEntries.length > 0}
+      <div class="collections-ledger__filter-chips">
+        {#each activeFilterEntries as filter (filter.key)}
+          <a href={removeFilterHref(filter.key)} class="collections-ledger__filter-chip">
+            <span>{filter.label}: {filter.value}</span>
+            <span class="collections-ledger__filter-chip-remove" aria-hidden="true">×</span>
+            <span class="visually-hidden"
+              >{navigationUxText(locale, 'ledger', 'removeFilter', { filter: filter.label })}</span
+            >
+          </a>
+        {/each}
+        <a class="collections-ledger__filter-clear" href={clearFiltersHref()}
+          >{navigationUxText(locale, 'ledger', 'clearAll')}</a
+        >
+      </div>
+    {:else}
+      <span class="collections-ledger__filter-none"
+        >{navigationUxText(locale, 'ledger', 'allAuthorizedRows')}</span
+      >
+    {/if}
+  </div>
+
+  <p
+    id="collections-ledger-result-count"
+    class="collections-ledger__result-count"
+    data-ledger-result-count
+    role="status"
+  >
+    {navigationUxText(locale, 'ledger', 'recordsShown', {
+      visible: visibleRows.length,
+      total: scopeRows.length,
+    })}
+  </p>
 
   {#if exportUnavailableWarning?.code === 'WARNING_COLLECTION_LEDGER_EXPORT_FILTERED_EMPTY'}
     <ProblemNotice
@@ -1001,6 +1160,14 @@
             <a
               href={agingHref(bucket, summary.currency)}
               aria-current={agingFilter === bucket ? 'page' : undefined}
+              aria-label={navigationUxText(locale, 'ledger', 'agingBucket', {
+                bucket: translate(agingLabels[bucket]),
+                amount: paymentMoney(
+                  summary.buckets[bucket].toString(),
+                  summary.currency,
+                  documentLanguage(locale),
+                ),
+              })}
             >
               <span>{translate(agingLabels[bucket])}</span>
               <strong
@@ -1044,11 +1211,30 @@
     {#if visibleRows.length === 0}
       <div class="collections-ledger__empty" role="status">
         {#if rows.length === 0}
-          <strong>{translate('No issued invoices are available in this ledger for your access scope.')}</strong>
-          <span>{translate('Issued invoices appear here with their costs and collection history.')}</span>
+          <strong
+            >{translate(
+              'No issued invoices are available in this ledger for your access scope.',
+            )}</strong
+          >
+          <span
+            >{translate(
+              'Issued invoices appear here with their costs and collection history.',
+            )}</span
+          >
         {:else}
-          <strong>{translate('No ledger rows match the current filters.')}</strong>
-          <a href={`${base}/app/ledger?q=`}>{translate('Clear filters')}</a>
+          <strong>{navigationUxText(locale, 'ledger', 'noMatchingRows')}</strong>
+          <span>{navigationUxText(locale, 'ledger', 'filterHint')}</span>
+          <div class="collections-ledger__empty-actions">
+            <a class="secondary-button" href={clearFiltersHref()}>
+              {navigationUxText(locale, 'ledger', 'reviewAllRows')}
+            </a>
+            <a
+              class="secondary-button"
+              href={`${base}/app/billing?lang=${encodeURIComponent(locale)}`}
+            >
+              {navigationUxText(locale, 'ledger', 'reviewBillingRecords')}
+            </a>
+          </div>
         {/if}
       </div>
     {/if}
@@ -1081,9 +1267,17 @@
           {#each ledgerPage as row}
             {@const status = value(row, 'paymentStatus', 'payment_status')}
             {@const aging = collectionAging(row, asOf)}
+            {@const clientLink = clientHref(row)}
+            {@const projectLink = projectHref(row)}
             <tr data-ledger-row={value(row, 'invoiceId', 'id')}>
               <td>
-                <a class="collections-ledger__invoice-link" href={invoiceHref(row)}>
+                <a
+                  class="collections-ledger__invoice-link"
+                  href={invoiceHref(row)}
+                  aria-label={navigationUxText(locale, 'ledger', 'openInvoice', {
+                    invoice: value(row, 'invoiceNumber', 'invoice_number') || translate('Invoice'),
+                  })}
+                >
                   <strong
                     >{value(row, 'invoiceNumber', 'invoice_number') || translate('Invoice')}</strong
                   >
@@ -1096,15 +1290,49 @@
                 >
               </td>
               <td>
-                <span>{value(row, 'clientNumber', 'client_number') || '—'}</span>
-                <small>{value(row, 'clientName', 'client_name') || '—'}</small>
-                <small
-                  >{value(row, 'projectName', 'project_name') || '—'} · {value(
-                    row,
-                    'projectNumber',
-                    'project_number',
-                  ) || '—'}</small
-                >
+                {#if clientLink}
+                  <a
+                    class="collections-ledger__entity-link"
+                    href={clientLink}
+                    aria-label={navigationUxText(locale, 'ledger', 'openClient', {
+                      client:
+                        value(row, 'clientName', 'client_name') ||
+                        value(row, 'clientNumber', 'client_number'),
+                    })}
+                    >{value(row, 'clientNumber', 'client_number') || '—'} · {value(
+                      row,
+                      'clientName',
+                      'client_name',
+                    ) || '—'}</a
+                  >
+                {:else}
+                  <span>{value(row, 'clientNumber', 'client_number') || '—'}</span>
+                  <small>{value(row, 'clientName', 'client_name') || '—'}</small>
+                {/if}
+                {#if projectLink}
+                  <a
+                    class="collections-ledger__entity-link"
+                    href={projectLink}
+                    aria-label={navigationUxText(locale, 'ledger', 'openProject', {
+                      project:
+                        value(row, 'projectName', 'project_name') ||
+                        value(row, 'projectNumber', 'project_number'),
+                    })}
+                    >{value(row, 'projectName', 'project_name') || '—'} · {value(
+                      row,
+                      'projectNumber',
+                      'project_number',
+                    ) || '—'}</a
+                  >
+                {:else}
+                  <small
+                    >{value(row, 'projectName', 'project_name') || '—'} · {value(
+                      row,
+                      'projectNumber',
+                      'project_number',
+                    ) || '—'}</small
+                  >
+                {/if}
               </td>
               <td>{streamLabel(row)}</td>
               <td>
@@ -1148,7 +1376,11 @@
               </td>
               <td>
                 <details class="collections-ledger__timeline-toggle">
-                  <summary>{translate('View timeline')}</summary>
+                  <summary
+                    aria-label={`${translate('View timeline')} · ${value(row, 'invoiceNumber', 'invoice_number') || translate('Invoice')} · ${value(row, 'clientName', 'client_name')}`}
+                  >
+                    {translate('View timeline')}
+                  </summary>
                   <div class="collections-ledger__timeline" aria-live="polite">
                     {#each timeline(row) as event}
                       <article data-timeline-event={event.id}>
@@ -1282,6 +1514,10 @@
     gap: 0.5rem;
   }
 
+  .collections-ledger__register-jump {
+    color: var(--portal-accent, #53524c);
+  }
+
   .collections-ledger__attention {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1321,6 +1557,18 @@
     text-decoration: underline;
   }
 
+  .collections-ledger__entity-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .collections-ledger__entity-link:hover,
+  .collections-ledger__entity-link:focus-visible {
+    color: var(--portal-accent, #53524c);
+    text-decoration: underline;
+  }
+
   .collections-ledger__attention span,
   .collections-ledger__attention small {
     color: var(--portal-muted, #67675f);
@@ -1342,6 +1590,77 @@
     border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.75rem;
     background: color-mix(in srgb, var(--portal-surface, #fff) 92%, var(--portal-wash, #f2f2f1));
+  }
+
+  .collections-ledger__advanced {
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.75rem;
+    background: var(--portal-surface, #fff);
+  }
+
+  .collections-ledger__advanced summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 2.75rem;
+    padding: 0.65rem 0.9rem;
+    color: var(--portal-ink, #20201d);
+    cursor: pointer;
+    font-weight: 700;
+    list-style: none;
+  }
+
+  .collections-ledger__advanced summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .collections-ledger__advanced summary::after {
+    content: '⌄';
+    color: var(--portal-muted, #67675f);
+    font-size: 1.1rem;
+  }
+
+  .collections-ledger__advanced[open] summary::after {
+    content: '⌃';
+  }
+
+  .collections-ledger__advanced summary:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--portal-accent, #53524c) 32%, transparent);
+    outline-offset: -3px;
+  }
+
+  .collections-ledger__advanced summary small {
+    margin-inline-start: auto;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .collections-ledger__advanced-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 0 0.9rem 0.9rem;
+  }
+
+  .collections-ledger__advanced-grid label {
+    display: grid;
+    gap: 0.35rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+    font-weight: 650;
+  }
+
+  .collections-ledger__advanced-grid select {
+    min-height: 2.75rem;
+    min-width: 0;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--portal-border-strong, #c4c4bf);
+    border-radius: 0.5rem;
+    background: var(--portal-surface, #fff);
+    color: var(--portal-ink, #20201d);
+    font: inherit;
   }
 
   .collections-ledger__filters label {
@@ -1366,6 +1685,71 @@
   .collections-ledger__filters button,
   .collections-ledger__exports a {
     min-height: 2.75rem;
+  }
+
+  .collections-ledger__filter-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+  }
+
+  .collections-ledger__filter-summary-label {
+    font-weight: 700;
+  }
+
+  .collections-ledger__filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+
+  .collections-ledger__filter-chip,
+  .collections-ledger__filter-clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2.75rem;
+    max-width: 100%;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid var(--portal-border-strong, #c4c4bf);
+    border-radius: 999px;
+    color: var(--portal-ink, #20201d);
+    background: var(--portal-surface, #fff);
+    text-decoration: none;
+  }
+
+  .collections-ledger__filter-chip span:first-child {
+    overflow-wrap: anywhere;
+  }
+
+  .collections-ledger__filter-chip-remove {
+    color: var(--portal-muted, #67675f);
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .collections-ledger__filter-chip:hover,
+  .collections-ledger__filter-chip:focus-visible,
+  .collections-ledger__filter-clear:hover,
+  .collections-ledger__filter-clear:focus-visible {
+    border-color: var(--portal-accent, #53524c);
+    text-decoration: underline;
+  }
+
+  .collections-ledger__filter-none {
+    color: var(--portal-muted, #67675f);
+  }
+
+  .collections-ledger__result-count {
+    margin: -0.5rem 0 0;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
   }
 
   .collections-ledger__table {
@@ -1481,10 +1865,25 @@
     color: var(--portal-muted, #67675f);
   }
 
+  .collections-ledger__empty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .collections-ledger__empty-actions a {
+    min-height: 2.75rem;
+  }
+
   .collections-ledger__filters input:focus-visible,
   .collections-ledger__filters select:focus-visible,
   .collections-ledger__filters button:focus-visible,
   .collections-ledger__exports a:focus-visible,
+  .collections-ledger__register-jump:focus-visible,
+  .collections-ledger__entity-link:focus-visible,
+  .collections-ledger__empty-actions a:focus-visible,
   .collections-ledger__timeline-toggle summary:focus-visible {
     outline: 3px solid color-mix(in srgb, var(--portal-accent, #53524c) 32%, transparent);
     outline-offset: 2px;
@@ -1511,6 +1910,10 @@
 
     .collections-ledger__filters button {
       width: 100%;
+    }
+
+    .collections-ledger__advanced-grid {
+      grid-template-columns: 1fr;
     }
   }
 

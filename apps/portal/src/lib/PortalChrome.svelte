@@ -530,6 +530,8 @@
   </div>
   <SectionNavigator
     items={sectionDestinations}
+    currentSection={currentNavItem ? translate(currentNavItem.label) : ''}
+    {locale}
     itemHref={(item) => {
       const target = new URL(itemHref(item), $page.url);
       target.searchParams.set('lang', locale);

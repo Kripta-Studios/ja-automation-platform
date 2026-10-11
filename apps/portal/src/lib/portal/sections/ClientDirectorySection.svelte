@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { beforeNavigate } from '$app/navigation';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
@@ -13,6 +14,9 @@
   import { onMount, tick } from 'svelte';
   import { pendingWorkspaceTargetIds } from '../ui/workspace-navigation';
   import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
+  import { projectUxRound2Text } from '$lib/portal/project-ux-round2-copy';
+  import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
+  import { disclosure } from '../ui/disclosure';
   import {
     managementProblem,
     contactProblemMatches,
@@ -60,9 +64,19 @@
   let addingForClientId = $state<string | null>(null);
   let editingContactId = $state<string | null>(null);
   let restoredClientId = $state('');
-  const normalizedSearch = $derived(search.trim().toLowerCase());
+  const normalizedSearch = $derived(
+    search
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/gu, '')
+      .toLocaleLowerCase(calendarLocale),
+  );
   const contactProblem = $derived(managementProblem(form));
   const problemLocale = $derived(normalizePortalLocale(calendarLocale));
+  const ux = (
+    key: Parameters<typeof projectUxRound2Text>[1],
+    params?: Record<string, string | number>,
+  ) => projectUxRound2Text(problemLocale, key, params);
   const failedClientId = $derived.by(() => {
     if (!canManageContacts || !contactProblem) return '';
     if (contactProblem.actionName === 'createClientContact')
@@ -71,7 +85,7 @@
     const contact = contacts.find((row) => value(row, 'id') === contactId);
     return contact ? value(contact, 'client_id', 'clientId') : '';
   });
-  const focusedClientId = $derived.by(() => {
+  const requestedClientContext = $derived.by(() => {
     const requestedClient = clientForTarget($page.url.searchParams.get('client') ?? '');
     const requestedFocus = clientForTarget($page.url.searchParams.get('focus') ?? '');
     let requestedHash = '';
@@ -80,7 +94,26 @@
     } catch {
       // A malformed fragment cannot broaden the authorized client projection.
     }
+    return {
+      action: $page.url.searchParams.get('action'),
+      requestedClient,
+      requestedFocus,
+      requestedHash,
+    };
+  });
+  const focusedClientId = $derived.by(() => {
+    const { requestedClient, requestedFocus, requestedHash } = requestedClientContext;
     return failedClientId || requestedHash || requestedClient || requestedFocus || restoredClientId;
+  });
+  const focusedClientContext = $derived.by(() => {
+    const { action, requestedClient, requestedFocus, requestedHash } = requestedClientContext;
+    return Boolean(
+      failedClientId ||
+      requestedHash ||
+      requestedFocus ||
+      restoredClientId ||
+      (requestedClient && action !== 'new-project'),
+    );
   });
   onMount(() => {
     // Shared restoration keeps identifiers only. Resolve them against the
@@ -251,17 +284,33 @@
       clientName(client),
       value(client, 'client_number', 'client_code', 'billing_email', 'billing_address'),
       ...related.flatMap((row) => [
-        value(row, 'name', 'project_name', 'project_number'),
-        value(row, 'email', 'phone', 'site_name', 'site', 'plant_site'),
+        value(row, 'name', 'project_name', 'project_number', 'role', 'title'),
+        value(
+          row,
+          'email',
+          'phone',
+          'company',
+          'location',
+          'notes',
+          'site_name',
+          'site',
+          'plant_site',
+        ),
       ]),
     ]
       .join(' ')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/gu, '')
       .toLowerCase();
     return haystack.includes(normalizedSearch);
   }
 
   const visibleClients = $derived(
-    (clients ?? []).filter((client) => id(client) === focusedClientId || matches(client)),
+    (clients ?? []).filter((client) =>
+      focusedClientContext
+        ? id(client) === focusedClientId || (Boolean(normalizedSearch) && matches(client))
+        : matches(client),
+    ),
   );
   let clientPage = $state<typeof visibleClients>([]);
 
@@ -270,11 +319,91 @@
     user: () => `${$page.data.user?.id ?? ''}:${$page.data.user?.role ?? ''}`,
     url: () => $page.url,
     defaults: { search: '' },
+    query: { search: 'q' },
     get: () => ({ search }),
     set: (saved) => {
       search = saved.search;
     },
   });
+
+  beforeNavigate((navigation) => {
+    if (navigation.willUnload) return;
+    if (
+      !confirmDirtyForms(
+        document.querySelector<HTMLElement>('[data-client-directory]'),
+        translate('Discard unsaved changes?'),
+      )
+    ) {
+      navigation.cancel();
+      return;
+    }
+    const destination = navigation.to?.url;
+    if (
+      destination?.pathname === $page.url.pathname &&
+      destination.searchParams.get('view') === 'clients' &&
+      !destination.searchParams.has('focus') &&
+      !destination.searchParams.has('client') &&
+      !destination.searchParams.has('action') &&
+      !destination.hash
+    )
+      restoredClientId = '';
+  });
+
+  function allClientsHref(): string {
+    const url = new URL($page.url);
+    url.search = '';
+    url.searchParams.set('view', 'clients');
+    url.searchParams.set('lang', problemLocale);
+    if (search.trim()) url.searchParams.set('q', search.trim());
+    url.hash = '';
+    return `${url.pathname}${url.search}`;
+  }
+
+  function confirmContactFormTransition(): boolean {
+    return confirmDirtyForms(
+      document.querySelector<HTMLElement>('[data-client-directory]'),
+      translate('Discard unsaved changes?'),
+    );
+  }
+
+  function toggleNewContact(clientId: string): void {
+    if (!confirmContactFormTransition()) return;
+    addingForClientId = addingForClientId === clientId ? null : clientId;
+    if (addingForClientId) editingContactId = null;
+  }
+
+  function toggleEditContact(contactId: string): void {
+    if (!confirmContactFormTransition()) return;
+    editingContactId = editingContactId === contactId ? null : contactId;
+    if (editingContactId) addingForClientId = null;
+  }
+
+  function closeContactForm(formId: string, mode: 'new' | 'edit'): void {
+    const form = document.getElementById(formId);
+    if (
+      !confirmDirtyForms(
+        form instanceof HTMLElement ? form : null,
+        translate('Discard unsaved changes?'),
+      )
+    )
+      return;
+    if (mode === 'new') addingForClientId = null;
+    else editingContactId = null;
+  }
+
+  function isContactFlagEnabled(row: PortalRow, field: string): boolean {
+    const candidate = row[field];
+    return candidate === true || candidate === 1 || candidate === '1';
+  }
+
+  function mailto(email: string): string {
+    return `mailto:${email.trim().replace(/[\r\n]/gu, '')}`;
+  }
+
+  function tel(phone: string): string {
+    const compact = phone.replace(/[^0-9+*#;,]/gu, '');
+    return compact ? `tel:${compact}` : `tel:${encodeURIComponent(phone)}`;
+  }
 </script>
 
 <div
@@ -294,14 +423,29 @@
       {#if canManageContacts}
         <a
           class="primary-button client-directory__create"
-          href={`${base}/app/projects?view=clients&action=new-client`}
+          href={`${base}/app/projects?view=clients&action=new-client&lang=${encodeURIComponent(problemLocale)}`}
         >
           {translate('Create client')}
         </a>
       {/if}
-      <span class="client-directory__count" aria-live="polite">{visibleClients.length}</span>
+      <span class="client-directory__count" aria-live="polite"
+        >{ux('showingClients', {
+          shown: clientPage.length,
+          total: visibleClients.length,
+        })}</span
+      >
     </div>
   </header>
+
+  {#if focusedClientContext && focusedClientId}
+    {@const focusedClient = clients.find((client) => id(client) === focusedClientId)}
+    {#if focusedClient}
+      <div class="client-directory__focus" role="status">
+        <span>{ux('focusedClient', { name: clientName(focusedClient) })}</span>
+        <a class="secondary-button" href={allClientsHref()}>{ux('allClients')}</a>
+      </div>
+    {/if}
+  {/if}
 
   <form
     id="client-directory-filters"
@@ -314,9 +458,15 @@
       <input
         bind:value={search}
         type="search"
+        autocomplete="off"
         placeholder={translate('Company, contact, phone or site')}
       />
     </label>
+    {#if search}
+      <button type="button" class="secondary-button" onclick={() => (search = '')}
+        >{ux('clearClientSearch')}</button
+      >
+    {/if}
   </form>
 
   <div id="client-directory-list" class="client-directory__list">
@@ -326,7 +476,14 @@
       focusId={focusedClientId}
       {translate}
       label="ClientDirectory"
+      filtersEnabled={false}
+      showEmpty={false}
     />
+    {#if visibleClients.length === 0}
+      <p class="client-directory__empty client-directory__empty--large" role="status">
+        {normalizedSearch ? ux('noClientMatches') : ux('noAuthorizedClients')}
+      </p>
+    {/if}
     {#each clientPage as client}
       {@const clientId = id(client)}
       {@const relatedContacts = clientContacts(client)}
@@ -357,15 +514,17 @@
           <div class="directory-actions">
             <a
               class="secondary-button"
-              href={`${base}/app/projects?action=update-client&client=${encodeURIComponent(clientId)}`}
+              href={`${base}/app/projects?action=update-client&client=${encodeURIComponent(clientId)}&lang=${encodeURIComponent(problemLocale)}`}
               >{translate('Edit client')}</a
             >
             <a
               class="secondary-button"
-              href={`${base}/app/projects?action=new-project&client=${encodeURIComponent(clientId)}`}
+              href={`${base}/app/projects?action=new-project&client=${encodeURIComponent(clientId)}&lang=${encodeURIComponent(problemLocale)}`}
               >{translate('New Project')}</a
             >
-            <a class="secondary-button" href={`${base}/app/projects#client-controls-${clientId}`}
+            <a
+              class="secondary-button"
+              href={`${base}/app/projects?lang=${encodeURIComponent(problemLocale)}#client-controls-${clientId}`}
               >{translate('Archive')} / {translate('Delete client')}</a
             >
           </div>
@@ -380,7 +539,10 @@
           {#if value(client, 'billing_email')}
             <div>
               <dt>{translate('Billing contact')}</dt>
-              <dd>{value(client, 'billing_email')}</dd>
+              <dd>
+                <a href={mailto(value(client, 'billing_email'))}>{value(client, 'billing_email')}</a
+                >
+              </dd>
             </div>
           {/if}
           {#if value(client, 'currency')}
@@ -407,9 +569,7 @@
                   aria-expanded={addingForClientId === clientId}
                   aria-controls={`client-contact-new-${clientId}`}
                   data-workspace-open={`client-contact-new-${clientId}`}
-                  onclick={() =>
-                    (addingForClientId = addingForClientId === clientId ? null : clientId)}
-                  >{translate('Add contact')}</button
+                  onclick={() => toggleNewContact(clientId)}>{translate('Add contact')}</button
                 >
               {/if}
             </div>
@@ -422,6 +582,11 @@
                 action="?view=clients&/createClientContact"
                 class="client-directory__contact-form"
                 use:formValidation
+                use:dirtyFormGuard={{
+                  initialDirty: Boolean(
+                    contactProblemMatches(contactProblem, 'createClientContact', clientId),
+                  ),
+                }}
               >
                 {#if contactProblemMatches(contactProblem, 'createClientContact', clientId) && contactProblem}
                   <ProblemNotice
@@ -440,6 +605,7 @@
                       'name',
                     )}
                     name="name"
+                    autocomplete="name"
                     minlength="2"
                     maxlength="160"
                     required
@@ -454,6 +620,7 @@
                       'email',
                     )}
                     name="email"
+                    autocomplete="email"
                     maxlength="254"
                     type="email"
                   /></label
@@ -467,6 +634,7 @@
                       'phone',
                     )}
                     name="phone"
+                    autocomplete="tel"
                     maxlength="60"
                   /></label
                 >
@@ -479,6 +647,7 @@
                       'role',
                     )}
                     name="role"
+                    autocomplete="organization-title"
                     maxlength="120"
                   /></label
                 >
@@ -491,6 +660,7 @@
                       'company',
                     )}
                     name="company"
+                    autocomplete="organization"
                     maxlength="200"
                   /></label
                 >
@@ -503,6 +673,7 @@
                       'location',
                     )}
                     name="location"
+                    autocomplete="address-line1"
                     maxlength="500"
                   /></label
                 >
@@ -562,7 +733,8 @@
                   <button
                     type="button"
                     class="client-directory__action client-directory__action--quiet secondary-button"
-                    onclick={() => (addingForClientId = null)}>{translate('Cancel')}</button
+                    onclick={() => closeContactForm(`client-contact-new-${clientId}`, 'new')}
+                    >{translate('Cancel')}</button
                   >
                 </div>
               </form>
@@ -576,6 +748,19 @@
                   tabindex="-1"
                 >
                   <strong>{value(contact, 'name') || translate('Unnamed contact')}</strong>
+                  {#if isContactFlagEnabled(contact, 'is_primary') || isContactFlagEnabled(contact, 'is_billing_contact')}
+                    <div
+                      class="client-directory__contact-flags"
+                      aria-label={translate('Contact purpose')}
+                    >
+                      {#if isContactFlagEnabled(contact, 'is_primary')}
+                        <span>{ux('primaryContact')}</span>
+                      {/if}
+                      {#if isContactFlagEnabled(contact, 'is_billing_contact')}
+                        <span>{ux('billingContact')}</span>
+                      {/if}
+                    </div>
+                  {/if}
                   <span
                     >{value(contact, 'role') ||
                       translate('Contact')}{#if value(contact, 'contact_type') === 'onsite'}
@@ -583,9 +768,17 @@
                   >
                   {#if value(contact, 'company')}<span>{value(contact, 'company')}</span>{/if}
                   {#if value(contact, 'email')}
-                    <a href={`mailto:${value(contact, 'email')}`}>{value(contact, 'email')}</a>
+                    <a
+                      href={mailto(value(contact, 'email'))}
+                      aria-label={`${translate('Email')}: ${value(contact, 'name') || value(contact, 'email')}`}
+                      >{value(contact, 'email')}</a
+                    >
                   {:else}<span>{translate('No email')}</span>{/if}
-                  {#if value(contact, 'phone')}<span>{value(contact, 'phone')}</span>{/if}
+                  {#if value(contact, 'phone')}<a
+                      href={tel(value(contact, 'phone'))}
+                      aria-label={`${translate('Phone')}: ${value(contact, 'name') || value(contact, 'phone')}`}
+                      >{value(contact, 'phone')}</a
+                    >{/if}
                   {#if value(contact, 'location')}<span>{value(contact, 'location')}</span>{/if}
                   {#if value(contact, 'notes')}
                     <p class="client-directory__contact-notes">{value(contact, 'notes')}</p>
@@ -605,11 +798,8 @@
                         aria-expanded={editingContactId === value(contact, 'id')}
                         aria-controls={`client-contact-edit-${value(contact, 'id')}`}
                         data-workspace-open={`client-contact-edit-${value(contact, 'id')}`}
-                        onclick={() =>
-                          (editingContactId =
-                            editingContactId === value(contact, 'id')
-                              ? null
-                              : value(contact, 'id'))}>{translate('Edit contact')}</button
+                        onclick={() => toggleEditContact(value(contact, 'id'))}
+                        >{translate('Edit contact')}</button
                       >
                       <form
                         id={`client-contact-delete-${value(contact, 'id')}`}
@@ -638,6 +828,15 @@
                         action="?view=clients&/updateClientContact"
                         class="client-directory__contact-form"
                         use:formValidation
+                        use:dirtyFormGuard={{
+                          initialDirty: Boolean(
+                            contactProblemMatches(
+                              contactProblem,
+                              'updateClientContact',
+                              value(contact, 'id'),
+                            ),
+                          ),
+                        }}
                       >
                         {#if contactProblemMatches(contactProblem, 'updateClientContact', value(contact, 'id')) && contactProblem}
                           <ProblemNotice
@@ -652,6 +851,7 @@
                         <label
                           ><span>{translate('Name')}</span><input
                             name="name"
+                            autocomplete="name"
                             minlength="2"
                             maxlength="160"
                             value={retainedContactValue(
@@ -667,6 +867,7 @@
                         <label
                           ><span>{translate('Email')}</span><input
                             name="email"
+                            autocomplete="email"
                             maxlength="254"
                             type="email"
                             value={retainedContactValue(
@@ -681,6 +882,7 @@
                         <label
                           ><span>{translate('Phone')}</span><input
                             name="phone"
+                            autocomplete="tel"
                             maxlength="60"
                             value={retainedContactValue(
                               contactProblem,
@@ -694,6 +896,7 @@
                         <label
                           ><span>{translate('Role')}</span><input
                             name="role"
+                            autocomplete="organization-title"
                             maxlength="120"
                             value={retainedContactValue(
                               contactProblem,
@@ -707,6 +910,7 @@
                         <label
                           ><span>{translate('Company')}</span><input
                             name="company"
+                            autocomplete="organization"
                             maxlength="200"
                             value={retainedContactValue(
                               contactProblem,
@@ -720,6 +924,7 @@
                         <label
                           ><span>{translate('Location')}</span><input
                             name="location"
+                            autocomplete="address-line1"
                             maxlength="500"
                             value={retainedContactValue(
                               contactProblem,
@@ -791,7 +996,11 @@
                           <button
                             type="button"
                             class="client-directory__action client-directory__action--quiet secondary-button"
-                            onclick={() => (editingContactId = null)}>{translate('Cancel')}</button
+                            onclick={() =>
+                              closeContactForm(
+                                `client-contact-edit-${value(contact, 'id')}`,
+                                'edit',
+                              )}>{translate('Cancel')}</button
                           >
                         </div>
                       </form>
@@ -810,7 +1019,18 @@
             data-workspace-target={`client-projects-section-${clientId}`}
             tabindex="-1"
           >
-            <h3 id={`client-projects-${clientId}`}>{translate('Projects and sites')}</h3>
+            <div class="client-directory__group-heading">
+              <h3 id={`client-projects-${clientId}`}>{translate('Projects and sites')}</h3>
+              {#if relatedProjects.length > 0}
+                <a
+                  class="secondary-button"
+                  data-client-scoped-project-register
+                  aria-label={`${ux('clientProjectRegister')}: ${clientName(client)}`}
+                  href={`${base}/app/projects?client=${encodeURIComponent(clientId)}&status=&lang=${encodeURIComponent(problemLocale)}`}
+                  >{ux('clientProjectRegister')}</a
+                >
+              {/if}
+            </div>
             <div class="client-directory__project-list">
               {#each relatedProjects as project}
                 <article class="client-directory__project">
@@ -822,8 +1042,16 @@
                 </article>
               {:else}
                 <p class="client-directory__empty">
-                  {translate('No associated projects recorded.')}
+                  {ux('noClientProjects')}
                 </p>
+                {#if canManageContacts}
+                  <a
+                    class="secondary-button"
+                    data-client-scoped-project-create
+                    href={`${base}/app/projects?action=new-project&client=${encodeURIComponent(clientId)}&lang=${encodeURIComponent(problemLocale)}`}
+                    >{ux('newProjectForClient')}</a
+                  >
+                {/if}
               {/each}
             </div>
             {#if sites.length > 0}
@@ -835,14 +1063,19 @@
           </section>
         </div>
         {#if canViewWorkCalendar && relatedProjects.length > 0}
-          <ClientWorkCalendar
-            {clientId}
-            entries={clientWorkEntries(client)}
-            month={calendarMonth}
-            locale={calendarLocale}
-            {translate}
-            {controlledValue}
-          />
+          <details use:disclosure class="client-directory__calendar-disclosure">
+            <summary class="secondary-button">
+              {ux('actualWorkCalendar', { count: relatedProjects.length })}
+            </summary>
+            <ClientWorkCalendar
+              {clientId}
+              entries={clientWorkEntries(client)}
+              month={calendarMonth}
+              locale={calendarLocale}
+              {translate}
+              {controlledValue}
+            />
+          </details>
         {/if}
       </SectionCard>
     {:else}
@@ -860,7 +1093,8 @@
   }
 
   .client-directory__header,
-  .client-directory__identity {
+  .client-directory__identity,
+  .client-directory__focus {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -919,6 +1153,28 @@
     background: var(--ja-red-dark, #8f1d14);
   }
 
+  .client-directory__focus {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    padding: 0.75rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.6rem;
+    background: var(--portal-wash, #f8f8f7);
+    font-weight: 750;
+  }
+
+  .client-directory__focus a,
+  .client-directory__filter button {
+    display: inline-flex;
+    min-height: var(--ja-target-min, 2.75rem);
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem 0.7rem;
+  }
+
   @media (min-width: 768px) {
     .client-directory__create {
       width: 20rem;
@@ -930,6 +1186,16 @@
     border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.75rem;
     background: var(--portal-surface, #fff);
+  }
+
+  .client-directory__filter button {
+    align-self: end;
+  }
+
+  .client-directory__focus a:focus-visible,
+  .client-directory__filter button:focus-visible {
+    outline: 3px solid var(--ja-focus-ring, #275dad);
+    outline-offset: 2px;
   }
 
   .client-directory__filter label {
@@ -1174,6 +1440,39 @@
   .client-directory__project-list {
     display: grid;
     gap: 0.5rem;
+  }
+
+  .client-directory__contact-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .client-directory__contact-flags span {
+    width: fit-content;
+    padding: 0.2rem 0.45rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 999px;
+    background: var(--portal-surface, #fff);
+    color: var(--portal-ink, #20201d);
+    font-size: 0.75rem;
+    font-weight: 750;
+  }
+
+  .client-directory__calendar-disclosure {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .client-directory__calendar-disclosure > summary {
+    width: fit-content;
+    min-height: var(--ja-target-min, 2.75rem);
+    cursor: pointer;
+  }
+
+  .client-directory__facts a {
+    color: inherit;
+    overflow-wrap: anywhere;
   }
 
   .client-directory__contact,

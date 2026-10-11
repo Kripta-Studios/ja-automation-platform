@@ -1,0 +1,59 @@
+{
+  "disposableFixture": true,
+  "journeys": [
+    {
+      "viewport": 360,
+      "invoices": [
+        {
+          "state": "draft",
+          "total_minor": 5000,
+          "pdf_sha256": null
+        },
+        {
+          "state": "draft",
+          "total_minor": 7500,
+          "pdf_sha256": null
+        },
+        {
+          "state": "issued",
+          "total_minor": 29900,
+          "pdf_sha256": "ad3508bb9704c3fc0960249f8ae7917c28346ed114ec47fd0d3d6988cd2f667a"
+        }
+      ],
+      "duplicateSourceCount": 0
+    },
+    {
+      "viewport": 390,
+      "invoices": [
+        {
+          "state": "issued",
+          "total_minor": 29900,
+          "pdf_sha256": "13232196d7f1ab3926a4172f14900ce7ff0602e2334fc3d958f53f37b88afccf"
+        }
+      ],
+      "duplicateSourceCount": 0
+    },
+    {
+      "viewport": 768,
+      "invoices": [
+        {
+          "state": "issued",
+          "total_minor": 29900,
+          "pdf_sha256": "bef456f53794fe0e9f85d70b2f4edab6fb27e0ce51e4b4ea125c924e1131b1af"
+        }
+      ],
+      "duplicateSourceCount": 0
+    },
+    {
+      "viewport": 1440,
+      "invoices": [
+        {
+          "state": "issued",
+          "total_minor": 29900,
+          "pdf_sha256": "fe2eb0cd7a5e526025c37bd38e19f6a0a384cd160164f325bdead5b0e5715820"
+        }
+      ],
+      "duplicateSourceCount": 0
+    }
+  ]
+}

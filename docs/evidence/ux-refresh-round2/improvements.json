@@ -1,0 +1,933 @@
+{
+  "date": "2026-10-11",
+  "count": 100,
+  "status": "Implemented and verified; production rollout recorded separately",
+  "baselineSource": "27e57872",
+  "priorBatch": "../ux-refresh-20261011/improvements.json",
+  "featurePreservation": "No removed literal form fields, actions or option values. Existing financial, role, cadence and per-worker configuration contracts retained.",
+  "improvements": [
+    {
+      "number": 101,
+      "id": "UX2-P01",
+      "area": "Projects and clients",
+      "improvement": "Explicit focus shows the requested card; after guarded navigation, Show all clients clears the restored target so the full authorized directory and its search work normally.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "details": "projects.json"
+    },
+    {
+      "number": 102,
+      "id": "UX2-P02",
+      "area": "Projects and clients",
+      "improvement": "The existing q parameter and scoped view preference keep the search value aligned with reload and browser Back restoration.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 103,
+      "id": "UX2-P03",
+      "area": "Projects and clients",
+      "improvement": "Directory matching folds diacritics on both the query and authorized client/contact/project fields.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 104,
+      "id": "UX2-P04",
+      "area": "Projects and clients",
+      "improvement": "Search also matches those fields and related project identity/site values from the existing authorized projection.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 105,
+      "id": "UX2-P05",
+      "area": "Projects and clients",
+      "improvement": "No-match state distinguishes search failure from an empty authorized projection and provides a clear-search action.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "details": "projects.json"
+    },
+    {
+      "number": 106,
+      "id": "UX2-P06",
+      "area": "Projects and clients",
+      "improvement": "Its empty state offers a client-scoped create action; the existing PortalShell project form consumes that client query and preselects it.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte",
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts",
+        "tests/e2e/ux-round2-projects.spec.ts"
+      ],
+      "details": "projects.json"
+    },
+    {
+      "number": 107,
+      "id": "UX2-P07",
+      "area": "Projects and clients",
+      "improvement": "Client management links carry the current lang parameter through the action handoff.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 108,
+      "id": "UX2-P08",
+      "area": "Projects and clients",
+      "improvement": "Clients with projects get a register link carrying client and language filters; the destination consumes the client filter, selects it, and narrows the authorized rows for owner and manager registers.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte",
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts",
+        "tests/e2e/ux-round2-projects.spec.ts"
+      ],
+      "details": "projects.json"
+    },
+    {
+      "number": 109,
+      "id": "UX2-P09",
+      "area": "Projects and clients",
+      "improvement": "The displayed billing address opens a mail action while keeping the address visible.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 110,
+      "id": "UX2-P10",
+      "area": "Projects and clients",
+      "improvement": "Contact phone numbers provide a tel action with a contact-specific accessible name.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 111,
+      "id": "UX2-P11",
+      "area": "Projects and clients",
+      "improvement": "Existing contact purpose flags appear as readable Primary and Billing labels on contact cards.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "details": "projects.json"
+    },
+    {
+      "number": 112,
+      "id": "UX2-P12",
+      "area": "Projects and clients",
+      "improvement": "Name, email, telephone, organization, title and address inputs expose matching autocomplete tokens.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 113,
+      "id": "UX2-P13",
+      "area": "Projects and clients",
+      "improvement": "Inline form changes use the shared dirty-form guard; declining discard keeps the form and entered values, and route navigation is guarded once.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte",
+        "tests/e2e/ux-round2-projects.spec.ts"
+      ],
+      "details": "projects.json"
+    },
+    {
+      "number": 114,
+      "id": "UX2-P14",
+      "area": "Projects and clients",
+      "improvement": "Each calendar remains available behind its own disclosure; deep links, validation and printing still reveal it.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 115,
+      "id": "UX2-P15",
+      "area": "Projects and clients",
+      "improvement": "Active, planned and attention totals now use the current search/client scope while ignoring the selected status itself.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectSection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 116,
+      "id": "UX2-P16",
+      "area": "Projects and clients",
+      "improvement": "Status shortcuts retain q, client and lang while changing only status.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+        "tests/e2e/ux-round2-projects.spec.ts"
+      ],
+      "details": "projects.json"
+    },
+    {
+      "number": 117,
+      "id": "UX2-P17",
+      "area": "Projects and clients",
+      "improvement": "The register calendar has its own project-register agenda scope.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectSection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 118,
+      "id": "UX2-P18",
+      "area": "Projects and clients",
+      "improvement": "Calendar context states how many scoped projects have a date and how many are not plotted yet.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "details": "projects.json"
+    },
+    {
+      "number": 119,
+      "id": "UX2-P19",
+      "area": "Projects and clients",
+      "improvement": "Start/end dates use the interface locale and remain paired with the project's configured timezone.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectSection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 120,
+      "id": "UX2-P20",
+      "area": "Projects and clients",
+      "improvement": "Desktop rows and phone cards show a safe aggregate count of distinct active assigned workers.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "details": "projects.json"
+    },
+    {
+      "number": 121,
+      "id": "UX2-P21",
+      "area": "Projects and clients",
+      "improvement": "The assignment area announces matching and total active assignment counts as filters change.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "details": "projects.json"
+    },
+    {
+      "number": 122,
+      "id": "UX2-P22",
+      "area": "Projects and clients",
+      "improvement": "Each date editor is disclosed per assignment; an update deep link or validation error opens the matching editor.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectSection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 123,
+      "id": "UX2-P23",
+      "area": "Projects and clients",
+      "improvement": "Rows show project name and localized current start/end coverage before the editor is opened.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectSection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 124,
+      "id": "UX2-P24",
+      "area": "Projects and clients",
+      "improvement": "Assignment actions carry lang, and calendar events include planned_start_date/end_date aliases and open the localized project detail route.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectSection.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 125,
+      "id": "UX2-P25",
+      "area": "Projects and clients",
+      "improvement": "The effective date is formatted in the selected interface locale without changing its date-only meaning.",
+      "files": ["apps/portal/src/routes/app/projects/[id]/+page.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 126,
+      "id": "UX2-P26",
+      "area": "Projects and clients",
+      "improvement": "Each existing Monday–Friday minute value is paired with its weekday label.",
+      "files": [
+        "apps/portal/src/routes/app/projects/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "details": "projects.json"
+    },
+    {
+      "number": 127,
+      "id": "UX2-P27",
+      "area": "Projects and clients",
+      "improvement": "Roster coverage displays localized Starts on and Ends on labels, retaining an open-ended end state.",
+      "files": ["apps/portal/src/routes/app/projects/[id]/+page.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 128,
+      "id": "UX2-P28",
+      "area": "Projects and clients",
+      "improvement": "Planning row times use the current locale and state UTC explicitly, consistent with the calendar's UTC semantics.",
+      "files": [
+        "apps/portal/src/routes/app/projects/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "details": "projects.json"
+    },
+    {
+      "number": 129,
+      "id": "UX2-P29",
+      "area": "Projects and clients",
+      "improvement": "Manage assignment carries both project and worker filters, opens the assignment list and matching date editor, and is visible only to owner/manager roles.",
+      "files": [
+        "apps/portal/src/routes/app/projects/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+        "tests/e2e/ux-round2-projects.spec.ts"
+      ],
+      "details": "projects.json"
+    },
+    {
+      "number": 130,
+      "id": "UX2-P30",
+      "area": "Projects and clients",
+      "improvement": "Those project-detail workflow links carry lang while retaining their existing project/date/action filters and browser-history path.",
+      "files": ["apps/portal/src/routes/app/projects/[id]/+page.svelte"],
+      "details": "projects.json"
+    },
+    {
+      "number": 131,
+      "id": "UX2-W01",
+      "area": "Time, expenses and reports",
+      "improvement": "A labeled shortcut bar links to the weekly summary, weekly submission, filters and register, including the selected week's exact date range while retaining current filters.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 132,
+      "id": "UX2-W02",
+      "area": "Time, expenses and reports",
+      "improvement": "The native disclosure starts closed on phone and open on larger screens; its summary remains visible with week range, actual hours and draft count.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 133,
+      "id": "UX2-W03",
+      "area": "Time, expenses and reports",
+      "improvement": "Each day has a direct Log time action that opens the existing form with that day's exact date.",
+      "files": ["apps/portal/src/lib/portal/sections/TimeSection.svelte"],
+      "details": "work.json"
+    },
+    {
+      "number": 134,
+      "id": "UX2-W04",
+      "area": "Time, expenses and reports",
+      "improvement": "A manager's day action passes the currently selected worker into the existing worker field without expanding access.",
+      "files": ["apps/portal/src/lib/portal/sections/TimeSection.svelte"],
+      "details": "work.json"
+    },
+    {
+      "number": 135,
+      "id": "UX2-W05",
+      "area": "Time, expenses and reports",
+      "improvement": "An explicit URL date or an exact single-day register filter takes precedence when prefilling the date; week and local-date fallback behavior remains intact.",
+      "files": ["apps/portal/src/lib/portal/sections/TimeSection.svelte"],
+      "details": "work.json"
+    },
+    {
+      "number": 136,
+      "id": "UX2-W06",
+      "area": "Time, expenses and reports",
+      "improvement": "Localized helper text states that date-only entries stay on the calendar date selected; no timezone conversion or data semantics change.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 137,
+      "id": "UX2-W07",
+      "area": "Time, expenses and reports",
+      "improvement": "The panel gives a clear selected-worker/empty-scope state and links from the top shortcut directly to the submission area.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 138,
+      "id": "UX2-W08",
+      "area": "Time, expenses and reports",
+      "improvement": "The register footer returns directly to the time shortcut bar.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 139,
+      "id": "UX2-W09",
+      "area": "Time, expenses and reports",
+      "improvement": "A shortcut bar links to week summary, filters, register and a register URL scoped to the visible week and existing context.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 140,
+      "id": "UX2-W10",
+      "area": "Time, expenses and reports",
+      "improvement": "The form prioritizes project/date/category and amount/currency before receipt, payer and description while retaining every existing field.",
+      "files": ["apps/portal/src/lib/portal/sections/ExpenseSection.svelte"],
+      "details": "work.json"
+    },
+    {
+      "number": 141,
+      "id": "UX2-W11",
+      "area": "Time, expenses and reports",
+      "improvement": "These optional controls are grouped in a closed-by-default disclosure; all remain available when opened.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 142,
+      "id": "UX2-W12",
+      "area": "Time, expenses and reports",
+      "improvement": "When the URL carries a time-entry context, the optional details disclosure opens so users can review the existing link.",
+      "files": ["apps/portal/src/lib/portal/sections/ExpenseSection.svelte"],
+      "details": "work.json"
+    },
+    {
+      "number": 143,
+      "id": "UX2-W13",
+      "area": "Time, expenses and reports",
+      "improvement": "The amount field immediately repeats the active currency, and it updates with the existing currency selection.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 144,
+      "id": "UX2-W14",
+      "area": "Time, expenses and reports",
+      "improvement": "A visible filename, locally rendered image preview or PDF download link, and localized file type/size appear beside the control without uploading the attachment.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 145,
+      "id": "UX2-W15",
+      "area": "Time, expenses and reports",
+      "improvement": "A Remove selected receipt action clears the file control and releases the temporary preview URL.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 146,
+      "id": "UX2-W16",
+      "area": "Time, expenses and reports",
+      "improvement": "The existing warning is referenced by the payer selector through aria-describedby.",
+      "files": ["apps/portal/src/lib/portal/sections/ExpenseSection.svelte"],
+      "details": "work.json"
+    },
+    {
+      "number": 147,
+      "id": "UX2-W17",
+      "area": "Time, expenses and reports",
+      "improvement": "An opt-in mode clears entry details only after confirmed action success, retains project/date/worker/currency/payer, rotates the request id and remounts the form so each next save gets a fresh submission lock, focuses status, and sends no automatic second POST.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts",
+        "tests/e2e/ux-round2-work.spec.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 148,
+      "id": "UX2-W18",
+      "area": "Time, expenses and reports",
+      "improvement": "The live form and selected invalid file remain after the failed enhanced response; the test checks values/request id and verifies there is no automatic retry.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "tests/e2e/ux-round2-work.spec.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 149,
+      "id": "UX2-W19",
+      "area": "Time, expenses and reports",
+      "improvement": "Accessible anchor links jump to those existing form sections on phone and larger viewports.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 150,
+      "id": "UX2-W20",
+      "area": "Time, expenses and reports",
+      "improvement": "A footer link returns to the expense shortcut bar.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 151,
+      "id": "UX2-W21",
+      "area": "Time, expenses and reports",
+      "improvement": "The report view selector sits above filters for direct access to each report register.",
+      "files": ["apps/portal/src/lib/portal/sections/ReportSection.svelte"],
+      "details": "work.json"
+    },
+    {
+      "number": 152,
+      "id": "UX2-W22",
+      "area": "Time, expenses and reports",
+      "improvement": "Each tab exposes its existing filtered daily, technical or sign-off count in its visible label.",
+      "files": ["apps/portal/src/lib/portal/sections/ReportSection.svelte"],
+      "details": "work.json"
+    },
+    {
+      "number": 153,
+      "id": "UX2-W23",
+      "area": "Time, expenses and reports",
+      "improvement": "Daily and technical empty states offer a direct clear-filters action without altering report data.",
+      "files": ["apps/portal/src/lib/portal/sections/ReportSection.svelte"],
+      "details": "work.json"
+    },
+    {
+      "number": 154,
+      "id": "UX2-W24",
+      "area": "Time, expenses and reports",
+      "improvement": "Opening detail carries the active view and register query, and the return and Cancel links restore that list context.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ReportSection.svelte",
+        "apps/portal/src/routes/app/reports/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts",
+        "tests/e2e/ux-round2-work.spec.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 155,
+      "id": "UX2-W25",
+      "area": "Time, expenses and reports",
+      "improvement": "The detail page accepts only same-origin report-register URLs and reconstructs an allowlist of known filters and panel anchors; invalid destinations fall back to the register.",
+      "files": [
+        "apps/portal/src/routes/app/reports/[id]/+page.svelte",
+        "tests/e2e/ux-round2-work.spec.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 156,
+      "id": "UX2-W26",
+      "area": "Time, expenses and reports",
+      "improvement": "Authorized Modify, attachment-count and change-history shortcuts appear in the detail header before the long PDF; existing attachment authorization remains unchanged.",
+      "files": [
+        "apps/portal/src/routes/app/reports/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 157,
+      "id": "UX2-W27",
+      "area": "Time, expenses and reports",
+      "improvement": "The detail header presents project, date and work performed in a labeled definition list and allows long titles to wrap at narrow widths.",
+      "files": [
+        "apps/portal/src/routes/app/reports/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 158,
+      "id": "UX2-W28",
+      "area": "Time, expenses and reports",
+      "improvement": "The existing edit action bar sticks near the viewport bottom and clears the fixed launcher navigation on phone; action permissions and semantics are unchanged.",
+      "files": [
+        "apps/portal/src/routes/app/reports/[id]/+page.svelte",
+        "tests/e2e/ux-round2-work.spec.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 159,
+      "id": "UX2-W29",
+      "area": "Time, expenses and reports",
+      "improvement": "Both creation forms include direct links to their existing form sections, with targets adjusted for anchor scrolling.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ReportSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 160,
+      "id": "UX2-W30",
+      "area": "Time, expenses and reports",
+      "improvement": "The same fields are organized into labeled Project/worker/equipment, Problem/response and Validation/handover fieldsets, while retaining their names and submission behavior.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ReportSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "details": "work.json"
+    },
+    {
+      "number": 161,
+      "id": "UX2-F01",
+      "area": "Finance and navigation",
+      "improvement": "Reveal the focused notice within header and bottom-navigation safe bounds without resetting filters or submitting again.",
+      "files": ["apps/portal/src/lib/portal/guided-recovery/GuidedRecovery.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 162,
+      "id": "UX2-F02",
+      "area": "Finance and navigation",
+      "improvement": "Contextual expandable history keeps the existing archive option available.",
+      "files": ["apps/portal/src/lib/portal/ui/ArchivedProjectHistory.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 163,
+      "id": "UX2-F03",
+      "area": "Finance and navigation",
+      "improvement": "Use a short Choose a client prompt.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 164,
+      "id": "UX2-F04",
+      "area": "Finance and navigation",
+      "improvement": "Mark required basics and explicitly identify optional start date.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 165,
+      "id": "UX2-F05",
+      "area": "Finance and navigation",
+      "improvement": "Offer common timezone suggestions while keeping unrestricted valid custom entry.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 166,
+      "id": "UX2-F06",
+      "area": "Finance and navigation",
+      "improvement": "Remove redundant phone inset and border.",
+      "files": ["apps/portal/src/styles/portal/forms-management.css"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 167,
+      "id": "UX2-N01",
+      "area": "Finance and navigation",
+      "improvement": "Keep task finder accessible from section navigation and remove its floating phone overlay.",
+      "files": [
+        "apps/portal/src/lib/portal/assistant/NavigationAssistant.svelte",
+        "apps/portal/src/lib/portal/ui/SectionNavigator.svelte"
+      ],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 168,
+      "id": "UX2-N02",
+      "area": "Finance and navigation",
+      "improvement": "Give the home breadcrumb a 44px target.",
+      "files": ["apps/portal/src/styles/portal/polish.css"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 169,
+      "id": "UX2-N04",
+      "area": "Finance and navigation",
+      "improvement": "Keep arrow-key suggestion navigation with suggestions outside sequential Tab order.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 170,
+      "id": "UX2-N05",
+      "area": "Finance and navigation",
+      "improvement": "Announce result count and empty result state.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 171,
+      "id": "UX2-N06",
+      "area": "Finance and navigation",
+      "improvement": "Include project, service period and short identity in invoice link names.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 172,
+      "id": "UX2-N07",
+      "area": "Finance and navigation",
+      "improvement": "Identify project, stream and effective date in stream action names.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 173,
+      "id": "UX2-N08",
+      "area": "Finance and navigation",
+      "improvement": "Identify worker, date, amount and record in expense link names.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 174,
+      "id": "UX2-N09",
+      "area": "Finance and navigation",
+      "improvement": "Name the worker in each configuration and save action.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceConfigurationSection.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 175,
+      "id": "UX2-N10",
+      "area": "Finance and navigation",
+      "improvement": "Name invoice and client in timeline disclosure.",
+      "files": ["apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 176,
+      "id": "UX2-N11",
+      "area": "Finance and navigation",
+      "improvement": "Include pack period and creation context in download link names.",
+      "files": ["apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 177,
+      "id": "UX2-N12",
+      "area": "Finance and navigation",
+      "improvement": "Add pack context to PDF preview action names.",
+      "files": ["apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 178,
+      "id": "UX2-N13",
+      "area": "Finance and navigation",
+      "improvement": "Identify each review and finalization area by pack.",
+      "files": ["apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 179,
+      "id": "UX2-N15",
+      "area": "Finance and navigation",
+      "improvement": "Provide 44px actions and contextual issuer remedy names.",
+      "files": ["apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 180,
+      "id": "UX2-N16",
+      "area": "Finance and navigation",
+      "improvement": "Expose invoice and project identity in the heading and title, with named invoice navigation.",
+      "files": ["apps/portal/src/routes/app/billing/invoices/[id]/+page.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 181,
+      "id": "UX2-N17",
+      "area": "Finance and navigation",
+      "improvement": "Use 44px editing controls on screen while retaining print rendering.",
+      "files": ["packages/reporting/src/invoice-document.ts"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 182,
+      "id": "UX2-N18",
+      "area": "Finance and navigation",
+      "improvement": "Translate issuer, client and company field labels.",
+      "files": ["packages/reporting/src/invoice-document.ts"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 183,
+      "id": "UX2-N19",
+      "area": "Finance and navigation",
+      "improvement": "Distinguish heading and details number controls.",
+      "files": ["packages/reporting/src/invoice-document.ts"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 184,
+      "id": "UX2-N20",
+      "area": "Finance and navigation",
+      "improvement": "Make source-setting and rebuild actions large and stackable.",
+      "files": ["apps/portal/src/routes/app/billing/invoices/[id]/+page.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 185,
+      "id": "UX2-N21",
+      "area": "Finance and navigation",
+      "improvement": "Use 44px selects, buttons and text actions.",
+      "files": ["apps/portal/src/lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 186,
+      "id": "UX2-N23",
+      "area": "Finance and navigation",
+      "improvement": "Carry current language back to billing.",
+      "files": ["apps/portal/src/routes/app/billing/invoices/[id]/+page.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 187,
+      "id": "UX2-N24",
+      "area": "Finance and navigation",
+      "improvement": "Carry current language to calculation detail.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 188,
+      "id": "UX2-N25",
+      "area": "Finance and navigation",
+      "improvement": "Carry current language to agreement preview.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceConfigurationSection.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 189,
+      "id": "UX2-N26",
+      "area": "Finance and navigation",
+      "improvement": "Preserve language when reviewing dated terms.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceConfigurationSection.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 190,
+      "id": "UX2-N27",
+      "area": "Finance and navigation",
+      "improvement": "Preserve language through work-source and reimbursement navigation.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 191,
+      "id": "UX2-N28",
+      "area": "Finance and navigation",
+      "improvement": "Keep current locale and existing record context on accounting remedies.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/AccountingSection.svelte",
+        "apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte"
+      ],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 192,
+      "id": "UX2-N29",
+      "area": "Finance and navigation",
+      "improvement": "Localize the direct-period disclosure.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 193,
+      "id": "UX2-N30",
+      "area": "Finance and navigation",
+      "improvement": "Localize displayed filter labels without changing stored values.",
+      "files": ["apps/portal/src/lib/portal/sections/AccountingSection.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 194,
+      "id": "UX2-N31",
+      "area": "Finance and navigation",
+      "improvement": "Default report language to current locale and preserve failed submission choices.",
+      "files": ["apps/portal/src/lib/portal/sections/AccountingSection.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 195,
+      "id": "UX2-N32",
+      "area": "Finance and navigation",
+      "improvement": "Show skip link immediately on focus.",
+      "files": ["apps/portal/src/styles/portal/polish.css"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 196,
+      "id": "UX2-N33",
+      "area": "Finance and navigation",
+      "improvement": "Expose current section with aria-current and visible active state.",
+      "files": ["apps/portal/src/lib/portal/ui/SectionNavigator.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 197,
+      "id": "UX2-N34",
+      "area": "Finance and navigation",
+      "improvement": "Add local shortcuts to expense treatment and commercial configuration.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 198,
+      "id": "UX2-N35",
+      "area": "Finance and navigation",
+      "improvement": "Keep every export format’s queued, processing, ready or failed status and ready downloads visible; group secondary controls in an optional disclosure, with current failures and recovery notices revealed automatically.",
+      "files": [
+        "apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte",
+        "apps/portal/src/lib/portal/accounting-ux-round2-copy.ts"
+      ],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 199,
+      "id": "UX2-N38",
+      "area": "Finance and navigation",
+      "improvement": "Name each article through its period heading.",
+      "files": ["apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte"],
+      "details": "finance-navigation.json"
+    },
+    {
+      "number": 200,
+      "id": "UX2-N39",
+      "area": "Finance and navigation",
+      "improvement": "Show read-only guidance on finance, ledger and accounting.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/AccountingSection.svelte",
+        "apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte",
+        "apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte"
+      ],
+      "details": "finance-navigation.json"
+    }
+  ]
+}

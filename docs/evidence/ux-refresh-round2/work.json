@@ -1,0 +1,514 @@
+{
+  "category": "A frontend stable contracts",
+  "scope": ["Time entry and register", "Expense entry and register", "Daily and technical reports"],
+  "status": "implemented and browser verified across four viewports",
+  "baseline": {
+    "preview": "http://127.0.0.1:4174/j-aautomation/app",
+    "role": "worker",
+    "viewports": [360, 390, 768, 1440],
+    "evidenceDirectory": "/home/kripta/ja-ux-evidence-20261011/round2-work/before",
+    "observations": [
+      "The weekly and expense registers were far below the page start; report tabs appeared after the filters.",
+      "The expense form was about 1749 document pixels long and technical report creation about 2766 pixels long.",
+      "At 390px, report detail placed the PDF before Modify, with edit/save and attachments several thousand pixels below the title.",
+      "Returning from a report detail discarded the report view and register filters."
+    ]
+  },
+  "afterEvidence": {
+    "directory": "/home/kripta/ja-ux-evidence-20261011/round2-work/after",
+    "files": [
+      "ux2-after-time-phone-360.png",
+      "ux2-after-time-phone-390.png",
+      "ux2-after-time-tablet-768.png",
+      "ux2-after-time-desktop.png",
+      "ux2-after-expense-form-phone-360.png",
+      "ux2-after-expense-form-phone-390.png",
+      "ux2-after-expense-form-tablet-768.png",
+      "ux2-after-expense-form-desktop.png",
+      "ux2-after-reports-list-phone-360.png",
+      "ux2-after-reports-list-phone-390.png",
+      "ux2-after-reports-list-tablet-768.png",
+      "ux2-after-reports-list-desktop.png",
+      "ux2-after-report-editor-phone-360.png",
+      "ux2-after-report-editor-phone-390.png",
+      "ux2-after-report-editor-tablet-768.png",
+      "ux2-after-report-editor-desktop.png"
+    ],
+    "status": "Passed 24 E2E cases across phone-360, phone-390, tablet-768 and desktop; all 16 after screenshots captured."
+  },
+  "changes": [
+    {
+      "id": "UX2-W01",
+      "title": "Time page shortcut bar includes week and register destinations",
+      "before": "Workers had to scroll to reach the weekly view, submission panel, filters, or register.",
+      "after": "A labeled shortcut bar links to the weekly summary, weekly submission, filters and register, including the selected week's exact date range while retaining current filters.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/time",
+      "files": [
+        "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-worker-time-390.png",
+        "after": "after/ux2-after-time-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W02",
+      "title": "Weekly timesheet collapses into a useful mobile summary",
+      "before": "The full seven-day grid occupied the page even when a phone user only needed the week context.",
+      "after": "The native disclosure starts closed on phone and open on larger screens; its summary remains visible with week range, actual hours and draft count.",
+      "role": "worker; scoped worker selection for owner and project manager",
+      "route": "/app/time",
+      "files": [
+        "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-worker-time-390.png",
+        "after": "after/ux2-after-time-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W03",
+      "title": "Each timesheet day opens a date-specific time entry",
+      "before": "Starting a time entry from the week view required opening the general form and reselecting its date.",
+      "after": "Each day has a direct Log time action that opens the existing form with that day's exact date.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/time",
+      "files": ["apps/portal/src/lib/portal/sections/TimeSection.svelte"],
+      "browserEvidence": {
+        "before": "before/ux2-form-time-log-time.png",
+        "after": "after/ux2-after-time-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W04",
+      "title": "Manager day shortcuts retain the selected timesheet worker",
+      "before": "Opening a day entry from a manager's selected-worker timesheet could lose the worker context.",
+      "after": "A manager's day action passes the currently selected worker into the existing worker field without expanding access.",
+      "role": "owner and project manager",
+      "route": "/app/time",
+      "files": ["apps/portal/src/lib/portal/sections/TimeSection.svelte"],
+      "browserEvidence": {
+        "before": "before/ux2-worker-time-390.png",
+        "after": "after/ux2-after-time-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W05",
+      "title": "Time entry honors an exact selected date before its fallback",
+      "before": "Opening Log time after filtering to one day could prefill a different remembered date.",
+      "after": "An explicit URL date or an exact single-day register filter takes precedence when prefilling the date; week and local-date fallback behavior remains intact.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/time?from=YYYY-MM-DD&to=YYYY-MM-DD",
+      "files": ["apps/portal/src/lib/portal/sections/TimeSection.svelte"],
+      "browserEvidence": {
+        "before": "before/ux2-form-time-log-time.png",
+        "after": "after/ux2-after-time-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W06",
+      "title": "Date-only time entry explains its calendar-date behavior",
+      "before": "The date field did not explain whether a date-only entry would shift across time zones.",
+      "after": "Localized helper text states that date-only entries stay on the calendar date selected; no timezone conversion or data semantics change.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/time (Log time form)",
+      "files": [
+        "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-form-time-log-time.png",
+        "after": "after/ux2-after-time-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W07",
+      "title": "Weekly submission shows the selected scope before action",
+      "before": "The weekly submission area offered little context when no worker or eligible draft was selected.",
+      "after": "The panel gives a clear selected-worker/empty-scope state and links from the top shortcut directly to the submission area.",
+      "role": "worker; owner and project manager",
+      "route": "/app/time",
+      "files": [
+        "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-worker-time-390.png",
+        "after": "after/ux2-after-time-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W08",
+      "title": "Time register has a return link to its shortcuts",
+      "before": "After reviewing the lower register, users had to scroll back to the page start for another work action.",
+      "after": "The register footer returns directly to the time shortcut bar.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/time#time-records",
+      "files": [
+        "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-worker-time-390.png",
+        "after": "after/ux2-after-time-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W09",
+      "title": "Expense shortcuts expose the register and selected week range",
+      "before": "The expense register and its filters were far below the page start, with no direct current-week review link.",
+      "after": "A shortcut bar links to week summary, filters, register and a register URL scoped to the visible week and existing context.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/expenses",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-worker-expenses-390.png",
+        "after": "after/ux2-after-expense-form-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W10",
+      "title": "Expense entry puts project, date, amount and currency before evidence details",
+      "before": "At phone width, optional and receipt controls pushed the core amount entry down the long form.",
+      "after": "The form prioritizes project/date/category and amount/currency before receipt, payer and description while retaining every existing field.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/expenses (Record expense form)",
+      "files": ["apps/portal/src/lib/portal/sections/ExpenseSection.svelte"],
+      "browserEvidence": {
+        "before": "before/ux2-form-expenses-record-expense.png",
+        "after": "after/ux2-after-expense-form-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W11",
+      "title": "Related expense details are progressive disclosure",
+      "before": "Time linkage, vendor and payment fields added to the initial form length even when unused.",
+      "after": "These optional controls are grouped in a closed-by-default disclosure; all remain available when opened.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/expenses (Record expense form)",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-form-expenses-record-expense.png",
+        "after": "after/ux2-after-expense-form-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W12",
+      "title": "Time-entry expense links reveal related-work controls",
+      "before": "A deep link from logged time could open expense creation without exposing the optional time-link control.",
+      "after": "When the URL carries a time-entry context, the optional details disclosure opens so users can review the existing link.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/expenses?timeEntry=…",
+      "files": ["apps/portal/src/lib/portal/sections/ExpenseSection.svelte"],
+      "browserEvidence": {
+        "before": "before/ux2-form-expenses-record-expense.png",
+        "after": "after/ux2-after-expense-form-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W13",
+      "title": "Expense amount shows the selected currency beside it",
+      "before": "The selected currency could be far from the amount field while entering values.",
+      "after": "The amount field immediately repeats the active currency, and it updates with the existing currency selection.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/expenses (Record expense form)",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-form-expenses-record-expense.png",
+        "after": "after/ux2-after-expense-form-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W14",
+      "title": "Selected receipt shows its filename and local preview",
+      "before": "After choosing a receipt, the form gave no clear local confirmation of the selected file.",
+      "after": "A visible filename, locally rendered image preview or PDF download link, and localized file type/size appear beside the control without uploading the attachment.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/expenses (Record expense form)",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-form-expenses-record-expense.png",
+        "after": "after/ux2-after-expense-form-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W15",
+      "title": "Receipt can be removed before saving",
+      "before": "Changing a selected receipt required interacting with the native file input without a visible clear action.",
+      "after": "A Remove selected receipt action clears the file control and releases the temporary preview URL.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/expenses (Record expense form)",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-form-expenses-record-expense.png",
+        "after": "after/ux2-after-expense-form-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W16",
+      "title": "Payer treatment guidance is associated with the payer control",
+      "before": "A payer-treatment warning was separate from the payer selector for screen-reader users.",
+      "after": "The existing warning is referenced by the payer selector through aria-describedby.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/expenses (Record expense form)",
+      "files": ["apps/portal/src/lib/portal/sections/ExpenseSection.svelte"],
+      "browserEvidence": {
+        "before": "before/ux2-form-expenses-record-expense.png",
+        "after": "after/ux2-after-expense-form-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W17",
+      "title": "Save-and-add-another resets only after success",
+      "before": "Entering several expenses required closing and reopening the form; an uncertain repeated submit could risk a second save.",
+      "after": "An opt-in mode clears entry details only after confirmed action success, retains project/date/worker/currency/payer, rotates the request id and remounts the form so each next save gets a fresh submission lock, focuses status, and sends no automatic second POST.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/expenses (Record expense form)",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts",
+        "tests/e2e/ux-round2-work.spec.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-form-expenses-record-expense.png",
+        "after": "after/ux2-after-expense-form-phone-390.png",
+        "workflow": "ux-round2-expense-save-another (two successful writes from one open form)"
+      }
+    },
+    {
+      "id": "UX2-W18",
+      "title": "Failed expense response keeps attempted values and selected file",
+      "before": "Users needed assurance that a server-side receipt validation failure would not discard their form.",
+      "after": "The live form and selected invalid file remain after the failed enhanced response; the test checks values/request id and verifies there is no automatic retry.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/expenses (Record expense form)",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "tests/e2e/ux-round2-work.spec.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-form-expenses-record-expense.png",
+        "after": "after/ux2-after-expense-form-phone-390.png",
+        "workflow": "ux-round2-expense-save-another"
+      }
+    },
+    {
+      "id": "UX2-W19",
+      "title": "Expense form has direct section navigation",
+      "before": "Users had to scroll the long expense form to return to project, amount, receipt, payer or description.",
+      "after": "Accessible anchor links jump to those existing form sections on phone and larger viewports.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/expenses (Record expense form)",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-form-expenses-record-expense.png",
+        "after": "after/ux2-after-expense-form-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W20",
+      "title": "Expense register returns to its shortcuts",
+      "before": "After the lower register, starting another expense or changing filters meant scrolling to the top.",
+      "after": "A footer link returns to the expense shortcut bar.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/expenses#expense-records",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-worker-expenses-390.png",
+        "after": "after/ux2-after-expense-form-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W21",
+      "title": "Report tabs appear before report filters",
+      "before": "Daily, technical and sign-off tabs were around two thousand document pixels below the filter area.",
+      "after": "The report view selector sits above filters for direct access to each report register.",
+      "role": "worker; owner, project manager and auditor only within existing scope",
+      "route": "/app/reports",
+      "files": ["apps/portal/src/lib/portal/sections/ReportSection.svelte"],
+      "browserEvidence": {
+        "before": "before/ux2-worker-reports-390.png",
+        "after": "after/ux2-after-reports-list-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W22",
+      "title": "Report tabs show scoped item counts",
+      "before": "Users had to enter each register to see whether it contained records in the selected view.",
+      "after": "Each tab exposes its existing filtered daily, technical or sign-off count in its visible label.",
+      "role": "worker; owner, project manager and auditor only within existing scope",
+      "route": "/app/reports",
+      "files": ["apps/portal/src/lib/portal/sections/ReportSection.svelte"],
+      "browserEvidence": {
+        "before": "before/ux2-worker-reports-390.png",
+        "after": "after/ux2-after-reports-list-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W23",
+      "title": "Empty report results offer an immediate filter reset",
+      "before": "A report register with no matching rows left the user to find and clear filters manually.",
+      "after": "Daily and technical empty states offer a direct clear-filters action without altering report data.",
+      "role": "worker; owner, project manager and auditor only within existing scope",
+      "route": "/app/reports?view=daily|technical",
+      "files": ["apps/portal/src/lib/portal/sections/ReportSection.svelte"],
+      "browserEvidence": {
+        "before": "before/ux2-worker-reports-390.png",
+        "after": "after/ux2-after-reports-list-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W24",
+      "title": "Report detail returns to the filtered register",
+      "before": "The report detail Cancel/back paths returned to a bare reports URL and discarded the selected view and filters.",
+      "after": "Opening detail carries the active view and register query, and the return and Cancel links restore that list context.",
+      "role": "worker; owner and project manager according to report authorization",
+      "route": "/app/reports/[id]?returnTo=…",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ReportSection.svelte",
+        "apps/portal/src/routes/app/reports/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts",
+        "tests/e2e/ux-round2-work.spec.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-report-detail-worker-390.png",
+        "after": "after/ux2-after-report-editor-phone-390.png",
+        "workflow": "ux-round2-report-tabs"
+      }
+    },
+    {
+      "id": "UX2-W25",
+      "title": "Report return URL rejects external and unexpected destinations",
+      "before": "A return URL needed explicit validation before it could safely preserve report navigation.",
+      "after": "The detail page accepts only same-origin report-register URLs and reconstructs an allowlist of known filters and panel anchors; invalid destinations fall back to the register.",
+      "role": "all authenticated report viewers",
+      "route": "/app/reports/[id]?returnTo=…",
+      "files": [
+        "apps/portal/src/routes/app/reports/[id]/+page.svelte",
+        "tests/e2e/ux-round2-work.spec.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-report-detail-worker-390.png",
+        "after": "after/ux2-after-report-editor-phone-390.png",
+        "workflow": "ux-round2-report-tabs (external return URL fallback)"
+      }
+    },
+    {
+      "id": "UX2-W26",
+      "title": "Report detail puts modify, attachment and history actions before the PDF",
+      "before": "At phone width, the PDF occupied the initial detail view while Modify and attachments required scrolling thousands of pixels.",
+      "after": "Authorized Modify, attachment-count and change-history shortcuts appear in the detail header before the long PDF; existing attachment authorization remains unchanged.",
+      "role": "worker; owner and project manager only for actions already authorized",
+      "route": "/app/reports/[id]",
+      "files": [
+        "apps/portal/src/routes/app/reports/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-report-detail-worker-390.png",
+        "after": "after/ux2-after-report-editor-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W27",
+      "title": "Report detail context remains readable with long report titles",
+      "before": "Long titles wrapped awkwardly and project/date/work context lacked a single labeled summary.",
+      "after": "The detail header presents project, date and work performed in a labeled definition list and allows long titles to wrap at narrow widths.",
+      "role": "worker; owner and project manager according to report authorization",
+      "route": "/app/reports/[id]",
+      "files": [
+        "apps/portal/src/routes/app/reports/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-report-detail-worker-390.png",
+        "after": "after/ux2-after-report-editor-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W28",
+      "title": "Report editor actions stay above mobile navigation",
+      "before": "Save and Cancel controls sat at the bottom of the long report edit form behind the fixed mobile navigation.",
+      "after": "The existing edit action bar sticks near the viewport bottom and clears the fixed launcher navigation on phone; action permissions and semantics are unchanged.",
+      "role": "worker; owner and project manager according to report authorization",
+      "route": "/app/reports/[id] (Modify report)",
+      "files": [
+        "apps/portal/src/routes/app/reports/[id]/+page.svelte",
+        "tests/e2e/ux-round2-work.spec.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-report-detail-worker-390.png",
+        "after": "after/ux2-after-report-editor-phone-390.png",
+        "workflow": "ux-round2-report-editor"
+      }
+    },
+    {
+      "id": "UX2-W29",
+      "title": "Daily and technical report forms provide section navigation",
+      "before": "On a phone, creating a daily or technical report required scrolling through long forms to revisit sections.",
+      "after": "Both creation forms include direct links to their existing form sections, with targets adjusted for anchor scrolling.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/reports?view=daily|technical (creation form)",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ReportSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-form-reports-new-daily-report.png; before/ux2-form-reports-new-technical-report.png",
+        "after": "after/ux2-after-reports-list-phone-390.png"
+      }
+    },
+    {
+      "id": "UX2-W30",
+      "title": "Technical report fields are grouped by project, diagnosis and validation",
+      "before": "Technical creation presented a single long sequence of system, response and handover fields.",
+      "after": "The same fields are organized into labeled Project/worker/equipment, Problem/response and Validation/handover fieldsets, while retaining their names and submission behavior.",
+      "role": "worker; owner and project manager where permitted",
+      "route": "/app/reports?view=technical (creation form)",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ReportSection.svelte",
+        "apps/portal/src/lib/portal/work-ux-round2-copy.ts"
+      ],
+      "browserEvidence": {
+        "before": "before/ux2-form-reports-new-technical-report.png",
+        "after": "after/ux2-after-reports-list-phone-390.png"
+      }
+    }
+  ],
+  "verification": {
+    "lint": "ESLint passed for owned Svelte, TypeScript and E2E files.",
+    "typecheck": "Root reported combined build and normal portal typecheck passed.",
+    "browser": "Passed 24/24 UX2 work E2E cases across phone-360, phone-390, tablet-768 and desktop with one worker. The save-another case proves two distinct successful POSTs/records and a failed receipt POST with field/file/request-ID retention and no third record. Full log: /home/kripta/ja-ux-evidence-20261011/round2-work/work-all4-final2.log.",
+    "screenshots": "All 16 after screenshots were captured under /home/kripta/ja-ux-evidence-20261011/round2-work/after; before screenshots are under /home/kripta/ja-ux-evidence-20261011/round2-work/before.",
+    "mutations": "Save-and-add and validation cases use the disposable E2E database with uniquely generated descriptions; no production records or attachment endpoints are used."
+  },
+  "constraints": [
+    "No migration or API/path expansion.",
+    "No changes to authorization, attachment access, financial visibility or business calculations.",
+    "No deployment or commit."
+  ]
+}

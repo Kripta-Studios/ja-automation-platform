@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ProjectContextNav from '../ui/ProjectContextNav.svelte';
   import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
   import { dirtyFormGuard } from '../dirty-form-guard';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
@@ -23,6 +24,7 @@
   import { standaloneActionMessage } from '../../../routes/app/standalone-locale';
   import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
   import { reportFormFieldErrors } from '../ui/form-validation';
+  import { workRound2Text } from '../work-ux-round2-copy';
   import { requestGuidedRecovery } from '../guided-recovery/events';
   import { canDeleteTimeDraft } from './time-entry-actions';
   import {
@@ -194,6 +196,7 @@
   let batchError = $state('');
   let batchSaving = $state(false);
   let batchDetailsOpen = $state(nativeBatchFailure || $page.url.searchParams.get('batch') === '1');
+  let weekDetailsOpen = $state(true);
   let weekSubmitWorker = $state(nativeTimeValue('workerId'));
   let weekSubmitError = $state('');
   let weekSubmitting = $state(false);
@@ -262,6 +265,8 @@
     createRequestId ||= crypto.randomUUID();
     calendarMonth = localToday().slice(0, 7);
     calendarDay = localToday();
+    const smallViewport = window.matchMedia('(max-width: 650px)').matches;
+    weekDetailsOpen = !smallViewport || window.location.hash === '#weekly-timesheet-title';
     const saved = readOperationalRegisterState<{
       search?: string;
       order?: OperationalOrder;
@@ -425,6 +430,9 @@
           String(row.work_date) <= String(data.weekEnd ?? ''),
       )
       .map((row) => ({ id: String(row.id), version: Number(row.version) })),
+  );
+  const weekActualMinutes = $derived(
+    (data.timesheet?.days ?? []).reduce((total, day) => total + Number(day.actualMinutes ?? 0), 0),
   );
   const weekSubmitWarning = $derived<ProblemData | null>(
     weekDrafts.length > 0 && Boolean(weekWorkerId)
@@ -991,6 +999,12 @@
     const requestedDate = $page.url.searchParams.get('date')?.trim() ?? '';
     const useDeepLinkDate = !dateDeepLinkConsumed && /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate);
     if (useDeepLinkDate) dateDeepLinkConsumed = true;
+    const filteredDate = String(data.timeFilter?.from ?? '');
+    const filteredSingleDay =
+      /^\d{4}-\d{2}-\d{2}$/u.test(filteredDate) &&
+      filteredDate === String(data.timeFilter?.to ?? '')
+        ? filteredDate
+        : '';
     let remembered: { date?: string; workerId?: string } = {};
     try {
       remembered = JSON.parse(localStorage.getItem(`ja-time-next-day:${data.user.id}`) ?? '{}');
@@ -1001,9 +1015,8 @@
       dateOverride ??
       (useDeepLinkDate
         ? requestedDate
-        : /^\d{4}-\d{2}-\d{2}$/u.test(remembered.date ?? '')
-          ? remembered.date!
-          : localToday());
+        : filteredSingleDay ||
+          (/^\d{4}-\d{2}-\d{2}$/u.test(remembered.date ?? '') ? remembered.date! : localToday()));
     const requestedProjectId = $page.url.searchParams.get('project')?.trim();
     const filteredProjectId = requestedProjectId ?? String(data.timeFilter?.projectId ?? '');
     createWorker =
@@ -1116,6 +1129,11 @@
       </p>
     </div>
   </header>
+  <ProjectContextNav
+    project={availableProjects.find((project) => String(project.id) === projectFilter)}
+    current="time"
+    {locale}
+  />
 
   {#if !isAuditor}
     <div class="time-primary-action-wrap time-primary-action-top">
@@ -1135,6 +1153,28 @@
       )}
     </p>
   {/if}
+
+  <nav
+    id="time-quick-links"
+    class="time-quick-links"
+    aria-label={workRound2Text(warningLocale, 'timeLinks')}
+  >
+    {#if data.timesheet}
+      <a href="#weekly-timesheet-summary">{workRound2Text(warningLocale, 'timeWeekView')}</a>
+    {/if}
+    {#if !isAuditor}
+      <a href="#time-week-submit-title">{translate('Submit this week')}</a>
+    {/if}
+    <a href="#time-records">{workRound2Text(warningLocale, 'timeRegister')}</a>
+    <a href="#time-filters">{translate('Filters')}</a>
+    {#if data.weekStart && data.weekEnd}
+      <a
+        class="time-quick-link-current-week"
+        href={filterHref({ from: data.weekStart, to: data.weekEnd })}
+        >{workRound2Text(warningLocale, 'timeThisWeekRegister')}</a
+      >
+    {/if}
+  </nav>
 
   <div class="time-status-strip" aria-label={translate('Time attention summary')}>
     <a class="time-status-card" href={filterHref({ status: '' })}>
@@ -1161,7 +1201,48 @@
   </div>
 
   {#if data.timesheet}
-    <TimesheetPanel {locale} {data} {isAuditor} {translate} {controlledValue} />
+    <details class="time-week-details" bind:open={weekDetailsOpen}>
+      <summary id="weekly-timesheet-summary">
+        <span class="time-week-summary-item">
+          <small>{workRound2Text(warningLocale, 'timeWeekContext')}</small>
+          <strong>{data.timesheet.weekStart} → {data.timesheet.weekEnd}</strong>
+        </span>
+        <span class="time-week-summary-item">
+          <small>{workRound2Text(warningLocale, 'timeWeekTotal')}</small>
+          <strong>{formatDecimalHours(weekActualMinutes)}</strong>
+        </span>
+        <span class="time-week-summary-item">
+          <small>{workRound2Text(warningLocale, 'timeWeekDrafts')}</small>
+          <strong>{ownerMode && !weekWorkerId ? '—' : weekDrafts.length}</strong>
+        </span>
+        <span class="time-week-details-action"
+          >{workRound2Text(warningLocale, 'timeWeekDetails')}</span
+        >
+      </summary>
+      <TimesheetPanel {locale} {data} {isAuditor} {translate} {controlledValue} />
+    </details>
+    {#if !isAuditor}
+      <section
+        class="time-day-shortcuts"
+        aria-label={workRound2Text(warningLocale, 'timeWeekView')}
+      >
+        <p>{workRound2Text(warningLocale, 'timeSiteDate')}</p>
+        <div>
+          {#each data.timesheet.days as day (day.date)}
+            <button
+              type="button"
+              class="secondary-button"
+              aria-label={`${translate('Log time on this day')}: ${day.date}`}
+              onclick={() => openCreate(day.date, ownerMode ? weekSubmitWorker : undefined)}
+            >
+              <span>{day.date.slice(5)}</span>
+              <small>{formatDecimalHours(day.actualMinutes)}</small>
+              {translate('Log time')}
+            </button>
+          {/each}
+        </div>
+      </section>
+    {/if}
   {/if}
 
   {#if !isAuditor}
@@ -1203,6 +1284,15 @@
           {weekDrafts.length}
           {translate('draft entries ready')} · {data.weekStart} → {data.weekEnd}
         </p>
+        {#if ownerMode && !weekWorkerId}
+          <p class="time-week-scope" role="status">
+            {translate('Select a worker to review this week’s draft count.')}
+          </p>
+        {:else if weekDrafts.length === 0}
+          <p class="time-week-scope" role="status">
+            {workRound2Text(warningLocale, 'timeNoWeekDrafts')}
+          </p>
+        {/if}
         {#if weekSubmitWarning}
           <ProblemNotice
             problem={weekSubmitWarning}
@@ -1798,9 +1888,17 @@
           {#if activeFilters.length || records.length}
             <strong>{translate('No matching records.')}</strong>
             <span>{translate('Clear filters to see more records.')}</span>
+            <button type="button" class="secondary-button" onclick={clearFilters}
+              >{translate('Clear filters')}</button
+            >
           {:else}
             <strong>{translate('No time recorded.')}</strong>
             <span>{translate('Your actual time entries will appear here.')}</span>
+            {#if !isAuditor}<button
+                type="button"
+                class="primary-button"
+                onclick={() => openCreate()}>{translate('Log time')}</button
+              >{/if}
           {/if}
         </div>
       {/each}
@@ -1827,6 +1925,9 @@
         >
       </nav>
     {/if}
+    <a class="register-back-to-shortcuts" href="#time-quick-links">
+      {workRound2Text(warningLocale, 'timeBackToShortcuts')}
+    </a>
   </section>
 </div>
 
@@ -2021,6 +2122,7 @@
           value={createDate}
           onchange={selectCreateDate}
         />
+        <small>{workRound2Text(warningLocale, 'timeSiteDate')}</small>
       </label>
       <label>
         <span>{translate('Operational category')}</span>
@@ -2264,6 +2366,68 @@
   .time-primary-action-top {
     justify-content: flex-start;
   }
+  .time-quick-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.8rem 0 1rem;
+  }
+  .time-quick-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--ja-control-border, #d7d8d2);
+    border-radius: 999px;
+    background: var(--ja-white, #fff);
+    color: var(--ja-text, #252520);
+    font-size: 0.875rem;
+    font-weight: 650;
+    text-decoration: none;
+  }
+  .time-quick-links a:hover,
+  .time-quick-links a:focus-visible {
+    border-color: var(--time-accent);
+    outline: 2px solid color-mix(in srgb, var(--time-accent) 22%, transparent);
+    outline-offset: 2px;
+  }
+  .time-quick-links .time-quick-link-current-week {
+    border-color: color-mix(in srgb, var(--time-accent) 48%, white);
+    background: color-mix(in srgb, var(--time-accent) 8%, white);
+  }
+  .time-day-shortcuts {
+    display: grid;
+    gap: 0.55rem;
+    margin: 0.75rem 0 1rem;
+  }
+  .time-day-shortcuts p {
+    margin: 0;
+    color: var(--ja-steel, #77756d);
+    font-size: 0.82rem;
+  }
+  .time-day-shortcuts > div {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+  .time-day-shortcuts button {
+    display: grid;
+    justify-items: center;
+    gap: 0.15rem;
+    min-width: 0;
+    min-height: 3.5rem;
+    padding: 0.35rem 0.2rem;
+  }
+  .time-day-shortcuts small {
+    font-size: 0.72rem;
+    font-weight: 500;
+  }
+  .time-week-scope {
+    padding: 0.55rem 0.7rem;
+    border-inline-start: 3px solid var(--time-accent);
+    background: color-mix(in srgb, var(--time-accent) 6%, white);
+  }
   .time-primary-action {
     background: var(--time-accent);
     border-color: var(--time-accent);
@@ -2309,6 +2473,55 @@
     border-radius: 0.9rem;
     background: white;
     padding: 1.25rem;
+  }
+  .time-week-details {
+    margin-top: 0.8rem;
+  }
+  .time-week-details > summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+    align-items: center;
+    gap: 0.65rem 1rem;
+    min-height: 4rem;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--ja-control-border, #d7d8d2);
+    border-radius: 0.85rem;
+    background: var(--ja-white, #fff);
+    cursor: pointer;
+    list-style: none;
+  }
+  .time-week-details > summary::-webkit-details-marker {
+    display: none;
+  }
+  .time-week-details > summary:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--time-accent) 32%, transparent);
+    outline-offset: 3px;
+  }
+  .time-week-summary-item {
+    display: grid;
+    min-width: 0;
+    gap: 0.15rem;
+  }
+  .time-week-summary-item small {
+    color: var(--ja-steel, #77756d);
+    font-size: 0.75rem;
+  }
+  .time-week-summary-item strong {
+    overflow-wrap: anywhere;
+  }
+  .time-week-details-action {
+    grid-column: 4;
+    grid-row: 1;
+    color: var(--time-accent);
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+  .time-week-details-action::after {
+    content: '＋';
+    margin-inline-start: 0.35rem;
+  }
+  .time-week-details[open] .time-week-details-action::after {
+    content: '−';
   }
   .time-week-submit,
   .time-owner-heading,
@@ -2492,6 +2705,13 @@
     .time-owner-batch {
       padding: 0.8rem;
     }
+    .time-week-details > summary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .time-week-details-action {
+      grid-column: 1 / -1;
+      grid-row: auto;
+    }
     .time-calendar-grid button {
       min-height: 48px;
     }
@@ -2500,6 +2720,9 @@
     }
     .time-calendar-grid {
       gap: 0.2rem;
+    }
+    .time-day-shortcuts > div {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
     .time-batch-row {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2523,7 +2746,24 @@
     color: var(--ja-steel, #77756d);
     font-size: 0.85rem;
   }
+  .register-back-to-shortcuts {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    margin-top: 0.65rem;
+    color: var(--time-accent);
+    font-weight: 650;
+    text-underline-offset: 0.15em;
+  }
   @media (max-width: 480px) {
+    .time-quick-links {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .time-quick-links a {
+      justify-content: center;
+      text-align: center;
+    }
     .operational-pagination {
       justify-content: stretch;
     }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ProjectContextNav from '../ui/ProjectContextNav.svelte';
   import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
   import { dirtyFormGuard } from '../dirty-form-guard';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
@@ -19,6 +20,7 @@
   import ProblemNotice from '../ui/ProblemNotice.svelte';
   import type { ProblemData } from '../../problem/contract';
   import { reportFormFieldErrors } from '../ui/form-validation';
+  import { workRound2Text } from '../work-ux-round2-copy';
   import DatePresets from '../ui/DatePresets.svelte';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { money } from '../portal-format';
@@ -110,6 +112,11 @@
     return typeof values?.id === 'string' ? values.id : '';
   });
   let saving = $state(false);
+  let createAnotherAfterSave = $state(false);
+  let expenseSavedAnother = $state(false);
+  let expenseOptionalOpen = $state(Boolean(nativeExpenseValue('timeEntryId')));
+  let createExpenseForm = $state<HTMLFormElement>();
+  let createReceiptInput = $state<HTMLInputElement>();
   let createDate = $state(nativeExpenseValue('spentOn'));
   let createProject = $state(nativeExpenseValue('projectId'));
   let createWhoPaid = $state(nativeExpenseValue('whoPaid') || 'worker');
@@ -342,7 +349,38 @@
     setProblem: (value) => {
       surfaceProblem = value;
     },
-    onSuccess: closeSurface,
+    onSuccess: () => {
+      if (surface === 'create' && createAnotherAfterSave && createExpenseForm?.isConnected) {
+        const clearField = (selector: string, value = ''): void => {
+          const field = createExpenseForm?.querySelector<
+            HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+          >(selector);
+          if (field) field.value = value;
+        };
+        clearField('[name="amount"]');
+        clearField('[name="category"]', 'hotel');
+        clearField('[name="occurredTimeLocal"]');
+        clearField('[name="timeEntryId"]');
+        clearField('[name="vendor"]');
+        clearField('[name="paymentMethod"]');
+        createTimeEntryId = '';
+        createDescription = '';
+        createDescriptionEdited = false;
+        suggestedDescriptionScope = '';
+        createRequestId = crypto.randomUUID();
+        expenseOptionalOpen = false;
+        allowSeparateExpense = false;
+        surfaceProblem = null;
+        surfaceError = '';
+        expenseSavedAnother = true;
+        clearReceiptPreview();
+        void tick().then(() => {
+          createExpenseForm?.querySelector<HTMLElement>('[data-expense-another-status]')?.focus();
+        });
+        return;
+      }
+      closeSurface();
+    },
     offlineHandled: () => surface === 'create' && data.offlineEnabled !== false,
   });
   let editExpenseId = $state<string | null>(
@@ -396,6 +434,7 @@
   let receiptPreviewUrl = $state<string | null>(null);
   let receiptPreviewName = $state('');
   let receiptPreviewMime = $state('');
+  let receiptPreviewSize = $state(0);
   let registerPage = $state(1);
   let registerStateHydrated = $state(false);
   let exportFrom = $state(`${new Date().toISOString().slice(0, 8)}01`);
@@ -1286,6 +1325,8 @@
   function openCreate(): void {
     surfaceError = '';
     surfaceProblem = null;
+    createAnotherAfterSave = false;
+    expenseSavedAnother = false;
     nativeRecoveryActive = false;
     const intakeUrl = typeof window === 'undefined' ? $page.url : new URL(window.location.href);
     const requestedDate = intakeUrl.searchParams.get('date')?.trim() ?? '';
@@ -1310,6 +1351,7 @@
     createDescriptionEdited = false;
     suggestedDescriptionScope = '';
     createTimeEntryId = intakeUrl.searchParams.get('timeEntry')?.trim() ?? '';
+    expenseOptionalOpen = Boolean(createTimeEntryId);
     surface = 'create';
     editExpenseId = null;
   }
@@ -1320,7 +1362,20 @@
     const file = input.files?.[0];
     receiptPreviewName = file?.name ?? '';
     receiptPreviewMime = file?.type ?? '';
+    receiptPreviewSize = file?.size ?? 0;
     receiptPreviewUrl = file && typeof URL !== 'undefined' ? URL.createObjectURL(file) : null;
+  }
+
+  function formatReceiptSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    const divisor = bytes < 1024 * 1024 ? 1024 : 1024 * 1024;
+    const unit = bytes < 1024 * 1024 ? 'KB' : 'MB';
+    return `${(bytes / divisor).toLocaleString(warningLocale, { maximumFractionDigits: 1 })} ${unit}`;
+  }
+
+  function removeSelectedReceipt(): void {
+    if (createReceiptInput) createReceiptInput.value = '';
+    clearReceiptPreview();
   }
 
   function clearReceiptPreview(): void {
@@ -1328,6 +1383,7 @@
     receiptPreviewUrl = null;
     receiptPreviewName = '';
     receiptPreviewMime = '';
+    receiptPreviewSize = 0;
   }
 
   function openEdit(row: Row): void {
@@ -1344,6 +1400,9 @@
   function closeSurface(): void {
     surface = null;
     surfaceProblem = null;
+    createAnotherAfterSave = false;
+    expenseSavedAnother = false;
+    expenseOptionalOpen = false;
     allowSeparateExpense = false;
     nativeRecoveryActive = false;
     editExpenseId = null;
@@ -1489,6 +1548,28 @@
       >{records.length}</span
     >
   </header>
+  <ProjectContextNav
+    project={availableProjects.find((project) => String(project.id) === projectFilter)}
+    current="expenses"
+    locale={warningLocale}
+  />
+
+  <nav
+    id="expense-quick-links"
+    class="expense-quick-links"
+    aria-label={workRound2Text(warningLocale, 'expenseLinks')}
+  >
+    <a href="#expense-week-view">{workRound2Text(warningLocale, 'expenseWeekView')}</a>
+    <a href="#expense-register-filters">{translate('Filters')}</a>
+    <a href="#expense-records">{workRound2Text(warningLocale, 'expenseRegister')}</a>
+    {#if data.weekStart && data.weekEnd}
+      <a
+        class="expense-current-week-link"
+        href={`${registerHref({ from: data.weekStart, to: data.weekEnd })}#expense-records`}
+        >{workRound2Text(warningLocale, 'expenseWeekView')} · {data.weekStart} → {data.weekEnd}</a
+      >
+    {/if}
+  </nav>
 
   {#if !isAuditor}
     <div class="expense-primary-action expense-primary-action-top">
@@ -1499,19 +1580,21 @@
     </div>
   {/if}
 
-  <ExpenseWeekPanel
-    {data}
-    {isAuditor}
-    {availableProjects}
-    {translate}
-    {controlledValue}
-    onCreate={(date, workerId) => {
-      openCreate();
-      createDate = date;
-      createWorker = workerId;
-    }}
-    onEdit={openEdit}
-  />
+  <div id="expense-week-view" class="expense-week-view">
+    <ExpenseWeekPanel
+      {data}
+      {isAuditor}
+      {availableProjects}
+      {translate}
+      {controlledValue}
+      onCreate={(date, workerId) => {
+        openCreate();
+        createDate = date;
+        createWorker = workerId;
+      }}
+      onEdit={openEdit}
+    />
+  </div>
 
   <div class="expense-status-strip" aria-label={translate('Expense attention summary')}>
     <a
@@ -2242,9 +2325,15 @@
         {#if activeFilters.length || records.length}
           <strong>{translate('No matching records.')}</strong>
           <span>{translate('Clear filters to see more records.')}</span>
+          <button type="button" class="secondary-button" onclick={clearFilters}
+            >{translate('Clear filters')}</button
+          >
         {:else}
           <strong>{translate('No expenses recorded.')}</strong>
           <span>{translate('Your submitted expenses will appear here.')}</span>
+          {#if !isAuditor}<button type="button" class="primary-button" onclick={() => openCreate()}
+              >{translate('Record expense')}</button
+            >{/if}
         {/if}
       </div>
     {/if}
@@ -2270,6 +2359,9 @@
         >
       </nav>
     {/if}
+    <a class="register-back-to-shortcuts" href="#expense-quick-links">
+      {workRound2Text(warningLocale, 'expenseBackToShortcuts')}
+    </a>
   </SectionCard>
 
   <ResponsiveSheet
@@ -2348,408 +2440,483 @@
       </p>
     {/if}
     {#if surface === 'create'}
-      <form
-        method="POST"
-        action="?/createExpense"
-        data-assistant-target="expense-create"
-        enctype="multipart/form-data"
-        class="expense-entry-form"
-        data-expense-entry-surface
-        use:dirtyFormGuard
-        aria-busy={saving}
-        use:operationalFieldValidation
-        use:enhance={submitExpense}
-        onsubmit={(event) => {
-          void handleOfflineDraft(event);
-        }}
-      >
-        {#if emptyProjectProblem}
-          <ProblemNotice
-            problem={emptyProjectProblem}
-            kind="error"
-            remedyLinks={{
-              review_projects: {
-                label: translate('Review available projects'),
-                href: `${base}/app/projects`,
-              },
-              contact_project_owner: {
-                label: translate('Contact the project owner to review access.'),
-              },
-            }}
-          />
-        {/if}
-        {#if emptyWorkerProblem}
-          <ProblemNotice
-            problem={emptyWorkerProblem}
-            kind="error"
-            remedyLinks={{
-              review_workers: {
-                label: translate('Review available workers'),
-                href: `${base}/app/projects?view=team&lang=${encodeURIComponent(warningLocale)}#team-panel-specialists`,
-              },
-              contact_project_owner: {
-                label: translate('Contact the project owner to review access.'),
-              },
-            }}
-          />
-        {/if}
-        <input type="hidden" name="requestId" value={createRequestId} />
-        {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
-          <label
-            ><span>{translate('Worker')}</span><select
-              name="workerId"
-              required
-              bind:value={createWorker}
-              ><option value="">{translate('Select worker')}</option
-              >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
-                  >{worker.name} — {worker.email}</option
-                >{/each}</select
-            ></label
-          >
-        {/if}
-        {#if data.user.role === 'worker' && (crewWorkerOptions.length > 0 || (createWorker && createWorker !== data.user.id))}
-          <label>
-            <span>{translate('Record expense for')}</span>
-            <select
-              name="workerId"
-              required
-              bind:value={createWorker}
-              disabled={crewWorkersLoading}
+      {#key createRequestId}
+        <form
+          method="POST"
+          action="?/createExpense"
+          data-assistant-target="expense-create"
+          enctype="multipart/form-data"
+          class="expense-entry-form"
+          bind:this={createExpenseForm}
+          data-expense-entry-surface
+          use:dirtyFormGuard
+          aria-busy={saving}
+          use:operationalFieldValidation
+          use:enhance={submitExpense}
+          onsubmit={(event) => {
+            void handleOfflineDraft(event);
+          }}
+        >
+          {#if emptyProjectProblem}
+            <ProblemNotice
+              problem={emptyProjectProblem}
+              kind="error"
+              remedyLinks={{
+                review_projects: {
+                  label: translate('Review available projects'),
+                  href: `${base}/app/projects`,
+                },
+                contact_project_owner: {
+                  label: translate('Contact the project owner to review access.'),
+                },
+              }}
+            />
+          {/if}
+          {#if emptyWorkerProblem}
+            <ProblemNotice
+              problem={emptyWorkerProblem}
+              kind="error"
+              remedyLinks={{
+                review_workers: {
+                  label: translate('Review available workers'),
+                  href: `${base}/app/projects?view=team&lang=${encodeURIComponent(warningLocale)}#team-panel-specialists`,
+                },
+                contact_project_owner: {
+                  label: translate('Contact the project owner to review access.'),
+                },
+              }}
+            />
+          {/if}
+          <input type="hidden" name="requestId" value={createRequestId} />
+          {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
+            <label
+              ><span>{translate('Worker')}</span><select
+                name="workerId"
+                required
+                bind:value={createWorker}
+                ><option value="">{translate('Select worker')}</option
+                >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
+                    >{worker.name} — {worker.email}</option
+                  >{/each}</select
+              ></label
             >
-              <option value={data.user.id}>{data.user.name} — {translate('my own expense')}</option>
-              {#if createWorker !== data.user.id && !crewWorkerOptions.some((worker) => worker.id === createWorker)}
-                <option value={createWorker} disabled={!crewLookupProblem}
-                  >{translate(
-                    crewWorkersLoading
-                      ? 'Loading crew member…'
-                      : crewLookupProblem
-                        ? portalText(warningLocale, 'problem.expenseLookup.selectedCrewUnverified')
-                        : 'Crew member unavailable',
-                  )}</option
+          {/if}
+          {#if data.user.role === 'worker' && (crewWorkerOptions.length > 0 || (createWorker && createWorker !== data.user.id))}
+            <label>
+              <span>{translate('Record expense for')}</span>
+              <select
+                name="workerId"
+                required
+                bind:value={createWorker}
+                disabled={crewWorkersLoading}
+              >
+                <option value={data.user.id}
+                  >{data.user.name} — {translate('my own expense')}</option
+                >
+                {#if createWorker !== data.user.id && !crewWorkerOptions.some((worker) => worker.id === createWorker)}
+                  <option value={createWorker} disabled={!crewLookupProblem}
+                    >{translate(
+                      crewWorkersLoading
+                        ? 'Loading crew member…'
+                        : crewLookupProblem
+                          ? portalText(
+                              warningLocale,
+                              'problem.expenseLookup.selectedCrewUnverified',
+                            )
+                          : 'Crew member unavailable',
+                    )}</option
+                  >
+                {/if}
+                {#each crewWorkerOptions as worker (worker.id)}
+                  <option value={worker.id}>{worker.name}</option>
+                {/each}
+              </select>
+              <small>{translate('A separate expense is recorded for the selected person.')}</small>
+            </label>
+            {#if crewSelectionUnavailable}
+              <p class="operational-form-error" role="alert">
+                {translate(
+                  'This crew member is no longer available for this project and date. Review the selection before saving.',
+                )}
+              </p>
+            {/if}
+          {/if}
+          {#if crewLookupProblem}
+            <ProblemNotice
+              problem={crewLookupProblem}
+              kind="error"
+              remedyLinks={lookupRemedyLinks}
+              class="expense-crew-lookup-notice"
+            />
+            {#if crewLookupProblem.correlationId}
+              <small
+                >{portalText(warningLocale, 'problem.error.reference', {
+                  correlationId: crewLookupProblem.correlationId,
+                })}</small
+              >
+            {/if}
+            {#if canRetryLookup(crewLookupProblem)}
+              <button type="button" class="secondary-button" onclick={() => (crewLookupRetry += 1)}
+                >{portalText(warningLocale, 'problem.expenseLookup.retryOptions')}</button
+              >
+            {/if}
+          {/if}
+
+          <div class="expense-entry-intro">
+            <strong>{translate('Capture what happened')}</strong>
+            <span>{translate('Use the receipt and operational details you know on site.')}</span>
+          </div>
+          <nav
+            class="expense-form-steps"
+            aria-label={workRound2Text(warningLocale, 'expenseFormSteps')}
+          >
+            <a href="#expense-entry-project"
+              >{workRound2Text(warningLocale, 'expenseProjectStep')}</a
+            >
+            <a href="#expense-entry-amount">{workRound2Text(warningLocale, 'expenseAmountStep')}</a>
+            <a href="#expense-entry-receipt"
+              >{workRound2Text(warningLocale, 'expenseEvidenceStep')}</a
+            >
+            <a href="#expense-entry-payer">{workRound2Text(warningLocale, 'expensePayerStep')}</a>
+            <a href="#expense-entry-description"
+              >{workRound2Text(warningLocale, 'expenseDescriptionStep')}</a
+            >
+          </nav>
+          <label id="expense-entry-project" tabindex="-1">
+            <span>{translate('Project')}</span>
+            <select name="projectId" required bind:value={createProject}>
+              <option value="">{translate('Select assignment')}</option>
+              {#if projectSelectionUnavailable}
+                <option value={createProject} disabled
+                  >{translate('Project no longer available')}</option
                 >
               {/if}
-              {#each crewWorkerOptions as worker (worker.id)}
-                <option value={worker.id}>{worker.name}</option>
+              {#each availableProjects as project}
+                <option value={String(project.id)}>{project.project_number} — {project.name}</option
+                >
               {/each}
             </select>
-            <small>{translate('A separate expense is recorded for the selected person.')}</small>
           </label>
-          {#if crewSelectionUnavailable}
-            <p class="operational-form-error" role="alert">
-              {translate(
-                'This crew member is no longer available for this project and date. Review the selection before saving.',
-              )}
-            </p>
+          {#if selectedProjectUnavailableProblem}
+            <ProblemNotice
+              problem={selectedProjectUnavailableProblem}
+              kind="error"
+              remedyLinks={{
+                review_projects: {
+                  label: translate('Review available projects'),
+                  href: `${base}/app/projects`,
+                },
+                contact_project_owner: {
+                  label: translate('Contact the project owner to review access.'),
+                },
+              }}
+            />
           {/if}
-        {/if}
-        {#if crewLookupProblem}
-          <ProblemNotice
-            problem={crewLookupProblem}
-            kind="error"
-            remedyLinks={lookupRemedyLinks}
-            class="expense-crew-lookup-notice"
-          />
-          {#if crewLookupProblem.correlationId}
-            <small
-              >{portalText(warningLocale, 'problem.error.reference', {
-                correlationId: crewLookupProblem.correlationId,
-              })}</small
-            >
-          {/if}
-          {#if canRetryLookup(crewLookupProblem)}
-            <button type="button" class="secondary-button" onclick={() => (crewLookupRetry += 1)}
-              >{portalText(warningLocale, 'problem.expenseLookup.retryOptions')}</button
-            >
-          {/if}
-        {/if}
-
-        <div class="expense-entry-intro">
-          <strong>{translate('Capture what happened')}</strong>
-          <span>{translate('Use the receipt and operational details you know on site.')}</span>
-        </div>
-        <label>
-          <span>{translate('Receipt image or PDF')}</span>
-          <input
-            name="receipt"
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
-            onchange={handleReceiptChange}
-          />
-          <small>{translate('JPG, PNG, HEIC or PDF up to 10 MB')}</small>
-        </label>
-        {#if receiptPreviewName}
-          <div class="expense-receipt-preview" aria-live="polite">
-            <strong>{translate('Receipt preview')}</strong>
-            {#if receiptPreviewUrl && receiptPreviewMime.startsWith('image/')}
-              <img src={receiptPreviewUrl} alt={receiptPreviewName} />
-            {:else if receiptPreviewUrl && receiptPreviewMime === 'application/pdf'}
-              <a href={receiptPreviewUrl} download={receiptPreviewName}
-                >{translate('Download PDF')}: {receiptPreviewName}</a
+          <div class="expense-form-grid" id="expense-entry-date" tabindex="-1">
+            <label>
+              <span>{translate('Date')}</span>
+              <input name="spentOn" type="date" required bind:value={createDate} />
+            </label>
+            <label>
+              <span>{translate('Category')}</span>
+              <select name="category" value={restoredExpenseValue('category') || 'hotel'} required>
+                {#each expenseCategories as [value, label]}
+                  <option {value}>{translate(label)}</option>
+                {/each}
+              </select>
+            </label>
+          </div>
+          <details
+            class="expense-optional-details"
+            id="expense-entry-related"
+            bind:open={expenseOptionalOpen}
+          >
+            <summary>{workRound2Text(warningLocale, 'expenseOtherDetails')}</summary>
+            <div class="expense-form-grid">
+              <label>
+                <span>{translate('Time expense occurred (optional)')}</span>
+                <input
+                  name="occurredTimeLocal"
+                  type="time"
+                  step="60"
+                  value={restoredExpenseValue('occurredTimeLocal')}
+                />
+                <small>{translate('Local time at the project site; leave blank if unknown.')}</small
+                >
+              </label>
+              <label>
+                <span>{translate('Related logged hours (optional)')}</span>
+                <select name="timeEntryId" bind:value={createTimeEntryId}>
+                  <option value="">{translate('Expense only / no linked hours')}</option>
+                  {#if createTimeEntryId && !linkedTimeOptions.some((time) => time.id === createTimeEntryId)}
+                    <option value={createTimeEntryId} disabled={!timeLookupProblem}
+                      >{translate(
+                        linkedTimeLoading
+                          ? 'Loading linked hours…'
+                          : timeLookupProblem
+                            ? 'Current linked hours'
+                            : 'Linked hours unavailable',
+                      )}</option
+                    >
+                  {/if}
+                  {#each linkedTimeOptions as time (time.id)}
+                    <option value={time.id}>
+                      {time.workerName} · {decimalHours(time.minutes)} h · {controlledValue(
+                        'status',
+                        time.approvalState,
+                      )}{time.correctionLinked ? ` · ${translate('Correction')}` : ''} · {time.summary}
+                    </option>
+                  {/each}
+                </select>
+                <small
+                  >{linkedTimeLoading
+                    ? translate('Loading logged hours…')
+                    : translate('Only hours for this worker, project and date are shown.')}</small
+                >
+              </label>
+              {#if timeSelectionUnavailable}
+                <p class="operational-form-error" role="alert">
+                  {translate(
+                    'The selected logged hours are no longer available. Review the link before saving.',
+                  )}
+                </p>
+              {/if}
+            </div>
+            {#if timeLookupProblem}
+              <ProblemNotice
+                problem={timeLookupProblem}
+                kind="error"
+                remedyLinks={lookupRemedyLinks}
+                class="expense-time-lookup-notice"
+              />
+              {#if timeLookupProblem.correlationId}
+                <small
+                  >{portalText(warningLocale, 'problem.error.reference', {
+                    correlationId: timeLookupProblem.correlationId,
+                  })}</small
+                >
+              {/if}
+              {#if canRetryLookup(timeLookupProblem)}
+                <button
+                  type="button"
+                  class="secondary-button"
+                  onclick={() => (timeLookupRetry += 1)}
+                  >{portalText(warningLocale, 'problem.expenseLookup.retryOptions')}</button
+                >
+              {/if}
+            {/if}
+            {#if selectedTimeLinkVerified}
+              <ProblemNotice
+                problem={selectedTimeLinkWarning}
+                kind="warning"
+                remedyLinks={{
+                  review_selected_time_entry: {
+                    label: portalText(warningLocale, 'problem.remedy.reviewSelectedTimeEntry'),
+                  },
+                }}
+              />
+            {/if}
+            <label>
+              <span>{translate('Vendor (optional)')}</span>
+              <input name="vendor" maxlength="200" value={restoredExpenseValue('vendor')} />
+            </label>
+            <label>
+              <span>{translate('Payment method')}</span>
+              <input
+                name="paymentMethod"
+                maxlength="80"
+                placeholder={translate('Card, transfer or cash')}
+                value={restoredExpenseValue('paymentMethod')}
+              />
+            </label>
+          </details>
+          <div class="expense-form-grid" id="expense-entry-amount" tabindex="-1">
+            <label>
+              <span>{translate('Amount')}</span>
+              <input
+                name="amount"
+                inputmode="decimal"
+                pattern="[0-9]+([.][0-9][0-9]?)?"
+                data-pattern-message="Amount: enter a number such as 12.34, with no more than two decimal places."
+                value={restoredExpenseValue('amount')}
+                required
+              />
+              <small class="expense-currency-context"
+                >{workRound2Text(warningLocale, 'expenseCurrencySelected')}: {createCurrency}</small
               >
-            {:else}
-              <span>{receiptPreviewName}</span>
+            </label>
+            <label>
+              <span>{translate('Currency')}</span>
+              <select name="currency" bind:value={createCurrency} required>
+                {#if !['USD', 'BRL', 'EUR'].includes(createProjectCurrency)}
+                  <option value={createProjectCurrency}>{createProjectCurrency}</option>
+                {/if}
+                <option value="USD">USD</option>
+                <option value="BRL">BRL</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </label>
+          </div>
+          <div class="expense-receipt-field" id="expense-entry-receipt" tabindex="-1">
+            <label>
+              <span>{translate('Receipt image or PDF')}</span>
+              <input
+                bind:this={createReceiptInput}
+                name="receipt"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
+                onchange={handleReceiptChange}
+              />
+              <small>{translate('JPG, PNG, HEIC or PDF up to 10 MB')}</small>
+            </label>
+            {#if receiptPreviewName}
+              <div class="expense-receipt-preview" aria-live="polite">
+                <strong>{workRound2Text(warningLocale, 'expenseReceiptSelected')}</strong>
+                <span class="expense-receipt-preview-name">{receiptPreviewName}</span>
+                <small class="expense-receipt-preview-metadata">
+                  {workRound2Text(warningLocale, 'expenseReceiptTypeAndSize')}: {receiptPreviewMime ||
+                    translate('Unknown file type')} · {formatReceiptSize(receiptPreviewSize)}
+                </small>
+                {#if receiptPreviewUrl && receiptPreviewMime.startsWith('image/')}
+                  <img src={receiptPreviewUrl} alt={receiptPreviewName} />
+                {:else if receiptPreviewUrl && receiptPreviewMime === 'application/pdf'}
+                  <a href={receiptPreviewUrl} download={receiptPreviewName}
+                    >{translate('Download PDF')}: {receiptPreviewName}</a
+                  >
+                {:else}
+                  <span>{receiptPreviewName}</span>
+                {/if}
+                <button type="button" class="text-button" onclick={removeSelectedReceipt}
+                  >{workRound2Text(warningLocale, 'expenseReceiptRemove')}</button
+                >
+              </div>
             {/if}
           </div>
-        {/if}
-        <label>
-          <span>{translate('Project')}</span>
-          <select name="projectId" required bind:value={createProject}>
-            <option value="">{translate('Select assignment')}</option>
-            {#if projectSelectionUnavailable}
-              <option value={createProject} disabled
-                >{translate('Project no longer available')}</option
+          <label id="expense-entry-payer" tabindex="-1">
+            <span>{translate('Who paid')}</span>
+            <select
+              name="whoPaid"
+              bind:value={createWhoPaid}
+              required
+              aria-describedby="expense-payer-guidance"
+            >
+              <option value="worker">{translate('Worker')}</option>
+              <option value="company_card">{translate('Company card')}</option>
+              <option value="company_direct">{translate('Company direct')}</option>
+              <option value="client">{translate('Client paid directly')}</option>
+              <option value="third_party">{translate('Third party')}</option>
+            </select>
+          </label>
+          <div id="expense-payer-guidance">
+            <ProblemNotice
+              problem={payerTreatmentWarning}
+              kind="warning"
+              remedyLinks={{
+                review_expense_payer: {
+                  label: portalText(warningLocale, 'problem.remedy.reviewExpensePayer'),
+                },
+              }}
+            />
+          </div>
+          <label id="expense-entry-description" tabindex="-1">
+            <span>{translate('Description')}</span>
+            <textarea
+              name="description"
+              minlength="3"
+              maxlength="5000"
+              required
+              bind:value={createDescription}
+              oninput={() => (createDescriptionEdited = true)}
+            ></textarea>
+          </label>
+          {#if descriptionLookupProblem}
+            <ProblemNotice
+              problem={descriptionLookupProblem}
+              kind="error"
+              remedyLinks={lookupRemedyLinks}
+              class="expense-description-lookup-notice"
+            />
+            {#if descriptionLookupProblem.correlationId}
+              <small
+                >{portalText(warningLocale, 'problem.error.reference', {
+                  correlationId: descriptionLookupProblem.correlationId,
+                })}</small
               >
             {/if}
-            {#each availableProjects as project}
-              <option value={String(project.id)}>{project.project_number} — {project.name}</option>
-            {/each}
-          </select>
-        </label>
-        {#if selectedProjectUnavailableProblem}
-          <ProblemNotice
-            problem={selectedProjectUnavailableProblem}
-            kind="error"
-            remedyLinks={{
-              review_projects: {
-                label: translate('Review available projects'),
-                href: `${base}/app/projects`,
-              },
-              contact_project_owner: {
-                label: translate('Contact the project owner to review access.'),
-              },
-            }}
-          />
-        {/if}
-        <div class="expense-form-grid">
-          <label>
-            <span>{translate('Date')}</span>
-            <input name="spentOn" type="date" required bind:value={createDate} />
-          </label>
-          <label>
-            <span>{translate('Category')}</span>
-            <select name="category" value={restoredExpenseValue('category') || 'hotel'} required>
-              {#each expenseCategories as [value, label]}
-                <option {value}>{translate(label)}</option>
-              {/each}
-            </select>
-          </label>
-        </div>
-        <div class="expense-form-grid">
-          <label>
-            <span>{translate('Time expense occurred (optional)')}</span>
-            <input
-              name="occurredTimeLocal"
-              type="time"
-              step="60"
-              value={restoredExpenseValue('occurredTimeLocal')}
+            {#if descriptionLookupProblem.code === 'EXPENSE_LOOKUP_UNAVAILABLE'}
+              <p>{portalText(warningLocale, 'problem.expenseLookup.enterDescriptionManually')}</p>
+            {/if}
+            {#if canRetryLookup(descriptionLookupProblem)}
+              <button
+                type="button"
+                class="secondary-button"
+                onclick={() => (descriptionLookupRetry += 1)}
+                >{portalText(warningLocale, 'problem.expenseLookup.retryOptions')}</button
+              >
+            {/if}
+          {/if}
+          {#if !receiptPreviewName}
+            <ProblemNotice
+              problem={missingDraftReceiptWarning}
+              kind="warning"
+              remedyLinks={{
+                attach_receipt_or_save_draft: {
+                  label: portalText(warningLocale, 'problem.remedy.attachReceiptOrSaveDraft'),
+                },
+              }}
             />
-            <small>{translate('Local time at the project site; leave blank if unknown.')}</small>
-          </label>
-          <label>
-            <span>{translate('Related logged hours (optional)')}</span>
-            <select name="timeEntryId" bind:value={createTimeEntryId}>
-              <option value="">{translate('Expense only / no linked hours')}</option>
-              {#if createTimeEntryId && !linkedTimeOptions.some((time) => time.id === createTimeEntryId)}
-                <option value={createTimeEntryId} disabled={!timeLookupProblem}
-                  >{translate(
-                    linkedTimeLoading
-                      ? 'Loading linked hours…'
-                      : timeLookupProblem
-                        ? 'Current linked hours'
-                        : 'Linked hours unavailable',
-                  )}</option
-                >
-              {/if}
-              {#each linkedTimeOptions as time (time.id)}
-                <option value={time.id}>
-                  {time.workerName} · {decimalHours(time.minutes)} h · {controlledValue(
-                    'status',
-                    time.approvalState,
-                  )}{time.correctionLinked ? ` · ${translate('Correction')}` : ''} · {time.summary}
-                </option>
-              {/each}
-            </select>
-            <small
-              >{linkedTimeLoading
-                ? translate('Loading logged hours…')
-                : translate('Only hours for this worker, project and date are shown.')}</small
+          {/if}
+          {#if surfaceProblem?.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE'}
+            <label class="expense-separate-confirm">
+              <input
+                type="checkbox"
+                name="allowSeparateExpense"
+                bind:checked={allowSeparateExpense}
+              />
+              <span>{translate('This is a separate expense')}</span>
+            </label>
+          {/if}
+          {#if expenseSavedAnother}
+            <p
+              class="expense-another-status"
+              data-expense-another-status
+              tabindex="-1"
+              role="status"
+              aria-live="polite"
             >
-          </label>
-          {#if timeSelectionUnavailable}
-            <p class="operational-form-error" role="alert">
-              {translate(
-                'The selected logged hours are no longer available. Review the link before saving.',
-              )}
+              {workRound2Text(warningLocale, 'expenseSavedAnother')}
             </p>
           {/if}
-        </div>
-        {#if timeLookupProblem}
-          <ProblemNotice
-            problem={timeLookupProblem}
-            kind="error"
-            remedyLinks={lookupRemedyLinks}
-            class="expense-time-lookup-notice"
-          />
-          {#if timeLookupProblem.correlationId}
-            <small
-              >{portalText(warningLocale, 'problem.error.reference', {
-                correlationId: timeLookupProblem.correlationId,
-              })}</small
-            >
-          {/if}
-          {#if canRetryLookup(timeLookupProblem)}
-            <button type="button" class="secondary-button" onclick={() => (timeLookupRetry += 1)}
-              >{portalText(warningLocale, 'problem.expenseLookup.retryOptions')}</button
-            >
-          {/if}
-        {/if}
-        {#if selectedTimeLinkVerified}
-          <ProblemNotice
-            problem={selectedTimeLinkWarning}
-            kind="warning"
-            remedyLinks={{
-              review_selected_time_entry: {
-                label: portalText(warningLocale, 'problem.remedy.reviewSelectedTimeEntry'),
-              },
-            }}
-          />
-        {/if}
-        <label>
-          <span>{translate('Vendor (optional)')}</span>
-          <input name="vendor" maxlength="200" value={restoredExpenseValue('vendor')} />
-        </label>
-        <div class="expense-form-grid">
-          <label>
-            <span>{translate('Amount')}</span>
-            <input
-              name="amount"
-              inputmode="decimal"
-              pattern="[0-9]+([.][0-9][0-9]?)?"
-              data-pattern-message="Amount: enter a number such as 12.34, with no more than two decimal places."
-              value={restoredExpenseValue('amount')}
-              required
-            />
+          <label class="expense-save-another-option">
+            <input type="checkbox" bind:checked={createAnotherAfterSave} />
+            <span>{workRound2Text(warningLocale, 'expenseSaveAnotherOption')}</span>
           </label>
-          <label>
-            <span>{translate('Currency')}</span>
-            <select name="currency" bind:value={createCurrency} required>
-              {#if !['USD', 'BRL', 'EUR'].includes(createProjectCurrency)}
-                <option value={createProjectCurrency}>{createProjectCurrency}</option>
-              {/if}
-              <option value="USD">USD</option>
-              <option value="BRL">BRL</option>
-              <option value="EUR">EUR</option>
-            </select>
-          </label>
-        </div>
-        <label>
-          <span>{translate('Who paid')}</span>
-          <select name="whoPaid" bind:value={createWhoPaid} required>
-            <option value="worker">{translate('Worker')}</option>
-            <option value="company_card">{translate('Company card')}</option>
-            <option value="company_direct">{translate('Company direct')}</option>
-            <option value="client">{translate('Client paid directly')}</option>
-            <option value="third_party">{translate('Third party')}</option>
-          </select>
-        </label>
-        <ProblemNotice
-          problem={payerTreatmentWarning}
-          kind="warning"
-          remedyLinks={{
-            review_expense_payer: {
-              label: portalText(warningLocale, 'problem.remedy.reviewExpensePayer'),
-            },
-          }}
-        />
-        <label>
-          <span>{translate('Description')}</span>
-          <textarea
-            name="description"
-            minlength="3"
-            maxlength="5000"
-            required
-            bind:value={createDescription}
-            oninput={() => (createDescriptionEdited = true)}
-          ></textarea>
-        </label>
-        {#if descriptionLookupProblem}
-          <ProblemNotice
-            problem={descriptionLookupProblem}
-            kind="error"
-            remedyLinks={lookupRemedyLinks}
-            class="expense-description-lookup-notice"
-          />
-          {#if descriptionLookupProblem.correlationId}
-            <small
-              >{portalText(warningLocale, 'problem.error.reference', {
-                correlationId: descriptionLookupProblem.correlationId,
-              })}</small
+          <p class="expense-save-another-help">
+            {workRound2Text(warningLocale, 'expenseSaveAnother')}
+          </p>
+          <div class="expense-entry-actions">
+            <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
+              >{translate('Cancel')}</button
             >
-          {/if}
-          {#if descriptionLookupProblem.code === 'EXPENSE_LOOKUP_UNAVAILABLE'}
-            <p>{portalText(warningLocale, 'problem.expenseLookup.enterDescriptionManually')}</p>
-          {/if}
-          {#if canRetryLookup(descriptionLookupProblem)}
             <button
-              type="button"
-              class="secondary-button"
-              onclick={() => (descriptionLookupRetry += 1)}
-              >{portalText(warningLocale, 'problem.expenseLookup.retryOptions')}</button
+              type="submit"
+              disabled={saving ||
+                crewWorkersLoading ||
+                crewSelectionUnavailable ||
+                projectSelectionUnavailable ||
+                timeSelectionUnavailable ||
+                (Boolean(createTimeEntryId) && linkedTimeLoading)}
+              >{translate(
+                saving
+                  ? 'Saving…'
+                  : allowSeparateExpense
+                    ? 'Save as a separate expense'
+                    : 'Save draft',
+              )}</button
             >
-          {/if}
-        {/if}
-        <label>
-          <span>{translate('Payment method')}</span>
-          <input
-            name="paymentMethod"
-            maxlength="80"
-            placeholder={translate('Card, transfer or cash')}
-            value={restoredExpenseValue('paymentMethod')}
-          />
-        </label>
-        {#if !receiptPreviewName}
-          <ProblemNotice
-            problem={missingDraftReceiptWarning}
-            kind="warning"
-            remedyLinks={{
-              attach_receipt_or_save_draft: {
-                label: portalText(warningLocale, 'problem.remedy.attachReceiptOrSaveDraft'),
-              },
-            }}
-          />
-        {/if}
-        {#if surfaceProblem?.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE'}
-          <label class="expense-separate-confirm">
-            <input
-              type="checkbox"
-              name="allowSeparateExpense"
-              bind:checked={allowSeparateExpense}
-            />
-            <span>{translate('This is a separate expense')}</span>
-          </label>
-        {/if}
-        <div class="expense-entry-actions">
-          <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
-            >{translate('Cancel')}</button
-          >
-          <button
-            type="submit"
-            disabled={saving ||
-              crewWorkersLoading ||
-              crewSelectionUnavailable ||
-              projectSelectionUnavailable ||
-              timeSelectionUnavailable ||
-              (Boolean(createTimeEntryId) && linkedTimeLoading)}
-            >{translate(
-              saving
-                ? 'Saving…'
-                : allowSeparateExpense
-                  ? 'Save as a separate expense'
-                  : 'Save draft',
-            )}</button
-          >
-        </div>
-      </form>
+          </div>
+        </form>
+      {/key}
     {:else if surface === 'edit' && editRow}
       <form
         method="POST"
@@ -2968,6 +3135,126 @@
   .expense-primary-action-top {
     justify-content: flex-start;
   }
+  .expense-quick-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.8rem 0 1rem;
+  }
+  .expense-quick-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--ja-control-border, #d7d8d2);
+    border-radius: 999px;
+    background: var(--ja-white, #fff);
+    color: var(--ja-text, #252520);
+    font-size: 0.875rem;
+    font-weight: 650;
+    text-decoration: none;
+  }
+  .expense-quick-links a:hover,
+  .expense-quick-links a:focus-visible {
+    border-color: var(--ja-teal, #706e66);
+    outline: 2px solid color-mix(in srgb, var(--ja-teal, #706e66) 22%, transparent);
+    outline-offset: 2px;
+  }
+  .expense-quick-links .expense-current-week-link {
+    border-color: color-mix(in srgb, var(--ja-teal, #706e66) 48%, white);
+    background: color-mix(in srgb, var(--ja-teal, #706e66) 8%, white);
+  }
+  .expense-currency-context {
+    display: block;
+    color: var(--ja-steel, #77756d);
+    font-weight: 600;
+  }
+  .expense-form-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0 0 0.8rem;
+    padding: 0.55rem;
+    border: 1px solid var(--ja-border, #e1e1de);
+    border-radius: 0.65rem;
+    background: var(--ja-surface-subtle, #f8f8f7);
+  }
+  .expense-form-steps a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--ja-control-border, #d7d8d2);
+    border-radius: 999px;
+    background: var(--ja-white, #fff);
+    color: inherit;
+    font-size: 0.82rem;
+    font-weight: 650;
+    text-decoration: none;
+  }
+  .expense-form-steps a:focus-visible,
+  .expense-form-steps a:hover {
+    border-color: var(--ja-teal, #706e66);
+    outline: 2px solid color-mix(in srgb, var(--ja-teal, #706e66) 22%, transparent);
+    outline-offset: 2px;
+  }
+  .expense-optional-details {
+    display: grid;
+    gap: 0.8rem;
+    padding: 0.75rem;
+    border: 1px solid var(--ja-border, #e1e1de);
+    border-radius: 0.65rem;
+    background: var(--ja-surface-subtle, #f8f8f7);
+  }
+  .expense-optional-details > summary {
+    cursor: pointer;
+    min-height: 2.75rem;
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+  }
+  .expense-optional-details > summary:focus-visible {
+    outline: 2px solid var(--ja-border-focus, #727068);
+    outline-offset: 3px;
+  }
+  #expense-entry-project,
+  #expense-entry-date,
+  #expense-entry-related,
+  #expense-entry-amount,
+  #expense-entry-receipt,
+  #expense-entry-payer,
+  #expense-entry-description {
+    scroll-margin-block-start: 0.75rem;
+  }
+  .expense-receipt-field {
+    display: grid;
+    gap: 0.6rem;
+    min-width: 0;
+  }
+  .expense-save-another-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    width: fit-content;
+    min-height: 2.75rem;
+    font-weight: 650;
+  }
+  .expense-save-another-option input {
+    margin-top: 0.2rem;
+  }
+  .expense-save-another-help {
+    margin: -0.45rem 0 0;
+    max-width: 70ch;
+    color: var(--ja-steel, #77756d);
+    font-size: 0.82rem;
+  }
+  .expense-another-status {
+    margin: 0;
+    padding: 0.65rem 0.8rem;
+    border-inline-start: 3px solid var(--ja-teal, #706e66);
+    background: color-mix(in srgb, var(--ja-teal, #706e66) 8%, white);
+  }
   .expense-status-card {
     color: inherit;
     text-decoration: none;
@@ -3053,6 +3340,15 @@
     font-size: 0.8125rem;
     line-height: 1.35;
   }
+  .expense-receipt-preview-name {
+    overflow-wrap: anywhere;
+    font-weight: 650;
+  }
+  .expense-receipt-preview-metadata {
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+  }
   @media (max-width: 52rem) {
     .expense-export-fields {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3064,6 +3360,22 @@
     }
     .expense-export-actions a {
       flex: 1 1 100%;
+      text-align: center;
+    }
+    .expense-quick-links {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .expense-quick-links a {
+      justify-content: center;
+      text-align: center;
+    }
+    .expense-form-steps {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .expense-form-steps a {
+      justify-content: center;
       text-align: center;
     }
   }
@@ -3078,6 +3390,15 @@
   .operational-pagination span {
     color: var(--ja-steel, #77756d);
     font-size: 0.85rem;
+  }
+  .register-back-to-shortcuts {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    margin-top: 0.65rem;
+    color: var(--ja-teal, #706e66);
+    font-weight: 650;
+    text-underline-offset: 0.15em;
   }
   @media (max-width: 480px) {
     .operational-pagination {

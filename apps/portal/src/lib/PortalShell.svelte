@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { uxText } from './portal/ux-refresh-copy';
   import ProjectSiteFields from './portal/sections/ProjectSiteFields.svelte';
   import { publishedAssignmentMatches } from './portal/sections/published-assignment-filter';
   import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
@@ -89,6 +90,7 @@
   import ExpertiseWorkerSelect from './portal/sections/ExpertiseWorkerSelect.svelte';
   import ProjectBudgetInput from './portal/sections/ProjectBudgetInput.svelte';
   import ProjectSetupNextSteps from './portal/sections/ProjectSetupNextSteps.svelte';
+  import { projectUxText, projectTimezoneSuggestions } from '$lib/portal/project-ux-copy';
   import ApprovalSection from './portal/sections/ApprovalSection.svelte';
   import BillingSection from './portal/sections/BillingSection.svelte';
   import FinanceOverviewSection from './portal/sections/FinanceOverviewSection.svelte';
@@ -318,6 +320,18 @@
     await rememberProjectWorkflow(workflow);
     await focusProjectDestination(`[data-project-workflow="${workflow}"]`);
   }
+  function openProjectCreateDisclosure(event: MouseEvent, id: string): void {
+    event.preventDefault();
+    const target = document.getElementById(id);
+    if (!target) return;
+    if (target instanceof HTMLDetailsElement) target.open = true;
+    window.scrollTo({
+      top: Math.max(0, window.scrollY + target.getBoundingClientRect().top - 88),
+      behavior: 'instant',
+    });
+    target.setAttribute('tabindex', '-1');
+    target.focus({ preventScroll: true });
+  }
   async function showProjectList(): Promise<void> {
     projectWorkflow = null;
     await rememberProjectWorkflow(null);
@@ -339,7 +353,6 @@
     target?.scrollIntoView({ block: 'start' });
     target?.focus({ preventScroll: true });
   }
-  let projectRegisterPage = $state<Row[]>([]);
   let projectManagementRoot: HTMLElement | undefined = $state();
   beforeNavigate((navigation) => {
     if (
@@ -414,6 +427,10 @@
         return portalText(locale, value);
     }
   };
+  const projectUx = (
+    key: Parameters<typeof projectUxText>[1],
+    params?: Record<string, string | number>,
+  ): string => projectUxText(locale, key, params);
   const controlledValue = (domain: ControlledValueDomain, value: unknown): string => {
     const raw = value == null ? '' : String(value);
     if (!raw) return '';
@@ -1150,6 +1167,7 @@
     return match ? `project-creation-assignment-${match[1]}-starts-on` : undefined;
   }
   let focusedProjectCreationFailure = '';
+  let createProjectSubmitting = $state(false);
   $effect(() => {
     const failure = form as (ProblemData & { actionName?: string; success?: boolean }) | undefined;
     if (
@@ -1260,6 +1278,138 @@
     const value = projectFormValues[field];
     return typeof value === 'string' ? value : fallback;
   };
+  const projectErrorCount = $derived(
+    Object.values(projectFieldErrors).reduce(
+      (count, messages) => count + (messages?.length ?? 0),
+      0,
+    ),
+  );
+  const projectErrorSection = (
+    field: string,
+  ): 'basics' | 'context' | 'people' | 'commercial' | 'optional' => {
+    if (/^(initial|personDefaults|assignments|workerId|startsOn|endsOn|effectiveFrom)/.test(field))
+      return 'people';
+    if (/^(billingModel|expectedHoursPerDay|clientDailyMinimumHours)/.test(field))
+      return 'commercial';
+    if (
+      /^(budgetType|revenueBudgetMinor|poCapMinor|laborBudgetMinutes|expenseBudgetMinor|travelBudgetMinor|weeklyCloseEnabled|dailyReportRequired|technicalReportingRequired)/.test(
+        field,
+      )
+    )
+      return 'optional';
+    if (
+      /^(description|projectAlias|projectManagerId|siteName|siteLocation|onsiteManager|onsiteContact)/.test(
+        field,
+      )
+    )
+      return 'context';
+    return 'basics';
+  };
+  const projectErrorSections = $derived(
+    new Set(Object.keys(projectFieldErrors).map(projectErrorSection)),
+  );
+  const projectBudgetInputNames = [
+    'revenueBudgetMinor',
+    'poCapMinor',
+    'laborBudgetMinutes',
+    'expenseBudgetMinor',
+    'travelBudgetMinor',
+  ] as const;
+  let focusedProjectFieldFailure = '';
+  $effect(() => {
+    const failure = form as
+      | (ProblemData & {
+          actionName?: string;
+          success?: boolean;
+          fieldErrors?: Record<string, string[] | undefined>;
+        })
+      | undefined;
+    if (failure?.actionName === 'createProject' && failure.success === false)
+      createProjectSubmitting = false;
+    if (data.user.role !== 'owner_admin' && data.user.role !== 'finance_admin') return;
+    if (
+      data.section !== 'projects' ||
+      projectWorkflow !== 'new-project' ||
+      failure?.actionName !== 'createProject' ||
+      failure.success !== false ||
+      !failure.correlationId ||
+      failure.correlationId === focusedProjectFieldFailure
+    )
+      return;
+    focusedProjectFieldFailure = failure.correlationId;
+    void tick().then(async () => {
+      const optional = document.querySelector<HTMLElement>('[data-project-optional-settings]');
+      if (projectErrorSections.has('optional') && optional instanceof HTMLDetailsElement)
+        optional.open = true;
+      const context = document.querySelector<HTMLElement>('[data-project-context-settings]');
+      if (projectErrorSections.has('context') && context instanceof HTMLDetailsElement)
+        context.open = true;
+      const people = document.getElementById('project-create-people');
+      if (projectErrorSections.has('people')) {
+        people?.querySelectorAll('details').forEach((details) => {
+          details.open = true;
+        });
+      }
+      const commercial = document.querySelector<HTMLElement>('[data-project-commercial-settings]');
+      if (projectErrorSections.has('commercial') && commercial instanceof HTMLDetailsElement)
+        commercial.open = true;
+      await tick();
+      const formElement = document.querySelector<HTMLFormElement>('form[action="?/createProject"]');
+      if (!formElement) return;
+      const reportableErrors = Object.fromEntries(
+        Object.entries(projectFieldErrors).filter(([, messages]) => messages?.length),
+      ) as Record<string, readonly string[]>;
+      // Temporary DOM-name restoration bookkeeping; never rendered or retained as state.
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity
+      const mappedBudgetInputs = new Map<
+        string,
+        { input: HTMLInputElement; originalName: string | null }
+      >();
+      try {
+        for (const field of projectBudgetInputNames) {
+          if (!reportableErrors[field]) continue;
+          const hidden = Array.from(
+            formElement.querySelectorAll<HTMLInputElement>('input[type="hidden"]'),
+          ).find((control) => control.name === field);
+          const visible = hidden?.parentElement?.querySelector<HTMLInputElement>(
+            'input:not([type="hidden"])',
+          );
+          if (!visible) continue;
+          const originalName = visible.getAttribute('name');
+          if (originalName === null) visible.name = field;
+          mappedBudgetInputs.set(field, { input: visible, originalName });
+        }
+        if (Object.keys(reportableErrors).length > 0)
+          reportFormFieldErrors(formElement, reportableErrors);
+        const invalid = formElement.querySelector<HTMLElement>('[aria-invalid="true"]');
+        if (invalid) {
+          invalid.focus({ preventScroll: false });
+          return;
+        }
+        const firstErrorField = Object.entries(projectFieldErrors).find(
+          ([, messages]) => messages?.length,
+        )?.[0];
+        if (!firstErrorField) return;
+        const assignmentTargetId = projectAssignmentDateTarget(firstErrorField);
+        const assignmentTarget = assignmentTargetId
+          ? document.getElementById(assignmentTargetId)
+          : null;
+        const namedTarget = Array.from(formElement.elements).find(
+          (control) =>
+            control instanceof HTMLElement &&
+            control.getAttribute('name') === firstErrorField &&
+            !(control instanceof HTMLInputElement && control.type === 'hidden'),
+        ) as HTMLElement | undefined;
+        const budgetTarget = mappedBudgetInputs.get(firstErrorField)?.input;
+        (assignmentTarget ?? budgetTarget ?? namedTarget)?.focus({ preventScroll: false });
+      } finally {
+        for (const { input, originalName } of mappedBudgetInputs.values()) {
+          if (originalName === null) input.removeAttribute('name');
+          else input.setAttribute('name', originalName);
+        }
+      }
+    });
+  });
   const planningFailure = $derived.by(() => {
     const result = form as
       | {
@@ -1785,6 +1935,36 @@
       : !online && data.offlineEnabled !== false
         ? offlineProjects
         : [],
+  );
+  let projectRegisterPage = $state<Row[]>([]);
+  const projectRegisterSearch = $derived(
+    projectWorkflowPage.url.searchParams.get('q')?.trim() ?? '',
+  );
+  const projectRegisterClient = $derived(projectWorkflowPage.url.searchParams.get('client') ?? '');
+  const projectRegisterRows = $derived(
+    availableProjects.filter(
+      (project) =>
+        (!projectRegisterClient || String(project.client_id ?? '') === projectRegisterClient) &&
+        (!projectRegisterSearch ||
+          Object.values(project).some((value) =>
+            String(value ?? '')
+              .toLocaleLowerCase()
+              .includes(projectRegisterSearch.toLocaleLowerCase()),
+          )),
+    ),
+  );
+  const projectRegisterStatus = $derived(
+    projectWorkflowPage.url.searchParams.has('status')
+      ? (projectWorkflowPage.url.searchParams.get('status')?.trim() ?? '')
+      : 'active',
+  );
+  const projectRegisterStatusLabel = $derived(
+    projectRegisterStatus
+      ? translate(projectRegisterStatus === 'active' ? 'Active' : projectRegisterStatus)
+      : translate('All projects'),
+  );
+  const projectRegisterFilterHref = $derived(
+    `${base}/app/projects?lang=${encodeURIComponent(locale)}&q=&status=`,
   );
   const operationalProjects = $derived(
     availableProjects.filter((project) =>
@@ -2386,14 +2566,15 @@
     if (event.key === 'Escape') {
       event.preventDefault();
       searchOpen = false;
-      searchInput?.blur();
       return;
     }
-    if (event.key === 'ArrowDown' && searchOpen) {
-      const first = searchOptionElements()[0];
-      if (!first) return;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
-      first.focus();
+      searchOpen = true;
+      void tick().then(() => {
+        const options = searchOptionElements();
+        (event.key === 'ArrowUp' ? options.at(-1) : options[0])?.focus();
+      });
     }
   }
 
@@ -2403,6 +2584,11 @@
       event.preventDefault();
       searchOpen = false;
       searchInput?.focus();
+      return;
+    }
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      (event.key === 'Home' ? options[0] : options.at(-1))?.focus();
       return;
     }
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -3638,7 +3824,14 @@
     </header>
     <div class="portal-title">
       <div>
-        <p class="portal-kicker" data-portal-live-text>J&A / {translate(currentTitle)}</p>
+        <p class="portal-kicker" data-portal-live-text>
+          <a
+            class="portal-home-link"
+            href={`${base}/app/?lang=${encodeURIComponent(locale)}`}
+            aria-label={uxText(locale, 'home')}>J&A</a
+          >
+          / {translate(currentTitle)}
+        </p>
         <h1 data-portal-live-text>{translate(currentTitle)}</h1>
       </div>
       <div class="portal-heading-tools">
@@ -3673,11 +3866,28 @@
                 ? translate('Search projects and people…')
                 : translate('Search projects, people, invoices…')}
               autocomplete="off"
+              enterkeyhint="search"
               onfocus={() => (searchOpen = true)}
               oninput={() => (searchOpen = true)}
               onkeydown={handleSearchKeydown}
-              onblur={() => setTimeout(() => (searchOpen = false), 200)}
+              onblur={() =>
+                setTimeout(() => {
+                  if (!document.activeElement?.closest('.global-search')) searchOpen = false;
+                }, 0)}
             />
+            {#if searchValue}
+              <button
+                type="button"
+                class="global-search-clear"
+                aria-label={uxText(locale, 'clearSearch')}
+                title={uxText(locale, 'clearSearch')}
+                onclick={() => {
+                  searchValue = '';
+                  searchOpen = true;
+                  searchInput?.focus();
+                }}><span aria-hidden="true">×</span></button
+              >
+            {/if}
             <button type="submit">{translate('Search')}</button>
             {#if searchOpen}
               <div
@@ -3693,6 +3903,15 @@
                       : translate('Recommended records')}</span
                   >
                   <small>{translate('Only records in your access scope')}</small>
+                  <small
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                    data-search-result-count
+                  >
+                    {visibleSearchSuggestions.length}
+                    {translate('matches')}
+                  </small>
                 </div>
                 {#each groupedSearchSuggestions as group}
                   <div
@@ -3714,6 +3933,7 @@
                         href={searchHref(suggestion)}
                         aria-label={expenseSearchAccessibleLabel(suggestion, group.label)}
                         role="option"
+                        tabindex="-1"
                         aria-selected="false"
                         onclick={() => setTimeout(() => (searchOpen = false), 0)}
                         onkeydown={(event) => handleSearchOptionKeydown(event, optionIndex)}
@@ -3727,7 +3947,7 @@
                     {/each}
                   </div>
                 {:else}
-                  <p class="search-popover-empty">
+                  <p class="search-popover-empty" role="status">
                     {translate(
                       'No recommendation matches. Press Enter to search all authorized records.',
                     )}
@@ -3833,7 +4053,15 @@
     {/if}
 
     {#if ['time', 'expenses', 'reports', 'planning', 'approvals', 'projects', 'documents', 'finance', 'billing'].includes(data.section) && ['owner_admin', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(String(data.user.role)) && !data.user.workforceProfile}
-      <ArchivedProjectHistory url={$page.url} {locale} />
+      <ArchivedProjectHistory
+        url={$page.url}
+        {locale}
+        context={data.section === 'projects' && projectDirectoryView === 'clients'
+          ? 'client'
+          : data.section === 'projects' && projectDirectoryView === 'team'
+            ? 'team'
+            : undefined}
+      />
     {/if}
 
     {#if data.section === 'today'}
@@ -4916,6 +5144,7 @@
         <details id="project-calendar" class="admin-details" data-project-calendar>
           <summary class="secondary-button">{translate('Project calendar')}</summary>
           <PlanningCalendar
+            agendaId="owner-project-register"
             {translate}
             {locale}
             events={availableProjects
@@ -4938,9 +5167,11 @@
             aria-label={translate('Project management actions')}
           >
             <p>
-              {translate(
-                'Choose one action. The portal will show only the fields needed for that task.',
-              )}
+              {projectWorkflow === 'new-project'
+                ? projectUx('createReady')
+                : translate(
+                    'Choose one action. The portal will show only the fields needed for that task.',
+                  )}
             </p>
             <div>
               <button type="button" class="secondary-button" onclick={showProjectList}
@@ -4959,6 +5190,8 @@
                 type="button"
                 class="primary-button"
                 class:active={projectWorkflow === 'new-project'}
+                aria-current={projectWorkflow === 'new-project' ? 'step' : undefined}
+                data-project-primary-action
                 onclick={() => openProjectWorkflow('new-project')}
                 >{translate('New Project')}</button
               >
@@ -5245,6 +5478,7 @@
           {#if projectWorkflow === 'new-project'}
             <section
               id="new-project"
+              data-navigation-align="start"
               class="admin-details project-workflow-panel"
               data-project-workflow="new-project"
               tabindex="-1"
@@ -5262,21 +5496,72 @@
               {#if !createdProject}
                 <form
                   use:dirtyFormGuard
+                  use:formValidation
                   method="POST"
                   action="?/createProject"
                   class="admin-form-grid project-setup-form"
+                  onsubmit={() => (createProjectSubmitting = true)}
                 >
-                  <h2>{translate('Create project')}</h2>
-                  <p class="form-help wide-field">
-                    {translate(
-                      data.user.role === 'owner_admin'
-                        ? 'Create the project with optional worker assignments and individual terms, or add people after saving.'
-                        : 'Create the project with optional default rates, pay and expense terms. Ask the owner to add worker assignments.',
-                    )}
-                  </p>
+                  <div class="project-create-heading wide-field">
+                    <div>
+                      <p class="project-create-eyebrow">{translate('Project setup')}</p>
+                      <h2>{translate('Create project')}</h2>
+                    </div>
+                  </div>
+                  <p class="project-create-intro wide-field">{projectUx('startHere')}</p>
+                  <div
+                    class="project-form-legend wide-field"
+                    aria-label={translate('Field requirements')}
+                  >
+                    <span
+                      ><strong>{projectUx('required')}</strong> · {projectUx('requiredHint')}</span
+                    >
+                    <span
+                      ><strong>{projectUx('optional')}</strong> · {projectUx('optionalHint')}</span
+                    >
+                  </div>
+                  <nav
+                    class="project-step-nav wide-field"
+                    aria-label={translate('Project setup steps')}
+                  >
+                    <a
+                      href="#project-create-basics"
+                      onclick={(event) =>
+                        openProjectCreateDisclosure(event, 'project-create-basics')}
+                      >{projectUx('stepBasics')}</a
+                    >
+                    <a
+                      href="#project-create-context"
+                      onclick={(event) =>
+                        openProjectCreateDisclosure(event, 'project-create-context')}
+                      >{projectUx('stepContext')}</a
+                    >
+                    <a
+                      href="#project-create-people"
+                      onclick={(event) =>
+                        openProjectCreateDisclosure(event, 'project-create-people')}
+                      >{projectUx('stepPeople')}</a
+                    >
+                    <a
+                      href="#project-create-commercial"
+                      onclick={(event) =>
+                        openProjectCreateDisclosure(event, 'project-create-commercial')}
+                      >{projectUx('stepCommercial')}</a
+                    >
+                    <a
+                      href="#project-create-optional"
+                      onclick={(event) =>
+                        openProjectCreateDisclosure(event, 'project-create-optional')}
+                      >{projectUx('stepOptional')}</a
+                    >
+                  </nav>
                   {#if Object.keys(projectFieldErrors).length > 0}
-                    <div class="form-help wide-field" role="alert" data-project-field-errors>
-                      <strong>{translate('Check project fields')}</strong>
+                    <div
+                      class="project-create-errors wide-field"
+                      role="alert"
+                      data-project-field-errors
+                    >
+                      <strong>{projectUx('reviewBeforeCreate')} ({projectErrorCount})</strong>
                       <ul>
                         {#each Object.entries(projectFieldErrors) as [field, messages]}
                           <li>
@@ -5291,9 +5576,13 @@
                       </ul>
                     </div>
                   {/if}
-                  <h3 class="wide-field">{translate('1 · Basics')}</h3>
+                  <h3 id="project-create-basics" class="wide-field">{projectUx('stepBasics')}</h3>
                   <label
-                    >{translate('Client')}<select
+                    ><span class="project-field-heading"
+                      >{translate('Client')}<span class="project-required-mark" aria-hidden="true"
+                        >{projectUx('required')}</span
+                      ></span
+                    ><select
                       name="clientId"
                       required
                       value={selectedNewProjectClientId}
@@ -5302,20 +5591,24 @@
                         newProjectCurrencyOverride = null;
                         newProjectTimezoneOverride = null;
                       }}
-                      ><option value="" disabled
-                        >{portalText(locale, 'problem.client.idRequired')}</option
+                      ><option value="" disabled>{projectUx('chooseClient')}</option
                       >{#each activeClients as client}<option value={client.id}
                           >{client.client_number} — {client.display_name}</option
                         >{/each}</select
                     ></label
                   ><label
-                    >{translate('Name')}<input
-                      name="name"
-                      value={projectFormValue('name')}
-                      required
-                    /></label
+                    ><span class="project-field-heading"
+                      >{translate('Name')}<span class="project-required-mark" aria-hidden="true"
+                        >{projectUx('required')}</span
+                      ></span
+                    ><input name="name" value={projectFormValue('name')} required /></label
                   ><label
-                    >{translate('Cost center code')}<input
+                    ><span class="project-field-heading"
+                      >{translate('Cost center code')}<span
+                        class="project-required-mark"
+                        aria-hidden="true">{projectUx('required')}</span
+                      ></span
+                    ><input
                       name="costCenterCode"
                       maxlength="120"
                       value={projectFormValue('costCenterCode')}
@@ -5326,15 +5619,6 @@
                       )}</small
                     ></label
                   ><label
-                    >{translate('Description')}<textarea name="description" rows="2"
-                      >{projectFormValue('description')}</textarea
-                    ></label
-                  ><label
-                    >{translate('Project alias')}<input
-                      name="projectAlias"
-                      value={projectFormValue('projectAlias')}
-                    /></label
-                  ><label
                     >{translate('Currency')}<select
                       name="currency"
                       value={newProjectCurrency}
@@ -5343,60 +5627,36 @@
                         value="EUR">EUR</option
                       ></select
                     ></label
-                  ><label
-                    >{translate('Project manager')}<select name="projectManagerId"
-                      ><option value="">{translate('Unassigned')}</option
-                      >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager' && worker.status === 'active'}<option
-                            value={worker.id}
-                            selected={projectFormValue('projectManagerId') === worker.id}
-                            >{worker.name} — {worker.email}</option
-                          >{/if}{/each}</select
-                    ></label
                   >
-                  <ProjectSiteFields
-                    clientId={selectedNewProjectClientId}
-                    contacts={data.contacts ?? []}
-                    values={projectFormValues}
-                    allowNew
-                    {translate}
-                  />
-                  <h3 class="wide-field">{translate('2 · People')}</h3>
-                  <ProjectCreationAssignments
-                    workers={data.workers ?? []}
-                    currency={newProjectCurrency}
-                    canAssignWorkers={data.user.role === 'owner_admin'}
-                    values={projectFormValues}
-                    errors={projectFieldErrors}
-                    t={translate}
-                  />
-                  <h3 class="wide-field">{translate('3 · Commercial defaults')}</h3>
+                  <p class="project-inherited-note wide-field">
+                    {#if selectedNewProjectClient}
+                      <strong>{translate('Client defaults')}</strong>
+                      <span>{projectUx('inheritedFromClient')}</span>
+                    {/if}
+                    <span>{projectUx('currencyGuidance')}</span>
+                  </p>
                   <label
-                    >{translate('Billing model')}<select name="billingModel"
-                      ><option value="tm" selected={projectFormValue('billingModel', 'tm') === 'tm'}
-                        >{translate('Time & materials')}</option
-                      ><option
-                        value="tm_daily_minimum"
-                        selected={projectFormValue('billingModel') === 'tm_daily_minimum'}
-                        >{translate('T&M · daily minimum')}</option
-                      ><option
-                        value="all_in"
-                        selected={projectFormValue('billingModel') === 'all_in'}
-                        >{translate('Hourly labor with included expenses (all-in)')}</option
-                      ><option
-                        value="capped_tm"
-                        selected={projectFormValue('billingModel') === 'capped_tm'}
-                        >{translate('Capped T&M')}</option
-                      ></select
-                    ></label
-                  ><label
-                    >{translate('Site timezone')}<input
+                    ><span class="project-field-heading"
+                      >{translate('Site timezone')}<span
+                        class="project-required-mark"
+                        aria-hidden="true">{projectUx('required')}</span
+                      ></span
+                    ><input
                       name="timezone"
+                      list="project-site-timezones"
+                      aria-describedby="project-timezone-hint"
+                      autocomplete="off"
                       value={newProjectTimezone}
                       oninput={(event) => (newProjectTimezoneOverride = event.currentTarget.value)}
                       required
-                    /></label
+                    /><datalist id="project-site-timezones">
+                      {#each projectTimezoneSuggestions as zone}<option value={zone}
+                          >{zone.replaceAll('_', ' ')}</option
+                        >{/each}
+                    </datalist><small id="project-timezone-hint">{projectUx('timezoneHint')}</small
+                    ></label
                   ><label
-                    >{translate('Start date')}<input
+                    >{projectUx('optionalStart')}<input
                       name="startDate"
                       type="date"
                       value={projectFormValue('startDate')}
@@ -5407,41 +5667,139 @@
                       type="date"
                       value={projectFormValue('plannedEndDate')}
                     /></label
-                  ><label
-                    >{translate('Expected hours / day')}<input
-                      name="expectedHoursPerDay"
-                      type="number"
-                      step="0.25"
-                      min="0"
-                      max="24"
-                      value={projectFormValue('expectedHoursPerDay', '10')}
-                      placeholder="10.0"
-                      required
-                    /></label
-                  ><label
-                    >{translate('Client daily minimum hours')}<input
-                      name="clientDailyMinimumHours"
-                      type="number"
-                      step="0.25"
-                      min="0"
-                      max="24"
-                      value={projectFormValue('clientDailyMinimumHours')}
-                      placeholder="8.0"
-                    /></label
                   >
-                  <p class="form-help">
-                    {translate(
-                      'Expected hours are planning context. The client daily minimum is a separate commercial top-up applied once per worker, project and day; it never changes actual recorded hours or worker compensation.',
-                    )}
-                  </p>
-                  <p class="form-help">
-                    {translate(
-                      'All-in keeps labor hourly unless an explicit fixed labor price is configured. It only means selected expenses are included instead of billed separately.',
-                    )}
-                  </p>
+                  <details
+                    id="project-create-context"
+                    class="admin-details wide-field project-create-disclosure"
+                    data-project-context-settings
+                    use:disclosure
+                    open={projectErrorSections.has('context')}
+                  >
+                    <summary>
+                      <span>{projectUx('stepContext')}</span>
+                      <small>{projectUx('contextSummary')}</small>
+                    </summary>
+                    <div class="project-disclosure-body admin-form-grid">
+                      <label
+                        >{translate('Description')}<textarea name="description" rows="2"
+                          >{projectFormValue('description')}</textarea
+                        ></label
+                      ><label
+                        >{translate('Project alias')}<input
+                          name="projectAlias"
+                          value={projectFormValue('projectAlias')}
+                        /></label
+                      ><label
+                        >{translate('Project manager')}<select name="projectManagerId"
+                          ><option value="">{translate('Unassigned')}</option
+                          >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager' && worker.status === 'active'}<option
+                                value={worker.id}
+                                selected={projectFormValue('projectManagerId') === worker.id}
+                                >{worker.name} — {worker.email}</option
+                              >{/if}{/each}</select
+                        ></label
+                      >
+                      <ProjectSiteFields
+                        clientId={selectedNewProjectClientId}
+                        contacts={data.contacts ?? []}
+                        values={projectFormValues}
+                        allowNew
+                        {translate}
+                      />
+                    </div>
+                  </details>
+                  <details
+                    id="project-create-people"
+                    class="admin-details wide-field project-create-disclosure"
+                    data-project-people-settings
+                    use:disclosure
+                    open={projectErrorSections.has('people')}
+                  >
+                    <summary>
+                      <span>{projectUx('stepPeople')}</span>
+                      <small>{projectUx('peopleSummary')}</small>
+                    </summary>
+                    <p class="project-disclosure-help">{projectUx('peopleGuidance')}</p>
+                    <ProjectCreationAssignments
+                      workers={data.workers ?? []}
+                      currency={newProjectCurrency}
+                      canAssignWorkers={data.user.role === 'owner_admin'}
+                      values={projectFormValues}
+                      errors={projectFieldErrors}
+                      t={translate}
+                    />
+                  </details>
+                  <details
+                    id="project-create-commercial"
+                    class="admin-details wide-field project-create-disclosure"
+                    data-project-commercial-settings
+                    use:disclosure
+                    open={projectErrorSections.has('commercial')}
+                  >
+                    <summary>
+                      <span>{projectUx('stepCommercial')}</span>
+                      <small>{projectUx('commercialSummary')} · {newProjectCurrency}</small>
+                    </summary>
+                    <div class="project-disclosure-body admin-form-grid">
+                      <label
+                        >{translate('Billing model')}<select name="billingModel"
+                          ><option
+                            value="tm"
+                            selected={projectFormValue('billingModel', 'tm') === 'tm'}
+                            >{translate('Time & materials')}</option
+                          ><option
+                            value="tm_daily_minimum"
+                            selected={projectFormValue('billingModel') === 'tm_daily_minimum'}
+                            >{translate('T&M · daily minimum')}</option
+                          ><option
+                            value="all_in"
+                            selected={projectFormValue('billingModel') === 'all_in'}
+                            >{translate('Hourly labor with included expenses (all-in)')}</option
+                          ><option
+                            value="capped_tm"
+                            selected={projectFormValue('billingModel') === 'capped_tm'}
+                            >{translate('Capped T&M')}</option
+                          ></select
+                        ></label
+                      ><label
+                        >{translate('Expected hours / day')}<input
+                          name="expectedHoursPerDay"
+                          type="number"
+                          step="0.25"
+                          min="0"
+                          max="24"
+                          value={projectFormValue('expectedHoursPerDay', '10')}
+                          placeholder="10.0"
+                          required
+                        /></label
+                      ><label
+                        >{translate('Client daily minimum hours')}<input
+                          name="clientDailyMinimumHours"
+                          type="number"
+                          step="0.25"
+                          min="0"
+                          max="24"
+                          value={projectFormValue('clientDailyMinimumHours')}
+                          placeholder="8.0"
+                        /></label
+                      >
+                      <p class="form-help wide-field">
+                        {translate(
+                          'Expected hours are planning context. The client daily minimum is a separate commercial top-up applied once per worker, project and day; it never changes actual recorded hours or worker compensation.',
+                        )}
+                      </p>
+                      <p class="form-help wide-field">
+                        {translate(
+                          'All-in keeps labor hourly unless an explicit fixed labor price is configured. It only means selected expenses are included instead of billed separately.',
+                        )}
+                      </p>
+                    </div>
+                  </details>
                   <details
                     use:disclosure
                     class="admin-details wide-field project-optional-settings"
+                    id="project-create-optional"
+                    data-project-optional-settings
                     open={Object.keys(projectFieldErrors).some((field) =>
                       [
                         'budgetType',
@@ -5456,9 +5814,10 @@
                       ].includes(field),
                     )}
                   >
-                    <summary class="secondary-button"
-                      >{translate('4 · Optional planning and budget')}</summary
-                    >
+                    <summary class="secondary-button">
+                      <span>{projectUx('stepOptional')}</span>
+                      <small>{projectUx('optionalSummary')}</small>
+                    </summary>
                     <div class="admin-form-grid">
                       <p class="form-help wide-field">
                         {translate(
@@ -5546,7 +5905,16 @@
                       >
                     </div>
                   </details>
-                  <button>{translate('Create project')}</button>
+                  <div class="project-create-actions wide-field">
+                    <span
+                      >{createProjectSubmitting
+                        ? translate('Saving…')
+                        : projectUx('preserveValues')}</span
+                    >
+                    <button type="submit" class="primary-button"
+                      >{translate('Create project')}</button
+                    >
+                  </div>
                 </form>
               {/if}
             </section>
@@ -5971,6 +6339,41 @@
           {/if}
         {/if}
         <div id="project-register" tabindex="-1">
+          {#if (data.clients ?? []).length > 0}
+            <form
+              method="GET"
+              action={`${base}/app/projects`}
+              class="project-register-client-filter"
+            >
+              <input type="hidden" name="lang" value={locale} />
+              <input type="hidden" name="q" value={projectRegisterSearch} />
+              <input type="hidden" name="status" value={projectRegisterStatus} />
+              <label
+                >{translate('Client')}
+                <select name="client" value={projectRegisterClient} data-project-client-filter>
+                  <option value="">{translate('All clients')}</option>
+                  {#each data.clients ?? [] as client}<option value={String(client.id)}
+                      >{String(
+                        client.display_name ?? client.legal_name ?? client.client_number,
+                      )}</option
+                    >{/each}
+                </select>
+              </label>
+              <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
+            </form>
+          {/if}
+          <div class="project-register-summary" aria-live="polite">
+            <span>
+              {projectUx('showing', { count: projectRegisterPage.length })}
+              · {projectRegisterStatusLabel}
+            </span>
+            {#if projectRegisterClient || projectRegisterSearch || projectRegisterStatus !== 'active'}
+              <span class="project-register-summary__filter">
+                {projectRegisterSearch ? `“${projectRegisterSearch}”` : translate('All projects')}
+              </span>
+              <a href={projectRegisterFilterHref}>{projectUx('resetFilters')}</a>
+            {/if}
+          </div>
           <SectionCard
             title={translate('Authorized projects')}
             collapsible
@@ -5978,7 +6381,7 @@
             class="record-list full"
           >
             <RecordBrowser
-              rows={availableProjects}
+              rows={projectRegisterRows}
               bind:visible={projectRegisterPage}
               focusId={$page.url.hash.startsWith('#project-register-')
                 ? $page.url.hash.slice('#project-register-'.length)
@@ -5990,17 +6393,56 @@
               showEmpty={availableProjects.length > 0}
             />
             {#each projectRegisterPage as row (row.id)}
-              <article class="project-list-link">
-                <a href={`${base}/app/projects/${row.id}`}>
+              <article
+                class="project-list-link"
+                data-project-row={String(row.id)}
+                data-project-client={String(row.client_id ?? '')}
+              >
+                <a href={`${base}/app/projects/${row.id}?lang=${encodeURIComponent(locale)}`}>
                   <div>
                     <strong>{row.project_number} · {row.name}</strong><small
-                      >{controlledValue('status', row.status)} · {row.currency} · {row.timezone} · {row.start_date ??
-                        translate('No start')} → {row.planned_end_date ??
-                        translate('Open target')}</small
+                      ><span class="project-list-link__status"
+                        >{controlledValue('status', row.status)}</span
+                      >
+                      <span>{row.currency}</span>
+                      <span>{row.timezone}</span>
+                      <span
+                        >{row.start_date ?? translate('No start')} → {row.planned_end_date ??
+                          translate('Open target')}</span
+                      ></small
                     >
                   </div>
                   <span>{translate('Open project').toUpperCase()} <DirectionIcon /></span>
                 </a>
+                {#if canManageClientContacts && row.client_id}
+                  <a
+                    class="project-list-link__client"
+                    href={`${base}/app/projects?view=clients&focus=${encodeURIComponent(String(row.client_id))}&lang=${encodeURIComponent(locale)}#client-directory-client-${encodeURIComponent(String(row.client_id))}`}
+                  >
+                    {projectUx('clientContext')}: {String(
+                      row.client_name ?? row.client_number ?? translate('Client'),
+                    )}
+                  </a>
+                {/if}
+                <nav
+                  class="project-list-link__shortcuts"
+                  aria-label={`${projectUx('projectShortcuts')}: ${row.project_number} · ${row.name}`}
+                >
+                  <a
+                    href={`${base}/app/time?project=${encodeURIComponent(String(row.id))}&lang=${encodeURIComponent(locale)}`}
+                    >{projectUx('work')}</a
+                  >
+                  <a
+                    href={`${base}/app/projects/${encodeURIComponent(String(row.id))}?tab=team&lang=${encodeURIComponent(locale)}`}
+                    >{projectUx('team')}</a
+                  >
+                  {#if isFinance}
+                    <a
+                      href={`${base}/app/projects/${encodeURIComponent(String(row.id))}?tab=billing&lang=${encodeURIComponent(locale)}#project-panel-billing`}
+                      >{projectUx('invoices')}</a
+                    >
+                  {/if}
+                </nav>
                 {#if canManageProjects}
                   <details
                     id={`project-register-${row.id}`}
@@ -6176,7 +6618,26 @@
               </article>
             {:else}
               {#if availableProjects.length === 0}
-                <div class="empty">{translate('No projects available.')}</div>
+                <div class="project-register-empty" role="status">
+                  <strong>{translate('No projects available.')}</strong>
+                  <span>{projectUx('emptyNextStep')}</span>
+                  {#if canManageProjects}
+                    <button
+                      type="button"
+                      class="primary-button"
+                      onclick={() => openProjectWorkflow('new-project')}
+                    >
+                      {translate('New Project')}
+                    </button>
+                  {:else}
+                    <a
+                      class="secondary-button"
+                      href={`${base}/app/projects?view=clients&lang=${encodeURIComponent(locale)}`}
+                    >
+                      {translate('Client contacts')}
+                    </a>
+                  {/if}
+                </div>
               {/if}
             {/each}
           </SectionCard>

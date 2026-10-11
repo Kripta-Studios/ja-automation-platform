@@ -1,0 +1,355 @@
+{
+  "batchId": "UX2-FINANCE-NAVIGATION",
+  "items": [
+    {
+      "id": "UX2-F01",
+      "before": "Recovery dialog could return focus to a notice obscured by fixed navigation.",
+      "after": "Reveal the focused notice within header and bottom-navigation safe bounds without resetting filters or submitting again.",
+      "files": ["apps/portal/src/lib/portal/guided-recovery/GuidedRecovery.svelte"],
+      "verification": "accounting-pack-export-browser.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-F02",
+      "before": "Archive history occupied a generic banner on client and team workflows.",
+      "after": "Contextual expandable history keeps the existing archive option available.",
+      "files": ["apps/portal/src/lib/portal/ui/ArchivedProjectHistory.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-F03",
+      "before": "Long client placeholder crowded narrow project forms.",
+      "after": "Use a short Choose a client prompt.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-F04",
+      "before": "Required project basics and optional start date were unclear.",
+      "after": "Mark required basics and explicitly identify optional start date.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-F05",
+      "before": "Timezone entry required knowing an exact identifier.",
+      "after": "Offer common timezone suggestions while keeping unrestricted valid custom entry.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-F06",
+      "before": "Nested mobile project form borders reduced usable input width.",
+      "after": "Remove redundant phone inset and border.",
+      "files": ["apps/portal/src/styles/portal/forms-management.css"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N01",
+      "before": "Phone task launcher covered form actions.",
+      "after": "Keep task finder accessible from section navigation and remove its floating phone overlay.",
+      "files": [
+        "apps/portal/src/lib/portal/assistant/NavigationAssistant.svelte",
+        "apps/portal/src/lib/portal/ui/SectionNavigator.svelte"
+      ],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N02",
+      "before": "Workspace breadcrumb had a small touch target.",
+      "after": "Give the home breadcrumb a 44px target.",
+      "files": ["apps/portal/src/styles/portal/polish.css"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N04",
+      "before": "Eight search suggestions lengthened ordinary Tab navigation.",
+      "after": "Keep arrow-key suggestion navigation with suggestions outside sequential Tab order.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N05",
+      "before": "Search result changes were not announced.",
+      "after": "Announce result count and empty result state.",
+      "files": ["apps/portal/src/lib/PortalShell.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N06",
+      "before": "Invoice links repeated indistinguishable draft labels.",
+      "after": "Include project, service period and short identity in invoice link names.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N07",
+      "before": "Billing stream action names repeated without context.",
+      "after": "Identify project, stream and effective date in stream action names.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N08",
+      "before": "Expense classification links repeated Open expense.",
+      "after": "Identify worker, date, amount and record in expense link names.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N09",
+      "before": "Person configuration and save actions lacked worker context.",
+      "after": "Name the worker in each configuration and save action.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceConfigurationSection.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N10",
+      "before": "Ledger timelines had identical link names.",
+      "after": "Name invoice and client in timeline disclosure.",
+      "files": ["apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N11",
+      "before": "Accounting format links were indistinguishable between packs.",
+      "after": "Include pack period and creation context in download link names.",
+      "files": ["apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte"],
+      "verification": "ux-round2-accounting.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N12",
+      "before": "Accounting PDF preview actions lacked pack identity.",
+      "after": "Add pack context to PDF preview action names.",
+      "files": ["apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte"],
+      "verification": "ux-round2-accounting.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N13",
+      "before": "Accounting review controls repeated without context.",
+      "after": "Identify each review and finalization area by pack.",
+      "files": ["apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte"],
+      "verification": "ux-round2-accounting.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N15",
+      "before": "Accounting secondary links and issuer remedies were hard to tap and distinguish.",
+      "after": "Provide 44px actions and contextual issuer remedy names.",
+      "files": ["apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte"],
+      "verification": "ux-round2-accounting.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N16",
+      "before": "Invoice preview lacked an H1, document-specific browser title and named navigation.",
+      "after": "Expose invoice and project identity in the heading and title, with named invoice navigation.",
+      "files": ["apps/portal/src/routes/app/billing/invoices/[id]/+page.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N17",
+      "before": "Inline invoice editing targets were only text-sized.",
+      "after": "Use 44px editing controls on screen while retaining print rendering.",
+      "files": ["packages/reporting/src/invoice-document.ts"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N18",
+      "before": "Invoice editing exposed raw internal field names.",
+      "after": "Translate issuer, client and company field labels.",
+      "files": ["packages/reporting/src/invoice-document.ts"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N19",
+      "before": "Two invoice-number edit buttons had identical names.",
+      "after": "Distinguish heading and details number controls.",
+      "files": ["packages/reporting/src/invoice-document.ts"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N20",
+      "before": "Invoice source and rebuild guidance links were small on phones.",
+      "after": "Make source-setting and rebuild actions large and stackable.",
+      "files": ["apps/portal/src/routes/app/billing/invoices/[id]/+page.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N21",
+      "before": "Localized PDF controls were below comfortable touch size.",
+      "after": "Use 44px selects, buttons and text actions.",
+      "files": ["apps/portal/src/lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N23",
+      "before": "Invoice Back navigation dropped language.",
+      "after": "Carry current language back to billing.",
+      "files": ["apps/portal/src/routes/app/billing/invoices/[id]/+page.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N24",
+      "before": "Finance calculation navigation dropped language.",
+      "after": "Carry current language to calculation detail.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N25",
+      "before": "Commercial agreement preview dropped language.",
+      "after": "Carry current language to agreement preview.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceConfigurationSection.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N26",
+      "before": "Review terms GET form dropped language.",
+      "after": "Preserve language when reviewing dated terms.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceConfigurationSection.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N27",
+      "before": "Finance source and reimbursement links dropped language.",
+      "after": "Preserve language through work-source and reimbursement navigation.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N28",
+      "before": "Accounting remedy navigation dropped language.",
+      "after": "Keep current locale and existing record context on accounting remedies.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/AccountingSection.svelte",
+        "apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte"
+      ],
+      "verification": "ux-round2-accounting.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N29",
+      "before": "Direct invoice period entry remained English in Spanish and Portuguese.",
+      "after": "Localize the direct-period disclosure.",
+      "files": ["apps/portal/src/lib/portal/sections/BillingSection.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N30",
+      "before": "Final and stale accounting filter values appeared as raw state names.",
+      "after": "Localize displayed filter labels without changing stored values.",
+      "files": ["apps/portal/src/lib/portal/sections/AccountingSection.svelte"],
+      "verification": "ux-round2-accounting.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N31",
+      "before": "New accounting exports defaulted to English regardless of portal language.",
+      "after": "Default report language to current locale and preserve failed submission choices.",
+      "files": ["apps/portal/src/lib/portal/sections/AccountingSection.svelte"],
+      "verification": "ux-round2-accounting.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N32",
+      "before": "Focused skip link briefly remained offscreen during animation.",
+      "after": "Show skip link immediately on focus.",
+      "files": ["apps/portal/src/styles/portal/polish.css"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N33",
+      "before": "Section chooser did not mark current section.",
+      "after": "Expose current section with aria-current and visible active state.",
+      "files": ["apps/portal/src/lib/portal/ui/SectionNavigator.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N34",
+      "before": "Commercial rules required a long scroll past expense classification.",
+      "after": "Add local shortcuts to expense treatment and commercial configuration.",
+      "files": ["apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte"],
+      "verification": "ux-round2-finance.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N35",
+      "before": "Each accounting pack repeated long secondary workflows inline.",
+      "after": "Keep every export format’s queued, processing, ready or failed status and ready downloads visible; group secondary controls in an optional disclosure, with current failures and recovery notices revealed automatically.",
+      "files": [
+        "apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte",
+        "apps/portal/src/lib/portal/accounting-ux-round2-copy.ts"
+      ],
+      "verification": "ux-round2-accounting.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N38",
+      "before": "Accounting articles lacked period headings and accessible names.",
+      "after": "Name each article through its period heading.",
+      "files": ["apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte"],
+      "verification": "ux-round2-accounting.spec.ts",
+      "status": "verified"
+    },
+    {
+      "id": "UX2-N39",
+      "before": "Auditors lacked clear access-mode guidance across finance views.",
+      "after": "Show read-only guidance on finance, ledger and accounting.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/AccountingSection.svelte",
+        "apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte",
+        "apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte"
+      ],
+      "verification": "ux-round2-finance.spec.ts + ux-round2-accounting.spec.ts",
+      "status": "verified"
+    }
+  ],
+  "audit": {
+    "method": "Actual role-authenticated browser audit on isolated fixture; independent read-only reviewer plus lead",
+    "widths": [360, 390, 768, 1440],
+    "roles": ["owner_admin", "finance_admin", "auditor_read_only"],
+    "counting": "N03 excluded; N14 folded into N15, N22 into N20, N36 and N37 into N16; accounting integration entries reference this ledger and are not extra counts."
+  },
+  "independentReview": "Reviewer confirmed 40+30+30 entries distinct from the original 100; static field/action/option extraction found zero removals.",
+  "validation": {
+    "financeBrowser": "36/36 across 360/390/768/1440",
+    "accountingBrowser": "20/20 across 360/390/768/1440",
+    "exportBrowser": "8/8 distinct real artifact and recovery checks at 390/1440; final matrix7 plus desktop transport rerun1",
+    "rootLogs": [
+      "round2-finance-final.log",
+      "release-accounting-final.log",
+      "release-accounting-retry.log"
+    ]
+  }
+}

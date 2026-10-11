@@ -1,0 +1,100 @@
+{
+  "scope": "200 UI/UX improvements (original100 plus additional100); scoped change validation, not whole-product Client Essential certification",
+  "sourceBaseline": "27e57872",
+  "productionBaseline": "workflow-06bdf74560f71ee0c488",
+  "status": "Verified release candidate; production rollout recorded separately",
+  "preserved": [
+    "All existing project form field names, actions and option values",
+    "Custom billing schedules and per-worker bill rates, internal costs and compensation",
+    "Role-based visibility and server authorization",
+    "Exact-money calculations, invoice approval/issuance, idempotency and historical snapshots"
+  ],
+  "automated": {
+    "regressions": {
+      "passed": 101,
+      "files": 15,
+      "logs": [
+        "round2-regressions.log",
+        "round2-financial-invariants.log",
+        "round2-invoice-unit.log"
+      ]
+    },
+    "formatLintTypecheck": "Changed-file ESLint/Prettier and portal TypeScript passed. Portal production preview build passed.",
+    "browser": {
+      "scenarios": 92,
+      "viewports": [360, 390, 768, 1440],
+      "matrix": "92/92 distinct original scenarios passed across coordinated runs: 88 non-milestone cases and 4 corrected milestone locators. Stale selector attempts retained in logs; no product assertion removed."
+    },
+    "projectToIssuedPDF": {
+      "status": "passed on fresh fixture and frozen source",
+      "scenarios": 3,
+      "viewports": [360, 390, 768, 1440],
+      "coverage": [
+        "Dashboard project creation",
+        "Project defaults plus individual worker rates, costs and compensation",
+        "Two workers enter time and expenses; daily work report",
+        "Owner selects and approves actual sources",
+        "Exact 29900 invoice total in all four widths",
+        "Issue invoice, real PDF job succeeds, authenticated PDF download returns PDF bytes",
+        "Additional 5000 and 7500 drafts use disjoint sources with no duplicate billing",
+        "Finance sees already billed records disabled; PM cannot access composer",
+        "Late whole-period readiness cannot reopen recovery after browser Back"
+      ],
+      "log": "/home/kripta/ja-ux-evidence-20261011/release-lifecycle-final.log"
+    },
+    "accountingXLSX": "8/8 distinct cases passed after final disclosure changes (7 in final matrix; 1 unchanged desktop rerun after ECONNRESET): actual XLSX bytes, stale GET409, historical artifact preservation, pending/RBAC, independent failed-PDF retry preserving XLSX, temporary503 recovery with no new job.",
+    "accountingLogs": ["release-accounting-final.log", "release-accounting-retry.log"],
+    "additionalBrowser": {
+      "passed": 104,
+      "viewports": [360, 390, 768, 1440],
+      "groups": {
+        "project": 24,
+        "accounting": 20,
+        "financeNavigation": 36,
+        "work": 24
+      },
+      "workFailureProof": "Two confirmed saves with distinct request IDs and persisted records; rejected receipt retains entered values/file/request ID, prompts before discarding, creates no third record and triggers no automatic retry."
+    }
+  },
+  "baselineFailures": [
+    {
+      "suite": "exact-money-display.test.ts",
+      "detail": "Unchanged invoice detail source does not match an old literal import assertion."
+    },
+    {
+      "suite": "project-detail-role-ui.test.ts",
+      "detail": "An old literal explanatory sentence assertion is absent in the unchanged baseline."
+    }
+  ],
+  "baselineFailureEvidence": "Both suites: 8 passed / 2 failed on clean 27e57872 and candidate; identical failures. Logs baseline-clean.log and baseline-current.log in persistent evidence directory. Assertions were not weakened.",
+  "backupRestore": {
+    "backupPath": "/var/backups/jaautomation/2026-10-11T005948210Z-ee553167-cf3f-47d1-9466-4e9d3a1351bc",
+    "verifiedAt": "2026-10-11T00:59:55.036Z",
+    "createdAt": "2026-10-11T00:59:54.332Z",
+    "databaseSha256": "0a7b76a64e159dedb0445fb35992b8d48fd621332055d8058963b51605ea57f9",
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "documentCount": 36,
+    "history": {
+      "snapshotCount": 3,
+      "observedDays": 3,
+      "requiredDays": 3,
+      "coverageComplete": true,
+      "missingDays": [],
+      "scope": "Manifest dates only; integrity verified for latest snapshot"
+    }
+  },
+  "independentReview": {
+    "verdict": "ship",
+    "reviewMode": "Independent read-only source and browser evidence review",
+    "findings": "No blocking source or UX regressions remain. 200 substantive changes; no removed fields/actions/options. Final accounting visibility correction reverified20/20. Expense success/failure/idempotency and discard checks passed. Financial and historical protections retained."
+  },
+  "runtimeEvidenceRoot": "/home/kripta/ja-ux-evidence-20261011",
+  "backendChange": "Billing-rule listing additionally projects the existing project timezone for date shortcuts; no schema, migrations or financial calculation changes.",
+  "reproductionCommands": [
+    "pnpm exec playwright test --config=tests/e2e/ux-refresh.browser.config.ts 'ux-refresh-(billing|finance-search|navigation|projects)\\.spec\\.ts$'",
+    "pnpm exec playwright test --config=tests/e2e/ux-refresh.browser.config.ts 'project-invoice-journey-audit.spec.ts$' --project=desktop",
+    "pnpm exec playwright test --config=tests/e2e/ux-refresh.browser.config.ts 'accounting-pack-export-browser.spec.ts$' --project=phone-390 --project=desktop"
+  ],
+  "fixtureIsolation": "Use the normal global setup for a fresh disposable database for each full lifecycle invocation; the invoice journey internally covers all four widths. Reusing a completed lifecycle fixture correctly triggers overlapping-time protection."
+}

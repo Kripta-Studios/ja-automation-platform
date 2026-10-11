@@ -1,0 +1,84 @@
+{
+  "batchId": "UX2-ACCOUNTING-INTEGRATION",
+  "objective": "Implement the transferred accounting UX findings without changing accounting lifecycle, authorization, or file-download routes.",
+  "ownedFiles": [
+    "apps/portal/src/lib/portal/sections/AccountingSection.svelte",
+    "apps/portal/src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte",
+    "apps/portal/src/lib/portal/accounting-ux-round2-copy.ts",
+    "tests/e2e/ux-round2-accounting.spec.ts",
+    "docs/evidence/ux-refresh-round2/accounting-integration.json"
+  ],
+  "items": [
+    {
+      "id": "N28",
+      "before": "Accounting remediation links could drop the current interface language when opening finance, approval, document, invoice, or billing-setup destinations.",
+      "after": "Accounting review links retain lang while preserving existing view, stage, fragment, and scoped record parameters; artifact and PDF download URLs are unchanged.",
+      "role": "finance_admin",
+      "route": "/app/accounting?lang=es",
+      "browserEvidence": "Passed after coordinated rebuild in the targeted 20/20 run across all four viewport projects; remediation language assertions pass. See /home/kripta/ja-ux-evidence-20261011/round2-projects/accounting-run-after-stale-collapse.log."
+    },
+    {
+      "id": "N30",
+      "before": "Accounting Pack status filters left final and stale states untranslated.",
+      "after": "RecordBrowser status options and the active filter summary show localized Final and Stale labels while retaining the original state values.",
+      "role": "finance_admin",
+      "route": "/app/accounting?lang={en|es|pt}",
+      "browserEvidence": "Passed after coordinated rebuild: Spanish final/stale option labels and retained status value are asserted. See /home/kripta/ja-ux-evidence-20261011/round2-projects/accounting-run-after-stale-collapse.log."
+    },
+    {
+      "id": "N31",
+      "before": "New Accounting Packs always selected English even when the portal was in Spanish or Portuguese.",
+      "after": "The report language defaults from the portal locale, and a failed submission restores its submitted dates and report locale.",
+      "role": "finance_admin",
+      "route": "/app/accounting?lang={en|es|pt}",
+      "browserEvidence": "Passed after coordinated rebuild: English, Spanish and Portuguese defaults plus submitted-value retention after validation. See /home/kripta/ja-ux-evidence-20261011/round2-projects/accounting-run-after-stale-collapse.log."
+    },
+    {
+      "id": "N35",
+      "before": "Each pack repeated status, preview, retry, warning, finalization, and localized-PDF controls inline, creating a long mobile register.",
+      "after": "Ready downloads stay visible beside queued, processing, and failed status badges in a localized status/download group; stale-source state has a localized warning badge outside the disclosure, and secondary controls start closed for ordinary stale packs while active problems, download notices, retries, previews, and failed exports stay reachable.",
+      "role": "owner_admin, finance_admin, auditor_read_only",
+      "route": "/app/accounting#accounting-register",
+      "browserEvidence": "Passed on final coordinated build: all rendered pending badges are visible outside disclosures, the status/download group has a localized accessible name, ready downloads remain visible, and a clean stale pack begins collapsed with its localized outside badge. 20/20 accounting scenarios passed across all four viewport projects in /home/kripta/ja-ux-evidence-20261011/round2-projects/release-accounting-ui-final.log. Pending-status screenshot: /home/kripta/ja-ux-evidence-20261011/release-accounting-artifacts-final/phone-390-accounting-pending.png; final full-page screenshots across all widths remain in /home/kripta/ja-ux-evidence-20261011/round2-projects/after."
+    },
+    {
+      "id": "N38",
+      "before": "Pack articles had no period heading associated with their accessible region.",
+      "after": "Each article exposes its period as an h3 and references that heading through aria-labelledby.",
+      "role": "owner_admin, finance_admin, auditor_read_only",
+      "route": "/app/accounting#accounting-register",
+      "browserEvidence": "Passed after coordinated rebuild: every rendered pack has an h3 period heading associated with its article. See /home/kripta/ja-ux-evidence-20261011/round2-projects/accounting-run-after-stale-collapse.log."
+    },
+    {
+      "id": "N39",
+      "before": "Auditors had no clear explanation of their accounting access level.",
+      "after": "The accounting header shows localized read-only access guidance, while existing auditor controls remain disabled.",
+      "role": "auditor_read_only",
+      "route": "/app/accounting?lang=pt",
+      "browserEvidence": "Passed after coordinated rebuild: Portuguese read-only auditor guidance is visible and write controls are absent. See /home/kripta/ja-ux-evidence-20261011/round2-projects/accounting-run-after-stale-collapse.log."
+    }
+  ],
+  "validation": {
+    "portalTypecheck": "pass",
+    "changedFileEslint": "pass after the stale-pack disclosure follow-up",
+    "e2eTypecheck": "pass after the stale-pack regression assertion was added",
+    "round2BrowserScenarios": "20/20 accounting browser scenarios passed on the final coordinated build across phone-360, phone-390, tablet-768 and desktop, including visible pending-status badges and the localized status/download group; /home/kripta/ja-ux-evidence-20261011/round2-projects/release-accounting-ui-final.log.",
+    "postchangeBrowserScreenshots": "32 final full-page screenshots captured after coordinated rebuild across all four widths and owner, manager, finance and auditor roles; /home/kripta/ja-ux-evidence-20261011/round2-projects/after"
+  },
+  "scope": {
+    "lifecycleOrFinancialMutation": false,
+    "authorizationChanges": false,
+    "stateValuesChanged": false,
+    "artifactDownloadUrlsChanged": false,
+    "productionMutations": 0,
+    "deploymentOrCommit": false
+  },
+  "postFollowup": {
+    "sourceChange": "Remove sourceStale alone from the disclosure auto-open condition; render the localized stale warning badge outside the disclosure.",
+    "regressionTest": "Require a clean stale pack to start collapsed while the stale badge stays visible.",
+    "changedFileEslint": "pass",
+    "e2eTypecheck": "pass",
+    "browserRerun": "20/20 passed across all four viewport projects on the final coordinated build, including pending-status visibility and localized status/download group assertions; /home/kripta/ja-ux-evidence-20261011/round2-projects/release-accounting-ui-final.log",
+    "screenshots": "/home/kripta/ja-ux-evidence-20261011/round2-projects/after"
+  }
+}

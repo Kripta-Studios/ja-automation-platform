@@ -85,10 +85,62 @@ export function renderInvoiceDocument(
     invoiceDate: l[6],
     dueDate: l[7],
     paymentTermsDays: l[9],
+    ...{
+      en: {
+        issuingAuthority: 'Issuing authority',
+        client: 'Client',
+        companyName: 'Company name',
+        companyAddress: 'Company address',
+        companyDivision: 'Division',
+        companyPhone: 'Phone',
+        companyEmail: 'Email',
+        companyWebsite: 'Website',
+      },
+      es: {
+        issuingAuthority: 'Entidad emisora',
+        client: 'Cliente',
+        companyName: 'Nombre de empresa',
+        companyAddress: 'Dirección de empresa',
+        companyDivision: 'División',
+        companyPhone: 'Teléfono',
+        companyEmail: 'Correo electrónico',
+        companyWebsite: 'Sitio web',
+      },
+      pt: {
+        issuingAuthority: 'Entidade emissora',
+        client: 'Cliente',
+        companyName: 'Nome da empresa',
+        companyAddress: 'Endereço da empresa',
+        companyDivision: 'Divisão',
+        companyPhone: 'Telefone',
+        companyEmail: 'E-mail',
+        companyWebsite: 'Site',
+      },
+    }[rendered.locale],
   };
-  const field = (name: string, value: unknown) =>
+  const fieldContext = {
+    en: {
+      heading: 'heading',
+      details: 'invoice details',
+      name: 'issuer name',
+      address: 'issuer address',
+    },
+    es: {
+      heading: 'encabezado',
+      details: 'datos de factura',
+      name: 'nombre del emisor',
+      address: 'dirección del emisor',
+    },
+    pt: {
+      heading: 'cabeçalho',
+      details: 'dados da fatura',
+      name: 'nome do emissor',
+      address: 'endereço do emissor',
+    },
+  }[rendered.locale];
+  const field = (name: string, value: unknown, context = '') =>
     options.editable || (name === 'invoiceNumber' && options.numberingInteractive)
-      ? `<button type="button" class="invoice-edit-value" data-invoice-edit="${escape(name)}" aria-label="${escape(l[11])}: ${escape(fieldLabels[name] ?? name)}">${escape(text(value) || '—')}</button>`
+      ? `<button type="button" class="invoice-edit-value" data-invoice-edit="${escape(name)}" aria-label="${escape(l[11])}: ${escape(fieldLabels[name] ?? name)}${context ? ` · ${escape(context)}` : ''}">${escape(text(value) || '—')}</button>`
       : escape(text(value) || '—');
   const issuerName = text(issuer.legalName ?? issuer.legal_name ?? issuer.name) || l[8];
   const issuerAddress = text(issuer.billingAddress ?? issuer.billing_address ?? issuer.address);
@@ -102,7 +154,10 @@ export function renderInvoiceDocument(
     ['companyWebsite', company.website],
   ]
     .filter(([, value]) => text(value))
-    .map(([name, value]) => `<div>${field(String(name), value)}</div>`)
+    .map(
+      ([name, value]) =>
+        `<div>${field(String(name), value, name === 'issuingAuthority' ? fieldContext.address : '')}</div>`,
+    )
     .join('');
   const partyLines = [
     client.billingContactName ?? client.contactName,
@@ -114,7 +169,7 @@ export function renderInvoiceDocument(
     .join('');
   const metadata = [
     [l[4], field('purchaseNo', snapshot.purchaseNo ?? snapshot.purchase_no ?? project.poNumber)],
-    [l[5], field('invoiceNumber', number) + numberNotice],
+    [l[5], field('invoiceNumber', number, fieldContext.details) + numberNotice],
     [
       l[6],
       field(
@@ -142,7 +197,7 @@ export function renderInvoiceDocument(
         'data-invoice-source-type="$1" data-invoice-source-id="$2" role="link" tabindex="0"',
       )
     : rendered.lineBody;
-  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(draft ? l[0] : l[1])}</span><strong>${field('invoiceNumber', number)}</strong>${numberNotice}<small>${escape(text(snapshot.state))}</small></div></header><section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${partyLines}</div></section><section class="invoice-meta">${metadata}</section>${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
+  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName, fieldContext.name)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(draft ? l[0] : l[1])}</span><strong>${field('invoiceNumber', number, fieldContext.heading)}</strong>${numberNotice}<small>${escape(text(snapshot.state))}</small></div></header><section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${partyLines}</div></section><section class="invoice-meta">${metadata}</section>${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
   return {
     bodyHtml,
     css: invoiceDocumentCss,
@@ -210,6 +265,7 @@ export const invoiceDocumentCss = `${documentFontCss}
 .invoice-canonical#ja-invoice-document [data-invoice-source-id][role="link"]:focus-visible{outline:2px solid #8a5a18;outline-offset:2px}
 .invoice-canonical#ja-invoice-document [data-invoice-edit]:hover{background:#f4f1e8}
 .invoice-canonical#ja-invoice-document [data-invoice-edit]:focus-visible{outline:2px solid #8a5a18;outline-offset:4px}
+@media screen{.invoice-canonical#ja-invoice-document [data-invoice-edit]{display:inline-flex;align-items:center;min-height:44px;min-width:44px;padding-block:4px}}
 @media screen and (max-width:600px){.invoice-canonical#ja-invoice-document>header{flex-wrap:wrap}.invoice-canonical#ja-invoice-document .invoice-identity{text-align:left}.invoice-canonical#ja-invoice-document .invoice-meta{grid-template-columns:repeat(2,minmax(0,1fr))}.invoice-canonical#ja-invoice-document .invoice-bottom-grid{grid-template-columns:1fr}.invoice-canonical#ja-invoice-document .invoice-parties{grid-template-columns:1fr}.invoice-canonical#ja-invoice-document table{font-size:12px}.invoice-canonical#ja-invoice-document th,.invoice-canonical#ja-invoice-document td{padding:8px 4px}.invoice-canonical#ja-invoice-document footer{flex-wrap:wrap}}
 @media print{body{margin:0}.invoice-canonical#ja-invoice-document [data-invoice-edit]{text-decoration:none!important;background:transparent!important}}
 `;

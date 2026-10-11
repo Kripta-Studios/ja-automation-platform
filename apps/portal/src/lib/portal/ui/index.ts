@@ -32,10 +32,12 @@ export type ToastItem = {
 };
 export type TableMobileMode = 'cards' | 'scroll';
 export type TableCardCell = { label: string; value: string };
+export type TableCardAction = { href: string; label: string; ariaLabel?: string };
 export type TableCardRow = {
   id?: string;
   cells: TableCardCell[];
   href?: string;
   linkLabel?: string;
   linkAriaLabel?: string;
+  secondaryActions?: TableCardAction[];
 };

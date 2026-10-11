@@ -25,6 +25,8 @@
     emptyPublishedAssignmentFilters,
     publishedAssignmentMatches,
   } from './published-assignment-filter';
+  import { projectUxText } from '$lib/portal/project-ux-copy';
+  import { projectUxRound2Text } from '$lib/portal/project-ux-round2-copy';
 
   /**
    * Project-section actions are deliberately supplied by the route seam. The
@@ -107,6 +109,7 @@
   );
   let search = $derived($page.url.searchParams.get('q')?.trim() ?? '');
   let statusFilter = $derived($page.url.searchParams.get('status')?.trim() ?? 'active');
+  let clientFilter = $derived($page.url.searchParams.get('client')?.trim() ?? '');
   useViewPreferences({
     scope: 'projects',
     user: () => `${$page.data.user?.id ?? ''}:${$page.data.user?.role ?? ''}`,
@@ -169,6 +172,12 @@
     role === 'project_manager' && capabilities.canManageAssignments === true,
   );
   const normalizedSearch = $derived(operationalSearchText(search).trim());
+  const ux = (key: Parameters<typeof projectUxText>[1], params?: Record<string, string | number>) =>
+    projectUxText(normalizedLocale, key, params);
+  const ux2 = (
+    key: Parameters<typeof projectUxRound2Text>[1],
+    params?: Record<string, string | number>,
+  ) => projectUxRound2Text(normalizedLocale, key, params);
 
   function value(row: PortalRow, ...keys: string[]): string {
     for (const key of keys) {
@@ -237,8 +246,39 @@
     const start = value(row, 'start_date', 'planned_start_date');
     const end = value(row, 'planned_end_date', 'end_date');
     const timezone = value(row, 'timezone', 'site_timezone');
-    const dates = start || end ? `${start || '—'} → ${end || translate('Open target')}` : '';
+    const dates =
+      start || end
+        ? `${start ? formatProjectDate(start) : '—'} → ${end ? formatProjectDate(end) : translate('Open target')}`
+        : '';
     return [dates, timezone].filter(Boolean).join(' · ');
+  }
+
+  function formatProjectDate(raw: string): string {
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(raw)) return raw;
+    const date = new Date(`${raw}T00:00:00.000Z`);
+    return Number.isNaN(date.getTime())
+      ? raw
+      : new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(date);
+  }
+
+  function assignmentDateContext(assignment: PortalRow): string {
+    const start = value(assignment, 'starts_on', 'starts_at');
+    const end = value(assignment, 'ends_on', 'ends_at');
+    if (!start && !end) return '';
+    return `${translate('Starts on')}: ${start ? formatProjectDate(start) : '—'} · ${translate('Ends on')}: ${end ? formatProjectDate(end) : translate('Open target')}`;
+  }
+
+  function projectMatchesSummaryScope(project: PortalRow): boolean {
+    const searchable = [
+      projectNumber(project),
+      projectName(project),
+      clientLabel(project),
+      projectReference(project),
+    ].join(' ');
+    return (
+      (!normalizedSearch || operationalSearchText(searchable).includes(normalizedSearch)) &&
+      (!clientFilter || clientId(project) === clientFilter)
+    );
   }
 
   const visibleProjects = $derived.by(() => {
@@ -259,20 +299,27 @@
         (statusFilter === 'attention'
           ? ['paused', 'closing'].includes(projectStatus(project))
           : projectStatus(project) === statusFilter);
-      return matchesSearch && matchesStatus;
+      const matchesClient = !clientFilter || clientId(project) === clientFilter;
+      return matchesSearch && matchesStatus && matchesClient;
     });
   });
 
+  const scopedSummaryProjects = $derived((projects ?? []).filter(projectMatchesSummaryScope));
   const activeCount = $derived(
-    (projects ?? []).filter((project) => projectStatus(project) === 'active').length,
+    scopedSummaryProjects.filter((project) => projectStatus(project) === 'active').length,
   );
   const plannedCount = $derived(
-    (projects ?? []).filter((project) => projectStatus(project) === 'planned').length,
+    scopedSummaryProjects.filter((project) => projectStatus(project) === 'planned').length,
   );
   const attentionCount = $derived(
-    (projects ?? []).filter((project) => ['paused', 'closing'].includes(projectStatus(project)))
-      .length,
+    scopedSummaryProjects.filter((project) =>
+      ['paused', 'closing'].includes(projectStatus(project)),
+    ).length,
   );
+  const calendarProjects = $derived(
+    visibleProjects.filter((project) => value(project, 'start_date', 'planned_start_date')),
+  );
+  const projectsWithoutCalendarStart = $derived(visibleProjects.length - calendarProjects.length);
   const assignableProjects = $derived(
     (projects ?? []).filter(
       (project) =>
@@ -427,6 +474,31 @@
       ),
     ),
   );
+  function activeWorkerCountForProject(project: PortalRow): number {
+    return new Set(
+      (assignments ?? [])
+        .filter(
+          (assignment) =>
+            value(assignment, 'project_id') === projectId(project) &&
+            value(assignment, 'status') === 'active',
+        )
+        .map((assignment) => value(assignment, 'user_id', 'worker_id'))
+        .filter(Boolean),
+    ).size;
+  }
+
+  function assignmentUpdateRequested(assignment: PortalRow): boolean {
+    const assignmentId = value(assignment, 'id');
+    if (
+      assignmentRecordProblem?.actionName === 'updateAssignment' &&
+      String(assignmentRecordValues?.assignmentId ?? '') === assignmentId
+    )
+      return true;
+    return (
+      assignmentPage.url.searchParams.get('action') === 'update-assignment' &&
+      assignmentPage.url.searchParams.get('worker') === value(assignment, 'user_id', 'worker_id')
+    );
+  }
   const assignmentRecordContext = $derived.by(() => {
     const assignmentId = String(assignmentRecordValues?.assignmentId ?? '');
     const assignment = (assignments ?? []).find((row) => value(row, 'id') === assignmentId);
@@ -453,6 +525,7 @@
           },
           { label: translate('Client'), value: clientLabel(project) || translate('Not assigned') },
           { label: translate('Status'), value: statusLabel(projectStatus(project)) },
+          { label: ux2('activeTeam'), value: String(activeWorkerCountForProject(project)) },
           {
             label: translate('Schedule'),
             value: projectSchedule(project) || translate('Not scheduled'),
@@ -463,6 +536,7 @@
               href: projectHref(project),
               linkLabel: translate('Open project'),
               linkAriaLabel: `${translate('Open project')}: ${label}`,
+              secondaryActions: projectShortcuts(project),
             }
           : {}),
       };
@@ -479,7 +553,52 @@
   );
 
   function projectHref(row: PortalRow): string {
-    return `${base}/app/projects/${encodeURIComponent(projectId(row))}`;
+    return `${base}/app/projects/${encodeURIComponent(projectId(row))}?lang=${encodeURIComponent(locale)}`;
+  }
+
+  function projectStatusHref(status: string): string {
+    const params = new URLSearchParams();
+    params.set('lang', locale);
+    params.set('status', status);
+    if (search) params.set('q', search);
+    if (clientFilter) params.set('client', clientFilter);
+    return `${base}/app/projects?${params.toString()}#section-card-authorized-projects-title`;
+  }
+
+  function clientId(row: PortalRow): string {
+    return value(row, 'client_id', 'clientId');
+  }
+
+  const clientOptions = $derived.by(() => {
+    // Rebuilt within this derivation; only the resulting array becomes reactive data.
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
+    const options = new Map<string, string>();
+    for (const project of projects ?? []) {
+      const id = clientId(project);
+      const label = clientLabel(project);
+      if (id && label) options.set(id, label);
+    }
+    return [...options.entries()].sort((left, right) => left[1].localeCompare(right[1]));
+  });
+  const clientFilterLabel = $derived(
+    clientOptions.find(([id]) => id === clientFilter)?.[1] ?? clientFilter,
+  );
+
+  function projectShortcuts(
+    row: PortalRow,
+  ): Array<{ label: string; href: string; ariaLabel: string }> {
+    const id = projectId(row);
+    if (!id) return [];
+    const detail = projectHref(row);
+    const context = `${projectNumber(row)} · ${projectName(row)}`;
+    return [
+      {
+        label: ux('work'),
+        href: `${base}/app/time?project=${encodeURIComponent(id)}&lang=${encodeURIComponent(locale)}`,
+        ariaLabel: `${ux('work')}: ${context}`,
+      },
+      { label: ux('team'), href: `${detail}&tab=team`, ariaLabel: `${ux('team')}: ${context}` },
+    ];
   }
 
   function lifecycleActions(row: PortalRow): readonly ProjectLifecycleAction[] {
@@ -533,13 +652,17 @@
       <h2>{translate('Projects')}</h2>
       <p>{translate('Review project identity, status, schedule and operational scope.')}</p>
     </div>
+    <div class="project-section__context-note">
+      <strong>{ux('showing', { count: visibleProjects.length })}</strong>
+      <span>{ux('projectShortcuts')}</span>
+    </div>
   </header>
 
   <div class="project-section__attention" aria-label={translate('Project attention summary')}>
     <a
       class="project-section__attention-card"
       aria-current={statusFilter === 'active' ? 'page' : undefined}
-      href={`${base}/app/projects?status=active#section-card-authorized-projects-title`}
+      href={projectStatusHref('active')}
     >
       <span>{translate('Active')}</span>
       <strong>{activeCount}</strong>
@@ -548,7 +671,7 @@
     <a
       class="project-section__attention-card"
       aria-current={statusFilter === 'planned' ? 'page' : undefined}
-      href={`${base}/app/projects?status=planned#section-card-authorized-projects-title`}
+      href={projectStatusHref('planned')}
     >
       <span>{translate('Planned')}</span>
       <strong>{plannedCount}</strong>
@@ -557,13 +680,15 @@
     <a
       class="project-section__attention-card project-section__attention-card--notice"
       aria-current={statusFilter === 'attention' ? 'page' : undefined}
-      href={`${base}/app/projects?status=attention#section-card-authorized-projects-title`}
+      href={projectStatusHref('attention')}
     >
       <span>{translate('Needs attention')}</span>
       <strong>{attentionCount}</strong>
       <small>{translate('Paused or closing')}</small>
     </a>
   </div>
+
+  <p class="project-section__summary-help">{ux2('projectDateContext')}</p>
 
   <form
     class="project-section__filters"
@@ -594,28 +719,58 @@
         <option value="archived">{translate('Archived')}</option>
       </select>
     </label>
+    <label>
+      <span>{translate('Client')}</span>
+      <select name="client" bind:value={clientFilter} data-project-client-filter>
+        <option value="">{translate('All clients')}</option>
+        {#each clientOptions as [id, label]}
+          <option value={id}>{label}</option>
+        {/each}
+      </select>
+    </label>
     <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
-    <a class="secondary-button" href={`${base}/app/projects?lang=${locale}&q=&status=`}
+    <a class="secondary-button" href={`${base}/app/projects?lang=${locale}&q=&status=&client=`}
       >{translate('Clear filters')}</a
     >
   </form>
+  <div class="project-section__filter-summary" aria-live="polite">
+    <span>{ux('showing', { count: visibleProjects.length })}</span>
+    {#if search || statusFilter || clientFilter}
+      <span class="project-section__filter-chip"
+        >{search ? `“${search}”` : ''}{search && (statusFilter || clientFilter)
+          ? ' · '
+          : ''}{statusFilter ? statusLabel(statusFilter) : ''}{statusFilter && clientFilter
+          ? ' · '
+          : ''}{clientFilterLabel}</span
+      >
+      <a
+        class="project-section__filter-reset"
+        href={`${base}/app/projects?lang=${locale}&q=&status=&client=`}
+      >
+        {ux('resetFilters')}
+      </a>
+    {/if}
+  </div>
 
   <details use:disclosure class="admin-details" data-project-calendar>
     <summary class="secondary-button">{translate('Project calendar')}</summary>
     <PlanningCalendar
+      agendaId="project-register"
       {translate}
       {locale}
-      events={visibleProjects
-        .filter((project) => value(project, 'start_date'))
-        .map((project) => ({
-          id: projectId(project),
-          title: `${projectNumber(project)} · ${projectName(project)}`,
-          startsAt: value(project, 'start_date'),
-          endsAt: value(project, 'planned_end_date') || undefined,
-          href: `${base}/app/projects/${projectId(project)}`,
-        }))}
+      events={calendarProjects.map((project) => ({
+        id: projectId(project),
+        title: `${projectNumber(project)} · ${projectName(project)}`,
+        startsAt: value(project, 'start_date', 'planned_start_date'),
+        endsAt: value(project, 'planned_end_date', 'end_date') || undefined,
+        href: projectHref(project),
+      }))}
     />
-    <p class="form-help">
+    <p class="form-help" aria-live="polite">
+      {ux2('projectsHaveCalendarStart', {
+        scheduled: calendarProjects.length,
+        unscheduled: projectsWithoutCalendarStart,
+      })}
       {translate('Open a project from the calendar to review its dates, team and planning.')}
     </p>
   </details>
@@ -632,7 +787,15 @@
     {#if !visibleProjects.length}
       <div class="project-section__empty" role="status">
         <strong>{translate('No projects found')}</strong>
-        <span>{translate('Try another filter or add an authorized project.')}</span>
+        <span>{ux('noMatches')}</span>
+        {#if search || statusFilter || clientFilter}
+          <a
+            class="secondary-button"
+            href={`${base}/app/projects?lang=${locale}&q=&status=&client=`}
+          >
+            {ux('resetFilters')}
+          </a>
+        {/if}
       </div>
     {:else}
       <TableRegion
@@ -648,6 +811,8 @@
               <th scope="col">{translate('Client')}</th>
               <th scope="col">{translate('Status')}</th>
               <th scope="col">{translate('Schedule')}</th>
+              <th scope="col">{ux2('activeTeam')}</th>
+              <th scope="col">{ux('projectShortcuts')}</th>
               {#if canTransitionProject}<th scope="col">{translate('Actions')}</th>{/if}
             </tr>
           </thead>
@@ -655,7 +820,8 @@
             {#each projectPage as project}
               {@const status = projectStatus(project)}
               {@const actions = lifecycleActions(project)}
-              <tr data-project-row={projectId(project)}>
+              {@const shortcuts = projectShortcuts(project)}
+              <tr data-project-row={projectId(project)} data-project-client={clientId(project)}>
                 <td>
                   {#if projectId(project)}
                     <a class="project-section__project-link" href={projectHref(project)}>
@@ -665,7 +831,7 @@
                     {#if canManageAssignments && assignableProjectIds.has(projectId(project))}
                       <a
                         class="project-section__assign-link"
-                        href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(projectId(project))}#project-assignment`}
+                        href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(projectId(project))}&lang=${encodeURIComponent(locale)}#project-assignment`}
                         >{translate('Assign worker')}</a
                       >
                     {/if}
@@ -682,6 +848,14 @@
                   <StatusBadge variant={statusVariant(status)} text={statusLabel(status)} />
                 </td>
                 <td>{projectSchedule(project) || translate('Not scheduled')}</td>
+                <td>{activeWorkerCountForProject(project)}</td>
+                <td class="project-section__shortcut-cell">
+                  <nav aria-label={`${ux('projectShortcuts')}: ${projectName(project)}`}>
+                    {#each shortcuts as shortcut}
+                      <a href={shortcut.href}>{shortcut.label}</a>
+                    {/each}
+                  </nav>
+                </td>
                 {#if canTransitionProject}
                   <td>
                     {#if actions.length > 0}
@@ -962,6 +1136,12 @@
                 onclick={clearAssignmentFilters}>{translate('Clear filters')}</button
               >
             </div>
+            <p class="project-section__assignment-count" role="status" aria-live="polite">
+              {ux2('assignmentResults', {
+                shown: filteredActiveAssignments.length,
+                total: activeAssignments.length,
+              })}
+            </p>
             {#if filteredActiveAssignments.length > 0}
               {#each filteredActiveAssignments as assignment (value(assignment, 'id'))}
                 {@const project = assignmentProjectById.get(value(assignment, 'project_id'))}
@@ -972,70 +1152,84 @@
                   data-worker-id={value(assignment, 'user_id', 'worker_id')}
                 >
                   <h3>
-                    {value(assignment, 'project_number')} · {value(assignment, 'worker_name')}
+                    {value(assignment, 'project_number')}{#if project}
+                      · {projectName(project)}
+                    {/if} · {value(assignment, 'worker_name')}
                   </h3>
+                  {#if assignmentDateContext(assignment)}
+                    <p class="project-section__assignment-dates">
+                      {assignmentDateContext(assignment)}
+                    </p>
+                  {/if}
                   {#if project && projectReference(project)}
                     <p class="project-section__assignment-reference">
                       {translate('Project reference')}: {projectReference(project)}
                     </p>
                   {/if}
-                  <form
-                    method="POST"
-                    action={assignmentFormAction(assignmentPage.url, 'updateAssignment')}
-                    class="project-section__assignment-form"
-                    data-project-workflow="update-assignment"
-                    use:dirtyFormGuard={{
-                      initialDirty: Boolean(
-                        assignmentRecordProblem &&
-                        assignmentFormData?.actionName === 'updateAssignment' &&
-                        String(assignmentFormData.values?.assignmentId ?? '') ===
-                          value(assignment, 'id'),
-                      ),
-                    }}
+                  <details
+                    use:disclosure
+                    class="project-section__assignment-update"
+                    open={assignmentUpdateRequested(assignment)}
                   >
-                    <input type="hidden" name="assignmentId" value={value(assignment, 'id')} />
-                    <input
-                      type="hidden"
-                      name="version"
-                      value={assignmentRetainedValue(
-                        assignmentFormData,
-                        'updateAssignment',
-                        value(assignment, 'id'),
-                        'version',
-                        value(assignment, 'version') || '1',
-                      )}
-                    />
-                    <label>
-                      <span>{translate('Starts on')}</span>
+                    <summary class="secondary-button">{ux2('editAssignmentDates')}</summary>
+                    <form
+                      method="POST"
+                      action={assignmentFormAction(assignmentPage.url, 'updateAssignment')}
+                      class="project-section__assignment-form"
+                      data-project-workflow="update-assignment"
+                      use:dirtyFormGuard={{
+                        initialDirty: Boolean(
+                          assignmentRecordProblem &&
+                          assignmentFormData?.actionName === 'updateAssignment' &&
+                          String(assignmentFormData.values?.assignmentId ?? '') ===
+                            value(assignment, 'id'),
+                        ),
+                      }}
+                    >
+                      <input type="hidden" name="assignmentId" value={value(assignment, 'id')} />
                       <input
-                        name="startsOn"
-                        type="date"
+                        type="hidden"
+                        name="version"
                         value={assignmentRetainedValue(
                           assignmentFormData,
                           'updateAssignment',
                           value(assignment, 'id'),
-                          'startsOn',
-                          value(assignment, 'starts_on'),
-                        )}
-                        required
-                      />
-                    </label>
-                    <label>
-                      <span>{translate('Ends on')}</span>
-                      <input
-                        name="endsOn"
-                        type="date"
-                        value={assignmentRetainedValue(
-                          assignmentFormData,
-                          'updateAssignment',
-                          value(assignment, 'id'),
-                          'endsOn',
-                          value(assignment, 'ends_on'),
+                          'version',
+                          value(assignment, 'version') || '1',
                         )}
                       />
-                    </label>
-                    <button type="submit">{translate('Update assignment')}</button>
-                  </form>
+                      <label>
+                        <span>{translate('Starts on')}</span>
+                        <input
+                          name="startsOn"
+                          type="date"
+                          value={assignmentRetainedValue(
+                            assignmentFormData,
+                            'updateAssignment',
+                            value(assignment, 'id'),
+                            'startsOn',
+                            value(assignment, 'starts_on'),
+                          )}
+                          required
+                        />
+                      </label>
+                      <label>
+                        <span>{translate('Ends on')}</span>
+                        <input
+                          name="endsOn"
+                          type="date"
+                          value={assignmentRetainedValue(
+                            assignmentFormData,
+                            'updateAssignment',
+                            value(assignment, 'id'),
+                            'endsOn',
+                            value(assignment, 'ends_on'),
+                          )}
+                        />
+                      </label>
+                      <button type="submit">{translate('Update assignment')}</button>
+                    </form>
+                  </details>
                   <details
                     use:disclosure
                     data-project-workflow="remove-assignment"
@@ -1180,6 +1374,29 @@
     color: var(--portal-muted, #67675f);
   }
 
+  .project-section__context-note {
+    display: grid;
+    flex: 0 0 auto;
+    gap: 0.25rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.65rem;
+    background: var(--portal-surface, #fff);
+    color: var(--portal-muted, #67675f);
+    font-size: 0.78rem;
+  }
+
+  .project-section__context-note strong {
+    color: var(--portal-ink, #20201d);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .project-section__summary-help {
+    margin: -0.35rem 0 0;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8rem;
+  }
+
   .project-section__primary {
     flex: 0 0 auto;
     min-height: 2.75rem;
@@ -1222,9 +1439,26 @@
   }
 
   .project-section__assignment-reference,
-  .project-section__assignment-empty {
+  .project-section__assignment-dates,
+  .project-section__assignment-empty,
+  .project-section__assignment-count {
     margin: 0.3rem 0 0;
     color: var(--portal-muted, #67675f);
+  }
+
+  .project-section__assignment-item h3 {
+    margin: 0.35rem 0;
+    overflow-wrap: anywhere;
+  }
+
+  .project-section__assignment-update > summary {
+    width: fit-content;
+    min-height: var(--ja-target-min, 2.75rem);
+    cursor: pointer;
+  }
+
+  .project-section__assignment-update {
+    margin-top: 0.55rem;
   }
 
   .project-section__assignment-form {
@@ -1328,7 +1562,7 @@
 
   .project-section__filters {
     display: grid;
-    grid-template-columns: minmax(16rem, 2fr) minmax(12rem, 1fr);
+    grid-template-columns: minmax(14rem, 2fr) repeat(3, minmax(8rem, 1fr)) auto;
     gap: 0.75rem;
     padding: 0.9rem 1rem;
     border: 1px solid var(--portal-border, #dfdedc);
@@ -1355,6 +1589,38 @@
     background: var(--portal-surface, #fff);
     color: var(--portal-ink, #20201d);
     font: inherit;
+  }
+
+  .project-section__filter-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin-top: -0.35rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8rem;
+  }
+
+  .project-section__filter-chip {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    padding: 0.25rem 0.55rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 999px;
+    background: var(--portal-surface, #fff);
+  }
+
+  .project-section__filter-reset,
+  .project-section__shortcut-cell a {
+    color: var(--portal-accent, #53524c);
+    text-decoration: underline;
+    text-underline-offset: 0.16em;
+  }
+
+  .project-section__filter-reset {
+    min-height: var(--ja-target-min, 2.75rem);
+    display: inline-flex;
+    align-items: center;
   }
 
   .project-section__table {
@@ -1401,6 +1667,20 @@
 
   .project-section__project-link strong {
     color: var(--portal-accent, #53524c);
+  }
+
+  .project-section__shortcut-cell nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.65rem;
+  }
+
+  .project-section__shortcut-cell a {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    font-size: 0.8rem;
+    font-weight: 700;
   }
 
   .project-section__project-link:focus-visible,
@@ -1498,6 +1778,11 @@
     .project-section__context {
       align-items: flex-start;
       flex-direction: column;
+    }
+
+    .project-section__context-note {
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .project-section__primary {

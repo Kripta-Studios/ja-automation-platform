@@ -1,0 +1,92 @@
+[
+  {
+    "file": "apps/portal/src/lib/PortalChrome.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/lib/PortalShell.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/lib/portal/sections/AccountingSection.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/lib/portal/sections/BillingSection.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/lib/portal/sections/CollectionsLedgerSection.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/lib/portal/sections/ExpenseSection.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/lib/portal/sections/FinanceOverviewSection.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/lib/portal/sections/ProjectInvoiceComposer.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/lib/portal/sections/ReportSection.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/lib/portal/sections/TimeSection.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/lib/portal/ui/SectionNavigator.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/lib/portal/ui/TableRegion.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/routes/app/login/+page.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  },
+  {
+    "file": "apps/portal/src/routes/app/projects/[id]/+page.svelte",
+    "fieldsRemoved": [],
+    "actionsRemoved": [],
+    "optionsRemoved": []
+  }
+]

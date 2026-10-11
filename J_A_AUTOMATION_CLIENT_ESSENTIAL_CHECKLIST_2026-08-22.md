@@ -1809,3 +1809,32 @@ and issuer links navigate to their configuration and preserve unsaved edits when
 navigation is canceled. Existing issuance and historical financial invariants
 remain. Scoped implementation, validation and rollout evidence:
 [invoice number navigation](docs/evidence/project-invoice-journey/invoice-number-navigation.md).
+
+### Project, work and finance usability refresh — 11 October 2026
+
+User-requested scoped CORE-03/04/05/06/10 usability work: 200 individually recorded
+improvements across two batches of 100. Project creation presents essentials first
+and retains every optional section; project context carries through time, expenses,
+reports and invoices. Custom billing periods and individual worker rates, internal
+costs, compensation and expense conditions remain available. Accounting exports keep
+all format states visible, with secondary actions grouped and independent retries.
+No schema migration, financial calculation change or authorization expansion.
+
+Scoped evidence: 92 original and 104 additional browser cases across
+360/390/768/1440; three fresh project-to-invoice scenarios include four issued
+299.00 invoices with real PDFs and separate 50.00/75.00 drafts without reused sources.
+Eight accounting artifact/recovery cases cover XLSX downloads, pending and stale
+states, historical files, auditor/worker boundaries and independent PDF retry.
+A transient desktop connection reset passed an unchanged targeted rerun.
+101 regression, financial-invariant and invoice-unit checks pass. Changed-file
+ESLint/format, portal TypeScript and production preview build pass; final rollout
+and independent review are recorded in the linked evidence. Existing unrelated
+baseline check failures remain documented, without weakening their assertions.
+
+This is scoped UX-release evidence, not a new whole-product certification.
+The [additional 100 changes](docs/evidence/ux-refresh-round2/improvements.json),
+[validation](docs/evidence/ux-refresh-round2/validation.json),
+[original 100 changes](docs/evidence/ux-refresh-20261011/improvements.json), and
+[issued fixture artifacts](docs/evidence/ux-refresh-20261011/invoice-artifacts.json)
+provide the detailed audit trail. Production rollout is recorded separately in
+`docs/evidence/ux-refresh-round2/production-deployment.json`.

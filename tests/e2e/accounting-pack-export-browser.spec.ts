@@ -6,7 +6,9 @@ import { resolve } from 'node:path';
 import { e2eCredentials, portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
 
-const evidenceRoot = resolve('docs/evidence/error-warning-export-qa');
+const evidenceRoot = resolve(
+  process.env.JA_E2E_EVIDENCE_ROOT ?? 'docs/evidence/error-warning-export-qa',
+);
 
 function fixtureCounts(): Record<string, number> {
   const database = createDatabase(readE2EFixturePointer().databasePath);
@@ -83,7 +85,7 @@ async function createPackThroughBrowser(
 ): Promise<string> {
   await page.goto(portal('/accounting'));
   await page.locator('.accounting-section__create summary').click();
-  const form = page.locator('form[action="?/createAccountingPack"]');
+  const form = page.locator('#accounting-generate form[action="?/createAccountingPack"]');
   await form.locator('input[name="periodStart"]').fill(periodStart);
   await form.locator('input[name="periodEnd"]').fill(periodEnd);
   const response = page.waitForResponse(
@@ -138,7 +140,7 @@ test('Accounting Pack ready click, stale-source GET, and final historical bytes'
   runArtifactWorker();
   await page.goto(portal('/accounting'));
   const historicalRow = page.locator(`#accounting-pack-${historicalId}`);
-  await historicalRow.locator('details.accounting-pack-review summary').click();
+  await historicalRow.locator('[data-accounting-pack-secondary] > summary').click();
   const finalForm = historicalRow.locator('form[action="?/finalizeAccountingPack"]');
   await expect(finalForm).toBeVisible();
   const finalResponsePromise = page.waitForResponse(
@@ -217,6 +219,14 @@ test('Accounting Pack ready click, stale-source GET, and final historical bytes'
   await expect(notice).toContainText(
     'The source records changed. Review the updated pack before generating another version.',
   );
+  const recovery = page.locator('[data-ui="guided-recovery"]');
+  await expect(recovery).toBeVisible();
+  await expect(
+    recovery.getByRole('link', { name: 'Check pack status', exact: true }),
+  ).toBeVisible();
+  await expect(recovery.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused();
+  await recovery.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(recovery).toBeHidden();
   await expect(notice).toBeFocused();
   await expect(notice.getByRole('button', { name: 'Check pack status' })).toBeVisible();
   const noticeVisible = await notice.evaluate((element) => {
@@ -381,7 +391,7 @@ test('Accounting Pack explains a temporary artifact-service 503 without queuing 
   await page.reload();
   const row = page.locator(`#accounting-pack-${packId}`);
   const readyFilter = page.getByRole('button', {
-    name: /Ready \d+ Available for review, finalization or download/u,
+    name: /^Ready: \d+$/u,
   });
   await readyFilter.click();
   await expect(readyFilter).toHaveAttribute('aria-pressed', 'true');
@@ -438,16 +448,63 @@ test('Accounting Pack explains a temporary artifact-service 503 without queuing 
     'The download status is uncertain. Check the pack status before trying again.',
   );
   await expect(notice.getByRole('button', { name: 'Check pack status' })).toBeVisible();
+  const recovery = page.locator('[data-ui="guided-recovery"]');
+  await expect(recovery).toBeVisible();
+  await expect(
+    recovery.getByRole('link', { name: 'Check pack status', exact: true }),
+  ).toBeVisible();
+  await expect(recovery.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused();
+  await recovery.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(recovery).toBeHidden();
   await expect(notice).toBeFocused();
-  const noticeVisible = await notice.evaluate((element) => {
-    const rectangle = element.getBoundingClientRect();
-    return rectangle.top >= 0 && rectangle.bottom <= innerHeight;
-  });
-  expect(noticeVisible).toBe(true);
+  const readNoticeGeometry = () =>
+    notice.evaluate((element) => {
+      const rectangle = element.getBoundingClientRect();
+      const header = document.querySelector('.portal-layout > header');
+      const headerPosition = header ? getComputedStyle(header).position : '';
+      const navigation = document.querySelector('.bottom-nav');
+      return {
+        top: rectangle.top,
+        bottom: rectangle.bottom,
+        safeTop:
+          (header && ['sticky', 'fixed'].includes(headerPosition)
+            ? Math.max(0, header.getBoundingClientRect().bottom)
+            : 0) + 16,
+        safeBottom:
+          Math.min(
+            innerHeight,
+            navigation && getComputedStyle(navigation).position === 'fixed'
+              ? navigation.getBoundingClientRect().top
+              : innerHeight,
+          ) - 16,
+      };
+    });
+  await expect
+    .poll(async () => {
+      const geometry = await readNoticeGeometry();
+      return geometry.top >= geometry.safeTop - 1 && geometry.bottom <= geometry.safeBottom + 1;
+    })
+    .toBe(true);
+  const noticeGeometry = await readNoticeGeometry();
+  expect(noticeGeometry.top).toBeGreaterThanOrEqual(noticeGeometry.safeTop - 1);
+  expect(noticeGeometry.bottom).toBeLessThanOrEqual(noticeGeometry.safeBottom + 1);
   expect(new URL(page.url()).pathname).toBe(locationBefore);
   await expect(readyFilter).toHaveAttribute('aria-pressed', 'true');
   const scrollAfter = await page.evaluate(() => scrollY);
-  expect(scrollAfter).toBe(scrollBefore);
+  const scrollDelta = scrollAfter - scrollBefore;
+  const originalTop = noticeGeometry.top + scrollDelta;
+  const originalBottom = noticeGeometry.bottom + scrollDelta;
+  // A notice already in the usable viewport must not move the page. Otherwise
+  // allow only the minimal reveal needed to clear the sticky header/bottom nav.
+  if (originalTop >= noticeGeometry.safeTop && originalBottom <= noticeGeometry.safeBottom) {
+    expect(scrollAfter).toBe(scrollBefore);
+  } else if (originalBottom > noticeGeometry.safeBottom) {
+    expect(scrollDelta).toBeGreaterThanOrEqual(0);
+    expect(scrollDelta).toBeLessThanOrEqual(originalBottom - noticeGeometry.safeBottom + 1);
+  } else {
+    expect(scrollDelta).toBeLessThanOrEqual(0);
+    expect(-scrollDelta).toBeLessThanOrEqual(noticeGeometry.safeTop - originalTop + 1);
+  }
   expect(fixtureCounts()).toEqual(countsBefore);
   expect(retryRequests).toEqual([]);
   await notice.screenshot({
@@ -476,7 +533,9 @@ test('Accounting Pack explains a temporary artifact-service 503 without queuing 
         artifactCode: contract.code,
         remedyId: (contract.remedies as Array<{ id: string }>)[0]?.id,
         noticeFocused: true,
-        noticeVisible,
+        noticeGeometry,
+        noticeVisible:
+          noticeGeometry.top >= 0 && noticeGeometry.bottom <= (page.viewportSize()?.height ?? 0),
         locationPreserved: true,
         readyFilterPreserved: true,
         scrollBefore,
@@ -559,7 +618,11 @@ test('Accounting Pack failed PDF retries alone through the browser', async ({ pa
   await expect(row.getByLabel('PDF Failed')).toBeVisible();
   await expect(row.getByRole('link', { name: 'XLSX Ready' })).toBeVisible();
   await expect(row).toContainText('Review this pack, then retry only this failed export.');
-  await expect(row.getByRole('link', { name: /Review project economics/i })).toBeVisible();
+  await expect(
+    row
+      .locator('.accounting-pack-export-guidance')
+      .getByRole('link', { name: /Review project economics/i }),
+  ).toBeVisible();
   const failedGet = await page.request.get(portal(`/api/accounting-pack/${packId}/pdf`));
   expect(failedGet.status()).toBe(409);
   const failedPayload = (await failedGet.json()) as Record<string, unknown>;

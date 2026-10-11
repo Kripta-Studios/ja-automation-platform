@@ -10,7 +10,7 @@ const componentPath = resolve(
 const source = (): string => readFileSync(componentPath, 'utf8');
 
 describe('Finance Overview section architecture', () => {
-  it('starts with context, attention summary, project filter, and canonical actual metrics', () => {
+  it('places project context before attention and canonical actual metrics', () => {
     const component = source();
 
     expect(component).toContain('Finance overview');
@@ -20,8 +20,8 @@ describe('Finance Overview section architecture', () => {
     expect(component).toContain('Direct Project Result');
     expect(component).toContain('Contribution');
     expect(component).toContain('Contribution Margin %');
-    expect(component.indexOf('Finance attention summary')).toBeLessThan(
-      component.indexOf('Filter finance by project'),
+    expect(component.indexOf('Filter finance by project')).toBeLessThan(
+      component.indexOf('Finance attention summary'),
     );
     expect(component.indexOf('Filter finance by project')).toBeLessThan(
       component.indexOf('data-finance-actual'),
@@ -32,7 +32,7 @@ describe('Finance Overview section architecture', () => {
     const component = source();
     const attention = component.slice(
       component.indexOf('class="finance-overview__attention"'),
-      component.indexOf('class="finance-overview__filters"'),
+      component.indexOf('data-finance-actual'),
     );
     const hero = component.slice(
       component.indexOf('class="finance-overview__hero"'),

@@ -944,14 +944,25 @@
 </script>
 
 <svelte:head
-  ><title>{t('Invoice preview')} | {invoice.project_number}</title><link
+  ><title
+    >{invoice.invoice_number || t('Draft invoice')} | {invoice.project_number} | {t(
+      'Invoice preview',
+    )}</title
+  ><link
     rel="stylesheet"
     href={`${base}/app/billing/invoices/${encodeURIComponent(invoiceId)}/preview-style`}
   /></svelte:head
 >
 <main class="invoice-preview-page">
-  <nav class="detail-nav no-print">
-    <a href={`${base}/app/billing`} data-origin-back
+  <header class="invoice-page-heading no-print">
+    <h1>{invoice.invoice_number || t('Draft invoice')}</h1>
+    <p>
+      {invoice.project_number}{#if invoice.project_name}
+        · {invoice.project_name}{/if}
+    </p>
+  </header>
+  <nav class="detail-nav no-print" aria-label={t('Invoice')}>
+    <a href={`${base}/app/billing?lang=${encodeURIComponent(locale)}`} data-origin-back
       ><DirectionIcon direction="left" /> {t('Billing')}</a
     ><button type="button" class="print-trigger" onclick={() => window.print()}
       ><PrintIcon /> {t('Print Report')}</button
@@ -1472,6 +1483,41 @@
 </main>
 
 <style>
+  .invoice-page-heading {
+    max-width: 70rem;
+    margin: 1rem auto;
+    padding: 1rem;
+    color: #f7f7f5;
+    overflow-wrap: anywhere;
+  }
+  .invoice-page-heading h1 {
+    color: inherit;
+    font-size: clamp(1.35rem, 4vw, 2rem);
+    margin: 0;
+  }
+  .invoice-page-heading p {
+    margin: 0.4rem 0 0;
+    color: #deddd8;
+  }
+  .invoice-source-guidance a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-block: 0.55rem;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 600px) {
+    .invoice-source-links a {
+      width: 100%;
+      padding-inline: 0.7rem;
+      border: 1px solid var(--portal-border, #dfdedc);
+      border-radius: 0.6rem;
+    }
+    .invoice-source-links {
+      gap: 0.5rem;
+    }
+  }
   .invoice-editor-fields {
     min-width: 0;
     margin: 0;

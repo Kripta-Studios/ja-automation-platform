@@ -20,6 +20,7 @@
   import DirectionIcon from '../DirectionIcon.svelte';
   import ActualPdfPreview from '../ActualPdfPreview.svelte';
   import LocalizedPdfPanel from './LocalizedPdfPanel.svelte';
+  import { accountingUxRound2Text } from '../../accounting-ux-round2-copy';
 
   type Pack = Record<string, unknown>;
   type AccountingPackExportType = 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json';
@@ -44,6 +45,12 @@
     rememberPackScroll,
     problem = null,
   }: Props = $props();
+
+  const packHeadingId = $derived(`accounting-pack-period-${String(pack.id)}`);
+
+  const packContext = $derived(
+    `${String(pack.period_start)} – ${String(pack.period_end)} · ${translate('Created')}: ${String(pack.created_at)}`,
+  );
 
   const accountingPackExportTypes: ReadonlyArray<{
     key: AccountingPackExportType;
@@ -121,6 +128,12 @@
     if (status === 'processing') return translate('Processing');
     if (status === 'queued') return translate('Queued');
     return translate('Pending');
+  }
+
+  function packStatusLabel(status: string): string {
+    if (status === 'final') return accountingUxRound2Text(locale, 'finalPack');
+    if (status === 'stale') return accountingUxRound2Text(locale, 'stalePack');
+    return controlledValue('artifactState', status) || translate(status);
   }
 
   function accountingPackStatusVariant(
@@ -526,12 +539,25 @@
   }
 </script>
 
-<article class="invoice-row accounting-pack-artifact-row" id={`accounting-pack-${String(pack.id)}`}>
-  <div>
-    <strong>{String(pack.period_start)} → {String(pack.period_end)}</strong>
-    <small>{controlledValue('artifactState', pack.state)} · {String(pack.created_at)}</small>
-  </div>
-  <div class="record-actions" aria-label={translate('Accounting Pack artifacts')}>
+<article
+  class="invoice-row accounting-pack-artifact-row"
+  id={`accounting-pack-${String(pack.id)}`}
+  aria-labelledby={packHeadingId}
+>
+  <header class="accounting-pack-artifact-row__heading">
+    <h3 id={packHeadingId}>{String(pack.period_start)} → {String(pack.period_end)}</h3>
+    <small>{packStatusLabel(packState)} · {String(pack.created_at)}</small>
+    {#if pack.sourceStale}
+      <span class="accounting-pack-stale-badge" data-ui="status-badge" data-variant="warning">
+        {accountingUxRound2Text(locale, 'stalePack')}
+      </span>
+    {/if}
+  </header>
+  <div
+    class="accounting-pack-downloads"
+    role="group"
+    aria-label={accountingUxRound2Text(locale, 'artifactStatusAndDownloads')}
+  >
     {#each accountingPackExportTypes as artifact}
       {@const status = displayedStatus(artifact.key, exportStatuses[artifact.key])}
       {#if status === 'ready'}
@@ -541,7 +567,8 @@
           data-variant="success"
           href={artifactHref(artifact.key)}
           aria-busy="false"
-          aria-label={`${translate(artifact.label)} ${translate('Ready')}`}
+          aria-label={`${translate(artifact.label)} ${translate('Ready')} · ${packContext}`}
+          data-accounting-pack-download={artifact.key}
           onclick={(event) => void handleDownloadClick(event, artifact.key)}
           >{translate(artifact.label)} · {translate('Ready')}</a
         >
@@ -551,252 +578,332 @@
           data-ui="status-badge"
           data-variant={accountingPackStatusVariant(status)}
           title={`${translate(artifact.label)} ${accountingPackStatusLabel(status)}`}
-          aria-label={`${translate(artifact.label)} ${accountingPackStatusLabel(status)}`}
+          aria-label={`${translate(artifact.label)} ${accountingPackStatusLabel(status)} · ${packContext}`}
         >
           {translate(artifact.label)} · {accountingPackStatusLabel(status)}
         </span>
       {/if}
     {/each}
-    {#if exportStatuses.pdf === 'ready'}
-      <button
-        type="button"
-        class="preview-link"
-        aria-expanded={previewOpen}
-        onclick={() => {
-          previewOpen = !previewOpen;
-        }}
-        >{previewOpen
-          ? locale === 'es'
-            ? 'Cerrar vista previa'
-            : locale === 'pt'
-              ? 'Fechar prévia'
-              : 'Close PDF preview'
-          : locale === 'es'
-            ? 'Vista previa del PDF guardado'
-            : locale === 'pt'
-              ? 'Prévia do PDF salvo'
-              : 'Preview saved PDF'}</button
-      >
-    {/if}
-    {#each accountingPackExportTypes as artifact}
-      {#if exportStatuses[artifact.key] === 'failed'}
-        <div class="accounting-pack-export-guidance" role="status">
-          <p>
-            <strong>{translate(artifact.label)}:</strong>
-            {translate('The export failed during generation. Other formats may still be ready.')}
-          </p>
-          <p>
-            {isAuditor
-              ? translate('Contact a finance administrator to review the failed export.')
-              : packState === 'final'
-                ? translate(
-                    'This finalized pack cannot be changed. Review its historical export and generate a new version if current records need to be included.',
-                  )
-                : pack.sourceStale
+  </div>
+  <details
+    class="accounting-pack-secondary"
+    data-accounting-pack-secondary
+    open={Boolean(
+      problem ||
+      downloadNotice ||
+      retryingKey ||
+      retryUncertainKey ||
+      previewOpen ||
+      packState === 'failed' ||
+      Object.values(exportStatuses).some((status) => status === 'failed'),
+    )}
+  >
+    <summary>{accountingUxRound2Text(locale, 'secondaryPackControls')}</summary>
+    <div
+      class="record-actions"
+      role="group"
+      aria-label={translate('Accounting Pack status and actions')}
+    >
+      {#if exportStatuses.pdf === 'ready'}
+        <button
+          type="button"
+          class="preview-link"
+          aria-expanded={previewOpen}
+          onclick={() => {
+            previewOpen = !previewOpen;
+          }}
+          >{previewOpen
+            ? locale === 'es'
+              ? 'Cerrar vista previa'
+              : locale === 'pt'
+                ? 'Fechar prévia'
+                : 'Close PDF preview'
+            : locale === 'es'
+              ? 'Vista previa del PDF guardado'
+              : locale === 'pt'
+                ? 'Prévia do PDF salvo'
+                : 'Preview saved PDF'}<span class="sr-only"> · {packContext}</span></button
+        >
+      {/if}
+      {#each accountingPackExportTypes as artifact}
+        {#if exportStatuses[artifact.key] === 'failed'}
+          <div class="accounting-pack-export-guidance" role="status">
+            <p>
+              <strong>{translate(artifact.label)}:</strong>
+              {translate('The export failed during generation. Other formats may still be ready.')}
+            </p>
+            <p>
+              {isAuditor
+                ? translate('Contact a finance administrator to review the failed export.')
+                : packState === 'final'
                   ? translate(
-                      'Retry is unavailable because source records changed. Review the pack before generating a new version.',
+                      'This finalized pack cannot be changed. Review its historical export and generate a new version if current records need to be included.',
                     )
-                  : translate('Review this pack, then retry only this failed export.')}
-          </p>
-          {#if !isAuditor}
-            <a href={`${base}/app/finance?view=economic`}
-              >{translate('Review project economics')} →</a
-            >
-            {#if !pack.sourceStale && packState !== 'final' && retryBlockedKey !== artifact.key}
-              <button
-                type="button"
-                disabled={Boolean(retryingKey || retryUncertainKey === artifact.key)}
-                aria-busy={retryingKey === artifact.key}
-                onclick={() => void retryFailedExport(artifact.key)}
-                >{translate('Retry')} {translate(artifact.label)}</button
+                  : pack.sourceStale
+                    ? translate(
+                        'Retry is unavailable because source records changed. Review the pack before generating a new version.',
+                      )
+                    : translate('Review this pack, then retry only this failed export.')}
+            </p>
+            {#if !isAuditor}
+              <a href={`${base}/app/finance?view=economic&lang=${encodeURIComponent(locale)}`}
+                >{translate('Review project economics')} →</a
               >
+              {#if !pack.sourceStale && packState !== 'final' && retryBlockedKey !== artifact.key}
+                <button
+                  type="button"
+                  disabled={Boolean(retryingKey || retryUncertainKey === artifact.key)}
+                  aria-busy={retryingKey === artifact.key}
+                  onclick={() => void retryFailedExport(artifact.key)}
+                  >{translate('Retry')} {translate(artifact.label)}</button
+                >
+              {/if}
             {/if}
+          </div>
+        {/if}
+      {/each}
+      {#if downloadNotice}
+        <div
+          class="accounting-pack-download-notice"
+          role="alert"
+          tabindex="-1"
+          bind:this={downloadNoticeElement}
+        >
+          <p>
+            <strong
+              >{translate(
+                accountingPackExportTypes.find((artifact) => artifact.key === downloadNotice?.key)
+                  ?.label ?? '',
+              )}:</strong
+            >
+            {downloadNoticeMessage(downloadNotice)}
+          </p>
+          <button type="button" onclick={() => void checkPackStatus()}
+            >{translate('Check pack status')}</button
+          >
+          {#if downloadNotice.kind === 'unauthenticated'}
+            <a href={`${base}/app/login?lang=${encodeURIComponent(locale)}`}
+              >{translate('Sign in again')}</a
+            >
           {/if}
         </div>
       {/if}
-    {/each}
-    {#if downloadNotice}
-      <div
-        class="accounting-pack-download-notice"
-        role="alert"
-        tabindex="-1"
-        bind:this={downloadNoticeElement}
-      >
-        <p>
-          <strong
-            >{translate(
-              accountingPackExportTypes.find((artifact) => artifact.key === downloadNotice?.key)
-                ?.label ?? '',
-            )}:</strong
-          >
-          {downloadNoticeMessage(downloadNotice)}
-        </p>
-        <button type="button" onclick={() => void checkPackStatus()}
-          >{translate('Check pack status')}</button
-        >
-        {#if downloadNotice.kind === 'unauthenticated'}
-          <a href={`${base}/app/login`}>{translate('Sign in again')}</a>
-        {/if}
-      </div>
-    {/if}
-    {#if !isAuditor && packState === 'final' && pack.sourceStale}
-      <div class="accounting-pack-review" role="status">
-        <p>
-          {translate(
-            'Sources changed after this final version. Keep this historical pack and generate a new version for the same period.',
-          )}
-        </p>
-        <form
-          method="POST"
-          action="?/createAccountingPack"
-          data-pack-id={String(pack.id)}
-          use:rememberPackScroll
-        >
-          <input type="hidden" name="periodStart" value={String(pack.period_start)} />
-          <input type="hidden" name="periodEnd" value={String(pack.period_end)} />
-          <input type="hidden" name="viewportScrollY" value="0" />
-          <input
-            type="hidden"
-            name="reportLocale"
-            value={locale === 'es' ? 'es' : String(locale).startsWith('pt') ? 'pt' : 'en'}
-          />
-          <button type="submit">{translate('Generate new version')}</button>
-        </form>
-      </div>
-    {/if}
-    {#if packState !== 'final' && !finalizationReadiness.ready}
-      <div
-        class="accounting-pack-export-guidance"
-        role="status"
-        data-accounting-finalization-blocked
-      >
-        <strong>{translate('Finalization unavailable')}</strong>
-        <p>{translate(finalizationReadiness.message)}</p>
-        {#if !isAuditor}
-          <a href={`${base}/app/billing?view=setup`}
-            >{translate('Review invoice issuers')} <DirectionIcon /></a
-          >
-        {:else}
-          <p>{translate('Contact an owner')}</p>
-        {/if}
-      </div>
-    {/if}
-    {#if !isAuditor && packState !== 'final' && packState !== 'queued'}
-      <details class="accounting-pack-review" open={Boolean(problem)}>
-        <summary>{translate('Review before finalizing')}</summary>
-        <p>
-          {translate(
-            'Finalize freezes this reviewed version. Later source corrections require a new Accounting Pack version.',
-          )}
-        </p>
-        <dl>
-          <div>
-            <dt>{translate('Pending records')}</dt>
-            <dd>
-              {reviewCount('pendingRecordCount')}
-              <a href={`${base}/app/approvals`}>{translate('Review pending records')} →</a>
-              {#if reviewCount('pendingRecordCount') > 0}
-                <small
-                  >{translate(
-                    'Draft and returned records may not appear in the approval queue.',
-                  )}</small
-                >
-              {/if}
-            </dd>
-          </div>
-          <div>
-            <dt>{translate('Unclassified expenses')}</dt>
-            <dd>
-              {reviewCount('unclassifiedExpenseCount')}
-              <a href={`${base}/app/finance?view=economic#finance-source-records`}
-                >{translate('Classify expenses')} →</a
-              >
-            </dd>
-          </div>
-          <div>
-            <dt>{translate('Missing documents')}</dt>
-            <dd>
-              {reviewCount('missingDocumentCount')}
-              <a href={`${base}/app/documents`}>{translate('Review documents')} →</a>
-            </dd>
-          </div>
-          <div>
-            <dt>{translate('Reconciliation issues')}</dt>
-            <dd>
-              {reviewCount('sourceMismatchCount') + reviewCount('missingCostRuleCount')}
-              <a href={`${base}/app/finance?view=economic`}
-                >{translate('Review project economics')} →</a
-              >
-            </dd>
-          </div>
-          <div>
-            <dt>{translate('Changes since generation')}</dt>
-            <dd>
-              {pack.sourceStale
-                ? translate('Yes — generate a new version')
-                : translate('None detected')}
-              {#if pack.sourceStale}
-                <a href="#accounting-generate">{translate('Generate new version')} →</a>{/if}
-            </dd>
-          </div>
-        </dl>
-        {#if packState === 'ready' && reconciliation.reconciles === true && !pack.sourceStale && finalizationReadiness.ready}
-          <form method="POST" action="?/finalizeAccountingPack" use:rememberPackScroll>
-            <input type="hidden" name="packId" value={pack.id} />
-            <input type="hidden" name="viewportScrollY" value="0" />
-            <button>{translate('Finalize reviewed version')}</button>
-          </form>
-        {:else if finalizationReadiness.ready}
-          <p role="status">
-            {translate('Resolve processing, source-change or reconciliation issues first.')}
+      {#if !isAuditor && packState === 'final' && pack.sourceStale}
+        <div class="accounting-pack-review" role="status">
+          <p>
+            {translate(
+              'Sources changed after this final version. Keep this historical pack and generate a new version for the same period.',
+            )}
           </p>
-        {/if}
-      </details>
+          <form
+            method="POST"
+            action="?/createAccountingPack"
+            data-pack-id={String(pack.id)}
+            use:rememberPackScroll
+          >
+            <input type="hidden" name="periodStart" value={String(pack.period_start)} />
+            <input type="hidden" name="periodEnd" value={String(pack.period_end)} />
+            <input type="hidden" name="viewportScrollY" value="0" />
+            <input
+              type="hidden"
+              name="reportLocale"
+              value={locale === 'es' ? 'es' : String(locale).startsWith('pt') ? 'pt' : 'en'}
+            />
+            <button type="submit">{translate('Generate new version')}</button>
+          </form>
+        </div>
+      {/if}
+      {#if packState !== 'final' && !finalizationReadiness.ready}
+        <div
+          class="accounting-pack-export-guidance"
+          role="status"
+          data-accounting-finalization-blocked
+        >
+          <strong>{translate('Finalization unavailable')}</strong>
+          <p>{translate(finalizationReadiness.message)}</p>
+          {#if !isAuditor}
+            <a
+              href={`${base}/app/billing?view=setup&lang=${encodeURIComponent(locale)}`}
+              aria-label={`${translate('Review invoice issuers')} · ${packContext}`}
+              >{translate('Review invoice issuers')} <DirectionIcon /></a
+            >
+          {:else}
+            <p>{translate('Contact an owner')}</p>
+          {/if}
+        </div>
+      {/if}
+      {#if !isAuditor && packState !== 'final' && packState !== 'queued'}
+        <section
+          class="accounting-pack-review"
+          aria-label={`${translate('Review before finalizing')} · ${packContext}`}
+        >
+          <h4>{translate('Review before finalizing')}</h4>
+          <p>
+            {translate(
+              'Finalize freezes this reviewed version. Later source corrections require a new Accounting Pack version.',
+            )}
+          </p>
+          <dl>
+            <div>
+              <dt>{translate('Pending records')}</dt>
+              <dd>
+                {reviewCount('pendingRecordCount')}
+                <a href={`${base}/app/approvals?lang=${encodeURIComponent(locale)}`}
+                  >{translate('Review pending records')} →</a
+                >
+                {#if reviewCount('pendingRecordCount') > 0}
+                  <small
+                    >{translate(
+                      'Draft and returned records may not appear in the approval queue.',
+                    )}</small
+                  >
+                {/if}
+              </dd>
+            </div>
+            <div>
+              <dt>{translate('Unclassified expenses')}</dt>
+              <dd>
+                {reviewCount('unclassifiedExpenseCount')}
+                <a
+                  href={`${base}/app/finance?view=economic&lang=${encodeURIComponent(locale)}#finance-source-records`}
+                  >{translate('Classify expenses')} →</a
+                >
+              </dd>
+            </div>
+            <div>
+              <dt>{translate('Missing documents')}</dt>
+              <dd>
+                {reviewCount('missingDocumentCount')}
+                <a href={`${base}/app/documents?lang=${encodeURIComponent(locale)}`}
+                  >{translate('Review documents')} →</a
+                >
+              </dd>
+            </div>
+            <div>
+              <dt>{translate('Reconciliation issues')}</dt>
+              <dd>
+                {reviewCount('sourceMismatchCount') + reviewCount('missingCostRuleCount')}
+                <a href={`${base}/app/finance?view=economic&lang=${encodeURIComponent(locale)}`}
+                  >{translate('Review project economics')} →</a
+                >
+              </dd>
+            </div>
+            <div>
+              <dt>{translate('Changes since generation')}</dt>
+              <dd>
+                {pack.sourceStale
+                  ? translate('Yes — generate a new version')
+                  : translate('None detected')}
+                {#if pack.sourceStale}
+                  <a href="#accounting-generate">{translate('Generate new version')} →</a>{/if}
+              </dd>
+            </div>
+          </dl>
+          {#if packState === 'ready' && reconciliation.reconciles === true && !pack.sourceStale && finalizationReadiness.ready}
+            <form method="POST" action="?/finalizeAccountingPack" use:rememberPackScroll>
+              <input type="hidden" name="packId" value={pack.id} />
+              <input type="hidden" name="viewportScrollY" value="0" />
+              <button>{translate('Finalize reviewed version')}</button>
+            </form>
+          {:else if finalizationReadiness.ready}
+            <p role="status">
+              {translate('Resolve processing, source-change or reconciliation issues first.')}
+            </p>
+          {/if}
+        </section>
+      {/if}
+    </div>
+    {#if previewOpen && exportStatuses.pdf === 'ready'}
+      <ActualPdfPreview
+        src={artifactHref('pdf')}
+        {locale}
+        onFailure={(payload, status, reference) => {
+          const value =
+            payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {};
+          return showDownloadNotice(
+            'pdf',
+            classifyAccountingPackDownloadFailure(
+              status,
+              typeof value.error === 'string' ? value.error : '',
+              typeof value.code === 'string' ? value.code : undefined,
+            ),
+            reference ?? undefined,
+          );
+        }}
+      />
+      <p class="form-help no-print">
+        {locale === 'es'
+          ? 'Revise los registros de origen antes de generar una nueva versión. Los paquetes finalizados conservan sus cifras históricas.'
+          : locale === 'pt'
+            ? 'Revise os registros de origem antes de gerar uma nova versão. Pacotes finalizados preservam seus valores históricos.'
+            : 'Review source records before generating a new version. Finalized packs preserve their historical figures.'}
+        <a href={`${base}/app/billing?view=invoices&lang=${encodeURIComponent(locale)}`}
+          >{translate('Invoices')}</a
+        >
+        ·
+        <a href={`${base}/app/finance?view=economic&lang=${encodeURIComponent(locale)}`}
+          >{translate('Finance')}</a
+        >
+      </p>
     {/if}
-  </div>
+
+    {#if revisionId}
+      <div class="no-print accounting-pack-localized-pdf">
+        <LocalizedPdfPanel
+          ownerType="accounting_pack_revision"
+          ownerId={revisionId}
+          {locale}
+          title={translate('Accounting Pack')}
+          compact
+        />
+      </div>
+    {/if}
+  </details>
 </article>
 
-{#if previewOpen && exportStatuses.pdf === 'ready'}
-  <ActualPdfPreview
-    src={artifactHref('pdf')}
-    {locale}
-    onFailure={(payload, status, reference) => {
-      const value =
-        payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {};
-      return showDownloadNotice(
-        'pdf',
-        classifyAccountingPackDownloadFailure(
-          status,
-          typeof value.error === 'string' ? value.error : '',
-          typeof value.code === 'string' ? value.code : undefined,
-        ),
-        reference ?? undefined,
-      );
-    }}
-  />
-  <p class="form-help no-print">
-    {locale === 'es'
-      ? 'Revise los registros de origen antes de generar una nueva versión. Los paquetes finalizados conservan sus cifras históricas.'
-      : locale === 'pt'
-        ? 'Revise os registros de origem antes de gerar uma nova versão. Pacotes finalizados preservam seus valores históricos.'
-        : 'Review source records before generating a new version. Finalized packs preserve their historical figures.'}
-    <a href={`${base}/app/billing?view=invoices`}>{translate('Invoices')}</a> ·
-    <a href={`${base}/app/finance?view=economic`}>{translate('Finance')}</a>
-  </p>
-{/if}
-
-{#if revisionId}
-  <div class="no-print accounting-pack-localized-pdf">
-    <LocalizedPdfPanel
-      ownerType="accounting_pack_revision"
-      ownerId={revisionId}
-      {locale}
-      title={translate('Accounting Pack')}
-    />
-  </div>
-{/if}
-
 <style>
+  .accounting-pack-artifact-row {
+    display: grid;
+    gap: 0.65rem;
+    align-items: stretch;
+  }
+  .accounting-pack-artifact-row__heading {
+    display: grid;
+    gap: 0.2rem;
+  }
+  .accounting-pack-artifact-row__heading h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+  .accounting-pack-downloads {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .accounting-pack-artifact-row a,
+  .accounting-pack-artifact-row button,
+  .accounting-pack-secondary summary {
+    min-height: 44px;
+  }
+  .accounting-pack-downloads a {
+    display: inline-flex;
+    align-items: center;
+    padding-block: 0.55rem;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .accounting-pack-secondary > summary {
+    width: fit-content;
+    max-width: 100%;
+    padding-block: 0.55rem;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .accounting-pack-secondary > .record-actions {
+    display: grid;
+    gap: 0.75rem;
+    justify-items: start;
+  }
   .accounting-pack-localized-pdf {
     margin: 0 0 1rem;
   }
@@ -807,6 +914,10 @@
     border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.6rem;
     background: var(--portal-wash, #f9f9f8);
+  }
+
+  .accounting-pack-review h4 {
+    margin: 0 0 0.45rem;
   }
 
   .accounting-pack-review p {

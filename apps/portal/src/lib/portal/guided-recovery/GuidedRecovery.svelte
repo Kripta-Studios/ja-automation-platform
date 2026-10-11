@@ -90,10 +90,50 @@
     (editor ?? dialog.querySelector<HTMLElement>('button'))?.focus();
   }
   function close() {
-    recoveryGeneration++;
+    const generation = ++recoveryGeneration;
+    const target = returnFocus;
     dialog.close();
     request = undefined;
-    returnFocus?.isConnected && returnFocus.focus({ preventScroll: true });
+    target?.isConnected && target.focus({ preventScroll: true });
+    // Closing a native modal can change the layout after focus has returned.
+    // Keep the source visible above fixed navigation without jumping a source
+    // that already fits, or stealing focus from a newer recovery/user action.
+    void tick().then(() => {
+      requestAnimationFrame(() => {
+        if (
+          generation !== recoveryGeneration ||
+          dialog.open ||
+          !target?.isConnected ||
+          document.activeElement !== target
+        )
+          return;
+        const bounds = target.getBoundingClientRect();
+        if (!bounds.height) return;
+        const viewport = window.visualViewport;
+        const viewportTop = viewport?.offsetTop ?? 0;
+        const viewportBottom = viewportTop + (viewport?.height ?? window.innerHeight);
+        const header = document.querySelector<HTMLElement>('.portal-layout > header');
+        const headerBottom =
+          header && ['sticky', 'fixed'].includes(getComputedStyle(header).position)
+            ? header.getBoundingClientRect().bottom
+            : viewportTop;
+        const navigation = document.querySelector<HTMLElement>('.bottom-nav');
+        const navigationBounds = navigation?.getBoundingClientRect();
+        const navigationTop =
+          navigation &&
+          navigationBounds?.height &&
+          getComputedStyle(navigation).position === 'fixed'
+            ? navigationBounds.top
+            : viewportBottom;
+        const safeTop = Math.max(viewportTop, headerBottom) + 16;
+        const safeBottom = Math.min(viewportBottom, navigationTop) - 16;
+        const delta =
+          bounds.height > safeBottom - safeTop || bounds.top < safeTop
+            ? bounds.top - safeTop
+            : Math.max(0, bounds.bottom - safeBottom);
+        if (delta) window.scrollBy({ top: delta, behavior: 'instant' });
+      });
+    });
   }
   beforeNavigate(() => {
     recoveryGeneration++;

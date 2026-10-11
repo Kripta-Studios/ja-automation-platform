@@ -66,7 +66,8 @@ async function usable(page: Page, control: Locator): Promise<void> {
 
 async function action(page: Page, name: string, click: () => Promise<void>): Promise<void> {
   const response = page.waitForResponse(
-    (item) => item.request().method() === 'POST' && item.url().includes(`/${name}`),
+    (item) =>
+      item.request().method() === 'POST' && new URL(item.url()).searchParams.has(`/${name}`),
   );
   const [result] = await Promise.all([response, click()]);
   expect(result.status()).toBeLessThan(400);
@@ -239,11 +240,13 @@ test('two people submit actual work, Owner selects and approves it, then issues 
       await creation
         .locator('[name="clientId"]')
         .selectOption('00000000-0000-4000-8000-000000000107');
-      await creation.getByLabel('Name', { exact: true }).fill(name);
+      await creation.getByRole('textbox', { name: /^Name\b/u }).fill(name);
+      await creation.locator('#project-create-context > summary').click();
       await creation.locator('[name="projectManagerId"]').selectOption(manager.id);
       await creation.locator('[name="costCenterCode"]').fill(`JNY-${Date.now()}${index}`);
       await creation.locator('[name="startDate"]').fill('2026-10-01');
-      const people = creation.locator('[data-project-creation-people]');
+      const people = creation.locator('#project-create-people');
+      await people.locator(':scope > summary').click();
       await people.getByText('Project defaults for people (optional)', { exact: true }).click();
       await people.getByLabel('Save default rates, pay and expense terms for this project').check();
       await people.getByLabel('Terms effective from', { exact: true }).fill('2026-10-01');
@@ -362,6 +365,7 @@ test('two people submit actual work, Owner selects and approves it, then issues 
         await expense.locator('[name="projectId"]').selectOption(projectId);
         await expense.locator('[name="spentOn"]').fill(workDate);
         await expense.locator('[name="category"]').selectOption('meals');
+        await expense.locator('.expense-optional-details > summary').click();
         const vendor = `Journey receipt ${viewport.width} ${worker.name}`;
         await expense.locator('[name="vendor"]').fill(vendor);
         await expense.locator('[name="amount"]').fill('24.50');
@@ -410,11 +414,13 @@ test('two people submit actual work, Owner selects and approves it, then issues 
       await role(page, 'owner');
       await page.goto(portal(`/projects/${projectId}?tab=work&lang=en`));
       let composer = page.locator('[data-invoice-composer]');
-      await expect(composer.locator('.composer-record')).toHaveCount(4);
+      await expect(composer.locator('.composer-records > .composer-record')).toHaveCount(4);
       for (const label of await composer.locator('.composer-select').all())
         await usable(page, label);
       await usable(page, composer.getByRole('combobox', { name: 'Worker', exact: true }));
-      await expect(composer.locator('.composer-record input:checked')).toHaveCount(0);
+      await expect(
+        composer.locator('.composer-records > .composer-record input:checked'),
+      ).toHaveCount(0);
       await expect(
         composer.getByRole('button', { name: 'Calculate invoice', exact: true }),
       ).toBeDisabled();
@@ -478,7 +484,9 @@ test('two people submit actual work, Owner selects and approves it, then issues 
         composer.getByRole('button', { name: 'Select visible records', exact: true }),
       );
       await composer.getByRole('button', { name: 'Select visible records', exact: true }).click();
-      await expect(composer.locator('.composer-record input:checked')).toHaveCount(4);
+      await expect(
+        composer.locator('.composer-records > .composer-record input:checked'),
+      ).toHaveCount(4);
       await composer.getByRole('button', { name: /Approve selected pending records/ }).click();
       await expect(
         composer.getByRole('button', { name: /Approve selected pending records/ }),
@@ -616,7 +624,7 @@ test('two people submit actual work, Owner selects and approves it, then issues 
         }
         await role(page, 'owner');
         await page.goto(portal(`/projects/${projectId}?tab=work&lang=en`));
-        await expect(composer.locator('.composer-record')).toHaveCount(6);
+        await expect(composer.locator('.composer-records > .composer-record')).toHaveCount(6);
         for (const [workerIndex, worker] of workers.entries()) {
           await composer
             .getByRole('combobox', { name: 'Worker', exact: true })
@@ -624,7 +632,9 @@ test('two people submit actual work, Owner selects and approves it, then issues 
           await composer
             .getByRole('button', { name: 'Select visible records', exact: true })
             .click();
-          await expect(composer.locator('.composer-record input:checked')).toHaveCount(1);
+          await expect(
+            composer.locator('.composer-records > .composer-record input:checked'),
+          ).toHaveCount(1);
           await composer.getByRole('button', { name: /Approve selected pending records/ }).click();
           await expect(
             composer.getByRole('button', { name: /Approve selected pending records/ }),
@@ -666,11 +676,11 @@ test('two people submit actual work, Owner selects and approves it, then issues 
       }
       await role(page, 'finance');
       await page.goto(portal(`/projects/${projectId}?tab=work&lang=en`));
-      await expect(page.locator('[data-invoice-composer] .composer-record')).toHaveCount(
-        index === 0 ? 6 : 4,
-      );
       await expect(
-        page.locator('[data-invoice-composer] .composer-record input:enabled'),
+        page.locator('[data-invoice-composer] .composer-records > .composer-record'),
+      ).toHaveCount(index === 0 ? 6 : 4);
+      await expect(
+        page.locator('[data-invoice-composer] .composer-records > .composer-record input:enabled'),
       ).toHaveCount(0);
       await role(page, 'manager');
       await page.goto(portal(`/projects/${projectId}?lang=en`));
@@ -799,11 +809,11 @@ test('late whole-period readiness cannot open a repair dialog after browser Back
       ),
     ).toBe(spaMarker);
     await page.getByRole('button', { name: 'Create invoice', exact: true }).click();
-    await page.getByText('Whole-period or milestone billing', { exact: true }).click();
+    await page.getByRole('button', { name: /^Whole period or milestone/ }).click();
     const legacy = page.locator('form.billing-section__invoice-wizard');
     await expect(legacy).toBeVisible();
-    for (let step = 0; step < 3; step++)
-      await legacy.getByRole('button', { name: 'Next', exact: true }).click();
+    // Project-scoped entry already carries its stream and opens the period step.
+    await expect(legacy.locator('.billing-section__wizard-mobile-progress')).toContainText('4/12');
     await legacy.getByRole('button', { name: 'Check selected period', exact: true }).click();
     await requestCaptured;
     await page.goBack();

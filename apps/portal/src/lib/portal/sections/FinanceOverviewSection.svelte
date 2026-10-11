@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { round2Text } from '../ux-round2-copy';
+  import { centerNavigationTarget } from '../ui/navigation-target';
+  import { uxText } from '../ux-refresh-copy';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { decimalHoursFromMinutes } from '../minute-hours';
@@ -71,6 +74,12 @@
   const financeRoles = ['owner_admin', 'finance_admin', 'auditor_read_only'] as const;
   const financeWriteRoles = ['owner_admin', 'finance_admin'] as const;
   const componentId = $props.id();
+  const workspaceProject = $derived(
+    availableProjects.find((project) => String(project.id) === data.selectedProjectId),
+  );
+  const workspaceProjectHref = $derived(
+    `${base}/app/projects/${encodeURIComponent(String(data.selectedProjectId ?? ''))}?lang=${locale}`,
+  );
   type FinanceWorkspaceView = 'overview' | 'economic' | 'commercial';
   type SourceTab = 'portfolio' | 'workers' | 'time' | 'expenses' | 'settlements';
   type ExpenseInboxFilter = 'all' | 'needs' | 'reimbursable' | 'non_billable';
@@ -1214,11 +1223,11 @@
   }
 
   function projectHref(row: Row | Record<string, unknown>): string {
-    return `${base}/app/projects/${encodeURIComponent(projectId(row))}`;
+    return `${base}/app/projects/${encodeURIComponent(projectId(row))}?lang=${locale}`;
   }
 
   function financeHref(view: 'economic' | 'commercial', source?: SourceTab, hash = ''): string {
-    const query = new URLSearchParams({ view });
+    const query = new URLSearchParams({ view, lang: locale });
     if ($page.url.searchParams.get('includeArchived') === '1') query.set('includeArchived', '1');
     if (data.selectedProjectId) query.set('project', data.selectedProjectId);
     if (source) query.set('source', source);
@@ -1238,7 +1247,7 @@
   }
 
   function projectWorkflowHref(section: 'billing' | 'time' | 'expenses'): string {
-    const query = new URLSearchParams();
+    const query = new URLSearchParams({ lang: locale });
     if ($page.url.searchParams.get('includeArchived') === '1') query.set('includeArchived', '1');
     if (data.selectedProjectId) query.set('project', data.selectedProjectId);
     const serialized = query.toString();
@@ -1257,14 +1266,16 @@
     const date = new Date(`${today}T00:00:00.000Z`);
     const previousMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1));
     const periodStart = `${previousMonth.getUTCFullYear()}-${String(previousMonth.getUTCMonth() + 1).padStart(2, '0')}-01`;
-    const query = new URLSearchParams({ periodStart, periodEnd: today });
+    const query = new URLSearchParams({ periodStart, periodEnd: today, lang: locale });
     const serialized = query.toString();
     return `${base}/app/projects/${encodeURIComponent(projectId)}/calculation${serialized ? `?${serialized}` : ''}`;
   }
 
   function sourceRecordHref(row: Row | Record<string, unknown>, kind: 'time' | 'expenses'): string {
     const id = value(row, 'id');
-    return id ? `${base}/app/${kind}/${encodeURIComponent(id)}` : projectWorkflowHref(kind);
+    return id
+      ? `${base}/app/${kind}/${encodeURIComponent(id)}?lang=${encodeURIComponent(locale)}`
+      : projectWorkflowHref(kind);
   }
 
   function portfolioWorkerSourceHref(row: Row | Record<string, unknown>): string {
@@ -1276,7 +1287,7 @@
   }
 
   function ledgerHref(status: string): string {
-    const query = new URLSearchParams();
+    const query = new URLSearchParams({ lang: locale });
     if ($page.url.searchParams.get('includeArchived') === '1') query.set('includeArchived', '1');
     if (data.selectedProjectId) query.set('project', data.selectedProjectId);
     if (status) query.set('status', status);
@@ -1785,15 +1796,41 @@
   </section>
 {:else}
   <div class="finance-overview" data-ui="finance-overview" onsubmit={rememberFinanceForm}>
-    {#if canWriteFinance}<p>
-        <a class="secondary-button" href={`${base}/app/finance/cash`}
-          >{translate('Cash calendar')}</a
-        >
-      </p>{/if}
     <header class="finance-overview__context">
       <div>
         <p class="finance-overview__eyebrow">{workspaceEyebrow}</p>
         <h2>{workspaceTitle}</h2>
+        {#if isAuditor}
+          <p data-finance-read-only>
+            <StatusBadge variant="neutral" text={round2Text(locale, 'readOnly')} />
+            {round2Text(locale, 'readOnlyHelp')}
+          </p>
+        {/if}
+        {#if showCommercial}
+          <nav
+            class="finance-commercial-jumps"
+            aria-label={round2Text(locale, 'commercialSections')}
+          >
+            {#if financeExpenses.length}<a
+                class="secondary-button"
+                href="#expense-classification"
+                onclick={(event) => {
+                  event.preventDefault();
+                  const target = document.getElementById('expense-classification');
+                  if (target) centerNavigationTarget(target);
+                }}>{round2Text(locale, 'expenseTreatment')}</a
+              >{/if}
+            <a
+              class="secondary-button"
+              href="#finance-configuration"
+              onclick={(event) => {
+                event.preventDefault();
+                const target = document.getElementById('finance-configuration');
+                if (target) centerNavigationTarget(target);
+              }}>{round2Text(locale, 'rulesAndIssuers')}</a
+            >
+          </nav>
+        {/if}
         <p>
           {#if activeView === 'commercial'}
             {translate(
@@ -1819,6 +1856,89 @@
           : translate('No project selected')}
       />
     </header>
+
+    <section class="finance-overview__workspace" aria-label={uxText(locale, 'projectWorkspace')}>
+      <form
+        class="finance-overview__filters"
+        method="GET"
+        aria-label={translate('Filter finance by project')}
+      >
+        <input type="hidden" name="view" value={activeView} />
+        {#if $page.url.searchParams.get('includeArchived') === '1'}
+          <input type="hidden" name="includeArchived" value="1" />
+        {/if}
+        <input type="hidden" name="lang" value={locale} />
+        <input type="hidden" name="source" value={sourceTab} />
+        {#if data.commercialAsOf}
+          <input type="hidden" name="asOf" value={data.commercialAsOf} />
+        {/if}
+        {#if data.commercialCategory}
+          <input type="hidden" name="category" value={data.commercialCategory} />
+        {/if}
+        {#if $page.url.searchParams.get('task')?.trim()}
+          <input type="hidden" name="task" value={$page.url.searchParams.get('task')!.trim()} />
+        {/if}
+        <Field id={`finance-project-${componentId}`} label={translate('Project')}>
+          <select
+            id={`finance-project-${componentId}`}
+            name="project"
+            onchange={(event) => event.currentTarget.form?.requestSubmit()}
+          >
+            {#each availableProjects as project}
+              <option
+                value={String(project.id)}
+                selected={String(project.id) === data.selectedProjectId}
+              >
+                {project.project_number} — {project.name}
+              </option>
+            {:else}
+              <option value="">{translate('No authorized projects')}</option>
+            {/each}
+          </select>
+        </Field>
+      </form>
+      {#if workspaceProject}
+        <div class="finance-overview__workspace-body">
+          <a class="finance-overview__project-name" href={workspaceProjectHref}>
+            <span>{uxText(locale, 'openProject')} <span aria-hidden="true">↗</span></span>
+            <strong>{workspaceProject.name}</strong>
+          </a>
+          <nav
+            class="finance-overview__workspace-actions"
+            aria-label={uxText(locale, 'projectWorkspace')}
+          >
+            {#if canWriteFinance}
+              <a
+                class="primary-button"
+                href={`${projectWorkflowHref('billing')}&assistantSurface=invoice-create`}
+                >{uxText(locale, 'prepareInvoice')}</a
+              >
+              <a
+                class="secondary-button"
+                href={`${workspaceProjectHref}&tab=billing#project-panel-billing`}
+                >{uxText(locale, 'conditions')}</a
+              >
+            {/if}
+            <a class="secondary-button" href={projectWorkflowHref('billing')}
+              >{uxText(locale, 'invoices')}</a
+            >
+            <a class="secondary-button" href={ledgerHref('outstanding')}
+              >{uxText(locale, 'collections')}</a
+            >
+          </nav>
+        </div>
+      {/if}
+    </section>
+    <div class="finance-overview__utilities">
+      {#if canWriteFinance}<a href={`${base}/app/finance/cash?lang=${locale}`}
+          >{translate('Cash calendar')}</a
+        >{/if}
+      {#if finance && data.selectedProjectId}
+        <a data-project-calculation-link href={projectCalculationHref()}
+          >{uxText(locale, 'calculation')}</a
+        >
+      {/if}
+    </div>
 
     {#if financeProblem && !failedReversalVisible && !reimbursementProblemInForm && !policyProblemInForm && !commercialAssignmentProblemInForm}
       <div data-finance-problem tabindex="-1">
@@ -1860,14 +1980,6 @@
           </div>
         {/if}
       </div>
-    {/if}
-
-    {#if finance && data.selectedProjectId}
-      <p class="finance-overview__calculation-link">
-        <a class="secondary-button" data-project-calculation-link href={projectCalculationHref()}
-          >{translate('Open recent-period calculation explanation')}</a
-        >
-      </p>
     {/if}
 
     {#if finance && financeProjectionIncomplete}
@@ -1984,7 +2096,8 @@
           <small>{translate('Authorized project sources')}</small>
         </a>
         <a
-          class="finance-overview__attention-card finance-overview__attention-card--notice"
+          class="finance-overview__attention-card"
+          class:finance-overview__attention-card--notice={attentionSettlements > 0}
           href={financeHref('economic', 'settlements', '#worker-payments')}
         >
           <span>{translate('Settlement review')}</span>
@@ -1992,7 +2105,8 @@
           <small>{translate('Expected or actual payment follow-up')}</small>
         </a>
         <a
-          class="finance-overview__attention-card finance-overview__attention-card--notice"
+          class="finance-overview__attention-card"
+          class:finance-overview__attention-card--notice={attentionReimbursements > 0}
           href={`${financeHref('economic', 'settlements')}&reimbursement=pending#finance-reimbursements`}
         >
           <span>{translate('Reimbursement review')}</span>
@@ -2017,46 +2131,6 @@
         {/if}
       </div>
     {/if}
-
-    <form
-      class="finance-overview__filters"
-      method="GET"
-      aria-label={translate('Filter finance by project')}
-    >
-      <input type="hidden" name="view" value={activeView} />
-      {#if $page.url.searchParams.get('includeArchived') === '1'}
-        <input type="hidden" name="includeArchived" value="1" />
-      {/if}
-      <input type="hidden" name="lang" value={locale} />
-      <input type="hidden" name="source" value={sourceTab} />
-      {#if data.commercialAsOf}
-        <input type="hidden" name="asOf" value={data.commercialAsOf} />
-      {/if}
-      {#if data.commercialCategory}
-        <input type="hidden" name="category" value={data.commercialCategory} />
-      {/if}
-      {#if $page.url.searchParams.get('task')?.trim()}
-        <input type="hidden" name="task" value={$page.url.searchParams.get('task')!.trim()} />
-      {/if}
-      <Field id={`finance-project-${componentId}`} label={translate('Project')}>
-        <select
-          id={`finance-project-${componentId}`}
-          name="project"
-          onchange={(event) => event.currentTarget.form?.requestSubmit()}
-        >
-          {#each availableProjects as project}
-            <option
-              value={String(project.id)}
-              selected={String(project.id) === data.selectedProjectId}
-            >
-              {project.project_number} — {project.name}
-            </option>
-          {:else}
-            <option value="">{translate('No authorized projects')}</option>
-          {/each}
-        </select>
-      </Field>
-    </form>
 
     {#if finance}
       {#if showEconomics}
@@ -2143,14 +2217,21 @@
             >{translate('Net receivable / credit')}:
             <strong>{displayMoney(finance.receivableMinor, finance.currency)}</strong></a
           >
-          <span data-metric="approved-wip"
+          <a
+            class="finance-overview__cash-link"
+            href={canWriteFinance
+              ? `${workspaceProjectHref}&tab=work`
+              : projectWorkflowHref('billing')}
+            data-metric="approved-wip"
             >{translate('Approved unbilled WIP')}:
-            <strong>{displayMoney(finance.approvedUnbilledWipMinor, finance.currency)}</strong
-            ></span
+            <strong>{displayMoney(finance.approvedUnbilledWipMinor, finance.currency)}</strong></a
           >
-          <span data-metric="revenue-candidate"
+          <a
+            class="finance-overview__cash-link"
+            href={financeHref('economic', 'portfolio', '#finance-source-records')}
+            data-metric="revenue-candidate"
             >{translate('Revenue candidate')}:
-            <strong>{displayMoney(finance.revenueCandidateMinor, finance.currency)}</strong></span
+            <strong>{displayMoney(finance.revenueCandidateMinor, finance.currency)}</strong></a
           >
         </div>
 
@@ -2724,6 +2805,7 @@
                     {#if expense.description}<p>{String(expense.description)}</p>{/if}
                     <a
                       href={`${base}/app/expenses/${encodeURIComponent(expenseId)}?lang=${encodeURIComponent(locale)}`}
+                      aria-label={`${translate('Open expense')} · ${value(expense, 'workerName', 'worker_name')} · ${value(expense, 'spentOn', 'spent_on')} · ${displayMoney(value(expense, 'amountMinor', 'amount_minor'), value(expense, 'currency'))} · ${expenseId.slice(-8)}`}
                       >{translate('Open expense')}</a
                     >
                   </div>
@@ -3046,7 +3128,7 @@
           </p>
         {/if}
 
-        <div class="finance-overview__configuration">
+        <div id="finance-configuration" class="finance-overview__configuration" tabindex="-1">
           <FinanceConfigurationSection
             {locale}
             {data}
@@ -3678,7 +3760,7 @@
                   <strong>
                     <a
                       class="finance-overview__source-link"
-                      href={`${base}/app/expenses/${encodeURIComponent(value(reimbursement, 'id'))}`}
+                      href={`${base}/app/expenses/${encodeURIComponent(value(reimbursement, 'id'))}?lang=${encodeURIComponent(locale)}`}
                     >
                       {value(reimbursement, 'workerName', 'worker_name')} · {value(
                         reimbursement,
@@ -3768,6 +3850,97 @@
 {/if}
 
 <style>
+  .finance-commercial-jumps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-block: 0.75rem;
+  }
+  .finance-commercial-jumps a {
+    min-height: 44px;
+  }
+  #finance-configuration {
+    scroll-margin-top: 6rem;
+  }
+
+  .finance-overview__workspace {
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 1rem;
+    background: linear-gradient(120deg, #f1f6f8, var(--portal-surface, #fff) 72%);
+    overflow: hidden;
+  }
+  .finance-overview__workspace .finance-overview__filters {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 1rem;
+  }
+  .finance-overview__workspace-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 0 1rem 1rem;
+  }
+  .finance-overview__project-name {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+    min-height: 44px;
+    color: inherit;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  .finance-overview__project-name > span {
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8rem;
+  }
+  .finance-overview__project-name strong {
+    font-size: 1.2rem;
+  }
+  .finance-overview__project-name:hover strong {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .finance-overview__workspace-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .finance-overview__workspace-actions a {
+    min-height: 44px;
+  }
+  .finance-overview__utilities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+  }
+  .finance-overview__utilities a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--portal-ink, #20201d);
+    font-size: 0.85rem;
+    text-underline-offset: 0.2em;
+  }
+  .finance-overview__workspace a:focus-visible,
+  .finance-overview__utilities a:focus-visible {
+    outline: 3px solid var(--portal-accent, #53524c);
+    outline-offset: 3px;
+  }
+  @media (max-width: 480px) {
+    .finance-overview__workspace-actions {
+      width: 100%;
+    }
+    .finance-overview__workspace-actions a {
+      flex: 1 1 auto;
+    }
+    .finance-overview__workspace-actions .primary-button {
+      flex-basis: 100%;
+    }
+  }
+
   .finance-overview__hero {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3843,7 +4016,6 @@
     background: color-mix(in srgb, var(--portal-surface, #fff) 88%, var(--portal-wash, #f2f2f1));
   }
 
-  .finance-overview__cash span,
   .finance-overview__cash-link {
     display: grid;
     gap: 0.2rem;

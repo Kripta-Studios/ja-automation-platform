@@ -1,0 +1,467 @@
+{
+  "batchId": "UX2-PROJECT",
+  "objective": "Browser-audit projects, clients, onboarding handoffs and team workflows; implement 30 distinct improvements beyond the first 100.",
+  "baselineLedger": "docs/evidence/ux-refresh-20261011/improvements.json",
+  "browserAudit": {
+    "completedBeforeProductEdits": true,
+    "roles": ["owner_admin", "project_manager"],
+    "viewports": ["360x800", "390x844", "768x1024", "1440x900"],
+    "routes": [
+      "/app/projects?lang=en",
+      "/app/projects?view=clients&lang=en",
+      "/app/projects/{id}?tab=team&lang=en",
+      "/app/projects?view=team&project={id}&worker={id}&lang=en"
+    ],
+    "evidenceDirectory": "/home/kripta/ja-ux-evidence-20261011/round2-projects/browser-audit",
+    "screenshots": 37,
+    "productionMutations": 0,
+    "findings": [
+      "At phone widths, the shared Find a task launcher overlaps project controls; root owns that shared-shell fix.",
+      "Client view shows a generic archived-project banner; root owns that shared-shell fix."
+    ]
+  },
+  "items": [
+    {
+      "id": "UX2-P01",
+      "before": "A deep link to one client retained every directory card, leaving the requested record without clear context.",
+      "after": "Explicit focus shows the requested card; after guarded navigation, Show all clients clears the restored target so the full authorized directory and its search work normally.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "role": "owner_admin",
+      "route": "/app/projects?view=clients&focus={clientId}&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/owner-360-client-directory.png",
+        "after": "Passed in tests/e2e/ux-round2-projects.spec.ts (focus, Show all, filtered search, Back restoration); 44/44 combined scenarios on prior coordinated build. Post-edit full-page captures are now saved under /home/kripta/ja-ux-evidence-20261011/round2-projects/pre-stale-card-collapse/{phone-360,phone-390,tablet-768,desktop}/."
+      }
+    },
+    {
+      "id": "UX2-P02",
+      "before": "Client search lived only in component state and did not describe the filtered directory in the URL.",
+      "after": "The existing q parameter and scoped view preference keep the search value aligned with reload and browser Back restoration.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "role": "owner_admin",
+      "route": "/app/projects?view=clients&q={search}&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/owner-390-client-directory.png",
+        "after": "Passed in tests/e2e/ux-round2-projects.spec.ts (q URL and Back restoration). Post-edit full-page captures are now saved under /home/kripta/ja-ux-evidence-20261011/round2-projects/pre-stale-card-collapse/{phone-360,phone-390,tablet-768,desktop}/."
+      }
+    },
+    {
+      "id": "UX2-P03",
+      "before": "Names with accents did not match when users typed the same letters without accents.",
+      "after": "Directory matching folds diacritics on both the query and authorized client/contact/project fields.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "role": "owner_admin",
+      "route": "/app/projects?view=clients&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/owner-390-client-directory.png",
+        "after": "Passed in tests/e2e/ux-round2-projects.spec.ts (unaccented name search excludes another client). Post-edit full-page captures are now saved under /home/kripta/ja-ux-evidence-20261011/round2-projects/pre-stale-card-collapse/{phone-360,phone-390,tablet-768,desktop}/."
+      }
+    },
+    {
+      "id": "UX2-P04",
+      "before": "Directory search omitted contact role, company, location and notes.",
+      "after": "Search also matches those fields and related project identity/site values from the existing authorized projection.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "role": "owner_admin",
+      "route": "/app/projects?view=clients&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/owner-1440-client-directory.png",
+        "after": "Visual owner-directory captures at all four viewports; related metadata-field matching was not separately asserted in the round-two browser suite."
+      }
+    },
+    {
+      "id": "UX2-P05",
+      "before": "A filtered client result looked like an empty authorized directory and offered no immediate reset.",
+      "after": "No-match state distinguishes search failure from an empty authorized projection and provides a clear-search action.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "role": "owner_admin",
+      "route": "/app/projects?view=clients&q={search}&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/owner-390-client-directory.png",
+        "after": "Visual owner-directory captures at all four viewports; empty-query no-match reset was not separately asserted in the round-two browser suite."
+      }
+    },
+    {
+      "id": "UX2-P06",
+      "before": "A client with no linked projects had no direct project-creation handoff.",
+      "after": "Its empty state offers a client-scoped create action; the existing PortalShell project form consumes that client query and preselects it.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte",
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts",
+        "tests/e2e/ux-round2-projects.spec.ts"
+      ],
+      "role": "owner_admin",
+      "route": "/app/projects?action=new-project&client={clientId}&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/owner-1440-client-onboarding.png",
+        "after": "Passed in tests/e2e/ux-round2-projects.spec.ts (Spanish client-scoped project create action opens the form with that client selected). Post-edit full-page captures are now saved under /home/kripta/ja-ux-evidence-20261011/round2-projects/pre-stale-card-collapse/{phone-360,phone-390,tablet-768,desktop}/."
+      }
+    },
+    {
+      "id": "UX2-P07",
+      "before": "Create, edit and archive/delete client actions dropped the selected language.",
+      "after": "Client management links carry the current lang parameter through the action handoff.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "role": "owner_admin",
+      "route": "/app/projects?action={new-client|update-client}&lang={locale}",
+      "browserEvidence": {
+        "before": "browser-audit/owner-1440-client-directory.png",
+        "after": "Visual owner-directory captures at all four viewports; all client/contact mutation-link locale variants were not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P08",
+      "before": "The client directory had no way to open the project register already scoped to one client's related projects.",
+      "after": "Clients with projects get a register link carrying client and language filters; the destination consumes the client filter, selects it, and narrows the authorized rows for owner and manager registers.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte",
+        "apps/portal/src/lib/PortalShell.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts",
+        "tests/e2e/ux-round2-projects.spec.ts"
+      ],
+      "role": "owner_admin",
+      "route": "/app/projects?client={clientId}&status=&lang={locale}",
+      "browserEvidence": {
+        "before": "browser-audit/owner-1440-client-directory.png",
+        "after": "Passed in tests/e2e/ux-round2-projects.spec.ts: the new owner register client filter is selected and every visible destination row carries that client ID. Post-edit full-page captures are now saved under /home/kripta/ja-ux-evidence-20261011/round2-projects/pre-stale-card-collapse/{phone-360,phone-390,tablet-768,desktop}/."
+      }
+    },
+    {
+      "id": "UX2-P09",
+      "before": "Client billing email was plain text, requiring manual selection and copy.",
+      "after": "The displayed billing address opens a mail action while keeping the address visible.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "role": "owner_admin",
+      "route": "/app/projects?view=clients&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/owner-1440-client-directory.png",
+        "after": "Visual owner-directory captures at all four viewports; the mailto target was not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P10",
+      "before": "Contact phone numbers were non-interactive text on phones.",
+      "after": "Contact phone numbers provide a tel action with a contact-specific accessible name.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "role": "owner_admin",
+      "route": "/app/projects?view=clients&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/owner-390-client-directory.png",
+        "after": "Visual owner-directory captures at all four viewports; the tel target was not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P11",
+      "before": "Primary and billing contact roles were only visible after opening the edit form.",
+      "after": "Existing contact purpose flags appear as readable Primary and Billing labels on contact cards.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "role": "owner_admin",
+      "route": "/app/projects?view=clients&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/owner-1440-client-directory.png",
+        "after": "Visual owner-directory captures at all four viewports; contact-purpose flags were not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P12",
+      "before": "Contact forms did not provide browser autofill semantics for common identity/contact fields.",
+      "after": "Name, email, telephone, organization, title and address inputs expose matching autocomplete tokens.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "role": "owner_admin",
+      "route": "/app/projects?view=clients&action={new|edit}-contact",
+      "browserEvidence": {
+        "before": "browser-audit/owner-390-client-directory.png",
+        "after": "Visual owner-directory captures at all four viewports; autocomplete tokens were not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P13",
+      "before": "Closing or switching inline contact forms could discard entered edits without confirmation.",
+      "after": "Inline form changes use the shared dirty-form guard; declining discard keeps the form and entered values, and route navigation is guarded once.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte",
+        "tests/e2e/ux-round2-projects.spec.ts"
+      ],
+      "role": "owner_admin",
+      "route": "/app/projects?view=clients&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/owner-390-client-directory.png",
+        "after": "Passed in tests/e2e/ux-round2-projects.spec.ts: declining discard preserves the draft, and accepting then closes the form. Post-edit full-page captures are now saved under /home/kripta/ja-ux-evidence-20261011/round2-projects/pre-stale-card-collapse/{phone-360,phone-390,tablet-768,desktop}/."
+      }
+    },
+    {
+      "id": "UX2-P14",
+      "before": "Every authorized client rendered its full actual-work calendar inline, producing an excessively long directory.",
+      "after": "Each calendar remains available behind its own disclosure; deep links, validation and printing still reveal it.",
+      "files": ["apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte"],
+      "role": "owner_admin",
+      "route": "/app/projects?view=clients&calendarMonth={month}&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/owner-360-client-directory.png",
+        "after": "Visual owner-directory captures at all four viewports; calendar disclosure, month navigation and print behavior were not exercised in the final browser suite."
+      }
+    },
+    {
+      "id": "UX2-P15",
+      "before": "Project status totals counted the full register even when search or client filters narrowed visible projects.",
+      "after": "Active, planned and attention totals now use the current search/client scope while ignoring the selected status itself.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectSection.svelte"],
+      "role": "project_manager",
+      "route": "/app/projects?q={search}&client={clientId}&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/manager-390-project-register.png",
+        "after": "Passed in tests/e2e/ux-round2-projects.spec.ts: counts describe the active query/client scope."
+      }
+    },
+    {
+      "id": "UX2-P16",
+      "before": "Status summary links discarded the active search/client criteria and language.",
+      "after": "Status shortcuts retain q, client and lang while changing only status.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+        "tests/e2e/ux-round2-projects.spec.ts"
+      ],
+      "role": "project_manager",
+      "route": "/app/projects?status={status}&q={search}&client={clientId}&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/manager-768-project-register.png",
+        "after": "Passed in tests/e2e/ux-round2-projects.spec.ts: Needs attention preserves q, client and status. Post-edit full-page captures are now saved under /home/kripta/ja-ux-evidence-20261011/round2-projects/pre-stale-card-collapse/{phone-360,phone-390,tablet-768,desktop}/."
+      }
+    },
+    {
+      "id": "UX2-P17",
+      "before": "The project register calendar shared the default agenda preference key with unrelated planning calendars.",
+      "after": "The register calendar has its own project-register agenda scope.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectSection.svelte"],
+      "role": "owner_admin, project_manager",
+      "route": "/app/projects?lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/owner-1440-project-register.png",
+        "after": "Visual project-register captures at all four viewports; agenda preference isolation was not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P18",
+      "before": "Projects without a start date were silently absent from the register calendar.",
+      "after": "Calendar context states how many scoped projects have a date and how many are not plotted yet.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "role": "owner_admin, project_manager",
+      "route": "/app/projects?lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/manager-1440-project-register.png",
+        "after": "Visual project-register captures at all four viewports; undated-project calendar context was not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P19",
+      "before": "Project register schedules displayed raw ISO dates beside the project timezone.",
+      "after": "Start/end dates use the interface locale and remain paired with the project's configured timezone.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectSection.svelte"],
+      "role": "owner_admin, project_manager",
+      "route": "/app/projects?lang={locale}",
+      "browserEvidence": {
+        "before": "browser-audit/manager-1440-project-register.png",
+        "after": "Visual project-register captures at all four viewports; locale/timezone schedule text was not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P20",
+      "before": "The project register did not show whether an active project had a staffed team.",
+      "after": "Desktop rows and phone cards show a safe aggregate count of distinct active assigned workers.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "role": "owner_admin, project_manager",
+      "route": "/app/projects?lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/manager-390-project-register.png",
+        "after": "Visual project-register captures at all four viewports; staffing aggregate was not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P21",
+      "before": "Assignment filters changed the list without reporting the matching active rows against the total.",
+      "after": "The assignment area announces matching and total active assignment counts as filters change.",
+      "files": [
+        "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "role": "project_manager",
+      "route": "/app/projects?view=team&project={id}&worker={id}&lang=en",
+      "browserEvidence": {
+        "before": "browser-audit/manager-390-project-team-viewport.png",
+        "after": "Visual manager project-team-register captures at all four viewports; live assignment-count announcement was not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P22",
+      "before": "Every filtered active assignment expanded its date editor and removal form, even when no edit was requested.",
+      "after": "Each date editor is disclosed per assignment; an update deep link or validation error opens the matching editor.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectSection.svelte"],
+      "role": "project_manager",
+      "route": "/app/projects?action=update-assignment&project={id}&worker={id}#project-assignment-list",
+      "browserEvidence": {
+        "before": "browser-audit/manager-390-project-team-viewport.png",
+        "after": "Passed by the manager scoped-assignment scenario in tests/e2e/ux-round2-projects.spec.ts: the matching assignment editor is open for the selected project and worker. Post-edit full-page captures are now saved under /home/kripta/ja-ux-evidence-20261011/round2-projects/pre-stale-card-collapse/{phone-360,phone-390,tablet-768,desktop}/."
+      }
+    },
+    {
+      "id": "UX2-P23",
+      "before": "Filtered assignment rows identified the project number and worker but omitted project name and existing assignment dates.",
+      "after": "Rows show project name and localized current start/end coverage before the editor is opened.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectSection.svelte"],
+      "role": "project_manager",
+      "route": "/app/projects?action=update-assignment&project={id}&worker={id}#project-assignment-list",
+      "browserEvidence": {
+        "before": "browser-audit/manager-1440-project-team-viewport.png",
+        "after": "Visual manager project-detail-team captures at all four viewports; project name and existing coverage display were not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P24",
+      "before": "Register assignment actions and project calendar event links did not consistently preserve locale or scheduling aliases.",
+      "after": "Assignment actions carry lang, and calendar events include planned_start_date/end_date aliases and open the localized project detail route.",
+      "files": ["apps/portal/src/lib/portal/sections/ProjectSection.svelte"],
+      "role": "owner_admin, project_manager",
+      "route": "/app/projects?action=assign-worker&project={id}&lang={locale}; calendar event -> /app/projects/{id}?lang={locale}",
+      "browserEvidence": {
+        "before": "browser-audit/owner-1440-project-register.png",
+        "after": "Visual project-register captures at all four viewports; calendar schedule aliases and assignment-link locale were not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P25",
+      "before": "Expected schedule effective-from date was shown as an ISO string.",
+      "after": "The effective date is formatted in the selected interface locale without changing its date-only meaning.",
+      "files": ["apps/portal/src/routes/app/projects/[id]/+page.svelte"],
+      "role": "owner_admin, project_manager",
+      "route": "/app/projects/{id}?tab=team&lang={locale}",
+      "browserEvidence": {
+        "before": "browser-audit/manager-1440-project-detail-viewport.png",
+        "after": "Visual manager project-detail-team captures at all four viewports; effective-from locale formatting was not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P26",
+      "before": "Expected weekday minutes appeared as an unlabeled five-number sequence.",
+      "after": "Each existing Monday–Friday minute value is paired with its weekday label.",
+      "files": [
+        "apps/portal/src/routes/app/projects/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "role": "owner_admin, project_manager",
+      "route": "/app/projects/{id}?tab=team&lang={locale}",
+      "browserEvidence": {
+        "before": "browser-audit/manager-1440-project-detail-viewport.png",
+        "after": "Visual manager project-detail-team captures at all four viewports; weekday labels were not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P27",
+      "before": "Team assignment coverage dates were separated only by an arrow and shown in raw form.",
+      "after": "Roster coverage displays localized Starts on and Ends on labels, retaining an open-ended end state.",
+      "files": ["apps/portal/src/routes/app/projects/[id]/+page.svelte"],
+      "role": "owner_admin, project_manager",
+      "route": "/app/projects/{id}?tab=team&lang={locale}",
+      "browserEvidence": {
+        "before": "browser-audit/manager-390-project-team-viewport.png",
+        "after": "Visual manager project-detail-team captures at all four viewports; team coverage labels were not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P28",
+      "before": "Planning rows displayed machine timestamps without a locale format or visible timezone.",
+      "after": "Planning row times use the current locale and state UTC explicitly, consistent with the calendar's UTC semantics.",
+      "files": [
+        "apps/portal/src/routes/app/projects/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/project-ux-round2-copy.ts"
+      ],
+      "role": "owner_admin, project_manager",
+      "route": "/app/projects/{id}?tab=team&lang={locale}",
+      "browserEvidence": {
+        "before": "browser-audit/manager-1440-project-detail-viewport.png",
+        "after": "Visual manager project-detail-team captures at all four viewports; UTC timestamp formatting was not separately asserted."
+      }
+    },
+    {
+      "id": "UX2-P29",
+      "before": "Project team rows had no named assignment-management action that opened the selected person's assignment record.",
+      "after": "Manage assignment carries both project and worker filters, opens the assignment list and matching date editor, and is visible only to owner/manager roles.",
+      "files": [
+        "apps/portal/src/routes/app/projects/[id]/+page.svelte",
+        "apps/portal/src/lib/portal/sections/ProjectSection.svelte",
+        "tests/e2e/ux-round2-projects.spec.ts"
+      ],
+      "role": "owner_admin, project_manager",
+      "route": "/app/projects/{id}?tab=team&lang=en -> /app/projects?action=update-assignment&project={id}&worker={id}&lang=en#project-assignment-list",
+      "browserEvidence": {
+        "before": "browser-audit/manager-390-project-detail-viewport.png",
+        "after": "Passed in tests/e2e/ux-round2-projects.spec.ts: Manage assignment preserves project and worker filters and opens exactly the matching editor. Post-edit full-page captures are now saved under /home/kripta/ja-ux-evidence-20261011/round2-projects/pre-stale-card-collapse/{phone-360,phone-390,tablet-768,desktop}/."
+      }
+    },
+    {
+      "id": "UX2-P30",
+      "before": "Team, crew, planning, and selected-day operational links dropped the current interface language.",
+      "after": "Those project-detail workflow links carry lang while retaining their existing project/date/action filters and browser-history path.",
+      "files": ["apps/portal/src/routes/app/projects/[id]/+page.svelte"],
+      "role": "owner_admin, project_manager, worker",
+      "route": "/app/projects/{id}?tab=team&lang={locale} -> team/crew/planning/time/expense destinations",
+      "browserEvidence": {
+        "before": "browser-audit/manager-1440-project-detail-viewport.png",
+        "after": "Visual manager project-detail-team captures at all four viewports; workflow-link locale and Back restoration were not separately asserted."
+      }
+    }
+  ],
+  "validation": {
+    "portalTypecheck": "pass",
+    "changedFileEslint": "pass",
+    "prettier": "pass",
+    "round2BrowserScenarios": "44/44 passed across phone-360, phone-390, tablet-768 and desktop on the coordinated build before the accounting stale-pack follow-up; see /home/kripta/ja-ux-evidence-20261011/round2-projects/browser-run-verified.log. Project test scenarios are unchanged by that follow-up.",
+    "postchangeBrowserScreenshots": "32 final full-page screenshots captured after the coordinated rebuild across four widths and owner, manager, finance, and auditor roles.",
+    "accountingFollowupBrowserScenarios": "20/20 passed after the approved stale-pack follow-up rebuild across phone-360, phone-390, tablet-768 and desktop; see /home/kripta/ja-ux-evidence-20261011/round2-projects/accounting-run-after-stale-collapse.log."
+  },
+  "scope": {
+    "migrations": 0,
+    "requestInterfacesExpanded": false,
+    "rbacOrServerProjectionChanges": false,
+    "productionMutations": 0,
+    "deploymentOrCommit": false,
+    "rootOwnedIntegrationSuggestions": [
+      "Give the owner/finance PortalShell project calendar its own owner-project-register agenda scope; the role branches render only one project calendar per user.",
+      "Resolve the shared Find a task launcher overlap with project controls at phone widths.",
+      "Remove the generic archived-project banner from Client view."
+    ]
+  },
+  "postchangeScreenshots": {
+    "directory": "/home/kripta/ja-ux-evidence-20261011/round2-projects/after",
+    "count": 32,
+    "viewports": ["phone-360", "phone-390", "tablet-768", "desktop"],
+    "coverage": [
+      "owner project register",
+      "owner client directory",
+      "owner Spanish project handoff form",
+      "manager project register",
+      "manager project team register",
+      "manager project detail/team",
+      "finance accounting register",
+      "auditor read-only accounting register"
+    ],
+    "captureScript": "/home/kripta/ja-ux-evidence-20261011/round2-projects/capture-after.mjs",
+    "captureLog": "/home/kripta/ja-ux-evidence-20261011/round2-projects/capture-after.log",
+    "note": "Final 32 full-page captures were taken after the approved stale-pack disclosure follow-up rebuild; phone accounting screenshots show stale badges with secondary actions collapsed by default."
+  }
+}

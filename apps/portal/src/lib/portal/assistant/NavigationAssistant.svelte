@@ -127,10 +127,12 @@
     // The native dialog supplies a focus trap and makes the underlying page inert.
     // Existing form sheets stay mounted, retaining entered values and navigation guards.
     window.addEventListener('keydown', shortcut);
+    window.addEventListener('ja:open-task-assistant', show);
     document.addEventListener('keydown', escape, true);
     return () => {
       surfaceObserver.disconnect();
       window.removeEventListener('keydown', shortcut);
+      window.removeEventListener('ja:open-task-assistant', show);
       document.removeEventListener('keydown', escape, true);
       dialog?.close();
     };
@@ -582,8 +584,7 @@
   }
   @media (max-width: 767px) {
     .assistant-launcher {
-      bottom: calc(5.5rem + env(safe-area-inset-bottom));
-      right: 0.75rem;
+      display: none;
     }
     kbd {
       display: none;

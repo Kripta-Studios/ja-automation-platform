@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "848c07f20efc08a0b07e2ea23bb393b7d25392f0",
+  "image": "ja-automation-portal:manuals-848c07f20efc",
+  "imageId": "sha256:e1b149560cee2be93e80269b5f51e85b600e0e7b6fd534b626597401a091209e",
+  "parentImageId": "sha256:ba33feb461d54cb4849b08dc233253f9103d2ceeda13c9d94324649f5489a170",
+  "manuals": 19,
+  "runtimeVerification": {
+    "status": "passed",
+    "sourceCommit": "848c07f20efc08a0b07e2ea23bb393b7d25392f0",
+    "entriesVerified": 23325,
+    "manifestSha256": "845149f00cd650e82cf307ab71e5bfd0bc78167d85515eeb592694cb429d3c40"
+  },
+  "changedRuntime": "portal build/generated metadata, matching portal source and manual PDFs only; unchanged dependencies, migrations, jobs and local OCR tools"
+}

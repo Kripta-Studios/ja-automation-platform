@@ -1,0 +1,178 @@
+{
+  "checkedAt": "2026-10-11T17:28:24.491Z",
+  "status": "passed",
+  "checks": [
+    {
+      "role": "owner",
+      "width": 390,
+      "route": "/help",
+      "status": 200,
+      "revision": "2026-10-11",
+      "overflow": false
+    },
+    {
+      "role": "owner",
+      "width": 1440,
+      "route": "/help",
+      "status": 200,
+      "revision": "2026-10-11",
+      "overflow": false
+    },
+    {
+      "role": "owner",
+      "id": "bbs-auditor-manual",
+      "status": 200,
+      "sha256": "35d150da94f35eb5f1178d0dd4bbbbc01e661aee14d9c589ece6f82e8e6e6f14"
+    },
+    {
+      "role": "owner",
+      "id": "bbs-chief-manual",
+      "status": 200,
+      "sha256": "4a1fdf370382653f59ddf73b43a8c9508a25353b0f8b79a0262fec38191ecec2"
+    },
+    {
+      "role": "owner",
+      "id": "bbs-external-technician-manual",
+      "status": 200,
+      "sha256": "2109f97606efff39a05ea1efa5f24d070c1132709b917b84a91247eb91ac88fc"
+    },
+    {
+      "role": "owner",
+      "id": "bbs-finance-manual",
+      "status": 200,
+      "sha256": "c8575c50bf298148bf1b7c3ae49d8688e851b7af062a7b1729cc8b9aef3df1b5"
+    },
+    {
+      "role": "owner",
+      "id": "bbs-manager-manual",
+      "status": 200,
+      "sha256": "56e662fde138750344e747823fea23f462b1081e8724d011c18b9f453b763eff"
+    },
+    {
+      "role": "owner",
+      "id": "bbs-owner-manual",
+      "status": 200,
+      "sha256": "175a0438fd29b13ae140f2c13121174ab8f4efdd0a6513d50617f7ec90c87c44"
+    },
+    {
+      "role": "owner",
+      "id": "bbs-supplier-coordinator-manual",
+      "status": 200,
+      "sha256": "d58cc367637a15c226211ded2d701ff532f32b61f807efe94a64ffea72785e92"
+    },
+    {
+      "role": "owner",
+      "id": "bbs-worker-manual",
+      "status": 200,
+      "sha256": "ed8371d9d95666b7b58b492dc1c928f12094573b679247794bdc60afed7f9437"
+    },
+    {
+      "role": "finance",
+      "width": 390,
+      "route": "/help",
+      "status": 200,
+      "revision": "2026-10-11",
+      "overflow": false
+    },
+    {
+      "role": "finance",
+      "width": 1440,
+      "route": "/help",
+      "status": 200,
+      "revision": "2026-10-11",
+      "overflow": false
+    },
+    {
+      "role": "finance",
+      "id": "bbs-finance-manual",
+      "status": 200,
+      "sha256": "c8575c50bf298148bf1b7c3ae49d8688e851b7af062a7b1729cc8b9aef3df1b5"
+    },
+    {
+      "role": "finance",
+      "denied": "bbs-owner-manual",
+      "status": 404
+    },
+    {
+      "role": "manager",
+      "width": 390,
+      "route": "/help",
+      "status": 200,
+      "revision": "2026-10-11",
+      "overflow": false
+    },
+    {
+      "role": "manager",
+      "width": 1440,
+      "route": "/help",
+      "status": 200,
+      "revision": "2026-10-11",
+      "overflow": false
+    },
+    {
+      "role": "manager",
+      "id": "bbs-manager-manual",
+      "status": 200,
+      "sha256": "56e662fde138750344e747823fea23f462b1081e8724d011c18b9f453b763eff"
+    },
+    {
+      "role": "manager",
+      "denied": "bbs-owner-manual",
+      "status": 404
+    },
+    {
+      "role": "worker",
+      "width": 390,
+      "route": "/help",
+      "status": 200,
+      "revision": "2026-10-11",
+      "overflow": false
+    },
+    {
+      "role": "worker",
+      "width": 1440,
+      "route": "/help",
+      "status": 200,
+      "revision": "2026-10-11",
+      "overflow": false
+    },
+    {
+      "role": "worker",
+      "id": "bbs-external-technician-manual",
+      "status": 200,
+      "sha256": "2109f97606efff39a05ea1efa5f24d070c1132709b917b84a91247eb91ac88fc"
+    },
+    {
+      "role": "worker",
+      "denied": "bbs-owner-manual",
+      "status": 404
+    },
+    {
+      "role": "auditor",
+      "width": 390,
+      "route": "/help",
+      "status": 200,
+      "revision": "2026-10-11",
+      "overflow": false
+    },
+    {
+      "role": "auditor",
+      "width": 1440,
+      "route": "/help",
+      "status": 200,
+      "revision": "2026-10-11",
+      "overflow": false
+    },
+    {
+      "role": "auditor",
+      "id": "bbs-auditor-manual",
+      "status": 200,
+      "sha256": "35d150da94f35eb5f1178d0dd4bbbbc01e661aee14d9c589ece6f82e8e6e6f14"
+    },
+    {
+      "role": "auditor",
+      "denied": "bbs-owner-manual",
+      "status": 404
+    }
+  ]
+}

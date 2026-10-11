@@ -1,0 +1,20 @@
+{
+  "githubMainAtApplicationPublication": "848c07f20efc08a0b07e2ea23bb393b7d25392f0",
+  "deployedSourceCommit": "848c07f20efc08a0b07e2ea23bb393b7d25392f0",
+  "comparedSourceAndManualFiles": 1618,
+  "mismatches": [],
+  "runtime": {
+    "status": "passed",
+    "sourceCommit": "848c07f20efc08a0b07e2ea23bb393b7d25392f0",
+    "entriesVerified": 23325,
+    "manifestSha256": "845149f00cd650e82cf307ab71e5bfd0bc78167d85515eeb592694cb429d3c40"
+  },
+  "timerStates": {
+    "jaautomation-zip-deploy.timer": "active",
+    "jaautomation-backup.timer": "active",
+    "jaautomation-backup-prune.timer": "active",
+    "jaautomation-jobs.timer": "active",
+    "jaautomation-runtime-cleanup.timer": "active"
+  },
+  "note": "The subsequent deployment-receipt commit changes evidence only; application code, Help metadata and manual artifacts remain identical."
+}

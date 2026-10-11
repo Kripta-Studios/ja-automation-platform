@@ -1871,3 +1871,5 @@ Supersedes the earlier candidate-only deployment status: production now runs `di
 ### 11 October 2026 · current role-manual refresh
 
 Scoped documentation refresh: eight current role courses, Owner reference, quick guide, Digital workers reference and workflow map; 25 earlier PDF editions explicitly archived without changing their original page streams. Production/main initially matched for 806 source files and 23,325 runtime entries. See [evidence and limits](docs/evidence/manuals-refresh-20261011/README.md), PDF verification and Help download tests. This does not change the overall Client Essential verdict or claim new end-to-end financial/device acceptance.
+
+Publication verified: `manuals-848c07f20efc` is live and its application/manual source commit was pushed to GitHub main. All eight Help PDF hashes match; five live personas preserve download boundaries; backup/history/schema77 checks and post-release jobs passed. [Receipt](docs/evidence/manuals-refresh-20261011/deployment.json). This receipt adds no runtime or schema change.

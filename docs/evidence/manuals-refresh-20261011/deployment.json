@@ -1,0 +1,25 @@
+{
+  "status": "deployed and verified",
+  "sourceCommit": "848c07f20efc08a0b07e2ea23bb393b7d25392f0",
+  "release": "manuals-848c07f20efc",
+  "previousRelease": "digital-workers-2d7b76a250f6",
+  "backupPath": "/var/backups/jaautomation/2026-10-11T172754469Z-3fdc887b-9662-4efb-abe3-3d265eb85db6",
+  "backupDatabaseSha256": "43dc8fc08661ec9f85658d158c9631715b0dc50d31ad2c4e2815da08d8964f54",
+  "historyPreservation": {
+    "issuedInvoicesUnchanged": true,
+    "issuedInvoiceLinesUnchanged": true,
+    "originalPrivateFilesUnchanged": true,
+    "issuedInvoiceCount": 1,
+    "issuedInvoiceLineCount": 2,
+    "originalPrivateFileCount": 36,
+    "schema": 77,
+    "integrity": "ok",
+    "foreignKeyViolations": 0
+  },
+  "portalReady": true,
+  "jobsRunning": true,
+  "maintenanceRemoved": true,
+  "manualDownloads": "all eight current role PDFs match source hashes; five live personas checked",
+  "schemaChanged": false,
+  "verifiedAt": "2026-10-11T19:28:27+0200"
+}

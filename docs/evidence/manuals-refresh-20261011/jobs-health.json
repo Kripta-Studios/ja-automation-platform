@@ -1,0 +1,85 @@
+{
+  "running": true,
+  "cycles": [
+    {
+      "level": "info",
+      "processed": 2,
+      "failed": 0,
+      "outbox": {
+        "processed": 0,
+        "failed": 0,
+        "permanentlyFailed": 0
+      }
+    },
+    {
+      "level": "info",
+      "processed": 0,
+      "failed": 0,
+      "outbox": {
+        "processed": 0,
+        "failed": 0,
+        "permanentlyFailed": 0
+      }
+    },
+    {
+      "level": "info",
+      "processed": 0,
+      "failed": 0,
+      "outbox": {
+        "processed": 0,
+        "failed": 0,
+        "permanentlyFailed": 0
+      }
+    },
+    {
+      "level": "info",
+      "processed": 0,
+      "failed": 0,
+      "outbox": {
+        "processed": 0,
+        "failed": 0,
+        "permanentlyFailed": 0
+      }
+    },
+    {
+      "level": "info",
+      "processed": 0,
+      "failed": 0,
+      "outbox": {
+        "processed": 0,
+        "failed": 0,
+        "permanentlyFailed": 0
+      }
+    },
+    {
+      "level": "info",
+      "processed": 0,
+      "failed": 0,
+      "outbox": {
+        "processed": 0,
+        "failed": 0,
+        "permanentlyFailed": 0
+      }
+    },
+    {
+      "level": "info",
+      "processed": 0,
+      "failed": 0,
+      "outbox": {
+        "processed": 0,
+        "failed": 0,
+        "permanentlyFailed": 0
+      }
+    },
+    {
+      "level": "info",
+      "processed": 2,
+      "failed": 0,
+      "outbox": {
+        "processed": 0,
+        "failed": 0,
+        "permanentlyFailed": 0
+      }
+    }
+  ]
+}

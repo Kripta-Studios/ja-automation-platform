@@ -6,6 +6,19 @@
 **Client validation update:** 2026-08-24
 The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
 
+## Requested Owner Help tutorial — 2026-10-11
+
+Scoped addition: an Owner-only, click-to-load tutorial with 24 chapters, English captions and
+protected byte-range streaming. The media API rechecks live session and persisted Owner persona
+on every request, bypasses offline caching and closes database access before streaming. Other
+roles receive no tutorial metadata or media access. Focused security/service-worker tests (50)
+and existing manual regressions (17) pass; isolated compiled-app browser checks cover Owner
+360/390/768/1440 and Finance/Manager/Worker/Auditor denial. Independent security review approved.
+[Scoped evidence](docs/evidence/owner-help-20261011/verification.json) records the hosting assets,
+browser checks and read-only storage audit. Production cutover/live checks are retained in the
+host receipt directory recorded there. No schema, financial history or whole-app acceptance
+status changes; no tutorial workspace cleanup has been performed.
+
 ## Requested navigation assistant — 2026-10-07
 
 Implemented and verified for the user-authorized production rollout: browser-local task matching without an LLM/API key, 120 role-aware destinations, form/disclosure navigation and draft protection. The source inventory covers 190 form declarations and 52 HTTP methods with explicit permission/reachability caveats. Final scoped evidence: 87 unit/security/continuity checks and 96 isolated browser checks at 360/390/768/1440 px, focused supplier/operations swarm reruns, portal typecheck/build, scoped lint/format and independent review. The swarm-discovered multilingual matching and mobile launcher defects are corrected. Existing whole-app Svelte diagnostics and the historical standalone backup-fixture identity failure remain qualified. [Evidence and limits](docs/evidence/navigation-assistant-20261007.md). This adds no whole-app Client Essential acceptance. The release package identifies its exact source commit; production activation and live-account receipts are retained separately, with GitHub `main` synchronized to that source after successful activation.
@@ -1866,7 +1879,6 @@ UX refresh branch and coordinated release validation remain required.
 ### Digital workers production release — 11 October 2026
 
 Supersedes the earlier candidate-only deployment status: production now runs `digital-workers-2d7b76a250f6` from `2d7b76a250f6e5dc4adf8db4205fe8de5e4fb4c9`, integrated with main `413ad815` and all 200 UX improvements. The [release ledger](docs/evidence/digital-workers-release-20261011/README.md) records browser/security/finance checks, actual-role authenticated image-clone checks, local OCR, the first-attempt rollback, and the successful stopped-writer-backup cutover. Schema77 integrity/FK checks, 20 live role/viewport checks, preserved issued invoice/lines and 36 private files, automatic jobs and public reopening pass. No hosted model/API key is required. This is a scoped production release, not a new whole-product Client Essential certification.
-
 
 ### 11 October 2026 · current role-manual refresh
 

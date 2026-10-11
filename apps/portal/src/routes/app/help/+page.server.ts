@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { AccessDeniedError, assertLiveSession } from '@ja/database';
 import { base } from '$app/paths';
 import { manualRevision, manualsForPersona, personaForPrincipal } from '$lib/server/manual-catalog';
+import { availableOwnerTutorial } from '$lib/server/owner-tutorial';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import type { PageServerLoad } from './$types';
 
@@ -35,6 +36,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
         role: context.principal.role,
       },
       manuals: manualsForPersona(persona),
+      ownerTutorial: persona === 'owner' ? availableOwnerTutorial() : null,
     };
   } finally {
     context.sqlite.close();

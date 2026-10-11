@@ -1,0 +1,32 @@
+{
+  "scope": "Owner-only Help tutorial; no business lifecycle or schema changes",
+  "tests": {
+    "ownerTutorialAndServiceWorker": 50,
+    "existingManualRegressions": 17
+  },
+  "browser": "preview-browser.json",
+  "viewports": [360, 390, 768, 1440],
+  "roleDenial": ["finance", "manager", "worker", "auditor", "anonymous"],
+  "independentReview": "Approved; persisted Owner/live-session, API bypass of offline caching, byte-bounded range stream, no media before Play",
+  "video": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "durationSeconds": 5253.7,
+    "chapters": 24,
+    "bytes": 469079890
+  },
+  "storageAnalysis": "storage-audit.json; no deletions performed",
+  "productionReceiptDirectory": "/home/kripta/ja-owner-help-evidence-20261011",
+  "limitations": [
+    "Isolated compiled-app browser preview uses loopback training authentication. Production HTTPS checks are required during gated cutover.",
+    "Existing application Svelte build warnings are outside this scoped change."
+  ],
+  "checks": {
+    "portalTypecheck": "passed",
+    "productionBuild": "passed",
+    "scopedLint": "passed",
+    "streamBackpressureRegression": "Synthetic slow-consumer test distinguishes byte accounting from item accounting",
+    "abortedRequestRegression": "Response constructed before cancellation; pre-aborted GET does not throw"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "scope": "/srv/mail/owner-tutorial-20261011",
+  "readOnly": true,
+  "deletedFiles": 0,
+  "allocatedBytes": 5807636480,
+  "conservativeReclaimableBytes": 2678644736,
+  "preservingSharedSampleReclaimableBytes": 2670895104,
+  "hardlinkedFiles": 0,
+  "candidates": [
+    {
+      "paths": [
+        "production/video-render-*",
+        "production/owner-tutorial-av-joined.mp4",
+        "production/owner-tutorial-video-joined-normalized.mp4",
+        "production/owner-tutorial-audio-joined.mp4",
+        "production/ch21-audio-refresh.mp4",
+        "production/test-zero-start.mp4",
+        "production/21-precheck-revised.wav"
+      ],
+      "allocatedBytes": 1796829184,
+      "classification": "temporary renders and intermediate media"
+    },
+    {
+      "paths": [
+        "exports/prefix-01-11",
+        "exports/mid-12-18",
+        "exports/ch15-debug",
+        "exports/ch23-isolated",
+        "exports/05-client"
+      ],
+      "allocatedBytes": 412270592,
+      "classification": "obsolete preview exports; retain 05-client to preserve earlier shared sample link"
+    },
+    {
+      "paths": ["exports/.chapter-cache"],
+      "allocatedBytes": 469544960,
+      "classification": "24 cached MP4s byte-identical to final chapters"
+    },
+    {
+      "paths": ["private/video-venv", "private/video-voices", "private/__pycache__"],
+      "allocatedBytes": 338325504,
+      "classification": "optional, requires reinstall for future narration changes"
+    }
+  ],
+  "keep": [
+    "exports/final",
+    "exports/owner-tutorial-final.zip",
+    "recordings",
+    "planning",
+    "small production QA/manifests",
+    "private pipeline scripts",
+    "environment",
+    "private/environment"
+  ],
+  "activeDependencies": ["tutorial-owner-portal", "tutorial-owner-jobs", "tutorial-owner-mail"],
+  "productionServingDirectory": "/var/lib/jaautomation/tutorials/owner-20261011",
+  "note": "Published video is independent copy outside working folder. No deletions authorized or performed."
+}

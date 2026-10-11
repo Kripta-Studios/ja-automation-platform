@@ -230,6 +230,27 @@ describe('executed private service-worker read revocation', () => {
     expect(sw.stores.size).toBe(0);
   });
 
+  it.each(['video.mp4', 'captions.vtt', 'poster.webp'])(
+    'leaves protected owner tutorial media %s to the live API route online and offline',
+    async (asset) => {
+      const sw = await serviceWorker();
+      const url = origin + scope + 'api/help/owner-tutorial/' + asset;
+
+      const online = sw.fetchEvent(url);
+      expect(online.response).toBeUndefined();
+      expect(online.work).toEqual([]);
+      expect(sw.fetches).toEqual([]);
+      expect(sw.stores.size).toBe(0);
+
+      sw.setOffline(true);
+      const offline = sw.fetchEvent(url);
+      expect(offline.response).toBeUndefined();
+      expect(offline.work).toEqual([]);
+      expect(sw.fetches).toEqual([]);
+      expect(sw.stores.size).toBe(0);
+    },
+  );
+
   it('purges inherited current-identity HTML and loader entries before claiming clients without network', async () => {
     const sw = await serviceWorker();
     const privateEntries = new Map([

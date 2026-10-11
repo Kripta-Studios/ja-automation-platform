@@ -1,0 +1,21 @@
+{
+  "revision": "2026-10-11",
+  "directory": "/var/lib/jaautomation/tutorials/owner-20261011",
+  "files": [
+    {
+      "name": "owner-tutorial.mp4",
+      "bytes": 469079890,
+      "sha256": "37c3eaf9371cffe86e74a38deba75122c8cc69215da5a0ca3a0e959a241cc90c"
+    },
+    {
+      "name": "owner-tutorial.vtt",
+      "bytes": 123169,
+      "sha256": "7a4d4fdcb932f56efdc12efa57770b23ff5dfce06c7946c1b9efebcb3e422654"
+    },
+    {
+      "name": "poster.webp",
+      "bytes": 70646,
+      "sha256": "ddd3cc49e5ba9806c6e56e9d6f7a798286680f5b70d801ad248d6865eb07c82e"
+    }
+  ]
+}

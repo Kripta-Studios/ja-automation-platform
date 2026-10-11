@@ -1,0 +1,176 @@
+{
+  "status": "passed",
+  "scope": "isolated preview",
+  "checkedAt": "2026-10-11T20:33:47.574Z",
+  "checks": [
+    {
+      "role": "owner",
+      "width": 1440,
+      "noVideoOrCaptionFetchBeforePlay": true,
+      "video": {
+        "width": 1280,
+        "height": 720,
+        "duration": 5253.7,
+        "error": null
+      },
+      "chapterCount": 24,
+      "seekLastChapter": true,
+      "captionsLoaded": true,
+      "overflow": false
+    },
+    {
+      "role": "owner",
+      "width": 768,
+      "noVideoOrCaptionFetchBeforePlay": true,
+      "video": {
+        "width": 1280,
+        "height": 720,
+        "duration": 5253.7,
+        "error": null
+      },
+      "chapterCount": 24,
+      "seekLastChapter": true,
+      "captionsLoaded": true,
+      "overflow": false
+    },
+    {
+      "role": "owner",
+      "width": 390,
+      "noVideoOrCaptionFetchBeforePlay": true,
+      "video": {
+        "width": 1280,
+        "height": 720,
+        "duration": 5253.7,
+        "error": null
+      },
+      "chapterCount": 24,
+      "seekLastChapter": true,
+      "captionsLoaded": true,
+      "overflow": false
+    },
+    {
+      "role": "owner",
+      "width": 360,
+      "noVideoOrCaptionFetchBeforePlay": true,
+      "video": {
+        "width": 1280,
+        "height": 720,
+        "duration": 5253.7,
+        "error": null
+      },
+      "chapterCount": 24,
+      "seekLastChapter": true,
+      "captionsLoaded": true,
+      "overflow": false
+    },
+    {
+      "role": "owner",
+      "asset": "video.mp4",
+      "status": 206
+    },
+    {
+      "role": "owner",
+      "asset": "captions.vtt",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "asset": "poster.webp",
+      "status": 200
+    },
+    {
+      "role": "finance",
+      "width": 390,
+      "tutorialHidden": true,
+      "noTutorialRequests": true
+    },
+    {
+      "role": "finance",
+      "asset": "video.mp4",
+      "status": 404
+    },
+    {
+      "role": "finance",
+      "asset": "captions.vtt",
+      "status": 404
+    },
+    {
+      "role": "finance",
+      "asset": "poster.webp",
+      "status": 404
+    },
+    {
+      "role": "manager",
+      "width": 390,
+      "tutorialHidden": true,
+      "noTutorialRequests": true
+    },
+    {
+      "role": "manager",
+      "asset": "video.mp4",
+      "status": 404
+    },
+    {
+      "role": "manager",
+      "asset": "captions.vtt",
+      "status": 404
+    },
+    {
+      "role": "manager",
+      "asset": "poster.webp",
+      "status": 404
+    },
+    {
+      "role": "worker",
+      "width": 390,
+      "tutorialHidden": true,
+      "noTutorialRequests": true
+    },
+    {
+      "role": "worker",
+      "asset": "video.mp4",
+      "status": 404
+    },
+    {
+      "role": "worker",
+      "asset": "captions.vtt",
+      "status": 404
+    },
+    {
+      "role": "worker",
+      "asset": "poster.webp",
+      "status": 404
+    },
+    {
+      "role": "auditor",
+      "width": 390,
+      "tutorialHidden": true,
+      "noTutorialRequests": true
+    },
+    {
+      "role": "auditor",
+      "asset": "video.mp4",
+      "status": 404
+    },
+    {
+      "role": "auditor",
+      "asset": "captions.vtt",
+      "status": 404
+    },
+    {
+      "role": "auditor",
+      "asset": "poster.webp",
+      "status": 404
+    },
+    {
+      "role": "anonymous",
+      "method": "get",
+      "status": 401
+    },
+    {
+      "role": "anonymous",
+      "method": "head",
+      "status": 401
+    }
+  ]
+}

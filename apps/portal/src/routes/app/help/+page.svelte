@@ -1,5 +1,6 @@
 <script lang="ts">
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
+  import OwnerTutorial from '$lib/portal/ui/OwnerTutorial.svelte';
   import { onDestroy, tick } from 'svelte';
   import { helpWorkflows } from '$lib/portal/help-workflows';
   import {
@@ -33,6 +34,13 @@
     revision: string;
     user: { name: string; role: string | null; persona: Persona | null; workforceProfile?: string };
     manuals: readonly Manual[];
+    ownerTutorial: {
+      title: 'Owner tutorial';
+      durationSeconds: 5253.7;
+      audioLanguage: 'en';
+      captionsLanguage: 'en';
+      chapters: readonly { id: string; title: string; startSeconds: number }[];
+    } | null;
   };
 
   let { data }: { data: HelpData } = $props();
@@ -340,6 +348,10 @@
     <h2 id="login-title">{text('loginTitle')}</h2>
     <p>{text('loginBody')}</p>
   </section>
+
+  {#if data.ownerTutorial}
+    <OwnerTutorial tutorial={data.ownerTutorial} locale={data.locale} />
+  {/if}
 
   {#if data.manuals.length === 0}
     <p class="empty" role="status">{text('noGuides')}</p>

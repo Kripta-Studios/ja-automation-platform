@@ -19,6 +19,43 @@ the authenticated account settings facade; raw Better Auth MFA management endpoi
 [docs/SHOWCASE_ACCESS.md](../docs/SHOWCASE_ACCESS.md) for the portal access runbook and
 [docs/DEPLOYMENT_VPS.md](../docs/DEPLOYMENT_VPS.md) for the Stalwart integration contract.
 
+## Owner tutorial media
+
+Owner Help can show the reviewed English tutorial (24 chapters, 87 minutes 34 seconds).
+The card is available only when its MP4, captions and poster have been published. The
+video element is created after the user chooses Play or a chapter; opening Help loads
+only the small poster. Protected media requests use `/j-aautomation/app/api/help/owner-tutorial/`
+so existing service workers also bypass offline caching. Every GET, HEAD and byte-range
+request checks the live session and persisted Owner persona.
+
+Publish these files outside the application image and business-document directory:
+
+| Request asset  | Published filename   |
+| -------------- | -------------------- |
+| `video.mp4`    | `owner-tutorial.mp4` |
+| `captions.vtt` | `owner-tutorial.vtt` |
+| `poster.webp`  | `poster.webp`        |
+
+The default directory is `/var/lib/jaautomation/tutorials/owner-20261011`, already covered
+by the portal's host volume. `JA_OWNER_TUTORIAL_DIR` can override it. Use regular files,
+root ownership with group `10001`, directory mode `0750` and file mode `0640`. Do not
+publish this directory through a public Caddy file-server route. The endpoint streams
+bounded chunks and supports seeking without loading the full MP4 into memory.
+
+The 2026-10-11 master is 469,079,890 bytes, SHA-256
+`37c3eaf9371cffe86e74a38deba75122c8cc69215da5a0ca3a0e959a241cc90c`.
+Retain the release's media checksum manifest and final tutorial package separately for
+recovery; these reproducible assets intentionally live outside private-business-file
+backups. Updating the tutorial requires publishing matching captions/poster and updating
+the chapter offsets in `apps/portal/src/lib/server/owner-tutorial.ts` together. Verify
+Owner playback, non-Owner denial, range seeking and no video request before Play.
+
+The recording workspace `/srv/mail/owner-tutorial-20261011` is independent of these
+published assets. Its render intermediates, preview exports and duplicate chapter cache
+are cleanup candidates; preserve final deliveries and editing sources. Its training
+containers still use `environment/data` and private SMTP files, so those must not be
+removed while the training stack is running.
+
 ## Files and services
 
 - `compose.production.yml` — site, portal, always-on jobs worker and optional tools.

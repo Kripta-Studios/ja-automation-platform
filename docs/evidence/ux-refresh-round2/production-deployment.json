@@ -1,0 +1,192 @@
+{
+  "release": "ux-b7d470d34ee4",
+  "sourceCommit": "b7d470d34ee47d8f5c0e11af433408c4fe99f23c",
+  "branch": "codex/ux-workflow-refresh-20261011",
+  "previousRelease": "workflow-06bdf74560f71ee0c488",
+  "improvements": 200,
+  "additionalBatch": 100,
+  "services": [
+    {
+      "service": "deployment-portal-1",
+      "image": "ja-automation-portal:ux-b7d470d34ee4",
+      "sourceCommit": "b7d470d34ee47d8f5c0e11af433408c4fe99f23c",
+      "state": "running",
+      "startedAt": "2026-10-11T01:51:35.212702376Z"
+    },
+    {
+      "service": "deployment-jobs-1",
+      "image": "ja-automation-portal:ux-b7d470d34ee4",
+      "sourceCommit": "b7d470d34ee47d8f5c0e11af433408c4fe99f23c",
+      "state": "running",
+      "startedAt": "2026-10-11T01:51:35.471653711Z"
+    }
+  ],
+  "productionReadiness": {
+    "status": "ok"
+  },
+  "schemaMigrationRows": 76,
+  "historyPreservation": {
+    "issuedInvoicesUnchanged": true,
+    "originalPrivateFilesUnchanged": true,
+    "originalInvoiceCount": 1,
+    "originalPrivateFileCount": 36,
+    "integrity": "ok",
+    "foreignKeyViolations": 0
+  },
+  "backup": {
+    "backupPath": "/var/backups/jaautomation/2026-10-11T005948210Z-ee553167-cf3f-47d1-9466-4e9d3a1351bc",
+    "verifiedAt": "2026-10-11T00:59:55.036Z",
+    "createdAt": "2026-10-11T00:59:54.332Z",
+    "databaseSha256": "0a7b76a64e159dedb0445fb35992b8d48fd621332055d8058963b51605ea57f9",
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "documentCount": 36,
+    "history": {
+      "snapshotCount": 3,
+      "observedDays": 3,
+      "requiredDays": 3,
+      "coverageComplete": true,
+      "missingDays": [],
+      "scope": "Manifest dates only; integrity verified for latest snapshot"
+    }
+  },
+  "browserSmoke": {
+    "status": "passed",
+    "businessSubmissionRequests": 0,
+    "checks": [
+      {
+        "role": "finance",
+        "route": "/finance?view=commercial&lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "finance",
+        "route": "/billing?view=streams&lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "finance",
+        "route": "/projects?action=new-project&lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "finance",
+        "route": "/finance?view=commercial&lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "finance",
+        "route": "/billing?view=streams&lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "finance",
+        "route": "/projects?action=new-project&lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "manager",
+        "route": "/projects?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "manager",
+        "route": "/projects?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "worker",
+        "route": "/time?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "worker",
+        "route": "/expenses?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "worker",
+        "route": "/reports?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "worker",
+        "route": "/time?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "worker",
+        "route": "/expenses?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "worker",
+        "route": "/reports?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "auditor",
+        "route": "/accounting?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "auditor",
+        "route": "/ledger?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "auditor",
+        "route": "/accounting?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "auditor",
+        "route": "/ledger?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      }
+    ],
+    "authentication": "Actual documented test accounts; active External Technician account exercised the worker role because older worker test accounts are offboarded. Existing sign-in cooldown was respected; no access-control or rate-limit settings were changed."
+  },
+  "productionWrites": "No business records were submitted; only test-account authentication and read-only navigation.",
+  "cacheCleanup": "Removed 3.121GB of private build cache created by this release; current and previous images retained.",
+  "privateEvidenceRoot": "/home/kripta/ja-ux-evidence-20261011",
+  "scopedValidation": "validation.json",
+  "verifiedAt": "2026-10-11T02:11:33.846884+00:00",
+  "status": "deployed and verified"
+}

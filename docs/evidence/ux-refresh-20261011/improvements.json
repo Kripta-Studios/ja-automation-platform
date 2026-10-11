@@ -3,7 +3,7 @@
   "baselineSource": "27e57872",
   "baselineProduction": "workflow-06bdf74560f71ee0c488",
   "count": 100,
-  "status": "Implemented and verified; production rollout recorded separately",
+  "status": "Implemented, verified and deployed",
   "featurePreservation": "All existing create-project and billing fields, cadence options, per-worker conditions, roles, financial lifecycles and explicit issue/send actions retained. No migrations or business-rule changes.",
   "improvements": [
     {
@@ -838,5 +838,7 @@
       "improvement": "Empty expense results offer an immediate filter reset or Record expense action.",
       "files": ["apps/portal/src/lib/portal/sections/ExpenseSection.svelte"]
     }
-  ]
+  ],
+  "productionRelease": "ux-b7d470d34ee4",
+  "sourceCommit": "b7d470d34ee47d8f5c0e11af433408c4fe99f23c"
 }

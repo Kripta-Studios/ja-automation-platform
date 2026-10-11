@@ -2,7 +2,7 @@
   "scope": "Additional100 distinct improvements; 200 total with first ledger",
   "baselineSource": "27e57872",
   "productionBaseline": "workflow-06bdf74560f71ee0c488",
-  "status": "Verified candidate; deployment pending",
+  "status": "Implemented, verified and deployed",
   "count": 100,
   "distribution": {
     "projectsClients": 30,
@@ -40,5 +40,7 @@
     "reviewMode": "Independent read-only source and browser evidence review",
     "findings": "No blocking source or UX regressions remain. 200 substantive changes; no removed fields/actions/options. Final accounting visibility correction reverified20/20. Expense success/failure/idempotency and discard checks passed. Financial and historical protections retained."
   },
-  "deployment": "production-deployment.json (created after verified rollout)"
+  "deployment": "production-deployment.json (created after verified rollout)",
+  "productionRelease": "ux-b7d470d34ee4",
+  "sourceCommit": "b7d470d34ee47d8f5c0e11af433408c4fe99f23c"
 }

@@ -1,7 +1,7 @@
 {
   "date": "2026-10-11",
   "count": 100,
-  "status": "Implemented and verified; production rollout recorded separately",
+  "status": "Implemented, verified and deployed",
   "baselineSource": "27e57872",
   "priorBatch": "../ux-refresh-20261011/improvements.json",
   "featurePreservation": "No removed literal form fields, actions or option values. Existing financial, role, cadence and per-worker configuration contracts retained.",
@@ -929,5 +929,7 @@
       ],
       "details": "finance-navigation.json"
     }
-  ]
+  ],
+  "productionRelease": "ux-b7d470d34ee4",
+  "sourceCommit": "b7d470d34ee47d8f5c0e11af433408c4fe99f23c"
 }

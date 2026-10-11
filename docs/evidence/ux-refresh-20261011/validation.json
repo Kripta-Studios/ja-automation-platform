@@ -2,7 +2,7 @@
   "scope": "200 UI/UX improvements (original100 plus additional100); scoped change validation, not whole-product Client Essential certification",
   "sourceBaseline": "27e57872",
   "productionBaseline": "workflow-06bdf74560f71ee0c488",
-  "status": "Verified release candidate; production rollout recorded separately",
+  "status": "Implemented, verified and deployed",
   "preserved": [
     "All existing project form field names, actions and option values",
     "Custom billing schedules and per-worker bill rates, internal costs and compensation",
@@ -96,5 +96,7 @@
     "pnpm exec playwright test --config=tests/e2e/ux-refresh.browser.config.ts 'project-invoice-journey-audit.spec.ts$' --project=desktop",
     "pnpm exec playwright test --config=tests/e2e/ux-refresh.browser.config.ts 'accounting-pack-export-browser.spec.ts$' --project=phone-390 --project=desktop"
   ],
-  "fixtureIsolation": "Use the normal global setup for a fresh disposable database for each full lifecycle invocation; the invoice journey internally covers all four widths. Reusing a completed lifecycle fixture correctly triggers overlapping-time protection."
+  "fixtureIsolation": "Use the normal global setup for a fresh disposable database for each full lifecycle invocation; the invoice journey internally covers all four widths. Reusing a completed lifecycle fixture correctly triggers overlapping-time protection.",
+  "productionRelease": "ux-b7d470d34ee4",
+  "sourceCommit": "b7d470d34ee47d8f5c0e11af433408c4fe99f23c"
 }

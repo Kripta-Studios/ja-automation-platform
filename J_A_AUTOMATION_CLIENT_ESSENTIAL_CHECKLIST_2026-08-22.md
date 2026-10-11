@@ -1838,3 +1838,12 @@ The [additional 100 changes](docs/evidence/ux-refresh-round2/improvements.json),
 [issued fixture artifacts](docs/evidence/ux-refresh-20261011/invoice-artifacts.json)
 provide the detailed audit trail. Production rollout is recorded separately in
 `docs/evidence/ux-refresh-round2/production-deployment.json`.
+
+Scoped rollout completed: production `ux-b7d470d34ee4`, source
+`b7d470d34ee47d8f5c0e11af433408c4fe99f23c`. Portal readiness passes and jobs run
+on the same source. All 18 live phone/desktop checks pass across Finance, PM,
+Worker and Auditor, with zero business submission requests. The original issued
+invoice and all 36 private files are unchanged; database integrity is `ok`, with
+zero foreign-key violations and the existing 76 migrations. The verified backup
+and previous runtime image are retained. See the
+[production receipt](docs/evidence/ux-refresh-round2/production-deployment.json).
